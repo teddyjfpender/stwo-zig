@@ -6,120 +6,140 @@ const shared = @import("stwo_native_cuda_integration").common.uniform_layout;
 const geometry_module = @import("geometry.zig");
 const oods_module = @import("resident_oods.zig");
 
-pub const Layout = struct {
-    allocator: std.mem.Allocator,
-    trace_trees: [4]shared.TraceTree,
-    fri_trees: []shared.FriTree,
-    sample_counts: [4][]u8,
-    sample_total: usize,
+pub const Layout = ForCommitments(4);
 
-    pub fn init(
+/// Finite original protocols; access witness keeps a distinct fifth tree.
+pub fn ForCommitments(comptime N: usize) type {
+    if (N != 4 and N != 5) @compileError("resident proof layout requires four or five commitments");
+    return struct {
+        const Self = @This();
         allocator: std.mem.Allocator,
-        geometry: *const geometry_module.Geometry,
-        oods: *const oods_module.Plan,
-        config: core.pcs.config_v2.PcsConfigV2,
-    ) !Layout {
-        if (geometry.fri_layers.len == 0 or oods.sources.len != oods.offsets.len or
-            config.fri_config.fold_step == 0)
-            return error.InvalidCircuitProofLayout;
-        var trees: [4]shared.TraceTree = undefined;
-        var counts: [4][]u8 = undefined;
-        var initialized: usize = 0;
-        errdefer for (counts[0..initialized]) |owned| allocator.free(owned);
-        var source_first: usize = 0;
-        for (geometry.trees, &trees, &counts, 0..) |tree, *target, *count_slice, index| {
-            if (tree.column_logs.len == 0) return error.InvalidCircuitProofLayout;
-            const max_log = std.mem.max(u32, tree.column_logs);
-            if (max_log + config.fri_config.log_blowup_factor > tree.lifted_log)
+        trace_trees: [N]shared.TraceTree,
+        fri_trees: []shared.FriTree,
+        sample_counts: [N][]u8,
+        sample_total: usize,
+        allow_empty_masks: bool = false,
+
+        pub fn init(
+            allocator: std.mem.Allocator,
+            geometry: anytype,
+            oods: *const oods_module.Plan,
+            config: anytype,
+        ) !Self {
+            return initWithMaskPolicy(allocator, geometry, oods, config, false);
+        }
+
+        pub fn initForOriginalMasks(
+            allocator: std.mem.Allocator,
+            geometry: anytype,
+            oods: *const oods_module.Plan,
+            config: anytype,
+        ) !Self {
+            return initWithMaskPolicy(allocator, geometry, oods, config, true);
+        }
+
+        fn initWithMaskPolicy(
+            allocator: std.mem.Allocator,
+            geometry: anytype,
+            oods: *const oods_module.Plan,
+            config: anytype,
+            allow_empty_masks: bool,
+        ) !Self {
+            if (geometry.fri_layers.len == 0 or oods.sources.len != oods.offsets.len or
+                config.fri_config.fold_step == 0)
                 return error.InvalidCircuitProofLayout;
-            target.* = .{
-                .role = switch (index) {
-                    0 => .preprocessed,
-                    1 => .main,
-                    2 => .interaction,
-                    3 => .composition,
-                    else => unreachable,
-                },
-                .column_count = tree.column_logs.len,
-                .column_log_size = max_log,
-                .commitment_log_size = tree.lifted_log,
-                .sampled = true,
-                .decommitted = true,
+            var trees: [N]shared.TraceTree = undefined;
+            var counts: [N][]u8 = undefined;
+            var initialized: usize = 0;
+            errdefer for (counts[0..initialized]) |owned| allocator.free(owned);
+            var source_first: usize = 0;
+            for (geometry.trees, &trees, &counts, 0..) |tree, *target, *count_slice, index| {
+                if (tree.column_logs.len == 0) return error.InvalidCircuitProofLayout;
+                const max_log = std.mem.max(u32, tree.column_logs);
+                if (max_log + config.fri_config.log_blowup_factor > tree.lifted_log)
+                    return error.InvalidCircuitProofLayout;
+                target.* = .{
+                    .role = roleAt(index),
+                    .column_count = tree.column_logs.len,
+                    .column_log_size = max_log,
+                    .commitment_log_size = tree.lifted_log,
+                    .sampled = true,
+                    .decommitted = true,
+                };
+                const owned = try allocator.alloc(u8, tree.column_logs.len);
+                @memset(owned, 0);
+                count_slice.* = owned;
+                initialized += 1;
+                const source_end = try std.math.add(usize, source_first, tree.column_logs.len);
+                for (oods.sources) |source| {
+                    if (source >= source_first and source < source_end) {
+                        const count = &owned[source - source_first];
+                        if (count.* == 2) return error.InvalidCircuitProofLayout;
+                        count.* += 1;
+                    }
+                }
+                for (owned) |count| if (count == 0 and !allow_empty_masks) return error.InvalidCircuitProofLayout;
+                source_first = source_end;
+            }
+            const fri = try allocator.alloc(shared.FriTree, geometry.fri_layers.len);
+            errdefer allocator.free(fri);
+            for (geometry.fri_layers, fri, 0..) |layer, *target, index| target.* = .{
+                .tree_index = N + index,
+                .evaluation_log_size = layer.evaluation_log,
+                .cumulative_fold = layer.cumulative_fold,
+                .fold_step = layer.fold_step,
+                .log_rows_per_leaf = layer.evaluation_log - layer.leaf_log,
             };
-            const owned = try allocator.alloc(u8, tree.column_logs.len);
-            @memset(owned, 0);
-            count_slice.* = owned;
-            initialized += 1;
-            const source_end = try std.math.add(usize, source_first, tree.column_logs.len);
-            for (oods.sources) |source| {
-                if (source >= source_first and source < source_end) {
-                    const count = &owned[source - source_first];
-                    if (count.* == 2) return error.InvalidCircuitProofLayout;
-                    count.* += 1;
+            const result = Self{
+                .allocator = allocator,
+                .trace_trees = trees,
+                .fri_trees = fri,
+                .sample_counts = counts,
+                .sample_total = oods.sources.len,
+                .allow_empty_masks = allow_empty_masks,
+            };
+            try result.validate();
+            return result;
+        }
+
+        pub fn deinit(self: *Self, _: std.mem.Allocator) void {
+            for (self.sample_counts) |owned| self.allocator.free(owned);
+            self.allocator.free(self.fri_trees);
+            self.* = undefined;
+        }
+
+        pub fn validate(self: Self) !void {
+            if (self.fri_trees.len == 0) return error.InvalidCircuitProofLayout;
+            var samples: usize = 0;
+            for (self.trace_trees, self.sample_counts, 0..) |tree, counts, index| {
+                const expected_role = roleAt(index);
+                if (tree.role != expected_role or !tree.sampled or !tree.decommitted or
+                    counts.len != tree.column_count or tree.column_log_size > tree.commitment_log_size)
+                    return error.InvalidCircuitProofLayout;
+                for (counts) |count| {
+                    if ((count == 0 and !self.allow_empty_masks) or count > 2) return error.InvalidCircuitProofLayout;
+                    samples += count;
                 }
             }
-            for (owned) |count| if (count == 0) return error.InvalidCircuitProofLayout;
-            source_first = source_end;
-        }
-        const fri = try allocator.alloc(shared.FriTree, geometry.fri_layers.len);
-        errdefer allocator.free(fri);
-        for (geometry.fri_layers, fri, 0..) |layer, *target, index| target.* = .{
-            .tree_index = 4 + index,
-            .evaluation_log_size = layer.evaluation_log,
-            .cumulative_fold = layer.cumulative_fold,
-            .fold_step = layer.fold_step,
-            .log_rows_per_leaf = 2,
-        };
-        const result = Layout{
-            .allocator = allocator,
-            .trace_trees = trees,
-            .fri_trees = fri,
-            .sample_counts = counts,
-            .sample_total = oods.sources.len,
-        };
-        try result.validate();
-        return result;
-    }
-
-    pub fn deinit(self: *Layout, _: std.mem.Allocator) void {
-        for (self.sample_counts) |owned| self.allocator.free(owned);
-        self.allocator.free(self.fri_trees);
-        self.* = undefined;
-    }
-
-    pub fn validate(self: Layout) !void {
-        if (self.fri_trees.len == 0) return error.InvalidCircuitProofLayout;
-        var samples: usize = 0;
-        for (self.trace_trees, self.sample_counts, 0..) |tree, counts, index| {
-            const expected_role: shared.TraceRole = switch (index) {
-                0 => .preprocessed,
-                1 => .main,
-                2 => .interaction,
-                3 => .composition,
-                else => unreachable,
-            };
-            if (tree.role != expected_role or !tree.sampled or !tree.decommitted or
-                counts.len != tree.column_count or tree.column_log_size > tree.commitment_log_size)
-                return error.InvalidCircuitProofLayout;
-            for (counts) |count| {
-                if (count == 0 or count > 2) return error.InvalidCircuitProofLayout;
-                samples += count;
+            if (samples != self.sample_total) return error.InvalidCircuitProofLayout;
+            for (self.fri_trees, 0..) |tree, index| {
+                if (tree.tree_index != N + index or tree.fold_step == 0 or
+                    tree.fold_step > 4 or tree.log_rows_per_leaf != @as(u32, if (tree.fold_step > 1 and tree.evaluation_log_size >= 2) 2 else 0))
+                    return error.InvalidCircuitProofLayout;
             }
         }
-        if (samples != self.sample_total) return error.InvalidCircuitProofLayout;
-        for (self.fri_trees, 0..) |tree, index| {
-            if (tree.tree_index != 4 + index or tree.fold_step == 0 or
-                tree.fold_step > 4 or tree.log_rows_per_leaf != 2)
-                return error.InvalidCircuitProofLayout;
-        }
-    }
 
-    pub fn sampleCount(self: *const Layout, tree_index: usize, column_index: usize) !usize {
-        if (tree_index >= 4 or column_index >= self.sample_counts[tree_index].len)
-            return error.InvalidCircuitProofLayout;
-        return self.sample_counts[tree_index][column_index];
-    }
-};
+        pub fn sampleCount(self: *const Self, tree_index: usize, column_index: usize) !usize {
+            if (tree_index >= N or column_index >= self.sample_counts[tree_index].len)
+                return error.InvalidCircuitProofLayout;
+            return self.sample_counts[tree_index][column_index];
+        }
+        fn roleAt(index: usize) shared.TraceRole {
+            if (N == 5) return ([_]shared.TraceRole{ .preprocessed, .main, .main, .interaction, .composition })[index];
+            return ([_]shared.TraceRole{ .preprocessed, .main, .interaction, .composition })[index];
+        }
+    };
+}
 
 test "resident circuit proof layout preserves mixed column logs and double samples" {
     const circuit = @import("stwo_circuit_frontend");

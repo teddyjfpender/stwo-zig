@@ -1,0 +1,10 @@
+1/9 block_v8_initialization_oom_test_root.test_0...OK
+2/9 runner.initialization_oom_test.test.fallible initialization bytes inventory wrapping and lazy BSS match compatibility writes...OK
+3/9 runner.initialization_oom_test.test.fallible initialization every bulk allocation failure cleans up...OK
+4/9 runner.initialization_oom_test.test.fallible initialization prepare failure preserves bytes and inventory with partial zero pages...OK
+5/9 runner.initialization_oom_test.test.fallible initialization every ELF segment and BSS allocation failure propagates...OK
+6/9 runner.initialization_oom_test.test.fallible initialization every Session private input and ELF allocation failure propagates...OK
+7/9 runner.initialization_oom_test.test.fallible initialization Session initial bytes and ABI match compatibility loader...OK
+8/9 runner.mod.test_0...OK
+9/9 runner.decode.test_0...OK
+All 9 tests passed.

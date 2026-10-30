@@ -1,0 +1,19 @@
+1/14 block_v7_complete_union_test_root.test_0...OK
+2/14 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+V7_COMPLETE_UNION profile=diagnostic_q8_pow0 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_enabled=false trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=0 union_queried=136728 oracle_queried=0 setup_ns=406250833 union_prove_ns=3253082166 oracle_prove_ns=0 fresh_verify_ns=1222520333 proof_bytes=1255910 proof_peak_bytes=367193630 direct_peak_bytes=367193630 contiguous_ns=5093516750 destruction_ns=41712250 encode_decode_ns=169941250 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/14 prover.tests.block_v7_native_caller_union_test.test.v7 native access active caller union genuine nine tree proof...V7_NATIVE_CALLER_UNION_CENSUS union_oods=33153 separate_oods=33169 union_queried=129216 separate_queried=127652
+V7_NATIVE_CALLER_UNION trees=9 separate_trees=11 original_starks=1 separate_starks=2 physical_claims_preserved=true original_exports_exact=true producers_destroyed=true union_prove_ns=1441474708 separate_prove_ns=2406971125 fresh_verify_ns=969214584 proof_bytes=1169498 timing=shared_host_diagnostic complete_execution=false
+OK
+4/14 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+5/14 prover.block_v5_initial_sources_v1.test.block-v5 initial layout admits canonical RW union and rejects source ambiguity...OK
+6/14 runner.mod.test_0...OK
+7/14 runner.decode.test_0...OK
+8/14 air.lookups.tables.mod.test_0...OK
+9/14 air.memory_commitment.poseidon2_air.test_0...OK
+10/14 air.semantic_eval.test_0...OK
+11/14 prover.block_execution_external_trace_v2.test_0...OK
+12/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/14 air.lookups.tables.source_ingest.test_0...OK
+14/14 diagnostics.mod.test_0...OK
+All 14 tests passed.

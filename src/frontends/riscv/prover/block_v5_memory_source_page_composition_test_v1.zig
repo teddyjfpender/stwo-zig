@@ -56,6 +56,23 @@ fn fixture(a: std.mem.Allocator) !void {
     try left.evaluateConstraintQuotientsAtPoint(point(), &left_values, &expected, 3);
     try right.evaluateConstraintQuotientsAtPoint(point(), &right_values, &expected, 3);
     try std.testing.expect(actual.finalize().eql(expected.finalize()));
+    // Shared STARK OODS forwards its composition evaluations after all trace
+    // trees. They are validated and excluded from the original child masks.
+    const composition_count = comptime core.verifier_types.compositionColumnCount(2, core.fields.qm31.SECURE_EXTENSION_DEGREE).?;
+    var composition_sample = [_]Q{Q.one()};
+    var composition_columns: [composition_count][]Q = @splat(&composition_sample);
+    var complete_trees: [Composition.TREE_COUNT + 1][][]Q = undefined;
+    @memcpy(complete_trees[0..Composition.TREE_COUNT], values.items);
+    complete_trees[Composition.TREE_COUNT] = &composition_columns;
+    const complete_values = core.air.components.MaskValues{ .items = &complete_trees };
+    var complete = Acc.init(Q.fromU32Unchecked(23, 7, 11, 17));
+    try owner.evaluateConstraintQuotientsAtPoint(point(), &complete_values, &complete, 3);
+    try std.testing.expect(complete.finalize().eql(actual.finalize()));
+    complete_trees[Composition.TREE_COUNT] = composition_columns[0 .. composition_count - 1];
+    try std.testing.expectError(error.InvalidSourcePageComposition, owner.evaluateConstraintQuotientsAtPoint(point(), &complete_values, &complete, 3));
+    complete_trees[Composition.TREE_COUNT] = &composition_columns;
+    composition_columns[0] = &.{};
+    try std.testing.expectError(error.InvalidSourcePageComposition, owner.evaluateConstraintQuotientsAtPoint(point(), &complete_values, &complete, 3));
     // A mutation of the one aliased cell affects BOTH original equations.
     values.items[1][0][0] = values.items[1][0][0].add(Q.one());
     var changed = Acc.init(Q.fromU32Unchecked(23, 7, 11, 17));

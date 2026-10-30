@@ -1,0 +1,5 @@
+run	profile	cycles	native_windows	ram_shards	setup_ns	union_prove_ns	destruction_ns	encode_decode_ns	fresh_verify_ns	contiguous_ns	phase_sum_ns	proof_peak_bytes	direct_peak_bytes	proof_bytes	oracle_enabled	physical_claims_match_qualified_artifact	output_contract
+q8-qualification	diagnostic_q8_pow0	20495	1	3	394244125	3256546667			1216347750		4867138542	366734486		1255910	True	True	finite complete original heterogeneous STARK; no recursive adapter
+q70-qualification	csp_q70_pow26	20495	1	3	400372750	4078970708			1409647625		5888991083	367191262		5841554	True	True	finite complete original heterogeneous STARK; no recursive adapter
+q8-contiguous	diagnostic_q8_pow0	20495	1	3	406250833	3253082166	41712250	169941250	1222520333	5093516750	4881853332	367193630	367193630	1255910	False	True	finite complete original heterogeneous STARK; no recursive adapter
+q70-contiguous	csp_q70_pow26	20495	1	3	400037750	4035929167	42349000	186264500	1353848875	6018432666	5789815792	366664734	366664734	5841554	False	True	finite complete original heterogeneous STARK; no recursive adapter

@@ -1,0 +1,54 @@
+{
+  "hardware": "Apple M5 Max,64GiB RAM",
+  "workers": 4,
+  "optimization": "ReleaseSafe",
+  "execution_profile": "rv32im_zkvm_ethereum_sha_v1",
+  "guest_elf_sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d",
+  "guest_source_sha256": "a3362f44171eacaeffffda373064bd1e1a54e4a74173f2fa5610228e495bfcdc",
+  "original_proofs_before": 5,
+  "original_proofs_after": 1,
+  "commitment_roots_before": 23,
+  "commitment_roots_after": 15,
+  "output_contract": "complete original STARK, not compact recursive root",
+  "new_scope": "one actual complete execution window with native access+active caller+ROM+compact lookup+joint RAM/init/range16/terminal",
+  "tested": "fresh standard STARK decode+core verification after all producer owners destroyed; exact all physical claims versus5original oracle; tamper rejection",
+  "proof_wire": "standard STARK postcard plus public JSONmetadata; standalone bounded publication decoder not yet implemented by this lane",
+  "prior_comparison": {
+    "time_ns": 62981386125,
+    "proof_bytes": 158878,
+    "charged_peak_bytes": 7375674152,
+    "native_windows": 2,
+    "original_proofs": 11,
+    "fetches": 20496,
+    "events": 8293,
+    "different_output_contract": true,
+    "not_same_geometry_speedup_claim": true
+  },
+  "benchmark_conditions": {
+    "q8_contiguous": "no other active compiler or prover; parent zig test had finished compilation",
+    "q70_contiguous": "standalone binary; no other active compiler/prover",
+    "qualification_timings": "diagnostic only; q70qualification overlapped another compiler"
+  },
+  "samples_per_configuration": 1,
+  "no_claims": [
+    "Ethereum block proved",
+    "whole-block bounded memory",
+    "qualified15tree recursive adapter",
+    "10x same compact root contract",
+    "GPU timing"
+  ],
+  "new_direct_geometry": {
+    "cycles": 20495,
+    "native_windows": 1,
+    "callers": 1,
+    "memory_shards": 3,
+    "fetches": 20495,
+    "events": 8293,
+    "native_access_cells": 1572864,
+    "fixture_access_cell_cap": 16777216,
+    "host_byte_cap": 25769803776
+  },
+  "same_guest_source_as_archived_streaming_campaign": true,
+  "guest_input": "No private input supplied; same release ELF generator and4096iterations",
+  "canonical_process_peak_footprint_bytes": 386565368
+}

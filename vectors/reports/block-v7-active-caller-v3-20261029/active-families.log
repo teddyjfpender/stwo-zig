@@ -1,0 +1,22 @@
+1/13 block_v7_caller_active_test_root.test_0...OK
+2/13 prover.tests.block_v7_caller_active_test.test.active caller SHA-only genuine proof...V7_ACTIVE_CHECKPOINT bytes=618760 coefficients=181376 byte_identical=true identity_cap_noncanonical_rejected=true fresh_verified=true
+V7_ACTIVE_CALLER kind=sha original_main=6732 main=525 original_interaction=7508 interaction=824 fresh_verified=true internal_closed=true global_closed=false
+OK
+3/13 prover.tests.block_v7_caller_active_test.test.active caller Keccak-only genuine proof...V7_ACTIVE_CALLER kind=keccak original_main=6732 main=2217 original_interaction=7508 interaction=4176 fresh_verified=true internal_closed=true global_closed=false
+OK
+4/13 prover.tests.block_v7_caller_active_test.test.active caller recovery-only genuine proof...V7_ACTIVE_CALLER kind=recovery original_main=6732 main=4012 original_interaction=7508 interaction=2516 fresh_verified=true internal_closed=true global_closed=false
+OK
+5/13 prover.tests.block_v7_caller_active_test.test.active caller SHA Keccak mixed genuine proof...V7_ACTIVE_CHECKPOINT bytes=5569740 coefficients=1147584 byte_identical=true identity_cap_noncanonical_rejected=true fresh_verified=true
+V7_ACTIVE_CALLER_DIFFERENTIAL global_exports_exact=true original_oods=49804 active_oods=32547
+V7_ACTIVE_CALLER kind=mixed original_main=6732 main=2731 original_interaction=7508 interaction=4996 fresh_verified=true internal_closed=true global_closed=false
+OK
+6/13 prover.tests.block_v7_caller_active_test.test.active caller recovery Keccak mixed genuine proof...V7_ACTIVE_CALLER kind=recovery_keccak original_main=6732 main=6218 original_interaction=7508 interaction=6688 fresh_verified=true internal_closed=true global_closed=false
+OK
+7/13 runner.mod.test_0...OK
+8/13 runner.decode.test_0...OK
+9/13 prover.block_execution_external_trace_v2.test_0...OK
+10/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/13 prover.block_v5_committed_trace_column_v1.test_0...OK
+12/13 air.lookups.tables.mod.test_0...OK
+13/13 air.lookups.tables.source_ingest.test_0...OK
+All 13 tests passed.

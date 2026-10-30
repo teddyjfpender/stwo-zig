@@ -25,7 +25,7 @@ pub fn validateProfile(comptime profile: @import("../isa/execution_profile.zig")
     var initial_cpu = runner.Cpu.init(info.entry_point, info.stack_pointer);
     initial_cpu.writeReg(3, info.global_pointer);
     if (data.initial_pc != initial_cpu.pc or !std.meta.eql(data.initial_regs, initial_cpu.regs)) return error.InitialCpuMismatch;
-    if (input.len != 0) memory.writeSlice(info.input_start, input);
+    if (input.len != 0) try memory.writeSliceFallible(info.input_start, input);
     const completion = data.completion orelse return error.MissingCompletion;
     switch (completion.kind) {
         .halt_flag => {

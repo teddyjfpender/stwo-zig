@@ -1,0 +1,33 @@
+{
+  "schema": "resident-child-paths-qualification-v1",
+  "scope": "GPU raw original-child Merkle witness expansion; not complete resident parent proof",
+  "device": "NVIDIA H200 SM90",
+  "genuine_original_child": "native RV32 MUL q8",
+  "trees": 5,
+  "raw_queries": 8,
+  "unique_queries": 4,
+  "exact_output_words": 1722,
+  "sibling_words": 576,
+  "ancestor_words": 896,
+  "frontier_words": 250,
+  "hostile_cases": 6,
+  "source_sha256": {
+    "src/integrations/riscv_cuda/resident_parent_child_paths_v1.zig": "cf93677379e792e7ece4ab0291e79bdad287ee91504a31bca9a804e3e20bb4e2",
+    "src/integrations/riscv_cuda/resident_parent_child_paths_v1.cu": "fb7e3ba2204600cb90bb85435b8e5479ce9a689c9f69878443edc8491b0766cf",
+    "src/integrations/riscv_cuda/resident_parent_child_paths_runtime_v1.zig": "55f684da97958d74a517f5d6d5357fb29db4d17ce1eccfe22871bca061206f73",
+    "src/integrations/riscv_cuda/tests/resident_parent_child_paths_runner_v1.cu": "bf90d9b36791e8a034a9e166b5c499ddb0e1103ff3d43ea3f44eafa8d25df808",
+    "src/integrations/riscv_cuda/tests/resident_parent_child_transcript_test_v1.zig": "2968085fbde5ce78c86ddac8f06823bd82294d4671ddc56cd3f027a5053dd045"
+  },
+  "object_sha256": "54262ea42be8132d12450767c52d8c1dfd435e0a8e84cfedacb1d08126c34ac3",
+  "oracle": "original fresh CPU proof capture, test-only; production uploads only raw packet+cold metadata",
+  "constraints": [
+    "exact compressed witness consumption",
+    "root equality",
+    "canonical fields",
+    "raw query bounds",
+    "duplicate leaf equality",
+    "parity-preserving lifted query positions",
+    "short-column alias equality",
+    "bounded output and device ownership"
+  ]
+}

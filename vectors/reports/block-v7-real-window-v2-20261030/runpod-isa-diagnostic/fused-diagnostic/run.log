@@ -1,0 +1,12 @@
+1/6 block_v5_native_projection_fused_unit_test_root.test_0...OK
+2/6 prover.tests.block_v5_native_projection_fused_unit_test.test.block-v5 fused native nonproving masks OODS and domain equations match separate projections...A_FUSED_DOMAIN family=shifts_reg mode=0 slot=2 kind=.{ .lookup = .{ .source = .{ .opcode = .shifts_reg }, .partition = .range_check_20, .entries = { 9, 18 }, .entry_count = 2, .degree = 3, .log_size = 1, .n_rows = 1, .main_offset = 0, .width = 60, .register_custody_mode = 0 } } row=1 log=3 expected=.{ .c0 = .{ .a = .{ .v = 2058740386 }, .b = .{ .v = 256872519 } }, .c1 = .{ .a = .{ .v = 577667679 }, .b = .{ .v = 1439957812 } } } actual=.{ .c0 = .{ .a = .{ .v = 1964683192 }, .b = .{ .v = 122297168 } }, .c1 = .{ .a = .{ .v = 247836332 }, .b = .{ .v = 269163005 } } }
+expected 2058740386, found 1964683192
+Field v incorrect. expected 2058740386, found 1964683192
+Field a incorrect. expected .{ .v = 2058740386 }, found .{ .v = 1964683192 }
+Field c0 incorrect. expected .{ .a = .{ .v = 2058740386 }, .b = .{ .v = 256872519 } }, found .{ .a = .{ .v = 1964683192 }, .b = .{ .v = 122297168 } }
+FAIL (TestExpectedEqual)
+3/6 air.semantic_eval.test_0...OK
+4/6 air.lookups.tables.mod.test_0...OK
+5/6 air.memory_commitment.poseidon2_air.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+5 passed; 0 skipped; 1 failed.

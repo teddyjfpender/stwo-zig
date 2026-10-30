@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-cpu-architecture-diagnostic-build-v1",
+  "root": "src/frontends/riscv/block_v7_real_window_union_benchmark_root.zig",
+  "optimize": "ReleaseFast",
+  "edited_surface": {
+    "src/frontends/riscv/prover/block_v7_window_union_producer_v1.zig": "19267c48e5be854ebc3b92aae704bdf3b70e7f96d96a7a460cf5a9e3e763a35c",
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_family_v1.zig": "ba7f2427689b56d3645f15af5f22f89bcd2f46c673bd87fd010e93dead43ce8f",
+    "src/frontends/riscv/prover/block_v7_multi_union_scope_family_v1.zig": "c302cfab2e88f50c45207df68f2f59cd912e35ec728a4ad7b0b50abd6bd067d0",
+    "src/frontends/riscv/prover/block_v7_multi_union_codec_family_v1.zig": "2a3eead125bf08c3cbcb730dbf6ba0016577ed0287694bf4a2d2768507cd0beb",
+    "src/frontends/riscv/prover/block_v7_multi_union_statement_v1.zig": "19dc4b6daf3e81dbcf5ab00b58da3ea4f9471cdb14bf8f9cdcd5bb206fb949d8",
+    "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig": "b2bb81c28480965cf3b16bcb7d031b61805723c2229e5132f68b30c17c7788fb",
+    "src/frontends/riscv/prover/tests/block_v7_real_window_v2_benchmark.zig": "e421066b5dd5e9ea0b88ebe2e0416b6ad73216e536cea22f3390e696628d438b"
+  },
+  "qualification": "unranked CPU scaling diagnostics; edited surface and binary retained, no clean full-source benchmark promotion",
+  "binary_sha256": "851e176c21021531dd4f6e89607cd9d45d399b48b94a0301d79317baaeb769e9"
+}

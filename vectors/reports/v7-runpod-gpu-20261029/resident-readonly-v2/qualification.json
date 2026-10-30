@@ -1,0 +1,44 @@
+{
+  "schema": "stwo-resident-readonly-numeric-v2",
+  "result": {
+    "status": "pass",
+    "scope": "resident_readonly_sort_primitive",
+    "fully_resident_prover": false,
+    "cases": 7,
+    "entries": 70280,
+    "field_words": 281120,
+    "hostiles": 20
+  },
+  "gpu": "NVIDIA H200",
+  "cuda": "12.8.93",
+  "scope": "exact original Zig row-map oracle, device gather, stable sort and predecessor arguments",
+  "prover_qualified": false,
+  "replaces": "../resident-readonly/qualification.json",
+  "original_row_map_sha256": "3655f7b291d00e0c5f49b9eee8815d3f41b2c267117c46e1b015eddb69babf08",
+  "object_sha256": "ccf187c46493a302ffc3e0038325af61c694fca927c2c9ad144087b24fb8b4b9",
+  "runner_sha256": "c0efcdd7ac5764d1ca03de29c15dce56a3a607f2670c55c35503fce97ebe98dd",
+  "oracle": "CPU generator invokes original framework_interaction.committedRow for logs1..17; C++ runner consumes the emitted bijections rather than reproducing the CUDA permutation",
+  "timing": "CUDA event primitive diagnostics only; no end-to-end proof performance claim",
+  "source": [
+    {
+      "path": "src/integrations/riscv_cuda/native/resident_parent_readonly_v1.cu",
+      "sha256": "0f2b69034c3fdf7763f3975bc9a57ae7dfbbfcf775f700f7a625de1681d567ea"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/native/resident_parent_readonly_v1.cuh",
+      "sha256": "2fecacb7aaf4d63adae4fbf01ca421dfa2bb3b21aaab008f78d506c76e272847"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_parent_readonly_numeric_v1.cu",
+      "sha256": "a20f3457b4123a80c8646a36ce1fafe52534dd038e75cec466fbc4ab9011cb37"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_parent_row_maps_v1.zig",
+      "sha256": "63d22b68bb536928df09d5d2aa1b40959040369e038ebf33fe6165742ddce259"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/framework_interaction.zig",
+      "sha256": "e9fea593234939df7e23d950eca1388baf318212f5cfbce1c47d5f34d00486c2"
+    }
+  ]
+}

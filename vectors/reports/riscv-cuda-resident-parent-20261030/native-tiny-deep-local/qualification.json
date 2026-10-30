@@ -1,0 +1,67 @@
+{
+  "schema": "stwo-native-tiny-deep-local-v1",
+  "production_ready": false,
+  "gpu_qualified": false,
+  "full_native_source_proof_qualified": false,
+  "reason": "Final H200 candidate FRIlog2 necessarily violates shared strict subdomain preparation minlog4. New native-only tiny policy preserves exact geometry.",
+  "algebra": "DEEP inverse uses the first bit-reversed half of the canonical full domain. Its initial x/y are computed on device. Canonical parent tiny inverse cannot be substituted. Existing canonical tiny extension is reused.",
+  "unchanged": "Shared DEEP numerator/grouping/denominator/periodicity algorithm and default Cairo transform guards. No proof/security/transcript change.",
+  "tests": {
+    "focused_zig_passed": 2,
+    "full_quotient_logs": [
+      1,
+      2,
+      3
+    ],
+    "mixed_height_and_periodic": true,
+    "exact_cuda_arithmetic_host_cases": 92,
+    "original_cpu_interpolation_oracle": true,
+    "cuda_host_syntax": true,
+    "linux_full_native_semantics": true,
+    "build_inventory_passed": 22,
+    "actual_cuda_device_execution": false
+  },
+  "next_required": "Rebuild archive with quotient_tiny.cu and execute full N4 tiny proof +unchanged verifier/CPU byte oracle; qualify N5 separately. No device success inferred from host syntax.",
+  "files": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_quotient_v1.zig",
+      "sha256": "d72019913ca7da064d4aed73c9c64d1b60f44e4cb691200b9121571f99a5d2b2"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/quotient_tiny.cu",
+      "sha256": "99f75c8a7cb63e1c9d6179d2c15ac2668260d54d783816e55715f1ea51174f93"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/quotient_tiny.cuh",
+      "sha256": "999fc0b40fedd7719ce2eed068aa656381f7d746bde8f4e39688c9570668dc5c"
+    },
+    {
+      "path": "src/backends/cuda/abi/stages/transform.zig",
+      "sha256": "504fb236b43fef3e9654e05cb67c328ce4ce63e6c194c8aa4d4af55bb39eca15"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_prover_v1.zig",
+      "sha256": "98b3d6df8e1699c579b486f4177ee01393b204abb7ec71a16356b9cd2a635d33"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_pipeline_v1.zig",
+      "sha256": "fee1042a5844e7ce1b5a03ce8fbd9b7f031e3025ce9a1242c4b8d130b9bbaaad"
+    },
+    {
+      "path": "src/riscv_cuda_native_tiny_quotient_test_root.zig",
+      "sha256": "74569df973b9ce92e222b9749340713deb215a780a2d6ae0ddd24dd1857acbb1"
+    },
+    {
+      "path": "tests/cuda/native_quotient_tiny_host.cpp",
+      "sha256": "f4c0c2cf572fa88114cde1fe1c855e88fbee33dbb9fca367695085abc7b70c3c"
+    },
+    {
+      "path": "scripts/riscv_native_tiny_quotient_oracle.py",
+      "sha256": "7bb0b2cde4c35da9ff07a8ac9ae1a7c3439bf9f925a79defa5b110c7302183ed"
+    }
+  ],
+  "commands": {
+    "zig": "STWO_NATIVE_TINY_ORACLE=/tmp/v7-native-tiny-vectors.bin python3 scripts/zig_protocol_test.py src/riscv_cuda_native_tiny_quotient_test_root.zig -OReleaseSafe --test-filter \"native tiny DEEP\"",
+    "host": "python3 scripts/riscv_native_tiny_quotient_oracle.py --vectors /tmp/v7-native-tiny-vectors.bin --out-dir /tmp/v7-native-tiny-host-final"
+  }
+}

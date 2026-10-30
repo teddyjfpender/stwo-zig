@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-cpu-architecture-attempt-v1",
+  "cycles": 1048576,
+  "canonical_queries": 70,
+  "pow_bits": 26,
+  "execution_scope": "declared nonterminal Ethereum window; skipped prefix not proved",
+  "verified_complete_root": false,
+  "result": "V7MemoryResourceLimit at detached receiver; original and root verification resource presets differ",
+  "command_wall_seconds": 145.04,
+  "process_max_rss_bytes": 36698849280,
+  "profile_scope": "instrumented recursive parent; does not cover the entire command",
+  "stage_profile": "parent-stage-profile.json",
+  "binary_sha256": "4013f55bc6cbaa7c61c58016109ac9f6f7070e19bbd9d015d480349eaaa0fbd4"
+}

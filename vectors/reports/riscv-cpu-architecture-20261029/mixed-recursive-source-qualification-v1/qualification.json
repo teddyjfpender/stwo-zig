@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-b8-mixed-recursive-source-qualification-v1",
+  "config": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "result": "484 passed; 1 skipped; 0 failed",
+  "trace_trees": 14,
+  "first_roots": 7,
+  "challenge_pairs": 67,
+  "scope": "mixed execution local buses closed, endpoint-global plane OPEN; not a closed window or full block",
+  "cases": [
+    {
+      "kind": "sha_keccak",
+      "root_bytes": 977626,
+      "parent_core_ns": 43975793667
+    },
+    {
+      "kind": "recovery",
+      "root_bytes": 980881,
+      "parent_core_ns": 34006402791
+    }
+  ],
+  "fresh_receiver_after_original_capture_profile_destruction": true,
+  "full_typed_caller_arithmetic_ram_current_plus_27_and_halt": true,
+  "timing_classification": "tiny correctness fixtures, nonisolated diagnostic; not representative throughput",
+  "proof_bytes_retained": false,
+  "implementation_status": "prototype inactive pending complete mixed window and full block qualification",
+  "next_gate": "3-original Mixed+Bridge+Compact SingleDAG and compensated physical caller-claim circuit negative",
+  "compensated_physical_caller_ram_claims_rejected_by_compiled_typed_circuit": true,
+  "physical_claim_negative_gate": "All 11 tests passed; SHA+Keccak and recovery; no extra recursive parent proofs"
+}

@@ -1,0 +1,578 @@
+native-counter-oracle.cu(30): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+native-counter-oracle.cu(31): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(32): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(33): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(34): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(36): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(37): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(38): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(39): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(40): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(43): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(44): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(46): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(49): warning #177-D: variable "v21" was declared but never referenced
+  RiscvQm31 v21=RiscvQm31{main[ulong(21u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(50): warning #177-D: variable "v22" was declared but never referenced
+  RiscvQm31 v22=RiscvQm31{main[ulong(22u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(59): warning #177-D: variable "v31" was declared but never referenced
+  RiscvQm31 v31=RiscvQm31{main[ulong(31u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(60): warning #177-D: variable "v32" was declared but never referenced
+  RiscvQm31 v32=RiscvQm31{main[ulong(32u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(61): warning #177-D: variable "v33" was declared but never referenced
+  RiscvQm31 v33=RiscvQm31{main[ulong(33u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(62): warning #177-D: variable "v34" was declared but never referenced
+  RiscvQm31 v34=RiscvQm31{main[ulong(34u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(119): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(120): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(121): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(122): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(123): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(125): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(126): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(127): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(128): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(129): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(130): warning #177-D: variable "v13" was declared but never referenced
+  RiscvQm31 v13=RiscvQm31{main[ulong(13u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(131): warning #177-D: variable "v14" was declared but never referenced
+  RiscvQm31 v14=RiscvQm31{main[ulong(14u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(132): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(133): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(135): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(136): warning #177-D: variable "v19" was declared but never referenced
+  RiscvQm31 v19=RiscvQm31{main[ulong(19u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(137): warning #177-D: variable "v20" was declared but never referenced
+  RiscvQm31 v20=RiscvQm31{main[ulong(20u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(138): warning #177-D: variable "v21" was declared but never referenced
+  RiscvQm31 v21=RiscvQm31{main[ulong(21u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(139): warning #177-D: variable "v22" was declared but never referenced
+  RiscvQm31 v22=RiscvQm31{main[ulong(22u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(146): warning #177-D: variable "v29" was declared but never referenced
+  RiscvQm31 v29=RiscvQm31{main[ulong(29u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(147): warning #177-D: variable "v30" was declared but never referenced
+  RiscvQm31 v30=RiscvQm31{main[ulong(30u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(148): warning #177-D: variable "v31" was declared but never referenced
+  RiscvQm31 v31=RiscvQm31{main[ulong(31u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(149): warning #177-D: variable "v32" was declared but never referenced
+  RiscvQm31 v32=RiscvQm31{main[ulong(32u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(150): warning #177-D: variable "v33" was declared but never referenced
+  RiscvQm31 v33=RiscvQm31{main[ulong(33u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(151): warning #177-D: variable "v34" was declared but never referenced
+  RiscvQm31 v34=RiscvQm31{main[ulong(34u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(202): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(203): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(204): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(205): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(206): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(208): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(209): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(210): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(211): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(212): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(213): warning #177-D: variable "v13" was declared but never referenced
+  RiscvQm31 v13=RiscvQm31{main[ulong(13u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(214): warning #177-D: variable "v14" was declared but never referenced
+  RiscvQm31 v14=RiscvQm31{main[ulong(14u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(215): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(216): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(218): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(219): warning #177-D: variable "v19" was declared but never referenced
+  RiscvQm31 v19=RiscvQm31{main[ulong(19u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(220): warning #177-D: variable "v20" was declared but never referenced
+  RiscvQm31 v20=RiscvQm31{main[ulong(20u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(221): warning #177-D: variable "v21" was declared but never referenced
+  RiscvQm31 v21=RiscvQm31{main[ulong(21u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(229): warning #177-D: variable "v29" was declared but never referenced
+  RiscvQm31 v29=RiscvQm31{main[ulong(29u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(230): warning #177-D: variable "v30" was declared but never referenced
+  RiscvQm31 v30=RiscvQm31{main[ulong(30u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(231): warning #177-D: variable "v31" was declared but never referenced
+  RiscvQm31 v31=RiscvQm31{main[ulong(31u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(232): warning #177-D: variable "v32" was declared but never referenced
+  RiscvQm31 v32=RiscvQm31{main[ulong(32u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(233): warning #177-D: variable "v33" was declared but never referenced
+  RiscvQm31 v33=RiscvQm31{main[ulong(33u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(234): warning #177-D: variable "v34" was declared but never referenced
+  RiscvQm31 v34=RiscvQm31{main[ulong(34u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(289): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(290): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(291): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(292): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(293): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(295): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(296): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(297): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(298): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(299): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(300): warning #177-D: variable "v13" was declared but never referenced
+  RiscvQm31 v13=RiscvQm31{main[ulong(13u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(301): warning #177-D: variable "v14" was declared but never referenced
+  RiscvQm31 v14=RiscvQm31{main[ulong(14u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(302): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(303): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(305): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(306): warning #177-D: variable "v19" was declared but never referenced
+  RiscvQm31 v19=RiscvQm31{main[ulong(19u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(307): warning #177-D: variable "v20" was declared but never referenced
+  RiscvQm31 v20=RiscvQm31{main[ulong(20u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(308): warning #177-D: variable "v21" was declared but never referenced
+  RiscvQm31 v21=RiscvQm31{main[ulong(21u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(309): warning #177-D: variable "v22" was declared but never referenced
+  RiscvQm31 v22=RiscvQm31{main[ulong(22u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(321): warning #177-D: variable "v34" was declared but never referenced
+  RiscvQm31 v34=RiscvQm31{main[ulong(34u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(322): warning #177-D: variable "v35" was declared but never referenced
+  RiscvQm31 v35=RiscvQm31{main[ulong(35u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(323): warning #177-D: variable "v36" was declared but never referenced
+  RiscvQm31 v36=RiscvQm31{main[ulong(36u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(370): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(371): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(372): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(373): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(374): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(376): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(377): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(378): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(379): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(380): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(381): warning #177-D: variable "v13" was declared but never referenced
+  RiscvQm31 v13=RiscvQm31{main[ulong(13u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(382): warning #177-D: variable "v14" was declared but never referenced
+  RiscvQm31 v14=RiscvQm31{main[ulong(14u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(383): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(384): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(386): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(387): warning #177-D: variable "v19" was declared but never referenced
+  RiscvQm31 v19=RiscvQm31{main[ulong(19u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(388): warning #177-D: variable "v20" was declared but never referenced
+  RiscvQm31 v20=RiscvQm31{main[ulong(20u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(389): warning #177-D: variable "v21" was declared but never referenced
+  RiscvQm31 v21=RiscvQm31{main[ulong(21u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(390): warning #177-D: variable "v22" was declared but never referenced
+  RiscvQm31 v22=RiscvQm31{main[ulong(22u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(401): warning #177-D: variable "v33" was declared but never referenced
+  RiscvQm31 v33=RiscvQm31{main[ulong(33u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(402): warning #177-D: variable "v34" was declared but never referenced
+  RiscvQm31 v34=RiscvQm31{main[ulong(34u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(455): warning #177-D: variable "v2" was declared but never referenced
+  RiscvQm31 v2=RiscvQm31{main[ulong(2u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(456): warning #177-D: variable "v3" was declared but never referenced
+  RiscvQm31 v3=RiscvQm31{main[ulong(3u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(457): warning #177-D: variable "v4" was declared but never referenced
+  RiscvQm31 v4=RiscvQm31{main[ulong(4u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(458): warning #177-D: variable "v5" was declared but never referenced
+  RiscvQm31 v5=RiscvQm31{main[ulong(5u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(459): warning #177-D: variable "v6" was declared but never referenced
+  RiscvQm31 v6=RiscvQm31{main[ulong(6u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(461): warning #177-D: variable "v8" was declared but never referenced
+  RiscvQm31 v8=RiscvQm31{main[ulong(8u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(462): warning #177-D: variable "v9" was declared but never referenced
+  RiscvQm31 v9=RiscvQm31{main[ulong(9u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(463): warning #177-D: variable "v10" was declared but never referenced
+  RiscvQm31 v10=RiscvQm31{main[ulong(10u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(464): warning #177-D: variable "v11" was declared but never referenced
+  RiscvQm31 v11=RiscvQm31{main[ulong(11u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(465): warning #177-D: variable "v12" was declared but never referenced
+  RiscvQm31 v12=RiscvQm31{main[ulong(12u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(466): warning #177-D: variable "v13" was declared but never referenced
+  RiscvQm31 v13=RiscvQm31{main[ulong(13u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(467): warning #177-D: variable "v14" was declared but never referenced
+  RiscvQm31 v14=RiscvQm31{main[ulong(14u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(468): warning #177-D: variable "v15" was declared but never referenced
+  RiscvQm31 v15=RiscvQm31{main[ulong(15u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(469): warning #177-D: variable "v16" was declared but never referenced
+  RiscvQm31 v16=RiscvQm31{main[ulong(16u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(471): warning #177-D: variable "v18" was declared but never referenced
+  RiscvQm31 v18=RiscvQm31{main[ulong(18u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(472): warning #177-D: variable "v19" was declared but never referenced
+  RiscvQm31 v19=RiscvQm31{main[ulong(19u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(473): warning #177-D: variable "v20" was declared but never referenced
+  RiscvQm31 v20=RiscvQm31{main[ulong(20u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(475): warning #177-D: variable "v22" was declared but never referenced
+  RiscvQm31 v22=RiscvQm31{main[ulong(22u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(476): warning #177-D: variable "v23" was declared but never referenced
+  RiscvQm31 v23=RiscvQm31{main[ulong(23u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(477): warning #177-D: variable "v24" was declared but never referenced
+  RiscvQm31 v24=RiscvQm31{main[ulong(24u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(478): warning #177-D: variable "v25" was declared but never referenced
+  RiscvQm31 v25=RiscvQm31{main[ulong(25u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(479): warning #177-D: variable "v26" was declared but never referenced
+  RiscvQm31 v26=RiscvQm31{main[ulong(26u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(482): warning #177-D: variable "v29" was declared but never referenced
+  RiscvQm31 v29=RiscvQm31{main[ulong(29u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(483): warning #177-D: variable "v30" was declared but never referenced
+  RiscvQm31 v30=RiscvQm31{main[ulong(30u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(484): warning #177-D: variable "v31" was declared but never referenced
+  RiscvQm31 v31=RiscvQm31{main[ulong(31u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(489): warning #177-D: variable "v36" was declared but never referenced
+  RiscvQm31 v36=RiscvQm31{main[ulong(36u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(490): warning #177-D: variable "v37" was declared but never referenced
+  RiscvQm31 v37=RiscvQm31{main[ulong(37u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(507): warning #177-D: variable "v54" was declared but never referenced
+  RiscvQm31 v54=RiscvQm31{main[ulong(54u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(508): warning #177-D: variable "v55" was declared but never referenced
+  RiscvQm31 v55=RiscvQm31{main[ulong(55u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(509): warning #177-D: variable "v56" was declared but never referenced
+  RiscvQm31 v56=RiscvQm31{main[ulong(56u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(510): warning #177-D: variable "v57" was declared but never referenced
+  RiscvQm31 v57=RiscvQm31{main[ulong(57u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(511): warning #177-D: variable "v58" was declared but never referenced
+  RiscvQm31 v58=RiscvQm31{main[ulong(58u)*rows+row],0u,0u,0u};
+            ^
+
+native-counter-oracle.cu(512): warning #177-D: variable "v59" was declared but never referenced
+  RiscvQm31 v59=RiscvQm31{main[ulong(59u)*rows+row],0u,0u,0u};
+            ^
+

@@ -1,0 +1,29 @@
+{
+  "scope": "direct Group-owned source files only, not a full transitive build snapshot",
+  "files": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_group_recursive_v1.zig",
+      "sha256": "32ab51287781557cbfc94374d6c0857df40b661e5934de7d60235e99fbe764c6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_group_profile_v1.zig",
+      "sha256": "72650142bc6c092be87f75c7159e6abec0466372efd1e4eac9352404cdf100e6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v8_endpoint_group_composition_v1.zig",
+      "sha256": "6e408bc7f4d6b7cb05228a85e24961c8d5939d6c01a2becf93984f29a946ea98"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v8_endpoint_group_closure_v1.zig",
+      "sha256": "20c21a9a9325674d662a744aec413f6bb6d83f88313e6b5b00889e8d1a8ef111"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v8_endpoint_group_transcript_v1.zig",
+      "sha256": "8c11b11b13f13ad063a35a6a7f6249fe4b91f1fc573f3dae34daae0b46290a71"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/tests/block_v8_endpoint_group_recursion_test.zig",
+      "sha256": "076fae507c5ef9ac1bc8fae9d31dfe9dba6ace25113b42a4a8b9561625cd06a8"
+    }
+  ]
+}

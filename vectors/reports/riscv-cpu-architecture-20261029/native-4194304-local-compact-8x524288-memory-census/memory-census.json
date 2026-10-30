@@ -1,0 +1,262 @@
+{
+  "airs": [
+    {
+      "slot": 0,
+      "name": "recursion.air.blake3_g_call",
+      "rows": 10485760,
+      "padded_rows": 16777216,
+      "main_columns": 82,
+      "fixed_words": 16,
+      "fixed_bytes": 671088640,
+      "main_bytes": 5502926848,
+      "main_padding_bytes": 2063597568
+    },
+    {
+      "slot": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "rows": 10225792,
+      "padded_rows": 16777216,
+      "main_columns": 12,
+      "fixed_words": 6,
+      "fixed_bytes": 245419008,
+      "main_bytes": 805306368,
+      "main_padding_bytes": 314468352
+    },
+    {
+      "slot": 2,
+      "name": "recursion.air.blake3_boundary",
+      "rows": 10302033,
+      "padded_rows": 16777216,
+      "main_columns": 4,
+      "fixed_words": 8,
+      "fixed_bytes": 329665056,
+      "main_bytes": 268435456,
+      "main_padding_bytes": 103602928
+    },
+    {
+      "slot": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "rows": 1505932,
+      "padded_rows": 2097152,
+      "main_columns": 17,
+      "fixed_words": 10,
+      "fixed_bytes": 60237280,
+      "main_bytes": 142606336,
+      "main_padding_bytes": 40202960
+    },
+    {
+      "slot": 4,
+      "name": "recursion.air.qm31_inv",
+      "rows": 22441,
+      "padded_rows": 32768,
+      "main_columns": 14,
+      "fixed_words": 18,
+      "fixed_bytes": 1615752,
+      "main_bytes": 1835008,
+      "main_padding_bytes": 578312
+    },
+    {
+      "slot": 5,
+      "name": "recursion.air.linear_ops",
+      "rows": 316824,
+      "padded_rows": 524288,
+      "main_columns": 21,
+      "fixed_words": 30,
+      "fixed_bytes": 38018880,
+      "main_bytes": 44040192,
+      "main_padding_bytes": 17426976
+    },
+    {
+      "slot": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "rows": 3064,
+      "padded_rows": 4096,
+      "main_columns": 71,
+      "fixed_words": 15,
+      "fixed_bytes": 183840,
+      "main_bytes": 1163264,
+      "main_padding_bytes": 293088
+    },
+    {
+      "slot": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "rows": 8128390,
+      "padded_rows": 8388608,
+      "main_columns": 12,
+      "fixed_words": 45,
+      "fixed_bytes": 1463110200,
+      "main_bytes": 402653184,
+      "main_padding_bytes": 12490464
+    },
+    {
+      "slot": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "rows": 710,
+      "padded_rows": 1024,
+      "main_columns": 8,
+      "fixed_words": 10,
+      "fixed_bytes": 28400,
+      "main_bytes": 32768,
+      "main_padding_bytes": 10048
+    },
+    {
+      "slot": 9,
+      "name": "recursion.air.blake3_private_word",
+      "rows": 2151236,
+      "padded_rows": 4194304,
+      "main_columns": 4,
+      "fixed_words": 4,
+      "fixed_bytes": 34419776,
+      "main_bytes": 67108864,
+      "main_padding_bytes": 32689088
+    },
+    {
+      "slot": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "rows": 1070966,
+      "padded_rows": 2097152,
+      "main_columns": 24,
+      "fixed_words": 9,
+      "fixed_bytes": 38554776,
+      "main_bytes": 201326592,
+      "main_padding_bytes": 98513856
+    },
+    {
+      "slot": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "rows": 75523,
+      "padded_rows": 131072,
+      "main_columns": 4,
+      "fixed_words": 8,
+      "fixed_bytes": 2416736,
+      "main_bytes": 2097152,
+      "main_padding_bytes": 888784
+    },
+    {
+      "slot": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "rows": 757462,
+      "padded_rows": 1048576,
+      "main_columns": 1,
+      "fixed_words": 6,
+      "fixed_bytes": 18179088,
+      "main_bytes": 4194304,
+      "main_padding_bytes": 1164456
+    },
+    {
+      "slot": 13,
+      "name": "recursion.air.blake3_path_select",
+      "rows": 2495960,
+      "padded_rows": 4194304,
+      "main_columns": 17,
+      "fixed_words": 12,
+      "fixed_bytes": 119806080,
+      "main_bytes": 285212672,
+      "main_padding_bytes": 115487392
+    },
+    {
+      "slot": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "rows": 3064,
+      "padded_rows": 4096,
+      "main_columns": 12,
+      "fixed_words": 22,
+      "fixed_bytes": 269632,
+      "main_bytes": 196608,
+      "main_padding_bytes": 49536
+    },
+    {
+      "slot": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "rows": 3154,
+      "padded_rows": 4096,
+      "main_columns": 24,
+      "fixed_words": 9,
+      "fixed_bytes": 113544,
+      "main_bytes": 393216,
+      "main_padding_bytes": 90432
+    },
+    {
+      "slot": 16,
+      "name": "recursion.air.readonly_consistency",
+      "rows": 1021790,
+      "padded_rows": 1048576,
+      "main_columns": 19,
+      "fixed_words": 6,
+      "fixed_bytes": 24522960,
+      "main_bytes": 79691776,
+      "main_padding_bytes": 2035736
+    },
+    {
+      "slot": 17,
+      "name": "recursion.air.readonly_input",
+      "rows": 1021790,
+      "padded_rows": 1048576,
+      "main_columns": 5,
+      "fixed_words": 6,
+      "fixed_bytes": 24522960,
+      "main_bytes": 20971520,
+      "main_padding_bytes": 535720
+    },
+    {
+      "slot": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "rows": 390985,
+      "padded_rows": 524288,
+      "main_columns": 41,
+      "fixed_words": 13,
+      "fixed_bytes": 20331220,
+      "main_bytes": 85983232,
+      "main_padding_bytes": 21861692
+    },
+    {
+      "slot": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "rows": 135520,
+      "padded_rows": 262144,
+      "main_columns": 29,
+      "fixed_words": 13,
+      "fixed_bytes": 7047040,
+      "main_bytes": 30408704,
+      "main_padding_bytes": 14688384
+    },
+    {
+      "slot": 20,
+      "name": "recursion.air.blake3_g_call",
+      "rows": 10485760,
+      "padded_rows": 16777216,
+      "main_columns": 82,
+      "fixed_words": 16,
+      "fixed_bytes": 671088640,
+      "main_bytes": 5502926848,
+      "main_padding_bytes": 2063597568
+    },
+    {
+      "slot": 21,
+      "name": "recursion.air.blake3_g_call",
+      "rows": 9961472,
+      "padded_rows": 16777216,
+      "main_columns": 82,
+      "fixed_words": 16,
+      "fixed_bytes": 637534208,
+      "main_bytes": 5502926848,
+      "main_padding_bytes": 2235564032
+    },
+    {
+      "slot": 22,
+      "name": "recursion.air.blake3_g_call",
+      "rows": 4857280,
+      "padded_rows": 8388608,
+      "main_columns": 82,
+      "fixed_words": 16,
+      "fixed_bytes": 310865920,
+      "main_bytes": 2751463424,
+      "main_padding_bytes": 1158275584
+    }
+  ],
+  "aggregate_fixed_bytes": 4719039636,
+  "cold_children_fixed_bytes": 4718848340,
+  "closure_fixed_bytes": 191296,
+  "predicted_joined_main_bytes": 21703901184,
+  "predicted_joined_retained_bytes": 26422967500
+}

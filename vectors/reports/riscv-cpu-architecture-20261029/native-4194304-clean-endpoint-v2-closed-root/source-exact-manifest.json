@@ -1,0 +1,155 @@
+{
+  "schema": "stwo-b8-endpoint-embedded-frontend-source-v1",
+  "base_directory": "src/frontends/riscv/recursion",
+  "digest": "718fee7ea8375402261d03d5d068d46fdd912964e5c149e7acbac9e061fb380a",
+  "files": [
+    {
+      "path": "air/blake3_parent_input_inventory.zig",
+      "sha256": "cadc035d7b16370151a8757c5ed17348c09bf780ba6e4c56ef01287241a2dcf5"
+    },
+    {
+      "path": "block_v5_recursive_fused_public_bus_v1.zig",
+      "sha256": "dae053a102de81d22bbf711a94a491b61509f5ebeec66d6dd5cd6370e80cd23e"
+    },
+    {
+      "path": "block_v8_endpoint_root_source_report_v1.zig",
+      "sha256": "35b0b2c8e4e565c986b4b9af2541cd4336550d12e21b33c68a6416f5e2fa3865"
+    },
+    {
+      "path": "tests/block_v8_endpoint_saved_root_benchmark.zig",
+      "sha256": "46f935dd4c205ed4016de0e8831c559a1bf4527625c63938346eafd632c44ac8"
+    },
+    {
+      "path": "block_v8_endpoint_original_profile_v1.zig",
+      "sha256": "a9ca827065b455d9da1f5fbcb2bafa25250fb9897768d7a2d93adcdf85d23f12"
+    },
+    {
+      "path": "air/block_v8_endpoint_composition_v1.zig",
+      "sha256": "f2db62b7194b1c97e8ba69b8ea77b8e43a75be3d6a2d783e0fb904c221778a0f"
+    },
+    {
+      "path": "air/block_v8_endpoint_closure_v1.zig",
+      "sha256": "a892770a5b983514e018a31d4a8a14310bb69cda50d2ee52b7ead282fa981006"
+    },
+    {
+      "path": "air/block_v8_endpoint_transcript_v1.zig",
+      "sha256": "85463f7ac2a79caa25ca6b61ab66b8b144ea8297533164726545c7bda3e8a975"
+    },
+    {
+      "path": "air/block_v6_partitioned_composition_v1.zig",
+      "sha256": "dd1c68cb3a8c86c8317bbcb52c627d06b3346155296e14e6dd643ed0a93f5ebb"
+    },
+    {
+      "path": "block_v8_endpoint_fixed_roster_v1.zig",
+      "sha256": "12a71e0a828c05010950fddec36a154c1deb148617d8386450a99e57b3f4f565"
+    },
+    {
+      "path": "block_v8_endpoint_pipeline_v1.zig",
+      "sha256": "b37d5956472bac8405f9b4d4902aecdc6462cb6ee7058b6a399d4e193c2944e6"
+    },
+    {
+      "path": "block_v8_endpoint_preparation_v1.zig",
+      "sha256": "902084afd540cc7ca8dcbba7718f432c2c76da2e1b7c5f68a90d066b92a251ba"
+    },
+    {
+      "path": "block_v8_endpoint_public_v1.zig",
+      "sha256": "5dca459e043e042926f3f4691a9f387f5fa902a146b4d95c2bae5e0672d04f63"
+    },
+    {
+      "path": "block_v8_endpoint_receiver_v1.zig",
+      "sha256": "f5129bdd9da08ef10f4bffeba6573f6acfa0ad561be4bfda6a1e9601af799422"
+    },
+    {
+      "path": "block_v8_endpoint_pcs_preparation_v1.zig",
+      "sha256": "ad56b4f23ecb76544fa1f2cff3ddf16f111ebeff2a2206085b7068aaab940e4f"
+    },
+    {
+      "path": "block_v8_endpoint_pcs_profile_v1.zig",
+      "sha256": "9da8427ba6a80f9679e599d33be826966a5d08f9ee51fb859a6842f45fa35a29"
+    },
+    {
+      "path": "block_v8_endpoint_parent_protocol_v1.zig",
+      "sha256": "3b8fc5b289999abb4a2d0aafb4154950a392419d674ad18a5c3308ecec3e4cff"
+    },
+    {
+      "path": "block_v6_original_fixed_shape_v1.zig",
+      "sha256": "2c2c998d3e14ac003816ab45d688b47a9e3979ba00af963d7b13aef982b589c7"
+    },
+    {
+      "path": "component_sample_layout_v1.zig",
+      "sha256": "bf728e2401dc51fcf3a1faafea8415d16725bf55f96291a8b678253dcca27a83"
+    },
+    {
+      "path": "../prover/block_v8_native_endpoint_layout_v1.zig",
+      "sha256": "bc9e973d2e101e9a8258484342c44ea9f2bdf2233850ca83db3fcd7bade6b0d9"
+    },
+    {
+      "path": "../prover/block_v8_native_endpoint_components_v1.zig",
+      "sha256": "9e58b3479a7e9f3aaed1e22b8cb834ff0acd910a035617f5779184fd18a8bc60"
+    },
+    {
+      "path": "../prover/block_v8_native_halt_policy_v1.zig",
+      "sha256": "b372f25622362a3355940ad9749cc158ef61cdcae916c2faec16d48cb31bb7f9"
+    },
+    {
+      "path": "../prover/block_v8_native_halt_component_v1.zig",
+      "sha256": "b672f90f71ad7aa211d1d51b7d7a91fa2643db695fea5dd3565ea2822c57ac3d"
+    },
+    {
+      "path": "../prover/block_v8_native_endpoint_local_source_v1.zig",
+      "sha256": "3dc3a14d8224443835c55004588133eee339115c27cf49f05e55d941b8c479e7"
+    },
+    {
+      "path": "../prover/block_v8_native_endpoint_closure_v1.zig",
+      "sha256": "c83beb18d065c575a3b607ba11eb959fe9cde3fff2f637ea10bff95072122ccf"
+    },
+    {
+      "path": "../prover/block_v8_ram_endpoint_component_v1.zig",
+      "sha256": "cf1b432d2ca16aed815aa71fd4dd459665a4c3ff316ca1c00ad91545bdf8926c"
+    },
+    {
+      "path": "../prover/block_v8_ram_endpoint_kernel_v1.zig",
+      "sha256": "71d77bcdf89d6220c10517a319e88f839346917925159a0dfed35db6681ac28c"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_range_provider_v1.zig",
+      "sha256": "eb148f8824751028d4bb3e1ce938052aa1d0fbce41e01d16988f3e673617bdc0"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_proof_v1.zig",
+      "sha256": "e220b657ed319d5c8172296af18d18e4fed70125a866729ddf8194e757ba1f80"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_context_v1.zig",
+      "sha256": "0a7c52a8d5b57357a63f3d37f23a3b9183e753eba37371d69fbada8c9f58d050"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_scope_v1.zig",
+      "sha256": "66af9b366329474566ba88b2d8ff51b15e51f5804e98150151c52a5f877f6560"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_ledger_v1.zig",
+      "sha256": "b023e5d7bd9de9db94a96cb5ba83e385c3fb3aaeb90f9b12cf7b0ce9d9e93b93"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_placement_v1.zig",
+      "sha256": "68c4a21f113e38bcdc228ae8982b365ce47d07da79d69340537160808df7707c"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_codec_v1.zig",
+      "sha256": "9e3f88786a742bf7edcec54f0fdb421a98c9a02d262bf89118d01b22e098feca"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_loader_v1.zig",
+      "sha256": "8712b5651a2a34012b020c8ddca2bc60a4b40932db43fd8891b416dedf65f5b5"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_statement_wire_v1.zig",
+      "sha256": "298f9e5a553d7cf8cad0aea9466367b956bb8897531b39c3fec1174557fd9aef"
+    },
+    {
+      "path": "../prover/block_v8_endpoint_whole_shape_v1.zig",
+      "sha256": "2006345989375be5b3dabed1458061e92215358c230e83d6790fd6b73cd7a236"
+    }
+  ]
+}

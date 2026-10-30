@@ -56,6 +56,8 @@ pub fn SessionForProvider(
         build_identity: [32]u8,
         aot_entries: usize,
         aot_loader: ?*anyopaque,
+        execution_kind: verdict_module.ExecutionKind = .strict_aot,
+        static_code_identity: [32]u8 = [_]u8{0} ** 32,
         function_cache: FunctionCache = .empty,
         owner_thread_id: std.Thread.Id,
         function_cache_hits: u64 = 0,
@@ -165,7 +167,7 @@ pub fn SessionForProvider(
             if (selected) |expected| if (!std.mem.eql(u8, &platform.uuid, &expected.device_uuid)) return error.InvalidDeviceOrdinal;
         }
 
-        fn admitCurrent(accepted_sms: []const u32, selected: ?Selection) runtime_error.Error!Admission {
+        fn admitCurrent(accepted_sms: []const u32, selected: ?Selection, execution_kind: verdict_module.ExecutionKind) runtime_error.Error!Admission {
             if (Api.stwo_cuda_execution_provider() != @intFromEnum(provider))
                 return error.ExecutionProviderMismatch;
             var device = types.DeviceSnapshot{};
@@ -189,13 +191,25 @@ pub fn SessionForProvider(
             if (std.mem.allEqual(u8, &build_identity, 0))
                 return error.BuildIdentityAbsent;
             const aot_entries = Api.stwo_zig_cuda_aot_entry_count();
-            if (aot_entries == 0) return error.AotPackAbsent;
+            if (execution_kind == .strict_aot and aot_entries == 0) return error.AotPackAbsent;
 
             return .{ .device = device, .platform = platform, .build_identity = build_identity, .aot_entries = aot_entries };
         }
 
         pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
-            const admitted = try admitCurrent(accepted_sms, null);
+            return openExecution(accepted_sms, .strict_aot, [_]u8{0} ** 32);
+        }
+
+        /// Explicit statically linked finite product. The caller must validate
+        /// this code identity against its linked producer before executing.
+        /// AOT dispatch remains forbidden and its error counters stay audited.
+        pub fn openStaticNative(accepted_sms: []const u32, code_identity: [32]u8) runtime_error.Error!Self {
+            if (std.mem.allEqual(u8, &code_identity, 0)) return error.BuildIdentityAbsent;
+            return openExecution(accepted_sms, .static_native, code_identity);
+        }
+
+        fn openExecution(accepted_sms: []const u32, execution_kind: verdict_module.ExecutionKind, code_identity: [32]u8) runtime_error.Error!Self {
+            const admitted = try admitCurrent(accepted_sms, null, execution_kind);
             var context = try Context.open();
             errdefer context.close() catch {};
             var aot_loader: ?*anyopaque = null;
@@ -206,6 +220,8 @@ pub fn SessionForProvider(
                 .platform = admitted.platform,
                 .build_identity = admitted.build_identity,
                 .aot_entries = admitted.aot_entries,
+                .execution_kind = execution_kind,
+                .static_code_identity = code_identity,
                 .aot_loader = aot_loader orelse return error.AotPackAbsent,
                 .owner_thread_id = std.Thread.getCurrentId(),
             };
@@ -237,7 +253,7 @@ pub fn SessionForProvider(
                 .released => return failedOpening(error.InvalidState, opening),
                 .ready => |*context| {
                     if (context.device != selected.device_ordinal or context.lane_count != 1 or context.identity == 0 or context.teardown_pending or context.owner_thread_id != opening.owner_thread_id) return failedOpening(error.InvalidDeviceOrdinal, opening);
-                    const admitted = admitCurrent(accepted_sms, selected) catch |err| return failedOpening(err, opening);
+                    const admitted = admitCurrent(accepted_sms, selected, .strict_aot) catch |err| return failedOpening(err, opening);
                     runtime_error.check(AotApi.stwo_native_aot_loader_create(context.handle.?, &opening.aot_loader)) catch |err| return failedOpening(err, opening);
                     const loader = opening.aot_loader orelse return failedOpening(error.AotPackAbsent, opening);
                     const result = Self{
@@ -495,6 +511,7 @@ pub fn SessionForProvider(
             try kernel.validate();
             if (arguments.len != kernel.argument_count)
                 return error.ArgumentCountMismatch;
+            if (self.execution_kind == .static_native) return error.StrictAotViolation;
             const loader = self.aot_loader orelse return error.InvalidState;
 
             const lookup_key = FunctionKey.fromKernel(kernel);
@@ -653,13 +670,14 @@ pub fn SessionForProvider(
                 aot.aot_cache_hits,
                 self.function_cache_hits,
             ) catch return error.InvalidState;
-            if (!aot.isStrict()) return error.StrictAotViolation;
             const proof_index = std.math.add(
                 u64,
                 self.completed_proofs,
                 1,
             ) catch return error.InvalidState;
             const verdict = Verdict{
+                .execution_kind = self.execution_kind,
+                .static_code_identity = self.static_code_identity,
                 .provider = provider,
                 .device = self.device,
                 .platform = self.platform,
@@ -677,6 +695,7 @@ pub fn SessionForProvider(
                 .prepared_cache_evictions_total = self.execution_cache.evictions,
                 .runtime_proof_index = proof_index,
             };
+            if (!verdict.hasStrictExecution()) return error.StrictAotViolation;
             if (!verdict.isResident()) return error.StrictAotViolation;
             self.completed_proofs = proof_index;
             return verdict;

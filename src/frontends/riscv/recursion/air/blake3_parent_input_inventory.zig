@@ -33,9 +33,11 @@ pub fn checkExternal(a: std.mem.Allocator, graphs: anytype, values: anytype, sca
         const row: pack.Row = if (@typeInfo(@TypeOf(packs)) == .@"struct") packs.rowAt(index) else packs[index];
         try mark(graphs, values, seen, row[10].v, row[11].v, Q.fromM31Array(row[0..4].*));
     }
-    for (external_nodes, 0..) |node, i| {
+    for (external_nodes) |node| {
         if (graphs.len != 3 or node >= graphs[0].nodes.len or graphs[0].nodes[node].op != .input or seen[0][node]) return error.InvalidNativeParentInput;
-        for (external_nodes[0..i]) |previous| if (previous == node) return error.DuplicateNativeParentInput;
+        // seen includes every previously admitted external node as well as
+        // scalar/pack producers. The check above already rejects both kinds
+        // of duplicate; rescanning the prefix makes this audit quadratic.
         // The versioned admission proves closure against these independently
         // supplied public tuples; callers cannot use this list with old keys.
         seen[0][node] = true;

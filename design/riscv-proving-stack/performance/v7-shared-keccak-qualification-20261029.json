@@ -1,0 +1,550 @@
+{
+  "schema": "v7-shared-keccak-original-qualification-v1",
+  "date": "2026-10-29",
+  "git_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "uncommitted_sources": true,
+  "scope": "Diagnostic original shared Keccak STARK and complete eight-original-proof source closure; not one combined root and not canonical security qualification.",
+  "security": {
+    "profile": "diagnostic_q8_pow0"
+  },
+  "workload": {
+    "actual_rv32_cycles": 15,
+    "native_windows": 4,
+    "cuts": [
+      3,
+      3,
+      3,
+      6
+    ],
+    "keccak_calls": 2,
+    "shared_batches": 1,
+    "same_control": [
+      "pc",
+      "local_execution_clock",
+      "pointer_register",
+      "pointer_previous_clock"
+    ],
+    "ram_dependency": "Second Keccak input equals first Keccak output at distinct global times.",
+    "original_proofs": 8
+  },
+  "result": {
+    "tests": 17,
+    "failed": 0,
+    "positive": "Fresh independent batch and whole execution receiver accept genuine native/ROM/lookup/RAM proofs.",
+    "fully_recommitted_attack": "Entire two caller records swapped while owner schedule unchanged; batch fixed/main/access and every source proof rebuilt under new epoch; batch proof verifies, complete receiver rejects UnclosedV7ExecutionRelations.",
+    "physical_claim_attack": "Changed RAM transition claimed sum is rejected by fresh batch proof verification.",
+    "recipe_negative": "Legacy mode0 lookup rejected; exact local-zero pointer-gap suppression checked against original event equations."
+  },
+  "lifetime": {
+    "destroyed_before_fresh_verification": [
+      "shared batch Stage",
+      "native producer owners",
+      "runner",
+      "native/global lookup counters"
+    ],
+    "still_live_until_defer": [
+      "ROM first round owner",
+      "lookup Stage",
+      "memory Stage"
+    ],
+    "pending": "Destroy remaining producer objects and proof postcard roundtrip in next strengthened gate."
+  },
+  "measurement": {
+    "classification": "diagnostic, no controlled performance comparison",
+    "positive_batch_interaction_ns": 61733542,
+    "positive_batch_interaction_commit_ns": 118442250,
+    "positive_batch_core_prove_ns": 1515795625,
+    "full_positive_and_negative_job_seconds": 12.57,
+    "process_max_rss_bytes": 165953536,
+    "peak_memory_footprint_bytes": 161743712,
+    "charged_allocator_peak_bytes": 211410165
+  },
+  "artifacts": {
+    "binary": {
+      "path": "/tmp/block-v7-keccak-batch-proof2",
+      "sha256": "e0c1131d6c7583b73227df8c549776927ea739c4d9268b1327858ab81c612b5c"
+    },
+    "log": {
+      "path": "/tmp/block-v7-keccak-batch-proof-run2.log",
+      "sha256": "0a641fcbfd14d8a950d2b802d01c71822b8fef864760b265af38a889441e8b48"
+    }
+  },
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_keccak_batch_air_v1.zig": "34afe491ff05537e6520f357e15d13a47d9d40f00680b66a47fc5093f400b568",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_claims_v1.zig": "553bd3bcfcf39bfdb58035233215c8dd10715842b452d84b10517c8f43f7fd90",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_closure_v1.zig": "c31e64c56d9dfa639e8ac28519036a0417de98f6ab48fb9340cb39384d8940fe",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_geometry_v1.zig": "73e00f323973887767df1c54a8ee3b83d4fa303a91f0469c616767505c93b011",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_proof_v1.zig": "08b78246cf1e7736c22907510ed6e4429904b858c3a542327ff187fc554e6fdc",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_source_v1.zig": "11410e4fff59b86b88523f96c7c71e98b5529038808e61c58abac813f214bb59",
+    "src/frontends/riscv/prover/block_v7_keccak_batch_stage_v1.zig": "b0639149249523661fc3529572a357224dc97f1d474dce012c75f3497cc6b47c",
+    "src/frontends/riscv/prover/block_v7_keccak_execution_receiver_v1.zig": "ad9336b9c54313a6be6fdb06203c7f6d84bad411fa7a3b55896b10f6cd670e53",
+    "src/frontends/riscv/prover/block_v7_keccak_window_control_v1.zig": "b754b63bf61671961a80a7da3d8bf06d24882f6e21940b95f9e02a0d79dee652",
+    "src/frontends/riscv/prover/block_v7_keccak_window_layout_v1.zig": "3fb0a9173d7d936545ced531dbad03ada4fe6143cd3b31e038934dc26a2af0fe",
+    "src/frontends/riscv/prover/block_v7_keccak_window_lookup_v1.zig": "00ae07e98791c02a4056c69161018a4f029308238c4e848df8c1b12a5e470f8a",
+    "src/frontends/riscv/prover/block_v7_keccak_window_memory_v1.zig": "bd2c30a1814f6be351bd4e08856c69d71f44daff97d4825d0422547bee16d3e3",
+    "src/frontends/riscv/prover/block_v7_keccak_window_source_v1.zig": "6446c7e748bea8931036e62a5d9b229c4b76db29573622b25879a0d91b93520a",
+    "src/frontends/riscv/prover/block_v5_precompile_lookup_source_v1.zig": "4ba588f4c60d5caa713d7eefebfdc1c5069e529d78ade6501b2047e00af3611c",
+    "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig": "5a6239e2575c8747f867a0f34a3c3c8b325e4bac9d78f214838d67d3f5b31310",
+    "src/frontends/riscv/prover/block_execution_external_domain_v2.zig": "23291031547505cd3bc6fbb7cf8ff5985103e2261e243815c0732a2ae663cbb2",
+    "src/frontends/riscv/prover/block_v5_opcode_sidecar_eval_v1.zig": "789af5598040de8bd5c3734fddc2a622d60ba17427a2d4f0667f7495c398db89",
+    "src/frontends/riscv/prover/block_v7_shared_word_projection_v1.zig": "8d8b65bd347879b39ab064936e4961a03d1c5586a11392ed716b2db1e8f9514f",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_preprocessed.zig": "67de51989454063209a2edc0c12bc7c7839258286897add00a23524b0eb266b6",
+    "src/frontends/riscv/prover/tests/block_v7_keccak_batch_execution_test.zig": "01ee6bf582504fca6e4803ae2b117e7b0079e53110e5c4be073cf6d7b71938fc",
+    "src/frontends/riscv/prover/tests/block_v7_keccak_execution_test_support.zig": "454b41cb93d55d13be44907449d3d8afd6dedee76df355a88f5185b24ab611c7",
+    "src/frontends/riscv/block_v7_keccak_batch_proof_test_root.zig": "a91995de0357d55b4d464fcb0343bd4fbe42f1f9f241f2f2f1a885c5ad29ee9f"
+  },
+  "strengthened_qualification": {
+    "lifetime": "All shared batch, native, ROM, compact lookup, joint memory producer owners, runner and counters destroyed before verification. Independent ELF/expected terminal remain caller-owned. Every original Stark proof serialized/deserialized with its actual allocator, then fresh independently verified.",
+    "q70_negative_scope": "The full same-control/RAM owner-swap is deliberately skipped under q70; q8 reran it with the strengthened lifecycle. Physical-claim mutation remains exercised at both profiles.",
+    "combined_root": false,
+    "binary": {
+      "path": "/tmp/block-v7-keccak-detached",
+      "sha256": "3188240c37a22f7b7b7c33d16522292067993f525e64a88a5ece667a35e52757"
+    },
+    "runs": [
+      {
+        "profile": "q8",
+        "log": "/tmp/block-v7-keccak-detached-q8.log",
+        "log_sha256": "9ee651a7ae9bf7243e341234a6815446d9cb8d328d7855712153edd36ecfd24e",
+        "proofs": [
+          {
+            "family": "batch",
+            "bytes": 916657,
+            "sha256": "82d98b194fe46dbbd71d3df5d2be8863c0f2918f49426039760f99d71120d03a"
+          },
+          {
+            "family": "native",
+            "bytes": 4869,
+            "sha256": "4918f6a920fb035558e1e52a54959a345a22698c0473c541dc515b110611a9aa"
+          },
+          {
+            "family": "native",
+            "bytes": 5132,
+            "sha256": "f3694faaece5ee791525dcd8f73b95b419d8b8c7e38eb663e6bca9fe918df8ce"
+          },
+          {
+            "family": "native",
+            "bytes": 4866,
+            "sha256": "dec6d1797fabb6ce033cc941f835970867017a955368cc028354238f34609a65"
+          },
+          {
+            "family": "native",
+            "bytes": 14047,
+            "sha256": "5a43abf326feed97f26ca06b010819114fe3ebf3d0b28d3ab6661c49d6a3a79c"
+          },
+          {
+            "family": "rom",
+            "bytes": 7870,
+            "sha256": "840443107b729e15c60704aa98d7a61abf29a2c96a9f301658a35122e8b2caea"
+          },
+          {
+            "family": "lookup",
+            "bytes": 19957,
+            "sha256": "ce765b292eb257df9ab0689da1f615d1045942e24310cb73220469ef14e01d80"
+          },
+          {
+            "family": "memory",
+            "bytes": 65871,
+            "sha256": "f4d9b41a155b857abf19ca1c9230f99f0ac56b80d8947d9b234dc78d3bda9861"
+          },
+          {
+            "family": "batch",
+            "bytes": 918138,
+            "sha256": "70fd34bfb0946755df35ce8a9f85f3adf2aedda4becd1d78ad288d3a7d266ea8"
+          },
+          {
+            "family": "native",
+            "bytes": 4877,
+            "sha256": "fa51b8fc04095ef05a8afb3d77b5e566a686388c39a09b99fe6950d498ddbd3c"
+          },
+          {
+            "family": "native",
+            "bytes": 4789,
+            "sha256": "94dd6be1fa792bce5341e8d62672bed15d24c6f6de2babdb9d33f39d77966f5e"
+          },
+          {
+            "family": "native",
+            "bytes": 4573,
+            "sha256": "41aed376837fa2323fb11db46d1772992b5744cd6ac20a2fc611ab282530598b"
+          },
+          {
+            "family": "native",
+            "bytes": 16250,
+            "sha256": "23380358b19525f2cf3bc33a7268df1bd02149e16e99e691dd577830feaef6a4"
+          },
+          {
+            "family": "rom",
+            "bytes": 7819,
+            "sha256": "c2c68f07c52409c592eefb9f6bd60dc82991b9415e891ddc559c6e326844d662"
+          },
+          {
+            "family": "lookup",
+            "bytes": 19340,
+            "sha256": "1b7bbe7cd370915b68a531760df7debbdd3fc32b1f86280467cf69d054e3043b"
+          },
+          {
+            "family": "memory",
+            "bytes": 64822,
+            "sha256": "70699d68cd52a4d85158b7ca6fdc06caec79c5b3e217063238ff14a4ee2f186c"
+          }
+        ],
+        "stage_lines": [
+          "V7_KECCAK_SHARED swap=false canonical=false batch_setup=.{ .witness_ns = 30527959, .fixed_commit_ns = 5865916, .main_commit_ns = 41643209, .access_commit_ns = 40052708 } batch_stages=.{ .interaction_ns = 60724375, .commit_ns = 117149083, .prove_ns = 1503764375 } setup_ns=187370125 batch_ns=1694993083 native_ns=153288334 rom_ns=6979625 lookup_ns=16922708 memory_ns=132359667 destruction_ns=2464375 codec_ns=127002125 batch_verify_ns=1454011500 receiver_and_negatives_ns=2782709625 whole_ns=6558101208 charged_peak=211406917",
+          "V7_KECCAK_SHARED swap=true canonical=false batch_setup=.{ .witness_ns = 26393834, .fixed_commit_ns = 5308083, .main_commit_ns = 40808167, .access_commit_ns = 40202000 } batch_stages=.{ .interaction_ns = 60575167, .commit_ns = 118993250, .prove_ns = 1510218125 } setup_ns=172322833 batch_ns=1703154250 native_ns=149910292 rom_ns=6932250 lookup_ns=16739833 memory_ns=131614542 destruction_ns=2520042 codec_ns=127395958 batch_verify_ns=1433298833 receiver_and_negatives_ns=1654990709 whole_ns=5398879583 charged_peak=211410197"
+        ],
+        "test_result": "All 17 tests passed.",
+        "max_rss_bytes": 165937152
+      },
+      {
+        "profile": "q70",
+        "log": "/tmp/block-v7-keccak-detached-q70.log",
+        "log_sha256": "d46bfe4449562b99a5910ace6a5a692dec8c8b7c2d480fa81cdbdca82f34ec14",
+        "proofs": [
+          {
+            "family": "batch",
+            "bytes": 3993546,
+            "sha256": "181f90fbc60deba062449f4847ac4e3b038e28c7da96131544bf9ddc9f25ed09"
+          },
+          {
+            "family": "native",
+            "bytes": 4882,
+            "sha256": "ddb29cb7191239829febdf21b7ce4f0f9b1bb2116b37c655dd10abfcaf74b73b"
+          },
+          {
+            "family": "native",
+            "bytes": 5120,
+            "sha256": "a7d926b5ba951ceec4b570438e8583173b9f96411736335e1e2cdfb69ac5260f"
+          },
+          {
+            "family": "native",
+            "bytes": 4871,
+            "sha256": "c48f340050aa84e5b1241808e11b653c13d2c0c170f4ec53f5c03b3002a9c493"
+          },
+          {
+            "family": "native",
+            "bytes": 18288,
+            "sha256": "e59343f939841cff5b8a46b97238b37e0bf30ee5fb48e750fcb27c5c1ac0d5b8"
+          },
+          {
+            "family": "rom",
+            "bytes": 19844,
+            "sha256": "bc89d17ef877e680aa6e28b5ba0e709c69f36696e6dff8f82f7e44259fba88f4"
+          },
+          {
+            "family": "lookup",
+            "bytes": 73194,
+            "sha256": "c4c277077346330cdf7a21adab8a47d76e4ac645dbff8fc69781f8461cfd9375"
+          },
+          {
+            "family": "memory",
+            "bytes": 348265,
+            "sha256": "fe1b538c82787b1a02c3a9685ed98b3f5a71bda7ebaba96feb3d6ee2184af8fb"
+          }
+        ],
+        "stage_lines": [
+          "V7_KECCAK_SHARED swap=false canonical=true batch_setup=.{ .witness_ns = 27684459, .fixed_commit_ns = 5479750, .main_commit_ns = 41968250, .access_commit_ns = 41577833 } batch_stages=.{ .interaction_ns = 63967292, .commit_ns = 124087167, .prove_ns = 1796848291 } setup_ns=178776291 batch_ns=1998943334 native_ns=1868628000 rom_ns=297970333 lookup_ns=602893417 memory_ns=518474708 destruction_ns=2501083 codec_ns=141920875 batch_verify_ns=1533228042 receiver_and_negatives_ns=2901208958 whole_ns=10044545083 charged_peak=214424217"
+        ],
+        "test_result": "16 passed; 1 skipped; 0 failed.",
+        "max_rss_bytes": 175259648
+      }
+    ],
+    "source_sha256": {
+      "src/frontends/riscv/prover/block_v7_keccak_batch_air_v1.zig": "34afe491ff05537e6520f357e15d13a47d9d40f00680b66a47fc5093f400b568",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_claims_v1.zig": "553bd3bcfcf39bfdb58035233215c8dd10715842b452d84b10517c8f43f7fd90",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_closure_v1.zig": "c31e64c56d9dfa639e8ac28519036a0417de98f6ab48fb9340cb39384d8940fe",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_geometry_v1.zig": "73e00f323973887767df1c54a8ee3b83d4fa303a91f0469c616767505c93b011",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_proof_v1.zig": "08b78246cf1e7736c22907510ed6e4429904b858c3a542327ff187fc554e6fdc",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_source_v1.zig": "11410e4fff59b86b88523f96c7c71e98b5529038808e61c58abac813f214bb59",
+      "src/frontends/riscv/prover/block_v7_keccak_batch_stage_v1.zig": "cd06330ffca7bd518c2b216b2fc24a9aca6d878ae04cb3d36a034c195f27b944",
+      "src/frontends/riscv/prover/block_v7_keccak_execution_receiver_v1.zig": "ad9336b9c54313a6be6fdb06203c7f6d84bad411fa7a3b55896b10f6cd670e53",
+      "src/frontends/riscv/prover/block_v7_keccak_window_control_v1.zig": "b754b63bf61671961a80a7da3d8bf06d24882f6e21940b95f9e02a0d79dee652",
+      "src/frontends/riscv/prover/block_v7_keccak_window_layout_v1.zig": "3fb0a9173d7d936545ced531dbad03ada4fe6143cd3b31e038934dc26a2af0fe",
+      "src/frontends/riscv/prover/block_v7_keccak_window_lookup_v1.zig": "00ae07e98791c02a4056c69161018a4f029308238c4e848df8c1b12a5e470f8a",
+      "src/frontends/riscv/prover/block_v7_keccak_window_memory_v1.zig": "bd2c30a1814f6be351bd4e08856c69d71f44daff97d4825d0422547bee16d3e3",
+      "src/frontends/riscv/prover/block_v7_keccak_window_source_v1.zig": "6446c7e748bea8931036e62a5d9b229c4b76db29573622b25879a0d91b93520a",
+      "src/frontends/riscv/prover/block_v5_precompile_lookup_source_v1.zig": "4ba588f4c60d5caa713d7eefebfdc1c5069e529d78ade6501b2047e00af3611c",
+      "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig": "5a6239e2575c8747f867a0f34a3c3c8b325e4bac9d78f214838d67d3f5b31310",
+      "src/frontends/riscv/prover/block_execution_external_domain_v2.zig": "23291031547505cd3bc6fbb7cf8ff5985103e2261e243815c0732a2ae663cbb2",
+      "src/frontends/riscv/prover/block_v5_opcode_sidecar_eval_v1.zig": "789af5598040de8bd5c3734fddc2a622d60ba17427a2d4f0667f7495c398db89",
+      "src/frontends/riscv/prover/block_v7_shared_word_projection_v1.zig": "8d8b65bd347879b39ab064936e4961a03d1c5586a11392ed716b2db1e8f9514f",
+      "src/frontends/riscv/prover/guest_precompile/ethereum_preprocessed.zig": "67de51989454063209a2edc0c12bc7c7839258286897add00a23524b0eb266b6",
+      "src/frontends/riscv/prover/tests/block_v7_keccak_batch_execution_test.zig": "74418903882931194ced699dc535bb38db85fec3d9c57622707ea74325185475",
+      "src/frontends/riscv/prover/tests/block_v7_keccak_execution_test_support.zig": "454b41cb93d55d13be44907449d3d8afd6dedee76df355a88f5185b24ab611c7",
+      "src/frontends/riscv/block_v7_keccak_batch_proof_test_root.zig": "a91995de0357d55b4d464fcb0343bd4fbe42f1f9f241f2f2f1a885c5ad29ee9f"
+    }
+  },
+  "prepared_reuse_qualification": {
+    "result": "PASS18",
+    "log": "/tmp/block-v7-keccak-prepared-q8.log",
+    "binary": "/tmp/block-v7-keccak-prepared",
+    "binary_sha256": "47ff14fd4035d95dc2babde889d899223afbf6acc4c8af268b3177dfc97e30fa",
+    "same_epoch_original_frames_compared": 16,
+    "byte_identical": true,
+    "authority": "Original proof equations and all physical claims remain independently verified; Prepared is witness construction, not verification authority.",
+    "combined_root": "Pending genuine union fixture; standalone results are eight original proofs."
+  },
+  "combined_union_qualification": {
+    "scope": "One combined STARK authenticates the exact native, shared Keccak batch, ROM, compact lookup and joint RAM equations; original proofs are differential oracles only.",
+    "workload": {
+      "cycles": 15,
+      "native_cuts": [
+        3,
+        3,
+        3,
+        6
+      ],
+      "native_windows": 4,
+      "keccak_calls": 2,
+      "shared_batches": 1,
+      "original_oracle_proofs": 8
+    },
+    "binary": "/tmp/block-v7-keccak-union-fixture",
+    "binary_sha256": "1ced8e7f3959eb1d409c001db4b85d3049b65d665faf8c135f8de39a762fe939",
+    "timing_class": "diagnostic; no matched old-caller performance claim",
+    "gates": {
+      "q8": {
+        "log": "/tmp/v7-keccak-union-fixture-q8.log",
+        "log_sha256": "903d004c50926272e15ba44aaa84d941bc99d8f11df4237d6d68cef903a36143",
+        "result": "PASS13",
+        "proofs": [
+          {
+            "family": "batch",
+            "bytes": 916657,
+            "sha256": "82d98b194fe46dbbd71d3df5d2be8863c0f2918f49426039760f99d71120d03a"
+          },
+          {
+            "family": "native",
+            "bytes": 4869,
+            "sha256": "4918f6a920fb035558e1e52a54959a345a22698c0473c541dc515b110611a9aa"
+          },
+          {
+            "family": "native",
+            "bytes": 5132,
+            "sha256": "f3694faaece5ee791525dcd8f73b95b419d8b8c7e38eb663e6bca9fe918df8ce"
+          },
+          {
+            "family": "native",
+            "bytes": 4866,
+            "sha256": "dec6d1797fabb6ce033cc941f835970867017a955368cc028354238f34609a65"
+          },
+          {
+            "family": "native",
+            "bytes": 14047,
+            "sha256": "5a43abf326feed97f26ca06b010819114fe3ebf3d0b28d3ab6661c49d6a3a79c"
+          },
+          {
+            "family": "rom",
+            "bytes": 7870,
+            "sha256": "840443107b729e15c60704aa98d7a61abf29a2c96a9f301658a35122e8b2caea"
+          },
+          {
+            "family": "lookup",
+            "bytes": 19957,
+            "sha256": "ce765b292eb257df9ab0689da1f615d1045942e24310cb73220469ef14e01d80"
+          },
+          {
+            "family": "memory",
+            "bytes": 65871,
+            "sha256": "f4d9b41a155b857abf19ca1c9230f99f0ac56b80d8947d9b234dc78d3bda9861"
+          },
+          {
+            "family": "combined_union",
+            "bytes": 1010018,
+            "sha256": "f4d9e8141118d19a8527d602719391a17ec2ce56bb747cab91284dbb687de7c5"
+          },
+          {
+            "family": "batch",
+            "bytes": 918138,
+            "sha256": "70fd34bfb0946755df35ce8a9f85f3adf2aedda4becd1d78ad288d3a7d266ea8"
+          },
+          {
+            "family": "native",
+            "bytes": 4877,
+            "sha256": "fa51b8fc04095ef05a8afb3d77b5e566a686388c39a09b99fe6950d498ddbd3c"
+          },
+          {
+            "family": "native",
+            "bytes": 4789,
+            "sha256": "94dd6be1fa792bce5341e8d62672bed15d24c6f6de2babdb9d33f39d77966f5e"
+          },
+          {
+            "family": "native",
+            "bytes": 4573,
+            "sha256": "41aed376837fa2323fb11db46d1772992b5744cd6ac20a2fc611ab282530598b"
+          },
+          {
+            "family": "native",
+            "bytes": 16250,
+            "sha256": "23380358b19525f2cf3bc33a7268df1bd02149e16e99e691dd577830feaef6a4"
+          },
+          {
+            "family": "rom",
+            "bytes": 7819,
+            "sha256": "c2c68f07c52409c592eefb9f6bd60dc82991b9415e891ddc559c6e326844d662"
+          },
+          {
+            "family": "lookup",
+            "bytes": 19340,
+            "sha256": "1b7bbe7cd370915b68a531760df7debbdd3fc32b1f86280467cf69d054e3043b"
+          },
+          {
+            "family": "memory",
+            "bytes": 64822,
+            "sha256": "70699d68cd52a4d85158b7ca6fdc06caec79c5b3e217063238ff14a4ee2f186c"
+          },
+          {
+            "family": "combined_union_owner_swap",
+            "bytes": 1010844,
+            "sha256": "58c54b39572026d3db1073683b5a79bc243bcd53d4623b2f2992361ae5221ef2"
+          }
+        ],
+        "measurements": [
+          "V7_KECCAK_UNION canonical=false original_starks=8 combined_starks=1 exact_physical_claims=true all_producers_and_original_proofs_destroyed=true union_prove_ns=1713338666 union_verify_ns=926795167 charged_peak=253905415",
+          "V7_KECCAK_SHARED swap=false canonical=false batch_setup=.{ .witness_ns = 27722792, .fixed_commit_ns = 5758000, .main_commit_ns = 44089708, .access_commit_ns = 43117292 } batch_stages=.{ .interaction_ns = 71420333, .commit_ns = 125226250, .prove_ns = 1605757667 } setup_ns=185412459 batch_ns=1812327709 native_ns=154418125 rom_ns=7409916 lookup_ns=17833375 memory_ns=137165917 destruction_ns=2281083 codec_ns=135297875 batch_verify_ns=1522020417 receiver_and_negatives_ns=4643065083 whole_ns=10330570750 charged_peak=253905415",
+          "V7_KECCAK_UNION_OWNER_SWAP all_originals_recommitted=true union_recommitted=true originals_destroyed=true rejected_by_global_ram=true",
+          "V7_KECCAK_SHARED swap=true canonical=false batch_setup=.{ .witness_ns = 27475417, .fixed_commit_ns = 5384625, .main_commit_ns = 43067667, .access_commit_ns = 42497416 } batch_stages=.{ .interaction_ns = 71234292, .commit_ns = 124217625, .prove_ns = 1607345416 } setup_ns=181108250 batch_ns=1812816042 native_ns=156903541 rom_ns=7364875 lookup_ns=17997792 memory_ns=138270917 destruction_ns=2680083 codec_ns=136019708 batch_verify_ns=1529271625 receiver_and_negatives_ns=2880221959 whole_ns=8557335000 charged_peak=253905415"
+        ],
+        "full_qualification_max_rss_bytes": 205127680
+      },
+      "q70_pow26": {
+        "log": "/tmp/v7-keccak-union-fixture-q70.log",
+        "log_sha256": "c3a606bfc8ca439ff5597d7f732b47538158d37eac1b5fdaf146e32350232845",
+        "result": "PASS12_SKIP1",
+        "proofs": [
+          {
+            "family": "batch",
+            "bytes": 3993546,
+            "sha256": "181f90fbc60deba062449f4847ac4e3b038e28c7da96131544bf9ddc9f25ed09"
+          },
+          {
+            "family": "native",
+            "bytes": 4882,
+            "sha256": "ddb29cb7191239829febdf21b7ce4f0f9b1bb2116b37c655dd10abfcaf74b73b"
+          },
+          {
+            "family": "native",
+            "bytes": 5120,
+            "sha256": "a7d926b5ba951ceec4b570438e8583173b9f96411736335e1e2cdfb69ac5260f"
+          },
+          {
+            "family": "native",
+            "bytes": 4871,
+            "sha256": "c48f340050aa84e5b1241808e11b653c13d2c0c170f4ec53f5c03b3002a9c493"
+          },
+          {
+            "family": "native",
+            "bytes": 18288,
+            "sha256": "e59343f939841cff5b8a46b97238b37e0bf30ee5fb48e750fcb27c5c1ac0d5b8"
+          },
+          {
+            "family": "rom",
+            "bytes": 19844,
+            "sha256": "bc89d17ef877e680aa6e28b5ba0e709c69f36696e6dff8f82f7e44259fba88f4"
+          },
+          {
+            "family": "lookup",
+            "bytes": 73194,
+            "sha256": "c4c277077346330cdf7a21adab8a47d76e4ac645dbff8fc69781f8461cfd9375"
+          },
+          {
+            "family": "memory",
+            "bytes": 348265,
+            "sha256": "fe1b538c82787b1a02c3a9685ed98b3f5a71bda7ebaba96feb3d6ee2184af8fb"
+          },
+          {
+            "family": "combined_union",
+            "bytes": 4480705,
+            "sha256": "b43d4b3991660c49a0627554f8e40c7eaecddb1c4e1d6fa39cefc991f155baf5"
+          }
+        ],
+        "measurements": [
+          "V7_KECCAK_UNION canonical=true original_starks=8 combined_starks=1 exact_physical_claims=true all_producers_and_original_proofs_destroyed=true union_prove_ns=2340148125 union_verify_ns=1038906583 charged_peak=253905415",
+          "V7_KECCAK_SHARED swap=false canonical=true batch_setup=.{ .witness_ns = 29602750, .fixed_commit_ns = 6143292, .main_commit_ns = 43936083, .access_commit_ns = 42646208 } batch_stages=.{ .interaction_ns = 71746208, .commit_ns = 125138375, .prove_ns = 1825752208 } setup_ns=185180083 batch_ns=2032717000 native_ns=1870972167 rom_ns=298087625 lookup_ns=611545042 memory_ns=528197041 destruction_ns=2347459 codec_ns=152018500 batch_verify_ns=1629506250 receiver_and_negatives_ns=4925292291 whole_ns=14576011625 charged_peak=253905415"
+        ],
+        "full_qualification_max_rss_bytes": 204832768
+      }
+    },
+    "checks": [
+      "Every physical claim equals the eight same-epoch original proofs.",
+      "All native/batch/provider wide producers and all original proof objects destroyed before combined verification.",
+      "Combined STARK postcard roundtrip and fresh independent input/policy/fixed-root/global relation verification.",
+      "Changed physical batch claim and independently expected output rejected.",
+      "q8: complete identical-control/different-RAM caller swap rebuilds all roots, epoch, eight source proofs and union STARK; fresh union rejects at global RAM closure."
+    ],
+    "remaining": [
+      "Daily harness integration and same-input old per-window caller vs shared batch comparison.",
+      "No whole Ethereum block throughput or independently persisted full union wire-envelope qualification claimed."
+    ]
+  },
+  "bounded_codec_qualification": {
+    "scope": "Bounded full public-claim and STARK transport; independent fixed roots, policy and global closure.",
+    "native_layout_snapshot": "Before the separate 2026-10-29 native RAM-clock ghost projection migration; historical qualification, not final daily binary.",
+    "binary": "/tmp/block-v7-keccak-union-codec-fixture",
+    "binary_sha256": "4c8bc8313be38d3159edb1c895fc470dc0ae371bbc7fbb91a48871815c8af028",
+    "gates": {
+      "q8": {
+        "log": "/tmp/v7-keccak-union-codec-fixture-q8.log",
+        "sha256": "4264156393416bd72ee426bde98dad0b22aa25cbe0cda855ae208b40719d5b3f",
+        "result": "PASS13",
+        "wire": [
+          "V7_KECCAK_UNION_WIRE bytes=1038457 windows=4 callers=1 trees=21 decode_peak_bytes=11881982 fresh_verification=true hostile_framing=true"
+        ],
+        "max_rss_bytes": 205160448
+      },
+      "q70": {
+        "log": "/tmp/v7-keccak-union-codec-fixture-q70.log",
+        "sha256": "3f43d0c0a5acd976329d771faf73e3006e6e05ee4a859b4605b5a5d3f4f51d8c",
+        "result": "PASS12_SKIP1",
+        "wire": [
+          "V7_KECCAK_UNION_WIRE bytes=4509144 windows=4 callers=1 trees=21 decode_peak_bytes=11882014 fresh_verification=true hostile_framing=true",
+          "V7_KECCAK_UNION_WIRE bytes=4509144 windows=4 callers=1 trees=21 decode_peak_bytes=11882014 fresh_verification=true hostile_framing=true"
+        ],
+        "max_rss_bytes": 204783616
+      }
+    },
+    "durable_artifacts": [
+      {
+        "path": "vectors/reports/block-v7-keccak-shared-union-20261029/canonical/guest.elf",
+        "bytes": 1460,
+        "sha256": "44408296a9906487495ccbf54697df6eaf3ca070687feb50cb1c500385aae15b"
+      },
+      {
+        "path": "vectors/reports/block-v7-keccak-shared-union-20261029/canonical/proof.b7kun",
+        "bytes": 4509144,
+        "sha256": "9c3d0321560cf263b259cecdb58b455565e27e738da2f2a533c7c65d01cda0e3"
+      },
+      {
+        "path": "vectors/reports/block-v7-keccak-shared-union-20261029/canonical/public-metadata.json",
+        "bytes": 201928,
+        "sha256": "008635df5886bb5ce670fdb734a3afac161eeae346985c9cebe5b1ccb25ec952"
+      }
+    ],
+    "negative_cases": [
+      "magic",
+      "claim schema",
+      "epoch digest",
+      "claim count bomb",
+      "proof configuration",
+      "truncation",
+      "trailing bytes",
+      "unsupported lifting",
+      "decode allocator cap",
+      "verification allocator cap"
+    ]
+  },
+  "daily_helper_qualification": {
+    "note": "vectors/reports/ethereum-daily-profiling-20261029/shared-keccak-correctness/qualification.json",
+    "run": "vectors/reports/ethereum-daily-profiling-20261029/shared-keccak-correctness/00-keccak_heavy-8-r01/run.json",
+    "report": "vectors/reports/ethereum-daily-profiling-20261029/shared-keccak-correctness/00-keccak_heavy-8-r01/report.json",
+    "schema": 1,
+    "qualification": "PASS: shared-Keccak daily complete proof integration",
+    "timing_class": "unranked correctness; overlapped independently running 421-case native-claim diagnostic",
+    "binary_sha256": "0aba83b8644fe2f5229e8456addbd1d40a4f667004502eeb82d1c2996849ad9e",
+    "source_sha256": "b45e85a90759bab69eb0c9b0f08bcfda853a61cf91b8882f9fc7d77f897351fe",
+    "architecture": "shared_keccak",
+    "proof_contract": "original_complete_stark",
+    "verified": true,
+    "producers_destroyed": true,
+    "comparison": "Matched idle baseline/shared campaign pending; do not use this sample alone as a speedup claim."
+  }
+}

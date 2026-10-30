@@ -1,0 +1,42 @@
+1/1 prover.block_v7_memory_cohorts_test_v1.test.v7 bounded spill cohorts equal original proofs and verify after producer destruction...WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=1514750
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=1459584
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=1446542
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=1430375
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=1474833
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=5 elapsed_ns=174166
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=24906708
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=222541
+WORD_QUOTIENT_TILED {"charged_peak_bytes":97440,"coefficient_bytes":14592,"tile_log":3,"tiles":8}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=4 elapsed_ns=4966417
+WORD_QUOTIENT_TILED {"charged_peak_bytes":97440,"coefficient_bytes":14592,"tile_log":3,"tiles":8}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=4 elapsed_ns=4876416
+WORD_QUOTIENT_TILED {"charged_peak_bytes":97440,"coefficient_bytes":14592,"tile_log":3,"tiles":8}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=4 elapsed_ns=4884666
+WORD_QUOTIENT_TILED {"charged_peak_bytes":97440,"coefficient_bytes":14592,"tile_log":3,"tiles":8}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=4 elapsed_ns=5977000
+WORD_QUOTIENT_TILED {"charged_peak_bytes":97440,"coefficient_bytes":14592,"tile_log":3,"tiles":8}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=4 elapsed_ns=4859333
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=5 elapsed_ns=153958
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=26233167
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=268875
+V7_MEMORY_COHORTS ram=5 providers=3 verified=true byte_identical=true charged_peak=74457928 whole_block=false
+OK
+All 1 tests passed.
+      105.79 real       105.18 user         0.38 sys
+           103268352  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               23418  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  13  voluntary context switches
+               10943  involuntary context switches
+       2977282609310  instructions retired
+        455018184381  cycles elapsed
+           101646960  peak memory footprint

@@ -1,0 +1,114 @@
+{
+  "schema": "stwo-v7-extended-corpus-v1",
+  "scope": "Explicitly admitted nonterminal windows, not full-block or skipped-prefix proofs. Capture is execution input, not proof authority.",
+  "source_index_sha256": "222098440a7d45df5dcb28bb8bef873e636c4282e57c4e8682a5f6ebd40e3dc0",
+  "cases": [
+    {
+      "case": "native-1048576",
+      "capture_sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 1048576
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_state_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_state_sha256": "91aaaff6cec0524141f4e979c39816ca54f1200c2faf9daaaab7f098a4a434af"
+    },
+    {
+      "case": "recovery-131072",
+      "capture_sha256": "a5b1c554c12001561012392722321ac13857bdd843e587667a2cc76bbc49e925",
+      "window": {
+        "skip_cycles": 24718000,
+        "cycles": 131072
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_state_sha256": "6b5d08ed74ba37b9fab79dc6ed8f68240583906d1f027474ecaaefee25438cc5",
+      "outgoing_state_sha256": "dcecb90eef334a8d167446f32dade30a6bb740e0e265bf449af8b8a88f616046"
+    },
+    {
+      "case": "keccak-131072",
+      "capture_sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca",
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 131072
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_state_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+      "outgoing_state_sha256": "7f486db5f9d2653270f040c998bc97ea72fde66ff2c70af926c7298f4662b2b9"
+    },
+    {
+      "case": "keccak-524288",
+      "capture_sha256": "f975358606145f1bf84e4967296ce834cea476cef9cf1d8139e9cd8f2adee868",
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 524288
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_state_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+      "outgoing_state_sha256": "69402a7db2c7f80c6e086123e6fced0316d9f5ef74f4038a3172af6e1e25f3db"
+    }
+  ],
+  "files": [
+    {
+      "path": "native-1048576/capture.json",
+      "bytes": 1001,
+      "sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350"
+    },
+    {
+      "path": "native-1048576/incoming.b7win.gz",
+      "bytes": 7313196,
+      "sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f"
+    },
+    {
+      "path": "native-1048576/outgoing.b7win.gz",
+      "bytes": 7670871,
+      "sha256": "2a141292f0b92fb6cd19cc5c64a2a5388f4c9cc38b6ce061074cfe8feb0c4bc4"
+    },
+    {
+      "path": "recovery-131072/capture.json",
+      "bytes": 1007,
+      "sha256": "a5b1c554c12001561012392722321ac13857bdd843e587667a2cc76bbc49e925"
+    },
+    {
+      "path": "recovery-131072/incoming.b7win.gz",
+      "bytes": 11160423,
+      "sha256": "5b8837ed9f5b0001cf3228c20a447e917ccb88d66bf252cf9d997ff9dbebf123"
+    },
+    {
+      "path": "recovery-131072/outgoing.b7win.gz",
+      "bytes": 11166777,
+      "sha256": "7078674ae51842bd604cd45f27fc1a70b22bbbe93339ad49a2220775439cd949"
+    },
+    {
+      "path": "keccak-131072/capture.json",
+      "bytes": 1006,
+      "sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca"
+    },
+    {
+      "path": "keccak-131072/incoming.b7win.gz",
+      "bytes": 12923214,
+      "sha256": "6e027f4954de156a9b5c136f476a7568eff7c33253fc8ed81a4cdd8fc4ce44f8"
+    },
+    {
+      "path": "keccak-131072/outgoing.b7win.gz",
+      "bytes": 12923952,
+      "sha256": "0e3a009d682fc6f52afbdc8099f9557b7a3d890bee4d01e9fafc64591d811a39"
+    },
+    {
+      "path": "keccak-524288/capture.json",
+      "bytes": 1008,
+      "sha256": "f975358606145f1bf84e4967296ce834cea476cef9cf1d8139e9cd8f2adee868"
+    },
+    {
+      "path": "keccak-524288/incoming.b7win.gz",
+      "bytes": 12923214,
+      "sha256": "6e027f4954de156a9b5c136f476a7568eff7c33253fc8ed81a4cdd8fc4ce44f8"
+    },
+    {
+      "path": "keccak-524288/outgoing.b7win.gz",
+      "bytes": 12926078,
+      "sha256": "92ef4f0352f84eba53adf15774067810711494bdc0433d107b888b5456c6015e"
+    }
+  ],
+  "logical_bytes": 89011747
+}

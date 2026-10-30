@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "qualification": "PASS: actual high-gap RAM proof and fully recommitted value/clock attacks",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "result": "467 passed; 1 unrelated skipped; 0 failed",
+  "workload": {
+    "cycles": 262157,
+    "native_windows": 2,
+    "callers": 0,
+    "target_ram_address": "0x100100",
+    "honest_value": 17,
+    "injected_value": 23,
+    "load_global_access_clock": 1048599,
+    "target_ram_gap_rows": 1,
+    "loop_iterations": 131072,
+    "loaded_register_clobbered_before_output": true
+  },
+  "cases": {
+    "none": "Honest store17, arithmetic wait, load17, clobber, fixed output: complete root accepted.",
+    "before_value": "Test-only runner RAM changed17->23 between native windows. Entire second trace, native/access/provider roots, epoch and union STARK rebuilt. Global provider proves honest17->17 chain. Fresh complete receiver rejects only WORD transition residual.",
+    "current_clock": "Native execution remains honest. Independent provider read current clock shifted+4; all provider commitments, epoch and complete proof rebuilt. Fresh receiver rejects only WORD transition residual."
+  },
+  "attribution": {
+    "cryptographic_verifier_precedes_global_closure": true,
+    "all_producer_owners_destroyed_before_decode_and_verify": true,
+    "native_ordinary_and_auxiliary_residuals_zero": true,
+    "window_state_and_register_residuals_zero": true,
+    "program_residual_zero": true,
+    "table_residuals_zero": true,
+    "fetch_and_event_counts_equal": true,
+    "only_word_transition_changes": true
+  },
+  "log": "/tmp/v7-high-gap-attribution-canonical.log",
+  "log_sha256": "0950b4c5c6727febd88ee533b5aa909638186596a95eb9f2b832b5d0dcc89b91",
+  "binary": "/tmp/block-v7-high-gap-memory-attributed",
+  "binary_sha256": "52ed8c0ed851d592f33e2e92819eb2b582730b03126d76bf96fe4f71b7931042",
+  "source_hashes": {
+    "src/frontends/riscv/block_v7_high_gap_memory_test_root.zig": "6c06185ee7ea90e0152f7fc9409f6549f9dac234758244e48ac35b8bbd7693b4",
+    "src/frontends/riscv/prover/tests/block_v7_high_gap_guest_test_support.zig": "8bc725f60ecbc5140cf4a01e9d9dfa495228aa7ac9371f61d83a8405df5432e4",
+    "src/frontends/riscv/prover/tests/block_v7_high_gap_memory_test.zig": "8e3c52151c5f94fc8ff8db82a76b79e6081cbdfad50fd6f00c58008a40cec164",
+    "src/frontends/riscv/prover/block_v7_native_relation_layout_v1.zig": "7c7904fea9e427b49975d94401ed89f074559649abba03c0c0ee1c4f8259fd69",
+    "src/frontends/riscv/prover/block_v7_native_source_v1.zig": "5582f06924e823d720e87f9e6199e72c648407d50a372bb521f0133d6f118670",
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_v1.zig": "460da63e9cac3b7f83a17f2c5245579c602ab1bc2372166ea6ded6f2672315ab",
+    "src/frontends/riscv/prover/block_v7_execution_claim_closure_v1.zig": "15f6363306045ecc984c26e8486f44c67dd0e72ae0434b35c15b204eb3b6c9cc",
+    "src/frontends/riscv/prover/block_v7_multi_union_codec_v1.zig": "e9572ae1a5fcdd132273788e4e348e3c0d948070f7d0dc321b0c907343ff1498"
+  },
+  "measurements": [
+    "2/468 prover.tests.block_v7_high_gap_memory_test.test.v7 actual high-gap RAM execution closes without a ghost provider...V7_HIGH_GAP attack=none cycles=262157 load_clock=1048599 ram_gap_rows=1 all_commitments_rebuilt=true producers_destroyed=true only_word_residual_changes=true setup_ns=236883000 prove_ns=3819766000 whole_ns=4240754458 charged_peak=803300556 proof_bytes=672242",
+    "3/468 prover.tests.block_v7_high_gap_memory_test.test.v7 recommitted high-gap RAM before-value forgery rejects in global WORD closure...V7_HIGH_GAP attack=before_value cycles=262157 load_clock=1048599 ram_gap_rows=1 all_commitments_rebuilt=true producers_destroyed=true only_word_residual_changes=true setup_ns=214483000 prove_ns=3381965291 whole_ns=3781062916 charged_peak=803300556 proof_bytes=675426",
+    "4/468 prover.tests.block_v7_high_gap_memory_test.test.v7 recommitted high-gap RAM current-clock forgery rejects in global WORD closure...V7_HIGH_GAP attack=current_clock cycles=262157 load_clock=1048599 ram_gap_rows=1 all_commitments_rebuilt=true producers_destroyed=true only_word_residual_changes=true setup_ns=217569667 prove_ns=3658847583 whole_ns=4068424917 charged_peak=803298252 proof_bytes=669363"
+  ],
+  "full_qualification_max_rss_bytes": 726794240,
+  "timing_class": "diagnostic correctness, not Ethereum throughput",
+  "reproduce": [
+    "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_high_gap_memory_test_root.zig -OReleaseSafe -fstrip --test-no-exec -femit-bin=/tmp/block-v7-high-gap-memory-attributed",
+    "STWO_V7_HIGH_GAP_CANONICAL=1 /tmp/block-v7-high-gap-memory-attributed"
+  ],
+  "limitations": [
+    "Regression evidence for the explicit v7 actual-RAM relation layout; not a formal soundness proof or independent cryptographic audit.",
+    "Current-clock hostile case changes the independently proved global RAM provider timestamp; the native instruction timestamp remains honest and proof-bound."
+  ]
+}

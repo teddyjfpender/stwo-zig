@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "scope": "Original caller proofs only; no complete execution root or recursive admission qualification. Shared-host correctness gate, not a timing benchmark.",
+  "git_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "uncommitted_sources": true,
+  "layout_version": 2,
+  "source_version": 2,
+  "tests_passed": 11,
+  "binary_sha256": "6753fe1ed170b88f5d59a893ecb37182e8b0824e9a432a7bc7b8d51f6c69f917",
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_caller_active_test_root.zig -OReleaseSafe -fstrip --test-filter \"active caller\"",
+  "direct_source_sha256": {
+    "src/frontends/riscv/prover/block_v7_caller_active_assembly_v1.zig": "261a24f5483e4fe2da46a9017e7cc1d1847319abd9f9e81f45b50f8aeb1cc756",
+    "src/frontends/riscv/prover/block_v7_caller_active_layout_v1.zig": "962b361826e82de7e1b91a2d4a9054a51ef3bf1f9c20826dc7c965b8ba183186",
+    "src/frontends/riscv/prover/block_v7_caller_active_proof_v1.zig": "65711f59bf8293503b202264ab38daa28f43283b1d8cac164be7cc14be6e602e",
+    "src/frontends/riscv/prover/block_v7_caller_active_schedule_v1.zig": "dc3ae568161dd507dde7c1581f20939e07b2477f3cf19e831708890cae7c81e1",
+    "src/frontends/riscv/prover/block_v7_caller_active_source_v1.zig": "e47e844900cf0b5ac927c1eb2a0f8996a7aee79aa83949b8db62783ce6121f9b",
+    "src/frontends/riscv/prover/block_v7_caller_active_stage_v1.zig": "6b7728a66f1f1732660054ab5800c0818b39126f696e46576f20e6db2c935369",
+    "src/frontends/riscv/prover/tests/block_v7_caller_active_test.zig": "0515e4af06ccee526b513d24139d2b8b88fda1277eeadca3463f2c62b2019603",
+    "src/frontends/riscv/block_v7_caller_active_test_root.zig": "249e92175dbbead69e9982c3206358dae46237dbe82b9c1e479848c9b24b4b0c",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_assembly.zig": "7e7cb12aea52775488ca38f3aa290359016474c05d83b54faefa1e076751338e"
+  },
+  "source_manifest_limit": "Direct new modules and exposed constructor only; not a transitive full-tree manifest.",
+  "evidence": [
+    "original-proof-gate.log",
+    "results.tsv"
+  ],
+  "negative_tests": [
+    "active component omission rejected by independent layout derivation",
+    "nonzero omitted signer physical claims rejected",
+    "compensating live SHA scalar claims rejected by OODS",
+    "changed access root rejected by epoch admission",
+    "self-consistent changed fixed root and new epoch rejected by independent fixed commitment"
+  ],
+  "differential": "Mixed original full and active STARKs share one epoch; all typed global exports match exactly, OODS samples 49804 -> 32547."
+}

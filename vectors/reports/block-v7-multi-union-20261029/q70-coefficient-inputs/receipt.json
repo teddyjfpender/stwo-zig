@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "fixture": "q70-coefficient-inputs",
+  "scope": "synthetic multiwindow original STARK, not an Ethereum block or recursive publication root",
+  "timing": "shared-host diagnostic; not repeated benchmark medians",
+  "qualification": {
+    "profile": "csp_q70_pow26",
+    "cycles": 20495,
+    "cut": 10248,
+    "native_windows": 2,
+    "callers": 1,
+    "no_access": 0,
+    "physical_frames": 0,
+    "original_starks": 1,
+    "oracle_starks": 6,
+    "trees": 18,
+    "estimated_trace_pcs_bytes": 187993904,
+    "setup_ns": 396729833,
+    "prove_ns": 3594862458,
+    "oracle_prove_verify_ns": 9109922250,
+    "fresh_verify_ns": 1388911000,
+    "proof_bytes": 6016333,
+    "charged_proof_peak_bytes": 337564021,
+    "all_producer_and_oracle_owners_destroyed": "true",
+    "exact_physical_claims": "true",
+    "global_closure": "true",
+    "timing": "shared_host_diagnostic"
+  },
+  "fresh_process_transport": {
+    "bytes": 6063212,
+    "windows": 2,
+    "callers": 1,
+    "trees": 18,
+    "decode_peak_bytes": 20114635,
+    "fresh_verification": "true",
+    "hostile_framing": "true"
+  },
+  "tests": {
+    "producer": 11,
+    "fresh_process_receiver": 8
+  },
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "artifacts": {
+    "guest.elf": {
+      "bytes": 1492,
+      "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+    },
+    "public-metadata.json": {
+      "bytes": 109716,
+      "sha256": "23755ca1f93db0e585b1a16887b53cdc277d93ec30bfbecb1e7524a475c38ab5"
+    },
+    "proof.b7mun": {
+      "bytes": 6063212,
+      "sha256": "1a5211f770685711eb3e81c5a7e6e4e0fee8e4e74fdf957c2869133f321f6934"
+    },
+    "qualification.log": {
+      "bytes": 1388,
+      "sha256": "9f5fa425009b39efff94016d1bb605f7ec645fb224abbed2b8c017cf17feb400"
+    },
+    "fresh-process.log": {
+      "bytes": 732,
+      "sha256": "958775fe8a7da438d71bdced81963fb25b2ed2daed4b1ec251e7e88eafb4be45"
+    }
+  },
+  "trust_boundary": "Receiver reconstructs expected ELF, execution/output and security independently; JSON is a typed fixture metadata import, not authority.",
+  "memory_scope": "Charged proof allocator peak excludes external fixture preparation; decode peak is separate. Neither is process RSS.",
+  "storage": "Coefficient-backed memory inputs, bounded RAM quotient tiles."
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "stwo-failed-root-source-after-audit-v1",
+  "note": "Includes deliberate post-failure v2census/memory/parallelism edits. Frozen source-exact.tar +binary are originalattempt authority.",
+  "changes": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_native_endpoint_components_v1.zig",
+      "before_sha256": "9e58b3479a7e9f3aaed1e22b8cb834ff0acd910a035617f5779184fd18a8bc60",
+      "after_sha256": "e1db5ebe23d39ab584e93ebf2fd2b27cf735e52ce5b0affd5ecff16cae6af76a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_native_halt_policy_v1.zig",
+      "before_sha256": "b372f25622362a3355940ad9749cc158ef61cdcae916c2faec16d48cb31bb7f9",
+      "after_sha256": "781a9755ced34c0a4595e25fa95e190237a4aa5dde605082e71698fb1ca005b8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_join_pipeline_v1.zig",
+      "before_sha256": "465146390f9c49c8950a8ade1b50060f66bb2c122387f2e3ef908db34bd72338",
+      "after_sha256": "cc31b077ede0bbbec1d2ebe71dad5e2f51d3e3517bf3bf06f91bf4865fb2f97e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_join_roster_v1.zig",
+      "before_sha256": "e70cfce8b97b76cf7ecd8fd6ad44b53b5319b876229c806586c6661fd5bc3fc9",
+      "after_sha256": "89c09dd3edb73ec4113c96c7aca6f8bfa26405bc5f515cc40a00d7d7ceddab15"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_join_source_v1.zig",
+      "before_sha256": "2f73ba558bafca7800cb78241653ef52f9dfd4bc06b7e1ca04796d859adb12e6",
+      "after_sha256": "a064d9aade3695c496ac6c6838f000bb42d49368c0ce14c2c3342c6a7654e43b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/tests/block_v8_endpoint_join_saved_benchmark.zig",
+      "before_sha256": "89657b41356f2c0cf89c7a9106c0c4606baa120d48c68949cf9abf23c6f00d2e",
+      "after_sha256": "a37130ebff377659e09f0943b627b07c67642707a7b888fccfcfc88612ec485b"
+    }
+  ]
+}

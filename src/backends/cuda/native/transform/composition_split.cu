@@ -328,3 +328,72 @@ extern "C" int stwo_ntt_b2n_composition_split_depth_two_on(
         reinterpret_cast<cudaStream_t>(stream_raw),
         launches_out));
 }
+
+// Finite q3 composition: eight secure chunks, preserving the original
+// recursive left-to-right coefficient order. No evaluation-degree relabeling.
+extern "C" int stwo_ntt_b2n_composition_split_depth_three_on(
+    uint32_t *coordinate_values,
+    size_t coordinate_capacity_words,
+    size_t coordinate_stride_words,
+    uint32_t *coefficients,
+    size_t coefficient_capacity_words,
+    size_t coefficient_stride_words,
+    uint32_t log_n,
+    const uint32_t *inverse_twiddles,
+    uint32_t inverse_twiddle_words,
+    uint32_t evaluation_domain_size,
+    void *stream_raw,
+    uint32_t *launches_out) {
+    using namespace stwo::cuda::transform;
+    if (launches_out != nullptr) *launches_out = 0;
+    if (log_n < 4u ||
+        !valid_shape(
+            log_n,
+            kCoordinateCount,
+            inverse_twiddle_words,
+            evaluation_domain_size) ||
+        stream_raw == nullptr || launches_out == nullptr) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+
+    const size_t values = static_cast<size_t>(1) << log_n;
+    const size_t eighth_values = values / 8u;
+    if (values > SIZE_MAX / kCoordinateCount ||
+        coordinate_stride_words != values ||
+        coefficient_stride_words != eighth_values ||
+        coordinate_capacity_words != kCoordinateCount * values ||
+        coefficient_capacity_words != kCoordinateCount * values) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+
+    DeviceRange input_range{};
+    DeviceRange output_range{};
+    DeviceRange twiddle_range{};
+    if (!word_range(
+            coordinate_values,
+            coordinate_capacity_words,
+            &input_range) ||
+        !word_range(
+            coefficients,
+            coefficient_capacity_words,
+            &output_range) ||
+        !word_range(
+            inverse_twiddles,
+            inverse_twiddle_words,
+            &twiddle_range) ||
+        ranges_overlap(input_range, output_range) ||
+        ranges_overlap(input_range, twiddle_range) ||
+        ranges_overlap(output_range, twiddle_range)) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+
+    return static_cast<int>(launch_composition_split<3u>(
+        coordinate_values,
+        coefficients,
+        log_n,
+        inverse_twiddles,
+        inverse_twiddle_words,
+        evaluation_domain_size,
+        reinterpret_cast<cudaStream_t>(stream_raw),
+        launches_out));
+}

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "canonical_security": false,
+  "ethereum_block": false,
+  "security": "diagnostic_q8_pow0",
+  "log_sha256": "0eb709aef30c2456ebbac898759edf7b27dbbb2bad2ac5266ad8026555440011",
+  "binary_sha256": "e55e49cedea9b2918355691f453523f6b64d8a2c6b16d7f2064720b77027e9ca",
+  "guard_log_sha256": "f886ff5eac03b41ba00df12e09720fafe8c2d6bc469e733bb0536649b9ddc8ad",
+  "guard_evidence": "[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting\n[zig_protocol_test] acquired after 45s\n1/2 block_v7_fixed_commitment_reuse_test_root.test_0...OK\n2/2 prover.block_v7_fixed_commitment_reuse_test.test.retained fixed commitment rejects substitutions and survives source owner destruction...OK\nAll 2 tests passed.\n",
+  "timing_status": "diagnostic concurrent activity, no repeated controlled A/B",
+  "evidence_lines": [
+    "V7_STREAMING_COMPLETE iterations=4096 profile=diagnostic_q8_pow0 source={\"cycles\":20495,\"segments\":2,\"callers\":1,\"events\":8293,\"fetches\":20496,\"original_proofs\":6,\"checkpoint_bytes\":42475032,\"native_checkpoint_bytes\":36953856,\"caller_checkpoint_bytes\":5521176,\"max_native_restore_codec_bytes\":19477120,\"event_storage_bytes\":224616,\"setup_ns\":1332750,\"execution_ns\":1140292,\"collection_ns\":568475250,\"providers_first_ns\":77621833,\"native_proof_ns\":1094111958,\"caller_proof_ns\":5111636625,\"memory_proof_ns\":226190334,\"rom_proof_ns\":7605708,\"lookup_proof_ns\":101085083,\"verification_ns\":3266299667,\"consumer_ns\":54193614750,\"whole_ns\":64649114292,\"charged_peak_bytes\":8032862762} recursive={\"metadata_ns\":398254084,\"caller_compile_ns\":889368458,\"cold_key_ns\":8731430792,\"capture_witness_join_ns\":17181300666,\"parity_ns\":16256584,\"plan_ns\":1216330958,\"proof_ns\":25635539750,\"encoding_ns\":77433958,\"whole_ns\":54145915292,\"retained_rows_bytes\":1840224616,\"fixed_commitment_reused\":true} root_verification_ns=624895916 execution_to_verified_root_ns=65411503125 proof_bytes=162440 charged_peak_bytes=8032862762 original_owners_destroyed=true complete_global_closure=true ethereum_block=false",
+    "All 11 tests passed.",
+    "          8070070272  maximum resident set size",
+    "          8064311048  peak memory footprint"
+  ]
+}

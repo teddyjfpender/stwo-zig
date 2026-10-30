@@ -1,0 +1,53 @@
+{
+  "schema": "stwo-explicit-real-window-original-proof-v1",
+  "scope": "independently selected complete machine-state transition; no authentication of skipped Ethereum prefix or complete block",
+  "proof_verified": true,
+  "producer_traces_deleted_before_verification": true,
+  "real_retained_source": true,
+  "config": {
+    "pow_bits": 26,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 32768
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "original_input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+  "outgoing_sha256": "9f15dbb8bfb6f34fb3e0884080c397ffdd80b8d3566b96783bc235008188ac0f",
+  "metadata_identity": "e5dbd7ce918d5fc3d344a87646f59b044b44338311ca8e64a96c4a7e0c796ca1",
+  "proof_sha256": "e01b9be0ea3db447fdf46a2775bbc0e2795b70c4cf85d6282c6191b2a497da28",
+  "proof_bytes": 4297656,
+  "metadata_bytes": 16699674,
+  "capture": {
+    "skipped_cycles": 42700000,
+    "cycles": 32768,
+    "core_rows": 32540,
+    "keccak_calls": 228,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "incoming_words": 2761110,
+    "outgoing_words": 2761124,
+    "prefix_ns": 34714424584,
+    "window_ns": 62778125
+  },
+  "timing": {
+    "source_loading_ns": 3367833,
+    "capture_total_ns": 34858248458,
+    "preparation_ns": 16544763167,
+    "proving_ns": 34158645667,
+    "serialization_and_release_ns": 240659208,
+    "fresh_verification_ns": 6643921208,
+    "prepared_window_to_verified_ns": 57587989459,
+    "whole_request_ns": 92449605750
+  },
+  "charged_peak_bytes": 10008545901,
+  "host_budget_bytes": 25769803776
+}

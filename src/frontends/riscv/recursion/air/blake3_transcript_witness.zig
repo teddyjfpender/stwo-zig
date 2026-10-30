@@ -23,10 +23,20 @@ pub const Caller = @import("blake3_frame_route.zig").Caller;
 /// Exact external reads, in operation order. Storage belongs to Prepared.
 pub const PayloadReads = struct { operation: usize, source: Caller, uses: []const u32 };
 /// Semantic identity assigned by the protocol operation builder.
-pub const OutputRole = union(enum) { universal: usize, composition, oods, deep, fri: usize, riscv_relation: usize };
+pub const OutputRole = union(enum) { universal: usize, composition, oods, deep, fri: usize, riscv_relation: usize, universal_half: struct { relation: usize, half: u1 } };
 pub const DrawOutput = struct { operation: usize, role: OutputRole, source: Caller, words: usize };
 pub const QueryOutput = struct { operation: usize, query: usize, source: @import("blake3_byte_route.zig").Endpoint };
 pub const RootReads = struct { operation: usize, source: Caller, uses: [8]u32 };
+/// Open wire boundary: the joined proof must supply these exact byte-word
+/// ports. A resume value is witness data, never a trusted initial digest.
+pub const StatePorts = struct { source: Caller, uses: [8]u32 };
+pub const Boundary = struct {
+    resume_before_absorb: ?struct { source: Caller, value: [32]u8 } = null,
+    final_state_uses: [8]u32 = @splat(0),
+    /// References only: no selected-value producer is emitted here. The joined
+    /// parent must provide each external scalar through its wire argument.
+    external_draw_outputs: []const DrawOutput = &.{},
+};
 pub const Operation = union(enum) {
     /// Start another independently specified channel from its canonical zero
     /// state/counter. Routing and preceding exports remain in the same graph.
@@ -44,9 +54,13 @@ pub const Operation = union(enum) {
     routed_root: struct { value: [32]u8, source: Caller },
     pow: struct { bits: u32, nonce: u64, nonce_source: ?Caller = null },
     queries: struct { log_domain_size: u32, values: []const u32, export_outputs: bool = false },
-    secure: struct { output: ?OutputRole = null, attempts: u32, consumption: draw.Consumption = .one, values: [8]M31 },
+    // Explicit bounded draws may discard the selected value after proving its
+    // hash/rejection/counter path. Null output alone keeps fixed-value semantics.
+    secure: struct { output: ?OutputRole = null, discard_output: bool = false, attempts: u32, consumption: draw.Consumption = .one, values: [8]M31 },
 };
 pub const Prepared = struct {
+    resumed_state: ?StatePorts = null,
+    exported_state: ?StatePorts = null,
     row_allocator: std.mem.Allocator,
     nonhash: ?Nonhash.Owner = null,
     nonhash_fixed: ?Nonhash.FixedOwner = null,
@@ -153,30 +167,60 @@ pub fn prepareBoundedMainColumns(a: std.mem.Allocator, namespace: u32, operation
 /// Trusted source preprocessing stores only compact fixed tails. The shape
 /// pass runs no compression and is destroyed before output owner allocation.
 pub fn trustedBoundedDirect(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32) !Prepared {
+    return trustedBoundedBoundaryDirect(a, namespace, operations, capacity, .{});
+}
+pub fn trustedBoundedBoundaryDirect(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, ports: Boundary) !Prepared {
     var counts = Nonhash.Counts{};
-    var counted = try build(a, namespace, operations, false, capacity, null, true, counts.sink());
+    var counted = try buildWithBoundary(a, namespace, operations, false, capacity, null, true, counts.sink(), ports);
     counted.deinit();
     var fixed = try Nonhash.FixedOwner.init(a, counts);
     errdefer fixed.deinit();
-    var result = try build(a, namespace, operations, false, capacity, null, true, fixed.sink());
+    var result = try buildWithBoundary(a, namespace, operations, false, capacity, null, true, fixed.sink(), ports);
     errdefer result.deinit();
     try fixed.finish();
     result.nonhash_fixed = fixed;
     return result;
 }
 pub fn prepareBoundedDirect(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, expected: *const Prepared, columns: ?MainColumns) !Prepared {
+    return prepareBoundedBoundaryDirect(a, namespace, operations, capacity, expected, columns, .{});
+}
+pub fn prepareBoundedBoundaryDirect(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, expected: *const Prepared, columns: ?MainColumns, ports: Boundary) !Prepared {
     if (expected.nonhash_fixed == null) return error.CorruptBlake3TranscriptPlan;
     var counts = Nonhash.Counts{};
     inline for (Nonhash.slots, 0..) |slot, i| counts.rows[i] = expected.cohortCount(slot);
     var owned = try Nonhash.Owner.init(a, counts);
     errdefer owned.deinit();
-    var result = try build(a, namespace, operations, true, capacity, columns, false, owned.sink());
+    var result = try buildWithBoundary(a, namespace, operations, true, capacity, columns, false, owned.sink(), ports);
     errdefer result.deinit();
     try owned.finish();
     result.nonhash = owned;
     return result;
 }
 fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operation, live: bool, capacity: ?u32, columns: ?MainColumns, compact: bool, nonhash: ?Nonhash.Sink) !Prepared {
+    return buildWithBoundary(backing, namespace, operations, live, capacity, columns, compact, nonhash, .{});
+}
+/// Opt-in split-transcript route. Existing standalone entrypoints retain their
+/// original initial state, rows and identity. Only an absorption may resume:
+/// it consumes the authenticated digest and resets the original draw counter.
+pub fn prepareBoundedBoundary(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, ports: Boundary) !Prepared {
+    return buildWithBoundary(a, namespace, operations, true, capacity, null, false, null, ports);
+}
+pub fn trustedBoundedBoundary(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, ports: Boundary) !Prepared {
+    return buildWithBoundary(a, namespace, operations, false, capacity, null, false, null, ports);
+}
+fn buildWithBoundary(backing: std.mem.Allocator, namespace: u32, operations: []const Operation, live: bool, capacity: ?u32, columns: ?MainColumns, compact: bool, nonhash: ?Nonhash.Sink, boundary_config: Boundary) !Prepared {
+    if (boundary_config.resume_before_absorb != null) {
+        if (operations.len == 0) return error.InvalidBlake3Continuation;
+        switch (operations[0]) {
+            .integer, .routed_integer, .words, .felts, .root, .routed_root, .routed_words, .routed_felts => {},
+            else => return error.InvalidBlake3Continuation,
+        }
+    }
+    var export_state = false;
+    for (boundary_config.final_state_uses) |uses| {
+        if (uses >= core.fields.m31.Modulus) return error.InvalidBlake3Continuation;
+        export_state = export_state or uses != 0;
+    }
     if (nonhash != null and capacity == null) return error.InvalidBlake3Transcript;
     if (compact and (live or capacity == null or columns != null)) return error.InvalidBlake3Transcript;
     if (capacity != null and capacity.? == 0) return error.InvalidBlake3Transcript;
@@ -196,6 +240,7 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
                 break :blk slots + @intFromBool(capacity != null and blocks > 0);
             },
             .secure => |s| blk: {
+                if (s.discard_output and (s.output != null or capacity == null)) return error.InvalidBlake3Transcript;
                 if (capacity) |limit| break :blk 2 * @as(u64, limit) + 3;
                 if (s.attempts == 0) return error.InvalidBlake3Transcript;
                 break :blk 2 * @as(u64, s.attempts);
@@ -204,6 +249,19 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
         end = std.math.add(u64, end, count) catch return error.InvalidBlake3Transcript;
     }
     if (end >= core.fields.m31.Modulus) return error.InvalidBlake3Transcript;
+    if (boundary_config.external_draw_outputs.len > 4096) return error.InvalidBlake3Continuation;
+    for (boundary_config.external_draw_outputs, 0..) |output, i| {
+        if (output.words != @as(usize, if (output.role == .universal) 8 else 4) or output.source.circuit >= core.fields.m31.Modulus or
+            @as(u64, output.source.first_wire) + output.words > core.fields.m31.Modulus or
+            (output.source.circuit >= namespace and output.source.circuit <= end)) return error.InvalidBlake3Continuation;
+        for (boundary_config.external_draw_outputs[0..i]) |previous| if (std.meta.eql(output.role, previous.role) or
+            (output.source.circuit == previous.source.circuit and output.source.first_wire < previous.source.first_wire + previous.words and previous.source.first_wire < output.source.first_wire + output.words)) return error.InvalidBlake3Continuation;
+    }
+    if (boundary_config.resume_before_absorb) |continuation| {
+        if (continuation.source.circuit >= core.fields.m31.Modulus or
+            @as(u64, continuation.source.first_wire) + 8 > core.fields.m31.Modulus or
+            (continuation.source.circuit >= namespace and continuation.source.circuit <= end)) return error.InvalidBlake3Continuation;
+    }
     for (operations) |op| {
         const source: ?Caller = switch (op) {
             .routed_root => |value| value.source,
@@ -223,6 +281,7 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
     var roots: std.ArrayList(RootReads) = .empty;
     var query_outputs: std.ArrayList(QueryOutput) = .empty;
     var outputs: std.ArrayList(DrawOutput) = .empty;
+    try outputs.appendSlice(a, boundary_config.external_draw_outputs);
     if (columns) |out| try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);
     var g_used: usize = 0;
     var xor_used: usize = 0;
@@ -251,8 +310,9 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
     var counter_producer: ?usize = null;
     var zero_counter_uses: [2]u32 = @splat(0);
     const initial = (core.channel.blake3.Channel{}).digestBytes();
-    var state = initial;
-    var caller = @import("blake3_frame_route.zig").Caller{ .circuit = namespace, .first_wire = 0 };
+    var state = if (boundary_config.resume_before_absorb) |continuation| (if (live) continuation.value else @as([32]u8, @splat(0))) else initial;
+    var caller = if (boundary_config.resume_before_absorb) |continuation| continuation.source else @import("blake3_frame_route.zig").Caller{ .circuit = namespace, .first_wire = 0 };
+    var resumed_state: ?StatePorts = null;
     var producer: ?usize = null;
     var initial_uses: [8]u32 = @splat(0);
     var counter: u64 = 0;
@@ -308,7 +368,9 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
             var prepared = if (nonhash) |sink| try DirectFrame.prepare(backing, hash_circuit, frame, active, payload, @splat(0), live, if (columns != null) null else destination, if (columns) |out| try out.slice(g_used, plan.g.len, xor_used, plan.xor.len) else null, &plan, .{ .sink = sink, .retain_output = false }) else if (columns) |out| try frame_hash.prepareMainColumns(backing, hash_circuit, frame, active, payload, @splat(0), try out.slice(g_used, plan.g.len, xor_used, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, hash_circuit, frame, active, payload, @splat(0), destination) else try frame_hash.trustedInto(backing, hash_circuit, frame, active, payload, @splat(0), destination);
             defer prepared.deinit();
             if (payload) |binding| try reads.append(a, .{ .operation = ordinal, .source = binding.caller, .uses = try a.dupe(u32, prepared.payload_uses) });
-            try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.source_uses[0]);
+            if (ordinal == 0 and boundary_config.resume_before_absorb != null) {
+                resumed_state = .{ .source = boundary_config.resume_before_absorb.?.source, .uses = prepared.source_uses[0] };
+            } else try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.source_uses[0]);
             if (op == .routed_root) try roots.append(a, .{ .operation = ordinal, .source = op.routed_root.source, .uses = prepared.source_uses[1] });
             if (op == .root and nonhash == null) for (prepared.source_uses[1], 0..) |uses, i| {
                 const row = try boundary.logicalRow(circuit, @intCast(i), M31.fromCanonical(uses), std.mem.readInt(u32, op.root[4 * i ..][0..4], .little));
@@ -413,7 +475,10 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
                 if (s.output) |role| {
                     try outputs.append(a, .{ .operation = ordinal, .role = role, .source = prepared.output, .words = s.consumption.words() });
                 } else for (s.values[0..s.consumption.words()], 0..) |expected, i| {
-                    const fixed_row = try boundary.logicalCoordinates(prepared.output.circuit, @intCast(i), M31.one().neg(), .{ expected, M31.zero(), M31.zero(), M31.zero() });
+                    const fixed_row = if (s.discard_output)
+                        try boundary.privateCoordinates(prepared.output.circuit, @intCast(i), M31.one().neg(), @splat(M31.zero()))
+                    else
+                        try boundary.logicalCoordinates(prepared.output.circuit, @intCast(i), M31.one().neg(), .{ expected, M31.zero(), M31.zero(), M31.zero() });
                     var row = fixed_row;
                     if (live) row[0] = prepared.selected.?[i];
                     try Nonhash.append(2, nonhash, backing, &bs, row, fixed_row);
@@ -440,6 +505,12 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
             }
         },
     };
+    var exported_state: ?StatePorts = null;
+    if (export_state) {
+        if (producer == null) return error.InvalidBlake3Continuation;
+        try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, boundary_config.final_state_uses);
+        exported_state = .{ .source = caller, .uses = boundary_config.final_state_uses };
+    }
     for (initial_uses, 0..) |uses, i| if (uses != 0) {
         const row = try boundary.logicalRow(namespace, @intCast(i), M31.fromCanonical(uses), std.mem.readInt(u32, initial[4 * i ..][0..4], .little));
         try Nonhash.append(2, nonhash, backing, &bs, row, row);
@@ -475,7 +546,7 @@ fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operati
     const root_receipts = try roots.toOwnedSlice(a);
     const draw_receipts = try outputs.toOwnedSlice(a);
     const payload_receipts = try reads.toOwnedSlice(a);
-    return .{ .hash_metadata = if (columns) |out| out.metadata() else owned_metadata, .owns_hash_metadata = compact, .row_allocator = backing, .control_rows = control_rows, .counter_rows = counter_rows, .query_outputs = query_receipts, .root_reads = root_receipts, .draw_outputs = draw_receipts, .payload_reads = payload_receipts, .final_digest = if (live) state else null, .query_rows = query_rows, .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .challenge_rows = challenge_rows, .route_rows = route_rows, .next_draw = counter };
+    return .{ .resumed_state = resumed_state, .exported_state = exported_state, .hash_metadata = if (columns) |out| out.metadata() else owned_metadata, .owns_hash_metadata = compact, .row_allocator = backing, .control_rows = control_rows, .counter_rows = counter_rows, .query_outputs = query_receipts, .root_reads = root_receipts, .draw_outputs = draw_receipts, .payload_reads = payload_receipts, .final_digest = if (live) state else null, .query_rows = query_rows, .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .challenge_rows = challenge_rows, .route_rows = route_rows, .next_draw = counter };
 }
 fn addUses(rows: []xor.Row, compact: ?@import("blake3_hash_metadata.zig").Rows, producer: ?usize, initial: *[8]u32, counts: [8]u32) !void {
     for (counts, 0..) |count, i| {

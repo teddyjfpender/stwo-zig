@@ -1,0 +1,1 @@
+PASS 92 exact original-interpolation cases; invalid log/domain rejected; host-only CUDA arithmetic

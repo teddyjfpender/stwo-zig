@@ -69,9 +69,10 @@ pub fn compileShape(backing: std.mem.Allocator, admission: anytype) !Compiled {
     const symbolic_claims = try a.alloc(S, F.Airs.len + 2);
     for (symbolic_claims, 0..) |*symbolic, i| symbolic.* = try shapeInput(a, &builder, &sources, .{ .claim = @intCast(i) });
     const public_coordinates = try a.alloc([4]S, admission.source.terms.len);
+    const pinned_supply = comptime @hasDecl(@TypeOf(admission.*), "pinned_public_supply");
     for (public_coordinates, 0..) |*tuple, i| {
         for (tuple, 0..) |*symbolic, j| {
-            symbolic.* = try shapeInput(a, &builder, &sources, .{ .packed_public_input = @intCast(4 * i + j) });
+            symbolic.* = if (pinned_supply) S.fromBase(admission.source.terms[i].coordinates[j]) else try shapeInput(a, &builder, &sources, .{ .packed_public_input = @intCast(4 * i + j) });
         }
     }
     const spans = admission.pc_clock_children;

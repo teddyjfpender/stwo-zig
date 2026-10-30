@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-std=c++20",
+    "-O3",
+    "--gpu-architecture=sm_90",
+    "--threads",
+    "8",
+    "/workspace/stwo-v7-evidence/resident-readonly-v1/native/resident_parent_readonly_v1.cu",
+    "/workspace/stwo-v7-evidence/resident-readonly-v1/tests/resident_parent_readonly_numeric_v1.cu",
+    "-o",
+    "/workspace/stwo-v7-evidence/resident-readonly-v1/numeric"
+  ],
+  "build_wall_s": 6.840040754526854,
+  "exit_code": 0
+}

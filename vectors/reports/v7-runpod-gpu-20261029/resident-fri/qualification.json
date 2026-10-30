@@ -1,0 +1,37 @@
+{
+  "schema": "stwo-resident-child-fri-qualification-v1",
+  "status": "pass",
+  "gpu": "H200",
+  "result": {
+    "status": "pass",
+    "cases": 31,
+    "layers": 79,
+    "field_words": 334288,
+    "hostiles": 123,
+    "genuine_child_cases": 1,
+    "fully_resident_prover": false
+  },
+  "scope": "raw native child sparse-FRI reconstruction; original core CPU oracle only in tests",
+  "production_cpu_numerics": false,
+  "fully_resident_prover_qualified": false,
+  "layers_max": 3,
+  "query_counts": [
+    8,
+    70,
+    128
+  ],
+  "fold_widths": [
+    2,
+    4,
+    8,
+    16,
+    32
+  ],
+  "domain_logs": [
+    2,
+    7,
+    13,
+    20
+  ],
+  "source_sha256": "b2b135b678d93cbb1552547825e227c750cf6a225cf076b7f3bc4ef336762adc"
+}

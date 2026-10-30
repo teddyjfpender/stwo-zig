@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-29",
+  "scope": "Independent metadata-compiled transcript plan reused in cold and live caller preparation; request transcript and witness remain fresh",
+  "security": "diagnostic_q8_pow0",
+  "ranked": false,
+  "concurrency": "Canonical bounded-root proof and another compiler active; phase comparisons diagnostic only",
+  "tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "full": {
+    "compile_ns": 1998013000,
+    "fixed_from_capsule_ns": 1993118375,
+    "baseline_cold_ns": 4187399458,
+    "baseline_live_ns": 7563792709,
+    "capsule_live_ns": 5577982250
+  },
+  "active_sha_keccak": {
+    "baseline_live_ns": 6583035292,
+    "capsule_live_ns": 4413062000
+  },
+  "stage_groups_in_run_order": [
+    {
+      "reused": false,
+      "stages_ns": {
+        "composition": 1833358000,
+        "deep": 385875875,
+        "fri": 67197208,
+        "transcript_plan": 1936377417,
+        "links": 325555583,
+        "plan": 4548405792,
+        "public_schedule": 2974666,
+        "emit": 2162743875,
+        "assembly": 776593084
+      }
+    },
+    {
+      "reused": true,
+      "stages_ns": {
+        "composition": 928957958,
+        "deep": 38146292,
+        "fri": 63934958,
+        "transcript_plan": 977065167,
+        "links": 361344750,
+        "plan": 2369488542,
+        "public_schedule": 3462583,
+        "emit": 2361619542,
+        "assembly": 760765958
+      }
+    },
+    {
+      "reused": true,
+      "stages_ns": {
+        "composition": 772325125,
+        "deep": 29513292,
+        "fri": 47799625,
+        "transcript_plan": 744482583,
+        "links": 279882500,
+        "plan": 1874028000,
+        "public_schedule": 3417750,
+        "emit": 1908130917,
+        "assembly": 538662250
+      }
+    },
+    {
+      "reused": false,
+      "stages_ns": {
+        "composition": 1494204958,
+        "deep": 317841209,
+        "fri": 48418166,
+        "transcript_plan": 1837701209,
+        "links": 270592833,
+        "plan": 3968787667,
+        "public_schedule": 3165833,
+        "emit": 1938069125,
+        "assembly": 587014750
+      }
+    }
+  ],
+  "parent_proof_bytes": {
+    "full": 152714,
+    "active": 149644
+  },
+  "checks": [
+    "Every fixed and MAIN row and canonical frame equals original path",
+    "Wrong compiled retry capacity rejected without destroying borrowed plan",
+    "Modified captured samples rejected",
+    "Full compiler destroyed before parent key/proof construction",
+    "Both genuine parent proofs pass detached verification",
+    "All20 active omitted-field mutation checks and638 explicit zero constraints preserved"
+  ],
+  "whole_job": {
+    "seconds": 107.59,
+    "max_rss_bytes": 6446628864,
+    "scope": "Two paired complete qualification cases; not production peak"
+  },
+  "binary_sha256": "d784638f8df5811011efe730207a35d78e5be2ca5665f543052e74b5852db234",
+  "log_sha256": "6a7fc2dba9c0b337eae68429f3072738678c49e3deedfa80c24778af0084916e"
+}

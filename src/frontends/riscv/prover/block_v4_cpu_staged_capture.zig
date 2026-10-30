@@ -87,8 +87,7 @@ pub const Capture = struct {
         if (self.next_memory != self.memory.len or self.next_table != self.tables.len or
             index >= self.memory.len) return error.IncompleteStagedBlockProof;
         const meta = self.memory[index];
-        return .{ .stark_bytes = try self.read(.memory, index, meta.file),
-            .interaction_claim = meta.relation, .range_claims = meta.ranges };
+        return .{ .stark_bytes = try self.read(.memory, index, meta.file), .interaction_claim = meta.relation, .range_claims = meta.ranges };
     }
     /// As with `loadMemory`, release `stark_bytes` after fresh verification.
     pub fn loadTable(self: *Capture, index: usize) !batch.SerializedTableProof {

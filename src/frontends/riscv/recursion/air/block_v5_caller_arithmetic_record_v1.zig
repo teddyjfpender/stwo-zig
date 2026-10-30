@@ -25,7 +25,38 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
         };
 
         pub fn record(
-            geometry: *const geometry_mod.Prepared,
+            geometry: anytype,
+            layout: *const SampleLayout,
+            claims: []const Scalar,
+            relations: *const Relations,
+            point: anytype,
+            composition_randomness: Scalar,
+            mask_log_size: u32,
+            denominators: *[31]?Scalar,
+            initial_accumulation: Scalar,
+        ) !Recorded {
+            return recordInner(false, null, geometry, layout, claims, relations, point, composition_randomness, mask_log_size, denominators, initial_accumulation);
+        }
+
+        pub fn recordSelected(
+            geometry: anytype,
+            layout: *const SampleLayout,
+            claims: []const Scalar,
+            relations: *const Relations,
+            point: anytype,
+            composition_randomness: Scalar,
+            mask_log_size: u32,
+            denominators: *[31]?Scalar,
+            initial_accumulation: Scalar,
+            omission_builder: anytype,
+        ) !Recorded {
+            return recordInner(true, omission_builder, geometry, layout, claims, relations, point, composition_randomness, mask_log_size, denominators, initial_accumulation);
+        }
+
+        fn recordInner(
+            comptime selected: bool,
+            omission_builder: anytype,
+            geometry: anytype,
             layout: *const SampleLayout,
             claims: []const Scalar,
             relations: *const Relations,
@@ -44,7 +75,7 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
                 .claim_count = 0,
             };
 
-            try recordKeccak(
+            if (!selected or geometry.selected[0]) try recordKeccak(
                 geometry.components[0],
                 layout,
                 claims,
@@ -54,8 +85,8 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
                 mask_log_size,
                 denominators,
                 &result,
-            );
-            try recordKeccakTable(
+            ) else try omit(geometry, claims, 0, &result, omission_builder);
+            if (!selected or geometry.selected[1]) try recordKeccakTable(
                 .chi,
                 geometry.components[1],
                 layout,
@@ -66,8 +97,8 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
                 mask_log_size,
                 denominators,
                 &result,
-            );
-            try recordKeccakTable(
+            ) else try omit(geometry, claims, 1, &result, omission_builder);
+            if (!selected or geometry.selected[2]) try recordKeccakTable(
                 .xor5,
                 geometry.components[2],
                 layout,
@@ -78,7 +109,7 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
                 mask_log_size,
                 denominators,
                 &result,
-            );
+            ) else try omit(geometry, claims, 2, &result, omission_builder);
             inline for (.{
                 secp_bundle.ProductBase,
                 secp_bundle.ProductScalar,
@@ -91,18 +122,20 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
                 secp_config.Recovery,
                 secp_config.ByteTable,
                 if (local_zero) secp_config.RecoveryCallerLocalZero else secp_config.RecoveryCaller,
-            }, 3..) |Config, index| try recordSecp(
-                Config,
-                geometry.components[index],
-                layout,
-                claims,
-                &relations.secp,
-                point,
-                composition_randomness,
-                mask_log_size,
-                denominators,
-                &result,
-            );
+            }, 3..) |Config, index| {
+                if (!selected or geometry.selected[index]) try recordSecp(
+                    Config,
+                    geometry.components[index],
+                    layout,
+                    claims,
+                    &relations.secp,
+                    point,
+                    composition_randomness,
+                    mask_log_size,
+                    denominators,
+                    &result,
+                ) else try omit(geometry, claims, index, &result, omission_builder);
+            }
 
             var expected_count: u32 = 0;
             for (geometry.components[0..14]) |component| expected_count += component.direct_constraint_count + component.interaction_batch_count;
@@ -112,6 +145,18 @@ pub fn ForRecorder(comptime Adapter: type, comptime SampleLayout: type, comptime
             if (result.claim_count != geometry.detailed_claim_count - 5)
                 return error.InvalidClaimCount;
             return result;
+        }
+
+        /// Every omitted physical claim remains a bound public operand and
+        /// receives its own zero equation; cancelling pairs cannot disappear.
+        fn omit(geometry: anytype, claims: []const Scalar, index: usize, result: *Recorded, builder: anytype) !void {
+            const component = geometry.components[index];
+            if (component.direct_constraint_count != 0 or component.interaction_batch_count != 0) return error.InvalidOmittedComponentGeometry;
+            const count = geometry.physical_detail_counts[index];
+            const end = @as(usize, result.claim_count) + count;
+            if (end > claims.len) return error.InvalidClaimCount;
+            for (claims[result.claim_count..end]) |claim| try builder.constrainZero(claim);
+            result.claim_count += count;
         }
 
         fn recordKeccak(

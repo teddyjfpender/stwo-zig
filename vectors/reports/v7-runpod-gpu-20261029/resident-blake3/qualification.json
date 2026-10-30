@@ -1,0 +1,32 @@
+{
+  "status": "qualified_primitives_not_yet_complete_resident_proof",
+  "base_remote_source": "cdd1a8cff51fa0d3e947f6935174637437f656bf394ba2e003d1270758850383",
+  "remote_overlay": "/workspace/stwo-v7-resident-b3",
+  "remote_evidence": "/workspace/stwo-v7-evidence/resident-blake3-final",
+  "device": "NVIDIA H200 SM90",
+  "optimization": "ReleaseSafe",
+  "cuda_object_sha256": "91ee52d4934294c144a3892a2f09a4bdcd71b3c96f3da0219de3576da6c15ab0",
+  "device_test_binary_sha256": "0c74237844f0916b44ce7a4c80c5e32d62ecb7ee44cb1eec88c805928d96024e",
+  "linked_existing_archive_sha256": "a6b789f3bcaf891d8af89a48eded8f8712ac2cd9d8846073ce6674e32cf3f835",
+  "actual_device_tests_passed": 1,
+  "parent_metadata_terminal_tests_passed": 5,
+  "native_contract_tests_passed": 22,
+  "coverage": [
+    "canonical BLAKE3 leaf widths1..8192",
+    "mixed-height lift and progressive prefix",
+    "all Merkle layers",
+    "FRI leaves singleton/four rows",
+    "framed words/felts/u64/root",
+    "rejection-sampled secure draws and exact raw counters",
+    "device-only canonical-min PoW and nonce absorption",
+    "70 device queries and exact counter consumption",
+    "sticky channel error merged into terminal verdict"
+  ],
+  "cpu_role": "independent differential oracle only; not used by resident kernels",
+  "proof_qualification": false,
+  "limitations": [
+    "Integrated original-parent proof pending controller/witness integration.",
+    "Performance numbers are correctness-gate diagnostics, not proving throughput.",
+    "Remote overlay changed only listed device source files; runtime and parent codec checked locally."
+  ]
+}

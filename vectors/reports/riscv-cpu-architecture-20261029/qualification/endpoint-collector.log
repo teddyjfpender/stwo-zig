@@ -1,0 +1,34 @@
+1/33 block_v8_ram_endpoint_collector_test_root.test_0...OK
+2/33 prover.tests.block_v8_ram_endpoint_collector_test.test.combined endpoint collector orders interleaved native caller accesses by actual clock...OK
+3/33 prover.tests.block_v8_ram_endpoint_collector_test.test.endpoint collector rejects forked clocks discontinuous values and malformed accesses...OK
+4/33 prover.tests.block_v8_ram_endpoint_collector_test.test.endpoint collector bounds scratch endpoint count row geometry and owned storage...OK
+5/33 prover.tests.block_v8_ram_endpoint_collector_test.test.endpoint telescoping includes real native synthetic gap rows and actual consumed clocks...OK
+6/33 prover.tests.block_v8_ram_endpoint_collector_test.test.endpoint collection allocation failure releases every partially constructed witness...OK
+7/33 prover.tests.block_v8_ram_endpoint_collector_test.test.endpoint collector preserves maximum byte address carries and final subclock...OK
+8/33 air.block.memory_transition.test.sorted real memory accesses reconstruct before and after values across writes...OK
+9/33 air.block.memory_transition.test.new sorted address requires an independently supplied initial value...OK
+10/33 air.block.memory_event.test.block memory events share one global clock across leaf-local and continuous frames...OK
+11/33 air.block.memory_event.test.block memory event projection validates real tracker access and wire encoding...OK
+12/33 runner.state_chain.test.state_chain: register access tracking...OK
+13/33 runner.state_chain.test.state_chain: clock gap filling...OK
+14/33 runner.state_chain.test.state_chain: decomposeU32...OK
+15/33 runner.state_chain.test.state_chain: memory access tracking...OK
+16/33 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+17/33 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+18/33 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+19/33 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+20/33 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+21/33 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+22/33 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+23/33 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+24/33 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+25/33 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+26/33 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+27/33 air.block.memory_spool.test.memory spool heap merge carries singleton runs and records exact transport work...OK
+28/33 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+29/33 air.block.memory_spool.test.spool accepts real segment accesses and globally orders leaf-local clocks...OK
+30/33 air.block.memory_spool.test.run admission rejects truncated and surplus records before merge...OK
+31/33 air.block.memory_radix_sort.test.memory radix sort preserves exact unsigned space address and u64 clock order...OK
+32/33 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+33/33 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 33 tests passed.

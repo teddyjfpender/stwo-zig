@@ -1,6 +1,7 @@
 //! Shared base native owner reconstruction for exact-row and capacity stages.
-//! Stored cells have no proof authority. Counters/public fields are rebuilt;
-//! the selected typed stage must recommit and compare independent roots.
+//! Stored cells have no proof authority. The proof-only route omits a repeated
+//! lookup census already owned by the independently sealed global providers.
+//! Stages recommit or restore original PCS state; fresh verification is required.
 const std = @import("std");
 const core = @import("stwo_core");
 const Store = @import("block_v5_witness_columns_store_v1.zig");
@@ -47,6 +48,17 @@ pub fn logs(a: std.mem.Allocator, shape: *const Shape) ![]u32 {
 /// slice aliases the exact loaded main cells; counters are regenerated from
 /// those cells rather than accepted as file-supplied scalar claims.
 pub fn rebuild(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, shape: *const Shape, external_retirements: u32, expected_scope: Store.Scope, pin: Pin, limits: Limits) !*Native.Owner {
+    return rebuildMode(true, a, dir, name, shape, external_retirements, expected_scope, pin, limits);
+}
+
+/// Only native opcode + clock AIRs are admitted; local table providers cannot
+/// consume counters from this owner. Global counters were collected before
+/// sealing and must still be proven by the unchanged complete receiver.
+pub fn rebuildForProving(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, shape: *const Shape, external_retirements: u32, expected_scope: Store.Scope, pin: Pin, limits: Limits) !*Native.Owner {
+    return rebuildMode(false, a, dir, name, shape, external_retirements, expected_scope, pin, limits);
+}
+
+fn rebuildMode(comptime census: bool, a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, shape: *const Shape, external_retirements: u32, expected_scope: Store.Scope, pin: Pin, limits: Limits) !*Native.Owner {
     try shape.validateBlake3ExecutionWithExternal(external_retirements);
     try requirePublicLimits(shape, limits);
     if (expected_scope.kind != .native or expected_scope.cycle_count != shape.total_steps or expected_scope.first_cycle == 0) return error.InvalidV5StagedNativeShape;
@@ -61,7 +73,7 @@ pub fn rebuild(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, shape: *
     const expected_logs = try logs(arena, &owner.statement);
     const loaded = try Store.load(arena, dir, name, expected_scope, expected_logs, pin, limits.columns);
     try owner.main.appendSlice(arena, loaded.columns);
-    owner.opcode_columns = Columns{ .components = undefined, .lookup_counters = try Tables.Set.init(arena), .counter_set_merges = 0, .direct_semantic_audit_performed = false };
+    owner.opcode_columns = Columns{ .components = undefined, .lookup_counters = if (census) try Tables.Set.init(arena) else null, .counter_set_merges = 0, .direct_semantic_audit_performed = false };
     for (&owner.opcode_columns.components) |*component| component.* = .{ .columns = @splat(&.{}), .n_columns = 0, .n_real_rows = 0 };
     var at: usize = 0;
     for (owner.statement.component_descs[0..owner.statement.n_components], 0..) |desc, index| {
@@ -73,21 +85,21 @@ pub fn rebuild(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, shape: *
         // ColumnEvaluation exposes a const view; these are owned aliases.
         for (component.columns[0..desc.n_columns], loaded.columns[at..][0..desc.n_columns]) |*values, column| values.* = @constCast(column.values);
         at += desc.n_columns;
-        for (0..desc.n_rows) |row| {
+        if (census) for (0..desc.n_rows) |row| {
             const physical = core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(row, desc.log_size), desc.log_size);
             if (owner.statement.localZeroCustody()) {
                 var values: [Trace.MAX_FAMILY_COLUMNS]core.fields.qm31.QM31 = undefined;
                 for (component.columns[0..desc.n_columns], values[0..desc.n_columns]) |column, *value| value.* = core.fields.qm31.QM31.fromBase(column[physical]);
                 try owner.opcode_columns.lookup_counters.?.registerList(try @import("../air/x0_native_envelope_v1.zig").Builder(core.fields.qm31.QM31).lookups(desc.family, values[0..desc.n_columns]));
             } else try Ingest.registerGeneratedCommittedRow(desc.family, &component.columns, physical, &owner.opcode_columns.lookup_counters.?);
-        }
+        };
     }
     for (owner.statement.infra_descs[0..owner.statement.n_infra]) |desc| {
         // Native protocol admits at most the canonical single clock component.
         if (desc.kind != .clock_update or desc.n_columns != owner.clock_main.len) return error.InvalidV5StagedNativeShape;
         for (&owner.clock_main, loaded.columns[at..][0..desc.n_columns]) |*values, column| values.* = @constCast(column.values);
         at += desc.n_columns;
-        try Clock.registerRangeCheckCounters(&owner.opcode_columns.lookup_counters.?, &owner.clock_main);
+        if (census) try Clock.registerRangeCheckCounters(&owner.opcode_columns.lookup_counters.?, &owner.clock_main);
     }
     if (at != loaded.columns.len) return error.InvalidV5StagedNativeShape;
     try owner.sealNativeOnly();

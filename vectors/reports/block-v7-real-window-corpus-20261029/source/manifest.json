@@ -1,0 +1,44 @@
+{
+  "schema": "stwo-v7-retained-ethereum-corpus-v1",
+  "block_number": 24628607,
+  "execution_profile": "rv32im_zkvm_ethereum_sha_v1",
+  "historical_cycles": 139214856,
+  "historical_evidence": "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-geometry-v1/qualification.json",
+  "artifacts": {
+    "guest.elf": {
+      "sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "bytes": 3784904
+    },
+    "input.bin": {
+      "sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+      "bytes": 2700706
+    },
+    "expected-output.bin": {
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+      "bytes": 43
+    }
+  },
+  "cases": {
+    "startup": {
+      "skip_cycles": 0,
+      "cycles": 32768,
+      "historical_segment": 0
+    },
+    "recovery-region": {
+      "skip_cycles": 24718000,
+      "cycles": 32768,
+      "historical_segment": 50
+    },
+    "keccak-dense-region": {
+      "skip_cycles": 42700000,
+      "cycles": 32768,
+      "historical_segment": 93
+    },
+    "native-region": {
+      "skip_cycles": 1,
+      "cycles": 32768,
+      "historical_segment": 0
+    }
+  },
+  "scope": "source import only; no new execution or proof measurement"
+}

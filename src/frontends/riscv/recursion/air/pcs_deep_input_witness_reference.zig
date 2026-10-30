@@ -359,10 +359,13 @@ pub fn validateProfile(profile: LaneProfile) Error!void {
         return error.InvalidProfile;
     }
     for (profile.trees) |tree| {
-        if (tree.column_log_sizes.len == 0 or tree.column_log_sizes.len >= m31.Modulus)
+        if (tree.column_log_sizes.len >= m31.Modulus)
             return error.InvalidProfile;
+        // This lane binds input coordinates, not sampling policy. A committed
+        // column may be wider than the FRI domain when it has no samples;
+        // the enclosing DEEP Profile validates that per-column condition.
         for (tree.column_log_sizes) |log_size| if (log_size == 0 or
-            log_size > profile.lifting_log_size)
+            log_size > MAX_LOG_SIZE)
         {
             return error.InvalidProfile;
         };

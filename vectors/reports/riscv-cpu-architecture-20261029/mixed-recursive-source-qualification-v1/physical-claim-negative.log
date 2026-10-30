@@ -1,0 +1,14 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-integration-build.lock; waiting
+[zig_protocol_test] acquired after 22s
+1/11 block_v8_endpoint_mixed_recursion_test_root.test_0...OK
+2/11 recursion.tests.block_v8_endpoint_mixed_recursion_test.test.hostile mixed typed opposite caller RAM claims preserve aggregate but fail equations...OK
+3/11 runner.decode.test_0...OK
+4/11 air.memory_commitment.poseidon2_air.test_0...OK
+5/11 prover.block_execution_external_trace_v2.test_0...OK
+6/11 runner.mod.test_0...OK
+7/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 air.lookups.tables.mod.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "tests_passed": 15,
+  "test_profile": "diagnostic_q8_pow0; geometry, original-proof correctness and recursive composition/transcript seam",
+  "root": "src/frontends/riscv/block_v7_degree_bounded_native_test_root.zig",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-integration-build.lock",
+    "src/frontends/riscv/block_v7_degree_bounded_native_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "degree-bounded",
+    "--test-filter",
+    "window memory freshly",
+    "--test-no-exec",
+    "-femit-bin=/tmp/v7-degree-window-final-test"
+  ],
+  "binary_sha256": "19f56403981a135cda863c40cd68bb1e56e385e40b2e97ba34c4cce844bfae85",
+  "full_prebuild_source_snapshot": null,
+  "scoped_source_hashes_at_completion": {
+    "src/frontends/riscv/prover/block_v7_degree_bounded_relation_layout_v1.zig": "c3fc041b01d3fa61f574c612175dd7f2f938474646e239f4005e7665e2b4d90b",
+    "src/frontends/riscv/prover/block_v7_native_layout_selection_v1.zig": "ab2390a0ac94181a21d74fd3b6656489da210f1487d5085c0659f9ce0cf92f92",
+    "src/frontends/riscv/prover/block_v7_native_source_v1.zig": "7e7a1886245e95ea634a3d9be42945f898d4dfbc13e6deab8bf6dd509f9df0d2",
+    "src/frontends/riscv/prover/block_v7_native_checkpoint_v1.zig": "8ccf7321a11aa4cf8708c5e9a2836b8ac54748810db35666d3b717aa58f9964d",
+    "src/frontends/riscv/prover/block_v7_native_components_v1.zig": "03336c3bc1aa7190573f01f4beb76f12a92a4500ee4a6a5cc3e203367256c1fa",
+    "src/frontends/riscv/prover/block_v7_native_proof_v1.zig": "d45e5369f95b04b3376b6d6d169a8f2d16944f38bf70df86db41eca0979605f6",
+    "src/frontends/riscv/recursion/block_v7_native_fixed_profile_v1.zig": "5a2a645bfb5b5725efeeadcc8f88b85df01f818b324cae0dab2975280e545296",
+    "src/frontends/riscv/prover/tests/block_v7_degree_bounded_relation_layout_test.zig": "fa22ac34bbcf0cb59fe57188fa3c7dcebe08a3b76e956150ccbbfb3d03fb6905",
+    "src/frontends/riscv/prover/tests/block_v7_degree_bounded_native_test.zig": "38f60a0808009e5645d3ab21e91a6b31e5d82be5fc7af06b90efae055072ddb8",
+    "src/frontends/riscv/prover/tests/block_v7_window_memory_endpoint_test.zig": "68d6bc8ec06d78003d6240bab0b61e0203cf1214d2296fa3304289683d18c664",
+    "src/frontends/riscv/block_v7_degree_bounded_native_test_root.zig": "3f4f52971e756f657cd16dd287761cf1d22966843fd347b613389dec24551ab1"
+  },
+  "checks": [
+    "all canonical opcode families and local-x0 symbolic entry coverage",
+    "original MUL degree5 pairs9/10 and11/12 split into degree<=4 singletons",
+    "MUL +2 physical claims and +8 interaction columns, 64 raw cells at log3",
+    "zero numerator, zero/nonzero and extension-valued challenge algebra; zero denominator never divided",
+    "genuine q3 control and opt-in q2 original proofs with and without accesses",
+    "q2 checkpoint collection and restore after original producer destruction",
+    "wrong expected/record checkpoint mode rejected",
+    "fresh postcard-decoded original verification",
+    "independent q2 fixed profile and actual recursive composition OODS evaluation",
+    "each recursive physical public-claim mutation rejected",
+    "cold/live transcript plan parity",
+    "compensated physical singleton claim forgery rejected",
+    "dense and sparse independently resealed untouched outgoing-cell proofs rejected specifically after fresh STARK verification"
+  ],
+  "default_mode": "canonical_v1 unchanged",
+  "complete_execution_root_qualified": false,
+  "real_retained_window_mode_qualified": false,
+  "performance_measured": false,
+  "inventory": {
+    "focused_registration_contract": "PASS1",
+    "full_walk": "FAIL historical omissions",
+    "previous_missing": 907,
+    "current_missing": 903,
+    "new_missing": 0
+  }
+}

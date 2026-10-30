@@ -1,0 +1,1 @@
+{"exit_code": 0, "seconds": 1.6312054432928562, "command": ["/usr/local/cuda/bin/nvcc", "-std=c++20", "-O3", "--gpu-architecture=sm_90", "--threads", "8", "-c", "/workspace/stwo-v7-evidence/resident-fri-v2/fri.cu", "-o", "/workspace/stwo-v7-evidence/resident-fri-v2/fri.o"], "object_sha256": "3a3c170145a1a6414c7277b6d95b0162a692ec56ded8f7d0f0c67be78bc49281"}

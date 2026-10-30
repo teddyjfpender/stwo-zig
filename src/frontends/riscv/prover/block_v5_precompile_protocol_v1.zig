@@ -70,13 +70,18 @@ pub fn pcsChannel(a: std.mem.Allocator, sealed: seal.Sealed, binding: CallerBind
     const vm = try universal.UniversalRelations.draw(a, &channel);
     channel.mixU32s(&.{ TAG, VERSION, @intFromEnum(circuit_profile) });
     _ = try profile.Relations.drawAfterVm(a, &channel, vm);
+    mixPcsBinding(&channel, binding);
+    return channel;
+}
+
+/// Same binding grammar for the original channel and recursive public routing.
+pub fn mixPcsBinding(channel: anytype, binding: CallerBinding) void {
     channel.mixU32s(&.{ TAG, VERSION, binding.execution_index });
     channel.mixRoot(binding.execution_instance_id);
     channel.mixRoot(binding.caller_key_id);
     channel.mixRoot(binding.caller_instance_id);
     channel.mixRoot(binding.first_roots[0]);
     channel.mixRoot(binding.first_roots[1]);
-    return channel;
 }
 
 pub fn admit(binding: CallerBinding, sealed: seal.Sealed, pins: seal.Pins, entries: []const seal.Entry) !void {

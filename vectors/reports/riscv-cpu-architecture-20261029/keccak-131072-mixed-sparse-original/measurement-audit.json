@@ -1,0 +1,8 @@
+{
+  "schema": "stwo-b8-measurement-conditions-audit-v1",
+  "proof_and_metadata_hashes_match": true,
+  "report_sha256": "9a3a296e8d2cb5977bd22e74c65ad3a656db3bc682062cccf574d7687caed4a9",
+  "timing_isolation_confirmed": false,
+  "reason": "A high-CPU Python process and new Rust compiler processes were observed immediately after the prover completed; overlap was not measured. They were not launched by this task team.",
+  "scope": "Valid verified diagnostic timing, not an isolated ranked comparison."
+}

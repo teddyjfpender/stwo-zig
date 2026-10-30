@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-native-final-h200-build-v1",
+  "program_identity": "255223cac5af6f08e94488e8f07648fea42d80c1ab9bd1dfc77f00bf8eac48f1",
+  "cuda_objects_compiled": true,
+  "native_complete_proof_qualified": false,
+  "first_run": "InvalidKernelDescriptor during ingress; controller owner investigating",
+  "archive": "/tmp/v7-final-native-objects-preserved.tar.gz",
+  "archive_sha256": "4e5479f22f2b5bb3359230a3cdadfa67340677d1e9b92de0a082ec90de652e45",
+  "archive_bytes": 49180462,
+  "gpu": "H200 sm90",
+  "changed_backend_sources_rebuilt": true,
+  "no_changed_stale_objects": true,
+  "benchmark_claim": false
+}

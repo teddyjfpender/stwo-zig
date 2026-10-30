@@ -1,0 +1,24 @@
+{
+  "name": "native-ingress",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_90,code=sm_90",
+    "--threads",
+    "4",
+    "-I/workspace/stwo-final/src/backends/cuda/native",
+    "/workspace/final-evidence/native-objects/sources/native-ingress.cu",
+    "-o",
+    "/workspace/final-evidence/native-objects/native-ingress.o"
+  ],
+  "exit_code": 0,
+  "seconds": 6.936763048171997,
+  "source_sha256": "89d64c02298db22144da035b475b7f80f0afae61bb808160600db74a79f9e82b",
+  "object_sha256": "036ea3f5da7ffff0cef29952977803a4f4526fbecce2ea27aaa20e833532e93e"
+}

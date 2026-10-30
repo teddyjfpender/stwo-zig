@@ -1,0 +1,4 @@
+1/2 riscv_cuda_native_tiny_quotient_test_root.test.native tiny DEEP original interpolation and mixed height periodic quotient oracle...NATIVE_TINY_ORACLE cases=92 logs=1,2,3 mixed_height=true multiple_samples=true
+OK
+2/2 riscv_cuda_native_tiny_quotient_test_root.test.native tiny DEEP explicit policy keeps original fast guard and rejects mismatched domain...OK
+All 2 tests passed.

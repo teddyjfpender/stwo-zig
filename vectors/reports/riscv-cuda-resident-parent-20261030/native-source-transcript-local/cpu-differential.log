@@ -1,0 +1,11 @@
+1/10 integrations.riscv_cuda.tests.resident_native_transcript_v1.test.native transcript original four five tree exact prefix claims and full suffix...OK
+2/10 frontends.riscv.runner.mod.test_0...OK
+3/10 frontends.riscv.runner.decode.test_0...OK
+4/10 frontends.riscv.air.lookups.tables.mod.test_0...OK
+5/10 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+6/10 frontends.riscv.air.semantic_eval.test_0...OK
+7/10 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+8/10 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+9/10 frontends.riscv.diagnostics.mod.test_0...OK
+10/10 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+All 10 tests passed.

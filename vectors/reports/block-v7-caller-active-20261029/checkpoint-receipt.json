@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "scope": "SHA-only and SHA+Keccak original proofs reconstructed from staged raw witnesses and three retained PCS trees plus coefficients. Exact canonical STARK byte parity and all physical claims equal; fresh verifier accepts. No recursive root timing comparison.",
+  "tests_passed": 10,
+  "queries": 8,
+  "pow_bits": 0,
+  "binary_sha256": "b73cb3b34c1e9a7b2c3509b09ad31c2a4c88bcf771725ef6c7ac04b57bf38d2f",
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v7_caller_active_test_root.zig -OReleaseSafe -fstrip --test-filter 'active caller SHA' -femit-bin=/tmp/block-v7-active-checkpoint-final",
+  "direct_source_sha256": {
+    "src/frontends/riscv/prover/block_v7_caller_active_stage_v1.zig": "88c2660b2cd14350165cad2027e35792edc35dba8c41308b51116db1fb291c46",
+    "src/frontends/riscv/prover/block_v7_caller_active_proof_v1.zig": "7633772db51d10a62e413024aec2c704a8b202ce8269ebe0bf0f12018cccc0d8",
+    "src/frontends/riscv/prover/block_v5_caller_columns_stage_v1.zig": "b8eff013c22ca471a9f597887f5d7f04e9de6ffdd16a77262c6ecc39961ecce4",
+    "src/frontends/riscv/prover/block_v6_cpu_scheme_store_v1.zig": "202b58ed024b8e0d6c47e91adcf92fd5fbfa986751ea9a11e60e1acb02ac72f2",
+    "src/frontends/riscv/prover/tests/block_v7_caller_active_checkpoint_test_support.zig": "dd9476ede1a28f9238767a95e05602f376cd5b0706e5708f4a3d61616b9a3f5c",
+    "src/frontends/riscv/prover/tests/block_v7_caller_active_test.zig": "4afb04b8d576e859fa9ddbe2d97eba77515f77bc29cb85b649179a6872977fc4"
+  },
+  "manifest_limit": "Direct relevant sources only, not a transitive manifest.",
+  "negative_tests": [
+    "changed active entry identity",
+    "loaded-allocation cap below exact geometry",
+    "noncanonical M31 in stored LDE"
+  ],
+  "evidence": [
+    "checkpoint-parity-gate.log"
+  ]
+}

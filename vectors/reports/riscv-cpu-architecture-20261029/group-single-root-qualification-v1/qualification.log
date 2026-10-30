@@ -1,0 +1,24 @@
+1/11 block_v8_endpoint_group_join_test_root.test_0...OK
+2/11 recursion.tests.block_v8_endpoint_group_join_test.test.canonical Group three originals close in ONE root and fresh file receiver...B8_GROUP_JOIN_STAGE fixed_compile_ns=6890331417
+B8_GROUP_JOIN_STAGE fixed_commit_ns=2280561708
+BLAKE3_NATIVE_QUERY_FUSION groups=7070 removed_scalars=28280 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=28196 fma=47984 arithmetic_rows=158622 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1439 fma=7086 arithmetic_rows=30713 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119424 direct_columns=true
+B8_GROUP_JOIN_STAGE witness_ns=14071395417 retained_rows_bytes=2537913440
+B8_GROUP_JOIN_STAGE compiler_released_bytes=1086579840 compiler_release_ns=14578917
+B8_GROUP_JOIN_STAGE plan_ns=1514827375
+B8_GROUP_SINGLE_DAG queries=70 pow=26 cohorts=2 group_bodies=1 bridge_bodies=1 compact_bodies=1 root_bytes=975915 root_sha256=b5ff39b0779975889454bd4cbf5c5f796df3e97c11a0ae409d5db568645087b6 proof_ns=33515579125 whole_ns=58302787875 freshly_file_verified=true
+OK
+3/11 runner.decode.test_0...OK
+4/11 runner.mod.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 air.lookups.tables.mod.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

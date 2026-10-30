@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-real-window-v2-q3-benchmark"
+  ],
+  "capture_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+  "binary_sha256": "4c2c93609ad4753e2c4fdbc384119827b53f54839948a7f8bb4f448aad551ec9",
+  "build_manifest_sha256": "74a30b2572c29620456ab284974ca9541d978bfac97b5b24bd788bda8487e333",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 24152776,
+    "temporary_snapshot_bytes_written": 24152776,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793262020567848000,
+  "returncode": 1,
+  "finished_unix_ns": 1793262029899534000
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "resident-parent-primitive-v1",
+  "device": "NVIDIA H200 SM90",
+  "qualification": "device_numerical_differential",
+  "full_child_receipt": false,
+  "timing_claim": false,
+  "object_sha256": "aa333e85fd422e72ce931a6ff6aea175ece31ad81b389d5a6b7f154d4b199335",
+  "runner_source": "src/integrations/riscv_cuda/resident_parent_composite_numeric_v1.cu",
+  "runner_sha256": "278052ab2ac0679352a31e78c76cbcdbce519c127d57bac22adf67fa28f38915",
+  "positive_cases": 6,
+  "hostile_cases": 4,
+  "sticky_status_preserved": true
+}

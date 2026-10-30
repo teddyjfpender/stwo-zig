@@ -1,0 +1,42 @@
+{
+  "schema": "stwo-cuda-framework-interaction-numeric-v1",
+  "hardware": "NVIDIA H200 SM90",
+  "scope": "numeric oracle only; complete parent proof pending",
+  "cases": 134,
+  "positive_cases": 88,
+  "negative_cases": 46,
+  "checked_words": 655856,
+  "kernel_launches": 398,
+  "trace_rows": [
+    2,
+    8,
+    512,
+    1024
+  ],
+  "positive_contract": "all physical interaction columns plus raw physical claims match independent individual rational fractions and scalar logical-order prefix/mean oracle",
+  "negative_contract": [
+    "zero denominator",
+    "noncanonical trace word",
+    "incorrect fixed first selector"
+  ],
+  "composition_catalog_unchanged": true,
+  "source_sha256": "f5e21bf5c92cc4c844cbf870805e632af61feee652914f69c9931b705080f139",
+  "artifacts": {
+    "source_manifest.json": "5acc86629aa5916702bad49d40ff951f5ed1384d78f658706d0eeacb58328f4a",
+    "kernels.cu": "f5e21bf5c92cc4c844cbf870805e632af61feee652914f69c9931b705080f139",
+    "interaction_numeric.bin": "64ca65b73883a1aaafad2e9c7dd81f505e8dcbb9700fc6ffe412ff1de9fa7e8a",
+    "interaction_numeric_runner.cu": "85bb0b17321e5254abb8cf6a9b96676f100db1fafe838b4cb69233e74093585e"
+  },
+  "local_source": {
+    "src/backends/cuda/framework_interaction_codegen_v1.zig": "2035778657464c9a2132fd5c6199dd5d11d283f1a59f3e254ab70ee6c834499c",
+    "src/backends/cuda/native/framework_interaction_v1.cuh": "bb0c3251bd143f20c38492665b4539ccb8f41f9bde3696f394144211a283ce6c",
+    "src/integrations/riscv_cuda/hybrid_framework_interaction_v1.zig": "67150206275cb7e86b172f919e80c7875e92d762d0f7f40e8647908fa37e8630",
+    "src/frontends/riscv/recursion/blake3_parent_interaction_executor_v1.zig": "957b446a2e97ab0b1b81524272c59abc94b023c512c340f99503f8d305608263",
+    "src/frontends/riscv/recursion/blake3_native_parent_device_interactions.zig": "81d76570f7a4500c54836a1ea319d2b54938443916ba6aa6e9d6e1acaf93f1df",
+    "src/frontends/riscv/recursion/air/framework_device_interaction.zig": "430381eb3f5c3d333eb52de0c0210aa571937498de68e0438248c9dbe52d184c",
+    "src/frontends/riscv/benchmarks/cuda_framework_interaction_catalog_v1.zig": "da1def7da0cead9400673830c1038c6057803cd7af568bf7e0cc403a24242fc5",
+    "src/frontends/riscv/benchmarks/cuda_framework_interaction_numeric_runner_v1.cpp": "37b74d48630f7e2c3e0f6f676d26856a4f143b47395bb437f3c968fda04601e8"
+  },
+  "proof_acceptance_authority": false,
+  "full_parent_qualified": false
+}

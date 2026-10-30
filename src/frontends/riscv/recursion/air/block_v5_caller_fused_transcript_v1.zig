@@ -8,13 +8,17 @@ const Statement = @import("block_v5_caller_fused_statement_v1.zig");
 const Recorder = @import("blake3_native_recorder.zig");
 const Shared = @import("blake3_native_transcript.zig");
 pub fn prefix(a: std.mem.Allocator, r: *Recorder.Recorder, admitted: *const Admission.Prepared, statement: *const Statement.Statement) !Word.Challenges {
+    return prefixWith(a, r, admitted, statement, @import("block_v5_word_transcript_prefix_v1.zig").LiveDraw);
+}
+/// Identical original grammar for live values and fixed-only routed emission.
+pub fn prefixWith(a: std.mem.Allocator, r: anytype, admitted: *const Admission.Prepared, statement: *const Statement.Statement, comptime Draw: type) !Draw.Output {
     try statement.recordAt(r, statement.first, Statement.PUBLIC_CIRCUIT);
     try r.skipCommittedRoots(3);
     try r.restartChannel();
     const universal = @import("../../prover/block_v5_universal_channel_v1.zig");
     r.mixU32s(&.{ universal.TAG, universal.VERSION });
     r.mixPublicRoot(.{ .circuit = Statement.PUBLIC_CIRCUIT, .first_wire = statement.sealed_offset }, admitted.sealed.digest);
-    const challenges = try Word.Challenges.drawFromChannel(a, r);
+    const challenges = try Draw.run(a, r);
     r.mixU32s(&.{ Admission.Fused.TAG, Admission.Fused.VERSION, 3 });
     r.mixPublicRoot(.{ .circuit = Statement.PUBLIC_CIRCUIT, .first_wire = statement.sealed_offset }, admitted.sealed.digest);
     try statement.recordAt(r, statement.claims, Statement.PUBLIC_CIRCUIT);

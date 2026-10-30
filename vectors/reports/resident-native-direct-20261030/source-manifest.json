@@ -1,0 +1,9 @@
+{
+  "src/integrations/riscv_cuda/resident_native_direct_codegen_v1.zig": "030fa5814aea13f3eefcf51a230ce7aae6843352c93032ccd27099073d8ee9d9",
+  "src/riscv_cuda_resident_native_direct_test_root.zig": "69365e8a72ed4055b4d0299c1056bf45231f00ca2e9fd566fd81fd416fd48711",
+  "src/frontends/riscv/air/extract/runtime_program.zig": "4c8fb160ddd8262a1188bdbe1a42f9f3e73108de89ce0c480176d178ad1230f8",
+  "src/frontends/riscv/air/x0_native_envelope_v1.zig": "07b3a0c4d09abc53e02cfbf65cdc9920718c7b7903805675e14cb6ce6eb42b62",
+  "src/prover/air/framework_polynomial_emitter_v1.zig": "b8e2b3ef569557ab3ead4cec01a019151399545a931d2810de8b4c8e82498b70",
+  "src/backends/cuda/native/framework_polynomial_v1.cuh": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd",
+  "src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+}

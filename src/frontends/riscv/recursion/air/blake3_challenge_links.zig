@@ -45,6 +45,10 @@ pub fn build(a: std.mem.Allocator, outputs: []const t.DrawOutput, sources: Sourc
                 if (i >= universal_count or output.words != 8) return error.InvalidParentChallengeLink;
                 break :blk i * 2;
             },
+            .universal_half => |part| blk: {
+                if (part.relation >= universal_count or output.words != 4) return error.InvalidParentChallengeLink;
+                break :blk part.relation * 2 + part.half;
+            },
             .composition => base,
             .oods => base + 1,
             .deep => base + 2,
@@ -61,7 +65,7 @@ pub fn build(a: std.mem.Allocator, outputs: []const t.DrawOutput, sources: Sourc
             result[slot] = .{ .source = .{ .circuit = output.source.circuit, .first_wire = try std.math.add(u32, output.source.first_wire, @intCast(4 * half)) } };
             switch (output.role) {
                 .riscv_relation => return error.InvalidParentChallengeLink,
-                .universal => result[slot].composition = try std.math.add(u32, sources.universal_start, @intCast(slot)),
+                .universal, .universal_half => result[slot].composition = try std.math.add(u32, sources.universal_start, @intCast(slot)),
                 .composition => result[slot].composition = sources.composition,
                 .oods => {
                     result[slot].composition = sources.oods;

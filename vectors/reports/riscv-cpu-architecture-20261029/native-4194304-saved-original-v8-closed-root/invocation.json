@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-v8-saved-original-closed-root-invocation-v1",
+  "scope": "saved_original_to_new_closed_recursive_root",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v8-cpu-saved-union-closed-root-20261029"
+  ],
+  "binary_sha256": "00e0159c9aaa4364ab12719259dc1f1b6320f236e23347109bce0745d8c59dbb",
+  "build_manifest_sha256": "7ed6ce1964773118dfc84809b020f2e215a6336065ed11aee2713d0b1ade7ee3",
+  "capture_sha256": "70caa759453633873c50a3c964b7a0af4fabda3beb243703f46fde9fe80fecd3",
+  "source_proof_sha256": "5701e630946dd63f695f9af786c7d93fb9d86f39536104f76520daac1fe7f788",
+  "metadata_sha256": "8295f625b91e6b97454b90dba0b874499c89d4ca6a5a402a678de1366e607be0",
+  "source_proving_performed": false,
+  "cpu_only": true,
+  "started_unix_ns": 1793317252418985000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793317506009736000
+}

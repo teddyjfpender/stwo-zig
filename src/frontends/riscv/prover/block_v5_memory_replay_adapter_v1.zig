@@ -70,8 +70,11 @@ pub fn ForBackend(comptime Backend: type) type {
         /// predecessor context before each per-instance STARK is emitted.
         pub fn prove(self: *const Self, source: SortedSource, sink: artifact.ProofSink, pins: v5.Pins, entries: []const v5.Entry, expected_seal_digest: [32]u8, sealed: v5.Sealed) !void {
             var traces = Sequential{
-                .a = self.a, .sorted = source, .capacities = self.capacities,
-                .claims = self.first.claims, .total_events = self.first.total_events,
+                .a = self.a,
+                .sorted = source,
+                .capacities = self.capacities,
+                .claims = self.first.claims,
+                .total_events = self.first.total_events,
                 .minimum_log_size = self.minimum_log_size,
             };
             defer traces.deinit();

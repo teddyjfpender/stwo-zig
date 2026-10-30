@@ -1,0 +1,24 @@
+{
+  "name": "native-bundle-tiny",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_86,code=sm_86",
+    "--threads",
+    "1",
+    "-I/workspace/stwo-sm86/src/backends/cuda/native",
+    "/workspace/sm86-evidence/native-objects/sources/native-bundle-tiny.cu",
+    "-o",
+    "/workspace/sm86-evidence/native-objects/native-bundle-tiny.o"
+  ],
+  "exit_code": 0,
+  "seconds": 8.797957414062694,
+  "source_sha256": "68c7c9adc6c4e322cf3ebb332d8227476ff42942ce488587860b33f4a13b30df",
+  "object_sha256": "6e5aac9b15e2678aacd75d15c215f513188c78085f36287ad5849b96f4f24b2d"
+}

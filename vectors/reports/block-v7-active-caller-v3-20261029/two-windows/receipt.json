@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "active_layout_version": 3,
+  "scope": "synthetic original-STARK execution with complete global closure; not an Ethereum block or recursive publication proof",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "producer_tests": 11,
+  "fresh_process_tests": 8,
+  "measurements": {
+    "profile": "csp_q70_pow26",
+    "cycles": 20495,
+    "cut": 10248,
+    "native_windows": 2,
+    "callers": 1,
+    "no_access": 0,
+    "physical_frames": 0,
+    "original_starks": 1,
+    "oracle_starks": 6,
+    "trees": 18,
+    "estimated_trace_pcs_bytes": 187993904,
+    "setup_ns": 398907125,
+    "prove_ns": 4149626583,
+    "oracle_prove_verify_ns": 8004566791,
+    "fresh_verify_ns": 1525494583,
+    "proof_bytes": 6001584,
+    "charged_proof_peak_bytes": 311708246,
+    "all_producer_and_oracle_owners_destroyed": "true",
+    "exact_physical_claims": "true",
+    "global_closure": "true",
+    "timing": "shared_host_diagnostic"
+  },
+  "transport": {
+    "bytes": 6048463,
+    "windows": 2,
+    "callers": 1,
+    "trees": 18,
+    "decode_peak_bytes": 20114846,
+    "fresh_verification": "true",
+    "hostile_framing": "true"
+  },
+  "callers": [
+    {
+      "native_window": 0,
+      "sha_calls": 2,
+      "keccak_calls": 1,
+      "recovery_calls": 0
+    }
+  ],
+  "memory_scope": "tracked allocator peak, excluding external fixture preparation; not process RSS",
+  "compact_storage_admission": true,
+  "artifacts": {
+    "guest.elf": {
+      "bytes": 1492,
+      "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+    },
+    "public-metadata.json": {
+      "bytes": 109717,
+      "sha256": "f6269dda98158cd234293ebf89e6dbb7ce2cb78e182023c14791355338966287"
+    },
+    "proof.b7mun": {
+      "bytes": 6048463,
+      "sha256": "cb4d8a539827ef5f9b51d63f18be03dcda8227756564a1ac8a786959cbd684b6"
+    },
+    "qualification.log": {
+      "bytes": 1707,
+      "sha256": "7a544fae855cfb6a4c9427e964a0bfe7f13dfe90cd822b639d4c27bbd105ccaa"
+    },
+    "fresh-process.log": {
+      "bytes": 732,
+      "sha256": "00bc8907b3b4005c0b1649ca3f56652617f8a1997830a316d4f4cb9d440c6364"
+    }
+  }
+}

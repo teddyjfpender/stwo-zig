@@ -1,0 +1,20 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-integration-build.lock; waiting
+[zig_protocol_test] acquired after 245s
+1/17 circuit_blake3_channel_reuse_test_root.test_0...OK
+2/17 frontends.circuit.builder.blake3_channel_reuse_v1.test_0...OK
+3/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript exact absorbs raw draws secure packing and reset...OK
+4/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript multi-chunk asymmetric frames match native...OK
+5/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript exact sampler rejects either forbidden raw word in any lane...OK
+6/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript sampler cannot authorize skipped or invalid terminal blocks...OK
+7/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript PoW exact raw bits nonce wires and absorption...OK
+8/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript request roots do not change topology and state tampering fails...OK
+9/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript rejects unsupported schedules and counter exhaustion...OK
+10/17 frontends.circuit.builder.blake3_channel_reuse_v1_test.test.circuit Blake3 transcript PoW raw-word boundaries include bit31 and forbid field alias...OK
+11/17 frontends.circuit.builder.mod.test_0...OK
+12/17 frontends.circuit.builder.context.test_0...OK
+13/17 frontends.circuit.builder.blake3_reuse_v1.test_0...OK
+14/17 frontends.circuit.builder.blake.test_0...OK
+15/17 frontends.circuit.builder.simd.test_0...OK
+16/17 frontends.circuit.builder.ops.test_0...OK
+17/17 frontends.circuit.builder.finalize_constants.test_0...OK
+All 17 tests passed.

@@ -1,0 +1,45 @@
+{
+  "schema": "stwo-v7-cuda-archive-preflight-v1",
+  "files": [
+    {
+      "path": "/workspace/stwo-v7-evidence/cuda-native-sm90/libstwo_cuda_kernels.a",
+      "bytes": 20322342,
+      "sha256": "b7a38a6cc73fe5aeb61945fdfaddac2f4b06a7cfc9349e7277981a05fe726128"
+    },
+    {
+      "path": "/workspace/stwo-v7-evidence/cuda-native-sm90/cuda_aot_pack.bin",
+      "bytes": 13762312,
+      "sha256": "fc2d96b9e28974140557922f044df8f95d466dfca3ff989da6fe608c7f944307"
+    },
+    {
+      "path": "/workspace/stwo-v7-evidence/cuda-native-sm90/cuda_build_plan.json",
+      "bytes": 26885,
+      "sha256": "e335f8f28d16d1defd5040ae1ec7754ee3197b58c02c4f9237d23882bd094223"
+    },
+    {
+      "path": "/workspace/stwo-v7-evidence/cuda-native-sm90/cuda_build_receipt.json",
+      "bytes": 27225,
+      "sha256": "4ee6ebd600ef634175224646a536a816af1c8985223ea14537740bcd98344f98"
+    }
+  ],
+  "defined_symbols_sha256": "59abc560e3ff3ef0f34ac004d85c32ed309312c62373e548c6e1abb4de903855",
+  "required_abi_symbols": [
+    "stwo_exec_context_create_options",
+    "stwo_exec_context_stream",
+    "stwo_exec_context_alloc_u32",
+    "stwo_exec_context_free_u32",
+    "stwo_exec_context_memcpy_h2d_async",
+    "stwo_exec_context_memcpy_d2h_async",
+    "stwo_exec_context_sync",
+    "stwo_exec_context_destroy",
+    "stwo_accumulate_quotient_numerator_addressed_on",
+    "stwo_combine_quotients_from_compact_numerators_on",
+    "stwo_cuda_execution_provider",
+    "stwo_cuda_device_snapshot",
+    "stwo_cuda_platform_snapshot",
+    "stwo_static_cuda_module_build_identity"
+  ],
+  "all_required_symbols_present": true,
+  "source_tree_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "gpu_execution_performed": false
+}

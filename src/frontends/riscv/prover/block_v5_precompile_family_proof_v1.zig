@@ -73,7 +73,8 @@ pub const VerifiedCapture = struct {
         inline for (.{ .fixed, .main, .interaction }, 0..) |tree, i| {
             const logs = try protocol.columnLogs(a, statement, tree);
             defer a.free(logs);
-            if (self.proof.column_log_sizes.len != 4 or !std.mem.eql(u32, self.proof.column_log_sizes[i], logs)) return error.InvalidV5CallerArithmeticCapture;
+            if (self.proof.column_log_sizes.len != 4) return error.InvalidV5CallerArithmeticCapture;
+            try @import("proof_capture_geometry_v1.zig").requireExtendedLogs(error.InvalidV5CallerArithmeticCapture, logs, self.proof.column_log_sizes[i], pins.config.fri_config.log_blowup_factor);
         }
     }
 };
@@ -82,7 +83,7 @@ fn captureDomain() Digest {
     std.crypto.hash.sha2.Sha256.hash("stwo-zig/block-v5/caller-arithmetic-capture/v1\x00", &result, .{});
     return result;
 }
-pub fn mixBinding(channel: *suite.Channel, binding: CallerBinding) void {
+pub fn mixBinding(channel: anytype, binding: CallerBinding) void {
     channel.mixU32s(&.{ binding.execution_index, binding.caller_entry_index });
     channel.mixRoot(binding.execution_instance_id);
     channel.mixRoot(binding.caller_instance_id);

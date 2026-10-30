@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-timing-boundary-notes-v1",
+  "immutable_report": "report.json",
+  "field": "source_preparation.whole_ns",
+  "historical_value_ns": 68610190292,
+  "historical_semantics": "inclusive Saved.produce duration containing parent recursive production; not source-preparation-only time",
+  "included_parent_whole_ns": 67075718833,
+  "sum_individually_measured_source_preparation_stages_ns": 1512838333,
+  "sum_is_not_a_new_measurement_of_preparation_wall_time": true,
+  "csv_uses_individual_correct_phase_timers": true,
+  "report_and_proof_rewritten": false,
+  "source_fix": "Stats.whole_ns is read immediately before Parent.produce; Owned.whole_ns separately measures saved-inputs-to-root production including parent; benchmark emits saved_inputs_to_root_ns separately",
+  "no_proof_rerun_required": true
+}

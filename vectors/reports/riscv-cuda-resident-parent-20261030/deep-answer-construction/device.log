@@ -1,0 +1,1 @@
+PASS resident_deep_answer_two_pass scalar_inputs=4 exact_words=20 full_anchor=true changed_answer_rejected=true admission_from_aux=false

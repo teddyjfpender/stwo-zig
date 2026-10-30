@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "scope": "One idle-host canonical synthetic mixed421 complete original proof; no full Ethereum block or recursive reduction extrapolation.",
+  "verified": true,
+  "producers_destroyed": true,
+  "sample_count": 1,
+  "source_sha256": "b45e85a90759bab69eb0c9b0f08bcfda853a61cf91b8882f9fc7d77f897351fe",
+  "binary_sha256": "0aba83b8644fe2f5229e8456addbd1d40a4f667004502eeb82d1c2996849ad9e",
+  "command_wall_seconds": 113.50726154100266,
+  "metrics": {
+    "schema": 1,
+    "allocator_backend": "smp",
+    "workload": "mixed_ethereum",
+    "iterations": 421,
+    "cycles": 1726115,
+    "window_cut": 431529,
+    "native_windows": 4,
+    "caller_windows": 4,
+    "ram_events": 452200,
+    "memory_event_limit": 1048576,
+    "events_per_ram_shard": 65536,
+    "keccak_calls": 421,
+    "recovery_calls": 1,
+    "first_touch_native_words": 215552,
+    "native_rounds_per_call": 512,
+    "elf_sha256": "c1fbb12ed101cf45b1cb9184ff9528dc849d4f5821484c39325c4a372fba7043",
+    "canonical_security": true,
+    "query_count": 70,
+    "pow_bits": 26,
+    "source": "synthetic_complete_execution",
+    "program_fetches": 1726118,
+    "output_sha256": "0a862c5c3971befb3aad5552fffe07350874dc6c9ac4c1fa21a7ec81fc10f455",
+    "proof_contract": "original_complete_stark",
+    "architecture": "per_window_callers",
+    "statement_sha256": "0078ed4e4d56143713f77fc8a819bbb65374e0589af6079cf3108144a847c0e2",
+    "output_hex": "00feb502000000000000000000000000000000000000000000000000000000000100000000000000000000",
+    "end_to_end_ns": 113412474833,
+    "setup_ns": 7437108750,
+    "prove_ns": 105111678041,
+    "verification_ns": 803657000,
+    "oracle_ns": 0,
+    "oracle_enabled": false,
+    "verified": true,
+    "producers_destroyed": true,
+    "recursive_reduction_ns": null,
+    "checkpoint_read_bytes": 0,
+    "checkpoint_write_bytes": 0,
+    "proof_bytes": 21906041,
+    "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+    "tracked_peak_bytes": 9047532314,
+    "process_peak_rss_bytes": 8718729216,
+    "producer_stats": {
+      "retained_pcs_model_bytes": 5886875536,
+      "compact_storage_admission": false,
+      "memory_allocator_live_after_preparation": 413130645,
+      "memory_allocator_live_after_commit": 413130853,
+      "memory_allocator_live_after_consumption": 89519244,
+      "union_allocator_live_before_proof": 7460469602,
+      "union_allocator_live_at_entry": 3287006625,
+      "union_allocator_live_at_exit": 3084825139,
+      "union_allocator_peak_cumulative": 9047532314
+    }
+  },
+  "top_exclusive_stages": [
+    {
+      "stage": "fri_quotient_build_and_commit",
+      "seconds": 42.974394,
+      "request_share": 0.3789212259346235
+    },
+    {
+      "stage": "composition_evaluation",
+      "seconds": 37.521835,
+      "request_share": 0.3308439839202076
+    },
+    {
+      "stage": "multi_native_preparation",
+      "seconds": 17.054038,
+      "request_share": 0.15037180014907608
+    },
+    {
+      "stage": "multi_caller_preparation",
+      "seconds": 3.001939,
+      "request_share": 0.026469213412548827
+    },
+    {
+      "stage": "native_access_commitment",
+      "seconds": 2.579898,
+      "request_share": 0.02274792084203173
+    },
+    {
+      "stage": "multi_memory_preparation",
+      "seconds": 1.649148,
+      "request_share": 0.014541151689250872
+    },
+    {
+      "stage": "witness_and_first_commitments",
+      "seconds": 1.197578,
+      "request_share": 0.010559490935749661
+    },
+    {
+      "stage": "native_access_witness",
+      "seconds": 0.988988,
+      "request_share": 0.008720275273564799
+    },
+    {
+      "stage": "independent_verification",
+      "seconds": 0.803665,
+      "request_share": 0.007086213409798151
+    },
+    {
+      "stage": "native_witness",
+      "seconds": 0.798979,
+      "request_share": 0.007044895203781572
+    },
+    {
+      "stage": "multi_native_interaction_commitment",
+      "seconds": 0.783959,
+      "request_share": 0.006912458273698554
+    },
+    {
+      "stage": "provider_preparation",
+      "seconds": 0.676174,
+      "request_share": 0.005962077813712001
+    },
+    {
+      "stage": "native_first_commitment",
+      "seconds": 0.542082,
+      "request_share": 0.0047797387438922945
+    },
+    {
+      "stage": "caller_first_commitments",
+      "seconds": 0.45476700000000003,
+      "request_share": 0.004009849892347777
+    },
+    {
+      "stage": "multi_caller_interaction_commitment",
+      "seconds": 0.405912,
+      "request_share": 0.0035790771746909314
+    },
+    {
+      "stage": "sampled_value_evaluation",
+      "seconds": 0.353199,
+      "request_share": 0.0031142870351792066
+    },
+    {
+      "stage": "proof_of_work",
+      "seconds": 0.281861,
+      "request_share": 0.0024852733388901053
+    },
+    {
+      "stage": "multi_lookup_preparation",
+      "seconds": 0.218553,
+      "request_share": 0.0019270631411740157
+    },
+    {
+      "stage": "multi_memory_interaction_commitment",
+      "seconds": 0.209275,
+      "request_share": 0.0018452555621253982
+    },
+    {
+      "stage": "multi_fixed_commitment",
+      "seconds": 0.197958,
+      "request_share": 0.0017454693612099848
+    }
+  ],
+  "qualification_notes": [
+    "Explicit actual-event RAM clock projection policy; strict global closure guard retained.",
+    "Failed earlier event-cap and auxiliary-clock runs remain preserved in sibling campaign directories.",
+    "Detailed profile reports full bounded transport size; stdout proof_bytes names raw STARK payload.",
+    "No oracle execution, checkpoint I/O, or recursive reduction in this workload.",
+    "All compiler and other proving processes held during measured execution; one sample is not a latency distribution."
+  ]
+}

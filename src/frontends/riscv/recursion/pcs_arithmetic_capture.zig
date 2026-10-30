@@ -29,7 +29,17 @@ pub const Owned = struct {
             for (columns) |points| {
                 const step = core.poly.circle.canonic.CanonicCoset.new(profile.maskLogSize(cursor)).step();
                 const previous = current.sub(.{ .x = QM31.fromBase(step.x), .y = QM31.fromBase(step.y) });
-                const layout = (if (profile.sample_layouts[cursor] == .current_keccak_final) layouts.classifyKeccakPair(points, current, previous) else layouts.classifyColumn(points, current, previous)) catch return fail;
+                const expected = profile.sample_layouts[cursor];
+                const layout = switch (expected) {
+                    .current_keccak_final => layouts.classifyKeccakPair(points, current, previous) catch return fail,
+                    .current_keccak_final_composition => blk: {
+                        // Profile validation pins this explicit step to the
+                        // common composition domain, never the column domain.
+                        _ = layouts.classifyKeccakPair(points, current, previous) catch return fail;
+                        break :blk layouts.Layout.current_keccak_final_composition;
+                    },
+                    else => layouts.classifyColumn(points, current, previous) catch return fail,
+                };
                 if (layout != profile.sample_layouts[cursor]) return fail;
                 cursor += 1;
             }

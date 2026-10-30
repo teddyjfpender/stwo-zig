@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-b8-terminal-mixed-root-qualification-v1",
+  "scope": "complete nine-instruction Keccak fixture; not retained Ethereum block",
+  "queries": 70,
+  "pow_bits": 26,
+  "source_originals": 3,
+  "intermediate_recursive_proofs": 0,
+  "root_bytes": 1021354,
+  "root_sha256": "f204e46da61d61b2d38516da5b6ae0c3cc57284f18d3d751d491e7f7361acca9",
+  "stats": {
+    "source_workers": 1,
+    "global_g_repartition": false,
+    "fixed_compile_ns": 10375364250,
+    "fixed_commit_ns": 4965662208,
+    "witness_ns": 21247537167,
+    "plan_ns": 2654920125,
+    "proof_ns": 78946058042,
+    "encode_ns": 46582167,
+    "compiler_release_ns": 28564625,
+    "compiler_released_bytes": 1881354808,
+    "retained_rows_bytes": 4702785220
+  },
+  "fresh_full_receiver": true,
+  "wrong_output_rejects": true,
+  "missing_initial_rejects": true,
+  "missing_terminal_rejects": true,
+  "timing_isolated": false
+}

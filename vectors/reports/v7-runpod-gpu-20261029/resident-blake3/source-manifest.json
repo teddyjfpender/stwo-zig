@@ -1,0 +1,54 @@
+{
+  "src/backends/cuda/native/commitment/blake3.cu": {
+    "sha256": "be9f3182e0544f267a1fc1faea70ec0b09d8eebf1514388c78e8613a5b77923c",
+    "bytes": 14731
+  },
+  "src/backends/cuda/native/commitment/blake3_protocol.cuh": {
+    "sha256": "c6ba18dc2d1ff436a30ffffccc3fb6b425fea86c1ba1da286d701a3d45f06cb9",
+    "bytes": 6019
+  },
+  "src/backends/cuda/abi/stages/blake3.zig": {
+    "sha256": "6e3877c50588fcc79853374583a7b9f425190bf8a04679a8efe1a5b1e71ef5d3",
+    "bytes": 3322
+  },
+  "src/backends/cuda/runtime/stages/blake3.zig": {
+    "sha256": "e3afc1c103a3687358dedb43d13ef0ca7a70bb230e03c108c900ac94054706b8",
+    "bytes": 13204
+  },
+  "src/backends/cuda/abi/stages/mod.zig": {
+    "sha256": "0538184b1eeef2baf9e1a5649d9c1230a99dfd49f282c3c9e446a82ef586bcd1",
+    "bytes": 1597
+  },
+  "src/backends/cuda/runtime/stages/mod.zig": {
+    "sha256": "4901a40d7a0e38c23cdb2e8bdae1e81cb68c0d34439df5955ab2b3b943773dd6",
+    "bytes": 2337
+  },
+  "src/backends/cuda/product_manifest.json": {
+    "sha256": "a568c8680c49436a67df59851120f8457a2f8b3c8b1d919a754116115efd5c67",
+    "bytes": 12749
+  },
+  "src/integrations/riscv_cuda/tests/resident_blake3_test_v1.zig": {
+    "sha256": "7fcb95a78162c4dbb8cb785fa394b4e411db47ea7f3fde76761c5aff497d066a",
+    "bytes": 12751
+  },
+  "src/riscv_cuda_blake3_device_test_root.zig": {
+    "sha256": "ac72c53fd07c26823422e45413acd7b5dfab873b8b45c789459070472c2934b3",
+    "bytes": 176
+  },
+  "src/riscv_cuda_blake3_runtime_semantic_root.zig": {
+    "sha256": "ce8773af591428899b6f54ea91c2ed89813ce48621d90f59ce617f6e768ea4f0",
+    "bytes": 1357
+  },
+  "src/integrations/riscv_cuda/resident_parent_transcript_v1.zig": {
+    "sha256": "ebb098f564d6ec3aaa7d9fdd1f0c7db4198cb96df7ec6977cd6a17a3ea0ef1ed",
+    "bytes": 10590
+  },
+  "src/integrations/riscv_cuda/resident_parent_terminal_v1.zig": {
+    "sha256": "6ec6110afb9983d24d8e1ea8ead0c63bdb5742bbb3931bd38149c4437527ac5e",
+    "bytes": 8861
+  },
+  "src/riscv_cuda_resident_parent_terminal_test_root.zig": {
+    "sha256": "f325f36c99ec00907b5eeab1da080b07a6cbad44c1dd7846fec00b276fea0c34",
+    "bytes": 198
+  }
+}

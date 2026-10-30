@@ -1,0 +1,41 @@
+{
+  "schema": "v7-joint-memory-parent-qualification-v1",
+  "date": "2026-10-29",
+  "status": "passed",
+  "security_profile": "diagnostic_q8_pow0",
+  "execution_epoch_version": 3,
+  "joint_layout_version": 2,
+  "joint_protocol_version": 2,
+  "ram_main_columns": 88,
+  "ram_constraints": 161,
+  "ram_claim_planes": 29,
+  "ram_shards": 5,
+  "guest_events": 16,
+  "terminal_reads": 13,
+  "original_proof_bytes": 99491,
+  "parent_proof_bytes": 134056,
+  "checks": [
+    "original_policy_fixed_root_rebuilt",
+    "original_stark_fresh_verify",
+    "all_106_exported_epoch_challenges_match_native_draw",
+    "cold_live_all_fixed_rows_wires_namespace_context_key_equal",
+    "parent_producer_rows_and_parent_proof_destroyed_before_receiver",
+    "fresh_parent_decode_and_verification",
+    "compensated_physical_claims_rejected_by_parent_public_bus",
+    "changed_public_root_offset_rejected",
+    "wrong_parent_key_rejected"
+  ],
+  "log_sha256": "184f74bb29dd3620a7833214a6496d68e31a20b00720f7a3824ff968c946748d",
+  "binary_sha256": "efa31f64445404cf14fa1b322499b364428e756cb5ccf8abfd579a5b3db0d384",
+  "outer_parent_qualified": true,
+  "complete_execution_qualified": false,
+  "canonical_security_qualified": false,
+  "performance_measurement": false,
+  "limitations": [
+    "The parent authenticates an OPEN memory transition, not complete block execution.",
+    "Trusted policy and initialization metadata remain independently available to the receiver.",
+    "The surrounding test retains the original proof capture for other negatives, but the detached receiver receives neither the original proof nor capture.",
+    "No canonical q70/pow26 parent or Ethereum block throughput qualification is claimed."
+  ],
+  "supersedes": "v7-joint-memory-recursive-seam-20261029.json"
+}

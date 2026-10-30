@@ -109,7 +109,7 @@ fn prepareMode(comptime direct: bool, a: std.mem.Allocator, composition: *const 
             .deep => 4,
             .fri => |layer| if (layer < layers) 8 + layer * 4 else return error.InvalidNativePcsChallenge,
             .riscv_relation, .composition => continue,
-            .universal => return error.InvalidNativePcsChallenge,
+            .universal, .universal_half => return error.InvalidNativePcsChallenge,
         };
         if (output.words != 4) return error.InvalidNativePcsChallenge;
         for (0..4) |word| {

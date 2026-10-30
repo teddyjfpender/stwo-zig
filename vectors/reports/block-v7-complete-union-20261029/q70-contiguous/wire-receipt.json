@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-29",
+  "result": "PASS11",
+  "scope": "bounded_single_window_original_STARK_transport_and_independent_verification",
+  "queries": 70,
+  "pow_bits": 26,
+  "proof_bytes": 5887369,
+  "verified_cycles": 20495,
+  "decode_peak_bytes": 19276266,
+  "verification_allocator_cap_bytes": 4294967296,
+  "independent_policy": true,
+  "producer_objects_present": false,
+  "checks": [
+    "canonical encode-decode-encode parity",
+    "official original AIR verification with independently reconstructed ELF and expected terminal output",
+    "schema and epoch substitution",
+    "noncanonical scalar limbs and tags",
+    "length amplification before allocation",
+    "truncated envelope and trailing bytes",
+    "wrong embedded PCS config",
+    "decode and whole-verification budget exhaustion",
+    "explicit lifting rejected as unqualified"
+  ],
+  "artifacts": {
+    "proof.b7cun": "5b9aeb2479c9ddf92ca02bc56ded063c759b65d9dbd546b4ca295e62bad14a77",
+    "guest.elf": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d",
+    "proof.stark.postcard": "62f94cd2d70b5f3eba3aae3196047dbc9175957ca7f5daaedc9db9196f338efb",
+    "public-metadata.json": "9e667bfcda1e71c76ebb0fb63dfbd78153224f1424c241a07c7b0a9d4916602d",
+    "wire-validation.log": "974eb3b4e1887361919ec60b68c92b1477d257e74a85df0477578c99bc2dcf54"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_complete_union_codec_v1.zig": "b6df096809e414702c847ba53f4cd42d3f17ca6b912bcac67a6d112259c668f6",
+    "src/frontends/riscv/prover/block_v7_union_claim_wire_v1.zig": "0caffb6465df78e9f3e88893cca0389812486193931e088ec20d8ae75b958db5",
+    "src/frontends/riscv/prover/tests/block_v7_complete_union_wire_test.zig": "74ee6bda58cdb930b58e4fc27bd035b5aa42fdd6ab81cf7d578e05c2c7daec3b",
+    "src/frontends/riscv/prover/block_v7_complete_union_proof_v1.zig": "611318474d63752018d14d7213af18ed1637bc51f7b18539efd2c5881d10b3d0",
+    "src/interop/postcard/proof_preflight.zig": "012731b8ed3eba968e22776040c7f9e0abdc853bfd2e89cd4bd1250c1971a829"
+  },
+  "limits": [
+    "Input metadata and independently trusted ELF/config/output remain external typed verifier inputs; JSON is a test fixture import only.",
+    "No multiwindow binary envelope or recursive aggregation adapter is claimed.",
+    "This run qualifies transport and verification; it is not a new proving-time measurement."
+  ]
+}

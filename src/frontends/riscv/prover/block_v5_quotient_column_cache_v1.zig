@@ -14,7 +14,7 @@ const packed_support = @import("../recursion/air/universal_typed_component_contr
 pub const Policy = enum { retained, packed_word, lookup };
 pub const VALUE_LIMIT: usize = 256 * 1024 * 1024;
 pub const ENTRY_LIMIT: usize = 4096;
-const Key = struct {
+pub const Key = struct {
     values: [*]const M,
     values_len: usize,
     coefficients: ?[*]const M,
@@ -32,6 +32,21 @@ const Entry = struct {
     failure: ?anyerror = null,
 };
 
+pub const PreparedSource = union(enum) { passthrough: []const M, recovery: struct { key: Key, byte_count: usize } };
+pub fn prepareSource(policy: Policy, poly: Poly, trace_log: u32, eval_log: u32) !PreparedSource {
+    try poly.validate();
+    if (trace_log == 0 or trace_log >= core.circle.M31_CIRCLE_LOG_ORDER or eval_log == 0) return error.InvalidProofShape;
+    if (policy == .packed_word) _ = try packed_support.sourceNeedsExtension(poly, trace_log, eval_log);
+    if (policy == .retained) _ = try retained.sourceNeedsExtension(poly, trace_log, eval_log);
+    if (poly.log_size == eval_log and poly.values.len != 0) return .{ .passthrough = poly.values };
+    if (eval_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidProofShape;
+    const eval_size = @as(usize, 1) << @intCast(eval_log);
+    const byte_count = try std.math.mul(usize, eval_size, @sizeOf(M));
+    const coefficients = if (poly.coefficients) |p| p.coefficients() else null;
+    const key = Key{ .values = poly.values.ptr, .values_len = poly.values.len, .coefficients = if (coefficients) |p| p.ptr else null, .coefficients_len = if (coefficients) |p| p.len else 0, .coefficients_log = if (poly.coefficients) |p| p.logSize() else null, .source_log = poly.log_size, .trace_log = trace_log, .eval_log = eval_log, .policy = policy };
+    return .{ .recovery = .{ .key = key, .byte_count = byte_count } };
+}
+
 pub const Cache = struct {
     a: std.mem.Allocator,
     entries: []Entry,
@@ -40,6 +55,10 @@ pub const Cache = struct {
     reserved_bytes: usize = 0,
     recovered_columns: usize = 0,
     reused_columns: usize = 0,
+    track_usage: bool = false,
+    requested_columns: usize = 0,
+    passthrough_columns: usize = 0,
+    capacity_misses: usize = 0,
     mutex: std.Thread.Mutex = .{},
     changed: std.Thread.Condition = .{},
 
@@ -64,17 +83,20 @@ pub const Cache = struct {
     /// columns can be recovered concurrently; duplicate requests wait for one
     /// producer rather than repeating FFTs or admitting an unfinished buffer.
     pub fn get(self: *Cache, policy: Policy, poly: Poly, trace_log: u32, eval_log: u32, twiddles: ?Twiddles) !?[]const M {
-        try poly.validate();
-        if (trace_log == 0 or trace_log >= core.circle.M31_CIRCLE_LOG_ORDER or eval_log == 0) return error.InvalidProofShape;
-        if (policy == .packed_word) _ = try packed_support.sourceNeedsExtension(poly, trace_log, eval_log);
-        if (policy == .retained) _ = try retained.sourceNeedsExtension(poly, trace_log, eval_log);
-        if (poly.log_size == eval_log and poly.values.len != 0) return poly.values;
-        if (eval_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidProofShape;
-        const eval_size = @as(usize, 1) << @intCast(eval_log);
-        const byte_count = try std.math.mul(usize, eval_size, @sizeOf(M));
-        const coefficients = if (poly.coefficients) |p| p.coefficients() else null;
-        const key = Key{ .values = poly.values.ptr, .values_len = poly.values.len, .coefficients = if (coefficients) |p| p.ptr else null, .coefficients_len = if (coefficients) |p| p.len else 0, .coefficients_log = if (poly.coefficients) |p| p.logSize() else null, .source_log = poly.log_size, .trace_log = trace_log, .eval_log = eval_log, .policy = policy };
+        const prepared = try prepareSource(policy, poly, trace_log, eval_log);
+        if (prepared == .passthrough) {
+            if (self.track_usage) {
+                self.mutex.lock();
+                self.requested_columns += 1;
+                self.passthrough_columns += 1;
+                self.mutex.unlock();
+            }
+            return prepared.passthrough;
+        }
+        const key = prepared.recovery.key;
+        const byte_count = prepared.recovery.byte_count;
         self.mutex.lock();
+        if (self.track_usage) self.requested_columns += 1;
         for (self.entries[0..self.count]) |*entry| if (std.meta.eql(entry.key, key)) {
             while (entry.state == .pending) self.changed.wait(&self.mutex);
             if (entry.failure) |failure| {
@@ -87,6 +109,7 @@ pub const Cache = struct {
             return result;
         };
         if (self.count == self.entries.len or byte_count > self.value_limit - self.reserved_bytes) {
+            if (self.track_usage) self.capacity_misses += 1;
             self.mutex.unlock();
             return null;
         }
@@ -117,7 +140,7 @@ pub const Cache = struct {
 /// Same local recovery policies used by the existing adapters, followed by the
 /// identical canonical forward transform. Lookup preserves its original full
 /// recovered coefficient-tail check and permits a larger source domain.
-fn recover(a: std.mem.Allocator, policy: Policy, poly: Poly, trace_log: u32, eval_log: u32, twiddles: ?Twiddles) ![]M {
+pub fn recover(a: std.mem.Allocator, policy: Policy, poly: Poly, trace_log: u32, eval_log: u32, twiddles: ?Twiddles) ![]M {
     const eval_size = @as(usize, 1) << @intCast(eval_log);
     var buffers: [1][]M = undefined;
     var initialized: usize = 0;

@@ -23,14 +23,16 @@ pub const Serialized = struct {
         return self.opcode.wire();
     }
     pub fn externalWire(self: *const Serialized) receiver.Wire {
-        return .{ .native_artifact = self.opcode.native_artifact,
-            .external_stark = self.external_stark, .external_claims = self.external_claims };
+        return .{ .native_artifact = self.opcode.native_artifact, .external_stark = self.external_stark, .external_claims = self.external_claims };
     }
     pub fn externalSidecarWire(self: *const Serialized) receiver.SidecarWire {
         return .{ .external_stark = self.external_stark, .external_claims = self.external_claims };
     }
     pub fn deinit(self: *Serialized, a: std.mem.Allocator) void {
-        self.opcode.deinit(a); a.free(self.external_stark); a.free(self.external_claims); self.* = undefined;
+        self.opcode.deinit(a);
+        a.free(self.external_stark);
+        a.free(self.external_claims);
+        self.* = undefined;
     }
 };
 
@@ -52,8 +54,7 @@ pub fn ForBackend(comptime Backend: type) type {
         instance_index: u32,
         native_key_id: [32]u8,
 
-        pub fn init(a: std.mem.Allocator, owner: *Profile.Witness, prepared: *Prepared,
-            frame: frame_mod.Frame, instance_index: u32, config: core.pcs.PcsConfig) !Self {
+        pub fn init(a: std.mem.Allocator, owner: *Profile.Witness, prepared: *Prepared, frame: frame_mod.Frame, instance_index: u32, config: core.pcs.PcsConfig) !Self {
             var opcode = try Opcode.ForBackend(Backend).init(a, owner, prepared, frame, instance_index, config);
             errdefer opcode.deinit();
             var arena = std.heap.ArenaAllocator.init(a);
@@ -70,8 +71,7 @@ pub fn ForBackend(comptime Backend: type) type {
             if (owner.native.compact_ranges) |ranges| try main.appendSlice(scratch, &ranges.columns);
             try main.appendSlice(scratch, try owner.hashes.main());
             try main.appendSlice(scratch, extension_main.columns);
-            const slots = try external.descriptorsFromStatement(a, &owner.statement,
-                prepared.logs[0], prepared.logs[1], frame);
+            const slots = try external.descriptorsFromStatement(a, &owner.statement, prepared.logs[0], prepared.logs[1], frame);
             errdefer a.free(slots);
             if (slots.len == 0) return error.NoExternalCallerAccesses;
             const traces = try a.alloc(external.Trace, slots.len);
@@ -93,18 +93,23 @@ pub fn ForBackend(comptime Backend: type) type {
                 return error.ExternalCallerCensusMismatch;
             var counter = try counter_mod.Counter.init(a, .range_check_8_8);
             errdefer counter.deinit(a);
-            var first = try Api.commitFirstRound(a, fixed.items, main.items, inputs, slots,
-                &counter, instance_index, prepared.id, config);
+            var first = try Api.commitFirstRound(a, fixed.items, main.items, inputs, slots, &counter, instance_index, prepared.id, config);
             errdefer first.deinit(a);
             if (!std.meta.eql(first.roots[0..2].*, opcode.native_roots)) return error.ExternalNativeRootMismatch;
-            return .{ .allocator = a, .arena = arena, .opcode = opcode, .extension_main = extension_main,
-                .slots = slots, .traces = traces, .inputs = inputs, .counter = counter,
-                .first = first, .instance_index = instance_index, .native_key_id = prepared.id };
+            return .{ .allocator = a, .arena = arena, .opcode = opcode, .extension_main = extension_main, .slots = slots, .traces = traces, .inputs = inputs, .counter = counter, .first = first, .instance_index = instance_index, .native_key_id = prepared.id };
         }
-        pub fn nativeRoots(self: *const Self) [2]suite.Hasher.Hash { return self.opcode.native_roots; }
-        pub fn opcodeWitnessRoot(self: *const Self) suite.Hasher.Hash { return self.opcode.witnessRoot(); }
-        pub fn externalWitnessRoot(self: *const Self) suite.Hasher.Hash { return self.first.roots[2]; }
-        pub fn opcodeEventCount(self: *const Self) u64 { return self.opcode.event_count; }
+        pub fn nativeRoots(self: *const Self) [2]suite.Hasher.Hash {
+            return self.opcode.native_roots;
+        }
+        pub fn opcodeWitnessRoot(self: *const Self) suite.Hasher.Hash {
+            return self.opcode.witnessRoot();
+        }
+        pub fn externalWitnessRoot(self: *const Self) suite.Hasher.Hash {
+            return self.first.roots[2];
+        }
+        pub fn opcodeEventCount(self: *const Self) u64 {
+            return self.opcode.event_count;
+        }
         pub fn externalEventCount(self: *const Self) !u64 {
             var total: u64 = 0;
             for (self.traces) |*trace| {
@@ -112,21 +117,29 @@ pub fn ForBackend(comptime Backend: type) type {
             }
             return total;
         }
-        pub fn opcodeCounter(self: *const Self) *const counter_mod.Counter { return &self.opcode.counter; }
-        pub fn externalCounter(self: *const Self) *const counter_mod.Counter { return &self.counter; }
+        pub fn opcodeCounter(self: *const Self) *const counter_mod.Counter {
+            return &self.opcode.counter;
+        }
+        pub fn externalCounter(self: *const Self) *const counter_mod.Counter {
+            return &self.counter;
+        }
         pub fn deinit(self: *Self) void {
             const a = self.allocator;
-            self.first.deinit(a); self.counter.deinit(a);
+            self.first.deinit(a);
+            self.counter.deinit(a);
             for (self.traces) |*trace| trace.deinit();
-            a.free(self.inputs); a.free(self.traces); a.free(self.slots);
-            self.extension_main.deinit(a); self.arena.deinit(); self.opcode.deinit(); self.* = undefined;
+            a.free(self.inputs);
+            a.free(self.traces);
+            a.free(self.slots);
+            self.extension_main.deinit(a);
+            self.arena.deinit();
+            self.opcode.deinit();
+            self.* = undefined;
         }
-        pub fn proveAndSerialize(self: *Self, owner: *Profile.Witness, prepared: *Prepared,
-            sealed: seal_mod.SourceSeal, pool: *engine.work_pool.WorkPool) !Serialized {
+        pub fn proveAndSerialize(self: *Self, owner: *Profile.Witness, prepared: *Prepared, sealed: seal_mod.SourceSeal, pool: *engine.work_pool.WorkPool) !Serialized {
             if (!sealed.extension_rosters_bound or !std.meta.eql(prepared.id, self.native_key_id))
                 return error.UnboundExternalFirstRound;
-            var proof = try Api.prove(self.allocator, &self.first, self.inputs, self.slots, sealed,
-                self.instance_index, self.native_key_id, self.nativeRoots(), self.externalWitnessRoot());
+            var proof = try Api.prove(self.allocator, &self.first, self.inputs, self.slots, sealed, self.instance_index, self.native_key_id, self.nativeRoots(), self.externalWitnessRoot());
             defer proof.deinit(self.allocator);
             var writer = std.Io.Writer.Allocating.init(self.allocator);
             defer writer.deinit();

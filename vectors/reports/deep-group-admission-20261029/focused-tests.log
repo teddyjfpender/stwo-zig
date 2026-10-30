@@ -1,0 +1,68 @@
+1/67 pcs_quotient_ops_test_root.test_0...OK
+2/67 pcs.quotient_ops.test.prover pcs bounded quotient provider releases partial state on allocation failure...OK
+3/67 pcs.quotient_ops.test.prover pcs quotient ops: compute fri quotients matches direct fri answers for legacy point-sample fixtures...OK
+4/67 pcs.quotient_ops.test.prover pcs quotient ops: strategy switches to streaming for medium-wide lifted workloads...OK
+5/67 pcs.quotient_ops.test.prover pcs quotient ops: forced materialized and streaming strategies match with sparse active columns...OK
+6/67 pcs.quotient_ops.test.prover pcs quotient ops: rejects invalid column length...OK
+7/67 pcs.quotient_ops.test.prover pcs quotient ops: rejects column log size above lifting...OK
+8/67 pcs.quotient_ops.test.prover pcs quotient ops: rejects shape mismatch...OK
+9/67 pcs.quotient_ops.test.prover pcs quotient ops: lazy provider matches materialized output...OK
+10/67 pcs.quotient_ops.test.wide indexed bounded quotient survives temporary header teardown and matches combined oracle...OK
+11/67 pcs.quotient_column_geometry.test.quotient column geometry preserves pair-aligned lifting order...OK
+12/67 pcs.quotient_column_geometry.test.quotient column geometry rejects invalid lengths and positions...OK
+13/67 pcs.quotient_column_geometry.test.quotient column tree geometry retains tree and column order...OK
+14/67 pcs.quotients.planning.test.combined contribution vector kernels preserve scalar tails...OK
+15/67 pcs.quotients.planning.test.compact contribution plan groups lifted geometry and fails back on budget...OK
+16/67 pcs.quotients.planning.test.compact admission keeps high-reuse groups and partitions every contribution...OK
+17/67 pcs.quotients.planning.test.wide compact indexed roster survives the previous one MiB metadata cliff...OK
+18/67 pcs.quotient_row_executor.test.quotient row scratch rejects invalid, overflowing, and over-budget shapes...OK
+19/67 pcs.quotient_row_executor.test.quotient row inverses match scalar rows across batch counts and domains...OK
+20/67 pcs.quotient_row_executor.test.quotient row scratch reports a zero denominator...OK
+21/67 pcs.quotient_row_executor.test.quotient row scratch policy honors cost boundary and memory fallback...OK
+22/67 pcs.quotient_row_executor.test.quotient row worker partitions cover each domain exactly once...OK
+23/67 pcs.quotient_row_executor.test.quotient row workers propagate denominator failures...OK
+24/67 pcs.quotient_tile_executor.test.quotient tile scratch is bounded and rejects overflowing geometry...OK
+25/67 pcs.quotient_tile_executor.test.quotient tile input policy selects only the measured batched domain...OK
+26/67 pcs.quotient_tile_executor.test.lifted run accumulation matches scalar lifting across boundaries...OK
+27/67 pcs.quotient_tile_executor.test.packed finalize matches scalar finalizeRowQuotients for all batch counts...OK
+28/67 pcs.quotient_work_profile.test.CM31 batch inverse tally follows selected AArch64 widths...OK
+29/67 pcs.quotient_work_profile.test.bit-reversed walk tally matches the documented full-walk law...OK
+30/67 poly.twiddles.test.twiddle tree: stores root coset and twiddles...OK
+31/67 poly.twiddles.test.twiddle tree: precompute m31 twiddles and inverses...OK
+32/67 poly.twiddles.test.twiddle tree: precompute m31 uses chunked inverse path for large domains...OK
+33/67 poly.twiddles.test.twiddle subtree borrows the exact freshly computed tower...OK
+34/67 poly.circle.poly.test.prover poly circle poly: generic type preserves host representation...OK
+35/67 poly.circle.poly.test.prover poly circle poly: eval at point for constant polynomial...OK
+36/67 poly.circle.poly.test.prover poly circle poly: split-at-mid identity...OK
+37/67 poly.circle.poly.test.prover poly circle poly: eval at points folded batch matches scalar oracle...OK
+38/67 poly.circle.poly.test.prover poly circle poly: precomputed folded factors match scalar oracle...OK
+39/67 poly.circle.poly.test.prover poly circle poly: batched point evaluation matches scalar helper...OK
+40/67 poly.circle.poly.test.prover poly circle poly: evaluate on domain returns base values...OK
+41/67 poly.circle.poly.test.prover poly circle poly: interpolation roundtrip...OK
+42/67 poly.circle.poly.test.prover poly circle poly: evaluate with twiddles matches evaluate...OK
+43/67 poly.circle.poly.test.prover poly circle poly: interpolate with twiddles matches interpolate...OK
+44/67 poly.circle.poly.test.circle poly: row FFT waves match serial interpolation and extension...OK
+45/67 pcs.quotient_tile_sink.test.quotient tile validates coordinate shape...OK
+46/67 poly.circle.fft_kernels.test.circle FFT layer kernels match scalar butterfly laws across lane regimes...OK
+47/67 poly.circle.fft_kernels.test.packed radix-8 pass matches three independent stages...OK
+48/67 poly.circle.fft_kernels.test.circle FFT geometry rejects out of range and overflow before SIMD access...OK
+49/67 poly.circle.fft_kernels.test.circle FFT pair kernels match scalar butterfly laws...OK
+50/67 pcs.quotient_scalar_executor.test.quad finalize matches scalar finalizeRowQuotients for all batch counts...OK
+51/67 pcs.quotient_domain_walk.test.bit-reversed walk matches direct domain.at over full domains...OK
+52/67 pcs.quotient_domain_walk.test.bit-reversed walk matches direct domain.at from arbitrary starts...OK
+53/67 pcs.quotient_compact_groups.test.compact grouped lifting matches scalar member reduction with dot tail...OK
+54/67 poly.circle.point_evaluation.test.point evaluation: packed high-block subset basis matches scalar products...OK
+55/67 poly.circle.point_evaluation.test.point evaluation: subset basis evaluation crosses packed high-block boundary...OK
+56/67 poly.circle.point_evaluation.test.circle point evaluation matches the monomial reference...OK
+57/67 poly.circle.point_evaluation.test.circle point evaluation iterative reduction matches recursive oracle...OK
+58/67 poly.circle.point_evaluation.test.point evaluation: singleton subset dot products retain coordinate edges and ragged tails...OK
+59/67 poly.circle.evaluation.test.prover poly circle evaluation: generic type preserves host representation...OK
+60/67 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates constant column...OK
+61/67 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates x-coordinate column...OK
+62/67 poly.circle.evaluation.test.prover poly circle evaluation: rejects point on domain...OK
+63/67 poly.circle.evaluation.test.prover poly circle evaluation: context fast path matches reference weights...OK
+64/67 poly.circle.evaluation.test.prover poly circle evaluation: context fast eval matches reference eval...OK
+65/67 poly.circle.evaluation.test.prover poly circle evaluation: context rejects log-size mismatch...OK
+66/67 poly.circle.evaluation.test.prover poly circle evaluation: base-field context equals indexed extension-field reference...OK
+67/67 poly.circle.evaluation.test.prover poly circle evaluation: canonical derivative parity at production domains...OK
+All 67 tests passed.

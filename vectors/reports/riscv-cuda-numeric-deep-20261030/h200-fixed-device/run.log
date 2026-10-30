@@ -1,0 +1,3 @@
+1/1 riscv_cuda_numeric_device_test_root.test.actual NVIDIA CUDA DEEP output equals independent CPU quotient oracle...CUDA_DEEP_RECEIPT {"calls":1,"source_columns":3,"terms":7,"groups":5,"device_peak_bytes":4664,"host_metadata_peak_bytes":984,"h2d_bytes":952,"d2h_bytes":2048,"kernel_launches":2,"planning_ns":115781,"source_materialization_cpu_ns":48778,"upload_ns":6831085,"kernel_ns":330295,"download_ns":40807,"total_ns":7378753}
+OK
+All 1 tests passed.

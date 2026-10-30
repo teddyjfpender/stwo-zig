@@ -1,0 +1,63 @@
+{
+  "schema": "stwo-v7-source-patch-v1",
+  "base_archive_sha256": "3d87bd0147fdd9bb30e240bafa1fa49bb211ccb51832645780ad21f2392e62d1",
+  "base_source_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "source_sha256": "ef0e1ff67c8d646001e145e378b86921b4abaa5dc207847b86ef3fe41a149775",
+  "changes": [
+    {
+      "path": "scripts/tests/test_v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 6823,
+        "sha256": "3b8c0760ea089d4308256d1a5b05b3bab033dff420d341321f150d22a86c4ff5"
+      },
+      "after": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 6845,
+        "sha256": "546d4f26198f5cc66b78dba9b58882ebb3b290c395eba45a25560c53814a79cd"
+      }
+    },
+    {
+      "path": "scripts/v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 16487,
+        "sha256": "c6ee2d573c840764fd04bb5790bc5224dc760b2e6af6667834fdc8ca8a43b070"
+      },
+      "after": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 17143,
+        "sha256": "df8aac8d9d4714e8fe3291286405ebe3514ea7fa51bac63c3ab658ba2b165a76"
+      }
+    },
+    {
+      "path": "src/core/fields/m31.zig",
+      "before": {
+        "path": "src/core/fields/m31.zig",
+        "bytes": 26476,
+        "sha256": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73"
+      },
+      "after": {
+        "path": "src/core/fields/m31.zig",
+        "bytes": 30520,
+        "sha256": "6b2be2ed6b0cf9da5787495734141837d815c7d22eee95a18196830a135324fc"
+      }
+    },
+    {
+      "path": "src/riscv_cuda_window_benchmark.zig",
+      "before": {
+        "path": "src/riscv_cuda_window_benchmark.zig",
+        "bytes": 4870,
+        "sha256": "ada185d7c651587d611068e61d80f6593d2096faf7dd1dd497e9de4b6e7516e7"
+      },
+      "after": {
+        "path": "src/riscv_cuda_window_benchmark.zig",
+        "bytes": 5674,
+        "sha256": "026da0d120b435f501e4a735a64d87cd308b9a375616a5d3de8f77b6b4953ba0"
+      }
+    }
+  ],
+  "cuda_native_inputs_unchanged": true,
+  "cuda_archive_sha256": "b7a38a6cc73fe5aeb61945fdfaddac2f4b06a7cfc9349e7277981a05fe726128",
+  "scope": "x86 scalar M31 correctness fix and same-executable explicit CPU reference; no CUDA kernels or ABI changes"
+}

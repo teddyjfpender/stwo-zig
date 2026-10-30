@@ -1,0 +1,12 @@
+{
+  "schema": "stwo-b8-verified-original-window-series-v1",
+  "source": "each observation/report.json; exact security q70/PoW26",
+  "whole_s": "producer run elapsed, includes fresh original verification; excludes initial loading and manifest publication",
+  "whole_including_loading_and_publication_s": "entire measured request including loading and publication",
+  "local_original_s": "sum of local job durations; overlaps for parallel_local_proofs>1; NOT an elapsed partition",
+  "local_core_s": "sum of core durations within local originals; overlaps for parallel jobs",
+  "charged_peak_bytes": "SharedHostBudget high-water mark; not whole-process RSS",
+  "recursive_root": false,
+  "complete_ethereum_block": false,
+  "skipped_prefix_proved": false
+}

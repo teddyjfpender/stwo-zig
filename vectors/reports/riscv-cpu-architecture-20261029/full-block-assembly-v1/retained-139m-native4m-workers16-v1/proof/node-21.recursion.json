@@ -1,0 +1,13 @@
+{
+  "source_workers": 1,
+  "global_g_repartition": true,
+  "fixed_compile_ns": 2235215834,
+  "fixed_commit_ns": 2546460833,
+  "witness_ns": 9388171125,
+  "plan_ns": 2652258417,
+  "proof_ns": 20011909792,
+  "encode_ns": 6605916,
+  "compiler_release_ns": 15711625,
+  "compiler_released_bytes": 2049901236,
+  "retained_rows_bytes": 4305437972
+}

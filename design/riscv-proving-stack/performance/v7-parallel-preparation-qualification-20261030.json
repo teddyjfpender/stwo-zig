@@ -1,0 +1,116 @@
+{
+  "schema": "stwo-v7-parallel-preparation-v1",
+  "problem_match": {
+    "observed": "Real native32K recursive root spent8.26s cold key and11.39s capture/witness/join; cold families already parallel, live original capture and witness construction serial.",
+    "change": "Bounded independent capture/preparation jobs, immutable ordinal result slots; namespace/frame joining remains canonical and serial. Native compiler reuse remains a separate explicit option.",
+    "authority": "Every job freshly verifies original proof under independently selected profile. No cached success receipts or new trusted inputs.",
+    "memory": "Parallel preparation charged to one synchronized max_join_bytes budget; all jobs joined on errors; singleton transferred rows retain their original family/parent budgets.",
+    "tradeoff": "Simultaneous live compiler/evaluation scratch increases peak memory; default parallelism remains1."
+  },
+  "tests": {
+    "result": "PASS13",
+    "parallelisms": [
+      1,
+      2,
+      4
+    ],
+    "fixture": "Actual2native+activeSHA/Keccakcaller+ROM+compactlookup+jointmemory original proofs",
+    "equality": [
+      "all fixed rows",
+      "all main cells",
+      "public frames",
+      "wire schedule",
+      "context and independently derived cold key",
+      "entire encoded parent proof"
+    ],
+    "fresh_complete_receiver": true,
+    "malformed_original_rejected_and_budget_freed": true,
+    "scheduler_order_error_and_nested_fallback": true,
+    "allocation_failure_cleanup": true
+  },
+  "runtime": {
+    "seconds": 133.47,
+    "rss_bytes": 10145529856,
+    "timing_qualification": "correctness only; overlapped local immutable root codegen"
+  },
+  "binary_sha256": "83e241a5bd12c94537617a62307f40ead8156cf16b8785da59858f1090a6f12c",
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_v1.zig",
+      "sha256": "956788d22546f918cda88840cb7c307984059151fcf41b2260fe57a87329512e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+      "sha256": "ddf8415caddea642b61858b58c31fcf93a03948088bfe4fcdc424f0b1ab89880"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+      "sha256": "6a92c916601128f64e48e643d36203ec45fe399577d72422bfeeeaa71fe93395"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_test_v1.zig",
+      "sha256": "41edfec40d3f1bcb83f3464396a917fcfea36854384512ecb9b0090fc5abe8be"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_parallel_preparation_test_v1.zig",
+      "sha256": "c12e38358acb594ed73496a6424d2dc58772f8abb10080c3dfa8f76795e69e4e"
+    }
+  ],
+  "actual_real_window_ab": {
+    "scope": "Actual retained native32K nonterminal window skip1; no full-block/prefix claim.",
+    "source_sha256": "a343d567f786e106844bcaebb96a2e36bb42effd57e47df84202c37e00c0f61d",
+    "binary_sha256": "bf9047a22056f9f75c2f50c787f495614a433f90056818871b5d2e43fb6388cc",
+    "security": {
+      "queries": 70,
+      "pow_bits": 26
+    },
+    "options": {
+      "workers": 12,
+      "cut": 32768,
+      "q2": true,
+      "sparse_initialization": true,
+      "resident_memory": true,
+      "native_cache_mib": 2048,
+      "deep_group_mib": 4,
+      "cold_parallelism": 4
+    },
+    "rows": [
+      {
+        "case": "baseline",
+        "whole_seconds": 68.287358625,
+        "native_compile_seconds": 1.4041e-05,
+        "cold_key_seconds": 8.389337917,
+        "capture_witness_join_seconds": 11.65695525,
+        "parent_proof_seconds": 37.423400334,
+        "recursive_whole_seconds": 61.784708417,
+        "proof_bytes": 1023252,
+        "proof_sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+      },
+      {
+        "case": "native-capsule",
+        "whole_seconds": 70.698243417,
+        "native_compile_seconds": 0.800678,
+        "cold_key_seconds": 8.6298265,
+        "capture_witness_join_seconds": 11.734628459,
+        "parent_proof_seconds": 38.457395542,
+        "recursive_whole_seconds": 64.002648084,
+        "proof_bytes": 1023252,
+        "proof_sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+      },
+      {
+        "case": "native-capsule-prep4",
+        "whole_seconds": 66.936006083,
+        "native_compile_seconds": 0.799598417,
+        "cold_key_seconds": 8.709203833,
+        "capture_witness_join_seconds": 7.43769575,
+        "parent_proof_seconds": 38.791197291,
+        "recursive_whole_seconds": 60.187070334,
+        "proof_bytes": 1023252,
+        "proof_sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+      }
+    ],
+    "comparison_scope": "Single sequential same-binary controls; a brief unrelated semantic check was reported during campaign, so diagnostic not statistically ranked. Every root freshly verified and byte-identical to historical canonical root.",
+    "finding": "Parallel preparation reduced capture/witness/join11.735\u21927.438s compared with same capsule setting. Native capsule alone did not improve latency; remains default-off. Parent proving still~38s.",
+    "next_hotspot": "Baseline family inclusive capture+prepare: ROM3.89s,native1.70s,windowmemory1.48s,lookup1.27s; joining~3.32s. Need split capture vs construction to isolate repeated fixed-root/profile work."
+  }
+}

@@ -1,0 +1,21 @@
+thread 2505652 panic: unrecognized command line argument
+Unable to dump stack trace: debug info stripped
+time: command terminated abnormally
+        0.00 real         0.00 user         0.00 sys
+             1720320  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 288  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   6  involuntary context switches
+            15745662  instructions retired
+             6711408  cycles elapsed
+             1212728  peak memory footprint

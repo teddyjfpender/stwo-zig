@@ -1,0 +1,41 @@
+1/12 block_v7_real_window_root_test_root_v2.test_0...OK
+2/12 recursion.block_v7_real_window_root_test_v2.test.v7 real nonterminal window reaches one detached complete recursive root...BLAKE3_NATIVE_QUERY_FUSION groups=11550 removed_scalars=46200 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=43378 fma=39378 arithmetic_rows=158922 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=11410 removed_scalars=45640 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=43449 fma=38748 arithmetic_rows=157819 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=280 removed_scalars=1120 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4007 fma=62941 arithmetic_rows=159277 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=2170 removed_scalars=8680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5426 fma=46379 arithmetic_rows=123858 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=2100 removed_scalars=8400 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=13742 fma=64560 arithmetic_rows=174080 direct_columns=true
+FAIL (MixedDirectResourceLimit)
+3/12 runner.decode.test_0...OK
+4/12 runner.mod.test_0...OK
+5/12 prover.block_execution_external_trace_v2.test_0...OK
+6/12 air.memory_commitment.poseidon2_air.test_0...OK
+7/12 air.semantic_eval.test_0...OK
+8/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+9/12 air.lookups.tables.mod.test_0...OK
+10/12 prover.block_v5_committed_trace_column_v1.test_0...OK
+11/12 air.lookups.tables.source_ingest.test_0...OK
+12/12 diagnostics.mod.test_0...OK
+11 passed; 0 skipped; 1 failed.
+       89.08 real       115.15 user         2.46 sys
+         10866835456  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2676348  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  22  voluntary context switches
+               30532  involuntary context switches
+       2709767153751  instructions retired
+        518977160018  cycles elapsed
+         10865814352  peak memory footprint

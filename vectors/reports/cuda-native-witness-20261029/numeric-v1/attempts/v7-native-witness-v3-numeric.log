@@ -1,0 +1,10 @@
+{"family":0,"active_rows":1024,"padded_rows":2048,"columns":35,"cpu_oracle_ns":139417,"gpu_kernel_mean_ns":4111,"repeats":32,"field_words":71680}
+{"family":1,"active_rows":1024,"padded_rows":2048,"columns":35,"cpu_oracle_ns":92083,"gpu_kernel_mean_ns":3851,"repeats":32,"field_words":71680}
+{"family":2,"active_rows":3,"padded_rows":4,"columns":60,"cpu_oracle_ns":2458,"gpu_kernel_mean_ns":4300,"repeats":32,"field_words":240}
+{"family":3,"active_rows":1024,"padded_rows":2048,"columns":51,"cpu_oracle_ns":148166,"gpu_kernel_mean_ns":4164,"repeats":32,"field_words":104448}
+{"family":4,"active_rows":6,"padded_rows":8,"columns":44,"cpu_oracle_ns":1625,"gpu_kernel_mean_ns":4235,"repeats":32,"field_words":352}
+{"family":5,"active_rows":2,"padded_rows":4,"columns":37,"cpu_oracle_ns":1083,"gpu_kernel_mean_ns":3965,"repeats":32,"field_words":148}
+{"family":6,"active_rows":1024,"padded_rows":2048,"columns":30,"cpu_oracle_ns":73000,"gpu_kernel_mean_ns":5207,"repeats":32,"field_words":61440}
+{"family":7,"active_rows":1024,"padded_rows":2048,"columns":37,"cpu_oracle_ns":108209,"gpu_kernel_mean_ns":3789,"repeats":32,"field_words":75776}
+{"family":8,"active_rows":157,"padded_rows":256,"columns":18,"cpu_oracle_ns":6875,"gpu_kernel_mean_ns":3662,"repeats":32,"field_words":4608}
+NATIVE_WITNESS_GATE_FAILED malformed retirement accepted

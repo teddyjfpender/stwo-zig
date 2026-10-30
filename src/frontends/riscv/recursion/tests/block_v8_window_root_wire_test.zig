@@ -1,0 +1,30 @@
+const std = @import("std");
+const W = @import("../block_v8_window_root_wire_v1.zig");
+test "thin root metadata roundtrip excludes proof bodies and rejects schema framing counts and duplicate nodes" {
+    const a = std.testing.allocator;
+    const leaf = W.NativeLeaf{ .main_root = @splat(1), .physical_claims = &.{ 1, 2, 3 }, .local_metadata = &.{&.{ 4, 5, 6 }}, .global_roots = @splat(@splat(2)), .cohort_policy = .{ .cohort_count = 1, .max_cohort_cycles = 4 }, .selected_addresses = &.{0x100100} };
+    const bytes = try W.encodeNativeLeaf(a, leaf);
+    defer a.free(bytes);
+    var decoded = try W.decodeNativeLeafOwned(a, bytes, .{});
+    defer decoded.deinit();
+    try std.testing.expectEqualDeep(leaf, decoded.value);
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const leaky = try W.decodeNativeLeafLeaky(arena.allocator(), bytes, .{});
+    try std.testing.expectEqualDeep(leaf, leaky);
+    const corrupt = try a.dupe(u8, bytes);
+    defer a.free(corrupt);
+    corrupt[9] ^= 1;
+    try std.testing.expectError(error.InvalidB8RootMetadata, W.decodeNativeLeaf(a, corrupt));
+    try std.testing.expectError(error.InvalidB8RootMetadata, W.decodeNativeLeaf(a, bytes[0..40]));
+    const node = W.NodeRecord{ .kind = 2, .index = 2, .children = &.{ 0, 1 }, .main_root = @splat(3) };
+    const node_bytes = try W.encodeNode(a, node);
+    defer a.free(node_bytes);
+    var owned_node = try W.decodeNodeOwned(a, node_bytes, .{});
+    defer owned_node.deinit();
+    try std.testing.expectEqualDeep(node, owned_node.value);
+    try std.testing.expectError(error.InvalidB8RootNode, W.encodeNode(a, .{ .kind = 2, .index = 2, .children = &.{ 0, 0 }, .main_root = @splat(3) }));
+    try std.testing.expectError(error.InvalidB8RootNode, W.encodeNode(a, .{ .kind = 2, .index = 2, .children = &.{ 0, 2 }, .main_root = @splat(3) }));
+    const mixed = W.MixedLeaf{ .main_root = @splat(1), .input = .{ .root = &.{9}, .physical_claims = &.{}, .mixed_metadata = &.{}, .global_roots = @splat(@splat(0)), .cohort_policy = .{ .cohort_count = 1, .max_cohort_cycles = 4 }, .selected_addresses = &.{} } };
+    try std.testing.expectError(error.ChildProofInB8RootMetadata, W.encodeMixedLeaf(a, mixed));
+}

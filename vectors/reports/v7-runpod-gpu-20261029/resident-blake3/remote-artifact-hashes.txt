@@ -1,0 +1,21 @@
+91ee52d4934294c144a3892a2f09a4bdcd71b3c96f3da0219de3576da6c15ab0  /workspace/stwo-v7-evidence/resident-blake3-final/blake3.o
+0c74237844f0916b44ce7a4c80c5e32d62ecb7ee44cb1eec88c805928d96024e  /workspace/stwo-v7-evidence/resident-blake3-final/prover
+a6b789f3bcaf891d8af89a48eded8f8712ac2cd9d8846073ce6674e32cf3f835  /workspace/stwo-v7-evidence/cuda-framework-sm90/libstwo_cuda_kernels.a
+be9f3182e0544f267a1fc1faea70ec0b09d8eebf1514388c78e8613a5b77923c  /workspace/stwo-v7-resident-b3/src/backends/cuda/native/commitment/blake3.cu
+c6ba18dc2d1ff436a30ffffccc3fb6b425fea86c1ba1da286d701a3d45f06cb9  /workspace/stwo-v7-resident-b3/src/backends/cuda/native/commitment/blake3_protocol.cuh
+6e3877c50588fcc79853374583a7b9f425190bf8a04679a8efe1a5b1e71ef5d3  /workspace/stwo-v7-resident-b3/src/backends/cuda/abi/stages/blake3.zig
+7fcb95a78162c4dbb8cb785fa394b4e411db47ea7f3fde76761c5aff497d066a  /workspace/stwo-v7-resident-b3/src/integrations/riscv_cuda/tests/resident_blake3_test_v1.zig
+0000000000001430 T stwo_blake3_channel_on
+0000000000001f70 T stwo_blake3_channel_verdict_on
+0000000000000590 T stwo_blake3_contiguous_leaf_on
+0000000000001200 T stwo_blake3_framed_words_on
+0000000000000f40 T stwo_blake3_fri_leaf_on
+0000000000001ca0 T stwo_blake3_grind_on
+0000000000000d40 T stwo_blake3_layer_on
+0000000000000570 T stwo_blake3_mixed_leaf_on
+0000000000000190 T stwo_blake3_mixed_seeded_on
+0000000000001760 T stwo_blake3_pow_range_on
+00000000000008c0 T stwo_blake3_progressive_absorb_lifted_on
+0000000000000b60 T stwo_blake3_progressive_finalize_on
+00000000000006e0 T stwo_blake3_progressive_init_on
+00000000000019e0 T stwo_blake3_query_on

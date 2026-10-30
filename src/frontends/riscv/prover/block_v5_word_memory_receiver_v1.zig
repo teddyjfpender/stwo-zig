@@ -124,10 +124,7 @@ fn verifyEmpty(a: std.mem.Allocator, pins: Pins, public_input: []const u8, files
     if (fresh.initial.first_touch_count != 0 or fresh.initial.register_touches != 0 or fresh.endpoints.count != 0 or
         !fresh.initial_sum.isZero() or !fresh.endpoint_sum.isZero() or
         !std.meta.eql(fresh.endpoints.final_root, pins.source.initial.initial_rw_root)) return error.UntrustedV5EmptyRwSources;
-    return .{ .transition_sum = Q.zero(), .register_endpoints_verified = false, .register_endpoint_count = 0,
-        .event_count = 0, .first_touch_count = 0, .endpoint_count = 0, .range_count = 0,
-        .memory_instances = 0, .range_shards = 0, .initial_rw_root = pins.source.initial.initial_rw_root,
-        .final_rw_root = fresh.endpoints.final_root, .sealed_digest = sealed.digest, .memory_plan_digest = digest };
+    return .{ .transition_sum = Q.zero(), .register_endpoints_verified = false, .register_endpoint_count = 0, .event_count = 0, .first_touch_count = 0, .endpoint_count = 0, .range_count = 0, .memory_instances = 0, .range_shards = 0, .initial_rw_root = pins.source.initial.initial_rw_root, .final_rw_root = fresh.endpoints.final_root, .sealed_digest = sealed.digest, .memory_plan_digest = digest };
 }
 pub fn planDigest(a: std.mem.Allocator, claims: []const memory.Claim, roots: []const [2]Digest, range_roots: []const [2]Digest, plan: *const range.Plan) !Digest {
     if (claims.len != roots.len or plan.shards.len != range_roots.len) return error.InvalidV5WordPlan;

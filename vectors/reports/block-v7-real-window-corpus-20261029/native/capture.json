@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-v7-explicit-window-benchmark-input-v1",
+  "scope": "real RV32 window replay; incoming state is explicit benchmark input; no prefix, original-STARK, recursive or Ethereum-block proof",
+  "proof_verified": false,
+  "replay_verified": true,
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 32768
+  },
+  "stats": {
+    "skipped_cycles": 1,
+    "cycles": 32768,
+    "core_rows": 32768,
+    "keccak_calls": 0,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "incoming_words": 1508894,
+    "outgoing_words": 1510166,
+    "prefix_ns": 33090375,
+    "window_ns": 38118667
+  },
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "57fd5a0db77fe74ec52bd970335ad1b55e5ee85be1c8f85eb86f4c177157e6c1",
+  "behavior_sha256": "25dacd2e6897b314157db1719d27d76b807472a498db2d77d2da70e391b9e880",
+  "incoming_file": "incoming.b7win",
+  "outgoing_file": "outgoing.b7win"
+}

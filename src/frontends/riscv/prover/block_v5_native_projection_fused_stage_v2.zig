@@ -18,7 +18,26 @@ pub const Sink = struct {
     /// Success transfers ownership; on error the stage releases its proof.
     put_fused: *const fn (*anyopaque, u32, *Proof.Proof) anyerror!void,
 };
+pub fn RetainedForBackend(comptime Backend: type) type {
+    return struct {
+        source: MemoryStage.Traces,
+        first: Proof.ForBackend(Backend).FirstRound,
+        pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+            self.first.deinit(a);
+            self.source.deinit();
+            self.* = undefined;
+        }
+    };
+}
 pub fn ForBackend(comptime Backend: type) type {
+    return ForLayout(Backend, false);
+}
+/// Explicit B6JP-v3 producer: native semantics and all local relations share
+/// one proof. The caller must use the partitioned execution driver/receiver.
+pub fn ForPartitionedBackend(comptime Backend: type) type {
+    return ForLayout(Backend, true);
+}
+fn ForLayout(comptime Backend: type, comptime partitioned: bool) type {
     return struct {
         const Self = @This();
         const Producer = ProducerModule.ForLightweightBackend(Backend);
@@ -28,6 +47,12 @@ pub fn ForBackend(comptime Backend: type) type {
         limits: MemoryStage.Limits,
         sink: Sink,
         next: u32 = 0,
+        retained_source: ?RetainedSource = null,
+        pub const Retained = RetainedForBackend(Backend);
+        pub const RetainedSource = struct {
+            context: *anyopaque,
+            load: *const fn (*anyopaque, std.mem.Allocator, Producer.WarmExecution) anyerror!Retained,
+        };
         pub fn hooks(self: *Self) Producer.Hooks {
             return .{ .context = self, .on_first_round = onFirstRound, .fused_program_requests = true };
         }
@@ -48,31 +73,49 @@ pub fn ForBackend(comptime Backend: type) type {
                 return error.UntrustedV5WarmFullFused;
             const pin = Receiver.InstancePin{ .shape = &owner.statement, .admission = warm.replay.admission, .template = warm.first.template, .template_id = warm.first.template_id, .profile = warm.replay.profile };
             const memory = Receiver.MemoryPin{ .frame = expected.frame, .expected_events = expected.ordinary_events, .witness_root = expected.witness_root };
-            const roots = try Receiver.admit(a, warm.index, pin, memory, warm.sealed, warm.pins, warm.entries, warm.catalog);
+            const roots = if (partitioned) blk: {
+                var layout = try @import("block_v6_relation_layout_v1.zig").Layout.init(a, &owner.statement, owner.external_retirements, warm.sealed.register_custody_mode);
+                defer layout.deinit();
+                const identity = try @import("block_v6_partitioned_native_proof_v1.zig").admitIdentity(a, warm.index, pin, memory, warm.sealed, warm.pins, warm.entries, warm.catalog, &layout);
+                break :blk identity.first_roots;
+            } else try Receiver.admit(a, warm.index, pin, memory, warm.sealed, warm.pins, warm.entries, warm.catalog);
             if (!std.meta.eql(roots, warm.first.roots)) return error.UntrustedV5WarmFullFused;
             try Native.admitEntry(warm.index, roots, warm.first.instance_id, warm.sealed, warm.entries);
-            var source = try MemoryStage.Traces.init(a, owner, expected.frame, self.limits);
-            defer source.deinit();
+            var retained: ?Retained = if (self.retained_source != null and expected.slots.len != 0)
+                try self.retained_source.?.load(self.retained_source.?.context, a, warm)
+            else
+                null;
+            defer if (retained) |*value| value.deinit(a);
+            var generated: ?MemoryStage.Traces = if (retained == null) try MemoryStage.Traces.init(a, owner, expected.frame, self.limits) else null;
+            defer if (generated) |*value| value.deinit();
+            const source = if (retained) |*value| &value.source else &generated.?;
             if (source.slots.len != expected.slots.len or try source.census() != expected.ordinary_events) return error.V5FullFusedReplayMismatch;
             for (source.slots, expected.slots) |actual, proposed| if (!std.meta.eql(actual, proposed)) return error.V5FullFusedReplayMismatch;
-            const projections = try Source.slotsFromShapeForMode(a, &owner.statement, owner.external_retirements, warm.sealed.register_custody_mode);
+            const projections: []const Source.Slot = if (partitioned) &.{} else try Source.slotsFromShapeForMode(a, &owner.statement, owner.external_retirements, warm.sealed.register_custody_mode);
             defer a.free(projections);
             var counter = try Counter.Counter.init(a, .range_check_8_8);
             defer counter.deinit(a);
-            if (projections.len == 0) {
+            if (!partitioned and projections.len == 0) {
                 if (source.slots.len != 0 or !std.meta.eql(Snapshot.counterSnapshot(&counter), expected.byte_snapshot)) return error.UntrustedV5FullFusedTypedAbsence;
                 // Both exact row schedules are absent. The genuine native
                 // frame still proves; no local proof or synthetic claim exists.
                 self.next += 1;
                 return;
             }
-            var first = if (source.slots.len == 0)
+            var constructed: ?Api.FirstRound = if (retained != null) null else if (source.slots.len == 0)
                 try borrowProjectionFirstRound(a, &warm.first.scheme, expected.witness_root)
             else
                 try MemoryStage.ForBackend(Backend).borrow(a, &warm.first.scheme, source.inputs, source.slots, &counter, warm.index, warm.first.template_id);
-            defer first.deinit(a);
-            if (!std.meta.eql(first.roots[2], expected.witness_root) or !std.meta.eql(Snapshot.counterSnapshot(&counter), expected.byte_snapshot)) return error.V5FullFusedReplayMismatch;
-            var proof = try Api.proveForNativeFirstRound(a, &first, source.inputs, source.slots, projections, warm.sealed, warm.pins, warm.entries, warm.catalog, warm.first, warm.index, expected.frame, expected.witness_root);
+            defer if (constructed) |*value| value.deinit(a);
+            const first = if (retained) |*value| &value.first else &constructed.?;
+            if (!std.meta.eql(first.roots[2], expected.witness_root) or
+                (retained == null and !std.meta.eql(Snapshot.counterSnapshot(&counter), expected.byte_snapshot))) return error.V5FullFusedReplayMismatch;
+            // Retained per-slot snapshots are checked against actual rows by
+            // interaction generation. They never replace global proof closure.
+            var proof = if (partitioned)
+                try @import("block_v6_partitioned_native_proof_v1.zig").ForBackend(Backend).prove(a, warm.first, first, source.inputs, source.slots, memory, warm.sealed, warm.pins, warm.entries, warm.catalog)
+            else
+                try Api.proveForNativeFirstRound(a, first, source.inputs, source.slots, projections, warm.sealed, warm.pins, warm.entries, warm.catalog, warm.first, warm.index, expected.frame, expected.witness_root);
             var owns = true;
             defer if (owns) proof.deinit(a);
             if (!warm.first.owns_scheme or warm.first.scheme.trees.items.len != 2) return error.ConsumedV5WarmFullFused;

@@ -1,0 +1,9 @@
+{
+  "src/integrations/riscv_cuda/resident_parent_wire_resolve_v1.cuh": "54990b524101f7566dadff6270041d329f5ac4194cbbb6c49e72059f5c237502",
+  "src/integrations/riscv_cuda/resident_parent_wire_resolve_plan_v1.zig": "8a047246ab93ab1920640c148938fedd53fce5d5f83ff3e0228b8393037f2d38",
+  "src/integrations/riscv_cuda/resident_parent_wire_registry_v1.zig": "73c6f8e629381b6cf70421ed83c4d7259093d6ccf71a1b0e2eff8807d633d65c",
+  "src/integrations/riscv_cuda/resident_parent_wire_resolve_v1.zig": "002a50990cff420044534e3b2f5d5256c6226f0974bb7b89addcebbd5401fdc2",
+  "src/integrations/riscv_cuda/resident_parent_wire_resolve_numeric_v1.zig": "67b0e76ae3564980ab2873ff2db5956261e44fb173a480f034955c687744fb78",
+  "src/integrations/riscv_cuda/resident_parent_wire_resolve_numeric_runner_v1.cpp": "97b4c313f690d8f50036b8167f19c7ea82d8f7e5926c6b586b0c2d69c719f3b5",
+  "src/riscv_cuda_resident_registry_test_root.zig": "85c27087a06da675e4008b9945733526d981425e2dc1de3afc5bbc95fb84e6ac"
+}

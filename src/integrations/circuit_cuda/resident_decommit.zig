@@ -9,92 +9,104 @@ const decommit = @import("stwo_cairo_cuda_integration").executor.pcs_decommit_to
 const geometry_module = @import("geometry.zig");
 const commit_module = @import("resident_commit.zig");
 
-pub const Plan = struct {
-    topology: decommit.Topology,
+pub const Plan = ForCommitments(4);
 
-    pub fn init(
-        allocator: std.mem.Allocator,
-        geometry: *const geometry_module.Geometry,
-        config: core.pcs.config_v2.PcsConfigV2,
-    ) !Plan {
-        const queries = config.fri_config.n_queries;
-        if (queries == 0 or geometry.fri_layers.len == 0) return error.InvalidCircuitDecommitGeometry;
-        var trees: [4]decommit.GenericTree = undefined;
-        for (geometry.trees, &trees) |tree, *target| target.* = .{
-            .column_logs = tree.column_logs,
-            .lifted_log = tree.lifted_log,
-        };
-        const fri = try allocator.alloc(decommit.GenericFriLayer, geometry.fri_layers.len);
-        defer allocator.free(fri);
-        for (geometry.fri_layers, fri) |layer, *target| target.* = .{
-            .evaluation_log = layer.evaluation_log,
-            .cumulative_fold = layer.cumulative_fold,
-            .fold_step = layer.fold_step,
-            .log_rows_per_leaf = 2,
-        };
-        const capacity = try capacityWords(geometry, queries);
-        return .{ .topology = try decommit.deriveGeneric(
-            allocator,
-            trees,
-            fri,
-            config.fri_config.log_blowup_factor,
-            geometry.fri_input_log,
-            queries,
-            capacity,
-            geometry.identity,
-        ) };
-    }
+pub fn ForCommitments(comptime N: usize) type {
+    if (N != 4 and N != 5) @compileError("resident openings require four or five commitments");
+    return struct {
+        const Self = @This();
+        topology: decommit.Topology,
 
-    pub fn deinit(self: *Plan) void {
-        self.topology.deinit();
-        self.* = undefined;
-    }
-
-    pub fn upload(self: *const Plan, session: anytype, buffers: shared.resident_views.Decommit) !void {
-        try self.topology.uploadColumnLogs(session, buffers);
-    }
-
-    pub fn execute(
-        self: *const Plan,
-        session: anytype,
-        sink: anytype,
-        commits: [4]commit_module.Buffers,
-        fri: shared.resident_views.Fri,
-        buffers: shared.resident_views.Decommit,
-        assembly: common.Words,
-        proof: shared.resident_views.Proof,
-    ) !void {
-        if (assembly.len != self.topology.assembly_capacity_words or
-            proof.decommitment.len != assembly.len)
-            return error.InvalidCircuitDecommitBuffers;
-        var trees: [4]decommit.OpeningTree = undefined;
-        for (commits, self.topology.trace_openings, &trees) |tree, opening, *target| {
-            const last = self.topology.trace_groups[opening.first_group + opening.group_count - 1];
-            if (tree.evaluations.len != last.evaluation_offset_words + last.evaluation_words or
-                tree.merkle_layers.len != @as(usize, opening.tree_log_size) + 1)
-                return error.InvalidCircuitDecommitBuffers;
-            target.* = .{
-                .ordinal = opening.tree_index,
-                .role = opening.role,
-                .column_count = opening.column_count,
-                .evaluations = tree.evaluations,
-                .merkle_hashes = tree.merkle_hashes,
-                .merkle_layers = tree.merkle_layers,
+        pub fn init(
+            allocator: std.mem.Allocator,
+            geometry: anytype,
+            config: anytype,
+        ) !Self {
+            const queries = config.fri_config.n_queries;
+            if (queries == 0 or geometry.fri_layers.len == 0) return error.InvalidCircuitDecommitGeometry;
+            var trees: [N]decommit.GenericTree = undefined;
+            for (geometry.trees, &trees) |tree, *target| target.* = .{
+                .column_logs = tree.column_logs,
+                .lifted_log = tree.lifted_log,
             };
+            const fri = try allocator.alloc(decommit.GenericFriLayer, geometry.fri_layers.len);
+            defer allocator.free(fri);
+            for (geometry.fri_layers, fri) |layer, *target| target.* = .{
+                .evaluation_log = layer.evaluation_log,
+                .cumulative_fold = layer.cumulative_fold,
+                .fold_step = layer.fold_step,
+                .log_rows_per_leaf = layer.evaluation_log - layer.leaf_log,
+            };
+            const capacity = try capacityWords(geometry, queries);
+            const derive = if (N == 4) decommit.deriveGeneric else decommit.deriveNativeFiveTrees;
+            return .{ .topology = try derive(
+                allocator,
+                trees,
+                fri,
+                config.fri_config.log_blowup_factor,
+                geometry.fri_input_log,
+                queries,
+                capacity,
+                geometry.identity,
+            ) };
         }
-        try session.zeroResidentSlice(u32, .decommit, assembly);
-        try sink.drawQueries(buffers.raw_queries, self.topology.query_log_size);
-        try decommit.normalizeWith(cuda.runtime.stages.decommit.Native, session, self.topology, buffers, assembly);
-        try decommit.openAllViewsWith(cuda.runtime.stages.decommit.Native, session, self.topology, &trees, fri, buffers, assembly);
-        try shared.proof_assembly.captureDecommitment(session, .{ .proof = proof }, assembly);
-    }
-};
+
+        pub fn deinit(self: *Self) void {
+            self.topology.deinit();
+            self.* = undefined;
+        }
+
+        pub fn upload(self: *const Self, session: anytype, buffers: shared.resident_views.Decommit) !void {
+            try self.topology.uploadColumnLogs(session, buffers);
+        }
+
+        pub fn uploadForTrees(self: *const Self, session: anytype, column_logs: []const common.Words) !void {
+            try self.topology.uploadColumnLogsForTrees(session, column_logs);
+        }
+
+        pub fn execute(
+            self: *const Self,
+            session: anytype,
+            sink: anytype,
+            commits: [N]commit_module.Buffers,
+            fri: shared.resident_views.Fri,
+            buffers: shared.resident_views.Decommit,
+            assembly: common.Words,
+            proof: shared.resident_views.Proof,
+        ) !void {
+            if (assembly.len != self.topology.assembly_capacity_words or
+                proof.decommitment.len != assembly.len)
+                return error.InvalidCircuitDecommitBuffers;
+            var trees: [N]decommit.OpeningTree = undefined;
+            for (commits, self.topology.trace_openings, &trees) |tree, opening, *target| {
+                const last = self.topology.trace_groups[opening.first_group + opening.group_count - 1];
+                if (tree.evaluations.len != last.evaluation_offset_words + last.evaluation_words or
+                    tree.merkle_layers.len != @as(usize, opening.tree_log_size) + 1)
+                    return error.InvalidCircuitDecommitBuffers;
+                target.* = .{
+                    .column_log_sizes = tree.column_logs,
+                    .ordinal = opening.tree_index,
+                    .role = opening.role,
+                    .column_count = opening.column_count,
+                    .evaluations = tree.evaluations,
+                    .merkle_hashes = tree.merkle_hashes,
+                    .merkle_layers = tree.merkle_layers,
+                };
+            }
+            try session.zeroResidentSlice(u32, .decommit, assembly);
+            try sink.drawQueries(buffers.raw_queries, self.topology.query_log_size);
+            try decommit.normalizeWith(cuda.runtime.stages.decommit.Native, session, self.topology, buffers, assembly);
+            try decommit.openAllViewsWith(cuda.runtime.stages.decommit.Native, session, self.topology, &trees, fri, buffers, assembly);
+            try shared.proof_assembly.captureDecommitment(session, .{ .proof = proof }, assembly);
+        }
+    };
+}
 
 /// Conservative upper bound for the device record arena. It covers all
 /// queries, trace values, expanded FRI values, and worst-case Merkle paths.
 /// Actual used words are recorded by the assembly kernel; no host count or
 /// host-selected opening is involved.
-fn capacityWords(geometry: *const geometry_module.Geometry, queries: usize) !usize {
+pub fn capacityWords(geometry: anytype, queries: usize) !usize {
     var words = try add(1024, try mul(queries, 2));
     for (geometry.trees) |tree| {
         words = try add(words, try mul(queries, try add(tree.column_logs.len, 1)));
@@ -106,10 +118,10 @@ fn capacityWords(geometry: *const geometry_module.Geometry, queries: usize) !usi
     for (geometry.fri_layers) |layer| {
         const expanded = try mul(queries, try pow2(layer.fold_step));
         words = try add(words, try mul(expanded, 9));
-        // Four rows share each FRI Merkle leaf. Its 28 staging words per
-        // leaf and level fit under seven words per expanded row; eight
-        // leaves margin for each fixed-capacity record.
-        words = try add(words, try mul(try mul(expanded, layer.evaluation_log), 8));
+        // Packed leaves amortize the 28-word Merkle staging record across
+        // four rows. Unpacked fold-one proofs need the full record per row.
+        const staging: usize = if (layer.evaluation_log - layer.leaf_log == 2) 8 else 28;
+        words = try add(words, try mul(try mul(expanded, layer.evaluation_log), staging));
     }
     return try add(words, 1024);
 }

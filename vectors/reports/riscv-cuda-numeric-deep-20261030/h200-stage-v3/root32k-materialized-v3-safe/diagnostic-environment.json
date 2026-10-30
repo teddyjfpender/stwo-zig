@@ -1,0 +1,8 @@
+{
+  "diagnostic_only": true,
+  "timing_ranked": false,
+  "environment": {
+    "STWO_RISCV_MATERIALIZED_POLYNOMIALS": "1"
+  },
+  "note": "Existing v3 binary does not attest this storage option in report; explicit sidecar retains experiment selection. Exact historical root byte oracle required."
+}

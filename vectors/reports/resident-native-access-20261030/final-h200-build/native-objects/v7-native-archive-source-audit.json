@@ -1,0 +1,30 @@
+{
+  "baseline_source_tree_sha256": "92d74d68c3e0e3fd1fd996f342ca1da40c80ae60a0e3262f1190cc047bbaa05f",
+  "baseline_archive_sha256": "b47e34a8dcf6f66742bb3a8043b6b872bf2b977e351e07fee6d761ce27d94a78",
+  "native_files_compared": 78,
+  "changes": [
+    {
+      "path": "src/backends/cuda/native/fri/final.cu",
+      "before": "a9d9a0d2c0f0bfb81d0656e664ea8517c55b8d2e289744508dc3f2fcdc9bb6ac",
+      "after": "9cdb50ab816b9a90d53259e2ad32f253f821dfdf231a2945567c9d3912c9ce67"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/b2n_fused.cuh",
+      "before": "a6d6230a477ce4826c9c7a7ec6001f8daf55afcdf78da39613c174f5865b5d45",
+      "after": "95c3f57b296eff1980509a1c952c72a42bcf6dab312cc039e44b2d83fcc1a7f0"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/composition_split.cu",
+      "before": "5e50ee0f90da45d74bd14a94aefeff07812037af582e8ce7b35f4b9e03fb0961",
+      "after": "9d315bcc2966d01385da110ad41dc80866ac381b1dcd207d24b85073221d4be5"
+    }
+  ],
+  "header_dependents": {
+    "src/backends/cuda/native/transform/b2n_fused.cuh": [
+      "transform/b2n_retained.cu",
+      "transform/composition_split.cu"
+    ]
+  },
+  "unchanged_files_verified": 75,
+  "stale_changed_objects_permitted": false
+}

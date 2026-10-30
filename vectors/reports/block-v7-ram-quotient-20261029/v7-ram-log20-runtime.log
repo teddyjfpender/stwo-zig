@@ -1,0 +1,36 @@
+1/2 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...WORD_QUOTIENT_DOMAIN tiled=false trace_log=20 elapsed_ns=5358496917
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=false row_log=20 proof_bytes=70451 charged_peak=6832565912 commit_ns=746580583 proof_ns=6923497084 verification_ns=224854666 exact_original_verification=true
+WORD_QUOTIENT_TILED {"charged_peak_bytes":128387128,"coefficient_bytes":0,"tile_log":15,"tiles":128}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=7425680875
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=20 proof_bytes=70451 charged_peak=3326121864 commit_ns=732886541 proof_ns=9007302667 verification_ns=226309792 exact_original_verification=true
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=20 elapsed_ns=6479637875
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=false tiled=false row_log=20 proof_bytes=70451 charged_peak=5876259128 commit_ns=755154500 proof_ns=8388481708 verification_ns=226437500 exact_original_verification=true
+WORD_QUOTIENT_TILED {"charged_peak_bytes":1084688440,"coefficient_bytes":956301312,"tile_log":15,"tiles":128}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=8724518458
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=false tiled=true row_log=20 proof_bytes=70451 charged_peak=3118961584 commit_ns=767807084 proof_ns=10657972250 verification_ns=224315333 exact_original_verification=true
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=125
+OK
+2/2 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+All 2 tests passed.
+       52.07 real       131.35 user         2.06 sys
+          9279242240  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2133836  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              104109  involuntary context switches
+       2251215473577  instructions retired
+        558013304664  cycles elapsed
+          9282526192  peak memory footprint

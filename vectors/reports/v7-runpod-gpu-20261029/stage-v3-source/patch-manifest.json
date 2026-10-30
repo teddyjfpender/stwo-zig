@@ -1,0 +1,96 @@
+{
+  "schema": "stwo-v7-source-patch-v1",
+  "base_source_sha256": "270a62b6e8d06363208524c7c17a9c1e463fd1e62b411789b71f2cca5b92a5f0",
+  "source_sha256": "cdd1a8cff51fa0d3e947f6935174637437f656bf394ba2e003d1270758850383",
+  "changes": [
+    {
+      "path": "scripts/test_v7_cuda_campaign_results.py",
+      "before": {
+        "path": "scripts/test_v7_cuda_campaign_results.py",
+        "bytes": 2040,
+        "sha256": "17b4683a5b543c55095669a0865f2569202db0dfc86ffec81851e3233a92a812"
+      },
+      "after": {
+        "path": "scripts/test_v7_cuda_campaign_results.py",
+        "bytes": 3421,
+        "sha256": "121675a6b081b3cb1f5edd10e2d72e0965e9e3f982c44f63b618f4b477e3be32"
+      }
+    },
+    {
+      "path": "scripts/tests/test_v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 8281,
+        "sha256": "963f39978472f156ec25b3ab42360ef4422a132c835861a66934e735de2fec57"
+      },
+      "after": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 8339,
+        "sha256": "fafad143048f2c53dbd92295cb28d021021138d0f916f8e735220a3c5602a203"
+      }
+    },
+    {
+      "path": "scripts/v7_cuda_campaign_results.py",
+      "before": {
+        "path": "scripts/v7_cuda_campaign_results.py",
+        "bytes": 8007,
+        "sha256": "aaafb5ed168c947aad5d3dfa834e8869818060da1f3acbc69ed83a5fe56ce376"
+      },
+      "after": {
+        "path": "scripts/v7_cuda_campaign_results.py",
+        "bytes": 9668,
+        "sha256": "affe8bb82f82ff41406648f08bf83743fc0aa0293eea1940519103a18e4aa197"
+      }
+    },
+    {
+      "path": "scripts/v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 19518,
+        "sha256": "05595185d8396da3ea9ef4696370d9315380a41c97f8cab911d409bd4483f816"
+      },
+      "after": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 20173,
+        "sha256": "541c21d02bf0e800a5f45ac85d3be7539721cc02a4b13ffe0794cfa8c150373d"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+        "bytes": 18297,
+        "sha256": "09b0e631fda610877bd6c7860ed3f6aec4a096a5bb8914a7e4dcd8b87915f43e"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+        "bytes": 19856,
+        "sha256": "a1946e6c3366777c0aec5623815bb5e2a7c7ac7e9b6946736aa3f641e98f06ca"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig",
+      "before": {
+        "path": "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig",
+        "bytes": 27813,
+        "sha256": "fb9261387b3681e39161862c249fa0d383a9f6959d40a565eac14249ddf5b9f6"
+      },
+      "after": {
+        "path": "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig",
+        "bytes": 33191,
+        "sha256": "2b319384c1c210379bcb19f6dfcaadd1a42be64997084bab0ae2a5fedd844151"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/hybrid_framework_sources_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/integrations/riscv_cuda/hybrid_framework_sources_v1.zig",
+        "bytes": 4944,
+        "sha256": "17f706f93a8b895cc88e93716cfaf7a172e400aaab370cbebbfbad790b5878c8"
+      }
+    }
+  ],
+  "cuda_native_inputs_unchanged": true,
+  "cuda_archive_policy": "Reuse verified framework archive built from270 snapshot; changes are host preparation, selection and evidence collection only."
+}

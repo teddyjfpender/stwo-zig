@@ -1,0 +1,36 @@
+{
+  "schema": "stwo-resident-native-source-attempt-v1",
+  "production_ready": false,
+  "qualified": false,
+  "proof_generated": false,
+  "original_verifier_reached": false,
+  "failure": {
+    "error": "InvalidKernelDescriptor",
+    "phase": "ingress",
+    "whole_test_seconds": 0.8968175520421937
+  },
+  "configuration": {
+    "queries": 8,
+    "pow_bits": 0,
+    "commitments": 4,
+    "composition_split": 3,
+    "retirements": 3,
+    "raw_words": 72
+  },
+  "scope": "Attempted fully device-resident original native OPEN source; no whole execution theorem.",
+  "suspected_cause": "Shared DEEP tiny-domain admission; exact geometry confirmation pending, not yet a demonstrated fix.",
+  "binary_sha256": "20b83945d77e20050ee3c1f80e6d98986a37f213e14910711c0bedf2d549e25a",
+  "llvm_sha256": "35545b5f09c7f41bc4beeaed59fe56821868a0989e54d544307ea4d61c54d4c1",
+  "artifact": {
+    "path": "/Users/theodorepender/code/cryptography/artifacts/stwo-v7-gpu-20261029/final-native-source.tar.gz",
+    "bytes": 65093748,
+    "sha256": "e05ecf49dbc039f7f481cbffc3560876cac71a7b766e81c4e22c1d8e59391bba"
+  },
+  "diagnostic_overlay": "One-file phase labels only; second compiler interrupted by budget shutdown before a device result. Not included in successful compilation identity.",
+  "confirmed_geometry": {
+    "composition_log": 4,
+    "fri_log": 2,
+    "mask_log": 1
+  },
+  "local_followup": "../native-tiny-deep-local/qualification.json"
+}

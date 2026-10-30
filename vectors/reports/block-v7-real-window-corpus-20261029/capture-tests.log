@@ -1,0 +1,143 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 11s
+1/140 block_v7_real_window_capture_test_root.test_0...OK
+2/140 prover.tests.block_v7_real_window_capture_test.test.real window capsule replays exact chained Keccak with externally pinned incoming state...OK
+3/140 prover.tests.block_v7_real_window_capture_test.test.real window capture rejects source substitution and explicit capacity limits...OK
+4/140 prover.tests.block_v7_real_window_import_test.test.capture pinned retained Ethereum benchmark window...SKIP
+5/140 prover.tests.block_v7_keccak_execution_test_support.test.Keccak two actual windows share control but have distinct chained RAM inputs...OK
+6/140 isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+7/140 isa.custom0.test.Poseidon2 CUSTOM-0 admits exactly the 32 rs1 encodings in the extension profile...OK
+8/140 isa.custom0.test.Poseidon2 CUSTOM-0 compares every fixed encoding bit...OK
+9/140 isa.custom0.test.CUSTOM-0 decoder does not claim ordinary RV32IM words...OK
+10/140 isa.custom0.test.Keccak-f encoding is exact and admitted only by its profile...OK
+11/140 isa.custom0.test.Ethereum profile combines unchanged Keccak-f and exact signer recovery...OK
+12/140 runner.cpu.test.Cpu.init sets entry point and stack pointer...OK
+13/140 runner.cpu.test.Cpu.readReg(x0) always returns 0...OK
+14/140 runner.cpu.test.Cpu.writeReg to x0 is a no-op...OK
+15/140 runner.cpu.test.Cpu.writeReg/readReg roundtrip...OK
+16/140 runner.cpu.test.Cpu.toCasmLikeState returns M31 values...OK
+17/140 runner.memory_state.test.memory state: continuation treats newly touched zero words as absent leaves...OK
+18/140 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+19/140 runner.memory_state.test.memory state: leaf-local first-access values replace entry snapshot...OK
+20/140 runner.memory_state.test.memory state: captures initialized and accessed RW words in address order...OK
+21/140 runner.memory_state.test.memory state: first and last segment roles classify IO independently...OK
+22/140 runner.state_chain.test.state_chain: register access tracking...OK
+23/140 runner.state_chain.test.state_chain: clock gap filling...OK
+24/140 runner.state_chain.test.state_chain: decomposeU32...OK
+25/140 runner.state_chain.test.state_chain: memory access tracking...OK
+26/140 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+27/140 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+28/140 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+29/140 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+30/140 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+31/140 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+32/140 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+33/140 runner.decode.test_0...OK
+34/140 isa.decode.test.decode ADD x1, x2, x3 (0x003100B3)...OK
+35/140 isa.decode.test.architectural operand and memory effects ignore encoding-only fields...OK
+36/140 isa.decode.test.decode ADDI x5, x0, 42 (0x02A00293)...OK
+37/140 isa.decode.test.decode SW x5, 0(x2) (0x00512023)...OK
+38/140 isa.decode.test.decode LW x6, 0(x2) (0x00012303)...OK
+39/140 isa.decode.test.decode BEQ x1, x2, +8 (0x00208463)...OK
+40/140 isa.decode.test.decode JAL x1, +0 (0x000000EF)...OK
+41/140 isa.decode.test.decode LUI x1, 0x12345000 (0x12345_0B7)...OK
+42/140 isa.decode.test.decode MUL x1, x2, x3 (0x023100B3)...OK
+43/140 isa.decode.test.decoder and proof boundary reject the manifest-owned preflight matrix...OK
+44/140 isa.decode.test.proof opcode conversion covers the profile and rejects host controls...OK
+45/140 isa.decode.test.decode SUB x1, x2, x3 (0x403100B3)...OK
+46/140 isa.decode.test.decode ADDI with negative immediate...OK
+47/140 isa.decode.test.decoder equivalence: Zig decoder vs known RV32IM instruction encodings...OK
+48/140 runner.guest_precompile.secp256k1_recover_call_buffer.test.signer-recovery call buffer preserves duplicate execution order...OK
+49/140 runner.guest_precompile.secp256k1_recover_call_buffer.test.signer-recovery call buffer limit fails before append...OK
+50/140 isa.ethereum_signer_recovery.test.Ethereum signer-recovery ABI geometry and word byte order are pinned...OK
+51/140 air.guest_precompile.sha256_compression.test.SHA compression arbitrary chaining states match independent standard library...OK
+52/140 air.guest_precompile.sha256_compression.test.SHA compression composes with message padding at block boundaries...OK
+53/140 runner.mod.test.runner: run minimal ELF to ecall...OK
+54/140 runner.mod.test.runner: production LUI uses typed retirement transaction...OK
+55/140 runner.mod.test.runner: production FENCE uses typed empty-effect retirement transaction...OK
+56/140 runner.mod.test.runner: production JAL uses typed retirement transaction...OK
+57/140 runner.mod.test.runner: production JALR uses typed retirement transaction...OK
+58/140 runner.mod.test.runner: production BRANCH_EQ uses typed retirement transactions...OK
+59/140 runner.mod.test.runner: production BRANCH_LT uses typed retirement transactions...OK
+60/140 runner.mod.test.runner: production LT_IMM uses typed retirement transactions...OK
+61/140 runner.mod.test.runner: runWithInput captures Stark-V public IO with access clocks...OK
+62/140 runner.mod.test.runner: runWithInput rejects an invalid instruction...OK
+63/140 runner.mod.test.runner: strict completion rejects SYSTEM words before compatibility synthesis...OK
+64/140 runner.mod.test.runner: runWithInput rejects max-step exhaustion...OK
+65/140 runner.mod.test.runner: mem_addr and mem_val captured for load/store...OK
+66/140 runner.mod.test_0...OK
+67/140 runner.memory.test.Memory readU32/writeU32 roundtrip...OK
+68/140 runner.memory.test.Memory byte-level access...OK
+69/140 runner.memory.test.Memory readByte returns 0 for untouched addresses...OK
+70/140 runner.memory.test.Memory canonical initialized inventory merges only new words...OK
+71/140 runner.memory.test.Memory canonical inventory rejects count divergence...OK
+72/140 runner.memory.test.Memory little-endian byte order...OK
+73/140 runner.memory.test.Memory readU16/writeU16 roundtrip...OK
+74/140 runner.memory.test.Memory accesses preserve wrapping page-boundary semantics...OK
+75/140 runner.memory.test.Memory prepared aligned writes commit without lazy allocation...OK
+76/140 runner.elf_loader.test.loadElf parses minimal ELF header...OK
+77/140 runner.elf_loader.test.ELF admission selects base without a note and exact Poseidon2 with one...OK
+78/140 runner.elf_loader.test.base ELF loader rejects an extension note before loading...OK
+79/140 runner.elf_loader.test.ELF admission rejects section and note envelope drift...OK
+80/140 runner.elf_loader.test.ELF admission rejects every descriptor identity mismatch...OK
+81/140 runner.elf_loader.test.ELF admission selects the exact Keccak-f profile identity...OK
+82/140 runner.elf_loader.test.ELF admission rejects duplicate notes, duplicate sections, and invalid tables...OK
+83/140 runner.elf_loader.test.ELF admission bounds every truncation of the canonical note...OK
+84/140 runner.elf_loader.test.release ABI preflight rejects compatibility and malformed ELFs...OK
+85/140 runner.elf_loader.test.loadElf materializes unaccessed BSS words...OK
+86/140 runner.elf_loader.test.loadElf rejects bad magic...OK
+87/140 runner.elf_loader.test.loadElf rejects non-RISC-V...OK
+88/140 runner.elf_loader.test.loadElf rejects truncated input...OK
+89/140 runner.decode_cache.test.decode cache keys entries by the fetched instruction word...OK
+90/140 runner.decode_cache.test.decode cache does not retain illegal words...OK
+91/140 runner.segment_capacity.test.bounded leaf capacity is admitted before publication...OK
+92/140 runner.segment_capacity.test.bounded leaf capacity rejects arithmetic overflow before allocation...OK
+93/140 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+94/140 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+95/140 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+96/140 isa.sha256_compression_v1.test.SHA compression encoding preserves both registers and rejects reserved bits...OK
+97/140 runner.generated_retirement.test.generated retirement registry is dense exact and fail closed...OK
+98/140 runner.jal_retirement.test.JAL closed-form clock gap is exact across the proof clock domain...OK
+99/140 runner.branch_eq_retirement.test.BRANCH_EQ closed-form clock gaps equal the generic state-chain geometry...OK
+100/140 runner.branch_lt_retirement.test.typed BRANCH_LT retirement closed-form gap geometry equals tracker authority...OK
+101/140 runner.lt_imm_retirement.test.LT_IMM closed-form clock gaps equal state-chain geometry...OK
+102/140 runner.shifts_imm_retirement.test.SHIFTS_IMM closed-form clock gaps equal state-chain geometry...OK
+103/140 runner.mul_retirement.test.MUL closed-form clock gaps equal state-chain geometry...OK
+104/140 runner.mulh_retirement.test.MULH closed-form clock gaps equal state-chain geometry...OK
+105/140 runner.div_retirement.test.DIV closed-form clock gaps equal state-chain geometry...OK
+106/140 air.lookups.entry.test.lookup entry domains retain transcript order...OK
+107/140 air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+108/140 runner.access_witness.test.access witness: aliased ADDI chains source before destination...OK
+109/140 runner.access_witness.test.access witness: store reads two sources and does not write rd...OK
+110/140 runner.access_witness.test.access witness: aliased ADD sources advance through distinct subclocks...OK
+111/140 opcode_manifest.test.opcode manifest is complete and preserves legacy protocol ids...OK
+112/140 opcode_manifest.test.host-control instructions have no proof-family field...OK
+113/140 opcode_manifest.test.opcode manifest owns a unique fail-closed decoder matrix...OK
+114/140 host.mod.test.SyscallNr known values...OK
+115/140 runner.tests.segment_continuation_test.test.runner: one-shot and two adjacent segments have exact execution parity...OK
+116/140 runner.tests.segment_continuation_test.test.runner: mutated continuation rejects before session mutation...OK
+117/140 runner.tests.segment_continuation_test.test.runner: only a complete first-and-last segment has V1 shape...OK
+118/140 runner.tests.segment_continuation_test.test.runner: leaf-local segments reset proof clocks while preserving global state order...OK
+119/140 runner.tests.segment_continuation_test.test.runner: continuation capability binds the clock frame...OK
+120/140 runner.tests.segment_continuation_test.test.runner: Poseidon2 extension logs remain segment-owned across resume...OK
+121/140 runner.tests.segment_continuation_test.test.runner: segment-owned retention releases every yielded trace range...OK
+122/140 air.program.opcode.test.program opcode: legacy ids stay stable and local extensions append...OK
+123/140 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+124/140 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+125/140 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+126/140 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+127/140 air.trace_columns.m_extension.test.RV32M layouts expose exact oracle boundary fields...OK
+128/140 runner.guest_precompile.mod.test_0...OK
+129/140 runner.guest_precompile.call_buffer.test.guest call buffer canonical empty freeze owns no allocation...OK
+130/140 runner.guest_precompile.call_buffer.test.guest call buffer preserves execution order and duplicate records...OK
+131/140 runner.guest_precompile.call_buffer.test.guest call buffer bounds capacity and does not append on allocation failure...OK
+132/140 runner.guest_precompile.poseidon2_v1.test.Poseidon2 v1 transaction commits exact output, clocks, and owned records...OK
+133/140 runner.guest_precompile.poseidon2_v1.test.Poseidon2 v1 rejects profile, encoding, address, span, and noncanonical words atomically...OK
+134/140 runner.guest_precompile.poseidon2_v1.test.Poseidon2 v1 allocation-failure sweep preserves complete logical state...OK
+135/140 runner.guest_precompile.poseidon2_v1.test.Poseidon2 v1 allocation failures preserve a nonempty committed prefix...OK
+136/140 air.memory_commitment.poseidon2.test.memory Poseidon2: pinned default hash chain...OK
+137/140 air.memory_commitment.poseidon2.test.memory Poseidon2: four transposed full states match scalar permutations...OK
+138/140 air.memory_commitment.poseidon2.test.memory Poseidon2: scalar pair vector is stable...OK
+139/140 air.memory_commitment.poseidon2.test.memory Poseidon2: four-lane hashes equal scalar hashes...OK
+140/140 isa.bulk_memcpy_candidate_v1.test.bulk memcpy candidate fixes every instruction bit and C ABI register...OK
+139 passed; 1 skipped; 0 failed.

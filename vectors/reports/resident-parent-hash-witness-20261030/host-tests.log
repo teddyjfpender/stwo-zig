@@ -1,0 +1,7 @@
+1/5 riscv_cuda_resident_hash_test_root.test_0...OK
+2/5 riscv_cuda_resident_hash_test_root.test.resident hash device codegen uses exact shared G ordering...OK
+3/5 riscv_cuda_resident_hash_test_root.test.export resident hash vectors...RESIDENT_PARENT_HASH_EXPORT source_bytes=10339 vector_bytes=14359216 source_sha256=b3fc75f6ff92640a764092f1e8b58fdc55af1bfd849e9ad7ef2c26536620af5c
+OK
+4/5 riscv_cuda_resident_hash_test_root.test.resident hash executor semantic...OK
+5/5 integrations.riscv_cuda.resident_parent_hash_plan_v1.test.resident hash cold plan binds dependencies and whole-device cap...OK
+All 5 tests passed.

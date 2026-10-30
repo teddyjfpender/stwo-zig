@@ -1,0 +1,8 @@
+{
+  "schema": "stwo-resident-original-arithmetic-v1",
+  "graphs": 3,
+  "nodes": 4250,
+  "source_sha256": "d2eb74c3e9bf58b7188d9b8e40b831df8b9294e073de4b4a45b2345e39161faa",
+  "scope": "original arithmetic replay primitive, not complete child verifier",
+  "expected_values": "CPU original Circuit.evaluateInto test oracle only"
+}

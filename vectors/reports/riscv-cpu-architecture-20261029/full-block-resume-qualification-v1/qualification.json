@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-b8-resume-qualification-v1",
+  "result": "All 11 tests passed",
+  "source_evidence": "full-mixed-driver-qualification-v1",
+  "source_root_sha256": "d8ffa95771396e877bf7b296891d75f9a7b7bee186a8a2947e5834dc5726f475",
+  "source_evidence_mutated": false,
+  "cached_windows": 1,
+  "original_proofs_generated": 0,
+  "recursive_parent_proofs_generated": 0,
+  "originals_ns": 0,
+  "window_roots_ns": 0,
+  "folds_ns": 0,
+  "root_bytes_identical": true,
+  "fresh_cached_parent_verified": true,
+  "fresh_final_full_receiver_verified": true,
+  "default_nonempty_guard_preserved": true,
+  "previous_final_archived": true,
+  "fresh_complete_run": false,
+  "timing_scope": "resume invocation; previously completed proving excluded",
+  "negative_controls": {
+    "changed_nominated_main_root": "UntrustedB8WindowRootCapture",
+    "compensated_physical_caller_ram_claims": "UntrustedBlake3ParentKey",
+    "missing_one_leaf_file": "IncompleteSavedWindowRoot"
+  },
+  "failed_inputs_do_not_create_source_original_directory": true
+}

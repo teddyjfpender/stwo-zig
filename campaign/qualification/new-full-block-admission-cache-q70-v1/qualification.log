@@ -1,0 +1,13 @@
+1/11 block_v8_full_block_admission_cache_test_root.test_0...OK
+2/11 prover.tests.block_v8_full_block_admission_cache_test.test.immutable admission cache resumes three canonical windows and two folds with uncached full receiving...B8_CACHE_RESUME windows=3 folds=2 parent_proofs=0 source_proofs=0 root_bytes_identical=true historical_proving_timing_unchanged=true final_uncached_full_receiver=true retained_profile_peak_bytes=1861485 key_derivation_peak_bytes=3910746674
+OK
+3/11 runner.decode.test_0...OK
+4/11 runner.mod.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

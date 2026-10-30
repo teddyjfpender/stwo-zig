@@ -1,0 +1,6 @@
+1/5 block_v8_native_projection_domain_batch_test_root.test_0...OK
+2/5 prover.tests.block_v8_native_projection_domain_batch_test.test.batched domain quotients equal every original slot for seventeen families q2 q3 and parallel rows...OK
+3/5 air.semantic_eval.test_0...OK
+4/5 air.lookups.tables.mod.test_0...OK
+5/5 air.lookups.tables.source_ingest.test_0...OK
+All 5 tests passed.

@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-riscv-cuda-fixed-device-qualification-v1",
+  "result": "passed",
+  "tests_passed": 1,
+  "scope": "Actual NVIDIA DEEP numerator/combine output equals corrected independent CPU field oracle; not a full proof or resident GPU prover",
+  "source_sha256": "ef0e1ff67c8d646001e145e378b86921b4abaa5dc207847b86ef3fe41a149775",
+  "binary_sha256": "62927cf2cc6e3be0690cc7d7ff27cf34a997af246bb7e27659424717ca380a39",
+  "gpu": "H200 SM90",
+  "timing_qualified": false,
+  "timing_caveat": "Concurrent CPU wrapper compilation; kernel_ns is synchronized host elapsed time, device_peak_bytes counts explicit executor buffers only",
+  "stats": {
+    "calls": 1,
+    "source_columns": 3,
+    "terms": 7,
+    "groups": 5,
+    "device_peak_bytes": 4664,
+    "host_metadata_peak_bytes": 984,
+    "h2d_bytes": 952,
+    "d2h_bytes": 2048,
+    "kernel_launches": 2,
+    "planning_ns": 115781,
+    "source_materialization_cpu_ns": 48778,
+    "upload_ns": 6831085,
+    "kernel_ns": 330295,
+    "download_ns": 40807,
+    "total_ns": 7378753
+  },
+  "log": "run.log",
+  "build": "build.json",
+  "patch": "patch-manifest.json"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-cuda-framework-staging-v1",
+  "aot_manifest_sha256": "0522b5350072bcb023298a9cf3c74d4a1ff872c3d6ebf79fb7bfff160fb8ab40",
+  "source_catalog_sha256": "b4f4edeedbcad17ec599af76fb2bf711cb6fab4a1ca6fbea0aa592781bef9b90",
+  "field_sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec",
+  "entries": 22,
+  "frontend": "native",
+  "aot_sets": [
+    "."
+  ],
+  "device_compiled": false,
+  "device_executed": false,
+  "proof_verified": false
+}

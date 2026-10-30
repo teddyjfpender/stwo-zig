@@ -1,0 +1,40 @@
+const std = @import("std");
+const Program = @import("../resident_native_program_v1.zig");
+const Fixture = @import("../resident_native_plan_test_v1.zig");
+const Bundle = @import("../resident_native_kernel_bundle_v1.zig");
+const E = @import("../../../frontends/riscv/prover/block_v7_execution_epoch_v1.zig");
+test "native device code identity excludes epoch identity but binds every emitted equation" {
+    const a = std.testing.allocator;
+    const original = try Fixture.fixture(4, a, false);
+    defer original.deinit();
+    const profile = original.view().profile;
+    const epoch = try E.Epoch.init(@splat(67), profile.epoch.config, profile.epoch.counts, profile.roster, profile.roster.len);
+    const next_profile = try Program.Profile.Owned.derive(a, profile.pin, epoch, profile.roster, profile.limits);
+    defer next_profile.deinit();
+    const next = try Program.ForCommitments(4).Owned.init(a, next_profile, .{});
+    defer next.deinit();
+    try std.testing.expect(!std.mem.eql(u8, &original.view().identity, &next.view().identity));
+    try std.testing.expectEqualSlices(u8, &original.view().code_identity, &next.view().code_identity);
+    var left = std.Io.Writer.Allocating.init(a);
+    defer left.deinit();
+    var right = std.Io.Writer.Allocating.init(a);
+    defer right.deinit();
+    try Bundle.emit(4, a, &left.writer, original);
+    try Bundle.emit(4, a, &right.writer, next);
+    try std.testing.expectEqualSlices(u8, left.written(), right.written());
+    const p = &original.view().components[0].program.opcode;
+    var changed = false;
+    for (p.nodes) |*node| if (node.op == .constant) {
+        const saved = node.value;
+        defer node.value = saved;
+        node.value = (saved + 1) % @import("stwo_core").fields.m31.Modulus;
+        const altered = try Bundle.codeIdentity(4, a, original);
+        try std.testing.expect(!std.mem.eql(u8, &altered, &original.view().code_identity));
+        var rejected = std.Io.Writer.Allocating.init(a);
+        defer rejected.deinit();
+        try std.testing.expectError(error.MutatedNativeDeviceCode, Bundle.emit(4, a, &rejected.writer, original));
+        changed = true;
+        break;
+    };
+    try std.testing.expect(changed);
+}

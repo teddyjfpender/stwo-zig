@@ -842,4 +842,12 @@ test {
     _ = @import("vm_air_profile_authority_v2_test_root.zig");
     _ = @import("detached_boundary_test_root.zig");
     _ = @import("vm_leaf_context_v2_test_root.zig");
+    _ = @import("block_execution_compact_ram_bridge_test_root.zig");
+    _ = @import("block_v7_ram_component_planner_test_root.zig");
+    _ = @import("block_v8_ram_endpoint_kernel_test_root.zig");
+    _ = @import("block_v8_ram_endpoint_component_test_root.zig");
+    _ = @import("block_v7_memory_interaction_batch_test_root.zig");
+    _ = @import("block_v7_native_projection_batch_test_root.zig");
+    _ = @import("block_v8_native_projection_domain_batch_test_root.zig");
+    _ = @import("prover/tests/block_v8_native_projection_domain_batch_test.zig");
 }

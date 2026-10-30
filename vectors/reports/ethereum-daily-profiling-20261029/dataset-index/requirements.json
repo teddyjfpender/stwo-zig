@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "requirements": [
+    {
+      "requirement": "three_synthetic_workloads",
+      "status": "complete",
+      "evidence": "../analysis/summary.json",
+      "scope": "Three clean samples each for Keccak8, memory4096 and mixed8; old layout identified."
+    },
+    {
+      "requirement": "full_stage_csv",
+      "status": "complete_with_coarse_sort_scope",
+      "evidence": "all-stages.csv",
+      "scope": "All observed preparation/core/verification work is retained; sorting remains inside provider/witness preparation rather than an isolated timer."
+    },
+    {
+      "requirement": "three_real_canonical_windows",
+      "status": "qualified_partial_contract",
+      "evidence": "../../block-v7-real-window-corpus-20261029/receipt.json",
+      "scope": "Three actual32768-cycle windows, external endpoint admission; no authenticated skipped prefix or full block."
+    },
+    {
+      "requirement": "real_fresh_process_reload",
+      "status": "complete",
+      "evidence": "../../block-v7-real-window-corpus-20261029/receipt.json",
+      "scope": "All three saved proof+metadata artifacts freshly decoded and verified with independent selected endpoint/report identities."
+    },
+    {
+      "requirement": "large_ratio_case",
+      "status": "complete_single_sample",
+      "evidence": "../ratio-matched-421-actual-ram/summary.json",
+      "scope": "1726115 cycles,421Keccak,1recovery,452200 actual RAM events; fresh complete verification."
+    },
+    {
+      "requirement": "failure_retention",
+      "status": "complete",
+      "evidence": "all-runs.csv",
+      "scope": "Both earlier421 failures remain unsuccessful rows; no inferred RSS/stage measurements."
+    },
+    {
+      "requirement": "same_contract_shared_comparison",
+      "status": "complete",
+      "evidence": "../keccak-matched-actual-ram/comparison.json",
+      "scope": "Eight canonical runs, exact statement/output and workload/security/memorypolicy equality; PoW separated."
+    },
+    {
+      "requirement": "recursion_timing",
+      "status": "explicitly_not_run",
+      "evidence": "all-runs.csv",
+      "scope": "All recursion fields null; these measurements do not qualify a compact recursive block root."
+    },
+    {
+      "requirement": "synthetic_source_binary_provenance",
+      "status": "complete",
+      "evidence": "audit.json",
+      "scope": "Source file manifest, binary hash, compiler/runner hashes and flags retained; single build reused per comparison."
+    },
+    {
+      "requirement": "real_prover_source_provenance",
+      "status": "known_missing_snapshot",
+      "evidence": "../../block-v7-real-window-corpus-20261029/receipt.json",
+      "scope": "Guest artifacts and executable hashes/commands retained, but no exact prebuild prover-source manifest. Never inferred from later checkout."
+    },
+    {
+      "requirement": "allocation_rss",
+      "status": "complete_observed_scopes",
+      "evidence": "all-runs.csv",
+      "scope": "Synthetic peaks and actual-window peaks retained; original native RSSnull kept and separate same-binary RSSrepeat added."
+    },
+    {
+      "requirement": "checkpoint_and_io",
+      "status": "complete_logical_not_physical",
+      "evidence": "../../block-v7-real-window-corpus-20261029/io-accounting.json",
+      "scope": "Checkpoint0 by code contract. Real logical artifact payload counts retained; physical device traffic null. Artifact publication outside verified timer explicit."
+    },
+    {
+      "requirement": "build_once_cli",
+      "status": "complete",
+      "evidence": "../../../../scripts/benchmark_riscv_ethereum.py",
+      "scope": "Build-only/reused binary, serialized campaigns, mode-specific schema/stage checks and durable failures;8focused tests pass."
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+1/6 block_v8_ram_endpoint_component_test_root.test_0...OK
+2/6 prover.tests.block_v8_ram_endpoint_component_test.test.endpoint AIR scalar packed and cyclic interaction equations agree...OK
+3/6 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+4/6 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+5/6 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+6/6 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+All 6 tests passed.

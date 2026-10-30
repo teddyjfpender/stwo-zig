@@ -271,6 +271,11 @@ pub fn evaluateAndReleaseWithWorkRecorder(
     // prohibition here silently serialized the largest real-proof evidence
     // gates even when they requested and owned a bounded worker pool.
     if (parallelEvaluationPool(trees.len)) |pool| {
+        // Worker scratch belongs to this request, including parallel plans and
+        // barycentric weights. The wrapper also supports non-thread-safe caller
+        // allocators; every worker joins before this stack-owned wrapper dies.
+        var synchronized_scratch: std.heap.ThreadSafeAllocator = .{ .child_allocator = allocator };
+        const scratch_allocator = synchronized_scratch.allocator();
         const worker_contexts = try allocator.alloc(SampledValueWorkerCtx(B, H), trees.len);
         defer allocator.free(worker_contexts);
 
@@ -281,6 +286,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             *worker_context,
         | {
             worker_context.* = .{
+                .scratch_allocator = scratch_allocator,
                 .tree = tree,
                 .tree_points = tree_points,
                 .tree_values = tree_values,
@@ -291,7 +297,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
                 .capture_work = capture_work,
                 .coefficient_work = .{},
                 .barycentric_work = .{},
-                .failed = false,
+                .failure = null,
             };
         }
 
@@ -317,7 +323,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
                 context.run();
             }
             try coefficient_plan_ops.evaluateBarycentricSharedPoints(
-                std.heap.page_allocator,
+                scratch_allocator,
                 shared_trees.items,
                 lifting_log_size,
                 &barycentric_cache,
@@ -336,7 +342,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
         }
 
         for (worker_contexts) |worker_context| {
-            if (worker_context.failed) return error.ShapeMismatch;
+            if (worker_context.failure) |err| return err;
             if (capture_work) {
                 coefficient_work.merge(worker_context.coefficient_work);
                 barycentric_work.merge(worker_context.barycentric_work);
@@ -465,18 +471,19 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
         capture_work: bool,
         coefficient_work: sampled_work.Audit,
         barycentric_work: sampled_work.Audit,
-        failed: bool,
+        scratch_allocator: std.mem.Allocator,
+        failure: ?anyerror,
 
         const WorkerSelf = @This();
 
         fn run(self: *WorkerSelf) void {
-            self.runInner() catch {
-                self.failed = true;
+            self.runInner() catch |err| {
+                self.failure = err;
             };
         }
 
         fn runInner(self: *WorkerSelf) !void {
-            const scratch_allocator = std.heap.page_allocator;
+            const scratch_allocator = self.scratch_allocator;
             const coefficient_work_audit = if (self.capture_work)
                 &self.coefficient_work
             else

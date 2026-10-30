@@ -1,0 +1,11 @@
+const Mode = @import("block_v7_memory_joint_proof_mode_v1.zig").ForMode(true);
+pub const Limits = Mode.Limits;
+pub const Proof = Mode.Proof;
+pub const VerifiedCapture = Mode.VerifiedCapture;
+pub const For = Mode.For;
+pub const providerInteractions = Mode.providerInteractions;
+pub const witnessColumns = Mode.witnessColumns;
+pub const fixedColumns = Mode.fixedColumns;
+pub const ramSpec = Mode.ramSpec;
+pub const airOwner = Mode.airOwner;
+pub const RamContext = Mode.RamContext;

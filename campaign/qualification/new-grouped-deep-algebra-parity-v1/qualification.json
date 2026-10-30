@@ -1,0 +1,23 @@
+{
+  "schema": "stwo-riscv-grouped-deep-algebra-parity-v1",
+  "scope": "independent native oracle, original ungrouped circuit, grouped circuit; algebra only, no STARK proving",
+  "named_grouped_gates": 4,
+  "all_discovered_tests_passed": 20,
+  "skipped": 0,
+  "failed": 0,
+  "whole_gate_seconds": 1.0,
+  "maximum_resident_bytes": 20512768,
+  "compiled_binary_sha256": "0d8f90bb116de5344467e16b35a854f977305a26bf6883c439174146b53220d5",
+  "checks": [
+    "canonical geometry/response order",
+    "all eight query answers equal native and ungrouped",
+    "duplicate raw queries and equivalent masks",
+    "heterogeneous logs and periodic response",
+    "strict QM31/NoValue gate and preprocessing parity",
+    "mutated answer rejection",
+    "degenerate sample line rejection",
+    "zero denominator rejection"
+  ],
+  "complete_source_proof_qualified": false,
+  "new_full_block_root_qualified": false
+}

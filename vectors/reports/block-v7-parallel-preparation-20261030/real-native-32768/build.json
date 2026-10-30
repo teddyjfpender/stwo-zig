@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "source_sha256": "a343d567f786e106844bcaebb96a2e36bb42effd57e47df84202c37e00c0f61d",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v7_real_window_root_test_root_v2.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "v7 real nonterminal window",
+    "--test-no-exec",
+    "-femit-bin=/tmp/v7-preparation-cpu-build/prover"
+  ],
+  "started_unix_ns": 1793274442257245000,
+  "source_snapshot": "/tmp/v7-preparation-cpu-snapshot",
+  "returncode": 0,
+  "source_unchanged": true,
+  "source_after_sha256": "a343d567f786e106844bcaebb96a2e36bb42effd57e47df84202c37e00c0f61d",
+  "finished_unix_ns": 1793274595197747000,
+  "binary_sha256": "bf9047a22056f9f75c2f50c787f495614a433f90056818871b5d2e43fb6388cc"
+}

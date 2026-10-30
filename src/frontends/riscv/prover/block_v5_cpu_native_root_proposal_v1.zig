@@ -1,6 +1,7 @@
 //! Prechallenge physical roots, without a fabricated global admission. These
 //! are producer proposals: only fresh native/global receivers grant authority.
-//! No PCS tree, native owner, or runner storage survives collect().
+//! collect() discards PCS state; collectRetained() transfers it explicitly.
+//! Neither proposal form grants proof authority.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -80,9 +81,28 @@ pub fn ForBackend(comptime Backend: type) type {
                 self.* = undefined;
             }
         };
-        /// Commit and immediately discard physical PCS state. The caller owns
-        /// the one live native trace; no global plan or Admission is required.
+        pub const Retained = struct {
+            proposal: Proposal,
+            first: PhysicalFirstRound,
+            pub fn deinit(self: *Retained, a: std.mem.Allocator) void {
+                self.first.deinit(a);
+                self.proposal.deinit();
+                self.* = undefined;
+            }
+        };
+        /// Existing bounded path; retained callers explicitly checkpoint the
+        /// original trees before releasing this same physical owner.
         pub fn collect(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32, first_cycle: u64, limits: Limits) !Proposal {
+            var retained = try collectRetained(a, owner, config, execution_profile, index, first_cycle, limits);
+            defer retained.first.deinit(a);
+            return retained.proposal;
+        }
+        pub const Retention = struct { fixed: bool = false, main: bool = false };
+        pub fn collectRetained(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32, first_cycle: u64, limits: Limits) !Retained {
+            return collectRetainedWithRetention(a, owner, config, execution_profile, index, first_cycle, limits, .{});
+        }
+        /// Explicit resident producer storage; no transcript or statement change.
+        pub fn collectRetainedWithRetention(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32, first_cycle: u64, limits: Limits, retention: Retention) !Retained {
             try limits.validate();
             if (!owner.native_only_v5 or !owner.tables_ready or owner.failed or owner.interaction_ready or first_cycle == 0)
                 return error.InvalidV5RootProposalPhase;
@@ -90,14 +110,12 @@ pub fn ForBackend(comptime Backend: type) type {
             try @import("blake3_execution_protocol.zig").validateConfig(config);
             const io = owner.statement.public_data.io_entries;
             const words = try std.math.add(usize, io.input_words.len, io.output_words.len);
-            const bytes = try std.math.add(usize, @sizeOf(Proposal), try std.math.add(usize,
-                try std.math.mul(usize, io.input_words.len, @sizeOf(u32)),
-                try std.math.mul(usize, io.output_words.len, @sizeOf(public.OutputWord))));
+            const bytes = try std.math.add(usize, @sizeOf(Proposal), try std.math.add(usize, try std.math.mul(usize, io.input_words.len, @sizeOf(u32)), try std.math.mul(usize, io.output_words.len, @sizeOf(public.OutputWord))));
             if (words > limits.max_public_words or bytes > limits.max_metadata_bytes) return error.V5RootProposalResourceLimit;
             if (owner.statement.total_steps == 0) return error.InvalidV5RootProposalSpan;
             const last_cycle = try std.math.add(u64, first_cycle, owner.statement.total_steps - 1);
-            var physical = try commitPhysical(a, owner, config, execution_profile, index);
-            defer physical.deinit(a);
+            var physical = try commitPhysicalWithRetention(a, owner, config, execution_profile, index, retention);
+            errdefer physical.deinit(a);
             const input = try a.dupe(u32, io.input_words);
             errdefer a.free(input);
             const output = try a.dupe(public.OutputWord, io.output_words);
@@ -105,18 +123,25 @@ pub fn ForBackend(comptime Backend: type) type {
             var shape = owner.statement;
             shape.public_data.io_entries.input_words = input;
             shape.public_data.io_entries.output_words = output;
-            return .{ .a = a, .shape = shape, .roots = physical.roots, .template = physical.template,
-                .template_id = physical.template_id, .public_digest = admission.publicDigest(&shape.public_data),
-                .index = index, .first_cycle = first_cycle, .last_cycle = last_cycle, .metadata_bytes = bytes };
+            return .{ .first = physical, .proposal = .{ .a = a, .shape = shape, .roots = physical.roots, .template = physical.template, .template_id = physical.template_id, .public_digest = admission.publicDigest(&shape.public_data), .index = index, .first_cycle = first_cycle, .last_cycle = last_cycle, .metadata_bytes = bytes } };
         }
         pub fn commitPhysical(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32) !PhysicalFirstRound {
+            return commitPhysicalWithFixedRetention(a, owner, config, execution_profile, index, false);
+        }
+        /// A downstream union can lease these fixed coefficients instead of
+        /// interpolating/extending the same polynomials again. Main-column
+        /// retention and the original commitments/transcript are unchanged.
+        pub fn commitPhysicalWithFixedRetention(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32, retain_fixed: bool) !PhysicalFirstRound {
+            return commitPhysicalWithRetention(a, owner, config, execution_profile, index, .{ .fixed = retain_fixed });
+        }
+        pub fn commitPhysicalWithRetention(a: std.mem.Allocator, owner: *native.Owner, config: core.pcs.PcsConfig, execution_profile: profile.ExecutionProfile, index: u32, retention: Retention) !PhysicalFirstRound {
             if (!owner.native_only_v5 or !owner.tables_ready or owner.failed or owner.interaction_ready)
                 return error.InvalidNativeV5Phase;
             try owner.statement.validateBlake3ExecutionWithExternal(owner.external_retirements);
             try @import("blake3_execution_protocol.zig").validateConfig(config);
             var scheme = try Scheme.init(a, config);
             errdefer scheme.deinit(a);
-            scheme.setCoefficientRetentionPolicy(.never);
+            scheme.setCoefficientRetentionPolicy(if (retention.fixed) .always else .never);
             var channel = suite.Channel{};
             channel.mixU32s(&.{ template_mod.TAG, template_mod.VERSION, 0, index });
             if (frame.required(&owner.statement)) {
@@ -126,9 +151,11 @@ pub fn ForBackend(comptime Backend: type) type {
                 const main = try frame.mainColumns(a, try frame.expected(&owner.statement, owner.external_retirements));
                 defer frame.freeColumns(a, main);
                 try scheme.commitBorrowedStreaming(a, fixed, 8, &channel);
+                scheme.setCoefficientRetentionPolicy(if (retention.main) .always else .never);
                 try scheme.commitBorrowedStreaming(a, main, 8, &channel);
             } else {
                 try scheme.commitBorrowedStreaming(a, owner.preprocessed.items, 8, &channel);
+                scheme.setCoefficientRetentionPolicy(if (retention.main) .always else .never);
                 try scheme.commitBorrowedStreaming(a, owner.main.items, 8, &channel);
             }
             var roots = try scheme.roots(a);

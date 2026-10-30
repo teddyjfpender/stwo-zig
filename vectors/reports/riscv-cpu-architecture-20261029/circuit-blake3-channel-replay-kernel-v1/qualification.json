@@ -1,0 +1,92 @@
+{
+  "schema": "stwo-circuit-blake3-channel-replay-kernel-qualification-v1",
+  "scope": "Exact bounded native experimental-v1 transcript replay via existing circuit gates; not a RISC-V PCS verifier, registry or leaf wrapper",
+  "production_active": false,
+  "backend": "CPU",
+  "optimize": "ReleaseSafe",
+  "passed": 17,
+  "failed": 0,
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/circuit_blake3_channel_reuse_test_root.zig -OReleaseSafe --test-filter 'circuit Blake3 transcript'",
+  "semantics": {
+    "init_and_absorb": [
+      "root",
+      "u32_words",
+      "u64_integer",
+      "canonical_qm31_felts"
+    ],
+    "raw_digest_bits": 256,
+    "draw_counter_bits": 64,
+    "whole_block_rejection": true,
+    "rejected_raw_words": [
+      "0xfffffffe",
+      "0xffffffff"
+    ],
+    "all_draw_words_checked": 8,
+    "secure_pack": "two QM31 per accepted block, single/odd discards unchanged",
+    "pow": "trailing zeros of raw first U32, followed by separate optional nonce absorption",
+    "pow_difficulty_range": [
+      0,
+      32
+    ],
+    "multi_chunk_hash_tree": true,
+    "request_roots_and_nonces_are_wires": true
+  },
+  "limits": {
+    "frame_words": 1048576,
+    "attempts_per_secure_block": 8,
+    "schedule_is_structural_and_requires_independent_key_authorization": true
+  },
+  "negative_controls": [
+    "invalid sampler word in every lane including unused second QM31",
+    "skipped valid draw block",
+    "accepted invalid terminal block",
+    "fabricated extra retry on real draw",
+    "invalid nonce and difficulty32 raw boundary",
+    "difficulty33",
+    "modulo-M31 PoW alias",
+    "intermediate digest value corruption",
+    "draw-counter exhaustion",
+    "unsupported bounded schedule"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/circuit/builder/blake3_channel_reuse_v1.zig",
+      "sha256": "3c9ae04eb7ad291be557e7f5510d96423c16b223e3dbc9539bf0f7395f5a4a04"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_channel_reuse_v1_test.zig",
+      "sha256": "8e9c0d33b6fc16df066a96dd087189d77a8bed0c634247d3ab289795eabcc097"
+    },
+    {
+      "path": "src/circuit_blake3_channel_reuse_test_root.zig",
+      "sha256": "779531f2d341532ca17686c0b082d9cc905f13e2fe69e10127d7a56de11d32a7"
+    },
+    {
+      "path": "campaign/design/riscv-blake3-circuit-channel-replay-v1.md",
+      "sha256": "b832849fb80c782b58813c3d1b27e5e84460ea32cf5a6c8f15b65a6cb183c4e1"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_reuse_v1.zig",
+      "sha256": "c256b3951c559234d9b72090afb9367cccfb903098c1cb5ac340096c03b1bf6e"
+    },
+    {
+      "path": "src/core/channel/blake3.zig",
+      "sha256": "84324baa9bb8e934f8158c8db49df8dc387dff22724144fb4fe5a05f436b3053"
+    },
+    {
+      "path": "src/core/channel/blake3_frame.zig",
+      "sha256": "97586058f0d6cf986dd1322b312f6634ed451513392cb5a561d8568708320060"
+    }
+  ],
+  "log": {
+    "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-blake3-channel-replay-kernel-v1/qualification.log",
+    "sha256": "bcd5096bde6f5d366f2cea029845494da6d30383818da6a9513479b215880430"
+  },
+  "open": [
+    "exact original multi-tree PCS circuit",
+    "typed RISC-V AIR evaluation and statement binding",
+    "registry-authorized leaf verifier proof",
+    "existing homogeneous fold integration",
+    "fixed-capacity retry grammar for request-independent topology"
+  ]
+}

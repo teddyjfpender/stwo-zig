@@ -145,6 +145,10 @@ pub fn build(allocator: std.mem.Allocator, profile: Profile) Error!Circuit {
 
     const query_points = try allocator.alloc(CircuitPoint, profile.query_count);
     defer allocator.free(query_points);
+    var needs_expansion_zero = false;
+    for (profile.trees) |tree| for (tree.column_log_sizes) |log_size| {
+        needs_expansion_zero = needs_expansion_zero or log_size > profile.lifting_log_size;
+    };
     for (query_points, 0..) |*point, query| {
         const base = layout.query_coordinates + query * (M31_BIT_COUNT + 1);
         const bits = input_handles[base..][0..M31_BIT_COUNT];
@@ -153,6 +157,12 @@ pub fn build(allocator: std.mem.Allocator, profile: Profile) Error!Circuit {
                 bit_value,
                 try builder.sub(one, bit_value),
             ));
+        // A taller unopened commitment maps this reduced query into a larger
+        // tree by inserting zero directions. The recursive path linker uses
+        // this dedicated high bit as its zero source; Booleanity alone would
+        // allow an adversary to choose the other Merkle branch. Preserve all
+        // existing graph identities when no tree needs expansion.
+        if (needs_expansion_zero) try builder.constrainZero(bits[profile.lifting_log_size]);
         var reconstructed = zero;
         for (bits[0..profile.lifting_log_size], 0..) |bit_value, bit| {
             const weight = QM31.fromBase(M31.fromCanonical(

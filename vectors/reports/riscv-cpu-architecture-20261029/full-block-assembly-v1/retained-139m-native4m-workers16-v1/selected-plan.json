@@ -1,0 +1,3013 @@
+{
+  "schema": "stwo-b8-full-block-schedule-v1",
+  "proof_verified": false,
+  "scope": "execution and proof scheduling only; no verified block result",
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+  "total_cycles": 139214856,
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "evidence": {
+    "summary_sha256": "38c988a283bc1da3eb36244737f98ac8a28297a9329e4505d9be88c34b98f139",
+    "segments_sha256": "6223b4d31b99718a094440506a9a59df298d942fb7df5f8813f23ffe53ac8c13"
+  },
+  "independent_bounds": {
+    "native_cycles": 8388608,
+    "mixed_cycles": 1048576,
+    "caller_calls": 4096
+  },
+  "windows": [
+    {
+      "index": 0,
+      "kind": "native",
+      "skip_cycles": 0,
+      "cycles": 8388608,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 8388608,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 0,
+      "census_count": 16,
+      "initial": true,
+      "terminal": false,
+      "id": "window-9ccd797fafcdcd0e0bf3e309"
+    },
+    {
+      "index": 1,
+      "kind": "native",
+      "skip_cycles": 8388608,
+      "cycles": 8388608,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 8388608,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 16,
+      "census_count": 16,
+      "initial": false,
+      "terminal": false,
+      "id": "window-55e1cea2ec8e857cc7c0277e"
+    },
+    {
+      "index": 2,
+      "kind": "native",
+      "skip_cycles": 16777216,
+      "cycles": 6815744,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 6815744,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 32,
+      "census_count": 13,
+      "initial": false,
+      "terminal": false,
+      "id": "window-4f26a686a099c301ec55748e"
+    },
+    {
+      "index": 3,
+      "kind": "mixed",
+      "skip_cycles": 23592960,
+      "cycles": 1048576,
+      "caller_calls": 305,
+      "counts": {
+        "core_rows": 1048271,
+        "keccak_calls": 305,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 45,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-ac27cd38062a0ccd6fe1de44"
+    },
+    {
+      "index": 4,
+      "kind": "mixed",
+      "skip_cycles": 24641536,
+      "cycles": 1048576,
+      "caller_calls": 573,
+      "counts": {
+        "core_rows": 1048003,
+        "keccak_calls": 507,
+        "recovery_calls": 66,
+        "sha_calls": 0
+      },
+      "census_first": 47,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-bff88c8f314d4f430df5bc80"
+    },
+    {
+      "index": 5,
+      "kind": "mixed",
+      "skip_cycles": 25690112,
+      "cycles": 1048576,
+      "caller_calls": 1987,
+      "counts": {
+        "core_rows": 1046589,
+        "keccak_calls": 1987,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 49,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-88d08bf3493e88fa0f532054"
+    },
+    {
+      "index": 6,
+      "kind": "mixed",
+      "skip_cycles": 26738688,
+      "cycles": 1048576,
+      "caller_calls": 2867,
+      "counts": {
+        "core_rows": 1045709,
+        "keccak_calls": 2867,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 51,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-869e858d2b6ff7dcbde64416"
+    },
+    {
+      "index": 7,
+      "kind": "mixed",
+      "skip_cycles": 27787264,
+      "cycles": 1048576,
+      "caller_calls": 2820,
+      "counts": {
+        "core_rows": 1045756,
+        "keccak_calls": 2820,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 53,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f26be8930fbaf4db84069d25"
+    },
+    {
+      "index": 8,
+      "kind": "mixed",
+      "skip_cycles": 28835840,
+      "cycles": 1048576,
+      "caller_calls": 2761,
+      "counts": {
+        "core_rows": 1045815,
+        "keccak_calls": 2761,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 55,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-cfd82d231a849bf7504fb325"
+    },
+    {
+      "index": 9,
+      "kind": "mixed",
+      "skip_cycles": 29884416,
+      "cycles": 524288,
+      "caller_calls": 578,
+      "counts": {
+        "core_rows": 523710,
+        "keccak_calls": 578,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 57,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-96db4b8220aafdf76d38ccfa"
+    },
+    {
+      "index": 10,
+      "kind": "native",
+      "skip_cycles": 30408704,
+      "cycles": 8388608,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 8388608,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 58,
+      "census_count": 16,
+      "initial": false,
+      "terminal": false,
+      "id": "window-5c3a15221378a0add32242a3"
+    },
+    {
+      "index": 11,
+      "kind": "native",
+      "skip_cycles": 38797312,
+      "cycles": 3670016,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 3670016,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 74,
+      "census_count": 7,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b9a5662240584b320b60b671"
+    },
+    {
+      "index": 12,
+      "kind": "mixed",
+      "skip_cycles": 42467328,
+      "cycles": 524288,
+      "caller_calls": 2185,
+      "counts": {
+        "core_rows": 522103,
+        "keccak_calls": 2185,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 81,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-8a08a1df1f875c2dc5b38464"
+    },
+    {
+      "index": 13,
+      "kind": "mixed",
+      "skip_cycles": 42991616,
+      "cycles": 524288,
+      "caller_calls": 3494,
+      "counts": {
+        "core_rows": 520794,
+        "keccak_calls": 3494,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 82,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-0cd8b1059ae336303f0e65f7"
+    },
+    {
+      "index": 14,
+      "kind": "mixed",
+      "skip_cycles": 43515904,
+      "cycles": 524288,
+      "caller_calls": 3549,
+      "counts": {
+        "core_rows": 520739,
+        "keccak_calls": 3549,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 83,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-39146716234f2a655609826a"
+    },
+    {
+      "index": 15,
+      "kind": "mixed",
+      "skip_cycles": 44040192,
+      "cycles": 1048576,
+      "caller_calls": 611,
+      "counts": {
+        "core_rows": 1047965,
+        "keccak_calls": 611,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 84,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-be0c2119538cada02d4ad527"
+    },
+    {
+      "index": 16,
+      "kind": "mixed",
+      "skip_cycles": 45088768,
+      "cycles": 524288,
+      "caller_calls": 6,
+      "counts": {
+        "core_rows": 524282,
+        "keccak_calls": 6,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 86,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-013964148b9a8242e1428884"
+    },
+    {
+      "index": 17,
+      "kind": "native",
+      "skip_cycles": 45613056,
+      "cycles": 1572864,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 1572864,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 87,
+      "census_count": 3,
+      "initial": false,
+      "terminal": false,
+      "id": "window-d4658b66cb53db4a0b1dd48f"
+    },
+    {
+      "index": 18,
+      "kind": "mixed",
+      "skip_cycles": 47185920,
+      "cycles": 1048576,
+      "caller_calls": 24,
+      "counts": {
+        "core_rows": 1048552,
+        "keccak_calls": 24,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 90,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e975d2f1aaa7178b1acc917d"
+    },
+    {
+      "index": 19,
+      "kind": "native",
+      "skip_cycles": 48234496,
+      "cycles": 1048576,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 1048576,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 92,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-7b1b7e59cd865f01bf5796fd"
+    },
+    {
+      "index": 20,
+      "kind": "mixed",
+      "skip_cycles": 49283072,
+      "cycles": 524288,
+      "caller_calls": 9,
+      "counts": {
+        "core_rows": 524279,
+        "keccak_calls": 9,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 94,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-8d05dabefc90c4ef055496dc"
+    },
+    {
+      "index": 21,
+      "kind": "native",
+      "skip_cycles": 49807360,
+      "cycles": 2621440,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 2621440,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 95,
+      "census_count": 5,
+      "initial": false,
+      "terminal": false,
+      "id": "window-c4745304bb3cb062a3741cee"
+    },
+    {
+      "index": 22,
+      "kind": "mixed",
+      "skip_cycles": 52428800,
+      "cycles": 524288,
+      "caller_calls": 23,
+      "counts": {
+        "core_rows": 524265,
+        "keccak_calls": 23,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 100,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-6875a4d5d414e0664ec91ab5"
+    },
+    {
+      "index": 23,
+      "kind": "native",
+      "skip_cycles": 52953088,
+      "cycles": 1048576,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 1048576,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 101,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a5a45aeba207b872675838ef"
+    },
+    {
+      "index": 24,
+      "kind": "mixed",
+      "skip_cycles": 54001664,
+      "cycles": 1048576,
+      "caller_calls": 44,
+      "counts": {
+        "core_rows": 1048532,
+        "keccak_calls": 44,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 103,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-1787b36999134e880067b587"
+    },
+    {
+      "index": 25,
+      "kind": "mixed",
+      "skip_cycles": 55050240,
+      "cycles": 1048576,
+      "caller_calls": 61,
+      "counts": {
+        "core_rows": 1048515,
+        "keccak_calls": 59,
+        "recovery_calls": 2,
+        "sha_calls": 0
+      },
+      "census_first": 105,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-ed06a17d226858953cd0c8e6"
+    },
+    {
+      "index": 26,
+      "kind": "mixed",
+      "skip_cycles": 56098816,
+      "cycles": 1048576,
+      "caller_calls": 27,
+      "counts": {
+        "core_rows": 1048549,
+        "keccak_calls": 27,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 107,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-1a4965f5309528316a2ef119"
+    },
+    {
+      "index": 27,
+      "kind": "mixed",
+      "skip_cycles": 57147392,
+      "cycles": 1048576,
+      "caller_calls": 42,
+      "counts": {
+        "core_rows": 1048534,
+        "keccak_calls": 42,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 109,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-80001623f54b320b2ab9e4cd"
+    },
+    {
+      "index": 28,
+      "kind": "mixed",
+      "skip_cycles": 58195968,
+      "cycles": 1048576,
+      "caller_calls": 36,
+      "counts": {
+        "core_rows": 1048540,
+        "keccak_calls": 36,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 111,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-689b20c5f162d30f4653fc89"
+    },
+    {
+      "index": 29,
+      "kind": "mixed",
+      "skip_cycles": 59244544,
+      "cycles": 1048576,
+      "caller_calls": 20,
+      "counts": {
+        "core_rows": 1048556,
+        "keccak_calls": 20,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 113,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e7fd24b263f935b17d9ace5f"
+    },
+    {
+      "index": 30,
+      "kind": "mixed",
+      "skip_cycles": 60293120,
+      "cycles": 1048576,
+      "caller_calls": 16,
+      "counts": {
+        "core_rows": 1048560,
+        "keccak_calls": 16,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 115,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-57c35cd4246a05a51dc1c8b1"
+    },
+    {
+      "index": 31,
+      "kind": "mixed",
+      "skip_cycles": 61341696,
+      "cycles": 1048576,
+      "caller_calls": 48,
+      "counts": {
+        "core_rows": 1048528,
+        "keccak_calls": 48,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 117,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a8e552cbf98237854d7ef29c"
+    },
+    {
+      "index": 32,
+      "kind": "mixed",
+      "skip_cycles": 62390272,
+      "cycles": 1048576,
+      "caller_calls": 64,
+      "counts": {
+        "core_rows": 1048512,
+        "keccak_calls": 64,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 119,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f5a555da4a959712c56ae6ce"
+    },
+    {
+      "index": 33,
+      "kind": "mixed",
+      "skip_cycles": 63438848,
+      "cycles": 1048576,
+      "caller_calls": 69,
+      "counts": {
+        "core_rows": 1048507,
+        "keccak_calls": 69,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 121,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-dc7afd8e36549140fbe25d56"
+    },
+    {
+      "index": 34,
+      "kind": "mixed",
+      "skip_cycles": 64487424,
+      "cycles": 1048576,
+      "caller_calls": 44,
+      "counts": {
+        "core_rows": 1048532,
+        "keccak_calls": 44,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 123,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-80b3acd366fe5c3ee097cb38"
+    },
+    {
+      "index": 35,
+      "kind": "mixed",
+      "skip_cycles": 65536000,
+      "cycles": 1048576,
+      "caller_calls": 47,
+      "counts": {
+        "core_rows": 1048529,
+        "keccak_calls": 47,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 125,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-6e477d04a244d609ccc350d3"
+    },
+    {
+      "index": 36,
+      "kind": "mixed",
+      "skip_cycles": 66584576,
+      "cycles": 1048576,
+      "caller_calls": 18,
+      "counts": {
+        "core_rows": 1048558,
+        "keccak_calls": 18,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 127,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-9d5dd44f555b4b5fee115e9e"
+    },
+    {
+      "index": 37,
+      "kind": "mixed",
+      "skip_cycles": 67633152,
+      "cycles": 1048576,
+      "caller_calls": 30,
+      "counts": {
+        "core_rows": 1048546,
+        "keccak_calls": 30,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 129,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-bee8fbc595f8bbeb42a9d4f2"
+    },
+    {
+      "index": 38,
+      "kind": "mixed",
+      "skip_cycles": 68681728,
+      "cycles": 1048576,
+      "caller_calls": 42,
+      "counts": {
+        "core_rows": 1048534,
+        "keccak_calls": 42,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 131,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-037a6c026f0ac5a637eeecb6"
+    },
+    {
+      "index": 39,
+      "kind": "mixed",
+      "skip_cycles": 69730304,
+      "cycles": 1048576,
+      "caller_calls": 50,
+      "counts": {
+        "core_rows": 1048526,
+        "keccak_calls": 50,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 133,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-d96546c0521e6a9f800f03ab"
+    },
+    {
+      "index": 40,
+      "kind": "mixed",
+      "skip_cycles": 70778880,
+      "cycles": 1048576,
+      "caller_calls": 21,
+      "counts": {
+        "core_rows": 1048555,
+        "keccak_calls": 21,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 135,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-4547a8978807a93b8a62b154"
+    },
+    {
+      "index": 41,
+      "kind": "mixed",
+      "skip_cycles": 71827456,
+      "cycles": 524288,
+      "caller_calls": 4,
+      "counts": {
+        "core_rows": 524284,
+        "keccak_calls": 4,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 137,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-dc516f1139bb71215b477a09"
+    },
+    {
+      "index": 42,
+      "kind": "native",
+      "skip_cycles": 72351744,
+      "cycles": 524288,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 524288,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 138,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-01d4e2dad977a48d760f0487"
+    },
+    {
+      "index": 43,
+      "kind": "mixed",
+      "skip_cycles": 72876032,
+      "cycles": 1048576,
+      "caller_calls": 34,
+      "counts": {
+        "core_rows": 1048542,
+        "keccak_calls": 34,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 139,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-57579d09e753d934cb26cb3d"
+    },
+    {
+      "index": 44,
+      "kind": "mixed",
+      "skip_cycles": 73924608,
+      "cycles": 1048576,
+      "caller_calls": 50,
+      "counts": {
+        "core_rows": 1048526,
+        "keccak_calls": 50,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 141,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a18e8867bda8b5069db9ddad"
+    },
+    {
+      "index": 45,
+      "kind": "mixed",
+      "skip_cycles": 74973184,
+      "cycles": 1048576,
+      "caller_calls": 20,
+      "counts": {
+        "core_rows": 1048556,
+        "keccak_calls": 20,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 143,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f7433ecbb83d5c136b9df285"
+    },
+    {
+      "index": 46,
+      "kind": "mixed",
+      "skip_cycles": 76021760,
+      "cycles": 1048576,
+      "caller_calls": 45,
+      "counts": {
+        "core_rows": 1048531,
+        "keccak_calls": 45,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 145,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-861cc8b5d914f93f74ca58c7"
+    },
+    {
+      "index": 47,
+      "kind": "mixed",
+      "skip_cycles": 77070336,
+      "cycles": 1048576,
+      "caller_calls": 29,
+      "counts": {
+        "core_rows": 1048547,
+        "keccak_calls": 29,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 147,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-9d07e8df4b5e9d19b0ab2439"
+    },
+    {
+      "index": 48,
+      "kind": "mixed",
+      "skip_cycles": 78118912,
+      "cycles": 1048576,
+      "caller_calls": 49,
+      "counts": {
+        "core_rows": 1048527,
+        "keccak_calls": 49,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 149,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-9803baaa48cea8a5e613587a"
+    },
+    {
+      "index": 49,
+      "kind": "mixed",
+      "skip_cycles": 79167488,
+      "cycles": 1048576,
+      "caller_calls": 31,
+      "counts": {
+        "core_rows": 1048545,
+        "keccak_calls": 31,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 151,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-135fbc4d51c87501659b6680"
+    },
+    {
+      "index": 50,
+      "kind": "mixed",
+      "skip_cycles": 80216064,
+      "cycles": 1048576,
+      "caller_calls": 45,
+      "counts": {
+        "core_rows": 1048531,
+        "keccak_calls": 45,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 153,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b84c69afd0f827a1fb9f75e6"
+    },
+    {
+      "index": 51,
+      "kind": "mixed",
+      "skip_cycles": 81264640,
+      "cycles": 1048576,
+      "caller_calls": 59,
+      "counts": {
+        "core_rows": 1048517,
+        "keccak_calls": 58,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 155,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-9b7c4de80c7854d4c48f91f0"
+    },
+    {
+      "index": 52,
+      "kind": "mixed",
+      "skip_cycles": 82313216,
+      "cycles": 1048576,
+      "caller_calls": 26,
+      "counts": {
+        "core_rows": 1048550,
+        "keccak_calls": 26,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 157,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-000dd0632f4cd08a41cbeaa0"
+    },
+    {
+      "index": 53,
+      "kind": "mixed",
+      "skip_cycles": 83361792,
+      "cycles": 1048576,
+      "caller_calls": 56,
+      "counts": {
+        "core_rows": 1048520,
+        "keccak_calls": 56,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 159,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-0b4f8213edc22e27a94c95f9"
+    },
+    {
+      "index": 54,
+      "kind": "mixed",
+      "skip_cycles": 84410368,
+      "cycles": 1048576,
+      "caller_calls": 41,
+      "counts": {
+        "core_rows": 1048535,
+        "keccak_calls": 41,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 161,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-5d2e37da0284dd4631269183"
+    },
+    {
+      "index": 55,
+      "kind": "mixed",
+      "skip_cycles": 85458944,
+      "cycles": 1048576,
+      "caller_calls": 54,
+      "counts": {
+        "core_rows": 1048522,
+        "keccak_calls": 54,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 163,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-6f8a45bd1dd92b96d6226878"
+    },
+    {
+      "index": 56,
+      "kind": "mixed",
+      "skip_cycles": 86507520,
+      "cycles": 1048576,
+      "caller_calls": 45,
+      "counts": {
+        "core_rows": 1048531,
+        "keccak_calls": 45,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 165,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-1146c8afe9583f5fabe8a107"
+    },
+    {
+      "index": 57,
+      "kind": "mixed",
+      "skip_cycles": 87556096,
+      "cycles": 1048576,
+      "caller_calls": 38,
+      "counts": {
+        "core_rows": 1048538,
+        "keccak_calls": 38,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 167,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-cc29d6548cdac82b2e332d61"
+    },
+    {
+      "index": 58,
+      "kind": "mixed",
+      "skip_cycles": 88604672,
+      "cycles": 1048576,
+      "caller_calls": 39,
+      "counts": {
+        "core_rows": 1048537,
+        "keccak_calls": 39,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 169,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-d4441e30922538192c092f89"
+    },
+    {
+      "index": 59,
+      "kind": "mixed",
+      "skip_cycles": 89653248,
+      "cycles": 1048576,
+      "caller_calls": 26,
+      "counts": {
+        "core_rows": 1048550,
+        "keccak_calls": 26,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 171,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-ea1c2d0792d8a81fe0f9d444"
+    },
+    {
+      "index": 60,
+      "kind": "mixed",
+      "skip_cycles": 90701824,
+      "cycles": 1048576,
+      "caller_calls": 49,
+      "counts": {
+        "core_rows": 1048527,
+        "keccak_calls": 49,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 173,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-15dc424b9aa31179f3730831"
+    },
+    {
+      "index": 61,
+      "kind": "mixed",
+      "skip_cycles": 91750400,
+      "cycles": 1048576,
+      "caller_calls": 15,
+      "counts": {
+        "core_rows": 1048561,
+        "keccak_calls": 15,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 175,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-2e5a5ad9c601f56e4a58d648"
+    },
+    {
+      "index": 62,
+      "kind": "mixed",
+      "skip_cycles": 92798976,
+      "cycles": 1048576,
+      "caller_calls": 38,
+      "counts": {
+        "core_rows": 1048538,
+        "keccak_calls": 38,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 177,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-5d11cfa884fa8060cc4dc34d"
+    },
+    {
+      "index": 63,
+      "kind": "mixed",
+      "skip_cycles": 93847552,
+      "cycles": 1048576,
+      "caller_calls": 39,
+      "counts": {
+        "core_rows": 1048537,
+        "keccak_calls": 39,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 179,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-7f1097a27c78f925ea9bbee8"
+    },
+    {
+      "index": 64,
+      "kind": "mixed",
+      "skip_cycles": 94896128,
+      "cycles": 1048576,
+      "caller_calls": 32,
+      "counts": {
+        "core_rows": 1048544,
+        "keccak_calls": 32,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 181,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-bcca94728134a4147a5639ce"
+    },
+    {
+      "index": 65,
+      "kind": "mixed",
+      "skip_cycles": 95944704,
+      "cycles": 1048576,
+      "caller_calls": 21,
+      "counts": {
+        "core_rows": 1048555,
+        "keccak_calls": 21,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 183,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f39251e35edd604f76129cad"
+    },
+    {
+      "index": 66,
+      "kind": "mixed",
+      "skip_cycles": 96993280,
+      "cycles": 1048576,
+      "caller_calls": 59,
+      "counts": {
+        "core_rows": 1048517,
+        "keccak_calls": 59,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 185,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e3cf89daffdade68f3ea0e09"
+    },
+    {
+      "index": 67,
+      "kind": "mixed",
+      "skip_cycles": 98041856,
+      "cycles": 1048576,
+      "caller_calls": 38,
+      "counts": {
+        "core_rows": 1048538,
+        "keccak_calls": 38,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 187,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-253abb5f7b1e6affc1df4995"
+    },
+    {
+      "index": 68,
+      "kind": "mixed",
+      "skip_cycles": 99090432,
+      "cycles": 1048576,
+      "caller_calls": 21,
+      "counts": {
+        "core_rows": 1048555,
+        "keccak_calls": 21,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 189,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e57656881510d1c9a08e99e6"
+    },
+    {
+      "index": 69,
+      "kind": "mixed",
+      "skip_cycles": 100139008,
+      "cycles": 1048576,
+      "caller_calls": 42,
+      "counts": {
+        "core_rows": 1048534,
+        "keccak_calls": 42,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 191,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-847fb6e0f558769d24d9a5ec"
+    },
+    {
+      "index": 70,
+      "kind": "mixed",
+      "skip_cycles": 101187584,
+      "cycles": 1048576,
+      "caller_calls": 31,
+      "counts": {
+        "core_rows": 1048545,
+        "keccak_calls": 30,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 193,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a64ffb7a8d9215f162011b60"
+    },
+    {
+      "index": 71,
+      "kind": "mixed",
+      "skip_cycles": 102236160,
+      "cycles": 1048576,
+      "caller_calls": 66,
+      "counts": {
+        "core_rows": 1048510,
+        "keccak_calls": 65,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 195,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-bd66a37e46805b1937885d75"
+    },
+    {
+      "index": 72,
+      "kind": "mixed",
+      "skip_cycles": 103284736,
+      "cycles": 1048576,
+      "caller_calls": 47,
+      "counts": {
+        "core_rows": 1048529,
+        "keccak_calls": 47,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 197,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-937516640cf1df24101d620a"
+    },
+    {
+      "index": 73,
+      "kind": "mixed",
+      "skip_cycles": 104333312,
+      "cycles": 1048576,
+      "caller_calls": 48,
+      "counts": {
+        "core_rows": 1048528,
+        "keccak_calls": 47,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 199,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-20231dffbde01d9dcb7fa19f"
+    },
+    {
+      "index": 74,
+      "kind": "mixed",
+      "skip_cycles": 105381888,
+      "cycles": 1048576,
+      "caller_calls": 53,
+      "counts": {
+        "core_rows": 1048523,
+        "keccak_calls": 52,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 201,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a448355507ca2d617c7ec05a"
+    },
+    {
+      "index": 75,
+      "kind": "mixed",
+      "skip_cycles": 106430464,
+      "cycles": 1048576,
+      "caller_calls": 79,
+      "counts": {
+        "core_rows": 1048497,
+        "keccak_calls": 77,
+        "recovery_calls": 2,
+        "sha_calls": 0
+      },
+      "census_first": 203,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-8bc21dd7a267632a74294b48"
+    },
+    {
+      "index": 76,
+      "kind": "mixed",
+      "skip_cycles": 107479040,
+      "cycles": 1048576,
+      "caller_calls": 50,
+      "counts": {
+        "core_rows": 1048526,
+        "keccak_calls": 50,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 205,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e66220d1ecab90dab4cfd86e"
+    },
+    {
+      "index": 77,
+      "kind": "mixed",
+      "skip_cycles": 108527616,
+      "cycles": 1048576,
+      "caller_calls": 31,
+      "counts": {
+        "core_rows": 1048545,
+        "keccak_calls": 31,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 207,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-498e8a3c5c89134d8caf9406"
+    },
+    {
+      "index": 78,
+      "kind": "mixed",
+      "skip_cycles": 109576192,
+      "cycles": 1048576,
+      "caller_calls": 44,
+      "counts": {
+        "core_rows": 1048532,
+        "keccak_calls": 44,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 209,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-3e2327d13d45ba56498fd09a"
+    },
+    {
+      "index": 79,
+      "kind": "mixed",
+      "skip_cycles": 110624768,
+      "cycles": 1048576,
+      "caller_calls": 32,
+      "counts": {
+        "core_rows": 1048544,
+        "keccak_calls": 32,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 211,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-27957f51d7090669007fdca0"
+    },
+    {
+      "index": 80,
+      "kind": "mixed",
+      "skip_cycles": 111673344,
+      "cycles": 1048576,
+      "caller_calls": 36,
+      "counts": {
+        "core_rows": 1048540,
+        "keccak_calls": 36,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 213,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-dfb1894cd073d3db45a6b506"
+    },
+    {
+      "index": 81,
+      "kind": "mixed",
+      "skip_cycles": 112721920,
+      "cycles": 1048576,
+      "caller_calls": 63,
+      "counts": {
+        "core_rows": 1048513,
+        "keccak_calls": 63,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 215,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b16c232f2bc8c1d4e32ee9cf"
+    },
+    {
+      "index": 82,
+      "kind": "mixed",
+      "skip_cycles": 113770496,
+      "cycles": 1048576,
+      "caller_calls": 24,
+      "counts": {
+        "core_rows": 1048552,
+        "keccak_calls": 23,
+        "recovery_calls": 1,
+        "sha_calls": 0
+      },
+      "census_first": 217,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-46c5703c5a7bc74846fdb429"
+    },
+    {
+      "index": 83,
+      "kind": "mixed",
+      "skip_cycles": 114819072,
+      "cycles": 1048576,
+      "caller_calls": 55,
+      "counts": {
+        "core_rows": 1048521,
+        "keccak_calls": 53,
+        "recovery_calls": 2,
+        "sha_calls": 0
+      },
+      "census_first": 219,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-7d2b23d2c16001187dee5851"
+    },
+    {
+      "index": 84,
+      "kind": "mixed",
+      "skip_cycles": 115867648,
+      "cycles": 1048576,
+      "caller_calls": 57,
+      "counts": {
+        "core_rows": 1048519,
+        "keccak_calls": 57,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 221,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f88a56a61505776b2e660ca4"
+    },
+    {
+      "index": 85,
+      "kind": "mixed",
+      "skip_cycles": 116916224,
+      "cycles": 1048576,
+      "caller_calls": 33,
+      "counts": {
+        "core_rows": 1048543,
+        "keccak_calls": 33,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 223,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-70afd0db8a686b9841af55a4"
+    },
+    {
+      "index": 86,
+      "kind": "mixed",
+      "skip_cycles": 117964800,
+      "cycles": 1048576,
+      "caller_calls": 43,
+      "counts": {
+        "core_rows": 1048533,
+        "keccak_calls": 43,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 225,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-aec648909d3a2ed24c86dbf4"
+    },
+    {
+      "index": 87,
+      "kind": "mixed",
+      "skip_cycles": 119013376,
+      "cycles": 1048576,
+      "caller_calls": 41,
+      "counts": {
+        "core_rows": 1048535,
+        "keccak_calls": 41,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 227,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-21e8aaa22dcffc941f6c3058"
+    },
+    {
+      "index": 88,
+      "kind": "mixed",
+      "skip_cycles": 120061952,
+      "cycles": 1048576,
+      "caller_calls": 38,
+      "counts": {
+        "core_rows": 1048538,
+        "keccak_calls": 38,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 229,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b1f108a23a5aec6400d530b9"
+    },
+    {
+      "index": 89,
+      "kind": "mixed",
+      "skip_cycles": 121110528,
+      "cycles": 1048576,
+      "caller_calls": 26,
+      "counts": {
+        "core_rows": 1048550,
+        "keccak_calls": 26,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 231,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-ffb31f1c4642d9931f955856"
+    },
+    {
+      "index": 90,
+      "kind": "mixed",
+      "skip_cycles": 122159104,
+      "cycles": 1048576,
+      "caller_calls": 37,
+      "counts": {
+        "core_rows": 1048539,
+        "keccak_calls": 37,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 233,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-14be778e7c68a0222a739113"
+    },
+    {
+      "index": 91,
+      "kind": "mixed",
+      "skip_cycles": 123207680,
+      "cycles": 1048576,
+      "caller_calls": 46,
+      "counts": {
+        "core_rows": 1048530,
+        "keccak_calls": 46,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 235,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-95bfffd9a178e006f08c452d"
+    },
+    {
+      "index": 92,
+      "kind": "mixed",
+      "skip_cycles": 124256256,
+      "cycles": 1048576,
+      "caller_calls": 40,
+      "counts": {
+        "core_rows": 1048536,
+        "keccak_calls": 40,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 237,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a23eef0e3ba45103ff30e5cc"
+    },
+    {
+      "index": 93,
+      "kind": "native",
+      "skip_cycles": 125304832,
+      "cycles": 524288,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 524288,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 239,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-05146a4dad4d024f4216b295"
+    },
+    {
+      "index": 94,
+      "kind": "mixed",
+      "skip_cycles": 125829120,
+      "cycles": 1048576,
+      "caller_calls": 1053,
+      "counts": {
+        "core_rows": 1047523,
+        "keccak_calls": 1053,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 240,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b4e51aa4694362769e6f7dc1"
+    },
+    {
+      "index": 95,
+      "kind": "mixed",
+      "skip_cycles": 126877696,
+      "cycles": 1048576,
+      "caller_calls": 751,
+      "counts": {
+        "core_rows": 1047825,
+        "keccak_calls": 751,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 242,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e412f11eb321f71727d1572c"
+    },
+    {
+      "index": 96,
+      "kind": "mixed",
+      "skip_cycles": 127926272,
+      "cycles": 1048576,
+      "caller_calls": 683,
+      "counts": {
+        "core_rows": 1047893,
+        "keccak_calls": 683,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 244,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-67c9eaa150009394fe03895b"
+    },
+    {
+      "index": 97,
+      "kind": "mixed",
+      "skip_cycles": 128974848,
+      "cycles": 1048576,
+      "caller_calls": 708,
+      "counts": {
+        "core_rows": 1047868,
+        "keccak_calls": 708,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 246,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-a8cc651d50a3167f57a48657"
+    },
+    {
+      "index": 98,
+      "kind": "mixed",
+      "skip_cycles": 130023424,
+      "cycles": 1048576,
+      "caller_calls": 572,
+      "counts": {
+        "core_rows": 1048004,
+        "keccak_calls": 572,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 248,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-2eeeea9e8fa6875ca4655f7f"
+    },
+    {
+      "index": 99,
+      "kind": "mixed",
+      "skip_cycles": 131072000,
+      "cycles": 1048576,
+      "caller_calls": 647,
+      "counts": {
+        "core_rows": 1047929,
+        "keccak_calls": 647,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 250,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-64824b96ab38f8809ebdc34d"
+    },
+    {
+      "index": 100,
+      "kind": "mixed",
+      "skip_cycles": 132120576,
+      "cycles": 1048576,
+      "caller_calls": 625,
+      "counts": {
+        "core_rows": 1047951,
+        "keccak_calls": 625,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 252,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-b88ae64098a18398c5b41d2a"
+    },
+    {
+      "index": 101,
+      "kind": "mixed",
+      "skip_cycles": 133169152,
+      "cycles": 1048576,
+      "caller_calls": 693,
+      "counts": {
+        "core_rows": 1047883,
+        "keccak_calls": 693,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 254,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-e661ed422479b24d209ee5b3"
+    },
+    {
+      "index": 102,
+      "kind": "mixed",
+      "skip_cycles": 134217728,
+      "cycles": 1048576,
+      "caller_calls": 786,
+      "counts": {
+        "core_rows": 1047790,
+        "keccak_calls": 786,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 256,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-410a6bf67f9c25421a382778"
+    },
+    {
+      "index": 103,
+      "kind": "mixed",
+      "skip_cycles": 135266304,
+      "cycles": 1048576,
+      "caller_calls": 773,
+      "counts": {
+        "core_rows": 1047803,
+        "keccak_calls": 773,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 258,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-25cd681774abf0ff1c53e9ae"
+    },
+    {
+      "index": 104,
+      "kind": "mixed",
+      "skip_cycles": 136314880,
+      "cycles": 1048576,
+      "caller_calls": 777,
+      "counts": {
+        "core_rows": 1047799,
+        "keccak_calls": 777,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 260,
+      "census_count": 2,
+      "initial": false,
+      "terminal": false,
+      "id": "window-028a190ff87cdba74704a786"
+    },
+    {
+      "index": 105,
+      "kind": "mixed",
+      "skip_cycles": 137363456,
+      "cycles": 524288,
+      "caller_calls": 309,
+      "counts": {
+        "core_rows": 523979,
+        "keccak_calls": 309,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 262,
+      "census_count": 1,
+      "initial": false,
+      "terminal": false,
+      "id": "window-f0c3a2663d6894ad824ac2d3"
+    },
+    {
+      "index": 106,
+      "kind": "native",
+      "skip_cycles": 137887744,
+      "cycles": 1327112,
+      "caller_calls": 0,
+      "counts": {
+        "core_rows": 1327112,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0
+      },
+      "census_first": 263,
+      "census_count": 3,
+      "initial": false,
+      "terminal": true,
+      "id": "window-7a13a7a398f9fb149bca76b9"
+    }
+  ],
+  "folds": [
+    {
+      "level": 0,
+      "children": [
+        "window-9ccd797fafcdcd0e0bf3e309",
+        "window-55e1cea2ec8e857cc7c0277e"
+      ],
+      "skip_cycles": 0,
+      "cycles": 16777216,
+      "id": "fold-88e2a5bfbf902c60287de833"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-4f26a686a099c301ec55748e",
+        "window-ac27cd38062a0ccd6fe1de44"
+      ],
+      "skip_cycles": 16777216,
+      "cycles": 7864320,
+      "id": "fold-4bed135380e8f62da2c87808"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-bff88c8f314d4f430df5bc80",
+        "window-88d08bf3493e88fa0f532054"
+      ],
+      "skip_cycles": 24641536,
+      "cycles": 2097152,
+      "id": "fold-46f9a3b53c4c3f67edaa4c2b"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-869e858d2b6ff7dcbde64416",
+        "window-f26be8930fbaf4db84069d25"
+      ],
+      "skip_cycles": 26738688,
+      "cycles": 2097152,
+      "id": "fold-9f582e67519f296d1c53a9d5"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-cfd82d231a849bf7504fb325",
+        "window-96db4b8220aafdf76d38ccfa"
+      ],
+      "skip_cycles": 28835840,
+      "cycles": 1572864,
+      "id": "fold-c6f93b9c78138a68dbb0160f"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-5c3a15221378a0add32242a3",
+        "window-b9a5662240584b320b60b671"
+      ],
+      "skip_cycles": 30408704,
+      "cycles": 12058624,
+      "id": "fold-b2834dd4ac853e6d22261573"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-8a08a1df1f875c2dc5b38464",
+        "window-0cd8b1059ae336303f0e65f7"
+      ],
+      "skip_cycles": 42467328,
+      "cycles": 1048576,
+      "id": "fold-20181829e71ea2cbb1474b69"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-39146716234f2a655609826a",
+        "window-be0c2119538cada02d4ad527"
+      ],
+      "skip_cycles": 43515904,
+      "cycles": 1572864,
+      "id": "fold-6ca60f20857474556d6aabf2"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-013964148b9a8242e1428884",
+        "window-d4658b66cb53db4a0b1dd48f"
+      ],
+      "skip_cycles": 45088768,
+      "cycles": 2097152,
+      "id": "fold-82fe4a8e10d9f248ba067bfe"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-e975d2f1aaa7178b1acc917d",
+        "window-7b1b7e59cd865f01bf5796fd"
+      ],
+      "skip_cycles": 47185920,
+      "cycles": 2097152,
+      "id": "fold-451216e5029fed3a99421296"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-8d05dabefc90c4ef055496dc",
+        "window-c4745304bb3cb062a3741cee"
+      ],
+      "skip_cycles": 49283072,
+      "cycles": 3145728,
+      "id": "fold-b81892c723387e6ed3e606b9"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-6875a4d5d414e0664ec91ab5",
+        "window-a5a45aeba207b872675838ef"
+      ],
+      "skip_cycles": 52428800,
+      "cycles": 1572864,
+      "id": "fold-7094d46cb10019d1bbd32f56"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-1787b36999134e880067b587",
+        "window-ed06a17d226858953cd0c8e6"
+      ],
+      "skip_cycles": 54001664,
+      "cycles": 2097152,
+      "id": "fold-3daabfec26d5ecafc0d948a8"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-1a4965f5309528316a2ef119",
+        "window-80001623f54b320b2ab9e4cd"
+      ],
+      "skip_cycles": 56098816,
+      "cycles": 2097152,
+      "id": "fold-e2b26150a32d4163b0d0470b"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-689b20c5f162d30f4653fc89",
+        "window-e7fd24b263f935b17d9ace5f"
+      ],
+      "skip_cycles": 58195968,
+      "cycles": 2097152,
+      "id": "fold-23e9860efdcd4980b2dd4b2e"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-57c35cd4246a05a51dc1c8b1",
+        "window-a8e552cbf98237854d7ef29c"
+      ],
+      "skip_cycles": 60293120,
+      "cycles": 2097152,
+      "id": "fold-e3dd3f4a35c240601e606726"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-f5a555da4a959712c56ae6ce",
+        "window-dc7afd8e36549140fbe25d56"
+      ],
+      "skip_cycles": 62390272,
+      "cycles": 2097152,
+      "id": "fold-62baa2b51ab6d201747921e7"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-80b3acd366fe5c3ee097cb38",
+        "window-6e477d04a244d609ccc350d3"
+      ],
+      "skip_cycles": 64487424,
+      "cycles": 2097152,
+      "id": "fold-69158de86b660af20656568b"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-9d5dd44f555b4b5fee115e9e",
+        "window-bee8fbc595f8bbeb42a9d4f2"
+      ],
+      "skip_cycles": 66584576,
+      "cycles": 2097152,
+      "id": "fold-a148a954a373eea5f5b2c628"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-037a6c026f0ac5a637eeecb6",
+        "window-d96546c0521e6a9f800f03ab"
+      ],
+      "skip_cycles": 68681728,
+      "cycles": 2097152,
+      "id": "fold-c6e8204039e0abefc8d35750"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-4547a8978807a93b8a62b154",
+        "window-dc516f1139bb71215b477a09"
+      ],
+      "skip_cycles": 70778880,
+      "cycles": 1572864,
+      "id": "fold-ba1074f3032ff615a5e8dd91"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-01d4e2dad977a48d760f0487",
+        "window-57579d09e753d934cb26cb3d"
+      ],
+      "skip_cycles": 72351744,
+      "cycles": 1572864,
+      "id": "fold-e2ad5708cf9319fffbb6504b"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-a18e8867bda8b5069db9ddad",
+        "window-f7433ecbb83d5c136b9df285"
+      ],
+      "skip_cycles": 73924608,
+      "cycles": 2097152,
+      "id": "fold-ee330a81ce807746914a5f24"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-861cc8b5d914f93f74ca58c7",
+        "window-9d07e8df4b5e9d19b0ab2439"
+      ],
+      "skip_cycles": 76021760,
+      "cycles": 2097152,
+      "id": "fold-9bfb8bde480eba9691daf200"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-9803baaa48cea8a5e613587a",
+        "window-135fbc4d51c87501659b6680"
+      ],
+      "skip_cycles": 78118912,
+      "cycles": 2097152,
+      "id": "fold-ef36fdb6debbf72e98ff6db3"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-b84c69afd0f827a1fb9f75e6",
+        "window-9b7c4de80c7854d4c48f91f0"
+      ],
+      "skip_cycles": 80216064,
+      "cycles": 2097152,
+      "id": "fold-19f4679190a767acf9f3415a"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-000dd0632f4cd08a41cbeaa0",
+        "window-0b4f8213edc22e27a94c95f9"
+      ],
+      "skip_cycles": 82313216,
+      "cycles": 2097152,
+      "id": "fold-ba5cded43279f7f59c3256cf"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-5d2e37da0284dd4631269183",
+        "window-6f8a45bd1dd92b96d6226878"
+      ],
+      "skip_cycles": 84410368,
+      "cycles": 2097152,
+      "id": "fold-6c8e4d5e6fe514acf42ff886"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-1146c8afe9583f5fabe8a107",
+        "window-cc29d6548cdac82b2e332d61"
+      ],
+      "skip_cycles": 86507520,
+      "cycles": 2097152,
+      "id": "fold-46dd0dbf01a63baaafc629f1"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-d4441e30922538192c092f89",
+        "window-ea1c2d0792d8a81fe0f9d444"
+      ],
+      "skip_cycles": 88604672,
+      "cycles": 2097152,
+      "id": "fold-ff18c201e51ceec717e5c427"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-15dc424b9aa31179f3730831",
+        "window-2e5a5ad9c601f56e4a58d648"
+      ],
+      "skip_cycles": 90701824,
+      "cycles": 2097152,
+      "id": "fold-8068c5995f73f23db878392d"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-5d11cfa884fa8060cc4dc34d",
+        "window-7f1097a27c78f925ea9bbee8"
+      ],
+      "skip_cycles": 92798976,
+      "cycles": 2097152,
+      "id": "fold-5c3cfa95cd0e780ed20344eb"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-bcca94728134a4147a5639ce",
+        "window-f39251e35edd604f76129cad"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 2097152,
+      "id": "fold-ec006d2e58ec81ef029d3286"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-e3cf89daffdade68f3ea0e09",
+        "window-253abb5f7b1e6affc1df4995"
+      ],
+      "skip_cycles": 96993280,
+      "cycles": 2097152,
+      "id": "fold-2ea3cdae92ad6aea9bf58fa3"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-e57656881510d1c9a08e99e6",
+        "window-847fb6e0f558769d24d9a5ec"
+      ],
+      "skip_cycles": 99090432,
+      "cycles": 2097152,
+      "id": "fold-f13998a3163ace9128276d83"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-a64ffb7a8d9215f162011b60",
+        "window-bd66a37e46805b1937885d75"
+      ],
+      "skip_cycles": 101187584,
+      "cycles": 2097152,
+      "id": "fold-dbfdf8a566e35b0bacf96a93"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-937516640cf1df24101d620a",
+        "window-20231dffbde01d9dcb7fa19f"
+      ],
+      "skip_cycles": 103284736,
+      "cycles": 2097152,
+      "id": "fold-e2f533028389a000bd151951"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-a448355507ca2d617c7ec05a",
+        "window-8bc21dd7a267632a74294b48"
+      ],
+      "skip_cycles": 105381888,
+      "cycles": 2097152,
+      "id": "fold-365589287649f4688a961bf9"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-e66220d1ecab90dab4cfd86e",
+        "window-498e8a3c5c89134d8caf9406"
+      ],
+      "skip_cycles": 107479040,
+      "cycles": 2097152,
+      "id": "fold-05895af163069d2d8da888d5"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-3e2327d13d45ba56498fd09a",
+        "window-27957f51d7090669007fdca0"
+      ],
+      "skip_cycles": 109576192,
+      "cycles": 2097152,
+      "id": "fold-2784758e646dd7557ba8c5a0"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-dfb1894cd073d3db45a6b506",
+        "window-b16c232f2bc8c1d4e32ee9cf"
+      ],
+      "skip_cycles": 111673344,
+      "cycles": 2097152,
+      "id": "fold-b8820840f9830bf8df565fdb"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-46c5703c5a7bc74846fdb429",
+        "window-7d2b23d2c16001187dee5851"
+      ],
+      "skip_cycles": 113770496,
+      "cycles": 2097152,
+      "id": "fold-2f1b656f1e160542a749c8ed"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-f88a56a61505776b2e660ca4",
+        "window-70afd0db8a686b9841af55a4"
+      ],
+      "skip_cycles": 115867648,
+      "cycles": 2097152,
+      "id": "fold-e2dcca3c3df29a15506d3cae"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-aec648909d3a2ed24c86dbf4",
+        "window-21e8aaa22dcffc941f6c3058"
+      ],
+      "skip_cycles": 117964800,
+      "cycles": 2097152,
+      "id": "fold-c56783cc01f1eef403f36b9a"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-b1f108a23a5aec6400d530b9",
+        "window-ffb31f1c4642d9931f955856"
+      ],
+      "skip_cycles": 120061952,
+      "cycles": 2097152,
+      "id": "fold-08b9e2eb89ba2cef63800f8c"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-14be778e7c68a0222a739113",
+        "window-95bfffd9a178e006f08c452d"
+      ],
+      "skip_cycles": 122159104,
+      "cycles": 2097152,
+      "id": "fold-e39d2d58b8b15c3182f4cc47"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-a23eef0e3ba45103ff30e5cc",
+        "window-05146a4dad4d024f4216b295"
+      ],
+      "skip_cycles": 124256256,
+      "cycles": 1572864,
+      "id": "fold-bc5e4b36ad0a58a1a8b8dae0"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-b4e51aa4694362769e6f7dc1",
+        "window-e412f11eb321f71727d1572c"
+      ],
+      "skip_cycles": 125829120,
+      "cycles": 2097152,
+      "id": "fold-da305d13fe70418a958e38d0"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-67c9eaa150009394fe03895b",
+        "window-a8cc651d50a3167f57a48657"
+      ],
+      "skip_cycles": 127926272,
+      "cycles": 2097152,
+      "id": "fold-39108833bcc8af488094ac00"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-2eeeea9e8fa6875ca4655f7f",
+        "window-64824b96ab38f8809ebdc34d"
+      ],
+      "skip_cycles": 130023424,
+      "cycles": 2097152,
+      "id": "fold-194ad58f79f1cee51f7d716d"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-b88ae64098a18398c5b41d2a",
+        "window-e661ed422479b24d209ee5b3"
+      ],
+      "skip_cycles": 132120576,
+      "cycles": 2097152,
+      "id": "fold-22d4251ba08ebeedd89ef610"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-410a6bf67f9c25421a382778",
+        "window-25cd681774abf0ff1c53e9ae"
+      ],
+      "skip_cycles": 134217728,
+      "cycles": 2097152,
+      "id": "fold-4cabedda0edb9548eba179ac"
+    },
+    {
+      "level": 0,
+      "children": [
+        "window-028a190ff87cdba74704a786",
+        "window-f0c3a2663d6894ad824ac2d3"
+      ],
+      "skip_cycles": 136314880,
+      "cycles": 1572864,
+      "id": "fold-325f81005de18fc2f77fa016"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-88e2a5bfbf902c60287de833",
+        "fold-4bed135380e8f62da2c87808"
+      ],
+      "skip_cycles": 0,
+      "cycles": 24641536,
+      "id": "fold-51d496c436f7fcefc73a82f4"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-46f9a3b53c4c3f67edaa4c2b",
+        "fold-9f582e67519f296d1c53a9d5"
+      ],
+      "skip_cycles": 24641536,
+      "cycles": 4194304,
+      "id": "fold-2e9a71e942639cdb81b01cb7"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-c6f93b9c78138a68dbb0160f",
+        "fold-b2834dd4ac853e6d22261573"
+      ],
+      "skip_cycles": 28835840,
+      "cycles": 13631488,
+      "id": "fold-19de0dd8c6ead75440240668"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-20181829e71ea2cbb1474b69",
+        "fold-6ca60f20857474556d6aabf2"
+      ],
+      "skip_cycles": 42467328,
+      "cycles": 2621440,
+      "id": "fold-0a2a6ae15cc270e5bcad9ef6"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-82fe4a8e10d9f248ba067bfe",
+        "fold-451216e5029fed3a99421296"
+      ],
+      "skip_cycles": 45088768,
+      "cycles": 4194304,
+      "id": "fold-6e42461695591c3779c4b933"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-b81892c723387e6ed3e606b9",
+        "fold-7094d46cb10019d1bbd32f56"
+      ],
+      "skip_cycles": 49283072,
+      "cycles": 4718592,
+      "id": "fold-6dc20d2a9134238a7276da80"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-3daabfec26d5ecafc0d948a8",
+        "fold-e2b26150a32d4163b0d0470b"
+      ],
+      "skip_cycles": 54001664,
+      "cycles": 4194304,
+      "id": "fold-cb0c2ecc359703bc2c917226"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-23e9860efdcd4980b2dd4b2e",
+        "fold-e3dd3f4a35c240601e606726"
+      ],
+      "skip_cycles": 58195968,
+      "cycles": 4194304,
+      "id": "fold-22316a93eef84416713c44e7"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-62baa2b51ab6d201747921e7",
+        "fold-69158de86b660af20656568b"
+      ],
+      "skip_cycles": 62390272,
+      "cycles": 4194304,
+      "id": "fold-f3a9c9a491615539a7726323"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-a148a954a373eea5f5b2c628",
+        "fold-c6e8204039e0abefc8d35750"
+      ],
+      "skip_cycles": 66584576,
+      "cycles": 4194304,
+      "id": "fold-69b41d328d6a06b1da64048f"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-ba1074f3032ff615a5e8dd91",
+        "fold-e2ad5708cf9319fffbb6504b"
+      ],
+      "skip_cycles": 70778880,
+      "cycles": 3145728,
+      "id": "fold-55176477441e037c1b551a4c"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-ee330a81ce807746914a5f24",
+        "fold-9bfb8bde480eba9691daf200"
+      ],
+      "skip_cycles": 73924608,
+      "cycles": 4194304,
+      "id": "fold-08de3ffab8e30685d0b83927"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-ef36fdb6debbf72e98ff6db3",
+        "fold-19f4679190a767acf9f3415a"
+      ],
+      "skip_cycles": 78118912,
+      "cycles": 4194304,
+      "id": "fold-ac0a1488ca07307c0f92b2c8"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-ba5cded43279f7f59c3256cf",
+        "fold-6c8e4d5e6fe514acf42ff886"
+      ],
+      "skip_cycles": 82313216,
+      "cycles": 4194304,
+      "id": "fold-d04cb7aeb68561bb71f27da5"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-46dd0dbf01a63baaafc629f1",
+        "fold-ff18c201e51ceec717e5c427"
+      ],
+      "skip_cycles": 86507520,
+      "cycles": 4194304,
+      "id": "fold-435fd7dedf633dfe0af9ee91"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-8068c5995f73f23db878392d",
+        "fold-5c3cfa95cd0e780ed20344eb"
+      ],
+      "skip_cycles": 90701824,
+      "cycles": 4194304,
+      "id": "fold-05804b8f3359450159dd3b11"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-ec006d2e58ec81ef029d3286",
+        "fold-2ea3cdae92ad6aea9bf58fa3"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 4194304,
+      "id": "fold-c921e21479794bf8d4f76b44"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-f13998a3163ace9128276d83",
+        "fold-dbfdf8a566e35b0bacf96a93"
+      ],
+      "skip_cycles": 99090432,
+      "cycles": 4194304,
+      "id": "fold-32b03d97a7fd258ecf964f59"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-e2f533028389a000bd151951",
+        "fold-365589287649f4688a961bf9"
+      ],
+      "skip_cycles": 103284736,
+      "cycles": 4194304,
+      "id": "fold-7341c067eb397f58282cbeee"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-05895af163069d2d8da888d5",
+        "fold-2784758e646dd7557ba8c5a0"
+      ],
+      "skip_cycles": 107479040,
+      "cycles": 4194304,
+      "id": "fold-c930ce577f8ba9192c6b05ba"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-b8820840f9830bf8df565fdb",
+        "fold-2f1b656f1e160542a749c8ed"
+      ],
+      "skip_cycles": 111673344,
+      "cycles": 4194304,
+      "id": "fold-db2c30273f826bfe8cada112"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-e2dcca3c3df29a15506d3cae",
+        "fold-c56783cc01f1eef403f36b9a"
+      ],
+      "skip_cycles": 115867648,
+      "cycles": 4194304,
+      "id": "fold-21a46ea29c094940b0d1471a"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-08b9e2eb89ba2cef63800f8c",
+        "fold-e39d2d58b8b15c3182f4cc47"
+      ],
+      "skip_cycles": 120061952,
+      "cycles": 4194304,
+      "id": "fold-08beb5aea152124fdc03b68b"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-bc5e4b36ad0a58a1a8b8dae0",
+        "fold-da305d13fe70418a958e38d0"
+      ],
+      "skip_cycles": 124256256,
+      "cycles": 3670016,
+      "id": "fold-93e4d51cc5d9cc4b74e216d7"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-39108833bcc8af488094ac00",
+        "fold-194ad58f79f1cee51f7d716d"
+      ],
+      "skip_cycles": 127926272,
+      "cycles": 4194304,
+      "id": "fold-bb2d0a6ce691938b585b0eef"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-22d4251ba08ebeedd89ef610",
+        "fold-4cabedda0edb9548eba179ac"
+      ],
+      "skip_cycles": 132120576,
+      "cycles": 4194304,
+      "id": "fold-e2bb32c5708a645869cc8ede"
+    },
+    {
+      "level": 1,
+      "children": [
+        "fold-325f81005de18fc2f77fa016",
+        "window-7a13a7a398f9fb149bca76b9"
+      ],
+      "skip_cycles": 136314880,
+      "cycles": 2899976,
+      "id": "fold-d7f26605a8be2ed8c0789205"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-51d496c436f7fcefc73a82f4",
+        "fold-2e9a71e942639cdb81b01cb7"
+      ],
+      "skip_cycles": 0,
+      "cycles": 28835840,
+      "id": "fold-254e08b8c23c589f46017d6f"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-19de0dd8c6ead75440240668",
+        "fold-0a2a6ae15cc270e5bcad9ef6"
+      ],
+      "skip_cycles": 28835840,
+      "cycles": 16252928,
+      "id": "fold-ad54713ff1ba1ff3451fb9c7"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-6e42461695591c3779c4b933",
+        "fold-6dc20d2a9134238a7276da80"
+      ],
+      "skip_cycles": 45088768,
+      "cycles": 8912896,
+      "id": "fold-90aba5e173f243b047e4e06a"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-cb0c2ecc359703bc2c917226",
+        "fold-22316a93eef84416713c44e7"
+      ],
+      "skip_cycles": 54001664,
+      "cycles": 8388608,
+      "id": "fold-8952966c9526c1d23f693928"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-f3a9c9a491615539a7726323",
+        "fold-69b41d328d6a06b1da64048f"
+      ],
+      "skip_cycles": 62390272,
+      "cycles": 8388608,
+      "id": "fold-8bf8be23d6bd624d2da85236"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-55176477441e037c1b551a4c",
+        "fold-08de3ffab8e30685d0b83927"
+      ],
+      "skip_cycles": 70778880,
+      "cycles": 7340032,
+      "id": "fold-324952f78e70e1e7f3537b6b"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-ac0a1488ca07307c0f92b2c8",
+        "fold-d04cb7aeb68561bb71f27da5"
+      ],
+      "skip_cycles": 78118912,
+      "cycles": 8388608,
+      "id": "fold-3d1b31f1c612c993818da3e0"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-435fd7dedf633dfe0af9ee91",
+        "fold-05804b8f3359450159dd3b11"
+      ],
+      "skip_cycles": 86507520,
+      "cycles": 8388608,
+      "id": "fold-233fc01e16b6c6ece9a51116"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-c921e21479794bf8d4f76b44",
+        "fold-32b03d97a7fd258ecf964f59"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 8388608,
+      "id": "fold-a9e696f7502825aacd3d1c1c"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-7341c067eb397f58282cbeee",
+        "fold-c930ce577f8ba9192c6b05ba"
+      ],
+      "skip_cycles": 103284736,
+      "cycles": 8388608,
+      "id": "fold-d85b2b962ee4b694d9d64694"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-db2c30273f826bfe8cada112",
+        "fold-21a46ea29c094940b0d1471a"
+      ],
+      "skip_cycles": 111673344,
+      "cycles": 8388608,
+      "id": "fold-6eec7c80aaab6471378ae38f"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-08beb5aea152124fdc03b68b",
+        "fold-93e4d51cc5d9cc4b74e216d7"
+      ],
+      "skip_cycles": 120061952,
+      "cycles": 7864320,
+      "id": "fold-0cdcb48d8658481f90b17abc"
+    },
+    {
+      "level": 2,
+      "children": [
+        "fold-bb2d0a6ce691938b585b0eef",
+        "fold-e2bb32c5708a645869cc8ede"
+      ],
+      "skip_cycles": 127926272,
+      "cycles": 8388608,
+      "id": "fold-979907fc428d53f7b2babd09"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-254e08b8c23c589f46017d6f",
+        "fold-ad54713ff1ba1ff3451fb9c7"
+      ],
+      "skip_cycles": 0,
+      "cycles": 45088768,
+      "id": "fold-b52955b040b05f4dff96a13d"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-90aba5e173f243b047e4e06a",
+        "fold-8952966c9526c1d23f693928"
+      ],
+      "skip_cycles": 45088768,
+      "cycles": 17301504,
+      "id": "fold-13678d36a6d0b47d31f4c683"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-8bf8be23d6bd624d2da85236",
+        "fold-324952f78e70e1e7f3537b6b"
+      ],
+      "skip_cycles": 62390272,
+      "cycles": 15728640,
+      "id": "fold-12a980a0226b52e6f362a246"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-3d1b31f1c612c993818da3e0",
+        "fold-233fc01e16b6c6ece9a51116"
+      ],
+      "skip_cycles": 78118912,
+      "cycles": 16777216,
+      "id": "fold-fdf948e62a39850de728bab1"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-a9e696f7502825aacd3d1c1c",
+        "fold-d85b2b962ee4b694d9d64694"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 16777216,
+      "id": "fold-b3169bd5faee7b953c885815"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-6eec7c80aaab6471378ae38f",
+        "fold-0cdcb48d8658481f90b17abc"
+      ],
+      "skip_cycles": 111673344,
+      "cycles": 16252928,
+      "id": "fold-f5230ab21cb9903558025477"
+    },
+    {
+      "level": 3,
+      "children": [
+        "fold-979907fc428d53f7b2babd09",
+        "fold-d7f26605a8be2ed8c0789205"
+      ],
+      "skip_cycles": 127926272,
+      "cycles": 11288584,
+      "id": "fold-b61c50a5325238dc3ac39a10"
+    },
+    {
+      "level": 4,
+      "children": [
+        "fold-b52955b040b05f4dff96a13d",
+        "fold-13678d36a6d0b47d31f4c683"
+      ],
+      "skip_cycles": 0,
+      "cycles": 62390272,
+      "id": "fold-185e5499d7ca35ab00d7b91a"
+    },
+    {
+      "level": 4,
+      "children": [
+        "fold-12a980a0226b52e6f362a246",
+        "fold-fdf948e62a39850de728bab1"
+      ],
+      "skip_cycles": 62390272,
+      "cycles": 32505856,
+      "id": "fold-02fe50f696935a383ca1c24f"
+    },
+    {
+      "level": 4,
+      "children": [
+        "fold-b3169bd5faee7b953c885815",
+        "fold-f5230ab21cb9903558025477"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 33030144,
+      "id": "fold-d3a8e70c48e5de126cb9fc29"
+    },
+    {
+      "level": 5,
+      "children": [
+        "fold-185e5499d7ca35ab00d7b91a",
+        "fold-02fe50f696935a383ca1c24f"
+      ],
+      "skip_cycles": 0,
+      "cycles": 94896128,
+      "id": "fold-d9a2c51f43394d2fa04cc190"
+    },
+    {
+      "level": 5,
+      "children": [
+        "fold-d3a8e70c48e5de126cb9fc29",
+        "fold-b61c50a5325238dc3ac39a10"
+      ],
+      "skip_cycles": 94896128,
+      "cycles": 44318728,
+      "id": "fold-1257106f94992c4009352fd8"
+    },
+    {
+      "level": 6,
+      "children": [
+        "fold-d9a2c51f43394d2fa04cc190",
+        "fold-1257106f94992c4009352fd8"
+      ],
+      "skip_cycles": 0,
+      "cycles": 139214856,
+      "id": "fold-0742232482d09240872162c9"
+    }
+  ],
+  "root_id": "fold-0742232482d09240872162c9"
+}

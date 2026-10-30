@@ -1,0 +1,24 @@
+{
+  "name": "native-access",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_90,code=sm_90",
+    "--threads",
+    "4",
+    "-I/workspace/stwo-final/src/backends/cuda/native",
+    "/workspace/final-evidence/native-objects/sources/native-access.cu",
+    "-o",
+    "/workspace/final-evidence/native-objects/native-access.o"
+  ],
+  "exit_code": 0,
+  "seconds": 61.38121962547302,
+  "source_sha256": "54c6d6b6aaa45ad4b214e21a650ea595db068f1a6d2120fbb0670fe8b882af3e",
+  "object_sha256": "be64a2c355cd5932604d1b09efcf22d7bc6a77014d50ec8f7d3a029c02a2c361"
+}

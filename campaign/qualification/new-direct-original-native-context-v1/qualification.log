@@ -1,0 +1,80 @@
+1/22 riscv_circuit_originals_test_root.test_0...OK
+2/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved admission and original material q70...SKIP
+3/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved complete circuit q70 QM31 and NoValue...SKIP
+4/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals combined window q70...SKIP
+5/22 integrations.circuit_cpu.riscv_originals_v1.native_qualification.test.RISC direct original native initial middle terminal and depth two q70...RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=11469642
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=11540227
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11625140
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11625254
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=13099754
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=13610469
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13703157
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13703784
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=23042115
+RISC_ORIGINAL_NATIVE_JOIN index=0 cycles=4 initial=true terminal=false variables=23050100
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=11337711
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=11408296
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11493209
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11493323
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12967823
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=13478538
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13571226
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13571853
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22910184
+RISC_ORIGINAL_NATIVE_JOIN index=1 cycles=2 initial=false terminal=false variables=22917974
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=11104897
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=11175482
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11260395
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11260509
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12735009
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=13245724
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13338404
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13339031
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22677362
+RISC_ORIGINAL_NATIVE_JOIN index=2 cycles=1 initial=false terminal=true variables=22684973
+OK
+6/22 frontends.riscv.runner.elf_loader.test.loadElf rejects non-RISC-V...OK
+7/22 frontends.riscv.air.component.test.RISC-V component keeps legacy memory default and selects split V3 explicitly...OK
+8/22 frontends.riscv.air.semantic_eval.test_0...OK
+9/22 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+10/22 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+11/22 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+12/22 frontends.riscv.air.lookups.tables.mod.test_0...OK
+13/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit lowering preserves canonical field inverse and zero anchors...OK
+14/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit registry rejects nominated outer equation authorities...OK
+15/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit liveness preserves input ordinals and direct zero anchors...OK
+16/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit liveness retains nonzero guards of unused inverse results...OK
+17/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC Blake3 digest and full XOF satisfy canonical gate multiplicities...OK
+18/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC complete native-parent circuit wrapper genuine q70 fresh bytes and hostile material...SKIP
+19/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC valid PCS and public supply invalid typed AIR rejected by actual complete leaf q70...SKIP
+20/22 frontends.riscv.runner.mod.test_0...OK
+21/22 frontends.riscv.runner.decode.test_0...OK
+22/22 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+17 passed; 5 skipped; 0 failed.
+        2.37 real         2.13 user         0.35 sys
+          1153286144  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              410846  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  10  voluntary context switches
+                1358  involuntary context switches
+         43001723196  instructions retired
+         11195992490  cycles elapsed
+          1149928936  peak memory footprint

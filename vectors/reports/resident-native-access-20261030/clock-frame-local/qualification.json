@@ -1,0 +1,64 @@
+{
+  "schema": "stwo-resident-native-clock-frame-local-v1",
+  "status": "local-qualified-device-unqualified",
+  "tests": {
+    "finite_detached_bundle_and_composition_plan": 13,
+    "linux_producer_constructors_and_runtime_semantic": true,
+    "generated_cpp_pure_helpers_syntax": true,
+    "original_clock_frame_and_fixed_selector_differential": 4
+  },
+  "raw_input_contract": "24 words per original retirement followed by5 words per clock update: space,address,clock,previous_clock,value; no CPU proof column upload",
+  "split_depths": [
+    1,
+    2,
+    3
+  ],
+  "device_compiled": false,
+  "device_executed": false,
+  "whole_native_resident_proof": false,
+  "limitations": [
+    "new clock/frame kernels and native placement/producer integration require actual CUDA qualification",
+    "local-zero custody remains rejected pending explicit admitted recipe integration",
+    "raw execution logs are witness inputs; this is not GPU execution of the RISC-V runner"
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_infra_witness_v1.zig",
+      "sha256": "432d692d8d1c8ec7a63ed2b9d47924690af520f1b6341862f4bbdeaf74a8e5b7"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_producer_v1.zig",
+      "sha256": "c8ed8e9fb4bdd41f659e7c8c05d29a401ea7439b3aeae6a58d03343877220600"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_composition_v1.zig",
+      "sha256": "73628c737148034aa763fc411be770296a6404c9639c95ed1b75bbd2574e9549"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_ingress_v1.zig",
+      "sha256": "7e577d08d317cf3484e8620b637de8a71b5bc67cb08210aa2e315099c66c35c1"
+    },
+    {
+      "path": "src/frontends/riscv/infra_trace/clock_update.zig",
+      "sha256": "6db197e11d8b58b4c81789302393e8a8c1b279550c20062209fbf8f34d111d77"
+    },
+    {
+      "path": "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig",
+      "sha256": "75b7d6f1e254324f458ec853be1ef25c1f0cd75b4664003023603a197a38d847"
+    },
+    {
+      "path": "scripts/riscv_native_infra_witness_cuda.py",
+      "sha256": "3ce5a485a7b9fd33fc8aaf80012da00f72ea4cd8f76d34c6f579111a5b60ebae"
+    },
+    {
+      "path": "src/riscv_cuda_native_infra_witness_export_v1.zig",
+      "sha256": "12825b506b851390414550381f6cb4e6d735a137dce1400c184563d5822a8c1e"
+    },
+    {
+      "path": "src/riscv_cuda_native_infra_witness_test_root.zig",
+      "sha256": "a7b2b36b6ff9eca20903309bfcecd3c4e7351568b7e581728258688b42bf7a08"
+    }
+  ],
+  "fixed_sources": "device-generated exact original is_first/active selectors and Frame fixed ones; no CPU fixed column input",
+  "generated_cuda_sha256": "716d00137922e2cfc52a7e1cc5f3cfd215988bc666aff695deb5a0e14b53be43"
+}

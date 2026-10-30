@@ -256,7 +256,7 @@ fn bindInteraction(
     };
 }
 
-fn bindQuotient(binder: anytype, fri_log: u32) !Quotient {
+pub fn bindQuotient(binder: anytype, fri_log: u32) !Quotient {
     const partial = try binder.words(.quotient_partial_coordinates, 0);
     if (partial.len % 4 != 0) return error.InvalidCircuitResidentQuotient;
     const partial_rows = partial.len / 4;
@@ -292,7 +292,7 @@ fn bindQuotient(binder: anytype, fri_log: u32) !Quotient {
     };
 }
 
-fn bindFri(binder: anytype, plan: *const fri.Plan) !shared.resident_views.Fri {
+pub fn bindFri(binder: anytype, plan: *const fri.Plan) !shared.resident_views.Fri {
     var layers: [shared.resident_views.max_fri_layers]shared.resident_views.FriLayer = undefined;
     for (plan.layers, 0..) |layer, index| {
         const coordinates = if (index == 0) try binder.words(.quotient_result, 0) else try binder.words(.fri_coordinates, index);
@@ -313,7 +313,7 @@ fn bindFri(binder: anytype, plan: *const fri.Plan) !shared.resident_views.Fri {
     };
 }
 
-fn bindDecommit(binder: anytype) !shared.resident_views.Decommit {
+pub fn bindDecommit(binder: anytype) !shared.resident_views.Decommit {
     const counts = try binder.words(.decommit_counts, 0);
     return .{
         .raw_queries = try binder.words(.decommit_raw, 0),

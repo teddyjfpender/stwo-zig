@@ -1,0 +1,18 @@
+1/11 block_v7_caller_active_test_root.test_0...OK
+2/11 prover.tests.block_v7_caller_active_test.test.active caller SHA-only genuine proof...V7_ACTIVE_CALLER kind=sha original_main=6732 main=525 original_interaction=7508 interaction=824 fresh_verified=true internal_closed=true global_closed=false
+OK
+3/11 prover.tests.block_v7_caller_active_test.test.active caller Keccak-only genuine proof...V7_ACTIVE_CALLER kind=keccak original_main=6732 main=2731 original_interaction=7508 interaction=4996 fresh_verified=true internal_closed=true global_closed=false
+OK
+4/11 prover.tests.block_v7_caller_active_test.test.active caller recovery-only genuine proof...V7_ACTIVE_CALLER kind=recovery original_main=6732 main=4526 original_interaction=7508 interaction=3336 fresh_verified=true internal_closed=true global_closed=false
+OK
+5/11 prover.tests.block_v7_caller_active_test.test.active caller SHA Keccak mixed genuine proof...V7_ACTIVE_CALLER_DIFFERENTIAL global_exports_exact=true original_oods=49804 active_oods=32547
+V7_ACTIVE_CALLER kind=mixed original_main=6732 main=2731 original_interaction=7508 interaction=4996 fresh_verified=true internal_closed=true global_closed=false
+OK
+6/11 prover.tests.block_v7_caller_active_test.test.active caller recovery Keccak mixed genuine proof...V7_ACTIVE_CALLER kind=recovery_keccak original_main=6732 main=6732 original_interaction=7508 interaction=7508 fresh_verified=true internal_closed=true global_closed=false
+OK
+7/11 runner.mod.test_0...OK
+8/11 runner.decode.test_0...OK
+9/11 prover.block_execution_external_trace_v2.test_0...OK
+10/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/11 prover.block_v5_committed_trace_column_v1.test_0...OK
+All 11 tests passed.

@@ -547,6 +547,12 @@ def compile_aot(
     jobs: list[tuple[list[str], Path]] = []
     entries: list[dict[str, object]] = []
     unit_keys: dict[Path, str] = {}
+    # Several authenticated entry points may live in the same generated
+    # library. Compile each exact source/flags/header/SM closure once, then
+    # retain a separately named artifact for every manifest entry. Cold-cache
+    # builds must not queue the same NVCC translation unit dozens of times.
+    unit_sources: dict[str, Path] = {}
+    unit_aliases: list[tuple[Path, Path]] = []
     shared_root = os.environ.get("STWO_CUDA_ARCHIVE_CACHE")
     unit_cache = Path(shared_root).resolve() / "cubin-units-v1" if shared_root else None
     imported = cubin_import.Bundle(config.aot_cubin_import_root) if config.aot_cubin_import_root is not None else None
@@ -580,7 +586,11 @@ def compile_aot(
                     raise BuildError("imported cubin changed while staging")
                 reused = True
             if not reused and not destination.is_file():
-                jobs.append((command, destination))
+                if unit_key in unit_sources:
+                    unit_aliases.append((unit_sources[unit_key], destination))
+                else:
+                    jobs.append((command, destination))
+            unit_sources.setdefault(unit_key, destination)
             entries.append(
                 {
                     "cache_key": int(str(metadata["cache_key"]), 16),
@@ -599,12 +609,16 @@ def compile_aot(
     else:
         pending = {destination for _, destination in jobs}
         for destination, unit_key in unit_keys.items():
-            if destination not in pending:
+            if destination not in pending and destination.is_file():
                 aot_cache.publish(unit_cache, unit_key, destination)
         # Publish each successful unit immediately: one slow or failed compiler
         # must not discard all completed work from an interrupted GPU session.
         run_parallel(jobs, config.toolchain.jobs,
                      on_complete=lambda destination: aot_cache.publish(unit_cache, unit_keys[destination], destination))
+    for source, destination in unit_aliases:
+        if not source.is_file() or source.stat().st_size == 0:
+            raise BuildError("deduplicated CUDA compilation produced no cubin")
+        aot_cache.atomic_copy(source, destination)
     entries.sort(key=lambda entry: (entry["cache_key"], entry["sm"]))
     return entries
 

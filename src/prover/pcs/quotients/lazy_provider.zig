@@ -33,7 +33,6 @@ const QuotientOpsError = column_geometry.QuotientOpsError;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 const MIN_POSITIONS_PER_WORKER = execution.min_positions_per_worker;
 const COMPACT_GROUP_MIN_SHIFT: std.math.Log2Int(usize) = 2;
-const MAX_COMPACT_GROUP_BYTES: usize = 1024 * 1024;
 
 /// Number of rows processed per chunk in lazy quotient evaluation.
 /// Chosen to amortize function-call overhead while keeping chunk memory bounded.
@@ -57,6 +56,7 @@ pub const InputMode = enum {
 ///      Each call fills the 4 coordinate buffers for a chunk of the output column.
 ///   3. `deinit()` — release internal scratch memory.
 pub const LazyQuotientProvider = struct {
+    numerical_executor: ?*const @import("../quotient_executor.zig").Executor = null,
     prepared: planning.PreparedContext,
     input_mode: InputMode,
     combined_views: []CombinedContributionView,
@@ -86,7 +86,9 @@ pub const LazyQuotientProvider = struct {
     pub const initWithMode = InitOps.initWithMode;
     pub const initForBackend = InitOps.initForBackend;
     pub const initForBackendWithWorkRecorder = InitOps.initForBackendWithWorkRecorder;
+    pub const initForBackendWithWorkRecorderAndGroupBudget = InitOps.initForBackendWithWorkRecorderAndGroupBudget;
     pub const initForBackendWithMode = InitOps.initForBackendWithMode;
+    pub const initForBackendWithModeAndGroupBudget = InitOps.initForBackendWithModeAndGroupBudget;
 
     /// Borrows the proof-session residency set for the lifetime of this
     /// provider. The caller retains ownership of both the slice and handles.

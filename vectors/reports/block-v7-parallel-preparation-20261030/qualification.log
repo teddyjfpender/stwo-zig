@@ -1,0 +1,75 @@
+1/13 recursion.block_v7_preparation_jobs_test_v1.test.parallel preparation canonical slots deterministic failure and nested fallback...OK
+2/13 recursion.block_v7_preparation_jobs_test_v1.test.parallel preparation submission metadata allocation cleanup...OK
+3/13 recursion.block_v7_parallel_preparation_test_v1.test.parallel preparation genuine families canonical cold live rows and rejection cleanup...v7_authentic_calls segments=2 cycles=12 sha=1 keccak=1 ram_events=77 joint_memory=true compact_lookup=true original_proofs=6 source_closure=verified recursion=unqualified security=q8_pow0
+BLAKE3_NATIVE_QUERY_FUSION groups=424 removed_scalars=1696 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2059 fma=1942 arithmetic_rows=13824 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=392 removed_scalars=1568 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1867 fma=1583 arithmetic_rows=12376 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=10696 removed_scalars=42784 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=156094 fma=112453 arithmetic_rows=755241 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32 removed_scalars=128 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=264 removed_scalars=1056 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=657 fma=3835 arithmetic_rows=12354 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=480 removed_scalars=1920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2950 fma=7122 arithmetic_rows=26539 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=392 removed_scalars=1568 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1867 fma=1583 arithmetic_rows=12376 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=424 removed_scalars=1696 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2059 fma=1942 arithmetic_rows=13824 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32 removed_scalars=128 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=10696 removed_scalars=42784 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=156094 fma=112453 arithmetic_rows=755241 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=264 removed_scalars=1056 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=657 fma=3835 arithmetic_rows=12354 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=480 removed_scalars=1920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2950 fma=7122 arithmetic_rows=26539 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32 removed_scalars=128 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=392 removed_scalars=1568 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1867 fma=1583 arithmetic_rows=12376 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=424 removed_scalars=1696 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2059 fma=1942 arithmetic_rows=13824 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=10696 removed_scalars=42784 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=156094 fma=112453 arithmetic_rows=755241 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=264 removed_scalars=1056 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=657 fma=3835 arithmetic_rows=12354 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=480 removed_scalars=1920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2950 fma=7122 arithmetic_rows=26539 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=392 removed_scalars=1568 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1867 fma=1583 arithmetic_rows=12376 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=424 removed_scalars=1696 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2059 fma=1942 arithmetic_rows=13824 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=10696 removed_scalars=42784 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=156094 fma=112453 arithmetic_rows=755241 direct_columns=true
+OK
+4/13 runner.mod.test_0...OK
+5/13 runner.decode.test_0...OK
+6/13 air.lookups.tables.mod.test_0...OK
+7/13 air.memory_commitment.poseidon2_air.test_0...OK
+8/13 air.semantic_eval.test_0...OK
+9/13 prover.block_execution_external_trace_v2.test_0...OK
+10/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/13 prover.block_v5_committed_trace_column_v1.test_0...OK
+12/13 air.lookups.tables.source_ingest.test_0...OK
+13/13 diagnostics.mod.test_0...OK
+All 13 tests passed.
+      133.47 real       225.06 user        29.94 sys
+         10145529856  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             8688184  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+             1812112  involuntary context switches
+       3743317061241  instructions retired
+       1089425683715  cycles elapsed
+         10139756168  peak memory footprint

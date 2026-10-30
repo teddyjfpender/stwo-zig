@@ -1,0 +1,17 @@
+1/11 block_v7_multi_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_multi_union_test.test.v7 multi union genuine contiguous original STARK with all-provider oracle...V7_MULTI_MEMORY_INPUTS coefficient_backed=true input_lde_cells_retained=0 charged_live_bytes=22945512
+V7_MULTI_FIXED_TOTAL unavailable=coefficient_backed_inputs_no_census_reconstruction
+V7_MULTI_PRODUCER_MEMORY consumed=true .{ .memory_allocator_live_after_preparation = 27967861, .memory_allocator_live_after_commit = 27968069, .memory_allocator_live_after_consumption = 10170064, .union_allocator_live_before_proof = 260732978 }
+V7_MULTI_UNION profile=csp_q70_pow26 cycles=20495 cut=10248 native_windows=2 callers=1 no_access=0 physical_frames=0 original_starks=1 oracle_starks=6 trees=18 estimated_trace_pcs_bytes=187993904 setup_ns=397381208 prove_ns=3548658042 oracle_prove_verify_ns=8905625667 fresh_verify_ns=1356883458 proof_bytes=6016333 charged_proof_peak_bytes=311708246 all_producer_and_oracle_owners_destroyed=true exact_physical_claims=true global_closure=true timing=shared_host_diagnostic
+V7_MULTI_UNION_WIRE bytes=6063212 windows=2 callers=1 trees=18 decode_peak_bytes=20237934 fresh_verification=true hostile_framing=true
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

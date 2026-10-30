@@ -1,0 +1,10 @@
+1/9 block_v8_native_endpoint_components_test_root.test_0...OK
+2/9 prover.tests.block_v8_native_endpoint_components_test.test.v8 native direct AIR and endpoint projections prove actual RAM with no WORD sidecar...OK
+3/9 runner.mod.test_0...OK
+4/9 runner.decode.test_0...OK
+5/9 air.memory_commitment.poseidon2_air.test_0...OK
+6/9 air.semantic_eval.test_0...OK
+7/9 air.lookups.tables.source_ingest.test_0...OK
+8/9 diagnostics.mod.test_0...OK
+9/9 air.lookups.tables.mod.test_0...OK
+All 9 tests passed.

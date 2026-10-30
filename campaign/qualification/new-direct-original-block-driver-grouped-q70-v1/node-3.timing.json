@@ -1,0 +1,17 @@
+{
+  "index": 3,
+  "role": 2,
+  "source_window": null,
+  "children": [
+    0,
+    1
+  ],
+  "read_ns": 527959,
+  "produce_ns": 36610306625,
+  "fresh_verify_ns": 0,
+  "whole_ns": 36610834584,
+  "proof_bytes": 981000,
+  "proof_sha256": "5d7733be954b43baded225875e33f606b2d74571f543375ad0082fef0ff28072",
+  "original_phases": null,
+  "produce_scope": "binary circuit fold including its internal fresh verification"
+}

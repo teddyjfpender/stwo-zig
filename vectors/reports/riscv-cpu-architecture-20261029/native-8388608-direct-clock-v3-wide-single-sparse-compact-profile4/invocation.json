@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-direct-ram-clock-v3-wide-source-invocation-v4",
+  "binary": "/tmp/stwo-b8-direct-clock-v3-wide-compact-bench",
+  "binary_sha256": "e2073f6ec3addff46675d421496dced278cb936ad75881d6d41fc05d228dae4c",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 8388608
+  },
+  "native_profile": 4,
+  "cohort_cycles": 8388608,
+  "cohort_count": 1,
+  "batch_native_projections": false,
+  "workers": 8,
+  "budget_bytes": 51539607552,
+  "incoming_snapshot_id": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_snapshot_id": "57e9be55596fccccc29393f6d6c56b4bcf753cd527433b10fb178d1f171882a5"
+}

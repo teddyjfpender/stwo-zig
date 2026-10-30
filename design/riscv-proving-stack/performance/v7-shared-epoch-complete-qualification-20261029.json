@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "status": "passed",
+  "security": "diagnostic_q8_pow0",
+  "ethereum_block": false,
+  "canonical_security": false,
+  "timing_status": "diagnostic; concurrent compiler activity; not controlled A/B",
+  "log_sha256": "ac8e1a66e4e413b83e0e76a6a1726594152a3c970924060ac0498e8d390313be",
+  "binary_sha256": "e82e06c1933c99b7ea8f9d14eb29c7a016fc09430378edba31977912f3e74674",
+  "evidence_lines": [
+    "V7_COMPLETE phase=metadata elapsed_ns=243997750",
+    "V7_COMPLETE phase=cold_fixed begin=true",
+    "V7_COMPLETE phase=cold_fixed done=true elapsed_ns=8176339000",
+    "V7_COMPLETE phase=verifier_witness done=true elapsed_ns=15541410583",
+    "V7_COMPLETE phase=join begin=true",
+    "V7_COMPLETE phase=join_parity done=true elapsed_ns=1664607500 retained_bytes=1432408076",
+    "V7_COMPLETE phase=live_key_and_plan done=true elapsed_ns=2863226750",
+    "V7_COMPLETE phase=proof begin=true",
+    "V7_COMPLETE phase=proof done=true elapsed_ns=17640226000",
+    "V7_COMPLETE phase=fresh_verify done=true elapsed_ns=527349709",
+    "V7_COMPLETE_ROOT verified=true originals=6 segments=2 cycles=12 ram_events=77 fetches=13 proof_bytes=158707 shared_epoch=true originals_destroyed=true independent_key=true canonical_security=false ethereum_block=false",
+    "All 11 tests passed.",
+    "          6428721152  maximum resident set size",
+    "          6423142056  peak memory footprint"
+  ],
+  "source_state": "uncommitted development tree; binary hashes identify tested snapshots"
+}

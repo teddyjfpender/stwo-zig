@@ -25,17 +25,23 @@ const sha = @import("../air/guest_precompile/sha256_memory_caller.zig");
 pub const eval = @import("block_execution_sidecar_stark_eval_v2.zig");
 const v5_eval = @import("block_v5_opcode_sidecar_eval_v1.zig");
 const universal_elements = @import("../recursion/air/universal_challenges.zig").Elements;
+const leased_cache = @import("block_v7_leased_quotient_cache_v1.zig");
 const quotient_cache = @import("block_v5_quotient_column_cache_v1.zig");
 
 pub const Component = struct {
     /// Prover-only immutable main evaluations shared across access slots.
     /// Null on every verifier; never included in geometry or transcript.
     quotient_cache: ?*quotient_cache.Cache = null,
+    leased_quotient_cache: ?*leased_cache.Cache = null,
     family: opcode.OpcodeFamily,
     slot: usize,
     external_source: ?external.Descriptor = null,
     log_size: u32,
     base_clock: u64,
+    /// Explicit shared Keccak recipe only. Eight independently reconstructed
+    /// fixed byte columns replace the per-component constant frame. Null keeps
+    /// every existing sidecar's masks, equations and transcript unchanged.
+    fixed_clock_offset: ?usize = null,
     /// Exact native root column-log roster. The enclosing verifier must pin
     /// both roots to its freshly verified typed native execution proof.
     fixed_logs: []const u32,
@@ -66,6 +72,11 @@ pub const Component = struct {
     pub fn init(self: Self) !Self {
         if (self.v5_packed != null and self.v5_universal == null) return error.InvalidPackedExecutionSidecar;
         if (self.register_custody_mode > 1 or (self.register_custody_mode == 1 and self.v5_packed == null)) return error.MixedV5OpcodeMemoryScope;
+        if (self.fixed_clock_offset) |offset| {
+            const descriptor = self.external_source orelse return error.InvalidSharedKeccakClock;
+            if (descriptor.kind != .keccak or descriptor.slot == 0 or self.v5_packed == null or self.register_custody_mode != 1 or self.base_clock != 0 or offset > self.fixed_logs.len or self.fixed_logs.len - offset < 8) return error.InvalidSharedKeccakClock;
+            for (self.fixed_logs[offset..][0..8]) |log| if (log != self.log_size) return error.InvalidSharedKeccakClock;
+        }
         const main_count = if (self.external_source) |descriptor| descriptor.mainWidth() else opcode.nColumnsForFamily(self.family);
         if (self.log_size == 0 or self.log_size + 2 >= circle.M31_CIRCLE_LOG_ORDER or
             self.main_offset + main_count > self.main_logs.len or
@@ -160,6 +171,11 @@ pub const Component = struct {
         return components.MaskPoints.initOwned(try a.dupe([][]circle.CirclePointQM31, &.{ fixed, main, witness, interaction }));
     }
     pub fn preprocessedColumnIndices(self: *const Self, a: std.mem.Allocator) ![]usize {
+        if (self.fixed_clock_offset) |offset| {
+            const indices = try a.alloc(usize, 8);
+            for (indices, 0..) |*index, i| index.* = offset + i;
+            return indices;
+        }
         if (self.external_source) |descriptor| if (descriptor.kind == .sha) return a.dupe(usize, &.{descriptor.fixed_offset});
         // This component has no fixed-column identities. The native fixed
         // commitment is pinned by the verified execution proof; requesting
@@ -193,7 +209,12 @@ pub const Component = struct {
                 if (self.slot >= pairs.len) return error.InvalidExecutionSidecarSlot;
                 break :blk try @import("block_execution_access_bridge_v2.zig").rwPairForMode(Q, self.family, self.slot, pairs.items[self.slot], self.register_custody_mode);
             };
-            const current = try v5_eval.evaluatePair(self, pair, witness, interaction, previous);
+            const current = if (self.fixed_clock_offset) |offset| blk: {
+                if (offset > mask.items[0].len or mask.items[0].len - offset < 8) return error.InvalidExecutionSidecarMask;
+                var bytes: [8]Q = undefined;
+                for (&bytes, 0..) |*value, i| value.* = try pointAt(mask.items[0][offset + i], 0);
+                break :blk try v5_eval.evaluatePairWithClock(self, pair, witness, interaction, previous, bytes);
+            } else try v5_eval.evaluatePair(self, pair, witness, interaction, previous);
             @memcpy(residuals[0..current.len], &current);
         } else {
             var old_interaction: [eval.INTERACTION_COUNT]Q = undefined;
@@ -249,7 +270,21 @@ pub const Component = struct {
         // Packed v5 leases immutable native trees whose coefficients may be
         // released. Recover from the entire authenticated LDE, check its full
         // degree, and reuse the already-required quotient buffer.
+        const leases = try a.alloc(leased_cache.Lease, if (self.leased_quotient_cache != null) main_count else 0);
+        var lease_count: usize = 0;
+        defer {
+            for (leases[0..lease_count]) |*lease| lease.release();
+            a.free(leases);
+        }
         for (polys, values, 0..) |poly, *out, index| {
+            if (index < main_count) if (self.leased_quotient_cache) |cache| {
+                if (try cache.get(if (self.v5_packed != null) .packed_word else .retained, poly, self.log_size, eval_log, transform)) |lease| {
+                    leases[lease_count] = lease;
+                    lease_count += 1;
+                    out.* = lease.values;
+                    continue;
+                }
+            };
             if (index < main_count) if (self.quotient_cache) |cache| {
                 if (try cache.get(if (self.v5_packed != null) .packed_word else .retained, poly, self.log_size, eval_log, transform)) |shared| {
                     out.* = shared;

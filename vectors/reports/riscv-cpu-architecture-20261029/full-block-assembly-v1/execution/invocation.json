@@ -1,0 +1,10 @@
+{
+  "schema": "stwo-b8-one-pass-block-checkpoint-invocation-v1",
+  "proof_verified": false,
+  "scope": "preparation only; concurrent qualification processes, not isolated proving-time evidence",
+  "binary_sha256": "e17a4bc5a59350742ea1dc9fec8c2d406b9d94ed70daaeb45f591b8a8a0c8e5a",
+  "plan_sha256": "3d416bc1ac0bd1944aa202bfaf6150ad4150043f3ef4975670ca1fae2575ce68",
+  "started_unix_ns": 1793351989723811000,
+  "returncode": 0,
+  "finished_unix_ns": 1793352022734628000
+}

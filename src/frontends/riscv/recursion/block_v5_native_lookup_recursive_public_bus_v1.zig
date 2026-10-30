@@ -126,35 +126,44 @@ pub fn prepare(a: std.mem.Allocator, admitted: *const Admission.Prepared, captur
     defer planned.deinit();
     const state = planned.state.?;
     const transcript = &planned.transcript.?;
+    for (state.composition.sources, 0..) |source, node| if (source == .public_input) {
+        if (source.public_input >= 6 or !std.meta.eql(values.claims[source.public_input], state.composition.inputs[node])) return error.UntrustedLookupPublicInputs;
+    };
+    const wires = try collectFixedSchedule(bounded, &transcript.plan, &state.composition, @intCast(capture.proof.queries.raw.len));
+    errdefer bounded.free(wires);
+    const emitted = try planned.emit();
+    defer emitted.deinit();
+    var recursive = try emitted.finishReleasingRows();
+    errdefer recursive.deinit();
+    return .{ .allocator = bounded, .budget = budget, .recursive = recursive, .wires = wires, .values = values };
+}
+
+/// Capture-free schedule from the original transcript and equation DAG.
+pub fn collectFixedSchedule(a: std.mem.Allocator, plan: *const @import("air/blake3_transcript_plan.zig").Plan, composition: anytype, path_reads: u32) ![]Wire {
     var wires: std.ArrayList(Wire) = .empty;
-    errdefer wires.deinit(bounded);
+    errdefer wires.deinit(a);
     const root_circuit = @import("air/blake3_root_sources.zig").CIRCUIT;
-    const path_reads = std.math.cast(u32, capture.proof.queries.raw.len) orelse return error.InvalidLookupPublicSchedule;
-    for (0..2) |root| for (0..8) |coordinate| try append(bounded, &wires, .{ .circuit = root_circuit, .wire = @intCast(root * 8 + coordinate), .uses = path_reads, .source = if (root == 0) .fixed_root else .main_root, .coordinate = @intCast(coordinate) });
-    for (transcript.plan.fixed.root_reads) |receipt| {
+    for (0..2) |root| for (0..8) |coordinate| try append(a, &wires, .{ .circuit = root_circuit, .wire = @intCast(root * 8 + coordinate), .uses = path_reads, .source = if (root == 0) .fixed_root else .main_root, .coordinate = @intCast(coordinate) });
+    for (plan.fixed.root_reads) |receipt| {
         const source: Source = if (receipt.source.circuit == PUBLIC_CIRCUIT) switch (receipt.source.first_wire) {
             0 => .sealed,
             8 => .plan,
             else => return error.InvalidLookupPublicSchedule,
         } else if (receipt.source.circuit == root_circuit and receipt.source.first_wire < 16) (if (receipt.source.first_wire == 0) .fixed_root else .main_root) else continue;
         if (receipt.uses.len != 8) return error.InvalidLookupPublicSchedule;
-        for (receipt.uses, 0..) |uses, coordinate| try append(bounded, &wires, .{ .circuit = receipt.source.circuit, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = source, .coordinate = @intCast(coordinate) });
+        for (receipt.uses, 0..) |uses, coordinate| try append(a, &wires, .{ .circuit = receipt.source.circuit, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = source, .coordinate = @intCast(coordinate) });
     }
-    for (transcript.plan.fixed.payload_reads) |receipt| if (receipt.source.circuit == PUBLIC_CIRCUIT) {
+    for (plan.fixed.payload_reads) |receipt| if (receipt.source.circuit == PUBLIC_CIRCUIT) {
         if (receipt.source.first_wire < 16 or receipt.source.first_wire >= 40 or (receipt.source.first_wire - 16) % 4 != 0 or receipt.uses.len != 4) return error.InvalidLookupPublicSchedule;
-        for (receipt.uses, 0..) |uses, coordinate| try append(bounded, &wires, .{ .circuit = PUBLIC_CIRCUIT, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = .claim_words, .coordinate = receipt.source.first_wire - 16 + @as(u32, @intCast(coordinate)) });
+        for (receipt.uses, 0..) |uses, coordinate| try append(a, &wires, .{ .circuit = PUBLIC_CIRCUIT, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = .claim_words, .coordinate = receipt.source.first_wire - 16 + @as(u32, @intCast(coordinate)) });
     };
-    const counts = try bounded.alloc(u32, state.composition.circuit.nodes.len);
-    defer bounded.free(counts);
-    const uses = try @import("air/verifier_arithmetic_lowering.zig").computeUseCountsInto(state.composition.circuit.graph(), counts);
-    for (state.composition.sources, 0..) |source, node| if (source == .public_input) {
-        if (source.public_input >= 6 or !std.meta.eql(values.claims[source.public_input], state.composition.inputs[node])) return error.UntrustedLookupPublicInputs;
-        try append(bounded, &wires, .{ .circuit = 1500, .wire = @intCast(node), .uses = uses[node], .source = .claim, .coordinate = source.public_input });
+    const counts = try a.alloc(u32, composition.circuit.nodes.len);
+    defer a.free(counts);
+    const uses = try @import("air/verifier_arithmetic_lowering.zig").computeUseCountsInto(composition.circuit.graph(), counts);
+    for (composition.sources, 0..) |source, node| if (source == .public_input) {
+        if (source.public_input >= 6) return error.UntrustedLookupPublicInputs;
+        try append(a, &wires, .{ .circuit = 1500, .wire = @intCast(node), .uses = uses[node], .source = .claim, .coordinate = source.public_input });
     };
     _ = try scheduleDigest(wires.items);
-    const emitted = try planned.emit();
-    defer emitted.deinit();
-    var recursive = try emitted.finishReleasingRows();
-    errdefer recursive.deinit();
-    return .{ .allocator = bounded, .budget = budget, .recursive = recursive, .wires = try wires.toOwnedSlice(bounded), .values = values };
+    return wires.toOwnedSlice(a);
 }

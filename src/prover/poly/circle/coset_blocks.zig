@@ -178,10 +178,26 @@ pub const BlockJob = struct {
     transform: twiddles.TwiddleTree([]const M31),
     failure: ?anyerror = null,
 
+    pub const Timing = struct { fold_ns: u64 = 0, fft_ns: u64 = 0 };
     pub fn run(self: *BlockJob) void {
+        self.runMeasured(false, undefined);
+    }
+    /// Opt-in attribution of the identical block algorithm. Ordinary callers
+    /// compile away the clocks and keep the original allocation-free job.
+    pub fn runProfiled(self: *BlockJob, timing: *Timing) void {
+        self.runMeasured(true, timing);
+    }
+    inline fn runMeasured(self: *BlockJob, comptime profile: bool, timing: *Timing) void {
+        var clock = if (profile) std.time.Timer.start() catch null else {};
         foldToDomain(self.coefficients, self.weights, self.values);
+        if (profile) if (clock) |*timer| {
+            timing.fold_ns = timer.lap();
+        };
         poly.evaluateBuffersWithTwiddles(&.{self.values}, self.domain, self.transform) catch |err| {
             self.failure = err;
+        };
+        if (profile) if (clock) |*timer| {
+            timing.fft_ns = timer.lap();
         };
     }
 };

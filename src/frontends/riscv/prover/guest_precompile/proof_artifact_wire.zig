@@ -99,6 +99,7 @@ fn encodeStatementFor(comptime blake3: bool, writer: anytype, statement: *const 
     try statement.public_data.validate();
     if (blake3 and statement.x0_local_custody_version > @import("../../air/x0_local_custody_v1.zig").VERSION)
         return error.InvalidStatement;
+    if (statement.native_shard_version > base_statement.NATIVE_WIDE_VERSION or (statement.native_shard_version != 0 and (!blake3 or statement.x0_local_custody_version != 0))) return error.InvalidNativeShardProfile;
     try validateIoResources(&statement.public_data, limits);
 
     try writeInt(writer, u32, statement.n_components);
@@ -158,6 +159,10 @@ fn encodeStatementFor(comptime blake3: bool, writer: anytype, statement: *const 
     // statement bytes instead of disappearing during a fresh artifact decode.
     if (blake3 and statement.x0_local_custody_version != 0)
         try writeInt(writer, u32, statement.x0_local_custody_version);
+    if (blake3 and statement.native_shard_version != 0) {
+        try writeInt(writer, u32, base_statement.NATIVE_WIDE_TAG);
+        try writeInt(writer, u32, statement.native_shard_version);
+    }
 }
 
 pub fn decodeStatement(allocator: std.mem.Allocator, bytes: []const u8, limits: Limits) !OwnedStatement {
@@ -265,9 +270,14 @@ fn decodeStatementFor(comptime blake3: bool, allocator: std.mem.Allocator, bytes
     try public.validate();
     result.public_data = public;
     if (blake3 and cursor.position != bytes.len) {
-        result.x0_local_custody_version = try cursor.readInt(u32);
-        if (result.x0_local_custody_version != @import("../../air/x0_local_custody_v1.zig").VERSION)
-            return error.InvalidStatement;
+        const tag = try cursor.readInt(u32);
+        if (tag == base_statement.NATIVE_WIDE_TAG) {
+            result.native_shard_version = try cursor.readInt(u32);
+            if (result.native_shard_version != base_statement.NATIVE_WIDE_VERSION) return error.InvalidNativeShardProfile;
+        } else {
+            result.x0_local_custody_version = tag;
+            if (tag != @import("../../air/x0_local_custody_v1.zig").VERSION) return error.InvalidStatement;
+        }
     }
     try cursor.requireDone();
     return .{

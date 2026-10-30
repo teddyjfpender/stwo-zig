@@ -15,6 +15,13 @@ pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: 
 
 pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
     const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
+    var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_COEFFICIENT_OPENINGS")) std.time.Timer.start() catch null else null;
+    var setup_ns: u64 = 0;
+    var expansion_ns: u64 = 0;
+    var leaf_ns: u64 = 0;
+    var merkle_ns: u64 = 0;
+    var leaf_count: usize = 0;
+    defer if (timer) |*clock| std.debug.print("COEFFICIENT_OPENING mode={s} columns={d} queries={d} leaf_positions={d} log={d} setup_ns={d} expansion_ns={d} leaf_ns={d} merkle_ns={d} total_ns={d}\n", .{ if (native_expansion) "full" else "selected", tree.columns.len, queries.len, leaf_count, tree.commitment.maxLogSize(), setup_ns, expansion_ns, leaf_ns, merkle_ns, clock.read() });
     const max_log = tree.commitment.maxLogSize();
     const size = @as(usize, 1) << @intCast(max_log);
     for (queries, 0..) |query, i| {
@@ -37,6 +44,7 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
             for (start..start + block_size) |position| leaves.appendAssumeCapacity(position);
         }
     }
+    leaf_count = leaves.items.len;
     const hashers = try a.alloc(H, leaves.items.len);
     defer a.free(hashers);
     for (hashers) |*hasher| hasher.* = H.defaultWithInitialState();
@@ -66,8 +74,10 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
     defer twiddles.deinitM31(a, &transform);
     const pool = work_pool.getGlobalPool();
     const worker_count = if (pool) |active| active.workerCount() else 1;
+    if (timer) |*clock| setup_ns = clock.read();
     var next: usize = 0;
     while (next < indices.len) {
+        const wave_start = if (timer) |*clock| clock.read() else 0;
         var end = next;
         var bytes: usize = 0;
         while (end < indices.len and end - next < worker_count) : (end += 1) {
@@ -145,6 +155,8 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
             group.wait();
         } else jobs[0].run();
         for (jobs[0..initialized_jobs]) |job| if (job.failure) |failure| return failure;
+        const wave_end = if (timer) |*clock| clock.read() else 0;
+        expansion_ns += wave_end - wave_start;
         // FFTs write disjoint columns. Leaf absorption remains in canonical
         // column order after the bounded worker wave has joined.
         for (indices[next..end], jobs[0..initialized_jobs]) |index, job| {
@@ -155,6 +167,7 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
                 hasher.updateLeaf(job.values[at..][0..1]);
             }
         }
+        if (timer) |*clock| leaf_ns += clock.read() - wave_end;
         next = end;
     }
     const hashes = try a.alloc(H.Hash, hashers.len);
@@ -203,7 +216,10 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
             return out;
         }
     };
-    return traversal.decommit(H, Reader{ .commitment = tree.commitment, .positions = leaves.items, .hashes = hashes, .values = values }, a, queries, &.{});
+    const merkle_start = if (timer) |*clock| clock.read() else 0;
+    const result = try traversal.decommit(H, Reader{ .commitment = tree.commitment, .positions = leaves.items, .hashes = hashes, .values = values }, a, queries, &.{});
+    if (timer) |*clock| merkle_ns = clock.read() - merkle_start;
+    return result;
 }
 
 const Expansion = struct {

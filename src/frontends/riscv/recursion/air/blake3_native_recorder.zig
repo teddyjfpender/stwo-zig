@@ -132,6 +132,10 @@ pub const Recorder = struct {
         comptime if (count != 8) @compileError("explicit PAGE prefix contains eight roots");
         return self.skipRoots(count);
     }
+    pub fn skipCommittedRootsBounded(self: *Recorder, count: usize, commitments: usize) !void {
+        if (commitments < 4 or commitments > 257 or count < 2 or count >= commitments) return error.InvalidNativeBlake3Transcript;
+        return self.skipRoots(count);
+    }
     fn skipRoots(self: *Recorder, count: usize) !void {
         if (self.root_count != 0 or self.operations.items.len == 0) return error.InvalidNativeBlake3Transcript;
         self.root_count = count;
@@ -156,15 +160,45 @@ pub const Recorder = struct {
         self.append(.{ .pow = .{ .bits = bits, .nonce = nonce, .nonce_source = nonce_source } });
         return self.native.verifyPowNonce(bits, nonce);
     }
+    /// Exact two-block relation pair for protocols that call drawSecureFelt
+    /// twice. Distinct half roles prevent confusing it with a batched draw.
+    pub fn drawSeparateUniversalPair(self: *Recorder, relation: usize) !void {
+        try self.check();
+        if (!self.universal_relations or self.relation_count != relation or self.nonce_pending != null) return error.InvalidNativeBlake3Transcript;
+        for (0..2) |half| {
+            const words = self.native.drawSecureFelt().toM31Array() ++ @as([4]core.fields.m31.M31, @splat(core.fields.m31.M31.zero()));
+            self.append(.{ .secure = .{ .output = .{ .universal_half = .{ .relation = relation, .half = @intCast(half) } }, .attempts = 0, .consumption = .one, .values = words } });
+        }
+        self.relation_count = try std.math.add(usize, relation, 1);
+        try self.check();
+    }
     pub fn drawSecureFelts(self: *Recorder, a: std.mem.Allocator, count: usize) ![]Q {
-        return self.drawSecureFeltsWithExport(a, count, true);
+        return self.drawSecureFeltsWithExport(a, count, .exported);
     }
     /// Genuine repeated branch draws remain transcript operations, while the
     /// first independently authenticated branch keeps its output-slot custody.
     pub fn drawSecureFeltsUnexported(self: *Recorder, a: std.mem.Allocator, count: usize) ![]Q {
-        return self.drawSecureFeltsWithExport(a, count, false);
+        return self.drawSecureFeltsWithExport(a, count, .fixed);
     }
-    fn drawSecureFeltsWithExport(self: *Recorder, a: std.mem.Allocator, count: usize, comptime exported: bool) ![]Q {
+    /// Repeated draws whose values have no consumers still prove the complete
+    /// original draw/counter path, without capturing the values into fixed rows.
+    pub fn drawSecureFeltsDiscarded(self: *Recorder, a: std.mem.Allocator, count: usize) ![]Q {
+        return self.drawSecureFeltsWithExport(a, count, .discarded);
+    }
+    /// Advance a single-draw branch without exporting another challenge port.
+    /// The hash/counter operation remains part of the constrained transcript.
+    pub fn drawSecureFeltDiscarded(self: *Recorder) Q {
+        if (self.failure != null) return Q.zero();
+        if (self.nonce_pending != null) {
+            self.failure = error.InvalidNativeBlake3Transcript;
+            return Q.zero();
+        }
+        const value = self.native.drawSecureFelt();
+        self.append(.{ .secure = .{ .output = null, .discard_output = true, .attempts = 0, .consumption = .one, .values = value.toM31Array() ++ @as([4]core.fields.m31.M31, @splat(core.fields.m31.M31.zero())) } });
+        return value;
+    }
+    fn drawSecureFeltsWithExport(self: *Recorder, a: std.mem.Allocator, count: usize, comptime mode: enum { exported, fixed, discarded }) ![]Q {
+        const exported = mode == .exported;
         try self.check();
         if (count % 2 != 0 or self.nonce_pending != null) return error.InvalidNativeBlake3Transcript;
         const values = try self.native.drawSecureFelts(a, count);
@@ -172,7 +206,7 @@ pub const Recorder = struct {
         var i: usize = 0;
         while (i < count) : (i += 2) {
             const coordinates = values[i].toM31Array() ++ values[i + 1].toM31Array();
-            self.append(.{ .secure = .{ .output = if (!exported) null else if (self.universal_relations) .{ .universal = self.relation_count } else .{ .riscv_relation = self.relation_count }, .attempts = 0, .consumption = .two, .values = coordinates } });
+            self.append(.{ .secure = .{ .output = if (!exported) null else if (self.universal_relations) .{ .universal = self.relation_count } else .{ .riscv_relation = self.relation_count }, .discard_output = mode == .discarded, .attempts = 0, .consumption = .two, .values = coordinates } });
             if (exported) self.relation_count += 1;
         }
         try self.check();

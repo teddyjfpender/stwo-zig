@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "combined_receipt": "../block-v7-degree-bounded-native-20261030/receipt.json",
+  "sparse_initialization": true,
+  "actual_events_unchanged": true,
+  "forged_endpoint_independently_resealed": true,
+  "original_stark_freshly_verified_before_rejection": true,
+  "rejection": "UnclosedV7WindowState",
+  "full_execution_theorem": false
+}

@@ -114,6 +114,9 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
     comptime backend_merkle.assertMerkleOps(B, H);
     return struct {
         columns: []ColumnEvaluation,
+        /// Descriptors belong to this tree; values are held by backing_teardown.
+        /// Only initBorrowedPrecommitted may select this ownership mode.
+        borrowed_column_values: bool = false,
         /// Value buffers only; outer descriptors remain on the caller allocator.
         retained_column_allocator: ?std.mem.Allocator = null,
         coefficients: ?[]prover_circle.CircleCoefficients,
@@ -424,7 +427,10 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             // column arena. Release that view before returning its host
             // backing to the allocator.
             self.commitment.deinit(allocator);
-            if (self.streaming_column_backings) |backings| {
+            if (self.borrowed_column_values) {
+                std.debug.assert(self.streaming_column_backings == null and self.column_backing_buffers == null);
+                allocator.free(self.columns);
+            } else if (self.streaming_column_backings) |backings| {
                 allocator.free(self.columns);
                 for (backings) |backing| backing.deinit(allocator);
                 allocator.free(backings);
@@ -443,6 +449,23 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             }
             if (self.backing_teardown) |*token| token.deinit();
             self.* = undefined;
+        }
+
+        /// Own the descriptors and the new Merkle commitment, borrowing all
+        /// field buffers through an explicit lifetime token. The token runs
+        /// after the commitment and descriptors are destroyed. Coefficient
+        /// descriptors must themselves be borrowed, never shallow owned copies.
+        pub fn initBorrowedPrecommitted(
+            columns: []ColumnEvaluation,
+            coefficients: []prover_circle.CircleCoefficients,
+            commitment: B.MerkleTree(H),
+            lifetime: BackingTeardownToken,
+        ) Self {
+            std.debug.assert(columns.len == coefficients.len);
+            for (coefficients) |coefficient| std.debug.assert(!coefficient.owns_coeffs);
+            var result = initPrecommittedWithTeardown(columns, coefficients, null, null, commitment, lifetime);
+            result.borrowed_column_values = true;
+            return result;
         }
 
         pub fn root(self: Self) H.Hash {

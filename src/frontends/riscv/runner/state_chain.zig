@@ -74,6 +74,10 @@ pub const StateChainTracker = struct {
     clock_updates_reg: std.ArrayList(ClockUpdate),
     allocator: std.mem.Allocator,
     x0_local_custody_version: u32 = 0,
+    /// Explicit V3 collection profile; the proof independently binds this bound.
+    direct_ram_max_clock: ?u32 = null,
+    direct_ram_wide: bool = false,
+    native_wide_shards: bool = false,
 
     pub fn init(allocator: std.mem.Allocator) StateChainTracker {
         return .{
@@ -93,6 +97,23 @@ pub const StateChainTracker = struct {
         var result = init(allocator);
         result.x0_local_custody_version = 1;
         return result;
+    }
+
+    pub fn enableDirectRamClockV3(self: *StateChainTracker, max_clock: u32) !void {
+        if (max_clock == 0 or max_clock >= (1 << 27) or self.accesses.items.len != 0 or
+            self.clock_updates_mem.items.len != 0) return error.InvalidDirectRamClockProfile;
+        self.direct_ram_max_clock = max_clock;
+    }
+
+    pub fn requireDirectRamClock(self: *const StateChainTracker, address: u32, current: u32, previous: u32) !void {
+        const bound = self.direct_ram_max_clock orelse return;
+        if (address >= 1 << 30 or current > bound or previous > bound or
+            current <= previous or current % 4 != 3 or (previous != 0 and previous % 4 != 3))
+            return error.InvalidDirectRamClockTransition;
+    }
+
+    pub inline fn memoryClockGapCount(self: *const StateChainTracker, previous: u32, current: u32) usize {
+        return if (self.direct_ram_max_clock != null) 0 else clockGapCount(previous, current);
     }
 
     pub fn deinit(self: *StateChainTracker) void {
@@ -160,10 +181,18 @@ pub const StateChainTracker = struct {
         next: u32,
     ) !void {
         const aligned_addr = addr & ~@as(u32, 3);
+        if (self.direct_ram_max_clock != null) {
+            const previous_clock = self.mem_last_clk.get(aligned_addr) orelse 0;
+            try self.requireDirectRamClock(aligned_addr, clk, previous_clock);
+            try self.reserveTransitions(.{ .memory_address_count = @intFromBool(!self.mem_last_clk.contains(aligned_addr) or !self.mem_initial.contains(aligned_addr)), .access_count = 1, .memory_clock_update_count = 0, .register_clock_update_count = 0 });
+            self.recordMemTransitionAssumeCapacity(aligned_addr, clk, previous, next);
+            return;
+        }
         const initial = try self.mem_initial.getOrPut(aligned_addr);
         if (!initial.found_existing) initial.value_ptr.* = previous;
         const prev_clk = self.mem_last_clk.get(aligned_addr) orelse 0;
-        const effective_prev_clk = try self.fillClockGap(
+        try self.requireDirectRamClock(aligned_addr, clk, prev_clk);
+        const effective_prev_clk = if (self.direct_ram_max_clock != null) prev_clk else try self.fillClockGap(
             1,
             aligned_addr,
             prev_clk,
@@ -242,7 +271,9 @@ pub const StateChainTracker = struct {
         std.debug.assert(addr & 3 == 0);
         const initial = self.mem_initial.getOrPutAssumeCapacity(addr);
         if (!initial.found_existing) initial.value_ptr.* = previous;
-        const effective_prev_clk = self.fillClockGapAssumeCapacity(
+        const raw_previous = self.mem_last_clk.get(addr) orelse 0;
+        self.requireDirectRamClock(addr, clk, raw_previous) catch @panic("invalid direct RAM clock publication");
+        const effective_prev_clk = if (self.direct_ram_max_clock != null) raw_previous else self.fillClockGapAssumeCapacity(
             1,
             addr,
             self.mem_last_clk.get(addr) orelse 0,

@@ -91,6 +91,18 @@ pub fn ForBackend(comptime Backend: type) type {
                     try lease.requireFinished();
                 },
                 .lanes => |*value| {
+                    if (value.first.limits.checkpoints) |checkpoint| {
+                        // Collection already consumed and checked the complete sorted
+                        // source. Every retained trace/PCS is matched to that roster;
+                        // warm proving must neither reopen nor regenerate it.
+                        const RetainedOnly = struct {
+                            fn load(_: *anyopaque, _: u32) !@import("../air/block/word_memory_lanes_trace_v1.zig").Trace {
+                                return error.UnexpectedRamCheckpointReplay;
+                            }
+                        };
+                        try value.first.proveWithBoundary(a, .{ .context = checkpoint, .load = RetainedOnly.load }, lanes_sink, pins, entries, sealed.digest, sealed, boundary);
+                        return;
+                    }
                     var lease = try value.openTraceSource(source);
                     defer lease.deinit();
                     try value.first.proveWithBoundary(a, lease.source(), lanes_sink, pins, entries, sealed.digest, sealed, boundary);

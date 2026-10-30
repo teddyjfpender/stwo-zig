@@ -193,6 +193,8 @@ pub const KeccakShardComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var result = Adapter.asProverComponent(self);
         result.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+        result.domain_parallel_evaluator = parallelDomainEvaluatorErased;
+        result.pool_exclusive_domain = true;
         return result;
     }
 
@@ -340,6 +342,29 @@ pub const KeccakShardComponent = struct {
         try prepared.run(&context);
     }
 
+    fn parallelDomainEvaluatorErased(raw: *const anyopaque, trace_data: *const prover_component.Trace, accumulator: *prover_air_accumulation.DomainEvaluationAccumulator, pool: *prover_engine.work_pool.WorkPool) anyerror!void {
+        const self: *const @This() = @ptrCast(@alignCast(raw));
+        var prepared = try self.prepareDomainEvaluator(accumulator.allocator, trace_data, accumulator);
+        defer prepared.deinit();
+        var cancellation = prover_task_graph.CancellationToken{};
+        var context = serialTaskContext(prepared.context, &cancellation);
+        const state: *PreparedDomainState = @ptrCast(@alignCast(prepared.context));
+        const workers = @min(pool.workerCount(), @max(@as(usize, 1), state.eval_size / 64));
+        if (workers <= 1) return prepared.run(&context);
+        var lease = pool.acquire(try prover_engine.work_pool.WorkerBudget.init(workers)) catch |err| switch (err) {
+            error.WorkerBudgetUnavailable => return prepared.run(&context),
+            else => return err,
+        };
+        defer lease.deinit();
+        var wait = std.Thread.WaitGroup{};
+        context.worker_budget = try prover_engine.work_pool.WorkerBudget.init(lease.workerCount());
+        context.task_class = .pool_exclusive;
+        context.exclusive_lease = &lease;
+        context.child_wait_group = &wait;
+        defer context.joinChildren();
+        try prepared.run(&context);
+    }
+
     fn prepareDomainEvaluatorErased(
         ctx: *const anyopaque,
         allocator: std.mem.Allocator,
@@ -460,7 +485,7 @@ pub const KeccakShardComponent = struct {
         return .{
             .context = state,
             .vtable = &PreparedDomainState.vtable,
-            .task_class = .leaf,
+            .task_class = .pool_exclusive,
             .resources = resources,
         };
     }
@@ -610,13 +635,38 @@ const PreparedDomainState = struct {
         allocator.destroy(self);
     }
 
+    const RowJob = struct {
+        state: *const PreparedDomainState,
+        cancellation: *const prover_task_graph.CancellationToken,
+        begin: usize,
+        end: usize,
+        failure: ?anyerror = null,
+        fn run(self: *@This()) void {
+            var column = self.state.column_accumulator;
+            self.state.runRange(self.begin, self.end, self.cancellation, &column) catch |err| {
+                self.failure = err;
+            };
+        }
+    };
     fn run(self: *@This(), task_context: *prover_task_graph.TaskContext) !void {
+        const workers = @min(task_context.worker_budget.count, @max(@as(usize, 1), self.eval_size / 64));
+        if (task_context.task_class != .pool_exclusive or task_context.exclusive_lease == null or workers <= 1) return self.runRange(0, self.eval_size, task_context.cancellation, &self.column_accumulator);
+        var jobs: [prover_engine.work_pool.MAX_WORKERS]RowJob = undefined;
+        defer task_context.joinChildren();
+        for (jobs[0..workers], 0..) |*job, worker| {
+            job.* = .{ .state = self, .cancellation = task_context.cancellation, .begin = self.eval_size * worker / workers, .end = self.eval_size * (worker + 1) / workers };
+            if (worker + 1 < workers) try task_context.spawnChild(RowJob.run, .{job}) else job.run();
+        }
+        try task_context.waitForChildren();
+        for (jobs[0..workers]) |job| if (job.failure) |err| return err;
+    }
+    fn runRange(self: *const @This(), begin: usize, end: usize, cancellation: *const prover_task_graph.CancellationToken, column_accumulator: *prover_air_accumulation.ColumnAccumulator) !void {
         const main_start = preprocessed_column_count;
         const interaction_start = main_start + self.component.mainColumnCount();
         const powers = self.column_accumulator.random_coeff_powers;
         const shift: std.math.Log2Int(usize) = @intCast(self.component.claim.log_size);
-        for (0..self.eval_size) |row| {
-            if ((row & 4095) == 0 and task_context.isCancelled()) return;
+        for (begin..end) |row| {
+            if ((row & 4095) == 0 and cancellation.isCancelled()) return;
             const previous_row = utils.offsetBitReversedCircleDomainIndex(
                 row,
                 self.component.claim.log_size,
@@ -694,7 +744,7 @@ const PreparedDomainState = struct {
                 .second_active = second_active,
             }, self.component.relations, &reader, &sink, self.component.local_zero_custody);
             std.debug.assert(sink.index == self.component.nConstraints());
-            self.column_accumulator.accumulate(
+            column_accumulator.accumulate(
                 row,
                 sink.folded.mulM31(self.denominator_inv[row >> shift]),
             );

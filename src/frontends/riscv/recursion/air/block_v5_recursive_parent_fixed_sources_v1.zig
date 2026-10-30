@@ -20,7 +20,7 @@ const Recorder = @import("blake3_native_recorder.zig");
 const RootSources = @import("blake3_root_sources.zig");
 const Fixed = @import("block_v5_recursive_fixed_port_rows_v1.zig").ForSlots(.{ 12, 11, 10, 2, 9 });
 const slots = .{ 12, 11, 10, 2, 9 };
-const Mode = enum { parent, packed_parent, native_word, native_page };
+const Mode = enum { parent, public_parent, packed_parent, native_word, native_page, native_provider, native_caller, native_partitioned, native_caller_fused, native_joint_memory, native_v7, native_joint_caller, native_union };
 const Lists = struct {
     a: std.mem.Allocator,
     lists: std.meta.Tuple(&.{ std.ArrayList(Storage.FixedRow(Scalar)), std.ArrayList(Storage.FixedRow(Pack)), std.ArrayList(Storage.FixedRow(Encoding)), std.ArrayList(Storage.FixedRow(Boundary)), std.ArrayList(Storage.FixedRow(Word)) }) = .{ .empty, .empty, .empty, .empty, .empty },
@@ -93,8 +93,74 @@ fn ForPiecesMode(comptime PiecesType: type, comptime packed_public: bool) type {
                 try plan.validate();
                 return compile(a, profile, composition, dg, fg, plan, @splat(0), .native_page);
             }
+            pub fn compileNativeProvider(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_provider);
+            }
+            pub fn compileCallerArithmetic(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_caller);
+            }
+            pub fn compileNativePartitioned(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_partitioned);
+            }
+            pub fn compileCallerFused(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_caller_fused);
+            }
+            /// Explicit original v7 joint memory protocol:53 relation pairs,
+            /// four commitments, all claim/endpoints in external public ports.
+            pub fn compileJointMemory(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                if (@TypeOf(profile.*).commitment_trees != 4) @compileError("joint memory sources require four commitments");
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_joint_memory);
+            }
+            pub fn compileNativeV7(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_v7);
+            }
+            pub fn compileJointCaller(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                if (@TypeOf(profile.*).commitment_trees != 6) @compileError("joint caller requires six commitments");
+                return compileTypedNative(a, profile, composition, dg, fg, plan, .native_joint_caller);
+            }
+            /// Structural union routing; the typed owner authenticates its
+            /// profile, transcript, public values and complete fixed roster.
+            pub fn compileUnion(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                try profile.validate();
+                if (profile.columns.len < 4 or profile.columns.len > 257 or profile.relation_pairs < 53 or profile.relation_pairs > 949 or profile.initial_roots < 2 or profile.initial_roots >= profile.columns.len - 1) return error.InvalidNativeFixedSourceProfile;
+                try composition.circuit.validate();
+                try dg.validate();
+                try fg.validate();
+                if (!std.meta.eql(dg.profile_digest, profile.deepProfile().identityDigest()) or !std.meta.eql(fg.profile_digest, profile.friProfile().identityDigest())) return error.InvalidNativeFixedSourceProfile;
+                for (composition.sources) |source| if (source == .claim) return error.InvalidExecutionPayload;
+                try plan.validate();
+                return compile(a, profile, composition, dg, fg, plan, @splat(0), .native_union);
+            }
+            /// Explicit native-parent public-input protocol. Parent claims stay
+            /// private transcript inputs; public supply is independently pinned.
+            pub fn compilePublicParent(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan) !*Self {
+                try profile.validate();
+                if (profile.columns.len != 4 or profile.initial_roots != 2 or profile.relation_pairs != @import("universal_challenges.zig").RELATION_COUNT) return error.InvalidNativeFixedSourceProfile;
+                try composition.circuit.validate();
+                try dg.validate();
+                try fg.validate();
+                if (!std.meta.eql(dg.profile_digest, profile.deepProfile().identityDigest()) or !std.meta.eql(fg.profile_digest, profile.friProfile().identityDigest())) return error.InvalidNativeFixedSourceProfile;
+                try plan.validate();
+                return compile(a, profile, composition, dg, fg, plan, @splat(0), .public_parent);
+            }
+            fn compileTypedNative(a: std.mem.Allocator, profile: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan, comptime mode: Mode) !*Self {
+                const count = @TypeOf(profile.*).commitment_trees;
+                if (mode == .native_joint_caller) {
+                    if (count != 6) @compileError("joint caller requires six commitments");
+                } else if (count != 4 and count != 5) @compileError("typed native sources require four or five commitments");
+                if ((mode == .native_provider or mode == .native_caller) and count != 4) @compileError("provider sources require four commitments");
+                if (mode == .native_caller_fused and count != 5) @compileError("fused caller sources require five commitments");
+                try profile.validate();
+                try composition.circuit.validate();
+                try dg.validate();
+                try fg.validate();
+                if (!std.meta.eql(dg.profile_digest, profile.deepProfile().identityDigest()) or !std.meta.eql(fg.profile_digest, profile.friProfile().identityDigest())) return error.InvalidNativeFixedSourceProfile;
+                for (composition.sources) |source| if (source == .claim) return error.InvalidExecutionPayload;
+                try plan.validate();
+                return compile(a, profile, composition, dg, fg, plan, @splat(0), mode);
+            }
             fn compile(a: std.mem.Allocator, shape: anytype, composition: anytype, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, plan: *const @import("blake3_transcript_plan.zig").Plan, fixed_root: [32]u8, comptime mode: Mode) !*Self {
-                const relations = if (mode == .native_word) @import("block_v5_ram_lanes_composition_v1.zig").RELATION_COUNT else @import("universal_challenges.zig").RELATION_COUNT;
+                const relations = if (mode == .native_union) shape.relation_pairs else if (mode == .native_joint_caller) 67 else if (mode == .native_joint_memory or mode == .native_v7) 53 else if (mode == .native_caller) @import("universal_challenges.zig").RELATION_COUNT + 14 else if (mode == .native_word or mode == .native_partitioned or mode == .native_caller_fused) @import("block_v5_ram_lanes_composition_v1.zig").RELATION_COUNT else @import("universal_challenges.zig").RELATION_COUNT;
                 const lease = if (Budget.fromAllocator(a)) |owner| owner.retain() else null;
                 errdefer if (lease) |owner| owner.destroy();
                 const self = try a.create(Self);
@@ -133,7 +199,7 @@ fn ForPiecesMode(comptime PiecesType: type, comptime packed_public: bool) type {
                         sources.oods = @intCast(node);
                     },
                     .packed_public_input => if (mode != .packed_parent) return error.UnsupportedRecursiveParentFixedPublicPorts,
-                    .public_input => if (mode != .native_word and mode != .native_page) return error.UnsupportedRecursiveParentFixedPublicPorts,
+                    .public_input => if (mode == .parent or mode == .packed_parent) return error.UnsupportedRecursiveParentFixedPublicPorts,
                 };
                 if (challenge_count != relations * 2 or sources.composition == std.math.maxInt(u32) or sources.oods == std.math.maxInt(u32)) return error.InvalidExecutionChallenge;
                 var challenges = Lists{ .a = temp };
@@ -208,9 +274,16 @@ fn ForPiecesMode(comptime PiecesType: type, comptime packed_public: bool) type {
                     try terminal.add(10, try Encoding.fixedRow(.{ .source_circuit = 5_000_011, .source_wire = @intCast(i), .destination_circuit = receipt.source.circuit, .destination_first = try std.math.add(u32, receipt.source.first_wire, @intCast(i * 4)), .uses = receipt.uses[i * 4 ..][0..4].* }));
                 }
                 var roots = Lists{ .a = temp };
-                var root_index: usize = if (mode == .native_page) 8 else if (mode == .native_word) 2 else 0;
+                const typed_native = mode == .public_parent or mode == .native_union or mode == .native_v7 or mode == .native_joint_caller or mode == .native_joint_memory or mode == .native_provider or mode == .native_caller or mode == .native_partitioned or mode == .native_caller_fused;
+                const commitment_trees: usize = if (mode == .native_union) shape.columns.len else if (mode == .public_parent) 4 else if (typed_native) @TypeOf(shape.*).commitment_trees else if (mode == .native_page) 10 else 4;
+                const initial_roots: usize = if (mode == .native_union) shape.initial_roots else if (mode == .native_joint_caller) 3 else commitment_trees - 2;
+                var root_index: usize = if (typed_native) initial_roots else if (mode == .native_page) 8 else if (mode == .native_word) 2 else 0;
                 for (plan.fixed.root_reads) |root_receipt| {
                     if (root_receipt.source.circuit != RootSources.CIRCUIT) continue;
+                    if (typed_native and root_receipt.source.first_wire < initial_roots * 8) {
+                        if (root_receipt.source.first_wire % 8 != 0) return error.InvalidExecutionRoots;
+                        continue; // Original typed public schedule owns initial roots.
+                    }
                     const source = try RootSources.caller(root_index);
                     if (!std.meta.eql(source, root_receipt.source)) return error.InvalidExecutionRoots;
                     for (root_receipt.uses, 0..) |reads, coordinate| {
@@ -220,7 +293,7 @@ fn ForPiecesMode(comptime PiecesType: type, comptime packed_public: bool) type {
                     }
                     root_index += 1;
                 }
-                if (root_index != (if (mode == .native_page) @as(usize, 10) else 4) + shape.widths.len) return error.InvalidExecutionRoots;
+                if (root_index != commitment_trees + shape.widths.len) return error.InvalidExecutionRoots;
                 const nonce_source = @import("blake3_transcript_witness.zig").Caller{ .circuit = 4_100_001, .first_wire = 2 };
                 var nonce_reads: [2]u32 = @splat(0);
                 var phases: usize = 0;

@@ -193,18 +193,29 @@ const Builder = struct {
     }
 };
 pub fn prepare(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
-    return build(true, backing, capture, dg, fg, queries, null);
+    return build(true, null, backing, capture, dg, fg, queries, null);
 }
 /// Explicit dense-source parity oracle.
 pub fn prepareRows(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared) !Prepared {
-    return build(false, backing, capture, dg, fg, queries, null);
+    return build(false, null, backing, capture, dg, fg, queries, null);
 }
 pub const MainColumns = group.MainColumns;
 pub fn prepareMainColumns(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: MainColumns) !Prepared {
-    return build(true, backing, capture, dg, fg, queries, columns);
+    return build(true, null, backing, capture, dg, fg, queries, columns);
 }
-fn build(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns) !Prepared {
-    if (!direct) return (try buildMode(false, backing, capture, dg, fg, queries, columns, null, null, false)).?;
+/// Explicit admitted PAGE route. Generic native entrypoints retain 4/5 trees.
+pub fn prepareMainColumnsForCommitments(comptime count: usize, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: MainColumns) !Prepared {
+    comptime if (count != 6 and count != 10) @compileError("explicit caller/PAGE path route requires six/ten commitments");
+    return build(true, count, backing, capture, dg, fg, queries, columns);
+}
+/// Explicit union geometry; count is selected by its independently admitted
+/// profile, not decoded as permission from a child proof.
+pub fn prepareMainColumnsForBoundedCommitments(backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: MainColumns, commitments: usize) !Prepared {
+    if (commitments < 4 or commitments > 257 or capture.commitments.len != commitments) return error.InvalidStarkPathGeometry;
+    return build(true, commitments, backing, capture, dg, fg, queries, columns);
+}
+fn build(comptime direct: bool, exact_commitments: ?usize, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns) !Prepared {
+    if (!direct) return (try buildMode(false, exact_commitments, backing, capture, dg, fg, queries, columns, null, null, false)).?;
     const saved = try backing.alloc([31]u32, queries.queries.len);
     defer backing.free(saved);
     for (queries.queries, saved) |query, *out| out.* = query.path_uses;
@@ -212,13 +223,13 @@ fn build(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capt
         query.path_uses = original;
     };
     var counts = Nonhash.Counts{};
-    _ = try buildMode(true, backing, capture, dg, fg, queries, null, null, counts.sink(), true);
+    _ = try buildMode(true, exact_commitments, backing, capture, dg, fg, queries, null, null, counts.sink(), true);
     for (queries.queries, saved) |*query, original| query.path_uses = original;
     var live = try Nonhash.Owner.init(backing, counts);
     errdefer live.deinit();
     var fixed = try Nonhash.FixedOwner.init(backing, counts);
     errdefer fixed.deinit();
-    var result = (try buildMode(true, backing, capture, dg, fg, queries, columns, live.sink(), fixed.sink(), false)).?;
+    var result = (try buildMode(true, exact_commitments, backing, capture, dg, fg, queries, columns, live.sink(), fixed.sink(), false)).?;
     errdefer result.deinit();
     try live.finish();
     try fixed.finish();
@@ -260,8 +271,17 @@ pub fn compileFixedShape(backing: std.mem.Allocator, shape: *const @import("../b
 /// Independently selected commitment inventory; the original parent stays four.
 /// Native PAGE supplies its actual ten-tree profile, never a parent Shape.
 pub fn compileFixedProfile(comptime commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared) !FixedShape {
-    if (commitments != 4 and commitments != 10) @compileError("fixed STARK paths require an admitted four/ten commitment profile");
+    if (commitments != 4 and commitments != 5 and commitments != 6 and commitments != 10) @compileError("fixed STARK paths require an admitted four/five/six/ten commitment profile");
     if (@typeInfo(@TypeOf(shape.columns)).array.len != commitments) @compileError("fixed STARK commitment inventory mismatch");
+    return compileAcceptedProfile(commitments, backing, shape, queries);
+}
+/// Runtime-sized, independently admitted union inventory. Legacy entry points
+/// retain their static inventory checks.
+pub fn compileBoundedProfile(commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared) !FixedShape {
+    if (commitments < 4 or commitments > 257 or shape.columns.len != commitments) return error.InvalidStarkPathGeometry;
+    return compileAcceptedProfile(commitments, backing, shape, queries);
+}
+fn compileAcceptedProfile(commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared) !FixedShape {
     try shape.validate();
     if (queries.queries.len != shape.config.fri_config.n_queries) return error.InvalidStarkPathGeometry;
     const saved = try backing.alloc([31]u32, queries.queries.len);
@@ -292,7 +312,7 @@ pub fn compileFixedProfile(comptime commitments: usize, backing: std.mem.Allocat
     return .{ .allocator = backing, .allocation_owner = lease, .metadata = metadata, .nonhash = nonhash, .shape_id = shape.seal, .openings = emitted.openings, .input_routes = input_routes };
 }
 const ShapeCounts = struct { g: usize, xor: usize, openings: usize };
-fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared, sink: Nonhash.Sink, metadata: ?@import("blake3_hash_metadata.zig").Rows, input_routes: ?[]FixedOpening) !ShapeCounts {
+fn emitFixedShape(commitments: usize, backing: std.mem.Allocator, shape: anytype, queries: *@import("blake3_query_links.zig").Prepared, sink: Nonhash.Sink, metadata: ?@import("blake3_hash_metadata.zig").Rows, input_routes: ?[]FixedOpening) !ShapeCounts {
     var arena = std.heap.ArenaAllocator.init(backing);
     defer arena.deinit();
     const a = arena.allocator();
@@ -302,7 +322,10 @@ fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape
     defer b.live.deinit(backing);
     defer b.fixed.deinit(backing);
     const n = shape.config.fri_config.n_queries;
+    var nonempty_trees: usize = 0;
     for (shape.columns, 0..) |logs, tree| {
+        if (logs.len == 0) continue;
+        nonempty_trees += 1;
         var geometry = try leaf.build(a, logs);
         defer geometry.deinit();
         const count_only_values = try a.alloc(M31, logs.len);
@@ -314,7 +337,7 @@ fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape
         const shared_frontier = try b.beginFrontier(openings, tree, @splat(0));
         const first_namespace = b.next;
         for (openings, 0..) |opening, q| {
-            if (shared_frontier != null) try queries.addPathUses(q, shape.lifting_log - 1, 9);
+            if (shared_frontier != null) try queries.addPathUses(q, try @import("blake3_query_links.zig").traceBit(shape.lifting_log, geometry.max_log, geometry.max_log - 1), 9);
             const payload = b.payload;
             const ordinal = b.count;
             const uses = try b.opening(opening.leaves, opening.words, 0, geometry.max_log, tree, @splat(0), opening.directions, opening.values, opening.siblings, if (shared_frontier == null and n > 1 and geometry.max_log > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null, if (shared_frontier) |*context| .{ .context = context, .query = @intCast(q) } else null);
@@ -350,11 +373,11 @@ fn emitFixedShape(comptime commitments: usize, backing: std.mem.Allocator, shape
         }
         remaining = depth;
     }
-    if (b.count != try std.math.mul(usize, commitments + shape.widths.len, n)) return error.InvalidStarkPathGeometry;
+    if (b.count != try std.math.mul(usize, nonempty_trees + shape.widths.len, n)) return error.InvalidStarkPathGeometry;
     if (metadata) |out| try out.validate(b.g_used, b.xor_used);
     return .{ .g = b.g_used, .xor = b.xor_used, .openings = b.count };
 }
-fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns, live_sink: ?Nonhash.Sink, fixed_sink: ?Nonhash.Sink, count_only: bool) !?Prepared {
+fn buildMode(comptime direct: bool, exact_commitments: ?usize, backing: std.mem.Allocator, capture: *const Capture, dg: *const @import("pcs_deep_circuit.zig").Circuit, fg: *const @import("fri_verifier_circuit.zig").Circuit, queries: *@import("blake3_query_links.zig").Prepared, columns: ?MainColumns, live_sink: ?Nonhash.Sink, fixed_sink: ?Nonhash.Sink, count_only: bool) !?Prepared {
     const original_reads = try backing.alloc([31]u32, queries.queries.len);
     defer backing.free(original_reads);
     for (queries.queries, original_reads) |query, *saved| saved.* = query.path_uses;
@@ -384,10 +407,19 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
     var links: ?inputs.Builder = if (count_only) null else if (direct) try inputs.Builder.initColumns(a, output, backing, capture, dg, fg, queries) else try inputs.Builder.init(a, capture, dg, fg, queries);
     defer if (links) |*owner| owner.deinit();
     const n = capture.queries.raw.len;
-    if ((capture.commitments.len != 4 and capture.commitments.len != 5) or capture.trace_paths.len != capture.commitments.len or capture.column_log_sizes.len != capture.commitments.len or capture.fri.layers.len == 0) return error.InvalidStarkPathGeometry;
+    if (exact_commitments) |count| {
+        if (capture.commitments.len != count) return error.InvalidStarkPathGeometry;
+    } else if (capture.commitments.len != 4 and capture.commitments.len != 5) return error.InvalidStarkPathGeometry;
+    if (capture.trace_paths.len != capture.commitments.len or capture.column_log_sizes.len != capture.commitments.len or capture.fri.layers.len == 0) return error.InvalidStarkPathGeometry;
     const lifting = capture.fri.layers[0].path_depth + capture.fri.layers[0].fold_step;
     var cursor: usize = 0;
+    var empty_trees: usize = 0;
     for (capture.column_log_sizes, capture.trace_paths, capture.commitments, 0..) |logs, path, root, tree| {
+        if (logs.len == 0) {
+            if (path.path_depth != 0 or path.positions.len != 0 or path.siblings.len != 0) return error.InvalidStarkPathGeometry;
+            empty_trees += 1;
+            continue;
+        }
         var geometry = try leaf.build(a, logs);
         defer geometry.deinit();
         const positions = try core.pcs.utils.prepareTreeQueryPositions(a, capture.queries.raw, lifting, geometry.max_log);
@@ -411,7 +443,7 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
         const first_namespace = b.next;
         for (openings, 0..) |opening, q| {
             const payload = b.payload;
-            if (shared_frontier != null) try queries.addPathUses(q, lifting - 1, 9);
+            if (shared_frontier != null) try queries.addPathUses(q, try @import("blake3_query_links.zig").traceBit(lifting, geometry.max_log, geometry.max_log - 1), 9);
             const uses = try b.opening(opening.leaves, opening.words, opening.index, path.path_depth, tree, root, opening.directions, opening.values, opening.siblings, if (shared_frontier == null and n > 1 and path.path_depth > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null, if (shared_frontier) |*context| .{ .context = context, .query = @intCast(q) } else null);
             if (links) |*owner| for (geometry.order, opening.values, uses, 0..) |column, value, count, i| try owner.trace(tree, column, q, try geometry.columnIndex(column, opening.index), value, try std.math.add(u32, payload, @intCast(i)), count);
         }
@@ -434,7 +466,7 @@ fn buildMode(comptime direct: bool, backing: std.mem.Allocator, capture: *const 
             if (links) |*owner| try owner.friGroup(l, q, layer.queryValues(q), payload, uses);
         }
     }
-    const trees = try std.math.add(usize, capture.commitments.len, capture.fri.layers.len);
+    const trees = try std.math.add(usize, capture.commitments.len - empty_trees, capture.fri.layers.len);
     if (try std.math.mul(usize, trees, n) != b.count) return error.InvalidStarkPathGeometry;
     if (count_only) {
         arena.deinit();

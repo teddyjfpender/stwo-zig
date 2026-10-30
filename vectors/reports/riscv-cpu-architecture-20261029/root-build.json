@@ -1,0 +1,8 @@
+{
+  "schema": "stwo-cpu-architecture-diagnostic-build-v1",
+  "binary_sha256": "2ff90f39c5f6d6acc03b6e967e69b6a3123a309a80e28c5abb1381a229079758",
+  "optimize": "ReleaseFast",
+  "root_source_sha256": "30a46bc36327bfdf383e2a11d5df65ebe3d48bd5e5fe51b61698605f0ec06213",
+  "resource_policy_sha256": "0c712d2c0fb34dc2b0d6e97c5689dfccadd2bc69af46e47e10283cd3f55b603c",
+  "qualification": "unranked current-worktree CPU diagnostic; explicit matching original and detached receiver limits"
+}

@@ -1,0 +1,5 @@
+1/3 riscv_ethereum_execution_census.test.bounded retained Ethereum execution census without proving...ETHEREUM_EXECUTION_CENSUS cycles=139214856 segments=266 keccak=32835 recovery=78 proof_verified=false
+OK
+2/3 frontends.riscv.runner.mod.test_0...OK
+3/3 frontends.riscv.runner.decode.test_0...OK
+All 3 tests passed.

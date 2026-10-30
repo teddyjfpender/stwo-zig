@@ -236,6 +236,12 @@ test "detached bundle rejects an unpinned transport before proof files" {
     defer tmp.cleanup();
     try tmp.dir.writeFile(.{ .sub_path = bundle_mod.FILE, .data = "{}" });
     try std.testing.expectError(error.ChangedBlockV4BundleManifest, verifyCanonical(
-        std.testing.allocator, tmp.dir, @splat(0), undefined, undefined, undefined, undefined,
+        std.testing.allocator,
+        tmp.dir,
+        @splat(0),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
     ));
 }

@@ -1,0 +1,62 @@
+{
+  "objects": [
+    "/workspace/final-evidence/native-objects/native-bundle.o",
+    "/workspace/final-evidence/native-objects/native-witness.o",
+    "/workspace/final-evidence/native-objects/native-access.o",
+    "/workspace/final-evidence/native-objects/native-infra.o",
+    "/workspace/final-evidence/native-objects/native-ingress.o",
+    "/workspace/final-evidence/native-objects/native-claim-pack.o"
+  ],
+  "archive": "/workspace/final-evidence/native-objects/libstwo_cuda_native_final.a",
+  "required_symbols": {
+    "stwo_native_program_on": [
+      "native-bundle.o"
+    ],
+    "stwo_native_program_identity": [
+      "native-bundle.o"
+    ],
+    "stwo_cuda_native_witness_v1_launch": [
+      "native-witness.o"
+    ],
+    "stwo_native_access_witness_on": [
+      "native-access.o"
+    ],
+    "stwo_native_access_count_on": [
+      "native-access.o"
+    ],
+    "stwo_native_infra_fixed_on": [
+      "native-infra.o"
+    ],
+    "stwo_native_infra_clock_on": [
+      "native-infra.o"
+    ],
+    "stwo_native_infra_frame_on": [
+      "native-infra.o"
+    ],
+    "stwo_native_main_place_on": [
+      "native-ingress.o"
+    ],
+    "stwo_native_ingress_on": [
+      "native-ingress.o"
+    ],
+    "stwo_native_claim_pack_v1": [
+      "native-claim-pack.o"
+    ],
+    "stwo_native_root_equal_v1": [
+      "native-claim-pack.o"
+    ],
+    "stwo_ntt_b2n_composition_split_depth_three_on": [
+      "libstwo_cuda_native_final.a"
+    ],
+    "stwo_parent_tiny_inverse_on": [
+      "libstwo_cuda_native_final.a"
+    ],
+    "stwo_resident_framework_powers_on": [
+      "native-bundle.o"
+    ],
+    "stwo_resident_framework_add_on": [
+      "native-bundle.o"
+    ]
+  },
+  "duplicate_required_symbols": false
+}

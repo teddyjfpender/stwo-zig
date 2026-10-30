@@ -43,10 +43,20 @@ pub fn Algebra(comptime S: type) type {
         }
         pub fn lookupProjection(slot: anytype, main: []const S, relations: anytype) !ProjectionPair {
             if (main.len != slot.width or slot.entry_count == 0 or slot.entry_count > 2) return error.InvalidV5LookupRequestSlot;
-            const list = switch (slot.source) {
-                .opcode => |family| try Entries.Entries(S).fromMain(family, main),
-                .clock => Clock.orderedEntriesGeneric(S, try Clock.RowFor(S).fromMain(main)),
-            };
+            // Keep the original typed list in caller-owned storage. Returning
+            // its full maximum-capacity payload by value copies thousands of
+            // unused field bytes for each one/two-entry projection and row.
+            var list: @import("../air/lookups/entry.zig").Builder(S).List = undefined;
+            switch (slot.source) {
+                .opcode => |family| try Entries.Entries(S).fromMainInto(family, main, &list),
+                .clock => list = Clock.orderedEntriesGeneric(S, try Clock.RowFor(S).fromMain(main)),
+            }
+            return lookupProjectionFromEntries(slot, &list, relations);
+        }
+        /// Original partition/ordinal checks shared by secure OODS evaluation
+        /// and base-domain evaluation. The latter lifts only selected tuples.
+        pub fn lookupProjectionFromEntries(slot: anytype, list: anytype, relations: anytype) !ProjectionPair {
+            if (slot.entry_count == 0 or slot.entry_count > 2) return error.InvalidV5LookupRequestSlot;
             var pair = ProjectionPair{ .entry_count = slot.entry_count };
             for (slot.entries[0..slot.entry_count], 0..) |index, at| {
                 if (index >= list.len) return error.InvalidV5LookupRequestSlot;
@@ -55,7 +65,7 @@ pub fn Algebra(comptime S: type) type {
                 const memory = entry.domain == .memory_access;
                 const clock = std.meta.activeTag(slot.source) == .clock;
                 const partition_matches = if (memory)
-                    (if (clock) slot.partition == .clock_memory_access or slot.partition == .register_clock_memory_access else slot.partition == .register_memory_access)
+                    (if (clock) slot.partition == .clock_memory_access or slot.partition == .register_clock_memory_access else slot.partition == .register_memory_access or slot.partition == .ordinary_memory_access)
                 else switch (entry.domain) {
                     .registers_state => slot.partition == .registers_state,
                     .bitwise => slot.partition == .bitwise,
@@ -68,14 +78,26 @@ pub fn Algebra(comptime S: type) type {
                 };
                 const element = relations.get(domain);
                 if (!partition_matches or entry.arity != element.arity) return error.InvalidV5LookupRequestSlot;
-                pair.numerators[at] = entry.numerator;
+                pair.numerators[at] = lift(entry.numerator);
                 if (memory and slot.register_custody_mode == 1) {
-                    const weight = if (slot.partition == .clock_memory_access) entry.values[0] else S.one().sub(entry.values[0]);
+                    const space = lift(entry.values[0]);
+                    const weight = if (slot.partition == .clock_memory_access or slot.partition == .ordinary_memory_access) space else S.one().sub(space);
                     pair.numerators[at] = pair.numerators[at].mul(weight);
                 }
-                pair.denominators[at] = try combine(element, entry.values[0..entry.arity]);
+                if (slot.direct_ram_clock_v3) {
+                    if (clock or slot.source.opcode != .load_store) return error.InvalidDirectRamClockProjection;
+                    if (index == 10 or index == 13) pair.numerators[at] = try @import("block_v8_ram_clock_v3_lookup.zig").numerator(S, list, index);
+                }
+                pair.denominators[at] = if (comptime S == core.fields.qm31.QM31 and @TypeOf(entry.numerator) == @import("../air/semantic_eval.zig").BaseScalar) blk: {
+                    var values: [@import("../air/lookups/entry.zig").MAX_ARITY]M = undefined;
+                    for (values[0..entry.arity], entry.values[0..entry.arity]) |*out, value| out.* = value.value;
+                    break :blk try element.combineBase(values[0..entry.arity]);
+                } else try combine(element, entry.values[0..entry.arity]);
             }
             return pair;
+        }
+        fn lift(value: anytype) S {
+            return if (comptime @TypeOf(value) == S) value else S.fromBase(value.value);
         }
         pub fn activity(slot: anytype, main: []const S) !S {
             if (main.len != slot.width) return error.InvalidCapacityFusedActivitySource;

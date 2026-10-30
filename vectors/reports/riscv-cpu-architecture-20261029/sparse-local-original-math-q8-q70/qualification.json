@@ -1,0 +1,104 @@
+{
+  "schema": "stwo-sparse-local-full-original-qualification-v1",
+  "qualification": {
+    "local_scope": "All14 ReleaseSafe tests passed including sparse q8/q70 and legacy q8/q70 Local->Bridge->Global regression",
+    "continuous_producer": "All10 ReleaseSafe tests passed including q70 sparse sequential and parallel two-cohort closed durable bundle"
+  },
+  "flavor": "sparse_elf",
+  "default_flavor_unchanged": "legacy_complete",
+  "metadata_schema": "stwo-v8-local-native-endpoint-sparse-rom-metadata-v1",
+  "envelope_magic": "B8LCS001",
+  "canonical_ROM_AIR_unchanged": true,
+  "legacy_transcript_tag_and_envelope_unchanged": true,
+  "ownership": "one existing native census, positive support copied once, dense count buffer released, sparse owner lives through worker join+serialization; shared program image immutable",
+  "local_scope_closed": [
+    "native direct equations and every projection",
+    "program ROM including unretired boundary fetch",
+    "native lookup tables",
+    "endpoint ranges and endpoint local RAM",
+    "state and register chains"
+  ],
+  "local_scope_open": [
+    "global RAM transition until later narrow bridge+global proof"
+  ],
+  "continuous_pipeline_scope": "declared two-cohort nonterminal window closed by separate original local/bridge/compact-global proofs and fresh durable directory receiver; no recursive or whole Ethereum block claim",
+  "frozen_benchmark": {
+    "binary": "/tmp/stwo-b8-local-sparse-compact-build-20261030/benchmark",
+    "build": "/tmp/stwo-b8-local-sparse-compact-build-20261030/build.json",
+    "source_archive": "/tmp/stwo-b8-local-sparse-compact-build-20261030/source.tar.gz",
+    "binary_sha256": "55056083f9472371a55a4b81ce0eccd6367cf1c3b485ce88db30e9987c68af10",
+    "source_sha256": "4a03e7e57b9536efff94621cefefde3d4fe54ba674a92694fd74fbf7b0d37df0",
+    "source_changed": false
+  },
+  "proofs": [
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-local-original-math-q8-q70/csp_q70_pow26/local.proof",
+      "bytes": 321150,
+      "sha256": "9bd0fc211029ae02d7b6456436ee802d0585e7adea1143c0192e84ecef97474f",
+      "metadata_bytes": 3466
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-local-original-math-q8-q70/diagnostic_q8_pow0/local.proof",
+      "bytes": 60378,
+      "sha256": "7a99dbdcbbf7f5991c65b29beb369ab3bb901a20650d2fe810d3ea426e38fc95",
+      "metadata_bytes": 3466
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_sparse_rom_provider_v1.zig",
+      "bytes": 4916,
+      "sha256": "0ee0cd116d5d63b677cfa0de891ece8ee1da667195ef963f3878981cb956b5bc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_rom_dispatch_v1.zig",
+      "bytes": 2566,
+      "sha256": "7d3884351714bff50f50bafbcb90232bc3e38b56c75ef7d5dfbc5c8b2b411870"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_scope_v1.zig",
+      "bytes": 10799,
+      "sha256": "d1784741c55b7de2cc356486f63b0f23264275e16e7afab6d307817f9555402b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_context_v1.zig",
+      "bytes": 8778,
+      "sha256": "e545e50f5acac46f573090b011af7c5f51402de3ac7ef1794490eb2ee1b318b2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_shape_v1.zig",
+      "bytes": 3622,
+      "sha256": "c71ee13a4644f3fefb4afb99b4fb55c4fc5b6e203b722a8526ea12998f0ca1ac"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_statement_v1.zig",
+      "bytes": 1857,
+      "sha256": "9794213ce64e8cee505027e439eabf538337d31daf1d8b96d7a2a959779c1c80"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_statement_wire_v1.zig",
+      "bytes": 6690,
+      "sha256": "bac83a2f95b397a165ef0dfff24c17ad6c8d59e4a215831bf41cbfbe40a7051e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_codec_v1.zig",
+      "bytes": 8344,
+      "sha256": "c2ea8d2036d83e37033f47869365c0fb01aaf02d135a5527a25e55b292f6d358"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_proof_v1.zig",
+      "bytes": 15224,
+      "sha256": "1e40b6744618bb544c6d1897723b77db935b011a8f7dc45b841972289127f50d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_execution_mode_v1.zig",
+      "bytes": 30795,
+      "sha256": "e6ecc12aa08ad856322b441315c004f1a3ecd36d83cd50b5d562ec0868eb4622"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_proof_job_v1.zig",
+      "bytes": 9582,
+      "sha256": "29b06b710b397a940020d7b14e8ab9e7dc234d487cdafc84b1c9612e45601fa0"
+    }
+  ]
+}

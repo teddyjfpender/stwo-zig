@@ -9,3 +9,5 @@ pub const cairo_statement_builder = @import("cairo_statement_builder.zig");
 pub const cairo_leaf_config = @import("cairo_leaf_config.zig");
 /// `crates/cairo_verifier/src/verify.rs`: the leaf (Cairo verifier) circuit.
 pub const cairo_verifier = @import("cairo_verifier.zig");
+/// Opt-in RISC native-parent wrapper statement; instance authority is required.
+pub const riscv_native_parent_v1 = @import("riscv_native_parent_v1.zig");

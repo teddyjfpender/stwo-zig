@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-real-window-segmentation-parallelism-controls",
+  "scope": "Same retained ELF and complete incoming/outgoing snapshots, original proof sets independently verified; not recursive-root or full-Ethereum-block evidence.",
+  "single_samples": true,
+  "baseline": "native-524288",
+  "segment_cut_control": "native-524288-cut262144-w4",
+  "worker_control": "native-524288-cut262144-w12",
+  "cut_latency_ratio": 1.6435002654485606,
+  "worker_latency_ratio": 1.3184652872832323,
+  "combined_latency_ratio": 2.166898049634705,
+  "original_count": [
+    35,
+    5,
+    5
+  ],
+  "cut_memory_bytes": [
+    1378041324,
+    2009738419,
+    2486942563
+  ],
+  "worker_proof_bytes_identical": true,
+  "worker_proof_roster_sha256": "3e030040ff25258e52e0c324b184727954fb4b7c80ae5a0741ade63ac2569200",
+  "timing_scope": "whole_request_ns includes input loading, production source pipeline, fresh original/global verification, proof export and profile serialization; external skipped-prefix preparation excluded"
+}

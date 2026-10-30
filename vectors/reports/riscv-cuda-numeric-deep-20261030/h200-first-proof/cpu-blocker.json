@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "complete_gpu_proof_qualified": false,
+  "attempts": [
+    {
+      "attempt": "cpu-canonical-w1",
+      "returncode": 1,
+      "workers": null,
+      "native_layout": "canonical",
+      "native_main_cache_mib": 2048,
+      "failure": "ConstraintsNotSatisfied at original native index0",
+      "cuda_invoked": false
+    },
+    {
+      "attempt": "cpu-q2-w1-no-cache",
+      "returncode": 1,
+      "workers": null,
+      "native_layout": "degree-bounded-q2",
+      "native_main_cache_mib": 0,
+      "failure": "ConstraintsNotSatisfied at original native index0",
+      "cuda_invoked": false
+    },
+    {
+      "attempt": "cpu-v2",
+      "returncode": 1,
+      "workers": null,
+      "native_layout": "degree-bounded-q2",
+      "native_main_cache_mib": 2048,
+      "failure": "ConstraintsNotSatisfied at original native index0",
+      "cuda_invoked": false
+    },
+    {
+      "attempt": "cpu-w1",
+      "returncode": 1,
+      "workers": null,
+      "native_layout": "degree-bounded-q2",
+      "native_main_cache_mib": 2048,
+      "failure": "ConstraintsNotSatisfied at original native index0",
+      "cuda_invoked": false
+    }
+  ],
+  "status": "CPU original proof fails before DEEP; GPU fullproof held pending isolated arithmetic investigation"
+}

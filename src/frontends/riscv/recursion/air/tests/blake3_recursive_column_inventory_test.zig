@@ -132,3 +132,33 @@ test "direct recursive boundary columns release initial rows before appending pu
     try @import("../blake3_row_columns.zig").project(Boundary, a, &all, taken.main[0].log_size, 1, &projected);
     for (projected.items, taken.main) |old, new| try std.testing.expectEqualSlices(M, old.values, new.values);
 }
+
+fn checkExternalInventory(a: std.mem.Allocator) !void {
+    const nodes = [_]Graph.Node{ .{ .op = .input }, .{ .op = .input }, .{ .op = .input }, .{ .op = .{ .constant = .{ 0, 0, 0, 0 } } } };
+    const outputs = [_]u32{ 0, 1, 2 };
+    const graph = try Graph.CircuitGraph.authenticate(&nodes, &outputs, Graph.computeGraphDigest(&nodes, &outputs));
+    const constant_nodes = [_]Graph.Node{.{ .op = .{ .constant = .{ 0, 0, 0, 0 } } }};
+    const constant_outputs = [_]u32{0};
+    const constant_graph = try Graph.CircuitGraph.authenticate(&constant_nodes, &constant_outputs, Graph.computeGraphDigest(&constant_nodes, &constant_outputs));
+    const graphs = [_]Graph.CircuitGraph{ graph, constant_graph, constant_graph };
+    const values = [_]Q{ Q.fromBase(M.fromCanonical(5)), Q.fromBase(M.fromCanonical(6)), Q.fromBase(M.fromCanonical(7)), Q.zero() };
+    const constants = [_]Q{Q.zero()};
+    const evaluations = [_][]const Q{ &values, &constants, &constants };
+    const scalars = [_]Scalar.Row{try Scalar.logicalRow(1500, 0, 1, M.fromCanonical(5))};
+    const boundaries: []const Boundary.Row = &.{};
+    const packs: []const Pack.Row = &.{};
+    try std.testing.expectEqual(@as(usize, 3), try Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{ 1, 2 }));
+    // The same seen bitmap rejects repeated external entries and collisions
+    // with a scalar producer. No prefix scan is needed for either obligation.
+    try expectInventoryError(error.InvalidNativeParentInput, Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{ 1, 1 }));
+    try expectInventoryError(error.InvalidNativeParentInput, Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{ 0, 1, 2 }));
+    try expectInventoryError(error.MissingNativeParentInput, Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{1}));
+    try expectInventoryError(error.InvalidNativeParentInput, Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{ 1, 3 }));
+    try expectInventoryError(error.InvalidNativeParentInput, Inventory.checkExternal(a, graphs, evaluations, &scalars, boundaries, packs, &.{ 1, 4 }));
+}
+test "external recursive input bitmap retains duplicate producer and shape rejection" {
+    try checkExternalInventory(std.testing.allocator);
+}
+test "external recursive input bitmap releases all allocation failures" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkExternalInventory, .{});
+}

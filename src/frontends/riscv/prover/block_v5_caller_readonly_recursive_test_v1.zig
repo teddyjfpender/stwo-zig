@@ -180,6 +180,7 @@ test "caller readonly recursion: exact three channel branch draws exports and or
         .restart => resets += 1,
         .secure => |draw| {
             if (draw.output == null) {
+                try std.testing.expect(draw.discard_output);
                 unexported += 1;
             } else {
                 exported += 1;
@@ -216,7 +217,7 @@ test "caller readonly recursion: owned statement and public claims survive cloni
     claims.memory_claims[0].active_count += 1;
     try std.testing.expectError(error.UntrustedV5CallerCompositeEventCensus, Bus.Values.init(a, &admitted, claims));
 }
-fn input(builder: *R.Builder, a: std.mem.Allocator, inputs: *std.ArrayList(Q), concrete: Q) !S {
+fn symbolicInput(builder: *R.Builder, a: std.mem.Allocator, inputs: *std.ArrayList(Q), concrete: Q) !S {
     const symbol = try builder.input();
     try inputs.append(a, concrete);
     return symbol.value;
@@ -263,7 +264,7 @@ test "caller readonly recursion: all original scalar OODS equations match symbol
             for (values.*, 0..) |*concrete, ordinal| {
                 concrete.* = value(100 + tree * 100 + column * 3 + ordinal);
                 if (tree == 2 and column == 0) sample_input = inputs.items.len;
-                try symbols.append(temp, try input(&builder, temp, &inputs, concrete.*));
+                try symbols.append(temp, try symbolicInput(&builder, temp, &inputs, concrete.*));
             }
         }
     }
@@ -276,26 +277,26 @@ test "caller readonly recursion: all original scalar OODS equations match symbol
     var prefix_channel = admitted.sealed.sharedChannel();
     const universal = try @import("../recursion/air/universal_challenges.zig").UniversalRelations.draw(temp, &prefix_channel);
     var draws: [47][2]S = undefined;
-    for (&draws, universal.elements) |*out, element| out.* = .{ try input(&builder, temp, &inputs, element.z), try input(&builder, temp, &inputs, element.alpha) };
+    for (&draws, universal.elements) |*out, element| out.* = .{ try symbolicInput(&builder, temp, &inputs, element.z), try symbolicInput(&builder, temp, &inputs, element.alpha) };
     var word_draws: [10]S = undefined;
     inline for (.{ "transition", "link", "initial", "endpoint", "range16" }, 0..) |name, i| {
         const element = @field(word, name);
-        word_draws[2 * i] = try input(&builder, temp, &inputs, element.z);
-        word_draws[2 * i + 1] = try input(&builder, temp, &inputs, element.alpha);
+        word_draws[2 * i] = try symbolicInput(&builder, temp, &inputs, element.z);
+        word_draws[2 * i + 1] = try symbolicInput(&builder, temp, &inputs, element.alpha);
     }
     var class_draws: [4]S = undefined;
     inline for (.{ "classification", "read" }, 0..) |name, i| {
         const element = @field(classification, name);
-        class_draws[2 * i] = try input(&builder, temp, &inputs, element.z);
-        class_draws[2 * i + 1] = try input(&builder, temp, &inputs, element.alpha);
+        class_draws[2 * i] = try symbolicInput(&builder, temp, &inputs, element.z);
+        class_draws[2 * i + 1] = try symbolicInput(&builder, temp, &inputs, element.alpha);
     }
     const public_values = try Composition.publicInputs(temp, &admitted, claims);
     const public = try temp.alloc(S, public_values.len);
     const claim_input = inputs.items.len + 8;
-    for (public, public_values) |*out, concrete| out.* = try input(&builder, temp, &inputs, concrete);
-    const random_symbol = try input(&builder, temp, &inputs, random);
-    const seed_symbol = try input(&builder, temp, &inputs, seed);
-    const expected_symbol = try input(&builder, temp, &inputs, expected);
+    for (public, public_values) |*out, concrete| out.* = try symbolicInput(&builder, temp, &inputs, concrete);
+    const random_symbol = try symbolicInput(&builder, temp, &inputs, random);
+    const seed_symbol = try symbolicInput(&builder, temp, &inputs, seed);
+    const expected_symbol = try symbolicInput(&builder, temp, &inputs, expected);
     try builder.activate();
     defer if (builder.active) builder.deactivate();
     var accumulated = S.zero();
@@ -326,12 +327,12 @@ fn providersCase(a: std.mem.Allocator, admitted: *const Admission.Prepared, clai
     defer inputs.deinit(a);
     const public = try a.alloc(S, concrete.len);
     defer a.free(public);
-    for (public, concrete) |*out, v| out.* = try input(&builder, a, &inputs, v);
+    for (public, concrete) |*out, v| out.* = try symbolicInput(&builder, a, &inputs, v);
     var draws: [4]S = undefined;
     inline for (.{ "classification", "read" }, 0..) |name, i| {
         const element = @field(classification, name);
-        draws[2 * i] = try input(&builder, a, &inputs, element.z);
-        draws[2 * i + 1] = try input(&builder, a, &inputs, element.alpha);
+        draws[2 * i] = try symbolicInput(&builder, a, &inputs, element.z);
+        draws[2 * i + 1] = try symbolicInput(&builder, a, &inputs, element.alpha);
     }
     try builder.activate();
     defer if (builder.active) builder.deactivate();

@@ -1,0 +1,46 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-cpu-architecture-root-limits-20261029"
+  ],
+  "capture_sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350",
+  "binary_sha256": "2ff90f39c5f6d6acc03b6e967e69b6a3123a309a80e28c5abb1381a229079758",
+  "runner_sha256": "52ad1b6d2cc5fc33f281bb088fd88544eb53c4bd92fcce47825a2e772b2c09e5",
+  "complete_recursive_root": true,
+  "worker_count": 8,
+  "native_layout": "canonical",
+  "sparse_initialization": true,
+  "resident_memory": true,
+  "native_main_cache_mib": 512,
+  "deep_group_mib": 8,
+  "cuda_deep": false,
+  "cuda_reference": false,
+  "cuda_composition": false,
+  "cuda_interactions": false,
+  "reuse_native_compiler": true,
+  "shared_epoch_prefix": true,
+  "materialized_parent_polynomials": true,
+  "reuse_original_captures": true,
+  "original_capture_mib": 4096,
+  "native_compiler_mib": 2048,
+  "root_resources": {
+    "preparation_mib": 24576,
+    "row_log": 25,
+    "batch_size": 0,
+    "parallel_families": 1,
+    "parallel_preparation": 4
+  },
+  "report_checked": true,
+  "build_manifest_sha256": "39c4c3088e11022c7833872473b53c94810477f787e375eef02b2756200051c6",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 24680528,
+    "temporary_snapshot_bytes_written": 24680528,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793301156357213000,
+  "returncode": 0,
+  "finished_unix_ns": 1793301300552882000
+}

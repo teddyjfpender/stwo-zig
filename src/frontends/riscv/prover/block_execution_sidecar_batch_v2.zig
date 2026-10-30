@@ -93,7 +93,10 @@ pub fn slotsFromStatementForMode(a: std.mem.Allocator, statement: anytype, frame
     for (statement.component_descs[0..statement.n_components]) |component| {
         const family = component.family;
         const main_count = opcode.nColumnsForFamily(family);
-        if (component.n_columns != main_count) return error.InvalidExecutionSlotStatement;
+        const local_zero = statement.localZeroCustody();
+        if (local_zero and mode == 0) return error.UnsupportedLocalZeroGlobalMemorySidecar;
+        const physical_count = if (local_zero) try @import("../air/x0_native_envelope_v1.zig").mainColumnCount(family) else main_count;
+        if (component.n_columns != physical_count) return error.InvalidExecutionSlotStatement;
         const zeros: [opcode.MAX_FAMILY_COLUMNS]Q = @splat(Q.zero());
         const pairs = try source.fromCommittedMain(Q, family, zeros[0..main_count]);
         for (pairs.items[0..pairs.len], 0..) |pair, slot| {
@@ -101,7 +104,7 @@ pub fn slotsFromStatementForMode(a: std.mem.Allocator, statement: anytype, frame
             if (!pair.space.eql(Q.zero()) and !pair.space.eql(Q.one())) return error.InvalidExecutionSlotSpace;
             try slots.append(a, .{ .family = family, .slot = slot, .log_size = component.log_size, .main_offset = offset, .frame = frame });
         }
-        offset += main_count;
+        offset += physical_count;
     }
     return slots.toOwnedSlice(a);
 }

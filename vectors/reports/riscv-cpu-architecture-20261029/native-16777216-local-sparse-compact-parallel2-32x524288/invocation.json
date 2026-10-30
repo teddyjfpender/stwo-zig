@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-b8-pinned-local-pipeline-invocation-v1",
+  "capture_sha256": "1748bc2b99f31086aee388759494b7307fa84e920c7fd2c3cfc66baa27403709",
+  "binary_sha256": "55056083f9472371a55a4b81ce0eccd6367cf1c3b485ce88db30e9987c68af10",
+  "build_manifest_sha256": "d11fa42177ea357728fd807912063d27bc63ae0eec4ec3f24e5a693ff2efd7a3",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 16777216
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "c095021f804b6e3b4f16f46f5e70a4c77a13e291e14fa3b863158b379579dd0d",
+  "workers": 8,
+  "parallel_local_proofs": 2,
+  "sparse_rom": true,
+  "cohort_cycles": 524288,
+  "compact": true,
+  "cpu_only": true,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "recursive_root": false,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/stwo-b8-local-sparse-compact-build-20261030/benchmark"
+  ],
+  "started_unix_ns": 1793332354358716000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793332435249431000,
+  "report_sha256": "97fabec20725b62a46071d3ed56f9b9cc8a72aec281fc9515fa1d3f67f6ab57c"
+}

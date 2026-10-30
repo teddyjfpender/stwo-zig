@@ -84,6 +84,8 @@ pub const RiscVStatement = ExecutionStatement(false);
 /// Execution/clock/lookup shape for the full-width BLAKE3 public contract.
 /// Program and memory providers are admitted by the BLAKE3 commitment roster.
 pub const Blake3ExecutionStatement = ExecutionStatement(true);
+pub const NATIVE_WIDE_TAG: u32 = 0x4e575334;
+pub const NATIVE_WIDE_VERSION: u32 = 1;
 fn ExecutionStatement(comptime blake3: bool) type {
     return struct {
         const Self = @This();
@@ -95,6 +97,8 @@ fn ExecutionStatement(comptime blake3: bool) type {
         public_data: if (blake3) public_data.Blake3PublicData else PublicData,
         /// Zero is explicit compatibility. Canonical activation waits for caller custody.
         x0_local_custody_version: u32 = 0,
+        /// Zero preserves canonical65536-row shards. Version1 is explicitly wide.
+        native_shard_version: u32 = 0,
         n_infra: u32 = 0,
         infra_descs: [MAX_INFRA_COMPONENTS]InfraComponentDesc = undefined,
 
@@ -119,8 +123,9 @@ fn ExecutionStatement(comptime blake3: bool) type {
             if (self.initial_pc >= (1 << 30) or self.final_pc >= (1 << 30)) return error.InvalidStatement;
             if (self.initial_pc != self.public_data.initial_pc or self.final_pc != self.public_data.final_pc or self.total_steps != self.public_data.clock) return error.InvalidStatement;
             const order = @import("component_order.zig");
-            const max_shard_rows: u32 = 1 << 16;
-            if (self.total_steps > MAX_COMPONENTS * max_shard_rows or @import("../access_clock.zig").maximum(self.total_steps) >= @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) return error.InvalidStatement;
+            if (self.native_shard_version > NATIVE_WIDE_VERSION or (self.native_shard_version != 0 and self.localZeroCustody())) return error.InvalidNativeShardProfile;
+            const max_shard_rows: u32 = if (self.native_shard_version == NATIVE_WIDE_VERSION) 1 << 24 else 1 << 16;
+            if (@as(u64, self.total_steps) > @as(u64, MAX_COMPONENTS) * max_shard_rows or @import("../access_clock.zig").maximum(self.total_steps) >= @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) return error.InvalidStatement;
             var rows: u64 = 0;
             var previous_family: ?usize = null;
             var previous_rows: u32 = 0;
@@ -161,6 +166,7 @@ fn ExecutionStatement(comptime blake3: bool) type {
         /// capacity: whole-value custody checks and diagnostic formatters may walk
         /// those slots after the producing workspace has gone away.
         pub fn initializeDescriptorStorage(self: *Self) void {
+            self.native_shard_version = 0;
             const empty_component: FamilyComponentDesc = .{
                 .family = .base_alu_reg,
                 .log_size = 0,
@@ -279,6 +285,7 @@ fn ExecutionStatement(comptime blake3: bool) type {
         /// the complete shard geometry before drawing relation challenges.
         pub fn mixShardManifest(self: Self, channel: anytype) void {
             if (blake3) {
+                if (self.native_shard_version != 0) channel.mixU32s(&.{ NATIVE_WIDE_TAG, self.native_shard_version, 24 });
                 if (self.localZeroCustody()) {
                     channel.mixU32s(&.{ @import("x0_local_custody_v1.zig").TAG, self.x0_local_custody_version });
                     channel.mixRoot(@import("x0_local_custody_v1.zig").abiId());

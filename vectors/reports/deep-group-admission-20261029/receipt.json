@@ -1,0 +1,153 @@
+{
+  "schema": "stwo.deep-group-admission.v1",
+  "status": "focused_correctness_passed_complete_candidate_pending",
+  "protocol_changed": false,
+  "baseline_binary_sha256": "0aba83b8644fe2f5229e8456addbd1d40a4f667004502eeb82d1c2996849ad9e",
+  "baseline_source_sha256": "b45e85a90759bab69eb0c9b0f08bcfda853a61cf91b8882f9fc7d77f897351fe",
+  "baseline_proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+  "baseline_sample_attachment_delay_seconds": 26.859,
+  "sampling_period_ms": 5,
+  "timing_quality": "sampled_diagnostic_not_ranked",
+  "head_frames": [
+    {
+      "frame": "pcs.quotient_tile_executor.accumulateTile  (in prover)",
+      "samples": 27361
+    },
+    {
+      "frame": "__ulock_wait2  (in libsystem_kernel.dylib)",
+      "samples": 8937
+    },
+    {
+      "frame": "_platform_memmove  (in libsystem_platform.dylib)",
+      "samples": 4420
+    },
+    {
+      "frame": "_platform_memset  (in libsystem_platform.dylib)",
+      "samples": 2472
+    },
+    {
+      "frame": "poly.circle.fft_radix8.forward  (in prover)",
+      "samples": 1360
+    },
+    {
+      "frame": "prover.block_v5_native_projection_fused_component_v1.Component.residual  (in prover)",
+      "samples": 1051
+    },
+    {
+      "frame": "prover.block_v5_native_projection_fused_component_v1.Component.evaluateConstraintQuotientsOnDomain  (in prover)",
+      "samples": 994
+    },
+    {
+      "frame": "poly.twiddles.precomputeM31  (in prover)",
+      "samples": 771
+    },
+    {
+      "frame": "recursion.air.universal_challenges.Elements.combineSecure  (in prover)",
+      "samples": 687
+    },
+    {
+      "frame": "prover.block_v5_native_fused_algebra_v1.Algebra(fields.qm31.QM31).rangeConstraints__anon_239871  (in prover)",
+      "samples": 620
+    },
+    {
+      "frame": "air.guest_precompile.keccakf_caller.stateWordBytes__anon_106978  (in prover)",
+      "samples": 597
+    },
+    {
+      "frame": "air.relation_challenges.RelationElements(7).combine  (in prover)",
+      "samples": 530
+    },
+    {
+      "frame": "air.logup_equations.pairConstraintGeneric__anon_240682  (in prover)",
+      "samples": 506
+    },
+    {
+      "frame": "crypto.blake3.CompressGeneric.compress  (in prover)",
+      "samples": 474
+    },
+    {
+      "frame": "prover.block_execution_sidecar_stark_v2.Component.evaluateConstraintQuotientsOnDomain  (in prover)",
+      "samples": 473
+    },
+    {
+      "frame": "fields.m31.powPMinus2  (in prover)",
+      "samples": 428
+    },
+    {
+      "frame": "crypto.blake3_compression_batch.compress4  (in prover)",
+      "samples": 401
+    },
+    {
+      "frame": "poly.circle.transforms.bottomLayersRange__anon_133461  (in prover)",
+      "samples": 381
+    },
+    {
+      "frame": "prover.block_v5_native_lookup_request_source_v1.Pair.denominator  (in prover)",
+      "samples": 365
+    },
+    {
+      "frame": "fields.qm31.QM31.fromPartialEvals  (in prover)",
+      "samples": 336
+    },
+    {
+      "frame": "air.lookups.opcode_entries.Entries(fields.qm31.QM31).fromMain  (in prover)",
+      "samples": 288
+    },
+    {
+      "frame": "air.guest_precompile.keccakf_component.PreparedDomainState.run  (in prover)",
+      "samples": 285
+    },
+    {
+      "frame": "poly.circle.fft_radix8.inverse  (in prover)",
+      "samples": 282
+    },
+    {
+      "frame": "air.lang.fixed_load_store.Evaluator(fields.qm31.QM31).derive  (in prover)",
+      "samples": 257
+    },
+    {
+      "frame": "prover.block_v5_native_projection_fused_source_v1.fromCommittedMain  (in prover)",
+      "samples": 250
+    },
+    {
+      "frame": "fields.mod.batchInverseInPlace__anon_71436  (in prover)",
+      "samples": 216
+    },
+    {
+      "frame": "prover.block_execution_external_domain_v2.evaluate__anon_240063  (in prover)",
+      "samples": 216
+    },
+    {
+      "frame": "prover.block_execution_integer_algebra_v1.Algebra(fields.qm31.QM31).constraints  (in prover)",
+      "samples": 197
+    },
+    {
+      "frame": "poly.circle.transforms.bottomLayersRange__anon_138865  (in prover)",
+      "samples": 176
+    },
+    {
+      "frame": "air.relation_challenges.RelationElements(6).combineBase  (in prover)",
+      "samples": 149
+    }
+  ],
+  "resolved_hot_inline_frames": [
+    "accumulateLiftedRuns:482",
+    "accumulateLiftedRuns:486",
+    "accumulateLiftedRuns:491"
+  ],
+  "metadata_cap_bytes": 1048576,
+  "member_bytes_before": 32,
+  "member_bytes_after": 16,
+  "wide_test_contributions": 33000,
+  "focused_tests_passed": 67,
+  "complete_candidate_performance": null,
+  "files": {
+    "baseline-manifest.json": "0250922a72d5081c254b60e5c6d46499feae5e3f1709d168b86f5d506f4eb21f",
+    "baseline-sample.txt.gz": "44917fc3b7a56e5d893f499c3b00198d05deb5afc7727c788b67a619eb372d1e",
+    "focused-tests.log": "1fababaa871139ff95d616be10ed5062ce2408fadb860b4b57f4203f4c2e62cf",
+    "baseline-stages.csv": "14cd8759a66fb0ad2800b754e42c02c5d3dd10b65e469b849e77b52ae3888ba9",
+    "baseline-report.json": "b32aed43274775431faf83a65594c8a3633e471013b7fab2fde6763dce359639",
+    "baseline-runs.csv": "d6b3bef13c83ef2485e29252ee19800c2325c8ee7451af675863ae9bee036a86",
+    "baseline-run.log": "3abcb1599a4bfe4c27e138018985264324560c7078446fb554bbc34e504aae90"
+  }
+}

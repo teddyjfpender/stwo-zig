@@ -1,0 +1,62 @@
+{
+  "schema": "stwo-v8-group-independent-local-endpoint-parity-v1",
+  "scope": "same committed23-column endpoint roots, counts and CPU clock frames; Group global relation still open",
+  "checks": [
+    {
+      "cohort": 0,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "326a0f84f02b4f42a3e4fb9dd5a895a10531025f5737933453ea21c5914e41fe"
+    },
+    {
+      "cohort": 1,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "f15685a5b3bafdfdbea87d457cc047cc40d972d6abf4a4d5281baeb6e7aa015a"
+    },
+    {
+      "cohort": 2,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "0d82685fb4fda85f4f3595a19febc223a768545f20dcd03484dc59360037abde"
+    },
+    {
+      "cohort": 3,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "dc69cfc99d6878dc7e1adb02d5a22656138d905d20146870df385d4e4864fc33"
+    },
+    {
+      "cohort": 4,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "06143c0cc666682cb49a6b41b7cdb3ebaa394124cb84b1fea71c2d4ac29e86bf"
+    },
+    {
+      "cohort": 5,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "64dbeb7e711e4ecff31ed632d2e4f38147e7f95b76b1e4bc0d5cba5f7b090e52"
+    },
+    {
+      "cohort": 6,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "027c44bf682e8c0216fe0dfcdb2bb62e90f6f034720aa34aff5df5a8d88c975f"
+    },
+    {
+      "cohort": 7,
+      "root_equal": true,
+      "count_equal": true,
+      "frame_equal": true,
+      "reference_metadata_sha256": "2dbfb221d4e6a2bf36cc1e36ab4052b76eef57658d74b52c75554e8ec37199bb"
+    }
+  ]
+}

@@ -1,0 +1,464 @@
+{
+  "schema": "stwo-mixed-durable-compact-bundle-qualification-v1",
+  "qualification": "All12 ReleaseSafe tests passed; focused legacy/native+sparse receiving regression All15passed",
+  "scope": "declared nonterminal window closed by genuine mixed/native/caller original, sameEndpointRoot bridge original and compact-global original; fresh durable directory receiver after all producers destroyed; not recursive or whole Ethereum block",
+  "dispatch": {
+    "mode": "exact explicit metadata schema AND eight-byte magic; no fallback",
+    "local_complete": [
+      "stwo-v8-local-native-endpoint-metadata-v1",
+      "B8LCO001"
+    ],
+    "local_sparse": [
+      "stwo-v8-local-native-endpoint-sparse-rom-metadata-v1",
+      "B8LCS001"
+    ],
+    "mixed_complete": [
+      "stwo-v8-mixed-native-caller-endpoint-metadata-v1",
+      "B8MIX001"
+    ],
+    "mixed_sparse": [
+      "stwo-v8-mixed-native-caller-endpoint-sparse-rom-metadata-v1",
+      "B8MIS001"
+    ]
+  },
+  "metadata": "canonical bounded native statement and ethereum_sha caller statement wire encoded aslowercasehex, caller/native roots+allplans; SHA-pinnedELF independently reconstructs allfixedkeys",
+  "boundary": "dispatcher returnsbyvalue PC/32registers/source/frame/cycles/external; Bundle chainsCPU/frames usingTOTAL retiredcycles and independently tallies external retirements",
+  "checks": [
+    "mixed SHA+Keccak fixture cycles6 external3 endpoints50 q70pow26",
+    "mixed recovery fixture cycles4 external1 endpoints42 q70pow26",
+    "same23-column endpointMAIN root retained forlatebridge",
+    "alltypedproducerobjects/widewitnesses/narrowlease released before finaldirectoryreceiving",
+    "schema/magic mismatch rejects withoutfallback",
+    "changedcallerMAIN root rejects",
+    "legacy fullRAM,compactRAM,sequential,parallel,and sparseROM receiver regression"
+  ],
+  "fixture_note": "initForGlobal creates unused aligned privateinputspan BEFOREexecution/actual snapshots; defaultstandalone fixture ELF unchanged; no policy relaxation or retainedEthereum ELF modification",
+  "cases": [
+    {
+      "case": "recovery",
+      "summary": {
+        "scope": "declared_window_originals_closed",
+        "global_argument": "compact_endpoint",
+        "elf_sha256": [
+          11,
+          101,
+          112,
+          170,
+          249,
+          77,
+          98,
+          90,
+          88,
+          98,
+          22,
+          81,
+          234,
+          90,
+          225,
+          97,
+          102,
+          114,
+          33,
+          153,
+          183,
+          177,
+          118,
+          176,
+          110,
+          23,
+          226,
+          64,
+          128,
+          175,
+          93,
+          151
+        ],
+        "incoming_sha256": [
+          75,
+          21,
+          155,
+          104,
+          137,
+          158,
+          163,
+          224,
+          112,
+          119,
+          181,
+          103,
+          192,
+          248,
+          96,
+          94,
+          215,
+          255,
+          119,
+          90,
+          178,
+          169,
+          10,
+          214,
+          46,
+          164,
+          95,
+          122,
+          70,
+          170,
+          123,
+          204
+        ],
+        "outgoing_sha256": [
+          228,
+          84,
+          252,
+          71,
+          77,
+          95,
+          84,
+          31,
+          11,
+          22,
+          217,
+          195,
+          228,
+          162,
+          223,
+          117,
+          0,
+          21,
+          154,
+          84,
+          222,
+          27,
+          243,
+          130,
+          130,
+          8,
+          202,
+          118,
+          159,
+          177,
+          37,
+          225
+        ],
+        "epoch": [
+          163,
+          74,
+          83,
+          83,
+          192,
+          120,
+          86,
+          158,
+          178,
+          116,
+          133,
+          156,
+          140,
+          182,
+          45,
+          128,
+          26,
+          212,
+          221,
+          244,
+          179,
+          57,
+          14,
+          136,
+          137,
+          229,
+          119,
+          244,
+          92,
+          188,
+          53,
+          134
+        ],
+        "cycles": 4,
+        "cohorts": 1,
+        "bridge_batches": 1,
+        "endpoint_events": 42,
+        "logical_ram_accesses": 42,
+        "program_fetches": 5,
+        "external_retirements": 1
+      },
+      "artifacts": [
+        {
+          "name": "bridge-0.proof",
+          "bytes": 17226,
+          "sha256": "75dd2445984dca9a0812adfdeb161c2944abacf1d8bfc4c16ff80264f2fc0b5a"
+        },
+        {
+          "name": "global-memory.proof",
+          "bytes": 242704,
+          "sha256": "4281bfdb2a93b5c2cc5c91dc79a5e027eed6bd6b7c08d45a5c4d41fb3d37c62d"
+        },
+        {
+          "name": "global-public.json",
+          "bytes": 1805,
+          "sha256": "32bb3998df998530348f3ed6e6874d9896dfd16b707dc7d8c230ddb7dea7a79a"
+        },
+        {
+          "name": "guest.elf",
+          "bytes": 1568,
+          "sha256": "0b6570aaf94d625a58621651ea5ae16166722199b7b176b06e17e24080af5d97"
+        },
+        {
+          "name": "incoming.b7win",
+          "bytes": 980,
+          "sha256": "fb7d95dbb5788ae14053fd0c7eb2f63a9f14f6c70220a27822fa6ae09874b628"
+        },
+        {
+          "name": "local-0.json",
+          "bytes": 5256,
+          "sha256": "b2d106c6394e399fb498e6285fdebe9f667a303845bb1950ee654253a0376ee3"
+        },
+        {
+          "name": "local-0.proof",
+          "bytes": 2835401,
+          "sha256": "6f9084d63e068a7870198dd82aa28c8b174bc0c9e8a8015775692917b61f7aa1"
+        },
+        {
+          "name": "outgoing.b7win",
+          "bytes": 980,
+          "sha256": "353c0cd009f3e761c5be81933825b46f0da3f6c784163cfe467a8ea1fee2a2a2"
+        },
+        {
+          "name": "report.json",
+          "bytes": 1448,
+          "sha256": "047190a5b8f72699fac42bc7eb9b638b02b865dfcd078baaf3212d6bdf69d0b2"
+        }
+      ]
+    },
+    {
+      "case": "sha_keccak",
+      "summary": {
+        "scope": "declared_window_originals_closed",
+        "global_argument": "compact_endpoint",
+        "elf_sha256": [
+          208,
+          121,
+          112,
+          159,
+          67,
+          158,
+          139,
+          48,
+          62,
+          235,
+          192,
+          135,
+          102,
+          232,
+          88,
+          73,
+          94,
+          2,
+          136,
+          216,
+          166,
+          193,
+          44,
+          6,
+          188,
+          95,
+          191,
+          174,
+          103,
+          203,
+          122,
+          164
+        ],
+        "incoming_sha256": [
+          243,
+          60,
+          188,
+          211,
+          173,
+          20,
+          207,
+          247,
+          91,
+          35,
+          106,
+          221,
+          197,
+          94,
+          43,
+          47,
+          138,
+          179,
+          86,
+          194,
+          4,
+          135,
+          38,
+          151,
+          150,
+          73,
+          164,
+          41,
+          102,
+          111,
+          10,
+          115
+        ],
+        "outgoing_sha256": [
+          195,
+          132,
+          154,
+          190,
+          140,
+          141,
+          215,
+          205,
+          212,
+          157,
+          94,
+          140,
+          247,
+          92,
+          85,
+          147,
+          46,
+          50,
+          124,
+          126,
+          73,
+          27,
+          3,
+          218,
+          6,
+          30,
+          128,
+          138,
+          127,
+          254,
+          3,
+          34
+        ],
+        "epoch": [
+          250,
+          16,
+          220,
+          157,
+          155,
+          89,
+          154,
+          33,
+          2,
+          105,
+          141,
+          47,
+          153,
+          211,
+          2,
+          100,
+          119,
+          116,
+          60,
+          85,
+          91,
+          142,
+          238,
+          226,
+          23,
+          219,
+          69,
+          44,
+          99,
+          148,
+          89,
+          172
+        ],
+        "cycles": 6,
+        "cohorts": 1,
+        "bridge_batches": 1,
+        "endpoint_events": 50,
+        "logical_ram_accesses": 98,
+        "program_fetches": 7,
+        "external_retirements": 3
+      },
+      "artifacts": [
+        {
+          "name": "bridge-0.proof",
+          "bytes": 16757,
+          "sha256": "60c0e06c76aa045be67a0dd6fe6845d6c6cdce5d83c9cc7aaab4f7cd73637821"
+        },
+        {
+          "name": "global-memory.proof",
+          "bytes": 240248,
+          "sha256": "6ac3cd57dd30beb5abcb6bf7c61e8b05996528af10f3235f91eea844a32ebceb"
+        },
+        {
+          "name": "global-public.json",
+          "bytes": 1868,
+          "sha256": "da46ff7054552ff800ed6d5c055da0c284ac33584d6af79b6d4dd36fb2d78459"
+        },
+        {
+          "name": "guest.elf",
+          "bytes": 1436,
+          "sha256": "d079709f439e8b303eebc08766e858495e0288d8a6c12c06bc5fbfae67cb7aa4"
+        },
+        {
+          "name": "incoming.b7win",
+          "bytes": 716,
+          "sha256": "e9d9fc3d606b86a527b19b4578828e778cbb5782b9b18ccfb42f78a7b45c8a90"
+        },
+        {
+          "name": "local-0.json",
+          "bytes": 5262,
+          "sha256": "c525ff65f1d10828ff6574bef94a7c89881a5590c9814acd9ac3cbf0774558d0"
+        },
+        {
+          "name": "local-0.proof",
+          "bytes": 3863101,
+          "sha256": "2d3ab74cb9ef3cfef5b0a304e3dd232644b038307f29a4b55a30e7c22c2c3449"
+        },
+        {
+          "name": "outgoing.b7win",
+          "bytes": 716,
+          "sha256": "33815cc56c81fa8d29f469e39d47fb265d709ff9689cd84d4fb54345b3577905"
+        },
+        {
+          "name": "report.json",
+          "bytes": 1440,
+          "sha256": "ee3a9c627d76a235164adf36e5677fc91eacaeefbda5124112cceef3060bdcf5"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_mixed_statement_wire_v1.zig",
+      "bytes": 7992,
+      "sha256": "ea59d8847adee8b2418b55e455c356f36f0e54d6dbf07f8bedf59625db9fbcde"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_source_wire_dispatch_v1.zig",
+      "bytes": 4568,
+      "sha256": "fb394461eb0ad99e8d633ba15ba417798e4d431b2d2d2850434ad6fa5aa42f7d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_bundle_v1.zig",
+      "bytes": 12425,
+      "sha256": "92feeb9a5df06fd5ef5dcc46f16f036c57a4ab06c855aa3a28598bae3a7cf962"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_endpoint_mixed_bundle_test.zig",
+      "bytes": 11364,
+      "sha256": "0f67f933513866db98b8a1fa29bb794ab70650757ff86ff7ebb9c0e1a2107f02"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_endpoint_mixed_fixture.zig",
+      "bytes": 12420,
+      "sha256": "37db7f7718c34d8525ba7907c1af27b23c6495bc0b3a236c03bd1309663cb752"
+    },
+    {
+      "path": "src/frontends/riscv/block_v8_endpoint_mixed_bundle_test_root.zig",
+      "bytes": 82,
+      "sha256": "33100d4761aa9a29141a847205672aad25e232f4780000f8da7e2e1bef99fd43"
+    }
+  ]
+}

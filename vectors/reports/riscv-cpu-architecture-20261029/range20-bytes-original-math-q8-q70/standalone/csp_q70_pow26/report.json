@@ -1,0 +1,212 @@
+{
+  "schema": "stwo-range20-bytes-seven-plane-original-v1",
+  "scope": "experimental native lookup predicate math theorem; program/global memory OPEN; no whole VM authority",
+  "profile": "csp_q70_pow26",
+  "native_consumer": false,
+  "layout": {
+    "parts": [
+      {
+        "kind": "bitwise",
+        "mode": "sparse",
+        "log": 4,
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "width": [
+          1,
+          21,
+          4
+        ],
+        "claim_count": 1
+      },
+      {
+        "kind": "range_check_20",
+        "mode": "sparse",
+        "log": 4,
+        "offset": [
+          1,
+          21,
+          4
+        ],
+        "width": [
+          1,
+          4,
+          8
+        ],
+        "claim_count": 2
+      },
+      {
+        "kind": "range_check_8_11",
+        "mode": "sparse",
+        "log": 4,
+        "offset": [
+          2,
+          25,
+          12
+        ],
+        "width": [
+          1,
+          20,
+          4
+        ],
+        "claim_count": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "mode": "sparse",
+        "log": 4,
+        "offset": [
+          3,
+          45,
+          16
+        ],
+        "width": [
+          1,
+          21,
+          4
+        ],
+        "claim_count": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "mode": "dense",
+        "log": 16,
+        "offset": [
+          4,
+          66,
+          20
+        ],
+        "width": [
+          3,
+          1,
+          4
+        ],
+        "claim_count": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "mode": "sparse",
+        "log": 4,
+        "offset": [
+          7,
+          67,
+          24
+        ],
+        "width": [
+          1,
+          17,
+          4
+        ],
+        "claim_count": 1
+      }
+    ],
+    "columns": [
+      8,
+      84,
+      28
+    ],
+    "digest": [
+      41,
+      4,
+      22,
+      171,
+      166,
+      241,
+      26,
+      137,
+      191,
+      36,
+      85,
+      191,
+      247,
+      62,
+      91,
+      4,
+      125,
+      45,
+      184,
+      88,
+      137,
+      54,
+      5,
+      92,
+      46,
+      220,
+      75,
+      127,
+      12,
+      94,
+      151,
+      51
+    ]
+  },
+  "public_range20_values": [
+    0,
+    1,
+    255,
+    256,
+    65535,
+    65536,
+    1048575
+  ],
+  "native_shape": null,
+  "elf_sha256": "1ffdf567b9ef6b4442d50586c7fc695b1f5d2180ed9e9f3c7e8464fb96aa6c68",
+  "summary": {
+    "native_consumer": false,
+    "range20_main_columns": 4,
+    "lookup_physical_claims": 7,
+    "all_lookup_buses_closed": true,
+    "state_closed": false,
+    "registers_closed": false,
+    "program_open": {
+      "c0": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    "ram_open": {
+      "c0": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    "whole_vm_qualified": false
+  },
+  "proof_bytes": 229611,
+  "fresh_fixed_key_verified": true,
+  "default_legacy_claims_unchanged": true,
+  "proof_sha256": "78074b91fb52a8045ede8de9f7168efca1c322ba218e9b213b23c889af8ccbe2",
+  "kernel_maximum_degree": 3,
+  "composition_split": 2,
+  "byte_request_claim_separate": true,
+  "invalid_padding_byte256_rejected": true,
+  "invalid_padding_top_nibble16_rejected": true,
+  "compensating_claim_change_rejected": true,
+  "legacy_six_claim_envelope_rejected": true
+}

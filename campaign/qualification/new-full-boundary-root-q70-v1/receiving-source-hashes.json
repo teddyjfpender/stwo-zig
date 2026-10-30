@@ -1,0 +1,14 @@
+{
+  "scope": "current independent receiving implementation; not a frozen whole-source build manifest",
+  "files": {
+    "src/frontends/riscv/prover/block_v8_full_boundary_policy_v1.zig": "c7490f5d22d9dd3d358543dc5d11c13658bfb94061dc6dae3e274f6621a3fa92",
+    "src/frontends/riscv/prover/block_v8_execution_boundary_ports_v1.zig": "c7257077271945a7b34e88d307d7ab076eb266843371462bc07173eb5caaca6c",
+    "src/frontends/riscv/prover/block_v7_real_window_policy_v2.zig": "d8fb82c9706d3872c0101054d091453677c265107bf12bbe61968bbb5cf2868b",
+    "src/frontends/riscv/prover/tests/block_v8_full_boundary_test.zig": "06e2b02f161e29d80f6749941072a741552a9bd7f3ae4b29f994f35441f21807",
+    "src/frontends/riscv/recursion/tests/block_v8_full_boundary_root_test.zig": "df2dc0c2f5d2fdd1f7bfdf1dffdc932e3243862c11b818a2727b5e05753b018d",
+    "src/frontends/riscv/recursion/air/block_v8_endpoint_recursive_closure_v1.zig": "fea705e648fdd97a141a063155ba0d06a42acac1e8ad6997d8a9bcaa4218e3fb"
+  },
+  "root_sha256": "864099a4a732d43732665d559f1e7d86c4c42835ac7ff3582a10edf79a8ad9de",
+  "metadata_sha256": "892e02a97c9e60a0d96826b9f26406b79009768d54a4532120edaf58af13ac34",
+  "log_sha256": "0ab0b360a99326b3fcbdc1b17d6b6daa94232ac9a81e4d9d5f2b4c102b874c1f"
+}

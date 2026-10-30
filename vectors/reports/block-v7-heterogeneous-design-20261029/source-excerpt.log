@@ -1,0 +1,34 @@
+1/11 prover.tests.block_v7_streaming_complete_root_test.test.v7 variable execution reaches one detached complete root...BLAKE3_HASH_METADATA g_rows=207480 xor_rows=59280 full_row_bytes=85600320 compact_bytes=14701440 removed_bytes=70898880
+BLAKE3_PATH_PLAN_REUSE openings=144 graph_builds=6 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=2451 fma=5436 arithmetic_rows=22899 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=208376 xor_rows=59536 full_row_bytes=85969984 compact_bytes=14764928 removed_bytes=71205056
+BLAKE3_PATH_PLAN_REUSE openings=144 graph_builds=6 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=2443 fma=5438 arithmetic_rows=22791 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=1264928 xor_rows=361408 full_row_bytes=521873152 compact_bytes=89629184 removed_bytes=432243968
+BLAKE3_PATH_PLAN_REUSE openings=152 graph_builds=7 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=104977 fma=83443 arithmetic_rows=518226 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=64456 xor_rows=18416 full_row_bytes=26592704 compact_bytes=4567168 removed_bytes=22025536
+BLAKE3_PATH_PLAN_REUSE openings=80 graph_builds=3 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=211512 xor_rows=60432 full_row_bytes=87263808 compact_bytes=14987136 removed_bytes=72276672
+BLAKE3_PATH_PLAN_REUSE openings=160 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=734 fma=5629 arithmetic_rows=16352 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=135800 xor_rows=38800 full_row_bytes=56027200 compact_bytes=9622400 removed_bytes=46404800
+BLAKE3_PATH_PLAN_REUSE openings=120 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=1349 fma=3814 arithmetic_rows=14295 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=135800 xor_rows=38800 full_row_bytes=56027200 compact_bytes=9622400 removed_bytes=46404800
+BLAKE3_PATH_PLAN_REUSE openings=120 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=1349 fma=3814 arithmetic_rows=14295 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=74200 xor_rows=21200 full_row_bytes=30612800 compact_bytes=5257600 removed_bytes=25355200
+BLAKE3_PATH_PLAN_REUSE openings=80 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=1269 fma=2194 arithmetic_rows=10520 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=71008 xor_rows=20288 full_row_bytes=29295872 compact_bytes=5031424 removed_bytes=24264448
+BLAKE3_PATH_PLAN_REUSE openings=88 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=143 fma=1682 arithmetic_rows=5771 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=205968 xor_rows=58848 full_row_bytes=84976512 compact_bytes=14594304 removed_bytes=70382208
+BLAKE3_PATH_PLAN_REUSE openings=160 graph_builds=5 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=348 fma=5158 arithmetic_rows=13795 direct_columns=true
+BLAKE3_HASH_METADATA g_rows=43064 xor_rows=12304 full_row_bytes=17766976 compact_bytes=3051392 removed_bytes=14715584
+BLAKE3_PATH_PLAN_REUSE openings=64 graph_builds=4 retained_plans=2
+BLAKE3_NATIVE_FUSION dot4=151 fma=908 arithmetic_rows=4134 direct_columns=true
+V7_STREAMING_COMPLETE iterations=4096 profile=diagnostic_q8_pow0 source={"cycles":20495,"segments":2,"callers":1,"events":8293,"fetches":20496,"original_proofs":11,"checkpoint_bytes":68968544,"native_checkpoint_bytes":36953856,"caller_checkpoint_bytes":6164400,"max_native_restore_codec_bytes":19477120,"event_storage_bytes":12582912,"setup_ns":1397166,"execution_ns":1155334,"collection_ns":424008041,"providers_first_ns":89315875,"native_proof_ns":1118700625,"caller_proof_ns":3168047459,"memory_proof_ns":347983291,"rom_proof_ns":7736834,"lookup_proof_ns":102281083,"verification_ns":2580439500,"consumer_ns":53878208875,"whole_ns":61719274166,"charged_peak_bytes":7375674152} recursive={"metadata_ns":411674416,"caller_compile_ns":712665125,"cold_key_ns":9972502667,"capture_witness_join_ns":17689326167,"parity_ns":17986666,"plan_ns":1196497667,"proof_ns":23725317625,"encoding_ns":93875500,"whole_ns":53819845917,"retained_rows_bytes":1600790316,"fixed_commitment_reused":true} root_verification_ns=769492250 execution_to_verified_root_ns=62981386125 proof_bytes=158878 charged_peak_bytes=7375674152 original_owners_destroyed=true complete_global_closure=true ethereum_block=false

@@ -197,3 +197,59 @@ test "caller fused recursion: all original scalar OODS equations match symbolic 
     inputs.items[claim_input] = inputs.items[claim_input].add(Q.one());
     try std.testing.expectError(error.UnsatisfiedCircuit, circuit.evaluateInto(inputs.items, outputs));
 }
+
+test "caller fused recursion: original masks admit exact Keccak domain and cold shape" {
+    const a = std.testing.allocator;
+    const fixture = try Fixture.initWithKeccak(a, 1);
+    var admitted = try prepared(a, &fixture);
+    defer admitted.deinit();
+    var claims = try claimFrames(a, &admitted);
+    defer claims.deinit(a);
+    const relations = try Admission.Protocol.drawRelations(a, admitted.sealed);
+    const word = try @import("block_v5_word_memory_protocol_v1.zig").Challenges.draw(a, admitted.sealed);
+    const memory = try @import("block_memory_relation_v2.zig").Challenges.draw(a, admitted.sealed);
+    var components = try Fused.Components.init(a, &admitted.schedule, &claims, &relations, &memory, &word, admitted.logs[3], admitted.logs[2], admitted.sealed.register_custody_mode);
+    defer components.deinit();
+    const handles = try components.verifier();
+    defer a.free(handles);
+    const all = core.air.components.Components{ .components = handles, .n_preprocessed_columns = admitted.logs[0].len };
+    const mask_log = all.compositionLogDegreeBound() - try all.compositionLogSplit();
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN;
+    const Resolver = @import("../recursion/component_sample_layout_v1.zig");
+    var masks = try all.maskPoints(a, point, mask_log, false);
+    defer masks.deinitDeep(a);
+    var physical_count: usize = 0;
+    var unsampled_columns: usize = 0;
+    var sampled_columns: usize = 0;
+    var unsampled_cells: u64 = 0;
+    var sampled_cells: u64 = 0;
+    for (masks.items, 0..) |columns, tree| for (columns, admitted.logs[tree]) |points, log| {
+        const cells = @as(u64, 1) << @intCast(log);
+        if (points.len == 0) {
+            unsampled_columns += 1;
+            unsampled_cells += cells;
+        } else {
+            sampled_columns += 1;
+            sampled_cells += cells;
+        }
+    };
+    std.debug.print("CALLER_FUSED_MASK_CENSUS fixture=sha1_keccak1 sampled_columns={d} sampled_raw_cells={d} unsampled_columns={d} unsampled_raw_cells={d} fri_blowup_log={d}\n", .{ sampled_columns, sampled_cells, unsampled_columns, unsampled_cells, admitted.config.fri_config.log_blowup_factor });
+    for (masks.items, 0..) |columns, tree| for (columns, admitted.logs[tree]) |points, log| {
+        const resolved = try Resolver.resolve(points, point, mask_log, log);
+        if ((resolved.layout == .current_keccak_final or resolved.layout == .current_keccak_final_composition)) {
+            physical_count += 1;
+            try std.testing.expectEqual(mask_log, resolved.mask_log);
+        }
+    };
+    var cold = try @import("../recursion/block_v6_original_fixed_shape_v1.zig").Owned.init(a, &admitted.logs, all, admitted.config, .{});
+    defer cold.deinit();
+    try cold.deepProfile().validate();
+    var position: usize = 0;
+    for (masks.items, 0..) |columns, tree| for (columns, admitted.logs[tree]) |points, log| {
+        const resolved = try Resolver.resolve(points, point, mask_log, log);
+        try std.testing.expectEqual(resolved.layout, cold.layouts[position]);
+        try std.testing.expectEqual(resolved.mask_log, cold.deepProfile().maskLogSize(position));
+        position += 1;
+    };
+    try std.testing.expect(physical_count > 0);
+}

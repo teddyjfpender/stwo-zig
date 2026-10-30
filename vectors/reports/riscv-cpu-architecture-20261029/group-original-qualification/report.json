@@ -1,0 +1,53 @@
+{
+  "schema": "stwo-b8-group-original-qualification-v1",
+  "status": "passed",
+  "production_active": false,
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v8_endpoint_group_proof_test_root.zig -OReleaseSafe",
+  "exit_code": 0,
+  "tests": {
+    "passed": 461,
+    "skipped": 1,
+    "failed": 0
+  },
+  "configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "native_cohorts": 2,
+    "cycles_per_cohort": 4,
+    "trace_trees": 15,
+    "original_proofs": 1,
+    "shared_range16_providers": 1,
+    "shared_rom_providers": 1,
+    "shared_lookup_providers": 1
+  },
+  "diagnostic": {
+    "proof_artifact_bytes": 401832,
+    "core_ns": 541299958,
+    "whole_ns": 598309833,
+    "scope": "tiny genuine fixture, not a block performance benchmark; concurrent work not excluded"
+  },
+  "fresh_receiver": {
+    "full_proof_bytes": true,
+    "producer_objects_destroyed": true,
+    "original_stark_verified_once": true,
+    "sources_returned": 2,
+    "source_memory": "owned by returned verified result"
+  },
+  "negative_checks": [
+    "per-member register residual delta/-delta cannot cancel",
+    "per-member RAM residual delta/-delta cannot cancel",
+    "changed physical claim rejected by original STARK OODS",
+    "wrong endpoint retention tree index",
+    "out-of-bounds endpoint retention index",
+    "wrong retained endpoint root",
+    "retained endpoint resource cap",
+    "retained endpoint survives original scheme destruction"
+  ],
+  "remaining_open": [
+    "global RAM bridge and compact global memory must close exported endpoint sources",
+    "group recursive source and global one-root integration",
+    "real-window group performance benchmark",
+    "optional mixed-member Group execution qualification"
+  ],
+  "log_sha256": "57c59c143d0fa549c9ba2b2a35660107ccd95f4f367642e99be863bfa39942dd"
+}

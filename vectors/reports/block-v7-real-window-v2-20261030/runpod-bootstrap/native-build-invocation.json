@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-v7-cuda-native-build-invocation-v1",
+  "command": [
+    "zig",
+    "build",
+    "--build-file",
+    "build_support/internal_build.zig",
+    "-Drepository-root=/workspace/stwo-v7",
+    "-Dproduct-scope=cuda_tools",
+    "cuda-native-archive",
+    "-Dcuda-nvcc=/usr/local/cuda/bin/nvcc",
+    "-Dcuda-host-cxx=/usr/bin/g++",
+    "-Dcuda-ar=/usr/bin/ar",
+    "-Dcuda-home=/usr/local/cuda",
+    "-Dcuda-library-dir=/usr/local/cuda/lib64",
+    "-Dcuda-arch=90",
+    "-Dcuda-build-jobs=16"
+  ],
+  "started_unix_ns": 1793270068420845865,
+  "source_tree_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "cuda_sm": 90,
+  "parallel_nvcc_jobs": 16,
+  "ccache_installed": true,
+  "ccache_used": false,
+  "cache_note": "Existing source-identity keyed CUDA AOT cache is used; nvcc identity remains the actual compiler, not a wrapper.",
+  "returncode": 0,
+  "finished_unix_ns": 1793270238435500416
+}

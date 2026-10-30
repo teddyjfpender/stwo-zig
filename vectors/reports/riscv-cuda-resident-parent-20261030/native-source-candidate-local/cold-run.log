@@ -1,0 +1,13 @@
+1/11 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate detached raw ingress and exact finite bundle...RESIDENT_NATIVE_CANDIDATE identity=255223cac5af6f08e94488e8f07648fea42d80c1ab9bd1dfc77f00bf8eac48f1 trees=4 split=3 retirements=3 clocks=0 raw_words=72 gpu_qualified=false
+OK
+2/11 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate original CPU oracle survives fixture teardown...OK
+3/11 frontends.riscv.runner.mod.test_0...OK
+4/11 frontends.riscv.runner.decode.test_0...OK
+5/11 frontends.riscv.air.lookups.tables.mod.test_0...OK
+6/11 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+7/11 frontends.riscv.air.semantic_eval.test_0...OK
+8/11 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+9/11 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+10/11 frontends.riscv.diagnostics.mod.test_0...OK
+11/11 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+All 11 tests passed.

@@ -1,0 +1,12 @@
+{
+  "schema": "stwo-v7-runpod-export-receipt-v1",
+  "archive": "/tmp/stwo-v7-runpod-source-corpus.tar.gz",
+  "archive_bytes": 127881389,
+  "archive_sha256": "3d87bd0147fdd9bb30e240bafa1fa49bb211ccb51832645780ad21f2392e62d1",
+  "source_tree_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "files": 9360,
+  "extracted_all_file_hashes_verified": true,
+  "gpu_qualified": false,
+  "linux_semantic_preflight": true,
+  "extracted_cuda_native_aot_plan_preflight": true
+}

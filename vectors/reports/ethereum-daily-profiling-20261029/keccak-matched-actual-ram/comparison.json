@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "scope": "Matched complete original proof contract, canonical CPU ReleaseSafe, idle host.8-call ABBAAB three runs each;32-call one paired sample.",
+  "comparisons": [
+    {
+      "iterations": 8,
+      "samples_per_architecture": 3,
+      "matched_authority_fields": {
+        "elf_sha256": "5d77a6c04df6e7acc2df0615a8e7f63330b657007abc3fba152ca7906a4cb96b",
+        "statement_sha256": "302123f71e886c434e78c44b9b4c840d2c79cd568949b95c134b3b41460e20f4",
+        "output_sha256": "812bd947a400eee0801404ccf7a5ca40f378128e583078c251083ef210f78cf3",
+        "output_hex": "00000000000000000000000000000000000000000000000000000000000000000100000000000000000000",
+        "cycles": 38,
+        "window_cut": 10,
+        "native_windows": 4,
+        "caller_windows": 3,
+        "ram_events": 404,
+        "program_fetches": 41,
+        "query_count": 70,
+        "pow_bits": 26,
+        "memory_event_limit": 1048576,
+        "events_per_ram_shard": 4096,
+        "proof_contract": "original_complete_stark"
+      },
+      "baseline": {
+        "request_s": 2.567750708,
+        "prove_s": 2.178303,
+        "pow_s": 0.464425,
+        "request_excluding_pow_s": 2.1033257080000003,
+        "fri_s": 1.285472,
+        "composition_s": 0.141007,
+        "proof_bytes": 12326891,
+        "tracked_peak_bytes": 308504953,
+        "process_peak_rss_bytes": 258555904
+      },
+      "shared": {
+        "request_s": 1.340363708,
+        "prove_s": 1.159544208,
+        "pow_s": 0.675227,
+        "request_excluding_pow_s": 0.664373708,
+        "fri_s": 0.042048,
+        "composition_s": 0.262841,
+        "proof_bytes": 4498292,
+        "tracked_peak_bytes": 257444283,
+        "process_peak_rss_bytes": 205193216
+      },
+      "baseline_over_shared": {
+        "request_s": 1.9157119016833304,
+        "prove_s": 1.87858555540299,
+        "pow_s": 0.6878057305172927,
+        "request_excluding_pow_s": 3.1658774010364668,
+        "fri_s": 30.57153729071537,
+        "composition_s": 0.5364726203294007,
+        "proof_bytes": 2.740349225883958,
+        "tracked_peak_bytes": 1.198336779535322,
+        "process_peak_rss_bytes": 1.2600606834877035
+      }
+    },
+    {
+      "iterations": 32,
+      "samples_per_architecture": 1,
+      "matched_authority_fields": {
+        "elf_sha256": "f2adc3c2659c4460b88785dda72861aef8f727ff328251cba399fcc564c280d3",
+        "statement_sha256": "59fa05e4ce03ca8a461d07aa4b34f3e11cd4e424d9c90903e7eba5b982fe5581",
+        "output_sha256": "812bd947a400eee0801404ccf7a5ca40f378128e583078c251083ef210f78cf3",
+        "output_hex": "00000000000000000000000000000000000000000000000000000000000000000100000000000000000000",
+        "cycles": 110,
+        "window_cut": 28,
+        "native_windows": 4,
+        "caller_windows": 4,
+        "ram_events": 1604,
+        "program_fetches": 113,
+        "query_count": 70,
+        "pow_bits": 26,
+        "memory_event_limit": 1048576,
+        "events_per_ram_shard": 4096,
+        "proof_contract": "original_complete_stark"
+      },
+      "baseline": {
+        "request_s": 4.094716667,
+        "prove_s": 3.544276542,
+        "pow_s": 0.466304,
+        "request_excluding_pow_s": 3.628412667,
+        "fri_s": 1.923155,
+        "composition_s": 0.563273,
+        "proof_bytes": 16423428,
+        "tracked_peak_bytes": 489910696,
+        "process_peak_rss_bytes": 421412864
+      },
+      "shared": {
+        "request_s": 2.280885667,
+        "prove_s": 2.048524542,
+        "pow_s": 0.076351,
+        "request_excluding_pow_s": 2.2045346670000003,
+        "fri_s": 0.485941,
+        "composition_s": 1.111084,
+        "proof_bytes": 4567172,
+        "tracked_peak_bytes": 391652450,
+        "process_peak_rss_bytes": 302301184
+      },
+      "baseline_over_shared": {
+        "request_s": 1.7952310044482382,
+        "prove_s": 1.7301606445679576,
+        "pow_s": 6.107372529501905,
+        "request_excluding_pow_s": 1.6458859646501534,
+        "fri_s": 3.957589501606162,
+        "composition_s": 0.5069580697769026,
+        "proof_bytes": 3.595973175523059,
+        "tracked_peak_bytes": 1.2508812239014464,
+        "process_peak_rss_bytes": 1.3940165844669665
+      }
+    }
+  ],
+  "pow_rule": "Reported separately; request_excluding_pow_s is an explicitly secondary within-run subtraction, not the primary end-to-end score.",
+  "timing_caveat": "No full-block extrapolation or ranking. Different proof/epoch identities produce different PoW nonces and are expected."
+}

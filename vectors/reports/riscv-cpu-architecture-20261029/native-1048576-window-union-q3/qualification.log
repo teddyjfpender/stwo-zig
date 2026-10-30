@@ -1,0 +1,30 @@
+1/10 block_v7_real_window_union_benchmark_root.test.retained Ethereum shared union original STARK benchmark...V7_REAL_WINDOW_NEW cycles=1048576 proofs=1 whole_ns=20296973833 peak=6679289672 scope=declared_window verified=true
+OK
+2/10 runner.mod.test_0...OK
+3/10 runner.decode.test_0...OK
+4/10 air.memory_commitment.poseidon2_air.test_0...OK
+5/10 air.semantic_eval.test_0...OK
+6/10 prover.block_execution_external_trace_v2.test_0...OK
+7/10 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.
+       23.65 real        62.14 user         2.72 sys
+          6531203072  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1507177  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 108  voluntary context switches
+               61221  involuntary context switches
+        964058865957  instructions retired
+        277234680855  cycles elapsed
+          6533095752  peak memory footprint

@@ -1,0 +1,6 @@
+1/5 riscv_cuda_composition_split_test_root.test_0...OK
+2/5 riscv_cuda_composition_split_test_root.test.q3 composition split compact B2N algebra matches original interpolation and recursive chunks...OK
+3/5 backends.cuda.runtime.stages.composition_split.test.composition split maps four log4 evaluations to eight log3 coefficients...OK
+4/5 backends.cuda.runtime.stages.composition_split.test.depth-two composition split emits sixteen canonical columns directly...OK
+5/5 backends.cuda.runtime.stages.composition_split.test.depth-three composition split emits thirty-two canonical columns directly...OK
+All 5 tests passed.

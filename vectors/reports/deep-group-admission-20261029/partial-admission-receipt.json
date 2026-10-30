@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-deep-partial-admission-correctness-v1",
+  "status": "focused_correctness_passed_complete_candidate_pending",
+  "test_count": 68,
+  "metadata_cap_bytes": 1048576,
+  "selection_bitmap_charged": true,
+  "wide_differential_columns": 70000,
+  "whole_proof_byte_parity": null,
+  "speedup": null,
+  "source_sha256": {
+    "src/prover/pcs/quotients/planning.zig": "a2e5e5acf0b03fd17126541e5ac94493a08b43d244f5696a2e29e3bc64114523",
+    "src/prover/pcs/quotient_direct_plan.zig": "0afd458f22de507e073cfb21f40e4992a54f18fed71da59b26edb0670b2dd250",
+    "src/prover/pcs/quotients/lazy_provider_init.zig": "eae630287c591e0df0504321357d2c87654795b884b961d67bf017fd0bc62075",
+    "src/prover/pcs/quotient_ops.zig": "69685f15d8c03e0fcc7c705e21d6601ccf9f3153a5528cfc7c727c5c0b44dfd8"
+  },
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/prover/pcs_quotient_ops_test_root.zig -OReleaseSafe -fstrip"
+}

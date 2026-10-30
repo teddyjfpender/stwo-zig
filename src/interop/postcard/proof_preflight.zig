@@ -90,6 +90,9 @@ pub fn ShapeFor(comptime N: usize) type {
         config: Config,
         tree_columns: [N]u32,
         allow_empty_main_tree: bool = false,
+        /// Independently selected empty commitments in heterogeneous protocols.
+        /// Existing protocols keep the legacy main-only policy by default.
+        empty_tree_mask: u32 = 0,
         max_column_log_size: u32,
         max_merkle_column_log_size: u32 = 0,
         allow_zero_samples: bool = false,
@@ -103,6 +106,29 @@ pub fn ShapeFor(comptime N: usize) type {
 pub fn validateFor(comptime N: usize, raw: []const u8, shape: ShapeFor(N)) Error!void {
     // Large width envelopes must not be accidentally selected as mask policy.
     // Actual point masks remain independently checked by the AIR receiver.
+    for (shape.sample_width_limits) |width| if (width == 0 or width > 16) return error.InvalidPreflightShape;
+    return validateInternal(raw, shape, null);
+}
+
+/// Runtime inventory derived by an independent bounded source admission, not
+/// by the serialized commitment count. The additional tree is composition.
+pub const MAX_RUNTIME_TREES: usize = 257;
+pub const RuntimeShape = struct {
+    config: Config,
+    tree_columns: []const u32,
+    empty_tree_flags: []const bool,
+    sample_width_limits: []const u32,
+    allow_empty_main_tree: bool = false,
+    max_column_log_size: u32,
+    max_merkle_column_log_size: u32 = 0,
+    allow_zero_samples: bool = false,
+    hash_size: u32,
+    hash_encoding: HashEncoding = .raw_bytes,
+    max_wire_bytes: usize,
+};
+pub fn validateRuntime(raw: []const u8, shape: RuntimeShape) Error!void {
+    const n = shape.tree_columns.len;
+    if (n < 2 or n > MAX_RUNTIME_TREES or shape.empty_tree_flags.len != n or shape.sample_width_limits.len != n) return error.InvalidPreflightShape;
     for (shape.sample_width_limits) |width| if (width == 0 or width > 16) return error.InvalidPreflightShape;
     return validateInternal(raw, shape, null);
 }
@@ -307,8 +333,13 @@ const Bounds = struct {
             shape.max_column_log_size > 30 or
             shape.max_column_log_size < config.log_last_layer_degree_bound)
             return error.InvalidPreflightShape;
+        const empty_mask: u32 = if (@hasField(@TypeOf(shape), "empty_tree_mask")) shape.empty_tree_mask else 0;
+        if (@hasField(@TypeOf(shape), "empty_tree_mask")) {
+            if (empty_mask >> @intCast(shape.tree_columns.len) != 0) return error.InvalidPreflightShape;
+        }
         for (shape.tree_columns, 0..) |count, index| {
-            if (count == 0 and !(shape.allow_empty_main_tree and index == 1))
+            const selected_empty = if (@hasField(@TypeOf(shape), "empty_tree_flags")) shape.empty_tree_flags[index] else empty_mask & (@as(u32, 1) << @intCast(index)) != 0;
+            if (count == 0 and !(shape.allow_empty_main_tree and index == 1) and !selected_empty)
                 return error.InvalidPreflightShape;
         }
         for (shape.sample_width_limits) |limit| {
@@ -895,6 +926,10 @@ test "proof preflight rejects deep layer bombs and noncanonical varints" {
 }
 
 fn typedWire(comptime N: usize, allocator: std.mem.Allocator, shape: ShapeFor(N)) ![]u8 {
+    return runtimeTestWire(allocator, shape);
+}
+fn runtimeTestWire(allocator: std.mem.Allocator, shape: anytype) ![]u8 {
+    const N = shape.tree_columns.len;
     var raw: std.ArrayList(u8) = .empty;
     errdefer raw.deinit(allocator);
     // Test framing has one first-layer fold, no inner layers and one last
@@ -927,6 +962,63 @@ fn typedWire(comptime N: usize, allocator: std.mem.Allocator, shape: ShapeFor(N)
 }
 fn typedTestShape() ShapeFor(8) {
     return .{ .config = testShape().config, .tree_columns = .{ 15, 1728, 8, 5, 174, 256, 128, 16 }, .sample_width_limits = .{ 1, 1, 1, 1, 1, 1, 2, 1 }, .max_column_log_size = 1, .hash_size = 32, .max_wire_bytes = 1 << 20 };
+}
+
+test "heterogeneous preflight permits only independently selected empty trees" {
+    var shape = typedTestShape();
+    shape.tree_columns[5] = 0;
+    const raw = try typedWire(8, std.testing.allocator, shape);
+    defer std.testing.allocator.free(raw);
+    try std.testing.expectError(error.InvalidPreflightShape, validateFor(8, raw, shape));
+    shape.empty_tree_mask = 1 << 5;
+    try validateFor(8, raw, shape);
+    shape.empty_tree_mask = 1 << 4;
+    try std.testing.expectError(error.InvalidPreflightShape, validateFor(8, raw, shape));
+    shape.empty_tree_mask = (1 << 5) | (1 << 8);
+    try std.testing.expectError(error.InvalidPreflightShape, validateFor(8, raw, shape));
+}
+test "runtime preflight binds admitted inventories beyond sixteen trees" {
+    const a = std.testing.allocator;
+    var columns: [39]u32 = @splat(1);
+    columns[35] = 0; // Exercise an empty commitment beyond a u32 bit mask.
+    var empty: [39]bool = @splat(false);
+    empty[35] = true;
+    const widths: [39]u32 = @splat(2);
+    var shape = RuntimeShape{ .config = testShape().config, .tree_columns = &columns, .empty_tree_flags = &empty, .sample_width_limits = &widths, .max_column_log_size = 1, .hash_size = 32, .max_wire_bytes = 1 << 20 };
+    const raw = try runtimeTestWire(a, shape);
+    defer a.free(raw);
+    try validateRuntime(raw, shape);
+    empty[35] = false;
+    try std.testing.expectError(error.InvalidPreflightShape, validateRuntime(raw, shape));
+    empty[35] = true;
+    columns[2] = 2;
+    try std.testing.expectError(error.InvalidProofShape, validateRuntime(raw, shape));
+    columns[2] = 1;
+    shape.sample_width_limits = widths[0..38];
+    try std.testing.expectError(error.InvalidPreflightShape, validateRuntime(raw, shape));
+    shape.sample_width_limits = &widths;
+    shape.empty_tree_flags = empty[0..38];
+    try std.testing.expectError(error.InvalidPreflightShape, validateRuntime(raw, shape));
+    shape.empty_tree_flags = &empty;
+    try std.testing.expectError(error.EndOfStream, validateRuntime(raw[0 .. raw.len - 1], shape));
+    // The claimed byte count cannot replace the independently supplied roster.
+    const bad = try a.dupe(u8, raw);
+    defer a.free(bad);
+    bad[6] = 127;
+    try std.testing.expectError(error.InvalidProofShape, validateRuntime(bad, shape));
+}
+test "runtime preflight enforces hard maximum and accepts exact bound" {
+    const columns: [MAX_RUNTIME_TREES + 1]u32 = @splat(1);
+    const empty: [MAX_RUNTIME_TREES + 1]bool = @splat(false);
+    const widths: [MAX_RUNTIME_TREES + 1]u32 = @splat(1);
+    var shape = RuntimeShape{ .config = testShape().config, .tree_columns = &columns, .empty_tree_flags = &empty, .sample_width_limits = &widths, .max_column_log_size = 1, .hash_size = 32, .max_wire_bytes = 1 << 20 };
+    try std.testing.expectError(error.InvalidPreflightShape, validateRuntime(&.{}, shape));
+    shape.tree_columns = columns[0..MAX_RUNTIME_TREES];
+    shape.empty_tree_flags = empty[0..MAX_RUNTIME_TREES];
+    shape.sample_width_limits = widths[0..MAX_RUNTIME_TREES];
+    const raw = try runtimeTestWire(std.testing.allocator, shape);
+    defer std.testing.allocator.free(raw);
+    try validateRuntime(raw, shape);
 }
 test "proof preflight typed eight-tree framing retains exact config lengths and allocation-free parser" {
     const shape = typedTestShape();

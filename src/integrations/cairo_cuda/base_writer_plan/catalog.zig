@@ -84,8 +84,7 @@ pub fn compile(
         entries,
         0..,
     ) |planned, component, *entry, component_index| {
-        if (!std.mem.eql(u8, proof_plan.canonicalComponentName(planned.name, planned.instance),
-            proof_plan.canonicalComponentName(component.label, component.instance)) or
+        if (!std.mem.eql(u8, proof_plan.canonicalComponentName(planned.name, planned.instance), proof_plan.canonicalComponentName(component.label, component.instance)) or
             planned.instance != component.instance or
             planned.canonical_ordinal != component_index)
         {
@@ -237,8 +236,7 @@ fn findMemory(
     instance: u32,
 ) ?memory.Entry {
     for (entries) |entry| {
-        if (entry.instance == instance and std.mem.eql(u8,
-            proof_plan.canonicalComponentName(entry.name, instance), proof_plan.canonicalComponentName(name, instance)))
+        if (entry.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(entry.name, instance), proof_plan.canonicalComponentName(name, instance)))
             return entry;
     }
     return null;

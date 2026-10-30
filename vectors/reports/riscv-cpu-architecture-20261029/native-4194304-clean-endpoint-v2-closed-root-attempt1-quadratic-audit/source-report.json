@@ -1,0 +1,267 @@
+{
+  "schema": "stwo-b8-endpoint-root-source-full-cells-v1",
+  "trace_trees": 13,
+  "composition_trees": 1,
+  "first_roots": 7,
+  "relation_pairs": 53,
+  "queries": 70,
+  "pow_bits": 26,
+  "native": {
+    "fixed": {
+      "columns": 154,
+      "cells": 16896164,
+      "bytes": 67584656
+    },
+    "main": {
+      "columns": 3107,
+      "cells": 216237672,
+      "bytes": 864950688
+    },
+    "interaction": {
+      "columns": 2884,
+      "cells": 228174936,
+      "bytes": 912699744
+    }
+  },
+  "endpoints": {
+    "fixed": {
+      "columns": 2,
+      "cells": 1048576,
+      "bytes": 4194304
+    },
+    "main": {
+      "columns": 23,
+      "cells": 12058624,
+      "bytes": 48234496
+    },
+    "interaction": {
+      "columns": 44,
+      "cells": 23068672,
+      "bytes": 92274688
+    }
+  },
+  "endpoint_range16": {
+    "fixed": {
+      "columns": 2,
+      "cells": 131072,
+      "bytes": 524288
+    },
+    "main": {
+      "columns": 1,
+      "cells": 65536,
+      "bytes": 262144
+    },
+    "interaction": {
+      "columns": 8,
+      "cells": 524288,
+      "bytes": 2097152
+    }
+  },
+  "program": {
+    "fixed": {
+      "columns": 6,
+      "cells": 6291456,
+      "bytes": 25165824
+    },
+    "main": {
+      "columns": 0,
+      "cells": 0,
+      "bytes": 0
+    },
+    "interaction": {
+      "columns": 4,
+      "cells": 4194304,
+      "bytes": 16777216
+    }
+  },
+  "lookup": {
+    "fixed": {
+      "columns": 9,
+      "cells": 2303616,
+      "bytes": 9214464
+    },
+    "main": {
+      "columns": 81,
+      "cells": 1316480,
+      "bytes": 5265920
+    },
+    "interaction": {
+      "columns": 24,
+      "cells": 4495872,
+      "bytes": 17983488
+    }
+  },
+  "global_memory": {
+    "fixed": {
+      "columns": 33,
+      "cells": 10092544,
+      "bytes": 40370176
+    },
+    "main": {
+      "columns": 90,
+      "cells": 23658496,
+      "bytes": 94633984
+    },
+    "interaction": {
+      "columns": 140,
+      "cells": 37224448,
+      "bytes": 148897792
+    }
+  },
+  "trees": [
+    {
+      "index": 0,
+      "columns": 206,
+      "raw_cells": 36763428,
+      "extended_cells": 73526856,
+      "samples": 129,
+      "minimum_raw_log": 1,
+      "maximum_raw_log": 22
+    },
+    {
+      "index": 1,
+      "columns": 3107,
+      "raw_cells": 216237672,
+      "extended_cells": 432475344,
+      "samples": 3107,
+      "minimum_raw_log": 1,
+      "maximum_raw_log": 22
+    },
+    {
+      "index": 2,
+      "columns": 23,
+      "raw_cells": 12058624,
+      "extended_cells": 24117248,
+      "samples": 25,
+      "minimum_raw_log": 19,
+      "maximum_raw_log": 19
+    },
+    {
+      "index": 3,
+      "columns": 1,
+      "raw_cells": 65536,
+      "extended_cells": 131072,
+      "samples": 1,
+      "minimum_raw_log": 16,
+      "maximum_raw_log": 16
+    },
+    {
+      "index": 4,
+      "columns": 0,
+      "raw_cells": 0,
+      "extended_cells": 0,
+      "samples": 0,
+      "minimum_raw_log": 0,
+      "maximum_raw_log": 0
+    },
+    {
+      "index": 5,
+      "columns": 81,
+      "raw_cells": 1316480,
+      "extended_cells": 2632960,
+      "samples": 81,
+      "minimum_raw_log": 7,
+      "maximum_raw_log": 20
+    },
+    {
+      "index": 6,
+      "columns": 90,
+      "raw_cells": 23658496,
+      "extended_cells": 47316992,
+      "samples": 99,
+      "minimum_raw_log": 16,
+      "maximum_raw_log": 19
+    },
+    {
+      "index": 7,
+      "columns": 2884,
+      "raw_cells": 228174936,
+      "extended_cells": 456349872,
+      "samples": 5768,
+      "minimum_raw_log": 1,
+      "maximum_raw_log": 22
+    },
+    {
+      "index": 8,
+      "columns": 44,
+      "raw_cells": 23068672,
+      "extended_cells": 46137344,
+      "samples": 88,
+      "minimum_raw_log": 19,
+      "maximum_raw_log": 19
+    },
+    {
+      "index": 9,
+      "columns": 8,
+      "raw_cells": 524288,
+      "extended_cells": 1048576,
+      "samples": 16,
+      "minimum_raw_log": 16,
+      "maximum_raw_log": 16
+    },
+    {
+      "index": 10,
+      "columns": 4,
+      "raw_cells": 4194304,
+      "extended_cells": 8388608,
+      "samples": 8,
+      "minimum_raw_log": 20,
+      "maximum_raw_log": 20
+    },
+    {
+      "index": 11,
+      "columns": 24,
+      "raw_cells": 4495872,
+      "extended_cells": 8991744,
+      "samples": 48,
+      "minimum_raw_log": 7,
+      "maximum_raw_log": 20
+    },
+    {
+      "index": 12,
+      "columns": 140,
+      "raw_cells": 37224448,
+      "extended_cells": 74448896,
+      "samples": 280,
+      "minimum_raw_log": 16,
+      "maximum_raw_log": 19
+    },
+    {
+      "index": 13,
+      "columns": 16,
+      "raw_cells": 67108864,
+      "extended_cells": 134217728,
+      "samples": 16,
+      "minimum_raw_log": 22,
+      "maximum_raw_log": 22
+    }
+  ],
+  "total_raw_cells": 654891620,
+  "total_extended_cells": 1309783240,
+  "total_raw_bytes": 2619566480,
+  "total_extended_bytes": 5239132960,
+  "native_guard_components": 27,
+  "native_guard_main_cells": 3424256,
+  "native_projection_claims": 721,
+  "endpoint_count": 505967,
+  "logical_ram_accesses": 1710496,
+  "global_ram_components": 1,
+  "snapshot_changes": 257927,
+  "physical_public_operands": 839,
+  "snapshot_delta_public_byte_ports": 3095124,
+  "cpu_boundary_public_byte_ports": 416,
+  "total_public_operands": 3096379,
+  "total_oods_samples": 9666,
+  "original_constraints": 4126,
+  "composition_log": 24,
+  "composition_split": 2,
+  "mask_log": 22,
+  "lifting_log": 23,
+  "source_profile_id": "42713278a3bb8b9e7701d691a5d01895e675a04a00f63b8f6657b3210fcc630d",
+  "source_epoch": "a3af8f3d4a1d8c32efcb10358886ab00d6e959acaff0247670b4997ac7b69ce1",
+  "native_identity": "538a9157ac2c494b09a95b6449472b765f5ade505a93183bb701fa4679f0ebe9",
+  "native_layout": "f78e58f0b9a25e4dbdfb3051de8e3ea58182b6df14acc86eaeea968fe325b26a",
+  "fixed_root": "b9b94fb4fe070949d424044a78992af9b8301727c2287c266e5b24b3a455b2a1",
+  "deep_profile": "2224f0826c1627c31b92871d77c7e515f67b176931ba98f50db430198d4fe58d",
+  "fri_profile": "5a8cdc394a83c5af7ba342e4290a542074df6272915d1d0b153fd286e652c355"
+}

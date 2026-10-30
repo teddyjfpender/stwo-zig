@@ -1,0 +1,38 @@
+{
+  "qualification": "bounded_parallel_cold_family_compilation",
+  "recorded_utc": "2026-10-29T09:49:48.350403+00:00",
+  "result": {
+    "passed": 496,
+    "skipped": 1,
+    "failed": 0,
+    "log": "/tmp/v7-mixed-fixed-parallel-tests.log"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v7_mixed_fixed_v1.zig": "fcc3bf6720f822137932dbcb29e26b0375874c271c1f7c0f3a883b5374fade7c",
+    "src/frontends/riscv/recursion/block_v7_mixed_fixed_parallel_test_v1.zig": "bf02594c0abdb03440adee761314c17ddd0c3f9d11a34728562fe75adb4b48b3",
+    "src/frontends/riscv/block_v7_mixed_fixed_parallel_test_root.zig": "753f96f9dd1ef946e70cea7e9c2d9e231a9c3af6a9d3729abd979206bb9712d4"
+  },
+  "binary": {
+    "path": "/tmp/v7-mixed-fixed-parallel-tests",
+    "sha256": "473722d25be97e57dcf453109689fc7df68a354e5afce28e001ee3ee5a2c3e07"
+  },
+  "scope": [
+    "Actual original proof fixture creates independent detached metadata before cold compilation.",
+    "Serial, two-family and four-family cold compilation produce identical fixed rows, wires, context, namespace admission and independently derived parent key.",
+    "Caller compiler capsule remains immutable and profile-bound across concurrent compilation.",
+    "Nested unavailable worker lease falls back to serial; no auxiliary helper threads.",
+    "Row cap, per-family allocator cap, enclosing allocator cap and invalid concurrency negatives reject; failed cohort allocations are released."
+  ],
+  "resource_contract": {
+    "default_parallel_families": 1,
+    "maximum_parallel_families": 32,
+    "aggregate_budget": "All active families and retained output share the original request budget; no per-family aggregate cap multiplication.",
+    "cohort": "At most min(requested, selected children, pool workers) compiler products alive per cohort, then canonical ordered append.",
+    "namespace": "Existing original partitioning and namespace rebasing unchanged."
+  },
+  "limitations": [
+    "Correctness qualification at diagnostic q8 metadata geometry; no new Ethereum or canonical root proof qualification inferred.",
+    "No parallel latency or peak-memory improvement measured by this receipt.",
+    "More concurrent families can fail a budget that accommodates serial construction; default remains one."
+  ]
+}

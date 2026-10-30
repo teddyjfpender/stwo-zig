@@ -1,0 +1,40 @@
+1/20 riscv_circuit_native_parent_test_root.test_0...OK
+2/20 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit lowering preserves canonical field inverse and zero anchors...OK
+3/20 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit registry rejects nominated outer equation authorities...OK
+4/20 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC complete native-parent circuit wrapper genuine q70 fresh bytes and hostile material...SKIP
+5/20 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC valid PCS and public supply invalid typed AIR rejected by actual complete leaf q70...RISC_CIRCUIT_AIR_INVALID_CONTROL q70=70 pow=26 valid_pcs=true correct_fixed=true correct_prefix=true claims=25 public_supply_closed=true typed_air_oods_nonzero=true actual_leaf_rejected=true
+OK
+6/20 integrations.circuit_cpu.riscv_recursion.fold_qualification_v1.test.RISC fold metadata cycles rejected before key rendering or allocation...OK
+7/20 integrations.circuit_cpu.riscv_recursion.fold_qualification_v1.test.RISC thin fold catalog rejects reused dropped reordered and unknown nodes...OK
+8/20 integrations.circuit_cpu.riscv_recursion.fold_qualification_v1.test.RISC fold circuit gates enforce gap overlap CPU snapshot and interior policy...OK
+9/20 integrations.circuit_cpu.riscv_recursion.fold_qualification_v1.test.RISC fold role and exact security operands reject unclosed child...OK
+10/20 integrations.circuit_cpu.riscv_recursion.fold_qualification_v1.test.RISC homogeneous circuit fold actual three leaves odd carry depth two q70 fresh full receiver...SKIP
+11/20 frontends.riscv.runner.decode.test_0...OK
+12/20 frontends.riscv.runner.mod.test_0...OK
+13/20 frontends.riscv.runner.elf_loader.test.loadElf rejects non-RISC-V...OK
+14/20 frontends.riscv.air.component.test.RISC-V component keeps legacy memory default and selects split V3 explicitly...OK
+15/20 frontends.riscv.air.semantic_eval.test_0...OK
+16/20 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+17/20 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+18/20 frontends.riscv.air.lookups.tables.mod.test_0...OK
+19/20 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+20/20 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+18 passed; 2 skipped; 0 failed.
+       22.88 real        30.80 user         5.61 sys
+          9269968896  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3306257  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                9215  involuntary context switches
+        684741466001  instructions retired
+        160545279446  cycles elapsed
+          9269009680  peak memory footprint

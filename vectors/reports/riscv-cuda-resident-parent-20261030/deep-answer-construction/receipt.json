@@ -1,0 +1,15 @@
+{
+  "schema": "resident-parent-primitive-v1",
+  "device": "NVIDIA H200 SM90",
+  "qualification": "device_numerical_differential",
+  "full_child_receipt": false,
+  "timing_claim": false,
+  "object_sha256": "11c3509df7f934b7f35e7b75ecb75ac8105a3dbda123dd28f6c9df94c2206231",
+  "runner_source": "src/integrations/riscv_cuda/resident_parent_deep_answers_numeric_v1.cu",
+  "runner_sha256": "876332d185bbc5949a67378e9003f4154ed9019093532717991c1ddddcc3460f",
+  "scalar_inputs": 4,
+  "exact_words": 20,
+  "full_original_anchor_replayed": true,
+  "changed_answer_rejected": true,
+  "auxiliary_admission": false
+}

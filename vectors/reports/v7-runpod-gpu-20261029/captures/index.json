@@ -1,0 +1,142 @@
+[
+  {
+    "case": "native-1048576",
+    "returncode": 0,
+    "directory": "vectors/reports/v7-runpod-gpu-20261029/captures/native-1048576",
+    "capture_sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350",
+    "capture": {
+      "schema": "stwo-v7-explicit-window-continuation-input-v2",
+      "scope": "actual guest continuation from independently selected incoming snapshot; no prefix replay or proof authority",
+      "proof_verified": false,
+      "execution_completed": true,
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 1048576
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "91aaaff6cec0524141f4e979c39816ca54f1200c2faf9daaaab7f098a4a434af",
+      "stats": {
+        "cycles": 1048576,
+        "core_rows": 1048576,
+        "keccak_calls": 0,
+        "recovery_calls": 0,
+        "sha_calls": 0,
+        "setup_ns": 112199250,
+        "execution_ns": 1909193709,
+        "snapshot_ns": 1249958
+      },
+      "incoming_words": 1508894,
+      "outgoing_words": 1576135,
+      "logical_source_bytes_read": 15856204,
+      "logical_snapshot_bytes_written": 24680528,
+      "physical_disk_bytes": null,
+      "charged_peak_bytes": 150087208
+    }
+  },
+  {
+    "case": "recovery-131072",
+    "returncode": 0,
+    "directory": "vectors/reports/v7-runpod-gpu-20261029/captures/recovery-131072",
+    "capture_sha256": "a5b1c554c12001561012392722321ac13857bdd843e587667a2cc76bbc49e925",
+    "capture": {
+      "schema": "stwo-v7-explicit-window-continuation-input-v2",
+      "scope": "actual guest continuation from independently selected incoming snapshot; no prefix replay or proof authority",
+      "proof_verified": false,
+      "execution_completed": true,
+      "window": {
+        "skip_cycles": 24718000,
+        "cycles": 131072
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "6b5d08ed74ba37b9fab79dc6ed8f68240583906d1f027474ecaaefee25438cc5",
+      "outgoing_sha256": "dcecb90eef334a8d167446f32dade30a6bb740e0e265bf449af8b8a88f616046",
+      "stats": {
+        "cycles": 131072,
+        "core_rows": 130936,
+        "keccak_calls": 114,
+        "recovery_calls": 22,
+        "sha_calls": 0,
+        "setup_ns": 112652833,
+        "execution_ns": 366742542,
+        "snapshot_ns": 1812792
+      },
+      "incoming_words": 2270701,
+      "outgoing_words": 2272178,
+      "logical_source_bytes_read": 21950660,
+      "logical_snapshot_bytes_written": 36343328,
+      "physical_disk_bytes": null,
+      "charged_peak_bytes": 207699352
+    }
+  },
+  {
+    "case": "keccak-131072",
+    "returncode": 0,
+    "directory": "vectors/reports/v7-runpod-gpu-20261029/captures/keccak-131072",
+    "capture_sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca",
+    "capture": {
+      "schema": "stwo-v7-explicit-window-continuation-input-v2",
+      "scope": "actual guest continuation from independently selected incoming snapshot; no prefix replay or proof authority",
+      "proof_verified": false,
+      "execution_completed": true,
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 131072
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+      "outgoing_sha256": "7f486db5f9d2653270f040c998bc97ea72fde66ff2c70af926c7298f4662b2b9",
+      "stats": {
+        "cycles": 131072,
+        "core_rows": 130182,
+        "keccak_calls": 890,
+        "recovery_calls": 0,
+        "sha_calls": 0,
+        "setup_ns": 125148125,
+        "execution_ns": 428915250,
+        "snapshot_ns": 2215541
+      },
+      "incoming_words": 2761110,
+      "outgoing_words": 2761236,
+      "logical_source_bytes_read": 25873932,
+      "logical_snapshot_bytes_written": 44179064,
+      "physical_disk_bytes": null,
+      "charged_peak_bytes": 229401696
+    }
+  },
+  {
+    "case": "keccak-524288",
+    "returncode": 0,
+    "directory": "vectors/reports/v7-runpod-gpu-20261029/captures/keccak-524288",
+    "capture_sha256": "f975358606145f1bf84e4967296ce834cea476cef9cf1d8139e9cd8f2adee868",
+    "capture": {
+      "schema": "stwo-v7-explicit-window-continuation-input-v2",
+      "scope": "actual guest continuation from independently selected incoming snapshot; no prefix replay or proof authority",
+      "proof_verified": false,
+      "execution_completed": true,
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 524288
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+      "outgoing_sha256": "69402a7db2c7f80c6e086123e6fced0316d9f5ef74f4038a3172af6e1e25f3db",
+      "stats": {
+        "cycles": 524288,
+        "core_rows": 520734,
+        "keccak_calls": 3554,
+        "recovery_calls": 0,
+        "sha_calls": 0,
+        "setup_ns": 124812417,
+        "execution_ns": 1698774000,
+        "snapshot_ns": 2100583
+      },
+      "incoming_words": 2761110,
+      "outgoing_words": 2761614,
+      "logical_source_bytes_read": 25873932,
+      "logical_snapshot_bytes_written": 44182088,
+      "physical_disk_bytes": null,
+      "charged_peak_bytes": 229401696
+    }
+  }
+]

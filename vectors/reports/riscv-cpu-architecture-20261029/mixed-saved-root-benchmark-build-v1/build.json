@@ -1,0 +1,21 @@
+{
+  "schema": "stwo-frozen-cpu-benchmark-build-v1",
+  "snapshot": "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/stwo-b8-mixed-root-build-fw0ype5b",
+  "source_files": 11720,
+  "source_manifest_sha256": "de32b1b4d434818928fa75364a845c7cf7a60c437dc36195f027c2185b37952a",
+  "argv": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/frontends/riscv/block_v8_endpoint_mixed_join_saved_benchmark_root.zig",
+    "-OReleaseFast",
+    "--test-filter",
+    "saved Mixed three original bodies to ONE closed root benchmark",
+    "--test-no-exec",
+    "-femit-bin=/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/mixed-saved-root-benchmark-build-v1/benchmark"
+  ],
+  "snapshot_verified_before_build": true,
+  "exit_code": 0,
+  "snapshot_unchanged_after_build": true,
+  "binary_sha256": "2708ce3a2793dc242857e8e37195ec5febe622810f4e00bb80f4de6638dd042c",
+  "env_off_smoke_exit_code": 0
+}

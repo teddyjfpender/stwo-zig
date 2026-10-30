@@ -25,6 +25,12 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
                 self.* = undefined;
             }
             pub fn validate(self: *const VerifiedCapture, admitted: *const Policy, expected: [32]u8) !void {
+                return self.validateInner(admitted, expected) catch |err| {
+                    if (err == error.OutOfMemory and self.budget.snapshot().exceeded) return error.SourcePageCaptureHostBudgetExceeded;
+                    return err;
+                };
+            }
+            fn validateInner(self: *const VerifiedCapture, admitted: *const Policy, expected: [32]u8) !void {
                 try admitted.validate(expected);
                 try self.original.requireIntegrity();
                 if (!std.meta.eql(self.original.pin, admitted.pin) or !std.meta.eql(self.original.config, admitted.config) or
@@ -41,7 +47,10 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
             const budget = try engine.host_budget_allocator.SharedHostBudget.createRetainingParent(backing, admitted.limits.max_capture_bytes);
             errdefer budget.destroy();
             const a = budget.allocator();
-            var fresh = try Original.verifyCaptureBorrowed(a, proof, admitted.context, admitted.pin, admitted.fold_rows, admitted.core_setup, admitted.arithmetic_setup, admitted.limits.page);
+            var fresh = Original.verifyCaptureBorrowed(a, proof, admitted.context, admitted.pin, admitted.fold_rows, admitted.core_setup, admitted.arithmetic_setup, admitted.limits.page) catch |err| {
+                if (err == error.OutOfMemory and budget.snapshot().exceeded) return error.SourcePageCaptureHostBudgetExceeded;
+                return err;
+            };
             errdefer fresh.deinit(a);
             return .{ .allocator = a, .budget = budget, .original = fresh, .proof = fresh.proof, .relations = fresh.relations, .final_channel = fresh.final_channel, .receipt = fresh.receipt, .seal = fresh.identity() };
         }

@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "genuine mixed two-segment complete-root correctness fixture",
+  "base_commit": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "source_state": "uncommitted development worktree; selected hashes are not a complete reproducible source archive",
+  "configuration": {
+    "optimize": "ReleaseSafe",
+    "queries": 8,
+    "pow_bits": 0,
+    "independent_fixed_parity": true,
+    "providers_first": true
+  },
+  "fixture": {
+    "cycles": 20494,
+    "memory_events": 8293,
+    "public_input_bytes": 0,
+    "native_proofs": 2,
+    "global_provider_proofs": 4,
+    "caller_proofs": 2,
+    "source_raw_proofs": 2,
+    "source_fold_proofs": 2,
+    "total_children": 12
+  },
+  "result": {
+    "exit_code": 0,
+    "zig_tests_passed": 12,
+    "complete_fixture_root_verified": true,
+    "independent_original_policy_key": true,
+    "mixed_live_cold_fixed_parity": true,
+    "intermediate_files_at_verification": 0,
+    "producer_witness_destroyed_before_verification": true,
+    "proof_bytes": 176114,
+    "claim_bytes": 103064,
+    "canonical_security_qualified": false,
+    "ethereum_block_qualified": false,
+    "speedup_claim": null
+  },
+  "negative_checks": [
+    "wrong public input",
+    "wrong expected key",
+    "changed security",
+    "missing FOLD page",
+    "altered ROM claim"
+  ],
+  "diagnostic_only": {
+    "elapsed_ns": 394286491084,
+    "charged_peak_bytes": 21418687324,
+    "includes_independent_setup_and_hostile_checks": true,
+    "quiet_host": false,
+    "stages": [
+      {
+        "stage": "source-collection",
+        "elapsed_ns": 1117974917,
+        "live_bytes": 574961,
+        "charged_peak_bytes": 299437615
+      },
+      {
+        "stage": "base-publication",
+        "elapsed_ns": 1880293167,
+        "live_bytes": 1608469,
+        "charged_peak_bytes": 299437615
+      },
+      {
+        "stage": "provider-preparation",
+        "elapsed_ns": 8247437542,
+        "live_bytes": 255599557,
+        "charged_peak_bytes": 719545525
+      },
+      {
+        "stage": "source-publication",
+        "elapsed_ns": 33686038709,
+        "live_bytes": 2117044745,
+        "charged_peak_bytes": 2662493417
+      },
+      {
+        "stage": "source-preparation",
+        "elapsed_ns": 52211691167,
+        "live_bytes": 2117044745,
+        "charged_peak_bytes": 2952857209
+      },
+      {
+        "stage": "join",
+        "elapsed_ns": 191728346625,
+        "live_bytes": 4736289663,
+        "charged_peak_bytes": 5595536664
+      },
+      {
+        "stage": "independent-setup",
+        "elapsed_ns": 201740095709,
+        "live_bytes": 5075977673,
+        "charged_peak_bytes": 5595536664
+      },
+      {
+        "stage": "parent",
+        "elapsed_ns": 317371051875,
+        "live_bytes": 5077198297,
+        "charged_peak_bytes": 10657134229
+      },
+      {
+        "stage": "receiver",
+        "elapsed_ns": 388843838417,
+        "live_bytes": 3651359,
+        "charged_peak_bytes": 21418687324
+      },
+      {
+        "stage": "complete",
+        "elapsed_ns": 394286491084,
+        "live_bytes": 3651359,
+        "charged_peak_bytes": 21418687324
+      }
+    ]
+  },
+  "binary_sha256": "afee451b623db2f3cd5f7bb15a876f297dbf9502a5881bda0c86fa191e797134",
+  "selected_source_sha256": {
+    "src/frontends/riscv/prover/tests/block_v6_complete_root_integration_test.zig": "e90998484cc658befe367f9a20a93ccbe1ba0a7d609e147ef6496388c8b321d2",
+    "src/frontends/riscv/prover/block_v6_complete_root_receiver_v1.zig": "8338e9685f86ef6192935a677a586a21a244c7cb670bb588cdba16eaef061d56",
+    "src/frontends/riscv/prover/block_v6_global_public_closure_v1.zig": "9ce2f0cd68f0fb8da0b163a19578d1853f9a76831eb7fc552a850d29c6b40592",
+    "src/frontends/riscv/recursion/block_v6_mixed_direct_fixed_v1.zig": "f91859f113cb512381d96f636f196458a3f8196092236a54d8027f88cffd16ae",
+    "src/frontends/riscv/recursion/block_v6_mixed_direct_prepare_v1.zig": "af030c0d96b1c08359c0dfe851e0fde822469a92603202e655be7fdcb320c106",
+    "src/frontends/riscv/recursion/air/blake3_parent_join.zig": "ffc74f45c840b56d2bdb591f34dac76c7cae416e3aa332d637d35afa608680b4",
+    "src/frontends/riscv/recursion/air/blake3_query_links.zig": "17f8eaeb2ac58114e421ea572b3c0e093abafd92243ce21c89c41896ff103b36",
+    "src/frontends/riscv/recursion/air/blake3_projection_links.zig": "88ac023d5cd94ef502724a162102efe8813de4d7a5c061c34d29b1999d1ee944",
+    "src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig": "a79e2bf4acd883ce5ecc80ff0ef4ffbbeb4c841b03a4bf7a976b5620a444dfc8",
+    "src/frontends/riscv/recursion/air/pcs_deep_circuit_build.zig": "0bc660eded7ba9106c8d194ee867afea7d4802d81425c9dd26d308b6bd1f78c5"
+  },
+  "log": [
+    "1/12 prover.tests.block_v6_complete_root_integration_test.test.complete mixed root authenticates all real families after deleting intermediate files...COMPLETE_MIXED profile=diagnostic_q8_pow0 page_capture_limit=536870912 page_prepare_limit=4294967296 page_collection_limit=8589934592",
+    "BLOCK_V5_COLLECT segment=1/2 cycles=10247 memory_events=4194",
+    "BLOCK_V5_COLLECT segment=2/2 cycles=20494 memory_events=8293",
+    "BLOCK_V5_COLLECT sorted_events=8293 lookup_groups=1 global_roots_started=true",
+    "COMPLETE_MIXED stage=source-collection elapsed_ns=1117974917 live_bytes=574961 charged_peak_bytes=299437615",
+    "COMPLETE_MIXED children=12 raw=2 fold=2",
+    "COMPLETE_MIXED stage=base-publication elapsed_ns=1880293167 live_bytes=1608469 charged_peak_bytes=299437615",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=488 removed_scalars=1952 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=2451 fma=5436 arithmetic_rows=22899 direct_columns=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=488 removed_scalars=1952 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=2443 fma=5438 arithmetic_rows=22791 direct_columns=true",
+    "COMPLETE_MIXED stage=provider-preparation elapsed_ns=8247437542 live_bytes=255599557 charged_peak_bytes=719545525",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=8 removed_scalars=32 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=327 fma=5133 arithmetic_rows=13644 direct_columns=true",
+    "COLD_FIXED_PARITY provider=range16 index=0 passed",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=152 removed_scalars=608 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=1147 fma=4323 arithmetic_rows=14764 direct_columns=true",
+    "COLD_FIXED_PARITY provider=ram_lanes index=0 passed",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=32 removed_scalars=128 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true",
+    "COLD_FIXED_PARITY provider=program_table index=0 passed",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=56 removed_scalars=224 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=619 fma=7670 arithmetic_rows=21475 direct_columns=true",
+    "COLD_FIXED_PARITY provider=native_lookup index=0 passed",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=3576 removed_scalars=14304 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=113451 fma=82998 arithmetic_rows=559014 direct_columns=true",
+    "COLD_FIXED_PARITY caller_arithmetic index=0 passed",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=8928 removed_scalars=35712 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=57530 fma=37489 arithmetic_rows=260955 direct_columns=true",
+    "FIXED_PARITY family=caller_fused index=0 matched=true",
+    "COMPLETE_MIXED stage=source-publication elapsed_ns=33686038709 live_bytes=2117044745 charged_peak_bytes=2662493417",
+    "COMPLETE_MIXED stage=source-preparation elapsed_ns=52211691167 live_bytes=2117044745 charged_peak_bytes=2952857209",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=11048 removed_scalars=44192 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=36921 fma=48993 arithmetic_rows=548137 direct_columns=true",
+    "FIXED_PARITY family=source_raw index=0 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=11048 removed_scalars=44192 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=37359 fma=47759 arithmetic_rows=467469 direct_columns=true",
+    "FIXED_PARITY family=source_raw index=1 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=13120 removed_scalars=52480 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=103891 fma=263197 arithmetic_rows=1143275 direct_columns=true",
+    "FIXED_PARITY family=source_fold index=0 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=13120 removed_scalars=52480 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=77083 fma=155067 arithmetic_rows=712344 direct_columns=true",
+    "FIXED_PARITY family=source_fold index=1 matched=true",
+    "COMPLETE_MIXED stage=join elapsed_ns=191728346625 live_bytes=4736289663 charged_peak_bytes=5595536664",
+    "COMPLETE_MIXED stage=independent-setup elapsed_ns=201740095709 live_bytes=5075977673 charged_peak_bytes=5595536664",
+    "COMPLETE_MIXED stage=parent elapsed_ns=317371051875 live_bytes=5077198297 charged_peak_bytes=10657134229",
+    "COMPLETE_MIXED stage=receiver elapsed_ns=388843838417 live_bytes=3651359 charged_peak_bytes=21418687324",
+    "COMPLETE_MIXED changed_claim_rejected=InvalidProviderBatchPublicClosure",
+    "COMPLETE_MIXED stage=complete elapsed_ns=394286491084 live_bytes=3651359 charged_peak_bytes=21418687324",
+    "COMPLETE_MIXED verified=true segments=2 children=12 proof_bytes=176114 claim_bytes=103064 intermediate_files=0 setup_authority=independent_original_policy fixed_setup_parity=true security=diagnostic_q8_pow0",
+    "OK",
+    "2/12 runner.mod.test_0...OK",
+    "3/12 runner.decode.test_0...OK",
+    "4/12 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK",
+    "5/12 air.lookups.tables.mod.test_0...OK",
+    "6/12 air.memory_commitment.poseidon2_air.test_0...OK",
+    "7/12 air.semantic_eval.test_0...OK",
+    "8/12 prover.block_execution_external_trace_v2.test_0...OK",
+    "9/12 prover.block_execution_external_access_bridge_v2.test_0...OK",
+    "10/12 prover.block_v5_committed_trace_column_v1.test_0...OK",
+    "11/12 air.lookups.tables.source_ingest.test_0...OK",
+    "12/12 diagnostics.mod.test_0...OK",
+    "All 12 tests passed."
+  ]
+}

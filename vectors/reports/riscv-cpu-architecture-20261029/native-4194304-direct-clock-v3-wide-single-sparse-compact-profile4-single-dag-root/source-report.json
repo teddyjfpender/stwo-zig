@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-b8-saved-compact-source-census-v1",
+  "sources": [
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 529441124,
+      "original_lde_cells": 1058882248,
+      "physical_claims": 159,
+      "constraints": 758
+    },
+    {
+      "kind": "bridge",
+      "trace_trees": 3,
+      "original_raw_cells": 18874368,
+      "original_lde_cells": 37748736,
+      "physical_claims": 1,
+      "constraints": 1
+    },
+    {
+      "kind": "global",
+      "trace_trees": 7,
+      "original_raw_cells": 38469632,
+      "original_lde_cells": 76939264,
+      "physical_claims": 10,
+      "constraints": 39
+    }
+  ],
+  "snapshot_delta_public_ports": 0,
+  "original_captures": 3
+}

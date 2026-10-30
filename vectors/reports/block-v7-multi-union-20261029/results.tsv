@@ -1,0 +1,3 @@
+fixture	cycles	native_windows	callers	trees	setup_ns	prove_ns	fresh_verify_ns	proof_bytes	charged_proof_peak_bytes	envelope_bytes	decode_peak_bytes	timing
+q70-coefficient-inputs	20495	2	1	18	396729833	3594862458	1388911000	6016333	337564021	6063212	20114635	shared_host_diagnostic
+q70-two-callers	20	10	2	39	318876708	3331697417	1708047917	7268983	471135952	7351530	44190047	shared_host_diagnostic

@@ -1,0 +1,11 @@
+{
+  "user_renewed_at": "2026-10-29T13:07:21Z",
+  "work_deadline": "2026-10-29T19:07:21Z",
+  "gpu_deadline": "2026-10-29T19:00:00Z",
+  "balance_floor_usd": 2,
+  "balance_observed_usd": 14.9322943935,
+  "spend_per_hour_usd": 3.618,
+  "estimated_credit_floor_utc": "2026-10-29T16:42:00Z",
+  "goal_scope": "Fully GPU resident RISC-V original and recursive parent proving; hybrid results diagnostic only",
+  "budget_guard_pid": 64069
+}

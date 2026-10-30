@@ -1,0 +1,5 @@
+{
+  "exact_bytes_equal": true,
+  "reference": "root32k-stage-v3-safe-prep1/cpu/root.proof",
+  "sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+}

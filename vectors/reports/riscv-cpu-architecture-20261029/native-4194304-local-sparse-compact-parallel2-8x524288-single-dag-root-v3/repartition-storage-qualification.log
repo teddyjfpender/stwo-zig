@@ -1,0 +1,4 @@
+1/3 block_v8_endpoint_join_g_partition_test_root.test_0...OK
+2/3 recursion.block_v8_endpoint_join_g_partition_v1.test.global G canonical repartition preserves every fixed field main cell and padding...OK
+3/3 recursion.block_v8_endpoint_join_g_partition_v1.test.global G draining allocation failures remain safely destructible...OK
+All 3 tests passed.

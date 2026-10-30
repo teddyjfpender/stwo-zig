@@ -1,0 +1,7 @@
+{
+  "started_utc": "2026-10-29T05:48:09.737922+00:00",
+  "finished_utc": "2026-10-29T05:48:56.547880+00:00",
+  "exit_code": 0,
+  "binary_sha256": "2889a7b45ff2ffcfe36193cacb85dd310abc3b055734dc3cdfd80603714d7f90",
+  "timing_status": "shared-host diagnostic; no idle reservation"
+}

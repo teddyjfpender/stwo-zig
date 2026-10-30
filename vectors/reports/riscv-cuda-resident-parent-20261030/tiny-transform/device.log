@@ -1,0 +1,2 @@
+PASS tiny_parent_transform logs=1,2 cases=2048 modes=inverse,in_place,extension words=18432
+561a2106a2a5627ca4b0b973fb5c05a86905e63acb4281458146e13466ed4af7  parent_tiny.o

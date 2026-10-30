@@ -1,0 +1,142 @@
+{
+  "scope": "all34 originals; scheduling-only comparison",
+  "comparisons": [
+    {
+      "name": "bridge-0.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "global-memory.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-0.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-1.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-10.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-11.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-12.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-13.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-14.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-15.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-16.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-17.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-18.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-19.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-2.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-20.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-21.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-22.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-23.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-24.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-25.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-26.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-27.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-28.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-29.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-3.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-30.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-31.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-4.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-5.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-6.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-7.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-8.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-9.proof",
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}

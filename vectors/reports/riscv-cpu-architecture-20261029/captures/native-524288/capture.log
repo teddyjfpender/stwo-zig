@@ -1,0 +1,22 @@
+1/3 prover.tests.block_v7_real_window_continuation_export_v2.test.export bounded retained Ethereum continuation capsule without prefix replay...OK
+2/3 runner.mod.test_0...OK
+3/3 runner.decode.test_0...OK
+All 3 tests passed.
+        1.04 real         0.91 user         0.12 sys
+           113573888  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              175722  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+                  97  involuntary context switches
+         14775585752  instructions retired
+          4490061137  cycles elapsed
+           113001000  peak memory footprint

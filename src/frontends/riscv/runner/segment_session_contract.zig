@@ -79,6 +79,11 @@ pub const SessionOptions = struct {
     /// Explicit recipe option only. Canonical collection may select this after
     /// native, caller, counter and window admission are migrated together.
     x0_local_custody_version: u32 = 0,
+    direct_ram_max_clock: ?u32 = null,
+    direct_ram_wide: bool = false,
+    /// Native shard geometry is independent of the RAM clock argument. In
+    /// particular mixed caller sessions retain canonical clock transitions.
+    native_wide_shards: bool = false,
     retirement_observer: ?RetirementObserverV1 = null,
     pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1 = null,
 };

@@ -1,0 +1,10 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 12s
+1/7 block_v8_caller_ram_projection_test_root.test_0...OK
+2/7 prover.tests.block_v8_caller_ram_projection_test.test.caller RAM projection preserves actual nonzero Keccak state words and native signs...OK
+3/7 prover.tests.block_v8_caller_ram_projection_test.test.caller projection preserves pair constraints and rejects mismatched address units...OK
+4/7 prover.tests.block_v8_caller_ram_projection_test.test.two precompile calls interleaved with native RAM close one window not sequential source phases...OK
+5/7 prover.tests.block_v8_caller_ram_projection_test.test.caller endpoint plan reconstructs the exact active inventory...OK
+6/7 prover.block_execution_external_access_bridge_v2.test_0...OK
+7/7 prover.block_execution_external_trace_v2.test_0...OK
+All 7 tests passed.

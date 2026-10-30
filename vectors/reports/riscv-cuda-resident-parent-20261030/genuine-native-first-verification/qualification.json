@@ -1,0 +1,12 @@
+{
+  "independent_original_receiver_verified": true,
+  "test_passed": false,
+  "host_cleanup_crashed": true,
+  "failure": "moved Scheduler arena retained as nested Routes allocator; corrected in clean-v3",
+  "queries": 8,
+  "pow_bits": 0,
+  "proof_sha256": "02ac60850e982928039bca823cc10c789f17e008cbeb636d408a8abc2c4f003d",
+  "diagnostic_cuda_error_codes": true,
+  "execution_closed": false,
+  "whole_riscv_gpu_prover": false
+}

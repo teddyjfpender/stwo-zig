@@ -1,0 +1,33 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-v",
+    "/workspace/stwo-v7-evidence/binaries/cpu-original/prover"
+  ],
+  "capture_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+  "binary_sha256": "9304824912080d7b99e56543f7494fa2c843fdb312810707959278137f6728c3",
+  "runner_sha256": "c6ee2d573c840764fd04bb5790bc5224dc760b2e6af6667834fdc8ca8a43b070",
+  "complete_recursive_root": false,
+  "worker_count": 1,
+  "native_layout": "degree-bounded-q2",
+  "sparse_initialization": true,
+  "resident_memory": true,
+  "native_main_cache_mib": 2048,
+  "deep_group_mib": 4,
+  "cuda_deep": false,
+  "reuse_native_compiler": false,
+  "native_compiler_mib": 2048,
+  "root_resources": null,
+  "report_checked": false,
+  "build_manifest_sha256": "d087093288fa9c3581e7c79d170fdc0eaef625a21b90ec99d4f08ed18c57f37d",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 24152776,
+    "temporary_snapshot_bytes_written": 24152776,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793271389135635383,
+  "returncode": 1,
+  "finished_unix_ns": 1793271398261437992
+}

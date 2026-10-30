@@ -54,8 +54,14 @@ pub fn write(
     for (forest.roots, roots) |root, *pin| pin.* = .{
         .statement = root.statement,
         .admission = root.admission,
-        .parent_file = switch (root.file) { .parent => true, .leaf => false },
-        .file_index = switch (root.file) { .parent => |index| @intCast(index), .leaf => |index| index },
+        .parent_file = switch (root.file) {
+            .parent => true,
+            .leaf => false,
+        },
+        .file_index = switch (root.file) {
+            .parent => |index| @intCast(index),
+            .leaf => |index| index,
+        },
     };
     return transport.write(scratch, dir, .{
         .version = transport.VERSION,
@@ -157,8 +163,7 @@ test "bundle snapshot rejects an incomplete staged leaf roster" {
         .executions = undefined,
         .elapsed_ns = 0,
     };
-    try std.testing.expectError(error.IncompleteBlockV4BundleSnapshot,
-        write(a, tmp.dir, product, &leaves, undefined, undefined, @splat(1), @splat(2)));
+    try std.testing.expectError(error.IncompleteBlockV4BundleSnapshot, write(a, tmp.dir, product, &leaves, undefined, undefined, @splat(1), @splat(2)));
 }
 
 test "bundle snapshot requires rebound final forest and outer pins" {

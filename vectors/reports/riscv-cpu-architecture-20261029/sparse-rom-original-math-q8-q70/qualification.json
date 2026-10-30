@@ -1,0 +1,97 @@
+{
+  "schema": "stwo-sparse-ROM-original-qualification-v1",
+  "qualification": "All 14 ReleaseSafe tests passed",
+  "scope": "new experimental sparse-ROM identity, standalone and native joint original math; Local/Whole/default V2 unchanged",
+  "log": "qualification.log",
+  "canonical_AIR": "recursion/air/blake3_public_program.zig (6 fixed,0 main,4 interaction; unchanged typed equations)",
+  "construction": "strict sorted positive support PCs/counts; exact total<M31; each tuple independently reconstructed from SHA-pinned full ELF; complete decoded ROM root retained; sparse subset never passed to legacy Plan.validate",
+  "negative_checks": [
+    "duplicate or misaligned PCs",
+    "zero/field-modulus multiplicities",
+    "incorrect total census",
+    "changed complete decoded root",
+    "changed valid ELF instruction with old root",
+    "physical claim mutation",
+    "missing used PC rejected by native joint relation closure",
+    "oversized native claim frame"
+  ],
+  "open": [
+    "full local-source integration/lookup+endpoint providers for new mode",
+    "late bridge/global memory bundle dispatch for new local mode",
+    "real native workload sparse source timing"
+  ],
+  "proofs": [
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-rom-original-math-q8-q70/native_joint/csp_q70_pow26/math.proof",
+      "bytes": 21668,
+      "sha256": "adfb3bb31f73c511c7dd3cc9b494e115ff5c3fe59cedf3f302e3724b6ef844f7",
+      "selected_pcs": 4,
+      "old_padded_rom_rows": 4096,
+      "sparse_rows": 16,
+      "ROM_row_reduction": 256.0
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-rom-original-math-q8-q70/native_joint/diagnostic_q8_pow0/math.proof",
+      "bytes": 10958,
+      "sha256": "48454590c7771d5b135bd898d8f8e15b24b968e037f075a2eea28bc4b81229eb",
+      "selected_pcs": 4,
+      "old_padded_rom_rows": 4096,
+      "sparse_rows": 16,
+      "ROM_row_reduction": 256.0
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-rom-original-math-q8-q70/retained_standalone/csp_q70_pow26/math.proof",
+      "bytes": 29674,
+      "sha256": "1854e7e663f05bcbc88a6cd1f5b9628b5a970d1566c2582a34badd3601646282",
+      "selected_pcs": 146,
+      "old_padded_rom_rows": 1048576,
+      "sparse_rows": 256,
+      "ROM_row_reduction": 4096.0
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-rom-original-math-q8-q70/standalone/csp_q70_pow26/math.proof",
+      "bytes": 3922,
+      "sha256": "777c5d9e7d4ba1b423c3ce74e8b74ff716f3d7bb32e3fd31e2abedb5c2683fcb",
+      "selected_pcs": 4,
+      "old_padded_rom_rows": 4096,
+      "sparse_rows": 16,
+      "ROM_row_reduction": 256.0
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/sparse-rom-original-math-q8-q70/standalone/diagnostic_q8_pow0/math.proof",
+      "bytes": 3568,
+      "sha256": "d4f68ee414028707aa42bf6bf789f79faabf82817aeaca78fed8215f27198031",
+      "selected_pcs": 4,
+      "old_padded_rom_rows": 4096,
+      "sparse_rows": 16,
+      "ROM_row_reduction": 256.0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_sparse_rom_original_v1.zig",
+      "bytes": 18397,
+      "sha256": "1e19c7c675e47de0356502a655c4c7ce1f9a0c80e312a032d7eda9471bbceb5c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_sparse_rom_v1.zig",
+      "bytes": 5480,
+      "sha256": "9685c33082b0a7afb4f26063ab5547215ff35052430eff2534681b16e83d59e1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_sparse_rom_component_v1.zig",
+      "bytes": 3867,
+      "sha256": "f1c94d507dacf8d00feb0d4ca7ff372308aa5d4f24a7698fe9266953d4476684"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_sparse_rom_original_test.zig",
+      "bytes": 12331,
+      "sha256": "7be68b8a11c445360e5c190029f1ecd3d0e1b766fecd8c4b79a79a4ee648c044"
+    },
+    {
+      "path": "src/frontends/riscv/block_v8_sparse_rom_original_test_root.zig",
+      "bytes": 80,
+      "sha256": "428e2d1a80703778e72635e95294fdd1b94325ba81538c2f5930c2e96d5ea441"
+    }
+  ]
+}

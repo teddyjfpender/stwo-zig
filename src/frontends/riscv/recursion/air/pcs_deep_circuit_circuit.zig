@@ -61,8 +61,9 @@ pub const Profile = struct {
     trees: []const TreeProfile,
     sample_layouts: []const SamplePointLayout,
     /// Empty retains the legacy common composition step and exact identity.
-    /// Otherwise each entry is an authenticated physical mask log. Only the
-    /// fused Keccak two-point tag may differ from the common mask log.
+    /// Otherwise each entry is an authenticated mask log. Only the physical
+    /// Keccak two-point tag may differ from the common mask log; the distinct
+    /// composition-step Keccak tag must retain the common step exactly.
     mask_log_sizes: []const u32 = &.{},
     lifting_log_size: u32,
     log_blowup_factor: u32,
@@ -79,13 +80,14 @@ pub const Profile = struct {
         var column_count: usize = 0;
         var sample_count: usize = 0;
         for (self.trees) |tree| {
-            if (tree.column_log_sizes.len == 0 or
-                tree.column_log_sizes.len >= m31.Modulus)
-            {
+            // A valid PCS commitment can have no columns (e.g. a complete
+            // fixed ROM provider's main tree). Preserve its tree position;
+            // it contributes neither samples nor quotient terms.
+            if (tree.column_log_sizes.len >= m31.Modulus) {
                 return error.InvalidProfile;
             }
             for (tree.column_log_sizes) |log_size| {
-                if (log_size == 0 or log_size > self.lifting_log_size)
+                if (log_size == 0 or log_size > MAX_DOMAIN_LOG)
                     return error.InvalidProfile;
             }
             column_count = checkedAdd(column_count, tree.column_log_sizes.len) catch
@@ -97,10 +99,15 @@ pub const Profile = struct {
         const common = self.lifting_log_size - self.log_blowup_factor;
         var cursor: usize = 0;
         for (self.trees) |tree| for (tree.column_log_sizes) |log_size| {
+            // Native PCS chooses the FRI domain from sampled columns only.
+            // An authenticated but unopened column contributes no DEEP term.
+            if (self.sample_layouts[cursor] != .none and log_size > self.lifting_log_size) return error.InvalidProfile;
             const mask_log = self.maskLogSize(cursor);
             if (mask_log == 0 or mask_log > common) return error.InvalidProfile;
             if (self.sample_layouts[cursor] == .current_keccak_final) {
                 if (self.mask_log_sizes.len == 0 or log_size < self.log_blowup_factor or mask_log != log_size - self.log_blowup_factor) return error.InvalidProfile;
+            } else if (self.sample_layouts[cursor] == .current_keccak_final_composition) {
+                if (self.mask_log_sizes.len == 0 or mask_log != common) return error.InvalidProfile;
             } else if (mask_log != common) return error.InvalidProfile;
             cursor += 1;
         };

@@ -1,0 +1,107 @@
+{
+  "schema": "stwo-circuit-native-blake3-merkle-kernel-qualification-v1",
+  "scope": "Constrained native BLAKE3 leaves, raw query selection, physical projection and expanded authentication paths; not a full PCS/FRI/typed-AIR verifier or authorized leaf wrapper",
+  "production_active": false,
+  "backend": "CPU",
+  "optimize": "ReleaseSafe",
+  "passed": 20,
+  "failed": 0,
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/circuit_blake3_merkle_reuse_test_root.zig -OReleaseSafe --test-filter 'circuit Blake3 Merkle'",
+  "limits": {
+    "height": 30,
+    "forest_nonempty_trees": 256,
+    "frame_words": 1048576
+  },
+  "positive_controls": {
+    "tested_row_widths": [
+      1,
+      249,
+      250,
+      300,
+      1100
+    ],
+    "tested_physical_tree_count": 135,
+    "same_root_wire_absorbed_and_authenticated": true,
+    "query_selection": "native raw U32 mask; no field sampler",
+    "query_projection": "preserves circle pairbit0 while shifting coset bits",
+    "compressed_fixture": {
+      "raw_queries": [
+        5,
+        2,
+        5,
+        3
+      ],
+      "compressed_sibling_hashes": 3,
+      "expanded_sibling_hashes": 12,
+      "full_circuit_reverification": true
+    },
+    "NoValue_and_gatefree_parity": true
+  },
+  "negative_controls": [
+    "wrong leaf",
+    "wrong root",
+    "wrong query index",
+    "wrong sibling",
+    "wrong host-selected path for constrained Fiat-Shamir query",
+    "out-of-domain query",
+    "short path",
+    "long path",
+    "wrong row width",
+    "empty tree opening",
+    "invalid layout height"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/circuit/builder/blake3_merkle_reuse_v1.zig",
+      "sha256": "874012bebae25590bf3e82880913691caa64405f93f25046b62c3fb2b6d174a9"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_merkle_reuse_v1_test.zig",
+      "sha256": "277c41bcbf4dd4ccab3cae78d43bed807f7160e0cb8cde997946f8b9c95d9062"
+    },
+    {
+      "path": "src/circuit_blake3_merkle_reuse_test_root.zig",
+      "sha256": "d2118fc1bb800a811d27ce8b4a567f61c4acec512edfca67b46548e221f353eb"
+    },
+    {
+      "path": "campaign/design/riscv-blake3-circuit-merkle-v1.md",
+      "sha256": "d7771fbcf76f070643464268341ce50e54d349c7417b9b5a610aac8a1aca80c4"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_channel_reuse_v1.zig",
+      "sha256": "3c9ae04eb7ad291be557e7f5510d96423c16b223e3dbc9539bf0f7395f5a4a04"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_reuse_v1.zig",
+      "sha256": "c256b3951c559234d9b72090afb9367cccfb903098c1cb5ac340096c03b1bf6e"
+    },
+    {
+      "path": "src/core/vcs_lifted/blake3_merkle.zig",
+      "sha256": "e8a4a8fdb73fb706760cabfbd9853706fef516ca34961bf11e4e507bddfb32e3"
+    },
+    {
+      "path": "src/core/vcs_lifted/verifier.zig",
+      "sha256": "bd7345a4cdb5f7ecad3a46fcafad2a22f9c47c2c11198ac9f67da2bb5455f575"
+    },
+    {
+      "path": "src/core/pcs/utils.zig",
+      "sha256": "c764e4146f5966646b61df8f44e5ba1d2432027b49d3b633b37c99ffb3defa30"
+    },
+    {
+      "path": "src/core/queries.zig",
+      "sha256": "68e13fbb48c0cd684b94198c5452e003984237a2fe2000dd332ac57234328bce"
+    }
+  ],
+  "log": {
+    "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-blake3-merkle-kernel-v1/qualification.log",
+    "sha256": "a7c3336922ecce0642969c429439f1de6a7c935d9feb448cced3ad0dffad167e"
+  },
+  "open": [
+    "strict compressed original-proof codec",
+    "complete original PCS transcript ordering",
+    "OODS and DEEP consistency",
+    "FRI folds and packed leaf checks",
+    "typed RISC-V AIR statement adapter",
+    "independently authorized leaf/fold registry"
+  ]
+}

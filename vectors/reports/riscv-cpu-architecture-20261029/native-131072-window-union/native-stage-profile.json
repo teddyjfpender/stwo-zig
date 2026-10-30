@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "runtime": "cpu",
+  "example": "retained-ethereum-window-native",
+  "stages": [
+    {
+      "id": "multi_prove",
+      "label": "Multi-window original proof including producer cleanup",
+      "seconds": 1.074993,
+      "children": [
+        {
+          "id": "multi_admission",
+          "label": "Independent shape and resource admission",
+          "seconds": 0.290102,
+          "children": null
+        },
+        {
+          "id": "multi_context_preparation",
+          "label": "Interaction generation and component preparation",
+          "seconds": 0.784476,
+          "children": [
+            {
+              "id": "multi_epoch_draw",
+              "label": "Epoch challenge derivation",
+              "seconds": 0.000121,
+              "children": null
+            },
+            {
+              "id": "multi_native_preparation",
+              "label": "Native interactions and component preparation",
+              "seconds": 0.130008,
+              "children": null
+            },
+            {
+              "id": "multi_program_preparation",
+              "label": "Program interactions and component preparation",
+              "seconds": 0.26436,
+              "children": null
+            },
+            {
+              "id": "multi_lookup_preparation",
+              "label": "Lookup interactions and component preparation",
+              "seconds": 0.026576,
+              "children": null
+            },
+            {
+              "id": "multi_memory_preparation",
+              "label": "Memory interactions and component preparation",
+              "seconds": 0.324055,
+              "children": null
+            },
+            {
+              "id": "multi_component_placement",
+              "label": "Component placement",
+              "seconds": 0.00001,
+              "children": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

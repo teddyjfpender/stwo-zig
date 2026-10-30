@@ -1,0 +1,322 @@
+ld.lld --error-limit=0 -mllvm -float-abi=hard -O3 --build-id=none --image-base=0 --gc-sections --eh-frame-hdr -znow -m elf_x86_64 -shared -o /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libm.so.6 -soname libm.so.6 -version-script /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/all.map --no-undefined-version /root/.cache/zig/o/4117eac6756ed2f0446951391055326a/m.o --as-needed
+ld.lld --error-limit=0 -mllvm -float-abi=hard -O3 --build-id=none --image-base=0 --gc-sections --eh-frame-hdr -znow -m elf_x86_64 -shared -o /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libc.so.6 -soname libc.so.6 -version-script /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/all.map --no-undefined-version /root/.cache/zig/o/453abb9b93ed4c664ee547e63fcfa22a/c.o --as-needed
+ld.lld --error-limit=0 -mllvm -float-abi=hard -O3 --build-id=none --image-base=0 --gc-sections --eh-frame-hdr -znow -m elf_x86_64 -shared -o /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libld.so.2 -soname ld-linux-x86-64.so.2 -version-script /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/all.map --no-undefined-version /root/.cache/zig/o/4b700146338170774bc3f9e88a34cc5b/ld.o --as-needed
+ar rcs /root/.cache/zig/o/7103bc09d8521086cbcaedc426f9504d/libc_nonshared.a /root/.cache/zig/o/9101230bd4dc0f4c5b1da484a4c919fd/atexit.o /root/.cache/zig/o/54f5ce7483cc1b55198a4144ef111844/at_quick_exit.o /root/.cache/zig/o/d02d61eafa560d5a12b96cee839bac4c/pthread_atfork.o /root/.cache/zig/o/f2c67584eb9b8896d197025408a2c360/stack_chk_fail_local.o
+ld.lld --error-limit=0 -mllvm -float-abi=hard -O3 --build-id=none --image-base=0 --gc-sections --eh-frame-hdr -znow -m elf_x86_64 -shared -o /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libresolv.so.2 -soname libresolv.so.2 -version-script /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/all.map --no-undefined-version /root/.cache/zig/o/b1562fd88e1824fcd3df72827332d0c6/resolv.o --as-needed
+ld.lld -r --error-limit=0 -mllvm -float-abi=hard -O3 --build-id=none --image-base=16777216 --eh-frame-hdr -znow -m elf_x86_64 -static -o /root/.cache/zig/o/918a6e1c311f03882f3537d98ee8a9c7/crt1.o /root/.cache/zig/o/7f81525214443c453f66a02cabc42a48/start.o /root/.cache/zig/o/7b0466ee8e6db2479e4b50249e52df7a/abi-note.o /root/.cache/zig/o/e0e4be3e8b85cda554300d7cbdb5ee1c/init.o
+ar rcs /root/.cache/zig/o/ad0b0ca6250cc71f9e4f5c2963678ffa/libcompiler_rt.a /root/.cache/zig/o/ad0b0ca6250cc71f9e4f5c2963678ffa/libcompiler_rt_zcu.o
+ld.lld --error-limit=0 -mllvm -float-abi=hard -O3 --entry _start -z stack-size=16777216 --build-id=none --image-base=16777216 --gc-sections --eh-frame-hdr -znow -m elf_x86_64 -o /workspace/final-evidence/native-source/unlinked-prover /root/.cache/zig/o/918a6e1c311f03882f3537d98ee8a9c7/crt1.o -dynamic-linker /lib64/ld-linux-x86-64.so.2 .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o --as-needed /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libm.so.6 /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libc.so.6 /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libld.so.2 /root/.cache/zig/o/9557cd5da600e04b0ce798b1d4716403/libresolv.so.2 /root/.cache/zig/o/7103bc09d8521086cbcaedc426f9504d/libc_nonshared.a /root/.cache/zig/o/ad0b0ca6250cc71f9e4f5c2963678ffa/libcompiler_rt.a
+error: ld.lld: undefined symbol: stwo_exec_context_memcpy_h2d_async
+    note: referenced by context.zig:545 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:545)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).uploadSlice__anon_38816)
+    note: referenced by context.zig:545 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:545)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).uploadSlice__anon_39037)
+    note: referenced by context.zig:545 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:545)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).uploadSlice__anon_39195)
+    note: referenced 4 more times
+error: ld.lld: undefined symbol: stwo_exec_context_memset_async
+    note: referenced by context.zig:647 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:647)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).zeroResidentSlice__anon_38829)
+error: ld.lld: undefined symbol: stwo_exec_context_memcpy_d2d_async
+    note: referenced by context.zig:619 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:619)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).copyDeviceSlice__anon_39502)
+error: ld.lld: undefined symbol: stwo_parent_tiny_inverse_on
+    note: referenced by resident_parent_transform_v1.zig:16 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_parent_transform_v1.zig:16)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_parent_transform_v1.inverseCompact__anon_39855)
+error: ld.lld: undefined symbol: stwo_ntt_b2n_columns_compact_on
+    note: referenced by transform.zig:289 (/workspace/stwo-final/src/backends/cuda/runtime/stages/transform.zig:289)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.transform.OpsFor(abi.stages.transform).inverseCompact__anon_39877)
+error: ld.lld: undefined symbol: stwo_parent_tiny_extend_on
+    note: referenced by resident_parent_transform_v1.zig:24 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_parent_transform_v1.zig:24)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_parent_transform_v1.extend__anon_39929)
+error: ld.lld: undefined symbol: stwo_lde_n2b_columns_on
+    note: referenced by transform.zig:414 (/workspace/stwo-final/src/backends/cuda/runtime/stages/transform.zig:414)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.transform.OpsFor(abi.stages.transform).extend__anon_39938)
+error: ld.lld: undefined symbol: stwo_blake3_mixed_seeded_on
+    note: referenced by blake3.zig:70 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:70)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_parent_pcs_v1.commit__anon_39823)
+error: ld.lld: undefined symbol: stwo_blake3_contiguous_leaf_on
+    note: referenced by blake3.zig:29 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:29)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_parent_pcs_v1.commit__anon_39823)
+error: ld.lld: undefined symbol: stwo_blake3_channel_on
+    note: referenced by blake3.zig:134 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:134)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_transcript_v1.ForCommitments(4).Sink(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda),integrations.riscv_cuda.resident_native_transcript_v1.NativeOps).channel)
+error: ld.lld: undefined symbol: stwo_composition_lift_accumulate_on
+    note: referenced by composition_lift.zig:47 (/workspace/stwo-final/src/backends/cuda/runtime/stages/composition_lift.zig:47)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.composition_lift.OpsFor(abi.stages.composition_lift).accumulate__anon_40364)
+error: ld.lld: undefined symbol: stwo_ntt_b2n_composition_split_compact_on
+    note: referenced by composition_split.zig:58 (/workspace/stwo-final/src/backends/cuda/runtime/stages/composition_split.zig:58)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.composition_split.OpsFor(abi.stages.composition_split).interpolateAndSplit__anon_40383)
+error: ld.lld: undefined symbol: stwo_ntt_b2n_composition_split_depth_two_on
+    note: referenced by composition_split.zig:117 (/workspace/stwo-final/src/backends/cuda/runtime/stages/composition_split.zig:117)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.composition_split.OpsFor(abi.stages.composition_split).interpolateAndSplitDepthTwo__anon_40386)
+error: ld.lld: undefined symbol: stwo_ntt_b2n_composition_split_depth_three_on
+    note: referenced by composition_split.zig:175 (/workspace/stwo-final/src/backends/cuda/runtime/stages/composition_split.zig:175)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.composition_split.OpsFor(abi.stages.composition_split).interpolateAndSplitDepthThree__anon_40389)
+error: ld.lld: undefined symbol: stwo_decommit_assemble_trace_on
+    note: referenced by decommit.zig:343 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:343)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.decommit.OpsFor(abi.stages.decommit).assembleTrace__anon_41036)
+error: ld.lld: undefined symbol: stwo_native_ingress_on
+    note: referenced by resident_native_ingress_v1.zig:64 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_ingress_v1.zig:64)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_infra_fixed_on
+    note: referenced by resident_native_producer_v1.zig:109 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:109)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+    note: referenced by resident_native_producer_v1.zig:112 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:112)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+    note: referenced by resident_native_producer_v1.zig:114 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:114)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_cuda_native_witness_v1_launch
+    note: referenced by resident_native_producer_v1.zig:119 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:119)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_main_place_on
+    note: referenced by resident_native_producer_v1.zig:120 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:120)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_infra_clock_on
+    note: referenced by resident_native_producer_v1.zig:126 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:126)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_infra_frame_on
+    note: referenced by resident_native_producer_v1.zig:142 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:142)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_table_counts_on
+    note: referenced by resident_native_producer_v1.zig:133 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:133)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_root_equal_v1
+    note: referenced by resident_native_claim_pack_v1.zig:47 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_claim_pack_v1.zig:47)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_access_parameters_on
+    note: referenced by resident_native_producer_v1.zig:154 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:154)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+    note: referenced by resident_native_composition_v1.zig:76 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:76)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_projection_parameters_on
+    note: referenced by resident_native_producer_v1.zig:155 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:155)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+    note: referenced by resident_native_composition_v1.zig:75 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:75)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_program_on
+    note: referenced by resident_native_producer_v1.zig:159 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:159)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+    note: referenced by resident_native_composition_v1.zig:79 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:79)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_projection_interactions_on
+    note: referenced by resident_native_producer_v1.zig:161 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:161)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_access_interactions_on
+    note: referenced by resident_native_producer_v1.zig:165 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:165)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_native_claim_pack_v1
+    note: referenced by resident_native_claim_pack_v1.zig:38 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_claim_pack_v1.zig:38)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_resident_framework_powers_on
+    note: referenced by resident_native_composition_v1.zig:70 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:70)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_resident_framework_add_on
+    note: referenced by resident_native_composition_v1.zig:83 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:83)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_oods_derive_points_on
+    note: referenced by oods.zig:112 (/workspace/stwo-final/src/backends/cuda/runtime/stages/oods.zig:112)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_oods_eval_first_on
+    note: referenced by oods.zig:183 (/workspace/stwo-final/src/backends/cuda/runtime/stages/oods.zig:183)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_oods_eval_reduce_on
+    note: referenced by oods.zig:258 (/workspace/stwo-final/src/backends/cuda/runtime/stages/oods.zig:258)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_oods_store_results_on
+    note: referenced by oods.zig:315 (/workspace/stwo-final/src/backends/cuda/runtime/stages/oods.zig:315)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_prepare_quotient_numerator_terms_on
+    note: referenced by quotient.zig:180 (/workspace/stwo-final/src/backends/cuda/runtime/stages/quotient.zig:180)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_finalize_quotient_numerator_groups_on
+    note: referenced by quotient.zig:261 (/workspace/stwo-final/src/backends/cuda/runtime/stages/quotient.zig:261)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_accumulate_quotient_numerator_native_bucket_on
+    note: referenced by quotient_addressed.zig:112 (/workspace/stwo-final/src/backends/cuda/runtime/stages/quotient_addressed.zig:112)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_combine_quotients_from_compact_numerators_on
+    note: referenced by quotient.zig:738 (/workspace/stwo-final/src/backends/cuda/runtime/stages/quotient.zig:738)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_blake3_fri_leaf_on
+    note: referenced by blake3.zig:123 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:123)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fold_line_on
+    note: referenced by fri.zig:81 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:81)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fri_fold_fused2_on
+    note: referenced by fri.zig:192 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:192)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fri_fold_fused3_on
+    note: referenced by fri.zig:117 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:117)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fri_fold_fused4_on
+    note: referenced by fri.zig:153 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:153)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fold_circle_into_line_on
+    note: referenced by fri.zig:65 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:65)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_fri_last_layer_on
+    note: referenced by fri.zig:251 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:251)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_circuit_degree_verdict_on
+    note: referenced by fri.zig:22 (/workspace/stwo-final/src/backends/cuda/runtime/stages/fri.zig:22)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_blake3_grind_on
+    note: referenced by blake3.zig:159 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:159)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_blake3_query_on
+    note: referenced by blake3.zig:150 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:150)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_decommit_normalize_queries_on
+    note: referenced by decommit.zig:127 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:127)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_decommit_prepare_trace_queries_on
+    note: referenced by decommit.zig:170 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:170)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_decommit_pack_trace_group_on
+    note: referenced by decommit.zig:219 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:219)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_decommit_prepare_fri_queries_on
+    note: referenced by decommit.zig:295 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:295)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_decommit_assemble_fri_on
+    note: referenced by decommit.zig:408 (/workspace/stwo-final/src/backends/cuda/runtime/stages/decommit.zig:408)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_blake3_channel_verdict_on
+    note: referenced by blake3.zig:169 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:169)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_pipeline_v1.ForCommitments(4).execute)
+error: ld.lld: undefined symbol: stwo_cuda_execution_provider
+    note: referenced by session.zig:169 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:169)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by session.zig:169 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:169)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_cuda_device_snapshot
+    note: referenced by session.zig:172 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:172)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_cuda_platform_snapshot
+    note: referenced by session.zig:182 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:182)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_static_cuda_module_build_identity
+    note: referenced by session.zig:186 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:186)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_zig_cuda_aot_entry_count
+    note: referenced by session.zig:191 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:191)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_create
+    note: referenced by context.zig:98 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:98)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_destroy
+    note: referenced by context.zig:0 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:0)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by context.zig:0 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:0)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).abort)
+    note: referenced by context.zig:0 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:0)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).close)
+error: ld.lld: undefined symbol: stwo_exec_context_stream
+    note: referenced by context.zig:140 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:140)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_device
+    note: referenced by context.zig:143 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:143)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_lane_count
+    note: referenced by context.zig:146 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:146)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_identity
+    note: referenced by context.zig:158 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:158)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_lane_stream
+    note: referenced by context.zig:164 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:164)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by context.zig:164 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:164)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by context.zig:164 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:164)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced 2 more times
+error: ld.lld: undefined symbol: stwo_native_aot_loader_create
+    note: referenced by session.zig:202 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:202)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_native_ingress_temp_bytes_v1
+    note: referenced by resident_native_ingress_v1.zig:30 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_ingress_v1.zig:30)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_memory_info
+    note: referenced by context.zig:803 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:803)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_alloc_u32
+    note: referenced by context.zig:473 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:473)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_free_u32
+    note: referenced by context.zig:482 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:482)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by context.zig:490 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:490)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by context.zig:361 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:361)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).abort)
+    note: referenced 2 more times
+error: ld.lld: undefined symbol: stwo_canonical_twiddle_tree_on
+    note: referenced by resident_parent_twiddles_v1.zig:12 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_parent_twiddles_v1.zig:12)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_native_program_identity
+    note: referenced by resident_native_producer_v1.zig:86 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_producer_v1.zig:86)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by resident_native_composition_v1.zig:61 (/workspace/stwo-final/src/integrations/riscv_cuda/resident_native_composition_v1.zig:61)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_exec_context_memcpy_d2h_async
+    note: referenced by context.zig:730 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:730)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+error: ld.lld: undefined symbol: stwo_native_aot_loader_destroy
+    note: referenced by session.zig:718 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:718)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(integrations.riscv_cuda.resident_native_prover_v1.ForCommitments(4).prove)
+    note: referenced by session.zig:737 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:737)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).abort)
+error: ld.lld: undefined symbol: stwo_exec_context_timing_begin
+    note: referenced by context.zig:400 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:400)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).beginStage)
+error: ld.lld: undefined symbol: stwo_exec_context_nvtx_push
+    note: referenced by context.zig:409 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:409)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).beginStage)
+error: ld.lld: undefined symbol: stwo_exec_context_sync
+    note: referenced by context.zig:375 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:375)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).abort)
+    note: referenced by context.zig:778 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:778)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).sync)
+error: ld.lld: undefined symbol: stwo_exec_context_timing_mark
+    note: referenced by context.zig:432 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:432)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).endStage)
+error: ld.lld: undefined symbol: stwo_exec_context_nvtx_pop
+    note: referenced by context.zig:434 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:434)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).endStage)
+    note: referenced by context.zig:308 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:308)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).abortProof)
+error: ld.lld: undefined symbol: stwo_graph_capture_abort
+    note: referenced by graph_execution.zig:44 (/workspace/stwo-final/src/backends/cuda/runtime/graph_execution.zig:44)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).abortProof)
+error: ld.lld: undefined symbol: stwo_exec_context_dependencies_reset
+    note: referenced by context.zig:253 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:253)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.context.ContextFor(abi.runtime).abortProof)
+error: ld.lld: undefined symbol: stwo_graph_destroy
+    note: referenced by graph_execution.zig:81 (/workspace/stwo-final/src/backends/cuda/runtime/graph_execution.zig:81)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).releasePreparedExecution)
+    note: referenced by graph_execution.zig:81 (/workspace/stwo-final/src/backends/cuda/runtime/graph_execution.zig:81)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).releasePreparedExecution)
+    note: referenced by graph_execution.zig:81 (/workspace/stwo-final/src/backends/cuda/runtime/graph_execution.zig:81)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).releasePreparedExecution)
+    note: referenced 7 more times
+error: ld.lld: undefined symbol: stwo_native_aot_function_destroy
+    note: referenced by session.zig:769 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:769)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).releaseCachedFunctions)
+error: ld.lld: undefined symbol: stwo_blake3_layer_on
+    note: referenced by blake3.zig:99 (/workspace/stwo-final/src/backends/cuda/runtime/stages/blake3.zig:99)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.stages.blake3.OpsFor(abi.stages.blake3).reduceNodes__anon_96135)
+error: ld.lld: undefined symbol: stwo_exec_context_join_all_lanes
+    note: referenced by context.zig:758 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:758)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).collectVerdict)
+error: ld.lld: undefined symbol: stwo_exec_context_timing_elapsed
+    note: referenced by context.zig:765 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:765)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).collectVerdict)
+error: ld.lld: undefined symbol: stwo_exec_context_pool_current
+    note: referenced by context.zig:789 (/workspace/stwo-final/src/backends/cuda/runtime/context.zig:789)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).collectVerdict)
+error: ld.lld: undefined symbol: stwo_native_aot_loader_stats
+    note: referenced by session.zig:650 (/workspace/stwo-final/src/backends/cuda/runtime/session.zig:650)
+    note:               .zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o:(runtime.session.SessionForProvider(abi.runtime,abi.aot,.nvidia_cuda).collectVerdict)

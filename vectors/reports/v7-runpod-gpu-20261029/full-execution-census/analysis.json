@@ -1,0 +1,214 @@
+{
+  "schema": "stwo-ethereum-execution-census-analysis-v1",
+  "proof_verified": false,
+  "cycles": 139214856,
+  "segments": 266,
+  "segment_cycles": 524288,
+  "execution_seconds": 22.927721996,
+  "whole_seconds": 23.534804208,
+  "register_access_fraction": 0.8375635946564427,
+  "precompile_active_segments": 181,
+  "keccak_active_segments": 181,
+  "recovery_active_segments": 11,
+  "max_keccak_segment": {
+    "block_number": 24628607,
+    "segment_index": 83,
+    "first_cycle": 43515905,
+    "last_cycle": 44040192,
+    "entry_pc": 387028,
+    "exit_pc": 387388,
+    "terminal": null,
+    "cycles": 524288,
+    "core_rows": 520739,
+    "register_accesses": 1172898,
+    "ram_accesses": 547005,
+    "register_gap_rows": 0,
+    "ram_gap_rows": 60273,
+    "keccak_calls": 3549,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "execution_ns": 92112791,
+    "census_ns": 1125584,
+    "cleanup_ns": 1101583,
+    "opcode_base_alu_reg": 127762,
+    "opcode_base_alu_imm": 12683,
+    "opcode_shifts_reg": 0,
+    "opcode_shifts_imm": 2305,
+    "opcode_lt_reg": 38,
+    "opcode_lt_imm": 114,
+    "opcode_branch_eq": 4177,
+    "opcode_branch_lt": 2542,
+    "opcode_lui": 301,
+    "opcode_auipc": 191,
+    "opcode_jalr": 344,
+    "opcode_jal": 82,
+    "opcode_load_store": 369555,
+    "opcode_mul": 382,
+    "opcode_mulh": 263,
+    "opcode_div": 0,
+    "opcode_fence": 0,
+    "tracked_live_bytes_after_segment_release": 54852730,
+    "tracked_cumulative_peak_bytes": 277966770,
+    "execution_cycles_per_second": 5691804.51822375
+  },
+  "max_recovery_segment": {
+    "block_number": 24628607,
+    "segment_index": 47,
+    "first_cycle": 24641537,
+    "last_cycle": 25165824,
+    "entry_pc": 2695548,
+    "exit_pc": 3276204,
+    "terminal": null,
+    "cycles": 524288,
+    "core_rows": 523845,
+    "register_accesses": 1099198,
+    "ram_accesses": 200467,
+    "register_gap_rows": 0,
+    "ram_gap_rows": 12019,
+    "keccak_calls": 377,
+    "recovery_calls": 66,
+    "sha_calls": 0,
+    "execution_ns": 80513541,
+    "census_ns": 820292,
+    "cleanup_ns": 863875,
+    "opcode_base_alu_reg": 67584,
+    "opcode_base_alu_imm": 136600,
+    "opcode_shifts_reg": 28,
+    "opcode_shifts_imm": 30334,
+    "opcode_lt_reg": 1677,
+    "opcode_lt_imm": 4109,
+    "opcode_branch_eq": 57698,
+    "opcode_branch_lt": 18963,
+    "opcode_lui": 9556,
+    "opcode_auipc": 3470,
+    "opcode_jalr": 5863,
+    "opcode_jal": 7056,
+    "opcode_load_store": 178845,
+    "opcode_mul": 1936,
+    "opcode_mulh": 58,
+    "opcode_div": 0,
+    "opcode_fence": 68,
+    "tracked_live_bytes_after_segment_release": 48050046,
+    "tracked_cumulative_peak_bytes": 259402950,
+    "execution_cycles_per_second": 6511799.05253453
+  },
+  "max_ram_segment": {
+    "block_number": 24628607,
+    "segment_index": 83,
+    "first_cycle": 43515905,
+    "last_cycle": 44040192,
+    "entry_pc": 387028,
+    "exit_pc": 387388,
+    "terminal": null,
+    "cycles": 524288,
+    "core_rows": 520739,
+    "register_accesses": 1172898,
+    "ram_accesses": 547005,
+    "register_gap_rows": 0,
+    "ram_gap_rows": 60273,
+    "keccak_calls": 3549,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "execution_ns": 92112791,
+    "census_ns": 1125584,
+    "cleanup_ns": 1101583,
+    "opcode_base_alu_reg": 127762,
+    "opcode_base_alu_imm": 12683,
+    "opcode_shifts_reg": 0,
+    "opcode_shifts_imm": 2305,
+    "opcode_lt_reg": 38,
+    "opcode_lt_imm": 114,
+    "opcode_branch_eq": 4177,
+    "opcode_branch_lt": 2542,
+    "opcode_lui": 301,
+    "opcode_auipc": 191,
+    "opcode_jalr": 344,
+    "opcode_jal": 82,
+    "opcode_load_store": 369555,
+    "opcode_mul": 382,
+    "opcode_mulh": 263,
+    "opcode_div": 0,
+    "opcode_fence": 0,
+    "tracked_live_bytes_after_segment_release": 54852730,
+    "tracked_cumulative_peak_bytes": 277966770,
+    "execution_cycles_per_second": 5691804.51822375
+  },
+  "mean_execution_cycles_per_second": 6071900.907743368,
+  "opcode_distribution": {
+    "base_alu_reg": {
+      "count": 19280758,
+      "fraction_of_core_rows": 0.1385291625078118
+    },
+    "base_alu_imm": {
+      "count": 29396043,
+      "fraction_of_core_rows": 0.21120586741629263
+    },
+    "shifts_reg": {
+      "count": 309984,
+      "fraction_of_core_rows": 0.00222718546183825
+    },
+    "shifts_imm": {
+      "count": 9196134,
+      "fraction_of_core_rows": 0.06607275198047781
+    },
+    "lt_reg": {
+      "count": 1418781,
+      "fraction_of_core_rows": 0.01019371456827557
+    },
+    "lt_imm": {
+      "count": 985352,
+      "fraction_of_core_rows": 0.007079596524960138
+    },
+    "branch_eq": {
+      "count": 10215701,
+      "fraction_of_core_rows": 0.07339817780816582
+    },
+    "branch_lt": {
+      "count": 5527413,
+      "fraction_of_core_rows": 0.03971357836267597
+    },
+    "lui": {
+      "count": 1074843,
+      "fraction_of_core_rows": 0.007722575046965683
+    },
+    "auipc": {
+      "count": 903988,
+      "fraction_of_core_rows": 0.00649500919814002
+    },
+    "jalr": {
+      "count": 2482726,
+      "fraction_of_core_rows": 0.017837989228243496
+    },
+    "jal": {
+      "count": 576044,
+      "fraction_of_core_rows": 0.004138784008784818
+    },
+    "load_store": {
+      "count": 56231701,
+      "fraction_of_core_rows": 0.4040157781099521
+    },
+    "mul": {
+      "count": 937072,
+      "fraction_of_core_rows": 0.006732712446757551
+    },
+    "mulh": {
+      "count": 630468,
+      "fraction_of_core_rows": 0.004529811744329507
+    },
+    "div": {
+      "count": 12690,
+      "fraction_of_core_rows": 9.117562038920523e-05
+    },
+    "fence": {
+      "count": 2245,
+      "fraction_of_core_rows": 1.612996593961905e-05
+    }
+  },
+  "files": {
+    "summary.json": "38c988a283bc1da3eb36244737f98ac8a28297a9329e4505d9be88c34b98f139",
+    "segments.jsonl": "6223b4d31b99718a094440506a9a59df298d942fb7df5f8813f23ffe53ac8c13",
+    "segments.csv": "0270f2d68f786de6a99eeb52f7359ed24b5b748aa6575698d93280ecd1125f03",
+    "output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "limits": "Raw execution census, not proof geometry. Segmentation here is524288cycles, not the older67-segment proof roster. Runtime modes and exact source provenance are retained in invocation.json. Full-block proving time is not extrapolated from isolated-window roots."
+}

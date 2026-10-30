@@ -1,0 +1,4 @@
+cuda-native-archive
++- run python3 (stwo-native-cuda-runtime)
+   +- run exe cairo-cuda-witness-aot (native-cuda-product) stderr
+Native CUDA AOT generated: 48 entries, 33 witness programs

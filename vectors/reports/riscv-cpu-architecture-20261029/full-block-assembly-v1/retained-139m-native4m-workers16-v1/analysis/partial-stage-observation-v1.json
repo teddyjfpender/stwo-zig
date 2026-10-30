@@ -1,0 +1,96 @@
+{
+  "schema": "stwo-b8-partial-stage-observation-v1",
+  "observed_utc": "2026-10-30T11:36:34.075906+00:00",
+  "source_windows_csv_sha256": "e75f514db16b6e8ab980a1d55805f5b70de8298c499ff4873d1f3fb13e0c0bcb",
+  "full_block_verified": false,
+  "completed_window_rows": 62,
+  "notes": [
+    "Ordered prefix, not a representative sample or a full-block prediction.",
+    "Parent stages omit receiving and other wrapper work; their sum is not end-to-end latency.",
+    "Independent phase sums are diagnostic; final whole-run timing remains pending."
+  ],
+  "groups": {
+    "native": {
+      "windows": 10,
+      "cycles": 42467328,
+      "stages": {
+        "original_bundle_whole_s": {
+          "samples": 10,
+          "sum_s": 206.13273396,
+          "median_s": 17.6586200625
+        },
+        "root_parent_fixed_compile_s": {
+          "samples": 10,
+          "sum_s": 27.957173418,
+          "median_s": 2.342929021
+        },
+        "root_parent_fixed_commit_s": {
+          "samples": 10,
+          "sum_s": 30.772032084,
+          "median_s": 2.573209771
+        },
+        "root_parent_witness_s": {
+          "samples": 10,
+          "sum_s": 111.981527875,
+          "median_s": 9.6287563125
+        },
+        "root_parent_plan_s": {
+          "samples": 10,
+          "sum_s": 31.710557207,
+          "median_s": 2.715316146
+        },
+        "root_parent_proof_s": {
+          "samples": 10,
+          "sum_s": 229.26117446,
+          "median_s": 19.809729625000003
+        },
+        "root_parent_encode_s": {
+          "samples": 10,
+          "sum_s": 0.069419749,
+          "median_s": 0.006610749500000001
+        }
+      }
+    },
+    "mixed": {
+      "windows": 52,
+      "cycles": 50331648,
+      "stages": {
+        "original_bundle_whole_s": {
+          "samples": 52,
+          "sum_s": 685.052210419,
+          "median_s": 6.5958793545
+        },
+        "root_parent_fixed_compile_s": {
+          "samples": 52,
+          "sum_s": 227.107202917,
+          "median_s": 4.2563395835
+        },
+        "root_parent_fixed_commit_s": {
+          "samples": 52,
+          "sum_s": 191.692918458,
+          "median_s": 3.667804125
+        },
+        "root_parent_witness_s": {
+          "samples": 52,
+          "sum_s": 721.491728585,
+          "median_s": 13.6197790415
+        },
+        "root_parent_plan_s": {
+          "samples": 52,
+          "sum_s": 181.861480704,
+          "median_s": 3.4549243335
+        },
+        "root_parent_proof_s": {
+          "samples": 52,
+          "sum_s": 1345.735182625,
+          "median_s": 26.02827675
+        },
+        "root_parent_encode_s": {
+          "samples": 52,
+          "sum_s": 0.711959081,
+          "median_s": 0.0137734165
+        }
+      }
+    }
+  }
+}

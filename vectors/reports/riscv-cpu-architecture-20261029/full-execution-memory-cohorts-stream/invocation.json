@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-memory-class-census-invocation-v1",
+  "binary_sha256": "2d73029ef5ecbd18dd50db878b607c155102537444c3b680f7bc29778c0ad406",
+  "source_sha256": "9d4c69796f2df0b41233d5fd25eaf35458aa8ef18c0861927a54bc67e1151010",
+  "settings": {
+    "STWO_V7_CENSUS_ELF": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+    "STWO_V7_CENSUS_ELF_SHA256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "STWO_V7_CENSUS_INPUT": "vectors/reports/block-v7-real-window-corpus-20261029/source/input.bin",
+    "STWO_V7_CENSUS_INPUT_SHA256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "STWO_V7_CENSUS_OUTPUT_SHA256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "STWO_V7_CENSUS_OUTPUT": "vectors/reports/riscv-cpu-architecture-20261029/full-execution-memory-cohorts-stream",
+    "STWO_V7_CENSUS_EXPECTED_CYCLES": "139214856",
+    "STWO_V7_CENSUS_SEGMENT_CYCLES": "524288"
+  },
+  "proving": false,
+  "isolated_timing": false,
+  "purpose": "Exact distinct keys counted from the published RAM access stream, with nonempty/count sanity gates. Execution census only; not proving.",
+  "command": [
+    "/tmp/v7-ethereum-memory-cohorts-stream-census-20261029"
+  ],
+  "returncode": 0
+}

@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "runtime": "circuit_cpu",
+  "example": "direct_original_binary_fold",
+  "stages": [
+    {
+      "id": "circuit_commit_preprocessed",
+      "label": "commit preprocessed tree",
+      "seconds": 0.000018,
+      "children": null
+    },
+    {
+      "id": "circuit_base_witness",
+      "label": "base trace witness",
+      "seconds": 0.936236,
+      "children": null
+    },
+    {
+      "id": "circuit_commit_base",
+      "label": "commit base trace",
+      "seconds": 3.423249,
+      "children": [
+        {
+          "id": "merkle_commit",
+          "label": "Merkle commit",
+          "seconds": 1.604489,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "circuit_interaction_pow",
+      "label": "interaction grind",
+      "seconds": 0.040654,
+      "children": null
+    },
+    {
+      "id": "circuit_interaction_witness",
+      "label": "interaction trace witness",
+      "seconds": 3.910163,
+      "children": null
+    },
+    {
+      "id": "circuit_commit_interaction",
+      "label": "commit interaction trace",
+      "seconds": 2.62424,
+      "children": [
+        {
+          "id": "merkle_commit",
+          "label": "Merkle commit",
+          "seconds": 1.11686,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "circuit_bind_components",
+      "label": "bind circuit components",
+      "seconds": 0.000303,
+      "children": null
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 0.000001,
+      "children": null
+    },
+    {
+      "id": "composition_trace_extract",
+      "label": "Composition trace extract",
+      "seconds": 0.000016,
+      "children": null
+    },
+    {
+      "id": "composition_evaluation",
+      "label": "Composition evaluation",
+      "seconds": 1.735849,
+      "children": [
+        {
+          "id": "cpu_composition_component",
+          "label": "blake_g",
+          "seconds": 1.11621,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "Captured Cairo AIR",
+          "seconds": 0.001845,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "Captured Cairo AIR",
+          "seconds": 0.128595,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "Captured Cairo AIR",
+          "seconds": 0.02928,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "Captured Cairo AIR",
+          "seconds": 0.024772,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "verify_bitwise_xor_8",
+          "seconds": 0.000954,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "verify_bitwise_xor_12",
+          "seconds": 0.066034,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "verify_bitwise_xor_4",
+          "seconds": 0.000119,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "verify_bitwise_xor_7",
+          "seconds": 0.000323,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "verify_bitwise_xor_9",
+          "seconds": 0.002774,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "cpu_composition_component",
+          "label": "Captured Cairo AIR",
+          "seconds": 0.000723,
+          "children": [
+            {
+              "id": "cpu_native_air_part",
+              "label": "Authenticated native AIR",
+              "seconds": 0.000004,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "label": "Composition interpolate and split",
+      "seconds": 0.047818,
+      "children": null
+    },
+    {
+      "id": "composition_commit",
+      "label": "Composition commit",
+      "seconds": 0.625745,
+      "children": null
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.005596,
+      "children": null
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "label": "Sampled-value evaluation",
+      "seconds": 0.434923,
+      "children": null
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "label": "Sampled-value channel mix",
+      "seconds": 0.000018,
+      "children": null
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "label": "FRI quotient build + commit (lazy)",
+      "seconds": 2.720918,
+      "children": null
+    },
+    {
+      "id": "proof_of_work",
+      "label": "Proof of work",
+      "seconds": 1.166212,
+      "children": null
+    },
+    {
+      "id": "fri_decommit",
+      "label": "FRI decommit",
+      "seconds": 0.042283,
+      "children": null
+    },
+    {
+      "id": "trace_decommit",
+      "label": "Trace decommit",
+      "seconds": 0.015623,
+      "children": null
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.00245,
+      "children": null
+    }
+  ]
+}

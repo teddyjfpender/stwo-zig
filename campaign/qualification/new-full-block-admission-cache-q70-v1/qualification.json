@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-b8-immutable-admission-cache-saved-root-qualification-v1",
+  "scope": "saved seven-retirement native FIRST/middle/TERMINAL fixture; not retained full-block completion",
+  "queries": 70,
+  "pow_bits": 26,
+  "saved_windows_reverified": 3,
+  "saved_folds_reverified": 2,
+  "source_proofs_produced": 0,
+  "parent_proofs_produced": 0,
+  "final_root_bytes_identical": true,
+  "historical_fold_proving_timing_bytes_unchanged": true,
+  "cache_destroyed_before_final_uncached_full_receiver": true,
+  "negative_cases": [
+    "wrong leaf MAIN",
+    "wrong fold expected-key transport field",
+    "wrong ordered fold children",
+    "incomplete saved-fold file set"
+  ],
+  "tests_passed": 11,
+  "exit_code": 0,
+  "retained_profile_peak_bytes": 1861485,
+  "key_derivation_peak_bytes": 3910746674,
+  "timing_isolated": false,
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v8_full_block_admission_cache_test_root.zig",
+    "-OReleaseSafe",
+    "-j1",
+    "--test-filter",
+    "immutable admission cache resumes"
+  ],
+  "qualification_log_sha256": "b254e99ac4ba8588b21a49afa9f57ed57aba63a0e073c30af4079ca57b515c26",
+  "original_artifacts": "campaign/qualification/new-full-block-depth2-driver-q70-v1",
+  "new_proof_not_produced": true,
+  "remaining": [
+    "mixed-cache runtime regression",
+    "cold default-path regression after additive integration",
+    "standalone mutation/allocator qualification",
+    "retained benchmark binary compile and frozen provenance"
+  ],
+  "source_hash_scope": "current owned source after successful gate; not a frozen all-source build archive",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v8_full_block_pipeline_v1.zig": "ce7d88a2dd75df21a5302c1ca9ba1892edac5e254110d9e76939190fa24282a9",
+    "src/frontends/riscv/recursion/block_v8_window_root_admission_cache_v1.zig": "9f02d1b577cbb223e0946298fb409ce9a93e8cce1b665bc0f189e7c63f40fea8",
+    "src/frontends/riscv/recursion/block_v8_window_root_fold_v1.zig": "e75398a61f10229250d308f1e050e5fefbdef5b2fed7144389d364d2e46ac733",
+    "src/frontends/riscv/prover/tests/block_v8_full_block_admission_cache_test.zig": "9ebfc1d9646cf8b0e5c533f4a2f89773bcf7b7c3f5c43f9d74c48415f2bf4194",
+    "src/frontends/riscv/block_v8_full_block_admission_cache_test_root.zig": "74bae2bc26ba8d6d6621855bda48570d22d5fa94cf071cfaa7c9cb4278845840",
+    "src/frontends/riscv/prover/tests/block_v8_full_block_pipeline_benchmark.zig": "bf9fe7cb9df15731575750f15aebf75318b9354d0eea4b91c58e3982902e425e",
+    "scripts/v8_full_block_prove.py": "5135fc96ba7bb1668de31911c2f5616d0a508ea9ef396d4b825a311044bf93a6"
+  }
+}

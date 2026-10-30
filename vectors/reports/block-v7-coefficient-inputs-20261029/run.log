@@ -1,0 +1,10 @@
+1/5 block_v7_coefficient_inputs_test_root.test_0...OK
+2/5 prover.block_v7_memory_joint_test_v1.test.v7 joint coefficient-backed inputs preserve exact original proof...V7_JOINT_INPUT_STORAGE coefficient_backed=true byte_identical=true input_lde_cells_retained=0 compact_input_live_bytes=19280592 resident_input_live_bytes=20945296 proof_bytes=99491
+V7_JOINT_RECURSIVE_SEAM original_capture=true composition=true deep=true fri=true transcript_cold_live=true changed_root_claim_key_invariant=true outer_parent=false
+V7_MEMORY_JOINT verified=true original_proofs=1 ram_shards=5 providers=3 guest_events=16 terminal_reads=13 proof_bytes=99491 producer_rows=0 compensated_claims_rejected=true full_execution=false
+OK
+3/5 prover.block_v7_memory_cohorts_test_v1.test.v7 coefficient checkpoint cohorts preserve exact proofs and reject changed coefficients...V7_MEMORY_COHORTS ram=5 providers=3 verified=true byte_identical=true coefficient_inputs=true charged_peak=75669584 whole_block=false
+OK
+4/5 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/5 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+All 5 tests passed.

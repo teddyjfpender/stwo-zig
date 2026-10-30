@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "status": "passed",
+  "security": "diagnostic_q8_pow0",
+  "ethereum_block": false,
+  "canonical_security": false,
+  "timing_status": "diagnostic; concurrent compiler activity; not controlled A/B",
+  "log_sha256": "73e86b48b837e864bd4177357c36a415228c0bd15ce1a9271b46319473ed4295",
+  "binary_sha256": "fa517721188706cb926f35fbffb69d0116694bb7597ea3710f00dcc0101811db",
+  "evidence_lines": [
+    "V7_STREAMING_COMPLETE iterations=4096 profile=diagnostic_q8_pow0 source={\"cycles\":20495,\"segments\":2,\"callers\":1,\"events\":8293,\"fetches\":20496,\"original_proofs\":6,\"checkpoint_bytes\":42475032,\"native_checkpoint_bytes\":36953856,\"caller_checkpoint_bytes\":5521176,\"max_native_restore_codec_bytes\":19477120,\"event_storage_bytes\":224616,\"setup_ns\":1404333,\"execution_ns\":1244542,\"collection_ns\":566645166,\"providers_first_ns\":78159417,\"native_proof_ns\":1103069750,\"caller_proof_ns\":5108600833,\"memory_proof_ns\":223962792,\"rom_proof_ns\":7927375,\"lookup_proof_ns\":104416375,\"verification_ns\":3258984250,\"consumer_ns\":56378850125,\"whole_ns\":66833264958,\"charged_peak_bytes\":8449757478} recursive={\"metadata_ns\":400832417,\"caller_compile_ns\":889246166,\"cold_key_ns\":8154893417,\"capture_witness_join_ns\":17977519208,\"parity_ns\":14766667,\"plan_ns\":2463145125,\"proof_ns\":26344016750,\"encoding_ns\":78897458,\"whole_ns\":56323317250,\"retained_rows_bytes\":1840224616} root_verification_ns=672557250 execution_to_verified_root_ns=67649536750 proof_bytes=162440 charged_peak_bytes=8449757478 original_owners_destroyed=true complete_global_closure=true ethereum_block=false",
+    "All 11 tests passed.",
+    "          8486076416  maximum resident set size",
+    "          8480972984  peak memory footprint"
+  ],
+  "source_state": "uncommitted development tree; binary hashes identify tested snapshots"
+}

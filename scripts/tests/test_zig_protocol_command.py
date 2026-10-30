@@ -175,6 +175,22 @@ class ZigProtocolCommandTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "optimization mode"):
             test_command("focused.zig", "-Owrong")
 
+    def test_cross_target_applies_before_every_module_and_last_choice_wins(self) -> None:
+        command = test_command("focused.zig", "-target=aarch64-macos", "-target", "x86_64-linux-gnu", "-mcpu=baseline", "--test-no-exec", cpu_only=True)
+        positions = [i for i, arg in enumerate(command) if arg.startswith("-M")]
+        for position in positions:
+            self.assertEqual(["-mcpu=baseline", "-target", "x86_64-linux-gnu"], command[position - 3:position])
+        self.assertEqual(len(positions), command.count("-target"))
+        self.assertEqual(["--test-no-exec"], command[positions[-1] + 1:])
+
+    def test_target_filter_and_program_arguments_are_data(self) -> None:
+        command = test_command("focused.zig", "--test-filter", "-target=wrong", "--", "-target", "not-a-target")
+        self.assertEqual(["--test-filter", "-target=wrong", "--", "-target", "not-a-target"], command[-5:])
+        self.assertNotIn("-target", command[:-5])
+        for args in (("-target",), ("-target=",)):
+            with self.assertRaisesRegex(ValueError, "requires a value"):
+                test_command("focused.zig", *args)
+
     def test_standard_runner_is_from_selected_compiler_without_invoking_it(self) -> None:
         with mock.patch("scripts.zig_protocol_lib.command.standard_runner_source", return_value="selected/compiler/test_runner.zig") as resolver:
             command = test_command("focused.zig", "--test-runner", "policy.zig", zig="selected-zig", cpu_only=True)

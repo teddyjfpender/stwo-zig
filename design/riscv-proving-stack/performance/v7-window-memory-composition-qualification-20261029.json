@@ -1,0 +1,38 @@
+{
+  "scope": "Nonterminal window scalar and symbolic composition equation parity only; no standalone proof qualification",
+  "date": "2026-10-29",
+  "optimization": "ReleaseSafe",
+  "tests": {
+    "passed": 135,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log": {
+    "path": "/tmp/v7-window-composition-run.log",
+    "sha256": "57d21e244923c9ad60cf711d56158c9023e6c5059a1afab80ae260da952cb613"
+  },
+  "binary": {
+    "path": "/tmp/v7-window-composition",
+    "sha256": "df22a7d332c34f40ddef141621767626fee916fafc91203b80c85b60c6ac245b"
+  },
+  "sources": {
+    "src/frontends/riscv/prover/block_v7_window_memory_composition_test_v1.zig": "78a6f917850e6f868b87669510d31dcc4ae56fb774caf364a213b3d255e01ebd",
+    "src/frontends/riscv/block_v7_window_memory_composition_test_root.zig": "8fc3e3479fde28b269a730fda242a0d2ac04cafb34f9fc9b9df881bd6cdf097a",
+    "src/frontends/riscv/recursion/air/block_v7_window_memory_kernels_v1.zig": "22f551cf4af83e5978e17e7d100ade6f29debb41fe9b0fbb6a05d5097964e481",
+    "src/frontends/riscv/prover/block_v7_window_ram_component_v1.zig": "21319edcfd8557b3e35bf91eb9bc050e2892e70e76cf7235fa464c640fdf8d7f"
+  },
+  "qualified": [
+    "original161 scalar equations preserved as exact prefix",
+    "31 separately bound physical claims",
+    "two snapshot delta signs and normalized recurrences",
+    "arbitrary secure OODS equals original scalar quotient",
+    "mixed domain Horner log2 to log16",
+    "public endpoints and claims do not choose fixed graph",
+    "actual window epoch Word.initial pair49"
+  ],
+  "remaining": [
+    "full original window STARK and fresh verifier",
+    "recursive transcript/PCS/fixed-key lifecycle",
+    "complete nonterminal window global closure"
+  ]
+}

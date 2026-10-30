@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "scope": "opaque trusted joint-caller compiler capsule; composition DAG/source-map reuse between cold setup and live witness evaluation",
+  "security": "diagnostic_q8_pow0",
+  "tests_passed": 12,
+  "proof_bytes": 152714,
+  "measurement_status": "diagnostic/unranked single paired observation with concurrent compilation; no production or broad10x claim",
+  "measurements": {
+    "compile_ns": 838886625,
+    "fixed_from_capsule_ns": 3004580666,
+    "baseline_cold_ns": 3996804750,
+    "baseline_live_ns": 7258015875,
+    "capsule_live_ns": 6386320250,
+    "composition_nodes": 263489
+  },
+  "live_difference_ns": 871695625,
+  "maximum_resident_set_bytes": 6815055872,
+  "memory_scope": "Whole qualification job holds baseline and candidate simultaneously for exact row comparison, then proves; not candidate production footprint.",
+  "checks": [
+    "baseline and capsule fixed rows exactly equal",
+    "all emitted MAIN values and column logs exactly equal",
+    "public frames, context and wires exactly equal",
+    "changed capture rejected",
+    "fresh detached parent verification after original fixture, compiler capsule and producer rows are destroyed"
+  ],
+  "reuse_scope": "composition only; DEEP, FRI, transcript and live arithmetic lowering unchanged",
+  "log_sha256": "c8c9cf06288c8c792e6ad9a0483c5f2f3858c56d9aa4389511bcf623939adf73",
+  "binary_sha256": "d3369fc3dedd6b761d720f7dfa3a67e7616f3c823574628a8d7f09682abb2bdb"
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "resident-parent-cuda-profile-v1",
+  "diagnostic_only": true,
+  "profile_tool": "NVIDIA Nsight Systems2025.1.1",
+  "command": "nsys profile --trace=cuda --sample=none --cpuctxsw=none --force-overwrite=true -o canonical prover",
+  "environment": {
+    "STWO_RESIDENT_NATIVE_CANONICAL": "1"
+  },
+  "independent_original_receiver_passed": true,
+  "kernel_total_ns": 8737653977,
+  "kernel_launches": 22881,
+  "top_kernels": [
+    {
+      "name": "child_paths_kernel(const ChildPathTree *, unsigned int, const ChildPathColumn *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *)",
+      "total_ns": 4167066519,
+      "launches": 1,
+      "fraction": 0.4769090799394104,
+      "max_grid_x": 1,
+      "max_block_x": 1
+    },
+    {
+      "name": "parent_framework_counts_0(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)",
+      "total_ns": 4053529908,
+      "launches": 1,
+      "fraction": 0.46391513313185073,
+      "max_grid_x": 1024,
+      "max_block_x": 128
+    },
+    {
+      "name": "parent_framework_counts_10(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)",
+      "total_ns": 196452339,
+      "launches": 1,
+      "fraction": 0.022483419407213726,
+      "max_grid_x": 128,
+      "max_block_x": 128
+    },
+    {
+      "name": "parent_framework_counts_16(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)",
+      "total_ns": 107127379,
+      "launches": 1,
+      "fraction": 0.01226042817465533,
+      "max_grid_x": 128,
+      "max_block_x": 128
+    },
+    {
+      "name": "rp_scatter(const RPHashRow *, unsigned int, const RPCohort *, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *)",
+      "total_ns": 90234115,
+      "launches": 1859,
+      "fraction": 0.010327041473320179,
+      "max_grid_x": 1,
+      "max_block_x": 128
+    },
+    {
+      "name": "stwo_resident_parent_hash_calls_v1",
+      "total_ns": 47232562,
+      "launches": 1859,
+      "fraction": 0.0054056342954675925,
+      "max_grid_x": 1,
+      "max_block_x": 128
+    },
+    {
+      "name": "rp_write(const RPWrite *, unsigned int, const unsigned char *, unsigned int, unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned char *, unsigned int, unsigned int *, unsigned int, unsigned int *)",
+      "total_ns": 30223232,
+      "launches": 14669,
+      "fraction": 0.0034589641658454517,
+      "max_grid_x": 1,
+      "max_block_x": 128
+    },
+    {
+      "name": "stwo::cuda::blake3::grind_persistent(const stwo::cuda::blake3::Channel *, unsigned int, unsigned long, unsigned long long *)",
+      "total_ns": 11070860,
+      "launches": 1,
+      "fraction": 0.001267028887747405,
+      "max_grid_x": 256,
+      "max_block_x": 128
+    },
+    {
+      "name": "stwo_resident_parent_hash_sources_v1",
+      "total_ns": 3407589,
+      "launches": 1859,
+      "fraction": 0.00038998900722891374,
+      "max_grid_x": 1,
+      "max_block_x": 128
+    },
+    {
+      "name": "stwo::cuda::blake3::mixed(unsigned int, unsigned int, stwo::cuda::blake3::Segments, unsigned int, const stwo::cuda::blake3::StwoBlake3WordState *, stwo::cuda::blake3::StwoBlake3WordState *, stwo::cuda::blake3::Hash *)",
+      "total_ns": 3322627,
+      "launches": 4,
+      "fraction": 0.00038026534453597074,
+      "max_grid_x": 4096,
+      "max_block_x": 128
+    },
+    {
+      "name": "parent_arithmetic_evaluate(const ParentArithmeticGraph *, const unsigned int *, unsigned int, const ParentArithmeticNode *, const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *)",
+      "total_ns": 2573795,
+      "launches": 4,
+      "fraction": 0.00029456362162829557,
+      "max_grid_x": 1,
+      "max_block_x": 128
+    },
+    {
+      "name": "stwo::cuda::decommit::<unnamed>::assemble_fri_kernel(unsigned int, unsigned int, const unsigned int *, const unsigned int *, unsigned int, const unsigned int *, const unsigned int *, unsigned int, const unsigned int *, unsigned long, unsigned long, unsigned int *, unsigned int *, const unsigned int *, unsigned int, const stwo::cuda::blake2s::Hash *, unsigned long, const stwo::cuda::decommit::RetainedLayer *, unsigned int, unsigned int *, unsigned int)",
+      "total_ns": 2034179,
+      "launches": 18,
+      "fraction": 0.00023280608334394335,
+      "max_grid_x": 1,
+      "max_block_x": 256
+    }
+  ],
+  "finding": "Child-path reconstruction and framework G-cohort lookup counters dominate; arithmetic DAG and compression witness kernels do not. GPU event stage timings include host enqueue gaps, but actual kernel durations identify these two dominant costs.",
+  "changes_qualified": "../../genuine-native-canonical-v4-fast/qualification.json",
+  "optimization_scope": "Paths precomputes exact unique ranks once; counters aggregate equal-address M31 increments within a warp before unchanged modular atomic accumulation. Both retain all original checks and exact proof bytes.",
+  "limitations": [
+    "Profiler timings are diagnostic and not an independent throughput benchmark.",
+    "No optimized kernel-level profile was run before pod shutdown.",
+    "Original RISC-V proving and complete execution closure are not qualified by this native-child parent fixture."
+  ]
+}

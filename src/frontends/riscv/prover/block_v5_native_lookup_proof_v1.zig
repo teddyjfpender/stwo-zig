@@ -50,7 +50,7 @@ pub fn validateSourceCounters(counters: *const tables.counter.Set, plan: Plan) !
     try validateCounters(counters);
     try validateBounds(counters, plan);
 }
-fn snapshots(counters: *const tables.counter.Set) [Count]Digest {
+pub fn snapshots(counters: *const tables.counter.Set) [Count]Digest {
     var result: [Count]Digest = undefined;
     for (&counters.counters, &result) |*counter, *digest|
         digest.* = @import("../air/block/memory_range_interaction_v2.zig").counterSnapshot(counter);

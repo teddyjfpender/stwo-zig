@@ -1,0 +1,169 @@
+Generating SQLite file /workspace/stwo-v7-evidence/resident-native-v4/profile/canonical.sqlite from /workspace/stwo-v7-evidence/resident-native-v4/profile/canonical.nsys-rep
+Processing [/workspace/stwo-v7-evidence/resident-native-v4/profile/canonical.sqlite] with [/opt/nvidia/nsight-compute/2025.1.1/host/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+47.7,4167066519,1,4167066519.0,4167066519.0,4167066519,4167066519,0.0,"child_paths_kernel(const ChildPathTree *, unsigned int, const ChildPathColumn *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *)"
+46.4,4053529908,1,4053529908.0,4053529908.0,4053529908,4053529908,0.0,"parent_framework_counts_0(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+2.2,196452339,1,196452339.0,196452339.0,196452339,196452339,0.0,"parent_framework_counts_10(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+1.2,107127379,1,107127379.0,107127379.0,107127379,107127379,0.0,"parent_framework_counts_16(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+1.0,90234115,1859,48539.1,50112.0,20288,54752,5117.0,"rp_scatter(const RPHashRow *, unsigned int, const RPCohort *, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *)"
+0.5,47232562,1859,25407.5,25408.0,24800,26368,283.1,stwo_resident_parent_hash_calls_v1
+0.3,30223232,14669,2060.3,1888.0,1472,5024,648.6,"rp_write(const RPWrite *, unsigned int, const unsigned char *, unsigned int, unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned char *, unsigned int, unsigned int *, unsigned int, unsigned int *)"
+0.1,11070860,1,11070860.0,11070860.0,11070860,11070860,0.0,"stwo::cuda::blake3::grind_persistent(const stwo::cuda::blake3::Channel *, unsigned int, unsigned long, unsigned long long *)"
+0.0,3407589,1859,1833.0,1824.0,1440,2496,181.9,stwo_resident_parent_hash_sources_v1
+0.0,3322627,4,830656.8,977617.0,57280,1310113,597381.3,"stwo::cuda::blake3::mixed(unsigned int, unsigned int, stwo::cuda::blake3::Segments, unsigned int, const stwo::cuda::blake3::StwoBlake3WordState *, stwo::cuda::blake3::StwoBlake3WordState *, stwo::cuda::blake3::Hash *)"
+0.0,2573795,4,643448.8,521712.5,131232,1399138,616597.9,"parent_arithmetic_evaluate(const ParentArithmeticGraph *, const unsigned int *, unsigned int, const ParentArithmeticNode *, const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *)"
+0.0,2034179,18,113009.9,113936.0,26720,201376,54938.7,"stwo::cuda::decommit::<unnamed>::assemble_fri_kernel(unsigned int, unsigned int, const unsigned int *, const unsigned int *, unsigned int, const unsigned int *, const unsigned int *, unsigned int, const unsigned int *, unsigned long, unsigned long, unsigned int *, unsigned int *, const unsigned int *, unsigned int, const stwo::cuda::blake2s::Hash *, unsigned long, const stwo::cuda::decommit::RetainedLayer *, unsigned int, unsigned int *, unsigned int)"
+0.0,1808674,182,9937.8,9984.0,9792,10080,95.8,"void cub::CUB_200700_900_NS::DeviceRadixSortSingleTileKernel<cub::CUB_200700_900_NS::DeviceRadixSortPolicy<unsigned int, unsigned int, unsigned int>::Policy900, (bool)0, unsigned int, unsigned int, unsigned int, cub::CUB_200700_900_NS::detail::identity_decomposer_t>(const T3 *, T3 *, const T4 *, T4 *, T5, int, int, T6)"
+0.0,1463426,58,25231.5,7824.0,3904,761472,99682.6,"stwo::cuda::blake3::channel(stwo::cuda::blake3::Channel *, unsigned int *, unsigned int, unsigned int, unsigned int)"
+0.0,1359330,61,22284.1,17280.0,10432,68128,13712.6,"stwo::cuda::decommit::<unnamed>::pack_trace_group_kernel(unsigned int, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned long, unsigned long, const unsigned int *, unsigned int, const unsigned int *, const unsigned int *, unsigned int, unsigned int *, unsigned int)"
+0.0,1309856,36,36384.9,12768.0,8384,379200,70275.0,"void stwo::cuda::transform::n2b_continue<(unsigned int)4, (unsigned int)4, (bool)1>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)"
+0.0,1168993,35,33399.8,8448.0,3328,268064,59379.9,"stwo::cuda::quotient::accumulate_native_bucket_kernel(const stwo::cuda::quotient::BatchTermDescriptor *, unsigned int, unsigned int, const stwo::cuda::quotient::AddressedSourceDescriptor *, unsigned int, const stwo::cuda::oods::QM31 *, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *, unsigned int *)"
+0.0,1163393,161,7226.0,6880.0,5088,14752,1374.8,"stwo::cuda::oods::derive_points_kernel(const stwo::cuda::oods::QM31 *, const stwo::cuda::oods::CirclePoint *, const unsigned int *, const unsigned int *, unsigned int, unsigned int, unsigned long, stwo::cuda::oods::SecureCirclePoint *, stwo::cuda::oods::SecureCirclePoint *, stwo::cuda::oods::QM31 *)"
+0.0,1076290,161,6685.0,6944.0,1472,62528,6485.9,"stwo::cuda::oods::evaluate_first_kernel(const unsigned int *, unsigned long, unsigned int, unsigned int, const stwo::cuda::oods::QM31 *, unsigned int, unsigned int, stwo::cuda::oods::QM31 *)"
+0.0,971713,1,971713.0,971713.0,971713,971713,0.0,"child_replay(const ChildTask *, unsigned int, const ChildRef *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *, unsigned int, stwo::cuda::blake3::Channel *, unsigned int *)"
+0.0,958304,265,3616.2,2848.0,2272,22464,3062.8,"stwo::cuda::blake3::nodes(unsigned int, const stwo::cuda::blake3::Hash *, stwo::cuda::blake3::Hash *)"
+0.0,870561,4,217640.3,90656.0,54784,634465,279925.5,stwo_cuda_framework_v1_1818ea82d0aa552e6b57352bdd44f1c20fb0e1a68fe7fa8dbbcb3ea6dfd8e649
+0.0,843840,34,24818.8,17184.0,4928,66592,15968.7,"rp_direct(const RPCall *, unsigned int, const RPSource *, unsigned int, const unsigned int *, unsigned int, const unsigned char *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int *)"
+0.0,841057,4,210264.3,121344.0,76672,521697,211796.9,stwo_cuda_framework_interaction_v1_35f0bc7caf001c063a1c594b3b9c3b98189ce455635cdd6f3ca9da783379beaa
+0.0,814304,1,814304.0,814304.0,814304,814304,0.0,"parent_framework_counts_15(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,683104,4,170776.0,170544.0,170464,171552,520.2,"stwo::cuda::decommit::<unnamed>::assemble_trace_kernel(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int *, const unsigned int *, unsigned int, const stwo::cuda::blake2s::Hash *, unsigned long, const stwo::cuda::decommit::RetainedLayer *, unsigned int, const unsigned int *, const stwo::cuda::blake2s::Hash *, unsigned int, const unsigned int *, const unsigned int *, unsigned int, unsigned int *, unsigned int)"
+0.0,658721,4,164680.3,150640.0,32640,324801,120378.8,"void stwo::cuda::transform::n2b_final_block<(unsigned int)2, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,645568,18,35864.9,41872.0,16096,44192,10608.4,"stwo::cuda::decommit::<unnamed>::prepare_fri_queries_kernel(const unsigned int *, const unsigned int *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *, unsigned int, unsigned int *, unsigned int *, unsigned int, unsigned int *)"
+0.0,504225,182,2770.5,2592.0,2304,4480,567.5,"<unnamed>::gather(const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int *, unsigned int *, unsigned int *)"
+0.0,411872,182,2263.0,2304.0,2016,2720,165.7,"<unnamed>::arguments(const unsigned int *, unsigned int, const unsigned int *, const unsigned int *, unsigned int *, unsigned int, unsigned int *)"
+0.0,398849,1,398849.0,398849.0,398849,398849,0.0,"stwo::cuda::quotient::finalize_groups_kernel(const unsigned int *, const unsigned int *, unsigned int, unsigned int, const stwo::cuda::oods::SecureCirclePoint *, unsigned int, stwo::cuda::oods::QM31 *, stwo::cuda::oods::SecureCirclePoint *, stwo::cuda::oods::QM31 *)"
+0.0,351168,25,14046.7,5120.0,1184,125152,26819.1,stwo_cuda_framework_scan_totals_v1_1ff83985e199f5a978fa2b810e577d52d479d66d3f3673b835101125a70cf212
+0.0,337313,232,1453.9,1408.0,1088,2048,158.2,"<unnamed>::n2b_stage(unsigned int *, unsigned long, unsigned int, unsigned int, const unsigned int *)"
+0.0,332097,222,1495.9,1440.0,1088,2336,215.4,"void <unnamed>::b2n_stage<(bool)0>(const unsigned int *, unsigned long, unsigned int *, unsigned long, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,289985,7,41426.4,19040.0,10976,104160,42467.7,"void stwo::cuda::transform::b2n_continue<(unsigned int)4, (bool)0, (unsigned int)0>(stwo::cuda::transform::ColumnSlab<unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,264577,161,1643.3,1600.0,1280,2432,216.2,"stwo::cuda::oods::store_results_kernel(const stwo::cuda::oods::QM31 *, unsigned int, const unsigned int *, unsigned int, unsigned long, stwo::cuda::oods::QM31 *)"
+0.0,226208,9,25134.2,8896.0,5696,79168,30502.7,"void stwo::cuda::transform::b2n_init_block<(unsigned int)1>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,208608,86,2425.7,2304.0,1632,3744,500.5,"stwo::cuda::oods::evaluate_reduce_kernel(const stwo::cuda::oods::QM31 *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const stwo::cuda::oods::QM31 *, stwo::cuda::oods::QM31 *, unsigned int)"
+0.0,172800,10,17280.0,14720.0,5344,42528,12726.9,"void stwo::cuda::transform::n2b_final_block<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,168416,17,9906.8,7776.0,4320,30144,6968.4,"void stwo::cuda::transform::n2b_final_warp<(unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,168256,28,6009.1,4480.0,3936,20160,3724.3,"void stwo::cuda::transform::b2n_continue<(unsigned int)3, (bool)0, (unsigned int)0>(stwo::cuda::transform::ColumnSlab<unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,144480,50,2889.6,2912.0,1920,3392,254.5,"parent_framework_relations(const unsigned int *, const ParentRelationRoute *, unsigned int, unsigned int *, unsigned int *)"
+0.0,143872,18,7992.9,4304.0,2976,41408,9693.5,"stwo::cuda::blake3::fri(unsigned int, const unsigned int *, unsigned long, unsigned int, stwo::cuda::blake3::Hash *)"
+0.0,137569,25,5502.8,4160.0,3168,14848,2811.3,"void stwo::cuda::transform::n2b_final_warp<(unsigned int)2, (bool)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,136640,24,5693.3,5440.0,5056,8544,864.2,"<unnamed>::lift_accumulate_coordinates(const unsigned int *, unsigned int, unsigned int *, unsigned int, unsigned int)"
+0.0,123328,1,123328.0,123328.0,123328,123328,0.0,"stwo_fri_expand_kernel_v1(const unsigned int *, unsigned int, const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *)"
+0.0,119552,25,4782.1,3936.0,1984,23104,4426.5,stwo_cuda_framework_scan_blocks_v1_57efe1816dd13de92359eec6413ee1cc45c3c9b7b890e72b0b00da175c826f61
+0.0,110848,20,5542.4,5040.0,4256,9088,1493.5,"void stwo::cuda::transform::n2b_continue<(unsigned int)3, (unsigned int)3, (bool)1>(stwo::cuda::transform::ColumnSlab<const unsigned int>, const unsigned int *, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, const unsigned int *)"
+0.0,109825,25,4393.0,2496.0,1152,31872,6294.8,stwo_cuda_framework_scan_finalize_v1_08db866416c1450ac8e26532958f9dcdfeae66355b676e29d68b6fb73ac909ec
+0.0,107520,1,107520.0,107520.0,107520,107520,0.0,"parent_framework_counts_1(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,101024,1,101024.0,101024.0,101024,101024,0.0,stwo_cuda_framework_interaction_v1_0412060e86442ad5dcc9e4af38e564653ec007f65a3d9c99ccd0fc735d5d89e0
+0.0,95424,35,2726.4,3200.0,1248,4224,830.0,"stwo::cuda::quotient::lift_native_bucket_kernel(const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, const stwo::cuda::oods::QM31 *, unsigned int, unsigned int, unsigned int, unsigned long, unsigned int *, unsigned int *, unsigned int *, unsigned int *, bool)"
+0.0,93697,1,93697.0,93697.0,93697,93697,0.0,"stwo::cuda::quotient::combine_compact_kernel(unsigned int, unsigned int, unsigned int, unsigned int, const stwo::cuda::oods::SecureCirclePoint *, unsigned int, const stwo::cuda::oods::QM31 *, const unsigned int *, const unsigned long *, unsigned long, const unsigned int *, const unsigned int *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *)"
+0.0,73185,1,73185.0,73185.0,73185,73185,0.0,"stwo::cuda::decommit::<unnamed>::normalize_queries_kernel(const unsigned int *, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,69633,1,69633.0,69633.0,69633,69633,0.0,stwo_cuda_framework_v1_62ca271f92f2d8e762a7a46c5481ea764b40f879ec5a9d58ff2c528b24869e7c
+0.0,66848,12,5570.7,5584.0,4192,7328,1003.1,"void stwo::cuda::transform::b2n_init_warp<(unsigned int)3>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,66816,7,9545.1,6848.0,5600,15424,4086.6,"void stwo::cuda::transform::b2n_init_block<(unsigned int)2>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,60576,4,15144.0,15136.0,15040,15264,120.8,"stwo::cuda::decommit::<unnamed>::prepare_trace_queries_kernel(const unsigned int *, const unsigned int *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int, unsigned int *)"
+0.0,52960,1,52960.0,52960.0,52960,52960,0.0,stwo_cuda_framework_interaction_v1_53dd6938c2ba99e3283a22ead59ca6761f6befc230092a88212c4fd60252e8b5
+0.0,46208,1,46208.0,46208.0,46208,46208,0.0,stwo_cuda_framework_interaction_v1_54a89485b462409f5ec2233c36a23e0bafebb49121abc970e331fe2c03832064
+0.0,42848,25,1713.9,1664.0,1280,2240,216.3,"<unnamed>::stage_lde_columns(const unsigned int *, unsigned long, const unsigned int *, unsigned int *, unsigned long, unsigned int)"
+0.0,38688,1,38688.0,38688.0,38688,38688,0.0,stwo_cuda_framework_interaction_v1_7d4a8e4e60db28cf7d47956ad7b9c0dba493e5b84a89acc3c991b1ac79f0f780
+0.0,38304,1,38304.0,38304.0,38304,38304,0.0,"parent_framework_counts_9(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,35360,1,35360.0,35360.0,35360,35360,0.0,"parent_framework_counts_21(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,34944,1,34944.0,34944.0,34944,34944,0.0,"parent_framework_counts_20(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,34912,1,34912.0,34912.0,34912,34912,0.0,"parent_framework_counts_22(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,34816,1,34816.0,34816.0,34816,34816,0.0,stwo_cuda_framework_interaction_v1_f1fbefa2b1510b95ce094d0ee24ac999fbc1d9b6658d936d9bb789977d5151e9
+0.0,34112,1,34112.0,34112.0,34112,34112,0.0,stwo_cuda_framework_v1_4d3aa09e7458b743200559b37b7eb824649ba95782732a45547eb64d86f7f7ef
+0.0,33312,17,1959.5,1728.0,1408,3424,518.9,"stwo::cuda::fri::fold_line_kernel(const unsigned int *, unsigned int, unsigned int, const unsigned int *, unsigned int, const stwo::cuda::fri::QM31 *, unsigned int, unsigned int *, unsigned int)"
+0.0,32256,1,32256.0,32256.0,32256,32256,0.0,stwo_cuda_framework_interaction_v1_881c765f7bd27bcb8092d3dc9fa804ab8dfd20c23a707942bfe52a9412ee1e24
+0.0,31040,25,1241.6,1248.0,1024,1568,131.6,"parent_framework_claim(const unsigned int *, unsigned int *, unsigned int)"
+0.0,30272,1,30272.0,30272.0,30272,30272,0.0,stwo_cuda_framework_v1_c1371fe89754fdd56bbeac19faa00e127243bf36d450dd06584ad32e1f2e6030
+0.0,29696,1,29696.0,29696.0,29696,29696,0.0,"stwo::cuda::blake3::query(stwo::cuda::blake3::Channel *, unsigned int, unsigned int, unsigned int *)"
+0.0,29024,7,4146.3,3040.0,2848,11008,3028.0,"void stwo::cuda::transform::b2n_init_warp<(unsigned int)2>(stwo::cuda::transform::ColumnSlab<const unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, const unsigned int *)"
+0.0,28224,3,9408.0,2496.0,2336,23392,12110.8,"child_gather(const unsigned int *, unsigned int, const unsigned int *, unsigned int, const unsigned int *, unsigned int, unsigned int, const StwoChildInput *, unsigned int, unsigned int *, unsigned int, unsigned int *)"
+0.0,22880,1,22880.0,22880.0,22880,22880,0.0,"<unnamed>::build(unsigned int, unsigned int *, unsigned int *)"
+0.0,22528,1,22528.0,22528.0,22528,22528,0.0,"void stwo::cuda::transform::b2n_continue<(unsigned int)3, (bool)0, (unsigned int)1>(stwo::cuda::transform::ColumnSlab<unsigned int>, stwo::cuda::transform::ColumnSlab<unsigned int>, unsigned int, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,22336,1,22336.0,22336.0,22336,22336,0.0,stwo_cuda_framework_v1_aaf464ede869e853d87bfbc710f89fd4cb52016dad5618e442c33683e6e51f33
+0.0,22208,1,22208.0,22208.0,22208,22208,0.0,stwo_cuda_framework_v1_b1afc35e296a4d90a49e6ed1561e04f1ac2f5421d2973668b8d07e0fa5976d74
+0.0,21728,1,21728.0,21728.0,21728,21728,0.0,stwo_cuda_framework_interaction_v1_7d2c4b6553fbeaaf40b2c915623552b55fa51ed8ed8d408e29bc9210f0123586
+0.0,21696,1,21696.0,21696.0,21696,21696,0.0,stwo_cuda_framework_interaction_v1_f6b0f183be22c8d00f901084bed2c365fc6601b2ac2d454dc8fd36658cd5b303
+0.0,20192,1,20192.0,20192.0,20192,20192,0.0,"parent_framework_counts_6(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,18656,1,18656.0,18656.0,18656,18656,0.0,stwo_cuda_framework_interaction_v1_1dd4ce0b0c3b1627d352490351c159f2bf86bae63c590903d04edf682be9cbd9
+0.0,18464,1,18464.0,18464.0,18464,18464,0.0,stwo_cuda_framework_v1_910d6c34b6bf8197985afefb6c039a13298886349fb6a64f2b332c02d85bebad
+0.0,17760,1,17760.0,17760.0,17760,17760,0.0,stwo_cuda_framework_v1_c455d04bb4ba5182c9bdaa1eb0fc155ade3fada2fade77ac30be2aa9b64d0d52
+0.0,17248,1,17248.0,17248.0,17248,17248,0.0,stwo_cuda_framework_interaction_v1_b5cc252eba03d79e5408b37af2341d4ad2c108b371ebe0564b75d7caf9371fac
+0.0,16000,1,16000.0,16000.0,16000,16000,0.0,stwo_cuda_framework_interaction_v1_c0e3bd75b0071dcd9e3de80732ed488e03ad70b17321344a4f773938e75b8fbb
+0.0,14592,1,14592.0,14592.0,14592,14592,0.0,stwo_cuda_framework_interaction_v1_8cc6f7226e773f106f2f621af2106bb766ab10e8a5239d3f6a011a9e2d77fb23
+0.0,14048,1,14048.0,14048.0,14048,14048,0.0,stwo_cuda_framework_v1_728013bdad8908aa7d37ecf7c72efa186dad22ebb9ebc426779dca77ed8b30db
+0.0,13216,6,2202.7,2256.0,2016,2368,150.7,"<unnamed>::extend(const unsigned int *, unsigned long, const unsigned int *, unsigned int *, unsigned long, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,12352,1,12352.0,12352.0,12352,12352,0.0,stwo_cuda_framework_v1_7538777849b23b8f5624cab519dbb3a664f528bd111bdd251ca25e5bc49cfb02
+0.0,12096,1,12096.0,12096.0,12096,12096,0.0,stwo_cuda_framework_interaction_v1_52727758ec2a85a4e9928c4ae7fdfff491e2e3584fdd62aaa61c86ad1c23daf2
+0.0,11584,1,11584.0,11584.0,11584,11584,0.0,stwo_cuda_framework_interaction_v1_3e9f501ac49488263990e8573e83a6e3dd4d2e40eea4fed0b04b6687146df9b4
+0.0,11392,1,11392.0,11392.0,11392,11392,0.0,stwo_cuda_framework_v1_1df1faf152640f29f8a4909282e04d91d4f959dd4265a4a3f1eef1a2fda209a4
+0.0,10720,1,10720.0,10720.0,10720,10720,0.0,stwo_cuda_framework_interaction_v1_c6a691ee1275983421c79818a3c37dbdfd6808af2c35acb1029ff7c3c1c64e1a
+0.0,10240,1,10240.0,10240.0,10240,10240,0.0,stwo_cuda_framework_interaction_v1_2aacdc731913430ce8319cbafe76c0ad64536ff2b3862316453b54424d6c415b
+0.0,9504,1,9504.0,9504.0,9504,9504,0.0,stwo_cuda_framework_v1_b9d4e2bc7a8ce0ae3d42d76db859c9c660f52fbd9a6a986ab945dacee01a3580
+0.0,9088,1,9088.0,9088.0,9088,9088,0.0,stwo_cuda_framework_v1_c68a1f1d6ff018c0f7d58fb47272e97acfdeb4b7e3a79a024d5318f525d8aadb
+0.0,8928,1,8928.0,8928.0,8928,8928,0.0,"stwo::cuda::quotient::prepare_terms_kernel(const stwo::cuda::quotient::PreparedTermDescriptor *, unsigned int, const stwo::cuda::oods::SecureCirclePoint *, const stwo::cuda::oods::QM31 *, unsigned int, const stwo::cuda::oods::QM31 *, stwo::cuda::oods::SecureCirclePoint *, stwo::cuda::oods::QM31 *)"
+0.0,8864,1,8864.0,8864.0,8864,8864,0.0,"parent_framework_add(const unsigned int *, unsigned int *, unsigned int)"
+0.0,8672,1,8672.0,8672.0,8672,8672,0.0,"stwo::cuda::blake3::finish_pow(stwo::cuda::blake3::Channel *, const unsigned long long *)"
+0.0,8672,1,8672.0,8672.0,8672,8672,0.0,stwo_cuda_framework_v1_4dd366b8547e21b0f2ff3010ea122da4ffe4f465293d7a53da857add6a5eb0c1
+0.0,8608,1,8608.0,8608.0,8608,8608,0.0,"stwo::cuda::fri::fold_circle_kernel(const unsigned int *, unsigned int, unsigned int, const unsigned int *, unsigned int, const stwo::cuda::fri::QM31 *, unsigned int, unsigned int *, unsigned int)"
+0.0,8576,1,8576.0,8576.0,8576,8576,0.0,"parent_framework_counts_8(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,8544,1,8544.0,8544.0,8544,8544,0.0,stwo_cuda_framework_interaction_v1_b1da8e86cd405d8321476b7f3cbfe4288565f802be30be9d81afd8996d9fa161
+0.0,7712,1,7712.0,7712.0,7712,7712,0.0,stwo_cuda_framework_v1_b7aafb8e34aeac59deea50c40ea83947070e9bd188a8dd41c47914ec08f414fc
+0.0,7104,1,7104.0,7104.0,7104,7104,0.0,stwo_cuda_framework_v1_825818d973af07a921c18edeaaff34e7b6001d6b3d1f39f7931118df8da8cdab
+0.0,6784,1,6784.0,6784.0,6784,6784,0.0,stwo_cuda_framework_interaction_v1_3d5236bb30456da46e6ad7193695d1fdaff6ac6dcbf6a6d56487bbb528d7505c
+0.0,6624,1,6624.0,6624.0,6624,6624,0.0,stwo_cuda_framework_interaction_v1_46f3e5d0bb0823a0d01cedea72e95cabdffd631edf929addad34a41233765446
+0.0,6368,1,6368.0,6368.0,6368,6368,0.0,stwo_cuda_framework_v1_30cbaed09a0e1e8245434ae4bcdf010804942bc65aca1baf32cba279ec982bce
+0.0,6240,1,6240.0,6240.0,6240,6240,0.0,stwo_cuda_framework_v1_9ca80ca759b7e2c2d0b9698656dbaf22b98c3696301382a64635ffa1e2e59d0a
+0.0,6208,1,6208.0,6208.0,6208,6208,0.0,stwo_cuda_framework_v1_a67a3a9c98346adfc94088b0b9ab7aa2aaaf6a387d229d47072e19b65428b594
+0.0,6112,1,6112.0,6112.0,6112,6112,0.0,stwo_cuda_framework_v1_5e2b5def6f17e03fdbc9735da2d543038bec0bb18fbe882437f5ba595d2e2cab
+0.0,5536,1,5536.0,5536.0,5536,5536,0.0,stwo_cuda_framework_interaction_v1_28b57e7097f3e91298578e5729f1134f3d8595a063aa585eea1e8ebe9a1226ab
+0.0,5536,3,1845.3,1856.0,1536,2144,304.1,"<unnamed>::inverse(const unsigned int *, unsigned long, unsigned int *, unsigned long, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,5376,1,5376.0,5376.0,5376,5376,0.0,stwo_cuda_framework_v1_44b6b896c2886e13edf6f00637a9423676ba166739bd835533aef98429a1f69b
+0.0,4800,1,4800.0,4800.0,4800,4800,0.0,stwo_cuda_framework_interaction_v1_8b25ca0cc9a773edbd3845126022e4e53055591830c6a71c2cee48f44acc72c0
+0.0,4768,1,4768.0,4768.0,4768,4768,0.0,stwo_cuda_framework_v1_17616c937bde96ee52dcf70c6902c905f604af725dbe9a0724304fc312d5cc6c
+0.0,3808,1,3808.0,3808.0,3808,3808,0.0,"parent_framework_powers(const unsigned int *, unsigned int, unsigned int *)"
+0.0,2528,1,2528.0,2528.0,2528,2528,0.0,"child_validate(const unsigned int *, unsigned int, const StwoChildCheck *, unsigned int, unsigned int *)"
+0.0,1632,1,1632.0,1632.0,1632,1632,0.0,"stwo::cuda::fri::emit_coefficients_kernel(const unsigned int *, unsigned int, unsigned int, unsigned int, const unsigned int *, unsigned int *)"
+0.0,1472,1,1472.0,1472.0,1472,1472,0.0,"stwo::cuda::fri::normalize_kernel(unsigned int *, unsigned long, unsigned int)"
+0.0,1344,1,1344.0,1344.0,1344,1344,0.0,"stwo::cuda::blake3::verdict(const stwo::cuda::blake3::Channel *, unsigned int, unsigned int *)"
+0.0,1344,1,1344.0,1344.0,1344,1344,0.0,"stwo::cuda::fri::circuit_degree_verdict_kernel(const unsigned int *, const unsigned int *, unsigned int *)"
+0.0,1344,1,1344.0,1344.0,1344,1344,0.0,"stwo::cuda::fri::line_ifft_stage_kernel(unsigned int *, unsigned int, unsigned int, const unsigned int *, unsigned int)"
+0.0,1184,1,1184.0,1184.0,1184,1184,0.0,"stwo::cuda::fri::validate_degree_kernel(const unsigned int *, unsigned int, unsigned int, unsigned int, unsigned int *)"
+0.0,1088,1,1088.0,1088.0,1088,1088,0.0,stwo::cuda::blake3::init_nonce(unsigned long long *)
+0.0,1056,1,1056.0,1056.0,1056,1056,0.0,"parent_framework_counts_12(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,1024,1,1024.0,1024.0,1024,1024,0.0,"parent_framework_counts_17(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,1024,1,1024.0,1024.0,1024,1024,0.0,"parent_framework_counts_2(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,1024,1,1024.0,1024.0,1024,1024,0.0,"stwo::cuda::fri::naturalize_kernel(const unsigned int *, unsigned int, unsigned int, unsigned int *)"
+0.0,992,1,992.0,992.0,992,992,0.0,"parent_framework_counts_13(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,992,1,992.0,992.0,992,992,0.0,"parent_framework_counts_14(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,992,1,992.0,992.0,992,992,0.0,"parent_framework_counts_7(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,960,1,960.0,960.0,960,960,0.0,"parent_framework_counts_3(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,928,1,928.0,928.0,928,928,0.0,"parent_framework_counts_18(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,928,1,928.0,928.0,928,928,0.0,"parent_framework_counts_19(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,928,1,928.0,928.0,928,928,0.0,"parent_framework_counts_5(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,896,1,896.0,896.0,896,896,0.0,stwo::cuda::fri::initialize_degree_error_kernel(unsigned int *)
+0.0,800,1,800.0,800.0,800,800,0.0,"parent_framework_counts_11(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+0.0,704,1,704.0,704.0,704,704,0.0,"parent_framework_counts_4(const unsigned int *, const unsigned int *, const unsigned long *, const unsigned int *, const unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int)"
+
+Processing [/workspace/stwo-v7-evidence/resident-native-v4/profile/canonical.sqlite] with [/opt/nvidia/nsight-compute/2025.1.1/host/target-linux-x64/reports/cuda_api_sum.py]... 
+Time (%),Total Time (ns),Num Calls,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+98.1,8746744005,22756,384370.9,2126.0,1896,4358912846,39978231.6,cudaLaunchKernel
+1.2,107418967,47,2285509.9,2216936.0,2133687,3742870,250415.8,cuModuleLoadData
+0.4,36514638,7615,4795.1,2812.0,1528,1427884,27309.0,cudaMemcpyAsync
+0.1,10396486,47,221201.8,196204.0,172948,456244,55001.8,cuModuleUnload
+0.1,7807426,1,7807426.0,7807426.0,7807426,7807426,0.0,cudaMallocFromPoolAsync_v11020
+0.0,2117041,1,2117041.0,2117041.0,2117041,2117041,0.0,cudaMemPoolDestroy_v11020
+0.0,1700054,2,850027.0,850027.0,693902,1006152,220794.1,cudaGetDeviceProperties_v2_v12000
+0.0,760601,125,6084.8,3775.0,1921,50804,5544.8,cuLaunchKernel
+0.0,600831,321,1871.7,1251.0,1180,11683,1713.1,cudaMemsetAsync
+0.0,269403,1,269403.0,269403.0,269403,269403,0.0,cudaMemPoolCreate_v11020
+0.0,148929,1,148929.0,148929.0,148929,148929,0.0,cudaStreamCreateWithFlags
+0.0,70618,11,6419.8,6128.0,3145,12534,2767.1,cudaEventRecord
+0.0,19820,2,9910.0,9910.0,7440,12380,3493.1,cudaStreamSynchronize
+0.0,14715,1,14715.0,14715.0,14715,14715,0.0,cudaStreamDestroy
+0.0,13766,1,13766.0,13766.0,13766,13766,0.0,cudaMemGetInfo
+0.0,9215,1,9215.0,9215.0,9215,9215,0.0,cudaFreeAsync_v11020
+0.0,8365,11,760.5,308.0,289,3588,1040.4,cudaEventCreate
+0.0,8295,11,754.1,363.0,271,4038,1101.3,cudaEventDestroy
+0.0,5657,1,5657.0,5657.0,5657,5657,0.0,cudaMemPoolSetAttribute_v11020
+0.0,1613,2,806.5,806.5,168,1445,903.0,cudaMemPoolGetAttribute_v11020
+0.0,1042,1,1042.0,1042.0,1042,1042,0.0,cuModuleGetLoadingMode
+

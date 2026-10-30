@@ -35,7 +35,10 @@ pub const Proof = struct {
     transition_sum: Q,
     active_count: u64,
     range_claims: range.Claims,
-    pub fn deinit(self: *Proof, a: std.mem.Allocator) void { self.stark.deinit(a); self.* = undefined; }
+    pub fn deinit(self: *Proof, a: std.mem.Allocator) void {
+        self.stark.deinit(a);
+        self.* = undefined;
+    }
 };
 
 pub fn ForBackend(comptime Backend: type) type {
@@ -102,10 +105,17 @@ pub fn ForBackend(comptime Backend: type) type {
             for (range_result.columns, 0..) |values, i| columns[transition.COLUMN_COUNT + i] = .{ .log_size = trace.log_size, .values = values };
             try first.scheme.commitBorrowedStreaming(a, &columns, 8, &channel);
             const component = try (adapter_mod.Component{
-                .family = trace.family, .slot = trace.slot, .log_size = trace.log_size,
-                .base_clock = trace.base_clock, .fixed_logs = first.fixed_logs, .main_logs = first.main_logs,
-                .main_offset = main_offset, .transition_claim = transition_result.claim, .transition_count = transition_result.count,
-                .range_claims = range_result.claims, .challenges = &challenges,
+                .family = trace.family,
+                .slot = trace.slot,
+                .log_size = trace.log_size,
+                .base_clock = trace.base_clock,
+                .fixed_logs = first.fixed_logs,
+                .main_logs = first.main_logs,
+                .main_offset = main_offset,
+                .transition_claim = transition_result.claim,
+                .transition_count = transition_result.count,
+                .range_claims = range_result.claims,
+                .challenges = &challenges,
             }).init();
             first.owns_scheme = false;
             return .{ .stark = try engine.prove.prove(Backend, suite.Hasher, suite.MerkleChannel, a, &.{component.asProverComponent()}, &channel, first.scheme), .transition_sum = transition_result.claim, .active_count = transition_result.count, .range_claims = range_result.claims };
@@ -135,15 +145,28 @@ pub fn ForBackend(comptime Backend: type) type {
             try range.mixClaims(proof.range_claims, instance_index, family, slot, &channel);
             try verifier.commit(a, roots[3], &([_]u32{log_size} ** adapter_mod.eval.INTERACTION_COUNT), &channel);
             const component = try (adapter_mod.Component{
-                .family = family, .slot = slot, .log_size = log_size, .base_clock = base_clock,
-                .fixed_logs = fixed_logs, .main_logs = main_logs, .main_offset = main_offset,
-                .transition_claim = proof.transition_sum, .transition_count = proof.active_count, .range_claims = proof.range_claims, .challenges = &challenges,
+                .family = family,
+                .slot = slot,
+                .log_size = log_size,
+                .base_clock = base_clock,
+                .fixed_logs = fixed_logs,
+                .main_logs = main_logs,
+                .main_offset = main_offset,
+                .transition_claim = proof.transition_sum,
+                .transition_count = proof.active_count,
+                .range_claims = proof.range_claims,
+                .challenges = &challenges,
             }).init();
             var seal_channel = sealed.sharedChannel();
             const receipt = VerifiedSlotReceipt{
-                .instance_index = instance_index, .family = family, .slot = slot,
-                .transition_sum = proof.transition_sum, .active_count = proof.active_count, .range_claims = proof.range_claims,
-                .native_roots = trusted_native_roots, .witness_root = trusted_witness_root,
+                .instance_index = instance_index,
+                .family = family,
+                .slot = slot,
+                .transition_sum = proof.transition_sum,
+                .active_count = proof.active_count,
+                .range_claims = proof.range_claims,
+                .native_roots = trusted_native_roots,
+                .witness_root = trusted_witness_root,
                 .sealed_channel_digest = seal_channel.digestBytes(),
             };
             owns_proof = false;
@@ -221,10 +244,23 @@ test "block-v2 same-root sidecar proves an active typed ADDI access" {
     var execution = opcode.Trace.init(a);
     defer execution.deinit();
     try execution.append(.{
-        .clk = 1, .pc = 0x1000, .opcode = .ADDI, .rd = 1, .rs1 = 0, .rs2 = 0,
-        .imm = 1, .rs1_val = 0, .rs2_val = 0, .rd_val = 1,
-        .mem_addr = 0, .mem_val = 0, .is_load = false, .is_store = false,
-        .branch_taken = false, .next_pc = 0x1004, .inst_word = 0x00100093,
+        .clk = 1,
+        .pc = 0x1000,
+        .opcode = .ADDI,
+        .rd = 1,
+        .rs1 = 0,
+        .rs2 = 0,
+        .imm = 1,
+        .rs1_val = 0,
+        .rs2_val = 0,
+        .rd_val = 1,
+        .mem_addr = 0,
+        .mem_val = 0,
+        .is_load = false,
+        .is_store = false,
+        .branch_taken = false,
+        .next_pc = 0x1004,
+        .inst_word = 0x00100093,
     });
     var main = try execution.columnsForFamily(a, family, 1);
     defer main.deinit(a);

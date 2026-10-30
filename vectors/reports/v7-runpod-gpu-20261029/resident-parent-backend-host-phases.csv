@@ -1,0 +1,17 @@
+snapshot,iteration,scope,child_receipt,queries,pow_bits,host_phase,wall_ns
+6,0,padding_backend_only,False,70,26,admission_ns,13192
+6,0,padding_backend_only,False,70,26,pcs_plans_ns,2022841
+6,0,padding_backend_only,False,70,26,terminal_memory_plans_ns,1869267682
+6,0,padding_backend_only,False,70,26,open_transaction_ns,7835955
+6,0,padding_backend_only,False,70,26,ingress_enqueue_ns,9141877
+6,0,padding_backend_only,False,70,26,pipeline_enqueue_ns,759572671
+6,0,padding_backend_only,False,70,26,terminal_read_finish_ns,2974331
+6,0,padding_backend_only,False,70,26,decode_ns,37902123
+6,1,padding_backend_only,False,70,26,admission_ns,12734
+6,1,padding_backend_only,False,70,26,pcs_plans_ns,2020536
+6,1,padding_backend_only,False,70,26,terminal_memory_plans_ns,1971007919
+6,1,padding_backend_only,False,70,26,open_transaction_ns,258733
+6,1,padding_backend_only,False,70,26,ingress_enqueue_ns,4725712
+6,1,padding_backend_only,False,70,26,pipeline_enqueue_ns,22462169
+6,1,padding_backend_only,False,70,26,terminal_read_finish_ns,12104732
+6,1,padding_backend_only,False,70,26,decode_ns,32898110

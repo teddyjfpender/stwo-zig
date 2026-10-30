@@ -1,0 +1,122 @@
+{
+  "schema": "stwo-joint-native-same-rom-byte-loop-original-qualification-v1",
+  "qualification": "All 10 ReleaseSafe tests passed",
+  "scope": "finite original math theorem only; no production route or whole VM qualification",
+  "log": "qualification.log",
+  "retirements": {
+    "native": 10,
+    "macro": 85,
+    "total": 95
+  },
+  "commitments": {
+    "trace_trees": 15,
+    "total_roots": 16,
+    "physical_claims": 57,
+    "native_physical_claims": 26,
+    "macro_physical_claims": 31,
+    "all_claims_absorbed_before_first_interaction_root": true,
+    "composition_split": 2
+  },
+  "closed": [
+    "native+macro state",
+    "native+macro registers",
+    "native+macro local RAM endpoints",
+    "macro packing/source queries/byte ranges/endpoint ranges"
+  ],
+  "open": [
+    "ROM provider",
+    "native lookup table providers",
+    "global memory transition"
+  ],
+  "limitations": [
+    "tiny synthetic ordinary RV32 fixture using exact retained ELF loop instructions; no retained Ethereum execution qualification",
+    "public macro predecessor clocks/entry scalar ports; bound to shared native+macro bus for this fixture",
+    "no runner optimization or throughput assertion",
+    "word-span nonoverlap required by independently verified public call bounds",
+    "experimental source version only; V2 default unchanged"
+  ],
+  "proofs": [
+    {
+      "profile": "csp_q70_pow26",
+      "proof_bytes": 372081,
+      "sha256": "d519890d4893ac07e3bf38ff56dc585b6550864af0c2ed37a39ba84d4de7d2a5"
+    },
+    {
+      "profile": "diagnostic_q8_pow0",
+      "proof_bytes": 76300,
+      "sha256": "28bead5698c0e23af59ee74d483dcd567a9b564c06df1dd6bfd52ffcb29afae5"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/bulk_memcpy_byte_loop_certificate_v1.zig",
+      "sha256": "e62d31aa72169041b3bc7f24994f683d6b579551412a4fb6537563b110500d6e",
+      "bytes": 12138
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/bulk_memcpy_byte_loop_kernel_v1.zig",
+      "sha256": "40c2aca622d0e2909384dde537d40cb462eb8214793b3ce2640922bc8079584d",
+      "bytes": 4865
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/tests/bulk_memcpy_byte_loop_v1_test.zig",
+      "sha256": "c5ae72f5383952349968a030f87d9633be7cbbf2a62ac0c872bfd5fe5cc90ffa",
+      "bytes": 13146
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_joint_original_test_root.zig",
+      "sha256": "736786d0528851d514f1d13227640a6850842baddd55bd41cabac132bc0b8e98",
+      "bytes": 88
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_original_test_root.zig",
+      "sha256": "c1e5b09ba6598c5149822e5c8cb968d411e967ae1a8b434fad44b4838d747bdb",
+      "bytes": 82
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_test_root.zig",
+      "sha256": "87fe3b7890c70d1dc83a8f55a88f8cc2e3accc51a45fc24271d0647e38632927",
+      "bytes": 90
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_components_v1.zig",
+      "sha256": "4052d977d31632747ff2ce348163b56bfd297ac031e2c4d5e69570816081c029",
+      "bytes": 12922
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_joint_original_v1.zig",
+      "sha256": "1bb0a84506c74325a26271ed43fc874a0e69cf2724b81000b4d86b37c6cabf79",
+      "bytes": 18620
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_native_components_v1.zig",
+      "sha256": "5cbb8d81db2f6fc89f2490e7ae1bc41041078c2e1ee5e2856f507a066457b816",
+      "bytes": 13845
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_native_layout_v1.zig",
+      "sha256": "33803dd713dc4b1a1df8a0f5ae16ace8d12e9cea01a2d6c102ce680e33387556",
+      "bytes": 3075
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_original_v1.zig",
+      "sha256": "27041deff7dea12c1375c5279f7e2e9dbef2e570f0445a67bfd4e3466f951e74",
+      "bytes": 26903
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_scope_v1.zig",
+      "sha256": "87ba4a90d9f31ac84b4ae34b433f00978294a971c7bacd311014b282ab8b91ff",
+      "bytes": 12281
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/bulk_memcpy_byte_loop_joint_original_test.zig",
+      "sha256": "0800dc6829e4fbdd180946c0de27f7526e666ce3f29e3ca3eae9c187e1d8a8ab",
+      "bytes": 9114
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/bulk_memcpy_byte_loop_original_test.zig",
+      "sha256": "abb748fed45eb1bd32f8c16e0ab00c26ffac353ed8a979db5519d791e9f00bb5",
+      "bytes": 9393
+    }
+  ]
+}

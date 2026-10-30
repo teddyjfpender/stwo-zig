@@ -40,6 +40,9 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
         const Self = @This();
         const Scheme = engine.pcs.CommitmentSchemeProver(Backend, suite.Hasher, suite.MerkleChannel);
         allocator: std.mem.Allocator,
+        quotient_executor: ?*const engine.pcs.QuotientExecutor,
+        composition_executor: ?*const @import("blake3_parent_composition_executor_v1.zig").Executor,
+        interaction_executor: ?*const @import("blake3_parent_interaction_executor_v1.zig").Executor,
         arena: std.heap.ArenaAllocator,
         admission: if (scoped_admission) Borrow else protocol.Admission,
         template_key: protocol.Key,
@@ -52,13 +55,36 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
         dummy_relations: universal.UniversalRelations,
         fixed_commitment: Scheme.CommittedTree,
         table_pp: [2]usize,
+        const FixedCommitment = @import("blake3_parent_fixed_key_v1.zig").ForBackend(Backend).Committed;
         pub fn init(a: std.mem.Allocator, prepared: *const native.Prepared, admission: protocol.Admission) !*Self {
+            return initInternal(a, prepared, admission, null);
+        }
+        /// Reuse an independently compiled fixed tree, checking all live row
+        /// identities and the complete geometry before acquiring its lease.
+        pub fn initFromFixedCommitment(a: std.mem.Allocator, prepared: *const native.Prepared, admission: protocol.Admission, fixed: *const FixedCommitment) !*Self {
+            return initInternal(a, prepared, admission, fixed);
+        }
+        fn initInternal(a: std.mem.Allocator, prepared: *const native.Prepared, admission: protocol.Admission, fixed: ?*const FixedCommitment) !*Self {
             try admission.validate();
+            if (fixed) |cached| {
+                if (comptime @TypeOf(cached.key.context) == @TypeOf(admission.key.context) and @TypeOf(cached.key.profile) == @TypeOf(admission.key.profile)) {
+                    if (!std.meta.eql(cached.key.context, admission.key.context) or
+                        !std.meta.eql(cached.key.config, admission.key.config) or
+                        !std.meta.eql(cached.key.log_sizes, admission.key.log_sizes) or
+                        cached.key.profile != admission.key.profile) return error.InvalidBlake3ParentFixedCommitment;
+                } else return error.UnsupportedBlake3ParentFixedCommitment;
+                try admission.admitRoot(cached.tree.root());
+                try admission.admitRoot(cached.key.preprocessed_root);
+                try FixedGuard.ForAirs(Roster.Airs).require(prepared, &cached.key.log_sizes, &cached.row_counts, &cached.row_digests);
+            }
             const self = try a.create(Self);
             errdefer a.destroy(self);
             self.* = undefined;
             self.device_programs = @splat(null);
             self.allocator = a;
+            self.quotient_executor = null;
+            self.composition_executor = null;
+            self.interaction_executor = null;
             self.arena = std.heap.ArenaAllocator.init(a);
             errdefer self.arena.deinit();
             if (scoped_admission) {
@@ -72,6 +98,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 for (pp.items) |column| a.free(column.values);
                 pp.deinit(a);
             }
+            var pp_count: usize = 0;
             inline for (Roster.Airs, 0..) |Air, i| {
                 const log = admission.key.log_sizes[i];
                 if (log != rowLog(prepared.fixed[i].len)) return error.InvalidBlake3ParentRows;
@@ -80,11 +107,13 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 self.device_programs[i] = try device.prepare(Backend, Air, temp, &self.definitions[i], &self.plans[i]);
                 self.fixed_rows[i] = prepared.fixed[i].len;
                 self.fixed_digests[i] = fixedDigest(prepared.fixed[i]);
-                try row_columns.projectFixed(Air, a, prepared.fixed[i], log, &pp);
+                if (fixed == null) try row_columns.projectFixed(Air, a, prepared.fixed[i], log, &pp);
+                pp_count += Air.PREPROCESSED_COLUMN_COUNT;
             }
             for (KINDS, &self.table_pp) |kind, *offset| {
-                offset.* = pp.items.len;
-                try row_columns.tablePreprocessed(a, kind, &pp);
+                offset.* = pp_count;
+                if (fixed == null) try row_columns.tablePreprocessed(a, kind, &pp);
+                pp_count += schema.arity(kind) + 1;
             }
             self.dummy_relations = universal.UniversalRelations.dummy();
             const manifest = Roster.Manifest{ .log_sizes = admission.key.log_sizes };
@@ -93,6 +122,12 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 self.templates[i] = try Roster.Component(Air).init(&self.definitions[i], self.plans[i], &manifest, @enumFromInt(i), admission.key.log_sizes[i], parameters, &self.dummy_relations, core.fields.qm31.QM31.zero());
             }
 
+            if (fixed) |cached| {
+                try self.validateRows(prepared);
+                self.fixed_commitment = cached.tree.retainShared();
+                self.releaseAdmission();
+                return self;
+            }
             var scheme = try Scheme.init(a, admission.key.config);
             defer scheme.deinit(a);
             if (Backend.MerkleTree(suite.Hasher) == engine.vcs_lifted.prover.MerkleProverLifted(suite.Hasher) and !std.process.hasEnvVarConstant("STWO_RISCV_MATERIALIZED_POLYNOMIALS"))
@@ -116,6 +151,18 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             self.fixed_commitment.deinit(a);
             self.arena.deinit();
             a.destroy(self);
+        }
+        /// The caller owns this optional executor through each synchronous
+        /// proof call. Selecting it never enables a silent CPU fallback.
+        pub fn setQuotientExecutor(self: *Self, executor: ?*const engine.pcs.QuotientExecutor) void {
+            self.quotient_executor = executor;
+        }
+        /// The owner lends one exclusive binding through each core proof.
+        pub fn setCompositionExecutor(self: *Self, executor: ?*const @import("blake3_parent_composition_executor_v1.zig").Executor) void {
+            self.composition_executor = executor;
+        }
+        pub fn setInteractionExecutor(self: *Self, executor: ?*const @import("blake3_parent_interaction_executor_v1.zig").Executor) void {
+            self.interaction_executor = executor;
         }
         pub fn metadataBytes(self: *const Self) !usize {
             return @sizeOf(@TypeOf(self.fixed_digests)) + @sizeOf(@TypeOf(self.fixed_rows));
@@ -169,6 +216,14 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             var workspace = Workspace.init(a, 0);
             defer workspace.deinit();
             return self.proveWithWorkspace(a, prepared, &workspace);
+        }
+        /// One-shot equivalent of prove: release each source cohort after its
+        /// last interaction reader. Public admission and proof ownership are
+        /// independent; the consumed preparation remains safe to deinitialize.
+        pub fn proveConsuming(self: *const Self, a: std.mem.Allocator, prepared: *native.Prepared) !artifact.Owned {
+            var workspace = Workspace.init(a, 0);
+            defer workspace.deinit();
+            return self.proveConsumingWithWorkspace(a, prepared, &workspace);
         }
         /// One exclusive workspace per active worker. The output allocator must
         /// not be this workspace's arena; output survives reset and destruction.
@@ -230,6 +285,7 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             var channel = suite.Channel{};
             try admission.mix(&channel);
             var scheme = try Scheme.init(a, try admission.config());
+            scheme.quotient_executor = self.quotient_executor;
             // Extended-domain columns already suffice for opening. Retaining
             // another coefficient copy exhausts canonical parent worker budgets.
             if (Backend.MerkleTree(suite.Hasher) == engine.vcs_lifted.prover.MerkleProverLifted(suite.Hasher) and !std.process.hasEnvVarConstant("STWO_RISCV_MATERIALIZED_POLYNOMIALS"))
@@ -265,18 +321,24 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
                 // Cohorts execute serially: inversion scratch has no cross-cohort
                 // consumers and must not accumulate with committed output staging.
                 const allow_device = !std.process.hasEnvVarConstant("STWO_RISCV_CPU_PARENT_INTERACTIONS");
+                if (!allow_device and self.interaction_executor != null) return error.ConflictingParentInteractionSelection;
                 var scratch_count: usize = 0;
                 inline for (Roster.Airs, 0..) |Air, i| {
                     const Runtime = framework.Runtime(binding.Binding(Air).Runtime);
-                    if (!allow_device or self.device_programs[i] == null) scratch_count = @max(scratch_count, try Runtime.requiredScratchElementCount(@min(admission.key.log_sizes[i], framework.OWNED_TILE_LOG_SIZE)));
+                    if (self.interaction_executor == null and (!allow_device or self.device_programs[i] == null)) scratch_count = @max(scratch_count, try Runtime.requiredScratchElementCount(@min(admission.key.log_sizes[i], framework.OWNED_TILE_LOG_SIZE)));
                 }
                 const scratch = try a.alloc(core.fields.qm31.QM31, scratch_count);
                 defer a.free(scratch);
                 inline for (Roster.Airs, 0..) |Air, i| {
                     const view = try row_columns.compactColumnView(Air, main.items[main_starts[i]..][0..Air.PHYSICAL_MAIN_COLUMN_COUNT], std.mem.bytesAsSlice(M, std.mem.sliceAsBytes(prepared.fixed[i])), rows[i].len, admission.key.log_sizes[i]);
                     const log = admission.key.log_sizes[i];
-                    const program: ?*const device.Program = if (allow_device) if (self.device_programs[i]) |*program| program else null else null;
-                    const generated = try device.generate(Backend, Air, a, program, &self.plans[i], view, prepared.fixed[i], log, &relations, padding[i], scratch);
+                    var explicit: ?device.Program = if (self.interaction_executor != null)
+                        try @import("air/framework_polynomial_export_v1.zig").exportLocalPrepared(Air, a, &self.templates[i].direct, &self.plans[i])
+                    else
+                        null;
+                    defer if (explicit) |*owned| owned.deinit();
+                    const program: ?*const device.Program = if (explicit) |*selected| selected else if (allow_device) if (self.device_programs[i]) |*selected| selected else null else null;
+                    const generated = try device.generate(Backend, Air, a, program, &self.plans[i], view, prepared.fixed[i], log, &relations, padding[i], scratch, self.interaction_executor);
                     claims[i] = generated.claimed_sum;
                     for (generated.columns) |column| interaction.appendAssumeCapacity(.{ .log_size = admission.key.log_sizes[i], .values = column });
                     // The committed main tree owns its extended evaluations.
@@ -290,7 +352,10 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             if (consumed) |source| source.releaseRows();
             const table_interaction = interaction.items.len;
             for (&counters, KINDS, Roster.Airs.len..) |*counter, kind, i| {
-                const generated = try @import("../air/lookups/tables/interaction.zig").generate(a, counter, &providers.native);
+                const generated = if (self.interaction_executor) |selected|
+                    try device.generateTable(a, selected, kind, &providers.native, main.items[table_main + i - Roster.Airs.len].values)
+                else
+                    try @import("../air/lookups/tables/interaction.zig").generate(a, counter, &providers.native);
                 claims[i] = generated.claim;
                 for (generated.columns) |column| interaction.appendAssumeCapacity(.{ .log_size = schema.logSize(kind), .values = column });
             }
@@ -313,23 +378,31 @@ fn PlanKernel(comptime Backend: type, comptime protocol: type, comptime scoped_a
             workspace.releaseScratch();
             var components = self.templates;
             var provers: [artifact.CLAIM_COUNT]engine.air.component_prover.ComponentProver = undefined;
+            var original_provers: [artifact.CLAIM_COUNT]engine.air.component_prover.ComponentProver = undefined;
             inline for (Roster.Airs, 0..) |Air, i| {
                 components[i].relations = &relations;
                 components[i].claimed_sum = claims[i];
                 components[i].claimed_sum_shift = try claims[i].divM31(M.fromU64(@as(u64, 1) << @intCast(admission.key.log_sizes[i])));
-                provers[i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).component(Air, components[i].asProverComponent());
+                original_provers[i] = components[i].asProverComponent();
+                provers[i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).component(Air, original_provers[i]);
             }
             var tables: [2]Table = undefined;
             for (&tables, KINDS, self.table_pp, 0..) |*table, kind, offset, i| {
                 var tuple: [schema.MAX_ARITY]usize = undefined;
                 for (tuple[0..schema.arity(kind)], 0..) |*column, j| column.* = offset + 1 + j;
                 table.* = try Table.initProver(kind, offset, tuple[0..schema.arity(kind)], table_main + i, table_interaction + 4 * i, &providers.native, claims[Roster.Airs.len + i]);
-                provers[Roster.Airs.len + i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).table(table.asProverComponent());
+                original_provers[Roster.Airs.len + i] = table.asProverComponent();
+                provers[Roster.Airs.len + i] = try @import("air/roster_composition_geometry.zig").ForAirs(Roster.Airs).table(original_provers[Roster.Airs.len + i]);
             }
+            const composition_stage = if (self.composition_executor) |executor|
+                try executor.bind(executor.context, &original_provers, &provers)
+            else
+                null;
+            defer if (self.composition_executor) |executor| executor.release(executor.context);
             workspace.phase = .core_proof;
             engine.host_budget_allocator.SharedHostBudget.reportStage(a, "parent.core_proof");
             owns_scheme = false; // Core proving consumes the scheme on all paths.
-            var extended = try engine.prove.proveExWithExecutionDiagnosed(Backend, suite.Hasher, suite.MerkleChannel, a, &provers, &channel, scheme, false, diagnostic, null, .{
+            var extended = try engine.prove.proveExWithExecutionDiagnosed(Backend, suite.Hasher, suite.MerkleChannel, a, &provers, &channel, scheme, false, diagnostic, composition_stage, .{
                 .worker_count = if (engine.work_pool.getGlobalPool()) |pool| pool.workerCount() else 1,
                 .host_byte_budget = std.math.maxInt(usize),
                 .contention_policy = .compatibility,

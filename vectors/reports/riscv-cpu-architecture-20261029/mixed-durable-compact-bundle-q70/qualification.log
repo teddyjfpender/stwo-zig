@@ -1,0 +1,15 @@
+1/12 block_v8_endpoint_mixed_bundle_test_root.test_0...OK
+2/12 prover.tests.block_v8_endpoint_mixed_bundle_test.test.mixed durable SHA Keccak cohort closes same endpoint bridge and compact global original...MIXED_COMPACT_DURABLE_BUNDLE_VERIFIED kind=sha_keccak cycles=6 external=3 endpoints=50 queries=70 pow=26
+OK
+3/12 prover.tests.block_v8_endpoint_mixed_bundle_test.test.mixed durable recovery cohort closes same endpoint bridge and compact global original...MIXED_COMPACT_DURABLE_BUNDLE_VERIFIED kind=recovery cycles=4 external=1 endpoints=42 queries=70 pow=26
+OK
+4/12 runner.decode.test_0...OK
+5/12 air.memory_commitment.poseidon2_air.test_0...OK
+6/12 prover.block_execution_external_trace_v2.test_0...OK
+7/12 runner.mod.test_0...OK
+8/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+9/12 air.semantic_eval.test_0...OK
+10/12 air.lookups.tables.mod.test_0...OK
+11/12 air.lookups.tables.source_ingest.test_0...OK
+12/12 diagnostics.mod.test_0...OK
+All 12 tests passed.

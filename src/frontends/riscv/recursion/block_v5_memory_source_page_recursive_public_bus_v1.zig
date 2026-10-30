@@ -26,24 +26,14 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
         pub fn claims(capture: *const Capture) Claims {
             return .{ .semantic = capture.original.frame.semantic, .components = capture.original.frame.claims };
         }
-        pub fn validateClaims(admitted: *const Admission.Prepared, proposed: Claims) !void {
-            var bounded = @import("stwo_prover_engine").host_budget_allocator.HostBudgetAllocator.init(admitted.allocator, admitted.limits.page.max_receiver_heap_bytes);
+        pub fn validateClaimsWithAllocator(backing: std.mem.Allocator, admitted: *const Admission.Prepared, proposed: Claims) !void {
+            var bounded = @import("stwo_prover_engine").host_budget_allocator.HostBudgetAllocator.init(backing, admitted.limits.page.max_receiver_heap_bytes);
             const a = bounded.allocator();
             var recorded = try Frames.Statement.init(a, admitted, proposed.semantic, proposed.components);
             defer recorded.deinit();
             // Independently rebuild actual graph/components/fixed roots under
             // the exact original page-local challenges and closures.
-            const Frame = @import("../prover/block_v5_memory_source_page_capture_frame_v1.zig").ForKind(kind);
-            const Original = @import("../prover/block_v5_memory_source_unified_page_proof_v1.zig").ForKind(kind);
-            var original = try Original.Admission.init(a, admitted.context, admitted.pin, admitted.fold_rows, proposed.semantic.claims, admitted.limits.page);
-            defer original.deinit();
-            const C = Components.ForKind(kind);
-            const geometry = C.Geometry{ .source_log = if (kind == .raw) admitted.pin.raw.page.row_log else admitted.pin.page.row_log, .capture_log = if (kind == .raw) admitted.pin.geometry.connector_log else admitted.pin.geometry.capture_log, .core_logs = admitted.pin.geometry.logs, .arithmetic_logs = original.fixed.arithmetic.logs, .capture_requests = @as(u64, admitted.pin.geometry.compressions) * if (kind == .raw) 32 else @import("../prover/block_v5_memory_source_blake_capture_air_v1.zig").requestMass() };
-            const owner = try C.Owner.init(a, original.graph, &original.fixed.plan, &original.fixed.arithmetic, &original.fixed.source_inputs, &original.fixed.capture_inputs, geometry, recorded.relations, proposed.components, admitted.core_setup, admitted.arithmetic_setup, admitted.limits.page.composition);
-            defer owner.deinit();
-            var frame = try Frame.init(a, proposed.components, proposed.semantic, geometry, owner);
-            defer frame.deinit(a);
-            const recipe = try admitted.reconstruct(a, &frame, recorded.relations);
+            const recipe = try admitted.reconstructClaims(a, proposed.semantic, proposed.components, recorded.relations);
             defer recipe.deinit();
         }
         pub fn statement(a: std.mem.Allocator, admitted: *const Admission.Prepared, proposed: Claims) !Frames.Statement {

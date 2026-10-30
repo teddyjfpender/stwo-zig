@@ -28,6 +28,7 @@ pub const Owner = struct {
     interaction: std.ArrayList(Column) = .empty,
     claims: statement_mod.RiscVInteractionClaim = undefined,
     external_retirements: u32 = 0,
+    native_profile: @import("block_v8_native_endpoint_profile_v1.zig").Profile = .endpoint_v2,
     tables_ready: bool = false,
     compact_ranges: ?*@import("compact_range_set.zig").Owner = null,
     failed: bool = false,
@@ -61,15 +62,18 @@ pub const Owner = struct {
         return initWithExternalRecipe(a, execution, data, chain, external_retirements, false);
     }
     fn initWithExternalRecipe(a: std.mem.Allocator, execution: *const trace.Trace, data: public.Blake3PublicData, chain: *const chain_mod.StateChainTracker, external_retirements: u32, local_zero: bool) !*Owner {
+        if (chain.direct_ram_max_clock != null and (external_retirements != 0 or local_zero or chain.clock_updates_mem.items.len != 0)) return error.UnsupportedDirectRamClockProfile;
         try execution.validateClockAuthority();
         if (execution.recordedExternalSteps() != external_retirements or
             try std.math.add(usize, execution.rows.items.len, external_retirements) != data.clock) return error.InvalidExecutionTrace;
         const self = try a.create(Owner);
         self.* = .{ .allocator = a, .arena = std.heap.ArenaAllocator.init(a), .statement = undefined, .opcode_columns = undefined, .external_retirements = external_retirements };
+        self.native_profile = if (chain.direct_ram_max_clock != null) (if (chain.direct_ram_wide) .direct_ram_clock_v3_wide else .direct_ram_clock_v3) else .endpoint_v2;
         errdefer self.deinit();
         const arena = self.arena.allocator();
         self.claims.initZeroInto();
         self.statement.initializeDescriptorStorage();
+        self.statement.native_shard_version = if (chain.direct_ram_wide or chain.native_wide_shards) 1 else 0;
         self.statement.n_components = 0;
         self.statement.n_infra = 0;
         self.statement.x0_local_custody_version = if (local_zero) @import("../air/x0_local_custody_v1.zig").VERSION else 0;
@@ -82,7 +86,7 @@ pub const Owner = struct {
             var remaining = counts.get(family);
             while (remaining != 0) {
                 if (self.statement.n_components == statement_mod.MAX_COMPONENTS) return error.TooManyOpcodeShards;
-                const n = @min(remaining, opcode.MAX_OPCODE_SHARD_ROWS);
+                const n = @min(remaining, opcode.shardRows(self.statement));
                 self.statement.component_descs[self.statement.n_components] = .{ .family = family, .log_size = logSize(n), .n_rows = @intCast(n), .n_columns = if (local_zero) @intCast(try @import("../air/x0_native_envelope_v1.zig").mainColumnCount(family)) else opcode.nCommittedColumnsForFamily(family) };
                 self.statement.n_components += 1;
                 remaining -= n;
@@ -93,7 +97,7 @@ pub const Owner = struct {
             try self.appendInfra(.clock_update, logSize(clock_rows), clock_rows, infra.CLOCK_UPDATE_COLS);
         }
         try self.statement.validateBlake3ExecutionWithExternal(self.external_retirements);
-        self.opcode_columns = try opcode.generate(arena, execution, self.statement);
+        self.opcode_columns = try opcode.generateWithDirectRamClockV3(arena, execution, self.statement, chain.direct_ram_max_clock != null);
         for (self.statement.component_descs[0..self.statement.n_components], 0..) |desc, i| {
             if (self.opcode_columns.components[i].n_real_rows != desc.n_rows) return error.OpcodeRowCountMismatch;
             for (self.opcode_columns.components[i].columns[0..desc.n_columns]) |values| try self.main.append(arena, .{ .log_size = desc.log_size, .values = values });

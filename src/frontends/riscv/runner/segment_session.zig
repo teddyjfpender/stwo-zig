@@ -173,6 +173,9 @@ fn ExecutionSessionWithPolicy(
         trace_retention: TraceRetention,
         clock_frame: SegmentClockFrame,
         x0_local_custody_version: u32,
+        direct_ram_max_clock: ?u32,
+        direct_ram_wide: bool,
+        native_wide_shards: bool,
         retirement_observer: ?RetirementObserverV1,
         pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1,
         input: ?[]u8,
@@ -277,13 +280,19 @@ fn ExecutionSessionWithPolicy(
                     (options.clock_frame != .leaf_local or
                         (profile != .rv32im_zkvm_v1 and profile != .rv32im_zkvm_ethereum_v1 and profile != .rv32im_zkvm_ethereum_sha_v1))))
                 return error.InvalidX0LocalCustodySession;
+            if (options.direct_ram_wide and options.direct_ram_max_clock == null) return error.InvalidDirectRamClockSession;
+            if (options.native_wide_shards and (options.x0_local_custody_version != 0 or options.clock_frame != .leaf_local)) return error.InvalidNativeWideShardSession;
+            if (options.direct_ram_max_clock) |bound| {
+                if (bound == 0 or bound >= (1 << 27) or options.clock_frame != .leaf_local)
+                    return error.InvalidDirectRamClockSession;
+            }
             var mem = try Memory.initFallible(allocator);
             errdefer mem.deinit();
             const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
             if (options.input.len > elf_info.input_end -| elf_info.input_start)
                 return error.InputTooLarge;
             if (options.input.len != 0)
-                mem.writeSlice(elf_info.input_start, options.input);
+                try mem.writeSliceFallible(elf_info.input_start, options.input);
 
             const owned_input = try allocator.dupe(u8, options.input);
             errdefer allocator.free(owned_input);
@@ -309,6 +318,9 @@ fn ExecutionSessionWithPolicy(
                 .trace_retention = options.trace_retention,
                 .clock_frame = options.clock_frame,
                 .x0_local_custody_version = options.x0_local_custody_version,
+                .direct_ram_max_clock = options.direct_ram_max_clock,
+                .direct_ram_wide = options.direct_ram_wide,
+                .native_wide_shards = options.native_wide_shards,
                 .retirement_observer = options.retirement_observer,
                 .pre_retirement_boundary_observer = options.pre_retirement_boundary_observer,
                 .input = owned_input,
@@ -829,6 +841,9 @@ fn ExecutionSessionWithPolicy(
         fn seedTracker(self: *const Self) !state_chain.StateChainTracker {
             var tracker = if (self.x0_local_custody_version == 1) state_chain.StateChainTracker.initLocalZero(self.allocator) else state_chain.StateChainTracker.init(self.allocator);
             errdefer tracker.deinit();
+            if (self.direct_ram_max_clock) |bound| try tracker.enableDirectRamClockV3(bound);
+            tracker.direct_ram_wide = self.direct_ram_wide;
+            tracker.native_wide_shards = self.native_wide_shards;
             if (self.clock_frame == .leaf_local) return tracker;
             tracker.reg_last_clk = self.register_clocks;
             tracker.mem_last_clk = try cloneClockMap(self.allocator, &self.memory_clocks);

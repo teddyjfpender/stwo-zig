@@ -1,0 +1,16 @@
+1/12 block_v8_union_closed_test_root.test_0...OK
+2/12 recursion.tests.block_v8_union_closed_test.test.native-only V8 closure graph binds physical claims and rejects compensated window state claims...OK
+3/12 recursion.tests.block_v8_union_closed_test.test.native-only V8 single recursive proof constrains complete window closure with fresh receiving...BLAKE3_NATIVE_QUERY_FUSION groups=968 removed_scalars=3872 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4646 fma=8314 arithmetic_rows=36125 direct_columns=true
+V8_CLOSED_UNION_RECURSION scope=declared_nonterminal_window original_destroyed=true fresh_key=true host_closure=false bytes=134486 proof_ns=3610002583
+OK
+4/12 runner.decode.test_0...OK
+5/12 runner.mod.test_0...OK
+6/12 air.memory_commitment.poseidon2_air.test_0...OK
+7/12 air.semantic_eval.test_0...OK
+8/12 prover.block_execution_external_trace_v2.test_0...OK
+9/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/12 air.lookups.tables.mod.test_0...OK
+11/12 air.lookups.tables.source_ingest.test_0...OK
+12/12 diagnostics.mod.test_0...OK
+All 12 tests passed.

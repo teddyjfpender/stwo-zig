@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-real-window-continuation-invocation-v2",
+  "source_capture_sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350",
+  "binary_sha256": "b8570f15514e9a225ae714b1e20086097957dc19264b408ee0feb6697022fddd",
+  "build_manifest_sha256": "2307383f3add72332865a953740b7686ac096f17c7f9b9fe49ed618300af3267",
+  "cycles": 131072,
+  "prefix_replayed": false,
+  "proof_verified": false,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-cpu-continuation-export-20261029"
+  ],
+  "started_unix_ns": 1793301759326282000,
+  "logical_capsule_read_bytes": 12071300,
+  "temporary_capsule_write_bytes": 12071300,
+  "physical_disk_bytes": null,
+  "returncode": 0,
+  "finished_unix_ns": 1793301760065987000
+}

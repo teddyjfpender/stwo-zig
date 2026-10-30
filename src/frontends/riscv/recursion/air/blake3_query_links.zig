@@ -5,6 +5,18 @@ const deep = @import("pcs_deep_circuit.zig");
 const fri = @import("fri_verifier_circuit.zig");
 const Endpoint = @import("blake3_byte_route.zig").Endpoint;
 const missing = std.math.maxInt(u32);
+/// Match core.pcs.utils.prepareTreeQueryPositions exactly. For a taller
+/// commitment the inserted low coset bits use query_bit[lifting], which the
+/// DEEP graph constrains to zero whenever a committed tree exceeds lifting.
+/// The pair/parity bit is never shifted. The caller must retain that exact
+/// independently derived DEEP profile (including the tall committed columns).
+pub fn traceBit(lifting: u32, tree_log: u32, bit: u32) !u32 {
+    if (lifting == 0 or lifting > 31 or tree_log > 31 or bit >= tree_log) return error.InvalidParentQueryLink;
+    if (bit == 0) return 0;
+    if (tree_log <= lifting) return lifting - tree_log + bit;
+    const gap = tree_log - lifting;
+    return if (bit <= gap) lifting else bit - gap;
+}
 pub const Bit = struct { deep: u32 = missing, fri: u32 = missing };
 pub const Query = struct { source: Endpoint, position: u32 = missing, bits: [31]Bit = @splat(.{}), path_uses: [31]u32 = @splat(0) };
 pub const Prepared = struct {
@@ -20,8 +32,15 @@ pub const Prepared = struct {
     }
     /// Lifted trace projection keeps raw bit zero and shifts only higher bits.
     pub fn traceDirections(self: *Prepared, a: std.mem.Allocator, query: usize, lifting: u32, tree_log: u32) ![]const Endpoint {
-        if (tree_log > lifting) return error.InvalidParentQueryLink;
-        return self.mappedDirections(a, query, lifting - tree_log, tree_log, true);
+        if (query >= self.queries.len or lifting == 0 or lifting > 31 or tree_log > 31) return error.InvalidParentQueryLink;
+        const out = try a.alloc(Endpoint, tree_log);
+        errdefer a.free(out);
+        for (out, 0..) |*endpoint, i| {
+            const bit = try traceBit(lifting, tree_log, @intCast(i));
+            try self.addPathUses(query, bit, 8);
+            endpoint.* = .{ .circuit = 1502, .wire = self.queries[query].bits[bit].deep };
+        }
+        return out;
     }
     pub fn addPathUses(self: *Prepared, query: usize, bit: usize, extra: u32) !void {
         if (query >= self.queries.len or bit >= 31 or self.queries[query].bits[bit].deep == missing) return error.InvalidParentQueryLink;

@@ -161,3 +161,10 @@ fn placeClockUpdateRow(
         M31.fromCanonical(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS),
     );
 }
+
+/// Canonical pure row writer shared by CPU storage and mechanical device export.
+pub fn rowValues(address_space: u32, update: state_chain.ClockUpdate) [CLOCK_UPDATE_COLS]M31 {
+    const limbs = update.valueLimbs();
+    const low_mask = (@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1;
+    return .{ M31.one(), M31.fromU64(address_space), M31.fromU64(update.addr & 0x7fff_ffff), M31.fromU64(update.clk_prev), limbs[0], limbs[1], limbs[2], limbs[3], M31.fromU64(update.clk_prev & low_mask), M31.fromU64(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS) };
+}

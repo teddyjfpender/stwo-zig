@@ -31,7 +31,7 @@ pub fn schedule(circuit: *const vm.Circuit, outputs: []const t.DrawOutput) ![COU
             },
             .composition => relation_words,
             .oods => relation_words + 4,
-            .universal => return error.InvalidNativeChallengeLink,
+            .universal, .universal_half => return error.InvalidNativeChallengeLink,
             .deep, .fri => continue,
         };
         if (output.role != .riscv_relation and output.words != 4) return error.InvalidNativeChallengeLink;

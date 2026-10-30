@@ -496,12 +496,18 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
 pub fn requireFixedRoots(a: std.mem.Allocator, config: core.pcs.PcsConfig, groups: []const []const Column, expected: []const [32]u8) !void {
     if (groups.len != expected.len) return error.UntrustedSourcePageFixedRoots;
     const Cpu = @import("stwo_cpu_backend").CpuBackend;
-    var scheme = try engine.pcs.CommitmentSchemeProver(Cpu, suite.Hasher, suite.MerkleChannel).init(a, config);
-    defer scheme.deinit(a);
-    scheme.setCoefficientRetentionPolicy(.never);
+    // These are independently pinned legacy Blake3 roots. Their Merkle height
+    // depends on this group's columns/config, not its ordinal or channel state.
+    // Keep the mix sequence, but retire each temporary evaluation tree before
+    // committing the next. Revision-profile PCS must retain its own index policy.
     var channel = suite.Channel{};
-    for (groups) |columns| try scheme.commitBorrowedStreaming(a, columns, 16, &channel);
-    var roots = try scheme.roots(a);
-    defer roots.deinit(a);
-    if (!std.mem.eql([32]u8, roots.items, expected)) return error.UntrustedSourcePageFixedRoots;
+    for (groups, expected) |columns, root| {
+        var scheme = try engine.pcs.CommitmentSchemeProver(Cpu, suite.Hasher, suite.MerkleChannel).init(a, config);
+        defer scheme.deinit(a);
+        scheme.setCoefficientRetentionPolicy(.never);
+        try scheme.commitBorrowedStreaming(a, columns, 16, &channel);
+        var roots = try scheme.roots(a);
+        defer roots.deinit(a);
+        if (roots.items.len != 1 or !std.meta.eql(roots.items[0], root)) return error.UntrustedSourcePageFixedRoots;
+    }
 }

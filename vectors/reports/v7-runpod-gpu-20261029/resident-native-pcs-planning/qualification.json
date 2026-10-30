@@ -1,0 +1,73 @@
+{
+  "schema": "stwo-resident-native-pcs-planning-v1",
+  "qualification": "cold-plan regression only",
+  "fully_resident_native_proof": false,
+  "scope": [
+    "separate five-tree source ordinals",
+    "exact ordered OODS masks and two-point samples",
+    "DEEP quotient source ownership",
+    "FRI terminal tree indices",
+    "separate access-witness opening logs",
+    "four-tree compatibility regression",
+    "native commitment columns with original empty masks remain committed and unrenumbered",
+    "native controller shares exact opening capacity planner"
+  ],
+  "tests": [
+    {
+      "command": "python3 scripts/zig_protocol_test.py src/riscv_cuda_native_oods_test_v1.zig -OReleaseSafe --test-filter 'native PCS OODS'",
+      "passed": 2
+    },
+    {
+      "command": "python3 scripts/zig_protocol_test.py src/riscv_cuda_native_decommit_test_v1.zig -OReleaseSafe --test-filter 'native five tree'",
+      "passed": 2
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/cairo_cuda/executor/pcs_decommit_topology.zig",
+      "sha256": "1dd006da7ec866bd1d6403bf2d94b4c8fe603f07a57b5ecbf4db3695678def74"
+    },
+    {
+      "path": "src/integrations/circuit_cuda/resident_decommit.zig",
+      "sha256": "6d56af92486a6d327d2d3e988f9455bab8ef6e70aa205f1b229fc1b90e95c4c4"
+    },
+    {
+      "path": "src/integrations/circuit_cuda/resident_oods.zig",
+      "sha256": "cf5049f3b09d1a56a1bf3557ada79e288b7c8950ec47f3f1b45c95ac9030431f"
+    },
+    {
+      "path": "src/integrations/circuit_cuda/resident_proof_layout.zig",
+      "sha256": "4f6439c740342d4f7292f4d9dd4ae512f34578faf73c325219d4cf378bfe248e"
+    },
+    {
+      "path": "src/integrations/circuit_cuda/resident_quotient.zig",
+      "sha256": "7b56357d072c9724e6fcf848248c7927c220c6f7ef75e27550c2bf7dc58164e7"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_decommit_v1.zig",
+      "sha256": "f5bf4fe3256dc9843dc3003c9335ec15fdf3a7cfca82042ed672c3ebcc63dacf"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_oods_v1.zig",
+      "sha256": "129faa29a9a5ed58ee14a1c937c2828076e0802bf50f7d82032ba163eb2b860e"
+    },
+    {
+      "path": "src/riscv_cuda_native_decommit_test_v1.zig",
+      "sha256": "831ddbe3c705652ef4b784a6e3af3875a66479ea0cad4fa397f6b207fe270b39"
+    },
+    {
+      "path": "src/riscv_cuda_native_oods_test_v1.zig",
+      "sha256": "cfa058a1fa1cf3801214a5b91d7af6be2ac2ecce507aecdd49ab3fa83c912b99"
+    }
+  ],
+  "remaining": [
+    "native source controller integration",
+    "full original native proof verification",
+    "canonical real Ethereum execution window and complete provider closure"
+  ],
+  "negative_checks": [
+    "reject FRI start at obsolete ordinal4 in five-tree layout",
+    "reject altered access witness sample count",
+    "reject missing commitment buffers"
+  ]
+}

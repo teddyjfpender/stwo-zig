@@ -1,0 +1,12 @@
+{
+  "schema": "stwo-cpu-architecture-diagnostic-build-v1",
+  "binary_sha256": "492b95e68ebdca3f6fc635ef7781a2e411aebdb990811b9c584e68132b44ac21",
+  "root": "src/frontends/riscv/block_v7_window_union_reload_benchmark_root.zig",
+  "optimize": "ReleaseFast",
+  "scope": "verification only; no proof generation",
+  "edited_surface": {
+    "src/frontends/riscv/prover/tests/block_v7_real_window_v2_benchmark.zig": "c24e187cae78a7a0dcda04cad1aec7e2eef8d3be1d35d1187ac1d5d69df8dfe9",
+    "src/frontends/riscv/prover/block_v7_window_union_loader_v1.zig": "b5444fbff7d085c940e5aaac89749ddcd27f133edec88dc7fd46a0549bf7671b",
+    "src/frontends/riscv/prover/block_v7_multi_union_statement_wire_v1.zig": "d47c0e43c9d4d6758c691dcefe84faef857e163c585d8f5336238bc0d3fd049d"
+  }
+}

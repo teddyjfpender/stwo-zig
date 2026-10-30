@@ -1,5 +1,36 @@
 # Whole-block proof work: architecture decision after direct aggregation
 
+Current integration evidence is maintained in
+[the integration record](architecture-integration-20261028.md). The real
+20,494-cycle, two-segment fixture now passes original native/provider/caller
+proofs and independent recursive fixed-data parity, including caller-fused
+verification. Nonempty RAW/FOLD sources also pass their separate qualification.
+The assembled final-root test now also passes with all 12 child families,
+independent setup and fresh verification after producer-artifact destruction.
+These are q8/PoW0 diagnostic checks, not a canonical-security Ethereum result.
+
+Two further work-removal designs now have isolated implementations:
+[ELF initialization and thirteen terminal reads](ethereum-terminal-memory-implementation-20261028.md)
+and [one caller arithmetic/relation proof](one-caller-proof-problem-match-20261028.md).
+The first has genuine multi-shard original proofs for initialization, sorted
+memory and terminal output; actual native-execution source integration remains
+in progress. Its new ROM/lookup epoch adapters also pass genuine original-proof
+and hostile-input tests ([receipt](v7-original-provider-qualification-20261028.json)).
+The second passes original caller proofs, exact mask routing, combined composition
+and six-tree DEEP/FRI checks; full recursive child integration remains in progress.
+Neither has a demonstrated end-to-end speedup.
+
+The complete-root log provides a concrete work-removal priority: its twelve
+children contain 3,793,855 recorded recursive arithmetic rows. RAW/FOLD memory
+image children account for 2,871,225 (75.68%). Of the remaining 922,630 rows,
+caller arithmetic/fused verification contributes 819,969 (88.87%). See the
+[derived census](complete-root-arithmetic-work-census-20261028.json), pinned to
+the source receipt. These are arithmetic rows before cohort padding, not all
+recursive cells or execution time. Replacement initialization/terminal providers
+add work, and the small fixture's precompile mix does not represent all blocks.
+The counts prioritize removing memory-image proofs and consolidating callers;
+they do not establish a speedup or support a block-time extrapolation.
+
 Latest complete-bundle evidence: [execution partitioning](closed-tiling-m5-20261028.md)
 reduces the same 1.31M-cycle mixed guest from 75.250 to 39.826 s by using one
 execution proof rather than four, without dropping global closure. Two wider
@@ -13,6 +44,30 @@ Matched diagnostic proof-phase improvement is only 2–8% over the unpruned
 joint proof. This bounds the small rewrite; the architectural priority remains
 one partitioned relation layout and eliminating repeated wide-witness work.
 No complete-block timing or recursive acceptance is established by that test.
+
+## 2026-10-29 architecture qualification update
+
+The replacement v7 execution fixture now closes genuine SHA+Keccak originals
+with either ten separate-memory proofs or six proofs using joint memory. The
+latest first-halt AIR rejects an actual early-halt-then-continue execution. The
+full source gate passed 467 tests with one unrelated skip.
+
+The joint-memory original proof (five RAM shards plus three providers) and the
+native originals now have independently keyed recursive parents with detached
+verification. See [joint memory](v7-joint-memory-parent-qualification-20261029.md)
+and [native optional-access layouts](v7-native-parent-qualification-20261029.md).
+The native and memory parent outputs are still open source relations. Caller,
+ROM and lookup preparations must join them and close every original source
+under one independently verified execution root. Standalone parents qualify the
+adapters; production should directly join their original-verifier rows rather
+than prove each family parent unnecessarily.
+
+Compact lookup providers now constrain the same six table tuple languages using
+explicit sparse/dense choices. Genuine originals match all six signed claims
+against the dense provider; malicious non-Boolean rows and compensated claim
+changes reject. The smallest all-sparse model removes the large table domain
+floor, but adds constraint/opening width. Exact recursive work and matched
+whole-job timing must determine selection; it is not a measured 10× result.
 
 ## Required statement and evidence
 
@@ -67,10 +122,12 @@ No copied external implementation is included.
 Implementation update: [joint native proof qualification](joint-native-m5-20261028.md)
 now establishes one STARK for both component sets with independent verification.
 It retains a separate access-witness tree and two interaction trees under one
-composition/FRI. The new B6JP transcript domain, tree relocation and checked
-q1-to-q2 extension are implemented; durable codec, recursive admission/capture
-and complete-bundle integration below remain unfinished. Measurements do not
-establish another order-of-magnitude runtime improvement from fusion alone.
+composition/FRI. The new B6JP transcript domain, tree relocation, checked
+q1-to-q2 extension, durable codec and recursive admission/capture are implemented.
+The genuine two-segment partitioned publisher and provider-preparation gates
+pass. The assembled all-family root now passes its diagnostic fixture; canonical
+security remains unqualified. Earlier joint measurements do not establish another order-of-magnitude runtime improvement
+from fusion alone.
 
 `block_v5_program_native_batch_common_v1.zig:verifyFused` still loads an original
 native proof and a separate fused projection/memory proof. The word "fused"

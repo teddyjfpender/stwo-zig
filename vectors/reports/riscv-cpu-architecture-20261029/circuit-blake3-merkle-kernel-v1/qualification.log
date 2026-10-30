@@ -1,0 +1,21 @@
+1/20 circuit_blake3_merkle_reuse_test_root.test_0...OK
+2/20 frontends.circuit.builder.blake3_merkle_reuse_v1.test_0...OK
+3/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle native leaf ordering multi-chunk widths and path parity...OK
+4/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle rejects wrong leaf root index and sibling...OK
+5/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle query projection preserves circle pair bit and exact range...OK
+6/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle projected physical trees match native expanded and folded query...OK
+7/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle rejects path and row shape mismatches before hashing...OK
+8/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle finite forest has no four-tree or short-leaf restriction...OK
+9/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle compressed native multiproof expands without granting circuit authority...OK
+10/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle NoValue topology and gate-free replay preserve request wires...OK
+11/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle query wires are exact native raw masks including partial draws...OK
+12/20 frontends.circuit.builder.blake3_merkle_reuse_v1_test.test.circuit Blake3 Merkle root absorption to authenticated query to complete path has no host direction authority...OK
+13/20 frontends.circuit.builder.mod.test_0...OK
+14/20 frontends.circuit.builder.context.test_0...OK
+15/20 frontends.circuit.builder.blake3_reuse_v1.test_0...OK
+16/20 frontends.circuit.builder.blake3_channel_reuse_v1.test_0...OK
+17/20 frontends.circuit.builder.simd.test_0...OK
+18/20 frontends.circuit.builder.blake.test_0...OK
+19/20 frontends.circuit.builder.ops.test_0...OK
+20/20 frontends.circuit.builder.finalize_constants.test_0...OK
+All 20 tests passed.

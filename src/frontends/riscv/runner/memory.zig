@@ -289,6 +289,99 @@ pub const Memory = struct {
 
     // ----- Bulk access -----
 
+    /// Fallibly reserve an entire bulk range before changing any bytes or
+    /// initialized-word inventory. Capacity changes and newly allocated zero
+    /// pages may remain after OOM; these do not change observable memory.
+    /// Zero/BSS preparation allocates presence pages only, preserving lazy data.
+    fn prepareBulkRange(self: *Memory, base_addr: u32, len: usize, materialize_data: bool) error{OutOfMemory}!void {
+        const span: u64 = @min(@as(u64, @intCast(len)), @as(u64, 1) << 32);
+        var remaining = span;
+        var addr = base_addr;
+        var missing_words: usize = 0;
+        while (remaining != 0) {
+            if (!self.alignedWordIsInitialized(addr & ~@as(u32, 3))) missing_words += 1;
+            const advance: u32 = @intCast(@min(remaining, @as(u64, 4 - (addr & 3))));
+            addr +%= advance;
+            remaining -= advance;
+        }
+        try self.initialized_words.ensureUnusedCapacity(@intCast(missing_words));
+        try self.pending_initialized_words.ensureUnusedCapacity(self.allocator, missing_words);
+        remaining = span;
+        addr = base_addr;
+        while (remaining != 0) {
+            const index = pageIndex(addr);
+            if (materialize_data and self.pages[index] == null) {
+                const page = try self.allocator.create(Page);
+                @memset(page, 0);
+                self.pages[index] = page;
+            }
+            if (self.initialized_word_pages[index] == null) {
+                const page = try self.allocator.create(InitializationPage);
+                @memset(page, 0);
+                self.initialized_word_pages[index] = page;
+            }
+            const advance: u32 = @intCast(@min(remaining, @as(u64, PAGE_SIZE - pageOffset(addr))));
+            addr +%= advance;
+            remaining -= advance;
+        }
+    }
+    fn markBulkRangeAssumePrepared(self: *Memory, base_addr: u32, len: usize) void {
+        var remaining: u64 = @min(@as(u64, @intCast(len)), @as(u64, 1) << 32);
+        var addr = base_addr;
+        while (remaining != 0) {
+            const aligned = addr & ~@as(u32, 3);
+            if (!self.alignedWordIsInitialized(aligned)) {
+                const entry = self.initialized_words.getOrPutAssumeCapacity(aligned);
+                std.debug.assert(!entry.found_existing);
+                self.pending_initialized_words.appendAssumeCapacity(aligned);
+                self.initialized_word_count += 1;
+                self.markWordInitializedAssumePage(aligned);
+            }
+            const advance: u32 = @intCast(@min(remaining, @as(u64, 4 - (addr & 3))));
+            addr +%= advance;
+            remaining -= advance;
+        }
+    }
+    /// Initialization-only fallible bulk write. Guest execution hot writes
+    /// retain their existing APIs. Preparation failure commits no data/presence.
+    pub fn writeSliceFallible(self: *Memory, base_addr: u32, data: []const u8) error{OutOfMemory}!void {
+        try self.prepareBulkRange(base_addr, data.len, true);
+        self.markBulkRangeAssumePrepared(base_addr, data.len);
+        var remaining = data;
+        var addr = base_addr;
+        while (remaining.len != 0) {
+            const offset = pageOffset(addr);
+            const count = @min(remaining.len, PAGE_SIZE - offset);
+            const page = self.pages[pageIndex(addr)] orelse unreachable;
+            @memcpy(page[offset .. offset + count], remaining[0..count]);
+            addr +%= @intCast(count);
+            remaining = remaining[count..];
+        }
+    }
+    pub fn loadSegmentFallible(self: *Memory, base_addr: u32, segment: []const u8) error{OutOfMemory}!void {
+        try self.writeSliceFallible(base_addr, segment);
+    }
+    /// BSS remains logically present without allocating otherwise absent data
+    /// pages. Existing overlapping data pages are zeroed exactly as before.
+    pub fn loadZeroesFallible(self: *Memory, base_addr: u32, len: u32) error{OutOfMemory}!void {
+        try self.prepareBulkRange(base_addr, len, false);
+        self.markBulkRangeAssumePrepared(base_addr, len);
+        var remaining: usize = len;
+        var addr = base_addr;
+        while (remaining != 0) {
+            const offset = pageOffset(addr);
+            const count = @min(remaining, PAGE_SIZE - offset);
+            if (self.pages[pageIndex(addr)]) |page| @memset(page[offset .. offset + count], 0);
+            addr +%= @intCast(count);
+            remaining -= count;
+        }
+    }
+    pub fn writeU32Fallible(self: *Memory, addr: u32, value: u32) error{OutOfMemory}!void {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, value, .little);
+        try self.writeSliceFallible(addr, &bytes);
+    }
+
     /// Copy a contiguous slice of bytes into memory starting at `base_addr`.
     pub fn loadSegment(self: *Memory, base_addr: u32, segment: []const u8) void {
         self.writeBytes(base_addr, segment);

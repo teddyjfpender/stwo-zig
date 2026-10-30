@@ -110,6 +110,17 @@ pub const Recorder = struct {
             return error.InvalidNativeBlake3Transcript;
         self.skipped_roots = count;
     }
+    pub fn skipCommittedRootsBounded(self: *Recorder, count: usize, commitments: usize) !void {
+        try self.check();
+        if (commitments < 4 or commitments > 257 or count < 2 or count >= commitments or self.skipped_roots != 0 or self.operations.items.len == 0) return error.InvalidNativeBlake3Transcript;
+        self.skipped_roots = count;
+    }
+    /// Original transcript reset opcode; fixed emission executes no channel.
+    pub fn restartChannel(self: *Recorder) !void {
+        try self.check();
+        self.append(.{ .restart = 1 });
+        try self.check();
+    }
     pub fn universalPairs(self: *Recorder, first: usize, count: usize) !void {
         for (first..try std.math.add(usize, first, count)) |index| {
             self.append(.{ .secure = .{ .output = .{ .universal = index }, .attempts = 0, .consumption = .two, .values = @splat(core.fields.m31.M31.zero()) } });

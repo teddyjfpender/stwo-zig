@@ -1,0 +1,38 @@
+{
+  "schema": "stwo-cuda-native-witness-numeric-v1",
+  "status": "pass",
+  "proof_verified": false,
+  "fully_resident_prover": false,
+  "scope": "all_canonical_typed_native_row_writers_only",
+  "gpu": "NVIDIA H200",
+  "architecture": "sm_90",
+  "opcodes": 46,
+  "gate": {
+    "status": "pass",
+    "scope": "resident_native_witness_primitive",
+    "fully_resident_prover": false,
+    "families": 17,
+    "rows": 7437,
+    "field_words": 539996,
+    "hostile_cases": 68,
+    "explicit_device_peak_bytes": 520260
+  },
+  "remote_sha256": {
+    "/workspace/stwo-v7-native-witness-v3/numeric-runner-attempt3": "138d57b40b338ef93a43c62f62a8d4044c3a58c80f2773b7d5ec7598b6ebd91e",
+    "/workspace/stwo-v7-native-witness-v3/native-witness.cu": "7cf0da63c422c7288bc9ecc85b7b4ddce2c6f1f112b6cb2e052aeb64ba10de3b",
+    "/workspace/stwo-v7-native-witness-v3/v7-native-witness-vectors-v2.bin": "d195f6a1e08122ee7c952f13311dee20bb4cb6ddca88cee36aee9f2c1ceda00d"
+  },
+  "vectors_sha256": "d195f6a1e08122ee7c952f13311dee20bb4cb6ddca88cee36aee9f2c1ceda00d",
+  "cuda_source_sha256": "7cf0da63c422c7288bc9ecc85b7b4ddce2c6f1f112b6cb2e052aeb64ba10de3b",
+  "reference": "native Zig 0.15.2 ReleaseSafe on M5, all17typed family authorities, committed ELF corpus",
+  "timings": "diagnostic CUDA-event means; no end-to-end speedup or whole-device memory qualification",
+  "limitations": [
+    "V7localzerohints andpermutationnotyetinthisgate",
+    "NotacompleteSTARK",
+    "CPUreferenceonadifferentmachine; notanendtoendA/B"
+  ],
+  "failed_attempts_preserved": [
+    "/tmp/v7-native-witness-v3-numeric.log",
+    "/tmp/v7-native-witness-v3-nvcc-attempt2.log"
+  ]
+}

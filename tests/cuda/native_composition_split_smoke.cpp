@@ -44,11 +44,39 @@ extern "C" int stwo_ntt_b2n_composition_split_compact_on(
     void *stream,
     std::uint32_t *launches_out);
 
+extern "C" int stwo_ntt_b2n_composition_split_depth_two_on(
+    std::uint32_t *coordinate_values,
+    std::size_t coordinate_capacity_words,
+    std::size_t coordinate_stride_words,
+    std::uint32_t *coefficients,
+    std::size_t coefficient_capacity_words,
+    std::size_t coefficient_stride_words,
+    std::uint32_t log_n,
+    const std::uint32_t *inverse_twiddles,
+    std::uint32_t inverse_twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t *launches_out);
+
+extern "C" int stwo_ntt_b2n_composition_split_depth_three_on(
+    std::uint32_t *coordinate_values,
+    std::size_t coordinate_capacity_words,
+    std::size_t coordinate_stride_words,
+    std::uint32_t *coefficients,
+    std::size_t coefficient_capacity_words,
+    std::size_t coefficient_stride_words,
+    std::uint32_t log_n,
+    const std::uint32_t *inverse_twiddles,
+    std::uint32_t inverse_twiddle_words,
+    std::uint32_t evaluation_domain_size,
+    void *stream,
+    std::uint32_t *launches_out);
+
 namespace {
 
 constexpr std::uint32_t kPrime = 2147483647u;
 constexpr std::uint32_t kCoordinates = 4u;
-constexpr std::uint32_t kCoefficientColumns = 8u;
+
 
 std::uint32_t expected_launches(std::uint32_t log_n) {
     if (log_n >= 13u && log_n <= 18u) return 2u;
@@ -154,11 +182,13 @@ void inverse_transform(
     }
 }
 
-bool run_case(std::uint32_t log_n) {
+bool run_case(std::uint32_t log_n, std::uint32_t depth) {
+    auto split = depth == 1 ? stwo_ntt_b2n_composition_split_compact_on : depth == 2 ? stwo_ntt_b2n_composition_split_depth_two_on : stwo_ntt_b2n_composition_split_depth_three_on;
     const std::size_t values = std::size_t{1} << log_n;
     const std::size_t domain = values / 2u;
     const std::size_t input_words = kCoordinates * values;
-    const std::size_t output_words = kCoefficientColumns * domain;
+    const std::size_t output_words = kCoordinates * values;
+    const std::size_t chunk_rows = values >> depth;
     void *context = nullptr;
     void *stream = nullptr;
     std::uint32_t *device_input = nullptr;
@@ -225,13 +255,13 @@ bool run_case(std::uint32_t log_n) {
                 domain * sizeof(std::uint32_t)),
             "upload inverse twiddles") ||
         !check_status(
-            stwo_ntt_b2n_composition_split_compact_on(
+            split(
                 device_input,
                 input_words,
                 values,
                 device_output,
                 output_words,
-                domain,
+                chunk_rows,
                 log_n,
                 device_twiddles,
                 static_cast<std::uint32_t>(domain),
@@ -252,13 +282,13 @@ bool run_case(std::uint32_t log_n) {
     }
 
     std::uint32_t invalid_launches = 99u;
-    if (stwo_ntt_b2n_composition_split_compact_on(
+    if (split(
             device_input,
             input_words - 1u,
             values,
             device_output,
             output_words,
-            domain,
+            chunk_rows,
             log_n,
             device_twiddles,
             static_cast<std::uint32_t>(domain),
@@ -266,13 +296,13 @@ bool run_case(std::uint32_t log_n) {
             stream,
             &invalid_launches) == 0 ||
         invalid_launches != 0 ||
-        stwo_ntt_b2n_composition_split_compact_on(
+        split(
             device_input,
             input_words,
             values,
             device_output,
             output_words,
-            domain,
+            chunk_rows,
             log_n,
             device_twiddles,
             static_cast<std::uint32_t>(domain),
@@ -280,13 +310,13 @@ bool run_case(std::uint32_t log_n) {
             nullptr,
             &invalid_launches) == 0 ||
         invalid_launches != 0 ||
-        stwo_ntt_b2n_composition_split_compact_on(
+        split(
             device_input,
             input_words,
             values,
             device_input,
             output_words,
-            domain,
+            chunk_rows,
             log_n,
             device_twiddles,
             static_cast<std::uint32_t>(domain),
@@ -294,13 +324,13 @@ bool run_case(std::uint32_t log_n) {
             stream,
             &invalid_launches) == 0 ||
         invalid_launches != 0 ||
-        stwo_ntt_b2n_composition_split_compact_on(
+        split(
             device_input,
             input_words,
             values,
             device_output,
             output_words,
-            domain,
+            chunk_rows,
             log_n,
             device_twiddles,
             static_cast<std::uint32_t>(domain),
@@ -325,7 +355,7 @@ bool run_case(std::uint32_t log_n) {
         return false;
     }
 
-    const std::size_t half = values / 2u;
+    const std::size_t half = chunk_rows;
     for (std::size_t coordinate = 0;
          coordinate < kCoordinates;
          ++coordinate) {
@@ -333,7 +363,7 @@ bool run_case(std::uint32_t log_n) {
             input.begin() + coordinate * values,
             input.begin() + (coordinate + 1u) * values);
         inverse_transform(coefficients, log_n, twiddles);
-        for (std::size_t side = 0; side < 2; ++side) {
+        for (std::size_t side = 0; side < (std::size_t{1} << depth); ++side) {
             const std::size_t output_column =
                 coordinate + kCoordinates * side;
             for (std::size_t row = 0; row < half; ++row) {
@@ -389,14 +419,11 @@ bool run_case(std::uint32_t log_n) {
 }  // namespace
 
 int main() {
-    if (!run_case(4) ||
-        !run_case(12) ||
-        !run_case(13) ||
-        !run_case(16) ||
-        !run_case(18) ||
-        !run_case(19)) {
-        return 1;
+    for (std::uint32_t depth : {1u, 2u, 3u}) {
+        for (std::uint32_t log_n : {4u, 12u, 13u, 16u, 18u, 19u}) {
+            if (!run_case(log_n, depth)) return 1;
+        }
     }
-    std::printf("native CUDA composition-split smoke passed\n");
+    std::printf("native CUDA composition-split depths1/2/3 smoke passed\n");
     return 0;
 }

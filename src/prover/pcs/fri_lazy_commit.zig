@@ -24,7 +24,7 @@ pub fn commitLazy(
     // The existing fused transaction commits one coordinate per column. A
     // multi-fold schedule uses packed FRI leaves, so retain the generic path
     // until a backend transaction implements that protocol layout explicitly.
-    if (config.fold_step == 1 and comptime @hasDecl(B, "commitLazyFriTransaction")) {
+    if (provider.numerical_executor == null and config.fold_step == 1 and comptime @hasDecl(B, "commitLazyFriTransaction")) {
         const fused_transaction = if (active_work_audit) |audit| blk: {
             if (comptime @hasDecl(B, "commitLazyFriTransactionWithReceipt")) {
                 break :blk try B.commitLazyFriTransactionWithReceipt(

@@ -91,6 +91,12 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
             return .{ .inner = try Inner.open(accepted_sms) };
         }
 
+        pub fn openStaticNative(accepted_sms: []const u32, code_identity: [32]u8) runtime_error.Error!Self {
+            if (!acquireRegistry()) return error.InvalidState;
+            errdefer releaseRegistry();
+            return .{ .inner = .{ .session = try Session.openStaticNative(accepted_sms, code_identity) } };
+        }
+
         pub fn beginProof(self: *Self) runtime_error.Error!*Session {
             return self.inner.beginProof();
         }

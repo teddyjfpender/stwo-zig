@@ -1,0 +1,19 @@
+{
+  "schema": "stwo-direct-ram-clock-v3-wide-frozen-build-v4",
+  "compiler": "zig0.15.2",
+  "mode": "ReleaseFast",
+  "binary": "/tmp/stwo-b8-direct-clock-v3-wide-compact-bench",
+  "binary_sha256": "e2073f6ec3addff46675d421496dced278cb936ad75881d6d41fc05d228dae4c",
+  "binary_bytes": 11103432,
+  "source_files": 2249,
+  "source_changed_after_archive": [],
+  "native_profile": "direct_ram_clock_v3_wide",
+  "native_shard_log": 24,
+  "ram_clock_kernel_version": 3,
+  "batch_native_projections": false,
+  "allocator": "std.heap.smp_allocator under 48GiB SharedHostBudget",
+  "workers": 8,
+  "canonical_qualification": "/tmp/v8-direct-clock-v3-wide-q70.log",
+  "network": false,
+  "gpu": false
+}

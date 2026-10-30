@@ -14,17 +14,23 @@ pub fn ForBackend(comptime Backend: type) type {
         /// No received metadata supplies the expected instance/shape/roots.
         /// `binding`, `statement`, and logs come from the independently pinned
         /// family11 admission used for fresh arithmetic verification.
-        pub fn verifyOwned(a: std.mem.Allocator, received: proof_mod.Proof,
-            sealed: seal.Sealed, pins: seal.Pins, entries: []const seal.Entry,
-            binding: protocol.CallerBinding, statement: *const profile.admission.Statement,
-            total_steps: u32, fixed_logs: []const u32, main_logs: []const u32,
+        pub fn verifyOwned(
+            a: std.mem.Allocator,
+            received: proof_mod.Proof,
+            sealed: seal.Sealed,
+            pins: seal.Pins,
+            entries: []const seal.Entry,
+            binding: protocol.CallerBinding,
+            statement: *const profile.admission.Statement,
+            total_steps: u32,
+            fixed_logs: []const u32,
+            main_logs: []const u32,
         ) !proof_mod.VerifiedReceipt {
             var owned = received;
             var owns = true;
             defer if (owns) owned.deinit(a);
             try protocol.admit(binding, sealed, pins, entries);
-            const expected_key = try protocol.keyId(statement, total_steps,
-                pins.config, binding.first_roots[0]);
+            const expected_key = try protocol.keyId(statement, total_steps, pins.config, binding.first_roots[0]);
             if (!std.meta.eql(expected_key, binding.caller_key_id))
                 return error.UntrustedV5ProgramExtensionKey;
             const expected_fixed_logs = try protocol.columnLogs(a, statement, .fixed);
@@ -36,8 +42,7 @@ pub fn ForBackend(comptime Backend: type) type {
                 return error.UntrustedV5ProgramExtensionLogs;
             const slots = try slots_mod.fromProfile(a, statement, fixed_logs, main_logs, 0, 0);
             defer a.free(slots);
-            const request_id = proof_mod.instanceId(binding.caller_instance_id,
-                binding.execution_instance_id, binding.execution_index, slots);
+            const request_id = proof_mod.instanceId(binding.caller_instance_id, binding.execution_instance_id, binding.execution_index, slots);
             var found = false;
             for (entries) |entry| {
                 if (entry.family != .program_extension_request or
@@ -49,10 +54,7 @@ pub fn ForBackend(comptime Backend: type) type {
             }
             if (!found) return error.MissingV5ProgramExtensionRequest;
             owns = false;
-            return proof_mod.ForBackend(Backend).verifyOwned(a, owned,
-                sealed.programSeal(), binding.execution_index, binding.caller_instance_id,
-                binding.execution_instance_id, slots, fixed_logs, main_logs,
-                binding.first_roots, binding.first_roots, pins.config);
+            return proof_mod.ForBackend(Backend).verifyOwned(a, owned, sealed.programSeal(), binding.execution_index, binding.caller_instance_id, binding.execution_instance_id, slots, fixed_logs, main_logs, binding.first_roots, binding.first_roots, pins.config);
         }
     };
 }

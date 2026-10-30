@@ -82,6 +82,12 @@ pub const M31 = struct {
 
     pub inline fn mul(a: M31, b: M31) M31 {
         const prod: u64 = @as(u64, a.v) * @as(u64, b.v);
+        // Zig 0.15.2's LLVM x86 SLP lowering can narrow constant-weighted
+        // products before the one-fold high-bit extraction (e.g. weights
+        // 5/6/7 in a shift polynomial). Keep both folds on x86; the second
+        // fold prevents that transformation without changing field semantics.
+        // The independent weighted-sum regression below exercises this path.
+        if (comptime builtin.cpu.arch == .x86_64) return .{ .v = reduce64(prod) };
         return .{ .v = reduceProduct(prod) };
     }
 
@@ -524,6 +530,72 @@ fn powPMinus2(a: M31) M31 {
     const x28 = appendMersenneExponentBlock(x24, x4, 4);
     const x29 = appendMersenneExponentBlock(x28, a, 1);
     return x29.square().square().mul(a);
+}
+
+test "m31: constant-weighted scalar contexts match independent integer reduction" {
+    const Check = struct {
+        noinline fn weighted(values: []const M31) M31 {
+            var result = M31.zero();
+            for (values, 0..) |value, index|
+                result = result.add(value.mul(M31.fromU64(index)));
+            return result;
+        }
+        noinline fn composed(values: *const [8]M31) M31 {
+            return weighted(values).mul(M31.fromCanonical(8)).add(weighted(values[0..4]));
+        }
+        fn oracle(values: []const M31) u128 {
+            var result: u128 = 0;
+            for (values, 0..) |value, index| result += @as(u128, value.v) * index;
+            return result % Modulus;
+        }
+    };
+    // Canonical counterexample from an x86 native-ISA shift-immediate AIR.
+    // The broken SLP product narrowing returned 1157025234 instead of
+    // 1157025244. Keep the inputs runtime-visible, not constant-folded.
+    var raw = [_]u32{ 1092977403, 946294386, 16996009, 1785744226, 447332180, 1295435440, 2133147911, 1772688346 };
+    std.mem.doNotOptimizeAway(&raw);
+    var values: [8]M31 = undefined;
+    for (raw, &values) |value, *cell| cell.* = M31.fromCanonical(value);
+    try std.testing.expectEqual(@as(u32, 1157025244), Check.weighted(&values).v);
+    var prng = std.Random.DefaultPrng.init(0x4d31_534c_505f_3537);
+    const random = prng.random();
+    const edges = [_]u32{ 0, 1, 2, Modulus / 2, Modulus - 2, Modulus - 1, 2133147911, 1772688346 };
+    for (0..520) |trial| {
+        for (&values, 0..) |*cell, index| cell.* = M31.fromCanonical(if (trial < edges.len) edges[(trial + index) % edges.len] else random.intRangeLessThan(u32, 0, Modulus));
+        std.mem.doNotOptimizeAway(&values);
+        try std.testing.expectEqual(@as(u32, @intCast(Check.oracle(&values))), Check.weighted(&values).v);
+        const composed = (Check.oracle(&values) * 8 + Check.oracle(values[0..4])) % Modulus;
+        try std.testing.expectEqual(@as(u32, @intCast(composed)), Check.composed(&values).v);
+    }
+}
+
+test "m31: explicit packed constant products match independent integer reduction" {
+    const Check = struct {
+        noinline fn four(values: Vec4u32) Vec4u32 {
+            return mulVec4(values, .{ 5, 6, 7, 8 });
+        }
+        noinline fn nativePack(values: PackedM31) PackedM31 {
+            var weights: PackedM31 = undefined;
+            inline for (0..PACK_WIDTH) |index| weights[index] = 5 + index % 4;
+            return mulPacked(values, weights);
+        }
+    };
+    var prng = std.Random.DefaultPrng.init(0x4d31_5349_4d44_3537);
+    const random = prng.random();
+    const edges = [_]u32{ 0, 1, 2, Modulus / 2, Modulus - 2, Modulus - 1, 2133147911, 1772688346 };
+    for (0..520) |trial| {
+        var values: [PACK_WIDTH]u32 = undefined;
+        for (&values, 0..) |*cell, index| cell.* = if (trial < edges.len) edges[(trial + index) % edges.len] else random.intRangeLessThan(u32, 0, Modulus);
+        std.mem.doNotOptimizeAway(&values);
+        const actual: [PACK_WIDTH]u32 = Check.nativePack(values);
+        for (values, actual, 0..) |value, got, index|
+            try std.testing.expectEqual(@as(u32, @intCast((@as(u128, value) * (5 + index % 4)) % Modulus)), got);
+        var four: [4]u32 = undefined;
+        for (&four, 0..) |*cell, index| cell.* = values[index % values.len];
+        const actual_four: [4]u32 = Check.four(four);
+        for (four, actual_four, 0..) |value, got, index|
+            try std.testing.expectEqual(@as(u32, @intCast((@as(u128, value) * (5 + index)) % Modulus)), got);
+    }
 }
 
 test "m31: bounded product reduction matches generic reduction" {

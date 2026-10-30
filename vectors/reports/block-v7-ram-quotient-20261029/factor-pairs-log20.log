@@ -1,0 +1,35 @@
+1/6 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...V7_RAM_INPUT_STORAGE compact=true retain=true interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=499131056 interaction_bytes=994067040 before_core_bytes=994067040 compact_interaction=true
+WORD_QUOTIENT_TILED {"base_field_rows":true,"factor_range_pairs":true,"charged_peak_bytes":313506488,"coefficient_bytes":0,"tile_log":15,"tiles":128,"requested_group_bytes":134217728,"group_bytes":134217728,"phases":{"recovery_ns":3208,"mapping_ns":7844285,"rows_ns":1576525550,"current":{"prepare_ns":460412916,"jobs_ns":785190836,"block_fold_cpu_ns":499751147,"block_fft_cpu_ns":1496873400,"group_changes":32,"prefold_elements_read":7650410496,"block_elements_read":3825205248,"fft_elements":956301312,"jobs":29184},"previous":{"prepare_ns":523126002,"jobs_ns":861257698,"block_fold_cpu_ns":549917556,"block_fft_cpu_ns":1640682835,"group_changes":64,"prefold_elements_read":8388608000,"block_elements_read":4194304000,"fft_elements":1048576000,"jobs":32000},"group_logs":[2,2,2]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=4252194750
+V7_RAM_CORE_PROFILE interaction_commit_ns=1059356750 {"schema_version":1,"runtime":"cpu","example":"v7_ram_original","stages":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000006,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000011,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":4.252224,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.010253,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.16207,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.002545,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.155498,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000019,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.635818,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.000005,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.016859,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.247963,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000053,"children":null}]}
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=20 proof_bytes=70451 charged_peak=1589661136 commit_ns=1000881042 proof_ns=6588890958 verification_ns=236646208 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=968893104 interaction_bytes=1950368352 before_core_bytes=1950368352 compact_interaction=false
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=1000
+OK
+3/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled production defaults select only large memory components...OK
+4/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+6/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled wider retained layout clamps before scratch allocation...OK
+All 6 tests passed.
+       20.24 real        40.62 user         1.08 sys
+          4524851200  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              921496  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               50397  involuntary context switches
+        710292345008  instructions retired
+        180789316991  cycles elapsed
+          4525674672  peak memory footprint

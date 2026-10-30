@@ -1,0 +1,39 @@
+{
+  "scope": "GPU canonical forward/inverse circle FFT twiddle generation; not full prover qualification",
+  "status": "PASS",
+  "domain_logs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "exact_compared_words": 2097150,
+  "gpu": "NVIDIA H200 SM90",
+  "oracle": "original Zig engine.poly.twiddles.precomputeM31(CanonicCoset.halfCoset)",
+  "oracle_sha256": "a8fb63ecccbd45b27cc3a29682ec7b52f2f4da48823f5b19bd430fcbe9b3d67b",
+  "remote_object": "/workspace/stwo-v7-evidence/resident-twiddle/twiddle_tree.o",
+  "sources": {
+    "src/backends/cuda/native/transform/twiddle_tree.cu": "81f79cb41feb5fe79d2fd671d258b9b56ef29f96c4fb0f2a88bab57db329b600",
+    "src/backends/cuda/native/common/m31.cuh": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17",
+    "src/integrations/riscv_cuda/resident_parent_twiddles_v1.zig": "db718db96177d3eedd59694bd9c7508803982eeef39ae03a58565238f14e32a3",
+    "src/riscv_cuda_resident_twiddle_oracle_root.zig": "5d990b0d7e4bef040d25371e2346717a9f9b0f28d5047e0477a9cc50e42eddae"
+  },
+  "cpu_numeric_production_fallback": false,
+  "full_resident_parent_qualified": false
+}

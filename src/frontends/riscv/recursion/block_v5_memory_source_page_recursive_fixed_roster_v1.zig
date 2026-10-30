@@ -15,6 +15,7 @@ const Assembly = @import("block_v5_recursive_parent_fixed_assembly_v1.zig");
 const Storage = @import("air/blake3_parent_row_storage.zig");
 const Base = @import("blake3_execution_parent_protocol.zig");
 const Parent = @import("blake3_execution_parent_proof.zig");
+const Namespace = @import("air/block_v5_recursive_fixed_namespace_v1.zig");
 pub const Limits = struct {
     max_bytes: usize = 2 << 30,
     native: Shape.Limits = .{},
@@ -41,6 +42,9 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
             retry_capacity: u32,
             limits: Limits,
             shape_id: [32]u8,
+            /// Original fixed and legacy MAIN identifier emission, derived
+            /// while the independently compiled arithmetic plan is alive.
+            namespace: Namespace.Plan,
             pub const fixed_setup_only = true;
             pub const complete_family_setup = true;
             pub const reusable_across_instances = false;
@@ -69,17 +73,21 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
                 errdefer inline for (0..Storage.Airs.len) |i| a.free(fixed[i]);
                 const wires = try a.dupe(Bus.Wire, public.wires);
                 errdefer a.free(wires);
+                var namespace = try Namespace.prepareForArithmetic(a, fixed, 1, .{ .plan = &native.arithmetic.plan, .reference = native.arithmetic.reference, .kind = .segment_leaf });
+                errdefer namespace.deinit();
+                try namespace.requireIndependentMainPort();
                 const context = Base.Context{ .child_key_id = expected, .child_config = admitted.config, .graph_ids = .{ native.composition.circuit.identity_digest, native.deep_graph.graph().identity_digest, native.fri_graph.graph().identity_digest }, .transcript_plan_id = transcript.fixed.id };
                 _ = try Base.contextIdentity(context);
                 _ = try Bus.scheduleDigest(wires);
                 try admitted.validate(expected);
-                return .{ .allocator = a, .budget = budget, .fixed = fixed, .wires = wires, .context = context, .profile = profile, .retry_capacity = capacity, .limits = limits, .shape_id = transcript.shape_id };
+                return .{ .allocator = a, .budget = budget, .fixed = fixed, .wires = wires, .context = context, .profile = profile, .retry_capacity = capacity, .limits = limits, .shape_id = transcript.shape_id, .namespace = namespace };
             }
             pub fn validateAgainst(self: *const Self, admitted: *const Admission.Prepared, expected: [32]u8, public_claims: Semantic.Claims, capacity: u32, profile: Base.Profile, limits: Limits) !void {
                 if (self.retry_capacity != capacity or self.profile != profile or !std.meta.eql(self.limits, limits)) return error.UntrustedPageFixedRoster;
                 var original = try Self.derive(self.allocator, admitted, expected, public_claims, capacity, profile, limits);
                 defer original.deinit();
                 if (!std.meta.eql(self.context, original.context) or !std.meta.eql(self.shape_id, original.shape_id) or self.wires.len != original.wires.len) return error.UntrustedPageFixedRoster;
+                if (!std.mem.eql(u32, self.namespace.original.old, original.namespace.original.old) or !std.meta.eql(try self.namespace.identity(), try original.namespace.identity())) return error.UntrustedPageFixedRoster;
                 for (self.wires, original.wires) |left, right| if (!std.meta.eql(left, right)) return error.UntrustedPageFixedRoster;
                 inline for (0..Storage.Airs.len) |i| {
                     if (self.fixed[i].len != original.fixed[i].len) return error.UntrustedPageFixedRoster;
@@ -90,6 +98,7 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
             /// parity. No fixture capture/admission or private MAIN is created.
             pub fn validateLive(self: *const Self, live: *Bus.Prepared) !void {
                 try live.recursive.rows.partitionHashRows();
+                try self.namespace.validateLive(&live.recursive.rows);
                 if (!std.meta.eql(self.context, live.recursive.context) or self.wires.len != live.wires.len) return error.UntrustedPageFixedRoster;
                 for (self.wires, live.wires) |left, right| if (!std.meta.eql(left, right)) return error.UntrustedPageFixedRoster;
                 inline for (0..Storage.Airs.len) |i| {
@@ -100,6 +109,7 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
             pub fn deinit(self: *Self) void {
                 const a = self.allocator;
                 const budget = self.budget;
+                self.namespace.deinit();
                 a.free(self.wires);
                 inline for (0..Storage.Airs.len) |i| a.free(self.fixed[i]);
                 self.* = undefined;

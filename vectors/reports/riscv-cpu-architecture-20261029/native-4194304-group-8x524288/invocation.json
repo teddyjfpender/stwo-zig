@@ -1,0 +1,50 @@
+{
+  "schema": "stwo-b8-pinned-group-original-invocation-v1",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/group-original-benchmark-build/benchmark"
+  ],
+  "binary_sha256": "51fefc5e53dd174a9837cb3b857bf939ce6b5be295a08b3b1c4bce40dd8deb3d",
+  "build_manifest_sha256": "11896ee5c62694eaffe638c54e553b2566ccd5ad7609d9cec9458fbc5c59c744",
+  "runner_sha256": "4c18bf25a4ad795f077d84f21163ff709df9c75a21756de31298798319b607c3",
+  "capture_sha256": "70caa759453633873c50a3c964b7a0af4fabda3beb243703f46fde9fe80fecd3",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 4194304
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "86cb55cac6cdbf4954aecb9b4ead702703bb5739592f808b7343402110c42314",
+  "workers": 8,
+  "cohorts": 8,
+  "cohort_cycles": 524288,
+  "original_proofs": 1,
+  "cpu_only": true,
+  "global_ram_closed": false,
+  "recursive_root": false,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "started_unix_ns": 1793339532313859000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793339553937110000,
+  "artifacts": [
+    {
+      "name": "group.proof",
+      "bytes": 5587460,
+      "sha256": "90fd106454d8e3e2bf1a78ceccd8a7a5106fd5576816fd0acadf605d1405d586"
+    },
+    {
+      "name": "group.json",
+      "bytes": 114639,
+      "sha256": "1ea26fcb2efdd50d9f6b44fddddef50cf86f8e641f52259b1e2290f61944569d"
+    },
+    {
+      "name": "report.json",
+      "bytes": 14706,
+      "sha256": "d192e0fb818356a6ee069a2cfd19dc090651f4b38692d50b6713b73793e53071"
+    }
+  ],
+  "report_sha256": "d192e0fb818356a6ee069a2cfd19dc090651f4b38692d50b6713b73793e53071"
+}

@@ -246,34 +246,54 @@ fn appendKeccak(
     initialized: *usize,
     extension: *const statement_mod.Statement,
 ) !void {
-    const descriptor = extension.components[0];
-    const domain_size = try domainSize(descriptor.log_size);
+    return appendKeccakGeometry(allocator, result, initialized, extension.components[0].log_size, extension.counts.keccak_calls);
+}
+
+/// Exact original Keccak/chi/xor fixed prefix, with no synthetic admission.
+/// Callers remain responsible for binding its geometry to their statement.
+pub fn generateKeccakPrefix(allocator: std.mem.Allocator, log_size: u32, calls: u32) ![]prover_pcs.ColumnEvaluation {
+    const rows = try std.math.mul(u32, try std.math.divCeil(u32, calls, 2), keccak_witness.row_count);
+    const expected = if (rows == 0) keccak_trace.minimum_log_size else @max(keccak_trace.minimum_log_size, std.math.log2_int_ceil(u32, rows));
+    if (log_size != expected or log_size > keccak_trace.maximum_log_size) return error.InvalidTraceShape;
+    const result = try allocator.alloc(prover_pcs.ColumnEvaluation, keccak_component.preprocessed_column_count + 2 * keccak_table_component.preprocessed_column_count);
+    var initialized: usize = 0;
+    errdefer {
+        for (result[0..initialized]) |column| allocator.free(@constCast(column.values));
+        allocator.free(result);
+    }
+    try appendKeccakGeometry(allocator, result, &initialized, log_size, calls);
+    try appendTable(allocator, result, &initialized, .chi);
+    try appendTable(allocator, result, &initialized, .xor5);
+    return result;
+}
+fn appendKeccakGeometry(allocator: std.mem.Allocator, result: []prover_pcs.ColumnEvaluation, initialized: *usize, log_size: u32, calls: u32) !void {
+    const domain_size = try domainSize(log_size);
     const slots = std.math.divCeil(
         u32,
-        extension.counts.keccak_calls,
+        calls,
         2,
     ) catch unreachable;
-    var column = try zeroColumn(allocator, descriptor.log_size);
-    @constCast(column.values)[keccak_trace.committedRow(0, descriptor.log_size)] =
+    var column = try zeroColumn(allocator, log_size);
+    @constCast(column.values)[keccak_trace.committedRow(0, log_size)] =
         M31.one();
     try append(result, initialized, column);
     for (0..keccak_witness.row_count) |group| {
-        column = try zeroColumn(allocator, descriptor.log_size);
+        column = try zeroColumn(allocator, log_size);
         const values = @constCast(column.values);
         for (0..slots) |slot| {
             const logical = slot * keccak_witness.row_count + group;
             if (logical >= domain_size) return error.InvalidTraceShape;
-            values[keccak_trace.committedRow(logical, descriptor.log_size)] =
+            values[keccak_trace.committedRow(logical, log_size)] =
                 M31.one();
         }
         try append(result, initialized, column);
     }
-    column = try zeroColumn(allocator, descriptor.log_size);
+    column = try zeroColumn(allocator, log_size);
     const values = @constCast(column.values);
-    const paired_slots = extension.counts.keccak_calls / 2;
+    const paired_slots = calls / 2;
     for (0..paired_slots) |slot| for (0..keccak_witness.row_count) |group| {
         const logical = slot * keccak_witness.row_count + group;
-        values[keccak_trace.committedRow(logical, descriptor.log_size)] =
+        values[keccak_trace.committedRow(logical, log_size)] =
             M31.one();
     };
     try append(result, initialized, column);

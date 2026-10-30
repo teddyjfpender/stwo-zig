@@ -1,0 +1,6 @@
+{
+  "full_root_bytes_equal": true,
+  "legacy_root_sha256": "4a2e01c7ef0eb6d73c2206987b63a5a5d545984080d4e6160e6daa09f290134a",
+  "row_fused_root_sha256": "4a2e01c7ef0eb6d73c2206987b63a5a5d545984080d4e6160e6daa09f290134a",
+  "same_canonical_security": true
+}

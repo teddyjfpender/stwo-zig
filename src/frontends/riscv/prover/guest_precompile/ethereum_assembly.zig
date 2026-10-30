@@ -250,7 +250,7 @@ pub fn Assembly(comptime direction: Direction) type {
             return createPlaced(allocator, extension, relations, &.{}, claim, try Placements.initAt(origin, extension), circuit_profile);
         }
 
-        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
+        pub fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
             try claim.validate(extension);
             if (base.len > proof_workspace.MAX_COMPONENT_HANDLES) return error.TooManyComponentHandles;
             const self = try allocator.create(Self);
@@ -394,7 +394,7 @@ fn tableDescriptor(
     };
 }
 
-const Placements = struct {
+pub const Placements = struct {
     keccak: keccak_component.Placement,
     chi: keccak_table_component.Placement,
     xor5: keccak_table_component.Placement,

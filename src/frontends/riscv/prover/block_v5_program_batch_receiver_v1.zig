@@ -75,9 +75,7 @@ pub fn ForBackend(comptime Backend: type) type {
                     return error.UntrustedV5ProgramRequestId;
             }
             const subproof = expected_seal.programSeal();
-            const table_receipt = try TableApi.verifyOwned(a,
-                .{ .stark = try decodeStark(a, table_wire.stark, tableShape(pins.config, plan.log_size)), .claim = table_wire.claim },
-                plan, subproof, plan.program_root, table_entry.roots, pins.config);
+            const table_receipt = try TableApi.verifyOwned(a, .{ .stark = try decodeStark(a, table_wire.stark, tableShape(pins.config, plan.log_size)), .claim = table_wire.claim }, plan, subproof, plan.program_root, table_entry.roots, pins.config);
             const receipts = try a.alloc(Table.VerifiedNativeRequest, instances.len * 2);
             defer a.free(receipts);
             var relation_channel = subproof.sharedChannel();
@@ -105,30 +103,22 @@ pub fn ForBackend(comptime Backend: type) type {
                 if (capture.proof.commitments.len < 2 or
                     !std.meta.eql(capture.proof.commitments[0..2].*, native_entry.roots))
                     return error.UntrustedV5NativeProgramRoots;
-                const request_receipt = try verifyRequestWire(a, instance.wire, subproof, ordinal,
-                    prepared.id, slots, prepared.logs[0], prepared.logs[1], native_entry.roots,
-                    request_entry.roots, pins.config);
+                const request_receipt = try verifyRequestWire(a, instance.wire, subproof, ordinal, prepared.id, slots, prepared.logs[0], prepared.logs[1], native_entry.roots, request_entry.roots, pins.config);
                 receipts[2 * index] = request_receipt.closureReceipt();
-                const boundary = try Boundary.deriveFromPinnedNativePublic(.rv32im_zkvm_ethereum_sha_v1,
-                    &prepared.native.public_data, &relations);
+                const boundary = try Boundary.deriveFromPinnedNativePublic(.rv32im_zkvm_ethereum_sha_v1, &prepared.native.public_data, &relations);
                 var digest_channel = subproof.sharedChannel();
-                receipts[2 * index + 1] = .{ .claim = boundary.sum, .fetch_count = boundary.fetch_count,
-                    .sealed_channel_digest = digest_channel.digestBytes() };
+                receipts[2 * index + 1] = .{ .claim = boundary.sum, .fetch_count = boundary.fetch_count, .sealed_channel_digest = digest_channel.digestBytes() };
             }
             try Table.closed(table_receipt, receipts, subproof);
         }
 
-        fn verifyRequestWire(a: std.mem.Allocator, wire: InstanceWire, seal: Table.Seal,
-            index: u32, key_id: [32]u8, slots: []const Request.Slot, fixed_logs: []const u32,
-            main_logs: []const u32, native_roots: [2][32]u8, request_roots: [2][32]u8,
-            config: core.pcs.PcsConfig) !Request.VerifiedReceipt {
+        fn verifyRequestWire(a: std.mem.Allocator, wire: InstanceWire, seal: Table.Seal, index: u32, key_id: [32]u8, slots: []const Request.Slot, fixed_logs: []const u32, main_logs: []const u32, native_roots: [2][32]u8, request_roots: [2][32]u8, config: core.pcs.PcsConfig) !Request.VerifiedReceipt {
             var stark = try decodeStark(a, wire.request_stark, requestShape(config, slots, fixed_logs, main_logs));
             var transferred = false;
             defer if (!transferred) stark.deinit(a);
             const claims = try a.dupe(Request.Claim, wire.request_claims);
             transferred = true;
-            return RequestApi.verifyOwned(a, .{ .stark = stark, .claims = claims }, seal, index, key_id,
-                slots, fixed_logs, main_logs, native_roots, request_roots, config);
+            return RequestApi.verifyOwned(a, .{ .stark = stark, .claims = claims }, seal, index, key_id, slots, fixed_logs, main_logs, native_roots, request_roots, config);
         }
     };
 }
@@ -149,48 +139,32 @@ fn decodeStark(a: std.mem.Allocator, raw: []const u8, shape: postcard.proof_pref
 }
 
 fn configShape(config: core.pcs.PcsConfig) postcard.proof_preflight.Config {
-    return .{ .pow_bits = config.pow_bits, .log_blowup_factor = config.fri_config.log_blowup_factor,
-        .n_queries = config.fri_config.n_queries,
-        .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
-        .fold_step = config.fri_config.fold_step, .lifting_log_size = config.lifting_log_size };
+    return .{ .pow_bits = config.pow_bits, .log_blowup_factor = config.fri_config.log_blowup_factor, .n_queries = config.fri_config.n_queries, .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound, .fold_step = config.fri_config.fold_step, .lifting_log_size = config.lifting_log_size };
 }
 
 fn tableShape(config: core.pcs.PcsConfig, log_size: u32) postcard.proof_preflight.Shape {
-    return .{ .config = configShape(config), .tree_columns = .{ Air.PREPROCESSED_COLUMN_COUNT, 0,
-        Air.INTERACTION_COLUMN_COUNT, COMPOSITION_COLUMNS }, .allow_empty_main_tree = true,
-        .max_column_log_size = log_size,
-        .hash_size = 32, .max_wire_bytes = MAX_PROGRAM_STARK_BYTES };
+    return .{ .config = configShape(config), .tree_columns = .{ Air.PREPROCESSED_COLUMN_COUNT, 0, Air.INTERACTION_COLUMN_COUNT, COMPOSITION_COLUMNS }, .allow_empty_main_tree = true, .max_column_log_size = log_size, .hash_size = 32, .max_wire_bytes = MAX_PROGRAM_STARK_BYTES };
 }
 
-fn requestShape(config: core.pcs.PcsConfig, slots: []const Request.Slot,
-    fixed_logs: []const u32, main_logs: []const u32) postcard.proof_preflight.Shape {
+fn requestShape(config: core.pcs.PcsConfig, slots: []const Request.Slot, fixed_logs: []const u32, main_logs: []const u32) postcard.proof_preflight.Shape {
     var max_slot_log: u32 = 0;
     var max_merkle_log: u32 = 0;
     for (fixed_logs) |log| max_merkle_log = @max(max_merkle_log, log);
     for (main_logs) |log| max_merkle_log = @max(max_merkle_log, log);
     for (slots) |slot| max_slot_log = @max(max_slot_log, slot.log_size);
-    return .{ .config = configShape(config), .tree_columns = .{ @intCast(fixed_logs.len),
-        @intCast(main_logs.len), @intCast(slots.len * 4), COMPOSITION_COLUMNS },
-        .max_column_log_size = max_slot_log,
-        .max_merkle_column_log_size = @max(max_merkle_log, max_slot_log),
-        .allow_zero_samples = true,
-        .hash_size = 32,
-        .max_wire_bytes = MAX_PROGRAM_STARK_BYTES };
+    return .{ .config = configShape(config), .tree_columns = .{ @intCast(fixed_logs.len), @intCast(main_logs.len), @intCast(slots.len * 4), COMPOSITION_COLUMNS }, .max_column_log_size = max_slot_log, .max_merkle_column_log_size = @max(max_merkle_log, max_slot_log), .allow_zero_samples = true, .hash_size = 32, .max_wire_bytes = MAX_PROGRAM_STARK_BYTES };
 }
 
 test "block-v5 program table preflight permits only empty main tree" {
-    const config = core.pcs.PcsConfig{ .pow_bits = 0,
-        .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
     const shape = tableShape(config, 7);
     try std.testing.expectError(error.EndOfStream, postcard.proof_preflight.validate(&.{}, shape));
     var changed = shape;
     changed.allow_empty_main_tree = false;
-    try std.testing.expectError(error.InvalidPreflightShape,
-        postcard.proof_preflight.validate(&.{}, changed));
+    try std.testing.expectError(error.InvalidPreflightShape, postcard.proof_preflight.validate(&.{}, changed));
     inline for ([_]usize{ 0, 2, 3 }) |index| {
         changed = shape;
         changed.tree_columns[index] = 0;
-        try std.testing.expectError(error.InvalidPreflightShape,
-            postcard.proof_preflight.validate(&.{}, changed));
+        try std.testing.expectError(error.InvalidPreflightShape, postcard.proof_preflight.validate(&.{}, changed));
     }
 }

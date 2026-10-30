@@ -1,0 +1,3 @@
+1/1 riscv_cuda_framework_export_test_root.test.export exact CUDA parent framework catalog...CUDA_FRAMEWORK_EXPORT programs=22 cases=132 source_bytes=337435 vectors_bytes=2828884 source_sha256=56c99fddbafd175f27e0b18c6b5f2472d27744ff051faa2f3531339b65133687
+OK
+All 1 tests passed.

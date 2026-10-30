@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-riscv-original-only-metadata-qualification-v1",
+  "scope": "native initial middle terminal and mixed SHA/Keccak original-only metadata factory; complete driver compile and cheap guards; no grouped tests discovered in this root",
+  "native_authority_parity": true,
+  "mixed_source_profile_parity": true,
+  "no_parent_proofs_read": true,
+  "no_parent_derivations": true,
+  "no_original_verifications": true,
+  "tests_passed": 15,
+  "tests_skipped": 4,
+  "tests_failed": 0,
+  "whole_gate_seconds": 4.89,
+  "maximum_resident_bytes": 429998080,
+  "compiled_binary_sha256": "712708a8126a1ac8eef24994e9956aa3a57c2ac4b7e9ac01d5f12fb066f5cb83",
+  "grouped_deep_tests_run": false
+}

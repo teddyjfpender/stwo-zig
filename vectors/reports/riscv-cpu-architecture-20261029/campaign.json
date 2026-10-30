@@ -1,0 +1,129 @@
+{
+  "status": "grouped_direct_original_window_and_complete_small_driver_qualified",
+  "extension_started_utc": "2026-10-29T19:50:31Z",
+  "minimum_work_until_utc": "2026-10-30T03:50:31Z",
+  "cpu_only": true,
+  "priorities": [
+    "shared original STARK per execution chunk and providers",
+    "recursive verification of joint-original chunks into one independently verified root",
+    "increasing real Ethereum chunk sizes and complete-pipeline profiles"
+  ],
+  "completion": "Full retained execution-to-root run and final independently verified serialized proof/profile remain incomplete. Receiving uses large public checkpoint data and statement-specific keys, not a universal bounded-input verifier.",
+  "latest_phase": "Bounded baseline deliberately interrupted after107window roots and25upper folds. All artifacts preserved. No complete-block root or final receiving. Opt-in immutable admission reuse and homogeneous circuit wrapper/fold are being qualified.",
+  "latest_verified_originals": [
+    "native-131072-window-union-q3",
+    "native-1048576-window-union-q3",
+    "native-1048576-window-union-q2",
+    "native-4194304-window-union-reconstruction"
+  ],
+  "pending": "Qualify saved-root/saved-fold reuse under independently derived cached admissions; qualify complete circuit leaf and bounded circuit fold; compare representative costs before resuming full recursive closure. Full retained-block root and fresh final receiving remain incomplete.",
+  "publication": "Native and mixed initial/terminal roots and a three-window nested upper tree have qualified fixture evidence. Full retained-block completion is not yet established. Receiving requires public checkpoints and statement-specific key derivation; no universal bounded-input verifier or Ethereum consensus-validation theorem is claimed.",
+  "latest_verified_recursive_windows": [
+    "native-131072-window-union-recursive",
+    "native-131072-window-union-capsule",
+    "native-1048576-window-union-capsule",
+    "native-4194304-window-union-window-tiles",
+    "native-4194304-one-native-window-tiles",
+    "keccak-131072-window-union-window-tiles",
+    "native-4194304-window-union-memory-batch",
+    "native-4194304-window-union-indexed-fixed-reuse"
+  ],
+  "latest_verified_endpoint_originals": [
+    "native-4194304-clean-endpoint-v2"
+  ],
+  "latest_verified_endpoint_bundles": [
+    "native-4194304-local-8x524288",
+    "native-8388608-local-16x524288",
+    "native-4194304-local-compact-8x524288",
+    "native-16777216-local-compact-32x524288",
+    "native-4194304-local-compact-parallel2-8x524288",
+    "native-16777216-local-compact-parallel2-32x524288",
+    "native-4194304-local-sparse-compact-parallel2-8x524288",
+    "native-16777216-local-sparse-compact-parallel2-32x524288",
+    "native-4194304-direct-clock-v3-wide-single-sparse-compact-profile4",
+    "native-8388608-direct-clock-v3-wide-single-sparse-compact-profile4",
+    "native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4"
+  ],
+  "latest_verified_endpoint_closed_roots": [
+    "native-4194304-clean-endpoint-v2-closed-root",
+    "native-4194304-local-sparse-compact-parallel2-8x524288-single-dag-root-v3",
+    "native-4194304-direct-clock-v3-wide-single-sparse-compact-profile4-single-dag-root",
+    "native-8388608-direct-clock-v3-wide-single-sparse-compact-profile4-single-dag-root",
+    "native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4-single-dag-root"
+  ],
+  "latest_failed_experiments": [
+    {
+      "observation": "native-8388608-clean-endpoint-v2",
+      "result": "ExecutionGeometryOverflow",
+      "reason": "single native cohort synthetic RAM clock infrastructure exceedslog24; no proof admitted"
+    },
+    {
+      "observation": "native-4194304-local-compact-8x524288-single-dag-root",
+      "result": "OutOfMemory",
+      "host_budget_bytes": 51539607552,
+      "root_emitted": false,
+      "retained_source_rows_bytes": 26422967500,
+      "elapsed_s": 253.38
+    }
+  ],
+  "latest_verified_mixed_originals": [
+    "keccak-131072-mixed-sparse-original"
+  ],
+  "paused_utc": "2026-10-30T08:26:43Z",
+  "final_calibration": "FINAL-RECURSION-CALIBRATION.md",
+  "final_measurements_csv": "final-round-window-times.csv",
+  "conditional_full_block_cost_model": "full-block-cost-model-v1/model.json",
+  "resumed_utc": "2026-10-30T08:58:58.217625+00:00",
+  "current_parallel_lanes": [
+    "Frozen full retained-block execution-to-root run and metadata-only observation",
+    "Source-only RISC-V circuit-wrapper soundness gates",
+    "Source-only Word16 representation and bounded lookup obligations",
+    "Source-only immutable independently derived admission cache"
+  ],
+  "full_block_attempt": "full-block-assembly-v1/retained-139m-native4m-workers16-v1",
+  "full_block_runtime": {
+    "workers": 16,
+    "native_cohort_cycles": 4194304,
+    "host_budget_gib": 60,
+    "security_queries": 70,
+    "security_pow_bits": 26,
+    "full_execution_cycles": 139214856,
+    "window_count": 107,
+    "fold_count": 106,
+    "binary_sha256": "0b59ff32423d3a001fa84a037ca506b8f374fbdd2e04505eee3762f56354a0fc"
+  },
+  "updated_utc": "2026-10-30T15:48:30.734163+00:00",
+  "qualification_evidence": {
+    "nested_upper_tree": {
+      "report": "../../../campaign/qualification/new-full-block-depth2-driver-q70-v1/report.json",
+      "cycles": 7,
+      "windows": 3,
+      "folds": 2,
+      "root_sha256": "8794e41d3e08dec3a97c1ef3662844ac9696e696834538df02b177f5b4f09128",
+      "scope": "Small real execution fixture including fold-as-child and odd carry; not block-scale evidence."
+    },
+    "mixed_complete_boundary": {
+      "report": "full-mixed-driver-qualification-v1/report.json",
+      "cycles": 9,
+      "windows": 1,
+      "root_sha256": "d8ffa95771396e877bf7b296891d75f9a7b7bee186a8a2947e5834dc5726f475",
+      "scope": "Small mixed initial-to-terminal fixture; not a throughput benchmark."
+    }
+  },
+  "window_phase_evidence": "full-block-assembly-v1/retained-139m-native4m-workers16-v1/analysis/window-phase-complete-v1.json",
+  "bounded_profile_decision": "../../../campaign/design/bounded-full-block-profile-decision-v1.md",
+  "direct_original_circuit": {
+    "window_proof_report": "campaign/qualification/new-direct-original-window-q70-v1/report.json",
+    "small_complete_chain_report": "campaign/qualification/new-direct-original-native-fold-q70-v1/report.json",
+    "retained_window_geometry_report": "campaign/qualification/new-direct-original-retained-window4-census-v1/qualification.json",
+    "decision": "campaign/design/direct-original-circuit-window-decision-v1.md",
+    "native_parent_proofs_in_new_path": 0,
+    "full_retained_block_root_verified": false,
+    "grouped_deep_active": true,
+    "grouped_deep_qualification": "genuine mixed source proof and complete initial middle terminal saved-originals driver passed q70/PoW26",
+    "next": "bounded actual retained 1M mixed-window proof, then saved-originals full retained block root; source harness preparation only, no full run launched",
+    "latest_window_report": "campaign/qualification/new-direct-original-window-grouped-q70-v1/report.json",
+    "latest_complete_small_driver_report": "campaign/qualification/new-direct-original-block-driver-grouped-q70-v1/report.json",
+    "latest_small_driver_analysis": "campaign/qualification/new-direct-original-block-driver-grouped-q70-v1/analysis/summary.json"
+  }
+}

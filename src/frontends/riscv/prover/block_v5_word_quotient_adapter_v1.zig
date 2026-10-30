@@ -10,7 +10,7 @@ const canonic = core.poly.circle.canonic;
 const components = core.air.components;
 const prover = engine.air.component_prover;
 const accumulation = engine.air.accumulation;
-const support = @import("../air/memory_commitment/hash_component_prepared_support.zig");
+const support = @import("../recursion/air/universal_typed_component_contract.zig");
 pub fn For(comptime Spec: type) type {
     const F = Spec.FIXED_COUNT;
     const W = Spec.MAIN_COUNT;
@@ -19,6 +19,8 @@ pub fn For(comptime Spec: type) type {
         const N = F + W + I;
         log_size: u32,
         spec: Spec,
+        /// Storage-only opt-in; the independent verifier/equations are unchanged.
+        tile_options: ?@import("block_v7_word_quotient_tiles_v1.zig").Options = null,
         const Self = @This();
         const Adapter = core.air.derive.ComponentAdapter(Self, prover.ComponentProver, prover.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn asProverComponent(self: *const Self) prover.ComponentProver {
@@ -125,6 +127,14 @@ pub fn For(comptime Spec: type) type {
         }
         fn evaluateDomain(self: *const Self, source: *const prover.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
             if (source.polys.items.len != 3 or source.polys.items[0].len != F or source.polys.items[1].len != W or source.polys.items[2].len != I) return error.InvalidV5WordTrees;
+            var clock: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_WORD_QUOTIENT_TILE_PROFILE")) try std.time.Timer.start() else null;
+            defer if (clock) |*timer| {
+                std.debug.print("WORD_QUOTIENT_DOMAIN tiled={} trace_log={d} elapsed_ns={d}\n", .{ self.tile_options != null, self.log_size, timer.read() });
+            };
+            if (self.tile_options) |options| {
+                _ = try @import("block_v7_word_quotient_tiles_v1.zig").evaluate(Spec, accumulator.allocator, self.spec, self.log_size, source, accumulator, options);
+                return;
+            }
             const a = accumulator.allocator;
             const eval_log = self.log_size + Spec.EXPANSION_BITS;
             const domain = canonic.CanonicCoset.new(eval_log).circleDomain();
@@ -141,13 +151,15 @@ pub fn For(comptime Spec: type) type {
                 for (owned[0..initialized]) |column| a.free(column);
                 a.free(owned);
             }
+            // Original retained coefficients take the same path. Checkpoint
+            // trees carry exact LDEs: recover their full polynomial in the
+            // already-budgeted quotient buffer and reject a nonzero high tail.
+            var transform: ?engine.poly.twiddles.TwiddleTree([]M) = if (needed != 0) try engine.poly.twiddles.precomputeM31(a, domain.half_coset) else null;
+            defer if (transform) |*value| engine.poly.twiddles.deinitM31(a, value);
+            const twiddles: ?engine.poly.twiddles.TwiddleTree([]const M) = if (transform) |value| .init(value.root_coset, value.twiddles, value.itwiddles) else null;
             var values: [N][]const M = undefined;
-            for (polys, &values) |poly, *out| out.* = try support.evaluationValues(a, poly, eval_log, size, owned, &initialized);
-            if (owned.len != 0) {
-                var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
-                defer engine.poly.twiddles.deinitM31(a, &twiddles);
-                try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
-            }
+            for (polys, &values) |poly, *out| out.* = try support.evaluationValues(a, poly, self.log_size, eval_log, size, twiddles, owned, &initialized);
+            if (owned.len != 0) try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, twiddles.?);
             var inverses: [1 << Spec.EXPANSION_BITS]M = undefined;
             const trace_coset = canonic.CanonicCoset.new(self.log_size).coset();
             for (&inverses, 0..) |*value, i| value.* = try core.constraints.cosetVanishing(M, trace_coset, domain.at(core.utils.bitReverseIndex(i, Spec.EXPANSION_BITS))).inv();

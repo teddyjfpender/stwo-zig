@@ -1,0 +1,11 @@
+1/6 block_v8_endpoint_saved_root_benchmark_root.test_0...OK
+2/6 recursion.tests.block_v8_endpoint_saved_root_benchmark.test.saved new B8 endpoint original to closed recursive root benchmark...B8_ENDPOINT_SAVED_ROOT_SOURCE cycles=4194304 endpoints=505967 logical_ram=1710496 raw_cells=654891620 lde_cells=1309783240 public_ports=3096379 snapshot_delta_byte_ports=3095124 source_capture_count=1
+BLAKE3_NATIVE_QUERY_FUSION groups=59850 removed_scalars=239400 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=233837 fma=3198655 arithmetic_rows=4674284 direct_columns=true
+B8_ENDPOINT_SAVED_ORIGINAL_CLOSED_ROOT verified=true whole_ns=120796337792 recursive_proof_ns=24899760541 peak_bytes=12156494982
+OK
+3/6 air.semantic_eval.test_0...OK
+4/6 air.memory_commitment.poseidon2_air.test_0...OK
+5/6 air.lookups.tables.mod.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+All 6 tests passed.

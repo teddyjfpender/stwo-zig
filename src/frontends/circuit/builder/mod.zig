@@ -39,6 +39,16 @@ pub const Circuit = circuit.Circuit;
 pub const Context = context.Context;
 pub const NoValue = ivalue.NoValue;
 
+/// Opt-in native experimental-v1 BLAKE3 verifier kernels. These exports do not
+/// select a production statement, registry, backend or proof profile.
+pub const blake3_reuse_v1 = @import("blake3_reuse_v1.zig");
+pub const blake3_channel_reuse_v1 = @import("blake3_channel_reuse_v1.zig");
+pub const blake3_merkle_reuse_v1 = @import("blake3_merkle_reuse_v1.zig");
+pub const blake3_fri_reuse_v1 = @import("blake3_fri_reuse_v1.zig");
+pub const blake3_pcs_reuse_v1 = @import("blake3_pcs_reuse_v1.zig");
+pub const blake3_pcs_grouped_deep_v1 = @import("blake3_pcs_grouped_deep_v1.zig");
+pub const riscv_composition_lowering_v1 = @import("riscv_composition_lowering_v1.zig");
+
 test {
     @import("std").testing.refAllDecls(@This());
 }

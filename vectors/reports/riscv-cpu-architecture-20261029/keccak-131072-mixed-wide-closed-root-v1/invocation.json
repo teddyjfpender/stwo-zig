@@ -1,0 +1,66 @@
+{
+  "schema": "stwo-b8-real-mixed-single-root-invocation-v1",
+  "binary_sha256": "2708ce3a2793dc242857e8e37195ec5febe622810f4e00bb80f4de6638dd042c",
+  "build_manifest_sha256": "d5d9f13e01bee115c81402a8bf5e91512c16b579fb552fc815bc4c3d9c65355d",
+  "runner_sha256": "f5f7063e1b999bd65b04e5b0bbd8cc555b767a077fa6ccff1fa45a3c0cc5f7a9",
+  "capture_sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca",
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 131072
+  },
+  "input_census": {
+    "cycles": 131072,
+    "core_rows": 130182,
+    "keccak_calls": 890,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "setup_ns": 125148125,
+    "execution_ns": 428915250,
+    "snapshot_ns": 2215541
+  },
+  "endpoint_events": 30371,
+  "input_artifacts": {
+    "local-0.json": {
+      "sha256": "9820b7cfe525f393d59fd65fdf79c58da7bbc24e9995eaf50d844da2e464e9f3",
+      "bytes": 22859
+    },
+    "local-0.proof": {
+      "sha256": "d5a5fad7f01ca854989e0335ab126a4f59a49de42871d236a87d027076ee6b87",
+      "bytes": 3631738
+    },
+    "bridge-0.proof": {
+      "sha256": "551c52a71d06c487fde4b8190138fabf70e7b5985a0143fac386983050a6865f",
+      "bytes": 194403
+    },
+    "global-memory.proof": {
+      "sha256": "82866df3aeaa80c48838517c525423f0eb20b5c5d689cded07e84a37b1035e42",
+      "bytes": 319652
+    },
+    "global-public.json": {
+      "sha256": "adf13ede2b3b3e5c105d2f6394a41cf85f999f8b5bade4ac3887942a23da6bb3",
+      "bytes": 274844
+    }
+  },
+  "source_workers": 2,
+  "cpu_only": true,
+  "source_execution_count": 0,
+  "source_reproof_count": 0,
+  "global_ram_closed": true,
+  "recursive_root": true,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "timing_isolated": false,
+  "report_checked": true,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/mixed-saved-root-benchmark-build-v1/benchmark"
+  ],
+  "started_unix_ns": 1793353288570070000,
+  "returncode": 0,
+  "finished_unix_ns": 1793353365697547000,
+  "report_sha256": "5db77d63c9581898022be8e6987bc48d23e2da0c518e0b336714f02aba5312f5",
+  "root_sha256": "4cc5746f3d3aa1372499a62e46b6fadfaff967610a974e373597c74b207760ac",
+  "physical_claims_sha256": "7780ad45af3f7a776aa625ec69b67abff108495229afb62e239a6017bd1ce259",
+  "metadata_sha256": "9820b7cfe525f393d59fd65fdf79c58da7bbc24e9995eaf50d844da2e464e9f3"
+}

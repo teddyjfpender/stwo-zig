@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "scope": "Producer-only exact polynomial evaluation reuse; no equations, masks, physical claims or transcript scheduling changed. Native source is still an OPEN leaf, not full-block admission.",
+  "cap_bytes": 268435456,
+  "cap_scope": "One retained buffer cap shared by all native windows in proof, including pending reservations; original fallback and recovery scratch additionally charged to proof allocator",
+  "ownership": "Leases pin active and pending readers; only released nonpending entries evicted; capacity exhaustion falls back without waiting for pins. All source columns immutable for proof lifetime.",
+  "tests": [
+    {
+      "log": "/tmp/v7-leased-cache-tests.log",
+      "passed": 9,
+      "failed": 0,
+      "cases": "pending success/failure two-reader race, strict cap, eviction, LRU, policy/degree/geometry, proof-lifetime stale address, all allocation failures; old cache unchanged"
+    },
+    {
+      "log": "/tmp/v7-native-leased-parity.log",
+      "passed": 438,
+      "skipped": 1,
+      "failed": 0,
+      "cases": "Genuine fresh-session MUL/store/load q3 native proof with0 vs256-byte cache; exact serialized Stark and physical claims; real eviction/fallback; optional recorder independence; all-family cached/uncached domain and original OODS parity; q3 Access original bounds"
+    }
+  ],
+  "performance_status": "Full Mixed421 leased-cache timing and exact proof parity pending. No measured leased-LRU speedup claimed.",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_leased_quotient_cache_v1.zig": "1f0eac3100547734f88898121e0a88c787e1dfd4326da37796b477169035ba56",
+    "src/frontends/riscv/prover/block_v5_quotient_column_cache_v1.zig": "e7580d0354d605c78ad4b86398f56013f46bd98e034fe4765840ef726d5e8e87",
+    "src/frontends/riscv/prover/block_v7_shared_quotient_cache_v1.zig": "712a1c8b4d26b7e84e0ac2b3b02e6b8c33121914b677b0fe8f5ff51e75195fcd",
+    "src/frontends/riscv/prover/block_v7_native_components_v1.zig": "270c016a1990c52d4e54c086816de9605ff39982bc0c18a61f3b00a0861ed544",
+    "src/frontends/riscv/prover/block_v7_native_proof_v1.zig": "714f0756e68f0d4a84ee214139829d80c570f9b6597cc1f4557266bbd2893035",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_component_v1.zig": "a5909e3fa4ddb2923803e74ee0a0cc19f081b8b8bb431e67807cb964e673bb18",
+    "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig": "5c69c8146730438beb05c9b4546a9b169b25d79bc93342aaa8d08edf33d417b8",
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_v1.zig": "3052db5732ab88bb637419d3ef9a1743c93e49d9b0cad3bb0c2d0b828c6eda5f",
+    "src/frontends/riscv/prover/block_v7_keccak_union_proof_v1.zig": "998cd09bbaa203643624c4456c20ce0ede6d87557568aa735a2dacff2ed06b96",
+    "src/frontends/riscv/prover/tests/block_v7_shared_quotient_cache_test.zig": "d166dbf0564129eb7801f04a9bdc10e682481535da219000132abff2e65f815f",
+    "src/frontends/riscv/prover/tests/block_v7_native_cache_parity_test.zig": "cc32673a13f0757d488b2add2cc3f6faf468b9059df3cab85c58b7494a61d00f",
+    "src/frontends/riscv/prover/tests/block_v5_native_projection_fused_unit_test.zig": "aac3efad2e8ea07e6847a5872149c945d254af103ed92421b7e24ac3cc48bd6f"
+  },
+  "binary_sha256": {
+    "/tmp/v7-leased-cache-tests": "5edd0ab2b8740f8475a986d8a045172a0795abf1b8c3a2d23fb773204146bd4b",
+    "/tmp/v7-native-leased-parity": "a3ad195e6818f1787063cb742dc185121afa72852eddf10c12c8f643e740f7c3"
+  }
+}

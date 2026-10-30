@@ -1,0 +1,57 @@
+{
+  "schema": "stwo-b8-group-complete-window-comparison-v1",
+  "authority": "saved canonical proof/verification reports; no new proving or verification run",
+  "reports": [
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-4194304-local-sparse-compact-parallel2-8x524288/report.json",
+      "sha256": "e963c7ae9ac36f64fc3f1760263075aec8f1a02e0fac0b848835770b79823294"
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-16777216-local-sparse-compact-parallel2-32x524288/report.json",
+      "sha256": "97fabec20725b62a46071d3ed56f9b9cc8a72aec281fc9515fa1d3f67f6ab57c"
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-4194304-group-compact-global-8x524288/report.json",
+      "sha256": "c651d1b1c84f37e7ae22776f8225b10d231eba62c7f96ae76d4d1e98677fcd23"
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-8388608-wide-group-compact-global-16x524288/report.json",
+      "sha256": "c3dc0f5ac4ab9f3b4e0f0d6070a9b1edfe019067090897d3ccee94faa403e5e9"
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-16777216-wide-group-compact-global-32x524288/report.json",
+      "sha256": "336ab21b6f79741e4733fe1694da575b4461390dd19ac321a2d975aef751795c"
+    }
+  ],
+  "comparisons": [
+    {
+      "cycles": 4194304,
+      "old_case": "native-4194304-local-sparse-compact-parallel2-8x524288",
+      "new_case": "native-4194304-group-compact-global-8x524288",
+      "old_loading_publication_bundle_s": 23.22394125,
+      "new_loading_publication_bundle_s": 24.988778584,
+      "new_time_over_old": 1.0759921546046798,
+      "old_total_originals": 10,
+      "new_total_originals": 3,
+      "proof_count_reduction": 3.3333333333333335,
+      "new_peak_over_old": 2.83090126328236,
+      "latency_improvement_demonstrated": false,
+      "recursive_roots_compared": false
+    },
+    {
+      "cycles": 16777216,
+      "old_case": "native-16777216-local-sparse-compact-parallel2-32x524288",
+      "new_case": "native-16777216-wide-group-compact-global-32x524288",
+      "old_loading_publication_bundle_s": 80.865286291,
+      "new_loading_publication_bundle_s": 90.367877791,
+      "new_time_over_old": 1.117511381407891,
+      "old_total_originals": 34,
+      "new_total_originals": 3,
+      "proof_count_reduction": 11.333333333333334,
+      "new_peak_over_old": 8.93129403629776,
+      "latency_improvement_demonstrated": false,
+      "recursive_roots_compared": false
+    }
+  ],
+  "interpretation": "Proof roster falls, but the current grouped CPU bundle is slower and uses more memory than the retained sparse two-job local baseline. No root latency, GPU speedup, full-block or supremacy claim."
+}

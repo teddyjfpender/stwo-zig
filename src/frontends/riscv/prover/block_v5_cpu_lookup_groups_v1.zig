@@ -6,9 +6,12 @@ const tables = @import("../air/lookups/tables/mod.zig");
 const batch = @import("block_v5_native_lookup_batch_v1.zig");
 const proof = @import("block_v5_native_lookup_proof_v1.zig");
 const planning = @import("block_v5_native_lookup_plan_v1.zig");
+const Retention = @import("block_v6_provider_commitment_staging_v1.zig");
+const Checkpoint = @import("block_v6_provider_commitment_store_v1.zig");
 const seal = @import("block_v5_source_seal_v1.zig");
 pub const Demand = [tables.schema.KIND_COUNT]u64;
-pub const Limits = struct { request_limit: u64, max_groups: usize, max_metadata_bytes: usize, max_counter_file_bytes: u64 };
+pub const Limits = struct { request_limit: u64, max_groups: usize, max_metadata_bytes: usize, max_counter_file_bytes: u64, commitments: ?Retention.Policy = null };
+pub const FixedCheckpoint = struct { pin: Checkpoint.Pin, root: [32]u8 };
 pub const FilePin = struct { sha256: [32]u8, bytes: u64 };
 fn name(index: u32, buffer: *[64]u8) ![]const u8 {
     return std.fmt.bufPrint(buffer, "v5-native-group-{d}.counters", .{index});
@@ -21,9 +24,14 @@ pub const Stage = struct {
     files: []FilePin,
     execution_count: u32,
     config: core.pcs.PcsConfig,
+    commitment_policy: ?Retention.Policy = null,
+    fixed_checkpoint: ?FixedCheckpoint = null,
+    commitment_pins: []Checkpoint.Pin = &.{},
+    commitment_statistics: Retention.Statistics = .{},
     pub fn deinit(self: *Stage) void {
         self.a.free(self.records);
         self.a.free(self.files);
+        self.a.free(self.commitment_pins);
         self.* = undefined;
     }
     pub fn requirePlans(self: *const Stage, plans: []const planning.Plan) !void {
@@ -62,8 +70,38 @@ pub const Stage = struct {
     }
     pub fn proveWithBoundary(self: *Stage, comptime Backend: type, sink: batch.Sink, pins: seal.Pins, entries: []const seal.Entry, sealed: seal.Sealed, boundary: ?@import("block_v5_proof_boundary_v1.zig").Boundary) !void {
         if (!std.meta.eql(self.config, pins.config)) return error.UntrustedV5OnlineLookupConfig;
-        const adapter = batch.ForBackend(Backend){ .records = self.records, .config = self.config };
+        var adapter = batch.ForBackend(Backend){ .records = self.records, .config = self.config };
+        var restore: ?Restore = null;
+        defer if (restore) |*value| value.basis.deinit(self.a);
+        if (self.commitment_policy) |policy| {
+            if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
+            if (self.commitment_pins.len != self.records.len) return error.IncompleteProviderCheckpointRoster;
+            const fixed = self.fixed_checkpoint orelse return error.IncompleteProviderCheckpointRoster;
+            for (self.records) |record| if (!std.meta.eql(record.roots[0], fixed.root)) return error.IncompleteProviderCheckpointRoster;
+            var timer = try std.time.Timer.start();
+            restore = .{ .stage = self, .basis = try Checkpoint.loadLookupFixed(self.a, self.dir, Retention.LOOKUP_FIXED_NAME, fixed.root, self.config, fixed.pin, policy.storage) };
+            self.commitment_statistics.read_bytes = try std.math.add(u64, self.commitment_statistics.read_bytes, fixed.pin.bytes);
+            self.commitment_statistics.restore_ns = try std.math.add(u64, self.commitment_statistics.restore_ns, timer.read());
+            adapter.retained = .{ .context = &restore.?, .load = loadCommitment };
+        }
         try adapter.proveWithBoundary(self.a, self.source(), sink, sealed, pins, entries, boundary);
+    }
+    const Restore = struct { stage: *Stage, basis: proof.ForBackend(@import("stwo_cpu_backend").CpuBackend).FixedBasis };
+    fn loadCommitment(raw: *anyopaque, a: std.mem.Allocator, plan: planning.Plan, counters: *const tables.counter.Set, roots: seal.Roots, config: core.pcs.PcsConfig) !proof.ForBackend(@import("stwo_cpu_backend").CpuBackend).FirstRound {
+        const restore: *Restore = @ptrCast(@alignCast(raw));
+        const self = restore.stage;
+        if (!std.meta.eql(config, self.config)) return error.UntrustedV5OnlineLookupConfig;
+        if (plan.index >= self.commitment_pins.len or !std.meta.eql(plan, self.records[plan.index].plan) or !std.meta.eql(roots, self.records[plan.index].roots)) return error.ChangedV5OnlineLookupPlans;
+        var buffer: [64]u8 = undefined;
+        var timer = try std.time.Timer.start();
+        var limits = self.commitment_policy.?.storage;
+        const fixed_bytes = self.fixed_checkpoint.?.pin.loaded_bytes;
+        if (fixed_bytes >= limits.max_loaded_bytes) return error.ProviderCheckpointResourceLimit;
+        limits.max_loaded_bytes -= fixed_bytes;
+        var first = try Checkpoint.loadLookupMain(a, self.dir, try Retention.lookupName(plan.index, &buffer), plan, counters, roots, &restore.basis, self.commitment_pins[plan.index], limits);
+        errdefer first.deinit(a);
+        try self.commitment_statistics.restored(self.commitment_pins[plan.index], timer.read());
+        return first;
     }
 };
 
@@ -83,21 +121,28 @@ pub fn ForBackend(comptime Backend: type) type {
         file_bytes: u64 = 0,
         records: std.ArrayList(batch.Record),
         files: std.ArrayList(FilePin),
+        commitment_pins: std.ArrayList(Checkpoint.Pin) = .empty,
+        fixed_checkpoint: ?FixedCheckpoint = null,
+        commitment_statistics: Retention.Statistics = .{},
         failed: bool = false,
         finished: bool = false,
         pub fn init(a: std.mem.Allocator, dir: std.fs.Dir, config: core.pcs.PcsConfig, limits: Limits) !Self {
-            const bytes = try std.math.mul(usize, limits.max_groups, @sizeOf(batch.Record) + @sizeOf(FilePin));
+            if (limits.commitments) |policy| try policy.validate();
+            const bytes = try std.math.mul(usize, limits.max_groups, @sizeOf(batch.Record) + @sizeOf(FilePin) + (if (limits.commitments != null) @sizeOf(Checkpoint.Pin) else @as(usize, 0)));
             if (limits.request_limit == 0 or limits.request_limit >= core.fields.m31.Modulus or limits.max_groups == 0 or limits.max_groups > std.math.maxInt(u32) or bytes > limits.max_metadata_bytes) return error.InvalidV5OnlineLookupLimits;
             var records = try std.ArrayList(batch.Record).initCapacity(a, limits.max_groups);
             errdefer records.deinit(a);
-            const files = try std.ArrayList(FilePin).initCapacity(a, limits.max_groups);
-            return .{ .a = a, .dir = dir, .config = config, .limits = limits, .records = records, .files = files };
+            var files = try std.ArrayList(FilePin).initCapacity(a, limits.max_groups);
+            errdefer files.deinit(a);
+            const commitment_pins: std.ArrayList(Checkpoint.Pin) = if (limits.commitments != null) try .initCapacity(a, limits.max_groups) else .empty;
+            return .{ .a = a, .dir = dir, .config = config, .limits = limits, .records = records, .files = files, .commitment_pins = commitment_pins };
         }
         pub fn deinit(self: *Self) void {
             if (self.current) |*counter| counter.deinit(self.a);
             if (self.basis) |*basis| basis.deinit(self.a);
             self.records.deinit(self.a);
             self.files.deinit(self.a);
+            self.commitment_pins.deinit(self.a);
             self.* = undefined;
         }
         /// The caller supplies one execution's real native/caller/byte counters
@@ -131,6 +176,22 @@ pub fn ForBackend(comptime Backend: type) type {
             if (self.basis == null) self.basis = try Api.FixedBasis.init(self.a, self.config);
             var first = try Api.commitFirstRoundWithBasis(self.a, &self.current.?, self.plan, &self.basis.?);
             defer first.deinit(self.a);
+            if (self.limits.commitments) |policy| {
+                if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
+                var checkpoint_buffer: [64]u8 = undefined;
+                var timer = try std.time.Timer.start();
+                if (self.fixed_checkpoint == null) {
+                    const fixed = try Checkpoint.writeLookupFixed(self.a, self.dir, Retention.LOOKUP_FIXED_NAME, &self.basis.?, try policy.remaining(self.commitment_statistics.written_bytes));
+                    self.fixed_checkpoint = .{ .pin = fixed, .root = self.basis.?.root };
+                    try self.commitment_statistics.wrote(fixed, timer.lap());
+                }
+                var main_limits = try policy.remaining(self.commitment_statistics.written_bytes);
+                if (self.fixed_checkpoint.?.pin.loaded_bytes >= main_limits.max_loaded_bytes) return error.ProviderCheckpointResourceLimit;
+                main_limits.max_loaded_bytes -= self.fixed_checkpoint.?.pin.loaded_bytes;
+                const pin = try Checkpoint.writeLookupMain(self.a, self.dir, try Retention.lookupName(self.plan.index, &checkpoint_buffer), self.plan, &self.current.?, &first, main_limits);
+                try self.commitment_pins.append(self.a, pin);
+                try self.commitment_statistics.wrote(pin, timer.read());
+            }
             var buffer: [64]u8 = undefined;
             const filename = try name(self.plan.index, &buffer);
             const file = try self.dir.createFile(filename, .{ .exclusive = true });
@@ -162,10 +223,12 @@ pub fn ForBackend(comptime Backend: type) type {
             const records = try self.records.toOwnedSlice(self.a);
             errdefer self.a.free(records);
             const files = try self.files.toOwnedSlice(self.a);
+            errdefer self.a.free(files);
+            const commitment_pins = try self.commitment_pins.toOwnedSlice(self.a);
             if (self.basis) |*basis| basis.deinit(self.a);
             self.basis = null;
             self.finished = true;
-            return .{ .a = self.a, .dir = self.dir, .records = records, .files = files, .execution_count = execution_count, .config = self.config };
+            return .{ .a = self.a, .dir = self.dir, .records = records, .files = files, .execution_count = execution_count, .config = self.config, .commitment_policy = self.limits.commitments, .fixed_checkpoint = self.fixed_checkpoint, .commitment_pins = commitment_pins, .commitment_statistics = self.commitment_statistics };
         }
     };
 }

@@ -1,0 +1,158 @@
+{
+  "kind": "calculated_allocation_model_not_measured_rss",
+  "source": "next-generation-riscv-20261028.md retained block census",
+  "total_old_events": 356303914,
+  "removed_register_events": 298427187,
+  "guest_ram_events": 57876727,
+  "terminal_events": 13,
+  "fixed_columns": 24,
+  "main_columns": 88,
+  "interaction_columns": 116,
+  "bytes_per_m31": 4,
+  "lde_multiplier": 2,
+  "quotient_domain_multiplier": 4,
+  "excluded": [
+    "Merkle",
+    "FRI/composition",
+    "twiddles",
+    "native/caller state",
+    "event arrays"
+  ],
+  "rows": [
+    {
+      "row_log": 20,
+      "events_per_component": 2097152,
+      "components": 28,
+      "padded_rows": 29360128,
+      "cells": 6694109184,
+      "raw_matrix_bytes": 26776436736,
+      "retained_coeff_bytes": 26776436736,
+      "retained_lde_bytes": 53552873472,
+      "retained_payload_bytes": 107105746944,
+      "active_component_quotient_bytes": 3825205248
+    },
+    {
+      "row_log": 21,
+      "events_per_component": 4194304,
+      "components": 14,
+      "padded_rows": 29360128,
+      "cells": 6694109184,
+      "raw_matrix_bytes": 26776436736,
+      "retained_coeff_bytes": 26776436736,
+      "retained_lde_bytes": 53552873472,
+      "retained_payload_bytes": 107105746944,
+      "active_component_quotient_bytes": 7650410496
+    },
+    {
+      "row_log": 22,
+      "events_per_component": 8388608,
+      "components": 7,
+      "padded_rows": 29360128,
+      "cells": 6694109184,
+      "raw_matrix_bytes": 26776436736,
+      "retained_coeff_bytes": 26776436736,
+      "retained_lde_bytes": 53552873472,
+      "retained_payload_bytes": 107105746944,
+      "active_component_quotient_bytes": 15300820992
+    },
+    {
+      "row_log": 23,
+      "events_per_component": 16777216,
+      "components": 4,
+      "padded_rows": 29360128,
+      "cells": 6694109184,
+      "raw_matrix_bytes": 26776436736,
+      "retained_coeff_bytes": 26776436736,
+      "retained_lde_bytes": 53552873472,
+      "retained_payload_bytes": 107105746944,
+      "active_component_quotient_bytes": 30601641984
+    },
+    {
+      "row_log": 24,
+      "events_per_component": 33554432,
+      "components": 2,
+      "padded_rows": 33554432,
+      "cells": 7650410496,
+      "raw_matrix_bytes": 30601641984,
+      "retained_coeff_bytes": 30601641984,
+      "retained_lde_bytes": 61203283968,
+      "retained_payload_bytes": 122406567936,
+      "active_component_quotient_bytes": 61203283968
+    }
+  ],
+  "focused_original_gate": {
+    "status": "passed",
+    "guest_events": 16,
+    "terminal_events": 13,
+    "ram_proofs": 5,
+    "provider_proofs": 3,
+    "charged_peak_bytes": 74358776,
+    "stage_budget_bytes": 100663296,
+    "original_ram_proof_bytes_identical": true,
+    "fresh_original_verification": true,
+    "block_scale_qualified": false,
+    "recursive_qualified": false
+  },
+  "focused_execution_gate": {
+    "status": "passed",
+    "profile": "diagnostic_q8_pow0",
+    "guest_cycles": 20,
+    "guest_events": 103,
+    "original_proofs": 13,
+    "sort_buffer_bytes": 96,
+    "cohort_charged_peak_bytes": 104192824,
+    "fresh_original_verification": true,
+    "detached_metadata_reconstruction": true,
+    "producer_destroyed_before_reconstruction": true,
+    "temporary_directory_empty": true,
+    "block_scale_qualified": false,
+    "recursive_qualified": false,
+    "rejected_detached_metadata": [
+      "missing_cohort",
+      "missing_memory_mode",
+      "reordered_cohort"
+    ]
+  },
+  "bounded_cohort_payload_model": {
+    "kind": "calculated_lower_bound_not_peak_or_qualification",
+    "row_log": 22,
+    "raw_fixed_main_bytes": 1879048192,
+    "prechallenge_lde_bytes": 3758096384,
+    "prechallenge_merkle_upper_bytes": 1073741760,
+    "interaction_raw_bytes": 1946157056,
+    "interaction_lde_bytes": 3892314112,
+    "interaction_merkle_upper_bytes": 536870880,
+    "quotient_domain_bytes": 15300820992,
+    "excluded": [
+      "composition/FRI",
+      "FFT scratch/twiddles",
+      "checkpoint codec overhead",
+      "native/caller/recursive owners"
+    ],
+    "note": "Explicit cohort/whole-job budgets and disk caps must be raised from diagnostic defaults; estimate is not a measured peak."
+  },
+  "focused_complete_root_gate": {
+    "status": "passed",
+    "profile": "diagnostic_q8_pow0",
+    "guest_cycles": 20,
+    "native_proofs": 2,
+    "caller_proofs": 1,
+    "ram_proofs": 4,
+    "provider_proofs": 3,
+    "program_proofs": 1,
+    "lookup_proofs": 1,
+    "original_proofs": 12,
+    "root_proof_bytes": 159188,
+    "charged_peak_bytes": 7999930428,
+    "whole_seconds_rounded": 68.33,
+    "original_owners_destroyed": true,
+    "checkpoint_directory_empty": true,
+    "rejected": [
+      "missing_cohort",
+      "compensated_ram_initialization_interval_claims"
+    ],
+    "block_scale_qualified": false,
+    "canonical_security_qualified": false,
+    "snapshot_includes_receiver_matrix_cap_fix": false
+  }
+}

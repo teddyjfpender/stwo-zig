@@ -39,8 +39,13 @@ pub fn ForBackend(comptime Backend: type) type {
     return struct {
         const Self = @This();
         const Api = family.ForBackend(Backend);
+        pub const RetainedSource = struct {
+            context: *anyopaque,
+            load: *const fn (*anyopaque, std.mem.Allocator, family.Plan, *const @import("../air/lookups/tables/counter.zig").Set, seal.Roots, core.pcs.PcsConfig) anyerror!Api.FirstRound,
+        };
         records: []Record,
         config: core.pcs.PcsConfig,
+        retained: ?RetainedSource = null,
         pub fn deinit(self: *Self, a: std.mem.Allocator) void {
             a.free(self.records);
             self.* = undefined;
@@ -69,13 +74,16 @@ pub fn ForBackend(comptime Backend: type) type {
             try validateRecords(self.records, sealed.execution_instance_count);
             if (!std.meta.eql(self.config, pins.config) or self.records.len != pins.counts[@intFromEnum(seal.Family.native_lookup) - 1])
                 return error.UntrustedBlockV5NativeLookupCensus;
-            var basis = try Api.FixedBasis.init(a, self.config);
-            defer basis.deinit(a);
+            var basis: ?Api.FixedBasis = if (self.retained == null) try Api.FixedBasis.init(a, self.config) else null;
+            defer if (basis) |*value| value.deinit(a);
             for (self.records) |record| {
                 try Boundary.require(boundary);
                 var counters = try source.load(source.context, record.plan);
                 defer counters.deinit(a);
-                var first = try Api.commitFirstRoundWithBasis(a, &counters, record.plan, &basis);
+                var first = if (self.retained) |retained|
+                    try retained.load(retained.context, a, record.plan, &counters, record.roots, self.config)
+                else
+                    try Api.commitFirstRoundWithBasis(a, &counters, record.plan, &basis.?);
                 defer first.deinit(a);
                 if (!std.meta.eql(first.roots, record.roots)) return error.BlockV5NativeLookupRootReplayMismatch;
                 try Boundary.require(boundary);

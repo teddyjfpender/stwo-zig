@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-riscv-direct-original-depth2-q70-v1",
+  "cycles": 7,
+  "q": 70,
+  "pow_bits": 26,
+  "leaves": 3,
+  "folds": 2,
+  "native_parent_proofs": 0,
+  "root_bytes": 981000,
+  "root_sha256": "b4271fd8794c68081a6af81564f281a9ce7d578e654dd711f63d61a1b84b15e9",
+  "fresh_wire_full_verification_ns": 11639118500,
+  "charged_peak_bytes": 18249651782,
+  "scope": "initial middle terminal seven-cycle fixture; not retained Ethereum block"
+}

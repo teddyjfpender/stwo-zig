@@ -1,0 +1,16 @@
+tree	family	columns	oods_qm31_values
+0	all fixed	197	193
+1	native main	133	133
+2	native access	96	96
+3	caller main	2731	10971
+4	caller access	3552	3552
+5	program main	0	0
+6	lookup main	101	101
+7	RAM main	285	312
+8	native interaction	222	444
+9	caller arithmetic interaction	4996	9192
+10	caller relation interaction	4366	8732
+11	program interaction	4	8
+12	lookup interaction	24	48
+13	RAM interaction	368	736
+14	composition	16	16

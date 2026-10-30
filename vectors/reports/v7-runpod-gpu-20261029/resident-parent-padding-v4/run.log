@@ -1,0 +1,16 @@
+1/1 riscv_cuda_resident_parent_padding_test_root.test.actual fully resident original25 parent padding numerical proof fresh verifies...RESIDENT_PADDING_PROFILE queries=70 pow_bits=26
+RESIDENT_PADDING_ARTIFACT bytes=501768 elapsed_ns=3142557137 path=/workspace/stwo-v7-evidence/resident-parent-padding-v4/padding.b3n
+RESIDENT_PADDING_TRANSFER d2h_operations=1 d2h_bytes=4153288 h2d_bytes=6209628 cpu_fallback_attempts=0 aot_misses=0
+RESIDENT_PADDING_STAGE name=ingress device_ns=10166016 kernels=1 h2d_bytes=6209628 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_generation device_ns=3784128 kernels=23 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_commit device_ns=399956482 kernels=225 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=constraint_evaluation device_ns=342677185 kernels=155 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=oods device_ns=2556320 kernels=347 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=quotient device_ns=1602112 kernels=24 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=fri_commit device_ns=1436896 kernels=269 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=pow device_ns=3655744 kernels=3 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=decommit device_ns=4223424 kernels=57 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=proof_assembly device_ns=316960 kernels=0 h2d_bytes=0 d2h_bytes=4153288
+RESIDENT_PADDING verified=true child_receipt=false device_bytes=265286464 elapsed_ns=3142557137
+OK
+All 1 tests passed.

@@ -1,0 +1,171 @@
+{
+  "schema": "stwo-circuit-native-unlifted-fri-fold1-kernel-qualification-v1",
+  "scope": "Native FRI circuit kernels conditional on first-layer evaluation input wires; no original DEEP/OODS/AIR binding or leaf registry",
+  "production_active": false,
+  "backend": "CPU",
+  "optimize": "ReleaseSafe",
+  "passed": 19,
+  "failed": 0,
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/circuit_blake3_fri_reuse_test_root.zig -OReleaseSafe --test-filter 'circuit native FRI'",
+  "trusted_geometry": {
+    "degree_log": 4,
+    "domain_log": 5,
+    "polynomial_coefficients": 16,
+    "nonconstant_polynomial": true,
+    "log_blowup_factor": 1,
+    "log_last_layer_degree_bound": 0,
+    "fold_step": 1,
+    "terminal_coefficients": 1
+  },
+  "canonical_riscv_context": {
+    "queries": 70,
+    "pcs_pow_bits": 26,
+    "fri_fold_step": 1,
+    "pow_is_external_to_standalone_fri": true,
+    "fixture_carrier_pow_bits": 0,
+    "fixture_not_a_q70_pow26_stark": true,
+    "cairo_outer_circuit_fold_step": 4
+  },
+  "checked_in_circuit": [
+    "all FRI roots as input wires",
+    "native Blake3 transcript alpha draws and terminal coefficient absorption",
+    "authenticated raw query indices and circle-domain bit reversal",
+    "complete pair coset selected-value equations",
+    "canonical M31 leaf frames and every subtree authentication path",
+    "circle inverse-y fold",
+    "line inverse-x folds and double-X transitions",
+    "terminal constant polynomial equation for every raw query"
+  ],
+  "negative_controls": [
+    "wrong fold witness",
+    "wrong terminal polynomial",
+    "wrong carried input",
+    "wrong root/path",
+    "host-nominated challenge mismatch",
+    "Cairo fold4 geometry",
+    "wrong layer inventory",
+    "authentic roots/paths with false terminal claim"
+  ],
+  "strong_forgery": {
+    "all_roots_and_paths_authentic": true,
+    "queries_derived_from_false_terminal_transcript": true,
+    "native_error": "LastLayerEvaluationsInvalid",
+    "successful_host_verification_capture": false,
+    "untrusted_prover_aux_expanded": true,
+    "circuit_rejected": true
+  },
+  "NoValue_and_gatefree_parity": true,
+  "limits": {
+    "degree_log": [
+      1,
+      29
+    ],
+    "maximum_domain_log": 30,
+    "maximum_queries": 256,
+    "fold_step": 1,
+    "last_degree_log": 0,
+    "sampler_attempts_per_alpha": 1,
+    "legitimate_rejection_fails_closed": true
+  },
+  "artifacts": [
+    {
+      "queries": 8,
+      "geometry_identity": "4caab80ee8d5be527966ecba31cdc4d620b2a707892034b86c8900443608d5e4",
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-fri-kernel-v1/q8-native-fri-postcard-carrier.bin",
+      "bytes": 604,
+      "sha256": "810de08d0946ee7fa071bbc9d4ff9aa7c4c4058d2519ee21d9bff19e8e135ad7",
+      "role": "Genuine native FRI body in empty-PCS postcard transport carrier; NOT a STARK proof",
+      "host_verified_after_fresh_byte_decode": true,
+      "circuit_checked_after_all_original_producers_and_native_verifier_destroyed": true
+    },
+    {
+      "queries": 70,
+      "geometry_identity": "76e942a121073e1841725cb8478b38d6fda3adc6be74a01d250df0d27438f2e8",
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-fri-kernel-v1/q70-native-fri-postcard-carrier.bin",
+      "bytes": 193,
+      "sha256": "d5d4362ca93cc2d4f3865aa788381871380d8008c487526a1c2a3daf15be01a9",
+      "role": "Genuine native FRI body in empty-PCS postcard transport carrier; NOT a STARK proof",
+      "host_verified_after_fresh_byte_decode": true,
+      "circuit_checked_after_all_original_producers_and_native_verifier_destroyed": true
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/circuit/builder/blake3_fri_reuse_v1.zig",
+      "sha256": "9b6bf3117c886e56e79b137675dc919911aa2226a00c62a563a8a49735ae9d38"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_fri_reuse_v1_test.zig",
+      "sha256": "767f443024790f2592dc0161957affa61ed6e2ad6eafcb4b2262af347a581049"
+    },
+    {
+      "path": "src/circuit_blake3_fri_reuse_test_root.zig",
+      "sha256": "00825f7b28cfd0dcaa5432cb1ee3c925dcb96eaf27068f7e2ead9fb8f77c4b7d"
+    },
+    {
+      "path": "campaign/design/riscv-blake3-circuit-fri-v1.md",
+      "sha256": "c3e48e8a8871fad031a5e830ebab3345a618aed9793736fe60a4302b908f6198"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_channel_reuse_v1.zig",
+      "sha256": "3c9ae04eb7ad291be557e7f5510d96423c16b223e3dbc9539bf0f7395f5a4a04"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_merkle_reuse_v1.zig",
+      "sha256": "874012bebae25590bf3e82880913691caa64405f93f25046b62c3fb2b6d174a9"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_reuse_v1.zig",
+      "sha256": "c256b3951c559234d9b72090afb9367cccfb903098c1cb5ac340096c03b1bf6e"
+    },
+    {
+      "path": "src/frontends/circuit/stark_verifier/circle.zig",
+      "sha256": "2f1d39529d381db2f5d09aa80524d30a63b95d8053493e96765a9c6234243252"
+    },
+    {
+      "path": "src/frontends/circuit/stark_verifier/select_queries.zig",
+      "sha256": "bc62a17b690b3545f73618cff1aa5bce61a70150d25f6b84ae975e5769413554"
+    },
+    {
+      "path": "src/core/fri.zig",
+      "sha256": "930c76306882d5f6cd4b66bd142b5bc82cb7c4f7468c7a8286d3a632aa56c632"
+    },
+    {
+      "path": "src/core/fri/config.zig",
+      "sha256": "b6bf99b42ba57deeb74b7f576140deb4dfeb9a74e3fed19c6662527779f395b9"
+    },
+    {
+      "path": "src/core/fri/folding.zig",
+      "sha256": "ee879b09d3342f8209f6d54d257edc9944d0520da91ee3f846d52b9db1edafa6"
+    },
+    {
+      "path": "src/prover/fri.zig",
+      "sha256": "22acc5c7af16cc06fa646e5eedfe9a9a5bee95a273b53dbac83a599576f3e609"
+    },
+    {
+      "path": "src/prover/fri_decommit.zig",
+      "sha256": "e4cbe493667597aca831b5f04369c72688a515134df0e9426008ac7a569c1f17"
+    },
+    {
+      "path": "src/interop/postcard.zig",
+      "sha256": "0c7dfdc106bb66e94d6d87e5891c09c296c3210771d268ebcb068a27f2bc4d64"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_protocol.zig",
+      "sha256": "bfc6edb82181ac0e22c37af644e7d4a6ef308cf3607718a83af364acfe73dd98"
+    }
+  ],
+  "log": {
+    "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-fri-kernel-v1/qualification.log",
+    "sha256": "4aac536fd15e2242991d12041ea007c3d596f80d0839221c58ba0768afe02a7e"
+  },
+  "open": [
+    "full original PCS transcript and opening body admission",
+    "DEEP/OODS to FRI first-input binding",
+    "typed RISC-V AIR statement",
+    "full q70/26 original STARK circuit wrap",
+    "independently authorized leaf and fold registry",
+    "general sampler retry grammar",
+    "wider fold/packed-leaf profiles and nonconstant terminal bounds"
+  ]
+}

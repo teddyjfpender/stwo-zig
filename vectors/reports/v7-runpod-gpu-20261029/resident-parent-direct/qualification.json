@@ -1,0 +1,41 @@
+{
+  "status": "actual_H200_primitive_parity_passed",
+  "scope": "original parent logical row construction and canonical MAIN scatter, not a complete resident proof",
+  "supported_original_air_indices": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "original_cpu_tests_passed": 2,
+  "actual_device_physical_words_compared": 2616,
+  "actual_device_hostile_fixed_rows_rejected": 18,
+  "semantic_translation": "Zig0.15.2 C backend + exact compiler portable integer helpers; no rewritten field arithmetic",
+  "coverage": [
+    "all18 original constructors",
+    "full logical row export",
+    "canonical physical scatter and inactive padding",
+    "general affine field coefficients",
+    "full32bit query lowmask",
+    "weightedpack multiplicity3",
+    "arithmetic inverse/FMA/linear/opening rows",
+    "noncanonical fixed metadata rejection"
+  ],
+  "input_contract": "independently selected fixed tails + dynamic device wire values; original constructor fixed-tail roundtrip required",
+  "proof_authority": false,
+  "oracle_vector_sha256": "afa35fcfb55a7189155abd2ba74041a902ea1243c222ebbd72ac2c5cbb230df3"
+}

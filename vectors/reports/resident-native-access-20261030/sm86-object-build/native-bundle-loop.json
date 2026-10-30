@@ -1,0 +1,24 @@
+{
+  "name": "native-bundle-loop",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_86,code=sm_86",
+    "--threads",
+    "1",
+    "-I/workspace/stwo-sm86/src/backends/cuda/native",
+    "/workspace/sm86-evidence/native-objects/sources/native-bundle-loop.cu",
+    "-o",
+    "/workspace/sm86-evidence/native-objects/native-bundle-loop.o"
+  ],
+  "exit_code": 0,
+  "seconds": 9.312653019092977,
+  "source_sha256": "1ee260881216ae81bef219b7a7e7cbe6ac2fc6333fc3f497a484df7d46e6d8a0",
+  "object_sha256": "9ab860319c0106472c6befa90e29c8f0842bce062b31b15ab85dfd80eb6e7a35"
+}

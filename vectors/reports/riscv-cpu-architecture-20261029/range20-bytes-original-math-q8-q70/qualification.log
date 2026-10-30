@@ -1,0 +1,18 @@
+1/13 block_v8_range20_bytes_test_root.test_0...OK
+2/13 prover.tests.block_v8_range20_bytes_original_test.test.range20 bytes standalone canonical original q70 closes two byte requests per padded row...RANGE20_BYTES_ORIGINAL_FRESH_VERIFIED joint=false queries=70 main=4 physicalClaims=7 proofBytes=229611
+OK
+3/13 prover.tests.block_v8_range20_bytes_original_test.test.range20 bytes native consumer canonical original q70 closes all six native lookup buses...RANGE20_BYTES_ORIGINAL_FRESH_VERIFIED joint=true queries=70 main=4 physicalClaims=7 proofBytes=269492
+OK
+4/13 prover.tests.block_v8_range20_bytes_original_test.test.range20 bytes standalone diagnostic original q8 closes two byte requests per padded row...RANGE20_BYTES_ORIGINAL_FRESH_VERIFIED joint=false queries=8 main=4 physicalClaims=7 proofBytes=42122
+OK
+5/13 prover.tests.block_v8_range20_bytes_original_test.test.range20 bytes native consumer diagnostic original q8 closes all six native lookup buses...RANGE20_BYTES_ORIGINAL_FRESH_VERIFIED joint=true queries=8 main=4 physicalClaims=7 proofBytes=49599
+OK
+6/13 prover.tests.block_v8_range20_bytes_original_test.test.range20 bytes packed scalar fold parity and exact no-wrap boundaries...OK
+7/13 runner.mod.test_0...OK
+8/13 runner.decode.test_0...OK
+9/13 air.memory_commitment.poseidon2_air.test_0...OK
+10/13 air.semantic_eval.test_0...OK
+11/13 air.lookups.tables.source_ingest.test_0...OK
+12/13 diagnostics.mod.test_0...OK
+13/13 air.lookups.tables.mod.test_0...OK
+All 13 tests passed.

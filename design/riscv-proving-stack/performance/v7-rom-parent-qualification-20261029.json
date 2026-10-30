@@ -1,0 +1,35 @@
+{
+  "schema": "v7-rom-parent-qualification-v1",
+  "date": "2026-10-29",
+  "status": "passed",
+  "execution_epoch_version": 3,
+  "security_profile": "diagnostic_q8_pow0",
+  "parent_proof_bytes": 125814,
+  "program_words": 2,
+  "fetch_count": 5,
+  "original_trace_log": 7,
+  "original_commitment_trees": 4,
+  "empty_main_tree": true,
+  "checks": [
+    "original_policy_roots_independently_rebuilt",
+    "original_stark_fresh_verify_and_owned_capture",
+    "producer_and_original_proof_destroyed_before_recursive_preparation",
+    "cold_live_fixed_rows_namespace_context_wires_and_key_equal",
+    "epoch_root_and_claim_fixed_transcript_invariance",
+    "parent_proof_and_rows_destroyed_before_detached_verify",
+    "changed_physical_claim_rejected",
+    "changed_root_offset_rejected",
+    "changed_expected_key_rejected"
+  ],
+  "log_sha256": "8ae3941923cedd2662025f1ffccfe6acfafdff99e6f89e50144ac1f28dbc9e6e",
+  "binary_sha256": "b638888dec01dd188542739b53cac2ec3fd428a2ab0cfc3a7458afc0456b5910",
+  "qualified_open_rom_parent": true,
+  "complete_execution_qualified": false,
+  "canonical_security_qualified": false,
+  "performance_measurement": false,
+  "notes": [
+    "ROM has zero main-tree openings. Its public root schedule uses exact counts [queries,0], preserving the empty root in the epoch/public transcript and independent fixed-root admission.",
+    "The uniform first-root opening schedule was rejected by the actual parent public-closure check before any parent proof was accepted.",
+    "The mixed production path consumes original verifier rows directly. This standalone parent is a qualification gate, not a required extra stage."
+  ]
+}

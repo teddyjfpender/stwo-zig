@@ -31,6 +31,7 @@ pub const Plan = struct {
     indices: []u32,
     sources: []u32,
     cohorts: []Cohort,
+    tree_count: usize,
     factor_count: usize,
     scratch_count: usize,
 
@@ -50,10 +51,51 @@ pub const Plan = struct {
             trees[2].column_logs.len,
         );
         defer masks.deinit();
+        const offsets = try allocator.alloc([]const i32, trees[0].column_logs.len + trees[1].column_logs.len + trees[2].column_logs.len + trees[3].column_logs.len);
+        defer allocator.free(offsets);
+        var cursor: usize = 0;
+        for (trees[0].column_logs) |_| {
+            offsets[cursor] = &.{0};
+            cursor += 1;
+        }
+        for (masks.base_offsets) |item| {
+            offsets[cursor] = item.items;
+            cursor += 1;
+        }
+        for (masks.interaction_offsets) |item| {
+            offsets[cursor] = item.items;
+            cursor += 1;
+        }
+        for (trees[3].column_logs) |_| {
+            offsets[cursor] = &.{0};
+            cursor += 1;
+        }
+        // Existing circuit semantics use each tree's lifted domain.
+        return initForOffsets(allocator, geometry, offsets, blowup, null);
+    }
+
+    /// Explicit original-component mask schedule. `common_mask_log` selects
+    /// the original shared sampling domain when trees have different heights.
+    /// This is cold geometry only; all sample evaluation remains on device.
+    pub fn initForOffsets(allocator: std.mem.Allocator, geometry: anytype, ordered_offsets: []const []const i32, blowup: u32, common_mask_log: ?u32) !Plan {
+        return initWithMaskPolicy(allocator, geometry, ordered_offsets, blowup, common_mask_log, false);
+    }
+
+    pub fn initForOriginalOffsets(allocator: std.mem.Allocator, geometry: anytype, ordered_offsets: []const []const i32, blowup: u32, common_mask_log: ?u32) !Plan {
+        return initWithMaskPolicy(allocator, geometry, ordered_offsets, blowup, common_mask_log, true);
+    }
+
+    fn initWithMaskPolicy(allocator: std.mem.Allocator, geometry: anytype, ordered_offsets: []const []const i32, blowup: u32, common_mask_log: ?u32, allow_empty: bool) !Plan {
+        if (blowup == 0 or blowup > 4) return error.InvalidCircuitOodsGeometry;
+        const trees = geometry.trees;
         var samples: std.ArrayList(Sample) = .empty;
         defer samples.deinit(allocator);
-        var first_source: [4]usize = undefined;
-        var column_offsets: [4][]usize = undefined;
+        const tree_count = trees.len;
+        comptime {
+            if (tree_count != 4 and tree_count != 5) @compileError("resident OODS requires four or five original commitment trees");
+        }
+        var first_source: [tree_count]usize = undefined;
+        var column_offsets: [tree_count][]usize = undefined;
         var total_sources: usize = 0;
         var initialized: usize = 0;
         defer for (column_offsets[0..initialized]) |offsets| allocator.free(offsets);
@@ -69,20 +111,15 @@ pub const Plan = struct {
                 cursor = try add(cursor, try pow2(log));
             }
         }
-        for (trees[0].column_logs, 0..) |_, column|
-            try samples.append(allocator, try sample(trees[0], 0, column, column_offsets[0][column], 0, blowup));
-        for (masks.base_offsets, 0..) |offsets, column| {
-            if (offsets.items.len == 0 or offsets.items.len > 2) return error.InvalidCircuitOodsGeometry;
-            for (offsets.items) |offset|
-                try samples.append(allocator, try sample(trees[1], 1, column, column_offsets[1][column], offset, blowup));
-        }
-        for (masks.interaction_offsets, 0..) |offsets, column| {
-            if (offsets.items.len == 0 or offsets.items.len > 2) return error.InvalidCircuitOodsGeometry;
-            for (offsets.items) |offset|
-                try samples.append(allocator, try sample(trees[2], 2, column, column_offsets[2][column], offset, blowup));
-        }
-        for (trees[3].column_logs, 0..) |_, column|
-            try samples.append(allocator, try sample(trees[3], 3, column, column_offsets[3][column], 0, blowup));
+        if (ordered_offsets.len != total_sources) return error.InvalidCircuitOodsGeometry;
+        var source_cursor: usize = 0;
+        for (trees, 0..) |tree, tree_index| for (tree.column_logs, 0..) |_, column| {
+            const offsets = ordered_offsets[source_cursor];
+            source_cursor += 1;
+            if (allow_empty and offsets.len == 0) continue;
+            if (offsets.len == 0 or offsets.len > 2) return error.InvalidCircuitOodsGeometry;
+            for (offsets) |offset| try samples.append(allocator, try sample(tree, @intCast(tree_index), column, column_offsets[tree_index][column], offset, blowup, common_mask_log));
+        };
         if (samples.items.len == 0) return error.InvalidCircuitOodsGeometry;
 
         const offsets = try allocator.alloc(field.CirclePointBaseField, samples.items.len);
@@ -135,6 +172,7 @@ pub const Plan = struct {
             .indices = indices,
             .sources = sources,
             .cohorts = try cohorts.toOwnedSlice(allocator),
+            .tree_count = tree_count,
             .factor_count = factors,
             .scratch_count = scratch,
         };
@@ -162,6 +200,13 @@ pub const Plan = struct {
     }
 
     pub fn bind(self: *const Plan, allocator: std.mem.Allocator, commits: [4]resident_commit.Buffers) !Bound {
+        return self.bindTrees(allocator, &commits);
+    }
+
+    /// Native access witnesses are a separate fifth commitment. Preserve each
+    /// original tree ordinal rather than folding witness columns into MAIN.
+    pub fn bindTrees(self: *const Plan, allocator: std.mem.Allocator, commits: []const resident_commit.Buffers) !Bound {
+        if (commits.len != self.tree_count) return error.InvalidCircuitOodsGeometry;
         const batches = try allocator.alloc(shared.oods_batches.Batch, self.cohorts.len);
         errdefer allocator.free(batches);
         for (self.cohorts, batches) |cohort, *batch| {
@@ -207,18 +252,20 @@ const Sample = struct {
     fold: u32,
 };
 
-fn sample(tree: geometry_module.Tree, tree_index: u8, column: usize, coefficient_offset: usize, offset: i32, blowup: u32) !Sample {
+fn sample(tree: geometry_module.Tree, tree_index: u8, column: usize, coefficient_offset: usize, offset: i32, blowup: u32, common_mask_log: ?u32) !Sample {
     if (column >= tree.column_logs.len or tree.lifted_log <= blowup) return error.InvalidCircuitOodsGeometry;
     const log = tree.column_logs[column];
     if (log == 0 or log > tree.lifted_log - blowup) return error.InvalidCircuitOodsGeometry;
-    const step = canonic.CanonicCoset.new(tree.lifted_log - 1).step().mulSigned(offset);
+    const mask_log = common_mask_log orelse (tree.lifted_log - blowup);
+    if (mask_log < log or mask_log > 30) return error.InvalidCircuitOodsGeometry;
+    const step = canonic.CanonicCoset.new(if (common_mask_log != null) mask_log else tree.lifted_log - 1).step().mulSigned(offset);
     return .{
         .tree = tree_index,
         .column = column,
         .log = log,
         .coefficient_offset = coefficient_offset,
         .offset = .{ .x = step.x.v, .y = step.y.v },
-        .fold = tree.lifted_log - blowup - log,
+        .fold = mask_log - log,
     };
 }
 
@@ -227,8 +274,12 @@ fn pow2(log: u32) !usize {
     return @as(usize, 1) << @intCast(log);
 }
 
-fn add(a: usize, b: usize) !usize { return std.math.add(usize, a, b) catch error.CircuitOodsSizeOverflow; }
-fn mul(a: usize, b: usize) !usize { return std.math.mul(usize, a, b) catch error.CircuitOodsSizeOverflow; }
+fn add(a: usize, b: usize) !usize {
+    return std.math.add(usize, a, b) catch error.CircuitOodsSizeOverflow;
+}
+fn mul(a: usize, b: usize) !usize {
+    return std.math.mul(usize, a, b) catch error.CircuitOodsSizeOverflow;
+}
 
 test "circuit OODS samples every preprocessed column in canonical mask order" {
     const allocator = std.testing.allocator;

@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "change": "Equal-destination active-warp aggregation before signed M31 CAS; CPU/GPU protocol unchanged",
+  "source": {
+    "src/integrations/riscv_cuda/resident_parent_framework_util_v1.cuh": "64cce592f2b04c3c4d416859441b026b76f8d3ed7945d6109bd1f7a0cea86457"
+  },
+  "collective_contract": "All lanes named in each group execute all shuffles before leader selection; each addition reduced modulo M31, never a wrapping sum of many u32 weights. Divergent groups and partial warps covered.",
+  "tests": {
+    "warp_exact_cases": 30,
+    "original_counter_cohorts": 23,
+    "original_compared_words": 7618648,
+    "original_parameter_cases": 75,
+    "original_bad_domain_rejections": 75
+  },
+  "artifacts": {
+    "framework-fast-runner.cpp": "69e97043d104078384bdd49292c1a10712353bef946312fa5813742ca30c30c3",
+    "numeric-fast": "8d846325d159ff33e6380ae3fe47a1ade22cdf9679e659b0c1b6fa71dd42ef44",
+    "framework-warp-test.cu": "3f3282c471f69835ecd90a8c1a953c39a327c72c88e4d8a5cfbceb1cf633a4e8",
+    "framework-warp-test": "963673e80482fdfbf48ec1b7ad722bba0634b4e22a95ecc55485513b5b72fa1a",
+    "framework_util-fast.cu": "a6a48e5d0098d5d54ea1495b997c0ea7364c21ed8c0478807a8e49622234b505",
+    "framework_util-fast.o": "98c6bd3e9875f78de65b86cc3968e164820fa9606dc8059903386073484e9345",
+    "warp-test-run.log": "1d06deef357c8f8f04c43956da4906a9b8cbba96a3190b94aa328a5c0feadcc8",
+    "fast-build.log": "a66c44193a6ce3834b1d692e0fd0db1df86702a423c9a4ad2b0ce0280d77712a",
+    "numeric-fast-run.log": "e16a4c3ee2afc418f41134222a930ef931bca281ecb85407382db1216befb3e5",
+    "original-numeric.bin": "787a9862d6f32b0db0a13eb2218cdd799efa4a8940d97d9df4f92398751e90f7",
+    "numeric-fast-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "warp-test-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "performance": "Original profiler identified 4.054s counter launch; optimized canonical end-to-end gate managed by B. No isolated speedup claim in this receipt.",
+  "proof_parity": "Parent/B report canonical retained pair and hostile raw-child gate passed combined counter+path objects; exact linked runtime receipt maintained by parent.",
+  "combined_proof_receipt": "vectors/reports/riscv-cuda-resident-parent-20261030/genuine-native-canonical-v4-fast/qualification.json",
+  "combined_optimization": {
+    "proof_sha256": "a68eaaffb7235b1593c113bf21e4f0f16968bb05956509082a41667c9788e9e9",
+    "canonical_tests": "PASS10 two retained requests",
+    "hostile_tests": "PASS10 q8 raw-child substitution",
+    "baseline_trace_s": [
+      8.459,
+      8.841
+    ],
+    "optimized_trace_s": [
+      3.273,
+      3.268
+    ],
+    "baseline_prover_s": [
+      9.287,
+      8.937
+    ],
+    "optimized_prover_s": [
+      4.122,
+      3.376
+    ],
+    "attribution": "Combined path rank-hoist and counter warp aggregation. No optimized kernel profile; gains cannot be attributed separately."
+  }
+}

@@ -188,10 +188,10 @@ pub const ComponentProver = struct {
         geometry: CompositionGeometryOverrideV1,
     ) !ComponentProver {
         try geometry.validate(self.intrinsicMaxConstraintLogDegreeBound());
-        // Delta zero changes only the shared composition split. Delta one
-        // uses the reviewed q1-to-q2 polynomial extension; larger changes have
-        // no admitted producer transform.
-        if (geometry.max_constraint_log_degree_bound_delta > 1)
+        // Positive deltas use actual interpolation and wider-domain evaluation,
+        // never a relabelled repeated-index lift. Two logs cover q1->q3.
+        const delta = geometry.max_constraint_log_degree_bound_delta;
+        if (delta > 2)
             return error.UnsupportedCompositionGeometryOverride;
         var result = self;
         result.composition_geometry_override_v1 = geometry;
@@ -199,7 +199,7 @@ pub const ComponentProver = struct {
         // bypass the accumulator's candidate-only polynomial-extension mode.
         // Prepared and parallel callbacks remain safe because the public
         // methods below scope that mode around their invocation.
-        if (geometry.max_constraint_log_degree_bound_delta == 1)
+        if (geometry.max_constraint_log_degree_bound_delta != 0)
             result.backend_composition_capability = null;
         return result;
     }
@@ -250,7 +250,7 @@ pub const ComponentProver = struct {
 
     fn requiresPolynomialExtensionV1(self: ComponentProver) bool {
         const geometry = self.composition_geometry_override_v1 orelse return false;
-        return geometry.max_constraint_log_degree_bound_delta == 1;
+        return geometry.max_constraint_log_degree_bound_delta != 0;
     }
 
     pub inline fn evaluateConstraintQuotientsOnDomain(
@@ -259,7 +259,7 @@ pub const ComponentProver = struct {
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
     ) anyerror!void {
         if (self.requiresPolynomialExtensionV1()) {
-            try evaluation_accumulator.beginPolynomialExtensionV1();
+            try evaluation_accumulator.beginPolynomialExtensionV2(self.composition_geometry_override_v1.?.max_constraint_log_degree_bound_delta);
             defer evaluation_accumulator.endPolynomialExtensionV1();
             return self.vtable.evaluateConstraintQuotientsOnDomain(
                 self.ctx,
@@ -281,7 +281,7 @@ pub const ComponentProver = struct {
         pool: *work_pool_mod.WorkPool,
     ) anyerror!void {
         if (self.requiresPolynomialExtensionV1()) {
-            try evaluation_accumulator.beginPolynomialExtensionV1();
+            try evaluation_accumulator.beginPolynomialExtensionV2(self.composition_geometry_override_v1.?.max_constraint_log_degree_bound_delta);
             defer evaluation_accumulator.endPolynomialExtensionV1();
             const evaluate = self.domain_parallel_evaluator orelse
                 return self.vtable.evaluateConstraintQuotientsOnDomain(
@@ -304,7 +304,7 @@ pub const ComponentProver = struct {
     ) anyerror!?prepared_domain.PreparedDomainEvaluation {
         const prepare = self.prepare_domain_evaluator orelse return null;
         if (self.requiresPolynomialExtensionV1()) {
-            try evaluation_accumulator.beginPolynomialExtensionV1();
+            try evaluation_accumulator.beginPolynomialExtensionV2(self.composition_geometry_override_v1.?.max_constraint_log_degree_bound_delta);
             defer evaluation_accumulator.endPolynomialExtensionV1();
             var result = try prepare(
                 self.ctx,

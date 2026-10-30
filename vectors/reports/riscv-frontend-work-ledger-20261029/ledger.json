@@ -1,0 +1,213 @@
+{
+  "schema": "stwo.riscv.frontend-work-ledger.v1",
+  "proof_verified": false,
+  "timing_prediction": false,
+  "scope": "native main encoding only; excludes V7 access witnesses/interactions, providers, PCS expansion and recursion",
+  "inputs": {
+    "summary.json": "38c988a283bc1da3eb36244737f98ac8a28297a9329e4505d9be88c34b98f139",
+    "segments.jsonl": "6223b4d31b99718a094440506a9a59df298d942fb7df5f8813f23ffe53ac8c13",
+    "encoding-metadata.json": "d7ea8dbab596e8e74ac2039bccdb13b053303d3620a4bb78db17786c3a04df04"
+  },
+  "cycles": 139214856,
+  "execution_segments": 266,
+  "baseline": {
+    "native_shards": 5465,
+    "main_cells": 6625111062,
+    "minimum_main_cells": 5838661634,
+    "isolated_alias_candidate_cells": 6171890950
+  },
+  "counterfactuals": [
+    {
+      "execution_coalescing": 1,
+      "shard_rows": 65536,
+      "shard_cap_matches_current_rule": true,
+      "maximum_native_shards_per_partition": 23,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": true,
+      "native_shards": 5465,
+      "main_cells": 6625111062,
+      "padded_rows": 159652716
+    },
+    {
+      "execution_coalescing": 1,
+      "shard_rows": 131072,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 19,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 4538,
+      "main_cells": 7284950550,
+      "padded_rows": 175696236
+    },
+    {
+      "execution_coalescing": 1,
+      "shard_rows": 524288,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 17,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 4142,
+      "main_cells": 7897381910,
+      "padded_rows": 190222956
+    },
+    {
+      "execution_coalescing": 1,
+      "shard_rows": 2097152,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 17,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 4142,
+      "main_cells": 7897381910,
+      "padded_rows": 190222956
+    },
+    {
+      "execution_coalescing": 4,
+      "shard_rows": 65536,
+      "shard_cap_matches_current_rule": true,
+      "maximum_native_shards_per_partition": 44,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 2846,
+      "main_cells": 6158881996,
+      "padded_rows": 147492014
+    },
+    {
+      "execution_coalescing": 4,
+      "shard_rows": 131072,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 30,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 1857,
+      "main_cells": 6288656460,
+      "padded_rows": 150743150
+    },
+    {
+      "execution_coalescing": 4,
+      "shard_rows": 524288,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 19,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 1163,
+      "main_cells": 7337308236,
+      "padded_rows": 176537710
+    },
+    {
+      "execution_coalescing": 4,
+      "shard_rows": 2097152,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 17,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 1070,
+      "main_cells": 7783346252,
+      "padded_rows": 187457646
+    },
+    {
+      "execution_coalescing": 16,
+      "shard_rows": 65536,
+      "shard_cap_matches_current_rule": true,
+      "maximum_native_shards_per_partition": 140,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 2287,
+      "main_cells": 5940503636,
+      "padded_rows": 141882612
+    },
+    {
+      "execution_coalescing": 16,
+      "shard_rows": 131072,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 77,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 1239,
+      "main_cells": 6033289620,
+      "padded_rows": 144446132
+    },
+    {
+      "execution_coalescing": 16,
+      "shard_rows": 524288,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 31,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 477,
+      "main_cells": 6309147028,
+      "padded_rows": 151329460
+    },
+    {
+      "execution_coalescing": 16,
+      "shard_rows": 2097152,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 19,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 299,
+      "main_cells": 7435098516,
+      "padded_rows": 179761844
+    },
+    {
+      "execution_coalescing": 266,
+      "shard_rows": 65536,
+      "shard_cap_matches_current_rule": true,
+      "maximum_native_shards_per_partition": 2133,
+      "native_component_limit_satisfied": false,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 2133,
+      "main_cells": 5846220800,
+      "padded_rows": 139372544
+    },
+    {
+      "execution_coalescing": 266,
+      "shard_rows": 131072,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 1072,
+      "native_component_limit_satisfied": false,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 1072,
+      "main_cells": 5848494080,
+      "padded_rows": 139433984
+    },
+    {
+      "execution_coalescing": 266,
+      "shard_rows": 524288,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 275,
+      "native_component_limit_satisfied": false,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 275,
+      "main_cells": 5909716992,
+      "padded_rows": 140824576
+    },
+    {
+      "execution_coalescing": 266,
+      "shard_rows": 2097152,
+      "shard_cap_matches_current_rule": false,
+      "maximum_native_shards_per_partition": 77,
+      "native_component_limit_satisfied": true,
+      "admission_qualified": false,
+      "canonical_partition": false,
+      "native_shards": 77,
+      "main_cells": 6019096576,
+      "padded_rows": 144265216
+    }
+  ]
+}

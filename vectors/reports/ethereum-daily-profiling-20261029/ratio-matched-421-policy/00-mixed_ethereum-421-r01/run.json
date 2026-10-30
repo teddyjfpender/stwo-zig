@@ -1,0 +1,36 @@
+{
+  "command": [
+    "/private/tmp/v7-ethereum-daily-build-ratio-policy/prover"
+  ],
+  "environment": {
+    "STWO_V7_BENCHMARK": "1",
+    "STWO_V7_BENCH_WORKLOAD": "mixed_ethereum",
+    "STWO_V7_MULTI_UNION_ITERATIONS": "421",
+    "STWO_V7_BENCH_WINDOWS": "4",
+    "STWO_V7_MULTI_UNION_CANONICAL": "1",
+    "STWO_V7_MULTI_UNION_COEFFICIENT_INPUTS": "1",
+    "STWO_V7_MULTI_UNION_COEFFICIENT_INTERACTION": "1",
+    "STWO_V7_MULTI_UNION_CONSUME_MEMORY": "1",
+    "STWO_V7_MULTI_UNION_RAM_TILES": "1",
+    "STWO_V7_BENCH_REPORT": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/ethereum-daily-profiling-20261029/ratio-matched-421-policy/00-mixed_ethereum-421-r01/report.json"
+  },
+  "run_id": "00-mixed_ethereum-421-r01",
+  "workload": "mixed_ethereum",
+  "iterations": 421,
+  "repeat": 1,
+  "status": "failed",
+  "binary_sha256": "0200b5212c4bf8775ee709edc02276d3d0321934acbfffe4a035d03700e17570",
+  "binary_source_binding": "recorded_build",
+  "source_sha256": "d07aa55b960695ff8feec9c7073a017a10b8945291c8d61fedaffca5d1c245ae",
+  "source_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "report_path": "00-mixed_ethereum-421-r01/report.json",
+  "log_path": "00-mixed_ethereum-421-r01/run.log",
+  "process_status": "completed",
+  "returncode": 1,
+  "started_utc": "2026-10-29T05:12:20.760318+00:00",
+  "finished_utc": "2026-10-29T05:14:12.851398+00:00",
+  "command_wall_seconds": 112.08990616700612,
+  "process_error": null,
+  "error": "process completed exit=1",
+  "log_sha256": "e89095c3448dce1f007b9256a837a72a90e65b0b9f0b2475f83ca0f6322887e7"
+}

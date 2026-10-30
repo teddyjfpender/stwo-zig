@@ -1,0 +1,263 @@
+{
+  "schema": "stwo-v7-runpod-export-v1",
+  "scope": "Declared nonterminal real Ethereum windows; externally selected incoming state, skipped prefixes and full block not proved.",
+  "source_kind": null,
+  "source_tree_sha256": null,
+  "source_file_count": 0,
+  "cases": [
+    {
+      "case": "native-32768",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 32768
+      },
+      "capture": "vectors/reports/block-v7-real-window-corpus-20261029/native/capture.json",
+      "capture_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+      "capsules": {
+        "incoming": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/native/incoming.b7win.gz",
+          "compressed_sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f",
+          "compressed_bytes": 7313196,
+          "decompressed_file_sha256": "513881cc3d39d240f2ea624ab01d8eb6cef6838037b45d4c6bc0c73635724b14",
+          "state_identity_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+          "decompressed_bytes": 12071300
+        },
+        "outgoing": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/native/outgoing.b7win.gz",
+          "compressed_sha256": "e0c3e1b6668dface31c409e086ee699da03cb7e60d5984f9fad40fd640f2c096",
+          "compressed_bytes": 7318520,
+          "decompressed_file_sha256": "98ae7a5d7cc6fdad5179d299a4a7d8c3b8ebfd71174c0382a90ec60666b5a03b",
+          "state_identity_sha256": "57fd5a0db77fe74ec52bd970335ad1b55e5ee85be1c8f85eb86f4c177157e6c1",
+          "decompressed_bytes": 12081476
+        }
+      }
+    },
+    {
+      "case": "recovery-32768",
+      "window": {
+        "skip_cycles": 24718000,
+        "cycles": 32768
+      },
+      "capture": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/capture.json",
+      "capture_sha256": "99c3322a4023019a26928b3d82563e26931cf9a507fcc0ff59144a4b44410dee",
+      "capsules": {
+        "incoming": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/incoming.b7win.gz",
+          "compressed_sha256": "3366090d2072e36e223de098324d9e7a4f0554515e7be47e49ed1e957b0b5996",
+          "compressed_bytes": 11172707,
+          "decompressed_file_sha256": "39f804447d2268c1a4771d9e72edf4130a60bf6c908a3b4ad94d299033315b3a",
+          "state_identity_sha256": "6b5d08ed74ba37b9fab79dc6ed8f68240583906d1f027474ecaaefee25438cc5",
+          "decompressed_bytes": 18165756
+        },
+        "outgoing": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/outgoing.b7win.gz",
+          "compressed_sha256": "d2bbcae4a04bc65381cee0da81b70d86db3bb79472b139fcdd9e217be74ae572",
+          "compressed_bytes": 11174299,
+          "decompressed_file_sha256": "0cd87606b83a2fe12a120178083a173b45e3669a6ff2d72e1ab824ad8a20b09e",
+          "state_identity_sha256": "fa4501110600af86c16461f1fd44ae27b4ec6f1c75214a250daa5f3994d32cd3",
+          "decompressed_bytes": 18168564
+        }
+      }
+    },
+    {
+      "case": "keccak-32768",
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 32768
+      },
+      "capture": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/capture.json",
+      "capture_sha256": "be6dcb84cc448afbec5d5668e4eb5791eefc23e4a699374b6b1f5f49b5298aef",
+      "capsules": {
+        "incoming": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/incoming.b7win.gz",
+          "compressed_sha256": "cb51c5af838c1e2ba6b1abc0ebca75c0f849cf1119eb06f1296128a164761eff",
+          "compressed_bytes": 12934015,
+          "decompressed_file_sha256": "61dca162c99bf07f925f3ab89b440b8bbe7e8d8773f80723a3ccdf9d323c3b14",
+          "state_identity_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+          "decompressed_bytes": 22089028
+        },
+        "outgoing": {
+          "path": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/outgoing.b7win.gz",
+          "compressed_sha256": "f4d307b1d4e9420b9e1671780ec6c69ec9ff6f89689c1b77ca66896f6049df04",
+          "compressed_bytes": 12934073,
+          "decompressed_file_sha256": "5f7354db63f80335db7cd6730c91411abdf452a4e0c1ad22e02631966ada3f4a",
+          "state_identity_sha256": "9f15dbb8bfb6f34fb3e0884080c397ffdd80b8d3566b96783bc235008188ac0f",
+          "decompressed_bytes": 22089140
+        }
+      }
+    },
+    {
+      "case": "native-131072",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 131072
+      },
+      "capture": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/capture.json",
+      "capture_sha256": "9a2de2a9c31e4f7df75b755897cc7fe310e48d7a98de76127387bfc2816b98d6",
+      "capsules": {
+        "incoming": {
+          "path": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/incoming.b7win.gz",
+          "compressed_sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f",
+          "compressed_bytes": 7313196,
+          "decompressed_file_sha256": "513881cc3d39d240f2ea624ab01d8eb6cef6838037b45d4c6bc0c73635724b14",
+          "state_identity_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+          "decompressed_bytes": 12071300
+        },
+        "outgoing": {
+          "path": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/outgoing.b7win.gz",
+          "compressed_sha256": "9b3c704cf5c9983aec77ba829333805bdc1660366041239888125d4e15169928",
+          "compressed_bytes": 7350686,
+          "decompressed_file_sha256": "a9bdf7c9e016e3054abe78ae6fce67d1c38de3874069c66f2042a68e2b44ca38",
+          "state_identity_sha256": "53dcc35c01a4837a6dd9943511c3affc304ef11488a0d4ded3337d4369dbe9a2",
+          "decompressed_bytes": 12149796
+        }
+      }
+    },
+    {
+      "case": "native-524288",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 524288
+      },
+      "capture": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/capture.json",
+      "capture_sha256": "fe5031f8eb1d4cca59b66fdcb4da359e949ea1c9206c4daebebe2af6591b6395",
+      "capsules": {
+        "incoming": {
+          "path": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/incoming.b7win.gz",
+          "compressed_sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f",
+          "compressed_bytes": 7313196,
+          "decompressed_file_sha256": "513881cc3d39d240f2ea624ab01d8eb6cef6838037b45d4c6bc0c73635724b14",
+          "state_identity_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+          "decompressed_bytes": 12071300
+        },
+        "outgoing": {
+          "path": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/outgoing.b7win.gz",
+          "compressed_sha256": "2ec89c7f1e2e5ae7234e3d38db39320d40607cbd26ff8b2ba5987b0e5952d697",
+          "compressed_bytes": 7474720,
+          "decompressed_file_sha256": "d67c363704ce9e86d2cdc2e8829640c589b57afbb3105dab9f5d9b7c233fbfda",
+          "state_identity_sha256": "b97360e39180e04ecce06cc71430358127ced0b0a8df214e2e223fb4175d31e4",
+          "decompressed_bytes": 12330428
+        }
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/capture.json",
+      "bytes": 1432,
+      "sha256": "be6dcb84cc448afbec5d5668e4eb5791eefc23e4a699374b6b1f5f49b5298aef"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/incoming.b7win.gz",
+      "bytes": 12934015,
+      "sha256": "cb51c5af838c1e2ba6b1abc0ebca75c0f849cf1119eb06f1296128a164761eff"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/keccak/outgoing.b7win.gz",
+      "bytes": 12934073,
+      "sha256": "f4d307b1d4e9420b9e1671780ec6c69ec9ff6f89689c1b77ca66896f6049df04"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/native/capture.json",
+      "bytes": 1101,
+      "sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/native/incoming.b7win.gz",
+      "bytes": 7313196,
+      "sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/native/outgoing.b7win.gz",
+      "bytes": 7318520,
+      "sha256": "e0c3e1b6668dface31c409e086ee699da03cb7e60d5984f9fad40fd640f2c096"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/capture.json",
+      "bytes": 1431,
+      "sha256": "99c3322a4023019a26928b3d82563e26931cf9a507fcc0ff59144a4b44410dee"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/incoming.b7win.gz",
+      "bytes": 11172707,
+      "sha256": "3366090d2072e36e223de098324d9e7a4f0554515e7be47e49ed1e957b0b5996"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/recovery/outgoing.b7win.gz",
+      "bytes": 11174299,
+      "sha256": "d2bbcae4a04bc65381cee0da81b70d86db3bb79472b139fcdd9e217be74ae572"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/source/expected-output.bin",
+      "bytes": 43,
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+      "bytes": 3784904,
+      "sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/source/input.bin",
+      "bytes": 2700706,
+      "sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/features-native-32768-composed-w12/initialization-selection.json",
+      "bytes": 88993,
+      "sha256": "e990e2c93fd3f0e9fb2bd9514b8ce96c46979da4b44bc263f0b3c648b3d307b3"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/features-native-524288-composed-cut262144-w12/initialization-selection.json",
+      "bytes": 898383,
+      "sha256": "acc1ced21772823aec85298c7253a691c6bbd92238293a2d2caf398a7975f5b3"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/capture.json",
+      "bytes": 997,
+      "sha256": "9a2de2a9c31e4f7df75b755897cc7fe310e48d7a98de76127387bfc2816b98d6"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/incoming.b7win.gz",
+      "bytes": 7313196,
+      "sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture/outgoing.b7win.gz",
+      "bytes": 7350686,
+      "sha256": "9b3c704cf5c9983aec77ba829333805bdc1660366041239888125d4e15169928"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/capture.json",
+      "bytes": 997,
+      "sha256": "fe5031f8eb1d4cca59b66fdcb4da359e949ea1c9206c4daebebe2af6591b6395"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/incoming.b7win.gz",
+      "bytes": 7313196,
+      "sha256": "b0e521a943a00178f6f5e77b668a6ab03f3c630832fdd801d8f3de73d844918f"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture/outgoing.b7win.gz",
+      "bytes": 7474720,
+      "sha256": "2ec89c7f1e2e5ae7234e3d38db39320d40607cbd26ff8b2ba5987b0e5952d697"
+    },
+    {
+      "path": "vectors/reports/block-v7-real-window-v2-20261030/prepared-corpus.json",
+      "bytes": 4024,
+      "sha256": "82633dc209fec13386ddff4464bd13072851625c0c2b188e200b96e561fe52bf"
+    }
+  ],
+  "logical_payload_bytes": 99781619,
+  "excluded": [
+    "git metadata/history",
+    "hidden files",
+    "build/cache outputs",
+    "other workspaces",
+    "audit records",
+    "credentials",
+    "host binaries"
+  ],
+  "cuda_prebuilt_included": false,
+  "gpu_execution_qualified": false
+}

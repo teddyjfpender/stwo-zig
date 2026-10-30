@@ -1,0 +1,13 @@
+{
+  "schema": "stwo-riscv-lab-checkpoint-publication-v1",
+  "publication": "checkpoint branch, not main merge or complete-block qualification",
+  "source_conformance": "FAIL",
+  "source_conformance_error_lines": 245,
+  "source_conformance_baseline_unchanged": true,
+  "formatting": "PASS for build.zig src tools",
+  "python_syntax": "PASS for changed Python files",
+  "diff_whitespace": "PASS",
+  "credential_pattern_scan": "PASS",
+  "commit_and_push_hooks": "per-command override for requested unfinished-work checkpoint; source conformance failure recorded; pre-push requires clean tree but raw local artifacts are intentionally retained",
+  "full_139m_root_verified": false
+}

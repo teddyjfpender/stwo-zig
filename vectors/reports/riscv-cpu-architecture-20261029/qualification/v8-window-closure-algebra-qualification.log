@@ -1,0 +1,7 @@
+1/6 block_v8_window_closure_algebra_test_root.test_0...OK
+2/6 recursion.tests.block_v8_window_closure_algebra_test.test.native boundary closure exactly matches existing register and state arithmetic...OK
+3/6 recursion.tests.block_v8_window_closure_algebra_test.test.six memory closure equations compile to a graph and detect individual forged planes...OK
+4/6 recursion.tests.block_v8_window_closure_algebra_test.test.global source closure includes every provider byte request and exact count...OK
+5/6 air.lookups.tables.mod.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+All 6 tests passed.

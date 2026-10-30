@@ -1,0 +1,75 @@
+{
+  "schema": "stwo-final-16m-window-to-one-root-v1",
+  "status": "complete_then_stop",
+  "scope": "16,777,216 declared native-only nonterminal instructions, skip1, two8M cohorts; one recursive proof closes both actual local sources, shared bridge, compact global memory and CPU adjacency. Not full Ethereum block/callers/terminal proof.",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26,
+    "fresh_original_bundle": true,
+    "fresh_root_byte_receiver": true
+  },
+  "configuration": {
+    "workers": 8,
+    "source_workers": 2,
+    "original_parallel_proofs": 1,
+    "cohort_cycles": 8388608,
+    "cohort_count": 2,
+    "native_profile": 4,
+    "rom": "sparse_elf",
+    "batch_native_projections": false,
+    "budget_bytes": 51539607552,
+    "backing_allocator": "std.heap.smp_allocator"
+  },
+  "pins": {
+    "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "incoming_snapshot_id": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+    "outgoing_snapshot_id": "c095021f804b6e3b4f16f46f5e70a4c77a13e291e14fa3b863158b379579dd0d",
+    "skip_cycles": 1,
+    "cycles": 16777216
+  },
+  "original_report": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4/report.json",
+  "root_report": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4-single-dag-root/report.json",
+  "original_seconds": 103.014541208,
+  "root_seconds": 90.61245275,
+  "sequential_measured_phase_seconds": 193.626993958,
+  "original_peak_bytes": 48669937523,
+  "root_peak_bytes": 18287402246,
+  "root_bytes": 1030765,
+  "root_sha256": "07eac98d945121aa780695ccf15e7b712da3df01c42b8fedf9185ae742075b03",
+  "source_captures": 4,
+  "source_execution_count_during_root": 0,
+  "source_reproof_count_during_root": 0,
+  "original_frozen_audit": {
+    "benchmark": {
+      "bytes": 11103432,
+      "sha256": "e2073f6ec3addff46675d421496dced278cb936ad75881d6d41fc05d228dae4c"
+    },
+    "source-exact.tar": {
+      "bytes": 27801600,
+      "sha256": "0d1a617470a1df760d86c131c3672bb4917e7e06ca99db65c137dbf76fb811aa"
+    },
+    "source-exact-manifest.json": {
+      "bytes": 437048,
+      "sha256": "51809323c0f3cdb2ebd83253be751564eb725c5f645feb253ecea220cc831e4e"
+    }
+  },
+  "root_frozen_audit": {
+    "benchmark": {
+      "bytes": 15177496,
+      "sha256": "b1b1e8254a2b283b76deef264ec68d0010cfc30504b0f2c4c2735d67ee38dd16"
+    },
+    "source-exact.tar": {
+      "bytes": 27791360,
+      "sha256": "2a2687e6e232f005525410351fad07da86f75f1ab49dca317d03a98d92538c3c"
+    },
+    "source-exact-manifest.json": {
+      "bytes": 440994,
+      "sha256": "816746d0fdd5576710c5efc0d032c1d3d565bbc4959492280348af20ab5f2fd5"
+    }
+  },
+  "root_report_hash_matches_bytes": true,
+  "saved_original_hashes_match_report": true,
+  "source_files_modified_for_this_round": [],
+  "timing_note": "Sequential runs reserved by primary; no team codegen or other benchmark launched during either measurement. Two phases timed separately, summed explicitly; no new source execution during root.",
+  "further_work_started": false
+}

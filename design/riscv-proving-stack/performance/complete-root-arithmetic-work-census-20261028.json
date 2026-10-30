@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "source_receipt": "complete-mixed-root-qualification-20261028.json",
+  "source_sha256": "3bfb739e0664ff31d6a7349f3189b4468987fdf8b44811946e7eaa998dc334b5",
+  "scope": "recursive arithmetic rows recorded by original child preparation; excludes other AIR cohorts and padding; not timings",
+  "children": [
+    {
+      "family": "native_0",
+      "arithmetic_rows": 22899
+    },
+    {
+      "family": "native_1",
+      "arithmetic_rows": 22791
+    },
+    {
+      "family": "range16",
+      "arithmetic_rows": 13644
+    },
+    {
+      "family": "ram_lanes",
+      "arithmetic_rows": 14764
+    },
+    {
+      "family": "program_table",
+      "arithmetic_rows": 7088
+    },
+    {
+      "family": "native_lookup",
+      "arithmetic_rows": 21475
+    },
+    {
+      "family": "caller_arithmetic",
+      "arithmetic_rows": 559014
+    },
+    {
+      "family": "caller_fused",
+      "arithmetic_rows": 260955
+    },
+    {
+      "family": "source_raw_0",
+      "arithmetic_rows": 548137
+    },
+    {
+      "family": "source_raw_1",
+      "arithmetic_rows": 467469
+    },
+    {
+      "family": "source_fold_0",
+      "arithmetic_rows": 1143275
+    },
+    {
+      "family": "source_fold_1",
+      "arithmetic_rows": 712344
+    }
+  ],
+  "total_arithmetic_rows": 3793855,
+  "memory_image_arithmetic_rows": 2871225,
+  "memory_image_share": 0.7568093667259291,
+  "other_arithmetic_rows": 922630,
+  "caller_share_of_other_arithmetic_rows": 0.8887300434627099,
+  "caveat": "V7 replacement providers add work not included here. These counts neither predict block latency nor establish a speedup."
+}

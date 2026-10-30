@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-native-tiny-deep-host-oracle-v1",
+  "exit_code": 0,
+  "cases": 92,
+  "gpu_qualified": false,
+  "cuda_launch_code_compiled": false,
+  "command": [
+    "clang++",
+    "-std=c++17",
+    "-O2",
+    "-I/private/tmp/v7-native-tiny-host-final",
+    "-I/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/backends/cuda/native",
+    "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/tests/cuda/native_quotient_tiny_host.cpp",
+    "-o",
+    "/private/tmp/v7-native-tiny-host-final/oracle"
+  ],
+  "files": [
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/backends/cuda/native/transform/quotient_tiny.cuh",
+      "sha256": "999fc0b40fedd7719ce2eed068aa656381f7d746bde8f4e39688c9570668dc5c"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/backends/cuda/native/oods/field.cuh",
+      "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+    },
+    {
+      "path": "/private/tmp/v7-native-tiny-vectors.bin",
+      "sha256": "db59f9b0daad253b16093ae31755efce368e1584f139e413e165006373f4b191"
+    }
+  ]
+}

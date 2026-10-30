@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-riscv-direct-original-window-proof-qualification-v1",
+  "compiled_binary_sha256": "244dd47042b785472c4fff4ea03d8760cf2569271f93caea42b7eead828a1131",
+  "optimize": "ReleaseSafe",
+  "worker_count": 1,
+  "whole_gate_seconds": 162.63,
+  "maximum_resident_bytes": 38441353216,
+  "peak_memory_footprint_bytes": 38455455728,
+  "tests_passed": 17,
+  "tests_skipped": 5,
+  "tests_failed": 0,
+  "no_comparative_speedup_claim": true,
+  "source_fixture": "vectors/reports/riscv-cpu-architecture-20261029/mixed-durable-compact-bundle-q70/sha_keccak",
+  "proof_report": "report.json",
+  "quotient_layout": "ungrouped_v1"
+}

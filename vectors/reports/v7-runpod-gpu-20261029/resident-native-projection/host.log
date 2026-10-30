@@ -1,0 +1,7 @@
+1/5 integrations.riscv_cuda.resident_native_projection_oracle_v1.test.resident native projection CUDA oracle export...OK
+2/5 integrations.riscv_cuda.resident_native_projection_test_v1.test.resident native projections exact original every physical slot q3 q2...native projection exact physical programs=800
+OK
+3/5 frontends.riscv.air.semantic_eval.test_0...OK
+4/5 frontends.riscv.air.lookups.tables.mod.test_0...OK
+5/5 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+All 5 tests passed.

@@ -1,0 +1,17 @@
+{
+  "qualification": "cold routing only; no GPU child proof yet",
+  "tests_passed": 10,
+  "tasks": 3923,
+  "canonical_direct_calls": 36921,
+  "hash_compressions": 665,
+  "resident_words": 16598,
+  "original_owners_destroyed": true,
+  "gpu_proof_verified": false,
+  "full_source_manifest": null,
+  "selected_source_sha256": {
+    "src/riscv_cuda_resident_parent_native_test_root.zig": "93818fc90b9853dbe744a2090fa8fd501b6be0d26002d4c19d6a93833992602f",
+    "src/integrations/riscv_cuda/resident_parent_schedule_v1.zig": "c03525cba073233b550acc0596b54d165210d474ca2b9965b41ff7cc64eefb29",
+    "src/integrations/riscv_cuda/resident_parent_composite_plan_v1.zig": "ee5e77de9236ad2d786a644959aa3c67cf583857f536d818d62242f63907420e",
+    "src/integrations/riscv_cuda/resident_parent_child_packet_v1.zig": "e5bc9402575d0ac1395c24875deb4568caddd6d4d0c2a31d1d7cb59bf6d34bba"
+  }
+}

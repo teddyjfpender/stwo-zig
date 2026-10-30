@@ -82,15 +82,36 @@ pub fn keccakPairFromWordBits(comptime S: type, caller: []const S, input_word: [
 pub fn keccakPairFromBytes(comptime S: type, caller: []const S, before: [4]S, after: [4]S, slot: usize) !pair_mod.Pair(S) {
     if (caller.len != keccak.Layout.main_columns or slot >= KECCAK_ACCESS_COUNT)
         return error.InvalidKeccakAccessSlot;
-    const active = caller[keccak.Layout.enabler];
-    const cycle = caller[keccak.Layout.execution_clock];
+    return keccakPairFromReader(S, struct {
+        values: []const S,
+        pub fn at(self: @This(), index: usize) !S {
+            return self.values[index];
+        }
+    }{ .values = caller }, before, after, slot);
+}
+
+/// The exact four metadata columns consumed by a RAM-word projection. Keeping
+/// this inventory beside the tuple formula avoids extending the whole caller
+/// metadata table independently for each of its fifty memory words.
+pub fn keccakRamColumns(slot: usize) ![4]usize {
+    if (slot == 0 or slot >= KECCAK_ACCESS_COUNT) return error.InvalidKeccakAccessSlot;
+    return .{ keccak.Layout.enabler, keccak.Layout.execution_clock, keccak.Layout.pointer_double_word_index, keccak.Layout.previousClock(slot - 1) };
+}
+
+/// Lazy access to authenticated caller metadata; algebra is identical on trace
+/// rows and extension-field OODS points. Never branch on witness values.
+pub fn keccakPairFromReader(comptime S: type, reader: anytype, before: [4]S, after: [4]S, slot: usize) !pair_mod.Pair(S) {
+    if (slot >= KECCAK_ACCESS_COUNT) return error.InvalidKeccakAccessSlot;
+    const active = try reader.at(keccak.Layout.enabler);
+    const cycle = try reader.at(keccak.Layout.execution_clock);
     if (slot == 0) {
-        const pointer = bytes(S, caller, keccak.Layout.pointer_bytes);
-        return pair(S, active, 0, caller[keccak.Layout.pointer_register], caller[keccak.Layout.pointer_previous_clock], externalClock(S, cycle, 1), pointer, pointer);
+        var pointer: [4]S = undefined;
+        for (&pointer, 0..) |*value, index| value.* = try reader.at(keccak.Layout.pointer_bytes + index);
+        return pair(S, active, 0, try reader.at(keccak.Layout.pointer_register), try reader.at(keccak.Layout.pointer_previous_clock), externalClock(S, cycle, 1), pointer, pointer);
     }
     const word = slot - 1;
-    const address = caller[keccak.Layout.pointer_double_word_index].mul(scalar(S, 8)).add(scalar(S, @intCast(4 * word)));
-    var access = pair(S, active, 1, address, caller[keccak.Layout.previousClock(word)], externalClock(S, cycle, 2), before, after);
+    const address = (try reader.at(keccak.Layout.pointer_double_word_index)).mul(scalar(S, 8)).add(scalar(S, @intCast(4 * word)));
+    var access = pair(S, active, 1, address, try reader.at(keccak.Layout.previousClock(word)), externalClock(S, cycle, 2), before, after);
     access.address_unit = .byte_address;
     return access;
 }
@@ -273,4 +294,36 @@ test "block-v4 active signer source matches native byte addresses and clocks" {
         const expected: u32 = if (index == 0) 5 else if (index == 1) 40 else @intCast(4 * (10 + signer.input_word_count));
         try std.testing.expectEqual(expected, byte_address);
     }
+}
+
+test "Keccak RAM projection reads exactly four metadata columns at arbitrary extension points" {
+    const Q = core.fields.qm31.QM31;
+    var main: [keccak.Layout.main_columns]Q = undefined;
+    for (&main, 0..) |*value, index| value.* = Q.fromM31Array(.{
+        M.fromCanonical(@intCast(index + 3)),  M.fromCanonical(@intCast(index + 17)),
+        M.fromCanonical(@intCast(index + 41)), M.fromCanonical(@intCast(index + 97)),
+    });
+    const before = [_]Q{ main[3], main[7], main[11], main[13] };
+    const after = [_]Q{ main[17], main[19], main[23], main[29] };
+    for (1..KECCAK_ACCESS_COUNT) |slot| {
+        const Reader = struct {
+            main: []const Q,
+            columns: [4]usize,
+            reads: usize = 0,
+            pub fn at(self: *@This(), index: usize) !Q {
+                for (self.columns) |column| if (index == column) {
+                    self.reads += 1;
+                    return self.main[index];
+                };
+                return error.UnexpectedMetadataRead;
+            }
+        };
+        var reader = Reader{ .main = &main, .columns = try keccakRamColumns(slot) };
+        const sparse = try keccakPairFromReader(Q, &reader, before, after, slot);
+        const full = try keccakPairFromBytes(Q, &main, before, after, slot);
+        try std.testing.expect(std.meta.eql(sparse, full));
+        try std.testing.expectEqual(@as(usize, 4), reader.reads);
+    }
+    try std.testing.expectError(error.InvalidKeccakAccessSlot, keccakRamColumns(0));
+    try std.testing.expectError(error.InvalidKeccakAccessSlot, keccakRamColumns(KECCAK_ACCESS_COUNT));
 }

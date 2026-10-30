@@ -1,0 +1,17 @@
+{
+  "exit_code": 0,
+  "whole_test_wall_s": 20.34647297859192,
+  "proofs": [
+    {
+      "path": "/workspace/stwo-v7-evidence/resident-native-v4-fast/native.b3n.0",
+      "bytes": 754766,
+      "sha256": "a68eaaffb7235b1593c113bf21e4f0f16968bb05956509082a41667c9788e9e9"
+    },
+    {
+      "path": "/workspace/stwo-v7-evidence/resident-native-v4-fast/native.b3n.1",
+      "bytes": 754766,
+      "sha256": "a68eaaffb7235b1593c113bf21e4f0f16968bb05956509082a41667c9788e9e9"
+    }
+  ],
+  "same_canonical_proofs": true
+}

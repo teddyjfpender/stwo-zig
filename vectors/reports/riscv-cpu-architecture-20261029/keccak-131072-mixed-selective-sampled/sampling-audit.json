@@ -1,0 +1,11 @@
+{
+  "schema": "stwo-v8-diagnostic-sample-v1",
+  "sampled": true,
+  "ranked": false,
+  "pid": 52483,
+  "delay_seconds": 4,
+  "duration_seconds": 1,
+  "interval_milliseconds": 1,
+  "returncode": 0,
+  "stderr": "Sampling process 52483 for 1 second with 1 millisecond of run time between samples\nSampling completed, processing symbols...\nSample analysis of process 52483 written to file vectors/reports/riscv-cpu-architecture-20261029/keccak-131072-mixed-selective-sampled/core-stack-sample.txt\n"
+}

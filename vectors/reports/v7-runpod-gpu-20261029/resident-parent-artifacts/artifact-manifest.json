@@ -1,0 +1,9 @@
+{
+  "schema": "stwo-local-gpu-build-artifact-v1",
+  "name": "sm90-resident-artifacts.tar.gz",
+  "sha256": "48b7feb7181e2eb6b0e7884dc70b097b5a0f0d4c6a06a3cfbb5e1eaa22e422eb",
+  "bytes": 46826566,
+  "gpu_architecture": "sm_90",
+  "purpose": "reusable compiled CUDA47 archive plus framework,tiny-transform,readonly and resolver objects",
+  "storage": "local external artifacts directory; binaries are not source-controlled"
+}

@@ -96,9 +96,16 @@ pub fn ForBackend(comptime Backend: type) type {
                 var native_first = try NativeApi.commitFirstRound(a, owner, prepared, prepared.id);
                 defer native_first.deinit(a);
                 return .{
-                    .allocator = a, .slots = slots, .traces = traces, .inputs = inputs,
-                    .counter = counter, .sidecar_first = null, .native_roots = native_first.roots,
-                    .event_count = 0, .instance_index = instance_index, .native_key_id = prepared.id,
+                    .allocator = a,
+                    .slots = slots,
+                    .traces = traces,
+                    .inputs = inputs,
+                    .counter = counter,
+                    .sidecar_first = null,
+                    .native_roots = native_first.roots,
+                    .event_count = 0,
+                    .instance_index = instance_index,
+                    .native_key_id = prepared.id,
                 };
             }
             var arena = std.heap.ArenaAllocator.init(a);
@@ -122,9 +129,16 @@ pub fn ForBackend(comptime Backend: type) type {
             defer native_first.deinit(a);
             if (!std.meta.eql(native_first.roots, sidecar_first.roots[0..2].*)) return error.ShaSidecarNativeRootMismatch;
             return .{
-                .allocator = a, .slots = slots, .traces = traces, .inputs = inputs, .counter = counter,
-                .sidecar_first = sidecar_first, .native_roots = native_first.roots,
-                .event_count = events, .instance_index = instance_index, .native_key_id = prepared.id,
+                .allocator = a,
+                .slots = slots,
+                .traces = traces,
+                .inputs = inputs,
+                .counter = counter,
+                .sidecar_first = sidecar_first,
+                .native_roots = native_first.roots,
+                .event_count = events,
+                .instance_index = instance_index,
+                .native_key_id = prepared.id,
             };
         }
 

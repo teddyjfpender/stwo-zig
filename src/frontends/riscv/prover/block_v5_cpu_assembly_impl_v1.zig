@@ -49,6 +49,14 @@ pub fn ForCapacity(comptime capacity: bool) type {
             }
         };
         pub fn assemble(a: std.mem.Allocator, collected: *Collect.Collected, policy: Driver.InputPolicy, max_entries: usize) !*Assembly {
+            return assembleLayout(false, a, collected, policy, max_entries);
+        }
+        /// Canonical B6JP roster selection occurs before the source seal.
+        pub fn assemblePartitioned(a: std.mem.Allocator, collected: *Collect.Collected, policy: Driver.InputPolicy, max_entries: usize) !*Assembly {
+            if (capacity) return error.UnsupportedPartitionedCapacityLayout;
+            return assembleLayout(true, a, collected, policy, max_entries);
+        }
+        fn assembleLayout(comptime partitioned: bool, a: std.mem.Allocator, collected: *Collect.Collected, policy: Driver.InputPolicy, max_entries: usize) !*Assembly {
             const recipe = policy.runner_pins.execution_recipe;
             try recipe.requireCompiled();
             if (collected.execution_recipe != recipe) return error.MixedV5ExecutionRecipe;
@@ -97,7 +105,10 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 try recipe.requireNative(&native.shape);
                 if (collected.ordinary[index].register_custody_mode != register_mode or
                     (collected.callers[index] != null and collected.callers[index].?.register_custody_mode != register_mode)) return error.MixedV5CpuProjectionScope;
-                try result.program.addLightweightFused(record.complete_fetches, &native.shape, native.template_id, execution.instance_id, execution.roots, execution.roots, external, register_mode, collected.ordinary[index].frame, collected.ordinary[index].witness_root);
+                if (partitioned)
+                    try result.program.addLightweightPartitioned(record.complete_fetches, &native.shape, native.template_id, execution.instance_id, execution.roots, execution.roots, external, register_mode, collected.ordinary[index].frame, collected.ordinary[index].witness_root)
+                else
+                    try result.program.addLightweightFused(record.complete_fetches, &native.shape, native.template_id, execution.instance_id, execution.roots, execution.roots, external, register_mode, collected.ordinary[index].frame, collected.ordinary[index].witness_root);
                 result.executions[index] = if (capacity) .{ .shape = &native.shape, .external_retirements = external, .admission = collected.bound.admissions[index], .template = native.template, .template_id = native.template_id, .profile = profile, .limits = collected.capacity_fused_limits } else .{ .shape = &native.shape, .admission = collected.bound.admissions[index], .template = native.template, .template_id = native.template_id, .profile = profile };
                 result.ordinary_events[index] = Collect.ordinaryEvents(&collected.ordinary[index]);
                 result.witness_roots[index] = collected.ordinary[index].witness_root;

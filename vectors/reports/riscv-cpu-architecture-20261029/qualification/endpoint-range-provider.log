@@ -1,0 +1,139 @@
+1/134 block_v8_endpoint_range_provider_test_root.test_0...OK
+2/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint-only range provider closes all thirteen requests and exact byte-pair counter signs...OK
+3/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint provider multiplicity count and compensated fraction mutations fail pure closure...OK
+4/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint derived carry limb range is required even with Boolean carry bits...OK
+5/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint range provider rejects malformed active rows padding bytes and resource bounds...OK
+6/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint byte-counter merge is transactional at the lookup characteristic boundary...OK
+7/134 prover.tests.block_v8_endpoint_range_provider_test.test.endpoint provider allocation failures preserve source and release owned state...OK
+8/134 air.block.memory_transition.test.sorted real memory accesses reconstruct before and after values across writes...OK
+9/134 air.block.memory_transition.test.new sorted address requires an independently supplied initial value...OK
+10/134 air.block.memory_event.test.block memory events share one global clock across leaf-local and continuous frames...OK
+11/134 air.block.memory_event.test.block memory event projection validates real tracker access and wire encoding...OK
+12/134 air.lookups.tables.counter.test.signed counter preserves consumer signs and committed order...OK
+13/134 air.lookups.tables.counter.test.counter rejects value, result, domain, and extension-field mutations...OK
+14/134 air.lookups.tables.counter.test.counter set registers every lookup domain without semantic branching...OK
+15/134 air.lookups.tables.schema.test.table schemas match pinned log sizes, arities, and boundary tuples...OK
+16/134 air.lookups.tables.schema.test.table indices roundtrip sampled rows and reject mutations...OK
+17/134 air.lookups.tables.schema.test.range M31 duplicate row is deterministic but not index-addressable...OK
+18/134 air.lookups.tables.schema.test.preprocessed columns use deterministic committed bit-reversed order...OK
+19/134 prover.block_v7_execution_epoch_v1.test.v7 epoch admits exactly one complete memory layout...OK
+20/134 prover.block_v7_execution_epoch_v1.test.v7 window extension preserves exact historical epoch framing...OK
+21/134 prover.block_memory_relation_v2.test.block v2 relation draws only after the unchanged 47 universal challenges...OK
+22/134 prover.block_memory_relation_v2.test.block v2 source roster and register mask bind the universal challenge prefix...OK
+23/134 prover.block_memory_relation_v2.test.block v2 memory tuple is injective over canonical byte limbs...OK
+24/134 prover.block_memory_relation_v2.test.block-v2 all components draw identical buses from bound source seal...OK
+25/134 prover.block_memory_relation_v2.test.native witness-side transition and cross-instance link sums detect altered events...OK
+26/134 prover.block_memory_relation_v2.test.block relation claim closure rejects missing, reordered and nonzero verified inputs...OK
+27/134 prover.block_memory_relation_v2.test.v2 interaction writer commits two-column framework recurrence and exact claims...OK
+28/134 prover.block_memory_relation_v2.test.v2 link claim crosses independently sized sorted instances without padding leaves...OK
+29/134 prover.block_memory_relation_v2.test.v2 polynomial interaction identities accept committed rows and reject tampering...OK
+30/134 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+31/134 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+32/134 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+33/134 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+34/134 recursion.air.universal_challenges.test.R-012 universal challenges use exact 47-relation descriptor geometry...OK
+35/134 recursion.air.universal_challenges.test.R-012 universal challenge bulk draw is transcript-equivalent to 47 pair draws...OK
+36/134 recursion.air.universal_challenges.test.R-012 universal challenge bundle rejects seal and arity mutation...OK
+37/134 recursion.air.universal_challenges.test.R-012 universal challenge combine uses exact alpha-power convention...OK
+38/134 recursion.air.universal_challenges.test.R-012 universal challenge packed base combination matches extension oracle at every arity...OK
+39/134 runner.state_chain.test.state_chain: register access tracking...OK
+40/134 runner.state_chain.test.state_chain: clock gap filling...OK
+41/134 runner.state_chain.test.state_chain: decomposeU32...OK
+42/134 runner.state_chain.test.state_chain: memory access tracking...OK
+43/134 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+44/134 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+45/134 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+46/134 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+47/134 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+48/134 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+49/134 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+50/134 air.block.memory_spool.test.memory spool heap merge carries singleton runs and records exact transport work...OK
+51/134 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+52/134 air.block.memory_spool.test.spool accepts real segment accesses and globally orders leaf-local clocks...OK
+53/134 air.block.memory_spool.test.run admission rejects truncated and surplus records before merge...OK
+54/134 air.block.memory_radix_sort.test.memory radix sort preserves exact unsigned space address and u64 clock order...OK
+55/134 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+56/134 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+57/134 air.lookups.entry.test.lookup entry domains retain transcript order...OK
+58/134 air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+59/134 prover.block_commitment_manifest.test.block manifest binds exact three-instance coverage without dummy leaves...OK
+60/134 prover.block_commitment_manifest.test.block manifest refuses omissions reordering duplicate receipts and foreign fixed roots...OK
+61/134 prover.block_memory_source_seal_v2.test.block-v2 source seal changes the shared challenge seed without changing v1...OK
+62/134 recursion.air.framework_interaction.test.R-012 framework interaction is source-exact, two-allocation, and failure atomic...OK
+63/134 recursion.air.framework_interaction.test.R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and alias-safe...OK
+64/134 recursion.air.framework_interaction.test.R-012 framework tiled owned output preserves columns and releases partial allocations...OK
+65/134 air.semantics.common.Ops(fields.qm31.QM31).selfTests().test.semantics common: compose little-endian word...OK
+66/134 prover.block_component_plan.test.component instances cover arbitrary counts without power-of-two rounding...OK
+67/134 prover.block_component_plan.test.component families size independently and inactive precompiles allocate nothing...OK
+68/134 prover.block_component_plan.test.component planner rejects unsupported capacity and duplicate families...OK
+69/134 recursion.air.control_witness.test.R-012 control preprocessing is verifier-owned across all three lanes...OK
+70/134 recursion.air.control_witness.test.R-012 control preprocessing mutation and swapped lane reject...OK
+71/134 recursion.air.control_witness.test.R-012 control preprocessing direct writer is atomic and zero pads...OK
+72/134 recursion.air.control_witness.test.R-012 control preprocessing releases every allocation failure...OK
+73/134 recursion.air.relation_effect.test.R-012 universal relation group authors multiple schemas atomically...OK
+74/134 recursion.air.relation_effect.test.R-012 universal relation authoring fails closed on base Merkle ABI gap...OK
+75/134 recursion.air.relation_effect.test.R-012 universal relation authoring rejects every group before mutation...OK
+76/134 recursion.air.relation_effect.test.R-012 universal relation group releases every allocation failure...OK
+77/134 recursion.air.relation_interaction_tuple_ledger.test.R-012 canonical tuple hash batches exactly the existing byte stream...OK
+78/134 air.logup.test.geometry: trace-order shift equals evaluation at point minus coset step...OK
+79/134 air.logup.test.cumulativeColumn accumulates batched fractions and reports the claim...OK
+80/134 air.logup.test.pairConstraint vanishes exactly on honest cumulative columns...OK
+81/134 air.logup.test.state chain closes for one, two, many, and interleaved shards...OK
+82/134 air.logup.test.state chain rejects omission, duplication, boundary mutation, and field cycles...OK
+83/134 air.logup.test.program bus balances executed rows against ROM multiplicities...OK
+84/134 recursion.air.verifier_schedule.test.R-012 verifier schedule pins all 28 exact step encodings...OK
+85/134 recursion.air.verifier_schedule.test.R-012 verifier plan derives full query FRI and closure schedule from authority...OK
+86/134 recursion.air.verifier_schedule.test.R-012 frozen verifier programs separate VM and universal relation domains...OK
+87/134 recursion.air.verifier_schedule.test.R-012 verifier plan detects schedule mutation omission and extension...OK
+88/134 recursion.air.verifier_schedule.test.R-012 candidate schedule is domain-separated without changing frozen V1...OK
+89/134 recursion.air.verifier_schedule.test.R-012 verifier schedule releases every allocation failure...OK
+90/134 recursion.poseidon2_channel.test.recursion Poseidon2: canonical Stark-V conformance vector...OK
+91/134 recursion.poseidon2_channel.test.recursion Poseidon2: incremental canonical hashing matches concatenation...OK
+92/134 recursion.poseidon2_channel.test.recursion Poseidon2: canonical channel slice boundaries are transparent...OK
+93/134 recursion.poseidon2_channel.test.recursion Poseidon2: parameter identity is deterministic and nonzero...
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+OK
+94/134 recursion.poseidon2_channel.test.recursion Poseidon2: channel draws are deterministic indexed and non-mutating...OK
+95/134 recursion.poseidon2_channel.test.recursion Poseidon2: unrestricted u32 encoding is injective across p...OK
+96/134 recursion.poseidon2_channel.test.recursion Poseidon2: byte hashing binds length and trailing zeros...OK
+97/134 recursion.poseidon2_channel.test.recursion Poseidon2: leaf and node domains are separated...OK
+98/134 recursion.poseidon2_channel.test.recursion Poseidon2: SIMD nodes preserve canonical scalar hashes...OK
+99/134 recursion.poseidon2_channel.test.recursion Poseidon2: SIMD packed direct and incremental leaves match scalar...OK
+100/134 recursion.poseidon2_channel.test.recursion Poseidon2: lifted Merkle contract and packed leaves...OK
+101/134 recursion.poseidon2_channel.test.recursion Poseidon2: PoW search returns the canonical lowest nonce...OK
+102/134 recursion.poseidon2_channel.test.poseidon2 channel proof-of-work prefix replay matches verifyPowNonce...OK
+103/134 recursion.fixed_profile.test.recursion fixed profile: fold-four schedule is exact...OK
+104/134 recursion.fixed_profile.test.recursion fixed profile: partial final fold and paths are derived...OK
+105/134 recursion.fixed_profile.test.recursion fixed profile: fold-two parent reaches seventeen rounds...OK
+106/134 recursion.fixed_profile.test.recursion fixed profile: proof-selected geometry rejects...OK
+107/134 recursion.fixed_profile.test.recursion fixed profile: invalid schedules fail closed...OK
+108/134 recursion.protocol.test.recursion protocol: profile and identifiers are frozen...
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+OK
+109/134 recursion.protocol.test.recursion protocol: canonical child identity domains are separated...OK
+110/134 recursion.protocol.test.recursion protocol: security identity binds parameters and transcript draws...OK
+111/134 recursion.protocol.test.recursion protocol: core and provider leaves fold canonically...OK
+112/134 recursion.protocol.test.recursion protocol: swapped duplicated and non-adjacent leaves reject...OK
+113/134 recursion.protocol.test.recursion protocol: cross-session/challenge and unclosed relations reject...OK
+114/134 recursion.protocol.test.recursion protocol: empty relation and protocol authority are exact...OK
+115/134 air.memory_commitment.poseidon2.test.memory Poseidon2: pinned default hash chain...OK
+116/134 air.memory_commitment.poseidon2.test.memory Poseidon2: four transposed full states match scalar permutations...OK
+117/134 air.memory_commitment.poseidon2.test.memory Poseidon2: scalar pair vector is stable...OK
+118/134 air.memory_commitment.poseidon2.test.memory Poseidon2: four-lane hashes equal scalar hashes...OK
+119/134 air.public_data.test.public data: versioned transcript preserves pinned Stark-V field order...OK
+120/134 air.public_data.test.public data: absent roots and empty input preserve versioned field calls...OK
+121/134 air.public_data.test.public data: statement transcript version is a nonzero domain prefix...OK
+122/134 air.public_data.test.public data: pack input words is little endian with zero padding...OK
+123/134 air.public_data.test.public data: validator accepts the pinned input and output shape...OK
+124/134 air.public_data.test.public data: validator rejects missing root and malformed input...OK
+125/134 air.public_data.test.public data: validator rejects malformed output structure...OK
+126/134 air.public_data.test.public data: empty output forms retain the pinned segment distinction...OK
+127/134 air.public_data.test.public data: output regions use checked, non-overlapping addresses...OK
+128/134 air.public_data.test.public data: unaligned output length is outside the supported proof profile...OK
+129/134 air.public_data.test.BLAKE3 public data binds every root bit and separates absence and version...OK
+130/134 air.public_data.test.public input byte binding rejects changed bytes lengths and padding...OK
+131/134 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+132/134 recursion.blake3_identity_digest.test.BLAKE3 identity encoding pins byte order and preserves all high bits...OK
+133/134 recursion.blake3_identity_digest.test.BLAKE3 identity rejects M31-canonical aliases at every limb...OK
+134/134 recursion.blake3_identity_digest.test.every BLAKE3 digest bit changes its field encoding...OK
+All 134 tests passed.

@@ -21,14 +21,17 @@ pub fn recordEquation(builder: *r.Builder, component: *const Native.Roster.Compo
     const split = handle.compositionLogSplit();
     const mask_log = core.verifier_types.compositionMaskLogSize(composition_log, split) orelse return error.InvalidProgramRecursiveGeometry;
     const point = r.pointFromSeed(seed);
+    var accumulated = S.zero();
+    try accumulate(component, row, current, previous, claim, challenges, randomness, point, mask_log, &accumulated);
+    try builder.constrainZero((try r.reconstructSplitComposition(&chunks, point, composition_log, split)).sub(accumulated));
+}
+pub fn accumulate(component: *const Native.Roster.Component(Native.Air), row: [6]S, current: [4]S, previous: [4]S, claim: S, challenges: *const r.ChallengeSet, randomness: S, point: core.circle.CirclePoint(S), mask_log: u32, accumulated: *S) !void {
     var cache: r.DenominatorCache = @splat(null);
     const denominator = try r.quotientDenominator(component.log_size, mask_log, point, &cache);
     const shift = claim.mul(S.fromBase(try M.fromCanonical(@as(u32, 1) << @intCast(component.log_size)).inv()));
-    var accumulated = S.zero();
     // Framework final-column current/previous ordering is component-owned.
-    const count = try r.recordComponent(Native.Roster.Component(Native.Air).RelationRuntime, component, row, .{r.fromPartialEvals(current)}, r.fromPartialEvals(previous), shift, challenges, randomness, denominator, &accumulated);
-    if (count != handle.nConstraints()) return error.InvalidProgramRecursiveGeometry;
-    try builder.constrainZero((try r.reconstructSplitComposition(&chunks, point, composition_log, split)).sub(accumulated));
+    const count = try r.recordComponent(Native.Roster.Component(Native.Air).RelationRuntime, component, row, .{r.fromPartialEvals(current)}, r.fromPartialEvals(previous), shift, challenges, randomness, denominator, accumulated);
+    if (count != (try verifier(component)).nConstraints()) return error.InvalidProgramRecursiveGeometry;
 }
 pub fn prepare(a: std.mem.Allocator, admitted: *const Admission.Prepared, capture: *const Capture.VerifiedCapture, expected: [32]u8) !Prepared {
     try capture.validate(admitted, expected);

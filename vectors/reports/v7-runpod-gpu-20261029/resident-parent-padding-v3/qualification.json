@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-resident-parent-backend-qualification-v1",
+  "status": "pass",
+  "independent_original_verifier": true,
+  "child_receipt": false,
+  "scope": "all25 original AIR padding witness, resident numeric prover only",
+  "device_planned_bytes": 261640300,
+  "proof_elapsed_ns": 3332860834,
+  "proof_bytes": 79427,
+  "proof_sha256": "dd2848793cd7baa281965285566ce1a449b0feb77c0a91dba7f729c59b309b49",
+  "source_sha256": "303fa33ead8bde5ad4633ef2dd0d04bf791c483adfde63b99490c356546f1e86",
+  "gpu": "H200",
+  "security": {
+    "queries": 8,
+    "pow_bits": 0,
+    "epoch": "diagnostic_q8_pow0"
+  },
+  "limitations": [
+    "empty parent witness: no genuine child verification",
+    "not Ethereum window timing",
+    "not full-block qualification",
+    "diagnostic security only; canonical epoch not yet tested"
+  ]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_program_v1.zig",
+    "sha256": "01ca5113e1bd61395cb695d8d6ae386b49d47b8ec35aea2856c7372e1a63137a",
+    "bytes": 12056
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_codegen_v1.zig",
+    "sha256": "cf5c06ec4c960b9bb79dab626095d13b8fef736f49c03a62faa51e8fe37dc17c",
+    "bytes": 8681
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_interaction_v1.zig",
+    "sha256": "a0cd8026a5f0dd306e42ef9c7e27e171812416abee3c7de9e4505252f7e2eb6f",
+    "bytes": 11315
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_interaction_v1.cuh",
+    "sha256": "7fc292a99edc9f13873c2b12e6f672f028395b6d3d207ca3502a7ac8aab82594",
+    "bytes": 2431
+  },
+  {
+    "path": "src/backends/cuda/framework_interaction_codegen_v1.zig",
+    "sha256": "2035778657464c9a2132fd5c6199dd5d11d283f1a59f3e254ab70ee6c834499c",
+    "bytes": 7529
+  },
+  {
+    "path": "src/backends/cuda/native/framework_interaction_v1.cuh",
+    "sha256": "bb0c3251bd143f20c38492665b4539ccb8f41f9bde3696f394144211a283ce6c",
+    "bytes": 982
+  },
+  {
+    "path": "src/frontends/riscv/prover/block_v7_native_access_interaction_v1.zig",
+    "sha256": "d0c0c4747d188d64597a84476d8d56be9f970c80c17e7cd8bdee91448470ee94",
+    "bytes": 13333
+  },
+  {
+    "path": "src/frontends/riscv/prover/block_v5_native_fused_algebra_v1.zig",
+    "sha256": "7139f73fa094ab2e815766f12aca27c4b6e251fca8b5cf1b5dbcfe99b8005d97",
+    "bytes": 13694
+  }
+]

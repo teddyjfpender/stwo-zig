@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-resident-parent-primitive-qualification-v1",
+  "scope": "phased-hash-witness-primitive",
+  "hardware": "NVIDIA H200 sm90",
+  "status": "pass",
+  "metrics": {
+    "cases": 4,
+    "compressions": 631,
+    "exact_words": 6965776,
+    "reverse_frame_parity": true
+  },
+  "generated_cuda_sha256": "c5b5b17451b9d166c496b2e21f675f4e0108b7031ecdcb56818e93c0c7f6d078",
+  "native_object_sha256": "d3b3bd01d0521091b43552ff6334e64aea9c04286f4a1754687a8fb65bfd0f6f",
+  "cpu_expected_values": "test oracle only; not resident execution inputs",
+  "full_resident_parent_proof_qualified": false,
+  "performance_claim": false
+}

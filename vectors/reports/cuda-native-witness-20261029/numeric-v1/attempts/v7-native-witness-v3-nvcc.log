@@ -1,0 +1,5 @@
+/workspace/stwo-v7-native-witness-v3/native_witness_numeric_runner_v1.cu(111): error: cannot deduce type of range in range-based "for" loop
+          for (auto mutation : {std::pair<unsigned,uint32_t>{3,32}, {2,255}, {19,2}, {0,0}}) {
+                               ^
+
+1 error detected in the compilation of "/workspace/stwo-v7-native-witness-v3/native_witness_numeric_runner_v1.cu".

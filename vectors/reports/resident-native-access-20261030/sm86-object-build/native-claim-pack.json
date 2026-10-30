@@ -1,0 +1,24 @@
+{
+  "name": "native-claim-pack",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_86,code=sm_86",
+    "--threads",
+    "1",
+    "-I/workspace/stwo-sm86/src/backends/cuda/native",
+    "/workspace/sm86-evidence/native-objects/sources/native-claim-pack.cu",
+    "-o",
+    "/workspace/sm86-evidence/native-objects/native-claim-pack.o"
+  ],
+  "exit_code": 0,
+  "seconds": 0.6983606710564345,
+  "source_sha256": "261686deef4cbc78d80f3f02fa953af7ff5c388e86b0daa56c0f1657690ce72b",
+  "object_sha256": "05f3219a136cc0a5a1f65db11cb19d9373496df94bc6cefd8680c0bf0faca7db"
+}

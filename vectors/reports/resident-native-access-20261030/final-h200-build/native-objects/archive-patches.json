@@ -1,0 +1,30 @@
+{
+  "schema": "stwo-native-selective-archive-v1",
+  "base_archive_sha256": "b47e34a8dcf6f66742bb3a8043b6b872bf2b977e351e07fee6d761ce27d94a78",
+  "base_receipt": "genuine-native-canonical-v4/object-manifest.json",
+  "replaced": [
+    {
+      "member": "native_composition_split-2837cf5d72d5c04820d73bc0.o",
+      "source": "src/backends/cuda/native/transform/composition_split.cu",
+      "source_sha256": "9d315bcc2966d01385da110ad41dc80866ac381b1dcd207d24b85073221d4be5",
+      "object_sha256": "86c1eb2af997cac21d026a3daeaf861a486cc67625a4cff42a6f75e8ce897e44"
+    },
+    {
+      "member": "native_b2n_retained-35f5f246f1989da148609588.o",
+      "source": "src/backends/cuda/native/transform/b2n_retained.cu",
+      "source_sha256": "0e6a8ec9d17e15d0b24255e1b88eff1f5563188855668bf09e731dbd0d2fcce6",
+      "object_sha256": "d50c32ee70d01c35e3f486e6219fbccbf325bc40b25ebe8fe4140ae0eb7b3700"
+    },
+    {
+      "member": "native_final-10e191b7d24b8f0998085cb0.o",
+      "source": "src/backends/cuda/native/fri/final.cu",
+      "source_sha256": "9cdb50ab816b9a90d53259e2ad32f253f821dfdf231a2945567c9d3912c9ce67",
+      "object_sha256": "0d3aef881fe952eb1d0ffb425bad04fc60beecdf990dfed4a755afe0ab04eb12"
+    }
+  ],
+  "unchanged_tiny_sha256": "561a2106a2a5627ca4b0b973fb5c05a86905e63acb4281458146e13466ed4af7",
+  "final_archive_sha256": "5501574aab7ee8faaf72b4c0831ca8630e2c4646b8efcdd47395991b197e303d",
+  "qualification": "selective source rebuild; runtime not yet qualified",
+  "original_embedded_build_identity_retained": true,
+  "build_identity_note": "patched archive is identified by this explicit composite receipt, not old embedded build identity"
+}

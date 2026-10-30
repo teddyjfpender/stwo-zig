@@ -28,7 +28,9 @@ pub fn closed(a: std.mem.Allocator, plan: *const shards.Plan, sealed: seal_mod.S
             return error.InvalidExecutionRangeTableReceipt;
         var sum = receipt.claim;
         for (executions[shard.first_instance..][0..shard.instance_count]) |execution| {
-            for (execution.range_claims) |claims| for (claims) |claim| { sum = sum.add(claim); };
+            for (execution.range_claims) |claims| for (claims) |claim| {
+                sum = sum.add(claim);
+            };
         }
         if (!sum.isZero()) return error.UnclosedExecutionRangeRelation;
     }
@@ -36,6 +38,8 @@ pub fn closed(a: std.mem.Allocator, plan: *const shards.Plan, sealed: seal_mod.S
 
 pub fn summedRequests(executions: []const sidecar.VerifiedExecutionReceipt) Q {
     var sum = Q.zero();
-    for (executions) |execution| for (execution.range_claims) |claims| for (claims) |claim| { sum = sum.add(claim); };
+    for (executions) |execution| for (execution.range_claims) |claims| for (claims) |claim| {
+        sum = sum.add(claim);
+    };
     return sum;
 }

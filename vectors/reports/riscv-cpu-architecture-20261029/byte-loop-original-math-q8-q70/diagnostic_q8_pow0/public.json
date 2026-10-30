@@ -1,0 +1,50 @@
+{
+  "schema": "stwo-same-rom-byte-loop-original-public-v1",
+  "scope": "standalone original macro theorem; external program/state/register/global-transition projections OPEN; not a VM or Ethereum proof",
+  "elf_sha256": "288c2fed7e7bc049b67c49bf8ed97194be54fc1385d42fc2f15c5e507ed2b26a",
+  "profile": "rv32im_zkvm_v1",
+  "config": {
+    "pow_bits": 0,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 8,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "public": {
+    "cohort_ordinal": 0,
+    "pc": 4096,
+    "call": {
+      "entry_cycle": 7,
+      "source": 1048833,
+      "destination": 1049090,
+      "destination_end": 1049107,
+      "length": 17,
+      "max_instruction_cycle": 91
+    },
+    "previous_register_clocks": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "initial_scratch": 2864434397,
+    "last_byte": 17,
+    "source_previous_clocks": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "destination_previous_clocks": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}

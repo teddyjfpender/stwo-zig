@@ -69,18 +69,26 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
             /// all child components and separate local closures. No captured
             /// frame selects geometry or authenticates its own checksum.
             pub fn reconstruct(self: *const Prepared, a: std.mem.Allocator, frame: *const Frame.ForKind(kind), relations: Universal.UniversalRelations) !*Recipe {
+                const result = try self.reconstructClaims(a, frame.semantic, frame.claims, relations);
+                errdefer result.deinit();
+                try frame.require(result.geometry, frame.semantic, result.owner);
+                return result;
+            }
+            /// Original semantic admission and fixed-root reconstruction without
+            /// fabricating a captured frame or duplicating a live wide recipe.
+            pub fn reconstructClaims(self: *const Prepared, a: std.mem.Allocator, semantic: Protocol.SemanticPin, claims: C.Claims, relations: Universal.UniversalRelations) !*Recipe {
                 try self.validate(self.template_id);
                 const result = try a.create(Recipe);
                 errdefer a.destroy(result);
                 result.a = a;
-                result.admitted = try Original.Admission.init(a, self.context, self.pin, self.fold_rows, frame.semantic.claims, self.limits.page);
+                result.admitted = try Original.Admission.init(a, self.context, self.pin, self.fold_rows, semantic.claims, self.limits.page);
                 errdefer result.admitted.deinit();
                 const source_log = if (kind == .raw) self.pin.raw.page.row_log else self.pin.page.row_log;
                 const capture_log = if (kind == .raw) self.pin.geometry.connector_log else self.pin.geometry.capture_log;
                 result.geometry = .{ .source_log = source_log, .capture_log = capture_log, .core_logs = self.pin.geometry.logs, .arithmetic_logs = result.admitted.fixed.arithmetic.logs, .capture_requests = @as(u64, self.pin.geometry.compressions) * if (kind == .raw) 32 else @import("block_v5_memory_source_blake_capture_air_v1.zig").requestMass() };
                 const graph = result.admitted.graph;
-                const independent = Protocol.SemanticPin{ .premix_identity = try Original.identity(self.context, self.pin, self.limits.page), .source_epoch = self.context.epoch.seal_digest, .graph_identity = graph.identity, .circuit_id = graph.circuit_id, .input_requests = graph.input_requests, .claims = frame.semantic.claims, .roots = frame.semantic.roots };
-                if (!std.meta.eql(independent, frame.semantic)) return error.UntrustedSourcePageRecursiveAdmission;
+                const independent = Protocol.SemanticPin{ .premix_identity = try Original.identity(self.context, self.pin, self.limits.page), .source_epoch = self.context.epoch.seal_digest, .graph_identity = graph.identity, .circuit_id = graph.circuit_id, .input_requests = graph.input_requests, .claims = semantic.claims, .roots = semantic.roots };
+                if (!std.meta.eql(independent, semantic)) return error.UntrustedSourcePageRecursiveAdmission;
                 for (independent.roots) |root| if (std.mem.allEqual(u8, &root, 0)) return error.UntrustedSourcePageRecursiveAdmission;
                 if (kind == .raw) {
                     try @import("block_v5_memory_source_packed_sha_proof_v1.zig").verifyFixedRoots(a, &self.context.admitted.source, self.context.raw_plan, self.pin, .{ .operands = self.limits.page.raw, .max_interaction_cells = self.limits.page.interaction.max_cells });
@@ -91,10 +99,12 @@ pub fn ForKind(comptime kind: Semantic.Kind) type {
                     const groups = [_][]const Column{ fixed.source.columns, fixed.core.items, fixed.capture.columns };
                     try Page.requireFixedRoots(a, self.config, &groups, &.{ self.pin.roots[0], self.pin.roots[2], self.pin.roots[4] });
                 }
-                try Page.requireFixedRoots(a, self.config, &.{result.admitted.fixed.columns}, &.{frame.semantic.roots[0]});
-                result.owner = try C.Owner.init(a, graph, &result.admitted.fixed.plan, &result.admitted.fixed.arithmetic, &result.admitted.fixed.source_inputs, &result.admitted.fixed.capture_inputs, result.geometry, relations, frame.claims, self.core_setup, self.arithmetic_setup, self.limits.page.composition);
+                try Page.requireFixedRoots(a, self.config, &.{result.admitted.fixed.columns}, &.{semantic.roots[0]});
+                result.owner = try C.Owner.init(a, graph, &result.admitted.fixed.plan, &result.admitted.fixed.arithmetic, &result.admitted.fixed.source_inputs, &result.admitted.fixed.capture_inputs, result.geometry, relations, claims, self.core_setup, self.arithmetic_setup, self.limits.page.composition);
                 errdefer result.owner.deinit();
-                try frame.require(result.geometry, independent, result.owner);
+                // A canonical frame previously enforced this explicitly; keep
+                // that original validation in the claim-only reconstruction.
+                if (result.owner.composition == null) return error.InvalidSourcePageCaptureFrame;
                 return result;
             }
         };

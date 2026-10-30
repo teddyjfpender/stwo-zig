@@ -41,7 +41,8 @@ const Group = struct {
 
 const Builder = struct {
     allocator: std.mem.Allocator,
-    geometry: *const geometry_module.Geometry,
+    trees: []const geometry_module.Tree,
+    fri_input_log: u32,
     blowup: u32,
     trace_step: circle.CirclePointM31,
     lifting_generator: circle.CirclePointM31,
@@ -57,14 +58,17 @@ const Builder = struct {
     }
 
     fn appendColumn(self: *Builder, tree_index: usize, column: usize, offsets: []const i32) !void {
-        const tree = self.geometry.trees[tree_index];
-        if (column >= tree.column_logs.len or offsets.len == 0 or offsets.len > 2)
+        const tree = self.trees[tree_index];
+        if (column >= tree.column_logs.len or offsets.len > 2)
             return error.InvalidCircuitQuotientGeometry;
+        // Original verifier masks may leave committed columns unsampled.
+        // They keep their original source indices and query openings.
+        if (offsets.len == 0) return;
         const log = tree.column_logs[column];
-        if (log == 0 or log >= self.geometry.fri_input_log)
+        if (log == 0 or log >= self.fri_input_log)
             return error.InvalidCircuitQuotientGeometry;
         var source_index: usize = column;
-        for (self.geometry.trees[0..tree_index]) |previous| source_index = try add(source_index, previous.column_logs.len);
+        for (self.trees[0..tree_index]) |previous| source_index = try add(source_index, previous.column_logs.len);
         const source = std.math.cast(u32, source_index) orelse return error.CircuitQuotientSizeOverflow;
         const first_sample = self.samples.items.len;
         if (offsets.len == 2) {
@@ -123,18 +127,50 @@ pub fn derive(
         geometry.trees[2].column_logs.len,
     );
     defer masks.deinit();
+    const count = geometry.trees[0].column_logs.len + geometry.trees[1].column_logs.len + geometry.trees[2].column_logs.len + geometry.trees[3].column_logs.len;
+    const offsets = try allocator.alloc([]const i32, count);
+    defer allocator.free(offsets);
+    var cursor: usize = 0;
+    for (geometry.trees[0].column_logs) |_| {
+        offsets[cursor] = &.{0};
+        cursor += 1;
+    }
+    for (masks.base_offsets) |item| {
+        offsets[cursor] = item.items;
+        cursor += 1;
+    }
+    for (masks.interaction_offsets) |item| {
+        offsets[cursor] = item.items;
+        cursor += 1;
+    }
+    for (geometry.trees[3].column_logs) |_| {
+        offsets[cursor] = &.{0};
+        cursor += 1;
+    }
+    return deriveForOffsets(allocator, geometry, oods, blowup, offsets, geometry.fri_input_log - 1);
+}
+
+/// Independent ordered component masks; values and source evaluations are not
+/// inspected. The shared addressed quotient executor consumes this exact plan.
+pub fn deriveForOffsets(allocator: std.mem.Allocator, geometry: anytype, oods: *const oods_module.Plan, blowup: u32, offsets: []const []const i32, mask_log: u32) !Topology {
+    if (geometry.trees.len != 4 and geometry.trees.len != 5) return error.InvalidCircuitQuotientGeometry;
+    if (blowup == 0 or blowup > 4 or geometry.fri_input_log <= blowup or mask_log > geometry.fri_input_log or mask_log == 0) return error.InvalidCircuitQuotientGeometry;
     var builder = Builder{
         .allocator = allocator,
-        .geometry = geometry,
+        .trees = &geometry.trees,
+        .fri_input_log = geometry.fri_input_log,
         .blowup = blowup,
-        .trace_step = canonic.CanonicCoset.new(geometry.fri_input_log - 1).step(),
+        .trace_step = canonic.CanonicCoset.new(mask_log).step(),
         .lifting_generator = canonic.CanonicCoset.new(geometry.fri_input_log).step(),
     };
     defer builder.deinit();
-    for (geometry.trees[0].column_logs, 0..) |_, column| try builder.appendColumn(0, column, &.{0});
-    for (masks.base_offsets, 0..) |offsets, column| try builder.appendColumn(1, column, offsets.items);
-    for (masks.interaction_offsets, 0..) |offsets, column| try builder.appendColumn(2, column, offsets.items);
-    for (geometry.trees[3].column_logs, 0..) |_, column| try builder.appendColumn(3, column, &.{0});
+    var mask_cursor: usize = 0;
+    for (geometry.trees, 0..) |tree, tree_index| for (tree.column_logs, 0..) |_, column| {
+        if (mask_cursor >= offsets.len) return error.InvalidCircuitQuotientGeometry;
+        try builder.appendColumn(tree_index, column, offsets[mask_cursor]);
+        mask_cursor += 1;
+    };
+    if (mask_cursor != offsets.len) return error.InvalidCircuitQuotientGeometry;
     if (builder.samples.items.len != oods.sources.len or builder.groups.items.len == 0)
         return error.InvalidCircuitQuotientGeometry;
     for (builder.samples.items, oods.sources) |expected, actual|
@@ -259,12 +295,12 @@ const SourceSet = struct {
     words: u64,
 };
 
-fn compileSources(allocator: std.mem.Allocator, geometry: *const geometry_module.Geometry, blowup: u32) !SourceSet {
+fn compileSources(allocator: std.mem.Allocator, geometry: anytype, blowup: u32) !SourceSet {
     var count: usize = 0;
     for (geometry.trees) |tree| count = try add(count, tree.column_logs.len);
     const columns = try allocator.alloc(types.SourceDescriptor, count);
     errdefer allocator.free(columns);
-    const trees = try allocator.alloc(types.TreeSpan, 4);
+    const trees = try allocator.alloc(types.TreeSpan, geometry.trees.len);
     errdefer allocator.free(trees);
     var source_index: usize = 0;
     var all_words: u64 = 0;
@@ -289,7 +325,7 @@ fn compileSources(allocator: std.mem.Allocator, geometry: *const geometry_module
         }
         span.* = .{
             .tree_ordinal = @intCast(ordinal),
-            .role = @enumFromInt(ordinal),
+            .role = @enumFromInt(@intFromEnum(tree.role)),
             .first_source = @intCast(first),
             .source_count = @intCast(tree.column_logs.len),
             .evaluation_words = offset,
@@ -303,9 +339,15 @@ fn pow2u32(log: u32) !u32 {
     if (log >= 31) return error.CircuitQuotientSizeOverflow;
     return @as(u32, 1) << @intCast(log);
 }
-fn u32Count(value: usize) !u32 { return std.math.cast(u32, value) orelse error.CircuitQuotientSizeOverflow; }
-fn add(a: usize, b: usize) !usize { return std.math.add(usize, a, b) catch error.CircuitQuotientSizeOverflow; }
-fn addU32(a: u32, b: u32) !u32 { return std.math.add(u32, a, b) catch error.CircuitQuotientSizeOverflow; }
+fn u32Count(value: usize) !u32 {
+    return std.math.cast(u32, value) orelse error.CircuitQuotientSizeOverflow;
+}
+fn add(a: usize, b: usize) !usize {
+    return std.math.add(usize, a, b) catch error.CircuitQuotientSizeOverflow;
+}
+fn addU32(a: u32, b: u32) !u32 {
+    return std.math.add(u32, a, b) catch error.CircuitQuotientSizeOverflow;
+}
 
 test "resident circuit quotient admits all sampled terms and native-height buckets" {
     const allocator = std.testing.allocator;

@@ -1,0 +1,48 @@
+{
+  "scope": "Bounded immutable MAIN evaluation reuse: focused correctness only; integrated complete proof timing/hash pending",
+  "retained_cap_bytes_per_complete_proof": 268435456,
+  "entry_cap": 4096,
+  "per_window_cap": false,
+  "zero_disables": true,
+  "tests": {
+    "optimize": "ReleaseSafe",
+    "passed": 6,
+    "failed": 0
+  },
+  "log": {
+    "path": "/tmp/v7-shared-cache-final-run.log",
+    "sha256": "2fd0aebec39dbbd0ab90d5f8c5dcb0a402d44794b83e5b582c8839fd0476ae5f"
+  },
+  "binary": {
+    "path": "/tmp/v7-shared-quotient-cache-final",
+    "sha256": "8e5010ab0eaff6f03fb0f5b6ff5192554f4c40840f0c5a7db4e01979aeee774c"
+  },
+  "sources": {
+    "src/frontends/riscv/prover/block_v5_quotient_column_cache_v1.zig": "4abca4d5736a04e5eb70e8490924fc05aadd6724be4ad2618dda4308efbd525f",
+    "src/frontends/riscv/prover/block_v7_shared_quotient_cache_v1.zig": "f724478a0a64e75a85275d124a9bae4efa37d13c7217fde2b1117205571beb1c",
+    "src/frontends/riscv/prover/tests/block_v7_shared_quotient_cache_test.zig": "24917cb99986759e2d0f873f33d9d1bf5c071a8471d2cb7bd55aac783f2e5a5f",
+    "src/frontends/riscv/block_v7_shared_quotient_cache_test_root.zig": "dc732df5ea80fd1b9e78541893ea15c3aa86c7a77a033d74bf046192d820bf01"
+  },
+  "checks": [
+    "Exact polynomial domains and immutable source preservation",
+    "Separate recovery policy keys",
+    "Malformed column and lower-degree rejection",
+    "Cap exhaustion falls back without dropping equations",
+    "Concurrent shared recovery",
+    "Fresh proof recomputes same source address after old cache destruction",
+    "Allocation error cleanup"
+  ],
+  "counter_fields": [
+    "requested_columns",
+    "passthrough_columns",
+    "recovered_columns",
+    "reused_columns",
+    "capacity_misses",
+    "retained_bytes"
+  ],
+  "remaining": [
+    "Fresh independently verified complete original proof with identical bytes",
+    "Canonical composition/full-job timing and memory impact",
+    "Worker scaling"
+  ]
+}

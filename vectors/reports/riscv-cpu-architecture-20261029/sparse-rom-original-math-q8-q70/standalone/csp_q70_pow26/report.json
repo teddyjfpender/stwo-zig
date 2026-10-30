@@ -1,0 +1,212 @@
+{
+  "schema": "stwo-sparse-rom-original-v1",
+  "scope": "new sparse-ROM identity; original canonical public-program AIR; full VM providers OPEN",
+  "profile": "csp_q70_pow26",
+  "native_joint": false,
+  "elf_sha256": "9d3414eb132871e8b0674bbbd5f65c5f7232d1c9930fb06a84c0f8206a73a2aa",
+  "expected_program_root": {
+    "bytes": [
+      52,
+      242,
+      237,
+      134,
+      98,
+      7,
+      39,
+      248,
+      199,
+      88,
+      55,
+      113,
+      9,
+      64,
+      47,
+      123,
+      133,
+      97,
+      115,
+      255,
+      15,
+      193,
+      176,
+      80,
+      92,
+      45,
+      169,
+      85,
+      202,
+      112,
+      3,
+      76
+    ]
+  },
+  "support": [
+    {
+      "pc": 4096,
+      "count": 1
+    },
+    {
+      "pc": 4100,
+      "count": 1
+    },
+    {
+      "pc": 4104,
+      "count": 1
+    },
+    {
+      "pc": 4108,
+      "count": 1
+    }
+  ],
+  "expected_fetches": 4,
+  "shape": null,
+  "summary": {
+    "selected_pcs": 4,
+    "sparse_log": 4,
+    "complete_rom_rows": 4096,
+    "fetch_count": 4,
+    "program_closed": false,
+    "state_closed": false,
+    "registers_closed": false,
+    "ram_open": {
+      "c0": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    "table_requests": [
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      }
+    ],
+    "whole_vm_qualified": false
+  },
+  "proof_bytes": 3922,
+  "fresh_fixed_key_verified": true,
+  "whole_vm_qualified": false,
+  "proof_sha256": "777c5d9e7d4ba1b423c3ce74e8b74ff716f3d7bb32e3fd31e2abedb5c2683fcb",
+  "trace_trees": 3,
+  "composition_split": 2,
+  "canonical_program_AIR_unchanged": true,
+  "legacy_complete_plan_not_used_for_subset": true,
+  "old_padded_rom_rows": 4096,
+  "sparse_rows": 16,
+  "ROM_row_reduction": 256.0
+}

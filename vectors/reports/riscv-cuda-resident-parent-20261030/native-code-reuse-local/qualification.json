@@ -1,0 +1,59 @@
+{
+  "schema": "stwo-native-code-reuse-local-v1",
+  "gpu_executed": false,
+  "gpu_qualified": false,
+  "tests": {
+    "actual_size_reuse": 10,
+    "export_sidecar": 10,
+    "full_linux_n4_n5_semantic": true,
+    "clang_cuda_host_syntax": true
+  },
+  "cases": [
+    {
+      "retirements": 64,
+      "fri_log": 6,
+      "program_identity": "6bc9d9cc515675f9462bb2268333fc8caf517daa9b5bd18d22ceed1fde3e61cb"
+    },
+    {
+      "retirements": 1024,
+      "fri_log": 10,
+      "program_identity": "4eff56d396f7a08b3281ed0f950d6107f26491b8761b818378b114672df93dec"
+    }
+  ],
+  "code_identity": "7f5da598519d5a6b065caf6f4466b5b66b1f5fcfeb3ae061eb415dd536b3aed4",
+  "emitted_bytes_equal": true,
+  "emitted_bytes": 406345,
+  "source_sha256": "1ee260881216ae81bef219b7a7e7cbe6ac2fc6333fc3f497a484df7d46e6d8a0",
+  "identity_symbol": "stwo_native_code_identity",
+  "source_files": [
+    {
+      "path": "src/riscv_cuda_resident_native_candidate_test_root.zig",
+      "sha256": "84c2be6e93adf8197ab23c7161ebcf26f9919e3347184e13406d8ff05a2b03ec"
+    },
+    {
+      "path": "src/riscv_cuda_resident_native_genuine_test_root.zig",
+      "sha256": "f47cd83c301f08b78cf6a2e1dde55d789d4da62fb6514dc281c687615af6db93"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_candidate_v1.zig",
+      "sha256": "734977beaaeb66779a52cfabbe39cce2c009ac3e28ab20c42f5a0436225aa0fc"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_program_v1.zig",
+      "sha256": "c075418ed51d2ff4303e34d6fbd0da3dd72940594dae9a9b23a2aacf2dfb9a91"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_kernel_bundle_v1.zig",
+      "sha256": "d7393f3685667f285aaffffd445b809827ec8ecc2bd5cabda7d0b2c1da44c465"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_producer_v1.zig",
+      "sha256": "0aadd18aebb39b752f578e14f624a7a1c045102af4583f1d4fe1269473d6fc43"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_composition_v1.zig",
+      "sha256": "0b4a31cbe1b3eb311c54b5e677cc4b38d1288bdaa9d9a5dfcb19c06d85a0666c"
+    }
+  ],
+  "limits": "Actual same-family 64/1024 retirement pair only; other inventories/constants require independently matching code_identity. No new native GPU proof qualification."
+}

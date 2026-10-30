@@ -1,0 +1,29 @@
+1/10 block_v7_window_union_recursive_benchmark_root.test.retained Ethereum shared union recursive root benchmark...FAIL (UnsupportedWordQuotientTileSpec)
+2/10 runner.mod.test_0...OK
+3/10 runner.decode.test_0...OK
+4/10 air.memory_commitment.poseidon2_air.test_0...OK
+5/10 air.semantic_eval.test_0...OK
+6/10 prover.block_execution_external_trace_v2.test_0...OK
+7/10 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+9 passed; 0 skipped; 1 failed.
+       81.41 real       171.45 user         6.54 sys
+         18078973952  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3417236  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 527  voluntary context switches
+              156727  involuntary context switches
+       2943308788498  instructions retired
+        761294663401  cycles elapsed
+         18089234736  peak memory footprint

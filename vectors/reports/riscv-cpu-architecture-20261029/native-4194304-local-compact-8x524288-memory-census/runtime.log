@@ -1,0 +1,34 @@
+1/6 block_v8_endpoint_join_saved_benchmark_root.test_0...OK
+2/6 recursion.tests.block_v8_endpoint_join_saved_benchmark.test.saved compact endpoint originals to one closed root benchmark...B8_SAVED_JOIN_CAPTURE local=1/8 original_verify_ns=988563000 profile_ns=709760417
+B8_SAVED_JOIN_CAPTURE local=2/8 original_verify_ns=2010559458 profile_ns=1437134417
+B8_SAVED_JOIN_CAPTURE local=3/8 original_verify_ns=3005952916 profile_ns=2163341334
+B8_SAVED_JOIN_CAPTURE local=4/8 original_verify_ns=4007386999 profile_ns=2880234376
+B8_SAVED_JOIN_CAPTURE local=5/8 original_verify_ns=4993753666 profile_ns=3605052042
+B8_SAVED_JOIN_CAPTURE local=6/8 original_verify_ns=5992332916 profile_ns=4337007375
+B8_SAVED_JOIN_CAPTURE local=7/8 original_verify_ns=7071733499 profile_ns=5136569542
+B8_SAVED_JOIN_CAPTURE local=8/8 original_verify_ns=8063837582 profile_ns=5869165542
+B8_JOIN_MEMORY_CENSUS predicted_joined_retained_bytes=26422967500 main_bytes=21703901184 aggregate_fixed_bytes=4719039636 cold_children_fixed_bytes=4718848340
+OK
+3/6 air.semantic_eval.test_0...OK
+4/6 air.memory_commitment.poseidon2_air.test_0...OK
+5/6 air.lookups.tables.mod.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+All 6 tests passed.
+       72.43 real        68.98 user        19.89 sys
+         10544168960  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             7378053  page reclaims
+                   1  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  25  voluntary context switches
+               31222  involuntary context switches
+       1521073076987  instructions retired
+        380425178756  cycles elapsed
+         10548540904  peak memory footprint

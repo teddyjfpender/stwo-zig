@@ -1,0 +1,15 @@
+1/11 block_v7_multi_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_multi_union_test.test.v7 multi union genuine contiguous original STARK with all-provider oracle...V7_MULTI_MEMORY_INPUTS coefficient_backed=true input_lde_cells_retained=0 charged_live_bytes=224892728
+V7_MULTI_FIXED_TOTAL unavailable=coefficient_backed_inputs_no_census_reconstruction
+V7_MULTI_PRODUCER_MEMORY consumed=true .{ .retained_pcs_model_bytes = 5893168016, .compact_storage_admission = false, .memory_allocator_live_after_preparation = 413130645, .memory_allocator_live_after_commit = 413130853, .memory_allocator_live_after_consumption = 89519244, .union_allocator_live_before_proof = 7466762727, .union_allocator_live_at_entry = 3287006625, .union_allocator_live_at_exit = 3084878136, .union_allocator_peak_cumulative = 9062228863 }
+FAIL (UnclosedV7NativeRelations)
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+10 passed; 0 skipped; 1 failed.

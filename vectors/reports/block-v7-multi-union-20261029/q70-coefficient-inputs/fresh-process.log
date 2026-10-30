@@ -1,0 +1,11 @@
+1/8 block_v7_multi_union_wire_test_root.test_0...OK
+2/8 prover.tests.block_v7_multi_union_wire_test.test.v7 multi union saved bounded artifact verifies with independent policy...V7_MULTI_UNION_WIRE bytes=6063212 windows=2 callers=1 trees=18 decode_peak_bytes=20114635 fresh_verification=true hostile_framing=true
+V7_MULTI_UNION_FRESH_PROCESS cycles=20495 windows=2 canonical_q70_pow26=true producer_present=false
+OK
+3/8 air.semantic_eval.test_0...OK
+4/8 prover.block_execution_external_trace_v2.test_0...OK
+5/8 prover.block_execution_external_access_bridge_v2.test_0...OK
+6/8 air.memory_commitment.poseidon2_air.test_0...OK
+7/8 air.lookups.tables.mod.test_0...OK
+8/8 air.lookups.tables.source_ingest.test_0...OK
+All 8 tests passed.

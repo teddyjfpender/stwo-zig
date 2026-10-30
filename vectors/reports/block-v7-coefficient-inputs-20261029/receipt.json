@@ -1,0 +1,49 @@
+{
+  "scope": "Original v7 joint and separate cohort input storage; not a complete execution or block proof",
+  "date": "2026-10-29",
+  "result": "PASS 5 tests",
+  "mode": "ReleaseSafe CPU; correctness, no controlled timing",
+  "input_storage_default": "resident",
+  "selected_mode": {
+    "coefficients": {
+      "minimum_trace_log": 4
+    }
+  },
+  "joint": {
+    "ram_shards": 5,
+    "providers": 3,
+    "guest_events": 16,
+    "terminal_reads": 13,
+    "input_lde_values_retained": 0,
+    "resident_input_live_bytes": 20945296,
+    "coefficient_input_live_bytes": 19280592,
+    "proof_bytes": 99491,
+    "exact_resident_proof_bytes_and_physical_claims": true,
+    "fresh_verification_after_producer_destruction": true,
+    "composition_deep_fri_transcript_cold_live_parity": true,
+    "recursive_parent_proved": false
+  },
+  "cohort": {
+    "ram_proofs": 5,
+    "provider_proofs": 3,
+    "exact_resident_proof_bytes": true,
+    "charged_test_peak_bytes": 75669584,
+    "noncanonical_raw_and_coefficient_rejected": true,
+    "canonical_changed_coefficient_not_accepted": true,
+    "wrong_checkpoint_and_allocation_cap_rejected": true,
+    "fresh_source_verification": true
+  },
+  "proof_artifacts_archived": false,
+  "source_hash_scope": "Selected changed files; not a transitive build manifest",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_input_storage_v1.zig": "1c172131cdfea29316ab9c935f096ffe1120d2192e17dac8dd22a916271a0e18",
+    "src/frontends/riscv/prover/block_v7_coefficient_checkpoint_v1.zig": "b4f760914204f471a0fe1f14433278b318620cd02d883e2445eed2cd111ec7ab",
+    "src/frontends/riscv/prover/block_v7_memory_joint_proof_v1.zig": "5c4a3589ef151ac63895a44270d8370eb5d33bb9b76abae28da8495723c938da",
+    "src/frontends/riscv/prover/block_v7_memory_cohorts_v1.zig": "a170ea162b48de08c4cf45e1250b80011800ab04b1db51c0679a38bec73c68de",
+    "src/frontends/riscv/prover/block_v7_memory_cohort_checkpoint_v1.zig": "2f9e6e5a6c60de4480b7b548525112b4244983b7249b6dc1fadec87c06f68a6e",
+    "src/frontends/riscv/prover/block_v5_word_pcs_v1.zig": "4ca32a009a2112bc3e014a2306605d7d17ffb4e9996032423e6e00472b51422a",
+    "src/frontends/riscv/prover/block_v7_memory_joint_test_v1.zig": "00df98edb1a1174818b1738f141a34a7fedfd91042025adac2312da3f0d7f04d",
+    "src/frontends/riscv/prover/block_v7_memory_cohorts_test_v1.zig": "42a2be357da7a5873090d5a0a8340eeac5063d270520d41d290cb5ce8c184a5f",
+    "src/frontends/riscv/block_v7_coefficient_inputs_test_root.zig": "cf5649255c3e5a183bc13a2ad07fc57e3c9d5b02335ede45f854380f0f3f83f3"
+  }
+}

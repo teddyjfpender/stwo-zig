@@ -1,0 +1,87 @@
+{
+  "schema": "stwo-b8-saved-compact-source-census-v1",
+  "sources": [
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 64622436,
+      "original_lde_cells": 129244872,
+      "physical_claims": 217,
+      "constraints": 1110
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 62251962,
+      "original_lde_cells": 124503924,
+      "physical_claims": 215,
+      "constraints": 1060
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 55373600,
+      "original_lde_cells": 110747200,
+      "physical_claims": 191,
+      "constraints": 976
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 57039134,
+      "original_lde_cells": 114078268,
+      "physical_claims": 215,
+      "constraints": 1060
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 57105184,
+      "original_lde_cells": 114210368,
+      "physical_claims": 191,
+      "constraints": 976
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 55365024,
+      "original_lde_cells": 110730048,
+      "physical_claims": 191,
+      "constraints": 976
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 80580510,
+      "original_lde_cells": 161161020,
+      "physical_claims": 215,
+      "constraints": 1040
+    },
+    {
+      "kind": "local",
+      "trace_trees": 11,
+      "original_raw_cells": 55434016,
+      "original_lde_cells": 110868032,
+      "physical_claims": 191,
+      "constraints": 976
+    },
+    {
+      "kind": "bridge",
+      "trace_trees": 17,
+      "original_raw_cells": 21233664,
+      "original_lde_cells": 42467328,
+      "physical_claims": 8,
+      "constraints": 8
+    },
+    {
+      "kind": "global",
+      "trace_trees": 7,
+      "original_raw_cells": 38469632,
+      "original_lde_cells": 76939264,
+      "physical_claims": 10,
+      "constraints": 39
+    }
+  ],
+  "snapshot_delta_public_ports": 0,
+  "original_captures": 10
+}

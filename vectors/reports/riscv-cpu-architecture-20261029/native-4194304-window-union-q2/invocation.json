@@ -1,0 +1,42 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-cpu-window-union-compact-metadata-20261029"
+  ],
+  "capture_sha256": "70caa759453633873c50a3c964b7a0af4fabda3beb243703f46fde9fe80fecd3",
+  "binary_sha256": "98d4805b34a13d29047c6698161b03caf326c61e5ca3cb2a311d927cb58cd45c",
+  "runner_sha256": "dba2ba2b334c805be411c61ef8efab33509be07f28357c1f5b72410ad7f0cf38",
+  "complete_recursive_root": false,
+  "shared_original_union": true,
+  "worker_count": 8,
+  "native_layout": "degree-bounded-q2",
+  "fused_projection_rows": false,
+  "sparse_initialization": true,
+  "resident_memory": true,
+  "native_main_cache_mib": 512,
+  "deep_group_mib": 8,
+  "cuda_deep": false,
+  "cuda_reference": false,
+  "cuda_composition": false,
+  "cuda_interactions": false,
+  "reuse_native_compiler": false,
+  "shared_epoch_prefix": false,
+  "materialized_parent_polynomials": false,
+  "reuse_original_captures": false,
+  "original_capture_mib": 4096,
+  "native_compiler_mib": 2048,
+  "root_resources": null,
+  "report_checked": false,
+  "build_manifest_sha256": "b9e15f39d8db5a68d96f5d36e9f795d24a8c49416cc0a06029961ed0d20f47b4",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 26236576,
+    "temporary_snapshot_bytes_written": 26236576,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793306816889438000,
+  "returncode": 1,
+  "finished_unix_ns": 1793306909470172000
+}

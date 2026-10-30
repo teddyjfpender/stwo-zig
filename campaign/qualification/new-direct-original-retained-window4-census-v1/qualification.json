@@ -1,0 +1,329 @@
+{
+  "schema": "stwo-riscv-direct-original-retained-window-census-v1",
+  "scope": "actual retained interior window4, independently admitted geometry only; no original bodies read, no original/recursive proving or verification",
+  "skip_cycles": 24641536,
+  "cycles": 1048576,
+  "keccak_calls": 507,
+  "recovery_calls": 66,
+  "q": 70,
+  "pow_bits": 26,
+  "whole_gate_seconds": 4.21,
+  "maximum_resident_bytes": 428081152,
+  "tests_passed": 14,
+  "tests_skipped": 4,
+  "tests_failed": 0,
+  "sources": [
+    {
+      "source": 0,
+      "family": "mixed",
+      "trees": 15,
+      "columns": 15314,
+      "samples": 39540,
+      "fri_start_log": 21,
+      "responses": 47760,
+      "groups": 19,
+      "current_divisions": 3343200,
+      "grouped_divisions": 1330
+    },
+    {
+      "source": 1,
+      "family": "bridge",
+      "trees": 4,
+      "columns": 36,
+      "samples": 40,
+      "fri_start_log": 17,
+      "responses": 44,
+      "groups": 2,
+      "current_divisions": 3080,
+      "grouped_divisions": 140
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "trees": 8,
+      "columns": 83,
+      "samples": 128,
+      "fri_start_log": 17,
+      "responses": 173,
+      "groups": 2,
+      "current_divisions": 12110,
+      "grouped_divisions": 140
+    }
+  ],
+  "trees": [
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 0,
+      "columns": 133,
+      "samples": 115,
+      "min_degree_log": 7,
+      "max_degree_log": 20,
+      "commitment_height": 21
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 1,
+      "columns": 658,
+      "samples": 658,
+      "min_degree_log": 7,
+      "max_degree_log": 19,
+      "commitment_height": 20
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 2,
+      "columns": 23,
+      "samples": 25,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 3,
+      "columns": 1,
+      "samples": 1,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 4,
+      "columns": 0,
+      "samples": 0,
+      "min_degree_log": 0,
+      "max_degree_log": 0,
+      "commitment_height": 0
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 5,
+      "columns": 81,
+      "samples": 81,
+      "min_degree_log": 9,
+      "max_degree_log": 20,
+      "commitment_height": 21
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 6,
+      "columns": 6402,
+      "samples": 22644,
+      "min_degree_log": 7,
+      "max_degree_log": 17,
+      "commitment_height": 18
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 7,
+      "columns": 632,
+      "samples": 1264,
+      "min_degree_log": 7,
+      "max_degree_log": 19,
+      "commitment_height": 20
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 8,
+      "columns": 44,
+      "samples": 88,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 9,
+      "columns": 8,
+      "samples": 16,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 10,
+      "columns": 4,
+      "samples": 8,
+      "min_degree_log": 15,
+      "max_degree_log": 15,
+      "commitment_height": 16
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 11,
+      "columns": 24,
+      "samples": 48,
+      "min_degree_log": 9,
+      "max_degree_log": 20,
+      "commitment_height": 21
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 12,
+      "columns": 6688,
+      "samples": 13376,
+      "min_degree_log": 7,
+      "max_degree_log": 17,
+      "commitment_height": 18
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 13,
+      "columns": 600,
+      "samples": 1200,
+      "min_degree_log": 7,
+      "max_degree_log": 13,
+      "commitment_height": 14
+    },
+    {
+      "source": 0,
+      "family": "mixed",
+      "tree": 14,
+      "columns": 16,
+      "samples": 16,
+      "min_degree_log": 20,
+      "max_degree_log": 20,
+      "commitment_height": 21
+    },
+    {
+      "source": 1,
+      "family": "bridge",
+      "tree": 0,
+      "columns": 1,
+      "samples": 1,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 1,
+      "family": "bridge",
+      "tree": 1,
+      "columns": 23,
+      "samples": 23,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 1,
+      "family": "bridge",
+      "tree": 2,
+      "columns": 4,
+      "samples": 8,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 1,
+      "family": "bridge",
+      "tree": 3,
+      "columns": 8,
+      "samples": 8,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 0,
+      "columns": 13,
+      "samples": 13,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 1,
+      "columns": 12,
+      "samples": 17,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 2,
+      "columns": 1,
+      "samples": 1,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 3,
+      "columns": 1,
+      "samples": 1,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 4,
+      "columns": 24,
+      "samples": 48,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 5,
+      "columns": 8,
+      "samples": 16,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 6,
+      "columns": 8,
+      "samples": 16,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    },
+    {
+      "source": 2,
+      "family": "global",
+      "tree": 7,
+      "columns": 16,
+      "samples": 16,
+      "min_degree_log": 16,
+      "max_degree_log": 16,
+      "commitment_height": 17
+    }
+  ],
+  "current_total_divisions": 3358390,
+  "grouped_total_divisions": 1610,
+  "compiled_binary_sha256": "f8742f3f05451cb9d395acacddbd5b1705e56ce7e02f03e625aa5a72cfe43d88",
+  "full_block_proved": false
+}

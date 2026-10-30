@@ -1,0 +1,150 @@
+framework_util-fast.cu(150): warning #177-D: variable "l94" was declared but never referenced
+      uint l94 = tree0[column_offsets[94u] + row];
+           ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+framework_util-fast.cu(151): warning #177-D: variable "l95" was declared but never referenced
+      uint l95 = tree0[column_offsets[95u] + row];
+           ^
+
+framework_util-fast.cu(152): warning #177-D: variable "l96" was declared but never referenced
+      uint l96 = tree0[column_offsets[96u] + row];
+           ^
+
+framework_util-fast.cu(153): warning #177-D: variable "l97" was declared but never referenced
+      uint l97 = tree0[column_offsets[97u] + row];
+           ^
+
+framework_util-fast.cu(473): warning #177-D: variable "l17" was declared but never referenced
+      uint l17 = tree0[column_offsets[17u] + row];
+           ^
+
+framework_util-fast.cu(541): warning #177-D: variable "l7" was declared but never referenced
+      uint l7 = tree0[column_offsets[7u] + row];
+           ^
+
+framework_util-fast.cu(574): warning #177-D: variable "l23" was declared but never referenced
+      uint l23 = tree0[column_offsets[23u] + row];
+           ^
+
+framework_util-fast.cu(665): warning #177-D: variable "l20" was declared but never referenced
+      uint l20 = tree1[column_offsets[20u] + row];
+           ^
+
+framework_util-fast.cu(750): warning #177-D: variable "l85" was declared but never referenced
+      uint l85 = tree0[column_offsets[85u] + row];
+           ^
+
+framework_util-fast.cu(1045): warning #177-D: variable "l20" was declared but never referenced
+      uint l20 = tree0[column_offsets[20u] + row];
+           ^
+
+framework_util-fast.cu(1087): warning #177-D: variable "l13" was declared but never referenced
+      uint l13 = tree0[column_offsets[13u] + row];
+           ^
+
+framework_util-fast.cu(1151): warning #177-D: variable "l7" was declared but never referenced
+      uint l7 = tree0[column_offsets[7u] + row];
+           ^
+
+framework_util-fast.cu(1199): warning #177-D: variable "l29" was declared but never referenced
+      uint l29 = tree0[column_offsets[29u] + row];
+           ^
+
+framework_util-fast.cu(1200): warning #177-D: variable "l30" was declared but never referenced
+      uint l30 = tree0[column_offsets[30u] + row];
+           ^
+
+framework_util-fast.cu(1201): warning #177-D: variable "l31" was declared but never referenced
+      uint l31 = tree0[column_offsets[31u] + row];
+           ^
+
+framework_util-fast.cu(1202): warning #177-D: variable "l32" was declared but never referenced
+      uint l32 = tree0[column_offsets[32u] + row];
+           ^
+
+framework_util-fast.cu(1398): warning #177-D: variable "l3" was declared but never referenced
+      uint l3 = tree0[column_offsets[3u] + row];
+           ^
+
+framework_util-fast.cu(1449): warning #177-D: variable "l27" was declared but never referenced
+      uint l27 = tree0[column_offsets[27u] + row];
+           ^
+
+framework_util-fast.cu(1450): warning #177-D: variable "l28" was declared but never referenced
+      uint l28 = tree0[column_offsets[28u] + row];
+           ^
+
+framework_util-fast.cu(1516): warning #177-D: variable "l19" was declared but never referenced
+      uint l19 = tree0[column_offsets[19u] + row];
+           ^
+
+framework_util-fast.cu(1767): warning #177-D: variable "l31" was declared but never referenced
+      uint l31 = tree0[column_offsets[31u] + row];
+           ^
+
+framework_util-fast.cu(1768): warning #177-D: variable "l32" was declared but never referenced
+      uint l32 = tree0[column_offsets[32u] + row];
+           ^
+
+framework_util-fast.cu(1886): warning #177-D: variable "l24" was declared but never referenced
+      uint l24 = tree0[column_offsets[24u] + row];
+           ^
+
+framework_util-fast.cu(2060): warning #177-D: variable "l53" was declared but never referenced
+      uint l53 = tree0[column_offsets[53u] + row];
+           ^
+
+framework_util-fast.cu(2192): warning #177-D: variable "l41" was declared but never referenced
+      uint l41 = tree0[column_offsets[41u] + row];
+           ^
+
+framework_util-fast.cu(2362): warning #177-D: variable "l94" was declared but never referenced
+      uint l94 = tree0[column_offsets[94u] + row];
+           ^
+
+framework_util-fast.cu(2363): warning #177-D: variable "l95" was declared but never referenced
+      uint l95 = tree0[column_offsets[95u] + row];
+           ^
+
+framework_util-fast.cu(2364): warning #177-D: variable "l96" was declared but never referenced
+      uint l96 = tree0[column_offsets[96u] + row];
+           ^
+
+framework_util-fast.cu(2365): warning #177-D: variable "l97" was declared but never referenced
+      uint l97 = tree0[column_offsets[97u] + row];
+           ^
+
+framework_util-fast.cu(2748): warning #177-D: variable "l94" was declared but never referenced
+      uint l94 = tree0[column_offsets[94u] + row];
+           ^
+
+framework_util-fast.cu(2749): warning #177-D: variable "l95" was declared but never referenced
+      uint l95 = tree0[column_offsets[95u] + row];
+           ^
+
+framework_util-fast.cu(2750): warning #177-D: variable "l96" was declared but never referenced
+      uint l96 = tree0[column_offsets[96u] + row];
+           ^
+
+framework_util-fast.cu(2751): warning #177-D: variable "l97" was declared but never referenced
+      uint l97 = tree0[column_offsets[97u] + row];
+           ^
+
+framework_util-fast.cu(3134): warning #177-D: variable "l94" was declared but never referenced
+      uint l94 = tree0[column_offsets[94u] + row];
+           ^
+
+framework_util-fast.cu(3135): warning #177-D: variable "l95" was declared but never referenced
+      uint l95 = tree0[column_offsets[95u] + row];
+           ^
+
+framework_util-fast.cu(3136): warning #177-D: variable "l96" was declared but never referenced
+      uint l96 = tree0[column_offsets[96u] + row];
+           ^
+
+framework_util-fast.cu(3137): warning #177-D: variable "l97" was declared but never referenced
+      uint l97 = tree0[column_offsets[97u] + row];
+           ^
+

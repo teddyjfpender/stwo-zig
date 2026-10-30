@@ -1,0 +1,6 @@
+{
+  "binary_sha256": "b8570f15514e9a225ae714b1e20086097957dc19264b408ee0feb6697022fddd",
+  "root": "src/frontends/riscv/block_v7_real_window_continuation_export_v2_root.zig",
+  "optimize": "ReleaseFast",
+  "scope": "corpus preparation; no proof authority"
+}

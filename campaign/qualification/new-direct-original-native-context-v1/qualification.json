@@ -1,0 +1,36 @@
+{
+  "schema": "stwo-riscv-direct-original-native-context-v1",
+  "scope": "initial/middle/terminal saved seven-cycle fixture; construction and assignment checks only, no new STARK proving",
+  "q": 70,
+  "pow_bits": 26,
+  "windows": [
+    {
+      "index": 0,
+      "cycles": 4,
+      "initial": true,
+      "terminal": false,
+      "variables": 23050100
+    },
+    {
+      "index": 1,
+      "cycles": 2,
+      "initial": false,
+      "terminal": false,
+      "variables": 22917974
+    },
+    {
+      "index": 2,
+      "cycles": 1,
+      "initial": false,
+      "terminal": true,
+      "variables": 22684973
+    }
+  ],
+  "native_parent_proofs": 0,
+  "tests_passed": 17,
+  "tests_skipped": 5,
+  "tests_failed": 0,
+  "whole_gate_seconds": 2.37,
+  "maximum_resident_bytes": 1153286144,
+  "binary_sha256": "244dd47042b785472c4fff4ea03d8760cf2569271f93caea42b7eead828a1131"
+}

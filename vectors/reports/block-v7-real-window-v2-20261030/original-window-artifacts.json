@@ -1,0 +1,598 @@
+{
+  "scope": "original proof sets, not recursive roots; all parent stage times are inclusive",
+  "cases": [
+    {
+      "case": "native-32768",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 544748,
+          "sha256": "7b6ed16e484887a3cc8717532224ab59c0cdc60d744230f905a16e8f8323ec8b"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 533235,
+          "sha256": "e96017b6d597bd70e7a725220d02a3857db6e7349b6a7e005c44d9714c42fb4f"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 332340,
+          "sha256": "7ebe8955634f1ca4bab6d3cbac4e7f15c011c39dae2756030af132797b4e63f7"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 258984,
+          "sha256": "cbbb49a2faad8164c174bb182e1c3ff9f72a561168124048e87098b00e810375"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 437624,
+          "sha256": "dcf9ff3a5ee454de65f5a249a18d9184a437740ddba7376d060f45bc324f805b"
+        }
+      ],
+      "report_sha256": "e7dc5b2db1cfb6d2df9fea13833e30fc48f268425f288ea6ac28f3f699cfce7e",
+      "profile_sha256": "8869ddf6bcff023f8e8eb7f2ae8ca54ad38fc4cdd6758964bc0e3ad359c0b620",
+      "selection_sha256": null
+    },
+    {
+      "case": "recovery-32768",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 558246,
+          "sha256": "0dc52b6f96f7051d018d7e95b2bf9963fe9b92926b166a53250a24fcedd38902"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 559083,
+          "sha256": "fc57a37bae865533a3f454e255dfc03556022df56a7bfdc0207103a7b41cc03c"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 7756728,
+          "sha256": "34c323fb46e6e962f293c1d020294be3f31d4cba0f66441cc51877e7fed75a44"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 7774673,
+          "sha256": "2fa3e60f87fa813f16a391e230bc93f5f08e116f424da8f14df90175ef021dc2"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 330370,
+          "sha256": "40bb80fa806d567091ceafd9d05b8a4ef5c71ac73c73ba49372b2fdc4077af97"
+        },
+        {
+          "name": "original-5.postcard",
+          "bytes": 265309,
+          "sha256": "85d815a5cf60ba7648fdada31f176f68a392ed3c910301df28b4b36603109849"
+        },
+        {
+          "name": "original-6.postcard",
+          "bytes": 480493,
+          "sha256": "5aa1a7638e1f2378465eb0d0cff08416e17fe0c8616c7ab9197a0b66fc162868"
+        }
+      ],
+      "report_sha256": "f1a216e9e0fc0873b0a184a79b235725694765dcf7968e0d917a04c90a1d05ef",
+      "profile_sha256": "e66415ac732cc6a06f8773585e1c2e55bcf0638c6d723945e1972805d3ebc65e",
+      "selection_sha256": null
+    },
+    {
+      "case": "keccak-32768",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 367877,
+          "sha256": "3b53848028fed7bb493682799395283dc8440c5ac44486ce33de8602ab53f1a4"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 579366,
+          "sha256": "7432bd1d957d5297e086fa033391f4c558535bec8828724f68de243b408e8aa6"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 4095871,
+          "sha256": "cc82ab0cc56d05c95dc65f2c43db2fefdc1d7bd7c63a06e7d2735cd35f05d1ab"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 4111062,
+          "sha256": "763f35b2f08ebbf3714bc2b5589eb1d50b2be498b1a05192abe31c79135658b9"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 328540,
+          "sha256": "f9688ff803e45487b7d731f709ca6b74e832aaed9775b2748f20647947565a10"
+        },
+        {
+          "name": "original-5.postcard",
+          "bytes": 258554,
+          "sha256": "88ac6c542b68081c96f657889e2e1c0bb0ca7b15a1e5e8066108af23ff7fbef8"
+        },
+        {
+          "name": "original-6.postcard",
+          "bytes": 545088,
+          "sha256": "848d5d33e4ce5033e84ddfd00e19aa8e0ef24ae9298b8825335379ce4f97f0a0"
+        }
+      ],
+      "report_sha256": "177aa2bc24eedd88db8eb30c8090742723c56022178e513bceb3dd394e49d708",
+      "profile_sha256": "084e4bdc277a1753ae30ad1bd88c102a375492c736e609f19c71f50df087240c",
+      "selection_sha256": null
+    },
+    {
+      "case": "native-131072",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 538924,
+          "sha256": "817fef386769908cedfac49cdbfeae8ca8753d28a858f9d012e9a4971be988ea"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 531429,
+          "sha256": "d84d546615221b18202697dc0c1990cd1fec135720773d2125deb75528647be1"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 524136,
+          "sha256": "a2d7f89ef573144427d8e4325621466328a901e9bc900aa59debd311b64b40b1"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 483343,
+          "sha256": "bd40e020780799234fcfe8a2f245a751cafc4aa33be0875fc003644bd757421d"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 530832,
+          "sha256": "790f76464c848e53b0eafc4b35554d48bcbdef89cba7f467c6159c322fed09be"
+        },
+        {
+          "name": "original-5.postcard",
+          "bytes": 480746,
+          "sha256": "dfaa01846bb70dcfa254ebf39ddd939893800a1cbb775a91b4865568403c4e58"
+        },
+        {
+          "name": "original-6.postcard",
+          "bytes": 476803,
+          "sha256": "9ae6d8cdeb703cbe407af8f87cee50f6b7f3e6529df592c9e3e39482ccc14232"
+        },
+        {
+          "name": "original-7.postcard",
+          "bytes": 547111,
+          "sha256": "0a3392dd5ad7d61d372225da59082f939ac01b73f183e11fe27b06f2438658a2"
+        },
+        {
+          "name": "original-8.postcard",
+          "bytes": 329211,
+          "sha256": "dda4f72b19c722d042834ce115645bcc418959b3dfa6620808f135d964324182"
+        },
+        {
+          "name": "original-9.postcard",
+          "bytes": 266517,
+          "sha256": "d274ec79931ec3545615ef975336a388f3aae9fbbaafe123c4da22cb22066ff3"
+        },
+        {
+          "name": "original-10.postcard",
+          "bytes": 504790,
+          "sha256": "bde73c8f6b1ffc4b022a4f24076e2f26cf9b736078e472ba1a1b79d5f42bf38b"
+        }
+      ],
+      "report_sha256": "f9c659c815fde0bcf27a1d674ea548e17ed7b81cda73b127ed6d87a4f8c455cb",
+      "profile_sha256": "9648e619d4c7c8077140d91c3aa9e6bcbc23f9c857fd2b18f2cf6d4b64752dcc",
+      "selection_sha256": null
+    },
+    {
+      "case": "native-524288",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 543296,
+          "sha256": "26d6b38100856c117513c694bf5070b19338a87c822200ffd9eeedae7719af18"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 540677,
+          "sha256": "055312558e0cc67268b5e6fd71493359820181226f3e7abb4117653430834883"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 521246,
+          "sha256": "ddb1aab748eb34c7a891bef6f43e326c489bb7f055c341f06cb156a4485ed06f"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 472472,
+          "sha256": "17f55d7ba533583b0d60cfcc661486d41fd231a370be37578bf9ac9fa77b6a74"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 524307,
+          "sha256": "81f4ba5f2f3fef50ac4b5c9d048acb4e7c4c2894e69d733780928eb96cec0816"
+        },
+        {
+          "name": "original-5.postcard",
+          "bytes": 482926,
+          "sha256": "c506c2d7899a73ac2112528e45b5017279db5946d0b2020a2e44a27ce1c2d7a7"
+        },
+        {
+          "name": "original-6.postcard",
+          "bytes": 478093,
+          "sha256": "76ba7d334aa34855c568342cb72980545a18abfbeddfd09ddc2a65fff9817acf"
+        },
+        {
+          "name": "original-7.postcard",
+          "bytes": 525870,
+          "sha256": "8cb92dbf196f1a86cfbb4c69b6d0723d71c0f63f9d03927b05582a07335d64da"
+        },
+        {
+          "name": "original-8.postcard",
+          "bytes": 485435,
+          "sha256": "c90d21990b2d9e6d489cf373acd60be994a08475b80a1b3f70da606db2498d80"
+        },
+        {
+          "name": "original-9.postcard",
+          "bytes": 339754,
+          "sha256": "1b1b598ab031616340f4a543c542a429a6a88092971b6b2bd0d0afa7d78e8eb1"
+        },
+        {
+          "name": "original-10.postcard",
+          "bytes": 336585,
+          "sha256": "e2eaffb702ef543b8d5cbe7cf1c4433e5256a498496304b03d66b9f9c6dabce8"
+        },
+        {
+          "name": "original-11.postcard",
+          "bytes": 350553,
+          "sha256": "ec0ed0b2c75d1975986b9f632070a4c41a2f1fc639889cf40eabadcd7f07f04b"
+        },
+        {
+          "name": "original-12.postcard",
+          "bytes": 342024,
+          "sha256": "016fd2420892834b60cc8b463050891415cbff656b1c66bb3bd4f4429a37a466"
+        },
+        {
+          "name": "original-13.postcard",
+          "bytes": 487867,
+          "sha256": "e685fcaad50e96a8c01fcea58690862cca7125764b0816ee4948f9b70a4839b8"
+        },
+        {
+          "name": "original-14.postcard",
+          "bytes": 534249,
+          "sha256": "913135866eeb33b67606e1d0c37355b4e83ba397776ed8e2dd7706d82b9466e7"
+        },
+        {
+          "name": "original-15.postcard",
+          "bytes": 528175,
+          "sha256": "03aa347db7cd37f417d089a821d79511e5e697f62a3ecc5c6a21c02d8211000b"
+        },
+        {
+          "name": "original-16.postcard",
+          "bytes": 489514,
+          "sha256": "ed33550f2152fc49e6c3d532efb28a626f208b3af5ae8aef867e9a05e5347f8a"
+        },
+        {
+          "name": "original-17.postcard",
+          "bytes": 462362,
+          "sha256": "091c1c388c49736cf5f79f325c8c88b4f49c9441ca06e92077f193fd27dc0c4d"
+        },
+        {
+          "name": "original-18.postcard",
+          "bytes": 525844,
+          "sha256": "e77fb059eb45d0d75bba7aa4ac31a22a9ed6ba7f7db4760d960e9f2700a3c448"
+        },
+        {
+          "name": "original-19.postcard",
+          "bytes": 462783,
+          "sha256": "4b96f4d82be12360b94d75b6a6bf27c403dca0ea956d92a5bd1f262948609d08"
+        },
+        {
+          "name": "original-20.postcard",
+          "bytes": 481056,
+          "sha256": "9bda8b1ef055a15105b8b0bb060ee20865a90bc2ac9735b944f978301f2b97ca"
+        },
+        {
+          "name": "original-21.postcard",
+          "bytes": 472158,
+          "sha256": "d4ab42a3905243702b97c1cfe3b868ff551d01382dd3ad128f255b23c1e5748b"
+        },
+        {
+          "name": "original-22.postcard",
+          "bytes": 480717,
+          "sha256": "83138609fbe128f1a9057f412e35702408d17bc0b911d22f2b26179c7ef68ed9"
+        },
+        {
+          "name": "original-23.postcard",
+          "bytes": 455658,
+          "sha256": "541b4b9d5ea39293fc46d4ec669c8d63eb72a2dad1115b24ff2dfc8ec48a9738"
+        },
+        {
+          "name": "original-24.postcard",
+          "bytes": 524883,
+          "sha256": "e018447b09f720cea6b30b29e49553765a546b7c6a144b22cdcf75add05c4070"
+        },
+        {
+          "name": "original-25.postcard",
+          "bytes": 479673,
+          "sha256": "c28ef75ce8fc4594f324b540057d4e70d08d084bbf9c48355c55a6b93198a894"
+        },
+        {
+          "name": "original-26.postcard",
+          "bytes": 481000,
+          "sha256": "c55b7c86cd57831b129cd5d07ae9c6de20709ce7d9e284459222c6808b9b9696"
+        },
+        {
+          "name": "original-27.postcard",
+          "bytes": 482263,
+          "sha256": "3061eea696e0c4cb84726875a39c75719c1aebb285b07fa9aa13373012880fa6"
+        },
+        {
+          "name": "original-28.postcard",
+          "bytes": 452896,
+          "sha256": "6acfd9f94d6746202706910d180f42d9e832b3678f400ec5bd8592d230d473e0"
+        },
+        {
+          "name": "original-29.postcard",
+          "bytes": 473938,
+          "sha256": "d03ef241f04cd000d7a4db4359087febf27337df8dded40bad4ffb3e4753e2a2"
+        },
+        {
+          "name": "original-30.postcard",
+          "bytes": 462376,
+          "sha256": "a3ad0ed991c7fd116eab3beb7565ec9f7f340ad8c5eda67f90bfaf367fabc0a7"
+        },
+        {
+          "name": "original-31.postcard",
+          "bytes": 472747,
+          "sha256": "a738c1ddc44778d19686c845e6a970bf2f69b41d1a3a2161464a65b763773459"
+        },
+        {
+          "name": "original-32.postcard",
+          "bytes": 332936,
+          "sha256": "3797c7e4b3b7359ef29718dd1844598a70eb622918e8ff9be4ca19e9281109d6"
+        },
+        {
+          "name": "original-33.postcard",
+          "bytes": 262986,
+          "sha256": "7e93554e8c742bc652ad4d2df0db14c55507142f8d81cb41973b33b876023b10"
+        },
+        {
+          "name": "original-34.postcard",
+          "bytes": 831124,
+          "sha256": "ebcff10ba2b94243b4eb4b8c9b5d97592a603b998d9a2afefaad99e8b0d862fd"
+        }
+      ],
+      "report_sha256": "2545750aa262df477902bd32a81cc2f3821628198633ea54fe09d20958c7215c",
+      "profile_sha256": "c78be7f0439e6ea1204f3ff374ba61f0018381baa548b0e1186639518f1d33d5",
+      "selection_sha256": null
+    },
+    {
+      "case": "features-native-32768-composed-w12",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 550919,
+          "sha256": "4b94b987ef4b27a1b3ab6104d1e02bb7ec60aae1732041a074e45d996b9d464c"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 522374,
+          "sha256": "8ea4319c99ee1b6f484c328f4d63f9b5ba654251d23f46a7573b2df2b2a72a97"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 321800,
+          "sha256": "e2c23b1575b239cd3b0e7e5bd618b227bfaa3f18a1952c3d6061c07ff22baccf"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 264904,
+          "sha256": "e682ac3156dff8b011b31a50d520ef671649a6acf65b9c92a94a904e601ad785"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 299494,
+          "sha256": "b02f44d5d120d32a7318974744c78ae0182905a0daf917b7af26bffd988504f3"
+        }
+      ],
+      "report_sha256": "3e711726fc75354ab7505497fe2d377afb743ec9f55d38255bc0e18122e23133",
+      "profile_sha256": "657010ff6c8dfc72d4c6ae1a34b13375ee0def2a634874ab23a6fc55d25fbc31",
+      "selection_sha256": "e990e2c93fd3f0e9fb2bd9514b8ce96c46979da4b44bc263f0b3c648b3d307b3"
+    },
+    {
+      "case": "features-native-32768-default-w4",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 544748,
+          "sha256": "7b6ed16e484887a3cc8717532224ab59c0cdc60d744230f905a16e8f8323ec8b"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 533235,
+          "sha256": "e96017b6d597bd70e7a725220d02a3857db6e7349b6a7e005c44d9714c42fb4f"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 332340,
+          "sha256": "7ebe8955634f1ca4bab6d3cbac4e7f15c011c39dae2756030af132797b4e63f7"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 258984,
+          "sha256": "cbbb49a2faad8164c174bb182e1c3ff9f72a561168124048e87098b00e810375"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 437624,
+          "sha256": "dcf9ff3a5ee454de65f5a249a18d9184a437740ddba7376d060f45bc324f805b"
+        }
+      ],
+      "report_sha256": "4cb27f760ea172ff7238fb28c183243f6f8979421080024c88c482e705a7ed85",
+      "profile_sha256": "48715a2e14648f98accb7bd9ad1926e50bba0558e06b7a854db515d97c608bfd",
+      "selection_sha256": null
+    },
+    {
+      "case": "features-native-524288-composed-cut262144-w12",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 795991,
+          "sha256": "996bc2f9cb3983608d9a28017b44354e70b7c8d9f286cf530f4dd701f37c1945"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 739725,
+          "sha256": "fd45ff938c2249b8df6f3bb773475233979ee770fd159a4d14fd23d7794321e6"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 336650,
+          "sha256": "26b9305230bdd3a38615d9920e00e6f4a4f30e8e932725fad3d446f51a79ebba"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 295747,
+          "sha256": "b9abade9fd67d382d25105f1aff4887231b42995f8a6e335fa74d39093aef7bb"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 715955,
+          "sha256": "407b36bdf68be712a1350634aa51de4de6f2c6d5765b0e385bba25a8449c90dd"
+        }
+      ],
+      "report_sha256": "f717b63d2a3384879c9f07348c9bf86cd54f6a180c345a79766772c733337867",
+      "profile_sha256": "53a774402467b9d0a253772b4b55549d8df9a518b8678162faed053681a62a5c",
+      "selection_sha256": "acc1ced21772823aec85298c7253a691c6bbd92238293a2d2caf398a7975f5b3"
+    },
+    {
+      "case": "native-524288-cut262144-w12",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 795303,
+          "sha256": "6360441e7ba7ce518bbb339384bcdd0265cdd2750532b64bb55135e581e7ffa5"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 732129,
+          "sha256": "60688e2d93fb5ac2e314c81ed070a1255a81ddd2eea4ea54ad9816ebe0a710e3"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 328762,
+          "sha256": "971824afae2a0eec243386b663ee5f716471a99830fc7bdb3bfe84f2c4451125"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 290834,
+          "sha256": "e9910dc200e1b22728e36054ea6fae2e73d1b34f8f3a6bae04f6c50c25a2befa"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 831945,
+          "sha256": "b7aa8dafe6d34d58200f3d3499dd36ce9e249fff56f5002428ff0edb9ed46ac1"
+        }
+      ],
+      "report_sha256": "c3ef5760847ab87892c03755330ce24c746cf087d5bc970c318b3fc1b58f371d",
+      "profile_sha256": "8041e098795ed9a138d69348026146cc497b48d16edbb209c79637821618c25b",
+      "selection_sha256": null
+    },
+    {
+      "case": "native-524288-cut262144-w4",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 795303,
+          "sha256": "6360441e7ba7ce518bbb339384bcdd0265cdd2750532b64bb55135e581e7ffa5"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 732129,
+          "sha256": "60688e2d93fb5ac2e314c81ed070a1255a81ddd2eea4ea54ad9816ebe0a710e3"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 328762,
+          "sha256": "971824afae2a0eec243386b663ee5f716471a99830fc7bdb3bfe84f2c4451125"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 290834,
+          "sha256": "e9910dc200e1b22728e36054ea6fae2e73d1b34f8f3a6bae04f6c50c25a2befa"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 831945,
+          "sha256": "b7aa8dafe6d34d58200f3d3499dd36ce9e249fff56f5002428ff0edb9ed46ac1"
+        }
+      ],
+      "report_sha256": "db3352e8bf5e2b76b1a38e2adc08a61314fa6fd67d02081e8b500db88a26d7b7",
+      "profile_sha256": "579bae54785eb5160794032cb279144c5211845e33651adf5dd7fea64bffef54",
+      "selection_sha256": null
+    },
+    {
+      "case": "native-524288-cut65536-w4",
+      "proofs": [
+        {
+          "name": "original-0.postcard",
+          "bytes": 634243,
+          "sha256": "be71bb10eb1e5cbce757e50c493af127f3d4a53351504d3ce356583097b49930"
+        },
+        {
+          "name": "original-1.postcard",
+          "bytes": 602134,
+          "sha256": "0eba8b9afeb69bdf5a22de394dafccafce5e36506ca7e679599c351bfb5a1fd3"
+        },
+        {
+          "name": "original-2.postcard",
+          "bytes": 544958,
+          "sha256": "3a2909eed5249c2b277b75c9771397201af00ccaceb1ecb3fbd89f5bd1a596d8"
+        },
+        {
+          "name": "original-3.postcard",
+          "bytes": 580427,
+          "sha256": "2a587f051861bb5ab273e4a556850f64a3caa1f9a20ce7f91f8d31dddb4ada2e"
+        },
+        {
+          "name": "original-4.postcard",
+          "bytes": 594044,
+          "sha256": "65027952a2d59137bca9ba8b76a12ab18540fc46829163891e6d676d6b827b00"
+        },
+        {
+          "name": "original-5.postcard",
+          "bytes": 538654,
+          "sha256": "579e56920b284da0968105d4eb5fe6f3fd1b84e2f5f107100e61c9793bda5ee2"
+        },
+        {
+          "name": "original-6.postcard",
+          "bytes": 594393,
+          "sha256": "845a127af12a4ecb6fb0a1a686cc1f3ed5473b2701af823ba9f042046b2ac226"
+        },
+        {
+          "name": "original-7.postcard",
+          "bytes": 536167,
+          "sha256": "c5ae65d082bd02848ab0f5c24039883ca8ff54b2d1e500b56eeea2f2fbd8abae"
+        },
+        {
+          "name": "original-8.postcard",
+          "bytes": 326079,
+          "sha256": "198593108c375e888a3ff7ce2c0a285d78fefc47521894f77b1460a1452d0e13"
+        },
+        {
+          "name": "original-9.postcard",
+          "bytes": 293622,
+          "sha256": "78f78eb74ea39804cc5f248408f54267c4bd6c6ff16b19b10b2d68f02adefa4b"
+        },
+        {
+          "name": "original-10.postcard",
+          "bytes": 842801,
+          "sha256": "2266c07843d540e4a148eb13f56f38d568d1156960c6de9e82b5bde1c143c7f6"
+        }
+      ],
+      "report_sha256": "7882ba0e5692124c5ffd3e20555729bb3d29372a5da15a5480906396173a3600",
+      "profile_sha256": "436800af8b4ad571f420d6eec7afa5a273d046be8de23c0d09e91155d8310775",
+      "selection_sha256": null
+    }
+  ]
+}

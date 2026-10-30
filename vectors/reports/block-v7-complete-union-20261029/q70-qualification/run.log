@@ -1,0 +1,39 @@
+1/14 block_v7_complete_union_test_root.test_0...OK
+2/14 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+V7_COMPLETE_UNION profile=csp_q70_pow26 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_starks=5 trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=34598 union_queried=1196370 oracle_queried=1200720 setup_ns=400372750 union_prove_ns=4078970708 oracle_prove_ns=8692814417 fresh_verify_ns=1409647625 proof_bytes=5841554 proof_peak_bytes=367191262 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/14 prover.tests.block_v7_native_caller_union_test.test.v7 native access active caller union genuine nine tree proof...V7_NATIVE_CALLER_UNION_CENSUS union_oods=33153 separate_oods=33169 union_queried=129216 separate_queried=127652
+V7_NATIVE_CALLER_UNION trees=9 separate_trees=11 original_starks=1 separate_starks=2 physical_claims_preserved=true original_exports_exact=true producers_destroyed=true union_prove_ns=1474437708 separate_prove_ns=2485754125 fresh_verify_ns=975623375 proof_bytes=1169498 timing=shared_host_diagnostic complete_execution=false
+OK
+4/14 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+5/14 prover.block_v5_initial_sources_v1.test.block-v5 initial layout admits canonical RW union and rejects source ambiguity...OK
+6/14 runner.mod.test_0...OK
+7/14 runner.decode.test_0...OK
+8/14 air.lookups.tables.mod.test_0...OK
+9/14 air.memory_commitment.poseidon2_air.test_0...OK
+10/14 air.semantic_eval.test_0...OK
+11/14 prover.block_execution_external_trace_v2.test_0...OK
+12/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/14 air.lookups.tables.source_ingest.test_0...OK
+14/14 diagnostics.mod.test_0...OK
+All 14 tests passed.
+real 33.41
+user 45.99
+sys 9.32
+           391118848  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1563774  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               51531  involuntary context switches
+        890643088935  instructions retired
+        235498943009  cycles elapsed
+           387040552  peak memory footprint

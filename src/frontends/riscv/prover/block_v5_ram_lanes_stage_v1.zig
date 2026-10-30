@@ -15,6 +15,7 @@ pub const Limits = struct {
     plan: Plan.Limits = .{},
     max_counter_bytes: usize = 64 << 20,
     max_resident_bytes: usize = 24 << 30,
+    checkpoints: ?*@import("block_v6_ram_commitment_staging_v1.zig").Transport = null,
 };
 pub const Source = struct {
     context: *anyopaque,
@@ -68,6 +69,10 @@ pub fn ForBackend(comptime Backend: type) type {
             if (claims.len == 0) {
                 if (total != 0) return error.InvalidV5RamLanesCensus;
             } else try Protocol.admitSequence(claims, total);
+            if (limits.checkpoints != null) {
+                if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
+                if (limits.checkpoints.?.memory.items.len != 0 or limits.checkpoints.?.ranges.items.len != 0) return error.InvalidRamCheckpointOrder;
+            }
             const resident = comptime @hasDecl(Backend, "RamLaneResident");
             if (comptime resident) {
                 if (claims.len != 0 and source.load_resident == null) return error.MissingSecureRamResidentSource;
@@ -100,7 +105,13 @@ pub fn ForBackend(comptime Backend: type) type {
                     var trace = try source.load(source.context, @intCast(index));
                     defer trace.deinit();
                     if (!std.meta.eql(trace.claim, claim)) return error.V5RamLanesTraceReplayMismatch;
-                    break :blk try Api.commitFirstRoundWithCounter(a, &trace, @intCast(index), config, false, limits.proof, &local);
+                    var collected = try Api.commitFirstRoundWithCounter(a, &trace, @intCast(index), config, if (limits.checkpoints) |cache| cache.policy.retain_coefficients else false, limits.proof, &local);
+                    errdefer collected.deinit(a);
+                    if (limits.checkpoints) |checkpoints| {
+                        if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
+                        try checkpoints.saveMemory(&trace, &collected);
+                    }
+                    break :blk collected;
                 };
                 defer first.deinit(a);
                 pins[index] = first.pin;
@@ -122,8 +133,12 @@ pub fn ForBackend(comptime Backend: type) type {
             const roots = try a.alloc([2][32]u8, plan.shards.len);
             errdefer a.free(roots);
             for (plan.shards, counters.items, roots) |shard, *counter, *root| {
-                var first = if (comptime resident) try Provider.commitFirstRoundResident(a, &session.?, counter, shard, plan.digest, config) else try Provider.commitFirstRound(a, counter, shard, plan.digest, config, false);
+                var first = if (comptime resident) try Provider.commitFirstRoundResident(a, &session.?, counter, shard, plan.digest, config) else try Provider.commitFirstRound(a, counter, shard, plan.digest, config, if (limits.checkpoints) |cache| cache.policy.retain_coefficients else false);
                 defer first.deinit(a);
+                if (limits.checkpoints) |checkpoints| {
+                    if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
+                    try checkpoints.saveRange(shard, plan.digest, counter, &first);
+                }
                 root.* = first.roots();
             }
             const digest = try Plan.digest(a, pins, total, roots, limits.plan);
@@ -166,6 +181,8 @@ pub fn ForBackend(comptime Backend: type) type {
                 };
                 if (!found) return error.UntrustedV5RamLanesRangeRoster;
             }
+            if (self.limits.checkpoints) |checkpoints| try checkpoints.requireRoster(self.pins, self.plan.shards);
+            if (self.limits.checkpoints != null and Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedProviderCheckpointBackend;
             if (self.claims.len == 0) return;
             if (comptime @hasDecl(Backend, "RamLaneResident")) {
                 return self.proveResidentAdmitted(a, source, sink, pins, entries, sealed, boundary);
@@ -176,20 +193,39 @@ pub fn ForBackend(comptime Backend: type) type {
             for (self.claims, self.pins, 0..) |claim, expected, index| {
                 try Boundary.require(boundary);
                 try Proof.admit(expected, sealed, pins, entries);
-                var trace = try source.load(source.context, @intCast(index));
-                defer trace.deinit();
+                const Retained = struct {
+                    trace: Trace,
+                    first: Api.FirstRound,
+                    fn deinit(value: *@This(), alloc: std.mem.Allocator) void {
+                        value.first.deinit(alloc);
+                        value.trace.deinit();
+                    }
+                };
+                var retained: ?Retained = if (comptime Backend == @import("stwo_cpu_backend").CpuBackend) blk: {
+                    const checkpoints = self.limits.checkpoints orelse break :blk null;
+                    const loaded = try checkpoints.loadMemory(a, expected);
+                    break :blk .{ .trace = loaded.trace, .first = loaded.first };
+                } else null;
+                defer if (retained) |*value| value.deinit(a);
+                var replayed: ?Trace = if (retained == null) try source.load(source.context, @intCast(index)) else null;
+                defer if (replayed) |*value| value.deinit();
+                const trace = if (retained) |*value| &value.trace else &replayed.?;
                 if (!std.meta.eql(trace.claim, claim)) return error.V5RamLanesTraceReplayMismatch;
-                var first = try Api.commitFirstRound(a, &trace, @intCast(index), self.config, true, self.limits.proof);
-                defer first.deinit(a);
-                try first.require(a, &trace, expected);
+                var committed: ?Api.FirstRound = if (retained == null) try Api.commitFirstRound(a, trace, @intCast(index), self.config, true, self.limits.proof) else null;
+                defer if (committed) |*value| value.deinit(a);
+                const first = if (retained) |*value| &value.first else &committed.?;
+                try first.require(a, trace, expected);
                 try Boundary.require(boundary);
-                var proof = try Api.provePrepared(a, &first, &trace, expected, sealed, pins, entries, &table, self.limits.proof);
+                var proof = try Api.provePrepared(a, first, trace, expected, sealed, pins, entries, &table, self.limits.proof);
                 errdefer proof.deinit(a);
                 try sink.memory(sink.context, @intCast(index), &proof);
             }
             for (self.plan.shards, self.counters, self.range_roots) |shard, *counter, roots| {
                 try Boundary.require(boundary);
-                var first = try Provider.commitFirstRound(a, counter, shard, self.plan.digest, self.config, true);
+                var first = if (comptime Backend == @import("stwo_cpu_backend").CpuBackend)
+                    if (self.limits.checkpoints) |checkpoints| try checkpoints.loadRange(a, shard, self.plan.digest, counter, roots, self.config) else try Provider.commitFirstRound(a, counter, shard, self.plan.digest, self.config, true)
+                else
+                    try Provider.commitFirstRound(a, counter, shard, self.plan.digest, self.config, true);
                 defer first.deinit(a);
                 if (!std.meta.eql(first.roots(), roots)) return error.V5RamLanesRangeReplayMismatch;
                 var proof = try Provider.provePrepared(a, &first, counter, shard, self.plan.digest, sealed, pins, entries, &table);

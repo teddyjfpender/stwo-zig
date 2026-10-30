@@ -1,0 +1,40 @@
+{
+  "schema": "stwo-v8-native-domain-batch-qualification-v1",
+  "prover_only": true,
+  "new_air": false,
+  "original_verifier_unchanged": true,
+  "qualified": [
+    "q70/pow26 complete mixed SHA+Keccak baseline/candidate proof-byte SHA256 equality plus independent serialized-only verification",
+    "q70/pow26 complete mixed recovery baseline/candidate proof-byte SHA256 equality plus independent serialized-only verification",
+    "wrong nominated caller root and compensated physical-claim controls preserved",
+    "all17 native families: exact finalized domain column equality for original and bounded q2/q3 layouts, trace logs1/7, batch sizes1/4/32, parallel rows and small workspace"
+  ],
+  "gate_results": [
+    "All12 tests passed",
+    "All5 tests passed"
+  ],
+  "logs": {
+    "canonical-proof-byte-parity.log": "6b6aecff19755f6379c086370b15f3f89b484d56c0da2b2998f2aa64cf4ae27e",
+    "all-family-domain-parity.log": "f90cef3da8c7d50ea36035769b0587a62a16fe60319f2d4ac746fdbe009e0b73"
+  },
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_native_projection_domain_batch_v1.zig",
+      "sha256": "1e2af7b9295f11dd0ac37e1dc3cf68ca2b176a9dc7d8a70e37925b9589d88a0b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_native_endpoint_components_v1.zig",
+      "sha256": "670d1adebdba9e776a4f146a6cec9538e47494eaf5091e908c3c7d447d725134"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_native_projection_domain_batch_test.zig",
+      "sha256": "b14547a2c959040ad807178fac9a4dcf96b0cdd38977f53dbd1941968074d213"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_endpoint_mixed_proof_test.zig",
+      "sha256": "b34f9da5dc53b43dc0f4ed16c9f30c187ad4301e6c800fcc5e7a00e1f106897a"
+    }
+  ],
+  "real_ethereum_performance_qualified": false,
+  "full_ethereum_root": false
+}

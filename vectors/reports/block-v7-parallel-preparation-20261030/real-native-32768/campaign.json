@@ -1,0 +1,29 @@
+[
+  {
+    "case": "baseline",
+    "returncode": 0,
+    "started_unix_ns": 1793274709074309000,
+    "finished_unix_ns": 1793274779512680000,
+    "sampled_process_group_peak_bytes": 13980909568,
+    "process_group_cap_bytes": 42949672960,
+    "cap_exceeded": false
+  },
+  {
+    "case": "native-capsule",
+    "returncode": 0,
+    "started_unix_ns": 1793274779513898000,
+    "finished_unix_ns": 1793274851038836000,
+    "sampled_process_group_peak_bytes": 13977829376,
+    "process_group_cap_bytes": 42949672960,
+    "cap_exceeded": false
+  },
+  {
+    "case": "native-capsule-prep4",
+    "returncode": 0,
+    "started_unix_ns": 1793274851042502000,
+    "finished_unix_ns": 1793274918459330000,
+    "sampled_process_group_peak_bytes": 13986365440,
+    "process_group_cap_bytes": 42949672960,
+    "cap_exceeded": false
+  }
+]

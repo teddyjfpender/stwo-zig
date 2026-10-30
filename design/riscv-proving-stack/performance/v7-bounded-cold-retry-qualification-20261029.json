@@ -1,0 +1,22 @@
+{
+  "scope": "Correctness-only adaptive cold-window resource retry; no new complete-root timing",
+  "date": "2026-10-29",
+  "security": "diagnostic_q8_pow0",
+  "tests": {
+    "passed": 11,
+    "failed": 0
+  },
+  "fixture": {
+    "initial_original_children": 3,
+    "max_row_log": 18,
+    "selected_original_children": 1,
+    "resource_retries": 1
+  },
+  "checks": [
+    "Cold.deriveWindow row-cap rejection triggers bounded halving before live witness generation",
+    "Single original exceeding cap returns OriginalVerifierExceedsWindowBudget",
+    "Changed epoch preserves UntrustedV7Epoch rather than masking admission failure"
+  ],
+  "binary_sha256": "2fd79df16b41424bd871a0b50c972281027b2c75aa2f5b3fcef741e3a89c9053",
+  "log_sha256": "11391b176e5d9ae1ffb41b0a3db757db19604f0ea5455e92e0b4ad8161d5530f"
+}

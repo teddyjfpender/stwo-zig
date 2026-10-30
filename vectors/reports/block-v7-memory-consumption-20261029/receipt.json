@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-29",
+  "scope": "CPU finite complete original heterogeneous STARK; not Ethereum or compact recursive root",
+  "protocol_snapshot": "Before active caller Layout.VERSION3 migration; byte-identical to q70-coefficient-inputs artifact",
+  "results": {
+    "scoped_memory": "PASS7",
+    "complete_canonical": "PASS11",
+    "fresh_process": "PASS8"
+  },
+  "security": "csp_q70_pow26",
+  "execution": {
+    "cycles": 20495,
+    "native_windows": 2,
+    "active_callers": 1,
+    "original_oracle_proofs": 6,
+    "trees": 18,
+    "exact_physical_claims": true,
+    "all_producer_oracle_owners_destroyed_before_verification": true,
+    "consumed_source_reproof_rejected": true
+  },
+  "options": {
+    "input_storage_minimum_trace_log": 4,
+    "interaction_storage_minimum_trace_log": 4,
+    "consume_memory_producer": true,
+    "ram_tiles_minimum_trace_log": 4,
+    "defaults_changed": false
+  },
+  "bytes": {
+    "original_stark": 6016333,
+    "portable_envelope": 6063212,
+    "memory_allocator_after_preparation": 27967861,
+    "memory_allocator_after_commit": 27968069,
+    "memory_allocator_after_consumption": 10170064,
+    "union_allocator_before_core": 260732978,
+    "proof_phase_peak": 311708246,
+    "previous_input_only_proof_phase_peak": 337564021
+  },
+  "diagnostic_ns": {
+    "setup": 397381208,
+    "prove": 3548658042,
+    "original_oracle_prove_verify": 8905625667,
+    "fresh_verify": 1356883458
+  },
+  "timing_qualification": "Shared-host diagnostic. No controlled speedup or contiguous E2E claim. Oracle excluded from reported proving phase.",
+  "artifact": "vectors/reports/block-v7-multi-union-20261029/q70-coefficient-inputs",
+  "exact_artifact_equality": true,
+  "artifact_sha256": {
+    "proof.b7mun": "1a5211f770685711eb3e81c5a7e6e4e0fee8e4e74fdf957c2869133f321f6934",
+    "public-metadata.json": "23755ca1f93db0e585b1a16887b53cdc277d93ec30bfbecb1e7524a475c38ab5",
+    "guest.elf": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+  },
+  "binary_sha256": "63156cd2ceddda9167a15f823620ea4c3a6bfb59f3207fd85100713be0a83e37",
+  "source_hash_scope": "Selected stable changed files; not transitive build manifest",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_word_pcs_v1.zig": "b45657bdf9d10a2a48ee55ef18e1b3429f0eaf58efb81391d435256368548fda",
+    "src/frontends/riscv/prover/block_v7_memory_joint_proof_v1.zig": "e39fb922b31d32964eb7a4fe71da5ab8ee56382d7bd19ed963b7bf3834e7dca9",
+    "src/frontends/riscv/prover/block_v7_memory_cohorts_v1.zig": "5bce073056f14881815b3cb5e1cdf699b6e7a79cade6a58dd52edefeb3dde7f3",
+    "src/frontends/riscv/prover/block_v7_memory_cohort_checkpoint_v1.zig": "0873ed9afa03fa5938f12f71b5cbb97f9b234b08e030235d96868ab4511ac421",
+    "src/frontends/riscv/prover/block_v7_complete_union_memory_v1.zig": "c58deed60c3c15444940029a30e277359b00cf199afae4d18949f22718683b48",
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_v1.zig": "263b81a8fb9b065f1c24b858b008ef3fa9b87447683cf9f7e9d2b5f5ca6c8462",
+    "src/frontends/riscv/prover/block_v7_memory_joint_test_v1.zig": "d251216cac90bdcf7e74d77ac08fd970d5f477bc848fd93107538f6ac833dd03",
+    "src/frontends/riscv/prover/block_v7_memory_cohorts_test_v1.zig": "7df94f2ea1c3af039b309213c087a521ddaf70d7cf3c9786ba540d88681d5669",
+    "src/frontends/riscv/prover/tests/block_v7_multi_union_test.zig": "0ffb99b6f4e55906ec85c34ba6ec7457417c55ab9fc556e32e669f7cc732e52b"
+  },
+  "followup_compact_producer_admission_v3": {
+    "scope": "Separate active caller Layout.VERSION3 qualification; not relabeled historical proof",
+    "result": "PASS11",
+    "security": "csp_q70_pow26",
+    "cycles": 20495,
+    "native_windows": 2,
+    "callers": 1,
+    "oracle_proofs": 6,
+    "artifact": "vectors/reports/block-v7-active-caller-v3-20261029/two-windows",
+    "log": "vectors/reports/block-v7-active-caller-v3-20261029/two-windows/qualification.log",
+    "compact_retained_pcs_model_bytes": 174618288,
+    "resident_retained_pcs_model_bytes": 187993904,
+    "exact_compact_producer_cap_enforced": true,
+    "resident_admission_rejected_same_cap": true,
+    "receiver_admission_unchanged": true,
+    "actual_input_and_interaction_storage_validated": true,
+    "all_producer_and_oracle_owners_destroyed_before_verification": true,
+    "exact_physical_claims": true,
+    "proof_bytes": 6001584,
+    "envelope_bytes": 6048463,
+    "proof_phase_peak_bytes": 311708246,
+    "proof_ns_shared_host_diagnostic": 4149626583,
+    "fresh_verify_ns_shared_host_diagnostic": 1525494583,
+    "artifact_sha256": {
+      "public-metadata.json": "f6269dda98158cd234293ebf89e6dbb7ce2cb78e182023c14791355338966287",
+      "proof.b7mun": "cb4d8a539827ef5f9b51d63f18be03dcda8227756564a1ac8a786959cbd684b6",
+      "guest.elf": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+    },
+    "focused_storage_tests": "PASS3",
+    "focused_storage_log": "vectors/reports/block-v7-memory-consumption-20261029/producer-storage-tests.log",
+    "scope_limit": "Finite closed original STARK, not full Ethereum block or compact recursive publication root; retained PCS model excludes raw rows and transient proof scratch, bounded by actual allocator."
+  }
+}

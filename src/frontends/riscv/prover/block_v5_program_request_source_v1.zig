@@ -14,7 +14,8 @@ pub fn Request(comptime S: type) type {
 /// `main` must come from the native proof's original fixed/main PCS openings.
 pub fn fromCommittedOpcodeMain(comptime S: type, family: trace.OpcodeFamily, main: []const S) !Request(S) {
     if (main.len != trace.nColumnsForFamily(family)) return error.InvalidProgramRequestMainGeometry;
-    const list = try entries.Entries(S).fromMain(family, main);
+    var list: @import("../air/lookups/entry.zig").Builder(S).List = undefined;
+    try entries.Entries(S).fromMainInto(family, main, &list);
     var result: ?Request(S) = null;
     for (list.entries[0..list.len]) |entry| {
         if (entry.domain != .program_access) continue;

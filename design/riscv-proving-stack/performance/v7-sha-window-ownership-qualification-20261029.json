@@ -1,0 +1,59 @@
+{
+  "schema": "stwo.riscv.scoped-sha-window-batch-qualification.v1",
+  "date": "2026-10-29",
+  "result": "PASS",
+  "tests": 6,
+  "scope": "Two independently selected public CPU/memory boundaries; one shared original SHA arithmetic inventory; complete original caller AIR and separately closed same-column control projections. Not a full native execution root.",
+  "security": "diagnostic_q8_pow0",
+  "binary": {
+    "path": "/tmp/block-v7-sha-batch-owned2",
+    "sha256": "dbf5d343acdc8e8eb72cb625e51249ddbcaff5563673558f445ac8cde49df643"
+  },
+  "log": {
+    "path": "/tmp/block-v7-sha-batch-owned-run2.log",
+    "sha256": "a6d4345e5f0c396d657c1f4130bb9b09fb37ea74eaad7a8d1970319bf5e6b477"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/air/guest_precompile/sha256_memory_caller.zig": "52bf58798b5760b233fb6ec16b88cf74f9880159518bc05bb50ba5fdf764271c",
+    "src/frontends/riscv/air/guest_precompile/sha256_global_wire_caller_v1.zig": "333adcf73b17be593e6dd2e8c9fbdd7d5a53be921ee8b4999e4da94613174419",
+    "src/frontends/riscv/prover/block_v7_sha_window_batch_v1.zig": "f73bd8b85bbb00ae87799137bf5a1f8e448eea412470e179639668d30d49fde5",
+    "src/frontends/riscv/prover/block_v7_sha_window_control_projection_v1.zig": "359b015a35b7f873666e14e947e1d542f3e0921d51e28084195cb64dbe3e3519",
+    "src/frontends/riscv/prover/block_v7_shared_word_projection_v1.zig": "3bbe35f284bf05c5f0d4ba0163251b5d531cdaf0d7bc75e779a542ea545d5b28",
+    "src/frontends/riscv/prover/block_v5_precompile_lookup_source_v1.zig": "01be5f4e13511f202331e25baa5414a1a210bf186b4807cd05abd2be10001280",
+    "src/frontends/riscv/prover/tests/block_v7_sha_window_batch_test.zig": "9298794eb7ff52948474a803ecadd08cd593f6ea1b65eec6889a4f1c49d4b3d2",
+    "src/frontends/riscv/block_v7_sha_batch_test_root.zig": "d375238335349fb4036f66e065bb4bf5fd6968daa38d224425ba32525abe63fe"
+  },
+  "selected_original_event_ordinals": [
+    0,
+    1,
+    2,
+    8,
+    9,
+    16,
+    17
+  ],
+  "physical_control_claims_per_window": 4,
+  "independent_control_buses": [
+    "program",
+    "state",
+    "register_memory"
+  ],
+  "cases": [
+    "two windows with identical local clock and different global frames prove using shared original arithmetic",
+    "wrong independently admitted wire offset fails actual STARK",
+    "overlapping windows, repeated index and field-modular clock rejected",
+    "fully swapped caller records and rebuilt shared arithmetic IDs rejected by per-window closure",
+    "same swap with compensating control physical claims fails actual STARK"
+  ],
+  "full_test_job": {
+    "wall_seconds": 57.04,
+    "maximum_resident_bytes": 1059946496,
+    "timing_status": "diagnostic concurrent correctness job, includes negative proofs; not request latency"
+  },
+  "limitations": [
+    "No full native proof or private RAM bridge is integrated in this scoped fixture.",
+    "Equal PC/local-clock/register tuples with different private RAM must be bound by the production frame-aware RAM projection.",
+    "SHA occurs zero times in the retained Ethereum workload; this is an ownership prototype, not a claimed Ethereum speedup.",
+    "The earlier globally aggregated SHA fixture did not qualify window ownership."
+  ]
+}

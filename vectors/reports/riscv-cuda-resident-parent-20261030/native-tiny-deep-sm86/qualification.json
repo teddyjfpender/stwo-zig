@@ -1,0 +1,64 @@
+{
+  "schema": "stwo-native-tiny-deep-device-v1",
+  "gpu_qualified": true,
+  "scope": "tiny noncanonical DEEP inverse primitive only; no full source proof",
+  "cases": 92,
+  "columns_per_case": 3,
+  "exact_words_including_guards": 2208,
+  "malformed_descriptors_rejected": 9,
+  "architecture": 86,
+  "source_snapshot": "c9ae07394d24c8e5bee644f62dd7ecdb8ba9a56aea3c0e89c95a3b79e95c204f",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-O3",
+    "--std=c++17",
+    "-gencode",
+    "arch=compute_86,code=sm_86",
+    "-I/workspace/stwo-sm86/src/backends/cuda/native",
+    "oracle.cu",
+    "/workspace/stwo-sm86/src/backends/cuda/native/transform/quotient_tiny.cu",
+    "-o",
+    "oracle"
+  ],
+  "files": [
+    {
+      "path": "build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hardware.csv",
+      "bytes": 122,
+      "sha256": "7e289305354e220dfb4daa6519dad2454c5ee1c965ba3f406f29dde347111359"
+    },
+    {
+      "path": "hashes.txt",
+      "bytes": 506,
+      "sha256": "13f2259d1c1d6c67db792058ef36028680e602d0b0c180bcbffdc2cc0a63c638"
+    },
+    {
+      "path": "oracle",
+      "bytes": 1023256,
+      "sha256": "7136fd3c2c879b67e801437bd77f1d969c4ecde1f9c0249107b71e217515edf1"
+    },
+    {
+      "path": "oracle.cu",
+      "bytes": 2161,
+      "sha256": "b7004e89b192ee9a39c90d0d165ed090ed863a8dcec8b08e862e58849c8d453e"
+    },
+    {
+      "path": "run.log",
+      "bytes": 164,
+      "sha256": "b069ea5e2a08b6a0270acbcd525d42b806e13e9fb269f0f45031370b5a804854"
+    },
+    {
+      "path": "vectors.bin",
+      "bytes": 3680,
+      "sha256": "db59f9b0daad253b16093ae31755efce368e1584f139e413e165006373f4b191"
+    }
+  ],
+  "preserved_executable_archive": {
+    "path": "/tmp/v7-sm86-tiny-primitive-preserved.tar.gz",
+    "sha256": "f6b3045a70a96124898169e7392757e05eeb85a225a54b532a768c56a55fc91e"
+  }
+}

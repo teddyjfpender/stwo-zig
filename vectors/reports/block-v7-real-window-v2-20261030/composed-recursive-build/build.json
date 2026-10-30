@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "source_sha256": "d7e06ae504157b3a6d526f0998faad412037275ce32be9fbe0b6570df0692b48",
+  "source_after_sha256": "d7e06ae504157b3a6d526f0998faad412037275ce32be9fbe0b6570df0692b48",
+  "source_unchanged": true,
+  "binary_sha256": "01a67eb494c42444c305a4607f983778ebd7a9d443358b6a1016e301c81efb30",
+  "returncode": 0,
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-integration-build.lock",
+    "src/frontends/riscv/block_v7_real_window_root_test_root_v2.zig",
+    "-OReleaseSafe",
+    "--test-filter",
+    "v7 real nonterminal window",
+    "--test-no-exec",
+    "-femit-bin=/tmp/v7-real-window-root-composed-build-20261030/prover"
+  ],
+  "compile_wall_ns": 215380317000,
+  "machine": {
+    "os": "Darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu_count": 18,
+    "memory_bytes": 68719476736,
+    "cpu_model": "Apple M5 Max",
+    "python": "3.14.6",
+    "zig": "0.15.2",
+    "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+  },
+  "full_source_manifest": "../features-build/source-before.json"
+}

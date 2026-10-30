@@ -1,0 +1,58 @@
+{
+  "schema": "stwo-circuit-blake3-existing-gate-reuse-qualification-v1",
+  "scope": "BLAKE3 kernel through existing circuit gates; no RISC-V circuit leaf wrap, registry or recursive source qualification",
+  "production_active": false,
+  "backend": "CPU",
+  "optimize": "ReleaseSafe",
+  "passed": 14,
+  "failed": 0,
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/circuit_blake3_reuse_test_root.zig -OReleaseSafe --test-filter 'circuit Blake3 reuse'",
+  "existing_components": [
+    "blake_g_gate",
+    "triple_xor",
+    "qm31_ops",
+    "eq"
+  ],
+  "compression": {
+    "g_gates": 56,
+    "xor_gates": 16,
+    "output_words": 16,
+    "counter_bits": 64
+  },
+  "native_merkle_node": {
+    "protocol_prefix_bytes": 28,
+    "message_bytes": 92,
+    "g_gates": 112,
+    "xor_gates": 32,
+    "new_AIR_components": 0
+  },
+  "sources": [
+    {
+      "path": "src/frontends/circuit/builder/blake3_reuse_v1.zig",
+      "sha256": "c256b3951c559234d9b72090afb9367cccfb903098c1cb5ac340096c03b1bf6e"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_reuse_v1_test.zig",
+      "sha256": "1241928239a2ac2b670a4b87b594b6d85c2b37358e91017d76c6726e769b1642"
+    },
+    {
+      "path": "src/circuit_blake3_reuse_test_root.zig",
+      "sha256": "45add72e8e5c3d892d5a3f48c34f8d48ca4bdc816734b91b38ffc0b155cb8d2a"
+    },
+    {
+      "path": "campaign/design/riscv-cairo-wrap-fold-reuse-v1.md",
+      "sha256": "88906a5f06ad3f55a1f1955d225801b080ad07b341336718fd68c9ac44b08f72"
+    }
+  ],
+  "log": {
+    "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-blake3-reuse-kernel-v1/qualification.log",
+    "sha256": "1938e406e9bda582147e6ecf0defe19b861f3d0f94606479f3d8d88954f4141f"
+  },
+  "open": [
+    "exact original RISC-V multi-tree PCS verifier circuit",
+    "BLAKE3 Fiat-Shamir draw/rejection and PoW circuit",
+    "RISC-V typed AIR statement adapter and public closure",
+    "new authorized leaf/fold registry",
+    "arbitrary multi-chunk leaf serialization"
+  ]
+}

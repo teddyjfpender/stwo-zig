@@ -65,6 +65,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "circuit/lookup_sum.cu",
     },
     "commitment": {
+        "commitment/blake3.cu",
         "commitment/merkle.cu",
         "commitment/progressive.cu",
     },
@@ -77,6 +78,9 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "transform/composition_split.cu",
         "transform/lde.cu",
         "transform/n2b.cu",
+        "transform/parent_tiny.cu",
+        "transform/quotient_tiny.cu",
+        "transform/twiddle_tree.cu",
     },
     "oods": {
         "oods/barycentric.cu",
@@ -301,9 +305,10 @@ class CudaBuildTests(unittest.TestCase):
             (schedules + b2n + n2b + composition).lower(),
         )
         self.assertEqual(6, abi.count("launches_out: *u32"))
-        self.assertEqual(2, composition_abi.count("launches_out: *u32"))
+        self.assertEqual(3, composition_abi.count("launches_out: *u32"))
         self.assertIn("CompactDepth", composition)
         self.assertIn("stwo_ntt_b2n_composition_split_depth_two_on", composition)
+        self.assertIn("stwo_ntt_b2n_composition_split_depth_three_on", composition)
 
     def test_device_header_definitions_have_internal_or_inline_linkage(self) -> None:
         violations: list[str] = []

@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-29",
+  "result": "REJECTED_AS_PLANNED",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "scope": "Cold singleton caller admission after genuine original production and verification; no recursive proof generated",
+  "estimate": {
+    "first": 2,
+    "count": 1,
+    "row_log": 21,
+    "fixed_bytes": 934746812,
+    "retained_bytes": 3897202364,
+    "cells": 1782593536,
+    "planned_bytes": 39935002676,
+    "max_row_log": 25,
+    "max_retained_bytes": 4294967296,
+    "max_planned_bytes": 25769803776
+  },
+  "error": "OriginalVerifierExceedsWindowBudget",
+  "cause": "Planned peak exceeds configured direct window limit; cold compiler completed successfully. Nested family compiler caps were not the cause in this run.",
+  "log_sha256": "7787527abcf3192ff387a83e46f1f05b2d398bf47ca1ecce84692fd92e4bf7f7",
+  "command": "STWO_V7_SCALE_CANONICAL=1 STWO_V7_COLD_ONLY=1 STWO_V7_WINDOW_PROFILE=1 <ReleaseSafe bounded-root fixture>",
+  "canonical_complete_root_qualified": false,
+  "explicit_budget_probe": {
+    "result": "PASS12",
+    "direct_budget_bytes": 42949672960,
+    "outer_request_budget_bytes": 51539607552,
+    "production_default_changed": false,
+    "recursive_proof_created": false,
+    "log_sha256": "20653fbd6e9b31eb2333d22ba2e3fc08f5acd5edf5652395c2beb0a839230f0b",
+    "binary_sha256": "8e9152e67a4d78b5e66385c56e05b27ccc4b4e7ba8de14636b19a51dc289ca7a",
+    "peak_memory_footprint_bytes": 3529611168,
+    "note": "Cold compiler/setup peak only, not complete proof peak."
+  }
+}

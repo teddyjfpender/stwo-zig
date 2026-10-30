@@ -1,0 +1,29 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-integration-build.lock; waiting
+[zig_protocol_test] acquired after 319s
+1/11 block_v8_full_boundary_root_test_root.test_0...OK
+2/11 recursion.tests.block_v8_full_boundary_root_test.test.canonical full FIRST through TERMINAL single root fresh metadata-only full receiver...B8_JOIN_STAGE fixed_compile_ns=9958314500
+B8_JOIN_STAGE fixed_commit_ns=3217718875
+BLAKE3_NATIVE_QUERY_FUSION groups=4760 removed_scalars=19040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=17245 fma=46391 arithmetic_rows=141278 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=4410 removed_scalars=17640 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=15802 fma=46332 arithmetic_rows=139234 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1439 fma=7086 arithmetic_rows=30713 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119424 direct_columns=true
+B8_JOIN_STAGE witness_ns=21186448750 retained_rows_bytes=3013123580
+B8_JOIN_STAGE compiler_released_bytes=1534356740 compiler_release_ns=21232042
+B8_JOIN_STAGE plan_ns=2146236167
+B8_FULL_BOUNDARY_ROOT queries=70 pow=26 first_cycle=1 skip=0 cycles=7 cohorts=2 local_originals=2 bridge_originals=1 compact_originals=1 bytes=981445 sha256=864099a4a732d43732665d559f1e7d86c4c42835ac7ff3582a10edf79a8ad9de proof_ns=38269509334 whole_ns=74811936667 fresh_metadata_only_full_receiver=true output43_authenticated=true
+B8_FULL_BOUNDARY q70=70 pow=26 skip=0 cycles=7 source_originals=2 terminal_halt=1 output_bytes=43 compact_ram_authenticated=true freshly_file_verified=true
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

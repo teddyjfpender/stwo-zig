@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "wall_s": 0.19170308113098145,
+  "diagnostic_only": true,
+  "host_llvm_recompiled": false,
+  "readonly_fix": "canonical framework_interaction.committedRow",
+  "binary_sha256": "3a346c73e9d979c0865a53badafd1749486b4a74cb7186da61936a82063ceff7"
+}

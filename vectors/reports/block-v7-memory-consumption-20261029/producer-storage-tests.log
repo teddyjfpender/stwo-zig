@@ -1,0 +1,4 @@
+1/3 block_v7_producer_storage_test_root.test_0...OK
+2/3 prover.block_v7_multi_union_residency_v1.test.producer residency omits only selected LDEs and keeps coefficients and Merkle...OK
+3/3 prover.block_v7_multi_union_residency_v1.test.producer physical storage cannot discount resident columns or duplicate coefficient ownership...OK
+All 3 tests passed.

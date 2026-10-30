@@ -1,0 +1,30 @@
+1/8 block_v8_saved_union_root_benchmark_root.test_0...OK
+2/8 prover.tests.block_v8_saved_union_root_benchmark.test.retained Ethereum V8 saved original to in-proof closed root benchmark...BLAKE3_NATIVE_QUERY_FUSION groups=133420 removed_scalars=533680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=541883 fma=121670 arithmetic_rows=989317 direct_columns=true
+V8_SAVED_ORIGINAL_CLOSED_ROOT verified=true whole_ns=156826216333 recursive_proof_ns=40022267458 peak_bytes=19197083704
+OK
+3/8 air.semantic_eval.test_0...OK
+4/8 prover.block_execution_external_trace_v2.test_0...OK
+5/8 prover.block_execution_external_access_bridge_v2.test_0...OK
+6/8 air.memory_commitment.poseidon2_air.test_0...OK
+7/8 air.lookups.tables.mod.test_0...OK
+8/8 air.lookups.tables.source_ingest.test_0...OK
+All 8 tests passed.
+      157.62 real       347.69 user        27.07 sys
+         18999721984  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            14975951  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               74416  involuntary context switches
+       5738813270030  instructions retired
+       1585165974188  cycles elapsed
+         19004358256  peak memory footprint

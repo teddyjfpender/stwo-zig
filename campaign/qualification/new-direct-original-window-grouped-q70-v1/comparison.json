@@ -1,0 +1,40 @@
+{
+  "schema": "stwo-riscv-grouped-opening-single-pair-v1",
+  "scope": "single saved six-cycle SHA/Keccak mixed fixture; one worker ReleaseSafe; diagnostic pair, not median or full-block estimate",
+  "baseline_report": "campaign/qualification/new-direct-original-window-q70-v1/report.json",
+  "candidate_report": "campaign/qualification/new-direct-original-window-grouped-q70-v1/report.json",
+  "worker_count": 1,
+  "optimize": "ReleaseSafe",
+  "baseline": {
+    "producer_times": {
+      "admission_ns": 185017667,
+      "material_ns": 444977625,
+      "key_ns": 16012822458,
+      "witness_ns": 2459406000,
+      "prove_and_serialize_ns": 120805146333,
+      "whole_ns": 139907370167
+    },
+    "fresh_verify_ns": 16817414000,
+    "charged_peak_bytes": 38422874799,
+    "root_bytes": 1113224
+  },
+  "candidate": {
+    "producer_times": {
+      "admission_ns": 179212166,
+      "material_ns": 440340209,
+      "key_ns": 5268947500,
+      "witness_ns": 1303003208,
+      "prove_and_serialize_ns": 57311610167,
+      "whole_ns": 64503113333
+    },
+    "fresh_verify_ns": 5776511917,
+    "charged_peak_bytes": 20790020583,
+    "root_bytes": 981000
+  },
+  "prove_and_serialize_speedup": 2.1078651599734592,
+  "production_speedup": 2.1690018192567293,
+  "charged_peak_reduction_fraction": 0.4589155368577188,
+  "blake3_g_gates_unchanged": true,
+  "baseline_padded_variables": 71303168,
+  "candidate_padded_variables": 46137344
+}

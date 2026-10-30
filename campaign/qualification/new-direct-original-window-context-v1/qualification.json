@@ -1,0 +1,47 @@
+{
+  "schema": "stwo-riscv-direct-original-joined-context-v1",
+  "scope": "saved nonterminal six-cycle SHA/Keccak fixture; circuit construction and checking, no STARK proof in this gate",
+  "q": 70,
+  "pow_bits": 26,
+  "native_parent_proofs": 0,
+  "strict_finalization": true,
+  "preprocessing_invariants": true,
+  "changed_commitment_sample_cpu_rejected": true,
+  "tests_passed": 17,
+  "tests_skipped": 5,
+  "tests_failed": 0,
+  "whole_gate_seconds": 6.83,
+  "maximum_resident_bytes": 4076617728,
+  "geometries": [
+    {
+      "value_mode": true,
+      "padded_vars": 71303168,
+      "raw_eq": 2158481,
+      "raw_qm31_ops": 28375957,
+      "raw_triple_xor": 1161056,
+      "raw_m31_to_u32": 1433610,
+      "raw_blake_g_gate": 8127392,
+      "padded_eq": 4194304,
+      "padded_qm31_ops": 33554432,
+      "padded_triple_xor": 2097152,
+      "padded_m31_to_u32": 2097152,
+      "padded_blake_g_gate": 8388608
+    },
+    {
+      "value_mode": false,
+      "padded_vars": 71303168,
+      "raw_eq": 2158481,
+      "raw_qm31_ops": 28375957,
+      "raw_triple_xor": 1161056,
+      "raw_m31_to_u32": 1433610,
+      "raw_blake_g_gate": 8127392,
+      "padded_eq": 4194304,
+      "padded_qm31_ops": 33554432,
+      "padded_triple_xor": 2097152,
+      "padded_m31_to_u32": 2097152,
+      "padded_blake_g_gate": 8388608
+    }
+  ],
+  "binary_sha256": "244dd47042b785472c4fff4ea03d8760cf2569271f93caea42b7eead828a1131",
+  "quotient_layout": "ungrouped_v1"
+}

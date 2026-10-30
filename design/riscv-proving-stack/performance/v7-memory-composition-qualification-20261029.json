@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "new memory original-equation to recursive-composition parity and metadata-only compilation",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 4,
+    "real_recursive_proof": false,
+    "canonical_security_qualified": false
+  },
+  "coverage": [
+    "all137 RAM equations and all equations for interval/range16/terminal compared with original quotient adapter at arbitrary OODS",
+    "all physical sums normalized inside symbolic circuit",
+    "each physical-sum and each of four split composition chunks mutation rejects",
+    "RAM prior/first/last endpoints and global-boundary flags remain dynamic inputs",
+    "first, middle and last shard geometry produces identical equation graph",
+    "incoming link inverse constrained in circuit; prior ordinal mutation rejects for nonfirst shards",
+    "metadata-only compiler reproduces original quotient from explicit sample layouts and 53-pair epoch source vocabulary",
+    "altered source map with self-consistent identity rejected against independently compiled source map",
+    "106 challenge source ports checked against actual execution epoch v2 draw sequence and final channel",
+    "heterogeneous component logs and a preceding nonzero Horner accumulator match original quotient adapter at common log16; altered sums/openings reject"
+  ],
+  "source_state": "uncommitted development worktree; selected hashes are not a complete reproducible archive",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_ram_component_v1.zig": "b843e439e317deb38a6fc0de1d6b1d49d5a756f629ecbb13dfbe2ba989c5fc5a",
+    "src/frontends/riscv/prover/block_v7_provider_component_v1.zig": "17f24b3a7672f78ed457355a2ae1a2d9e154691e0459de096177e67787ede869",
+    "src/frontends/riscv/recursion/air/block_v7_memory_composition_v1.zig": "bbc40a6348ee9a9ecf2e956996824da26065308e4dc0b221022fa69ee539773a",
+    "src/frontends/riscv/recursion/air/block_v7_memory_shape_composition_v1.zig": "a6a96ab7eb5e9a5939c45c1f00c83932af4e5d1876c704001b460483b806968e",
+    "src/frontends/riscv/prover/block_v7_memory_composition_test_v1.zig": "df27f697f070ede1fa46e3343a2e09412e11ef9bca17b0e6a3337f8f6d0ccd43",
+    "src/frontends/riscv/prover/block_v7_execution_epoch_v1.zig": "e502d9eba3e6f6ce51f8bd24824db9d4b20e57ae39f0403921a049c47352a95a"
+  },
+  "binary_sha256": "8f83178c1dc8d281c3416c615a5875277df84e88de3935340f0d36790a52ec6f",
+  "log": [
+    "1/4 prover.block_v7_memory_composition_test_v1.test.v7 memory composition exact original quotients for all four families and physical sum mutations...OK",
+    "2/4 prover.block_v7_memory_composition_test_v1.test.v7 memory composition RAM endpoint geometry does not choose graph and incoming link is constrained...OK",
+    "3/4 prover.block_v7_memory_composition_test_v1.test.v7 memory composition challenge ports match the actual whole execution epoch...OK",
+    "4/4 prover.block_v7_memory_composition_test_v1.test.v7 memory composition heterogeneous logs preserve original joint Horner accumulator...OK",
+    "All 4 tests passed."
+  ]
+}

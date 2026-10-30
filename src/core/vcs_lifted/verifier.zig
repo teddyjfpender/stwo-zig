@@ -189,7 +189,20 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             if (queried_values.len != self.column_log_sizes.len) {
                 return MerkleVerificationError.InvalidQueryShape;
             }
-            if (self.column_log_sizes.len == 0) return;
+            if (self.column_log_sizes.len == 0) {
+                // Empty trees have no openings in the original protocol, but
+                // capture callers still require an initialized owned result.
+                // Publish only after allocation succeeds, exactly as for the
+                // nonempty path below. Do not read uninitialized path storage
+                // when a later recursive verifier hashes this capture.
+                if (capture_out) |destination| {
+                    const positions = try allocator.dupe(usize, query_positions);
+                    errdefer allocator.free(positions);
+                    const siblings = try allocator.alloc(H.Hash, 0);
+                    destination.* = .{ .positions = positions, .path_depth = 0, .siblings = siblings };
+                }
+                return;
+            }
 
             for (queried_values) |column| {
                 if (column.len != query_positions.len) return MerkleVerificationError.InvalidQueryShape;
@@ -419,6 +432,35 @@ fn maxLogSize(values: []const u32) u32 {
 
 test "vcs_lifted verifier: verifies simple proof" {
     try verifySimpleProofWithAllocator(std.testing.allocator);
+}
+
+test "vcs_lifted verifier: empty tree capture is owned and transactional" {
+    try emptyCaptureWithAllocator(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, emptyCaptureWithAllocator, .{});
+}
+
+fn emptyCaptureWithAllocator(a: std.mem.Allocator) !void {
+    const H = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    var hasher = H.defaultWithInitialState();
+    var verifier = try MerkleVerifierLifted(H).init(a, hasher.finalize(), &.{});
+    defer verifier.deinit(a);
+    const sentinel = MerklePathCapture(H){ .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{} };
+    var capture = sentinel;
+    const positions = [_]usize{ 0, 1, 1 };
+    verifier.verifyWithPathCapture(a, &positions, &.{}, .{ .hash_witness = &.{} }, &capture) catch |err| {
+        try std.testing.expectEqualDeep(sentinel, capture);
+        return err;
+    };
+    defer capture.deinit(a);
+    try std.testing.expectEqual(@as(u32, 0), capture.path_depth);
+    try std.testing.expectEqualSlices(usize, &positions, capture.positions);
+    try std.testing.expectEqual(@as(usize, 0), capture.siblings.len);
+    // This is the path used by PCS captures: an empty tree has no queries.
+    var no_queries = sentinel;
+    try verifier.verifyWithPathCapture(a, &.{}, &.{}, .{ .hash_witness = &.{} }, &no_queries);
+    defer no_queries.deinit(a);
+    try std.testing.expectEqual(@as(usize, 0), no_queries.positions.len);
+    try std.testing.expectEqual(@as(u32, 0), no_queries.path_depth);
 }
 
 test "vcs_lifted verifier: every allocation failure preserves capture and releases columns" {

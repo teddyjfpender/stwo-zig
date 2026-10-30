@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "target": "cuda",
+  "scope": "riscv-recursive-parent-composition",
+  "source_file": "kernels.cu",
+  "source_sha256": "56c99fddbafd175f27e0b18c6b5f2472d27744ff051faa2f3531339b65133687",
+  "programs": [
+    {
+      "executable_identity": "1818ea82d0aa552e6b57352bdd44f1c20fb0e1a68fe7fa8dbbcb3ea6dfd8e649",
+      "kernel": "stwo_cuda_framework_v1_1818ea82d0aa552e6b57352bdd44f1c20fb0e1a68fe7fa8dbbcb3ea6dfd8e649",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 3338762511291389976
+    },
+    {
+      "executable_identity": "728013bdad8908aa7d37ecf7c72efa186dad22ebb9ebc426779dca77ed8b30db",
+      "kernel": "stwo_cuda_framework_v1_728013bdad8908aa7d37ecf7c72efa186dad22ebb9ebc426779dca77ed8b30db",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 12252194165555953778
+    },
+    {
+      "executable_identity": "a67a3a9c98346adfc94088b0b9ab7aa2aaaf6a387d229d47072e19b65428b594",
+      "kernel": "stwo_cuda_framework_v1_a67a3a9c98346adfc94088b0b9ab7aa2aaaf6a387d229d47072e19b65428b594",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 16098737648050010790
+    },
+    {
+      "executable_identity": "b9d4e2bc7a8ce0ae3d42d76db859c9c660f52fbd9a6a986ab945dacee01a3580",
+      "kernel": "stwo_cuda_framework_v1_b9d4e2bc7a8ce0ae3d42d76db859c9c660f52fbd9a6a986ab945dacee01a3580",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 12601226216165528761
+    },
+    {
+      "executable_identity": "9ca80ca759b7e2c2d0b9698656dbaf22b98c3696301382a64635ffa1e2e59d0a",
+      "kernel": "stwo_cuda_framework_v1_9ca80ca759b7e2c2d0b9698656dbaf22b98c3696301382a64635ffa1e2e59d0a",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 14042988183777224860
+    },
+    {
+      "executable_identity": "4dd366b8547e21b0f2ff3010ea122da4ffe4f465293d7a53da857add6a5eb0c1",
+      "kernel": "stwo_cuda_framework_v1_4dd366b8547e21b0f2ff3010ea122da4ffe4f465293d7a53da857add6a5eb0c1",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 12691564127242867533
+    },
+    {
+      "executable_identity": "62ca271f92f2d8e762a7a46c5481ea764b40f879ec5a9d58ff2c528b24869e7c",
+      "kernel": "stwo_cuda_framework_v1_62ca271f92f2d8e762a7a46c5481ea764b40f879ec5a9d58ff2c528b24869e7c",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 16706369527132703330
+    },
+    {
+      "executable_identity": "1df1faf152640f29f8a4909282e04d91d4f959dd4265a4a3f1eef1a2fda209a4",
+      "kernel": "stwo_cuda_framework_v1_1df1faf152640f29f8a4909282e04d91d4f959dd4265a4a3f1eef1a2fda209a4",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 2958693787615555869
+    },
+    {
+      "executable_identity": "b7aafb8e34aeac59deea50c40ea83947070e9bd188a8dd41c47914ec08f414fc",
+      "kernel": "stwo_cuda_framework_v1_b7aafb8e34aeac59deea50c40ea83947070e9bd188a8dd41c47914ec08f414fc",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 6461731106130209463
+    },
+    {
+      "executable_identity": "44b6b896c2886e13edf6f00637a9423676ba166739bd835533aef98429a1f69b",
+      "kernel": "stwo_cuda_framework_v1_44b6b896c2886e13edf6f00637a9423676ba166739bd835533aef98429a1f69b",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 1400206903492523588
+    },
+    {
+      "executable_identity": "c1371fe89754fdd56bbeac19faa00e127243bf36d450dd06584ad32e1f2e6030",
+      "kernel": "stwo_cuda_framework_v1_c1371fe89754fdd56bbeac19faa00e127243bf36d450dd06584ad32e1f2e6030",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 15419573710597601217
+    },
+    {
+      "executable_identity": "825818d973af07a921c18edeaaff34e7b6001d6b3d1f39f7931118df8da8cdab",
+      "kernel": "stwo_cuda_framework_v1_825818d973af07a921c18edeaaff34e7b6001d6b3d1f39f7931118df8da8cdab",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 12179896629345147010
+    },
+    {
+      "executable_identity": "17616c937bde96ee52dcf70c6902c905f604af725dbe9a0724304fc312d5cc6c",
+      "kernel": "stwo_cuda_framework_v1_17616c937bde96ee52dcf70c6902c905f604af725dbe9a0724304fc312d5cc6c",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 17192173249869144343
+    },
+    {
+      "executable_identity": "c68a1f1d6ff018c0f7d58fb47272e97acfdeb4b7e3a79a024d5318f525d8aadb",
+      "kernel": "stwo_cuda_framework_v1_c68a1f1d6ff018c0f7d58fb47272e97acfdeb4b7e3a79a024d5318f525d8aadb",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 13842077814743861958
+    },
+    {
+      "executable_identity": "4d3aa09e7458b743200559b37b7eb824649ba95782732a45547eb64d86f7f7ef",
+      "kernel": "stwo_cuda_framework_v1_4d3aa09e7458b743200559b37b7eb824649ba95782732a45547eb64d86f7f7ef",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 4879465979179973197
+    },
+    {
+      "executable_identity": "aaf464ede869e853d87bfbc710f89fd4cb52016dad5618e442c33683e6e51f33",
+      "kernel": "stwo_cuda_framework_v1_aaf464ede869e853d87bfbc710f89fd4cb52016dad5618e442c33683e6e51f33",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 6046198948881036458
+    },
+    {
+      "executable_identity": "7538777849b23b8f5624cab519dbb3a664f528bd111bdd251ca25e5bc49cfb02",
+      "kernel": "stwo_cuda_framework_v1_7538777849b23b8f5624cab519dbb3a664f528bd111bdd251ca25e5bc49cfb02",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 10321038999673059445
+    },
+    {
+      "executable_identity": "5e2b5def6f17e03fdbc9735da2d543038bec0bb18fbe882437f5ba595d2e2cab",
+      "kernel": "stwo_cuda_framework_v1_5e2b5def6f17e03fdbc9735da2d543038bec0bb18fbe882437f5ba595d2e2cab",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 4602704588697316190
+    },
+    {
+      "executable_identity": "b1afc35e296a4d90a49e6ed1561e04f1ac2f5421d2973668b8d07e0fa5976d74",
+      "kernel": "stwo_cuda_framework_v1_b1afc35e296a4d90a49e6ed1561e04f1ac2f5421d2973668b8d07e0fa5976d74",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 10398083840584429489
+    },
+    {
+      "executable_identity": "c455d04bb4ba5182c9bdaa1eb0fc155ade3fada2fade77ac30be2aa9b64d0d52",
+      "kernel": "stwo_cuda_framework_v1_c455d04bb4ba5182c9bdaa1eb0fc155ade3fada2fade77ac30be2aa9b64d0d52",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 9390491981573019076
+    },
+    {
+      "executable_identity": "910d6c34b6bf8197985afefb6c039a13298886349fb6a64f2b332c02d85bebad",
+      "kernel": "stwo_cuda_framework_v1_910d6c34b6bf8197985afefb6c039a13298886349fb6a64f2b332c02d85bebad",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 10917217761007242641
+    },
+    {
+      "executable_identity": "30cbaed09a0e1e8245434ae4bcdf010804942bc65aca1baf32cba279ec982bce",
+      "kernel": "stwo_cuda_framework_v1_30cbaed09a0e1e8245434ae4bcdf010804942bc65aca1baf32cba279ec982bce",
+      "abi_schema": 30,
+      "argument_count": 11,
+      "cache_key": 9375947532320820016
+    }
+  ],
+  "dynamic_claims_and_challenges": true,
+  "proof_acceptance_authority": false,
+  "device_compiled": false,
+  "device_executed": false
+}

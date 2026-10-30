@@ -1,0 +1,32 @@
+const std = @import("std");
+const engine = @import("stwo_prover_engine");
+const Capture = @import("../block_v7_real_window_capture_v1.zig");
+const Execution = @import("../block_v8_endpoint_execution_v1.zig");
+const Whole = @import("../block_v8_endpoint_whole_proof_v1.zig");
+const Guest = @import("block_v7_keccak_execution_test_support.zig");
+test "clean endpoint execution builds one native witness and verifies after producer destruction" {
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(std.testing.allocator, 12 << 30);
+    defer budget.destroy();
+    const a = budget.allocator();
+    var pool: engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .backing_allocator = a });
+    defer pool.deinit();
+    const elf = Guest.elf();
+    const pins = Capture.Pins{ .elf = Capture.sha(&elf), .input = Capture.sha(&.{}) };
+    const span = Capture.Window{ .skip_cycles = 9, .cycles = 4 };
+    var captured = try Capture.capture(a, &elf, &.{}, pins, span, .{});
+    defer captured.deinit();
+    const request = Execution.Request{ .elf = &elf, .elf_sha256 = pins.elf, .config = @import("../../recursion/blake3_execution_parent_protocol.zig").Profile.diagnostic_q8_pow0.config(), .incoming = captured.incoming, .outgoing = captured.outgoing, .trusted_window = .{ .elf_sha256 = pins.elf, .incoming_sha256 = captured.incoming.identity(), .outgoing_sha256 = captured.outgoing.identity(), .window = span } };
+    const result = try Execution.run(budget, &pool, request, .{ .ram_rows_per_shard = 4 });
+    defer result.deinit();
+    try std.testing.expectEqual(@as(u32, 4), result.stats.cycles);
+    try std.testing.expect(result.stats.logical_ram_events > 0);
+    try std.testing.expect(result.stats.endpoint_count <= result.stats.logical_ram_events);
+    try std.testing.expectEqual(result.stats.logical_ram_events, result.proof.summary.logical_ram_accesses);
+    try std.testing.expect(result.stats.original.core_proof_ns > 0);
+    try std.testing.expect(result.stats.whole_ns >= result.stats.original_ns);
+    try std.testing.expectEqualDeep(result.proof.summary, try Whole.verify(a, result.statement.trusted, result.statement.input, &result.proof.stark, result.proof.claims, .{}));
+    var invalid = request;
+    invalid.elf_sha256[0] ^= 1;
+    try std.testing.expectError(error.InvalidEndpointExecutionRequest, Execution.run(budget, &pool, invalid, .{}));
+}

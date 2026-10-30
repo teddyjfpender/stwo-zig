@@ -1,0 +1,17 @@
+{"family":0,"active_rows":1024,"padded_rows":2048,"columns":41,"cpu_oracle_ns":1250958,"gpu_kernel_mean_ns":18864714,"repeats":32,"field_words":83968}
+{"family":1,"active_rows":1024,"padded_rows":2048,"columns":39,"cpu_oracle_ns":1157584,"gpu_kernel_mean_ns":13757750,"repeats":32,"field_words":79872}
+{"family":2,"active_rows":3,"padded_rows":4,"columns":66,"cpu_oracle_ns":10292,"gpu_kernel_mean_ns":12346285,"repeats":32,"field_words":264}
+{"family":3,"active_rows":1024,"padded_rows":2048,"columns":55,"cpu_oracle_ns":1361458,"gpu_kernel_mean_ns":13812086,"repeats":32,"field_words":112640}
+{"family":4,"active_rows":6,"padded_rows":8,"columns":50,"cpu_oracle_ns":12542,"gpu_kernel_mean_ns":12200471,"repeats":32,"field_words":400}
+{"family":5,"active_rows":2,"padded_rows":4,"columns":41,"cpu_oracle_ns":3667,"gpu_kernel_mean_ns":8791990,"repeats":32,"field_words":164}
+{"family":6,"active_rows":1024,"padded_rows":2048,"columns":34,"cpu_oracle_ns":1206791,"gpu_kernel_mean_ns":13770060,"repeats":32,"field_words":69632}
+{"family":7,"active_rows":1024,"padded_rows":2048,"columns":41,"cpu_oracle_ns":1188167,"gpu_kernel_mean_ns":13803092,"repeats":32,"field_words":83968}
+{"family":8,"active_rows":157,"padded_rows":256,"columns":20,"cpu_oracle_ns":136875,"gpu_kernel_mean_ns":5787058,"repeats":32,"field_words":5120}
+{"family":9,"active_rows":35,"padded_rows":64,"columns":31,"cpu_oracle_ns":37750,"gpu_kernel_mean_ns":5610404,"repeats":32,"field_words":1984}
+{"family":10,"active_rows":45,"padded_rows":64,"columns":45,"cpu_oracle_ns":51959,"gpu_kernel_mean_ns":9151500,"repeats":32,"field_words":2880}
+{"family":11,"active_rows":1024,"padded_rows":2048,"columns":22,"cpu_oracle_ns":837750,"gpu_kernel_mean_ns":8526015,"repeats":32,"field_words":45056}
+{"family":12,"active_rows":1024,"padded_rows":2048,"columns":56,"cpu_oracle_ns":1593500,"gpu_kernel_mean_ns":18930424,"repeats":32,"field_words":114688}
+{"family":13,"active_rows":7,"padded_rows":8,"columns":45,"cpu_oracle_ns":11375,"gpu_kernel_mean_ns":12273745,"repeats":32,"field_words":360}
+{"family":14,"active_rows":4,"padded_rows":8,"columns":53,"cpu_oracle_ns":7542,"gpu_kernel_mean_ns":12245467,"repeats":32,"field_words":424}
+{"family":15,"active_rows":8,"padded_rows":16,"columns":73,"cpu_oracle_ns":15542,"gpu_kernel_mean_ns":12235292,"repeats":32,"field_words":1168}
+NATIVE_WITNESS_GATE_FAILED honest retirement rejected

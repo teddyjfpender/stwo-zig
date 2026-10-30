@@ -1,0 +1,361 @@
+{
+  "schema": "stwo-real-window-logical-artifact-io-v1",
+  "measurement_kind": "logical artifact payload accounting from exact successful file APIs and retained payload lengths",
+  "physical_disk_bytes_measured": false,
+  "producer_checkpoint_contract": "No checkpoint files are read or written. Source prefix, execution window, witnesses and PCS remain in memory throughout each original proof. Capsule files are dataset artifacts, not producer checkpoint inputs.",
+  "excluded_io": [
+    "Runtime executable/shared-library/module loading",
+    "Harness stdout/stderr logs and profiler diagnostics",
+    "Filesystem metadata and page-cache effects",
+    "Physical device read/write traffic",
+    "Archival gzip compression performed after capture"
+  ],
+  "timer_limit": "Producer report whole_request_ns ends after fresh verification, before artifact publication writes. No separately measured artifact_write_ns exists in the immutable producer binary.",
+  "cases": {
+    "native": {
+      "original": {
+        "case": "native",
+        "observation": "original",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 18957128,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 2299118,
+          "window.admission": 16656167,
+          "report.json": 1843
+        }
+      },
+      "rss-repeat": {
+        "case": "native",
+        "observation": "rss-repeat",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 18957128,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 2299118,
+          "window.admission": 16656167,
+          "report.json": 1843
+        }
+      },
+      "cold_verifier": {
+        "case": "native",
+        "observation": "fresh-process",
+        "process": "zig_cold_verifier",
+        "logical_artifact_read_bytes": 46894808,
+        "logical_artifact_write_bytes": 0,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "all listed loads included in cold loading_ns; no proof output file is written by verifier",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "incoming.b7win": 12071300,
+          "outgoing.b7win": 12081476,
+          "window.admission": 16656167,
+          "window.proof": 2299118,
+          "report.json": 1843
+        },
+        "output_payloads": {}
+      },
+      "cold_cli_wrapper": {
+        "case": "native",
+        "observation": "fresh-process",
+        "process": "python_verification_wrapper",
+        "logical_artifact_read_bytes": 21119212,
+        "logical_artifact_write_bytes": 24152776,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "outside Zig cold timer; verifies source bundle and external report hash, then bounded gzip materialization",
+        "input_payloads": {
+          "bundle_guest.elf": 3784904,
+          "bundle_input.bin": 2700706,
+          "bundle_expected-output.bin": 43,
+          "report.json": 1843,
+          "incoming.b7win.gz": 7313196,
+          "outgoing.b7win.gz": 7318520
+        },
+        "output_payloads": {
+          "temporary_incoming.b7win": 12071300,
+          "temporary_outgoing.b7win": 12081476
+        }
+      },
+      "standalone_capture": {
+        "case": "native",
+        "observation": "capture-only",
+        "process": "zig_capture",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 24153877,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "separate dataset creation; proof producer does not load these files and repeats prefix preparation in memory",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "incoming.b7win": 12071300,
+          "outgoing.b7win": 12081476,
+          "capture.json": 1101
+        }
+      }
+    },
+    "recovery": {
+      "original": {
+        "case": "recovery",
+        "observation": "original",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 22666641,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 6192652,
+          "window.admission": 16472127,
+          "report.json": 1862
+        }
+      },
+      "profiled": {
+        "case": "recovery",
+        "observation": "profiled",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 22666641,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 6192652,
+          "window.admission": 16472127,
+          "report.json": 1862
+        }
+      },
+      "cold_verifier": {
+        "case": "recovery",
+        "observation": "fresh-process",
+        "process": "zig_cold_verifier",
+        "logical_artifact_read_bytes": 62785865,
+        "logical_artifact_write_bytes": 0,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "all listed loads included in cold loading_ns; no proof output file is written by verifier",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "incoming.b7win": 18165756,
+          "outgoing.b7win": 18168564,
+          "window.admission": 16472127,
+          "window.proof": 6192652,
+          "report.json": 1862
+        },
+        "output_payloads": {}
+      },
+      "cold_cli_wrapper": {
+        "case": "recovery",
+        "observation": "fresh-process",
+        "process": "python_verification_wrapper",
+        "logical_artifact_read_bytes": 28834521,
+        "logical_artifact_write_bytes": 36334320,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "outside Zig cold timer; verifies source bundle and external report hash, then bounded gzip materialization",
+        "input_payloads": {
+          "bundle_guest.elf": 3784904,
+          "bundle_input.bin": 2700706,
+          "bundle_expected-output.bin": 43,
+          "report.json": 1862,
+          "incoming.b7win.gz": 11172707,
+          "outgoing.b7win.gz": 11174299
+        },
+        "output_payloads": {
+          "temporary_incoming.b7win": 18165756,
+          "temporary_outgoing.b7win": 18168564
+        }
+      },
+      "standalone_capture": {
+        "case": "recovery",
+        "observation": "capture-only",
+        "process": "zig_capture",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 36335751,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "separate dataset creation; proof producer does not load these files and repeats prefix preparation in memory",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "incoming.b7win": 18165756,
+          "outgoing.b7win": 18168564,
+          "capture.json": 1431
+        }
+      }
+    },
+    "keccak": {
+      "original": {
+        "case": "keccak",
+        "observation": "original",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 20999195,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 4297656,
+          "window.admission": 16699674,
+          "report.json": 1865
+        }
+      },
+      "profiled": {
+        "case": "keccak",
+        "observation": "profiled",
+        "process": "zig_producer",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 20999195,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "source file loads included in source_loading_ns; artifact writes happen after whole_request_ns verification-completion boundary",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "window.proof": 4297656,
+          "window.admission": 16699674,
+          "report.json": 1865
+        }
+      },
+      "cold_verifier": {
+        "case": "keccak",
+        "observation": "fresh-process",
+        "process": "zig_cold_verifier",
+        "logical_artifact_read_bytes": 68962267,
+        "logical_artifact_write_bytes": 0,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "all listed loads included in cold loading_ns; no proof output file is written by verifier",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "incoming.b7win": 22089028,
+          "outgoing.b7win": 22089140,
+          "window.admission": 16699674,
+          "window.proof": 4297656,
+          "report.json": 1865
+        },
+        "output_payloads": {}
+      },
+      "cold_cli_wrapper": {
+        "case": "keccak",
+        "observation": "fresh-process",
+        "process": "python_verification_wrapper",
+        "logical_artifact_read_bytes": 32355606,
+        "logical_artifact_write_bytes": 44178168,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "outside Zig cold timer; verifies source bundle and external report hash, then bounded gzip materialization",
+        "input_payloads": {
+          "bundle_guest.elf": 3784904,
+          "bundle_input.bin": 2700706,
+          "bundle_expected-output.bin": 43,
+          "report.json": 1865,
+          "incoming.b7win.gz": 12934015,
+          "outgoing.b7win.gz": 12934073
+        },
+        "output_payloads": {
+          "temporary_incoming.b7win": 22089028,
+          "temporary_outgoing.b7win": 22089140
+        }
+      },
+      "standalone_capture": {
+        "case": "keccak",
+        "observation": "capture-only",
+        "process": "zig_capture",
+        "logical_artifact_read_bytes": 6485610,
+        "logical_artifact_write_bytes": 44179600,
+        "checkpoint_read_bytes": 0,
+        "checkpoint_write_bytes": 0,
+        "physical_disk_read_bytes": null,
+        "physical_disk_write_bytes": null,
+        "basis": "exact payload lengths on successful explicit file read/write calls; not OS telemetry",
+        "timing_scope": "separate dataset creation; proof producer does not load these files and repeats prefix preparation in memory",
+        "input_payloads": {
+          "guest.elf": 3784904,
+          "input.bin": 2700706
+        },
+        "output_payloads": {
+          "incoming.b7win": 22089028,
+          "outgoing.b7win": 22089140,
+          "capture.json": 1432
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "v7-immutable-gpu-stage-source-chain-v1",
+  "source_sha256": "cdd1a8cff51fa0d3e947f6935174637437f656bf394ba2e003d1270758850383",
+  "parent_source_sha256": "270a62b6e8d06363208524c7c17a9c1e463fd1e62b411789b71f2cca5b92a5f0",
+  "remote_source": "/workspace/stwo-v7-gpu-stage-v3",
+  "patch_manifest_sha256": "2cbec76df77aae6db7843e93493425822d0c3fc3419e30d10a756e5f4ebd2d0f",
+  "patch_archive_sha256": "81705d445ca8df44502c8e436dd063664dffa17d723be38e3545f3859374eec8",
+  "cuda_archive_sha256": "a6b789f3bcaf891d8af89a48eded8f8712ac2cd9d8846073ce6674e32cf3f835",
+  "kernel_rebuild": false,
+  "reason": "Seven host-only source changes; CUDA kernel/header/ABI/archive build closure unchanged from stage v2. Capture-once and interaction executor work are excluded.",
+  "binaries": {
+    "ReleaseSafe": {
+      "sha256": "3e5678d213fe1622b98837d02b80551e728afe4b593a10d7fb35745e3fa9df02",
+      "remote_path": "/workspace/stwo-v7-evidence/binaries/cuda-window-stage-v3-safe/prover"
+    },
+    "ReleaseFast": {
+      "sha256": "6ed8a141d06b173952520fdaf798c2a68cdec3de904c8656225833953247c55a",
+      "remote_path": "/workspace/stwo-v7-evidence/binaries/cuda-window-stage-v3-fast/prover"
+    }
+  }
+}

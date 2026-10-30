@@ -45,6 +45,18 @@ fn exercise(elf: []const u8, signer: bool) !void {
     defer temporary.cleanup();
     const limits = Stage.Limits{};
     const pin = try Stage.write(a, temporary.dir, "caller.columns", &witness, &descriptor, limits);
+    const Checkpoint = @import("../block_v6_caller_commitment_store_v1.zig");
+    const pcs_pin = try Checkpoint.write(a, temporary.dir, "caller.pcs", &descriptor, &physical, Checkpoint.DEFAULT_LIMITS);
+    var cached = try Stage.ForBackend(Cpu).loadWithCommitment(a, temporary.dir, "caller.columns", &descriptor, pin, limits, .{ .name = "caller.pcs", .pin = pcs_pin, .limits = Checkpoint.DEFAULT_LIMITS });
+    defer cached.deinit(a);
+    try std.testing.expectEqualDeep(physical.roots, cached.first.roots);
+    for (physical.scheme.trees.items, cached.first.scheme.trees.items) |original, restored| {
+        for (original.columns, restored.columns) |left, right| try std.testing.expectEqualDeep(left.values, right.values);
+    }
+    var changed = descriptor;
+    changed.index += 1;
+    try std.testing.expectError(error.InvalidProviderCheckpointScope, Checkpoint.load(a, temporary.dir, "caller.pcs", &changed, &witness, pcs_pin, Checkpoint.DEFAULT_LIMITS));
+    try std.testing.expectError(error.ProviderCheckpointResourceLimit, Checkpoint.load(a, temporary.dir, "caller.pcs", &descriptor, &witness, pcs_pin, .{ .max_columns = 1 << 16, .max_loaded_bytes = 1 }));
     var loaded = try Stage.ForBackend(Cpu).load(a, temporary.dir, "caller.columns", &descriptor, pin, limits);
     defer loaded.deinit(a);
     try std.testing.expectEqualDeep(descriptor.roots, loaded.first.roots);
@@ -94,8 +106,22 @@ fn exercise(elf: []const u8, signer: bool) !void {
     var combined = try Tables.counter.Set.init(a);
     defer combined.deinit(a);
     var staged_pin: Stage.Pin = undefined;
-    var proposal = try Pipeline.ForBackend(Cpu).collectSegmentWithStaging(a, &segment, 0, frame, config, .{ .max_metadata_bytes = 1 << 20, .max_external_slots = 1024 }, &combined, .{ .dir = temporary.dir, .name = "collected.columns", .limits = limits, .pin_out = &staged_pin });
+    const ExternalCheckpoint = @import("../block_v6_external_commitment_store_v1.zig");
+    var external_pin: ExternalCheckpoint.Pin = undefined;
+    var collected_pcs: Checkpoint.Pin = undefined;
+    var proposal = try Pipeline.ForBackend(Cpu).collectSegmentWithStaging(a, &segment, 0, frame, config, .{ .max_metadata_bytes = 1 << 20, .max_external_slots = 1024 }, &combined, .{ .dir = temporary.dir, .name = "collected.columns", .limits = limits, .pin_out = &staged_pin, .commitment = .{ .name = "collected.pcs", .limits = Checkpoint.DEFAULT_LIMITS, .pin_out = &collected_pcs }, .external_commitment = .{ .raw_name = "external.columns", .pcs_name = "external.pcs", .limits = .{}, .pin_out = &external_pin } });
     defer proposal.deinit();
     try std.testing.expectEqualDeep(descriptor.roots, proposal.roots);
     try std.testing.expectEqualDeep(pin, staged_pin);
+    try std.testing.expectEqualDeep(pcs_pin, collected_pcs);
+    const ExternalStage = @import("../block_v5_caller_external_stage_v1.zig").ForBackend(Cpu);
+    var restored_counter = try Tables.counter.Counter.init(a, .range_check_8_8);
+    defer restored_counter.deinit(a);
+    var restored_external = try ExternalStage.Prepared.initForModeWithCheckpoint(a, &cached.first, &descriptor.statement, frame, descriptor.index, &restored_counter, 0, .{ .dir = temporary.dir, .raw_name = "external.columns", .pcs_name = "external.pcs", .limits = .{}, .pin = external_pin }, proposal.witness_root);
+    defer restored_external.deinit(a);
+    try std.testing.expectEqualDeep(proposal.witness_root, restored_external.first.roots[2]);
+    try std.testing.expectEqualDeep(proposal.byte_snapshot, restored_external.byte_snapshot);
+    var wrong_external = external_pin;
+    wrong_external.raw.sha256[0] ^= 1;
+    try std.testing.expectError(error.TamperedV5WitnessFile, ExternalStage.Prepared.initForModeWithCheckpoint(a, &cached.first, &descriptor.statement, frame, descriptor.index, &restored_counter, 0, .{ .dir = temporary.dir, .raw_name = "external.columns", .pcs_name = "external.pcs", .limits = .{}, .pin = wrong_external }, proposal.witness_root));
 }

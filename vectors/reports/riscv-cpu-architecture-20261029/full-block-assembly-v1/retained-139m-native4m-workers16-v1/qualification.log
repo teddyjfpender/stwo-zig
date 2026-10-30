@@ -1,0 +1,1305 @@
+1/11 block_v8_full_block_pipeline_benchmark_root.test_0...OK
+2/11 prover.tests.block_v8_full_block_pipeline_benchmark.test.retained complete block originals through one independently verified recursive root benchmark...B8_JOIN_STAGE fixed_compile_ns=4998767375
+B8_JOIN_STAGE fixed_commit_ns=4164410750
+BLAKE3_NATIVE_QUERY_FUSION groups=12810 removed_scalars=51240 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=50951 fma=79078 arithmetic_rows=254010 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=11760 removed_scalars=47040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=47558 fma=78141 arithmetic_rows=247679 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4727 fma=63654 arithmetic_rows=159988 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=6806 fma=68927 arithmetic_rows=174051 direct_columns=true
+B8_JOIN_STAGE witness_ns=16291031333 retained_rows_bytes=6932677140
+B8_JOIN_STAGE compiler_released_bytes=3486250280 compiler_release_ns=20969834
+B8_JOIN_STAGE plan_ns=4501497208
+B8_JOIN_STAGE fixed_compile_ns=3766558834
+B8_JOIN_STAGE fixed_commit_ns=4152428833
+BLAKE3_NATIVE_QUERY_FUSION groups=11480 removed_scalars=45920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=47265 fma=78081 arithmetic_rows=247190 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=11620 removed_scalars=46480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=46693 fma=77029 arithmetic_rows=244539 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4307 fma=58890 arithmetic_rows=148902 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=6036 fma=58839 arithmetic_rows=151209 direct_columns=true
+B8_JOIN_STAGE witness_ns=15663918375 retained_rows_bytes=6483231620
+B8_JOIN_STAGE compiler_released_bytes=3276055816 compiler_release_ns=22655209
+B8_JOIN_STAGE plan_ns=4440766500
+B8_JOIN_STAGE fixed_compile_ns=2897041708
+B8_JOIN_STAGE fixed_commit_ns=3951292084
+BLAKE3_NATIVE_QUERY_FUSION groups=11620 removed_scalars=46480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=46621 fma=77533 arithmetic_rows=245386 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=11620 removed_scalars=46480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=46475 fma=78761 arithmetic_rows=247704 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2907 fma=36470 arithmetic_rows=98787 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=12935668791 retained_rows_bytes=5725644876
+B8_JOIN_STAGE compiler_released_bytes=2863809128 compiler_release_ns=19916750
+B8_JOIN_STAGE plan_ns=3702799084
+B8_JOIN_STAGE fixed_compile_ns=4197123250
+B8_JOIN_STAGE fixed_commit_ns=3667181750
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494650 fma=119013 arithmetic_rows=922890 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13662112542 retained_rows_bytes=5682769512
+B8_JOIN_STAGE compiler_released_bytes=2679168996 compiler_release_ns=18150042
+B8_JOIN_STAGE plan_ns=3468650291
+B8_JOIN_STAGE fixed_compile_ns=6326938458
+B8_JOIN_STAGE fixed_commit_ns=4416123792
+BLAKE3_NATIVE_QUERY_FUSION groups=25270 removed_scalars=101080 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=865046 fma=154492 arithmetic_rows=1496796 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18661555833 retained_rows_bytes=7099935136
+B8_JOIN_STAGE compiler_released_bytes=3439509116 compiler_release_ns=23140167
+B8_JOIN_STAGE plan_ns=4449503459
+B8_JOIN_STAGE fixed_compile_ns=4313404541
+B8_JOIN_STAGE fixed_commit_ns=3689611875
+BLAKE3_NATIVE_QUERY_FUSION groups=22050 removed_scalars=88200 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=489728 fma=122496 arithmetic_rows=924565 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14102740625 retained_rows_bytes=5750802372
+B8_JOIN_STAGE compiler_released_bytes=2815294840 compiler_release_ns=18843417
+B8_JOIN_STAGE plan_ns=3643127792
+B8_JOIN_STAGE fixed_compile_ns=4324733417
+B8_JOIN_STAGE fixed_commit_ns=3649820417
+BLAKE3_NATIVE_QUERY_FUSION groups=20860 removed_scalars=83440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485470 fma=123582 arithmetic_rows=920799 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14121522000 retained_rows_bytes=5745603980
+B8_JOIN_STAGE compiler_released_bytes=2804895156 compiler_release_ns=19488709
+B8_JOIN_STAGE plan_ns=3628001791
+B8_JOIN_STAGE fixed_compile_ns=4312205708
+B8_JOIN_STAGE fixed_commit_ns=3668426500
+BLAKE3_NATIVE_QUERY_FUSION groups=20860 removed_scalars=83440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485542 fma=123078 arithmetic_rows=919964 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14136470500 retained_rows_bytes=5745511212
+B8_JOIN_STAGE compiler_released_bytes=2804709620 compiler_release_ns=18824375
+B8_JOIN_STAGE plan_ns=3629586167
+B8_JOIN_STAGE fixed_compile_ns=4315068833
+B8_JOIN_STAGE fixed_commit_ns=3687823959
+BLAKE3_NATIVE_QUERY_FUSION groups=20860 removed_scalars=83440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485542 fma=123078 arithmetic_rows=919964 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14087524083 retained_rows_bytes=5745511212
+B8_JOIN_STAGE compiler_released_bytes=2804709620 compiler_release_ns=18976542
+B8_JOIN_STAGE plan_ns=3627736167
+B8_JOIN_STAGE fixed_compile_ns=4396088750
+B8_JOIN_STAGE fixed_commit_ns=3640196625
+BLAKE3_NATIVE_QUERY_FUSION groups=21070 removed_scalars=84280 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485280 fma=112299 arithmetic_rows=896366 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13396098583 retained_rows_bytes=5302019088
+B8_JOIN_STAGE compiler_released_bytes=2606555652 compiler_release_ns=18389416
+B8_JOIN_STAGE plan_ns=3374888458
+B8_JOIN_STAGE fixed_compile_ns=4022856250
+B8_JOIN_STAGE fixed_commit_ns=4437690667
+BLAKE3_NATIVE_QUERY_FUSION groups=12040 removed_scalars=48160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49502 fma=77400 arithmetic_rows=248961 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=12040 removed_scalars=48160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49502 fma=77400 arithmetic_rows=248961 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4099 fma=53342 arithmetic_rows=137057 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=6036 fma=58839 arithmetic_rows=151209 direct_columns=true
+B8_JOIN_STAGE witness_ns=15152734917 retained_rows_bytes=6480416892
+B8_JOIN_STAGE compiler_released_bytes=3270422436 compiler_release_ns=22768500
+B8_JOIN_STAGE plan_ns=4265658791
+B8_JOIN_STAGE fixed_compile_ns=2450642208
+B8_JOIN_STAGE fixed_commit_ns=2599958709
+BLAKE3_NATIVE_QUERY_FUSION groups=12040 removed_scalars=48160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49502 fma=77400 arithmetic_rows=248958 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3450 fma=53292 arithmetic_rows=136091 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5756 fma=53795 arithmetic_rows=140204 direct_columns=true
+B8_JOIN_STAGE witness_ns=9869341500 retained_rows_bytes=4368288968
+B8_JOIN_STAGE compiler_released_bytes=2147857964 compiler_release_ns=16227042
+B8_JOIN_STAGE plan_ns=2778373875
+B8_JOIN_STAGE fixed_compile_ns=4409181583
+B8_JOIN_STAGE fixed_commit_ns=3681385875
+BLAKE3_NATIVE_QUERY_FUSION groups=22050 removed_scalars=88200 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=489512 fma=124008 arithmetic_rows=927049 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14143605334 retained_rows_bytes=5750108796
+B8_JOIN_STAGE compiler_released_bytes=2813906848 compiler_release_ns=21260833
+B8_JOIN_STAGE plan_ns=3638123500
+B8_JOIN_STAGE fixed_compile_ns=4508977875
+B8_JOIN_STAGE fixed_commit_ns=3718573625
+BLAKE3_NATIVE_QUERY_FUSION groups=20860 removed_scalars=83440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485470 fma=123582 arithmetic_rows=920760 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14087707667 retained_rows_bytes=5745555820
+B8_JOIN_STAGE compiler_released_bytes=2804798836 compiler_release_ns=19843375
+B8_JOIN_STAGE plan_ns=3629116416
+B8_JOIN_STAGE fixed_compile_ns=4374742209
+B8_JOIN_STAGE fixed_commit_ns=3687134333
+BLAKE3_NATIVE_QUERY_FUSION groups=20860 removed_scalars=83440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485470 fma=123582 arithmetic_rows=920760 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14167107500 retained_rows_bytes=5745555820
+B8_JOIN_STAGE compiler_released_bytes=2804798836 compiler_release_ns=20330250
+B8_JOIN_STAGE plan_ns=3630410625
+B8_JOIN_STAGE fixed_compile_ns=4453453791
+B8_JOIN_STAGE fixed_commit_ns=3787325000
+BLAKE3_NATIVE_QUERY_FUSION groups=23240 removed_scalars=92960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494634 fma=124523 arithmetic_rows=934858 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=14380148042 retained_rows_bytes=5756834588
+B8_JOIN_STAGE compiler_released_bytes=2827362224 compiler_release_ns=22742208
+B8_JOIN_STAGE plan_ns=3646558292
+B8_JOIN_STAGE fixed_compile_ns=4141087917
+B8_JOIN_STAGE fixed_commit_ns=3553993667
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494591 fma=114525 arithmetic_rows=913240 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13031578333 retained_rows_bytes=5244389092
+B8_JOIN_STAGE compiler_released_bytes=2561526756 compiler_release_ns=21855458
+B8_JOIN_STAGE plan_ns=3315816250
+B8_JOIN_STAGE fixed_compile_ns=2139994250
+B8_JOIN_STAGE fixed_commit_ns=2467226042
+BLAKE3_NATIVE_QUERY_FUSION groups=12670 removed_scalars=50680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49808 fma=72155 arithmetic_rows=238303 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=9016437875 retained_rows_bytes=4279286784
+B8_JOIN_STAGE compiler_released_bytes=1997576240 compiler_release_ns=17673208
+B8_JOIN_STAGE plan_ns=2583634625
+B8_JOIN_STAGE fixed_compile_ns=4382590208
+B8_JOIN_STAGE fixed_commit_ns=3814757125
+BLAKE3_NATIVE_QUERY_FUSION groups=23240 removed_scalars=92960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494634 fma=124523 arithmetic_rows=934840 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13944465334 retained_rows_bytes=5704183260
+B8_JOIN_STAGE compiler_released_bytes=2722014896 compiler_release_ns=20404417
+B8_JOIN_STAGE plan_ns=3520902083
+B8_JOIN_STAGE fixed_compile_ns=1952756792
+B8_JOIN_STAGE fixed_commit_ns=2364802541
+BLAKE3_NATIVE_QUERY_FUSION groups=12670 removed_scalars=50680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49388 fma=67391 arithmetic_rows=227211 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=8412580709 retained_rows_bytes=3764805632
+B8_JOIN_STAGE compiler_released_bytes=1857747356 compiler_release_ns=16475792
+B8_JOIN_STAGE plan_ns=2402303416
+B8_JOIN_STAGE fixed_compile_ns=4140449583
+B8_JOIN_STAGE fixed_commit_ns=3630835958
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494663 fma=114019 arithmetic_rows=912402 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13315895209 retained_rows_bytes=5283782852
+B8_JOIN_STAGE compiler_released_bytes=2569014468 compiler_release_ns=21682417
+B8_JOIN_STAGE plan_ns=3326648000
+B8_JOIN_STAGE fixed_compile_ns=2235215834
+B8_JOIN_STAGE fixed_commit_ns=2546460833
+BLAKE3_NATIVE_QUERY_FUSION groups=12390 removed_scalars=49560 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49866 fma=77370 arithmetic_rows=249504 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3170 fma=48528 arithmetic_rows=125580 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5476 fma=49031 arithmetic_rows=129697 direct_columns=true
+B8_JOIN_STAGE witness_ns=9388171125 retained_rows_bytes=4305437972
+B8_JOIN_STAGE compiler_released_bytes=2049901236 compiler_release_ns=15711625
+B8_JOIN_STAGE plan_ns=2652258417
+B8_JOIN_STAGE fixed_compile_ns=4127795750
+B8_JOIN_STAGE fixed_commit_ns=3591490916
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494232 fma=113043 arithmetic_rows=909969 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13176948875 retained_rows_bytes=5245079996
+B8_JOIN_STAGE compiler_released_bytes=2563958396 compiler_release_ns=22808083
+B8_JOIN_STAGE plan_ns=3319892667
+B8_JOIN_STAGE fixed_compile_ns=1951273375
+B8_JOIN_STAGE fixed_commit_ns=2360351083
+BLAKE3_NATIVE_QUERY_FUSION groups=12670 removed_scalars=50680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49388 fma=67391 arithmetic_rows=227217 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=8367127792 retained_rows_bytes=3764821064
+B8_JOIN_STAGE compiler_released_bytes=1857778220 compiler_release_ns=16428542
+B8_JOIN_STAGE plan_ns=2402704583
+B8_JOIN_STAGE fixed_compile_ns=4172365667
+B8_JOIN_STAGE fixed_commit_ns=3644015500
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494512 fma=118087 arithmetic_rows=921012 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13360354000 retained_rows_bytes=5306158948
+B8_JOIN_STAGE compiler_released_bytes=2613785632 compiler_release_ns=20718542
+B8_JOIN_STAGE plan_ns=3383059125
+B8_JOIN_STAGE fixed_compile_ns=6255740292
+B8_JOIN_STAGE fixed_commit_ns=4310600042
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864916 fma=150425 arithmetic_rows=1487645 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18040504750 retained_rows_bytes=7062498292
+B8_JOIN_STAGE compiler_released_bytes=3364602744 compiler_release_ns=24204250
+B8_JOIN_STAGE plan_ns=4353214541
+B8_JOIN_STAGE fixed_compile_ns=4303032125
+B8_JOIN_STAGE fixed_commit_ns=3670569834
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494578 fma=119511 arithmetic_rows=923678 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13585896291 retained_rows_bytes=5678978704
+B8_JOIN_STAGE compiler_released_bytes=2671584020 compiler_release_ns=18924209
+B8_JOIN_STAGE plan_ns=3451683500
+B8_JOIN_STAGE fixed_compile_ns=4200240334
+B8_JOIN_STAGE fixed_commit_ns=3587142875
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13351122250 retained_rows_bytes=5308701548
+B8_JOIN_STAGE compiler_released_bytes=2618872936 compiler_release_ns=18924666
+B8_JOIN_STAGE plan_ns=3391145000
+B8_JOIN_STAGE fixed_compile_ns=4220554125
+B8_JOIN_STAGE fixed_commit_ns=3588434750
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118561 arithmetic_rows=922610 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13366259666 retained_rows_bytes=5308578260
+B8_JOIN_STAGE compiler_released_bytes=2618626360 compiler_release_ns=19568833
+B8_JOIN_STAGE plan_ns=3392136584
+B8_JOIN_STAGE fixed_compile_ns=4280582250
+B8_JOIN_STAGE fixed_commit_ns=3692419542
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923436 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13643989500 retained_rows_bytes=5677305348
+B8_JOIN_STAGE compiler_released_bytes=2668235756 compiler_release_ns=19148834
+B8_JOIN_STAGE plan_ns=3456709750
+B8_JOIN_STAGE fixed_compile_ns=4288404250
+B8_JOIN_STAGE fixed_commit_ns=3696877083
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494722 fma=118505 arithmetic_rows=922005 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13758372792 retained_rows_bytes=5676867792
+B8_JOIN_STAGE compiler_released_bytes=2667360516 compiler_release_ns=18892708
+B8_JOIN_STAGE plan_ns=3455651833
+B8_JOIN_STAGE fixed_compile_ns=4316933667
+B8_JOIN_STAGE fixed_commit_ns=3697847000
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13796335000 retained_rows_bytes=5678291508
+B8_JOIN_STAGE compiler_released_bytes=2670208916 compiler_release_ns=18846750
+B8_JOIN_STAGE plan_ns=3460611625
+B8_JOIN_STAGE fixed_compile_ns=4128349542
+B8_JOIN_STAGE fixed_commit_ns=3540866166
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118573 arithmetic_rows=922594 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13223796959 retained_rows_bytes=5246230196
+B8_JOIN_STAGE compiler_released_bytes=2565210644 compiler_release_ns=19438083
+B8_JOIN_STAGE plan_ns=3324483166
+B8_JOIN_STAGE fixed_compile_ns=4137528916
+B8_JOIN_STAGE fixed_commit_ns=3539509084
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118573 arithmetic_rows=922594 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13204619291 retained_rows_bytes=5246230196
+B8_JOIN_STAGE compiler_released_bytes=2565210644 compiler_release_ns=19904958
+B8_JOIN_STAGE plan_ns=3322898125
+B8_JOIN_STAGE fixed_compile_ns=4298931250
+B8_JOIN_STAGE fixed_commit_ns=3695566750
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924274 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13770141167 retained_rows_bytes=5678368316
+B8_JOIN_STAGE compiler_released_bytes=2670362532 compiler_release_ns=19558042
+B8_JOIN_STAGE plan_ns=3459371000
+B8_JOIN_STAGE fixed_compile_ns=4193784166
+B8_JOIN_STAGE fixed_commit_ns=3630763709
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923448 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13490890333 retained_rows_bytes=5306775988
+B8_JOIN_STAGE compiler_released_bytes=2615020136 compiler_release_ns=18855500
+B8_JOIN_STAGE plan_ns=3388505000
+B8_JOIN_STAGE fixed_compile_ns=4212771917
+B8_JOIN_STAGE fixed_commit_ns=3628328166
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13333085542 retained_rows_bytes=5307746188
+B8_JOIN_STAGE compiler_released_bytes=2616961376 compiler_release_ns=19619500
+B8_JOIN_STAGE plan_ns=3389741708
+B8_JOIN_STAGE fixed_compile_ns=4257567542
+B8_JOIN_STAGE fixed_commit_ns=3716927375
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924277 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13643335250 retained_rows_bytes=5677413516
+B8_JOIN_STAGE compiler_released_bytes=2668452092 compiler_release_ns=19736792
+B8_JOIN_STAGE plan_ns=3456158166
+B8_JOIN_STAGE fixed_compile_ns=4194259000
+B8_JOIN_STAGE fixed_commit_ns=3612533958
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13474528750 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=18968208
+B8_JOIN_STAGE plan_ns=3394497458
+B8_JOIN_STAGE fixed_compile_ns=4287366833
+B8_JOIN_STAGE fixed_commit_ns=3702473167
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494650 fma=119007 arithmetic_rows=922846 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13791035958 retained_rows_bytes=5679826456
+B8_JOIN_STAGE compiler_released_bytes=2673280364 compiler_release_ns=20184167
+B8_JOIN_STAGE plan_ns=3464556333
+B8_JOIN_STAGE fixed_compile_ns=4280171334
+B8_JOIN_STAGE fixed_commit_ns=3713383791
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13718576709 retained_rows_bytes=5677336708
+B8_JOIN_STAGE compiler_released_bytes=2668298476 compiler_release_ns=19709042
+B8_JOIN_STAGE plan_ns=3457175583
+B8_JOIN_STAGE fixed_compile_ns=4116025375
+B8_JOIN_STAGE fixed_commit_ns=3513515167
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494663 fma=114022 arithmetic_rows=912439 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13120265208 retained_rows_bytes=5243403708
+B8_JOIN_STAGE compiler_released_bytes=2559555148 compiler_release_ns=19425750
+B8_JOIN_STAGE plan_ns=3315637958
+B8_JOIN_STAGE fixed_compile_ns=1542066792
+B8_JOIN_STAGE fixed_commit_ns=1727410542
+BLAKE3_NATIVE_QUERY_FUSION groups=12950 removed_scalars=51800 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49401 fma=62400 arithmetic_rows=216751 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1490 fma=21900 arithmetic_rows=64883 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119442 direct_columns=true
+B8_JOIN_STAGE witness_ns=6884515458 retained_rows_bytes=3187568460
+B8_JOIN_STAGE compiler_released_bytes=1529411056 compiler_release_ns=12604833
+B8_JOIN_STAGE plan_ns=1980560708
+B8_JOIN_STAGE fixed_compile_ns=4261822000
+B8_JOIN_STAGE fixed_commit_ns=3681680958
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924274 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13694533667 retained_rows_bytes=5677413236
+B8_JOIN_STAGE compiler_released_bytes=2668451532 compiler_release_ns=19615250
+B8_JOIN_STAGE plan_ns=3460518500
+B8_JOIN_STAGE fixed_compile_ns=4316006750
+B8_JOIN_STAGE fixed_commit_ns=3720188500
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118561 arithmetic_rows=922622 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13859666083 retained_rows_bytes=5678199300
+B8_JOIN_STAGE compiler_released_bytes=2670024500 compiler_release_ns=20149459
+B8_JOIN_STAGE plan_ns=3458118542
+B8_JOIN_STAGE fixed_compile_ns=4250898125
+B8_JOIN_STAGE fixed_commit_ns=3674815583
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924271 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13554398542 retained_rows_bytes=5677398116
+B8_JOIN_STAGE compiler_released_bytes=2668421292 compiler_release_ns=22858917
+B8_JOIN_STAGE plan_ns=3457414916
+B8_JOIN_STAGE fixed_compile_ns=4184433667
+B8_JOIN_STAGE fixed_commit_ns=3586915041
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119063 arithmetic_rows=923445 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13348482667 retained_rows_bytes=5308685964
+B8_JOIN_STAGE compiler_released_bytes=2618841768 compiler_release_ns=21917375
+B8_JOIN_STAGE plan_ns=3397121708
+B8_JOIN_STAGE fixed_compile_ns=4031281667
+B8_JOIN_STAGE fixed_commit_ns=3472955667
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494512 fma=118087 arithmetic_rows=921012 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2120 fma=31992 arithmetic_rows=88226 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119451 direct_columns=true
+B8_JOIN_STAGE witness_ns=12992875250 retained_rows_bytes=5220434644
+B8_JOIN_STAGE compiler_released_bytes=2514646616 compiler_release_ns=21534292
+B8_JOIN_STAGE plan_ns=3255170625
+B8_JOIN_STAGE fixed_compile_ns=4083170959
+B8_JOIN_STAGE fixed_commit_ns=3507428583
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495017 fma=118350 arithmetic_rows=921994 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13140267750 retained_rows_bytes=5245652644
+B8_JOIN_STAGE compiler_released_bytes=2565104116 compiler_release_ns=20928666
+B8_JOIN_STAGE plan_ns=3317903083
+B8_JOIN_STAGE fixed_compile_ns=4249621208
+B8_JOIN_STAGE fixed_commit_ns=3624276875
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13662502083 retained_rows_bytes=5307746468
+B8_JOIN_STAGE compiler_released_bytes=2616961936 compiler_release_ns=18075584
+B8_JOIN_STAGE plan_ns=3392803292
+B8_JOIN_STAGE fixed_compile_ns=4304289667
+B8_JOIN_STAGE fixed_commit_ns=3643688791
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13437494334 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=19381500
+B8_JOIN_STAGE plan_ns=3397771041
+B8_JOIN_STAGE fixed_compile_ns=6307625417
+B8_JOIN_STAGE fixed_commit_ns=4336867833
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864916 fma=150427 arithmetic_rows=1487672 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18256896042 retained_rows_bytes=7062515556
+B8_JOIN_STAGE compiler_released_bytes=3364637272 compiler_release_ns=23996000
+B8_JOIN_STAGE plan_ns=4357556000
+B8_JOIN_STAGE fixed_compile_ns=4255111625
+B8_JOIN_STAGE fixed_commit_ns=3690718042
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118559 arithmetic_rows=922607 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13647657208 retained_rows_bytes=5677213236
+B8_JOIN_STAGE compiler_released_bytes=2668051532 compiler_release_ns=17816583
+B8_JOIN_STAGE plan_ns=3454395417
+B8_JOIN_STAGE fixed_compile_ns=4180959791
+B8_JOIN_STAGE fixed_commit_ns=3608478542
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13526619083 retained_rows_bytes=5308701548
+B8_JOIN_STAGE compiler_released_bytes=2618872936 compiler_release_ns=18374958
+B8_JOIN_STAGE plan_ns=3391446250
+B8_JOIN_STAGE fixed_compile_ns=4252929958
+B8_JOIN_STAGE fixed_commit_ns=3683655417
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923457 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13596222833 retained_rows_bytes=5678292068
+B8_JOIN_STAGE compiler_released_bytes=2670210036 compiler_release_ns=19149916
+B8_JOIN_STAGE plan_ns=3455813708
+B8_JOIN_STAGE fixed_compile_ns=4186226334
+B8_JOIN_STAGE fixed_commit_ns=3593496833
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13409234667 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=19191666
+B8_JOIN_STAGE plan_ns=3398944125
+B8_JOIN_STAGE fixed_compile_ns=4177529250
+B8_JOIN_STAGE fixed_commit_ns=3601602125
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923457 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13468262666 retained_rows_bytes=5309656876
+B8_JOIN_STAGE compiler_released_bytes=2620784432 compiler_release_ns=18139542
+B8_JOIN_STAGE plan_ns=3394881667
+B8_JOIN_STAGE fixed_compile_ns=4276925208
+B8_JOIN_STAGE fixed_commit_ns=3620603792
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119063 arithmetic_rows=923445 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13455913375 retained_rows_bytes=5308685964
+B8_JOIN_STAGE compiler_released_bytes=2618841768 compiler_release_ns=18427750
+B8_JOIN_STAGE plan_ns=3405263292
+B8_JOIN_STAGE fixed_compile_ns=4295842375
+B8_JOIN_STAGE fixed_commit_ns=3674406375
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924280 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13692721250 retained_rows_bytes=5678368876
+B8_JOIN_STAGE compiler_released_bytes=2670363652 compiler_release_ns=19357500
+B8_JOIN_STAGE plan_ns=3459263250
+B8_JOIN_STAGE fixed_compile_ns=4184162083
+B8_JOIN_STAGE fixed_commit_ns=3595413958
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923448 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13535867334 retained_rows_bytes=5307731068
+B8_JOIN_STAGE compiler_released_bytes=2616931136 compiler_release_ns=18356625
+B8_JOIN_STAGE plan_ns=3388206000
+B8_JOIN_STAGE fixed_compile_ns=4191996917
+B8_JOIN_STAGE fixed_commit_ns=3597692667
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13427920208 retained_rows_bytes=5308701548
+B8_JOIN_STAGE compiler_released_bytes=2618872936 compiler_release_ns=18440667
+B8_JOIN_STAGE plan_ns=3397237625
+B8_JOIN_STAGE fixed_compile_ns=4247919458
+B8_JOIN_STAGE fixed_commit_ns=3711577500
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924292 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13695603667 retained_rows_bytes=5676474676
+B8_JOIN_STAGE compiler_released_bytes=2666573572 compiler_release_ns=19254000
+B8_JOIN_STAGE plan_ns=3455453250
+B8_JOIN_STAGE fixed_compile_ns=4169551916
+B8_JOIN_STAGE fixed_commit_ns=3627667000
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118573 arithmetic_rows=922591 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13513777542 retained_rows_bytes=5306650804
+B8_JOIN_STAGE compiler_released_bytes=2614769768 compiler_release_ns=19962416
+B8_JOIN_STAGE plan_ns=3402032250
+B8_JOIN_STAGE fixed_compile_ns=4217156625
+B8_JOIN_STAGE fixed_commit_ns=3616920125
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923448 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13472844000 retained_rows_bytes=5308686148
+B8_JOIN_STAGE compiler_released_bytes=2618842136 compiler_release_ns=18045459
+B8_JOIN_STAGE plan_ns=3395567250
+B8_JOIN_STAGE fixed_compile_ns=4087253959
+B8_JOIN_STAGE fixed_commit_ns=3513620666
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118574 arithmetic_rows=922619 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13240200042 retained_rows_bytes=5245307060
+B8_JOIN_STAGE compiler_released_bytes=2563363532 compiler_release_ns=19691500
+B8_JOIN_STAGE plan_ns=3321227042
+B8_JOIN_STAGE fixed_compile_ns=4171217166
+B8_JOIN_STAGE fixed_commit_ns=3602028542
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924289 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13447486250 retained_rows_bytes=5307839236
+B8_JOIN_STAGE compiler_released_bytes=2617147472 compiler_release_ns=19011083
+B8_JOIN_STAGE plan_ns=3391361417
+B8_JOIN_STAGE fixed_compile_ns=4185831708
+B8_JOIN_STAGE fixed_commit_ns=3617567792
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13380459416 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=19537583
+B8_JOIN_STAGE plan_ns=3394030167
+B8_JOIN_STAGE fixed_compile_ns=4168745083
+B8_JOIN_STAGE fixed_commit_ns=3629782209
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923448 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13450445333 retained_rows_bytes=5246340260
+B8_JOIN_STAGE compiler_released_bytes=2565430772 compiler_release_ns=22009833
+B8_JOIN_STAGE plan_ns=3377415875
+B8_JOIN_STAGE fixed_compile_ns=4300501542
+B8_JOIN_STAGE fixed_commit_ns=3713570208
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924271 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13883961875 retained_rows_bytes=5677398116
+B8_JOIN_STAGE compiler_released_bytes=2668421292 compiler_release_ns=20372042
+B8_JOIN_STAGE plan_ns=3468005417
+B8_JOIN_STAGE fixed_compile_ns=4113306458
+B8_JOIN_STAGE fixed_commit_ns=3632784334
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495017 fma=118350 arithmetic_rows=921994 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13325722250 retained_rows_bytes=5245652644
+B8_JOIN_STAGE compiler_released_bytes=2565104116 compiler_release_ns=20079167
+B8_JOIN_STAGE plan_ns=3344015041
+B8_JOIN_STAGE fixed_compile_ns=6425628250
+B8_JOIN_STAGE fixed_commit_ns=4359996625
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864916 fma=150427 arithmetic_rows=1487666 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=18522126625 retained_rows_bytes=6691969676
+B8_JOIN_STAGE compiler_released_bytes=3311388612 compiler_release_ns=24695625
+B8_JOIN_STAGE plan_ns=4313631625
+B8_JOIN_STAGE fixed_compile_ns=6294010792
+B8_JOIN_STAGE fixed_commit_ns=4311361125
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864918 fma=150203 arithmetic_rows=1487062 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18219759666 retained_rows_bytes=7062446588
+B8_JOIN_STAGE compiler_released_bytes=3364499336 compiler_release_ns=21641208
+B8_JOIN_STAGE plan_ns=4365646000
+B8_JOIN_STAGE fixed_compile_ns=4370426792
+B8_JOIN_STAGE fixed_commit_ns=3745881041
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923448 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13609979125 retained_rows_bytes=5308686148
+B8_JOIN_STAGE compiler_released_bytes=2618842136 compiler_release_ns=19846542
+B8_JOIN_STAGE plan_ns=3389634209
+B8_JOIN_STAGE fixed_compile_ns=6160822709
+B8_JOIN_STAGE fixed_commit_ns=4284943291
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864990 fma=149711 arithmetic_rows=1486205 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=18074373125 retained_rows_bytes=6630385276
+B8_JOIN_STAGE compiler_released_bytes=3259501064 compiler_release_ns=23542666
+B8_JOIN_STAGE plan_ns=4297413292
+B8_JOIN_STAGE fixed_compile_ns=6208825292
+B8_JOIN_STAGE fixed_commit_ns=4348514208
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=865062 fma=149207 arithmetic_rows=1485376 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=19841260208 retained_rows_bytes=6630293068
+B8_JOIN_STAGE compiler_released_bytes=3259316648 compiler_release_ns=23841750
+B8_JOIN_STAGE plan_ns=4558118459
+B8_JOIN_STAGE fixed_compile_ns=6325891167
+B8_JOIN_STAGE fixed_commit_ns=4305439541
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=865338 fma=154977 arithmetic_rows=1498117 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18198105709 retained_rows_bytes=7087318468
+B8_JOIN_STAGE compiler_released_bytes=3414264172 compiler_release_ns=27404541
+B8_JOIN_STAGE plan_ns=4428436791
+B8_JOIN_STAGE fixed_compile_ns=4184958917
+B8_JOIN_STAGE fixed_commit_ns=3622181875
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923457 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13375689208 retained_rows_bytes=5308701828
+B8_JOIN_STAGE compiler_released_bytes=2618873496 compiler_release_ns=17394167
+B8_JOIN_STAGE plan_ns=3397640709
+B8_JOIN_STAGE fixed_compile_ns=4283686958
+B8_JOIN_STAGE fixed_commit_ns=3650264667
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924280 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13616924750 retained_rows_bytes=5677413796
+B8_JOIN_STAGE compiler_released_bytes=2668452652 compiler_release_ns=17576958
+B8_JOIN_STAGE plan_ns=3450649916
+B8_JOIN_STAGE fixed_compile_ns=4215642250
+B8_JOIN_STAGE fixed_commit_ns=3643655084
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13787118708 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=17176583
+B8_JOIN_STAGE plan_ns=3397491958
+B8_JOIN_STAGE fixed_compile_ns=4108868750
+B8_JOIN_STAGE fixed_commit_ns=3594136208
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119063 arithmetic_rows=923445 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13346758750 retained_rows_bytes=5307730884
+B8_JOIN_STAGE compiler_released_bytes=2616930768 compiler_release_ns=17637875
+B8_JOIN_STAGE plan_ns=3391460375
+B8_JOIN_STAGE fixed_compile_ns=4070578041
+B8_JOIN_STAGE fixed_commit_ns=3566712375
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118573 arithmetic_rows=922603 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13352356334 retained_rows_bytes=5306666764
+B8_JOIN_STAGE compiler_released_bytes=2614801688 compiler_release_ns=17483666
+B8_JOIN_STAGE plan_ns=3384895875
+B8_JOIN_STAGE fixed_compile_ns=4090498375
+B8_JOIN_STAGE fixed_commit_ns=3565034792
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923457 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13334040208 retained_rows_bytes=5308686988
+B8_JOIN_STAGE compiler_released_bytes=2618843816 compiler_release_ns=17973875
+B8_JOIN_STAGE plan_ns=3388990875
+B8_JOIN_STAGE fixed_compile_ns=6142387792
+B8_JOIN_STAGE fixed_commit_ns=4288177500
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864916 fma=150427 arithmetic_rows=1487669 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=18115989583 retained_rows_bytes=7061560196
+B8_JOIN_STAGE compiler_released_bytes=3362725712 compiler_release_ns=21149000
+B8_JOIN_STAGE plan_ns=4346730250
+B8_JOIN_STAGE fixed_compile_ns=6092508708
+B8_JOIN_STAGE fixed_commit_ns=4218543667
+BLAKE3_NATIVE_QUERY_FUSION groups=25620 removed_scalars=102480 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=864990 fma=149697 arithmetic_rows=1486215 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=17963293166 retained_rows_bytes=6692762556
+B8_JOIN_STAGE compiler_released_bytes=3312975212 compiler_release_ns=20605209
+B8_JOIN_STAGE plan_ns=4294301917
+B8_JOIN_STAGE fixed_compile_ns=4085773708
+B8_JOIN_STAGE fixed_commit_ns=3600509375
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13523261167 retained_rows_bytes=5309656596
+B8_JOIN_STAGE compiler_released_bytes=2620783872 compiler_release_ns=17164917
+B8_JOIN_STAGE plan_ns=3393358917
+B8_JOIN_STAGE fixed_compile_ns=4107495875
+B8_JOIN_STAGE fixed_commit_ns=3593994875
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494871 fma=119569 arithmetic_rows=924274 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13381435500 retained_rows_bytes=5307822996
+B8_JOIN_STAGE compiler_released_bytes=2617114992 compiler_release_ns=17945708
+B8_JOIN_STAGE plan_ns=3390333875
+B8_JOIN_STAGE fixed_compile_ns=4089763125
+B8_JOIN_STAGE fixed_commit_ns=3589895625
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13469308291 retained_rows_bytes=5308701268
+B8_JOIN_STAGE compiler_released_bytes=2618872376 compiler_release_ns=18015708
+B8_JOIN_STAGE plan_ns=3391824375
+B8_JOIN_STAGE fixed_compile_ns=4104875833
+B8_JOIN_STAGE fixed_commit_ns=3704221042
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923454 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13451076708 retained_rows_bytes=5308701548
+B8_JOIN_STAGE compiler_released_bytes=2618872936 compiler_release_ns=17834500
+B8_JOIN_STAGE plan_ns=3392545250
+B8_JOIN_STAGE fixed_compile_ns=4085476958
+B8_JOIN_STAGE fixed_commit_ns=3592134000
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118561 arithmetic_rows=922613 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13469283667 retained_rows_bytes=5308593380
+B8_JOIN_STAGE compiler_released_bytes=2618656600 compiler_release_ns=18766792
+B8_JOIN_STAGE plan_ns=3434752000
+B8_JOIN_STAGE fixed_compile_ns=4206388916
+B8_JOIN_STAGE fixed_commit_ns=3694990250
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923433 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13815757417 retained_rows_bytes=5677290228
+B8_JOIN_STAGE compiler_released_bytes=2668205516 compiler_release_ns=18321333
+B8_JOIN_STAGE plan_ns=3457072792
+B8_JOIN_STAGE fixed_compile_ns=4175334958
+B8_JOIN_STAGE fixed_commit_ns=3677885125
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=494943 fma=119065 arithmetic_rows=923451 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13744360584 retained_rows_bytes=5678291508
+B8_JOIN_STAGE compiler_released_bytes=2670208916 compiler_release_ns=18381875
+B8_JOIN_STAGE plan_ns=3457029166
+B8_JOIN_STAGE fixed_compile_ns=4096481917
+B8_JOIN_STAGE fixed_commit_ns=3636188333
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118573 arithmetic_rows=922594 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2330 fma=35916 arithmetic_rows=96987 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119450 direct_columns=true
+B8_JOIN_STAGE witness_ns=13274433208 retained_rows_bytes=5246230196
+B8_JOIN_STAGE compiler_released_bytes=2565210644 compiler_release_ns=18437125
+B8_JOIN_STAGE plan_ns=3338261000
+B8_JOIN_STAGE fixed_compile_ns=4169226166
+B8_JOIN_STAGE fixed_commit_ns=3704440459
+BLAKE3_NATIVE_QUERY_FUSION groups=23730 removed_scalars=94920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=495015 fma=118561 arithmetic_rows=922619 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13761097041 retained_rows_bytes=5678184180
+B8_JOIN_STAGE compiler_released_bytes=2669994260 compiler_release_ns=18367709
+B8_JOIN_STAGE plan_ns=3471856667
+B8_JOIN_STAGE fixed_compile_ns=1812809666
+B8_JOIN_STAGE fixed_commit_ns=1901942625
+BLAKE3_NATIVE_QUERY_FUSION groups=13090 removed_scalars=52360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=49978 fma=62374 arithmetic_rows=217480 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=7948446209 retained_rows_bytes=3473152748
+B8_JOIN_STAGE compiler_released_bytes=1756743268 compiler_release_ns=17090708
+B8_JOIN_STAGE plan_ns=2294627666
+B8_JOIN_STAGE fixed_compile_ns=4380720625
+B8_JOIN_STAGE fixed_commit_ns=3745407500
+BLAKE3_NATIVE_QUERY_FUSION groups=22540 removed_scalars=90160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=489893 fma=118057 arithmetic_rows=914778 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13752632208 retained_rows_bytes=5675042556
+B8_JOIN_STAGE compiler_released_bytes=2664759156 compiler_release_ns=19910625
+B8_JOIN_STAGE plan_ns=3445108292
+B8_JOIN_STAGE fixed_compile_ns=4170216875
+B8_JOIN_STAGE fixed_commit_ns=3655802084
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=489600 fma=117989 arithmetic_rows=914222 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2890 fma=44044 arithmetic_rows=115559 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44043 arithmetic_rows=118826 direct_columns=true
+B8_JOIN_STAGE witness_ns=13667966041 retained_rows_bytes=5677819552
+B8_JOIN_STAGE compiler_released_bytes=2669266964 compiler_release_ns=19506959
+B8_JOIN_STAGE plan_ns=3456773375
+B8_JOIN_STAGE fixed_compile_ns=4102785333
+B8_JOIN_STAGE fixed_commit_ns=3622742000
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=488951 fma=118735 arithmetic_rows=914902 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13686004083 retained_rows_bytes=5306337464
+B8_JOIN_STAGE compiler_released_bytes=2614145464 compiler_release_ns=19326042
+B8_JOIN_STAGE plan_ns=3398161375
+B8_JOIN_STAGE fixed_compile_ns=4108670125
+B8_JOIN_STAGE fixed_commit_ns=3643191084
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=488879 fma=119239 arithmetic_rows=915722 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13811118708 retained_rows_bytes=5306413992
+B8_JOIN_STAGE compiler_released_bytes=2614298520 compiler_release_ns=20356042
+B8_JOIN_STAGE plan_ns=3539826875
+B8_JOIN_STAGE fixed_compile_ns=4178549375
+B8_JOIN_STAGE fixed_commit_ns=3672668541
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=489023 fma=118231 arithmetic_rows=914067 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13599250834 retained_rows_bytes=5306244696
+B8_JOIN_STAGE compiler_released_bytes=2613959928 compiler_release_ns=18475000
+B8_JOIN_STAGE plan_ns=3392119833
+B8_JOIN_STAGE fixed_compile_ns=4365480000
+B8_JOIN_STAGE fixed_commit_ns=3828081000
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=488951 fma=118735 arithmetic_rows=914902 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13780286666 retained_rows_bytes=5306337464
+B8_JOIN_STAGE compiler_released_bytes=2614145464 compiler_release_ns=20251750
+B8_JOIN_STAGE plan_ns=3449061125
+B8_JOIN_STAGE fixed_compile_ns=4108304666
+B8_JOIN_STAGE fixed_commit_ns=3541345292
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=488951 fma=118735 arithmetic_rows=914902 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13376698625 retained_rows_bytes=5306337464
+B8_JOIN_STAGE compiler_released_bytes=2614145464 compiler_release_ns=19227834
+B8_JOIN_STAGE plan_ns=3396119792
+B8_JOIN_STAGE fixed_compile_ns=4119507792
+B8_JOIN_STAGE fixed_commit_ns=3551580333
+BLAKE3_NATIVE_QUERY_FUSION groups=22260 removed_scalars=89040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=488951 fma=118735 arithmetic_rows=914902 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13336573250 retained_rows_bytes=5306337464
+B8_JOIN_STAGE compiler_released_bytes=2614145464 compiler_release_ns=19816000
+B8_JOIN_STAGE plan_ns=3398301542
+B8_JOIN_STAGE fixed_compile_ns=4095661083
+B8_JOIN_STAGE fixed_commit_ns=3561704917
+BLAKE3_NATIVE_QUERY_FUSION groups=21070 removed_scalars=84280 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485486 fma=118068 arithmetic_rows=908808 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13313657083 retained_rows_bytes=5299992232
+B8_JOIN_STAGE compiler_released_bytes=2601450844 compiler_release_ns=19123209
+B8_JOIN_STAGE plan_ns=3369693292
+B8_JOIN_STAGE fixed_compile_ns=4063894834
+B8_JOIN_STAGE fixed_commit_ns=3543543291
+BLAKE3_NATIVE_QUERY_FUSION groups=21070 removed_scalars=84280 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485486 fma=118068 arithmetic_rows=908808 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13192994125 retained_rows_bytes=5299992232
+B8_JOIN_STAGE compiler_released_bytes=2601450844 compiler_release_ns=19020875
+B8_JOIN_STAGE plan_ns=3366675042
+B8_JOIN_STAGE fixed_compile_ns=4068395167
+B8_JOIN_STAGE fixed_commit_ns=3542990792
+BLAKE3_NATIVE_QUERY_FUSION groups=21070 removed_scalars=84280 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=485486 fma=118068 arithmetic_rows=908811 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13173804250 retained_rows_bytes=5299992512
+B8_JOIN_STAGE compiler_released_bytes=2601451404 compiler_release_ns=19248000
+B8_JOIN_STAGE plan_ns=3369740916
+B8_JOIN_STAGE fixed_compile_ns=4063843625
+B8_JOIN_STAGE fixed_commit_ns=3517176959
+BLAKE3_NATIVE_QUERY_FUSION groups=21350 removed_scalars=85400 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=486148 fma=112550 arithmetic_rows=898306 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=2540 fma=40120 arithmetic_rows=106238 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119457 direct_columns=true
+B8_JOIN_STAGE witness_ns=13044500166 retained_rows_bytes=5273675452
+B8_JOIN_STAGE compiler_released_bytes=2549843656 compiler_release_ns=20382375
+B8_JOIN_STAGE plan_ns=3307540042
+B8_JOIN_STAGE fixed_compile_ns=2364492208
+B8_JOIN_STAGE fixed_commit_ns=2450749542
+BLAKE3_NATIVE_QUERY_FUSION groups=10290 removed_scalars=41160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=40857 fma=72592 arithmetic_rows=227260 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=420 removed_scalars=1680 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=3450 fma=53292 arithmetic_rows=136091 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5756 fma=53795 arithmetic_rows=140204 direct_columns=true
+B8_JOIN_STAGE witness_ns=9464747208 retained_rows_bytes=4316550168
+B8_JOIN_STAGE compiler_released_bytes=2072138820 compiler_release_ns=16034875
+B8_JOIN_STAGE plan_ns=2680860667
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37548 fma=82059 arithmetic_rows=270249 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37458 fma=82271 arithmetic_rows=270856 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37448 fma=82437 arithmetic_rows=271595 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38827 fma=92670 arithmetic_rows=315849 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=39438 fma=92853 arithmetic_rows=329290 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38812 fma=92545 arithmetic_rows=314894 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38796 fma=92458 arithmetic_rows=314362 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38796 fma=92451 arithmetic_rows=314383 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38796 fma=92459 arithmetic_rows=314427 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38798 fma=92234 arithmetic_rows=313768 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37488 fma=82205 arithmetic_rows=271752 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37285 fma=83578 arithmetic_rows=259776 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38812 fma=92545 arithmetic_rows=314928 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38796 fma=92447 arithmetic_rows=314413 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38796 fma=92448 arithmetic_rows=314385 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38834 fma=92673 arithmetic_rows=315686 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92680 arithmetic_rows=315600 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37285 fma=83568 arithmetic_rows=259777 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92675 arithmetic_rows=315711 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37285 fma=83582 arithmetic_rows=259772 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92668 arithmetic_rows=315767 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37285 fma=83560 arithmetic_rows=259802 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92439 arithmetic_rows=315055 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=37285 fma=83559 arithmetic_rows=259805 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92656 arithmetic_rows=315480 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=39436 fma=92856 arithmetic_rows=329284 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92677 arithmetic_rows=315819 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38834 fma=92681 arithmetic_rows=315834 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92672 arithmetic_rows=315845 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92673 arithmetic_rows=315805 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92676 arithmetic_rows=315772 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38834 fma=92679 arithmetic_rows=315641 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38834 fma=92672 arithmetic_rows=315518 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38834 fma=92673 arithmetic_rows=315654 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38831 fma=92671 arithmetic_rows=315722 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92674 arithmetic_rows=315590 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38831 fma=92672 arithmetic_rows=315544 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92676 arithmetic_rows=315617 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92673 arithmetic_rows=315641 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92671 arithmetic_rows=315547 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38831 fma=92672 arithmetic_rows=315672 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92675 arithmetic_rows=315630 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=36938 fma=77763 arithmetic_rows=246601 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38829 fma=92682 arithmetic_rows=315634 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92675 arithmetic_rows=315700 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92679 arithmetic_rows=315750 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92673 arithmetic_rows=315763 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38830 fma=92438 arithmetic_rows=314895 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38833 fma=92454 arithmetic_rows=314955 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=38832 fma=92677 arithmetic_rows=315709 direct_columns=true
+time: command terminated abnormally
+     8819.11 real     41328.29 user      2162.65 sys
+         40771928064  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+          1298700966  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 134  voluntary context switches
+            16675086  involuntary context switches
+     519909159340473  instructions retired
+     177103474523052  cycles elapsed
+         40788842848  peak memory footprint

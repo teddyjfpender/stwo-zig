@@ -1,0 +1,1410 @@
+{
+  "schema_version": 1,
+  "qualification": "two actual open v7 direct batches to one independently keyed detached root with complete global closure",
+  "security": "diagnostic_q8_pow0",
+  "canonical_security_qualified": false,
+  "more_than64_original_proofs_qualified": false,
+  "original_children": 6,
+  "original_segments": 2,
+  "cycles": 12,
+  "ram_events": 77,
+  "batch_counts": [
+    5,
+    1
+  ],
+  "direct_batch_proof_bytes": [
+    156945,
+    128975
+  ],
+  "direct_batch_retained_verifier_bytes": [
+    1379494332,
+    136464644
+  ],
+  "final_root_proof_bytes": 141280,
+  "tests_passed": 12,
+  "full_qualification_job_seconds": 68.04,
+  "maximum_resident_set_bytes": 6171377664,
+  "process_peak_memory_footprint_bytes": 6164863576,
+  "measurement_scope": "Entire qualification process including original source proofs, independent cold setup, direct proofs, reduction proof, detached verification and negatives. Not production proving time; concurrent compilation; diagnostic/unranked.",
+  "verification": [
+    "canonical independently reconstructed full epoch/roster",
+    "all direct and reduction cold/live fixed rows, namespaces, contexts and supply schedules matched",
+    "open window with nonzero global residual accepted only as open child",
+    "singleton transfer retained allocator lifetime after family teardown",
+    "fresh final root verified after all original and intermediate proof bytes, captures and wide rows were destroyed",
+    "missing batch rejected by exact full coverage"
+  ],
+  "followup": "Exact trusted/root/epoch config preflight added afterward and tested separately without another proof run.",
+  "log_sha256": "d3315cdabf19a208b497a9a8fe4ab5d83d2e0d772f45ab2c9d785e8eb4d05723",
+  "binary_sha256": "c349df422e512cf9e28cb71958d54a51244649afbc36e8bf5856e2104e3f7beb",
+  "stage_profiles": [
+    {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.321178,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 0.70189,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.788186,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000211,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000487,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000127,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.00039,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.004109,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.009452,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.011005,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.028741,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.010934,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.028503,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.014682,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.043364,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.018008,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.044065,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.01661,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.039253,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.01519,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.039312,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015219,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.042766,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015369,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.049069,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.01867,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.047293,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015681,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.04059,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015703,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040777,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015711,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040404,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.006611,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.014529,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.106658,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 2.653027,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.605723,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000175,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000418,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000138,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000398,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000799,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.002158,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.009101,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.023554,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.010961,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.029135,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.012673,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.032845,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.017851,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.044644,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.018021,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.041974,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015206,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.039875,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015209,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.039355,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.017657,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.041638,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.018616,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.044057,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015855,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040681,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015704,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.042217,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015675,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040093,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.108249,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 8.984362,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 4e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.2e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 7.112388,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.004841,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.114505,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.018217,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.182438,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 7.1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.948493,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.013972,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.515755,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000296,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.029923,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 0.079732,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 0.214509,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000107,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000287,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 8.5e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000281,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9.4e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000291,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000156,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000347,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9.8e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000306,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000115,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000357,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000416,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.00075,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000457,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.001356,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.002846,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.005945,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.010208,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.029884,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.005234,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.014276,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.028582,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 0.309572,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.196929,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9.1e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000275,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 8.5e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000262,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000263,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.00014,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000385,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000104,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.00029,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9.9e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000295,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.00032,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000691,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000464,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.001245,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.002637,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.006659,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.010739,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.029002,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.00426,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.011475,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.028698,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 1.13937,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 3e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.856573,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001068,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.028089,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.018163,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.023073,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 6.8e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.124805,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.011387,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.048656,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000181,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.140728,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 0.329165,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 0.860755,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000107,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000289,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 8.7e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000274,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000288,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000164,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000369,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.00011,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000339,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000345,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000764,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.001486,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.003684,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.001852,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.005521,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.008159,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.018204,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.021317,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.050901,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.018608,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.047231,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.016426,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040868,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015744,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.043936,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.002214,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.004844,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.108085,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 1.128431,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.756144,
+          "children": [
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 9.6e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000281,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 8.9e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000269,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 8.9e-05,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000263,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000127,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000331,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.000113,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000321,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.00011,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.000334,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.001131,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.002932,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.001635,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.004407,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.006508,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.016835,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.015815,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040676,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.018635,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.050518,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.01654,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.040676,
+              "children": null
+            },
+            {
+              "id": "interpolate_columns",
+              "label": "Interpolate columns",
+              "seconds": 0.013526,
+              "children": null
+            },
+            {
+              "id": "evaluate_extended_domain",
+              "label": "Evaluate extended domain",
+              "seconds": 0.035368,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.106558,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 4.470785,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 3e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.9e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 3.195254,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005296,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.116271,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.018997,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.086635,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 7.5e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.581807,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.016214,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.312773,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000182,
+              "children": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

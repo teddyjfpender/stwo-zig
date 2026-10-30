@@ -15,10 +15,12 @@ const logup = @import("../air/logup.zig");
 const opcode = @import("../runner/trace.zig");
 const source = @import("block_v5_native_projection_fused_source_v1.zig");
 const universal = @import("../recursion/air/universal_challenges.zig");
+const leased_cache = @import("block_v7_leased_quotient_cache_v1.zig");
 const quotient_cache = @import("block_v5_quotient_column_cache_v1.zig");
 
 pub const Component = struct {
     quotient_cache: ?*quotient_cache.Cache = null,
+    leased_quotient_cache: ?*leased_cache.Cache = null,
     slot: source.Slot,
     fixed_logs: []const u32,
     main_logs: []const u32,
@@ -142,7 +144,21 @@ pub const Component = struct {
         var twiddles = if (owned.len != 0) try engine.poly.twiddles.precomputeM31(a, domain.half_coset) else null;
         defer if (twiddles) |*tree| engine.poly.twiddles.deinitM31(a, tree);
         const transform: ?engine.poly.twiddles.TwiddleTree([]const M) = if (twiddles) |tree| .init(tree.root_coset, tree.twiddles, tree.itwiddles) else null;
+        const leases = try a.alloc(leased_cache.Lease, if (self.leased_quotient_cache != null) width else 0);
+        var lease_count: usize = 0;
+        defer {
+            for (leases[0..lease_count]) |*lease| lease.release();
+            a.free(leases);
+        }
         for (polys, values, 0..) |poly, *out, index| {
+            if (index < width) if (self.leased_quotient_cache) |cache| {
+                if (try cache.get(.lookup, poly, self.slot.log_size, eval_log, transform)) |lease| {
+                    leases[lease_count] = lease;
+                    lease_count += 1;
+                    out.* = lease.values;
+                    continue;
+                }
+            };
             if (index < width) if (self.quotient_cache) |cache| {
                 if (try cache.get(.lookup, poly, self.slot.log_size, eval_log, transform)) |shared| {
                     out.* = shared;
@@ -160,24 +176,29 @@ pub const Component = struct {
         defer a.free(output);
         var result = output[0];
         const shift: std.math.Log2Int(usize) = @intCast(self.slot.log_size);
+        const normalized_claim = try self.claim.divM31(M.fromCanonical(@as(u32, 1) << @intCast(self.slot.log_size)));
         for (0..eval_size) |row| {
             const prev_row = core.utils.previousBitReversedCircleDomainIndex(row, self.slot.log_size, eval_log);
-            var main: [opcode.MAX_FAMILY_COLUMNS]Q = undefined;
-            for (0..width) |i| main[i] = Q.fromBase(values[i][row]);
+            var main: [opcode.MAX_FAMILY_COLUMNS]M = undefined;
+            for (0..width) |i| main[i] = values[i][row];
             var current: [4]Q = undefined;
             var previous: [4]Q = undefined;
             for (0..4) |i| {
                 current[i] = Q.fromBase(values[width + i][row]);
                 previous[i] = Q.fromBase(values[width + i][prev_row]);
             }
-            const equation = try self.residual(main[0..width], current, previous);
+            const request = try source.fromCommittedMainBase(self.slot, main[0..width], self.relations);
+            const equation = Q.fromPartialEvals(current).sub(Q.fromPartialEvals(previous)).add(normalized_claim).mul(request.denominator()).sub(request.numerator());
             result.accumulate(row, result.random_coeff_powers[result.random_coeff_powers.len - 1].mul(equation).mulM31(inverses[row >> shift]));
         }
     }
     fn residual(self: *const Self, main: []const Q, current: [4]Q, previous: [4]Q) !Q {
+        const shift = try self.claim.divM31(M.fromCanonical(@as(u32, 1) << @intCast(self.slot.log_size)));
+        return self.residualWithNormalizedClaim(main, current, previous, shift);
+    }
+    fn residualWithNormalizedClaim(self: *const Self, main: []const Q, current: [4]Q, previous: [4]Q, shift: Q) !Q {
         const request = try source.fromCommittedMain(self.slot, main, self.relations);
         const denominator = request.denominator();
-        const shift = try self.claim.divM31(M.fromCanonical(@as(u32, 1) << @intCast(self.slot.log_size)));
         return Q.fromPartialEvals(current).sub(Q.fromPartialEvals(previous)).add(shift).mul(denominator).sub(request.numerator());
     }
 };
@@ -185,7 +206,7 @@ pub const Component = struct {
 /// Native first-round leases may intentionally retain no coefficient copy.
 /// Recover only this component's opened columns; the leased tree stays
 /// immutable and no FFT/LDE/Merkle commitment is repeated.
-fn domainValues(a: std.mem.Allocator, poly: prover_component.Poly, trace_log: u32, eval_log: u32, eval_size: usize, owned: [][]M, initialized: *usize) ![]const M {
+pub fn domainValues(a: std.mem.Allocator, poly: prover_component.Poly, trace_log: u32, eval_log: u32, eval_size: usize, owned: [][]M, initialized: *usize) ![]const M {
     if (poly.log_size == eval_log or poly.coefficients != null)
         return support.evaluationValues(a, poly, eval_log, eval_size, owned, initialized);
     const domain = canonic.CanonicCoset.new(poly.log_size).circleDomain();

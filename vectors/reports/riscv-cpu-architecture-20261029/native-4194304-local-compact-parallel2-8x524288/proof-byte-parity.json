@@ -1,0 +1,46 @@
+{
+  "scope": "all ten same-window originals; scheduling only",
+  "comparisons": [
+    {
+      "name": "bridge-0.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "global-memory.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-0.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-1.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-2.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-3.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-4.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-5.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-6.proof",
+      "byte_identical": true
+    },
+    {
+      "name": "local-7.proof",
+      "byte_identical": true
+    }
+  ],
+  "all_byte_identical": true
+}

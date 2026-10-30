@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-b8-full-block-preparation-evidence-v1",
+  "proof_verified": false,
+  "scope": "complete pinned execution and checkpoint inputs only; no STARK/block proof claim",
+  "cycles": 139214856,
+  "window_capsules": 107,
+  "checkpoint_count": 108,
+  "fold_nodes": 106,
+  "source_binary_sha256": "e17a4bc5a59350742ea1dc9fec8c2d406b9d94ed70daaeb45f591b8a8a0c8e5a",
+  "plan_sha256": "aca2d95f1bf0d39072f6ba53c06852b2f9d2d8616a253bd13c7ac75d344322a6",
+  "checkpoint_manifest_sha256": "5438b5927d498bd2d368d585ea1acd09cc0979577244dd0a1d4613a98ac84548",
+  "execution_summary_sha256": "1aa3a7892bb1f291913572c57351c66499739cc1c09b8ca72f1d144797712778",
+  "command_wall_ns": 33010817000,
+  "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+  "snapshot_transport_and_canonical_id_recomputed": true,
+  "contended_diagnostic": true
+}

@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-29",
+  "security": {
+    "queries": 8,
+    "pow_bits": 0,
+    "canonical": false
+  },
+  "test": "v7 separate memory original components have exact cold live parent verifiers",
+  "result": "PASS11",
+  "fixture": {
+    "segments": 2,
+    "cycles": 12,
+    "sha256_calls": 1,
+    "keccak_calls": 1,
+    "guest_ram_events": 77,
+    "original_proofs": 10
+  },
+  "parents": [
+    {
+      "family": "ram",
+      "index": 0,
+      "proof_bytes": 130211
+    },
+    {
+      "family": "ram",
+      "index": 1,
+      "proof_bytes": 128157
+    },
+    {
+      "family": "interval",
+      "index": 0,
+      "proof_bytes": 123479
+    },
+    {
+      "family": "range16",
+      "index": 0,
+      "proof_bytes": 130355
+    },
+    {
+      "family": "terminal",
+      "index": 0,
+      "proof_bytes": 129606
+    }
+  ],
+  "checks": [
+    "actual original proof fresh verification",
+    "independent original fixed-root reconstruction",
+    "exact cold/live fixed rows and wires",
+    "canonical public-frame equality",
+    "genuine separately keyed parent proof verification",
+    "changed public frame rejected",
+    "typed independent receiver verifies parent bytes",
+    "well-formed changed physical claim rejected by parent verification"
+  ],
+  "limitations": [
+    "No complete mixed execution root in this gate",
+    "Diagnostic concurrent compilation; timings not production throughput",
+    "No canonical q70/pow26 qualification",
+    "No Ethereum block qualification"
+  ],
+  "whole_qualification": {
+    "wall_seconds": 23.43,
+    "max_rss_bytes": 1204469760,
+    "scope": "all originals, all five parent proofs, cold/live parity and checks"
+  },
+  "artifacts": {
+    "log": "/tmp/block-v7-separate-memory-final-run.log",
+    "log_sha256": "b5e95efc47a20a71e09fa84aaf018232edf6a1a315004a2efd376bd665c19f42",
+    "binary": "/tmp/block-v7-separate-memory-parent-final",
+    "binary_sha256": "8d120991764697e3958672bfd5bfa15407f652fd8c5d80c62ec2b2b316f51fd1"
+  }
+}

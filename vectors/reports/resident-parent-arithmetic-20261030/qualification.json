@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-resident-parent-primitive-qualification-v1",
+  "scope": "original-arithmetic-graph-primitive",
+  "hardware": "NVIDIA H200 sm90",
+  "status": "pass",
+  "metrics": {
+    "graphs": 3,
+    "nodes": 4250,
+    "exact_words": 17000,
+    "hostile_cases": 3
+  },
+  "generated_cuda_sha256": "d2eb74c3e9bf58b7188d9b8e40b831df8b9294e073de4b4a45b2345e39161faa",
+  "native_object_sha256": "11c3509df7f934b7f35e7b75ecb75ac8105a3dbda123dd28f6c9df94c2206231",
+  "cpu_expected_values": "test oracle only; not resident execution inputs",
+  "full_resident_parent_proof_qualified": false,
+  "performance_claim": false
+}

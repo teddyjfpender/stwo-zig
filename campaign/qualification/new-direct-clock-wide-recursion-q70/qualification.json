@@ -1,0 +1,263 @@
+{
+  "schema": "stwo-b8-direct-ram-clock-wide-recursive-qualification-v4",
+  "scope": "local_execution_global_ram_open",
+  "native_profile": "direct_ram_clock_v3_wide",
+  "native_shard_version": 1,
+  "queries": 70,
+  "pow_bits": 26,
+  "global_ram_closed": false,
+  "same_endpoint_main_root": true,
+  "decoded_original_destroyed": true,
+  "detached_metadata": true,
+  "fresh_key": true,
+  "cpu_boundary_byte_ports": 416,
+  "snapshot_byte_ports": 0,
+  "source_geometry": {
+    "schema": "stwo-b8-endpoint-root-source-full-cells-v1",
+    "family": "local_open",
+    "trace_trees": 11,
+    "composition_trees": 1,
+    "first_roots": 6,
+    "relation_pairs": 53,
+    "queries": 70,
+    "pow_bits": 26,
+    "native": {
+      "fixed": {
+        "columns": 8,
+        "cells": 20,
+        "bytes": 80
+      },
+      "main": {
+        "columns": 147,
+        "cells": 364,
+        "bytes": 1456
+      },
+      "interaction": {
+        "columns": 152,
+        "cells": 376,
+        "bytes": 1504
+      }
+    },
+    "endpoints": {
+      "fixed": {
+        "columns": 2,
+        "cells": 32,
+        "bytes": 128
+      },
+      "main": {
+        "columns": 23,
+        "cells": 368,
+        "bytes": 1472
+      },
+      "interaction": {
+        "columns": 44,
+        "cells": 704,
+        "bytes": 2816
+      }
+    },
+    "endpoint_range16": {
+      "fixed": {
+        "columns": 2,
+        "cells": 131072,
+        "bytes": 524288
+      },
+      "main": {
+        "columns": 1,
+        "cells": 65536,
+        "bytes": 262144
+      },
+      "interaction": {
+        "columns": 8,
+        "cells": 524288,
+        "bytes": 2097152
+      }
+    },
+    "program": {
+      "fixed": {
+        "columns": 6,
+        "cells": 768,
+        "bytes": 3072
+      },
+      "main": {
+        "columns": 0,
+        "cells": 0,
+        "bytes": 0
+      },
+      "interaction": {
+        "columns": 4,
+        "cells": 512,
+        "bytes": 2048
+      }
+    },
+    "lookup": {
+      "fixed": {
+        "columns": 6,
+        "cells": 96,
+        "bytes": 384
+      },
+      "main": {
+        "columns": 117,
+        "cells": 1872,
+        "bytes": 7488
+      },
+      "interaction": {
+        "columns": 24,
+        "cells": 384,
+        "bytes": 1536
+      }
+    },
+    "global_memory": null,
+    "trees": [
+      {
+        "index": 0,
+        "columns": 24,
+        "raw_cells": 131988,
+        "extended_cells": 263976,
+        "samples": 20,
+        "minimum_raw_log": 1,
+        "maximum_raw_log": 16
+      },
+      {
+        "index": 1,
+        "columns": 147,
+        "raw_cells": 364,
+        "extended_cells": 728,
+        "samples": 147,
+        "minimum_raw_log": 1,
+        "maximum_raw_log": 2
+      },
+      {
+        "index": 2,
+        "columns": 23,
+        "raw_cells": 368,
+        "extended_cells": 736,
+        "samples": 25,
+        "minimum_raw_log": 4,
+        "maximum_raw_log": 4
+      },
+      {
+        "index": 3,
+        "columns": 1,
+        "raw_cells": 65536,
+        "extended_cells": 131072,
+        "samples": 1,
+        "minimum_raw_log": 16,
+        "maximum_raw_log": 16
+      },
+      {
+        "index": 4,
+        "columns": 0,
+        "raw_cells": 0,
+        "extended_cells": 0,
+        "samples": 0,
+        "minimum_raw_log": 0,
+        "maximum_raw_log": 0
+      },
+      {
+        "index": 5,
+        "columns": 117,
+        "raw_cells": 1872,
+        "extended_cells": 3744,
+        "samples": 117,
+        "minimum_raw_log": 4,
+        "maximum_raw_log": 4
+      },
+      {
+        "index": 6,
+        "columns": 152,
+        "raw_cells": 376,
+        "extended_cells": 752,
+        "samples": 304,
+        "minimum_raw_log": 1,
+        "maximum_raw_log": 2
+      },
+      {
+        "index": 7,
+        "columns": 44,
+        "raw_cells": 704,
+        "extended_cells": 1408,
+        "samples": 88,
+        "minimum_raw_log": 4,
+        "maximum_raw_log": 4
+      },
+      {
+        "index": 8,
+        "columns": 8,
+        "raw_cells": 524288,
+        "extended_cells": 1048576,
+        "samples": 16,
+        "minimum_raw_log": 16,
+        "maximum_raw_log": 16
+      },
+      {
+        "index": 9,
+        "columns": 4,
+        "raw_cells": 512,
+        "extended_cells": 1024,
+        "samples": 8,
+        "minimum_raw_log": 7,
+        "maximum_raw_log": 7
+      },
+      {
+        "index": 10,
+        "columns": 24,
+        "raw_cells": 384,
+        "extended_cells": 768,
+        "samples": 48,
+        "minimum_raw_log": 4,
+        "maximum_raw_log": 4
+      },
+      {
+        "index": 11,
+        "columns": 16,
+        "raw_cells": 1048576,
+        "extended_cells": 2097152,
+        "samples": 16,
+        "minimum_raw_log": 16,
+        "maximum_raw_log": 16
+      }
+    ],
+    "total_raw_cells": 1774968,
+    "total_extended_cells": 3549936,
+    "total_raw_bytes": 7099872,
+    "total_extended_bytes": 14199744,
+    "native_guard_components": 1,
+    "native_guard_main_cells": 4,
+    "native_projection_claims": 38,
+    "endpoint_count": 1,
+    "logical_ram_accesses": 2,
+    "global_ram_components": 0,
+    "snapshot_changes": 0,
+    "physical_public_operands": 66,
+    "snapshot_delta_public_byte_ports": 0,
+    "cpu_boundary_public_byte_ports": 416,
+    "total_public_operands": 482,
+    "total_oods_samples": 790,
+    "original_constraints": 336,
+    "composition_log": 18,
+    "composition_split": 2,
+    "mask_log": 16,
+    "lifting_log": 17,
+    "source_profile_id": "c4aefe74af48ae5a34f60660f682705b4dbea37adbc7375a914b0f0b75c640eb",
+    "source_epoch": "15730e7b452a248288059bd5062d816022c648854efbead17a6a2b6acf17f57f",
+    "native_identity": "6c1de6ff9b832c83adf437b7e6aad2f94e2551c544fb170fadac57853fa39dea",
+    "native_layout": "f267ef2211c0359312637ee447d7f6bd9963b51af0ea879677e5c1fc9acc619b",
+    "fixed_root": "cf7bfd076c3644f0dcb758f70da603bc2a15cb6a1d1d2a49fa07e4dec463b5cd",
+    "deep_profile": "d58b8b4cea43af12cc913df75192cffd6a5372f8104db8a57fbe0679a5743274",
+    "fri_profile": "d1fb728087d669f92ed314db0cc8f407a341a341a4d701d280318f7baddeca3c"
+  },
+  "proof_bytes": 926639,
+  "proof_sha256": "cee71ea59e22537dd107752edf2f6bd16533db8ddc2a39036ff18124db532f33",
+  "stats": {
+    "fixed_compile_ns": 3020095375,
+    "fixed_commit_ns": 1047330209,
+    "witness_prepare_ns": 5956975333,
+    "fixed_parity_ns": 179359958,
+    "plan_ns": 724744750,
+    "proof_ns": 15191378167,
+    "encoding_ns": 28414875,
+    "whole_ns": 26148298709,
+    "retained_rows_bytes": 1087657684,
+    "fixed_commitment_reused": true
+  }
+}

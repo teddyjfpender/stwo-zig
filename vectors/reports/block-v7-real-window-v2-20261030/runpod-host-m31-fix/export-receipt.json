@@ -1,0 +1,15 @@
+{
+  "schema": "stwo-v7-fixed-source-export-v1",
+  "patch_archive_sha256": "ba47f5416295629945edb12fb9378d6932be4c783c4625312f09a75c45a5953e",
+  "patch_archive_bytes": 509790,
+  "base_remote": "/workspace/stwo-v7",
+  "fixed_remote": "/workspace/stwo-v7-fixed",
+  "independent_copy": true,
+  "base_modified": false,
+  "all_manifest_files_verified": 9360,
+  "cuda_native_archive_rebuilt": false,
+  "proof_qualification": "Corrected numeric H200 oracle passed; genuine same-binary CPU/GPU proof gate delegated to lane B.",
+  "numeric_build_returncode": 0,
+  "wrapper_build_returncode": 0,
+  "wrapper_binary_sha256": "0a1289c345efa37f50a04f95a17d93c6f6ca097c1415f00b2f4c24e759dda48a"
+}

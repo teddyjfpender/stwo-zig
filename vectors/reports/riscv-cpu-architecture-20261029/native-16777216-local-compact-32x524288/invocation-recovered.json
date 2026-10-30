@@ -1,0 +1,30 @@
+{
+  "schema": "stwo-b8-pinned-local-pipeline-invocation-v1",
+  "capture_sha256": "1748bc2b99f31086aee388759494b7307fa84e920c7fd2c3cfc66baa27403709",
+  "binary_sha256": "3034855354037b8c70e4a325732f974635e903bd22383badba884cc35e016fd7",
+  "build_manifest_sha256": "45c46ab8ec32427fd8e7428f5a288ab967cfe9045cbe5db72bedd107f285f569",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 16777216
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "c095021f804b6e3b4f16f46f5e70a4c77a13e291e14fa3b863158b379579dd0d",
+  "workers": 8,
+  "cohort_cycles": 524288,
+  "compact": true,
+  "cpu_only": true,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "recursive_root": false,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/stwo-b8-local-compact-window-bench"
+  ],
+  "started_unix_ns": 1793330743238284000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793330928474372000,
+  "report_sha256": "0d41a31433e43e49628a089c2f06110d34ac5b78e5d2cab15bdf8958599bea0c"
+}

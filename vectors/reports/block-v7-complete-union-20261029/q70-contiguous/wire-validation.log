@@ -1,0 +1,13 @@
+1/11 block_v7_complete_union_wire_test_root.test_0...OK
+2/11 prover.tests.block_v7_complete_union_wire_test.test.v7 complete union bounded wire reload and hostile framing...V7_COMPLETE_UNION_WIRE profile=canonical_q70_pow26 bytes=5887369 verified_cycles=20495 decode_peak_bytes=19276266 independent_policy=true producers_present=false
+OK
+3/11 prover.block_v5_initial_sources_v1.test.block-v5 initial layout admits canonical RW union and rejects source ambiguity...OK
+4/11 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+5/11 prover.block_v7_union_claim_wire_v1.test.union claim framing rejects length amplification and noncanonical scalar tags...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 prover.block_execution_external_trace_v2.test_0...OK
+8/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+9/11 air.memory_commitment.poseidon2_air.test_0...OK
+10/11 air.lookups.tables.mod.test_0...OK
+11/11 air.lookups.tables.source_ingest.test_0...OK
+All 11 tests passed.

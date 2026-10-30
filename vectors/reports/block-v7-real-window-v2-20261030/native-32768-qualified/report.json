@@ -1,0 +1,51 @@
+{
+  "schema": "stwo-real-window-new-v7-originals-v2",
+  "scope": "explicit externally admitted incoming and outgoing complete machine states; skipped prefix is not proved; original proofs independently verified; no recursive root from this gate",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 32768
+  },
+  "segment_cycles": 16384,
+  "worker_count": 4,
+  "native_stage_profile": "native-stage-profile.json",
+  "stage_accounting": "native_proof_ns includes ordered native_segment roots; their children are inclusive nested stages and must not be added to parents. Native interaction generation outside core recorder remains in segment residual. Other families currently have aggregate original-proof times.",
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "57fd5a0db77fe74ec52bd970335ad1b55e5ee85be1c8f85eb86f4c177157e6c1",
+  "source_loading_ns": 30032792,
+  "whole_request_ns": 17265597875,
+  "stats": {
+    "cycles": 32768,
+    "segments": 2,
+    "callers": 0,
+    "events": 12315,
+    "fetches": 32770,
+    "original_proofs": 5,
+    "checkpoint_bytes": 48996544,
+    "native_checkpoint_bytes": 48996544,
+    "caller_checkpoint_bytes": 0,
+    "max_native_restore_codec_bytes": 21720904,
+    "event_storage_bytes": 337032,
+    "setup_ns": 1212670625,
+    "execution_ns": 55863500,
+    "collection_ns": 265935375,
+    "providers_first_ns": 3585050458,
+    "native_proof_ns": 1432557750,
+    "caller_proof_ns": 167,
+    "memory_proof_ns": 3570667250,
+    "rom_proof_ns": 1778424041,
+    "lookup_proof_ns": 219515834,
+    "verification_ns": 5093031958,
+    "consumer_ns": 2870500,
+    "whole_ns": 17216587500,
+    "charged_peak_bytes": 1016697224
+  },
+  "artifacts": {
+    "proof_count": 5,
+    "proof_bytes": 2106931,
+    "artifact_write_ns": 2858209
+  },
+  "logical_input_bytes": 27937680,
+  "physical_disk_bytes": null,
+  "host_budget_bytes": 34359738368
+}

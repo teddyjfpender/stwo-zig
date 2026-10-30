@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-resident-readonly-numeric-v1",
+  "result": {
+    "status": "pass",
+    "scope": "resident_readonly_sort_primitive",
+    "fully_resident_prover": false,
+    "cases": 7,
+    "entries": 70280,
+    "field_words": 281120,
+    "hostiles": 20
+  },
+  "gpu": "NVIDIA H200",
+  "cuda": "12.8.93",
+  "scope": "device gather stable sort and exact predecessor arguments for original readonly AIR",
+  "prover_qualified": false,
+  "note": "CUDA event diagnostics, not end-to-end proof timing; GPU canonical/order/conflict checks; CPU reference only independent test oracle"
+}

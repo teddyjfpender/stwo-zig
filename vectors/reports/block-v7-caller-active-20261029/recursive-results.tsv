@@ -1,0 +1,6 @@
+kind	composition_nodes	arithmetic_rows	explicit_zero_fields	rejected_omitted_fields	proof_bytes	cold_live_equal	detached_verified	complete_execution
+sha	37797	104246	1682	24	135186	true	true	false
+keccak	175177	462529	638	20	147428	true	true	false
+recovery	121464	382987	1044	4	142123	true	true	false
+mixed	195060	518226	638	20	149644	true	true	false
+recovery_keccak	278732	796498	0	0	154955	true	true	false

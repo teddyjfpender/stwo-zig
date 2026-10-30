@@ -1,0 +1,29 @@
+1/5 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/5 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...WORD_QUOTIENT_TILED {"charged_peak_bytes":564116200,"coefficient_bytes":0,"tile_log":15,"tiles":512,"requested_group_bytes":1073741824,"group_bytes":1073741824,"phases":{"recovery_ns":6709,"mapping_ns":34028293,"rows_ns":12405198451,"current":{"prepare_ns":4010350621,"jobs_ns":4241015678,"block_fold_cpu_ns":4927243344,"block_fft_cpu_ns":6310531516,"group_changes":64,"prefold_elements_read":61203283968,"block_elements_read":30601641984,"fft_elements":3825205248,"jobs":116736},"previous":{"prepare_ns":4551436235,"jobs_ns":4495213179,"block_fold_cpu_ns":4949919924,"block_fft_cpu_ns":6862049784,"group_changes":128,"prefold_elements_read":67108864000,"block_elements_read":33554432000,"fft_elements":4194304000,"jobs":128000},"group_logs":[3,3,3]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=22 elapsed_ns=29844866958
+V7_RAM_PROOF_SHA256 4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=22 proof_bytes=85955 charged_peak=13304371208 commit_ns=3317502833 proof_ns=36368285500 verification_ns=924441750 exact_original_verification=true
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=22 elapsed_ns=291
+OK
+3/5 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled production defaults select only large memory components...OK
+4/5 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/5 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+All 5 tests passed.
+       94.12 real       204.37 user         3.51 sys
+         23012655104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2735948  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              176622  involuntary context switches
+       3385130021611  instructions retired
+        876157618531  cycles elapsed
+         23022633616  peak memory footprint

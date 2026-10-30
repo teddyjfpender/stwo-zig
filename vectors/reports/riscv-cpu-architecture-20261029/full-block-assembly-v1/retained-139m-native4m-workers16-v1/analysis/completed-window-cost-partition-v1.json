@@ -1,0 +1,33 @@
+{
+  "schema": "stwo-b8-completed-window-cost-partition-v1",
+  "observed_utc": "2026-10-30T12:42:24.043130+00:00",
+  "windows": 107,
+  "cycles": 139214856,
+  "full_block_verified": false,
+  "original_bundle_seconds": 1323.40653591,
+  "window_wrapper_seconds": 6315.169139083,
+  "wrapper_stages_seconds": {
+    "root_parent_fixed_compile_s": 452.576824415,
+    "root_parent_fixed_commit_s": 387.496918461,
+    "root_parent_witness_s": 1465.584621372,
+    "root_parent_plan_s": 371.662378497,
+    "root_parent_proof_s": 2743.534937413,
+    "root_parent_encode_s": 1.398515372,
+    "wrapper_other_s": 892.9149435529998
+  },
+  "wrapper_stage_shares": {
+    "root_parent_fixed_compile_s": 0.07166503611346138,
+    "root_parent_fixed_commit_s": 0.06135970548482678,
+    "root_parent_witness_s": 0.23207369257964347,
+    "root_parent_plan_s": 0.05885232371637913,
+    "root_parent_proof_s": 0.43443570187755537,
+    "root_parent_encode_s": 0.0002214533516362909,
+    "wrapper_other_s": 0.14139208687649757
+  },
+  "notes": [
+    "All107window roots produced; upper reduction and final receiving excluded.",
+    "wrapper_other_s is a residual of the enclosing wrapper timer, not an isolated measurement of key derivation or receiving.",
+    "Parent proof and witness account for work cache-only changes cannot remove.",
+    "This records a CPU baseline and does not establish an optimized speedup."
+  ]
+}

@@ -114,12 +114,20 @@ pub fn ForBackend(comptime Backend: type) type {
         };
 
         pub fn commitFirstRound(a: std.mem.Allocator, plan: source.Plan, config: core.pcs.PcsConfig) !FirstRound {
+            return commitFirstRoundMode(a, plan, config, true);
+        }
+        /// Materialized evaluations are durable checkpoint transport. The
+        /// original proof transcript and fresh deterministic verifier stay put.
+        pub fn commitCheckpointFirstRound(a: std.mem.Allocator, plan: source.Plan, config: core.pcs.PcsConfig) !FirstRound {
+            return commitFirstRoundMode(a, plan, config, false);
+        }
+        fn commitFirstRoundMode(a: std.mem.Allocator, plan: source.Plan, config: core.pcs.PcsConfig, retain_coefficients: bool) !FirstRound {
             const plan_digest = try plan.digest();
             const columns = try plan.fixedColumns(a);
             defer for (columns) |values| a.free(values);
             var scheme = try Scheme.init(a, config);
             errdefer scheme.deinit(a);
-            scheme.setCoefficientRetentionPolicy(.always);
+            scheme.setCoefficientRetentionPolicy(if (retain_coefficients) .always else .never);
             var channel = firstChannel(plan_digest);
             var fixed: [Air.PREPROCESSED_COLUMN_COUNT]Column = undefined;
             for (columns, 0..) |values, i| fixed[i] = .{ .log_size = plan.log_size, .values = values };

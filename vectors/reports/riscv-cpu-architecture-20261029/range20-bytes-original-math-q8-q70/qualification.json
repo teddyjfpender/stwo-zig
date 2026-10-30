@@ -1,0 +1,113 @@
+{
+  "schema": "stwo-range20-bytes-seven-plane-original-qualification-v1",
+  "qualification": "All 13 ReleaseSafe tests passed",
+  "profile": "bytes20_v1",
+  "scope": "new lookup-provider predicate original; actual typed native consumer original closes all six lookup families and state/register chains; ROM/global RAM OPEN, no whole VM/Ethereum claim",
+  "default_legacy_six_claim_profile_unchanged": true,
+  "new_profile_in_continuous_Local_producer": false,
+  "equations": {
+    "main": [
+      "signed_multiplicity",
+      "b0",
+      "b1",
+      "b2"
+    ],
+    "derived_tuple": "b0+256*b1+65536*b2",
+    "byte_pair_requests": [
+      "(b0,b1)",
+      "(b2,15-b2)"
+    ],
+    "fixed_columns": 1,
+    "main_columns": 4,
+    "interaction_columns": 8,
+    "kernel_constraint_count": 2,
+    "maximum_degree": 3,
+    "composition_split": 2,
+    "padding": "all padded rows issue valid byte queries even if multiplicity zero; no witness activity bits"
+  },
+  "soundness": "canonical dense byte-pair provider proves all four requested values in [0,255]; b2+(15-b2)=15 and maximum sum510<M31 exclude wrap, giving b2<=15 and v<2^20",
+  "claims": {
+    "native_table_supply_planes": 6,
+    "range20_byte_requests_plane": 1,
+    "total": 7,
+    "individually_absorbed_before_first_interaction_root": true,
+    "legacy_ClaimsFor_alias_array_length": 6
+  },
+  "checks": [
+    "standalone values 0,1,255,256,65535,65536,2^20-1",
+    "actual typed native consumer q8/q70 original",
+    "fresh independent ELF-derived fixed key and strict byte codec after producer proof destruction",
+    "invalid m=0 padding byte256 and top limb16 rejected by closed byte argument",
+    "two compensating physical claim mutations preserve aggregate byte residual but fresh original verification rejects",
+    "six-claim framing rejected",
+    "random scalar/packed/secure-fold parity",
+    "host input1<<20 and M31modulus aliases rejected"
+  ],
+  "cost_proxy": {
+    "old_sparse_MAIN": 21,
+    "new_MAIN": 4,
+    "old_sparse_constraints": 21,
+    "new_constraints": 2,
+    "old_raw_cells_per_row": 26,
+    "new_raw_cells_per_row": 13,
+    "measured_speedup": null
+  },
+  "next_work": [
+    "versioned Local lookup-profile/7-claim ledger dispatch",
+    "amend byte-pair request census by two queries per padded R20 provider row",
+    "integrated real-cohort performance before claiming runtime improvement"
+  ],
+  "proofs": [
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/range20-bytes-original-math-q8-q70/native_consumer/csp_q70_pow26/math.proof",
+      "bytes": 269492,
+      "sha256": "259b42a155d440351f07da75288badf0f4fc71772abf578bf9a282f3dc8fdbf9",
+      "native_consumer": true
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/range20-bytes-original-math-q8-q70/native_consumer/diagnostic_q8_pow0/math.proof",
+      "bytes": 49599,
+      "sha256": "19c695455c9c7ecc00521205ed8a0717086cecf2d6e809a38fcd75a60e6bde54",
+      "native_consumer": true
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/range20-bytes-original-math-q8-q70/standalone/csp_q70_pow26/math.proof",
+      "bytes": 229611,
+      "sha256": "78074b91fb52a8045ede8de9f7168efca1c322ba218e9b213b23c889af8ccbe2",
+      "native_consumer": false
+    },
+    {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/range20-bytes-original-math-q8-q70/standalone/diagnostic_q8_pow0/math.proof",
+      "bytes": 42122,
+      "sha256": "02970f9c0db074be9e4f1ad3e149379d0ac976505482dce861cf98bd33a4f9f2",
+      "native_consumer": false
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_range20_bytes_kernel_v1.zig",
+      "bytes": 4240,
+      "sha256": "873e0acb1aab9948787de181a49c4644c419944a8511dc451a18cacea3aa82e6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_range20_bytes_original_v1.zig",
+      "bytes": 20800,
+      "sha256": "572884f1555856693102830cbe6dc0d7bea03f051f6eda2a22107e76bbdc376f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_range20_bytes_profile_v1.zig",
+      "bytes": 10170,
+      "sha256": "4f647d3d700b65918f2746ac7453449e9064a5c87eb845fd10dd2aa18250fb43"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_range20_bytes_original_test.zig",
+      "bytes": 9651,
+      "sha256": "24335c7709f62677e0260d59bd3c95231befeb7dc6a71d11746df4efb3a622d9"
+    },
+    {
+      "path": "src/frontends/riscv/block_v8_range20_bytes_test_root.zig",
+      "bytes": 83,
+      "sha256": "a851d61d1b67fce5b07c805b5ee2881c76e31f2b4e4c942c35bca8b081a9c669"
+    }
+  ]
+}

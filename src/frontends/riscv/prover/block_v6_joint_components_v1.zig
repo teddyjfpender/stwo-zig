@@ -26,12 +26,15 @@ pub fn Relocated(comptime proving: bool) type {
                 return error.InvalidJointCompositionSplit;
             var adjusted = inner;
             if (split != inner.compositionLogSplit()) {
-                // Native q1 quotients require the existing polynomial-extension
-                // transform when joining q2 companions. Relabeling the split
-                // alone changes the OODS identity and is incorrect.
-                if (split - inner.compositionLogSplit() != 1 or inner.composition_geometry_override_v1 != null)
+                // Low-degree native quotients require actual polynomial
+                // extension when joining wider companions. Compose prior
+                // admitted overrides; never relabel the split alone.
+                const relative_delta = split - inner.compositionLogSplit();
+                const prior_delta = if (inner.composition_geometry_override_v1) |prior| prior.max_constraint_log_degree_bound_delta else 0;
+                const delta = std.math.add(u32, relative_delta, prior_delta) catch return error.UnsupportedJointCompositionLift;
+                if (delta > 2)
                     return error.UnsupportedJointCompositionLift;
-                adjusted = try inner.withCompositionGeometryOverrideV1(.{ .max_constraint_log_degree_bound_delta = 1, .composition_log_split = @intCast(split) });
+                adjusted = try inner.withCompositionGeometryOverrideV1(.{ .max_constraint_log_degree_bound_delta = @intCast(delta), .composition_log_split = @intCast(split) });
             }
             return .{ .inner = adjusted, .map = if (native) .{ 0, 1, if (access) 3 else 2, 0 } else if (access) .{ 0, 1, 2, 4 } else .{ 0, 1, 3, 0 }, .source_trees = if (native or !access) 3 else 4, .destination_trees = if (access) 5 else 4, .split = split };
         }
@@ -146,7 +149,10 @@ pub fn Combined(comptime proving: bool) type {
         handles: []Handle,
         const Handle = if (proving) CP.ComponentProver else C.Component;
         pub fn init(a: std.mem.Allocator, native: []const Handle, companion: []const Handle, access: bool) !@This() {
-            if (native.len == 0 or companion.len == 0) return error.EmptyJointComponentRoster;
+            return initWithLayout(a, native, companion, access, false);
+        }
+        pub fn initWithLayout(a: std.mem.Allocator, native: []const Handle, companion: []const Handle, access: bool, partitioned: bool) !@This() {
+            if (native.len == 0 or (companion.len == 0 and !partitioned)) return error.EmptyJointComponentRoster;
             var split: u32 = 0;
             for (native) |item| split = @max(split, item.compositionLogSplit());
             for (companion) |item| split = @max(split, item.compositionLogSplit());
@@ -156,6 +162,12 @@ pub fn Combined(comptime proving: bool) type {
             errdefer a.free(handles);
             for (wrappers, handles, 0..) |*wrapper, *handle, i| {
                 wrapper.* = try Relocated(proving).init(if (i < native.len) native[i] else companion[i - native.len], i < native.len, access, split);
+                if (partitioned) {
+                    // The native handles contain only direct constraints and
+                    // own no interaction cells. There is one relation tree.
+                    wrapper.map = .{ 0, 1, 2, 3 };
+                    wrapper.destination_trees = if (access) 4 else 3;
+                }
                 if (i >= native.len) wrapper.main_providers = native;
                 handle.* = if (proving) wrapper.asProverComponent() else wrapper.asVerifierComponent();
             }
@@ -172,13 +184,30 @@ pub fn Combined(comptime proving: bool) type {
 /// Borrowed native equations and columns. Callers own these through proving
 /// or verification. Context alone is never a verified native receipt.
 pub const Context = struct {
-    native: *const @import("block_v5_native_components_v3.zig").Owner,
+    native: ?*const @import("block_v5_native_components_v3.zig").Owner = null,
+    partitioned: ?*const @import("block_v6_partitioned_native_components_v1.zig").Owner = null,
+    layout_digest: [32]u8 = @splat(0),
     columns: []const engine.pcs.ColumnEvaluation = &.{},
-    logs: []const u32,
+    logs: []const u32 = &.{},
     reuse_projections: bool = false,
+    pub fn separateInteraction(self: Context) bool {
+        return self.partitioned == null;
+    }
+    pub fn provers(self: Context) []const CP.ComponentProver {
+        return if (self.partitioned) |owner| owner.provers else self.native.?.proving.components.active();
+    }
+    pub fn verifiers(self: Context) []const C.Component {
+        return if (self.partitioned) |owner| owner.verifiers else self.native.?.verifying.components.active();
+    }
     pub fn mix(self: Context, channel: *core.proof_suites.Blake3.Channel) !void {
+        if (self.partitioned != null) {
+            if (self.native != null or self.reuse_projections or self.columns.len != 0 or self.logs.len != 0) return error.InvalidPartitionedJointContext;
+            channel.mixU32s(&.{ 0x42364a50, 3 });
+            channel.mixRoot(self.layout_digest);
+            return;
+        }
         channel.mixU32s(&.{ 0x42364a50, if (self.reuse_projections) 2 else 1 }); // B6JP, new joint proof domain.
-        try @import("block_v5_native_template_protocol_v3.zig").mixClaims(channel, &self.native.statement, &self.native.claims);
+        try @import("block_v5_native_template_protocol_v3.zig").mixClaims(channel, &self.native.?.statement, &self.native.?.claims);
     }
 };
 
@@ -196,7 +225,7 @@ pub const ProjectionLayout = struct {
             var cache = @import("block_v6_projection_alias_v1.zig").Cache{};
             defer cache.deinit();
             for (projections, aliases) |slot, *alias| {
-                alias.* = try cache.claim(a, &context.native.statement, &context.native.claims, slot);
+                alias.* = try cache.claim(a, &context.native.?.statement, &context.native.?.claims, slot);
                 if (alias.* != null) count -= 1;
             }
         };

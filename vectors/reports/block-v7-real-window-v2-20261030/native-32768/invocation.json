@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-real-window-v2-benchmark",
+    "--test-filter",
+    "retained Ethereum new v7 window benchmark"
+  ],
+  "capture_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+  "binary_sha256": "b12bc5e82fd7fe857b23f0e72500d235180bef37728714cff809a023babce77e",
+  "build_manifest_sha256": "e2b0e7f43b8e9bcafe2b630cd17f7ecb44ee642d34d884cd806e09fb77a230bd",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 24152776,
+    "temporary_snapshot_bytes_written": 24152776,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793260594011532000,
+  "returncode": -6,
+  "finished_unix_ns": 1793260594030088000
+}

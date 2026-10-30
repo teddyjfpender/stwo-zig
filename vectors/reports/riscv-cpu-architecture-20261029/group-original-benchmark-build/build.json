@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-b8-group-benchmark-build-v1",
+  "binary_sha256": "51fefc5e53dd174a9837cb3b857bf939ce6b5be295a08b3b1c4bce40dd8deb3d",
+  "binary_bytes": 7688840,
+  "source_unchanged_during_build": true,
+  "source_file_count": 10780,
+  "source_manifest_sha256": "af2929a01599037648495363a7fcbd05c8a171fb5bfa051e77fcaf4a0f931fc0",
+  "source_files_digest": "529201390f0d688602a022d4c4ce51e5dec8d21039fd70fd236d1b716b976691",
+  "source_manifest": "source-manifest.json",
+  "zig_version": "0.15.2",
+  "optimize": "ReleaseFast",
+  "test_filter": "real shared group original performance benchmark",
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v8_endpoint_group_execution_test_root.zig -OReleaseFast --test-filter \"real shared group original performance benchmark\" --test-no-exec -femit-bin=/tmp/stwo-b8-group-original",
+  "cpu_only": true,
+  "runtime_measured": false
+}

@@ -107,6 +107,10 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
         compact_polynomial_storage: bool = false,
         compact_polynomial_min_log_size: u32 = 20,
+        /// Request-owned execution metadata; canonical proof bytes are unchanged.
+        deep_group_budget: @import("quotient_group_budget.zig").Budget = .one_mib,
+        /// Borrowed explicit numerical executor; a failure never falls back.
+        quotient_executor: ?*const @import("quotient_executor.zig").Executor = null,
         /// Optional storage for retained LDE values only. Its owner must outlive
         /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
         retained_column_allocator: ?std.mem.Allocator = null,
@@ -575,17 +579,32 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     // work-profile-plan:fri-protocol
                 }
 
-                var provider = try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorder(
-                    B,
-                    allocator,
-                    TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
-                    sampled_points_owned,
-                    sampled_values_owned,
-                    random_coeff,
-                    lifting_log_size,
-                    fri_work_recorder,
-                );
+                var provider = if (scheme.quotient_executor != null)
+                    try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorderAndGroupBudget(
+                        @import("quotient_executor.zig").RawInputBackend,
+                        allocator,
+                        TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
+                        sampled_points_owned,
+                        sampled_values_owned,
+                        random_coeff,
+                        lifting_log_size,
+                        fri_work_recorder,
+                        scheme.deep_group_budget,
+                    )
+                else
+                    try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorderAndGroupBudget(
+                        B,
+                        allocator,
+                        TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
+                        sampled_points_owned,
+                        sampled_values_owned,
+                        random_coeff,
+                        lifting_log_size,
+                        fri_work_recorder,
+                        scheme.deep_group_budget,
+                    );
                 defer provider.deinit(allocator);
+                provider.numerical_executor = scheme.quotient_executor;
                 provider.setBackendResidencyHandles(residency_handles);
 
                 var result = try prover_fri.FriProver(B, H, MC).commitLazyWithWorkRecorderAndRootMixCapture(

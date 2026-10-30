@@ -1,0 +1,75 @@
+{
+  "schema": "stwo-native-access-gpu-primitives-v1",
+  "scope": "Original68-equation DAG,17 denominators,49 physical interaction columns and10 claims; not a complete resident native proof",
+  "device": "NVIDIA H200 SM90",
+  "compiler": "nvcc CUDA12.8.93 -O2 -std=c++17 -arch=sm_90 --threads 8",
+  "equations": {
+    "status": "PASS",
+    "words": 16512,
+    "slots": [
+      1,
+      2
+    ],
+    "equations": 68,
+    "denominators": 17,
+    "trace_geometries": 3,
+    "source_sha256": "d37e933dffcbc13674d6ca21d5229a8876dae04bc6fdcabd8227f781141fa918",
+    "binary_sha256": "f5667107350c9ed2c085272585d12db0923d06b3c9d329993225c02570d55732",
+    "equal_domain_previous_row": true
+  },
+  "interactions": {
+    "status": "PASS",
+    "words": 52138,
+    "physical_columns": 49,
+    "claims": 10,
+    "cases": [
+      "log1 active",
+      "log3 active",
+      "log9 active",
+      "log9 all inactive"
+    ],
+    "zero_denominator_hostiles": 3,
+    "oracle": "original block_v7_native_access_interaction_v1.generate",
+    "source_sha256": "5149c29dc17eb66f08a47ccfb9c7b859a5292de3ac0786458f8be288d3504101",
+    "binary_sha256": "8eb5042bd163c6ce4dcc74ebc3302a793a371689b51978ec8933882670e84469",
+    "device_parameters": true
+  },
+  "performance_claim": false,
+  "full_resident_proof_claim": false,
+  "remaining": [
+    "Finite producer/controller integration",
+    "Native clock/frame witness writers",
+    "Complete-native GPU proof and independent original verification"
+  ],
+  "witness_and_counter": {
+    "status": "PASS",
+    "witness_columns": 48,
+    "counter_cells": 65536,
+    "field_comparisons": 788736,
+    "hostiles": 24,
+    "modular_wrap_cases": 6,
+    "mechanical_translation": "Original Access.fromCommittedMain/rwPairForMode/Integer.Witness.fromPair/Range.bytesAtPoint via pinned Zig0.15.2 C backend",
+    "source_sha256": "81b06cd1315709448d15f0adbc1d9fce852072f416240a9a36709f28b6efb604",
+    "binary_sha256": "16082ddf3afb1f0ffdc69db82c6a2ada38aa6f976798df15dede822c348e8aff"
+  },
+  "raw_ingress": {
+    "status": "PASS",
+    "rows": 1003,
+    "families": 17,
+    "hostiles": 3,
+    "gpu_stable_sort": true,
+    "binary_sha256": "e264b1f14e1a391fd9fac5509e594049de650feac29eb2affe8475648e3d220c",
+    "placement_kernel_qualification": false
+  },
+  "finite_bundle": {
+    "status": "NVCC compile PASS only",
+    "components": 43,
+    "constraints": 284,
+    "sample_count": 750,
+    "cold_fixture_tests": 17,
+    "source_sha256": "32b969e49427f4cdc941fd78af6c88f2661df5caa2c525fb5ba32542475f6063",
+    "object_sha256": "580cc2e8d6a0f693914a5ddb5513a2321fdbebd443e7840bb1e210859bc3d72f",
+    "excludes_later_counter_dispatch": true
+  },
+  "saved_artifacts": "/tmp/v7-native-access-preserved"
+}

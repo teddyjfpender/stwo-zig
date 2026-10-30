@@ -1,6 +1,7 @@
 //! Complete family11 witness-once storage. All arithmetic/private lookup/main
 //! matrices are persisted; selected caller frames alone are insufficient. Files
-//! are proposals and are freshly recommitted against first-pass roots on load.
+//! are proposals: proof loading either recommits or restores bounded original
+//! PCS trees; fresh proof verification authenticates the first-pass roots.
 const std = @import("std");
 const core = @import("stwo_core");
 const M = core.fields.m31.M31;
@@ -225,7 +226,8 @@ fn resourceBound(descriptor: *const Descriptor, limits: Limits) !void {
     for (0..Tables.schema.KIND_COUNT) |i| bytes = try std.math.add(u64, bytes, try std.math.mul(u64, Tables.schema.size(@enumFromInt(i)), @sizeOf(M)));
     if (bytes > limits.max_reconstruction_bytes) return error.V5StagedCallerReconstructionLimit;
 }
-fn reconstruct(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, descriptor: *const Descriptor, pin: Pin, limits: Limits) !*Owner {
+/// Reconstruct raw witness material only; no commitment or proof authority.
+pub fn reconstruct(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, descriptor: *const Descriptor, pin: Pin, limits: Limits) !*Owner {
     try descriptor.require(a);
     try resourceBound(descriptor, limits);
     const self = try a.create(Owner);
@@ -352,6 +354,16 @@ pub fn ForBackend(comptime Backend: type) type {
                 self.* = undefined;
             }
         };
+        pub fn loadWithCommitment(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, descriptor: *const Descriptor, pin: Pin, limits: Limits, checkpoint: @import("block_v6_caller_commitment_store_v1.zig").Input) !Prepared {
+            if (Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedCallerCheckpointBackend;
+            const owner = try reconstruct(a, dir, name, descriptor, pin, limits);
+            errdefer owner.deinit();
+            var timer = try std.time.Timer.start();
+            var first = try @import("block_v6_caller_commitment_store_v1.zig").load(a, dir, checkpoint.name, descriptor, &owner.witness, checkpoint.pin, checkpoint.limits);
+            errdefer first.deinit(a);
+            if (checkpoint.statistics) |statistics| try statistics.restored(checkpoint.pin, timer.read());
+            return .{ .owner = owner, .first = first };
+        }
         pub fn load(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, descriptor: *const Descriptor, pin: Pin, limits: Limits) !Prepared {
             const owner = try reconstruct(a, dir, name, descriptor, pin, limits);
             errdefer owner.deinit();

@@ -1,0 +1,32 @@
+1/10 block_v7_window_union_recursive_benchmark_root.test.retained Ethereum shared union recursive root benchmark...BLAKE3_NATIVE_QUERY_FUSION groups=17710 removed_scalars=70840 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=72390 fma=75265 arithmetic_rows=274191 direct_columns=true
+V7_REAL_WINDOW_NEW cycles=131072 proofs=1 whole_ns=4884270375 peak=1796043211 scope=declared_window verified=true
+OK
+2/10 runner.mod.test_0...OK
+3/10 runner.decode.test_0...OK
+4/10 air.memory_commitment.poseidon2_air.test_0...OK
+5/10 air.semantic_eval.test_0...OK
+6/10 prover.block_execution_external_trace_v2.test_0...OK
+7/10 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.
+       76.94 real       152.78 user        13.95 sys
+          5256069120  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             6444750  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   7  voluntary context switches
+              131105  involuntary context switches
+       2788885197287  instructions retired
+        719217812083  cycles elapsed
+          5250914040  peak memory footprint

@@ -193,6 +193,22 @@ pub fn generateColumnsInto(
     relations: *const @import("universal_challenges.zig").UniversalRelations,
     destination: []const []M31,
 ) !QM31 {
+    return generateColumnsIntoWithExecutor(Backend, Air, allocator, program, plan, sources, profile, log, relations, destination, null);
+}
+
+pub fn generateColumnsIntoWithExecutor(
+    comptime Backend: type,
+    comptime Air: type,
+    allocator: std.mem.Allocator,
+    program: *const @import("stwo_prover_engine").air.component_prover.OwnedFrameworkPolynomialProgramV1,
+    plan: *const binding.Binding(Air).Plan,
+    sources: [2][]const []const M31,
+    profile: []const M31,
+    log: u32,
+    relations: *const @import("universal_challenges.zig").UniversalRelations,
+    destination: []const []M31,
+    executor: ?*const @import("../blake3_parent_interaction_executor_v1.zig").Executor,
+) !QM31 {
     if (log == 0 or log > 24) return error.InvalidTraceShape;
     const counts = [_]usize{ Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT };
     const size = @as(usize, 1) << @intCast(log);
@@ -204,6 +220,19 @@ pub fn generateColumnsInto(
     for (destination) |column| if (column.len != size) return error.InvalidTraceShape;
     const parameters = try exporter.exportRelationParameters(allocator, plan, relations);
     defer allocator.free(parameters);
+    if (executor) |selected| {
+        var claims: [1]QM31 = undefined;
+        const invocation = @import("stwo_prover_engine").air.component_prover.FrameworkPolynomialParametersV1{
+            .claimed_sum = QM31.zero(),
+            .trace_log_size = log,
+            .profile_values = profile,
+            .relation_values = parameters,
+        };
+        try @import("../blake3_parent_interaction_executor_v1.zig").validate(program, counts, sources, invocation, destination, &claims);
+        try selected.generate(selected.context, allocator, program, counts, sources, invocation, destination, &claims);
+        return claims[0];
+    }
+    if (comptime !@hasDecl(Backend, "generateFrameworkInteractionInto")) return error.FrameworkInteractionExecutorRequired;
     return Backend.generateFrameworkInteractionInto(allocator, program, &counts, sources, .{
         .trace_log_size = log,
         .profile_values = profile,

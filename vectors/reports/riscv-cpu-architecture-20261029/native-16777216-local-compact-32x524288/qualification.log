@@ -1,0 +1,32 @@
+1/11 block_v8_endpoint_local_compact_execution_benchmark_root.test_0...OK
+2/11 prover.tests.block_v8_endpoint_local_execution_test.test.continuous clean local producer proves two real cohorts and closes one shared global window...B8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 compact=false freshly_verified=true
+OK
+3/11 prover.tests.block_v8_endpoint_local_execution_test.test.continuous clean local compact producer proves two real cohorts and closes one shared global window...B8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 compact=true freshly_verified=true
+OK
+4/11 prover.tests.block_v8_endpoint_local_compact_execution_benchmark.test.real clean local compact pipeline performance benchmark...OK
+5/11 runner.decode.test_0...OK
+6/11 runner.mod.test_0...OK
+7/11 air.memory_commitment.poseidon2_air.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 air.lookups.tables.mod.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.
+      185.22 real       651.39 user        35.64 sys
+          3710599168  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            19901283  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  10  voluntary context switches
+              809856  involuntary context switches
+       9706746032339  instructions retired
+       2896622806200  cycles elapsed
+          3712624048  peak memory footprint

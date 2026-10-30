@@ -22,8 +22,10 @@ pub const Partition = enum(u8) {
     clock_memory_access,
     register_memory_access,
     register_clock_memory_access,
+    /// Only the explicit partitioned B6JP-v3 layout emits this partition.
+    ordinary_memory_access,
 };
-pub const PARTITION_COUNT = tables.schema.KIND_COUNT + 4;
+pub const PARTITION_COUNT = tables.schema.KIND_COUNT + 5;
 fn partitionFor(domain: @import("../air/lookups/entry.zig").Domain) ?Partition {
     if (domain == .registers_state) return .registers_state;
     const kind = tables.counter.kindForDomain(domain) orelse return null;
@@ -32,7 +34,7 @@ fn partitionFor(domain: @import("../air/lookups/entry.zig").Domain) ?Partition {
 fn arity(partition: Partition) usize {
     return switch (partition) {
         .registers_state => 2,
-        .clock_memory_access, .register_memory_access, .register_clock_memory_access => 7,
+        .clock_memory_access, .register_memory_access, .register_clock_memory_access, .ordinary_memory_access => 7,
         else => tables.schema.arity(@enumFromInt(@intFromEnum(partition))),
     };
 }
@@ -61,6 +63,8 @@ pub const Slot = struct {
     main_offset: usize,
     width: usize,
     register_custody_mode: u32 = 0,
+    /// Explicit V3 only: retain R20 register gaps at typed ordinals 10/13.
+    direct_ram_clock_v3: bool = false,
 };
 pub const Pair = struct {
     numerators: [2]Q = .{ Q.zero(), Q.zero() },
@@ -146,7 +150,7 @@ pub fn slotsFromShapeForMode(a: std.mem.Allocator, shape: *const shape_mod.Blake
     return out.toOwnedSlice(a);
 }
 
-fn nodeDegrees(a: std.mem.Allocator, plan: interaction.Plan) ![]u32 {
+pub fn nodeDegrees(a: std.mem.Allocator, plan: interaction.Plan) ![]u32 {
     const degrees = try a.alloc(u32, plan.program.nodes.len);
     errdefer a.free(degrees);
     for (plan.program.nodes, degrees) |node, *degree| degree.* = switch (node.op) {

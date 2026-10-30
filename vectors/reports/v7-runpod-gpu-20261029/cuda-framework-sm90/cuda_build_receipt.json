@@ -1,0 +1,724 @@
+{
+  "aot_cubin_count": 22,
+  "aot_entries": 22,
+  "aot_pack": "cuda_aot_pack.bin",
+  "aot_pack_sha256": "0c58853392d6e8d98468a82cf4f2715fae70ce3459202144dd17944a400a196f",
+  "aot_product_sets": [
+    "."
+  ],
+  "aot_source_count": 22,
+  "archive": "libstwo_cuda_kernels.a",
+  "archive_sha256": "a6b789f3bcaf891d8af89a48eded8f8712ac2cd9d8846073ce6674e32cf3f835",
+  "authority_aot_source_count": 0,
+  "authority_ordinary_source_count": 9,
+  "build_identity_sha256": "c25e76491c6a84f35833981838951aa27991668748afa1417d2df3d802e9de45",
+  "cuda_home": "/usr/local/cuda-12.8",
+  "cuda_library_dir": "/usr/local/cuda-12.8/targets/x86_64-linux/lib",
+  "fixed_flags": {
+    "aot": [
+      "-cubin",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr"
+    ],
+    "aot_units": [
+      {
+        "cache_key": "ee96de7b936c6117",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "2e55aad082ea1818",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "290f6452f1faf11d",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "821e0e9ad0aecb30",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "136e88c296b8b644",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "43b758749ea03a4d",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "b0217e54b866d34d",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "3fe0176fef5d2b5e",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "e7d8f2921f27ca62",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "aa0889adbd138072",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "8f3bb24978773875",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "a907af73d9185882",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "9781bfb6346c0d91",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "c2e2b759a70ca89c",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "df6a34989c3a7aa6",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "53e869e8ed64f4aa",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "904d6a295ec3afb1",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "59acae348efbaab7",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "aee08c7abce2d4b9",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "d5fd5497e81f37c1",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "8251bab44bd055c4",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      },
+      {
+        "cache_key": "c018f06f1d1f8ac6",
+        "flags": [
+          "-cubin",
+          "-O3",
+          "--std=c++17",
+          "--expt-relaxed-constexpr",
+          "-ccbin=/usr/bin/g++",
+          "-arch=sm_90"
+        ],
+        "sm": 90
+      }
+    ],
+    "device_link": [
+      "-dlink",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "host": [
+      "-std=c++17",
+      "-O3",
+      "-fPIC",
+      "-c"
+    ],
+    "native_cuda": [
+      "-c",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ],
+    "ordinary": [
+      "-dc",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC"
+    ]
+  },
+  "frontend": "native",
+  "include_dirs": [
+    "/workspace/stwo-v7-gpu-stage-v2/src/backends/cuda/authority/active"
+  ],
+  "jobs": 8,
+  "linked_libraries": [
+    "cuda",
+    "cudart",
+    "stdc++"
+  ],
+  "native_aot_closure_sha256": "818d122770689525f641fe5779e9fea96b5e43298a0625cb53d81d91fbbb88f4",
+  "native_cuda_source_count": 37,
+  "native_host_source_count": 1,
+  "native_runtime_closure_sha256": "e40e79ec414b64ddbbc36a4ac827f9aa71b7ba1f704e92c0fb64f74c75c0ed5d",
+  "native_runtime_files": [
+    {
+      "bytes": 27845,
+      "path": "aot_loader.cpp",
+      "sha256": "4eb82b5ff7c84b3d6c89ea6c16a85b4d2e2b7e6a4934c791685fee110f1ccf3a"
+    },
+    {
+      "bytes": 5375,
+      "path": "aot_loader.h",
+      "sha256": "eed22f4b3a43184353173c9bd2fa84f3851b24a34f14130f6ac799d967b439af"
+    },
+    {
+      "bytes": 5371,
+      "path": "aot_sha256.h",
+      "sha256": "3736b85d3138484dd2d8e295a9076d0c11d364e797c76d3d17f4da71d97a93a1"
+    },
+    {
+      "bytes": 3599,
+      "path": "cairo/casm_input.cu",
+      "sha256": "6030ae7f0f620d07114b7a967f6145200b259d4156a3a526358aee09414929d0"
+    },
+    {
+      "bytes": 4799,
+      "path": "cairo/eval_params.cu",
+      "sha256": "fbd2043ed6c5c5e9946c6c61320c178de46f5cff4cb8e078c3dc8ee7e6ba1622"
+    },
+    {
+      "bytes": 6661,
+      "path": "cairo/memory_base.cu",
+      "sha256": "7aa8695b0727bb2c04ec0ebcb574951cbba7c537076891df3efd8e49266125b7"
+    },
+    {
+      "bytes": 3865,
+      "path": "cairo/memory_execution.cu",
+      "sha256": "ecf15f7feaaffd781f3481174a2f3478073c326420c32b266719cc539f2e4729"
+    },
+    {
+      "bytes": 1467,
+      "path": "cairo/safety.cuh",
+      "sha256": "58e59e2d3027a0c6888c95ec0ba5e4578727080113348d7a8c20085774dd53fa"
+    },
+    {
+      "bytes": 10996,
+      "path": "cairo/witness_compact_v2.cu",
+      "sha256": "b15e691f5117113fa80f9aca38342b7d37b17f02be6ea904788e7f817bc4ee6b"
+    },
+    {
+      "bytes": 5032,
+      "path": "cairo/witness_edge.cu",
+      "sha256": "dbed7a82c8fe38d92f83ef03d4ede1864c6b7c3bf92928d3548317f997925a82"
+    },
+    {
+      "bytes": 7533,
+      "path": "cairo/witness_multi_edge.cu",
+      "sha256": "3680c971f8174a87eb953d1502bd36b0610cec974ccb768198f49f279bf183c4"
+    },
+    {
+      "bytes": 3559,
+      "path": "cairo/witness_seed.cu",
+      "sha256": "33c3e04d26650edef0e00c669dc7a6f6a1b7fc1447254486e634e953a7188480"
+    },
+    {
+      "bytes": 14479,
+      "path": "circuit/base_witness.cu",
+      "sha256": "f5c90660fb101a7dd23b0c717288f3a3eaf3be86cfa7ab368dbd263657748036"
+    },
+    {
+      "bytes": 15003,
+      "path": "circuit/interaction_fractions.cu",
+      "sha256": "7c4c59ba1ac8cea689bf55d58d638244d8586ac05b9efd5f84e4c8dfe1e440f0"
+    },
+    {
+      "bytes": 3774,
+      "path": "circuit/lookup_sum.cu",
+      "sha256": "6190dc607dd0ec423f2389a3d76c4ba0114fa4a363fc3b9bf647cb0d208ddb9e"
+    },
+    {
+      "bytes": 6008,
+      "path": "commitment/blake2s_core.cuh",
+      "sha256": "900f5e34af77afbfde0b5253efd6ab0c0ead9c15cb83809c4cb0c8180dc515d7"
+    },
+    {
+      "bytes": 823,
+      "path": "commitment/blake2s_domain_states.h",
+      "sha256": "380318f129647f41dec900ebf5543263d20f18acefe079b291fae5fc3c548132"
+    },
+    {
+      "bytes": 1112,
+      "path": "commitment/blake2s_protocol.cuh",
+      "sha256": "5988ef51326af8b4680422530e036741a2b9c3ee01919b7fd133cd66ae0f709c"
+    },
+    {
+      "bytes": 12023,
+      "path": "commitment/merkle.cu",
+      "sha256": "1d9e34a915d92d8c7f3cdf0555077a0fcf5b458eb6e8d8d8ce92d257c76fec59"
+    },
+    {
+      "bytes": 30540,
+      "path": "commitment/progressive.cu",
+      "sha256": "e1a9e68688871e0a975a810d57a2f95cf1d084355f14dd743c2e9c341a87f114"
+    },
+    {
+      "bytes": 4354,
+      "path": "commitment/progressive_scalar.cuh",
+      "sha256": "80bbc807dfbcdc1351cca4f1aef2a7398f1b309dd6a4d25de5e55a8fd64d51b2"
+    },
+    {
+      "bytes": 2202,
+      "path": "commitment/resident_layout.cuh",
+      "sha256": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc"
+    },
+    {
+      "bytes": 596,
+      "path": "common/circle_twiddle.cuh",
+      "sha256": "70c5c2f306eeb3838a49f531febf96bed95126637781a595bbf5d39786012c91"
+    },
+    {
+      "bytes": 1268,
+      "path": "common/m31.cuh",
+      "sha256": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17"
+    },
+    {
+      "bytes": 1011,
+      "path": "common/provider_compat.cuh",
+      "sha256": "535a7099e74ebebb68a149e2939c4e6c7db0bce1f8988d3329ebaf649e1cbf05"
+    },
+    {
+      "bytes": 1814,
+      "path": "constraints/field.cuh",
+      "sha256": "819262cfef8eae4cdc34a007d9183fc4b2aa2e41dd8351b0da87584520fa7aec"
+    },
+    {
+      "bytes": 2155,
+      "path": "constraints/powers.cu",
+      "sha256": "eb14bf504d07afe1b34b4ee158c6e99e394a6a8bae1d749e47de07f5f6ecfa77"
+    },
+    {
+      "bytes": 8416,
+      "path": "decommit/contract.cuh",
+      "sha256": "dbb0a918536af005af90cefbdedfd3b7bbbcaca7f56167c5894bce57c338ea3c"
+    },
+    {
+      "bytes": 13693,
+      "path": "decommit/fri.cu",
+      "sha256": "b07c061457d229ec2449e9c16c4b731984676faeff9ddb87724ff9afbe626afc"
+    },
+    {
+      "bytes": 8704,
+      "path": "decommit/merkle_walk.cuh",
+      "sha256": "54b61ac2c0291b8a02ad2da14d404bd0cd61ab5311754e8d665ba4e26ed5ae67"
+    },
+    {
+      "bytes": 13092,
+      "path": "decommit/query_planning.cu",
+      "sha256": "1c27293cafb538f2f2bd2066a08f3f7dd4865b44c992edf533e151bc3a888018"
+    },
+    {
+      "bytes": 3551,
+      "path": "decommit/sparse_parents.cu",
+      "sha256": "8db2ffa8a4ea251b97614694985664cf273ffdf30c511e08c877174b81381aea"
+    },
+    {
+      "bytes": 14857,
+      "path": "decommit/trace.cu",
+      "sha256": "55a6c59606eaec532596ea917098865d295de30194ee78efb04cfa3bdc10a8d3"
+    },
+    {
+      "bytes": 2017,
+      "path": "framework_polynomial_v1.cuh",
+      "sha256": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd"
+    },
+    {
+      "bytes": 3172,
+      "path": "fri/field.cuh",
+      "sha256": "70cd85f72a272acd6c483bedb436dd5d0e7efc12f41c90f2f35c98e2e48cce3f"
+    },
+    {
+      "bytes": 11525,
+      "path": "fri/final.cu",
+      "sha256": "a9d9a0d2c0f0bfb81d0656e664ea8517c55b8d2e289744508dc3f2fcdc9bb6ac"
+    },
+    {
+      "bytes": 18607,
+      "path": "fri/fold.cu",
+      "sha256": "1887af3e0f02d5bbfb710b1a513085f79148943c9bfee3fc4d2f5bca7551232e"
+    },
+    {
+      "bytes": 1376,
+      "path": "fri/safety.cuh",
+      "sha256": "908fb61a058d6c2e315ad493159ffcb4b526ffb04d2db83b25994b86b22f6051"
+    },
+    {
+      "bytes": 4046,
+      "path": "kernels/wide_fibonacci_trace.cu",
+      "sha256": "8fa8e12714b6ed1e0b364be010cef322d05250cf3581789847395aa1c21003e3"
+    },
+    {
+      "bytes": 3660,
+      "path": "kernels/xor_trace.cu",
+      "sha256": "540d63778a22acbd8985be3b3e60cc98dc24d92555fed2c9d310ec3e6d02dca1"
+    },
+    {
+      "bytes": 11126,
+      "path": "oods/barycentric.cu",
+      "sha256": "d651589a56a36f60c7199494371fbf24911be675aefb838fdacd1a653a0c9e6a"
+    },
+    {
+      "bytes": 3417,
+      "path": "oods/batch_inverse.cuh",
+      "sha256": "aef648d133e6a8736e8170442088ae78f10d88ccac1145312291d91fe9addfc1"
+    },
+    {
+      "bytes": 18974,
+      "path": "oods/evaluate.cu",
+      "sha256": "6da001e504807067d6efe70623bef302b41a5f3350b976ead42de84ea1ff36f8"
+    },
+    {
+      "bytes": 6396,
+      "path": "oods/field.cuh",
+      "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+    },
+    {
+      "bytes": 1890,
+      "path": "oods/safety.cuh",
+      "sha256": "70aea1083b9d1ac01fdbf65c60a5beb639d3424801ca8a843db65eef286fc145"
+    },
+    {
+      "bytes": 7016,
+      "path": "pow/candidate.cuh",
+      "sha256": "d03265b624303272f10ede8d4a43b8f92e527620c9b612182816fd9719d976d1"
+    },
+    {
+      "bytes": 1132,
+      "path": "pow/safety.cuh",
+      "sha256": "a6ed01cf960407dd2e195ce2af94df3f9028711856d53eba389cd9883f6ca205"
+    },
+    {
+      "bytes": 10045,
+      "path": "pow/search.cu",
+      "sha256": "e84dbcbe3856eda88fbe1896a6d61a26e4930ab16b6d4abdd8f6be4f07eeec73"
+    },
+    {
+      "bytes": 15630,
+      "path": "quotient/combine.cu",
+      "sha256": "7952800877371d186e865ed3081511e9f806517a0c48f184fc9fbe09ab76ea55"
+    },
+    {
+      "bytes": 3353,
+      "path": "quotient/field.cuh",
+      "sha256": "1ff101cdbc730ad34d538d6d1b6d176b1c1e10300f94c57c6f237990ca5b1e4b"
+    },
+    {
+      "bytes": 32806,
+      "path": "quotient/numerator.cu",
+      "sha256": "1253fae178449e71781b5bc3ddcc34dd0d198b38acf3b96a6176f17ac70be689"
+    },
+    {
+      "bytes": 7827,
+      "path": "quotient/prepare.cu",
+      "sha256": "416554309ab8bcda0cf8655e56e04aedbf38d284cc242b9cdb660dc780054eb3"
+    },
+    {
+      "bytes": 1374,
+      "path": "quotient/safety.cuh",
+      "sha256": "0b72bcc02dcf71a145cfc71801004af34f23735ae39b376d67a608e21ba49501"
+    },
+    {
+      "bytes": 2381,
+      "path": "quotient/types.cuh",
+      "sha256": "0827624135d8237b31d7080e211920cf427d106ce05de53aeaebd93dc83755be"
+    },
+    {
+      "bytes": 4905,
+      "path": "relation/batch_inverse.cu",
+      "sha256": "f421cb7e106857748b95911fee6559a69b8c991704a4b806761f27350a578838"
+    },
+    {
+      "bytes": 303,
+      "path": "relation/batch_inverse.cuh",
+      "sha256": "d536c11fe159e896a9c705d93fd3af7e6f477dc89f83bd01cf6a53dbff65fecf"
+    },
+    {
+      "bytes": 25604,
+      "path": "relation/graph.cu",
+      "sha256": "b4180c1988ed10cedd4ed886d13b9378d5e21b5c63ee1bdca5650c7c208b6345"
+    },
+    {
+      "bytes": 6947,
+      "path": "relation/layout.cuh",
+      "sha256": "8db4ce3edfb0a916d70f2371b4b01f139ff5458c247c6828053fc9fa213c9bdd"
+    },
+    {
+      "bytes": 38959,
+      "path": "runtime/context.cu",
+      "sha256": "64be59734e33026270cd951ea7e02c1e915384f6b976dee0aa126f86ca546cd6"
+    },
+    {
+      "bytes": 1522,
+      "path": "runtime/context_options.h",
+      "sha256": "5e7b8044792f82febf6cb75d14a5505a959e6e3a266e4caa524a910a17a63aca"
+    },
+    {
+      "bytes": 6910,
+      "path": "secure_polynomial_resident_v1.cuh",
+      "sha256": "b014db1cb0f3363fc9aec60bb9de1480eeb9b2f64a7c90c7b79cfc286441333b"
+    },
+    {
+      "bytes": 3071,
+      "path": "secure_polynomial_v1.cuh",
+      "sha256": "5ab22f1e7cb43634f49c501762b3fb3ae8ff595eb2895fdc75a58c71cea71c3e"
+    },
+    {
+      "bytes": 3664,
+      "path": "transcript/blake2s_words.cuh",
+      "sha256": "f07b30ce24db3426ac539a64a43c8d14eb48b4f774778c8b5cc5d1bb739d7921"
+    },
+    {
+      "bytes": 3359,
+      "path": "transcript/state.cuh",
+      "sha256": "93665a4568747788869e76d3ec276c95f71a0802e7c42a924e566bd97b6cedaf"
+    },
+    {
+      "bytes": 15132,
+      "path": "transcript/transcript.cu",
+      "sha256": "f089d9cf37b457f0a08f44ac496c6f75b17287f25b6e7a03ad6e4dee0cd2f552"
+    },
+    {
+      "bytes": 19450,
+      "path": "transform/b2n_fused.cuh",
+      "sha256": "a6d6230a477ce4826c9c7a7ec6001f8daf55afcdf78da39613c174f5865b5d45"
+    },
+    {
+      "bytes": 11175,
+      "path": "transform/b2n_retained.cu",
+      "sha256": "0e6a8ec9d17e15d0b24255e1b88eff1f5563188855668bf09e731dbd0d2fcce6"
+    },
+    {
+      "bytes": 11726,
+      "path": "transform/composition_split.cu",
+      "sha256": "5e50ee0f90da45d74bd14a94aefeff07812037af582e8ce7b35f4b9e03fb0961"
+    },
+    {
+      "bytes": 16332,
+      "path": "transform/lde.cu",
+      "sha256": "e783cbd041dc1703e4a7306cf2996827ccae15a23dc98ca0ccf14fcc1e0c0d51"
+    },
+    {
+      "bytes": 8822,
+      "path": "transform/n2b.cu",
+      "sha256": "a9f24e0d1697a366fe5a62ad44c1451cbdcb247b2755c776e4f531efba129909"
+    },
+    {
+      "bytes": 19086,
+      "path": "transform/n2b_fused.cuh",
+      "sha256": "66fac1ef6679f18a6f8f1a5a45923aced339872d55dc715d6cd43cad5e100bac"
+    },
+    {
+      "bytes": 5796,
+      "path": "transform/transform_internal.cuh",
+      "sha256": "72d58745f07fbb64a0e8e0976e1be0275d58ba28f5a669903c9913ba6e768d14"
+    },
+    {
+      "bytes": 4281,
+      "path": "witness/active_feeds.cu",
+      "sha256": "97ced4ded1bbc869aaf3814a3b29fdc2a002dbf55af4aa92bd5988f3c91e8259"
+    }
+  ],
+  "native_runtime_source_count": 38,
+  "ordinary_source_count": 6,
+  "product_manifest_sha256": "3dcec31eab0659a62dc3fbc675d34795e15ed510ca301fe16c1926a5d99a70ac",
+  "schema": "stwo-zig-cuda-native-build-v1",
+  "source_closure_sha256": "99f8b738f505fe450c8ff37ec2ea389df248f56a8cc770b02fc9cf070e872065",
+  "target_sms": [
+    90
+  ],
+  "tools": {
+    "archiver": {
+      "path": "/usr/bin/x86_64-linux-gnu-ar",
+      "sha256": "534681ac11c18868cfc4fdf98770aa0ba8973eedc90c231e94e6ba96e1a04f27",
+      "version": "GNU ar (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty."
+    },
+    "host_cxx": {
+      "path": "/usr/bin/x86_64-linux-gnu-g++-13",
+      "sha256": "52f1ddb33fe78b9441e0f42e9cd22c571f1101938e046c8a26582494e041cc73",
+      "version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "nvcc": {
+      "path": "/usr/local/cuda-12.8/bin/nvcc",
+      "sha256": "59e4e55f9a38b78c590df1e28a69dad91052958f18a03868ca4a547c043fbba7",
+      "version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0"
+    }
+  }
+}

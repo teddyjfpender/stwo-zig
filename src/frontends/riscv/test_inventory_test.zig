@@ -151,6 +151,98 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     },
 };
 
+/// Explicit focused product inventory for the declared-window and CPU scaling
+/// work. The generic frontend module has no CPU backend and must not acquire
+/// heavyweight proof/benchmark execution as a side effect of ordinary tests.
+/// Every entry names a runnable zig_protocol_test.py root; the gate below
+/// checks the literal import edge rather than treating an exclusion as coverage.
+const focused_products = [_]struct { path: []const u8, root: []const u8, why: []const u8 }{
+    .{ .path = "prover/tests/block_v8_endpoint_mixed_pipeline_test.zig", .root = "block_v8_endpoint_mixed_pipeline_test_root.zig", .why = "Canonical q70 real mixed reexecution, authenticated endpoint retention and fresh durable original closure; requires CPU backend." },
+    .{ .path = "prover/tests/block_v8_execution_checkpoint_writer_test.zig", .root = "block_v8_execution_checkpoint_writer_test_root.zig", .why = "Focused bounded checkpoint publication, exact execution coverage and snapshot tampering controls for the full-block input pipeline." },
+    .{ .path = "prover/tests/block_v8_caller_halt_policy_test.zig", .root = "block_v8_caller_halt_policy_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/tests/block_v8_compact_ram_recursion_test.zig", .root = "block_v8_compact_ram_recursion_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/tests/block_v8_endpoint_bridge_recursion_test.zig", .root = "block_v8_endpoint_bridge_recursion_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_endpoint_caller_plan_test.zig", .root = "block_v8_endpoint_caller_plan_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/air/tests/blake3_recursive_column_inventory_test.zig", .root = "block_v8_endpoint_custody_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/tests/block_v8_endpoint_join_saved_benchmark.zig", .root = "block_v8_endpoint_join_saved_benchmark_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/tests/block_v8_endpoint_join_saved_receiver_test.zig", .root = "block_v8_endpoint_join_saved_receiver_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "recursion/tests/block_v8_endpoint_join_test.zig", .root = "block_v8_endpoint_join_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_directory_test.zig", .root = "block_v8_endpoint_local_directory_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_sparse_test.zig", .root = "block_v8_endpoint_local_sparse_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_sparse_rom_original_test.zig", .root = "block_v8_sparse_rom_original_test_root.zig", .why = "Explicit versioned endpoint architecture, original/recursive proof, bounded CPU ownership and independent receiving gate." },
+    .{ .path = "air/guest_precompile/tests/bulk_memcpy_byte_loop_v1_test.zig", .root = "bulk_memcpy_byte_loop_test_root.zig", .why = "Same-ROM byte-loop macro arithmetic, original proof and exact projection qualification; whole-VM integration is separately gated." },
+    .{ .path = "prover/tests/block_v8_compact_ram_proof_test.zig", .root = "block_v8_compact_ram_proof_test_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_compact_ram_test.zig", .root = "block_v8_compact_ram_test_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_compact_execution_benchmark.zig", .root = "block_v8_endpoint_local_compact_execution_benchmark_root.zig", .why = "Opt-in scale or execution-only diagnostic with external input pins; not part of ordinary frontend test execution." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_execution_benchmark.zig", .root = "block_v8_endpoint_local_execution_benchmark_root.zig", .why = "Opt-in scale or execution-only diagnostic with external input pins; not part of ordinary frontend test execution." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_execution_test.zig", .root = "block_v8_endpoint_local_compact_execution_benchmark_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_global_window_policy_test.zig", .root = "block_v8_global_window_policy_test_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_ram_clock_v3_test.zig", .root = "block_v8_ram_clock_v3_test_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "prover/tests/block_v8_real_pc_census.zig", .root = "block_v8_real_pc_census_root.zig", .why = "Opt-in scale or execution-only diagnostic with external input pins; not part of ordinary frontend test execution." },
+    .{ .path = "prover/tests/bulk_memcpy_byte_loop_original_test.zig", .root = "bulk_memcpy_byte_loop_original_test_root.zig", .why = "Same-ROM byte-loop macro arithmetic, original proof and exact projection qualification; whole-VM integration is separately gated." },
+    .{ .path = "recursion/tests/block_v8_endpoint_local_recursion_test.zig", .root = "block_v8_endpoint_local_recursion_test_root.zig", .why = "Focused endpoint architecture, exact original/recursive proof and independent receiving gate." },
+    .{ .path = "block_v8_endpoint_local_execution_test_root.zig", .root = "block_v8_endpoint_local_execution_test_root.zig", .why = "Focused endpoint architecture CPU product root; explicit protocol runner invocation required." },
+    .{ .path = "prover/block_v8_endpoint_whole_placement_v1.zig", .root = "block_v8_endpoint_whole_proof_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_caller_ram_owner_test.zig", .root = "block_v8_caller_ram_owner_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_caller_ram_projection_test.zig", .root = "block_v8_caller_ram_projection_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_execution_benchmark.zig", .root = "block_v8_endpoint_execution_benchmark_root.zig", .why = "Opt-in B8 scale measurement with explicitly pinned external artifacts; not an implicit benchmark in frontend tests." },
+    .{ .path = "prover/tests/block_v8_endpoint_execution_test.zig", .root = "block_v8_endpoint_execution_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_global_bridge_test.zig", .root = "block_v8_endpoint_global_bridge_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_local_proof_test.zig", .root = "block_v8_endpoint_local_proof_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_range_provider_test.zig", .root = "block_v8_endpoint_range_provider_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_source_descriptor_test.zig", .root = "block_v8_endpoint_source_descriptor_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_endpoint_whole_proof_test.zig", .root = "block_v8_endpoint_whole_proof_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_native_endpoint_closure_test.zig", .root = "block_v8_native_endpoint_closure_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_native_endpoint_components_test.zig", .root = "block_v8_native_endpoint_components_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_native_endpoint_local_source_test.zig", .root = "block_v8_native_endpoint_local_source_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_native_halt_policy_test.zig", .root = "block_v8_native_halt_policy_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_ram_endpoint_collector_test.zig", .root = "block_v8_ram_endpoint_collector_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_ram_endpoint_component_test.zig", .root = "block_v8_ram_endpoint_component_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_ram_endpoint_kernel_test.zig", .root = "block_v8_ram_endpoint_kernel_test_root.zig", .why = "Explicit B8 typed endpoint and fresh CPU proof-admission gate; backend-dependent execution stays outside the generic frontend suite." },
+    .{ .path = "prover/tests/block_v8_saved_union_root_benchmark.zig", .root = "block_v8_saved_union_root_benchmark_root.zig", .why = "Opt-in B8 scale measurement with explicitly pinned external artifacts; not an implicit benchmark in frontend tests." },
+    .{ .path = "recursion/tests/block_v8_endpoint_public_custody_test.zig", .root = "block_v8_endpoint_custody_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_endpoint_recursion_test.zig", .root = "block_v8_endpoint_recursion_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_endpoint_saved_root_benchmark.zig", .root = "block_v8_endpoint_saved_root_benchmark_root.zig", .why = "Opt-in B8 scale measurement with explicitly pinned external artifacts; not an implicit benchmark in frontend tests." },
+    .{ .path = "recursion/tests/block_v8_fresh_boundary_test.zig", .root = "block_v8_window_chain_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_union_closed_test.zig", .root = "block_v8_union_closed_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_union_geometry_parity_test.zig", .root = "block_v8_union_geometry_parity_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_window_chain_test.zig", .root = "block_v8_window_chain_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "recursion/tests/block_v8_window_closure_algebra_test.zig", .root = "block_v8_window_closure_algebra_test_root.zig", .why = "Explicit recursive endpoint, global closure and independently reconstructed key gate; CPU proof execution stays focused." },
+    .{ .path = "prover/tests/block_v7_window_sparse_initial_v1_test.zig", .root = "block_v7_window_sparse_initial_test_root.zig", .why = "Focused independently reconstructed window initialization and CPU policy integration gate." },
+    .{ .path = "prover/tests/block_v7_native_cache_parity_test.zig", .root = "block_v7_native_cache_parity_test_root.zig", .why = "CPU proof-byte control for explicit proof-scoped retained-cache budgets." },
+    .{ .path = "prover/tests/block_v7_native_access_interaction_test.zig", .root = "block_v7_native_access_interaction_test_root.zig", .why = "CPU production sidecar generation and physical-claim differential gate." },
+    .{ .path = "prover/tests/block_v5_native_projection_fused_unit_test.zig", .root = "block_v7_native_cache_parity_test_root.zig", .why = "Original fused-source algebra control explicitly included by the native cache and generation gate." },
+    .{ .path = "prover/block_v7_word_quotient_tiles_test_v1.zig", .root = "block_v7_word_quotient_tiles_test_root.zig", .why = "Opt-in CPU original-proof parity and large RAM quotient measurements, outside generic frontend execution." },
+    .{ .path = "prover/block_v7_ram_quotient_policy_v1.zig", .root = "block_v7_word_quotient_tiles_test_root.zig", .why = "Production CPU RAM tile-admission policy is qualified by the explicit tiled-quotient product root." },
+    .{ .path = "prover/block_v7_word_quotient_tiles_v1.zig", .root = "block_v7_word_quotient_tiles_test_root.zig", .why = "CPU coefficient/tile scratch and predecessor-mapping tests require the prover module graph." },
+    .{ .path = "prover/tests/block_v7_real_window_policy_v2_test.zig", .root = "block_v7_real_window_v2_test_root.zig", .why = "Independent captured-state fixtures are kept in the focused window-policy product gate." },
+    .{ .path = "prover/tests/block_v7_real_window_geometry_v2_test.zig", .root = "block_v7_real_window_geometry_v2_test_root.zig", .why = "Requires explicitly pinned external ELF and incoming snapshot environment." },
+    .{ .path = "prover/tests/block_v7_real_window_execution_v2_test.zig", .root = "block_v7_real_window_execution_v2_test_root.zig", .why = "Requires stwo_cpu_backend and genuine original-proof generation." },
+    .{ .path = "prover/tests/block_v7_real_window_continuation_v2_test.zig", .root = "block_v7_real_window_continuation_v2_test_root.zig", .why = "Requires CPU product initialization and explicit continuation-snapshot fixtures." },
+    .{ .path = "prover/tests/block_v7_real_window_continuation_export_v2.zig", .root = "block_v7_real_window_continuation_export_v2_root.zig", .why = "Opt-in external-state export harness; never run as an ordinary frontend unit test." },
+    .{ .path = "prover/tests/block_v7_real_window_v2_benchmark.zig", .root = "block_v7_real_window_v2_benchmark_root.zig", .why = "Opt-in CPU benchmark with external corpus and output paths; measured separately from test suites." },
+    .{ .path = "prover/tests/block_v7_window_union_test.zig", .root = "block_v7_window_union_test_root.zig", .why = "Shared original STARK and detached byte verification require the explicitly wired CPU product graph." },
+    .{ .path = "block_v7_real_window_union_benchmark_root.zig", .root = "block_v7_real_window_union_benchmark_root.zig", .why = "Opt-in canonical-security retained-window shared original benchmark; requires external pinned snapshots and output paths." },
+    .{ .path = "block_v7_window_union_reload_benchmark_root.zig", .root = "block_v7_window_union_reload_benchmark_root.zig", .why = "Fresh verification-only saved shared-original artifacts require independent external endpoint snapshots and the CPU product graph." },
+    .{ .path = "block_v7_window_union_recursive_benchmark_root.zig", .root = "block_v7_window_union_recursive_benchmark_root.zig", .why = "Opt-in canonical shared-original recursive-root benchmark requires pinned external endpoint snapshots and the CPU product graph." },
+    .{ .path = "prover/tests/block_v7_window_memory_endpoint_test.zig", .root = "block_v7_window_memory_endpoint_test_root.zig", .why = "CPU original STARK hostile-prover gate; requires stwo_cpu_backend." },
+    .{ .path = "block_v7_window_memory_joint_test_root.zig", .root = "block_v7_window_memory_joint_test_root.zig", .why = "Explicit CPU producer/verifier semantic instantiation root." },
+    .{ .path = "prover/block_v7_window_memory_composition_test_v1.zig", .root = "block_v7_window_memory_composition_test_root.zig", .why = "Focused scalar/symbolic original quotient parity gate with protocol module wiring." },
+    .{ .path = "recursion/block_v7_real_window_root_test_v2.zig", .root = "block_v7_real_window_root_test_root_v2.zig", .why = "CPU recursive original-proof verification gate; does not belong in backend-neutral frontend compilation." },
+    .{ .path = "prover/tests/block_v7_degree_bounded_native_test.zig", .root = "block_v7_degree_bounded_native_test_root.zig", .why = "CPU original-proof q3/q2 mode, detached verification and hostile compensated-claim gate." },
+    .{ .path = "prover/tests/block_v7_degree_bounded_relation_layout_test.zig", .root = "block_v7_degree_bounded_relation_layout_test_root.zig", .why = "Opt-in CPU product geometry and physical-claim framing gate; no runtime promotion implied." },
+    .{ .path = "prover/tests/block_v7_native_mul_q3_test.zig", .root = "block_v7_native_mul_q3_test_root.zig", .why = "CPU genuine MUL and degree-lift proof gate, including original quotient parity." },
+    .{ .path = "prover/tests/block_v7_shared_quotient_cache_test.zig", .root = "block_v7_shared_quotient_cache_test_root.zig", .why = "CPU proof-scoped composition-cache ownership and parity gate." },
+    .{ .path = "prover/tests/block_v5_quotient_column_cache_test.zig", .root = "block_v7_shared_quotient_cache_test_root.zig", .why = "Original CPU quotient cache regression control imported by the new shared-cache gate." },
+    .{ .path = "prover/tests/block_v7_multi_union_test.zig", .root = "block_v7_multi_union_test_root.zig", .why = "CPU complete-proof and opt-in Ethereum profiling workload; driver scripts select measured cases." },
+    .{ .path = "prover/tests/block_v7_real_window_capture_test.zig", .root = "block_v7_real_window_capture_test_root.zig", .why = "External retained-window capture harness; opt-in corpus paths and output ownership." },
+    .{ .path = "prover/tests/block_v7_real_window_import_test.zig", .root = "block_v7_real_window_capture_test_root.zig", .why = "Explicit retained-state import/replay harness with corpus-dependent environment." },
+    .{ .path = "prover/tests/block_v7_real_window_proof_test.zig", .root = "block_v7_real_window_proof_test_root.zig", .why = "Historical CPU partial-window proof control; distinct theorem and explicitly selected corpus." },
+    .{ .path = "block_v7_real_window_reload_test_root.zig", .root = "block_v7_real_window_reload_test_root.zig", .why = "Fresh-process CPU verifier with independent externally pinned report and artifact paths." },
+    .{ .path = "benchmarks/ethereum_workloads_test.zig", .root = "ethereum_workloads_test_root.zig", .why = "Focused runner contract for benchmark cycle/output/family counts, separate from timing runs." },
+    .{ .path = "prover/block_v7_execution_epoch_v1.zig", .root = "block_v7_execution_epoch_test_root.zig", .why = "Focused complete/window epoch grammar and byte-compatibility gate with protocol imports." },
+};
+
 /// Where this package's sources sit, relative to the test's working directory.
 ///
 /// Both spellings are real: the product gate runs from the repository root and
@@ -196,6 +288,7 @@ fn declaresTests(source: []const u8) bool {
 }
 
 fn isExcluded(path: []const u8) bool {
+    for (focused_products) |entry| if (std.mem.eql(u8, entry.path, path) or std.mem.eql(u8, entry.root, path)) return true;
     for (excluded) |entry| {
         if (std.mem.eql(u8, entry.path, path)) return true;
     }
@@ -284,4 +377,25 @@ test "test inventory: every path it names exists and holds tests" {
         listed += 1;
     }
     try std.testing.expect(listed > 100);
+}
+
+// This test is cheap: it validates registration, not the expensive product.
+test "test inventory: focused product registrations resolve explicit test roots" {
+    const a = std.testing.allocator;
+    var root = try openPackageRoot();
+    defer root.close();
+    for (focused_products, 0..) |entry, i| {
+        try std.testing.expect(entry.why.len != 0);
+        for (focused_products[0..i]) |prior| try std.testing.expect(!std.mem.eql(u8, entry.path, prior.path));
+        const body = try root.readFileAlloc(a, entry.path, 1 << 21);
+        defer a.free(body);
+        try std.testing.expect(declaresTests(body));
+        const source = try root.readFileAlloc(a, entry.root, 1 << 21);
+        defer a.free(source);
+        if (std.mem.eql(u8, entry.path, entry.root)) continue;
+        const literal = try std.fmt.allocPrint(a, "@import(\"{s}\")", .{entry.path});
+        defer a.free(literal);
+        try std.testing.expect(std.mem.indexOf(u8, source, literal) != null);
+        try std.testing.expect(std.mem.indexOf(u8, source, "test") != null or std.mem.indexOf(u8, source, "comptime") != null);
+    }
 }

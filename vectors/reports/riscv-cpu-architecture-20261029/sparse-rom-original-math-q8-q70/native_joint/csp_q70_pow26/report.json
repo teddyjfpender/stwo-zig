@@ -1,0 +1,4991 @@
+{
+  "schema": "stwo-sparse-rom-original-v1",
+  "scope": "new sparse-ROM identity; original canonical public-program AIR; full VM providers OPEN",
+  "profile": "csp_q70_pow26",
+  "native_joint": true,
+  "elf_sha256": "9d3414eb132871e8b0674bbbd5f65c5f7232d1c9930fb06a84c0f8206a73a2aa",
+  "expected_program_root": {
+    "bytes": [
+      52,
+      242,
+      237,
+      134,
+      98,
+      7,
+      39,
+      248,
+      199,
+      88,
+      55,
+      113,
+      9,
+      64,
+      47,
+      123,
+      133,
+      97,
+      115,
+      255,
+      15,
+      193,
+      176,
+      80,
+      92,
+      45,
+      169,
+      85,
+      202,
+      112,
+      3,
+      76
+    ]
+  },
+  "support": [
+    {
+      "pc": 4096,
+      "count": 1
+    },
+    {
+      "pc": 4100,
+      "count": 1
+    },
+    {
+      "pc": 4104,
+      "count": 1
+    },
+    {
+      "pc": 4108,
+      "count": 1
+    }
+  ],
+  "expected_fetches": 4,
+  "shape": {
+    "n_components": 2,
+    "component_descs": [
+      {
+        "family": "base_alu_imm",
+        "log_size": 1,
+        "n_rows": 2,
+        "n_columns": 35
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 1,
+        "n_rows": 1,
+        "n_columns": 35
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "family": "base_alu_reg",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      }
+    ],
+    "initial_pc": 4096,
+    "final_pc": 4108,
+    "total_steps": 3,
+    "public_data": {
+      "initial_pc": 4096,
+      "final_pc": 4108,
+      "clock": 3,
+      "initial_regs": [
+        0,
+        0,
+        2097152,
+        2099200,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "final_regs": [
+        0,
+        0,
+        2097152,
+        2099200,
+        0,
+        7,
+        10,
+        17,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reg_last_clock": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        10,
+        9,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "program_root": {
+        "bytes": [
+          52,
+          242,
+          237,
+          134,
+          98,
+          7,
+          39,
+          248,
+          199,
+          88,
+          55,
+          113,
+          9,
+          64,
+          47,
+          123,
+          133,
+          97,
+          115,
+          255,
+          15,
+          193,
+          176,
+          80,
+          92,
+          45,
+          169,
+          85,
+          202,
+          112,
+          3,
+          76
+        ]
+      },
+      "initial_rw_root": null,
+      "final_rw_root": null,
+      "completion": {
+        "kind": "unretired_program_fetch",
+        "address": 4108,
+        "value": 111,
+        "clock": 0
+      },
+      "io_entries": {
+        "input_start": 1050624,
+        "input_len": 0,
+        "input_words": [],
+        "output_len": 0,
+        "output_len_addr": 1048580,
+        "output_data_addr": 1048584,
+        "output_words": []
+      }
+    },
+    "x0_local_custody_version": 0,
+    "n_infra": 0,
+    "infra_descs": [
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      },
+      {
+        "kind": "program",
+        "log_size": 0,
+        "n_rows": 0,
+        "n_columns": 0
+      }
+    ]
+  },
+  "summary": {
+    "selected_pcs": 4,
+    "sparse_log": 4,
+    "complete_rom_rows": 4096,
+    "fetch_count": 4,
+    "program_closed": true,
+    "state_closed": true,
+    "registers_closed": true,
+    "ram_open": {
+      "c0": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 0
+        },
+        "b": {
+          "v": 0
+        }
+      }
+    },
+    "table_requests": [
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 1868877058
+          },
+          "b": {
+            "v": 863929254
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 1433240756
+          },
+          "b": {
+            "v": 1812264459
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 1807242966
+          },
+          "b": {
+            "v": 1455462545
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 171537383
+          },
+          "b": {
+            "v": 783892114
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 1248333670
+          },
+          "b": {
+            "v": 1813084322
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 1123110984
+          },
+          "b": {
+            "v": 631951911
+          }
+        }
+      },
+      {
+        "c0": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        },
+        "c1": {
+          "a": {
+            "v": 0
+          },
+          "b": {
+            "v": 0
+          }
+        }
+      }
+    ],
+    "whole_vm_qualified": false
+  },
+  "proof_bytes": 21668,
+  "fresh_fixed_key_verified": true,
+  "whole_vm_qualified": false,
+  "proof_sha256": "adfb3bb31f73c511c7dd3cc9b494e115ff5c3fe59cedf3f302e3724b6ef844f7",
+  "trace_trees": 5,
+  "composition_split": 2,
+  "canonical_program_AIR_unchanged": true,
+  "legacy_complete_plan_not_used_for_subset": true,
+  "old_padded_rom_rows": 4096,
+  "sparse_rows": 16,
+  "ROM_row_reduction": 256.0
+}

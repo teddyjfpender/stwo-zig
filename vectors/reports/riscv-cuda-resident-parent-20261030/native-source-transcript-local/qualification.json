@@ -1,0 +1,62 @@
+{
+  "schema": "resident-native-source-transcript-local-v1",
+  "scope": "Finite original native source four/five commitment transcript; no ParentProgram substitution.",
+  "api": "resident_native_transcript_v1.ForCommitments(N).Static / NativeSink",
+  "commitments": [
+    4,
+    5
+  ],
+  "original_epoch_challenges_checked": 106,
+  "cpu_differential_passed": true,
+  "tests_passed": 10,
+  "prefix_reference": "original Epoch.draw and Native.channel with nonzero projection/access physical claims",
+  "suffix": [
+    "interaction root",
+    "composition alpha",
+    "composition root",
+    "OODS parameter",
+    "all sampled values",
+    "DEEP alpha",
+    "every FRI root/alpha",
+    "last-layer coefficients",
+    "minimum nonce and absorption",
+    "raw queries",
+    "terminal seal"
+  ],
+  "guards": [
+    "all first roots checked before epoch initialize",
+    "wrong first root poisons shared status",
+    "duplicate prime/claims",
+    "wrong stage",
+    "wrong owner geometry and overlapping spans",
+    "wrong sample count",
+    "wrong root index"
+  ],
+  "source_claims": "GPU ClaimPack writes original statement fields/words/counts; test-only host mock does not exist in production Sink.",
+  "extra_arena_ids": [
+    268521472,
+    268521473,
+    268521474
+  ],
+  "native_runtime_linux_semantic_passed": true,
+  "new_gpu_controller_executed": false,
+  "complete_native_source_proof_qualified": false,
+  "notes": [
+    "Epoch primitive has separate prior GPU qualification. This new composed source transcript path has only local CPU differential and Linux type checks.",
+    "No CPU challenges or physical claims are read by production Sink. The public epoch digest and original grammar are cold admitted inputs."
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_transcript_v1.zig",
+      "sha256": "68cdf1d68146e10db70d4070459eafcfed4ff73fd0f2faac9639f9f5bdf09d54"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_transcript_v1.zig",
+      "sha256": "5e97c661d97f31281426ebad40dcdc897037ec7bc0aee253b17279ac7d9c4b6d"
+    },
+    {
+      "path": "src/riscv_cuda_native_transcript_test_root.zig",
+      "sha256": "722d96ff0777e25ac19b198c4454c7b078904d6e12d7f038cd6950878f6daa6d"
+    }
+  ]
+}

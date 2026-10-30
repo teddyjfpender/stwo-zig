@@ -40,6 +40,8 @@ pub fn ForCapacity(comptime capacity: bool) type {
         const SourcePages = @import("block_v5_cpu_source_pages_v1.zig");
         const PageDetached = @import("block_v5_cpu_source_pages_detached_receive_v1.zig");
         const Completion = @import("block_v5_cpu_recursive_completion_v1.zig");
+        const AccessStaging = @import("block_v6_access_commitment_staging_v1.zig");
+        const AccessStore = @import("block_v6_access_commitment_store_v1.zig");
 
         pub const Options = struct {
             profile: Parent.Profile,
@@ -77,6 +79,14 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     self.workers == 0 or self.total_host_limit == 0)
                     return error.InvalidV5CpuDriverOptions;
                 try self.families.validate(self.total_host_limit);
+                if (self.collection.native_commitments) |policy| {
+                    if (capacity) return error.NativeCommitmentCheckpointRequiresNativeV3;
+                    try policy.validate();
+                }
+                if (self.collection.access_commitments) |policy| {
+                    if (capacity) return error.AccessCommitmentCheckpointRequiresNativeV3;
+                    try policy.validate();
+                }
                 if (self.collection.readonly != null and
                     (!capacity or self.collection.ordinary.memory.register_custody_mode != 1 or
                         self.collection.caller.register_custody_mode != 1 or self.collection.caller.readonly != null))
@@ -120,6 +130,10 @@ pub fn ForCapacity(comptime capacity: bool) type {
             aggregate_heap_peak_bytes: usize,
             sorter: @import("../air/block/memory_spool.zig").Statistics,
             witness_file_bytes: u64,
+            native_commitments: @import("block_v6_native_commitment_staging_v1.zig").Statistics = .{},
+            access_commitments: AccessStaging.Statistics = .{},
+            caller_commitments: @import("block_v6_caller_commitment_staging_v1.zig").Statistics = .{},
+            external_commitments: @import("block_v6_caller_commitment_staging_v1.zig").ExternalStatistics = .{},
             parallel_family_peak: usize,
             family_reservation_peak_bytes: usize,
             family_proving_ns: struct { caller: u64, memory_and_range: u64, rom: u64, lookup: u64 },
@@ -142,6 +156,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
             sink: Leaf.Sink,
         } else Leaf.ForBackend(Cpu);
         const Hooks = struct {
+            dir: std.fs.Dir,
             collected: *Collect.Collected,
             assembly: *Assembly.Assembly,
             fused: *NativeFused.ForBackend(Cpu),
@@ -151,7 +166,19 @@ pub fn ForCapacity(comptime capacity: bool) type {
             families: *FamilyQueue.Queue,
             leaf_queue: if (capacity) *LeafQueue else void,
             ordinary_limits: @TypeOf(@as(Collect.Limits, undefined).ordinary),
+            access_checkpoint_policy: ?AccessStaging.Policy = null,
             readonly_sink: ?NativeReadonly.Sink,
+            fn restoreAccess(raw: *anyopaque, a: std.mem.Allocator, execution: Producer.WarmExecution) !NativeFused.ForBackend(Cpu).Retained {
+                if (capacity) @compileError("NativeV3 access checkpoint callback only");
+                const self: *Hooks = @ptrCast(@alignCast(raw));
+                try self.requireHealthy();
+                const policy = self.access_checkpoint_policy orelse return error.MissingAccessCheckpointPolicy;
+                if (execution.index >= self.collected.ordinary.len or execution.index >= self.collected.planning.records.items.len or execution.index >= self.collected.access_commitment_pins.len)
+                    return error.InvalidAccessCheckpointIndex;
+                const expected = &self.collected.ordinary[execution.index];
+                const pin = self.collected.access_commitment_pins[execution.index] orelse return error.MissingAccessCommitmentCheckpoint;
+                return AccessStaging.restore(a, self.dir, &self.collected.planning.records.items[execution.index].physical, expected, execution.replay.owner, &execution.first.scheme, pin, self.ordinary_limits, policy, &self.collected.access_commitments);
+            }
             fn requireHealthy(self: *Hooks) !void {
                 try self.families.requireHealthy();
                 if (capacity) try self.leaf_queue.requireHealthy();
@@ -223,10 +250,69 @@ pub fn ForCapacity(comptime capacity: bool) type {
             var fused = NativeFused.ForBackend(Cpu){ .proposals = collected.ordinary, .limits = options.collection.ordinary, .sink = writer.fusedSink() };
             var execution = try StagedExecution.Source.init(a, dir, collected.planning.records.items, collected.native_pins, collected.bound.admissions, options.collection.witness.native);
             defer execution.deinit();
+            try execution.trackLoads(&collected.native_commitments);
+            if (options.collection.native_commitments) |checkpoint_policy| try execution.enableCommitmentReuse(collected.native_commitment_pins, checkpoint_policy, &collected.native_commitments);
             const families = try FamilyQueue.Queue.start(a, pool, options.families, options.total_host_limit);
             defer families.deinit();
-            var hooks = Hooks{ .collected = collected, .assembly = assembly, .fused = &fused, .leaf = null, .native_callback = callback, .prepared = &.{}, .families = families, .leaf_queue = {}, .ordinary_limits = options.collection.ordinary, .readonly_sink = null };
+            var hooks = Hooks{ .dir = dir, .collected = collected, .assembly = assembly, .fused = &fused, .leaf = null, .native_callback = callback, .prepared = &.{}, .families = families, .leaf_queue = {}, .ordinary_limits = options.collection.ordinary, .access_checkpoint_policy = options.collection.access_commitments, .readonly_sink = null };
+            if (options.collection.access_commitments != null) fused.retained_source = .{ .context = &hooks, .load = Hooks.restoreAccess };
             try publishBaseJobs(a, dir, collected, assembly, writer, pool, options, &execution, &fused, &hooks, null);
+            return families.finish();
+        }
+
+        /// Explicit B6JP-v3 publication. The caller supplies only global/caller
+        /// store policies and a versioned joint-proof sink; no legacy native or
+        /// companion artifact is built. Complete root verification is separate.
+        pub fn publishPartitionedBase(a: std.mem.Allocator, dir: std.fs.Dir, collected: *Collect.Collected, assembly: *Assembly.Assembly, writer: *Store.Store, pool: *engine.work_pool.WorkPool, options: Options, sink: @import("block_v5_native_projection_fused_stage_v2.zig").Sink) !FamilyQueue.Statistics {
+            if (comptime capacity) @compileError("partitioned publication uses NativeV3 geometry only");
+            const Joint = @import("block_v5_native_projection_fused_stage_v2.zig").ForPartitionedBackend(Cpu);
+            var execution = try StagedExecution.Source.init(a, dir, collected.planning.records.items, collected.native_pins, collected.bound.admissions, options.collection.witness.native);
+            defer execution.deinit();
+            try execution.trackLoads(&collected.native_commitments);
+            if (options.collection.native_commitments) |policy| try execution.enableCommitmentReuse(collected.native_commitment_pins, policy, &collected.native_commitments);
+            const families = try FamilyQueue.Queue.start(a, pool, options.families, options.total_host_limit);
+            defer families.deinit();
+            var joint = Joint{ .proposals = collected.ordinary, .limits = options.collection.ordinary, .sink = sink };
+            const Context = struct {
+                dir: std.fs.Dir,
+                collected: *Collect.Collected,
+                joint: *Joint,
+                families: *FamilyQueue.Queue,
+                options: Options,
+                fn first(_: *anyopaque, _: std.mem.Allocator, replay: *const ProducerStack.LightweightReplay, index: u32) !Native.ForBackend(Cpu).FirstRound {
+                    return StagedExecution.Source.takeFirstRound(replay, index);
+                }
+                fn produce(raw: *anyopaque, alloc: std.mem.Allocator, warm_execution: Producer.WarmExecution) !void {
+                    const self: *@This() = @ptrCast(@alignCast(raw));
+                    try self.families.requireHealthy();
+                    if (warm_execution.index >= self.collected.planning.records.items.len) return error.InvalidV5CpuWarmExecutionIndex;
+                    try self.collected.planning.records.items[warm_execution.index].physical.requireReplay(warm_execution.first);
+                    const hooks = self.joint.hooks();
+                    try hooks.on_first_round.?(hooks.context, alloc, warm_execution);
+                    try self.families.requireHealthy();
+                }
+                fn access(raw: *anyopaque, alloc: std.mem.Allocator, warm_execution: Producer.WarmExecution) !Joint.Retained {
+                    const self: *@This() = @ptrCast(@alignCast(raw));
+                    try self.families.requireHealthy();
+                    const index = warm_execution.index;
+                    if (index >= self.collected.ordinary.len or index >= self.collected.access_commitment_pins.len or index >= self.collected.planning.records.items.len) return error.InvalidAccessCheckpointIndex;
+                    return AccessStaging.restore(alloc, self.dir, &self.collected.planning.records.items[index].physical, &self.collected.ordinary[index], warm_execution.replay.owner, &warm_execution.first.scheme, self.collected.access_commitment_pins[index] orelse return error.MissingAccessCommitmentCheckpoint, self.options.collection.ordinary, self.options.collection.access_commitments orelse return error.MissingAccessCheckpointPolicy, &self.collected.access_commitments);
+                }
+            };
+            var context = Context{ .dir = dir, .collected = collected, .joint = &joint, .families = families, .options = options };
+            if (options.collection.access_commitments != null) joint.retained_source = .{ .context = &context, .load = Context.access };
+            var independent = IndependentFamilies{ .a = a, .collected = collected, .assembly = assembly, .store = writer, .pool = pool, .dir = dir, .witness_limits = options.collection.witness, .families = families };
+            // Join before stack-borrowed jobs and checkpoint owners go away.
+            errdefer families.abort();
+            for ([_]FamilyQueue.Job{
+                .{ .family = .memory, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.memory },
+                .{ .family = .caller, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.callers },
+                .{ .family = .program, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.program },
+                .{ .family = .lookup, .context = &independent, .reservation = options.families.family_reservation, .run = IndependentFamilies.lookup },
+            }) |job| try families.submit(job);
+            _ = try Producer.provePartitionedExecutionsWithMemoryPlanHooks(a, &assembly.program, collected.globals.memory.memoryPlan(), assembly.seal_pins, assembly.entries, assembly.sealed, collected.bound.catalogAdmission(), execution.source(), writer.executionSink(), .{ .context = &context, .fused_program_requests = true, .prepare_first_round = Context.first, .on_first_round = Context.produce });
+            try execution.requireFinished();
+            try joint.requireFinished();
             return families.finish();
         }
 
@@ -276,8 +362,16 @@ pub fn ForCapacity(comptime capacity: bool) type {
                             const recursive = self.recursive.?;
                             const pair = try recursive.sources.callers.?.get(@intCast(index));
                             try RecursiveCaller.proveStagedWithAdmissions(self.a, self.dir, try Witness.callerName(@intCast(index), &name), pin orelse return error.MissingV5StagedCaller, caller, self.witness_limits.caller, self.pool, self.store.callerSink(Caller.Sink), recursive.callerSinks(), pair, try recursive.callerOptions(@intCast(index)));
-                        } else try Caller.ForBackend(Cpu).proveStaged(self.a, self.dir, try Witness.callerName(@intCast(index), &name), pin orelse return error.MissingV5StagedCaller, caller, self.witness_limits.caller, self.assembly.sealed, self.assembly.seal_pins, self.assembly.entries, self.pool, self.store.callerSink(Caller.Sink), null);
-                    } else if (pin != null) return error.UntrustedV5StagedCaller;
+                        } else {
+                            const Checkpoints = @import("block_v6_caller_commitment_staging_v1.zig");
+                            var caller_name: [96]u8 = undefined;
+                            var external_raw: [96]u8 = undefined;
+                            var external_pcs: [96]u8 = undefined;
+                            const caller_checkpoint: ?@import("block_v6_caller_commitment_store_v1.zig").Input = if (self.collected.caller_commitment_policy) |policy| .{ .name = try Checkpoints.name(@intCast(index), &caller_name), .limits = policy.storage, .pin = self.collected.caller_commitment_pins[index] orelse return error.MissingCallerCommitmentCheckpoint, .statistics = &self.collected.caller_commitments } else null;
+                            const external_checkpoint: ?@import("block_v6_external_commitment_store_v1.zig").Input = if (self.collected.external_commitment_policy) |policy| .{ .dir = self.dir, .raw_name = try Checkpoints.externalName(@intCast(index), "columns", &external_raw), .pcs_name = try Checkpoints.externalName(@intCast(index), "pcs", &external_pcs), .limits = policy.storage, .pin = self.collected.external_commitment_pins[index] orelse return error.MissingExternalCommitmentCheckpoint, .statistics = &self.collected.external_commitments } else null;
+                            try Caller.ForBackend(Cpu).proveStagedWithCheckpoints(self.a, self.dir, try Witness.callerName(@intCast(index), &name), pin orelse return error.MissingV5StagedCaller, caller, self.witness_limits.caller, self.assembly.sealed, self.assembly.seal_pins, self.assembly.entries, self.pool, self.store.callerSink(Caller.Sink), null, caller_checkpoint, external_checkpoint);
+                        }
+                    } else if (pin != null or self.collected.caller_commitment_pins[index] != null or self.collected.external_commitment_pins[index] != null) return error.UntrustedV5StagedCaller;
                 }
             }
             fn memory(raw: *anyopaque) !void {
@@ -289,7 +383,10 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 const self: *IndependentFamilies = @ptrCast(@alignCast(raw));
                 try self.families.requireHealthy();
                 try self.assembly.sealed.require(self.assembly.seal_pins, self.assembly.entries);
-                var proof = try self.assembly.program.proveTable(self.assembly.sealed.programSeal());
+                var proof = if (self.collected.globals.program_checkpoint != null)
+                    try self.collected.globals.proveProgram(self.assembly.seal_pins, self.assembly.entries, self.assembly.sealed)
+                else
+                    try self.assembly.program.proveTable(self.assembly.sealed.programSeal());
                 var owns = true;
                 defer if (owns) proof.deinit(self.a);
                 if (capacity and self.recursive != null) {
@@ -437,6 +534,8 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 var fused = NativeFused.ForBackend(Cpu){ .proposals = collected.ordinary, .limits = options.collection.ordinary, .sink = if (capacity and recursive_publication != null) recursive_publication.?.fusedSink() else writer.fusedSink() };
                 var execution = try StagedExecution.Source.init(a, dir, collected.planning.records.items, collected.native_pins, collected.bound.admissions, options.collection.witness.native);
                 defer execution.deinit();
+                try execution.trackLoads(&collected.native_commitments);
+                if (options.collection.native_commitments) |checkpoint_policy| try execution.enableCommitmentReuse(collected.native_commitment_pins, checkpoint_policy, &collected.native_commitments);
                 if (capacity) execution.fixed_basis_limits = options.collection.fixed_basis orelse .{ .max_retained_bytes = 0 };
                 const families = try FamilyQueue.Queue.start(a, &pool, options.families, options.total_host_limit);
                 // Joined before execution/cache, writer, assembly or collected data
@@ -451,7 +550,8 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 // Join the sole cache/sink user before families, execution,
                 // setup cache, leaf metadata or shared pool can be destroyed.
                 defer if (capacity) leaf_queue.deinit();
-                var hooks = Hooks{ .collected = collected, .assembly = assembly, .fused = &fused, .leaf = &leaf_stage, .prepared = prepared, .families = families, .leaf_queue = leaf_queue, .ordinary_limits = options.collection.ordinary, .readonly_sink = if (capacity and collected.readonly != null) writer.nativeReadonlySink() else null };
+                var hooks = Hooks{ .dir = dir, .collected = collected, .assembly = assembly, .fused = &fused, .leaf = &leaf_stage, .prepared = prepared, .families = families, .leaf_queue = leaf_queue, .ordinary_limits = options.collection.ordinary, .access_checkpoint_policy = options.collection.access_commitments, .readonly_sink = if (capacity and collected.readonly != null) writer.nativeReadonlySink() else null };
+                if (!capacity and options.collection.access_commitments != null) fused.retained_source = .{ .context = &hooks, .load = Hooks.restoreAccess };
                 try publishBaseJobs(a, dir, collected, assembly, &writer, &pool, options, &execution, &fused, &hooks, recursive_publication);
                 if (capacity) leaf_statistics = try leaf_queue.finish();
                 family_statistics = try families.finish();
@@ -567,7 +667,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
             if (capacity) if (recursive_publication) |recursive| {
                 recursive_workers = recursive.workerStatistics();
             };
-            return .{ .verified = verified, .recursive_completion = completion_report, .source_pages = source_page_report, .source_page_policy_pin = if (source_publication) |value| value.policy else null, .supplemental_scoped_parents = if (scoped_report) |value| value.parent_files else 0, .supplemental_scoped_manifest_sha256 = if (scoped_report) |value| value.manifest else null, .collection_ns = collection_ns, .proving_ns = proving_ns, .forest_ns = forest_ns, .verification_ns = timer.lap(), .proof_file_bytes = proof_totals.bytes, .proof_files = proof_totals.files, .bundle_manifest_sha256 = bundle_sha, .forest_manifest_sha256 = forest_sha, .receiver_policy_sha256 = receiver_sha, .recursive_stage_peak_bytes = forest.stage_owned_peak_bytes, .aggregate_heap_peak_bytes = budget.snapshot().peak_live_bytes, .sorter = sorter, .witness_file_bytes = collected.witness_file_bytes, .parallel_family_peak = family_statistics.peak_active, .family_reservation_peak_bytes = family_statistics.peak_reservation, .recursive_leaf_queue = leaf_statistics, .supplemental_recursive_files = supplemental_files, .supplemental_recursive_manifest_sha256 = supplemental_manifest, .supplemental_recursive_workers = recursive_workers, .family_proving_ns = .{ .caller = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.caller)], .memory_and_range = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.memory)], .rom = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.program)], .lookup = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.lookup)] } };
+            return .{ .verified = verified, .recursive_completion = completion_report, .source_pages = source_page_report, .source_page_policy_pin = if (source_publication) |value| value.policy else null, .supplemental_scoped_parents = if (scoped_report) |value| value.parent_files else 0, .supplemental_scoped_manifest_sha256 = if (scoped_report) |value| value.manifest else null, .collection_ns = collection_ns, .proving_ns = proving_ns, .forest_ns = forest_ns, .verification_ns = timer.lap(), .proof_file_bytes = proof_totals.bytes, .proof_files = proof_totals.files, .bundle_manifest_sha256 = bundle_sha, .forest_manifest_sha256 = forest_sha, .receiver_policy_sha256 = receiver_sha, .recursive_stage_peak_bytes = forest.stage_owned_peak_bytes, .aggregate_heap_peak_bytes = budget.snapshot().peak_live_bytes, .sorter = sorter, .witness_file_bytes = collected.witness_file_bytes, .native_commitments = collected.native_commitments, .access_commitments = collected.access_commitments, .caller_commitments = collected.caller_commitments, .external_commitments = collected.external_commitments, .parallel_family_peak = family_statistics.peak_active, .family_reservation_peak_bytes = family_statistics.peak_reservation, .recursive_leaf_queue = leaf_statistics, .supplemental_recursive_files = supplemental_files, .supplemental_recursive_manifest_sha256 = supplemental_manifest, .supplemental_recursive_workers = recursive_workers, .family_proving_ns = .{ .caller = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.caller)], .memory_and_range = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.memory)], .rom = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.program)], .lookup = family_statistics.family_ns[@intFromEnum(FamilyQueue.Family.lookup)] } };
         }
     };
 }

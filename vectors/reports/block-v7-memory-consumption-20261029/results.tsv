@@ -1,0 +1,2 @@
+case	profile	cycles	native_windows	callers	original_stark_bytes	envelope_bytes	proof_phase_peak_bytes	source_live_before_consume_bytes	source_live_after_consume_bytes	setup_ns	prove_ns	fresh_verify_ns	timing_scope
+canonical-consume	csp_q70_pow26	20495	2	1	6016333	6063212	311708246	27968069	10170064	397381208	3548658042	1356883458	shared_host_diagnostic_not_e2e

@@ -402,9 +402,9 @@ test "capacity fused recursion: exact public extents reject caps before allocati
 const Deep = @import("../recursion/air/pcs_deep_circuit.zig");
 const Layout = @import("../recursion/sample_point_layout.zig");
 const PhysicalDeep = struct {
-    logs: [2]u32 = .{ 5, 7 },
-    layouts: [2]Deep.SamplePointLayout = .{ .current_keccak_final, .current_previous },
-    mask_logs: [2]u32 = .{ 4, 6 },
+    logs: [3]u32 = .{ 5, 7, 14 },
+    layouts: [3]Deep.SamplePointLayout = .{ .current_keccak_final, .current_previous, .none },
+    mask_logs: [3]u32 = .{ 4, 6, 6 },
     fn profile(self: *const PhysicalDeep, trees: *[1]Deep.TreeProfile) Deep.Profile {
         trees.* = .{.{ .column_log_sizes = &self.logs }};
         return .{ .trees = trees, .sample_layouts = &self.layouts, .mask_log_sizes = &self.mask_logs, .lifting_log_size = 7, .log_blowup_factor = 1, .query_count = 2 };
@@ -418,12 +418,22 @@ fn shiftedGraphAllocation(a: std.mem.Allocator) !void {
     try graph.validate();
 }
 test "capacity fused recursion: physical Keccak pair DEEP matches native periodicity and rejects mutations" {
+    try checkKeccakPairDeep(false);
+}
+test "capacity fused recursion: composition Keccak pair DEEP matches native periodicity and rejects physical substitution" {
+    try checkKeccakPairDeep(true);
+}
+fn checkKeccakPairDeep(comptime composition_step: bool) !void {
     const legacy_trees = [_]Deep.TreeProfile{ .{ .column_log_sizes = &.{ 4, 3 } }, .{ .column_log_sizes = &.{4} } };
     const legacy = Deep.Profile{ .trees = &legacy_trees, .sample_layouts = &.{ .current_previous, .none, .current }, .lifting_log_size = 5, .log_blowup_factor = 1, .query_count = 2 };
     var legacy_digest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&legacy_digest, "5f09c85ec7740797e2484932d802136d57d26e456a1338386cfe5aebb06076bb");
     try std.testing.expectEqualSlices(u8, &legacy_digest, &legacy.identityDigest());
     var geometry: PhysicalDeep = .{};
+    if (composition_step) {
+        geometry.layouts[0] = .current_keccak_final_composition;
+        geometry.mask_logs[0] = 6;
+    }
     var trees: [1]Deep.TreeProfile = undefined;
     const profile = geometry.profile(&trees);
     const seed = scalar(73);
@@ -432,20 +442,25 @@ test "capacity fused recursion: physical Keccak pair DEEP matches native periodi
     const common = core.poly.circle.CanonicCoset.new(6).step();
     const physical_step = core.circle.CirclePointQM31{ .x = Q.fromBase(physical.x), .y = Q.fromBase(physical.y) };
     const common_step = core.circle.CirclePointQM31{ .x = Q.fromBase(common.x), .y = Q.fromBase(common.y) };
-    var first_points = [_]core.circle.CirclePointQM31{ current, current.add(physical_step.mulSigned(27)) };
+    const selected_step = if (composition_step) common_step else physical_step;
+    const other_step = if (composition_step) physical_step else common_step;
+    var first_points = [_]core.circle.CirclePointQM31{ current, current.add(selected_step.mulSigned(27)) };
     var second_points = [_]core.circle.CirclePointQM31{ current, current.sub(common_step) };
-    try std.testing.expectEqual(Deep.SamplePointLayout.current_keccak_final, try Layout.classifyKeccakPair(&first_points, current, current.sub(physical_step)));
+    try std.testing.expectEqual(Deep.SamplePointLayout.current_keccak_final, try Layout.classifyKeccakPair(&first_points, current, current.sub(selected_step)));
     try std.testing.expectError(error.SamplePointLayoutMismatch, Layout.classifyColumn(&first_points, current, current.sub(common_step)));
-    var point_columns = [_][]core.circle.CirclePointQM31{ &first_points, &second_points };
+    var empty_points: [0]core.circle.CirclePointQM31 = .{};
+    var point_columns = [_][]core.circle.CirclePointQM31{ &first_points, &second_points, &empty_points };
     var point_trees = [_][][]core.circle.CirclePointQM31{&point_columns};
     var log_trees = [_][]u32{&geometry.logs};
     var first_samples = [_]Q{ scalar(101), scalar(103) };
     var second_samples = [_]Q{ scalar(107), scalar(109) };
-    var sample_columns = [_][]Q{ &first_samples, &second_samples };
+    var empty_samples: [0]Q = .{};
+    var sample_columns = [_][]Q{ &first_samples, &second_samples, &empty_samples };
     var sample_trees = [_][][]Q{&sample_columns};
     var first_queries = [_]M{ M.fromCanonical(11), M.fromCanonical(13) };
     var second_queries = [_]M{ M.fromCanonical(17), M.fromCanonical(19) };
-    var query_columns = [_][]M{ &first_queries, &second_queries };
+    var unused_queries = [_]M{ M.fromCanonical(23), M.fromCanonical(29) };
+    var query_columns = [_][]M{ &first_queries, &second_queries, &unused_queries };
     var query_trees = [_][][]M{&query_columns};
     const positions = [_]usize{ 3, 97 };
     const raw = [_]M{ M.fromCanonical(3), M.fromCanonical(97) };
@@ -455,10 +470,26 @@ test "capacity fused recursion: physical Keccak pair DEEP matches native periodi
     var graph = try Deep.build(std.testing.allocator, profile);
     defer graph.deinit();
     var samples = first_samples ++ second_samples;
-    const queries = first_queries ++ second_queries;
+    const queries = first_queries ++ second_queries ++ unused_queries;
     const witness = Deep.Witness{ .active = true, .sampled_values = &samples, .queried_values = &queries, .oods_seed = seed, .deep_randomness = randomness, .raw_queries = &raw, .answers = answers };
     var evaluated = try graph.evaluate(std.testing.allocator, witness);
     defer evaluated.deinit();
+    try evaluated.validateAgainst(&graph);
+    // Replay all arithmetic after a malicious, still-Boolean high query bit
+    // change. This must fail a zero anchor, not merely stale intermediate data.
+    var zero_source: ?usize = null;
+    for (graph.bindings) |binding| switch (binding.source) {
+        .query_bit => |coordinate| if (coordinate.query == 0 and coordinate.bit == profile.lifting_log_size) {
+            zero_source = binding.node_id;
+        },
+        else => {},
+    };
+    const high_bit = zero_source orelse return error.MissingTallTreeQueryZero;
+    evaluated.values[high_bit] = Q.one();
+    try replayDeepOperations(&graph, evaluated.values);
+    try std.testing.expectError(error.UnsatisfiedCircuit, evaluated.validateAgainst(&graph));
+    evaluated.values[high_bit] = Q.zero();
+    try replayDeepOperations(&graph, evaluated.values);
     try evaluated.validateAgainst(&graph);
     samples[1] = samples[1].add(Q.one());
     try std.testing.expectError(error.UnsatisfiedCircuit, graph.evaluate(std.testing.allocator, witness));
@@ -469,19 +500,40 @@ test "capacity fused recursion: physical Keccak pair DEEP matches native periodi
     var captured = try @import("../recursion/pcs_arithmetic_capture.zig").Owned.init(std.testing.allocator, profile, arithmetic_capture);
     defer captured.deinit();
     const identity = profile.identityDigest();
+    geometry.layouts[2] = .current;
+    try std.testing.expectError(error.InvalidProfile, profile.validate());
+    geometry.layouts[2] = .none;
+    geometry.logs[2] = Deep.MAX_DOMAIN_LOG + 1;
+    try std.testing.expectError(error.InvalidProfile, profile.validate());
+    geometry.logs[2] = 14;
+    try profile.validate();
     geometry.mask_logs[0] = 5;
     try std.testing.expectError(error.InvalidProfile, profile.validate());
     try std.testing.expect(!std.meta.eql(identity, profile.identityDigest()));
-    geometry.mask_logs[0] = 4;
-    first_points[1] = current.add(common_step.mulSigned(27));
-    try std.testing.expectError(error.SamplePointLayoutMismatch, Layout.classifyKeccakPair(&first_points, current, current.sub(physical_step)));
+    geometry.mask_logs[0] = if (composition_step) 6 else 4;
+    if (composition_step) {
+        geometry.mask_logs[0] = 4;
+        try std.testing.expectError(error.InvalidProfile, profile.validate());
+        geometry.mask_logs[0] = 6;
+        var implicit = profile;
+        implicit.mask_log_sizes = &.{};
+        try std.testing.expectError(error.InvalidProfile, implicit.validate());
+    }
+    first_points[1] = current.add(other_step.mulSigned(27));
+    try std.testing.expectError(error.SamplePointLayoutMismatch, Layout.classifyKeccakPair(&first_points, current, current.sub(selected_step)));
     try std.testing.expectError(error.InvalidPcsArithmeticCapture, @import("../recursion/pcs_arithmetic_capture.zig").Owned.init(std.testing.allocator, profile, arithmetic_capture));
     std.mem.swap(core.circle.CirclePointQM31, &first_points[0], &first_points[1]);
-    try std.testing.expectError(error.SamplePointLayoutMismatch, Layout.classifyKeccakPair(&first_points, current, current.sub(physical_step)));
+    try std.testing.expectError(error.SamplePointLayoutMismatch, Layout.classifyKeccakPair(&first_points, current, current.sub(selected_step)));
     // The graph retained its own immutable physical-log vector.
     geometry.mask_logs[0] = 3;
     try graph.validate();
-    try std.testing.expectEqual(@as(u32, 4), graph.profile().maskLogSize(0));
+    try std.testing.expectEqual(@as(u32, if (composition_step) 6 else 4), graph.profile().maskLogSize(0));
+}
+fn replayDeepOperations(graph: *const Deep.Circuit, values: []Q) !void {
+    for (graph.nodes, 0..) |node, i| switch (node.op) {
+        .input, .constant => {},
+        else => values[i] = try @import("../recursion/air/pcs_deep_circuit_circuit.zig").evaluateOperation(node, values, i),
+    };
 }
 test "capacity fused recursion: shifted DEEP graph construction releases every allocation failure" {
     try std.testing.checkAllAllocationFailures(std.testing.allocator, shiftedGraphAllocation, .{});

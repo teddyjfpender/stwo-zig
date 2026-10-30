@@ -1,0 +1,20 @@
+1/6 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...V7_RAM_INPUT_STORAGE compact=false retain=true interaction_recovery=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=true tiled=false row_log=5 proof_bytes=17677 charged_peak=510472 commit_ns=2001250 proof_ns=17026791 verification_ns=11180542 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=true interaction_recovery=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=5 proof_bytes=17677 charged_peak=510472 commit_ns=1979458 proof_ns=61334709 verification_ns=11296750 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=false tiled=false row_log=5 proof_bytes=17677 charged_peak=474928 commit_ns=2270333 proof_ns=15862167 verification_ns=11044833 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=false tiled=true row_log=5 proof_bytes=17677 charged_peak=474928 commit_ns=2279166 proof_ns=65626792 verification_ns=12053458 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+OK
+3/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled production defaults select only large memory components...OK
+4/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+6/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled wider retained layout clamps before scratch allocation...OK
+All 6 tests passed.

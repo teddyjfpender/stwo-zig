@@ -23,6 +23,7 @@ pub const Current = struct {
     io: public.Owned,
     owner: *native.Owner,
     recipe: Recipe,
+    native_owner_owned: bool = true,
 
     pub fn init(a: std.mem.Allocator, owned_segment: Segment, program_root: @import("../air/memory_commitment/blake3_state_tree.zig").Digest) !*Current {
         return initForRecipe(a, owned_segment, program_root, .custody_v2);
@@ -45,9 +46,19 @@ pub const Current = struct {
         current.* = .{ .a = a, .segment = segment, .io = io, .owner = owner, .recipe = recipe };
         return current;
     }
+    /// Transfer only independently owned native columns. Public I/O slices
+    /// must be empty because this Current still owns the surrounding I/O and
+    /// runner result; a retained native owner must never borrow freed slices.
+    pub fn takeNativeOwner(self: *Current) !*native.Owner {
+        if (!self.native_owner_owned) return error.NativeOwnerAlreadyTransferred;
+        const io = self.owner.statement.public_data.io_entries;
+        if (io.input_words.len != 0 or io.output_words.len != 0) return error.BorrowedResidentNativePublicIo;
+        self.native_owner_owned = false;
+        return self.owner;
+    }
     pub fn deinit(self: *Current) void {
         const a = self.a;
-        self.owner.deinit();
+        if (self.native_owner_owned) self.owner.deinit();
         self.io.deinit();
         self.segment.deinit();
         a.destroy(self);

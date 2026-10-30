@@ -1,0 +1,72 @@
+{
+  "schema": "stwo-b8-cache-ownership-mixed-driver-qualification-v1",
+  "scope": "saved tiny native expected admissions + saved actual9retirement Keccak full-root mixed-driver resume; not retained full-block completion",
+  "tests_passed": 26,
+  "exit_code": 0,
+  "source_execution_count": 0,
+  "source_proofs_produced": 0,
+  "parent_proofs_produced": 0,
+  "cold_default_driver_verified": true,
+  "immutable_cache_mixed_driver_verified": true,
+  "final_root_bytes_identical": true,
+  "fresh_uncached_full_receiver_after_cache_destruction": true,
+  "ownership_and_mutation_cases": [
+    "caller Frozen handle released before Cache use",
+    "original borrowed snapshot mutated after freeze",
+    "context/descriptor handle changes",
+    "fixed root/span/shape width/admission expected ID changes",
+    "pc_clock_children semantic mutation not covered by ordinary profile identity",
+    "exact node-cap cached-parent hit validates parent"
+  ],
+  "bounds_cases": [
+    "node/depth/visit limits",
+    "snapshot count/word/payload bounds",
+    "wire bytes/item limits",
+    "key derivation live-byte limit",
+    "retained profile limit"
+  ],
+  "allocation_failure_coverage": {
+    "frozen_targeted_failure_points": 19,
+    "total_frozen_successful_allocations": 61,
+    "early_key_construction_failure_points": 8,
+    "exhaustive_all_factory_failures": false
+  },
+  "mixed_negative_cases": [
+    "changed nominated MAIN",
+    "compensated callerRAM physical claims +delta/-delta",
+    "incomplete saved root pair"
+  ],
+  "initial_failure": "OOM originally panicked inside existing runner Memory.ensurePage; fixed by fallible bulk ELF/Session initialization, separatelyAll9 qualified",
+  "proof_compatibility": "old saved native expected key/fold parity and saved mixed root bytes remain accepted under the successful initialization path",
+  "test_binary_sha256": "d3355fb769541a2b08f16031b9e5bc6d6dfeac64b91b3d809eb15b9d4bcd5139",
+  "qualification_log_sha256": "3c1aceccfea7496adb03b424b4a58481c68ab56482910c0456a305e2a3f1aec3",
+  "compile_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v8_window_root_admission_cache_test_root.zig",
+    "-OReleaseSafe",
+    "-j1",
+    "--test-no-exec",
+    "-femit-bin=/tmp/stwo-b8-cache-ownership-driver-tests",
+    "--test-filter",
+    "cache"
+  ],
+  "runtime_command": [
+    "/tmp/stwo-b8-cache-ownership-driver-tests"
+  ],
+  "runtime_default_lock_held": true,
+  "timing_isolated_performance_claim": false,
+  "source_hash_scope": "directly owned sources current after successful run; receiver refactor by primary may postdate frozen binary; not all-source build provenance",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v8_window_root_admission_cache_v1.zig": "9f02d1b577cbb223e0946298fb409ce9a93e8cce1b665bc0f189e7c63f40fea8",
+    "src/frontends/riscv/recursion/tests/block_v8_window_root_admission_cache_test.zig": "2baec947faa7709566fd0a31b5f07ae27533cd98d301b136eee0802d0905572f",
+    "src/frontends/riscv/prover/tests/block_v8_full_block_resume_test.zig": "6e13e376ba88bd4c328f94f0b8d0e82ac07e75f93d74b42077dbd508e769cdbc",
+    "src/frontends/riscv/block_v8_window_root_admission_cache_test_root.zig": "e09c7ee4dd241d793ee18c0b43c9e2261131f2ff96b08b830314897375c948f7",
+    "src/frontends/riscv/runner/memory.zig": "15ea07b101842b580ef3c5cf7353c0d2e01df05c53b6f7af92c865436d9b9412",
+    "src/frontends/riscv/runner/elf_loader.zig": "d2d7565426c45eb87f76bb1324e65b681053d9f330424a9fee89ae408f1cb65e",
+    "src/frontends/riscv/runner/segment_session.zig": "3e74cbebfa2123624d72128697a58ed3caf7187bf4075cf491ed77c901ed6f4f",
+    "src/frontends/riscv/prover/blake3_execution_source.zig": "12f5460b73a075ec03018a74662fc1a31ced51e4aa5f5f8632edcf5803880391"
+  }
+}

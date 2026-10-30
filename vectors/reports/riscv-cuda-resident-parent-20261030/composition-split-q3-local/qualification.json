@@ -1,0 +1,70 @@
+{
+  "schema": "cuda-composition-q3-local-qualification-v1",
+  "api": "cuda.runtime.stages.composition_split.Native.interpolateAndSplitDepthThree",
+  "native_symbol": "stwo_ntt_b2n_composition_split_depth_three_on",
+  "geometry": {
+    "minimum_composition_log": 4,
+    "maximum_composition_log": 30,
+    "coordinate_count": 4,
+    "coefficient_columns": 32,
+    "coefficient_stride": "2^(composition_log-3)",
+    "total_input_output_words_each": "4*2^composition_log"
+  },
+  "old_depths_unchanged": true,
+  "cpu_original_interpolation_and_recursive_chunks": {
+    "passed": true,
+    "logs": [
+      4,
+      5,
+      8,
+      13
+    ],
+    "depths": [
+      1,
+      2,
+      3
+    ]
+  },
+  "descriptor_guards": [
+    "wrong_stride",
+    "short_capacity",
+    "input_output_alias",
+    "short_twiddles",
+    "invalid_logs",
+    "wrong_stage"
+  ],
+  "zig_focused_tests_passed": 5,
+  "python_cuda_build_tests_passed": 22,
+  "native_cuda_compiled": false,
+  "native_cuda_executed": false,
+  "real_gpu_branch_qualified": false,
+  "reason": "Owned GPU pod ended; local nvcc/CUDA toolkit unavailable. Existing depths1/2 device evidence does not qualify new depth3 branch.",
+  "future_device_gate": "tests/cuda/native_composition_split_smoke.cpp now exercises depths1/2/3 at logs4,12,13,16,18,19 with scalar inverse-transform oracle and invalid-descriptor checks. Must additionally qualify original native q3 complete proof.",
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/riscv_cuda_composition_split_test_root.zig -OReleaseSafe --test-filter \"composition split\"",
+  "sources": [
+    {
+      "path": "src/backends/cuda/abi/stages/composition_split.zig",
+      "sha256": "1a5d14017b956b8a240ab51f8ced6b448241a164e43c10eec0adf387fa584bd6"
+    },
+    {
+      "path": "src/backends/cuda/runtime/stages/composition_split.zig",
+      "sha256": "dfb37be027825f4ae9747a10fe41f5ba8659acf7170fd49fdbffba9c8ffc10b5"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/composition_split.cu",
+      "sha256": "9d315bcc2966d01385da110ad41dc80866ac381b1dcd207d24b85073221d4be5"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/b2n_fused.cuh",
+      "sha256": "95c3f57b296eff1980509a1c952c72a42bcf6dab312cc039e44b2d83fcc1a7f0"
+    },
+    {
+      "path": "src/riscv_cuda_composition_split_test_root.zig",
+      "sha256": "926073cfd30314faa753f439ff6370e611b960de3484aa33e75d511360750256"
+    },
+    {
+      "path": "tests/cuda/native_composition_split_smoke.cpp",
+      "sha256": "57002dacfa934aafe7659a1881a9a41830a5149b9b452db709c6129d83a23cf7"
+    }
+  ]
+}

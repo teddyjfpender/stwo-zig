@@ -1,0 +1,3 @@
+1/2 riscv_cuda_parent_direct_test_root.test.resident parent direct modules...OK
+2/2 integrations.riscv_cuda.tests.resident_parent_direct_vectors_v1.test.resident parent direct all original constructors and physical padding vectors...OK
+All 2 tests passed.

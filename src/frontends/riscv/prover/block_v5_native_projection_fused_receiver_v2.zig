@@ -108,7 +108,7 @@ pub fn ForBackend(comptime Backend: type) type {
     };
 }
 
-fn requirePin(index: u32, pin: InstancePin, memory: MemoryPin, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, catalog: Catalog.Admission) !void {
+pub fn requirePin(index: u32, pin: InstancePin, memory: MemoryPin, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, catalog: Catalog.Admission) !void {
     try sealed.require(pins, entries);
     try pin.admission.require(pins, &pin.shape.public_data);
     if (pin.admission.context.execution_index != index or pin.profile != pin.template.execution_profile or

@@ -85,9 +85,9 @@ pub const ProjectionComponent = struct {
     }
 };
 
-/// Sharing a composition polynomial does not require increasing an access
-/// component's own evaluation degree. Its established log+2 quotient is added
-/// to the same accumulator, then split with the other projection polynomials.
+/// Preserve the original access equations while extending their quotient onto
+/// the shared composition domain. Merely reporting a wider split would change
+/// the polynomial represented by its chunks without extending the evaluations.
 pub const AccessComponent = struct {
     inner: Access,
     composition_split: u32,
@@ -99,13 +99,30 @@ pub const AccessComponent = struct {
             self.composition_split > core.verifier_types.MAX_COMPOSITION_LOG_SPLIT or
             self.inner.external_source != null or self.inner.v5_packed == null or self.inner.v5_universal == null)
             return error.InvalidV5FullFusedAccessComponent;
+        if (self.geometry()) |geometry_override| {
+            _ = try Adapter.asProverComponent(&self).withCompositionGeometryOverrideV1(geometry_override);
+            _ = try Adapter.asVerifierComponent(&self).withCompositionGeometryOverrideV1(geometry_override);
+        }
         return self;
     }
+    fn geometry(self: *const Self) ?core.air.components.CompositionGeometryOverrideV1 {
+        const delta = self.composition_split - self.inner.compositionLogSplit();
+        if (delta == 0) return null;
+        return .{ .max_constraint_log_degree_bound_delta = @intCast(delta), .composition_log_split = @intCast(self.composition_split) };
+    }
     pub fn asProverComponent(self: *const Self) ComponentProver {
-        return Adapter.asProverComponent(self);
+        const component = Adapter.asProverComponent(self);
+        return if (self.geometry()) |geometry_override|
+            component.withCompositionGeometryOverrideV1(geometry_override) catch unreachable
+        else
+            component;
     }
     pub fn asVerifierComponent(self: *const Self) core.air.components.Component {
-        return Adapter.asVerifierComponent(self);
+        const component = Adapter.asVerifierComponent(self);
+        return if (self.geometry()) |geometry_override|
+            component.withCompositionGeometryOverrideV1(geometry_override) catch unreachable
+        else
+            component;
     }
     pub fn nConstraints(self: *const Self) usize {
         return self.inner.nConstraints();

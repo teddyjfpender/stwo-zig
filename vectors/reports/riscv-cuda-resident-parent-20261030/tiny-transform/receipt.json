@@ -1,0 +1,25 @@
+{
+  "schema": "resident-parent-tiny-transform-v1",
+  "kind": "device_numerical_differential",
+  "full_parent_qualification": false,
+  "device": "NVIDIA H200 SM90",
+  "domain_logs": [
+    1,
+    2
+  ],
+  "cases": 2048,
+  "exact_words": 18432,
+  "modes": [
+    "inverse",
+    "inverse_in_place",
+    "extension"
+  ],
+  "object_sha256": "561a2106a2a5627ca4b0b973fb5c05a86905e63acb4281458146e13466ed4af7",
+  "oracle_data_sha256": "8d4f9242c249a112a9d08d6c93b20b00aac1b322601f55f5cbf7440a52122493",
+  "source_files": {
+    "src/backends/cuda/native/transform/parent_tiny.cu": "7de8a820a09fd17b8e94255a13d28fccf9ce288ca4f4aabf921298bb01b3ffa3",
+    "src/integrations/riscv_cuda/resident_parent_transform_v1.zig": "df26d3a03048966186d5e699c5d0b37d58732788e40ec948510a4fd50090501c",
+    "src/riscv_cuda_parent_tiny_oracle_root.zig": "7e947b63a47758963f8cbf53d59040438633719d12b3f077ecaa087f6a1497bb"
+  },
+  "notes": "Original CPU CirclePolynomial oracle; random, zero and maximal canonical field inputs. No timing claim. Separate padding proof qualification is owned by parent campaign receipt."
+}

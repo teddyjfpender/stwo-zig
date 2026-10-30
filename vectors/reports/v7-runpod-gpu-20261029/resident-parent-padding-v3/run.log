@@ -1,0 +1,4 @@
+1/1 riscv_cuda_resident_parent_padding_test_root.test.actual fully resident original25 parent padding numerical proof fresh verifies...RESIDENT_PADDING_ARTIFACT bytes=79427 elapsed_ns=3332860834 path=/workspace/stwo-v7-evidence/resident-parent-padding-v3/padding.b3n
+RESIDENT_PADDING verified=true child_receipt=false device_bytes=261640300 elapsed_ns=3332860834
+OK
+All 1 tests passed.

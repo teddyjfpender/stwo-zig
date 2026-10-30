@@ -1,0 +1,30 @@
+{
+  "schema": "stwo-resident-parent-backend-qualification-v1",
+  "status": "pass",
+  "child_receipt": false,
+  "scope": "all25 original parent AIR padding witness, resident numeric backend only",
+  "queries": 70,
+  "pow_bits": 26,
+  "one_terminal_read_per_proof": true,
+  "cpu_fallback_attempts": 0,
+  "runtime_compile_attempts": 0,
+  "source": {
+    "exit_code": 0,
+    "wall_s": 96.23713211715221,
+    "source_sha256": "d6379c96a43cdc2a564bd3af6e50ce864ce16a81c0cb26f7488f8e06be4aa507",
+    "source_before_after": "exact",
+    "binary_sha256": "dd0af76502729ebabcd7dad338a56b6461fe707a90806b0260577f68e0419cee"
+  },
+  "proofs": [
+    {
+      "path": "padding.b3n",
+      "sha256": "4bf62a122d6fa6b166a6eec9be1d42e343c42e8ce9557b45c1e7fd779c048718",
+      "bytes": 501768
+    }
+  ],
+  "limitations": [
+    "empty parent fixture: not genuine recursive child acceptance",
+    "not Ethereum execution or full-block performance",
+    "cold immutable key setup excluded from prover elapsed time; device stage events separate from host wall intervals"
+  ]
+}

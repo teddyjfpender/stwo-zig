@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "Epoch v3 first-halt memory equations, heterogeneous composition and joint compiler lifecycle",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 5,
+    "real_recursive_proof": false,
+    "canonical_security_qualified": false
+  },
+  "coverage": [
+    "all161 RAM equations and all equations for interval/range16/terminal compared with original quotient adapter at arbitrary OODS",
+    "all physical sums normalized inside symbolic circuit",
+    "each physical-sum and each of four split composition chunks mutation rejects",
+    "RAM prior/first/last endpoints and global-boundary flags remain dynamic inputs",
+    "first, middle and last shard geometry produces identical equation graph",
+    "incoming link inverse constrained in circuit; prior ordinal mutation rejects for nonfirst shards",
+    "metadata-only compiler reproduces original quotient from explicit sample layouts and 53-pair epoch source vocabulary",
+    "altered source map with self-consistent identity rejected against independently compiled source map",
+    "106 challenge source ports checked against actual execution epoch v3 draw sequence and final channel",
+    "heterogeneous component logs and a preceding nonzero Horner accumulator match original quotient adapter at common log16; altered sums/openings reject",
+    "RAM 84 public inputs bind halt address and all four permitted clocks; changed halt inputs reject",
+    "joint compiler lifecycle is compiled; actual joint original proof composition/DEEP/FRI qualified separately"
+  ],
+  "source_state": "uncommitted development worktree; selected hashes are not a complete reproducible archive",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_ram_component_v1.zig": "14260585b7d3d3ce3a89904f9a9b9e2859dd33e87692733fcb8f71b70763af96",
+    "src/frontends/riscv/prover/block_v7_provider_component_v1.zig": "17f24b3a7672f78ed457355a2ae1a2d9e154691e0459de096177e67787ede869",
+    "src/frontends/riscv/recursion/air/block_v7_memory_composition_v1.zig": "566550c9d42b28dff61b03808c0d2a44e06421b2fdb0f4588136d5e8e2aa1b7c",
+    "src/frontends/riscv/recursion/air/block_v7_memory_shape_composition_v1.zig": "a6a96ab7eb5e9a5939c45c1f00c83932af4e5d1876c704001b460483b806968e",
+    "src/frontends/riscv/prover/block_v7_memory_composition_test_v1.zig": "006a34df770d3d9358bb3588a406fe9a33df614ed64445840f3b5f0ad06fea52",
+    "src/frontends/riscv/prover/block_v7_execution_epoch_v1.zig": "3b916830eaa8b9053a5bc4c06823575005f55c5d2c20b95cbd28b4ab676b3acb",
+    "src/frontends/riscv/recursion/air/block_v7_memory_joint_composition_v1.zig": "f56b50c3f29167433aa77e92c248a1fa8345c7026241da84367e4a2fc5da1805",
+    "src/frontends/riscv/prover/block_v7_halt_algebra_v1.zig": "a56885114f821df53a03ac2683f97954a988883ca81c2552b7058e63a2af4657"
+  },
+  "binary_sha256": "25c2cd500fe1d793fad572142efd8d0778213515a5484c91e456cf7ec2f79e74",
+  "log": [
+    "1/5 prover.block_v7_memory_composition_test_v1.test.v7 memory composition joint compiler lifecycle codegen...OK",
+    "2/5 prover.block_v7_memory_composition_test_v1.test.v7 memory composition exact original quotients for all four families and physical sum mutations...OK",
+    "3/5 prover.block_v7_memory_composition_test_v1.test.v7 memory composition RAM endpoint geometry does not choose graph and incoming link is constrained...OK",
+    "4/5 prover.block_v7_memory_composition_test_v1.test.v7 memory composition challenge ports match the actual whole execution epoch...OK",
+    "5/5 prover.block_v7_memory_composition_test_v1.test.v7 memory composition heterogeneous logs preserve original joint Horner accumulator...OK",
+    "All 5 tests passed."
+  ]
+}

@@ -1,0 +1,2 @@
+observation,cycles,cohorts,original_proofs,trace_trees,whole_s,whole_including_loading_publication_s,original_s,core_s,fresh_verification_s,charged_peak_bytes,proof_bytes,proof_sha256,security_queries,pow_bits,global_ram_closed,recursive_root,ethereum_block
+native-4194304-group-8x524288,4194304,8,1,39,20.941457958,20.998392583,15.761877542,10.78354425,1.996112083,12158340617,5587460,90fd106454d8e3e2bf1a78ceccd8a7a5106fd5576816fd0acadf605d1405d586,70,26,False,False,False

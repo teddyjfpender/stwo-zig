@@ -1,0 +1,43 @@
+{
+  "schema": "stwo-b8-fallible-initialization-qualification-v1",
+  "scope": "bulk/ELF/Session initialization only; no guest execution, proving, performance claim or hot-write redesign",
+  "cause": "cache OOM injection reached existing Memory.ensurePage panic during fallible Session initialization",
+  "tests_passed": 9,
+  "exit_code": 0,
+  "allocation_failure_coverage": [
+    "every bulk initialization allocation point",
+    "every ELF segment/BSS allocation point",
+    "every Session ELF/private-input initialization allocation point"
+  ],
+  "success_compatibility": [
+    "same initialized addresses and words as compatibility writes",
+    "same wrapping accesses",
+    "same lazy BSS data-page absence",
+    "same private-input/halt/output initialization",
+    "same CPU entry/SP/GP ABI state"
+  ],
+  "partial_failure_guarantee": "preparation failure changes no bytes or initialized-word inventory; extra zero pages/capacity may remain until deinit",
+  "guest_hot_writes_changed": false,
+  "proof_identity_compatibility": "old saved native expected admissions and saved9cycle mixed root cold/cache full-driver receiving passed unchanged bytes in the refreshed All26 gate",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v8_initialization_oom_test_root.zig",
+    "-OReleaseSafe",
+    "-j1",
+    "--test-filter",
+    "fallible initialization"
+  ],
+  "qualification_log_sha256": "3d0832131c48b53b9547f131a1a8e9391f3570378a12a4c059e86edd4e4ca1b5",
+  "source_hash_scope": "current owned source after gate; not frozen all-source build provenance",
+  "source_sha256": {
+    "src/frontends/riscv/runner/memory.zig": "15ea07b101842b580ef3c5cf7353c0d2e01df05c53b6f7af92c865436d9b9412",
+    "src/frontends/riscv/runner/elf_loader.zig": "d2d7565426c45eb87f76bb1324e65b681053d9f330424a9fee89ae408f1cb65e",
+    "src/frontends/riscv/runner/segment_session.zig": "3e74cbebfa2123624d72128697a58ed3caf7187bf4075cf491ed77c901ed6f4f",
+    "src/frontends/riscv/prover/blake3_execution_source.zig": "12f5460b73a075ec03018a74662fc1a31ced51e4aa5f5f8632edcf5803880391",
+    "src/frontends/riscv/runner/initialization_oom_test.zig": "b03da1eb18ebe91197865f7dc53bd1db4c8c27b85e6ee882b88ad13b1d9bbe97",
+    "src/frontends/riscv/block_v8_initialization_oom_test_root.zig": "d79397c9dbaa839640101ca421734fd24ce542d041911d2b63156338dc90709d"
+  }
+}

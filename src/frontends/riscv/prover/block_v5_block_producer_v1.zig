@@ -204,6 +204,43 @@ fn ForNativeBackend(comptime Backend: type, comptime lightweight: bool, comptime
             output: SinkFor(lightweight, capacity),
             hooks: ?Hooks,
         ) !ProducedExecutions {
+            return proveExecutionsSelected(false, a, program, memory, pins, entries, sealed, catalog, executions, output, hooks);
+        }
+        /// Explicit one-layout route. The first-round callback must publish a
+        /// B6JP-v3 proof; this route never builds the legacy native STARK.
+        /// Publication is not verifier authority: only the B6JP-v3 receiver can
+        /// admit the resulting proof, including all native semantic equations.
+        pub fn provePartitionedExecutionsWithMemoryPlanHooks(
+            a: std.mem.Allocator,
+            program: *const Program.ForBackend(Backend),
+            memory: MemoryPlan,
+            pins: Seal.Pins,
+            entries: []const Seal.Entry,
+            sealed: Seal.Sealed,
+            catalog: Catalog.Admission,
+            executions: SourceFor(lightweight, capacity),
+            output: SinkFor(lightweight, capacity),
+            hooks: ?Hooks,
+        ) !ProducedExecutions {
+            if (comptime capacity or !lightweight) @compileError("partitioned layout requires the explicit NativeV3 CPU-style stack");
+            const callbacks = hooks orelse return error.MissingPartitionedExecutionStage;
+            if (!callbacks.fused_program_requests or callbacks.on_first_round == null or callbacks.on_proof != null)
+                return error.InvalidPartitionedExecutionStage;
+            return proveExecutionsSelected(true, a, program, memory, pins, entries, sealed, catalog, executions, output, hooks);
+        }
+        fn proveExecutionsSelected(
+            comptime partitioned: bool,
+            a: std.mem.Allocator,
+            program: *const Program.ForBackend(Backend),
+            memory: MemoryPlan,
+            pins: Seal.Pins,
+            entries: []const Seal.Entry,
+            sealed: Seal.Sealed,
+            catalog: Catalog.Admission,
+            executions: SourceFor(lightweight, capacity),
+            output: SinkFor(lightweight, capacity),
+            hooks: ?Hooks,
+        ) !ProducedExecutions {
             const fused = if (hooks) |callbacks| callbacks.fused_program_requests else false;
             if (capacity and !fused) return error.CapacityFusedProgramStageRequired;
             if (fused and (!lightweight or hooks.?.on_first_round == null))
@@ -247,8 +284,13 @@ fn ForNativeBackend(comptime Backend: type, comptime lightweight: bool, comptime
                         const FusedSource = if (capacity) @import("block_v5_native_capacity_fused_source_v1.zig") else @import("block_v5_native_projection_fused_source_v1.zig");
                         const FusedProof = if (capacity) @import("block_v5_native_capacity_fused_proof_v1.zig") else @import("block_v5_native_projection_fused_proof_v2.zig");
                         const AccessSource = @import("block_execution_sidecar_batch_v2.zig");
-                        const fused_slots = try FusedSource.slotsFromShapeForMode(a, &replay.owner.statement, replay.owner.external_retirements, sealed.register_custody_mode);
-                        defer a.free(fused_slots);
+                        var partitioned_layout: ?@import("block_v6_relation_layout_v1.zig").Layout = if (partitioned)
+                            try @import("block_v6_relation_layout_v1.zig").Layout.init(a, &replay.owner.statement, replay.owner.external_retirements, sealed.register_custody_mode)
+                        else
+                            null;
+                        defer if (partitioned_layout) |*layout| layout.deinit();
+                        const fused_slots = if (partitioned_layout) |layout| layout.slots else try FusedSource.slotsFromShapeForMode(a, &replay.owner.statement, replay.owner.external_retirements, sealed.register_custody_mode);
+                        defer if (partitioned_layout == null) a.free(fused_slots);
                         const frame = @import("../air/block/memory_event.zig").Frame{ .clock_frame = .leaf_local, .global_first_cycle = replay.admission.context.first_cycle, .cycle_count = replay.owner.statement.public_data.clock };
                         const access_slots = if (capacity)
                             try FusedSource.memorySlots(a, &replay.owner.statement, replay.owner.external_retirements, frame, sealed.register_custody_mode)
@@ -290,6 +332,10 @@ fn ForNativeBackend(comptime Backend: type, comptime lightweight: bool, comptime
                         owns_request = false;
                     }
                 }
+                // The partitioned first-round callback has proved the complete
+                // native AIR and local relation basis. No second native proof,
+                // interaction witness, commitment or wrapper is constructed.
+                if (partitioned) continue;
                 var native_proof = try Native.ForBackend(Backend).proveWithCatalog(a, &native_first, sealed, pins, entries, catalog);
                 var owns_native = true;
                 defer if (owns_native) native_proof.deinit(a);

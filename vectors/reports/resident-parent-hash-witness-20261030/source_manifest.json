@@ -1,0 +1,10 @@
+{
+  "schema": "stwo-resident-parent-hash-witness-v1",
+  "scope": "device hash witness primitive only; not a complete resident prover",
+  "source_sha256": "b3fc75f6ff92640a764092f1e8b58fdc55af1bfd849e9ad7ef2c26536620af5c",
+  "cases": 4,
+  "cpu_numeric_input": false,
+  "cpu_witness_oracle": true,
+  "device_readback": "test oracle only",
+  "full_parent_qualified": false
+}

@@ -158,8 +158,8 @@ pub fn loadElfForProfile(
         }
 
         const segment_data = elf_bytes[p_offset .. p_offset + p_filesz];
-        mem.loadSegment(p_vaddr, segment_data);
-        mem.loadZeroes(p_vaddr +% p_filesz, p_memsz - p_filesz);
+        try mem.loadSegmentFallible(p_vaddr, segment_data);
+        try mem.loadZeroesFallible(p_vaddr +% p_filesz, p_memsz - p_filesz);
         segments_loaded += 1;
     }
 

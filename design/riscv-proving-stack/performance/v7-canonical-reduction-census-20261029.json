@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-29",
+  "result": "PASS12_DIAGNOSTIC_REJECTION",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "counts": [
+    2,
+    1,
+    4,
+    4,
+    1
+  ],
+  "estimate": {
+    "largest_row_log": 23,
+    "fixed_bytes": 1862008028,
+    "retained_rows_bytes": 9638702300,
+    "committed_cells": 4495982592,
+    "planned_peak_bytes": 102201939604
+  },
+  "limits": {
+    "max_row_log": 25,
+    "max_retained_bytes": 4294967296,
+    "max_planned_bytes": 30064771072,
+    "scratch_headroom_bytes": 536870912
+  },
+  "admitted": false,
+  "recursive_proof_created": false,
+  "canonical_complete_root_qualified": false,
+  "wall_seconds": 108.62,
+  "peak_memory_footprint_bytes": 4141125784,
+  "log_sha256": "c29968d88c09ca0f38de66591860386f6d77d324d840ebcf8b4c64173029258d",
+  "binary_sha256": "de845909bb358774cc52688f685de9bcc08069f88be269da5d438e95b40c1fff",
+  "command": "STWO_V7_SCALE_CANONICAL=1 STWO_V7_REDUCTION_COLD_ONLY=1 STWO_V7_WINDOW_PROFILE=1 STWO_V7_DIRECT_GIB=40 STWO_V7_PROPAGATE_FAMILY_BUDGET=1 <ReleaseSafe bounded-root fixture>",
+  "meaning": "Same original metadata, selected windows and independently compiled fixed keys as production; final sizing only, no recursion witness or proof. Planned peak is not measured demand."
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-b8-real-mixed-original-build-v1",
+  "root": "src/frontends/riscv/block_v8_endpoint_mixed_execution_benchmark_root.zig",
+  "optimize": "ReleaseFast",
+  "allocator": "std.heap.smp_allocator",
+  "source_manifest_sha256": "087fa282044132cc81f77b0eba69080d2efae6d0c3e8e4774d7f4a502d1615f5",
+  "source_snapshot": "/tmp/stwo-b8-mixed-selective-build-20261030/source",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/frontends/riscv/block_v8_endpoint_mixed_execution_benchmark_root.zig",
+    "-OReleaseFast",
+    "--test-filter",
+    "real mixed endpoint original benchmark",
+    "--test-no-exec",
+    "-femit-bin=/tmp/stwo-b8-mixed-selective-build-20261030/benchmark"
+  ],
+  "started_unix_ns": 1793339367788357000,
+  "returncode": 0,
+  "source_changed": false,
+  "source_after_changes": [],
+  "finished_unix_ns": 1793339498530517000,
+  "binary_sha256": "8a43779b35e0cde007c18d81b76ebfdc9df1cc5e5f23ab0bed19a34c81519a96"
+}

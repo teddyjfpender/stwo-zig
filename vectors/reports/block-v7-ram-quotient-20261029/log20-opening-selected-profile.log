@@ -1,0 +1,37 @@
+1/6 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...V7_RAM_INPUT_STORAGE compact=true retain=true interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=499131056 interaction_bytes=994067040 before_core_bytes=994067040 compact_interaction=true
+WORD_QUOTIENT_TILED {"base_field_rows":true,"charged_peak_bytes":313506488,"coefficient_bytes":0,"tile_log":15,"tiles":128,"requested_group_bytes":134217728,"group_bytes":134217728,"phases":{"recovery_ns":3792,"mapping_ns":9271461,"rows_ns":2343032910,"current":{"prepare_ns":561268710,"jobs_ns":903283960,"block_fold_cpu_ns":583572096,"block_fft_cpu_ns":1730057395,"group_changes":32,"prefold_elements_read":7650410496,"block_elements_read":3825205248,"fft_elements":956301312,"jobs":29184},"previous":{"prepare_ns":637514751,"jobs_ns":979956042,"block_fold_cpu_ns":642456776,"block_fft_cpu_ns":1860845814,"group_changes":64,"prefold_elements_read":8388608000,"block_elements_read":4194304000,"fft_elements":1048576000,"jobs":32000},"group_logs":[2,2,2]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=5472389500
+COEFFICIENT_OPENING mode=selected columns=24 queries=8 leaf_positions=128 log=21 setup_ns=10137917 expansion_ns=19859958 leaf_ns=44125 merkle_ns=1187834 total_ns=35287000
+COEFFICIENT_OPENING mode=selected columns=88 queries=8 leaf_positions=128 log=21 setup_ns=10440042 expansion_ns=72983582 leaf_ns=163543 merkle_ns=1384625 total_ns=98864500
+COEFFICIENT_OPENING mode=selected columns=116 queries=8 leaf_positions=128 log=21 setup_ns=10407542 expansion_ns=101282289 leaf_ns=214958 merkle_ns=1557625 total_ns=132642375
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=20 proof_bytes=70451 charged_peak=1589661136 commit_ns=1130892708 proof_ns=8050120459 verification_ns=258559125 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=968893104 interaction_bytes=1950368352 before_core_bytes=1950368352 compact_interaction=false
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=750
+OK
+3/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled production defaults select only large memory components...OK
+4/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+6/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled wider retained layout clamps before scratch allocation...OK
+All 6 tests passed.
+       23.40 real        47.28 user         1.12 sys
+          4524752896  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              921507  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               50999  involuntary context switches
+        732592104861  instructions retired
+        192854795121  cycles elapsed
+          4525707536  peak memory footprint

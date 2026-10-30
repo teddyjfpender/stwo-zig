@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "known_concurrent_capture_completed_utc": "2026-10-29T04:56:48.736962+00:00",
+  "capture_completion_marker_sha256": "a6391e79d6dfaf4de75295c2e73305a9ed15aa394d6c00ac8c276b95f49b9ada",
+  "excluded": [
+    {
+      "campaign": "representative",
+      "run_id": "00-keccak_heavy-8-r01",
+      "reason": "Known concurrent retained-workload capture overlapped this run. Original result and raw log retained unchanged.",
+      "run_log_birth_utc": "2026-10-29T04:56:42.413710+00:00",
+      "command_wall_seconds": 2.999683374990127
+    },
+    {
+      "campaign": "representative",
+      "run_id": "01-memory_heavy-4096-r01",
+      "reason": "Known concurrent retained-workload capture overlapped this run. Original result and raw log retained unchanged.",
+      "run_log_birth_utc": "2026-10-29T04:56:45.419414+00:00",
+      "command_wall_seconds": 2.241767500003334
+    },
+    {
+      "campaign": "representative",
+      "run_id": "02-mixed_ethereum-8-r01",
+      "reason": "Known concurrent retained-workload capture overlapped this run. Original result and raw log retained unchanged.",
+      "run_log_birth_utc": "2026-10-29T04:56:47.668049+00:00",
+      "command_wall_seconds": 5.586625707990606
+    }
+  ],
+  "selected": [
+    "representative/00-keccak_heavy-8-r02",
+    "representative/01-memory_heavy-4096-r02",
+    "representative/02-mixed_ethereum-8-r02",
+    "representative/00-keccak_heavy-8-r03",
+    "representative/01-memory_heavy-4096-r03",
+    "representative/02-mixed_ethereum-8-r03",
+    "representative-idle-replacements/00-keccak_heavy-8-r01",
+    "representative-idle-replacements/01-memory_heavy-4096-r01",
+    "representative-idle-replacements/02-mixed_ethereum-8-r01"
+  ],
+  "selection_rule": "Original repeats2/3 plus one replacement repeat: three nonoverlapping samples per case. Every original raw measurement remains retained."
+}

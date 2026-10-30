@@ -1,0 +1,8 @@
+{
+  "pod_id": "84l4pt426aw645",
+  "deleted": true,
+  "recorded_utc": "2026-10-29T17:39:30.897734+00:00",
+  "artifacts_preserved": true,
+  "native_source_device_qualified": false,
+  "native_source_attempt": "failed ingress descriptor: DEEP domain log2 outside shared fast-path log>=4"
+}

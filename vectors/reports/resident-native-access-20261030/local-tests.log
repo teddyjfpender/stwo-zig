@@ -1,0 +1,8 @@
+1/7 riscv_cuda_resident_native_access_test_root.test_0...OK
+2/7 riscv_cuda_resident_native_access_test_root.test.resident native access CUDA export...OK
+3/7 riscv_cuda_resident_native_access_test_root.test.resident native access export oracle...OK
+4/7 riscv_cuda_resident_native_access_test_root.test.resident native access interaction export oracle...OK
+5/7 riscv_cuda_resident_native_access_test_root.test_1...OK
+6/7 integrations.riscv_cuda.resident_native_access_program_v1.test.resident native access graph retains68 equations17 denominators and all10 public claims...OK
+7/7 integrations.riscv_cuda.resident_native_access_interaction_v1.test.resident native access interaction arena rejects underbudget and invalid logs...OK
+All 7 tests passed.

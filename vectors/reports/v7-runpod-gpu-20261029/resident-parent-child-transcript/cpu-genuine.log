@@ -1,0 +1,14 @@
+1/12 riscv_cuda_parent_child_transcript_test_root.test.resident child transcript modules...OK
+2/12 integrations.riscv_cuda.tests.resident_parent_child_transcript_test_v1.test.actual original native child packet transcript device vectors...resident_child_vector tasks=153 refs=1441 packet_words=1890 output_words=448 trace_words=6804
+OK
+3/12 frontends.riscv.runner.mod.test_0...OK
+4/12 frontends.riscv.runner.decode.test_0...OK
+5/12 frontends.riscv.air.lookups.tables.mod.test_0...OK
+6/12 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+7/12 frontends.riscv.air.semantic_eval.test_0...OK
+8/12 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+9/12 integrations.riscv_cuda.resident_parent_child_packet_v1.test.resident child packet preserves untrusted values for device checks and bounds copy...OK
+10/12 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+11/12 frontends.riscv.diagnostics.mod.test_0...OK
+12/12 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+All 12 tests passed.

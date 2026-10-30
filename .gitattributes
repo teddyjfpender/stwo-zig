@@ -9,3 +9,11 @@ third_party/bzip2/** whitespace=-trailing-space,-blank-at-eof
 vectors/riscv_csp/inputs/*.bin binary
 vectors/starknet/**/*.zip binary
 vectors/starknet/**/*.proof binary
+*.csv whitespace=cr-at-eol
+*.tsv whitespace=cr-at-eol
+vectors/reports/**/*.log whitespace=-trailing-space,-blank-at-eof
+vectors/reports/**/profile/summary.csv whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+campaign/qualification/** linguist-generated=true
+campaign/qualification/**/*.log whitespace=-trailing-space,-blank-at-eof
+campaign/qualification/**/*.proof binary
+campaign/qualification/**/*.public binary

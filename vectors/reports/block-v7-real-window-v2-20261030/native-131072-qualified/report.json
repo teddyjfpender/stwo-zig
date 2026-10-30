@@ -1,0 +1,51 @@
+{
+  "schema": "stwo-real-window-new-v7-originals-v2",
+  "scope": "explicit externally admitted incoming and outgoing complete machine states; skipped prefix is not proved; original proofs independently verified; no recursive root from this gate",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 131072
+  },
+  "segment_cycles": 16384,
+  "worker_count": 4,
+  "native_stage_profile": "native-stage-profile.json",
+  "stage_accounting": "native_proof_ns includes ordered native_segment roots; their children are inclusive nested stages and must not be added to parents. Native interaction generation outside core recorder remains in segment residual. Other families currently have aggregate original-proof times.",
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "53dcc35c01a4837a6dd9943511c3affc304ef11488a0d4ded3337d4369dbe9a2",
+  "source_loading_ns": 30394500,
+  "whole_request_ns": 28096439750,
+  "stats": {
+    "cycles": 131072,
+    "segments": 8,
+    "callers": 0,
+    "events": 55865,
+    "fetches": 131080,
+    "original_proofs": 11,
+    "checkpoint_bytes": 187711152,
+    "native_checkpoint_bytes": 187711152,
+    "caller_checkpoint_bytes": 0,
+    "max_native_restore_codec_bytes": 21720904,
+    "event_storage_bytes": 1707120,
+    "setup_ns": 1187488958,
+    "execution_ns": 223005334,
+    "collection_ns": 1054978458,
+    "providers_first_ns": 4944690750,
+    "native_proof_ns": 8301570416,
+    "caller_proof_ns": 125,
+    "memory_proof_ns": 3730656917,
+    "rom_proof_ns": 2481042708,
+    "lookup_proof_ns": 319037667,
+    "verification_ns": 5757426625,
+    "consumer_ns": 7426625,
+    "whole_ns": 28007324625,
+    "charged_peak_bytes": 1141622572
+  },
+  "artifacts": {
+    "proof_count": 11,
+    "proof_bytes": 5213842,
+    "artifact_write_ns": 7419084
+  },
+  "logical_input_bytes": 28006000,
+  "physical_disk_bytes": null,
+  "host_budget_bytes": 34359738368
+}

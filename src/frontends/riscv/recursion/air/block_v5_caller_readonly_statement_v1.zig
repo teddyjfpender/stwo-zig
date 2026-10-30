@@ -18,7 +18,7 @@ pub fn initClaims(a: std.mem.Allocator, admitted: *const Admission.Prepared, cla
     const sealed_offset = try b.digestWords(admitted.sealed.digest);
     // Exact six-step B5IR suffix lives before the original B5IC claim frame.
     // The actual branch draws are recorded by Transcript, never fabricated here.
-    @import("../../prover/block_v5_caller_readonly_protocol_v1.zig").mixSuffix(&b, admitted.plan.digest, Admission.Fused.instanceId(admitted.binding, admitted.witness_root, admitted.frame, 1, &admitted.schedule, admitted.readonly), admitted.binding.first_roots);
+    @import("../../prover/block_v5_readonly_input_protocol_v1.zig").mixSuffix(&b, admitted.plan.digest, Admission.Fused.instanceId(admitted.binding, admitted.witness_root, admitted.frame, 1, &admitted.schedule, admitted.readonly), admitted.binding.first_roots);
     b.mixRoot(Admission.Fused.instanceId(admitted.binding, admitted.witness_root, admitted.frame, admitted.sealed.register_custody_mode, &admitted.schedule, admitted.readonly));
     const classification = try @import("../../prover/block_v5_caller_readonly_protocol_v1.zig").Challenges.draw(a, admitted.sealed, admitted.plan.digest, Admission.Fused.instanceId(admitted.binding, admitted.witness_root, admitted.frame, 1, &admitted.schedule, admitted.readonly), admitted.binding.first_roots);
     try Admission.Fused.mixClaims(&b, admitted.binding, &admitted.schedule, &claims, admitted.plan, &classification, admitted.readonly.limits);

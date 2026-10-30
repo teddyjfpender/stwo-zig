@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-sm86-native-objects-local-v1",
+  "architecture": 86,
+  "fresh_build": true,
+  "source_snapshot": "c9ae07394d24c8e5bee644f62dd7ecdb8ba9a56aea3c0e89c95a3b79e95c204f",
+  "standalone_objects": 7,
+  "native_cuda_tus": 41,
+  "authority_cuda_tus": 6,
+  "aot_entries": 0,
+  "proof_qualified": false,
+  "initial_runtime": "AotPackAbsent; requires explicit static-native execution policy. No dummy AOT entry or relaxed original verifier.",
+  "preserved_archive": "/tmp/v7-sm86-native-objects-empty-aot-preserved.tar.gz",
+  "preserved_archive_bytes": 9387810,
+  "preserved_archive_sha256": "19a4c56c5e95f9f88c86df4f8ce8c28b18296121ee3b465dee564f2bc21df265",
+  "build_scope": "Current backend, quotient_tiny, composition split3, direct raw17, access48, ingress, fixed/clock/frame, exact tiny and loop bundles, claim pack/root equality."
+}

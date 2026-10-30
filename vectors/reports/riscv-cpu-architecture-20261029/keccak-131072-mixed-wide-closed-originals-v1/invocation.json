@@ -1,0 +1,59 @@
+{
+  "schema": "stwo-b8-real-mixed-original-invocation-v1",
+  "binary_sha256": "12a8766a8d2622658606495863091a5a1ed73b1da6af4ad3a6fd6f04a5501ead",
+  "build_manifest_sha256": "c7cb9ebdcdd942300cb031625184fecb5ad915210bccf285dda366434137f11c",
+  "runner_sha256": "0a75725116182b7d0ec2e717773401ee4fd5278b81ee370f8e0bd5098f7e89f7",
+  "capture_sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca",
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 131072
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+  "outgoing_sha256": "7f486db5f9d2653270f040c998bc97ea72fde66ff2c70af926c7298f4662b2b9",
+  "workers": 8,
+  "allocator": "std.heap.smp_allocator",
+  "profiled": false,
+  "batch_native_projections": false,
+  "native_wide_shards": true,
+  "complete_bundle": true,
+  "full_execution_boundaries": false,
+  "total_cycles": null,
+  "cpu_only": true,
+  "global_ram_closed": true,
+  "recursive_root": false,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/stwo-b8-full-block-capture-build-v1/mixed-bundle"
+  ],
+  "started_unix_ns": 1793352841243352000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793352858429848000,
+  "report_sha256": "5b5a59cf94d68e1fdc5e0d9f4cdae0633857fe0a2a777bdd58be3d47d2725c6e",
+  "artifacts": {
+    "local-0.json": {
+      "bytes": 22859,
+      "sha256": "9820b7cfe525f393d59fd65fdf79c58da7bbc24e9995eaf50d844da2e464e9f3"
+    },
+    "local-0.proof": {
+      "bytes": 3631738,
+      "sha256": "d5a5fad7f01ca854989e0335ab126a4f59a49de42871d236a87d027076ee6b87"
+    },
+    "bridge-0.proof": {
+      "bytes": 194403,
+      "sha256": "551c52a71d06c487fde4b8190138fabf70e7b5985a0143fac386983050a6865f"
+    },
+    "global-memory.proof": {
+      "bytes": 319652,
+      "sha256": "82866df3aeaa80c48838517c525423f0eb20b5c5d689cded07e84a37b1035e42"
+    },
+    "global-public.json": {
+      "bytes": 274844,
+      "sha256": "adf13ede2b3b3e5c105d2f6394a41cf85f999f8b5bade4ac3887942a23da6bb3"
+    }
+  }
+}

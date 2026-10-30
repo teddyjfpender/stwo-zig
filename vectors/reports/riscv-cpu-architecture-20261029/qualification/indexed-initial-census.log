@@ -1,0 +1,63 @@
+1/62 prover.block_v7_initial_test_v1.test.v7 initialization compiler matches ordered ELF bytes BSS and private overlay...OK
+2/62 prover.block_v7_initial_test_v1.test.v7 initialization independent reconstruction rejects false zero class and incomplete partition...OK
+3/62 prover.block_v7_initial_test_v1.test.v7 initialization first touch binds constant zero private values and every witness cell...OK
+4/62 prover.block_v7_initial_test_v1.test.v7 initialization range obligations reject field wrapped interval gap forgery...OK
+5/62 prover.block_v7_initial_test_v1.test.v7 initialization nonfirst rows emit no classification or range demand...OK
+6/62 prover.block_v7_initial_test_v1.test.v7 initialization bounded compiler rejects oversized load and malformed private region...OK
+7/62 prover.block_v7_initial_test_v1.test.v7 initialization compiler allocation failures unwind ownership...OK
+8/62 prover.block_v7_initial_test_v1.test.v7 initialization provider index preserves boundary ownership and row identity...OK
+9/62 prover.block_v7_initial_test_v1.test.v7 indexed first-touch census preserves provider rows and rejects invalid partitions...OK
+10/62 runner.elf_loader.test.loadElf parses minimal ELF header...OK
+11/62 runner.elf_loader.test.ELF admission selects base without a note and exact Poseidon2 with one...OK
+12/62 runner.elf_loader.test.base ELF loader rejects an extension note before loading...OK
+13/62 runner.elf_loader.test.ELF admission rejects section and note envelope drift...OK
+14/62 runner.elf_loader.test.ELF admission rejects every descriptor identity mismatch...OK
+15/62 runner.elf_loader.test.ELF admission selects the exact Keccak-f profile identity...OK
+16/62 runner.elf_loader.test.ELF admission rejects duplicate notes, duplicate sections, and invalid tables...OK
+17/62 runner.elf_loader.test.ELF admission bounds every truncation of the canonical note...OK
+18/62 runner.elf_loader.test.release ABI preflight rejects compatibility and malformed ELFs...OK
+19/62 runner.elf_loader.test.loadElf materializes unaccessed BSS words...OK
+20/62 runner.elf_loader.test.loadElf rejects bad magic...OK
+21/62 runner.elf_loader.test.loadElf rejects non-RISC-V...OK
+22/62 runner.elf_loader.test.loadElf rejects truncated input...OK
+23/62 isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+24/62 runner.memory_state.test.memory state: continuation treats newly touched zero words as absent leaves...OK
+25/62 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+26/62 runner.memory_state.test.memory state: leaf-local first-access values replace entry snapshot...OK
+27/62 runner.memory_state.test.memory state: captures initialized and accessed RW words in address order...OK
+28/62 runner.memory_state.test.memory state: first and last segment roles classify IO independently...OK
+29/62 prover.block_v5_initial_sources_v1.test.block-v5 initial layout admits canonical RW union and rejects source ambiguity...OK
+30/62 runner.memory.test.Memory readU32/writeU32 roundtrip...OK
+31/62 runner.memory.test.Memory byte-level access...OK
+32/62 runner.memory.test.Memory readByte returns 0 for untouched addresses...OK
+33/62 runner.memory.test.Memory canonical initialized inventory merges only new words...OK
+34/62 runner.memory.test.Memory canonical inventory rejects count divergence...OK
+35/62 runner.memory.test.Memory little-endian byte order...OK
+36/62 runner.memory.test.Memory readU16/writeU16 roundtrip...OK
+37/62 runner.memory.test.Memory accesses preserve wrapping page-boundary semantics...OK
+38/62 runner.memory.test.Memory prepared aligned writes commit without lazy allocation...OK
+39/62 air.block.word_memory_v5.test.block-v5 word27 authenticates shifted and public predecessor without duplicate columns...OK
+40/62 air.block.memory_transition.test.sorted real memory accesses reconstruct before and after values across writes...OK
+41/62 air.block.memory_transition.test.new sorted address requires an independently supplied initial value...OK
+42/62 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+43/62 runner.state_chain.test.state_chain: register access tracking...OK
+44/62 runner.state_chain.test.state_chain: clock gap filling...OK
+45/62 runner.state_chain.test.state_chain: decomposeU32...OK
+46/62 runner.state_chain.test.state_chain: memory access tracking...OK
+47/62 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+48/62 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+49/62 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+50/62 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+51/62 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+52/62 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+53/62 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+54/62 air.block.memory_spool.test.memory spool heap merge carries singleton runs and records exact transport work...OK
+55/62 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+56/62 air.block.memory_spool.test.spool accepts real segment accesses and globally orders leaf-local clocks...OK
+57/62 air.block.memory_spool.test.run admission rejects truncated and surplus records before merge...OK
+58/62 air.block.memory_event.test.block memory events share one global clock across leaf-local and continuous frames...OK
+59/62 air.block.memory_event.test.block memory event projection validates real tracker access and wire encoding...OK
+60/62 air.block.memory_radix_sort.test.memory radix sort preserves exact unsigned space address and u64 clock order...OK
+61/62 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+62/62 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 62 tests passed.

@@ -166,8 +166,8 @@ pub const VerifiedCapture = struct {
         defer a.free(witness_logs);
         const expected_logs = [_][]const u32{ schedule.fixed, schedule.main, witness_logs, logs };
         if (self.proof.column_log_sizes.len != 5) return error.InvalidV5CallerCompositeCapture;
-        for (expected_logs, 0..) |expected, i| if (!std.mem.eql(u32, self.proof.column_log_sizes[i], expected)) return error.InvalidV5CallerCompositeCapture;
-        var expected = try receipts(a, &self.claims, &schedule, binding, witness, sealed);
+        for (expected_logs, 0..) |expected, i| try @import("proof_capture_geometry_v1.zig").requireExtendedLogs(error.InvalidV5CallerCompositeCapture, expected, self.proof.column_log_sizes[i], pins.config.fri_config.log_blowup_factor);
+        var expected = try deriveOpenReceipts(a, &self.claims, &schedule, binding, witness, sealed);
         const expected_ranges = expected.memory.range_claims;
         defer a.free(expected_ranges);
         if (self.receipt.memory.range_claims.len != expected_ranges.len) return error.InvalidV5CallerCompositeCapture;
@@ -255,6 +255,12 @@ pub fn mixClaims(channel: anytype, binding: Protocol.CallerBinding, schedule: *c
     channel.mixRoot(binding.caller_key_id);
     channel.mixRoot(binding.caller_instance_id);
     channel.mixRoot(binding.execution_instance_id);
+    try mixClaimBodies(channel, schedule, program, state, tables, memory);
+}
+/// Original physical claim/census grammar, reusable after a protocol's own
+/// admitted header. This does not construct or validate an old source seal.
+pub fn mixClaimBodies(channel: anytype, schedule: *const Schedule, program: []const Program.Claim, state: []const Program.Claim, tables: []const Algebra.Claim, memory: []const External.Claim) !void {
+    if (program.len != schedule.program.len or state.len != schedule.program.len or tables.len != schedule.tables.len or memory.len != schedule.memory.len) return error.InvalidV5CallerCompositeClaims;
     inline for (.{ program, state }, 0..) |claims, partition| {
         channel.mixU32s(&.{@intCast(partition)});
         for (schedule.program, claims) |slot, claim| {
@@ -476,7 +482,7 @@ pub fn ForBackend(comptime Backend: type) type {
             defer components.deinit();
             const handles = try components.verifier();
             defer a.free(handles);
-            var result = try receipts(a, &proof, &schedule, fresh.binding, witness, sealed);
+            var result = try deriveOpenReceipts(a, &proof, &schedule, fresh.binding, witness, sealed);
             errdefer result.deinit(a);
             const roots = .{ fresh.binding.first_roots[0], fresh.binding.first_roots[1], witness };
             const first_channel = firstChannel(fresh.binding, witness, frame, sealed.register_custody_mode, &schedule);
@@ -501,19 +507,19 @@ pub fn ForBackend(comptime Backend: type) type {
         }
     };
 }
-fn appendOwned(a: std.mem.Allocator, out: *std.ArrayList(Column), log: u32, values: [4][]M) !void {
+pub fn appendOwned(a: std.mem.Allocator, out: *std.ArrayList(Column), log: u32, values: [4][]M) !void {
     errdefer for (values) |column| a.free(column);
     try out.ensureUnusedCapacity(a, 4);
     for (values) |column| out.appendAssumeCapacity(.{ .log_size = log, .values = column });
 }
-fn appendCopies(a: std.mem.Allocator, out: *std.ArrayList(Column), log: u32, columns: anytype) !void {
+pub fn appendCopies(a: std.mem.Allocator, out: *std.ArrayList(Column), log: u32, columns: anytype) !void {
     for (columns) |values| {
         const copy = try a.dupe(M, values);
         errdefer a.free(copy);
         try out.append(a, .{ .log_size = log, .values = copy });
     }
 }
-fn generateProgram(a: std.mem.Allocator, fixed: []const Column, main: []const Column, slot: ProgramSlots.Slot, relations: *const @import("../recursion/air/universal_challenges.zig").UniversalRelations, comptime projection: @import("block_v5_program_extension_component_v1.zig").Projection) !Algebra.Generated {
+pub fn generateProgram(a: std.mem.Allocator, fixed: []const Column, main: []const Column, slot: ProgramSlots.Slot, relations: *const @import("../recursion/air/universal_challenges.zig").UniversalRelations, comptime projection: @import("block_v5_program_extension_component_v1.zig").Projection) !Algebra.Generated {
     const size = @as(usize, 1) << @intCast(slot.log_size);
     var columns: [4][]M = undefined;
     var initialized: usize = 0;
@@ -556,7 +562,8 @@ fn generateProgram(a: std.mem.Allocator, fixed: []const Column, main: []const Co
     }
     return .{ .columns = columns, .claim = claim };
 }
-fn receipts(a: std.mem.Allocator, proof: anytype, schedule: *const Schedule, binding: Protocol.CallerBinding, witness: [32]u8, sealed: Seal.Sealed) !Verified {
+/// Pure ledger extraction. Caller must separately authenticate the proof/public claims.
+pub fn deriveOpenReceipts(a: std.mem.Allocator, proof: anytype, schedule: *const Schedule, binding: Protocol.CallerBinding, witness: [32]u8, sealed: Seal.Sealed) !Verified {
     var program = Q.zero();
     var state = Q.zero();
     var count: u64 = 0;

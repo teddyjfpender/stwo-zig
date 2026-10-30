@@ -28,6 +28,15 @@ pub const Result = struct {
     base_files: usize,
     base_file_bytes: u64,
     families: @import("block_v5_cpu_family_queue_v1.zig").Statistics,
+    native_commitments: @import("block_v6_native_commitment_staging_v1.zig").Statistics,
+    access_commitments: @import("block_v6_access_commitment_staging_v1.zig").Statistics,
+    program_commitments: @import("block_v6_provider_commitment_staging_v1.zig").Statistics,
+    lookup_commitments: @import("block_v6_provider_commitment_staging_v1.zig").Statistics,
+    ram_commitments: @import("block_v6_provider_commitment_staging_v1.zig").Statistics,
+    ram_raw_written_bytes: u64,
+    ram_raw_read_bytes: u64,
+    caller_commitments: @import("block_v6_caller_commitment_staging_v1.zig").Statistics,
+    external_commitments: @import("block_v6_caller_commitment_staging_v1.zig").ExternalStatistics,
 };
 pub fn run(backing: std.mem.Allocator, dir: std.fs.Dir, source: *Runner.Source, policy: Admission.InputPolicy, options: Options) !Result {
     try options.validate();
@@ -83,5 +92,29 @@ pub fn run(backing: std.mem.Allocator, dir: std.fs.Dir, source: *Runner.Source, 
     recursive_ns = timer.lap();
     const verified = try Receive.verify(a, dir, source.input, pins, .{ .metadata = options.metadata, .store = options.store, .max_proof_bytes = options.forest.max_proof_bytes });
     const verification_ns = timer.lap();
-    return .{ .verified = verified, .pins = pins, .collection_ns = collection_ns, .base_ns = base_ns, .recursive_ns = recursive_ns, .verification_ns = verification_ns, .prepare_ns = phases[0], .setup_ns = phases[1], .prove_ns = phases[2], .encode_ns = phases[3], .peak_bytes = budget.snapshot().peak_live_bytes, .base_files = file_count, .base_file_bytes = file_bytes, .families = family_statistics };
+    return .{
+        .verified = verified,
+        .pins = pins,
+        .collection_ns = collection_ns,
+        .base_ns = base_ns,
+        .recursive_ns = recursive_ns,
+        .verification_ns = verification_ns,
+        .prepare_ns = phases[0],
+        .setup_ns = phases[1],
+        .prove_ns = phases[2],
+        .encode_ns = phases[3],
+        .peak_bytes = budget.snapshot().peak_live_bytes,
+        .base_files = file_count,
+        .base_file_bytes = file_bytes,
+        .families = family_statistics,
+        .native_commitments = collected.native_commitments,
+        .access_commitments = collected.access_commitments,
+        .program_commitments = collected.globals.program_statistics,
+        .lookup_commitments = collected.groups.commitment_statistics,
+        .ram_commitments = if (collected.globals.ram_checkpoints) |cache| cache.statistics else .{},
+        .ram_raw_written_bytes = if (collected.globals.ram_checkpoints) |cache| cache.raw_written_bytes else 0,
+        .ram_raw_read_bytes = if (collected.globals.ram_checkpoints) |cache| cache.raw_read_bytes else 0,
+        .caller_commitments = collected.caller_commitments,
+        .external_commitments = collected.external_commitments,
+    };
 }

@@ -1,0 +1,265 @@
+{
+  "schema": "stwo-same-rom-byte-loop-architecture-v1",
+  "boundary": "genuine standalone and finite native+macro ORIGINAL math proofs with fresh independent fixed keys; complete VM/recursion providers remain OPEN",
+  "production_active": false,
+  "whole_source_qualified": false,
+  "baseline_elf_changed": false,
+  "custom_opcode_added": false,
+  "inputs": {
+    "elf": {
+      "path": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+      "sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "bytes": 3784904
+    },
+    "prefix_pc": {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-4194304-pc-census.json",
+      "sha256": "c4a6b2b5de067bc0c272f8398727ffb61e489cd9609b7647c30b9b1d4113274d",
+      "bytes": 417562
+    },
+    "prefix_functions": {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/native-4194304-pc-functions.json",
+      "sha256": "2d274ea28f3ce2d4c57d3655db24a0030604680e6d1797965ccda2db84286089",
+      "bytes": 9394
+    },
+    "full_pc": {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/full-execution-pc-census/pcs.json",
+      "sha256": "74a45424384f392e4aa7a3f0fcb33222f30719546fa5eab9f37d61e72724058d",
+      "bytes": 8264001
+    },
+    "full_functions": {
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/full-execution-pc-census/functions.json",
+      "sha256": "0afbc67bf14ac33a87bf2b81ec300582548384e6b091b0d0382b0e47e6297c53",
+      "bytes": 169030
+    }
+  },
+  "same_elf_loop": {
+    "pc": 209312,
+    "words": [
+      378627,
+      15106083,
+      1476243,
+      1410451,
+      4274428131
+    ],
+    "assembly": [
+      "lbu x14,0(x11)",
+      "sb x14,0(x13)",
+      "addi x13,x13,1",
+      "addi x11,x11,1",
+      "bne x13,x12,-16"
+    ]
+  },
+  "prefix": {
+    "cycles": 4194304,
+    "core_rows": 4194304,
+    "loop_instruction_rows": 3554765,
+    "loop_iterations": 710953,
+    "share_of_cycles": 0.8475220203399658,
+    "same_count_at_each_of_five_pcs": true,
+    "admitted_macro_calls_measured": false,
+    "actual_compressed_proof_rows": null,
+    "infinite_loop_only_execution_speedup_ceiling": 6.55832404278707
+  },
+  "full": {
+    "cycles": 139214856,
+    "core_rows": 139181943,
+    "loop_instruction_rows": 21683375,
+    "loop_iterations": 4336675,
+    "share_of_cycles": 0.15575474933508532,
+    "same_count_at_each_of_five_pcs": true,
+    "admitted_macro_calls_measured": false,
+    "actual_compressed_proof_rows": null,
+    "infinite_loop_only_execution_speedup_ceiling": 1.184489932531353
+  },
+  "full_copy_function": {
+    "name": "_RNvNtCsfBZksNTfSi7_19stwo_ethereum_guest11fast_memory10copy_bytes",
+    "core_rows": 37487157,
+    "share": 0.26933922743124805
+  },
+  "prefix_copy_function": {
+    "name": "_RNvNtCsfBZksNTfSi7_19stwo_ethereum_guest11fast_memory10copy_bytes",
+    "core_rows": 3799927,
+    "share": 0.9059731960296631
+  },
+  "semantics": {
+    "clock_advance": "5*N architectural instructions",
+    "partial_pc": "loop base when D+N < x12",
+    "complete_pc": "loop base+20 when D+N == x12",
+    "final_values": {
+      "x11": "S+N",
+      "x13": "D+N",
+      "x14": "source byte at S+N-1",
+      "x12": "unchanged E"
+    },
+    "first_access_clock_deltas": {
+      "x11": 1,
+      "x13": 5,
+      "x14": 2,
+      "x12": 18
+    },
+    "final_access_clock_deltas_from_last_iteration": {
+      "x11": 14,
+      "x13": 17,
+      "x14": 6,
+      "x12": 18
+    },
+    "iteration_access_clock_base": "4*(entry_cycle-1)+20*i",
+    "source_final_word_clock": "base+20*(last copied byte index in word)+3",
+    "destination_final_word_clock": "base+20*(last copied byte index in word)+7",
+    "program_multiplicity": "N fetches at EACH existing PC, never one custom-op fetch"
+  },
+  "packing": {
+    "relative_alignment": "arbitrary 0..3",
+    "two_source_word_ports": true,
+    "unused_boundary_source_ports_suppressed": true,
+    "column_count": 33,
+    "constraint_count": 45,
+    "maximum_degree": 3,
+    "source_query_weight_degree": 2,
+    "requires_external_byte_and_memory_authentication": false,
+    "authentication": "all source/destination/endpoint bytes range-proved; unique source queries and complete local RAM endpoints closed in original proof"
+  },
+  "admission": {
+    "range": "both spans <=2^30 and declared cycle count <=2^24",
+    "alias": "source and destination aligned word spans disjoint; otherwise ordinary native path",
+    "partial_chunks_supported": true,
+    "admission_counts_not_measured": true
+  },
+  "qualified_checks": {
+    "log": "/tmp/bulk-memcpy-byte-loop-qualification.log",
+    "all_tests": 10,
+    "named_tests": 7,
+    "actual_rv32_boundary_runs": 128,
+    "byte_loop_exact_rom_bit_negatives": 160,
+    "native_typed_program_state_register_relation_telescope": true,
+    "arbitrary_alignment_and_address_zero_word_plans": true
+  },
+  "open_work": [
+    "independent ROM/native-table/global-memory provider original closure for joint mode",
+    "recursive/native production source dispatch under new finite macro source identity",
+    "actual retained Ethereum ELF call admission census (aligned word nonoverlap), runner extraction/acceleration and throughput measurement",
+    "replace public macro predecessor clocks and scalar ports with private validated bus witnesses for real workloads"
+  ],
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/bulk_memcpy_byte_loop_certificate_v1.zig",
+      "sha256": "e62d31aa72169041b3bc7f24994f683d6b579551412a4fb6537563b110500d6e",
+      "bytes": 12138
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/bulk_memcpy_byte_loop_kernel_v1.zig",
+      "sha256": "40c2aca622d0e2909384dde537d40cb462eb8214793b3ce2640922bc8079584d",
+      "bytes": 4865
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/tests/bulk_memcpy_byte_loop_v1_test.zig",
+      "sha256": "c5ae72f5383952349968a030f87d9633be7cbbf2a62ac0c872bfd5fe5cc90ffa",
+      "bytes": 13146
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_joint_original_test_root.zig",
+      "sha256": "736786d0528851d514f1d13227640a6850842baddd55bd41cabac132bc0b8e98",
+      "bytes": 88
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_original_test_root.zig",
+      "sha256": "c1e5b09ba6598c5149822e5c8cb968d411e967ae1a8b434fad44b4838d747bdb",
+      "bytes": 82
+    },
+    {
+      "path": "src/frontends/riscv/bulk_memcpy_byte_loop_test_root.zig",
+      "sha256": "87fe3b7890c70d1dc83a8f55a88f8cc2e3accc51a45fc24271d0647e38632927",
+      "bytes": 90
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_components_v1.zig",
+      "sha256": "4052d977d31632747ff2ce348163b56bfd297ac031e2c4d5e69570816081c029",
+      "bytes": 12922
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_joint_original_v1.zig",
+      "sha256": "1bb0a84506c74325a26271ed43fc874a0e69cf2724b81000b4d86b37c6cabf79",
+      "bytes": 18620
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_native_components_v1.zig",
+      "sha256": "5cbb8d81db2f6fc89f2490e7ae1bc41041078c2e1ee5e2856f507a066457b816",
+      "bytes": 13845
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_native_layout_v1.zig",
+      "sha256": "33803dd713dc4b1a1df8a0f5ae16ace8d12e9cea01a2d6c102ce680e33387556",
+      "bytes": 3075
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_original_v1.zig",
+      "sha256": "27041deff7dea12c1375c5279f7e2e9dbef2e570f0445a67bfd4e3466f951e74",
+      "bytes": 26903
+    },
+    {
+      "path": "src/frontends/riscv/prover/bulk_memcpy_byte_loop_scope_v1.zig",
+      "sha256": "87ba4a90d9f31ac84b4ae34b433f00978294a971c7bacd311014b282ab8b91ff",
+      "bytes": 12281
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/bulk_memcpy_byte_loop_joint_original_test.zig",
+      "sha256": "0800dc6829e4fbdd180946c0de27f7526e666ce3f29e3ca3eae9c187e1d8a8ab",
+      "bytes": 9114
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/bulk_memcpy_byte_loop_original_test.zig",
+      "sha256": "abb748fed45eb1bd32f8c16e0ab00c26ffac353ed8a979db5519d791e9f00bb5",
+      "bytes": 9393
+    }
+  ],
+  "standalone_original": {
+    "qualified": true,
+    "log": "/tmp/bulk-memcpy-byte-loop-original-qualification.log",
+    "artifacts": "vectors/reports/riscv-cpu-architecture-20261029/byte-loop-original-math-q8-q70",
+    "profiles": [
+      "diagnostic_q8_pow0",
+      "csp_q70_pow26"
+    ],
+    "retirements": 85,
+    "physical_claims": 31,
+    "trace_trees": 13,
+    "composition_split": 2,
+    "open": [
+      "program",
+      "state",
+      "registers",
+      "global_word_transition"
+    ],
+    "whole_vm_qualified": false
+  },
+  "joint_original": {
+    "qualified": true,
+    "log": "/tmp/bulk-memcpy-byte-loop-joint-qualification.log",
+    "artifacts": "vectors/reports/riscv-cpu-architecture-20261029/byte-loop-joint-original-math-q8-q70",
+    "profiles": [
+      "diagnostic_q8_pow0",
+      "csp_q70_pow26"
+    ],
+    "native_retirements": 10,
+    "macro_retirements": 85,
+    "total_retirements": 95,
+    "rom_fetches_including_unretired_boundary": 96,
+    "physical_claims": 57,
+    "trace_trees": 15,
+    "composition_split": 2,
+    "closed": [
+      "state",
+      "registers",
+      "local_ram",
+      "macro_source_queries",
+      "macro_byte_ranges",
+      "macro_endpoint_ranges"
+    ],
+    "open": [
+      "ROM provider",
+      "native lookup tables",
+      "global word transition"
+    ],
+    "whole_vm_qualified": false
+  }
+}

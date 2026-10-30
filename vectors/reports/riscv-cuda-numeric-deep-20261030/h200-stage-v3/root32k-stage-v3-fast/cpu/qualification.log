@@ -1,0 +1,37 @@
+1/11 riscv_cuda_window_benchmark.test.actual CUDA DEEP V7 canonical window and optional complete recursive root...V7_SOURCE_FAILURE family=native index=0 error=ConstraintsNotSatisfied
+FAIL (ConstraintsNotSatisfied)
+2/11 frontends.riscv.runner.mod.test_0...OK
+3/11 frontends.riscv.runner.decode.test_0...OK
+4/11 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+5/11 frontends.riscv.air.semantic_eval.test_0...OK
+6/11 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+7/11 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+8/11 frontends.riscv.air.lookups.tables.mod.test_0...OK
+9/11 frontends.riscv.prover.block_v5_committed_trace_column_v1.test_0...OK
+10/11 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+11/11 frontends.riscv.diagnostics.mod.test_0...OK
+10 passed; 0 skipped; 1 failed.
+Command exited with non-zero status 1
+	Command being timed: "/workspace/stwo-v7-evidence/binaries/cuda-window-stage-v3-fast/prover"
+	User time (seconds): 9.52
+	System time (seconds): 2.08
+	Percent of CPU this job got: 246%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:04.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 566748
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 438290
+	Voluntary context switches: 10679
+	Involuntary context switches: 70
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 95112
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

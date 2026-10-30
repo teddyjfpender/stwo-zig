@@ -1,0 +1,460 @@
+{
+  "schema": 1,
+  "scope": "retained workload census and consecutive family-batching model",
+  "limitations": [
+    "Host replay does not establish proof correctness.",
+    "Different historical schedules do not imply current v7 segment boundaries.",
+    "Call-slot padding excludes AIR rows per operation, minimum domains and shared tables.",
+    "Inventory reduction is not an end-to-end speedup; window custody projections remain."
+  ],
+  "schedules": [
+    {
+      "source": {
+        "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-geometry-v1/segments.jsonl",
+        "sha256": "bfcdbec54dca05b29beaaebc8e131c9fe6fab5d8de37695093b79ed651e2922d",
+        "windows": 218,
+        "cycles": 139214856,
+        "evidence": "host replay geometry; not a verified block proof"
+      },
+      "families": {
+        "keccak_calls": {
+          "calls": 32835,
+          "active_windows": 120,
+          "maximum_calls_in_window": 886,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 120,
+              "inventory_reduction_factor": 1.0,
+              "maximum_calls_in_batch": 886,
+              "padded_call_slots_proxy": 42388,
+              "padding_ratio_proxy": 1.290939546215928
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 64,
+              "inventory_reduction_factor": 1.875,
+              "maximum_calls_in_batch": 1731,
+              "padded_call_slots_proxy": 43480,
+              "padding_ratio_proxy": 1.3241967412821685
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 34,
+              "inventory_reduction_factor": 3.5294117647058822,
+              "maximum_calls_in_batch": 3426,
+              "padded_call_slots_proxy": 44244,
+              "padding_ratio_proxy": 1.3474645957058018
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 18,
+              "inventory_reduction_factor": 6.666666666666667,
+              "maximum_calls_in_batch": 6825,
+              "padded_call_slots_proxy": 45088,
+              "padding_ratio_proxy": 1.3731688746764124
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 10,
+              "inventory_reduction_factor": 12.0,
+              "maximum_calls_in_batch": 9360,
+              "padded_call_slots_proxy": 48384,
+              "padding_ratio_proxy": 1.4735495660118776
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 6,
+              "inventory_reduction_factor": 20.0,
+              "maximum_calls_in_batch": 9360,
+              "padded_call_slots_proxy": 47104,
+              "padding_ratio_proxy": 1.4345667732602405
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 4,
+              "inventory_reduction_factor": 30.0,
+              "maximum_calls_in_batch": 12539,
+              "padded_call_slots_proxy": 49152,
+              "padding_ratio_proxy": 1.4969392416628597
+            },
+            {
+              "consecutive_windows_per_batch": 218,
+              "active_arithmetic_inventories": 1,
+              "inventory_reduction_factor": 120.0,
+              "maximum_calls_in_batch": 32835,
+              "padded_call_slots_proxy": 65536,
+              "padding_ratio_proxy": 1.995918988883813
+            }
+          ]
+        },
+        "recovery_calls": {
+          "calls": 78,
+          "active_windows": 10,
+          "maximum_calls_in_window": 47,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 10,
+              "inventory_reduction_factor": 1.0,
+              "maximum_calls_in_batch": 47,
+              "padded_call_slots_proxy": 109,
+              "padding_ratio_proxy": 1.3974358974358974
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 7,
+              "inventory_reduction_factor": 1.4285714285714286,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 142,
+              "padding_ratio_proxy": 1.8205128205128205
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 6,
+              "inventory_reduction_factor": 1.6666666666666667,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 141,
+              "padding_ratio_proxy": 1.8076923076923077
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 6,
+              "inventory_reduction_factor": 1.6666666666666667,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 141,
+              "padding_ratio_proxy": 1.8076923076923077
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 5,
+              "inventory_reduction_factor": 2.0,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 143,
+              "padding_ratio_proxy": 1.8333333333333333
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 4,
+              "inventory_reduction_factor": 2.5,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 147,
+              "padding_ratio_proxy": 1.8846153846153846
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 3,
+              "inventory_reduction_factor": 3.3333333333333335,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 146,
+              "padding_ratio_proxy": 1.8717948717948718
+            },
+            {
+              "consecutive_windows_per_batch": 218,
+              "active_arithmetic_inventories": 1,
+              "inventory_reduction_factor": 10.0,
+              "maximum_calls_in_batch": 78,
+              "padded_call_slots_proxy": 128,
+              "padding_ratio_proxy": 1.641025641025641
+            }
+          ]
+        },
+        "sha_calls": {
+          "calls": 0,
+          "active_windows": 0,
+          "maximum_calls_in_window": 0,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 218,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/work-schedule-qualification-v1/geometry-256.jsonl",
+        "sha256": "78f3caf80217525531f93905d38c17629fde07993c310dbdaa7434bd8c60552d",
+        "windows": 256,
+        "cycles": 139214856,
+        "evidence": "host replay geometry; not a verified block proof"
+      },
+      "families": {
+        "keccak_calls": {
+          "calls": 32835,
+          "active_windows": 154,
+          "maximum_calls_in_window": 886,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 154,
+              "inventory_reduction_factor": 1.0,
+              "maximum_calls_in_batch": 886,
+              "padded_call_slots_proxy": 42413,
+              "padding_ratio_proxy": 1.2917009288868586
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 80,
+              "inventory_reduction_factor": 1.925,
+              "maximum_calls_in_batch": 1701,
+              "padded_call_slots_proxy": 42820,
+              "padding_ratio_proxy": 1.3040962387696056
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 42,
+              "inventory_reduction_factor": 3.6666666666666665,
+              "maximum_calls_in_batch": 3388,
+              "padded_call_slots_proxy": 42480,
+              "padding_ratio_proxy": 1.293741434444952
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 22,
+              "inventory_reduction_factor": 7.0,
+              "maximum_calls_in_batch": 6769,
+              "padded_call_slots_proxy": 44768,
+              "padding_ratio_proxy": 1.3634231764885032
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 12,
+              "inventory_reduction_factor": 12.833333333333334,
+              "maximum_calls_in_batch": 9845,
+              "padded_call_slots_proxy": 47168,
+              "padding_ratio_proxy": 1.4365159128978224
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 7,
+              "inventory_reduction_factor": 22.0,
+              "maximum_calls_in_batch": 9901,
+              "padded_call_slots_proxy": 52224,
+              "padding_ratio_proxy": 1.5904979442667886
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 4,
+              "inventory_reduction_factor": 38.5,
+              "maximum_calls_in_batch": 14590,
+              "padded_call_slots_proxy": 43008,
+              "padding_ratio_proxy": 1.3098218364550023
+            },
+            {
+              "consecutive_windows_per_batch": 256,
+              "active_arithmetic_inventories": 1,
+              "inventory_reduction_factor": 154.0,
+              "maximum_calls_in_batch": 32835,
+              "padded_call_slots_proxy": 65536,
+              "padding_ratio_proxy": 1.995918988883813
+            }
+          ]
+        },
+        "recovery_calls": {
+          "calls": 78,
+          "active_windows": 11,
+          "maximum_calls_in_window": 47,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 11,
+              "inventory_reduction_factor": 1.0,
+              "maximum_calls_in_batch": 47,
+              "padded_call_slots_proxy": 108,
+              "padding_ratio_proxy": 1.3846153846153846
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 9,
+              "inventory_reduction_factor": 1.2222222222222223,
+              "maximum_calls_in_batch": 47,
+              "padded_call_slots_proxy": 109,
+              "padding_ratio_proxy": 1.3974358974358974
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 6,
+              "inventory_reduction_factor": 1.8333333333333333,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 141,
+              "padding_ratio_proxy": 1.8076923076923077
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 5,
+              "inventory_reduction_factor": 2.2,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 143,
+              "padding_ratio_proxy": 1.8333333333333333
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 5,
+              "inventory_reduction_factor": 2.2,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 143,
+              "padding_ratio_proxy": 1.8333333333333333
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 4,
+              "inventory_reduction_factor": 2.75,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 147,
+              "padding_ratio_proxy": 1.8846153846153846
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 3,
+              "inventory_reduction_factor": 3.6666666666666665,
+              "maximum_calls_in_batch": 66,
+              "padded_call_slots_proxy": 148,
+              "padding_ratio_proxy": 1.8974358974358974
+            },
+            {
+              "consecutive_windows_per_batch": 256,
+              "active_arithmetic_inventories": 1,
+              "inventory_reduction_factor": 11.0,
+              "maximum_calls_in_batch": 78,
+              "padded_call_slots_proxy": 128,
+              "padding_ratio_proxy": 1.641025641025641
+            }
+          ]
+        },
+        "sha_calls": {
+          "calls": 0,
+          "active_windows": 0,
+          "maximum_calls_in_window": 0,
+          "variants": [
+            {
+              "consecutive_windows_per_batch": 1,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 2,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 4,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 8,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 16,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 32,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 64,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            },
+            {
+              "consecutive_windows_per_batch": 256,
+              "active_arithmetic_inventories": 0,
+              "inventory_reduction_factor": null,
+              "maximum_calls_in_batch": 0,
+              "padded_call_slots_proxy": 0,
+              "padding_ratio_proxy": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

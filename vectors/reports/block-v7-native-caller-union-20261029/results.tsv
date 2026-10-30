@@ -1,0 +1,3 @@
+variant	original_starks	commitments	oods_values	queried_field_values	prove_ns	fresh_verify_ns	stark_bytes	timing_class
+baseline	2	11	33169	127652	2486741208			shared_host_diagnostic
+candidate	1	9	33153	129216	1471396750	993098125	1169498	shared_host_diagnostic

@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-b8-full-block-proving-invocation-v1",
+  "binary_sha256": "0b59ff32423d3a001fa84a037ca506b8f374fbdd2e04505eee3762f56354a0fc",
+  "plan_sha256": "aca2d95f1bf0d39072f6ba53c06852b2f9d2d8616a253bd13c7ac75d344322a6",
+  "checkpoint_manifest_sha256": "5438b5927d498bd2d368d585ea1acd09cc0979577244dd0a1d4613a98ac84548",
+  "cpu_only": true,
+  "workers": 16,
+  "resume_requested": false,
+  "budget_bytes": 64424509440,
+  "native_cohort_cycles": 4194304,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/stwo-b8-full-block-releasefast-build-v1/benchmark"
+  ],
+  "started_unix_ns": 1793355640121732000,
+  "report_checked": false,
+  "returncode": -2,
+  "finished_unix_ns": 1793364459220828000
+}

@@ -25,7 +25,7 @@ const Segment = @import("../runner/mod.zig").EthereumShaSegmentResult;
 const Staged = @import("block_v5_caller_columns_stage_v1.zig");
 pub const ReadonlyCollection = struct { selection: @import("block_v5_readonly_input_selection_v1.zig").Pins, input: []const u8, limits: @import("block_v5_caller_readonly_protocol_v1.zig").Limits = .{}, counter_groups: ?*@import("block_v5_readonly_input_counter_collection_v2.zig").Owned = null };
 pub const Limits = struct { max_metadata_bytes: usize, max_external_slots: usize, register_custody_mode: u32 = 0, readonly: ?ReadonlyCollection = null };
-pub const Staging = struct { dir: std.fs.Dir, name: []const u8, limits: Staged.Limits, pin_out: *Staged.Pin };
+pub const Staging = struct { dir: std.fs.Dir, name: []const u8, limits: Staged.Limits, pin_out: *Staged.Pin, commitment: ?@import("block_v6_caller_commitment_store_v1.zig").Staging = null, external_commitment: ?@import("block_v6_external_commitment_store_v1.zig").Staging = null };
 /// Successful callbacks consume proof ownership; errors leave it with producer.
 pub const Sink = struct {
     context: *anyopaque,
@@ -143,6 +143,21 @@ pub fn ForBackend(comptime Backend: type) type {
             if (staging) |output| {
                 const descriptor = Staged.Descriptor.fromProposal(&proposal);
                 output.pin_out.* = try Staged.write(a, output.dir, output.name, &witness, &descriptor, output.limits);
+                errdefer output.dir.deleteFile(output.name) catch {};
+                var caller_checkpoint_written = false;
+                errdefer if (caller_checkpoint_written) output.dir.deleteFile(output.commitment.?.name) catch {};
+                if (output.commitment) |checkpoint| {
+                    if (Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedCallerCheckpointBackend;
+                    var checkpoint_timer = try std.time.Timer.start();
+                    checkpoint.pin_out.* = try @import("block_v6_caller_commitment_store_v1.zig").write(a, output.dir, checkpoint.name, &descriptor, &physical, checkpoint.limits);
+                    caller_checkpoint_written = true;
+                    if (checkpoint.statistics) |statistics| try statistics.wrote(checkpoint.pin_out.*, checkpoint_timer.read());
+                }
+                if (output.external_commitment) |checkpoint| {
+                    if (Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedCallerCheckpointBackend;
+                    if (classified != null) return error.UnsupportedReadonlyExternalCheckpoint;
+                    try @import("block_v6_external_commitment_store_v1.zig").write(a, output.dir, checkpoint, &descriptor, limits.register_custody_mode, &original.?);
+                }
             }
             for (&global.counters, counters.counters) |*target, source| {
                 for (target.values, source.values) |*dst, value| dst.* = dst.add(value);
@@ -165,14 +180,21 @@ pub fn ForBackend(comptime Backend: type) type {
         /// matrices and signed counters come from pinned staged cells; mandatory
         /// physical recommit is reused by the original warm proof transaction.
         pub fn proveStaged(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, file_pin: Staged.Pin, bound: *const Bound, limits: Staged.Limits, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, pool: *engine.work_pool.WorkPool, sink: Sink, hooks: ?Hooks) !void {
+            return proveStagedWithCommitment(a, dir, name, file_pin, bound, limits, sealed, pins, entries, pool, sink, hooks, null);
+        }
+        pub fn proveStagedWithCommitment(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, file_pin: Staged.Pin, bound: *const Bound, limits: Staged.Limits, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, pool: *engine.work_pool.WorkPool, sink: Sink, hooks: ?Hooks, checkpoint: ?@import("block_v6_caller_commitment_store_v1.zig").Input) !void {
+            return proveStagedWithCheckpoints(a, dir, name, file_pin, bound, limits, sealed, pins, entries, pool, sink, hooks, checkpoint, null);
+        }
+        pub fn proveStagedWithCheckpoints(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, file_pin: Staged.Pin, bound: *const Bound, limits: Staged.Limits, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, pool: *engine.work_pool.WorkPool, sink: Sink, hooks: ?Hooks, checkpoint: ?@import("block_v6_caller_commitment_store_v1.zig").Input, external_checkpoint: ?@import("block_v6_external_commitment_store_v1.zig").Input) !void {
             try requireSink(bound, sink);
             try requireBound(a, bound, sealed, pins, entries);
+            if (external_checkpoint != null and bound.proposal.readonly_physical != null) return error.UnsupportedReadonlyExternalCheckpoint;
             const descriptor = Staged.Descriptor.fromProposal(&bound.proposal);
-            var prepared = try Staged.ForBackend(Backend).load(a, dir, name, &descriptor, file_pin, limits);
+            var prepared = if (checkpoint) |cached| try Staged.ForBackend(Backend).loadWithCommitment(a, dir, name, &descriptor, file_pin, limits, cached) else try Staged.ForBackend(Backend).load(a, dir, name, &descriptor, file_pin, limits);
             defer prepared.deinit(a);
             var first = try prepared.first.bind(bound.record.execution.index, bound.record.execution.instance_id);
             defer first.deinit(a);
-            var context = Context{ .bound = bound, .sink = sink, .hooks = hooks, .counters = &prepared.owner.counters };
+            var context = Context{ .bound = bound, .sink = sink, .hooks = hooks, .counters = &prepared.owner.counters, .external_checkpoint = external_checkpoint };
             try Producer.proveFirstRoundWithHooks(a, &bound.record, &prepared.owner.witness, &first, bound.proposal.config, .{ .context = sink.context, .accept = sink.put_caller }, sealed, pins, entries, pool, .{ .context = &context, .on_first_round = Context.warm, .on_proof = Context.proved });
         }
         fn requireSink(bound: *const Bound, sink: Sink) !void {
@@ -199,6 +221,7 @@ pub fn ForBackend(comptime Backend: type) type {
             sink: Sink,
             hooks: ?Hooks,
             counters: *Tables.counter.Set,
+            external_checkpoint: ?@import("block_v6_external_commitment_store_v1.zig").Input = null,
             fn warm(raw: *anyopaque, a: std.mem.Allocator, caller: Producer.WarmCaller) !void {
                 const self: *Context = @ptrCast(@alignCast(raw));
                 // The versioned composite binds original caller cells and both
@@ -214,7 +237,7 @@ pub fn ForBackend(comptime Backend: type) type {
                     return;
                 }
                 // Recheck every physical counter snapshot before any publish.
-                var memory = try Memory.Prepared.initForMode(a, caller.first, &caller.record.statement, self.bound.proposal.frame, caller.record.execution.index, &self.counters.counters[@intFromEnum(Tables.schema.Kind.range_check_8_8)], caller.sealed.register_custody_mode);
+                var memory = try Memory.Prepared.initForModeWithCheckpoint(a, caller.first, &caller.record.statement, self.bound.proposal.frame, caller.record.execution.index, &self.counters.counters[@intFromEnum(Tables.schema.Kind.range_check_8_8)], caller.sealed.register_custody_mode, self.external_checkpoint, self.bound.proposal.witness_root);
                 defer memory.deinit(a);
                 if (!std.meta.eql(memory.first.roots[2], self.bound.proposal.witness_root) or !std.meta.eql(memory.byte_snapshot, self.bound.proposal.byte_snapshot) or !std.meta.eql(snapshots(self.counters), self.bound.proposal.counter_snapshots)) return error.V5CallerPhysicalReplayMismatch;
                 var fused = FusedStage.ForBackend(Backend){

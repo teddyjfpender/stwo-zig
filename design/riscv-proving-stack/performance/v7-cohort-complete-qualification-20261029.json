@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "security": "diagnostic_q8_pow0",
+  "canonical_security": false,
+  "ethereum_block": false,
+  "cycles": 20,
+  "native_segments": 2,
+  "caller_proofs": 1,
+  "ram_cohorts": 4,
+  "memory_providers": 3,
+  "other_providers": 2,
+  "original_proofs": 12,
+  "final_proof_bytes": 159188,
+  "execution_to_verified_root_seconds": 68.330396125,
+  "charged_peak_bytes": 7999930428,
+  "hostiles": [
+    "missing RAM cohort",
+    "compensated RAM initialization and interval physical claims"
+  ],
+  "ownership": "original proofs/checkpoints destroyed before complete root receiver",
+  "limits": "small fixture only; binary predates subsequent receiver matrix-cap hardening; timings diagnostic with concurrent builds",
+  "log_sha256": "f4fb7ca8c803fa473754c31fca0496fe9e0b3f707a1d894b99419654569ae1a8",
+  "binary_sha256": "4a005fa9968756abe4d6748b767e05a4225ee8e729b54200f1371eb746716a3e",
+  "evidence_lines": [
+    "V7_STREAMING_COMPLETE iterations=1 profile=diagnostic_q8_pow0 source={\"cycles\":20,\"segments\":2,\"callers\":1,\"events\":103,\"fetches\":21,\"original_proofs\":12,\"checkpoint_bytes\":24848640,\"native_checkpoint_bytes\":30408,\"caller_checkpoint_bytes\":5521176,\"max_native_restore_codec_bytes\":29760,\"event_storage_bytes\":12582912,\"setup_ns\":1458250,\"execution_ns\":624458,\"collection_ns\":460966584,\"providers_first_ns\":67573375,\"native_proof_ns\":123572541,\"caller_proof_ns\":5129843125,\"memory_proof_ns\":256721834,\"rom_proof_ns\":8105416,\"lookup_proof_ns\":47019709,\"verification_ns\":3294937875,\"consumer_ns\":57881955291,\"whole_ns\":67272778625,\"charged_peak_bytes\":7999930428} recursive={\"metadata_ns\":394639541,\"caller_compile_ns\":889798125,\"cold_key_ns\":9376756334,\"capture_witness_join_ns\":18894652375,\"parity_ns\":16836666,\"plan_ns\":1287538292,\"proof_ns\":26889713542,\"encoding_ns\":79628833,\"whole_ns\":57829563792,\"retained_rows_bytes\":1835834292,\"fixed_commitment_reused\":true} root_verification_ns=610683291 execution_to_verified_root_ns=68330396125 proof_bytes=159188 charged_peak_bytes=7999930428 original_owners_destroyed=true complete_global_closure=true ethereum_block=false",
+    "All 11 tests passed.",
+    "          8041889792  maximum resident set size",
+    "          8035753640  peak memory footprint"
+  ]
+}

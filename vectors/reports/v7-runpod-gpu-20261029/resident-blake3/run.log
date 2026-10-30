@@ -1,0 +1,26 @@
+1/1 riscv_cuda_blake3_device_test_root.test.actual NVIDIA resident BLAKE3 canonical commitments transcript and minimum nonce...resident_blake3 canonical_cpu_oracle=passed domains=leaf,node,words,felts,integer,root,draw,pow numeric_cpu_fallback=false
+OK
+All 1 tests passed.
+	Command being timed: "/workspace/stwo-v7-evidence/resident-blake3-final/prover"
+	User time (seconds): 0.02
+	System time (seconds): 0.60
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.63
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 127012
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 9940
+	Voluntary context switches: 70
+	Involuntary context switches: 5
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

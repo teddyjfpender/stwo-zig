@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "active_layout_version": 3,
+  "scope": "synthetic original-STARK execution with complete global closure; not an Ethereum block or recursive publication proof",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "producer_tests": 11,
+  "fresh_process_tests": 8,
+  "measurements": {
+    "profile": "csp_q70_pow26",
+    "cycles": 20,
+    "cut": 20,
+    "native_windows": 7,
+    "callers": 3,
+    "no_access": 6,
+    "physical_frames": 3,
+    "original_starks": 1,
+    "oracle_starks": 13,
+    "trees": 35,
+    "estimated_trace_pcs_bytes": 68834944,
+    "setup_ns": 305514416,
+    "prove_ns": 3991571375,
+    "oracle_prove_verify_ns": 20257994250,
+    "fresh_verify_ns": 1748805125,
+    "proof_bytes": 7098779,
+    "charged_proof_peak_bytes": 370452251,
+    "all_producer_and_oracle_owners_destroyed": "true",
+    "exact_physical_claims": "true",
+    "global_closure": "true",
+    "timing": "shared_host_diagnostic"
+  },
+  "transport": {
+    "bytes": 7206278,
+    "windows": 7,
+    "callers": 3,
+    "trees": 35,
+    "decode_peak_bytes": 47819868,
+    "fresh_verification": "true",
+    "hostile_framing": "true"
+  },
+  "callers": [
+    {
+      "native_window": 3,
+      "sha_calls": 1,
+      "keccak_calls": 0,
+      "recovery_calls": 0
+    },
+    {
+      "native_window": 4,
+      "sha_calls": 0,
+      "keccak_calls": 1,
+      "recovery_calls": 0
+    },
+    {
+      "native_window": 5,
+      "sha_calls": 1,
+      "keccak_calls": 0,
+      "recovery_calls": 0
+    }
+  ],
+  "memory_scope": "tracked allocator peak, excluding external fixture preparation; not process RSS",
+  "compact_storage_admission": false,
+  "artifacts": {
+    "guest.elf": {
+      "bytes": 1492,
+      "sha256": "9c491c21acaad4bedffd898e298f48d04d1d646e825888086b6b9e8ee210ff4d"
+    },
+    "public-metadata.json": {
+      "bytes": 361836,
+      "sha256": "e97585a08b1cd59b046af2d9df46d214bb67117041a85c4062ca512128f3542e"
+    },
+    "proof.b7mun": {
+      "bytes": 7206278,
+      "sha256": "5f17acacdc9920edef6671dee8bff620db13c81247fe5eb197a50440b4ae0328"
+    },
+    "qualification.log": {
+      "bytes": 1627,
+      "sha256": "8c63d2639d3aef966efaec2542e73667ee8662d6cfe334903237b5583bca99ce"
+    },
+    "fresh-process.log": {
+      "bytes": 729,
+      "sha256": "eb4ed7c27767d1ca34df12fef9d182ba41f285dfef9cc42f65f2cd9555840112"
+    }
+  }
+}

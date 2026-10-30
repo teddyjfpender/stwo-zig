@@ -1,0 +1,39 @@
+{
+  "schema": "resident-native-projection-qualification-v1",
+  "scope": "original per-physical-slot component numerical kernels; not a complete native STARK or full execution proof",
+  "host": {
+    "passed_tests": 5,
+    "exact_programs": 800,
+    "families": 17,
+    "layouts": [
+      "canonical_v7",
+      "degree_bounded_q2_v1"
+    ],
+    "claims": "each physical normalized claim independently mutated"
+  },
+  "device": {
+    "gpu": "NVIDIA H200 SM90",
+    "physical_slots": 56,
+    "exact_words": 9856,
+    "negative_checks": 112,
+    "coverage": "all17 family program projections; full MUL/load-store and q2 MUL projection schedules; exact fractions, per-slot prefixes and raw claims, residuals, device Universal47 pair selection and normalized means",
+    "host_inputs": "synthetic oracle vectors only; production kernels consume resident MAIN, draws, claim and prefix pointers"
+  },
+  "launch": {
+    "nvcc": "/usr/local/cuda/bin/nvcc -O3 -arch=sm_90 -I/workspace/stwo-v7-resident-parent-v1/src/backends/cuda/native native-projection-oracle-v3.cu -o native-projection-oracle-v3"
+  },
+  "files": {
+    "source-manifest.json": "76652a9f74a1a849b45aa1c954a0ed747123aed5630bd997281830acc857359c",
+    "native-projection-oracle-v3": "da718ec958e1f557322243a8d8dcf7b1e291bf047a6aa509493d110c0a3b5c0b",
+    "native-projection-run-v3.log": "8060b9794ba7a21645e0651bb01db7fdade3d958613fa293379fbfd3b3180e4f",
+    "oracle.cu": "4b615e11b866d9a7700541b4e6b26e0dfc1e2251d311caf347388d1d4c44ed75",
+    "native-projection-build-v3.log": "dde65cd085ad88da1a3b175b5fea701eab0e07ec948f97bcb07db3f4eab1dd12",
+    "host.log": "c9e220586fd077b62dd8c82272d61902521d9aac9320d29176009db0b0b39dc1"
+  },
+  "regression_found": "new projection emitter now handles trace_rows==evaluation_rows with exact original core previous-row mapping; existing extended-domain helper unchanged",
+  "limitations": [
+    "numeric component qualification only",
+    "complete native resident controller/commitment/transcript integration remains",
+    "caller must independently derive exact physical slot roster and preserve all claims"
+  ]
+}

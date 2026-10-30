@@ -1,0 +1,33 @@
+{
+  "schema": "stwo-b8-mixed-single-dag-root-qualification-v1",
+  "queries": 70,
+  "pow_bits": 26,
+  "test_result": "486 passed; 1 skipped; 0 failed",
+  "theorem": "declared mixed window recursively closed; not full retained Ethereum block",
+  "source_originals": 3,
+  "source_families": [
+    "mixed_native_caller_endpoint",
+    "same_endpoint_root_bridge",
+    "compact_snapshot_bound_ram"
+  ],
+  "intermediate_recursive_proofs": 0,
+  "cases": [
+    {
+      "kind": "sha_keccak",
+      "native_wide_shards": true,
+      "root_bytes": 1025154,
+      "parent_core_ns": 80631286541
+    },
+    {
+      "kind": "recovery",
+      "native_wide_shards": false,
+      "root_bytes": 991455,
+      "parent_core_ns": 59022599958
+    }
+  ],
+  "fresh_byte_only_receiver_after_all_originals_captures_profiles_and_keys_destroyed": true,
+  "proof_bytes_retained": false,
+  "timing_isolated": false,
+  "timing_notes": "Tiny correctness fixtures; first case actual VM reexecution into wide native shards. Do not extrapolate throughput from these timings.",
+  "terminal_boundary_gate": "separate nine-instruction actual Keccak fixture pending"
+}

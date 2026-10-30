@@ -12,13 +12,8 @@ pub const CONSTRAINT_COUNT: usize = old.CONSTRAINT_COUNT + universal.CONSTRAINT_
 
 pub fn evaluatePair(self: anytype, pair: bridge.Pair(Q), witness: [integer.COLUMN_COUNT]Q, interaction: [INTERACTION_COUNT]Q, previous: [INTERACTION_COUNT]Q) ![CONSTRAINT_COUNT]Q {
     if (self.v5_packed) |word_mode| {
-        const domain = @as(u32, 1) << @intCast(self.log_size);
-        if (self.transition_count > domain) return error.InvalidExecutionEventCount;
-        const inverse = try core.fields.m31.M31.fromCanonical(domain).inv();
-        var ranges: [7]Q = undefined;
-        for (&ranges, self.range_claims) |*out, claim| out.* = claim.mulM31(inverse);
-        const normalized_count = Q.fromBase(core.fields.m31.M31.fromU64(self.transition_count)).mulM31(inverse);
-        return @import("block_v5_native_fused_algebra_v1.zig").Algebra(Q).access(pair, witness, interaction, previous, @import("block_execution_integer_algebra_v1.zig").clockBytes(Q, self.base_clock), word_mode.elements.transition, &word_mode.elements.universal_prefix, self.transition_claim.mulM31(inverse), normalized_count, ranges, self.v5_universal.?.claim.mulM31(inverse));
+        _ = word_mode;
+        return evaluatePairWithClock(self, pair, witness, interaction, previous, @import("block_execution_integer_algebra_v1.zig").clockBytes(Q, self.base_clock));
     }
     var old_interaction: [old.INTERACTION_COUNT]Q = undefined;
     var old_previous: [old.INTERACTION_COUNT]Q = undefined;
@@ -37,6 +32,22 @@ pub fn evaluatePair(self: anytype, pair: bridge.Pair(Q), witness: [integer.COLUM
         .previous_prefix = secure(previous, start + 8),
     }, self.v5_universal.?.claim, @as(u32, 1) << @intCast(self.log_size));
     return old_constraints ++ new_constraints;
+}
+
+/// Explicit shared-frame recipe: clock bytes come from independently pinned
+/// fixed columns. All integer, transition, range and opposite-memory equations
+/// are the original packed access equations; no witness-selected frame.
+pub fn evaluatePairWithClock(self: anytype, pair: bridge.Pair(Q), witness: [integer.COLUMN_COUNT]Q, interaction: [INTERACTION_COUNT]Q, previous: [INTERACTION_COUNT]Q, clock_bytes: [8]Q) ![CONSTRAINT_COUNT]Q {
+    if (self.v5_packed) |word_mode| {
+        const domain = @as(u32, 1) << @intCast(self.log_size);
+        if (self.transition_count > domain) return error.InvalidExecutionEventCount;
+        const inverse = try core.fields.m31.M31.fromCanonical(domain).inv();
+        var ranges: [7]Q = undefined;
+        for (&ranges, self.range_claims) |*out, claim| out.* = claim.mulM31(inverse);
+        const normalized_count = Q.fromBase(core.fields.m31.M31.fromU64(self.transition_count)).mulM31(inverse);
+        return @import("block_v5_native_fused_algebra_v1.zig").Algebra(Q).access(pair, witness, interaction, previous, clock_bytes, word_mode.elements.transition, &word_mode.elements.universal_prefix, self.transition_claim.mulM31(inverse), normalized_count, ranges, self.v5_universal.?.claim.mulM31(inverse));
+    }
+    return error.InvalidPackedExecutionSidecar;
 }
 
 fn secure(values: [INTERACTION_COUNT]Q, at: usize) Q {

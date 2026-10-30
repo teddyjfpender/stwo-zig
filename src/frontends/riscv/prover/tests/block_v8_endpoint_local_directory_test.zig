@@ -1,0 +1,58 @@
+const std = @import("std");
+const Receiver = @import("../block_v8_endpoint_local_directory_v1.zig");
+const Transport = @import("../block_v8_endpoint_local_transport_v1.zig");
+test "durable local bundle receivers codegen legacy and compact protocols" {
+    inline for (.{ &Receiver.verifyDirectory, &Receiver.verifyDirectoryCompact }) |function| std.mem.doNotOptimizeAway(function);
+}
+test "durable bridge envelope rejects wrong role before allocation" {
+    const config = @import("../../recursion/blake3_execution_parent_protocol.zig").Profile.csp_q70_pow26.config();
+    try std.testing.expectError(error.InvalidEndpointTransportGeometry, Transport.bridge(std.testing.failing_allocator, &.{}, 0, 4, config, .{}));
+    try std.testing.expectError(error.UntrustedEndpointTransport, Transport.bridge(std.testing.failing_allocator, &(@as([40]u8, @splat(0))), 1, 4, config, .{}));
+    try std.testing.expectError(error.EndOfStream, Transport.bridge(std.testing.failing_allocator, &.{}, 1, 4, config, .{}));
+}
+fn digest(name: [:0]const u8) ![32]u8 {
+    var result: [32]u8 = undefined;
+    const text = std.posix.getenv(name) orelse return error.MissingReloadPin;
+    if (text.len != 64) return error.InvalidReloadPin;
+    _ = try std.fmt.hexToBytes(&result, text);
+    return result;
+}
+test "real durable local bundle receiver from saved artifacts and external snapshots" {
+    if (std.posix.getenv("STWO_B8_RELOAD_ENABLE") == null) return error.SkipZigTest;
+    const Engine = @import("stwo_prover_engine");
+    const Capture = @import("../block_v7_real_window_capture_v1.zig");
+    const budget = try Engine.host_budget_allocator.SharedHostBudget.create(std.testing.allocator, 16 << 30);
+    defer budget.destroy();
+    const a = budget.allocator();
+    var pool: Engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 8, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try Engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var timer = try std.time.Timer.start();
+    const elf = try std.fs.cwd().readFileAlloc(a, std.posix.getenv("STWO_B8_LOCAL_ELF") orelse return error.MissingReloadInput, 32 << 20);
+    defer a.free(elf);
+    const incoming_bytes = try std.fs.cwd().readFileAlloc(a, std.posix.getenv("STWO_B8_LOCAL_INCOMING") orelse return error.MissingReloadInput, 256 << 20);
+    defer a.free(incoming_bytes);
+    const outgoing_bytes = try std.fs.cwd().readFileAlloc(a, std.posix.getenv("STWO_B8_LOCAL_OUTGOING") orelse return error.MissingReloadInput, 256 << 20);
+    defer a.free(outgoing_bytes);
+    const incoming_pin = try digest("STWO_B8_LOCAL_INCOMING_SHA256");
+    const outgoing_pin = try digest("STWO_B8_LOCAL_OUTGOING_SHA256");
+    var incoming = try Capture.Snapshot.decode(a, incoming_bytes, incoming_pin, .{});
+    defer incoming.deinit(a);
+    var outgoing = try Capture.Snapshot.decode(a, outgoing_bytes, outgoing_pin, .{});
+    defer outgoing.deinit(a);
+    const skip = try std.fmt.parseInt(u64, std.posix.getenv("STWO_B8_LOCAL_SKIP") orelse return error.MissingReloadInput, 10);
+    const cycles = try std.fmt.parseInt(u32, std.posix.getenv("STWO_B8_LOCAL_CYCLES") orelse return error.MissingReloadInput, 10);
+    const event_nomination: ?u32 = if (std.posix.getenv("STWO_B8_RELOAD_ENDPOINT_EVENTS")) |text| try std.fmt.parseInt(u32, text, 10) else null;
+    const compact = std.mem.eql(u8, std.posix.getenv("STWO_B8_RELOAD_COMPACT") orelse "0", "1");
+    var artifacts = try std.fs.cwd().openDir(std.posix.getenv("STWO_B8_RELOAD_ARTIFACTS") orelse return error.MissingReloadInput, .{});
+    defer artifacts.close();
+    const external = @import("../block_v8_endpoint_local_bundle_v1.zig").External{ .elf = elf, .incoming = incoming, .outgoing = outgoing, .trusted = .{ .elf_sha256 = try digest("STWO_B8_LOCAL_ELF_SHA256"), .incoming_sha256 = incoming_pin, .outgoing_sha256 = outgoing_pin, .window = .{ .skip_cycles = skip, .cycles = cycles } }, .config = @import("../../recursion/blake3_execution_parent_protocol.zig").Profile.csp_q70_pow26.config() };
+    const loading_ns = timer.lap();
+    const verified = if (compact) try Receiver.verifyDirectoryCompact(a, artifacts, external, .{ .endpoint_events_nomination = event_nomination }, .{ .bundle = .{ .memory = .{ .max_events = 1 << 24, .max_row_log = 24, .max_matrix_bytes = 4 << 30 } } }) else try Receiver.verifyDirectory(a, artifacts, external, .{ .endpoint_events_nomination = event_nomination }, .{ .bundle = .{ .memory = .{ .memory = .{ .max_events = 1 << 24, .max_row_log = 24, .max_matrix_bytes = 4 << 30 }, .max_live_bytes = 16 << 30 } } });
+    const report = try std.json.Stringify.valueAlloc(a, .{ .schema = "stwo-b8-durable-all-originals-reload-v1", .proving_performed = false, .producer_objects_present = false, .external_snapshots_redecoded = true, .full_runtime_postcard_preflight = true, .loading_ns = loading_ns, .verification_ns = timer.read(), .charged_peak_bytes = budget.snapshot().peak_live_bytes, .verified = verified }, .{ .whitespace = .indent_2 });
+    defer a.free(report);
+    std.debug.print("{s}\n", .{report});
+    if (std.posix.getenv("STWO_B8_RELOAD_REPORT")) |path| try std.fs.cwd().writeFile(.{ .sub_path = path, .data = report });
+}

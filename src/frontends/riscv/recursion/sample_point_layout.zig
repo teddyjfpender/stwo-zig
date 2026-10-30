@@ -26,6 +26,9 @@ pub const Layout = enum(u8) {
     /// Original fused Keccak state: exactly two samples, current and final
     /// round (+27), with a separately authenticated physical slot step.
     current_keccak_final = 6,
+    /// Shared caller root-owner uses the exact composition-domain +27 step.
+    /// Keep a distinct tag so physical-domain profiles are not broadened.
+    current_keccak_final_composition = 7,
 
     pub fn offsets(self: Layout) []const isize {
         return switch (self) {
@@ -35,7 +38,7 @@ pub const Layout = enum(u8) {
             .previous_current => &.{ -1, 0 },
             .secp256k1_main => &masks.SECP256K1_MAIN_MASK_OFFSETS,
             .keccak_state => &masks.KECCAKF_STATE_MASK_OFFSETS,
-            .current_keccak_final => &.{ 0, 27 },
+            .current_keccak_final, .current_keccak_final_composition => &.{ 0, 27 },
         };
     }
 

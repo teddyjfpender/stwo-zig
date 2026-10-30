@@ -1,0 +1,20 @@
+1/14 block_v8_sparse_rom_original_test_root.test_0...OK
+2/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM standalone canonical original q70 independently reconstructs ELF support...SPARSE_ROM_ORIGINAL_FRESH_VERIFIED joint=false profile=csp_q70_pow26 selected=4 rows=16 fullRows=4096 bytes=3922
+OK
+3/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM native joint canonical original q70 closes actual native requests...SPARSE_ROM_ORIGINAL_FRESH_VERIFIED joint=true profile=csp_q70_pow26 selected=4 rows=16 fullRows=4096 bytes=21668
+OK
+4/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM standalone diagnostic original q8 independently reconstructs ELF support...SPARSE_ROM_ORIGINAL_FRESH_VERIFIED joint=false profile=diagnostic_q8_pow0 selected=4 rows=16 fullRows=4096 bytes=3568
+OK
+5/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM native joint diagnostic original q8 closes actual native requests...SPARSE_ROM_ORIGINAL_FRESH_VERIFIED joint=true profile=diagnostic_q8_pow0 selected=4 rows=16 fullRows=4096 bytes=10958
+OK
+6/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM inventory rejects duplicate missing altered root and field count aliases...OK
+7/14 prover.tests.block_v8_sparse_rom_original_test.test.sparse ROM retained ELF actual cohort support canonical original q70...SPARSE_RETAINED_ROM_ORIGINAL_FRESH_VERIFIED selected=146 log=8 fullRows=818809 bytes=29674
+OK
+8/14 runner.mod.test_0...OK
+9/14 runner.decode.test_0...OK
+10/14 air.memory_commitment.poseidon2_air.test_0...OK
+11/14 air.semantic_eval.test_0...OK
+12/14 air.lookups.tables.source_ingest.test_0...OK
+13/14 diagnostics.mod.test_0...OK
+14/14 air.lookups.tables.mod.test_0...OK
+All 14 tests passed.

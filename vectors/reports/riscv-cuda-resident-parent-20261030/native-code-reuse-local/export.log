@@ -1,0 +1,12 @@
+1/10 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate configured exact finite bundle export...RESIDENT_NATIVE_CANDIDATE program_identity=6bc9d9cc515675f9462bb2268333fc8caf517daa9b5bd18d22ceed1fde3e61cb code_identity=7f5da598519d5a6b065caf6f4466b5b66b1f5fcfeb3ae061eb415dd536b3aed4 trees=4 split=3 retirements=64 mul=31 loads=0 stores=0 clocks=0 raw_words=1536 queries=8 pow=0 composition=8 fri=6 mask=5 gpu_qualified=false
+OK
+2/10 frontends.riscv.runner.mod.test_0...OK
+3/10 frontends.riscv.runner.decode.test_0...OK
+4/10 frontends.riscv.air.lookups.tables.mod.test_0...OK
+5/10 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+6/10 frontends.riscv.air.semantic_eval.test_0...OK
+7/10 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+8/10 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+9/10 frontends.riscv.diagnostics.mod.test_0...OK
+10/10 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+All 10 tests passed.

@@ -1,0 +1,1 @@
+PASS resident_composite_routing positive=6 hostile=4 sticky_preserved=true child_receipt=false

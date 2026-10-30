@@ -1,0 +1,18 @@
+NATIVE_WITNESS_VECTOR family=base_alu_reg active=1024 padded=2048 columns=35 cpu_ns=116792
+NATIVE_WITNESS_VECTOR family=base_alu_imm active=1024 padded=2048 columns=35 cpu_ns=100292
+NATIVE_WITNESS_VECTOR family=shifts_reg active=3 padded=4 columns=60 cpu_ns=2250
+NATIVE_WITNESS_VECTOR family=shifts_imm active=1024 padded=2048 columns=51 cpu_ns=151500
+NATIVE_WITNESS_VECTOR family=lt_reg active=6 padded=8 columns=44 cpu_ns=2167
+NATIVE_WITNESS_VECTOR family=lt_imm active=2 padded=4 columns=37 cpu_ns=875
+NATIVE_WITNESS_VECTOR family=branch_eq active=1024 padded=2048 columns=30 cpu_ns=74250
+NATIVE_WITNESS_VECTOR family=branch_lt active=1024 padded=2048 columns=37 cpu_ns=109208
+NATIVE_WITNESS_VECTOR family=lui active=157 padded=256 columns=18 cpu_ns=7167
+NATIVE_WITNESS_VECTOR family=auipc active=35 padded=64 columns=29 cpu_ns=2334
+NATIVE_WITNESS_VECTOR family=jalr active=45 padded=64 columns=41 cpu_ns=2417
+NATIVE_WITNESS_VECTOR family=jal active=1024 padded=2048 columns=20 cpu_ns=34167
+NATIVE_WITNESS_VECTOR family=load_store active=1024 padded=2048 columns=50 cpu_ns=164125
+NATIVE_WITNESS_VECTOR family=mul active=7 padded=8 columns=39 cpu_ns=1750
+NATIVE_WITNESS_VECTOR family=mulh active=4 padded=8 columns=47 cpu_ns=1208
+NATIVE_WITNESS_VECTOR family=div active=8 padded=16 columns=67 cpu_ns=3291
+NATIVE_WITNESS_VECTOR family=fence active=2 padded=4 columns=6 cpu_ns=125
+NATIVE_WITNESS_VECTORS families=17 selectors=46 rows=7437 field_words=539996

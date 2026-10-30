@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "scope": "isolated native-with-access plus active SHA/Keccak caller original STARK",
+  "status": "qualified_original_open_sources",
+  "profile": "diagnostic_q8_pow0",
+  "backend": "cpu",
+  "optimization": "ReleaseSafe",
+  "tests_passed": 11,
+  "leaks": 0,
+  "ethereum_block": false,
+  "complete_execution": false,
+  "recursive_adapter_qualified": false,
+  "controlled_ab": false,
+  "timing_scope": "same-process shared-host diagnostic; union runs before separate oracle; includes new merged-fixed commitment, excludes common initial private commitments",
+  "source_base_commit": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "owned_file_sha256": {
+    "src/frontends/riscv/block_v7_native_caller_union_test_root.zig": "791f1481375d995dfdd065acf850c2a72a5ffa110eb41c287e79e12446e2ef68",
+    "src/frontends/riscv/prover/block_v7_native_caller_union_components_v1.zig": "699faa348aa79bf9968d11ae37582d974086089da0024270f0a23aeb9bac9bbf",
+    "src/frontends/riscv/prover/block_v7_native_caller_union_proof_v1.zig": "d728030fff4f80d6fa20e6b761fb0d3a804e894e81d644f630dc46e252a25c67",
+    "src/frontends/riscv/prover/tests/block_v7_native_caller_union_test.zig": "402f9d959facf94c20e64e1bb3d00359e7636dc75ecc1806620e1c526b870be6"
+  },
+  "owned_hash_scope": "Owned files only, not a transitive repository snapshot. Existing original components/PCS are reused.",
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_native_caller_union_test_root.zig -OReleaseSafe -fstrip --test-filter 'v7 native access active caller union'",
+  "log_sha256": "b01140451565e0b43698ac95813156ef7f6946216fc0acfbae0fcb7cdba25f24",
+  "new_identity": {
+    "tag": "B7UC",
+    "version": 1,
+    "native_tree_map": [
+      0,
+      1,
+      2,
+      5
+    ],
+    "caller_tree_map": [
+      0,
+      3,
+      4,
+      6,
+      7
+    ],
+    "composition_tree": 8
+  },
+  "oracle": {
+    "same_epoch": true,
+    "private_roots_preserved": true,
+    "original_exports_exact": true,
+    "wide_producers_destroyed_before_fresh_verify": true,
+    "stark_postcard_roundtrip": true
+  },
+  "rejected_mutations": [
+    "native physical claim",
+    "compensating SHA physical claims preserving aggregate",
+    "merged fixed root",
+    "native/caller private tree exchange",
+    "interaction tree exchange",
+    "native opening value substitution",
+    "caller execution identity",
+    "epoch digest"
+  ],
+  "baseline": {
+    "original_starks": 2,
+    "commitments": 11,
+    "oods_values": 33169,
+    "queried_field_values": 127652,
+    "prove_ns": 2486741208
+  },
+  "candidate": {
+    "original_starks": 1,
+    "commitments": 9,
+    "oods_values": 33153,
+    "queried_field_values": 129216,
+    "prove_ns": 1471396750,
+    "fresh_verify_ns": 993098125,
+    "stark_bytes": 1169498
+  },
+  "limitations": [
+    "Only one actual mixed SHA/Keccak native-store fixture qualified.",
+    "No nine-tree recursive verifier or complete-block acceptance route added.",
+    "Full input trees remain resident for one bounded native/caller pair.",
+    "Union field openings barely shrink, so proof count is not a recursive speedup model."
+  ]
+}

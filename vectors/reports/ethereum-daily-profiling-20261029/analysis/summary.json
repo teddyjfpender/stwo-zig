@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "scope": "Synthetic canonical q70/PoW26 CPU ReleaseSafe original complete proofs; no recursive reduction or block extrapolation.",
+  "cases": [
+    {
+      "workload": "keccak_heavy",
+      "samples": 3,
+      "iterations": 8,
+      "cycles": 38,
+      "window_cut": 10,
+      "native_windows": 4,
+      "caller_windows": 3,
+      "ram_events": 404,
+      "keccak_calls": 8,
+      "recovery_calls": 0,
+      "first_touch_native_words": 0,
+      "native_rounds_per_call": 0,
+      "proof_bytes": 12336633,
+      "end_to_end_ns": {
+        "median": 2354870667.0,
+        "min": 2283350875.0,
+        "max": 2361112208.0
+      },
+      "prove_ns": {
+        "median": 1966960209.0,
+        "min": 1897554375.0,
+        "max": 1977571958.0
+      },
+      "verification_ns": {
+        "median": 190215375.0,
+        "min": 189164833.0,
+        "max": 193376167.0
+      },
+      "command_wall_seconds": {
+        "median": 2.401467709001736,
+        "min": 2.3736914159962907,
+        "max": 2.4017347079934552
+      },
+      "tracked_peak_bytes": {
+        "median": 308502681.0,
+        "min": 308502681.0,
+        "max": 308502681.0
+      },
+      "process_peak_rss_bytes": {
+        "median": 258326528.0,
+        "min": 258293760.0,
+        "max": 258342912.0
+      },
+      "proof_hashes": [
+        "5850c5d6a413022af57fba1cbafcc662cdecfe73229002606d92b6e14b8a9588"
+      ]
+    },
+    {
+      "workload": "memory_heavy",
+      "samples": 3,
+      "iterations": 4096,
+      "cycles": 32782,
+      "window_cut": 8196,
+      "native_windows": 4,
+      "caller_windows": 0,
+      "ram_events": 8196,
+      "keccak_calls": 0,
+      "recovery_calls": 0,
+      "first_touch_native_words": 4096,
+      "native_rounds_per_call": 1,
+      "proof_bytes": 1262060,
+      "end_to_end_ns": {
+        "median": 2144753125.0,
+        "min": 2125761959.0,
+        "max": 2151048458.0
+      },
+      "prove_ns": {
+        "median": 1832944459.0,
+        "min": 1815829459.0,
+        "max": 1838410375.0
+      },
+      "verification_ns": {
+        "median": 70192958.0,
+        "min": 69850667.0,
+        "max": 70635250.0
+      },
+      "command_wall_seconds": {
+        "median": 2.1732201659906423,
+        "min": 2.160117125007673,
+        "max": 2.222229832987068
+      },
+      "tracked_peak_bytes": {
+        "median": 400843680.0,
+        "min": 400843680.0,
+        "max": 400843680.0
+      },
+      "process_peak_rss_bytes": {
+        "median": 348635136.0,
+        "min": 346652672.0,
+        "max": 351813632.0
+      },
+      "proof_hashes": [
+        "e9c7ced6796d23829bf2be86218b8ebd00cb079aa46a18fb2fde527dc20ee850"
+      ]
+    },
+    {
+      "workload": "mixed_ethereum",
+      "samples": 3,
+      "iterations": 8,
+      "cycles": 32815,
+      "window_cut": 8204,
+      "native_windows": 4,
+      "caller_windows": 4,
+      "ram_events": 8638,
+      "keccak_calls": 8,
+      "recovery_calls": 1,
+      "first_touch_native_words": 4096,
+      "native_rounds_per_call": 512,
+      "proof_bytes": 20558234,
+      "end_to_end_ns": {
+        "median": 5464053167.0,
+        "min": 5356207500.0,
+        "max": 5510822542.0
+      },
+      "prove_ns": {
+        "median": 4677813250.0,
+        "min": 4574671833.0,
+        "max": 4716246917.0
+      },
+      "verification_ns": {
+        "median": 327622250.0,
+        "min": 327303958.0,
+        "max": 331509000.0
+      },
+      "command_wall_seconds": {
+        "median": 5.561602917005075,
+        "min": 5.450452916993527,
+        "max": 5.604899666010169
+      },
+      "tracked_peak_bytes": {
+        "median": 526155963.0,
+        "min": 526155963.0,
+        "max": 526155963.0
+      },
+      "process_peak_rss_bytes": {
+        "median": 473382912.0,
+        "min": 472547328.0,
+        "max": 498630656.0
+      },
+      "proof_hashes": [
+        "ce935e0fb69d3aa340cc9ae4ab894140e8009d8e1154d89c8507e98f23491eb1"
+      ]
+    }
+  ]
+}

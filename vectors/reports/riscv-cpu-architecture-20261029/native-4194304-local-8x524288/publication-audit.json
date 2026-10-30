@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-b8-publication-overwrite-audit-v1",
+  "affected": [
+    {
+      "name": "local-7.stats.json",
+      "expected_sha256": "f1c35cc07fb7dd601b037c81a7b711338edb09c34df42719bf277e699ad0ff5f",
+      "actual_sha256": "d4786aaf4642981e230b4176f39f2a698fcdfbbaf70039f66682451ff62c05f4",
+      "reason": "runner path-variable shadowing overwrote descriptive per-cohort stats after successful checks; original stats bytes unavailable"
+    }
+  ],
+  "proofs_and_statement_metadata_all_match_original_manifest": true,
+  "aggregate_report_sha256": "164a060f8dfccdfccd64e7401ccde41b02948ef0cdff1c3dcd498dab82153b46",
+  "aggregate_stage_measurements_unchanged": true,
+  "recovered_invocation": "invocation-recovered.json",
+  "historical_corrupted_files_preserved": true,
+  "no_original_stats_reconstructed": true
+}

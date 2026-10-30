@@ -15,6 +15,35 @@ pub const Plan = struct {
     pub fn initCompact(a: std.mem.Allocator, config: Config, operations: []const t.Operation) !Plan {
         return initStorage(a, config, operations, true);
     }
+    pub fn initBoundary(a: std.mem.Allocator, config: Config, operations: []const t.Operation, boundary: t.Boundary) !Plan {
+        var fixed = try t.trustedBoundedBoundary(a, config.namespace, operations, config.attempt_capacity, boundary);
+        errdefer fixed.deinit();
+        return .{ .config = config, .fixed = fixed, .id = fingerprint(config, &fixed) };
+    }
+    pub fn initBoundaryCompact(a: std.mem.Allocator, config: Config, operations: []const t.Operation, boundary: t.Boundary) !Plan {
+        var fixed = try t.trustedBoundedBoundaryDirect(a, config.namespace, operations, config.attempt_capacity, boundary);
+        errdefer fixed.deinit();
+        return .{ .config = config, .fixed = fixed, .id = fingerprint(config, &fixed) };
+    }
+    pub fn prepareBoundary(self: *const Plan, a: std.mem.Allocator, operations: []const t.Operation, boundary: t.Boundary) !t.Prepared {
+        return self.prepareBoundaryWithColumns(a, operations, boundary, null);
+    }
+    pub fn prepareBoundaryMainColumns(self: *const Plan, a: std.mem.Allocator, operations: []const t.Operation, boundary: t.Boundary, columns: t.MainColumns) !t.Prepared {
+        if (self.fixed.nonhash_fixed == null) return error.CorruptBlake3TranscriptPlan;
+        return self.prepareBoundaryWithColumns(a, operations, boundary, columns);
+    }
+    fn prepareBoundaryWithColumns(self: *const Plan, a: std.mem.Allocator, operations: []const t.Operation, boundary: t.Boundary, columns: ?t.MainColumns) !t.Prepared {
+        try self.validate();
+        const counts = self.fixed.hashCounts();
+        if (columns) |out| try out.validate(counts.g, counts.xor);
+        var live = if (self.fixed.nonhash_fixed != null)
+            try t.prepareBoundedBoundaryDirect(a, self.config.namespace, operations, self.config.attempt_capacity, &self.fixed, columns, boundary)
+        else
+            try t.prepareBoundedBoundary(a, self.config.namespace, operations, self.config.attempt_capacity, boundary);
+        errdefer live.deinit();
+        if (!std.mem.eql(u8, &self.id, &fingerprint(self.config, &live))) return error.Blake3TranscriptPlanMismatch;
+        return live;
+    }
     fn initStorage(a: std.mem.Allocator, config: Config, operations: []const t.Operation, compact: bool) !Plan {
         var fixed = if (compact) try t.trustedBoundedDirect(a, config.namespace, operations, config.attempt_capacity) else try t.trustedBounded(a, config.namespace, operations, config.attempt_capacity);
         errdefer fixed.deinit();
@@ -124,13 +153,16 @@ fn fingerprint(config: Config, data: *const t.Prepared) [32]u8 {
             .deep => 3,
             .fri => 4,
             .riscv_relation => 5,
+            .universal_half => 6,
         };
         integer(&h, u8, tag);
         const index: usize = switch (output.role) {
             .universal, .fri, .riscv_relation => |i| i,
+            .universal_half => |part| part.relation,
             else => 0,
         };
         integer(&h, u64, @intCast(index));
+        if (output.role == .universal_half) integer(&h, u8, output.role.universal_half.half);
     }
     integer(&h, u64, @intCast(data.query_outputs.len));
     for (data.query_outputs) |output| {
@@ -150,6 +182,18 @@ fn fingerprint(config: Config, data: *const t.Prepared) [32]u8 {
         integer(&h, u64, @intCast(read.operation));
         endpoint(&h, read.source.circuit, read.source.first_wire);
         for (read.uses) |uses| integer(&h, u32, uses);
+    }
+    // Preserve every historical standalone plan identity. A continued/exported
+    // plan has a distinct typed boundary; witness digest bytes are never fixed.
+    if (data.resumed_state != null or data.exported_state != null) {
+        h.update("stwo.blake3.authenticated-state-boundary.v1\x00");
+        inline for (.{ data.resumed_state, data.exported_state }) |ports| {
+            integer(&h, u8, @intFromBool(ports != null));
+            if (ports) |value| {
+                endpoint(&h, value.source.circuit, value.source.first_wire);
+                for (value.uses) |uses| integer(&h, u32, uses);
+            }
+        }
     }
     var out: [32]u8 = undefined;
     h.final(&out);

@@ -1,0 +1,95 @@
+{
+  "scope": "One diagnostic4-worker candidate vs retained4-worker baseline; not CPU scaling or a confidence interval",
+  "candidate_census_enabled": true,
+  "baseline_report": "vectors/reports/ethereum-daily-profiling-20261029/ratio-matched-421-actual-ram/00-mixed_ethereum-421-r01/report.json",
+  "candidate_report": "vectors/reports/ethereum-parallel-20261030/candidate-first-421/00-mixed_ethereum-421-r01/report.json",
+  "matching_identity": {
+    "architecture": "per_window_callers",
+    "workload": "mixed_ethereum",
+    "iterations": 421,
+    "cycles": 1726115,
+    "window_cut": 431529,
+    "native_windows": 4,
+    "caller_windows": 4,
+    "ram_events": 452200,
+    "keccak_calls": 421,
+    "recovery_calls": 1,
+    "elf_sha256": "c1fbb12ed101cf45b1cb9184ff9528dc849d4f5821484c39325c4a372fba7043",
+    "statement_sha256": "0078ed4e4d56143713f77fc8a819bbb65374e0589af6079cf3108144a847c0e2",
+    "output_sha256": "0a862c5c3971befb3aad5552fffe07350874dc6c9ac4c1fa21a7ec81fc10f455",
+    "program_fetches": 1726118,
+    "canonical_security": true,
+    "query_count": 70,
+    "pow_bits": 26,
+    "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+    "proof_bytes": 21906041
+  },
+  "metrics": {
+    "end_to_end_ns": {
+      "baseline": 113412474833,
+      "candidate": 81436107208,
+      "baseline_over_candidate": 1.3926558957849935,
+      "change_percent": -28.19475341851524
+    },
+    "prove_ns": {
+      "baseline": 105111678041,
+      "candidate": 74068810708,
+      "baseline_over_candidate": 1.4191084889344272,
+      "change_percent": -29.533224006652603
+    },
+    "verification_ns": {
+      "baseline": 803657000,
+      "candidate": 810054333,
+      "baseline_over_candidate": 0.9921025877655543,
+      "change_percent": 0.7960277829969664
+    },
+    "tracked_peak_bytes": {
+      "baseline": 9047532314,
+      "candidate": 9303849280,
+      "baseline_over_candidate": 0.9724504387070209,
+      "change_percent": 2.833004150793461
+    }
+  },
+  "stages": [
+    {
+      "id": "multi_native_preparation",
+      "baseline_exclusive_seconds": 17.054038,
+      "candidate_exclusive_seconds": 4.879594000000001,
+      "speedup": 3.4949706881351186,
+      "saved_seconds": 12.174443999999998
+    },
+    {
+      "id": "composition_evaluation",
+      "baseline_exclusive_seconds": 37.521835,
+      "candidate_exclusive_seconds": 26.166545,
+      "speedup": 1.4339621451743056,
+      "saved_seconds": 11.355290000000004
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "baseline_exclusive_seconds": 42.974394,
+      "candidate_exclusive_seconds": 35.541477,
+      "speedup": 1.209133599034165,
+      "saved_seconds": 7.432916999999996
+    },
+    {
+      "id": "multi_caller_preparation",
+      "baseline_exclusive_seconds": 3.001939,
+      "candidate_exclusive_seconds": 2.9593580000000004,
+      "speedup": 1.0143885937422914,
+      "saved_seconds": 0.04258099999999976
+    },
+    {
+      "id": "multi_memory_preparation",
+      "baseline_exclusive_seconds": 1.649148,
+      "candidate_exclusive_seconds": 1.632297,
+      "speedup": 1.0103234889238906,
+      "saved_seconds": 0.01685099999999995
+    }
+  ],
+  "remaining": [
+    "Cache candidate qualification/timing",
+    "Matched worker1/4/8/12 measurements",
+    "Remaining composition CPU sample"
+  ]
+}

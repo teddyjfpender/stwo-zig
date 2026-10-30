@@ -1,0 +1,4 @@
+1/3 block_v7_union_fixed_reuse_test_root.test_0...OK
+2/3 prover.tests.block_v7_union_fixed_reuse_test.test.v7 fixed reuse owns descriptors and leases distinct source budgets...OK
+3/3 prover.tests.block_v7_union_fixed_reuse_test.test.v7 fixed reuse allocation failures release every acquired lease...OK
+All 3 tests passed.

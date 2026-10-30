@@ -1,0 +1,14 @@
+1/11 block_v8_full_block_resume_test_root.test_0...OK
+2/11 prover.tests.block_v8_full_block_resume_test.test.resume saved complete mixed root revalidates cached leaf and rejects tampering without proving...B8_RESUME_CLAIM_NEGATIVE error=UntrustedBlake3ParentKey
+B8_RESUME_QUALIFIED cached_windows=1 original_proofs=0 parent_proofs=0 root_bytes_identical=true fresh_final_verify=true malicious_main_claim_missing_rejected=true
+OK
+3/11 runner.decode.test_0...OK
+4/11 runner.mod.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-real-window-v2-build",
+  "source_sha256": "d7e06ae504157b3a6d526f0998faad412037275ce32be9fbe0b6570df0692b48",
+  "source_manifest": "source-before.json",
+  "before_after_equal": true,
+  "binary_sha256": "03efd954393614fe4f5c70c05d50a94536e2cd80a93039b7ee8eb759a1855218",
+  "binary": "/tmp/v7-real-window-v2-features-benchmark",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v7_real_window_v2_benchmark_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-femit-bin=/tmp/v7-real-window-v2-features-benchmark"
+  ],
+  "feature_controls": [
+    "native_layout_mode:canonical_v1|degree_bounded_q2_v1",
+    "sparse_window_initialization:false|true",
+    "resident_memory:false|true",
+    "native_main_cache_mib:0..2048",
+    "deep_group_mib:1|4|8",
+    "workers:1..MAX_WORKERS"
+  ],
+  "default_protocol_unchanged": true,
+  "validation_log": "qualification.log"
+}

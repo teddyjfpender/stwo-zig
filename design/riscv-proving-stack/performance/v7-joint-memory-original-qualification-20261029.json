@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "genuine detached joint original memory proof; execution transition remains open",
+  "base_commit": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "source_state": "uncommitted development worktree; selected hashes are not full reproducible source archive",
+  "protocol": {
+    "epoch_version": 2,
+    "family": "memory_joint",
+    "first_commitments": 2,
+    "interaction_commitments": 1,
+    "composition_commitments": 1
+  },
+  "config": {
+    "queries": 8,
+    "pow_bits": 0,
+    "optimize": "ReleaseSafe"
+  },
+  "fixture": {
+    "ram_shards": 5,
+    "providers": [
+      "interval",
+      "range16",
+      "terminal"
+    ],
+    "guest_events": 16,
+    "terminal_reads": 13,
+    "components": 8,
+    "original_proofs": 1
+  },
+  "result": {
+    "tests_passed": 1,
+    "proof_bytes": 100103,
+    "producer_rows_at_fresh_verification": 0,
+    "fresh_independent_fixed_root_verified": true,
+    "physical_claims_transcript_bound": true,
+    "full_execution_qualified": false,
+    "recursive_root_qualified": false,
+    "canonical_security_qualified": false,
+    "ethereum_block_qualified": false,
+    "speedup_claim": null
+  },
+  "negative_checks": [
+    "compensated range claims preserve aggregate closure but fail original verifier OODS",
+    "compensated transition claims preserve aggregate closure but fail original verifier OODS",
+    "reordered RAM shards rejected by original exact census admission",
+    "changed first root rejected by epoch binding"
+  ],
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_memory_joint_test_root.zig -OReleaseSafe -fstrip --test-filter 'v7 joint original memory' -femit-bin=/tmp/block-v7-memory-joint-test",
+  "binary_sha256": "91e6c5c4d8206ce7f624887bb59d470d097da75634b854ed22d31e4b220e407c",
+  "selected_source_sha256": {
+    "src/frontends/riscv/prover/block_v7_memory_joint_air_v1.zig": "bd585a8f6a038e073e9176f01a48a79d777b29f488dcb5764cadcfc8eef532b0",
+    "src/frontends/riscv/prover/block_v7_memory_joint_component_v1.zig": "5510a81ec9a6e8506e01dff085667ce48d73e2d54cb5c77bc98b5d926c4b2ce5",
+    "src/frontends/riscv/prover/block_v7_memory_joint_layout_v1.zig": "bc2bd4ac560c95a34e645a3729df2966eb505df562af14f82151f84af3ef6259",
+    "src/frontends/riscv/prover/block_v7_memory_joint_proof_v1.zig": "01bfd8b38c3c411e790f46164344e8cf1c3f894aa935daf4519721c5782278b0",
+    "src/frontends/riscv/prover/block_v7_memory_joint_protocol_v1.zig": "ecea7be8b5c2e257780ceb67f04b12d9af333be43d0cf337bdbe91dd3621f59a",
+    "src/frontends/riscv/prover/block_v7_memory_joint_test_v1.zig": "ea2e6b02a7e8afe475e3a5e5dc651395aba2c2af1d590154b934d56849a8fe20",
+    "src/frontends/riscv/prover/block_v7_memory_joint_witness_v1.zig": "ea25a618583b9cea37db0d789933279ada3624bd2c8a501774d246d3646e3674",
+    "src/frontends/riscv/prover/block_v7_execution_epoch_v1.zig": "e502d9eba3e6f6ce51f8bd24824db9d4b20e57ae39f0403921a049c47352a95a"
+  },
+  "log": [
+    "1/1 prover.block_v7_memory_joint_test_v1.test.v7 joint original memory STARK verifies detached and rejects compensated physical claims...V7_MEMORY_JOINT verified=true original_proofs=1 ram_shards=5 providers=3 guest_events=16 terminal_reads=13 proof_bytes=100103 producer_rows=0 compensated_claims_rejected=true full_execution=false",
+    "OK",
+    "All 1 tests passed."
+  ]
+}

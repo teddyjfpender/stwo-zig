@@ -1,0 +1,63 @@
+{
+  "schema": "stwo-v7-runpod-bootstrap-v1",
+  "utc": "2026-10-29T10:33:49.047098+00:00",
+  "archive_sha256": "3d87bd0147fdd9bb30e240bafa1fa49bb211ccb51832645780ad21f2392e62d1",
+  "source_tree_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "file_count": 9360,
+  "all_files_verified": true,
+  "zig_download": {
+    "tarball": "https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz",
+    "shasum": "02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239",
+    "size": "53733924"
+  },
+  "zig_binary_sha256": "2858dc89dbbfdd08cceda1b841e7fd0a793a1a67b49f150bc3d0d1de44ed7f51",
+  "tools": [
+    {
+      "command": [
+        "/workspace/toolchains/zig-x86_64-linux-0.15.2/zig",
+        "version"
+      ],
+      "returncode": 0,
+      "output": "0.15.2\n"
+    },
+    {
+      "command": [
+        "/usr/local/cuda/bin/nvcc",
+        "--version"
+      ],
+      "returncode": 0,
+      "output": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:23:50_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0\n"
+    },
+    {
+      "command": [
+        "g++",
+        "--version"
+      ],
+      "returncode": 0,
+      "output": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+    },
+    {
+      "command": [
+        "ar",
+        "--version"
+      ],
+      "returncode": 0,
+      "output": "GNU ar (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n"
+    },
+    {
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=name,compute_cap,memory.total,driver_version",
+        "--format=csv,noheader"
+      ],
+      "returncode": 0,
+      "output": "NVIDIA H200, 9.0, 143771 MiB, 575.57.08\n"
+    }
+  ],
+  "declared_allocated_resources": {
+    "vcpus": 16,
+    "host_gb": 251,
+    "gpu": "H200"
+  },
+  "gpu_proof_run": false
+}

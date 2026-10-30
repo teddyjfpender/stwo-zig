@@ -32,7 +32,7 @@ pub const ProjectionFixed = struct {
         if (lifting == 0 or lifting > 31) return error.InvalidProjectionLink;
         var counts: [32]u32 = @splat(0);
         for (logs) |log| {
-            if (log == 0 or log > lifting) return error.InvalidProjectionLink;
+            if (log == 0 or log > 31) return error.InvalidProjectionLink;
             counts[log] = try std.math.add(u32, counts[log], 1);
             if (counts[log] >= core.fields.m31.Modulus) return error.InvalidProjectionLink;
         }
@@ -62,7 +62,7 @@ pub const ProjectionFixed = struct {
                     }
                     for (0..4) |j| {
                         const bit = start + j;
-                        const source = if (bit == 0 or bit >= log) 0 else lifting - log + bit;
+                        const source = if (bit >= log) 0 else try Links.traceBit(lifting, @intCast(log), @intCast(bit));
                         nodes[j] = query.bits[source].deep;
                         bit_reads[q][source] = try std.math.add(u32, bit_reads[q][source], 1);
                         if (bit < log) affine.coefficients[bit / 8][4 + j] = M.fromCanonical(@as(u32, 1) << @as(u5, @intCast(bit % 8)));
@@ -92,8 +92,11 @@ pub const Owned = struct {
         return compileProfile(4, a, shape, dg, fg, links);
     }
     fn initProfile(comptime commitments: usize, a: std.mem.Allocator, shape: anytype, dg: *const Deep.Circuit, fg: *const Fri.Circuit, links: *const Links.Prepared) !*Owned {
-        if (commitments != 4 and commitments != 10) @compileError("fixed PCS ports require four/ten original commitments");
+        if (commitments != 4 and commitments != 5 and commitments != 6 and commitments != 10) @compileError("fixed PCS ports require four/five/six/ten original commitments");
         if (@typeInfo(@TypeOf(shape.columns)).array.len != commitments) @compileError("fixed PCS commitment inventory mismatch");
+        return initAccepted(a, shape, dg, fg, links);
+    }
+    fn initAccepted(a: std.mem.Allocator, shape: anytype, dg: *const Deep.Circuit, fg: *const Fri.Circuit, links: *const Links.Prepared) !*Owned {
         try shape.validate();
         try dg.validate();
         try fg.validate();
@@ -169,6 +172,11 @@ pub const Owned = struct {
 };
 pub fn compileProfile(comptime commitments: usize, a: std.mem.Allocator, shape: anytype, dg: *const Deep.Circuit, fg: *const Fri.Circuit, links: *const Links.Prepared) !*Owned {
     return Owned.initProfile(commitments, a, shape, dg, fg, links);
+}
+/// Explicit finite union route. The original static commitment gates remain.
+pub fn compileBoundedProfile(commitments: usize, a: std.mem.Allocator, shape: anytype, dg: *const Deep.Circuit, fg: *const Fri.Circuit, links: *const Links.Prepared) !*Owned {
+    if (commitments < 4 or commitments > 257 or shape.columns.len != commitments) return error.UntrustedRecursiveParentShape;
+    return Owned.initAccepted(a, shape, dg, fg, links);
 }
 fn columnCount(shape: anytype) !usize {
     var count: usize = 0;

@@ -1,0 +1,11 @@
+# Actual high-gap RAM qualification
+
+The canonical q70/PoW26 gate passed **467 tests, one unrelated skip, zero failures**. Three tests build an actual complete original STARK for a 262,157-cycle program with two native windows and no precompile callers. A prefix stores 17 at `0x100100`. The second window waits through 131,072 arithmetic loop iterations, loads that word, then clobbers the result before producing fixed output. The actual load clock is **1,048,599**, and the runner produces exactly one target RAM gap row. Thus output equality cannot itself detect a forged load.
+
+The honest proof is accepted. In the before-value attack, the test changes runner RAM from 17 to 23 between windows, generates a locally consistent second CPU trace and sidecar, and rebuilds every affected commitment, the epoch and the complete proof. The global RAM provider independently proves the honest 17-to-17 read chain. In the current-clock attack, the native trace stays honest while the independently proved provider read clock is shifted by four. Both are fresh cryptographically valid component proofs, not modifications checked against cached roots.
+
+After all producer owners are destroyed, bounded decode and complete STARK verification run. Both attacks reach and fail global WORD transition closure. Additional diagnostic assertions show that native ordinary/auxiliary relations, every window's state/register relations, program and lookup sums, and exact fetch/event counts all close. **Only the global WORD transition residual differs.** These arithmetic attribution assertions run after the actual verifier and do not grant authority.
+
+Canonical honest envelope: 672,242 bytes. Hostile envelopes: 675,426 and 669,363 bytes. Proving took approximately 3.4–3.8 seconds per case with less than 804 MB charged peak; these are diagnostic correctness timings, not Ethereum block throughput. The JSON companion records exact source, binary and log hashes and reproduction commands.
+
+This qualifies the concrete regression against the new v7 actual-RAM relation layout. It is not a formal soundness proof or independent audit. The clock attack changes the global provider timestamp while retaining an honest, proof-bound native current clock.

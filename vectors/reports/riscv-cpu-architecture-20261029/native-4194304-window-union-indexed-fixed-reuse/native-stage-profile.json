@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "runtime": "cpu",
+  "example": "retained-ethereum-window-native",
+  "stages": [
+    {
+      "id": "multi_prove",
+      "label": "Multi-window original proof including producer cleanup",
+      "seconds": 29.461749,
+      "children": [
+        {
+          "id": "multi_admission",
+          "label": "Independent shape and resource admission",
+          "seconds": 1.631734,
+          "children": null
+        },
+        {
+          "id": "multi_context_preparation",
+          "label": "Interaction generation and component preparation",
+          "seconds": 7.205023,
+          "children": [
+            {
+              "id": "multi_epoch_draw",
+              "label": "Epoch challenge derivation",
+              "seconds": 0.000123,
+              "children": null
+            },
+            {
+              "id": "multi_native_preparation",
+              "label": "Native interactions and component preparation",
+              "seconds": 0.795222,
+              "children": null
+            },
+            {
+              "id": "multi_native_preparation",
+              "label": "Native interactions and component preparation",
+              "seconds": 0.82885,
+              "children": null
+            },
+            {
+              "id": "multi_native_preparation",
+              "label": "Native interactions and component preparation",
+              "seconds": 0.79692,
+              "children": null
+            },
+            {
+              "id": "multi_native_preparation",
+              "label": "Native interactions and component preparation",
+              "seconds": 0.822151,
+              "children": null
+            },
+            {
+              "id": "multi_program_preparation",
+              "label": "Program interactions and component preparation",
+              "seconds": 0.264999,
+              "children": null
+            },
+            {
+              "id": "multi_lookup_preparation",
+              "label": "Lookup interactions and component preparation",
+              "seconds": 0.030133,
+              "children": null
+            },
+            {
+              "id": "multi_memory_preparation",
+              "label": "Memory interactions and component preparation",
+              "seconds": 2.777112,
+              "children": null
+            },
+            {
+              "id": "multi_component_placement",
+              "label": "Component placement",
+              "seconds": 0.000092,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "multi_fixed_commitment",
+          "label": "Merged fixed commitment with admitted polynomial reuse",
+          "seconds": 0.265924,
+          "children": [
+            {
+              "id": "multi_fixed_reconstruction",
+              "label": "Canonical fixed-column reconstruction fallback",
+              "seconds": 0.26588,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "multi_private_root_adoption",
+          "label": "Adopt previously committed private trees",
+          "seconds": 0.000062,
+          "children": null
+        },
+        {
+          "id": "multi_claim_transcript",
+          "label": "Bind every physical claim into the transcript",
+          "seconds": 0.091329,
+          "children": null
+        },
+        {
+          "id": "multi_native_interaction_commitment",
+          "label": "Native interaction commitment",
+          "seconds": 0.442889,
+          "children": null
+        },
+        {
+          "id": "multi_native_interaction_commitment",
+          "label": "Native interaction commitment",
+          "seconds": 0.459792,
+          "children": null
+        },
+        {
+          "id": "multi_native_interaction_commitment",
+          "label": "Native interaction commitment",
+          "seconds": 0.436743,
+          "children": null
+        },
+        {
+          "id": "multi_native_interaction_commitment",
+          "label": "Native interaction commitment",
+          "seconds": 0.469571,
+          "children": null
+        },
+        {
+          "id": "multi_program_interaction_commitment",
+          "label": "Provider interaction commitment",
+          "seconds": 0.045819,
+          "children": null
+        },
+        {
+          "id": "multi_lookup_interaction_commitment",
+          "label": "Provider interaction commitment",
+          "seconds": 0.05645,
+          "children": null
+        },
+        {
+          "id": "multi_memory_interaction_commitment",
+          "label": "Memory interaction commitment and storage admission",
+          "seconds": 0.442461,
+          "children": null
+        },
+        {
+          "id": "multi_memory_source_release",
+          "label": "Release consumed memory producer buffers",
+          "seconds": 0.014671,
+          "children": null
+        },
+        {
+          "id": "multi_public_claim_copy",
+          "label": "Copy detached public claims",
+          "seconds": 0.000025,
+          "children": null
+        },
+        {
+          "id": "multi_core_proof",
+          "label": "STARK core including commitment-owner destruction",
+          "seconds": 17.891564,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0.000007,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 0.000144,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 15.098831,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.011208,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.079873,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.272391,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.257687,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000756,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 1.401168,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.408194,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.023027,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.214427,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.001893,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "multi_producer_cleanup",
+          "label": "Release preparation metadata and provider contexts",
+          "seconds": 0.007579,
+          "children": null
+        }
+      ]
+    }
+  ]
+}

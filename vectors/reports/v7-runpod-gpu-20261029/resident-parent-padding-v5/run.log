@@ -1,0 +1,32 @@
+1/1 riscv_cuda_resident_parent_padding_test_root.test.actual fully resident original25 parent padding numerical proof fresh verifies...RESIDENT_PADDING_PROFILE queries=70 pow_bits=26
+RESIDENT_PADDING_RUNTIME open_ns=542068348
+RESIDENT_PADDING_REQUEST iteration=0 retained=true
+RESIDENT_PADDING_ARTIFACT bytes=501768 elapsed_ns=2781267111 path=/workspace/stwo-v7-evidence/resident-parent-padding-v5/padding.b3n
+RESIDENT_PADDING_TRANSFER d2h_operations=1 d2h_bytes=4153288 h2d_bytes=6209628 cpu_fallback_attempts=0 aot_misses=0
+RESIDENT_PADDING_STAGE name=ingress device_ns=10857824 kernels=1 h2d_bytes=6209628 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_generation device_ns=3555296 kernels=23 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_commit device_ns=420801300 kernels=225 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=constraint_evaluation device_ns=350188934 kernels=155 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=oods device_ns=2566464 kernels=347 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=quotient device_ns=1620224 kernels=24 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=fri_commit device_ns=1454976 kernels=269 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=pow device_ns=3669920 kernels=3 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=decommit device_ns=4233408 kernels=57 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=proof_assembly device_ns=409024 kernels=0 h2d_bytes=0 d2h_bytes=4153288
+RESIDENT_PADDING verified=true child_receipt=false device_bytes=265286464 elapsed_ns=2781267111
+RESIDENT_PADDING_REQUEST iteration=1 retained=true
+RESIDENT_PADDING_ARTIFACT bytes=501768 elapsed_ns=1909677920 path=/workspace/stwo-v7-evidence/resident-parent-padding-v5/padding.b3n
+RESIDENT_PADDING_TRANSFER d2h_operations=1 d2h_bytes=4153288 h2d_bytes=6209628 cpu_fallback_attempts=0 aot_misses=0
+RESIDENT_PADDING_STAGE name=ingress device_ns=2076928 kernels=1 h2d_bytes=6209628 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_generation device_ns=2962592 kernels=23 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=trace_commit device_ns=11471872 kernels=225 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=constraint_evaluation device_ns=4421888 kernels=155 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=oods device_ns=2512096 kernels=347 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=quotient device_ns=1507296 kernels=24 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=fri_commit device_ns=1333344 kernels=269 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=pow device_ns=3588640 kernels=3 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=decommit device_ns=4117056 kernels=57 h2d_bytes=0 d2h_bytes=0
+RESIDENT_PADDING_STAGE name=proof_assembly device_ns=280288 kernels=0 h2d_bytes=0 d2h_bytes=4153288
+RESIDENT_PADDING verified=true child_receipt=false device_bytes=265286464 elapsed_ns=1909677920
+OK
+All 1 tests passed.

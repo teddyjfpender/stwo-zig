@@ -26,9 +26,15 @@ pub fn publicInputs(a: std.mem.Allocator, admitted: *const Admission.Prepared, c
 pub fn publicInputsFor(comptime Admitted: type, a: std.mem.Allocator, admitted: *const Admitted.Prepared, claims: @import("../../prover/block_v5_caller_fused_proof_v1.zig").ClaimFrames) ![]Q {
     var channel = core.proof_suites.Blake3.Channel{};
     try @import("../../prover/block_v5_caller_fused_proof_v1.zig").mixClaims(&channel, admitted.binding, &admitted.schedule, claims.program_claims, claims.state_claims, claims.table_claims, claims.memory_claims);
-    const inputs = try a.alloc(Q, try publicCount(admitted.schedule.program.len, admitted.schedule.tables.len, admitted.schedule.memory.len));
+    return publicInputsForSchedule(a, &admitted.schedule, admitted.frame, claims);
+}
+/// Shared original public algebra; no legacy binding is manufactured for v7.
+pub fn publicInputsForSchedule(a: std.mem.Allocator, schedule: *const @import("../../prover/block_v5_caller_fused_schedule_v1.zig").Schedule, frame: @import("../../air/block/memory_event.zig").Frame, claims: @import("../../prover/block_v5_caller_fused_proof_v1.zig").ClaimFrames) ![]Q {
+    var ch = core.proof_suites.Blake3.Channel{};
+    try @import("../../prover/block_v5_caller_fused_proof_v1.zig").mixClaimBodies(&ch, schedule, claims.program_claims, claims.state_claims, claims.table_claims, claims.memory_claims);
+    const inputs = try a.alloc(Q, try publicCount(schedule.program.len, schedule.tables.len, schedule.memory.len));
     errdefer a.free(inputs);
-    @memcpy(inputs[0..8], &@import("../../prover/block_execution_integer_algebra_v1.zig").clockBytes(Q, try @import("../../prover/block_execution_integer_bridge_v2.zig").baseClockFromPublicFrame(admitted.frame)));
+    @memcpy(inputs[0..8], &@import("../../prover/block_execution_integer_algebra_v1.zig").clockBytes(Q, try @import("../../prover/block_execution_integer_bridge_v2.zig").baseClockFromPublicFrame(frame)));
     var at: usize = 8;
     inline for (.{ claims.program_claims, claims.state_claims, claims.table_claims }) |partition| for (partition) |claim| {
         inputs[at] = claim.sum;

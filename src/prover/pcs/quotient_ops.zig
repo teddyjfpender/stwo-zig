@@ -33,6 +33,7 @@ pub const QuotientOpsError = column_geometry.QuotientOpsError;
 pub const ColumnEvaluation = column_geometry.ColumnEvaluation;
 
 pub const InputMode = lazy_provider.InputMode;
+pub const DeepGroupBudget = @import("quotient_group_budget.zig").Budget;
 
 /// Lazy quotient provider for fused quotient computation and Merkle commitment.
 pub const LazyQuotientProvider = lazy_provider.LazyQuotientProvider;
@@ -638,5 +639,70 @@ test "prover pcs quotient ops: lazy provider matches materialized output" {
         const mat_val = materialized.at(i);
         const lazy_val = lazy_column.at(i);
         try std.testing.expect(mat_val.eql(lazy_val));
+    }
+}
+
+test "wide indexed bounded quotient survives temporary header teardown and matches combined oracle" {
+    const a = std.testing.allocator;
+    const count = 70_000;
+    const raw = [_]M31{ M31.one(), M31.fromCanonical(3), M31.fromCanonical(7), M31.fromCanonical(11) };
+    const columns = try a.alloc(ColumnEvaluation, count);
+    defer a.free(columns);
+    const points = try a.alloc([]CirclePointQM31, count);
+    defer a.free(points);
+    const values = try a.alloc([]QM31, count);
+    defer a.free(values);
+    var shared_points = [_]CirclePointQM31{
+        circle_mod.SECURE_FIELD_CIRCLE_GEN.mul(7),
+        circle_mod.SECURE_FIELD_CIRCLE_GEN.mul(13),
+        circle_mod.SECURE_FIELD_CIRCLE_GEN.mul(19),
+    };
+    var shared_values = [_]QM31{ QM31.one(), QM31.fromU32Unchecked(3, 7, 11, 17), QM31.zero() };
+    for (columns, points, values, 0..) |*column, *point, *value, index| {
+        column.* = .{ .log_size = 2, .values = &raw };
+        point.* = shared_points[index % 3 ..][0..1];
+        value.* = shared_values[index % 3 ..][0..1];
+    }
+    var column_trees = [_][]const ColumnEvaluation{columns};
+    var point_trees = [_][][]CirclePointQM31{points};
+    var value_trees = [_][][]QM31{values};
+    const c = TreeVec([]const ColumnEvaluation).initOwned(&column_trees);
+    const p = TreeVec([][]CirclePointQM31).initOwned(&point_trees);
+    const v = TreeVec([][]QM31).initOwned(&value_trees);
+    const alpha = QM31.fromU32Unchecked(3, 0, 1, 7);
+    var bounded = try LazyQuotientProvider.initWithMode(a, c, p, v, alpha, 8, .bounded_cpu);
+    defer bounded.deinit(a);
+    try std.testing.expect(bounded.compact_plan.members.len > 33_000);
+    try std.testing.expect(bounded.compact_plan.members.len < count);
+    try std.testing.expect(bounded.compact_plan.retainedBytes() <= 1024 * 1024);
+    var direct_count: usize = 0;
+    for (bounded.direct_plan.ranges) |range| direct_count += range.len;
+    try std.testing.expectEqual(@as(usize, count), bounded.compact_plan.members.len + direct_count);
+    try std.testing.expectEqual(@as(usize, 0), bounded.raw_columns.len);
+    var reference = try LazyQuotientProvider.initWithMode(a, c, p, v, alpha, 8, .combined_compatibility);
+    defer reference.deinit(a);
+    var actual_storage: [4][37]M31 = undefined;
+    var expected_storage: [4][37]M31 = undefined;
+    var actual: [4][]M31 = undefined;
+    var expected: [4][]M31 = undefined;
+    for (&actual, &expected, &actual_storage, &expected_storage) |*ac, *ex, *av, *ev| {
+        ac.* = av;
+        ex.* = ev;
+    }
+    try bounded.computeChunk(19, 37, &actual);
+    try reference.computeChunk(19, 37, &expected);
+    try std.testing.expectEqualDeep(expected_storage, actual_storage);
+    // A larger admitted request metadata budget eliminates the partial-group
+    // fallback for this roster. Every weighted term still occurs once, and
+    // the output includes an odd start and partial final tile.
+    for ([_]DeepGroupBudget{ .four_mib, .eight_mib }) |budget| {
+        var expanded = try LazyQuotientProvider.initForBackendWithModeAndGroupBudget(void, a, c, p, v, alpha, 8, .bounded_cpu, budget);
+        defer expanded.deinit(a);
+        try std.testing.expectEqual(@as(usize, count), expanded.compact_plan.members.len);
+        try std.testing.expectEqual(@as(usize, 0), expanded.direct_plan.views.len);
+        try std.testing.expect(expanded.compact_plan.retainedBytes() <= budget.bytes());
+        try std.testing.expect(expanded.compact_plan.retainedBytes() > DeepGroupBudget.one_mib.bytes());
+        try expanded.computeChunk(19, 37, &actual);
+        try std.testing.expectEqualDeep(expected_storage, actual_storage);
     }
 }

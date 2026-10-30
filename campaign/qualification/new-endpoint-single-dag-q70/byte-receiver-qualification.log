@@ -1,0 +1,8 @@
+1/6 block_v8_endpoint_join_saved_receiver_test_root.test_0...OK
+2/6 recursion.tests.block_v8_endpoint_join_saved_receiver_test.test.canonical saved endpoint root byte-only receiver independently derives all keys...B8_ENDPOINT_SAVED_ROOT_RECEIVER queries=70 pow=26 bytes=987593 workers=8 fresh_receiver_ns=10234702500 originals_loaded=0 producer_keys_loaded=0 global_ram=closed
+OK
+3/6 air.semantic_eval.test_0...OK
+4/6 air.lookups.tables.mod.test_0...OK
+5/6 air.memory_commitment.poseidon2_air.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+All 6 tests passed.

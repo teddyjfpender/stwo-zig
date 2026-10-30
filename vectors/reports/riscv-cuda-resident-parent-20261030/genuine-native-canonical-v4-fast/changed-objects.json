@@ -1,0 +1,10 @@
+[
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-blake3-final/child-paths-fast.o",
+    "sha256": "cafa006d6f440c3234efcb60a00aa38ce4f8a842c6b144c858973b9f0a3cf1f9"
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-framework-v1/framework_util-fast.o",
+    "sha256": "98c6bd3e9875f78de65b86cc3968e164820fa9606dc8059903386073484e9345"
+  }
+]

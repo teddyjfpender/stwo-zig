@@ -1,0 +1,12 @@
+1/11 riscv_cuda_resident_native_access_test_root.test_0...OK
+2/11 riscv_cuda_resident_native_access_test_root.test.resident native access CUDA export...OK
+3/11 riscv_cuda_resident_native_access_test_root.test.resident native access export oracle...SKIP
+4/11 riscv_cuda_resident_native_access_test_root.test.resident native access interaction export oracle...OK
+5/11 riscv_cuda_resident_native_access_test_root.test_1...OK
+6/11 riscv_cuda_resident_native_access_test_root.test_2...OK
+7/11 riscv_cuda_resident_native_access_test_root.test.resident native access witness export oracle...SKIP
+8/11 integrations.riscv_cuda.resident_native_access_program_v1.test.resident native access graph retains68 equations17 denominators and all10 public claims...OK
+9/11 integrations.riscv_cuda.resident_native_access_interaction_v1.test.resident native access interaction arena rejects underbudget and invalid logs...OK
+10/11 integrations.riscv_cuda.resident_native_access_witness_v1.test.native access witness original padding and canonical admission...OK
+11/11 frontends.riscv.runner.decode.test_0...OK
+9 passed; 2 skipped; 0 failed.

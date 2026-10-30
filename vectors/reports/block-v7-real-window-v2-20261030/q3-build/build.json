@@ -1,0 +1,19 @@
+{
+  "schema": "stwo-real-window-v2-build",
+  "source_sha256": "e7b9eab389705247cce0290a7b7c8ee7d1846a31b5e3f45bb016b3ba6d6c652b",
+  "source_manifest": "source-before.json",
+  "before_after_equal": true,
+  "binary_sha256": "4c2c93609ad4753e2c4fdbc384119827b53f54839948a7f8bb4f448aad551ec9",
+  "binary": "/tmp/v7-real-window-v2-q3-benchmark",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v7_real_window_v2_benchmark_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-femit-bin=/tmp/v7-real-window-v2-q3-benchmark"
+  ],
+  "validation": "474 passed;3 skipped;0failed; includes bounded continuation equivalence; actual corpus gated by external pins"
+}

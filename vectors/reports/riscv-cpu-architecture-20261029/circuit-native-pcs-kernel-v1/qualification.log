@@ -1,0 +1,24 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 112s
+1/19 circuit_blake3_pcs_reuse_test_root.test_0...OK
+2/19 frontends.circuit.builder.blake3_pcs_reuse_v1.test_0...OK
+3/19 frontends.circuit.builder.blake3_pcs_reuse_v1_test.test.circuit native PCS full heterogeneous opening and DEEP binding q8 and q70 pow26...CIRCUIT_NATIVE_PCS q=8 pow=0 trees=5 bytes=2511 sha256=9baab9fdbaee9263a27beb7fe3088665146f3f085c2d004a7c3b880d316f9040 geometry=0e1a0b6d16337bd9242494fe1b6a3c820654ac53c5bf170fbeb337ecdfb9d7c7 nonce=0
+CIRCUIT_NATIVE_PCS q=70 pow=26 trees=5 bytes=2685 sha256=de4df3f1e0dcb83a0f50172809aedcd372d2c822a93ad162281fc30fd53e15e8 geometry=da1a02178efaf10fd02c81a1a2680bd0d3f54c9812a62b28e34489eb6cc57ba1 nonce=23851469
+OK
+4/19 frontends.circuit.builder.blake3_pcs_reuse_v1_test.test.circuit native PCS rejects altered OODS cells leaf roots and FRI witnesses...OK
+5/19 frontends.circuit.builder.blake3_pcs_reuse_v1_test.test.circuit native PCS DEEP answer cannot be host-authorized independently of OODS and leaves...OK
+6/19 frontends.circuit.builder.blake3_pcs_reuse_v1_test.test.circuit native PCS geometry and masks are independent of proof shape...OK
+7/19 frontends.circuit.builder.blake3_pcs_reuse_v1_test.test.circuit native PCS NoValue topology and gate-free replay preserve full opening equations...OK
+8/19 frontends.circuit.builder.blake3_channel_reuse_v1.test_0...OK
+9/19 frontends.circuit.builder.blake3_fri_reuse_v1.test_0...OK
+10/19 frontends.circuit.builder.mod.test_0...OK
+11/19 frontends.circuit.builder.context.test_0...OK
+12/19 frontends.circuit.stark_verifier.circle.test_0...OK
+13/19 frontends.circuit.builder.blake3_reuse_v1.test_0...OK
+14/19 frontends.circuit.builder.blake3_merkle_reuse_v1.test_0...OK
+15/19 frontends.circuit.builder.blake.test_0...OK
+16/19 frontends.circuit.builder.simd.test_0...OK
+17/19 frontends.circuit.builder.ops.test_0...OK
+18/19 frontends.circuit.stark_verifier.select_queries.test_0...OK
+19/19 frontends.circuit.builder.finalize_constants.test_0...OK
+All 19 tests passed.

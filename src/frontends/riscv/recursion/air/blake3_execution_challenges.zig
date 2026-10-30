@@ -46,11 +46,17 @@ pub fn prepareEthereum(a: std.mem.Allocator, composition: *const composition_mod
 pub fn prepareForRelations(comptime relation_count: usize, a: std.mem.Allocator, composition: *const composition_mod.Prepared, transcript: *const transcript_mod.Planned, deep: *const deep_mod.Prepared, fri: *const fri_mod.Prepared, circuits: [3]u32, bridge: u32) !Prepared {
     return prepareMode(true, relation_count, a, composition, transcript, deep, fri, circuits, bridge);
 }
+/// Explicit finite joined-source inventory. The caller derives the exact
+/// relation count from an independently admitted source roster.
+pub fn prepareForAdmittedRelations(relation_count: usize, max_relations: usize, a: std.mem.Allocator, composition: *const composition_mod.Prepared, transcript: *const transcript_mod.Planned, deep: *const deep_mod.Prepared, fri: *const fri_mod.Prepared, circuits: [3]u32, bridge: u32) !Prepared {
+    if (max_relations == 0 or max_relations > 4096 or relation_count == 0 or relation_count > max_relations) return error.InvalidExecutionChallenge;
+    return prepareMode(true, relation_count, a, composition, transcript, deep, fri, circuits, bridge);
+}
 /// Explicit dense row parity oracle.
 pub fn prepareRowsForRelations(comptime relation_count: usize, a: std.mem.Allocator, composition: *const composition_mod.Prepared, transcript: *const transcript_mod.Planned, deep: *const deep_mod.Prepared, fri: *const fri_mod.Prepared, circuits: [3]u32, bridge: u32) !Prepared {
     return prepareMode(false, relation_count, a, composition, transcript, deep, fri, circuits, bridge);
 }
-fn prepareMode(comptime direct: bool, comptime relation_count: usize, a: std.mem.Allocator, composition: *const composition_mod.Prepared, transcript: *const transcript_mod.Planned, deep: *const deep_mod.Prepared, fri: *const fri_mod.Prepared, circuits: [3]u32, bridge: u32) !Prepared {
+fn prepareMode(comptime direct: bool, relation_count: usize, a: std.mem.Allocator, composition: *const composition_mod.Prepared, transcript: *const transcript_mod.Planned, deep: *const deep_mod.Prepared, fri: *const fri_mod.Prepared, circuits: [3]u32, bridge: u32) !Prepared {
     try composition.circuit.validate();
     try transcript.plan.validate();
     try deep.graph.validateEvaluation(&deep.evaluation);
@@ -87,12 +93,11 @@ fn prepareMode(comptime direct: bool, comptime relation_count: usize, a: std.mem
         else => {},
     };
     if (challenge_count != relation_count * 2 or sources.composition == missing or sources.oods == missing) return error.InvalidExecutionChallenge;
+    try transcript.validateExternalDraws();
     const outputs = transcript.plan.fixed.draw_outputs;
     // Validate operation provenance and reject overlapping export addresses.
     for (outputs, 0..) |output, i| {
-        if (output.operation >= transcript.operations.len or transcript.operations[output.operation] != .secure) return error.InvalidExecutionChallenge;
-        const draw = transcript.operations[output.operation].secure;
-        if (draw.output == null or !std.meta.eql(draw.output.?, output.role) or draw.consumption.words() != output.words) return error.InvalidExecutionChallenge;
+        _ = try transcript.drawValues(output);
         const end = try std.math.add(usize, output.source.first_wire, output.words);
         if (end > core.fields.m31.Modulus) return error.InvalidExecutionChallenge;
         for (outputs[0..i]) |previous| if (previous.source.circuit == output.source.circuit and output.source.first_wire < @as(usize, previous.source.first_wire) + previous.words and previous.source.first_wire < end) return error.InvalidExecutionChallenge;
@@ -158,8 +163,8 @@ fn prepareMode(comptime direct: bool, comptime relation_count: usize, a: std.mem
             if (output.source.circuit != link.source.circuit or link.source.first_wire < output.source.first_wire) continue;
             const offset = link.source.first_wire - output.source.first_wire;
             if (offset + 4 > output.words) continue;
-            const draw = transcript.operations[output.operation].secure;
-            for (coordinates, draw.values[offset..][0..4]) |actual, expected| if (!actual.eql(expected)) return error.InvalidExecutionChallenge;
+            const selected = try transcript.drawValues(output);
+            for (coordinates, selected[offset..][0..4]) |actual, expected| if (!actual.eql(expected)) return error.InvalidExecutionChallenge;
             matched = true;
         }
         if (!matched) return error.InvalidExecutionChallenge;

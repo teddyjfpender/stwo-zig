@@ -1,0 +1,47 @@
+{
+  "schema": "resident-native-localzero-pruned-v1",
+  "status": "pass",
+  "scope": "original native local-zero physical witness primitive; not complete resident STARK",
+  "cold_authority": "original Runtime.buildLookups DAG, exact role/ordinal-derived selected roots, no opcode recipe transcription",
+  "recipe_nodes_range": [
+    0,
+    38
+  ],
+  "recipe_max_nodes": 64,
+  "recipe_bytes": 1208,
+  "canonical_families": 17,
+  "selectors": 46,
+  "rows": 7437,
+  "exact_field_words": 602612,
+  "hostile_cases": 68,
+  "kernel_measurement": {
+    "range_ns": [
+      3577,
+      33123
+    ],
+    "repeats_each": 32,
+    "scope": "single-run CUDA event diagnostic; not end-to-end benchmark"
+  },
+  "output_placement": "original circle-domain/bit-reversed physical SoA with zero padding",
+  "symbol": "stwo_cuda_native_localzero_pruned_v1_launch",
+  "object_sha256": "0c5beafe740e4ccf1cb1efc4bce51bce6140142cf5e10225e32a894a197691bb",
+  "binary_sha256": "0277fe0211676e9371b112fbb59e1b300e73da359900db555b5f4efb63464c0c",
+  "source_sha256": {
+    "src/frontends/riscv/air/x0_native_witness_plan_v1.zig": "922e37bd3524e53f3895404704f195cac8de4eb86957c9c60b31a293ecf02ef4",
+    "src/frontends/riscv/air/x0_native_envelope_v1.zig": "07b3a0c4d09abc53e02cfbf65cdc9920718c7b7903805675e14cb6ce6eb42b62",
+    "src/integrations/riscv_cuda/native_local_zero_witness_exports_v1.zig": "debf9134e5f9bdadcbb510fa2014e2934d3ba26b8ad9b9aba5a0fb87812dd1d2",
+    "src/integrations/riscv_cuda/tests/native_witness_vectors_v1.zig": "1b9e535933536181488ea115d02a65f23133c30d9d3a5870ff3760bc40b1f4d5",
+    "src/integrations/riscv_cuda/tests/native_witness_numeric_runner_v1.cu": "5899139db10d3421e5c142fd3ce79d818ff8e7d86e94dc5f591d6d4068938609",
+    "scripts/riscv_native_witness_cuda.py": "f9d1943dad52056a0a95c4d747ae4e67af398d463c295938d4141cc5a7a13623"
+  },
+  "vector_sha256": "be0744714a3630746f5debff77b7806c2761fac68a9276b8d13f0a06d30e12f3",
+  "recipe_artifact_sha256": "c8ec8ebee5a2caf7bc5463b17c78f7ab00d247becea90c639404a306a383ab59",
+  "old_path": "preserved; new opt-in --local-zero-pruned",
+  "prior_generic_comparison": {
+    "status": "prior prototype failed FENCE; partial16-family kernel diagnostic only",
+    "matched_family_count": 16,
+    "sum_prior_kernel_means_ns": 192106353,
+    "sum_pruned_same_family_means_ns": 295408,
+    "not_end_to_end_or_production_speedup": true
+  }
+}

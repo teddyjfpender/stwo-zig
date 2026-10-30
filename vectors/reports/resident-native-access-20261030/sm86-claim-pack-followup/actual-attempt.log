@@ -1,0 +1,19 @@
+OVERLAY 19a9ed76d7901f389df5fe19ebcfdf234814ace21d0ec612f1a6afa9b4eb316d
+LLVM_TERMINAL 1 [{'path': '/workspace/sm86-evidence/native-source-static/prover_zcu.o', 'original': '/workspace/stwo-sm86-static/.zig-cache/tmp/03f2c11162659059/unlinked-prover_zcu.o', 'bytes': 59350256, 'sha256': '1982fb7efcf4ec329e39f7f16791c7294ba56f9723613a4cd39bede925d980b2'}]
+LINK {'exit_code': 0, 'wall_s': 0.3849613529164344, 'source_before_after': 'exact', 'binary_sha256': '3a988418ec5baf8906f6bc9e78f2175717e4170d1ef0e022e2f2ae195565a8d8'}
+RUN 1
+1/10 riscv_cuda_resident_native_genuine_test_root.test.fully resident genuine native source original verifier and byte oracle...RESIDENT_NATIVE_GEOMETRY composition=4 fri=2 split=3
+RESIDENT_NATIVE_PIPELINE_FAILURE phase=claim_pack
+RESIDENT_NATIVE_FAILURE phase=pipeline commitments=4 fri_log=2 composition_log=4 split=3
+FAIL (InvalidDeviceAddress)
+2/10 frontends.riscv.runner.mod.test_0...OK
+3/10 frontends.riscv.runner.decode.test_0...OK
+4/10 frontends.riscv.air.lookups.tables.mod.test_0...OK
+5/10 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+6/10 frontends.riscv.air.semantic_eval.test_0...OK
+7/10 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+8/10 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+9/10 frontends.riscv.diagnostics.mod.test_0...OK
+10/10 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+9 passed; 0 skipped; 1 failed.
+

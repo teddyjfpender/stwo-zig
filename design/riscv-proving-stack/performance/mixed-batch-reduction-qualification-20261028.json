@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "genuine range16 and ROM original STARKs, two direct mixed batches, one detached batch-verifier STARK",
+  "base_commit": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "source_state": "uncommitted development worktree; selected hashes are not a reproducible archive",
+  "configuration": {
+    "optimize": "ReleaseSafe",
+    "queries": 8,
+    "pow_bits": 0,
+    "workers": 4
+  },
+  "result": {
+    "exit_code": 0,
+    "zig_tests_passed": 5,
+    "original_providers": 2,
+    "direct_batch_proof_bytes": [
+      129927,
+      129052
+    ],
+    "root_proof_bytes": 141368,
+    "independent_joined_fixed_parity": true,
+    "independent_expected_key": true,
+    "producer_rows_at_verification": 0,
+    "producer_captures_at_verification": 0,
+    "complete_block_authority": false,
+    "canonical_security_qualified": false,
+    "ethereum_block_qualified": false,
+    "speedup_claim": null
+  },
+  "negative_checks": [
+    "well-formed composition OODS mutation rejected as OodsNotMatching",
+    "nonadjacent original roster range",
+    "wrong independently expected key"
+  ],
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v6_mixed_batch_proof_test_root.zig -OReleaseSafe -fstrip --test-filter 'mixed batch genuine'",
+  "selected_source_sha256": {
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_prepare_v1.zig": "3e583dc1fbb68135800e0b80b2af53fdbb7e443e2abb25447d670f965e90c9e7",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_capture_v1.zig": "aee8089d74164913d6fc19265a7dc97c79d2af99c0e970118be8d8158e35de76",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_protocol_v1.zig": "a8441ddb23493ad493c13583851aafd263490fb2c552e2f620326739cee1735a",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_fixed_join_v1.zig": "6b7fe467d0207ae15631b7ffcfdfb10a36dc431a66ab14309457acac2eeda554",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_public_v1.zig": "096493c3be93c367d77d204da23398bc10a84635bb9ad05af17a88f0807b5d51",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_ranges_test_v1.zig": "e24e587b35d6cf5351f9223fdea9ba96e0a291db20fdc41d05ef8220fb71a23d",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_ranges_v1.zig": "4972c54a60542ad40a536ce86e989d9e80091caf8d0d424c060e3149d2bdaaaf",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_fixed_v1.zig": "a7462f521e21c2243c2a812688a07abec6c8a57ced9b7ae2b35535b8009425a8",
+    "src/frontends/riscv/recursion/block_v6_mixed_batch_proof_test_v1.zig": "b35c5125fd8960cabf71eaa988d4d4c2d6a76848f236287830d390b567c87fbe"
+  },
+  "log": [
+    "1/5 block_v6_mixed_batch_proof_test_root.test_0...OK",
+    "2/5 recursion.block_v6_mixed_batch_proof_test_v1.test.mixed batch genuine original range ROM proofs reduce through independently compiled verifier root...BLAKE3_NATIVE_QUERY_FUSION groups=8 removed_scalars=32 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=327 fma=5133 arithmetic_rows=13644 direct_columns=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=32 removed_scalars=128 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=113 fma=1643 arithmetic_rows=7088 direct_columns=true",
+    "MIXED_BATCH_PROOF stage=originals",
+    "MIXED_BATCH_PROOF stage=batch-capture index=0 proof_bytes=129927",
+    "MIXED_BATCH_PROOF stage=batch-capture index=1 proof_bytes=129052",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=5030 fma=10678 arithmetic_rows=43648 direct_columns=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=5013 fma=10861 arithmetic_rows=44120 direct_columns=true",
+    "MIXED_BATCH_PROOF stage=prepared",
+    "MIXED_BATCH_PROOF stage=independent-fixed-parity matched=true",
+    "MIXED_BATCH_PROOF hostile_oods_rejected=OodsNotMatching",
+    "MIXED_BATCH_PROOF verified=true batches=2 original_providers=2 proof_bytes=141368 cold_key=true producer_captures=0 producer_rows=0 hostile_oods_rejected=true global_block_authority=false",
+    "OK",
+    "3/5 air.lookups.tables.mod.test_0...OK",
+    "4/5 air.memory_commitment.poseidon2_air.test_0...OK",
+    "5/5 air.lookups.tables.source_ingest.test_0...OK",
+    "All 5 tests passed."
+  ]
+}

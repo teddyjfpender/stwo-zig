@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "scope": "Genuine streaming source execution proofs only. Old full and opt-in active protocol separately freshly verified, all checkpoint files deleted before receiver. Shared-host diagnostic timings, not controlled speedup evidence; no complete recursive root in these runs.",
+  "git_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "uncommitted_sources": true,
+  "queries": 8,
+  "pow_bits": 0,
+  "binary_sha256": "792113e01b8fb4af3dbe9970b47b8afaf1b3b11a643bf3d7e4424de37d77cbec",
+  "production_source_sha256": {
+    "src/frontends/riscv/prover/block_v7_streaming_execution_v1.zig": "44ce9fe9c4953d080ea41b533e1cf34d336f8c07708465f9562ab26c888eb0ea",
+    "src/frontends/riscv/prover/block_v7_caller_active_checkpoint_v1.zig": "5602e3683aceb7be3feee03516c689fc86ea8685cb13b82223eb571a11805fa8",
+    "src/frontends/riscv/prover/block_v7_caller_active_stage_v1.zig": "88c2660b2cd14350165cad2027e35792edc35dba8c41308b51116db1fb291c46",
+    "src/frontends/riscv/prover/block_v7_caller_active_proof_v1.zig": "7633772db51d10a62e413024aec2c704a8b202ce8269ebe0bf0f12018cccc0d8",
+    "src/frontends/riscv/prover/block_v5_caller_columns_stage_v1.zig": "b8eff013c22ca471a9f597887f5d7f04e9de6ffdd16a77262c6ecc39961ecce4",
+    "src/frontends/riscv/prover/block_v7_execution_receiver_v1.zig": "8d47ccfc0bf2b533be0903e3940b9207380021376c453b54151c701f6f0c2a87",
+    "src/frontends/riscv/prover/block_v7_global_public_closure_v1.zig": "978072f0f74125f541461723318c4fa3310a7053702a9ccce93950149f5d36b4"
+  },
+  "source_manifest_limit": "Direct changed production files only, not transitive manifest. Compiler-capsule integrations in other recursive modules may have changed after build; this binary does not prove a recursive root.",
+  "commands": [
+    "/tmp/block-v7-active-streaming",
+    "STWO_V7_ACTIVE_CALLERS=1 /tmp/block-v7-active-streaming",
+    "STWO_V7_ACTIVE_CALLERS=1 STWO_V7_SCALE_ITERATIONS=4096 STWO_V7_SCALE_SEGMENT_CYCLES=10248 /tmp/block-v7-active-streaming"
+  ],
+  "evidence": [
+    "streaming-results.tsv",
+    "streaming-small-active.log",
+    "streaming-large-active.log",
+    "streaming-small-full.log"
+  ],
+  "tradeoff": "Active retains coefficients; caller checkpoint bytes rise 5521176 -> 6164400 in this fixture, avoiding coefficient recovery. This is not a checkpoint storage or peak memory win."
+}

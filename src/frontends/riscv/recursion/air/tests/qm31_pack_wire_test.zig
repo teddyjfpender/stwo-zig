@@ -113,7 +113,7 @@ test "QM31 weighted packing preserves tuple identity and canonical sample links"
         }
         try std.testing.expectEqual(expected, actual);
     }
-    try std.testing.expectError(error.InvalidParentQueryLink, query_map.traceDirections(a, 0, 2, 4));
+    try std.testing.expectError(error.InvalidParentQueryLink, query_map.traceDirections(a, 0, 2, 32));
     try std.testing.expectError(error.InvalidParentQueryLink, query_map.directions(a, 0, 31, 1));
     try std.testing.expectError(error.InvalidParentQueryLink, query_links.build(a, &.{}, &graph, &fg, 1, 3));
     for (graph.bindings) |*binding| switch (binding.source) {

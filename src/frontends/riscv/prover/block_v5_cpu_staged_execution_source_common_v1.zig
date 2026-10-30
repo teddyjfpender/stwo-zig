@@ -10,6 +10,8 @@ const Admission = @import("block_v5_native_public_admission_v1.zig");
 
 const profile = @import("../isa/execution_profile.zig").ExecutionProfile.rv32im_zkvm_ethereum_sha_v1;
 const Recipe = @import("block_v5_execution_recipe_v1.zig").Recipe;
+const CommitmentStore = @import("block_v6_native_commitment_store_v1.zig");
+const CommitmentStaging = @import("block_v6_native_commitment_staging_v1.zig");
 pub fn ForCapacity(comptime capacity: bool) type {
     const Stage = if (capacity) @import("block_v5_capacity_native_columns_stage_v1.zig") else @import("block_v5_native_columns_stage_v1.zig");
     const Driver = @import("block_v5_cpu_driver_admission_v1.zig").ForCapacity(capacity);
@@ -31,6 +33,34 @@ pub fn ForCapacity(comptime capacity: bool) type {
             fixed_basis_limits: @import("block_v5_native_capacity_fixed_basis_v1.zig").Limits = .{},
             next: u32 = 0,
             outstanding: bool = false,
+            commitment_pins: ?[]const ?CommitmentStore.Pin = null,
+            commitment_policy: CommitmentStaging.Policy = .{},
+            commitment_statistics: ?*CommitmentStaging.Statistics = null,
+
+            pub fn trackLoads(self: *Source, statistics: *CommitmentStaging.Statistics) !void {
+                if (self.next != 0 or self.outstanding or self.commitment_statistics != null)
+                    return error.InvalidNativeCommitmentStatisticsPhase;
+                self.commitment_statistics = statistics;
+            }
+
+            pub fn enableCommitmentReuse(self: *Source, pins: []const ?CommitmentStore.Pin, policy: CommitmentStaging.Policy, statistics: *CommitmentStaging.Statistics) !void {
+                if (capacity or self.next != 0 or self.outstanding or self.commitment_pins != null or pins.len != self.records.len)
+                    return error.InvalidNativeCommitmentReuseRoster;
+                if (self.commitment_statistics) |old| if (old != statistics) return error.InvalidNativeCommitmentStatisticsPhase;
+                try policy.validate();
+                var bytes: u64 = 0;
+                for (pins) |optional| {
+                    const pin = optional orelse return error.MissingNativeCommitmentCheckpoint;
+                    if (pin.bytes == 0 or pin.bytes > policy.store.max_file_bytes or pin.loaded_bytes > policy.store.max_loaded_bytes)
+                        return error.InvalidNativeCommitmentReuseRoster;
+                    bytes = try std.math.add(u64, bytes, pin.bytes);
+                }
+                if (bytes > policy.max_total_file_bytes or bytes != statistics.written_bytes)
+                    return error.InvalidNativeCommitmentReuseRoster;
+                self.commitment_pins = pins;
+                self.commitment_policy = policy;
+                self.commitment_statistics = statistics;
+            }
 
             pub fn init(a: std.mem.Allocator, dir: std.fs.Dir, records: []const Driver.Record, pins: []const Store.Pin, admissions: []const Admission.Admission, limits: Stage.Limits) !Source {
                 return initForRecipe(a, dir, records, pins, admissions, limits, @import("block_v5_execution_recipe_v1.zig").canonical);
@@ -78,11 +108,25 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 defer if (capacity and !transferred) if (fixed) |*token| {
                     token.release() catch @panic("Failed staged load retained a fixed PCS lease");
                 };
-                const prepared = if (capacity and fixed != null)
+                var restore_timer = try std.time.Timer.start();
+                var checkpoint_name_buffer: [96]u8 = undefined;
+                const prepared = if (!capacity and self.commitment_pins != null)
+                    try Stage.ForBackend(Cpu).loadWithCommitment(self.a, self.dir, name, physical, self.pins[index], self.limits, profile, try CommitmentStaging.name(index, &checkpoint_name_buffer), self.commitment_pins.?[index].?, self.commitment_policy.store)
+                else if (capacity and fixed != null)
                     try Stage.ForBackend(Cpu).loadWithBasis(self.a, self.dir, name, physical, self.pins[index], self.limits, profile, fixed.?.basis)
+                else if (!capacity)
+                    try Stage.ForBackend(Cpu).loadForProving(self.a, self.dir, name, physical, self.pins[index], self.limits, profile)
                 else
                     try Stage.ForBackend(Cpu).load(self.a, self.dir, name, physical, self.pins[index], self.limits, profile);
                 lease.* = .{ .source = self, .index = index, .prepared = prepared, .basis_lease = if (capacity) fixed else {} };
+                if (self.commitment_statistics) |statistics| {
+                    statistics.native_restore_ns += restore_timer.read();
+                    statistics.raw_witness_read_bytes += self.pins[index].bytes;
+                    if (self.commitment_pins) |checkpoints| {
+                        statistics.checkpoint_read_bytes += checkpoints[index].?.bytes;
+                        statistics.reused_first_rounds += 1;
+                    }
+                }
                 transferred = true;
                 self.outstanding = true;
                 self.next += 1;

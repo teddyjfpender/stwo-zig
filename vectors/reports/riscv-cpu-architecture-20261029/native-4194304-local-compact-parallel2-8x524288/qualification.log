@@ -1,0 +1,28 @@
+1/9 block_v8_endpoint_local_compact_execution_benchmark_root.test_0...OK
+2/9 prover.tests.block_v8_endpoint_local_compact_execution_benchmark.test.real clean local compact pipeline performance benchmark...OK
+3/9 runner.mod.test_0...OK
+4/9 runner.decode.test_0...OK
+5/9 air.memory_commitment.poseidon2_air.test_0...OK
+6/9 air.semantic_eval.test_0...OK
+7/9 air.lookups.tables.mod.test_0...OK
+8/9 air.lookups.tables.source_ingest.test_0...OK
+9/9 diagnostics.mod.test_0...OK
+All 9 tests passed.
+       34.38 real       177.30 user        11.07 sys
+          4577656832  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             4891051  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  11  voluntary context switches
+              357936  involuntary context switches
+       2443184861927  instructions retired
+        784842018185  cycles elapsed
+          4579581008  peak memory footprint

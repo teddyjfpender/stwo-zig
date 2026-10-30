@@ -1,0 +1,179 @@
+{
+  "schema": "stwo-b8-exact-elf-pc-function-attribution-v1",
+  "scope": "execution-only declared window; not a proof or proving-time measurement",
+  "source_sha256": "c4a6b2b5de067bc0c272f8398727ffb61e489cd9609b7647c30b9b1d4113274d",
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "core_rows": 4194304,
+  "functions": [
+    {
+      "name": "_RNvNtCsfBZksNTfSi7_19stwo_ethereum_guest11fast_memory10copy_bytes",
+      "core_rows": 3799927,
+      "share": 0.9059731960296631
+    },
+    {
+      "name": "_RNvXNtNtCskxJZLxxUKvW_4core4iter8adaptersINtB2_12GenericShuntINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCslnSFYEpXhUr_6libssz6decode37decode_variable_length_items_with_maxINtNtCsdecPVIwmu5Z_12libssz_types4list7SszListhKj400_EEs_0EINtNtB6_6result6ResultNtNtB6_7convert10InfallibleNtNtB1P_5error11DecodeErrorEENtNtNtB4_6traits8iterator8Iterator4nextCsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 209977,
+      "share": 0.05006241798400879
+    },
+    {
+      "name": "_RINvNtCslnSFYEpXhUr_6libssz6decode20decode_list_with_maxINtNtCsdecPVIwmu5Z_12libssz_types4list7SszListhKj400_EECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 96409,
+      "share": 0.02298569679260254
+    },
+    {
+      "name": "_RINvNtNtCskxJZLxxUKvW_4core4iter8adapters11try_processINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCslnSFYEpXhUr_6libssz6decode37decode_variable_length_items_with_maxINtNtCsdecPVIwmu5Z_12libssz_types4list7SszListhKj400_EEs_0EB2N_INtNtB6_6result6ResultNtNtB6_7convert10InfallibleNtNtB1I_5error11DecodeErrorENCINvXso_B3R_IB3P_INtNtCsb3BoSM2R0xp_5alloc3vec3VecB2N_EB4B_EINtNtNtB4_6traits7collect12FromIteratorIB3P_B2N_B4B_EE9from_iterBQ_E0B5l_ECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 52627,
+      "share": 0.01254725456237793
+    },
+    {
+      "name": ".hidden memset",
+      "core_rows": 12307,
+      "share": 0.0029342174530029297
+    },
+    {
+      "name": "_RNvXNtNtCskxJZLxxUKvW_4core4iter8adaptersINtB2_12GenericShuntINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCslnSFYEpXhUr_6libssz6decode37decode_variable_length_items_with_maxINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListhEEs_0EINtNtB6_6result6ResultNtNtB6_7convert10InfallibleNtNtB1P_5error11DecodeErrorEENtNtNtB4_6traits8iterator8Iterator4nextCsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 6238,
+      "share": 0.0014872550964355469
+    },
+    {
+      "name": ".hidden memcpy",
+      "core_rows": 5446,
+      "share": 0.0012984275817871094
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request10WithdrawalEEB2s_",
+      "core_rows": 2744,
+      "share": 0.0006542205810546875
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListIB1f_hEEECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 1902,
+      "share": 0.0004534721374511719
+    },
+    {
+      "name": "_RNvMs5_NtCsb3BoSM2R0xp_5alloc7raw_vecNtB5_11RawVecInner11finish_growCsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 1559,
+      "share": 0.00037169456481933594
+    },
+    {
+      "name": "_RINvNtNtCskxJZLxxUKvW_4core4iter8adapters11try_processINtNtB2_3map3MapINtNtNtB6_5slice4iter7WindowsjENCINvNtCslnSFYEpXhUr_6libssz6decode37decode_variable_length_items_with_maxINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListhEEs_0EB2N_INtNtB6_6result6ResultNtNtB6_7convert10InfallibleNtNtB1I_5error11DecodeErrorENCINvXso_B47_IB45_INtNtCsb3BoSM2R0xp_5alloc3vec3VecB2N_EB4R_EINtNtNtB4_6traits7collect12FromIteratorIB45_B2N_B4R_EE9from_iterBQ_E0B5B_ECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 1452,
+      "share": 0.00034618377685546875
+    },
+    {
+      "name": "_RNvXs1s_NtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_requestNtB6_18ExecutionPayloadV3NtNtCslnSFYEpXhUr_6libssz6decode9SszDecode14from_ssz_bytes",
+      "core_rows": 808,
+      "share": 0.0001926422119140625
+    },
+    {
+      "name": "_RINvNvMs2_NtCsb3BoSM2R0xp_5alloc7raw_vecINtB8_11RawVecInnerpE7reserve21do_reserve_and_handleNtNtBa_5alloc6GlobalECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 495,
+      "share": 0.00011801719665527344
+    },
+    {
+      "name": "guest_main",
+      "core_rows": 435,
+      "share": 0.00010371208190917969
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request28NewPayloadRequestElectraFuluEB1m_",
+      "core_rows": 366,
+      "share": 8.726119995117188e-05
+    },
+    {
+      "name": "_RNvMs5_NtCsb3BoSM2R0xp_5alloc7raw_vecNtB5_11RawVecInner11finish_growCslnSFYEpXhUr_6libssz",
+      "core_rows": 339,
+      "share": 8.082389831542969e-05
+    },
+    {
+      "name": "_RNvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB5_16ContainerDecoder20read_variable_offset",
+      "core_rows": 211,
+      "share": 5.030632019042969e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request28ExecutionRequestsElectraFuluEB1m_",
+      "core_rows": 188,
+      "share": 4.482269287109375e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder12decode_fixedAhj20_ECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 146,
+      "share": 3.4809112548828125e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input16ExecutionWitnessEB1k_",
+      "core_rows": 140,
+      "share": 3.337860107421875e-05
+    },
+    {
+      "name": "_RNvMs4_NtCsb3BoSM2R0xp_5alloc7raw_vecINtB5_6RawVecjE8grow_oneCslnSFYEpXhUr_6libssz",
+      "core_rows": 125,
+      "share": 2.9802322387695312e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types4list7SszListhKj20_EECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 75,
+      "share": 1.7881393432617188e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder12decode_fixedyECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 68,
+      "share": 1.621246337890625e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request14DepositRequestEEB2s_",
+      "core_rows": 56,
+      "share": 1.33514404296875e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request17WithdrawalRequestEEB2s_",
+      "core_rows": 56,
+      "share": 1.33514404296875e-05
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request20ConsolidationRequestEEB2s_",
+      "core_rows": 54,
+      "share": 1.2874603271484375e-05
+    },
+    {
+      "name": "_RNvMs5_NtCsb3BoSM2R0xp_5alloc7raw_vecNtB5_11RawVecInner15try_allocate_inCsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 38,
+      "share": 9.059906005859375e-06
+    },
+    {
+      "name": "_RNvCslwEoflKP0YH_7___rustc12___rust_alloc",
+      "core_rows": 36,
+      "share": 8.58306884765625e-06
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListAhj20_EECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 36,
+      "share": 8.58306884765625e-06
+    },
+    {
+      "name": "_RINvMs6_NtCslnSFYEpXhUr_6libssz6decodeNtB6_16ContainerDecoder15decode_variableNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request18ExecutionPayloadV3EB1m_",
+      "core_rows": 21,
+      "share": 5.0067901611328125e-06
+    },
+    {
+      "name": "__sync_val_compare_and_swap_4",
+      "core_rows": 10,
+      "share": 2.384185791015625e-06
+    },
+    {
+      "name": "unattributed",
+      "core_rows": 5,
+      "share": 1.1920928955078125e-06
+    },
+    {
+      "name": "_RINvNtCskxJZLxxUKvW_4core3ptr9drop_glueINtNtB4_6option6OptionINtNtCsdecPVIwmu5Z_12libssz_types16progressive_list15ProgressiveListIBY_hEEEECsgqoG6GR0fDE_26stateless_validator_common",
+      "core_rows": 4,
+      "share": 9.5367431640625e-07
+    },
+    {
+      "name": "_RINvNtCskxJZLxxUKvW_4core3ptr9drop_glueINtNtB4_6option6OptionNtNtNtNtCsgqoG6GR0fDE_26stateless_validator_common5guest5input19new_payload_request28ExecutionRequestsElectraFuluEEB15_",
+      "core_rows": 4,
+      "share": 9.5367431640625e-07
+    }
+  ]
+}

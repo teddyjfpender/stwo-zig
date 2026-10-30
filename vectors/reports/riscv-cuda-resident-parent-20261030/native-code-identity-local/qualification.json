@@ -1,0 +1,39 @@
+{
+  "scope": "local exact code identity and statement binding regression",
+  "full_gpu_source_qualified": false,
+  "code_key": "SHA256 of domain-separated exact emitted CUDA with neutral identity getter",
+  "proof_key": "original full statement/profile identity retained separately",
+  "tests": [
+    {
+      "command": "python3 scripts/zig_protocol_test.py src/riscv_cuda_native_code_identity_test_v1.zig -OReleaseSafe --test-filter 'native device code identity excludes'",
+      "passed": 10
+    }
+  ],
+  "checks": [
+    "different valid epoch statements share identical CUDA body and code key",
+    "changing an emitted IR constant changes code key",
+    "emission rejects a mutated body against stored code identity"
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_program_v1.zig",
+      "sha256": "c075418ed51d2ff4303e34d6fbd0da3dd72940594dae9a9b23a2aacf2dfb9a91"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_kernel_bundle_v1.zig",
+      "sha256": "d7393f3685667f285aaffffd445b809827ec8ecc2bd5cabda7d0b2c1da44c465"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_producer_v1.zig",
+      "sha256": "0aadd18aebb39b752f578e14f624a7a1c045102af4583f1d4fe1269473d6fc43"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_composition_v1.zig",
+      "sha256": "0b4a31cbe1b3eb311c54b5e677cc4b38d1288bdaa9d9a5dfcb19c06d85a0666c"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_code_identity_v1.zig",
+      "sha256": "67935ee502a535f0d999316c94c48615774a861f43ad5165a60b0e610aee4fca"
+    }
+  ]
+}

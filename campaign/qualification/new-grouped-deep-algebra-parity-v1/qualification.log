@@ -1,0 +1,39 @@
+1/20 riscv_grouped_deep_test_root.test_0...OK
+2/20 frontends.circuit.builder.blake3_pcs_grouped_deep_v1_test.test.RISC direct original grouped DEEP geometry preserves native response ordinals and point batches...OK
+3/20 frontends.circuit.builder.blake3_pcs_grouped_deep_v1_test.test.RISC direct original grouped DEEP native old grouped all answers and strict NoValue preprocessing agree...OK
+4/20 frontends.circuit.builder.blake3_pcs_grouped_deep_v1_test.test.RISC direct original grouped DEEP rejects native degenerate sample line before inverse witness...OK
+5/20 frontends.circuit.builder.blake3_pcs_grouped_deep_v1_test.test.RISC direct original grouped DEEP rejects zero query denominator with native semantics...OK
+6/20 frontends.circuit.builder.blake3_pcs_reuse_v1.test_0...OK
+7/20 frontends.circuit.builder.blake3_fri_reuse_v1.test_0...OK
+8/20 frontends.circuit.builder.blake3_channel_reuse_v1.test_0...OK
+9/20 frontends.circuit.builder.blake3_pcs_grouped_deep_v1.test_0...OK
+10/20 frontends.circuit.builder.mod.test_0...OK
+11/20 frontends.circuit.builder.context.test_0...OK
+12/20 frontends.circuit.builder.blake3_merkle_reuse_v1.test_0...OK
+13/20 frontends.circuit.builder.blake3_reuse_v1.test_0...OK
+14/20 frontends.circuit.stark_verifier.circle.test_0...OK
+15/20 frontends.circuit.builder.ops.test_0...OK
+16/20 frontends.circuit.builder.simd.test_0...OK
+17/20 frontends.circuit.stark_verifier.select_queries.test_0...OK
+18/20 frontends.circuit.common.preprocessed.test_0...OK
+19/20 frontends.circuit.builder.finalize_constants.test_0...OK
+20/20 frontends.circuit.builder.blake.test_0...OK
+All 20 tests passed.
+        1.00 real         0.02 user         0.00 sys
+            20512768  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                3629  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   8  involuntary context switches
+           324581158  instructions retired
+            63382278  cycles elapsed
+            19759488  peak memory footprint

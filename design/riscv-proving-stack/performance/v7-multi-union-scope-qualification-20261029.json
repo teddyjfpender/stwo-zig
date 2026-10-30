@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-29",
+  "qualification": "bounded_multiwindow_metadata_and_placement_only",
+  "multiwindow_union_stark_qualified": false,
+  "configuration": "diagnostic_q8_pow0",
+  "fixture": {
+    "cycles": 20,
+    "native_windows": 3,
+    "active_callers": 1,
+    "derived_proof_commitments": 20,
+    "estimated_trace_pcs_bytes": 67525008,
+    "estimate_excludes": [
+      "composition and FRI scratch",
+      "raw witness scratch",
+      "allocator overhead",
+      "whole process RSS"
+    ]
+  },
+  "gates": [
+    {
+      "name": "genuine_contiguous_source_metadata",
+      "tests_passed": 12,
+      "exit_code": 0,
+      "binary_sha256": "91daa4bc154faa1f80ba87ec1dbccb90f5316b30c945846907a132e9e86f2066",
+      "log_sha256": "5c4e337876ced42e117258246f6c0bcb0120e90f1e907a572c876f7072615393",
+      "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_multi_union_actual_scope_test_root.zig -OReleaseSafe -fstrip --test-filter 'multi union' -femit-bin=/tmp/block-v7-multi-union-actual-scope"
+    },
+    {
+      "name": "placement_residency_and_api",
+      "tests_passed": 10,
+      "exit_code": 0,
+      "binary_sha256": "e465ba86b14e14681f25414fda50bda5f0ea26ad1c7ba5aad01736b58f8783f2",
+      "log_sha256": "21ba045f0ef4e783ebcf1fff11031de20a5d7de27e7582e572e1be0fbbdd19dd",
+      "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v7_multi_union_scope_test_root.zig -OReleaseSafe -fstrip --test-filter 'multi union' -femit-bin=/tmp/block-v7-multi-union-scope"
+    }
+  ],
+  "negative_cases": [
+    "fully resealed cross-window clock gap",
+    "fully resealed cross-window register gap",
+    "missing native",
+    "missing entry",
+    "trace PCS estimate over mandatory cap",
+    "tree count over cap",
+    "malformed native root count",
+    "swapped source order",
+    "missing provider",
+    "residency arithmetic overflow"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_multi_union_scope_v1.zig": "c2704a10bff63f14e6191075a7fdedaf2504d002eae641a38a1eb3eadd998b3e",
+    "src/frontends/riscv/prover/block_v7_multi_union_placement_v1.zig": "a9053e6a1c37f9112a6222f5f9472f10a3a87234dbe4ae84c87b20091a62d93b",
+    "src/frontends/riscv/prover/block_v7_multi_union_residency_v1.zig": "d564b0de6474ece08a75b2b51987b6697b6a3c8aaa1470f4a2d3ec0c2d130bbb",
+    "src/frontends/riscv/prover/tests/block_v7_multi_union_scope_test.zig": "885726003d2d04df541af3cd051a7bceb83742d0a86d4cc94415c8e9ed40b512",
+    "src/frontends/riscv/block_v7_multi_union_scope_test_root.zig": "83e339db6f9961d8b11aca3af2ae7971742af6973edf908f72f7189ac45d5821",
+    "src/frontends/riscv/block_v7_multi_union_actual_scope_test_root.zig": "fe3c3d752f6978fe02426fe37d5efd7f45a034a792840ca4e5a84b28349965f1"
+  },
+  "pending": [
+    "actual multiwindow heterogeneous STARK",
+    "fresh independent multiwindow root verification after producer teardown",
+    "bounded checkpoint-to-union production integration",
+    "larger complete jobs beyond admitted group limits"
+  ]
+}

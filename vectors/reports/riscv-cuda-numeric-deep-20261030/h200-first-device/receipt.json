@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "device_numeric_differential_passed": true,
+  "complete_v7_gpu_proof_verified": false,
+  "resident_proof": false,
+  "proof_scope": "numeric DEEP differential only",
+  "binary_sha256": "3294d14c1e0401c5cc4c2ef10e9aa34c662c8cced84e0d26b7fc82797d0a3d4f",
+  "source_identity": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "gpu": "H200 SM90",
+  "timing_ranked": false,
+  "timing_limitation": "Concurrent CPU codegen; first runtime/context, tiny correctness fixture. kernel_ns is synchronized host-wall GPU region.",
+  "stats": {
+    "calls": 1,
+    "source_columns": 3,
+    "terms": 7,
+    "groups": 5,
+    "device_peak_bytes": 4664,
+    "host_metadata_peak_bytes": 984,
+    "h2d_bytes": 952,
+    "d2h_bytes": 2048,
+    "kernel_launches": 2,
+    "planning_ns": 120639,
+    "source_materialization_cpu_ns": 47678,
+    "upload_ns": 6933526,
+    "kernel_ns": 316349,
+    "download_ns": 40471,
+    "total_ns": 7471429
+  },
+  "log_sha256": "73e35e492a4123cc9f859ca5ace763d4a3d30634f119fa028332b9aa0ad32902"
+}

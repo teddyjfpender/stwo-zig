@@ -1,0 +1,74 @@
+{
+  "schema": "stwo-resident-native-candidate-local-v1",
+  "production_ready": false,
+  "gpu_qualified": false,
+  "proof_contract": "open_original_native_source",
+  "execution_closed": false,
+  "configuration": {
+    "queries": 8,
+    "pow_bits": 0,
+    "commitments": 4,
+    "composition_split": 3,
+    "retirements": 3,
+    "clock_records": 0,
+    "raw_words": 72
+  },
+  "qualification": {
+    "local_tests_passed": 11,
+    "detached_cpu_original_proof_verified": true,
+    "forced_linux_full_native_controller_semantic": true,
+    "native_cuda_linked": false,
+    "actual_device_proof": false,
+    "raw_hostile_device": false,
+    "final_forced_linux_semantic_after_terminal_diagnostic": true
+  },
+  "boundary": {
+    "cpu_fixture_setup": "Original guest execution, first commitment pins, independent optional CPU proof oracle. These are not included in the GPU request measurement.",
+    "device_ingress": "24 original retirement words per row plus 5 raw clock words per update. No fixed, MAIN, interaction, challenge or sampled values supplied.",
+    "required_postcondition": "Original Native.verify and exact CPU reference STARK bytes plus every physical claim. No global execution theorem inferred."
+  },
+  "generated_bundle": {
+    "path": "/tmp/v7-native-candidate-n4-q3.cu",
+    "sha256": "ef769eed8ccfcd390c7a2f83a4c6fb83d438beaf601a9a28acac9a9d78d25922"
+  },
+  "files": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_candidate_v1.zig",
+      "sha256": "2a082d385c7fc16467e1b6e7121708e255cf1dce23f6c6bc552a487aff8c7044"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_prover_v1.zig",
+      "sha256": "80d4078bb91b02c1c379b9d1a6c1321a5c99c604c6bc0713cd9b8a0b07be857f"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_pipeline_v1.zig",
+      "sha256": "f8d32cbbee43caa917306f10a8aadaa359b0eb7b9722a07930cc1ae60c15e694"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_memory_v1.zig",
+      "sha256": "00f8be13608a14e0b62ad0edfd4270d6b431758137499a7df7e1515a4cacdc47"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_terminal_v1.zig",
+      "sha256": "a3d5fd933fa67439042e7db3dda9ac98498acc6b8b8bb02f635f5caefbd74ef6"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_transcript_v1.zig",
+      "sha256": "68cdf1d68146e10db70d4070459eafcfed4ff73fd0f2faac9639f9f5bdf09d54"
+    },
+    {
+      "path": "src/riscv_cuda_resident_native_candidate_test_root.zig",
+      "sha256": "112c5721359b2dc39b0c90e2b48ed4349eff679616a08dc8b182a59d607524dc"
+    },
+    {
+      "path": "src/riscv_cuda_resident_native_genuine_test_root.zig",
+      "sha256": "030952d9a0d3f826cfbd5b44a2fea6fa88d5e35bc645659a4f5e74326473dac0"
+    }
+  ],
+  "commands": {
+    "export": "STWO_NATIVE_CANDIDATE_EXPORT=/tmp/v7-native-candidate-n4-q3.cu python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-build.lock src/riscv_cuda_resident_native_candidate_test_root.zig -OReleaseSafe --test-filter \"resident native candidate\"",
+    "semantic": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/riscv_cuda_resident_native_genuine_test_root.zig -OReleaseSafe --test-filter \"fully resident genuine native source\" -target x86_64-linux-gnu.2.39 -lc -fno-emit-bin",
+    "device": "STWO_RESIDENT_NATIVE_QUALIFY=1 STWO_RESIDENT_NATIVE_OUTPUT=/absolute/output ./prover",
+    "hostile": "STWO_RESIDENT_NATIVE_QUALIFY=1 STWO_RESIDENT_NATIVE_HOSTILE=1 ./prover"
+  }
+}

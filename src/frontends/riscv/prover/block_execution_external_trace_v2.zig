@@ -136,6 +136,22 @@ pub const Trace = struct {
         return initColumns(a, descriptor, fixed, main, true);
     }
     fn initColumns(a: std.mem.Allocator, descriptor: Descriptor, fixed: []const Column, main: []const Column, selected: bool) !Trace {
+        var result = try allocateColumns(a, descriptor, fixed, main, selected);
+        errdefer result.deinit();
+        for (0..result.domainSize()) |logical| {
+            const pair = try result.pairAt(logical);
+            const values = (try integer.Witness.fromPair(pair, result.base_clock)).columns();
+            const physical = framework.committedRow(logical, descriptor.log_size);
+            for (values, &result.witness) |value, *column| column.*[physical] = try secureBase(value);
+        }
+        return result;
+    }
+    /// Uninitialized cells must be filled by the bounded authenticated raw
+    /// witness reader before census, interactions or proof generation.
+    pub fn allocateForCheckpoint(a: std.mem.Allocator, descriptor: Descriptor, fixed: []const Column, main: []const Column) !Trace {
+        return allocateColumns(a, descriptor, fixed, main, true);
+    }
+    fn allocateColumns(a: std.mem.Allocator, descriptor: Descriptor, fixed: []const Column, main: []const Column, selected: bool) !Trace {
         try descriptor.validate(fixed, main);
         const size: usize = @as(usize, 1) << @intCast(descriptor.log_size);
         if (selected and descriptor.kind == .keccak) {
@@ -149,12 +165,6 @@ pub const Trace = struct {
         errdefer a.free(storage);
         var result = Trace{ .allocator = a, .descriptor = descriptor, .fixed = fixed, .main = main, .log_size = descriptor.log_size, .base_clock = base_clock, .storage = storage, .witness = undefined };
         for (&result.witness, 0..) |*column, i| column.* = storage[i * size ..][0..size];
-        for (0..size) |logical| {
-            const pair = try result.pairAt(logical);
-            const values = (try integer.Witness.fromPair(pair, base_clock)).columns();
-            const physical = framework.committedRow(logical, descriptor.log_size);
-            for (values, &result.witness) |value, *column| column.*[physical] = try secureBase(value);
-        }
         return result;
     }
     pub fn deinit(self: *Trace) void {

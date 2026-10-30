@@ -1,0 +1,33 @@
+1/26 block_v8_window_root_admission_cache_test_root.test_0...OK
+2/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable admission cache derives each canonical node once and detects profile mutation...B8_ADMISSION_CACHE unique=3 independently_derived=3 duplicate_fold_hits=1 retained_profile_bytes=946994 retained_profile_peak_bytes=946994 key_derivation_peak_bytes=3897506396 frozen_snapshot_bytes=1728 frozen_snapshots=3 final_receiver_unchanged=true
+OK
+3/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable cache frozen context rejects scope and bounds mutations without any proving...OK
+4/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable cache targeted allocation failures release frozen ownership and early key construction...B8_CACHE_OOM frozen_targeted_points=19 total_frozen_allocations=61 early_key_points=8 no_proving=true
+OK
+5/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable cache key derivation and retained profile budgets reject without leaking owners...OK
+6/26 prover.tests.block_v8_full_block_resume_test.test.resume saved complete mixed root revalidates cached leaf and rejects tampering without proving...B8_RESUME_CLAIM_NEGATIVE error=UntrustedBlake3ParentKey
+B8_RESUME_QUALIFIED immutable_cache=false source_execution_count=0 cached_windows=1 original_proofs=0 parent_proofs=0 root_bytes_identical=true fresh_final_verify=true malicious_main_claim_missing_rejected=true
+OK
+7/26 prover.tests.block_v8_full_block_resume_test.test.immutable cache full driver saved mixed candidate and thin tree routing reject tampering...B8_RESUME_CLAIM_NEGATIVE error=UntrustedBlake3ParentKey
+B8_RESUME_QUALIFIED immutable_cache=true source_execution_count=0 cached_windows=1 original_proofs=0 parent_proofs=0 root_bytes_identical=true fresh_final_verify=true malicious_main_claim_missing_rejected=true
+OK
+8/26 air.program.blake3_root_cache.test.program validation cache admits exact content and rejects mutations...OK
+9/26 air.program.blake3_root_cache.test.program validation cache eviction preserves validation...OK
+10/26 air.program.blake3_root_cache.test.program validation cache shares computed roots without trusting claimed roots...OK
+11/26 runner.mod.test_0...OK
+12/26 runner.decode_cache.test.decode cache keys entries by the fetched instruction word...OK
+13/26 runner.decode_cache.test.decode cache does not retain illegal words...OK
+14/26 runner.decode.test_0...OK
+15/26 air.semantic_eval.test_0...OK
+16/26 prover.block_execution_external_trace_v2.test_0...OK
+17/26 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: original uncached effect oracle agrees across padding geometry and rejection boundaries...OK
+18/26 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: failed initialization publishes nothing and warm setup performs no allocator calls...OK
+19/26 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: concurrent callers publish exactly one immutable actual typed census...OK
+20/26 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/26 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+22/26 air.memory_commitment.poseidon2_air.test_0...OK
+23/26 air.lookups.tables.mod.test_0...OK
+24/26 air.lookups.tables.interaction.test.parallel table chunks retain two balanced waves above cache floor...OK
+25/26 air.lookups.tables.source_ingest.test_0...OK
+26/26 diagnostics.mod.test_0...OK
+All 26 tests passed.

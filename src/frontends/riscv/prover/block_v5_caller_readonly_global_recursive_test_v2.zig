@@ -125,7 +125,7 @@ fn claimFrames(a: std.mem.Allocator, admitted: *const Admission.Prepared) !Fused
     }
     return .{ .readonly_claims = ro, .program_claims = program, .state_claims = state, .table_claims = tables, .memory_claims = memory };
 }
-fn input(builder: *R.Builder, a: std.mem.Allocator, inputs: *std.ArrayList(Q), concrete: Q) !S {
+fn symbolicInput(builder: *R.Builder, a: std.mem.Allocator, inputs: *std.ArrayList(Q), concrete: Q) !S {
     const symbol = try builder.input();
     try inputs.append(a, concrete);
     return symbol.value;
@@ -173,7 +173,7 @@ test "caller readonly global recursion: all original scalar OODS equations match
             for (values.*, 0..) |*concrete, ordinal| {
                 concrete.* = value(100 + tree * 100 + column * 3 + ordinal);
                 if (tree == 2 and column == 0) sample_input = inputs.items.len;
-                try symbols.append(temp, try input(&builder, temp, &inputs, concrete.*));
+                try symbols.append(temp, try symbolicInput(&builder, temp, &inputs, concrete.*));
             }
         }
     }
@@ -186,27 +186,27 @@ test "caller readonly global recursion: all original scalar OODS equations match
     var prefix_channel = admitted.sealed.sharedChannel();
     const universal = try @import("../recursion/air/universal_challenges.zig").UniversalRelations.draw(temp, &prefix_channel);
     var draws: [47][2]S = undefined;
-    for (&draws, universal.elements) |*out, element| out.* = .{ try input(&builder, temp, &inputs, element.z), try input(&builder, temp, &inputs, element.alpha) };
+    for (&draws, universal.elements) |*out, element| out.* = .{ try symbolicInput(&builder, temp, &inputs, element.z), try symbolicInput(&builder, temp, &inputs, element.alpha) };
     var word_draws: [10]S = undefined;
     inline for (.{ "transition", "link", "initial", "endpoint", "range16" }, 0..) |name, i| {
         const element = @field(word, name);
-        word_draws[2 * i] = try input(&builder, temp, &inputs, element.z);
-        word_draws[2 * i + 1] = try input(&builder, temp, &inputs, element.alpha);
+        word_draws[2 * i] = try symbolicInput(&builder, temp, &inputs, element.z);
+        word_draws[2 * i + 1] = try symbolicInput(&builder, temp, &inputs, element.alpha);
     }
     var class_draws: [4]S = undefined;
     inline for (.{ "classification", "read" }, 0..) |name, i| {
         const element = @field(shared, name);
-        class_draws[2 * i] = try input(&builder, temp, &inputs, element.z);
-        class_draws[2 * i + 1] = try input(&builder, temp, &inputs, element.alpha);
+        class_draws[2 * i] = try symbolicInput(&builder, temp, &inputs, element.z);
+        class_draws[2 * i + 1] = try symbolicInput(&builder, temp, &inputs, element.alpha);
     }
     const public_values = try Composition.publicInputs(temp, &admitted, claims);
     const public = try temp.alloc(S, public_values.len);
     const group_input = inputs.items.len + public_values.len - 1;
     const claim_input = inputs.items.len + 8;
-    for (public, public_values) |*out, concrete| out.* = try input(&builder, temp, &inputs, concrete);
-    const random_symbol = try input(&builder, temp, &inputs, random);
-    const seed_symbol = try input(&builder, temp, &inputs, seed);
-    const expected_symbol = try input(&builder, temp, &inputs, expected);
+    for (public, public_values) |*out, concrete| out.* = try symbolicInput(&builder, temp, &inputs, concrete);
+    const random_symbol = try symbolicInput(&builder, temp, &inputs, random);
+    const seed_symbol = try symbolicInput(&builder, temp, &inputs, seed);
+    const expected_symbol = try symbolicInput(&builder, temp, &inputs, expected);
     try builder.activate();
     defer if (builder.active) builder.deactivate();
     var accumulated = S.zero();
@@ -304,6 +304,7 @@ test "caller readonly global recursion: genuine54 global draws and compact B5IC2
     for (recorder.operations.items) |operation| switch (operation) {
         .restart => resets += 1,
         .secure => |draw| if (draw.output == null) {
+            try std.testing.expect(draw.discard_output);
             omitted += 1;
         },
         else => {},

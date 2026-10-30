@@ -365,7 +365,7 @@ pub fn verifyWithEngineUsingChannelAndCapture(
         &proof_capture,
     );
     proof_capture_owned = true;
-    try validateCaptureLogs(&proof_capture, tree0_logs, tree1_logs, tree2_logs);
+    try validateCaptureLogs(&proof_capture, tree0_logs, tree1_logs, tree2_logs, pcs_config.fri_config.log_blowup_factor);
 
     var owned_public = try statement_v2.OwnedPublicDataV2.initVerified(
         allocator,
@@ -465,16 +465,46 @@ fn validateCaptureLogs(
     tree0: []const u32,
     tree1: []const u32,
     tree2: []const u32,
+    fri_log_blowup_factor: u32,
 ) !void {
     if (capture.commitments.len != COMMITMENT_TREE_COUNT or
         capture.column_log_sizes.len != COMMITMENT_TREE_COUNT or
-        !std.mem.eql(u32, capture.column_log_sizes[0], tree0) or
-        !std.mem.eql(u32, capture.column_log_sizes[1], tree1) or
-        !std.mem.eql(u32, capture.column_log_sizes[2], tree2) or
         capture.column_log_sizes[3].len == 0)
     {
         return error.InvalidIncrementalNativeProofShape;
     }
+    const raw = [_][]const u32{ tree0, tree1, tree2 };
+    for (raw, capture.column_log_sizes[0..3]) |logs, captured| {
+        try @import("proof_capture_geometry_v1.zig").requireExtendedLogs(
+            error.InvalidIncrementalNativeProofShape,
+            logs,
+            captured,
+            fri_log_blowup_factor,
+        );
+    }
+}
+
+test "incremental native capture requires extended logs for every trace tree" {
+    const raw = [_][]const u32{ &.{ 3, 5 }, &.{4}, &.{ 5, 4, 3 } };
+    const extended = [_][]const u32{ &.{ 5, 7 }, &.{6}, &.{ 7, 6, 5 }, &.{7} };
+    var logs = extended;
+    const commitments = [_]u8{0} ** COMMITMENT_TREE_COUNT;
+    const Capture = struct {
+        commitments: []const u8,
+        column_log_sizes: []const []const u32,
+    };
+    var capture = Capture{ .commitments = &commitments, .column_log_sizes = &logs };
+    try validateCaptureLogs(&capture, raw[0], raw[1], raw[2], 2);
+    for (0..3) |tree| {
+        logs[tree] = raw[tree];
+        try std.testing.expectError(error.InvalidIncrementalNativeProofShape, validateCaptureLogs(&capture, raw[0], raw[1], raw[2], 2));
+        logs[tree] = extended[tree];
+    }
+    capture.column_log_sizes = logs[0..3];
+    try std.testing.expectError(error.InvalidIncrementalNativeProofShape, validateCaptureLogs(&capture, raw[0], raw[1], raw[2], 2));
+    capture.column_log_sizes = &logs;
+    logs[3] = &.{};
+    try std.testing.expectError(error.InvalidIncrementalNativeProofShape, validateCaptureLogs(&capture, raw[0], raw[1], raw[2], 2));
 }
 
 fn incrementalRoots(

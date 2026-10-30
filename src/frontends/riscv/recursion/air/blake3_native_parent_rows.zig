@@ -64,21 +64,21 @@ pub fn fusionCensusGraphs(a: std.mem.Allocator, graphs: []const Graph, deep: any
 }
 
 pub fn prepare(a: std.mem.Allocator, source: anytype) !Prepared {
-    return prepareMode(false, false, a, source, null, null);
+    return prepareMode(false, false, a, source, null, null, null);
 }
 pub fn prepareCensus(a: std.mem.Allocator, source: anytype) !Prepared {
-    return prepareMode(true, false, a, source, null, null);
+    return prepareMode(true, false, a, source, null, null, null);
 }
 /// Transfers main-column ownership only after every fallible assembly step.
 /// Transferred columns and the returned rows retain one allocation authority.
 /// Stateless allocators may have an undefined context pointer: never compare it.
 pub fn prepareWithHashColumns(source: anytype, columns: *HashColumns) !Prepared {
     if (!columns.owns_backing) return error.InvalidNativeHashColumns;
-    return prepareMode(false, false, columns.allocator, source, columns, null);
+    return prepareMode(false, false, columns.allocator, source, columns, null, null);
 }
 pub fn preparePartition(source: anytype, columns: *HashColumns) !storage.Partition {
     if (columns.owns_backing) return error.InvalidNativeHashColumns;
-    return prepareMode(false, true, columns.allocator, source, columns, null);
+    return prepareMode(false, true, columns.allocator, source, columns, null, null);
 }
 /// Called once after direct columns and copied rows no longer borrow the
 /// transcript/path sources. Arithmetic graphs must remain alive until return.
@@ -89,13 +89,19 @@ pub const ReleaseRows = struct {
 };
 pub fn prepareReleasingRows(source: anytype, columns: *HashColumns, release: ReleaseRows) !Prepared {
     if (!columns.owns_backing) return error.InvalidNativeHashColumns;
-    return prepareMode(false, false, columns.allocator, source, columns, release);
+    return prepareMode(false, false, columns.allocator, source, columns, release, null);
 }
 pub fn preparePartitionReleasingRows(source: anytype, columns: *HashColumns, release: ReleaseRows) !storage.Partition {
     if (columns.owns_backing) return error.InvalidNativeHashColumns;
-    return prepareMode(false, true, columns.allocator, source, columns, release);
+    return prepareMode(false, true, columns.allocator, source, columns, release, null);
 }
-fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator, source: anytype, hash_columns: ?*HashColumns, release_rows: ?ReleaseRows) !(if (shared) storage.Partition else Prepared) {
+/// Borrow an independently constructed arithmetic plan for this synchronous
+/// assembly only. No plan or graph pointer escapes in the committed rows.
+pub fn prepareReleasingRowsWithArithmetic(source: anytype, columns: *HashColumns, release: ReleaseRows, compiled: *const @import("../block_v5_recursive_parent_fixed_assembly_v1.zig").Arithmetic) !Prepared {
+    if (!columns.owns_backing) return error.InvalidNativeHashColumns;
+    return prepareMode(false, false, columns.allocator, source, columns, release, compiled);
+}
+fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator, source: anytype, hash_columns: ?*HashColumns, release_rows: ?ReleaseRows, compiled: ?*const @import("../block_v5_recursive_parent_fixed_assembly_v1.zig").Arithmetic) !(if (shared) storage.Partition else Prepared) {
     if (hash_columns) |owner| {
         if (source.transcript.live.hash_metadata == null or source.paths.hash_metadata == null) return error.InvalidNativeHashColumns;
         const transcript = try owner.transcript();
@@ -181,8 +187,18 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
             evaluations[2 * i + 1] = evaluations[2 * i];
         }
         const reference = try lower.Reference.seal(&lanes);
-        var plan = try lower.Plan.init(a, reference);
-        defer plan.deinit();
+        var owned_plan: ?lower.Plan = null;
+        defer if (owned_plan) |*owned| owned.deinit();
+        const plan: *const lower.Plan = if (compiled) |trusted| blk: {
+            // This canonical reference is derived from the actual three evaluated
+            // graphs, never from a producer's asserted plan identity.
+            if (!std.mem.eql(u8, &reference.authority_digest, &trusted.reference.authority_digest)) return error.CompiledArithmeticGraphMismatch;
+            try trusted.plan.validateAgainst(reference);
+            break :blk &trusted.plan;
+        } else blk: {
+            owned_plan = try lower.Plan.init(a, reference);
+            break :blk &owned_plan.?;
+        };
         // Inventory is complete. Expand its admitted boundary columns before the
         // arithmetic matcher allocates its scratch, and emit later public terms
         // into the same final columns. No second transpose is required.
@@ -202,7 +218,7 @@ fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator
         fixed[2] = &.{};
         // Emit arithmetic cohorts directly into their final committed layout.
         // Dot4 opening rows remain exact sources for the native PCS matcher.
-        var fused = try @import("arithmetic_fusion_rows.zig").materializeColumns(a, &plan, reference, .{ .lanes = &evaluations }, .segment_leaf);
+        var fused = try @import("arithmetic_fusion_rows.zig").materializeColumns(a, plan, reference, .{ .lanes = &evaluations }, .segment_leaf);
         defer fused.deinit();
         var query_fused = try @import("native_pcs_fusion_rows.zig").materializeColumns(a, source.deep, fused.opening, scalar_rows);
         defer query_fused.deinit();

@@ -1,0 +1,41 @@
+{
+  "schema": "stwo-b8-saved-compact-single-dag-root-benchmark-v1",
+  "scope": "declared nonterminal native window recursively closed; no source reproof or execution; not a full Ethereum block",
+  "queries": 70,
+  "pow_bits": 26,
+  "workers": 8,
+  "backing_allocator": "std.heap.smp_allocator",
+  "global_g_repartition": true,
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 4194304
+  },
+  "cohorts": 1,
+  "loading_ns": 1038538834,
+  "original_verify_ns": 603251707,
+  "original_profile_ns": 639408876,
+  "parent": {
+    "source_workers": 2,
+    "global_g_repartition": true,
+    "fixed_compile_ns": 2753420333,
+    "fixed_commit_ns": 3170071834,
+    "witness_ns": 8592914875,
+    "plan_ns": 2770738375,
+    "proof_ns": 26685926333,
+    "encode_ns": 5702542,
+    "compiler_release_ns": 13689042,
+    "compiler_released_bytes": 2254998444,
+    "retained_rows_bytes": 4593803636
+  },
+  "parent_whole_ns": 43978777083,
+  "fresh_receiver_ns": 6062241750,
+  "whole_ns": 52658570916,
+  "root_bytes": 1007493,
+  "root_sha256": "eddd6d63bead9181fab6203ffca0ac6fd91a50c94be80cd4e7a3833e329342f5",
+  "charged_peak_bytes": 12298360979,
+  "source_captures": 3,
+  "source_execution_count": 0,
+  "source_reproof_count": 0,
+  "snapshot_delta_public_ports": 0,
+  "fresh_verified": true
+}

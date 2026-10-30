@@ -1,0 +1,139 @@
+{
+  "schema": "stwo-native-cpu-full-block-cost-sensitivity-v1",
+  "proof_verified": false,
+  "qualified_full_block_eta": false,
+  "cpu_only": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "original_workers": 8,
+  "recursive_core_workers": 8,
+  "recursive_source_jobs": 2,
+  "measured_cases": [
+    {
+      "cycles": 4194304,
+      "originals_s": 25.854227833,
+      "recursion_s": 52.658570916,
+      "root_core_s": 26.685926333,
+      "root_receiver_s": 6.06224175,
+      "root_peak_bytes": 12298360979,
+      "root_bytes": 1007493,
+      "root_sha256": "eddd6d63bead9181fab6203ffca0ac6fd91a50c94be80cd4e7a3833e329342f5",
+      "native_main_cell_proxy": 227518056,
+      "source_report_sha256": "94b9aa96a20c05b26a3a70d80f1b790c4f0b66b4bc81adbbb31eb5e0ed182b59",
+      "root_report_sha256": "866caa58deef78d793d9090301ac6dfbdaf8f999d70b7ffa74cbccc57b2114e6"
+    },
+    {
+      "cycles": 8388608,
+      "originals_s": 56.648643,
+      "recursion_s": 63.748588625,
+      "root_core_s": 30.475718041,
+      "root_receiver_s": 8.696923625,
+      "root_peak_bytes": 14274845394,
+      "root_bytes": 1032737,
+      "root_sha256": "44544b3a0f8fee5b8dd9185860a22544be04cf8b7df075e652c0f91c3278b186",
+      "native_main_cell_proxy": 454103384,
+      "source_report_sha256": "33fa7379b991c58ac63ec7f1d1f0487aa5756d7ddbabdf0e69fde27c5026b6da",
+      "root_report_sha256": "861d17728a1f7571b8b20c2ce321ee1481cb6740c600032706bd2b9d6953eaf3"
+    },
+    {
+      "cycles": 16777216,
+      "originals_s": 103.014541208,
+      "recursion_s": 90.61245275,
+      "root_core_s": 44.571564291,
+      "root_receiver_s": 12.37755375,
+      "root_peak_bytes": 18287402246,
+      "root_bytes": 1030765,
+      "root_sha256": "07eac98d945121aa780695ccf15e7b712da3df01c42b8fedf9185ae742075b03",
+      "native_main_cell_proxy": 934651992,
+      "source_report_sha256": "d09c39d3745514b60deb2103b1eadf4d2fb60cd635b857503715d166decc0cac",
+      "root_report_sha256": "d22262f27f01517aff09270a648a970b7bf034203eab3fcf71f587b16bbeca06"
+    }
+  ],
+  "full_execution_cycles": 139214856,
+  "modeled_windows": 17,
+  "upper_binary_nodes": 16,
+  "windows_with_unqualified_caller_route": 14,
+  "actual_keccak_calls": 32835,
+  "actual_recovery_calls": 78,
+  "native_only_originals_s": 938.1268180967443,
+  "native_only_window_recursion_s": 1074.7587087706434,
+  "native_only_serial_subtotal_s": 2012.8855268673876,
+  "native_main_area_sensitivity_originals_s": 997.5789283982609,
+  "native_main_area_sensitivity_subtotal_s": 2072.337637168904,
+  "upper_fold_sensitivity": [
+    {
+      "ASSUMED_seconds_per_node": 0,
+      "native_only_serial_minutes": 33.54809211445646
+    },
+    {
+      "ASSUMED_seconds_per_node": 10,
+      "native_only_serial_minutes": 36.21475878112313
+    },
+    {
+      "ASSUMED_seconds_per_node": 30,
+      "native_only_serial_minutes": 41.548092114456466
+    },
+    {
+      "ASSUMED_seconds_per_node": 60,
+      "native_only_serial_minutes": 49.548092114456466
+    },
+    {
+      "ASSUMED_seconds_per_node": 120,
+      "native_only_serial_minutes": 65.54809211445647
+    }
+  ],
+  "unknown_terms": [
+    "mixed-caller source/profile integration and recursive cost",
+    "qualified upper-root verifier with public-supply closure and adjacent snapshot/CPU binding",
+    "skipped prefix and actual terminal/output binding",
+    "whole-block peak memory and complete final-root verification"
+  ],
+  "boundaries": [
+    "Measured originals and recursion are SEPARATE cold runs; their sum is not an end-to-end observation.",
+    "Serial model uses current detached-file workflow, including its recorded fresh verification stages.",
+    "Native-equivalent only: profile4 currently rejects caller-containing sources.",
+    "8M plan sizes interpolate between measured 4M/8M; 16M plan uses the actual 2-cohort16M case plus an interpolated 5M tail. Workload composition is extrapolated.",
+    "Area sensitivity is an UNVALIDATED work proxy, not a regression or confidence interval.",
+    "Closed-window root costs already include bridge/global RAM: do not add another full-block global proof.",
+    "Upper-fold table is sensitivity to ASSUMED costs; no upper-fold timing was measured.",
+    "No complete Ethereum block or adjacent window-root hierarchy has been proved by this model."
+  ],
+  "inputs": {
+    "execution_summary_sha256": "38c988a283bc1da3eb36244737f98ac8a28297a9329e4505d9be88c34b98f139",
+    "execution_segments_sha256": "6223b4d31b99718a094440506a9a59df298d942fb7df5f8813f23ffe53ac8c13",
+    "encoding_metadata_sha256": "d7ea8dbab596e8e74ac2039bccdb13b053303d3620a4bb78db17786c3a04df04",
+    "script_sha256": "09d99bca7a90a28699e65032f891a40f153a9ae526317202d70df48cca13d2ab"
+  },
+  "native_16m_window_plan": {
+    "modeled_windows": 9,
+    "upper_binary_nodes": 8,
+    "windows_with_unqualified_caller_route": 8,
+    "native_only_originals_s": 855.8648597607443,
+    "native_only_recursion_s": 779.6809127706434,
+    "native_only_serial_subtotal_s": 1635.5457725313877,
+    "native_main_area_sensitivity_subtotal_s": 1664.745414823365,
+    "reduction_vs_8m_native_serial_fraction": 0.18746210318440015,
+    "upper_fold_sensitivity": [
+      {
+        "ASSUMED_seconds_per_node": 0,
+        "native_only_serial_minutes": 27.259096208856462
+      },
+      {
+        "ASSUMED_seconds_per_node": 10,
+        "native_only_serial_minutes": 28.592429542189794
+      },
+      {
+        "ASSUMED_seconds_per_node": 30,
+        "native_only_serial_minutes": 31.259096208856462
+      },
+      {
+        "ASSUMED_seconds_per_node": 60,
+        "native_only_serial_minutes": 35.25909620885646
+      },
+      {
+        "ASSUMED_seconds_per_node": 120,
+        "native_only_serial_minutes": 43.25909620885646
+      }
+    ]
+  }
+}

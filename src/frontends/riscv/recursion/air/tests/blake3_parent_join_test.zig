@@ -286,3 +286,55 @@ fn reservedAppend(a: std.mem.Allocator) !void {
     try std.testing.expectError(error.InvalidParentAppend, append.append(&target, &chunks));
     try std.testing.expectEqual(@as(usize, 3), target.fixed[0].len);
 }
+
+test "BLAKE3 many-way draining join matches binary concatenation and rejects before mutation" {
+    const a = std.testing.allocator;
+    const ranges = [_]join.Range{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 }, .{ .first = 201, .end = 202 }, .{ .first = 301, .end = 302 } };
+    for ([_][4]usize{ .{ 0, 0, 0, 0 }, .{ 0, 1, 3, 5 }, .{ 513, 0, 1025, 2 } }) |counts| {
+        var sources: [4]storage.Prepared = undefined;
+        var initialized: usize = 0;
+        defer for (sources[0..initialized]) |*source| source.deinit();
+        var pointers: [4]*storage.Prepared = undefined;
+        for (&sources, &pointers, ranges, counts) |*source, *pointer, range, count| {
+            source.* = try wideFixture(a, range.first, count);
+            pointer.* = source;
+            initialized += 1;
+        }
+        const before = sources[0].main[0][0].values.ptr;
+        try std.testing.expectError(error.AliasedAggregateChildren, join.joinManyDraining(a, &.{ &sources[0], &sources[0] }, ranges[0..2]));
+        try std.testing.expectError(error.OverlappingParentNamespaces, join.joinManyDraining(a, pointers[0..2], &.{ ranges[0], ranges[0] }));
+        try std.testing.expectEqual(before, sources[0].main[0][0].values.ptr);
+        var reference: ?storage.Prepared = null;
+        defer if (reference) |*owned| owned.deinit();
+        for (1..sources.len) |i| {
+            const previous = if (reference) |*owned| owned else &sources[0];
+            const next = try join.join(a, previous, &sources[i], .{ .{ .first = ranges[0].first, .end = ranges[i - 1].end }, ranges[i] });
+            if (reference) |*owned| owned.deinit();
+            reference = next;
+        }
+        var actual = try join.joinManyDraining(a, &pointers, &ranges);
+        defer actual.deinit();
+        try std.testing.expectEqual(reference.?.input_count, actual.input_count);
+        inline for (0..storage.Airs.len) |i| {
+            try std.testing.expectEqualDeep(reference.?.fixed[i], actual.fixed[i]);
+            for (reference.?.main[i], actual.main[i]) |expected, got| try std.testing.expectEqualDeep(expected, got);
+            for (&sources) |*source| {
+                try std.testing.expectEqual(@as(usize, 0), source.fixed[i].len);
+                for (source.main[i]) |column| try std.testing.expectEqual(@as(usize, 0), column.values.len);
+            }
+        }
+    }
+}
+fn manyFailureCase(a: std.mem.Allocator) !void {
+    var left = try wideFixture(std.testing.allocator, 1, 3);
+    defer left.deinit();
+    var middle = try wideFixture(std.testing.allocator, 101, 0);
+    defer middle.deinit();
+    var right = try wideFixture(std.testing.allocator, 201, 5);
+    defer right.deinit();
+    var result = try join.joinManyDraining(a, &.{ &left, &middle, &right }, &.{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 }, .{ .first = 201, .end = 202 } });
+    defer result.deinit();
+}
+test "BLAKE3 many-way draining join cleans every allocation failure across allocator owners" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, manyFailureCase, .{});
+}

@@ -1,0 +1,652 @@
+{
+  "schema": "stwo-sparse-ROM-measured-stage-and-range20-geometry-v1",
+  "scope": "offline analysis of existing q70 original artifacts; no new runtime benchmark",
+  "cases": [
+    {
+      "case": "native-4194304-local-compact-parallel2-8x524288",
+      "producer_call_ns": 34345539041,
+      "stage_stats": {
+        "parallel_local_proofs": 2,
+        "proof_workers": 8,
+        "local_queue_wait_ns": 13927847915,
+        "policy_ns": 984805000,
+        "restore_ns": 47419458,
+        "execution_ns": 545623625,
+        "native_witness_ns": 554329791,
+        "endpoint_preparation_ns": 1013969792,
+        "local_provider_ns": 2658742666,
+        "runner_segment_release_ns": 10278334,
+        "local_original_ns": 32093707666,
+        "local_core_proof_ns": 19738059709,
+        "local_artifact_ns": 1387980500,
+        "native_release_ns": 1727624,
+        "final_snapshot_ns": 12195833,
+        "global_endpoint_sort_ns": 60539500,
+        "global_memory_prepare_ns": 363795667,
+        "bridge_proof_ns": 267120083,
+        "narrow_release_ns": 5243209,
+        "global_memory_proof_ns": 1037440166,
+        "global_artifact_ns": 7137000,
+        "fresh_bundle_verify_ns": 11303755792,
+        "whole_ns": 34344559875,
+        "cycles": 4194304,
+        "cohorts": 8,
+        "bridge_batches": 1,
+        "logical_ram_events": 1710496,
+        "endpoint_events": 517856,
+        "staged_bytes": 30036776,
+        "retained_endpoint_peak_bytes": 291766016,
+        "charged_peak_bytes": 4736546117
+      },
+      "per_cohort_original_stage_sum_first7_only": {
+        "fixed_reconstruction_ns": 388825125,
+        "fixed_commitment_ns": 884001208,
+        "native_guard_preparation_ns": 66557375,
+        "native_commitment_ns": 932100958,
+        "endpoint_commitment_ns": 88120833,
+        "range_commitment_ns": 33944376,
+        "admission_ns": 784727166,
+        "private_adoption_ns": 220667,
+        "interaction_preparation_ns": 4909714000,
+        "relation_preflight_ns": 928847750,
+        "interaction_commitment_ns": 1636632833,
+        "claim_copy_ns": 466041,
+        "core_proof_ns": 17546558251,
+        "cleanup_ns": 28571166,
+        "whole_ns": 28229287749
+      },
+      "per_cohort": [
+        {
+          "cohort": 0,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 24622440,
+          "serialized_PoW_nonce": 17432289,
+          "core_proof_ns": 2181504333,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 1,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 23249422,
+          "serialized_PoW_nonce": 60426800,
+          "core_proof_ns": 2294709167,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 2,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 22183168,
+          "serialized_PoW_nonce": 157711765,
+          "core_proof_ns": 2708553458,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 3,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 23030582,
+          "serialized_PoW_nonce": 383292521,
+          "core_proof_ns": 3744661917,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 4,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 23064832,
+          "serialized_PoW_nonce": 32066374,
+          "core_proof_ns": 2136009625,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 5,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 22178432,
+          "serialized_PoW_nonce": 6174762,
+          "core_proof_ns": 2134452459,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 6,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "dense",
+            "log": 20
+          },
+          "range20": {
+            "mode": "dense",
+            "log": 20,
+            "main_cells": 1048576,
+            "all_tree_cells": 7340032,
+            "constraint_rows_proxy": 4194304
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 23114934,
+          "serialized_PoW_nonce": 44576787,
+          "core_proof_ns": 2346667292,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 7,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 20,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 22212864,
+          "serialized_PoW_nonce": 40096425,
+          "core_proof_ns": 2191501458,
+          "per_cohort_stats_available": false,
+          "core_time_inferred_from_aggregate": true
+        }
+      ],
+      "native_main_cells_including_halt": 183656674,
+      "composition_commitment_cells": 134217728,
+      "range20_all_tree_cells": 31195136,
+      "range20_constraint_rows_proxy": 81264640,
+      "serialized_PoW_nonce_sum": 741777723,
+      "last_stats_corruption": "runner overwrote local-7.stats.json with invocation after validating artifact hashes; preserved as evidence; only aggregate core time permits inference of final core duration"
+    },
+    {
+      "case": "native-4194304-local-sparse-compact-parallel2-8x524288",
+      "producer_call_ns": 23190456208,
+      "stage_stats": {
+        "program_flavor": "sparse_elf",
+        "parallel_local_proofs": 2,
+        "proof_workers": 8,
+        "local_queue_wait_ns": 11817767665,
+        "policy_ns": 979206416,
+        "restore_ns": 48172375,
+        "execution_ns": 522222958,
+        "native_witness_ns": 502889667,
+        "endpoint_preparation_ns": 993608375,
+        "local_provider_ns": 799547751,
+        "runner_segment_release_ns": 8796583,
+        "local_original_ns": 25243790875,
+        "local_core_proof_ns": 18676210752,
+        "local_artifact_ns": 532237124,
+        "native_release_ns": 772582,
+        "final_snapshot_ns": 12112417,
+        "global_endpoint_sort_ns": 60198666,
+        "global_memory_prepare_ns": 374721667,
+        "bridge_proof_ns": 423481792,
+        "narrow_release_ns": 4968541,
+        "global_memory_proof_ns": 1227543209,
+        "global_artifact_ns": 7699500,
+        "fresh_bundle_verify_ns": 4736464708,
+        "whole_ns": 23189785333,
+        "cycles": 4194304,
+        "cohorts": 8,
+        "bridge_batches": 1,
+        "logical_ram_events": 1710496,
+        "endpoint_events": 517856,
+        "staged_bytes": 16164359,
+        "retained_endpoint_peak_bytes": 291766016,
+        "charged_peak_bytes": 4306718809
+      },
+      "per_cohort_original_stage_sum_first7_only": {
+        "fixed_reconstruction_ns": 5704582,
+        "fixed_commitment_ns": 248125208,
+        "native_guard_preparation_ns": 62658376,
+        "native_commitment_ns": 986898875,
+        "endpoint_commitment_ns": 88319208,
+        "range_commitment_ns": 30880334,
+        "admission_ns": 109836708,
+        "private_adoption_ns": 99041,
+        "interaction_preparation_ns": 2629380376,
+        "relation_preflight_ns": 230672333,
+        "interaction_commitment_ns": 1299335915,
+        "claim_copy_ns": 507793,
+        "core_proof_ns": 16668512168,
+        "cleanup_ns": 20808747,
+        "whole_ns": 22381739664
+      },
+      "per_cohort": [
+        {
+          "cohort": 0,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 12,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 24622440,
+          "serialized_PoW_nonce": 161504782,
+          "core_proof_ns": 2651484084,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 1,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 9,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 23249422,
+          "serialized_PoW_nonce": 65612833,
+          "core_proof_ns": 2174223500,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 2,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 8,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 22183168,
+          "serialized_PoW_nonce": 154415735,
+          "core_proof_ns": 2375344875,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 3,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 9,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 23030582,
+          "serialized_PoW_nonce": 111820590,
+          "core_proof_ns": 2328247375,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 4,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 8,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 23064832,
+          "serialized_PoW_nonce": 187135502,
+          "core_proof_ns": 2645100584,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 5,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 8,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 22178432,
+          "serialized_PoW_nonce": 42623455,
+          "core_proof_ns": 1947967000,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 6,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 17,
+          "range16_log": 16,
+          "ROM_log": 9,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "dense",
+            "log": 20
+          },
+          "range20": {
+            "mode": "dense",
+            "log": 20,
+            "main_cells": 1048576,
+            "all_tree_cells": 7340032,
+            "constraint_rows_proxy": 4194304
+          },
+          "composition_mask_log": 20,
+          "composition_evaluation_log": 22,
+          "composition_commitment_cells": 16777216,
+          "native_main_cells_including_halt": 23114934,
+          "serialized_PoW_nonce": 37070795,
+          "core_proof_ns": 2546144750,
+          "per_cohort_stats_available": true
+        },
+        {
+          "cohort": 7,
+          "native_max_log": 16,
+          "halt_max_log": 16,
+          "endpoint_log": 16,
+          "range16_log": 16,
+          "ROM_log": 8,
+          "max_lookup": {
+            "kind": "range_check_20",
+            "mode": "sparse",
+            "log": 17
+          },
+          "range20": {
+            "mode": "sparse",
+            "log": 17,
+            "main_cells": 2752512,
+            "all_tree_cells": 3407872,
+            "constraint_rows_proxy": 11010048
+          },
+          "composition_mask_log": 17,
+          "composition_evaluation_log": 19,
+          "composition_commitment_cells": 2097152,
+          "native_main_cells_including_halt": 22212864,
+          "serialized_PoW_nonce": 40420020,
+          "core_proof_ns": 2007698584,
+          "per_cohort_stats_available": false,
+          "core_time_inferred_from_aggregate": true
+        }
+      ],
+      "native_main_cells_including_halt": 183656674,
+      "composition_commitment_cells": 31457280,
+      "range20_all_tree_cells": 31195136,
+      "range20_constraint_rows_proxy": 81264640,
+      "serialized_PoW_nonce_sum": 800603712,
+      "last_stats_corruption": "runner overwrote local-7.stats.json with invocation after validating artifact hashes; preserved as evidence; only aggregate core time permits inference of final core duration"
+    }
+  ],
+  "observed_stage_seconds": {
+    "local_provider_ns": {
+      "old": 2.658742666,
+      "sparse_ROM": 0.799547751,
+      "difference": 1.859194915,
+      "overlapped_sum": false
+    },
+    "local_original_ns": {
+      "old": 32.093707666,
+      "sparse_ROM": 25.243790875,
+      "difference": 6.849916791,
+      "overlapped_sum": true
+    },
+    "local_core_proof_ns": {
+      "old": 19.738059709,
+      "sparse_ROM": 18.676210752,
+      "difference": 1.061848957,
+      "overlapped_sum": true
+    },
+    "local_artifact_ns": {
+      "old": 1.3879805,
+      "sparse_ROM": 0.532237124,
+      "difference": 0.855743376,
+      "overlapped_sum": false
+    },
+    "fresh_bundle_verify_ns": {
+      "old": 11.303755792,
+      "sparse_ROM": 4.736464708,
+      "difference": 6.567291084,
+      "overlapped_sum": false
+    },
+    "whole_ns": {
+      "old": 34.344559875,
+      "sparse_ROM": 23.189785333,
+      "difference": 11.154774542,
+      "overlapped_sum": false
+    }
+  },
+  "findings": [
+    "ROM geometry really shrinks to log8..12; seven cohorts composition mask20->17, cohort6 stays20 because dense range_check_20 provider",
+    "Composition commitment cells across all8 shrink4.2667x, not8x acrossallcohorts",
+    "DomainEvaluationAccumulator.columns uses per-component log-size buckets, so unchanged native and range provider constraints do not all run at the former global ROM maximum",
+    "Native main cells and source lookup layouts are unchanged; seven R20 sparse providers still each have21main columns and21constraints atlog17",
+    "Sparse ROM nonce sum is7.93% higher; q70core includes transcript-dependent natural-order BLAKE3 search, so changing roots changes PoW workload",
+    "Observed 11.155s whole improvement is mainly receiver/provider/noncore work, not8x core proof speedup"
+  ],
+  "range20_selector": {
+    "authority": "block_v7_lookup_compact_proof_v1.zig:117 and block_v7_lookup_compact_layout_v1.zig:choose",
+    "dense": {
+      "raw": 7340032,
+      "lde": 14680064,
+      "quotient": 4194304,
+      "score": 21272896
+    },
+    "sparse17": {
+      "raw": 3407872,
+      "lde": 6815744,
+      "quotient": 11010048,
+      "score": 20023936
+    },
+    "sparse18": {
+      "raw": 6815744,
+      "lde": 13631488,
+      "quotient": 22020096,
+      "score": 37957248
+    },
+    "interpretation": "auto mode chooses sparse17 but dense over sparse18 by explicit weighted cells/OODS/hash proxy; cohort6 implies positive-support census exceeds131072 (exactdistinct notsaved), not a mandatory native semantic requirement forlog20"
+  },
+  "next_candidate": {
+    "encoding": "range20_bytes_v1",
+    "main_columns": 4,
+    "physical_planes": 2,
+    "degree": 3,
+    "q2": true,
+    "representation": "v=b0+256*b1+65536*b2",
+    "internal_byte_queries": [
+      "(b0,b1)",
+      "(b2,15-b2)"
+    ],
+    "soundness": "both second-pair limbs arebytes and sum15; sum<=510<M31 preventswrap, so b2<=15 and v<=2^20-1",
+    "legacyClaims": 6,
+    "newClaims": 7,
+    "physical_claims_separate": true,
+    "all_tree_cells_per_row": 13,
+    "equation_rows_per_row_q2": 8,
+    "default_source_unchanged": true
+  }
+}

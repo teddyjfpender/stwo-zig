@@ -1,0 +1,20 @@
+1/10 block_v8_endpoint_join_test_root.test_0...OK
+2/10 recursion.tests.block_v8_endpoint_join_test.test.canonical two cohort actual one DAG root verifies local bridge compact global and CPU chain...BLAKE3_NATIVE_QUERY_FUSION groups=4760 removed_scalars=19040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=17461 fma=46560 arithmetic_rows=141779 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=4760 removed_scalars=19040 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=17461 fma=46560 arithmetic_rows=141779 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=840 removed_scalars=3360 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=1439 fma=7086 arithmetic_rows=30713 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=5268 fma=44259 arithmetic_rows=119424 direct_columns=true
+B8_ENDPOINT_SINGLE_DAG queries=70 pow=26 cohorts=2 local_bodies=2 bridge_bodies=1 compact_global_bodies=1 bytes=987593 proof_ns=29285415708 whole_ns=61456012583 snapshot_delta_public_ports=0 freshly_verified=true\nB8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 compact=true freshly_verified=true
+OK
+3/10 recursion.tests.block_v8_endpoint_join_test.test.endpoint join closure graph rejects changed transition root and CPU coordinates...OK
+4/10 runner.decode.test_0...OK
+5/10 runner.mod.test_0...OK
+6/10 air.memory_commitment.poseidon2_air.test_0...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.

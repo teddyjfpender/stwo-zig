@@ -389,10 +389,7 @@ pub fn foldLineSingleStep(
     var i: usize = 0;
     while (i < folded_values.len) : (i += 1) {
         const inv_x = inv_x_values[i];
-        var f0 = eval[i * 2];
-        var f1 = eval[i * 2 + 1];
-        fft.ibutterfly(QM31, &f0, &f1, inv_x);
-        folded_values[i] = f0.add(alpha.mul(f1));
+        folded_values[i] = foldPairWithInverse(eval[i * 2], eval[i * 2 + 1], inv_x, alpha);
     }
 
     return .{
@@ -465,10 +462,7 @@ fn foldLineInPlaceSingleStep(
     var i: usize = 0;
     while (i < folded_len) : (i += 1) {
         const inv_x = inv_x_values[i];
-        var f0 = eval[i * 2];
-        var f1 = eval[i * 2 + 1];
-        fft.ibutterfly(QM31, &f0, &f1, inv_x);
-        eval[i] = f0.add(alpha.mul(f1));
+        eval[i] = foldPairWithInverse(eval[i * 2], eval[i * 2 + 1], inv_x, alpha);
     }
 
     const resized = try allocator.realloc(eval, folded_len);
@@ -568,12 +562,18 @@ pub fn foldCircleIntoLineWithWorkspace(
     var i: usize = 0;
     while (i < dst.len) : (i += 1) {
         const inv_py = inv_py_values[i];
-        var f0_px = src[i * 2];
-        var f1_px = src[i * 2 + 1];
-        fft.ibutterfly(QM31, &f0_px, &f1_px, inv_py);
-        const f_prime = alpha.mul(f1_px).add(f0_px);
+        const f_prime = foldPairWithInverse(src[i * 2], src[i * 2 + 1], inv_py, alpha);
         dst[i] = dst[i].mul(alpha_sq).add(f_prime);
     }
+}
+
+/// Allocation-free canonical butterfly shared by dense/sparse and resident
+/// query reconstruction. Domain selection and normalization stay with callers.
+pub inline fn foldPairWithInverse(left: QM31, right: QM31, inverse: M31, alpha: QM31) QM31 {
+    var f0 = left;
+    var f1 = right;
+    fft.ibutterfly(QM31, &f0, &f1, inverse);
+    return f0.add(alpha.mul(f1));
 }
 
 pub fn foldCircleColumnsIntoLineWithWorkspace(

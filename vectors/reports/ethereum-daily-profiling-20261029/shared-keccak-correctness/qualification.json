@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "qualification": "PASS: shared-Keccak daily complete proof integration",
+  "timing_class": "unranked correctness; overlapped independently running 421-case native-claim diagnostic",
+  "binary_sha256": "0aba83b8644fe2f5229e8456addbd1d40a4f667004502eeb82d1c2996849ad9e",
+  "source_sha256": "b45e85a90759bab69eb0c9b0f08bcfda853a61cf91b8882f9fc7d77f897351fe",
+  "architecture": "shared_keccak",
+  "proof_contract": "original_complete_stark",
+  "verified": true,
+  "producers_destroyed": true,
+  "comparison": "Matched idle baseline/shared campaign pending; do not use this sample alone as a speedup claim."
+}

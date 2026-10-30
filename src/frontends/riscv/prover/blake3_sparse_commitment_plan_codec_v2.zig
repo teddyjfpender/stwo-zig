@@ -15,9 +15,7 @@ fn size(memories: usize, programs: usize, decoded_words: usize, limits: anytype)
         decoded_words > limits.max_program_words or programs > decoded_words or
         memories > std.math.maxInt(u32) or programs > std.math.maxInt(u32) or
         decoded_words > std.math.maxInt(u32)) return error.CommitmentPlanResourceLimit;
-    const bytes = try std.math.add(usize, HEADER_BYTES, try std.math.add(usize,
-        try std.math.mul(usize, memories, 20), try std.math.add(usize,
-            try std.math.mul(usize, programs, 12), try std.math.mul(usize, decoded_words, 20))));
+    const bytes = try std.math.add(usize, HEADER_BYTES, try std.math.add(usize, try std.math.mul(usize, memories, 20), try std.math.add(usize, try std.math.mul(usize, programs, 12), try std.math.mul(usize, decoded_words, 20))));
     if (bytes > limits.max_bytes) return error.CommitmentPlanResourceLimit;
     return bytes;
 }
@@ -82,23 +80,22 @@ pub fn decode(a: std.mem.Allocator, raw: []const u8, expected: [32]u8, limits: a
         const address = try cursor.readInt(u32);
         const clock = try cursor.readInt(u32);
         const direction: @FieldType(memory.Statement, "direction") = switch (try cursor.readInt(u32)) {
-            0 => .initial, 1 => .final, else => return error.InvalidCommitmentSchedule,
+            0 => .initial,
+            1 => .final,
+            else => return error.InvalidCommitmentSchedule,
         };
-        item.* = .{ .address = address, .clock = clock, .direction = direction,
-            .source_circuit = try cursor.readInt(u32), .path_namespace = try cursor.readInt(u32),
-            .root = roots[if (direction == .initial) @as(usize, 1) else 2] };
+        item.* = .{ .address = address, .clock = clock, .direction = direction, .source_circuit = try cursor.readInt(u32), .path_namespace = try cursor.readInt(u32), .root = roots[if (direction == .initial) @as(usize, 1) else 2] };
     }
-    for (programs) |*item| item.* = .{ .namespace = try cursor.readInt(u32),
-        .address = try cursor.readInt(u32), .multiplicity = try cursor.readInt(u32), .root = roots[0] };
+    for (programs) |*item| item.* = .{ .namespace = try cursor.readInt(u32), .address = try cursor.readInt(u32), .multiplicity = try cursor.readInt(u32), .root = roots[0] };
     for (0..decoded_count) |i| {
         const address = try cursor.readInt(u32);
         for (leaves[i * 4 ..][0..4], 0..) |*leaf, limb| leaf.* = .{
-            .index = try std.math.add(u32, address, @intCast(limb)), .value = try cursor.readInt(u32),
+            .index = try std.math.add(u32, address, @intCast(limb)),
+            .value = try cursor.readInt(u32),
         };
     }
     try cursor.requireDone();
-    const result = plans.Plan{ .allocator = a, .roots = roots, .memories = memories,
-        .programs = programs, .program_leaves = leaves, .program_schedule = .sparse_active };
+    const result = plans.Plan{ .allocator = a, .roots = roots, .memories = memories, .programs = programs, .program_leaves = leaves, .program_schedule = .sparse_active };
     _ = try plans.Admission.init(&result, expected);
     return result;
 }

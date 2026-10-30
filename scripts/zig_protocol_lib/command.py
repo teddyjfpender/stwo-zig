@@ -113,11 +113,12 @@ CPU_PROTOCOL_PACKAGES = (
 )
 
 
-def _compile_options(optimize: str | None, strip: bool | None, cpu: str | None = None) -> list[str]:
+def _compile_options(optimize: str | None, strip: bool | None, cpu: str | None = None, target: str | None = None) -> list[str]:
     return [
         *([f"-O{optimize}"] if optimize is not None else []),
         *(["-fstrip" if strip else "-fno-strip"] if strip is not None else []),
         *([f"-mcpu={cpu}"] if cpu is not None else []),
+        *(["-target", target] if target is not None else []),
     ]
 
 
@@ -148,18 +149,18 @@ def _modules(cpu_only: bool = False, extra_packages: tuple[str, ...] = ()) -> tu
 
 
 def _package_module_args(optimize: str | None = None, strip: bool | None = None,
-                         cpu: str | None = None, *, modules: tuple[PackageModule, ...] | None = None) -> list[str]:
+                         cpu: str | None = None, target: str | None = None, *, modules: tuple[PackageModule, ...] | None = None) -> list[str]:
     arguments: list[str] = []
     for module in modules if modules is not None else _modules():
         arguments.extend(_dependency_args(module.dependencies))
-        arguments.extend(_compile_options(optimize, strip, cpu))
+        arguments.extend(_compile_options(optimize, strip, cpu, target))
         arguments.append(f"-M{module.name}={module.source}")
     return arguments
 
 
 def protocol_module_args(root_source: str, *, optimize: str | None = None,
                          strip: bool | None = None, cpu: str | None = None,
-                         cpu_only: bool = False,
+                         target: str | None = None, cpu_only: bool = False,
                          extra_packages: tuple[str, ...] = (),
                          standard_test_runner: str | None = None) -> list[str]:
     modules = _modules(cpu_only, extra_packages)
@@ -168,9 +169,9 @@ def protocol_module_args(root_source: str, *, optimize: str | None = None,
                      standard_test_runner, (), Path(standard_test_runner)))
     return [
         *_dependency_args(tuple(module.name for module in modules)),
-        *_compile_options(optimize, strip, cpu),
+        *_compile_options(optimize, strip, cpu, target),
         f"-Mroot={root_source}",
-        *_package_module_args(optimize, strip, cpu, modules=modules),
+        *_package_module_args(optimize, strip, cpu, target, modules=modules),
     ]
 
 
@@ -187,12 +188,13 @@ def standard_runner_source(zig: str) -> str:
 def test_command(root_source: str, *arguments: str, cpu_only: bool = False,
                  extra_packages: tuple[str, ...] = (),
                  zig: str = "zig", standard_test_runner: str | None = None) -> list[str]:
-    # -O/-mcpu/strip reset at every -M; repeat the selected host compilation
+    # -O/-mcpu/target/strip reset at every -M; repeat the selected host compilation
     # settings for root, packages, postcard shim and custom-runner module.
     # Filters and program arguments are data, even when they look like flags.
     optimize: str | None = None
     strip: bool | None = None
     cpu: str | None = None
+    target: str | None = None
     custom_runner = False
     trailing: list[str] = []
     remaining = iter(arguments)
@@ -216,6 +218,10 @@ def test_command(root_source: str, *arguments: str, cpu_only: bool = False,
             optimize = value(argument)
         elif argument.startswith("-O"):
             optimize = argument[2:]
+        elif argument == "-target":
+            target = value(argument)
+        elif argument.startswith("-target="):
+            target = argument[len("-target="):]
         elif argument == "-mcpu":
             cpu = value(argument)
         elif argument.startswith("-mcpu="):
@@ -226,11 +232,13 @@ def test_command(root_source: str, *arguments: str, cpu_only: bool = False,
         raise ValueError(f"invalid Zig optimization mode: {optimize}")
     if cpu is not None and not cpu:
         raise ValueError("-mcpu requires a value")
+    if target is not None and not target:
+        raise ValueError("-target requires a value")
     runner = (standard_test_runner or standard_runner_source(zig)) if custom_runner else None
     return [
         zig, "test",
         *protocol_module_args(
-            root_source, optimize=optimize, strip=strip, cpu=cpu,
+            root_source, optimize=optimize, strip=strip, cpu=cpu, target=target,
             cpu_only=cpu_only, standard_test_runner=runner,
             extra_packages=extra_packages,
         ),

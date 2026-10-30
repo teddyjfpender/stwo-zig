@@ -729,3 +729,55 @@ test "prover pcs: shared-point barycentric dots use the scoped worker pool" {
     defer binding.deinit();
     try expectSharedPointsMatchReference(std.testing.allocator);
 }
+
+test "sampled-value parallel request budget includes barycentric worker and shared-wave scratch" {
+    if (builtin.single_threaded) return;
+    const Backend = struct {
+        pub fn MerkleTree(comptime H: type) type {
+            return @import("../vcs_lifted/prover.zig").MerkleProverLifted(H);
+        }
+        pub fn commitMerkle(comptime H: type, a: std.mem.Allocator, columns: []const []const M31) !MerkleTree(H) {
+            return MerkleTree(H).commit(a, columns);
+        }
+    };
+    const H = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const Tree = @import("commitment_tree.zig").CommitmentTreeProverForBackend(Backend, H);
+    const Budget = @import("../host_budget_allocator.zig").SharedHostBudget;
+    const a = std.testing.allocator;
+    var pool: work_pool_mod.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try work_pool_mod.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    // Below 18 exercises concurrent per-tree workers; 18 selects the shared
+    // barycentric wave. The input trees are borrowed and outside this budget.
+    for ([_]u32{ 12, 18 }) |log| {
+        const n = @as(usize, 1) << @intCast(log);
+        const data = try a.alloc(M31, n);
+        defer a.free(data);
+        @memset(data, M31.one());
+        const columns = [_]@import("stwo_prover_api").ColumnEvaluation{.{ .log_size = log, .values = data }};
+        var original = try Tree.init(a, &columns);
+        defer original.deinit(a);
+        var trees = [_]Tree{ original, original };
+        var point = [_]CirclePointQM31{circle.SECURE_FIELD_CIRCLE_GEN.mul(17)};
+        var one = [_][]CirclePointQM31{&point};
+        var point_trees = [_][][]CirclePointQM31{ &one, &one };
+        const points = @import("stwo_core").pcs.TreeVec([][]CirclePointQM31){ .items = &point_trees };
+        // Fits the 8*n-byte domain context and scalar outputs, but cannot fit
+        // the 32*n-byte denominator+weight workspace. This used to succeed
+        // because worker/shared-wave scratch used page_allocator directly.
+        const small = try Budget.create(a, 16 * n);
+        defer small.destroy();
+        try std.testing.expectError(error.OutOfMemory, owner.evaluateAndRelease(Backend, H, small.allocator(), &trees, points, log));
+        try std.testing.expect(small.snapshot().exceeded);
+        try std.testing.expectEqual(@as(usize, 0), small.snapshot().live_bytes);
+        const sufficient = try Budget.create(a, 128 * n);
+        defer sufficient.destroy();
+        var result = try owner.evaluateAndRelease(Backend, H, sufficient.allocator(), &trees, points, log);
+        for (result.items) |tree| try std.testing.expect(tree[0][0].eql(QM31.one()));
+        result.deinitDeep(sufficient.allocator());
+        try std.testing.expect(sufficient.snapshot().peak_live_bytes >= 40 * n);
+        try std.testing.expectEqual(@as(usize, 0), sufficient.snapshot().live_bytes);
+    }
+}

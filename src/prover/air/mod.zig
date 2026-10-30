@@ -24,3 +24,5 @@ test {
 pub const secure_polynomial_program_v1 = @import("secure_polynomial_program_v1.zig");
 pub const secure_polynomial_capability_v1 = @import("secure_polynomial_capability_v1.zig");
 pub const secure_polynomial_emitter_v1 = @import("secure_polynomial_emitter_v1.zig");
+
+pub const framework_polynomial_emitter_v1 = @import("framework_polynomial_emitter_v1.zig");

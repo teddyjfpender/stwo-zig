@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-memory-class-census-invocation-v1",
+  "binary_sha256": "0cecb908e51640a9815d7dff8a0bfb6c56ec71d774ae3a9a3c434106fd3b1334",
+  "source_sha256": "5a871b56bf12b59f10ea094b1668af415aa6283477b9469ff5c95660e216bbd4",
+  "settings": {
+    "STWO_V7_CENSUS_ELF": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+    "STWO_V7_CENSUS_ELF_SHA256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "STWO_V7_CENSUS_INPUT": "vectors/reports/block-v7-real-window-corpus-20261029/source/input.bin",
+    "STWO_V7_CENSUS_INPUT_SHA256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "STWO_V7_CENSUS_OUTPUT_SHA256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "STWO_V7_CENSUS_OUTPUT": "vectors/reports/riscv-cpu-architecture-20261029/full-execution-memory-classes",
+    "STWO_V7_CENSUS_EXPECTED_CYCLES": "139214856",
+    "STWO_V7_CENSUS_SEGMENT_CYCLES": "524288"
+  },
+  "proving": false,
+  "isolated_timing": false,
+  "purpose": "Count potential immutable ELF/input accesses before designing a new memory relation; concurrent recursive qualification compilation makes wall timings diagnostic only.",
+  "command": [
+    "/tmp/v7-ethereum-memory-classes-census-20261029"
+  ],
+  "returncode": 0
+}

@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-std=c++20",
+    "-O3",
+    "--gpu-architecture=sm_90",
+    "--threads",
+    "8",
+    "--diag-suppress",
+    "177",
+    "/workspace/stwo-v7-native-witness-v3/native-witness.cu",
+    "/workspace/stwo-v7-native-witness-v3/native_witness_numeric_runner_v1.cu",
+    "-o",
+    "/workspace/stwo-v7-native-witness-v3/numeric-runner-attempt3"
+  ],
+  "wall_s": 6.523140000004787,
+  "exit_code": 0
+}

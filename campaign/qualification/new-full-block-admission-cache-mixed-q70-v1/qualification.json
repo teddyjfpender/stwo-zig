@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-b8-immutable-admission-cache-actual-mixed-qualification-v1",
+  "scope": "retained interior window4 only; incoming state conditional; no prefix/full-block/terminal claim",
+  "window": {
+    "skip_cycles": 24641536,
+    "cycles": 1048576
+  },
+  "keccak_calls": 507,
+  "recovery_calls": 66,
+  "sha_calls": 0,
+  "global_g_repartition": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "source_execution_count": 0,
+  "source_proofs_produced": 0,
+  "parent_proofs_produced": 0,
+  "cached_mixed_admission_verified": true,
+  "cache_destroyed_before_fresh_uncached_window_receiver": true,
+  "negative_cases": [
+    "wrong proof expected-key field cannot select key",
+    "changed cache descriptor handle"
+  ],
+  "tests_passed": 10,
+  "exit_code": 0,
+  "retained_profile_peak_bytes": 1155075,
+  "key_derivation_peak_bytes": 8654257361,
+  "timing_isolated": false,
+  "root_proof_source": "vectors/reports/riscv-cpu-architecture-20261029/full-block-assembly-v1/retained-139m-native4m-workers16-v1/proof/node-4.proof",
+  "root_proof_sha256": "6bef94cdb26866099f863c7b0212d0934c8b7a81c9c6729519c478598b68235c",
+  "thin_metadata_sha256": "a20cd8a65b11e898caf46c7ca93f8f12fb59adf7e74b1f4be7f953c99f2116f5",
+  "incoming_snapshot_id": "c5451c86f85cc67fd88ee516aa66e976dac7db97453ac17b577545ad617abeab",
+  "outgoing_snapshot_id": "daa921b1f758dfd6adea30e2a542dd5f278926c5d78bec3528df1609a441c4d7",
+  "command": [
+    "STWO_B8_CACHE_MIXED_SAVED_ENABLE=1",
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v8_admission_cache_mixed_saved_test_root.zig",
+    "-OReleaseSafe",
+    "-j1",
+    "--test-filter",
+    "actual saved 507 Keccak 66 recovery"
+  ],
+  "qualification_log_sha256": "8d8990129b87fb4de53ab6ac84f6f0405c329fb7311761ae9baafc3ba8a2e61d",
+  "source_hash_scope": "current directly owned gate/reader sources after successful run, not frozen all-source build provenance",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/tests/block_v8_admission_cache_mixed_saved_test.zig": "60d2aa2ebd3ac75a2808d2ded09c776e8a4ccb6208959df8ae215dd34e0cdcbc",
+    "src/frontends/riscv/block_v8_admission_cache_mixed_saved_test_root.zig": "1afd434699af7c651d02cceb4451a96ea62b591dd3c064c225bcba3f382fa78d",
+    "src/frontends/riscv/recursion/block_v8_window_root_admission_cache_v1.zig": "9f02d1b577cbb223e0946298fb409ce9a93e8cce1b665bc0f189e7c63f40fea8",
+    "src/frontends/riscv/recursion/block_v8_endpoint_mixed_join_receiver_v1.zig": "1c1bbac0903ccaf75e63cebc7f6515182b70d5875f3b15cfd60dc5f2ace660a9",
+    "src/frontends/riscv/recursion/block_v8_window_root_receiver_v1.zig": "ae8933e051103325e9ac1db875fe64abecd3d2e19482566b87dc055c10f8d380"
+  }
+}

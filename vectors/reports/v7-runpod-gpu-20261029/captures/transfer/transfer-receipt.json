@@ -1,0 +1,11 @@
+{
+  "schema": "stwo-v7-corpus-transfer-v1",
+  "remote_directory": "/workspace/stwo-v7-corpus-extended",
+  "archive_sha256": "10887b7676c4f05064474b5d001a31e28ab144184ad586c7919468b504b012d2",
+  "archive_bytes": 87019882,
+  "manifest_sha256": "eb1df2de8b1b74e1e1925e9e73de6e0b36123528c38de52bc77855d9fecbd8b7",
+  "verified_files": 12,
+  "source_tree_modified": false,
+  "proof_qualified": false,
+  "verified_unix_ns": 1793273590302592335
+}

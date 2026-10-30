@@ -1,0 +1,71 @@
+//! Five-tree sampling regression; does not qualify a native GPU proof.
+const std = @import("std");
+const Geometry = @import("../../circuit_cuda/geometry.zig");
+const Oods = @import("../../circuit_cuda/resident_oods.zig");
+test "native PCS OODS witness tree keeps its own source ordinal" {
+    const a = std.testing.allocator;
+    var logs = [_]u32{4};
+    const G = struct { trees: [5]Geometry.Tree, fri_input_log: u32 = 5, identity: [32]u8 = @splat(1), fri_layers: []const Geometry.FriLayer = &.{ .{ .evaluation_log = 5, .fold_step = 2, .cumulative_fold = 0, .leaf_log = 3 }, .{ .evaluation_log = 3, .fold_step = 2, .cumulative_fold = 2, .leaf_log = 1 } } };
+    var g: G = .{ .trees = undefined };
+    for (&g.trees) |*tree| tree.* = .{ .role = .main, .column_logs = &logs, .lifted_log = 5 };
+    const masks = [_][]const i32{ &.{0}, &.{0}, &.{0}, &.{ -1, 0 }, &.{0} };
+    var plan = try Oods.Plan.initForOffsets(a, &g, &masks, 1, 4);
+    defer plan.deinit();
+    try std.testing.expectEqual(@as(usize, 5), plan.tree_count);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 1, 2, 3, 3, 4 }, plan.sources);
+    try std.testing.expectEqual(@as(usize, 6), plan.offsets.len);
+    try std.testing.expectEqual(@as(u8, 4), plan.cohorts[plan.cohorts.len - 1].tree);
+    try std.testing.expectError(error.InvalidCircuitOodsGeometry, plan.bindTrees(a, &.{}));
+    var quotient = try @import("../../circuit_cuda/resident_quotient.zig").deriveForOffsets(a, &g, &plan, 1, &masks, 4);
+    defer quotient.deinit();
+    try std.testing.expectEqual(@as(usize, 5), quotient.source_trees.len);
+    try std.testing.expectEqual(@as(u32, 2), quotient.sources[2].tree_ordinal);
+    try std.testing.expectEqual(@as(u32, 4), quotient.sources[4].tree_ordinal);
+    try std.testing.expectEqual(@as(u32, 6), quotient.sampled_value_count);
+    const Layout = @import("../../circuit_cuda/resident_proof_layout.zig").ForCommitments(5);
+    const config = .{ .fri_config = .{ .fold_step = @as(u32, 2), .log_blowup_factor = @as(u32, 1) } };
+    var layout = try Layout.init(a, &g, &plan, config);
+    defer layout.deinit(a);
+    try std.testing.expectEqual(@as(usize, 5), layout.trace_trees.len);
+    try std.testing.expectEqual(@as(usize, 5), layout.fri_trees[0].tree_index);
+    try std.testing.expectEqual(@as(usize, 2), try layout.sampleCount(3, 0));
+    layout.fri_trees[0].tree_index = 4;
+    try std.testing.expectError(error.InvalidCircuitProofLayout, layout.validate());
+    layout.fri_trees[0].tree_index = 5;
+    layout.sample_counts[2][0] = 2;
+    try std.testing.expectError(error.InvalidCircuitProofLayout, layout.validate());
+    layout.sample_counts[2][0] = 1;
+    try layout.validate();
+    const original_masks = [_][]const i32{ &.{}, &.{0}, &.{0}, &.{ -1, 0 }, &.{0} };
+    try std.testing.expectError(error.InvalidCircuitOodsGeometry, Oods.Plan.initForOffsets(a, &g, &original_masks, 1, 4));
+    var partial = try Oods.Plan.initForOriginalOffsets(a, &g, &original_masks, 1, 4);
+    defer partial.deinit();
+    try std.testing.expectEqualSlices(u32, &.{ 1, 2, 3, 3, 4 }, partial.sources);
+    var partial_q = try @import("../../circuit_cuda/resident_quotient.zig").deriveForOffsets(a, &g, &partial, 1, &original_masks, 4);
+    defer partial_q.deinit();
+    try std.testing.expectEqual(@as(usize, 5), partial_q.sources.len);
+    try std.testing.expectEqual(@as(u32, 5), partial_q.sampled_value_count);
+    var partial_layout = try Layout.initForOriginalMasks(a, &g, &partial, config);
+    defer partial_layout.deinit(a);
+    try std.testing.expectEqual(@as(usize, 0), try partial_layout.sampleCount(0, 0));
+    try std.testing.expectError(error.InvalidCircuitProofLayout, Layout.init(a, &g, &partial, config));
+}
+
+test "native PCS OODS original four tree ordering remains unchanged" {
+    const a = std.testing.allocator;
+    var logs = [_]u32{4};
+    const G = struct { trees: [4]Geometry.Tree, fri_input_log: u32 = 5, identity: [32]u8 = @splat(1) };
+    var g: G = .{ .trees = undefined };
+    for (&g.trees) |*tree| tree.* = .{ .role = .main, .column_logs = &logs, .lifted_log = 5 };
+    const masks = [_][]const i32{ &.{0}, &.{0}, &.{ -1, 0 }, &.{0} };
+    var plan = try Oods.Plan.initForOffsets(a, &g, &masks, 1, 4);
+    defer plan.deinit();
+    try std.testing.expectEqual(@as(usize, 4), plan.tree_count);
+    try std.testing.expectEqualSlices(u32, &.{ 0, 1, 2, 2, 3 }, plan.sources);
+    try std.testing.expectEqual(@as(u8, 3), plan.cohorts[plan.cohorts.len - 1].tree);
+    var quotient = try @import("../../circuit_cuda/resident_quotient.zig").deriveForOffsets(a, &g, &plan, 1, &masks, 4);
+    defer quotient.deinit();
+    try std.testing.expectEqual(@as(usize, 4), quotient.source_trees.len);
+    try std.testing.expectEqual(@as(u32, 3), quotient.sources[3].tree_ordinal);
+    try std.testing.expectEqual(@as(u32, 5), quotient.sampled_value_count);
+}

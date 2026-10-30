@@ -1,0 +1,22 @@
+1/11 block_v7_multi_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_multi_union_test.test.v7 multi union genuine contiguous original STARK with all-provider oracle...V7_MULTI_FIXED_TOTAL .{ .columns = 179, .unique_columns = 117, .repeated_within_source = 15, .repeated_across_sources = 47, .lde_cells = 444336, .unique_lde_cells = 424288 }
+V7_MULTI_FIXED_SOURCE index=0 .{ .columns = 4, .unique_columns = 2, .repeated_within_source = 2, .repeated_across_sources = 0, .lde_cells = 16, .unique_lde_cells = 8 }
+V7_MULTI_FIXED_SOURCE index=1 .{ .columns = 6, .unique_columns = 2, .repeated_within_source = 0, .repeated_across_sources = 4, .lde_cells = 32, .unique_lde_cells = 16 }
+V7_MULTI_FIXED_SOURCE index=2 .{ .columns = 6, .unique_columns = 1, .repeated_within_source = 0, .repeated_across_sources = 5, .lde_cells = 32, .unique_lde_cells = 8 }
+V7_MULTI_FIXED_SOURCE index=3 .{ .columns = 84, .unique_columns = 80, .repeated_within_source = 4, .repeated_across_sources = 0, .lde_cells = 142464, .unique_lde_cells = 141600 }
+V7_MULTI_FIXED_SOURCE index=4 .{ .columns = 6, .unique_columns = 6, .repeated_within_source = 0, .repeated_across_sources = 0, .lde_cells = 1536, .unique_lde_cells = 1536 }
+V7_MULTI_FIXED_SOURCE index=5 .{ .columns = 6, .unique_columns = 2, .repeated_within_source = 1, .repeated_across_sources = 3, .lde_cells = 32928, .unique_lde_cells = 16448 }
+V7_MULTI_FIXED_SOURCE index=6 .{ .columns = 67, .unique_columns = 24, .repeated_within_source = 8, .repeated_across_sources = 35, .lde_cells = 267328, .unique_lde_cells = 264672 }
+V7_MULTI_PRODUCER_MEMORY consumed=false .{ .native_cache_recovered_columns = 371, .native_cache_reused_columns = 2304, .native_cache_retained_bytes = 16192, .native_cache_requested_columns = 2675, .native_cache_passthrough_columns = 0, .native_cache_capacity_misses = 0, .native_cache_evicted_columns = 0, .retained_pcs_model_bytes = 67541136, .compact_storage_admission = false, .memory_allocator_live_after_preparation = 24219139, .memory_allocator_live_after_commit = 24219347, .memory_allocator_live_after_consumption = 24219347, .union_allocator_live_before_proof = 198522480, .union_allocator_live_at_entry = 141565134, .union_allocator_live_at_exit = 143336894, .union_allocator_peak_cumulative = 241881732 }
+V7_MULTI_UNION profile=diagnostic_q8_pow0 cycles=20 cut=7 native_windows=3 callers=1 no_access=1 physical_frames=0 original_starks=1 oracle_starks=7 trees=20 estimated_trace_pcs_bytes=67541136 setup_ns=225078625 prove_ns=1865353875 oracle_prove_verify_ns=5381406959 fresh_verify_ns=1414604250 proof_bytes=1259686 charged_proof_peak_bytes=241881732 all_producer_and_oracle_owners_destroyed=true exact_physical_claims=true global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

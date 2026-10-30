@@ -1,0 +1,94 @@
+1/19 riscv_circuit_originals_test_root.test_0...OK
+2/19 integrations.circuit_cpu.riscv_originals_v1.admission_test.test.RISC direct original reject intermediate mixed parent before allocation or metadata access...OK
+3/19 integrations.circuit_cpu.riscv_originals_v1.admission_test.test.RISC direct original CPU ports preserve full width and asymmetric byte order...OK
+4/19 integrations.circuit_cpu.riscv_originals_v1.saved_metadata_test.test.RISC direct original saved metadata from durable native and mixed originals...RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=28557 groups=16 current_divisions=1998990 grouped_divisions=1120
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_SAVED_METADATA native_initial_middle_terminal=true mixed_sha_keccak=true authority_parity=true original_verifications=0 parent_proofs_read=0 parent_derivations=0 proofs_generated=0 full_block=false
+OK
+5/19 integrations.circuit_cpu.riscv_originals_v1.retained_qualification.test.RISC direct original retained window4 admission and geometry census only...RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=47760 groups=19 current_divisions=3343200 grouped_divisions=1330
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=2 current_divisions=12110 grouped_divisions=140
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=0 columns=133 samples=115 min_degree_log=7 max_degree_log=20 commitment_height=21
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=1 columns=658 samples=658 min_degree_log=7 max_degree_log=19 commitment_height=20
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=2 columns=23 samples=25 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=3 columns=1 samples=1 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=4 columns=0 samples=0 min_degree_log=0 max_degree_log=0 commitment_height=0
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=5 columns=81 samples=81 min_degree_log=9 max_degree_log=20 commitment_height=21
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=6 columns=6402 samples=22644 min_degree_log=7 max_degree_log=17 commitment_height=18
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=7 columns=632 samples=1264 min_degree_log=7 max_degree_log=19 commitment_height=20
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=8 columns=44 samples=88 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=9 columns=8 samples=16 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=10 columns=4 samples=8 min_degree_log=15 max_degree_log=15 commitment_height=16
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=11 columns=24 samples=48 min_degree_log=9 max_degree_log=20 commitment_height=21
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=12 columns=6688 samples=13376 min_degree_log=7 max_degree_log=17 commitment_height=18
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=13 columns=600 samples=1200 min_degree_log=7 max_degree_log=13 commitment_height=14
+RISC_RETAINED_ORIGINAL_TREE source=0 family=mixed tree=14 columns=16 samples=16 min_degree_log=20 max_degree_log=20 commitment_height=21
+RISC_RETAINED_ORIGINAL_CENSUS source=0 family=mixed trees=15 columns=15314 samples=39540 fri_start_log=21 responses=47760 groups=19 current_divisions=3343200 grouped_divisions=1330
+RISC_RETAINED_ORIGINAL_TREE source=1 family=bridge tree=0 columns=1 samples=1 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=1 family=bridge tree=1 columns=23 samples=23 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=1 family=bridge tree=2 columns=4 samples=8 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=1 family=bridge tree=3 columns=8 samples=8 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_CENSUS source=1 family=bridge trees=4 columns=36 samples=40 fri_start_log=17 responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=0 columns=13 samples=13 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=1 columns=12 samples=17 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=2 columns=1 samples=1 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=3 columns=1 samples=1 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=4 columns=24 samples=48 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=5 columns=8 samples=16 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=6 columns=8 samples=16 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_TREE source=2 family=global tree=7 columns=16 samples=16 min_degree_log=16 max_degree_log=16 commitment_height=17
+RISC_RETAINED_ORIGINAL_CENSUS source=2 family=global trees=8 columns=83 samples=128 fri_start_log=17 responses=173 groups=2 current_divisions=12110 grouped_divisions=140
+RISC_RETAINED_ORIGINAL_SCOPE window=4 first_cycle=24641537 cycles=1048576 keccak=507 recovery=66 queries=70 pow_bits=26 admission_only=true execution_count=0 original_proofs_read=0 original_verifications=0 native_parent_derivations=0 circuit_witnesses=0 proofs_generated=0 full_block=false
+OK
+6/19 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved admission and original material q70...SKIP
+7/19 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved complete circuit q70 QM31 and NoValue...SKIP
+8/19 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals combined window q70...SKIP
+9/19 integrations.circuit_cpu.riscv_originals_v1.native_qualification.test.RISC direct original native initial middle terminal and depth two q70...SKIP
+10/19 integrations.circuit_cpu.riscv_originals_v1.block_pipeline_test.test.RISC direct original saved block driver rejects empty jobs before proving...OK
+11/19 integrations.circuit_cpu.riscv_originals_v1.block_pipeline_test.test.RISC direct original saved block driver rejects resource limits before admission...OK
+12/19 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+13/19 frontends.riscv.air.semantic_eval.test_0...OK
+14/19 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+15/19 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+16/19 frontends.riscv.air.lookups.tables.mod.test_0...OK
+17/19 frontends.riscv.runner.mod.test_0...OK
+18/19 frontends.riscv.runner.decode.test_0...OK
+19/19 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+15 passed; 4 skipped; 0 failed.
+        4.89 real         3.61 user         0.21 sys
+           429998080  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              124999  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 355  involuntary context switches
+         82264350221  instructions retired
+         16766596655  cycles elapsed
+           425427856  peak memory footprint

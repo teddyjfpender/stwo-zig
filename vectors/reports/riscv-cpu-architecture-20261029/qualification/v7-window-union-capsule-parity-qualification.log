@@ -1,0 +1,27 @@
+1/14 block_v7_window_union_test_root.test_0...OK
+2/14 prover.tests.block_v7_window_union_test.test.window union proves genuine native Keccak ROM lookup and state delta in one STARK...BLAKE3_NATIVE_QUERY_FUSION groups=6288 removed_scalars=25152 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=87640 fma=72327 arithmetic_rows=440244 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=6288 removed_scalars=25152 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=87640 fma=72327 arithmetic_rows=440244 direct_columns=true
+OK
+3/14 prover.tests.block_v7_window_union_test.test.sparse window union preserves the complete independently selected endpoints...BLAKE3_NATIVE_QUERY_FUSION groups=6288 removed_scalars=25152 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=87640 fma=72330 arithmetic_rows=440269 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=6288 removed_scalars=25152 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=87640 fma=72330 arithmetic_rows=440269 direct_columns=true
+OK
+4/14 prover.tests.block_v7_window_union_test.test.native RAM window union records the single shared original composition...BLAKE3_NATIVE_QUERY_FUSION groups=968 removed_scalars=3872 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4646 fma=8314 arithmetic_rows=36125 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=968 removed_scalars=3872 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=4646 fma=8314 arithmetic_rows=36125 direct_columns=true
+OK
+5/14 runner.decode.test_0...OK
+6/14 runner.mod.test_0...OK
+7/14 air.memory_commitment.poseidon2_air.test_0...OK
+8/14 air.semantic_eval.test_0...OK
+9/14 prover.block_execution_external_trace_v2.test_0...OK
+10/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/14 air.lookups.tables.mod.test_0...OK
+12/14 air.lookups.tables.source_ingest.test_0...OK
+13/14 diagnostics.mod.test_0...OK
+14/14 prover.block_v5_committed_trace_column_v1.test_0...OK
+All 14 tests passed.

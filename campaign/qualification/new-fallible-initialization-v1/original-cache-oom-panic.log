@@ -1,0 +1,28 @@
+1/26 block_v8_window_root_admission_cache_test_root.test_0...OK
+2/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable admission cache derives each canonical node once and detects profile mutation...B8_ADMISSION_CACHE unique=3 independently_derived=3 duplicate_fold_hits=1 retained_profile_bytes=946994 retained_profile_peak_bytes=946994 key_derivation_peak_bytes=3897506396 frozen_snapshot_bytes=1728 frozen_snapshots=3 final_receiver_unchanged=true
+OK
+3/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable cache frozen context rejects scope and bounds mutations without any proving...OK
+4/26 recursion.tests.block_v8_window_root_admission_cache_test.test.immutable cache targeted allocation failures release frozen ownership and early key construction...thread 5189698 panic: Memory.ensurePage: allocation failed
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/runner/memory.zig:355:13: 0x100a420c7 in writeBytes (root)
+            @panic("Memory.ensurePage: allocation failed");
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/runner/memory.zig:294:24: 0x1007a639b in loadElfForProfile (root)
+        self.writeBytes(base_addr, segment);
+                       ^
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/runner/segment_session.zig:291:62: 0x1007a7d8f in init (root)
+            const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
+                                                             ^
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/prover/block_v8_full_boundary_policy_v1.zig:29:88: 0x1007a949b in derive (root)
+        var session = try @import("../runner/mod.zig").EthereumShaExecutionSession.init(a, elf, .{ .input = input, .clock_frame = .leaf_local, .trace_retention = .segment_owned, .stop_on_halt_flag = true, .require_current_output_accesses = false });
+                                                                                       ^
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/recursion/block_v8_window_root_admission_cache_v1.zig:199:45: 0x1007aed23 in clone (root)
+        var boundary = try Full.Owned.derive(a, elf, private_input, input.trusted, .{});
+                                            ^
+/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/recursion/tests/block_v8_window_root_admission_cache_test.zig:168:48: 0x100db111f in test.immutable cache targeted allocation failures release frozen ownership and early key construction (root)
+    const frozen = try CacheModule.Frozen.clone(a, context, forest, .{});
+                                               ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x100771b53 in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+???:?:?: 0x184ef14e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)

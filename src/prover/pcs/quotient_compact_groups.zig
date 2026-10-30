@@ -59,7 +59,7 @@ pub fn accumulate(
                 var even_products: [4]m31.Vec4u32 = undefined;
                 var odd_products: [4]m31.Vec4u32 = undefined;
                 inline for (0..4) |term| {
-                    const member = group.members[member_index + term];
+                    const member = group.member(member_index + term);
                     std.debug.assert(source_index + 1 < member.values.len);
                     const coefficients = m31.loadVec4(member.coefficients[0..].ptr);
                     even_products[term] = m31.mulVec4(
@@ -83,7 +83,7 @@ pub fn accumulate(
                 odd_sum = m31.addVec4(odd_sum, odd_batch);
             }
             while (member_index < group.members.len) : (member_index += 1) {
-                const member = group.members[member_index];
+                const member = group.member(member_index);
                 std.debug.assert(source_index + 1 < member.values.len);
                 const coefficients = m31.loadVec4(member.coefficients[0..].ptr);
                 even_sum = m31.addVec4(
@@ -105,7 +105,7 @@ pub fn accumulate(
                 var even_values: [4]M31 = undefined;
                 var odd_values: [4]M31 = undefined;
                 inline for (0..4) |term| {
-                    const member = group.members[member_index + term];
+                    const member = group.member(member_index + term);
                     std.debug.assert(source_index + 1 < member.values.len);
                     even_values[term] = member.values[source_index];
                     odd_values[term] = member.values[source_index + 1];
@@ -113,7 +113,7 @@ pub fn accumulate(
                 inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
                     var coefficients: [4]M31 = undefined;
                     inline for (0..4) |term| {
-                        coefficients[term] = group.members[member_index + term].coefficients[coordinate];
+                        coefficients[term] = group.member(member_index + term).coefficients[coordinate];
                     }
                     sums[coordinate][0] = sums[coordinate][0].add(
                         m31.dot4(even_values, coefficients),
@@ -124,7 +124,7 @@ pub fn accumulate(
                 }
             }
             while (member_index < group.members.len) : (member_index += 1) {
-                const member = group.members[member_index];
+                const member = group.member(member_index);
                 std.debug.assert(source_index + 1 < member.values.len);
                 inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
                     sums[coordinate][0] = sums[coordinate][0].add(
@@ -182,7 +182,8 @@ pub fn accumulate(
 pub fn scalarValueAt(group: Group, position: usize) QM31 {
     const source_index = ((position >> group.shift_amt) << 1) + (position & 1);
     var combined = QM31.zero();
-    for (group.members) |member| {
+    for (0..group.members.len) |member_index| {
+        const member = group.member(member_index);
         combined = combined.add(QM31.fromM31(
             member.values[source_index].mul(member.coefficients[0]),
             member.values[source_index].mul(member.coefficients[1]),
@@ -198,18 +199,22 @@ test "compact grouped lifting matches scalar member reduction with dot tail" {
     var numerators = [_]M31{M31.zero()} ** (2 * qm31.SECURE_EXTENSION_DEGREE * row_capacity);
     var member_values: [5][64]M31 = undefined;
     var members: [5]Member = undefined;
+    var columns: [5]@import("quotient_column_geometry.zig").ColumnEvaluation = undefined;
+    var contributions: [5]@import("quotient_row_executor.zig").ColumnContribution = undefined;
     for (&member_values, &members, 0..) |*values, *member, member_index| {
         for (values, 0..) |*value, index| {
             value.* = M31.fromCanonical(@intCast(19 + member_index * 17 + index * 97));
         }
-        member.* = .{
-            .values = values,
-            .coefficients = .{
+        member.* = .{ .values = values, .contribution_index = @intCast(member_index) };
+        columns[member_index] = .{ .log_size = 6, .values = values };
+        contributions[member_index] = .{
+            .batch_index = 1,
+            .value_coeff = QM31.fromM31Array(.{
                 M31.fromCanonical(@intCast(3 + member_index * 11)),
                 M31.fromCanonical(@intCast(5 + member_index * 13)),
                 M31.fromCanonical(@intCast(7 + member_index * 17)),
                 M31.fromCanonical(@intCast(11 + member_index * 19)),
-            },
+            }),
         };
     }
     const Case = struct { shift: u6, start: usize, len: usize };
@@ -221,6 +226,8 @@ test "compact grouped lifting matches scalar member reduction with dot tail" {
         @memset(&numerators, M31.zero());
         accumulate(&numerators, row_capacity, 2, .{
             .members = &members,
+            .value_count = 64,
+            .contributions = &contributions,
             .batch_index = 1,
             .shift_amt = case.shift,
         }, case.start, case.len);
@@ -229,10 +236,8 @@ test "compact grouped lifting matches scalar member reduction with dot tail" {
             const source_index = ((position >> case.shift) << 1) + (position & 1);
             inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
                 var expected = M31.zero();
-                for (members) |member| {
-                    expected = expected.add(
-                        member.values[source_index].mul(member.coefficients[coordinate]),
-                    );
+                for (columns, contributions) |column, contribution| {
+                    expected = expected.add(column.values[source_index].mul(contribution.value_coeff.toM31Array()[coordinate]));
                 }
                 const plane = qm31.SECURE_EXTENSION_DEGREE + coordinate;
                 try std.testing.expectEqual(expected.v, numerators[plane * row_capacity + row].v);

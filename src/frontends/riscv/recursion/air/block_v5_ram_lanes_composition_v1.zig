@@ -65,6 +65,9 @@ pub const Field = struct {
     pub fn splat(value: Q) Field {
         return .{ .symbol = S.fromSecure(value) };
     }
+    pub fn fromBase(value: M) Field {
+        return .{ .symbol = S.fromBase(value) };
+    }
     pub fn add(self: Field, other: Field) Field {
         return .{ .symbol = self.symbol.add(other.symbol) };
     }

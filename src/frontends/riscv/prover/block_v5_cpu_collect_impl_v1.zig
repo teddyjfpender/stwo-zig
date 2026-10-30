@@ -18,6 +18,13 @@ const Registers = @import("block_v5_register_windows_v1.zig");
 const Witness = @import("block_v5_cpu_witness_staging_v1.zig");
 const WitnessStore = @import("block_v5_witness_columns_store_v1.zig");
 const Readonly = @import("block_v5_readonly_input_collection_v1.zig");
+const CommitmentStore = @import("block_v6_native_commitment_store_v1.zig");
+const CommitmentStaging = @import("block_v6_native_commitment_staging_v1.zig");
+const AccessStore = @import("block_v6_access_commitment_store_v1.zig");
+const AccessStaging = @import("block_v6_access_commitment_staging_v1.zig");
+const CallerStore = @import("block_v6_caller_commitment_store_v1.zig");
+const ExternalStore = @import("block_v6_external_commitment_store_v1.zig");
+const CallerStaging = @import("block_v6_caller_commitment_staging_v1.zig");
 const profile = @import("../isa/execution_profile.zig").ExecutionProfile.rv32im_zkvm_ethereum_sha_v1;
 
 pub fn ForCapacity(comptime capacity: bool) type {
@@ -37,6 +44,10 @@ pub fn ForCapacity(comptime capacity: bool) type {
             source_files: @import("block_v5_memory_source_writer_v1.zig").Caps = .{},
             sorter_chunk_events: usize,
             witness: Witness.Limits = .{},
+            native_commitments: ?CommitmentStaging.Policy = null,
+            access_commitments: ?AccessStaging.Policy = null,
+            caller_commitments: ?CallerStaging.Policy = null,
+            external_commitments: ?CallerStaging.ExternalPolicy = null,
             fixed_basis: if (capacity) ?@import("block_v5_native_capacity_fixed_basis_v1.zig").Limits else void = if (capacity) null else {},
         };
 
@@ -54,7 +65,17 @@ pub fn ForCapacity(comptime capacity: bool) type {
             register_windows: ?Registers.Plan = null,
             owned_register_windows: []Registers.Window,
             native_pins: []WitnessStore.Pin,
+            native_commitment_pins: []?CommitmentStore.Pin,
+            native_commitments: CommitmentStaging.Statistics,
+            access_commitment_pins: []?AccessStore.Pin,
+            access_commitments: AccessStaging.Statistics,
             caller_pins: []?WitnessStore.Pin,
+            caller_commitment_pins: []?CallerStore.Pin,
+            external_commitment_pins: []?ExternalStore.Pin,
+            caller_commitment_policy: ?CallerStaging.Policy,
+            external_commitment_policy: ?CallerStaging.ExternalPolicy,
+            caller_commitments: CallerStaging.Statistics,
+            external_commitments: CallerStaging.ExternalStatistics,
             witness_file_bytes: u64,
             capacity_fused_limits: if (capacity) @import("block_v5_native_capacity_fused_proof_v1.zig").Limits else void = if (capacity) .{} else {},
 
@@ -63,7 +84,11 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 self.bound.deinit();
                 if (self.readonly) |*owned| owned.deinit();
                 a.free(self.native_pins);
+                a.free(self.native_commitment_pins);
+                a.free(self.access_commitment_pins);
                 a.free(self.caller_pins);
+                a.free(self.caller_commitment_pins);
+                a.free(self.external_commitment_pins);
                 a.free(self.owned_register_windows);
                 self.globals.deinit();
                 self.groups.deinit();
@@ -81,6 +106,22 @@ pub fn ForCapacity(comptime capacity: bool) type {
             var phase_timer = try std.time.Timer.start();
             var timings: Timings = .{};
             const emit_timings = std.process.hasEnvVarConstant("STWO_BLOCK_V5_COLLECT_PROFILE");
+            if (limits.native_commitments) |checkpoints| {
+                if (capacity) return error.NativeCommitmentCheckpointRequiresNativeV3;
+                try checkpoints.validate();
+            }
+            if (limits.access_commitments) |checkpoints| {
+                if (capacity) return error.AccessCommitmentCheckpointRequiresNativeV3;
+                try checkpoints.validate();
+            }
+            if (limits.caller_commitments) |checkpoints| {
+                if (capacity) return error.CallerCheckpointRequiresNativeV3;
+                try checkpoints.validate();
+            }
+            if (limits.external_commitments) |checkpoints| {
+                if (capacity or limits.readonly != null) return error.ExternalCheckpointRequiresOrdinaryCaller;
+                try checkpoints.validate();
+            }
             try policy.requireSource(source, limits.planning);
             const recipe = policy.runner_pins.execution_recipe;
             try recipe.requireCompiled();
@@ -100,14 +141,32 @@ pub fn ForCapacity(comptime capacity: bool) type {
             result.execution_recipe = recipe;
             result.register_windows = null;
             result.witness_file_bytes = 0;
+            result.native_commitments = .{};
+            result.access_commitments = .{};
+            result.caller_commitments = .{};
+            result.external_commitments = .{};
+            result.caller_commitment_policy = limits.caller_commitments;
+            result.external_commitment_policy = limits.external_commitments;
             result.capacity_fused_limits = if (capacity) limits.ordinary.fused else {};
-            const pin_bytes = try std.math.mul(usize, source.schedule.segments, @sizeOf(WitnessStore.Pin) + @sizeOf(?WitnessStore.Pin));
+            const pin_bytes = try std.math.mul(usize, source.schedule.segments, @sizeOf(WitnessStore.Pin) + @sizeOf(?WitnessStore.Pin) + @sizeOf(?CommitmentStore.Pin) + @sizeOf(?AccessStore.Pin) + @sizeOf(?CallerStore.Pin) + @sizeOf(?ExternalStore.Pin));
             if (pin_bytes > limits.planning.max_metadata_bytes) return error.V5CpuRosterResourceLimit;
             result.native_pins = try a.alloc(WitnessStore.Pin, source.schedule.segments);
             errdefer a.free(result.native_pins);
+            result.native_commitment_pins = try a.alloc(?CommitmentStore.Pin, source.schedule.segments);
+            @memset(result.native_commitment_pins, null);
+            errdefer a.free(result.native_commitment_pins);
+            result.access_commitment_pins = try a.alloc(?AccessStore.Pin, source.schedule.segments);
+            @memset(result.access_commitment_pins, null);
+            errdefer a.free(result.access_commitment_pins);
             result.caller_pins = try a.alloc(?WitnessStore.Pin, source.schedule.segments);
             @memset(result.caller_pins, null);
             errdefer a.free(result.caller_pins);
+            result.caller_commitment_pins = try a.alloc(?CallerStore.Pin, source.schedule.segments);
+            @memset(result.caller_commitment_pins, null);
+            errdefer a.free(result.caller_commitment_pins);
+            result.external_commitment_pins = try a.alloc(?ExternalStore.Pin, source.schedule.segments);
+            @memset(result.external_commitment_pins, null);
+            errdefer a.free(result.external_commitment_pins);
             const window_count = if (register_mode == 1) source.schedule.segments else 0;
             if (try std.math.mul(usize, window_count, @sizeOf(Registers.Window)) > limits.planning.max_metadata_bytes) return error.V5CpuRosterResourceLimit;
             result.owned_register_windows = try a.alloc(Registers.Window, window_count);
@@ -166,7 +225,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                         });
                     }
                     timings.execution_ns += phase_timer.lap();
-                    var physical = try collectPhysical(a, current.owner, config, index, base.global_first_cycle, limits, &fixed);
+                    var physical = try collectPhysicalWithCheckpoint(a, dir, current.owner, config, index, base.global_first_cycle, limits, &fixed, result);
                     timings.native_first_ns += phase_timer.lap();
                     const metadata = nativeMetadata(&physical);
                     if (register_mode == 1) result.owned_register_windows[index] = Registers.Window.fromPublic(index, base.global_first_cycle, &metadata.shape.public_data);
@@ -185,7 +244,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     if (current.owner.opcode_columns.lookup_counters) |*native_counters| counters.mergeFrom(native_counters);
                     const frame = @import("../air/block/memory_event.zig").Frame{ .clock_frame = base.clock_frame, .global_first_cycle = base.global_first_cycle, .cycle_count = @intCast(base.cycle_count) };
                     timings.fetches_counters_ns += phase_timer.lap();
-                    result.ordinary[index] = try collectOrdinary(a, current.owner, frame, &physical, &counters, limits.ordinary, if (emit_timings) &timings.ordinary_detail else null);
+                    result.ordinary[index] = try collectOrdinaryWithCheckpoint(a, dir, current.owner, frame, &physical, &counters, limits, if (emit_timings) &timings.ordinary_detail else null, result);
                     ordinary_count += 1;
                     if (capacity) if (result.readonly) |*selected| {
                         try selected.append(try @import("block_v5_native_capacity_readonly_stage_v1.zig").ForBackend(Cpu).collectWithCounters(a, current.owner, metadata, &result.ordinary[index], limits.ordinary, &selected.selection, selected.selectionPins(), selected.input, selected.native_limits, if (selected.counter_groups) |*groups_owned| groups_owned else null));
@@ -196,14 +255,23 @@ pub fn ForCapacity(comptime capacity: bool) type {
                     if (current.owner.external_retirements != 0) {
                         var caller_name: [96]u8 = undefined;
                         var caller_pin: WitnessStore.Pin = undefined;
+                        var caller_checkpoint_name: [96]u8 = undefined;
+                        var external_raw_name: [96]u8 = undefined;
+                        var external_pcs_name: [96]u8 = undefined;
+                        var caller_checkpoint_pin: CallerStore.Pin = undefined;
+                        var external_checkpoint_pin: ExternalStore.Pin = undefined;
+                        const caller_checkpoint: ?CallerStore.Staging = if (limits.caller_commitments) |checkpoint_policy| .{ .name = try CallerStaging.name(index, &caller_checkpoint_name), .limits = try checkpoint_policy.remaining(result.caller_commitments.written_bytes), .pin_out = &caller_checkpoint_pin, .statistics = &result.caller_commitments } else null;
+                        const external_checkpoint: ?ExternalStore.Staging = if (limits.external_commitments) |checkpoint_policy| .{ .raw_name = try CallerStaging.externalName(index, "columns", &external_raw_name), .pcs_name = try CallerStaging.externalName(index, "pcs", &external_pcs_name), .limits = try checkpoint_policy.remaining(try result.external_commitments.totalBytes()), .pin_out = &external_checkpoint_pin, .statistics = &result.external_commitments } else null;
                         var caller_limits = limits.caller;
                         if (result.readonly) |*selected| caller_limits.readonly = .{ .selection = selected.selectionPins(), .input = selected.input, .limits = selected.caller_limits, .counter_groups = if (selected.counter_groups) |*groups_owned| groups_owned else null };
-                        result.callers[index] = Caller.ForBackend(Cpu).collectSegmentWithStaging(a, &current.segment, index, frame, config, caller_limits, &counters, .{ .dir = dir, .name = try Witness.callerName(index, &caller_name), .limits = limits.witness.caller, .pin_out = &caller_pin }) catch |err| {
+                        result.callers[index] = Caller.ForBackend(Cpu).collectSegmentWithStaging(a, &current.segment, index, frame, config, caller_limits, &counters, .{ .dir = dir, .name = try Witness.callerName(index, &caller_name), .limits = limits.witness.caller, .pin_out = &caller_pin, .commitment = caller_checkpoint, .external_commitment = external_checkpoint }) catch |err| {
                             std.debug.print("BLOCK_V5_COLLECT caller_failed=true segment={d}/{d} keccak_calls={d} signer_calls={d} sha_calls={d} error={s}\n", .{ index + 1, source.schedule.segments, current.segment.extension.keccakf_calls.records().len, current.segment.extension.signer_recovery_calls.records().len, current.segment.extension.sha_calls.records().len, @errorName(err) });
                             return err;
                         };
                         try Witness.admitBytes(&result.witness_file_bytes, caller_pin, limits.witness);
                         result.caller_pins[index] = caller_pin;
+                        if (caller_checkpoint != null) result.caller_commitment_pins[index] = caller_checkpoint_pin;
+                        if (external_checkpoint != null) result.external_commitment_pins[index] = external_checkpoint_pin;
                         try Demand.addDemand(&demand, result.callers[index].?.caller_max_requests);
                         try Demand.addDemand(&demand, try Demand.sidecarMemoryDemand(result.callers[index].?.byte_demand.event_count));
                     }
@@ -303,6 +371,23 @@ pub fn ForCapacity(comptime capacity: bool) type {
 
         const FixedCache = @import("block_v5_native_capacity_fixed_cache_v1.zig").ForBackend(Cpu);
         const FixedReuse = if (capacity) ?FixedCache.Cache else void;
+        fn collectPhysicalWithCheckpoint(a: std.mem.Allocator, dir: std.fs.Dir, owner: *@import("blake3_execution_trace.zig").Owner, config: core.pcs.PcsConfig, index: u32, first_cycle: u64, limits: Limits, reuse: *FixedReuse, collected: *Collected) !NativeRoots.Proposal {
+            if (!capacity) if (limits.native_commitments) |policy| {
+                var retained = try NativeRoots.ForBackend(Cpu).collectRetained(a, owner, config, profile, index, first_cycle, limits.physical);
+                defer retained.first.deinit(a);
+                errdefer retained.proposal.deinit();
+                var buffer: [96]u8 = undefined;
+                var timer = try std.time.Timer.start();
+                const pin = try CommitmentStore.write(a, dir, try CommitmentStaging.name(index, &buffer), &retained.proposal, &retained.first, try policy.remaining(collected.native_commitments.written_bytes));
+                collected.native_commitments.write_ns += timer.read();
+                collected.native_commitments.written_bytes = try std.math.add(u64, collected.native_commitments.written_bytes, pin.bytes);
+                collected.native_commitments.column_bytes = try std.math.add(u64, collected.native_commitments.column_bytes, pin.column_bytes);
+                collected.native_commitments.merkle_bytes = try std.math.add(u64, collected.native_commitments.merkle_bytes, pin.merkle_bytes);
+                collected.native_commitment_pins[index] = pin;
+                return retained.proposal;
+            };
+            return collectPhysical(a, owner, config, index, first_cycle, limits, reuse);
+        }
         fn collectPhysical(a: std.mem.Allocator, owner: *@import("blake3_execution_trace.zig").Owner, config: core.pcs.PcsConfig, index: u32, first_cycle: u64, limits: Limits, reuse: *FixedReuse) !NativeRoots.Proposal {
             if (capacity) if (reuse.*) |*cache| {
                 if (try cache.acquire(a, &owner.statement, owner.external_retirements, config, profile, null)) |selected| {
@@ -327,6 +412,27 @@ pub fn ForCapacity(comptime capacity: bool) type {
         }
         fn ordinaryMode(limits: NativeMemory.Limits) u32 {
             return if (capacity) limits.memory.register_custody_mode else limits.register_custody_mode;
+        }
+        fn collectOrdinaryWithCheckpoint(a: std.mem.Allocator, dir: std.fs.Dir, owner: *@import("blake3_execution_trace.zig").Owner, frame: @import("../air/block/memory_event.zig").Frame, native: *const NativeRoots.Proposal, counters: *Tables.counter.Set, limits: Limits, timings: ?*@import("block_v5_native_memory_stage_v1.zig").CollectTimings, collected: *Collected) !NativeMemory.Proposal {
+            if (!capacity) if (limits.access_commitments) |policy| {
+                var retained = try NativeMemory.ForBackend(Cpu).collectRetainedTimed(a, owner, frame, native, counters, limits.ordinary, timings);
+                defer retained.deinitPhysical(a);
+                errdefer retained.proposal.deinit();
+                // A typed absence stays absent; do not manufacture a tree.
+                if (retained.proposal.slots.len != 0) {
+                    var buffer: [96]u8 = undefined;
+                    var timer = try std.time.Timer.start();
+                    const pin = try AccessStore.write(a, dir, try AccessStaging.name(native.index, &buffer), native, &retained, .{ .source = limits.ordinary, .storage = try policy.remaining(collected.access_commitments.written_bytes) });
+                    collected.access_commitments.write_ns += timer.read();
+                    collected.access_commitments.written_bytes = try std.math.add(u64, collected.access_commitments.written_bytes, pin.bytes);
+                    collected.access_commitments.raw_witness_payload_bytes = try std.math.add(u64, collected.access_commitments.raw_witness_payload_bytes, pin.raw_witness_bytes);
+                    collected.access_commitments.column_bytes = try std.math.add(u64, collected.access_commitments.column_bytes, pin.column_bytes);
+                    collected.access_commitments.merkle_bytes = try std.math.add(u64, collected.access_commitments.merkle_bytes, pin.merkle_bytes);
+                    collected.access_commitment_pins[native.index] = pin;
+                }
+                return retained.proposal;
+            };
+            return collectOrdinary(a, owner, frame, native, counters, limits.ordinary, timings);
         }
         fn collectOrdinary(a: std.mem.Allocator, owner: *@import("blake3_execution_trace.zig").Owner, frame: @import("../air/block/memory_event.zig").Frame, native: *const NativeRoots.Proposal, counters: *Tables.counter.Set, limits: NativeMemory.Limits, timings: ?*@import("block_v5_native_memory_stage_v1.zig").CollectTimings) !NativeMemory.Proposal {
             if (capacity) return NativeMemory.ForBackend(Cpu).collect(a, owner, &native.physical, frame, counters, limits);

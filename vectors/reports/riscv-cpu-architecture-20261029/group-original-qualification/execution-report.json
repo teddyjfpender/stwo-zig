@@ -1,0 +1,21 @@
+{
+  "schema": "stwo-b8-group-execution-qualification-v1",
+  "status": "passed",
+  "exit_code": 0,
+  "tests": {
+    "passed": 460,
+    "skipped": 2,
+    "failed": 0
+  },
+  "queries": 70,
+  "pow_bits": 26,
+  "cohorts": 2,
+  "cycles": 8,
+  "rom_flavor": "sparse_elf",
+  "wide_witnesses_built_once": true,
+  "actual_runner_and_producer_objects_destroyed_before_fresh_metadata_decode": true,
+  "original_verified_once": true,
+  "narrow_endpoint_roots_retained": true,
+  "scope": "group_execution_global_ram_open",
+  "log_sha256": "0eb4d3661e694baf26d59b64717722b55c1c659a5cc1619f51473168f3958e03"
+}

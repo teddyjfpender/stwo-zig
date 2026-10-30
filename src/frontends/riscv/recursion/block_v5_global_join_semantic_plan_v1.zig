@@ -218,6 +218,7 @@ fn nativeFused(b: *Build, child: *const F.Child, ordinal: u32, typed: F.PolicyFo
         .lookup => |projection| {
             const partition: usize = @intFromEnum(projection.partition);
             const role: Role = switch (projection.partition) {
+                .ordinary_memory_access => return error.UnsupportedPartitionedNativeInLegacyJoin,
                 .registers_state => .native_state,
                 .clock_memory_access => .auxiliary_clock,
                 .register_memory_access => .register_memory,

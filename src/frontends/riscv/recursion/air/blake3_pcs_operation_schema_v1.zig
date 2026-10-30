@@ -21,6 +21,12 @@ pub const Operation = union(enum) {
 /// parents and native word families select this same operation order.
 /// Profiles/config/count are independently reconstructed by the caller.
 pub fn appendPcsSuffix(a: std.mem.Allocator, out: *std.ArrayList(Operation), config: core.pcs.PcsConfig, deep: Deep.Profile, fri: Fri.Profile, commitments: usize) !void {
+    return appendPcsSuffixMode(false, a, out, config, deep, fri, commitments);
+}
+pub fn appendPcsSuffixBounded(a: std.mem.Allocator, out: *std.ArrayList(Operation), config: core.pcs.PcsConfig, deep: Deep.Profile, fri: Fri.Profile, commitments: usize) !void {
+    return appendPcsSuffixMode(true, a, out, config, deep, fri, commitments);
+}
+fn appendPcsSuffixMode(comptime bounded: bool, a: std.mem.Allocator, out: *std.ArrayList(Operation), config: core.pcs.PcsConfig, deep: Deep.Profile, fri: Fri.Profile, commitments: usize) !void {
     try deep.validate();
     try fri.validate();
     if (deep.trees.len != commitments or deep.lifting_log_size != fri.lifting_log_size or
@@ -38,7 +44,7 @@ pub fn appendPcsSuffix(a: std.mem.Allocator, out: *std.ArrayList(Operation), con
         remaining -= std.math.log2_int(u32, width);
     }
     if (remaining != terminal) return error.UntrustedFixedPcsOperationGeometry;
-    const slots = try native.suffixRootSlots(commitments);
+    const slots = if (bounded) try native.suffixRootSlotsBounded(commitments) else try native.suffixRootSlots(commitments);
     var pending: std.ArrayList(Operation) = .empty;
     defer pending.deinit(a);
     try pending.append(a, .{ .secure = .{ .role = .composition, .consumption = .one } });

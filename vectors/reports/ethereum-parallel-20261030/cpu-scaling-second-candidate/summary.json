@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "same_proof_bytes": true,
+  "same_binary": true,
+  "rows": [
+    {
+      "workers": 1,
+      "end_to_end_s": 194.362332208,
+      "prove_s": 182.398021875,
+      "setup_s": 9.983582416,
+      "verify_s": 1.920253042,
+      "tracked_peak_bytes": 9054367405,
+      "rss_bytes": 8829550592,
+      "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+      "binary_sha256": "500cba9bb126f7678e0382f8875f0269a3d07c43463a52287a5e6efb0d690a3f",
+      "source_sha256": "e7b9eab389705247cce0290a7b7c8ee7d1846a31b5e3f45bb016b3ba6d6c652b",
+      "samples": 1,
+      "classification": "idle-host diagnostic CPU scaling; no statistical promotion",
+      "speedup_vs_one_worker": 1.0
+    },
+    {
+      "workers": 4,
+      "end_to_end_s": 72.006650083,
+      "prove_s": 64.270226541,
+      "setup_s": 6.872967167,
+      "verify_s": 0.800915416,
+      "tracked_peak_bytes": 9572096424,
+      "rss_bytes": 8992555008,
+      "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+      "binary_sha256": "500cba9bb126f7678e0382f8875f0269a3d07c43463a52287a5e6efb0d690a3f",
+      "source_sha256": "e7b9eab389705247cce0290a7b7c8ee7d1846a31b5e3f45bb016b3ba6d6c652b",
+      "samples": 1,
+      "classification": "idle-host diagnostic CPU scaling; no statistical promotion",
+      "speedup_vs_one_worker": 2.6992275294568504
+    },
+    {
+      "workers": 8,
+      "end_to_end_s": 48.268697417,
+      "prove_s": 40.809379291,
+      "setup_s": 6.680664083,
+      "verify_s": 0.711704833,
+      "tracked_peak_bytes": 9636422100,
+      "rss_bytes": 9436610560,
+      "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+      "binary_sha256": "500cba9bb126f7678e0382f8875f0269a3d07c43463a52287a5e6efb0d690a3f",
+      "source_sha256": "e7b9eab389705247cce0290a7b7c8ee7d1846a31b5e3f45bb016b3ba6d6c652b",
+      "samples": 1,
+      "classification": "idle-host diagnostic CPU scaling; no statistical promotion",
+      "speedup_vs_one_worker": 4.026674482820134
+    },
+    {
+      "workers": 12,
+      "end_to_end_s": 40.082309709,
+      "prove_s": 32.799436125,
+      "setup_s": 6.520519542,
+      "verify_s": 0.695386625,
+      "tracked_peak_bytes": 10286977148,
+      "rss_bytes": 9604120576,
+      "proof_sha256": "c318d46ae02ac6b894c0353d9b6ea832d8ec8ddb3d9ad6aa245ed6c5507dafdd",
+      "binary_sha256": "500cba9bb126f7678e0382f8875f0269a3d07c43463a52287a5e6efb0d690a3f",
+      "source_sha256": "e7b9eab389705247cce0290a7b7c8ee7d1846a31b5e3f45bb016b3ba6d6c652b",
+      "samples": 1,
+      "classification": "idle-host diagnostic CPU scaling; no statistical promotion",
+      "speedup_vs_one_worker": 4.849080145807023
+    }
+  ],
+  "scope": "Mixed421 synthetic complete original STARK, canonical q70/26; no recursive root or block proof",
+  "heterogeneous_cpu": "Apple M5 Max; worker-count ratios are not hardware-independent serial fractions"
+}

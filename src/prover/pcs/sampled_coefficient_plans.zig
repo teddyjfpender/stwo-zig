@@ -758,7 +758,8 @@ pub fn evaluateCoefficientPlans(
         if (plan.column_indices.items.len == 0) continue;
         if (plan.column_indices.items.len == 1) {
             const column_idx = plan.column_indices.items[0];
-            if (work_audit == null and @import("sampled_coefficient_split.zig").evaluate(
+            if (work_audit == null and try @import("sampled_coefficient_split.zig").evaluate(
+                allocator,
                 coefficients[column_idx..][0..1],
                 plan.flat_factors,
                 tree_values[column_idx..][0..1],
@@ -796,7 +797,8 @@ pub fn evaluateCoefficientPlans(
 
         // Exact-work capture executes its existing counted schedule. Ordinary
         // proofs can use bounded split bases without a full domain-sized slab.
-        const split = work_audit == null and @import("sampled_coefficient_split.zig").evaluate(
+        const split = work_audit == null and try @import("sampled_coefficient_split.zig").evaluate(
+            allocator,
             coefficient_view,
             plan.flat_factors,
             out_view,

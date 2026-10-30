@@ -164,14 +164,29 @@ pub fn prepare(a: std.mem.Allocator, admitted: *const Admission.Prepared, captur
     defer planned.deinit();
     const state = planned.state.?;
     const transcript = &planned.transcript.?;
+    for (state.composition.sources, 0..) |source, node| if (source == .public_input) {
+        const open = source.public_input == values.claimCount();
+        const expected = if (open) values.open_sum else try values.claimAt(source.public_input);
+        if (!expected.eql(state.composition.inputs[node])) return error.UntrustedCallerRecursivePublicInputs;
+    };
+    const wires = try collectFixedSchedule(bounded, &transcript.plan, &state.composition, @intCast(capture.proof.queries.raw.len), values.claimCount());
+    errdefer bounded.free(wires);
+    const emitted = try planned.emit();
+    defer emitted.deinit();
+    var recursive = try emitted.finishReleasingRows();
+    errdefer recursive.deinit();
+    return .{ .allocator = bounded, .budget = budget, .recursive = recursive, .wires = wires, .values = values };
+}
+
+/// Capture-free schedule from the original transcript and equation DAG.
+pub fn collectFixedSchedule(a: std.mem.Allocator, plan: *const @import("air/blake3_transcript_plan.zig").Plan, composition: anytype, path_reads: u32, claim_count: usize) ![]Wire {
     var wires: std.ArrayList(Wire) = .empty;
-    errdefer wires.deinit(bounded);
+    errdefer wires.deinit(a);
     const root_circuit = @import("air/blake3_root_sources.zig").CIRCUIT;
-    const path_reads = std.math.cast(u32, capture.proof.queries.raw.len) orelse return error.InvalidCallerRecursiveSchedule;
     for (0..2) |root| {
-        for (0..8) |coordinate| try append(bounded, &wires, .{ .circuit = root_circuit, .wire = @intCast(root * 8 + coordinate), .uses = path_reads, .source = if (root == 0) .fixed_root else .main_root, .coordinate = @intCast(coordinate) });
+        for (0..8) |coordinate| try append(a, &wires, .{ .circuit = root_circuit, .wire = @intCast(root * 8 + coordinate), .uses = path_reads, .source = if (root == 0) .fixed_root else .main_root, .coordinate = @intCast(coordinate) });
     }
-    for (transcript.plan.fixed.root_reads) |receipt| {
+    for (plan.fixed.root_reads) |receipt| {
         const source: Source = if (receipt.source.circuit == PUBLIC_CIRCUIT) switch (receipt.source.first_wire) {
             0 => .sealed,
             8 => .execution,
@@ -181,28 +196,23 @@ pub fn prepare(a: std.mem.Allocator, admitted: *const Admission.Prepared, captur
             40 => .main_root,
             else => return error.InvalidCallerRecursiveSchedule,
         } else if (receipt.source.circuit == root_circuit and receipt.source.first_wire < 16) (if (receipt.source.first_wire == 0) .fixed_root else .main_root) else continue;
-        for (receipt.uses, 0..) |uses, coordinate| try append(bounded, &wires, .{ .circuit = receipt.source.circuit, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = source, .coordinate = @intCast(coordinate) });
+        for (receipt.uses, 0..) |uses, coordinate| try append(a, &wires, .{ .circuit = receipt.source.circuit, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = source, .coordinate = @intCast(coordinate) });
     }
-    for (transcript.plan.fixed.payload_reads) |receipt| if (receipt.source.circuit == PUBLIC_CIRCUIT) {
+    for (plan.fixed.payload_reads) |receipt| if (receipt.source.circuit == PUBLIC_CIRCUIT) {
         const index_frame = receipt.source.first_wire == INDEX_WORD_BASE;
         if (index_frame) {
             if (receipt.uses.len != 3) return error.InvalidCallerRecursiveSchedule;
-        } else if (receipt.source.first_wire < CLAIM_WORD_BASE or receipt.source.first_wire - CLAIM_WORD_BASE + receipt.uses.len > 4 * values.claimCount()) return error.InvalidCallerRecursiveSchedule;
-        for (receipt.uses, 0..) |uses, coordinate| try append(bounded, &wires, .{ .circuit = PUBLIC_CIRCUIT, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = if (index_frame) .index_words else .claim_words, .coordinate = @intCast(if (index_frame) coordinate else receipt.source.first_wire - CLAIM_WORD_BASE + coordinate) });
+        } else if (receipt.source.first_wire < CLAIM_WORD_BASE or receipt.source.first_wire - CLAIM_WORD_BASE + receipt.uses.len > 4 * claim_count) return error.InvalidCallerRecursiveSchedule;
+        for (receipt.uses, 0..) |uses, coordinate| try append(a, &wires, .{ .circuit = PUBLIC_CIRCUIT, .wire = receipt.source.first_wire + @as(u32, @intCast(coordinate)), .uses = uses, .source = if (index_frame) .index_words else .claim_words, .coordinate = @intCast(if (index_frame) coordinate else receipt.source.first_wire - CLAIM_WORD_BASE + coordinate) });
     };
-    const counts = try bounded.alloc(u32, state.composition.circuit.nodes.len);
-    defer bounded.free(counts);
-    const uses = try @import("air/verifier_arithmetic_lowering.zig").computeUseCountsInto(state.composition.circuit.graph(), counts);
-    for (state.composition.sources, 0..) |source, node| if (source == .public_input) {
-        const open = source.public_input == values.claimCount();
-        const expected = if (open) values.open_sum else try values.claimAt(source.public_input);
-        if (!expected.eql(state.composition.inputs[node])) return error.UntrustedCallerRecursivePublicInputs;
-        try append(bounded, &wires, .{ .circuit = 1500, .wire = @intCast(node), .uses = uses[node], .source = if (open) .open_sum else .claim, .coordinate = if (open) 0 else source.public_input });
+    const counts = try a.alloc(u32, composition.circuit.nodes.len);
+    defer a.free(counts);
+    const uses = try @import("air/verifier_arithmetic_lowering.zig").computeUseCountsInto(composition.circuit.graph(), counts);
+    for (composition.sources, 0..) |source, node| if (source == .public_input) {
+        const open = source.public_input == claim_count;
+        if (source.public_input > claim_count) return error.UntrustedCallerRecursivePublicInputs;
+        try append(a, &wires, .{ .circuit = 1500, .wire = @intCast(node), .uses = uses[node], .source = if (open) .open_sum else .claim, .coordinate = if (open) 0 else source.public_input });
     };
     _ = try scheduleDigest(wires.items);
-    const emitted = try planned.emit();
-    defer emitted.deinit();
-    var recursive = try emitted.finishReleasingRows();
-    errdefer recursive.deinit();
-    return .{ .allocator = bounded, .budget = budget, .recursive = recursive, .wires = try wires.toOwnedSlice(bounded), .values = values };
+    return wires.toOwnedSlice(a);
 }

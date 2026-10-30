@@ -1,0 +1,13 @@
+{
+  "exit_code": 1,
+  "wall_s": 149.0749712800607,
+  "expected_unresolved_cuda_link": true,
+  "objects": [
+    {
+      "path": "/workspace/final-evidence/native-source/prover_zcu.o",
+      "original": "/workspace/stwo-final/.zig-cache/tmp/1a4156701ec2f2c3/unlinked-prover_zcu.o",
+      "bytes": 54645696,
+      "sha256": "35545b5f09c7f41bc4beeaed59fe56821868a0989e54d544307ea4d61c54d4c1"
+    }
+  ]
+}

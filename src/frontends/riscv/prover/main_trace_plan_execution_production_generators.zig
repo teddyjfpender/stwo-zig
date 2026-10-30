@@ -452,20 +452,7 @@ fn placeClockRow(
     address_space: u32,
     update: state_chain.ClockUpdate,
 ) void {
-    const low_mask = (@as(u32, 1) << state_chain.CLOCK_PREV_LOW_BITS) - 1;
-    const limbs = update.valueLimbs();
-    const values = [_]M31{
-        M31.one(),
-        M31.fromU64(address_space),
-        M31.fromU64(update.addr & 0x7fff_ffff),
-        M31.fromU64(update.clk_prev),
-        limbs[0],
-        limbs[1],
-        limbs[2],
-        limbs[3],
-        M31.fromU64(update.clk_prev & low_mask),
-        M31.fromU64(update.clk_prev >> state_chain.CLOCK_PREV_LOW_BITS),
-    };
+    const values = @import("../infra_trace/clock_update.zig").rowValues(address_space, update);
     for (values, columns, retained) |value, main, copy| {
         main[dst] = value;
         copy[dst] = value;

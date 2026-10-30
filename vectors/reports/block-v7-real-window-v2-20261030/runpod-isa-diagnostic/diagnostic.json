@@ -1,0 +1,83 @@
+{
+  "schema": "stwo-v7-linux-native-isa-diagnostic-v1",
+  "source_tree_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "target": "x86_64-linux-gnu.2.39",
+  "optimization": "ReleaseSafe",
+  "native": {
+    "passed": 34,
+    "failed": 1,
+    "actual_mul_q3_and_leased_cache_proofs": "passed"
+  },
+  "baseline": {
+    "passed": 35,
+    "failed": 0
+  },
+  "failing_check": {
+    "test": "fused native nonproving masks OODS and domain equations match separate projections",
+    "stage": "domain vs scalar point",
+    "family": "shifts_reg",
+    "mode": 0,
+    "slot": 2,
+    "partition": "range_check_20",
+    "entries": [
+      9,
+      18
+    ],
+    "degree": 3,
+    "row": 1,
+    "evaluation_log": 3,
+    "expected_qm31": [
+      2058740386,
+      256872519,
+      577667679,
+      1439957812
+    ],
+    "actual_qm31": [
+      1964683192,
+      122297168,
+      247836332,
+      269163005
+    ]
+  },
+  "production_source_modified_by_diagnostic": false,
+  "proof_verification_relaxed": false,
+  "note": "Baseline ISA is a diagnostic discriminator, not a promoted fix. Sibling lane owns reduced field-arithmetic case and candidate workaround qualification. Exact snapshot and pre-fix binaries remain intact.",
+  "files": {
+    "native/run.log": {
+      "bytes": 4146,
+      "sha256": "2c2a0078b354ef41ce97bce21a024c91ab30dbbfb1955870752523525ef85d6e"
+    },
+    "native/receipt.json": {
+      "bytes": 764,
+      "sha256": "d0f4ff918c8a9fc87485cf10279e1d89022e4a0efad6dc4d9d68f32a719b85d7"
+    },
+    "native/build.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline/run.log": {
+      "bytes": 3791,
+      "sha256": "d8dc524650e390fe8f05adfbdfa869279debbaf5043473c5f09597eabdc6a0e3"
+    },
+    "baseline/receipt.json": {
+      "bytes": 770,
+      "sha256": "730491049bc15d5721c385575cb23d1f4a026df9c45c20414cd6ae1a8d0d7f5d"
+    },
+    "baseline/build.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fused-diagnostic/run.log": {
+      "bytes": 1345,
+      "sha256": "96c223e2dbeabb123fe9dec8b030f391bd37839a6764d6b5e4c1701e9879e5a2"
+    },
+    "fused-diagnostic/patch-source.zig": {
+      "bytes": 18822,
+      "sha256": "0406f1137d575db5ca23741243abf4dd642166fce941a6e80328cd91a86b6b8d"
+    },
+    "fused-diagnostic/build.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

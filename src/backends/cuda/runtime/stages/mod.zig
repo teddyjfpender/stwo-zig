@@ -1,5 +1,6 @@
 //! Typed resident CUDA proof-stage dispatch.
 
+pub const blake3 = @import("blake3.zig");
 pub const commitment = @import("commitment.zig");
 pub const cairo_base = @import("cairo_base.zig");
 pub const circuit_base = @import("circuit_base.zig");
@@ -27,6 +28,7 @@ pub const transcript = @import("transcript.zig");
 pub const transform = @import("transform.zig");
 
 test {
+    _ = blake3;
     _ = commitment;
     _ = cairo_base;
     _ = circuit_base;

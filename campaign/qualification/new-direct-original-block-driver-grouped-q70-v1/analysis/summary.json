@@ -1,0 +1,153 @@
+{
+  "schema": "stwo-riscv-direct-original-results-v1",
+  "validation": "structure and SHA256 artifact consistency only",
+  "new_cryptographic_verification": false,
+  "driver_reported_proof_verified": true,
+  "raw_report": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/campaign/qualification/new-direct-original-block-driver-grouped-q70-v1/report.json",
+  "raw_report_sha256": "1c9d8190e5cb541b5636c78570998b17896ffe6a4073c265fdfd25aa93420ac8",
+  "timing_scope": "saved_originals_to_single_circuit_root; excludes prior execution, capture and original proving",
+  "windows": 3,
+  "folds": 2,
+  "records": 5,
+  "root_index": 4,
+  "root_bytes": 981000,
+  "root_sha256": "333136dc08443be90d50280e4c7dbaada8ee1b64ea4d27707cbb3a69e05ef1e8",
+  "stage_aggregation": "none; inclusive parent and child durations remain separate",
+  "artifacts": [
+    {
+      "path": "catalog.json",
+      "bytes": 335,
+      "sha256": "9d428e29c6865c81d8d6b5e3e9dd7ace5d0fe90cacae5902e482f52e8ca64b82"
+    },
+    {
+      "path": "catalog.public",
+      "bytes": 104,
+      "sha256": "688cdfa65e82943fb98e6ae114c71622c674c49017ae6e4ac9e8bd3e9d099e68"
+    },
+    {
+      "path": "node-0.proof",
+      "bytes": 981000,
+      "sha256": "419e00d70fec7043b4777667cabe9ab477be03d94851165815365dc7b4fe43e0"
+    },
+    {
+      "path": "node-0.public",
+      "bytes": 4907,
+      "sha256": "4dec792d906ac9f0761eee8f1a5afe247a7f2ec71a13d84165d442ce5e755c4d"
+    },
+    {
+      "path": "node-0.stages.json",
+      "bytes": 7253,
+      "sha256": "e9c404ed1acb8257138ec785fc5956f550e9e1b8166d5a9b0c07dd3265ee424f"
+    },
+    {
+      "path": "node-0.statement.json",
+      "bytes": 3891,
+      "sha256": "c6b620c4f9c812b444d0482a189f01acaba8a1190df0c0003fc8dd08e3e81911"
+    },
+    {
+      "path": "node-0.timing.json",
+      "bytes": 626,
+      "sha256": "db5a170a5dc1b7a3c2ededd6a85435e201888ed6c02ac680095eb0465b88882c"
+    },
+    {
+      "path": "node-1.proof",
+      "bytes": 981000,
+      "sha256": "29b82388a03e05704c2ba7ccfcf6930b0ac5729d69ebfd6c737f9175b217e988"
+    },
+    {
+      "path": "node-1.public",
+      "bytes": 4719,
+      "sha256": "099ba7ae429750da3ff5fb8928e75a02c5e3a7b781470209050f037b469936e3"
+    },
+    {
+      "path": "node-1.stages.json",
+      "bytes": 7252,
+      "sha256": "5929a057a44b66714b8bd272f3952c951eadf0647c47b3d4c88884698d679b01"
+    },
+    {
+      "path": "node-1.statement.json",
+      "bytes": 3468,
+      "sha256": "4d6f5bcf82f5aa630204d57d1d9263b2235dd55acfab7c92fa14978b4f0bb8c0"
+    },
+    {
+      "path": "node-1.timing.json",
+      "bytes": 626,
+      "sha256": "cdca81c504c48d3f11e8359bb176a2fb0e998e4cfa05ef462c3c5ea7bcf94e05"
+    },
+    {
+      "path": "node-2.proof",
+      "bytes": 981000,
+      "sha256": "c7034df5499dc64b4892697f96056ff04cdeac082642eed9acadadb243a76db9"
+    },
+    {
+      "path": "node-2.public",
+      "bytes": 4483,
+      "sha256": "44a877a1376857e7aa6c39fb953ecfba59ec30477b5f9044e11ccbd7c8afbc3c"
+    },
+    {
+      "path": "node-2.stages.json",
+      "bytes": 7244,
+      "sha256": "af6b022d17600c761f891304549e801251f6353940816c5949c3685cd4c652fe"
+    },
+    {
+      "path": "node-2.statement.json",
+      "bytes": 3888,
+      "sha256": "84a786b6bd54734c3b12ab1dc1174de887480faf50a39c43468af5ea99c52375"
+    },
+    {
+      "path": "node-2.timing.json",
+      "bytes": 626,
+      "sha256": "82dfe52ca47121c1574f5da5b5d4b499908715dff22d9ad29781edd3697e9669"
+    },
+    {
+      "path": "node-3.proof",
+      "bytes": 981000,
+      "sha256": "5d7733be954b43baded225875e33f606b2d74571f543375ad0082fef0ff28072"
+    },
+    {
+      "path": "node-3.stages.json",
+      "bytes": 7258,
+      "sha256": "214a7640b440d7c15ede99c56ac1758e8ca017d17d783edca5bbd40aedb3adea"
+    },
+    {
+      "path": "node-3.statement.json",
+      "bytes": 6858,
+      "sha256": "d807c22b6841f4daa8165328058d744503db2efd6d4564dea47eadb97161c4bf"
+    },
+    {
+      "path": "node-3.timing.json",
+      "bytes": 411,
+      "sha256": "5a60ca32273935aed1d91581da627117429c3c4aa274377835450bb2da7202e2"
+    },
+    {
+      "path": "node-4.proof",
+      "bytes": 981000,
+      "sha256": "333136dc08443be90d50280e4c7dbaada8ee1b64ea4d27707cbb3a69e05ef1e8"
+    },
+    {
+      "path": "node-4.stages.json",
+      "bytes": 7252,
+      "sha256": "0aa36475f0384794c6e25fca95c5bab0686d8bd73fa58289d38c8429ee4c9a70"
+    },
+    {
+      "path": "node-4.statement.json",
+      "bytes": 7267,
+      "sha256": "1fb7a4aba55cd65e255263a5a0c867c134e990370f0b0597cd4031c0a38c24f4"
+    },
+    {
+      "path": "node-4.timing.json",
+      "bytes": 411,
+      "sha256": "5b4fd47ff054830ed619f8fc555d920d4e6042dcffee9bf8fdb3c156a08619e5"
+    },
+    {
+      "path": "report.json",
+      "bytes": 2749,
+      "sha256": "1c9d8190e5cb541b5636c78570998b17896ffe6a4073c265fdfd25aa93420ac8"
+    },
+    {
+      "path": "root.proof",
+      "bytes": 981000,
+      "sha256": "333136dc08443be90d50280e4c7dbaada8ee1b64ea4d27707cbb3a69e05ef1e8"
+    }
+  ]
+}

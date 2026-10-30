@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-native-claim-pack-host-check-v1",
+  "cuda_host_syntax": true,
+  "abi_static_asserts": {
+    "route_bytes": 16,
+    "route_alignment": 4,
+    "route_offsets": [
+      0,
+      4,
+      8,
+      12
+    ],
+    "pack_function_signature": true,
+    "root_equal_function_signature": true
+  },
+  "device_compiled": false,
+  "device_executed": false,
+  "source": {
+    "path": "src/integrations/riscv_cuda/resident_native_claim_pack_v1.cu",
+    "bytes": 2421,
+    "sha256": "261686deef4cbc78d80f3f02fa953af7ff5c388e86b0daa56c0f1657690ce72b"
+  },
+  "notes": "Declaration-only CUDA stubs used solely by Clang host-only parser. No numerical or device qualification."
+}

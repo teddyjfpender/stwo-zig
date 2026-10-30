@@ -268,8 +268,12 @@ test "runtime polynomial export replays the production active selector" {
                 semantic_eval.BaseScalar.fromBase(inputs[main_column_count]),
             );
             try std.testing.expectEqual(expected.len, direct.len);
-            for (expected.values[0..expected.len], direct.values[0..direct.len]) |want, root|
-                try std.testing.expect(want.value.eql(replayed[root.id]));
+            for (expected.values[0..expected.len], direct.values[0..direct.len], 0..) |want, root, constraint_index| {
+                if (!want.value.eql(replayed[root.id])) {
+                    std.debug.print("RUNTIME_DAG_MISMATCH family={s} active={d} constraint={d} production={d} symbolic={d} inputs={any}\n", .{ @tagName(family), active, constraint_index, want.value.v, replayed[root.id].v, inputs });
+                    return error.TestUnexpectedResult;
+                }
+            }
         }
     }
 }

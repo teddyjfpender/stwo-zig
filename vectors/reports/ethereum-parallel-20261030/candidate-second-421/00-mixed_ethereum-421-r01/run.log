@@ -1,0 +1,50 @@
+1/11 block_v7_multi_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_multi_union_test.test.v7 multi union genuine contiguous original STARK with all-provider oracle...V7_MULTI_MEMORY_INPUTS coefficient_backed=true input_lde_cells_retained=0 charged_live_bytes=224892736
+V7_MULTI_FIXED_TOTAL unavailable=coefficient_backed_inputs_no_census_reconstruction
+PCS_DEEP_CENSUS mode=bounded_cpu log=21 columns=62409 sample_batches=19 contributions=173583 grouped_terms=64064 groups=33 minimum_shift=10 metadata_bytes=1048570 metadata_cap=1048576 direct_columns=37524 direct_terms=95511 coefficient_views=12
+PCS_DEEP_GROUP batch=0 values=4 shift=20 terms=4014
+PCS_DEEP_GROUP batch=2 values=4 shift=20 terms=3604
+PCS_DEEP_GROUP batch=4 values=4 shift=20 terms=3604
+PCS_DEEP_GROUP batch=0 values=8 shift=19 terms=29
+PCS_DEEP_GROUP batch=2 values=8 shift=19 terms=20
+PCS_DEEP_GROUP batch=9 values=8 shift=19 terms=20
+PCS_DEEP_GROUP batch=0 values=16 shift=18 terms=1312
+PCS_DEEP_GROUP batch=2 values=16 shift=18 terms=1310
+PCS_DEEP_GROUP batch=4 values=16 shift=18 terms=478
+PCS_DEEP_GROUP batch=13 values=16 shift=18 terms=832
+PCS_DEEP_GROUP batch=0 values=32 shift=17 terms=34
+PCS_DEEP_GROUP batch=2 values=32 shift=17 terms=8
+PCS_DEEP_GROUP batch=17 values=32 shift=17 terms=8
+PCS_DEEP_GROUP batch=0 values=128 shift=15 terms=13
+PCS_DEEP_GROUP batch=2 values=128 shift=15 terms=4
+PCS_DEEP_GROUP batch=18 values=128 shift=15 terms=4
+PCS_DEEP_GROUP batch=0 values=256 shift=14 terms=1566
+PCS_DEEP_GROUP batch=2 values=256 shift=14 terms=1551
+PCS_DEEP_GROUP batch=4 values=256 shift=14 terms=1379
+PCS_DEEP_GROUP batch=15 values=256 shift=14 terms=168
+PCS_DEEP_GROUP batch=16 values=256 shift=14 terms=4
+PCS_DEEP_GROUP batch=0 values=512 shift=13 terms=1479
+PCS_DEEP_GROUP batch=2 values=512 shift=13 terms=1473
+PCS_DEEP_GROUP batch=4 values=512 shift=13 terms=849
+PCS_DEEP_GROUP batch=12 values=512 shift=13 terms=624
+PCS_DEEP_GROUP batch=0 values=1024 shift=12 terms=452
+PCS_DEEP_GROUP batch=2 values=1024 shift=12 terms=431
+PCS_DEEP_GROUP batch=4 values=1024 shift=12 terms=167
+PCS_DEEP_GROUP batch=14 values=1024 shift=12 terms=264
+PCS_DEEP_GROUP batch=0 values=2048 shift=11 terms=48
+PCS_DEEP_GROUP batch=2 values=2048 shift=11 terms=16
+PCS_DEEP_GROUP batch=11 values=2048 shift=11 terms=16
+PCS_DEEP_GROUP batch=0 values=4096 shift=10 terms=38283
+V7_MULTI_PRODUCER_MEMORY consumed=true .{ .native_cache_recovered_columns = 297, .native_cache_reused_columns = 1672, .native_cache_retained_bytes = 267912896, .native_cache_requested_columns = 13080, .native_cache_passthrough_columns = 0, .native_cache_capacity_misses = 11111, .retained_pcs_model_bytes = 5886875536, .compact_storage_admission = false, .memory_allocator_live_after_preparation = 413130661, .memory_allocator_live_after_commit = 413130869, .memory_allocator_live_after_consumption = 89519260, .union_allocator_live_before_proof = 7716786568, .union_allocator_live_at_entry = 3287006633, .union_allocator_live_at_exit = 3084825147, .union_allocator_peak_cumulative = 9572096424 }
+V7_MULTI_UNION profile=csp_q70_pow26 cycles=1726115 cut=431529 native_windows=4 callers=4 no_access=0 physical_frames=0 original_starks=1 oracle_starks=0 trees=36 estimated_trace_pcs_bytes=5886875536 setup_ns=6399304000 prove_ns=63368415708 oracle_prove_verify_ns=0 fresh_verify_ns=803015083 proof_bytes=21742610 charged_proof_peak_bytes=9572096424 all_producer_and_oracle_owners_destroyed=true exact_physical_claims=false global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 air.lookups.tables.mod.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

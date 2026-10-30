@@ -1,0 +1,184 @@
+{
+  "schema": "stwo-v7-cuda-paired-campaign-v1",
+  "timing_note": "Single pairs are observations, not speedup confidence intervals. Nested inclusive stage times must not be summed; device buffer peaks differ from NVML process/device usage. Source window theorem does not prove skipped prefix or full Ethereum block.",
+  "pairs": [
+    {
+      "name": "native32k",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-fixed-proofs",
+      "both_passed": true,
+      "same_binary": true,
+      "same_public_contract": true,
+      "all_proof_bytes_equal": true,
+      "cpu_proofs": [
+        {
+          "file": "original-0.postcard",
+          "bytes": 606264,
+          "sha256": "8010c6eaf206dbfe37cf4bec4884081cfbb667f80adcc58954d96c5ec77a9acd"
+        },
+        {
+          "file": "original-1.postcard",
+          "bytes": 317370,
+          "sha256": "e726eabc3c83b57c89400167053fb7f25de0d81ed7d5c128c17c4a8f9b0961d0"
+        },
+        {
+          "file": "original-2.postcard",
+          "bytes": 266256,
+          "sha256": "df31e8b33d079d155783e48657c9dfa2bf27961d40738d187a8292b775258085"
+        },
+        {
+          "file": "original-3.postcard",
+          "bytes": 289869,
+          "sha256": "8de0aa89cfdb6e3f53cbaf5c2dc8a8612ab05e7a0e7badbdcef4794500b7efa9"
+        }
+      ],
+      "gpu_proofs": [
+        {
+          "file": "original-0.postcard",
+          "bytes": 606264,
+          "sha256": "8010c6eaf206dbfe37cf4bec4884081cfbb667f80adcc58954d96c5ec77a9acd"
+        },
+        {
+          "file": "original-1.postcard",
+          "bytes": 317370,
+          "sha256": "e726eabc3c83b57c89400167053fb7f25de0d81ed7d5c128c17c4a8f9b0961d0"
+        },
+        {
+          "file": "original-2.postcard",
+          "bytes": 266256,
+          "sha256": "df31e8b33d079d155783e48657c9dfa2bf27961d40738d187a8292b775258085"
+        },
+        {
+          "file": "original-3.postcard",
+          "bytes": 289869,
+          "sha256": "8de0aa89cfdb6e3f53cbaf5c2dc8a8612ab05e7a0e7badbdcef4794500b7efa9"
+        }
+      ]
+    },
+    {
+      "name": "native512k",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-paired-results/native512k-fixed",
+      "both_passed": true,
+      "same_binary": true,
+      "same_public_contract": true,
+      "all_proof_bytes_equal": true,
+      "cpu_proofs": [
+        {
+          "file": "original-0.postcard",
+          "bytes": 795991,
+          "sha256": "996bc2f9cb3983608d9a28017b44354e70b7c8d9f286cf530f4dd701f37c1945"
+        },
+        {
+          "file": "original-1.postcard",
+          "bytes": 739725,
+          "sha256": "fd45ff938c2249b8df6f3bb773475233979ee770fd159a4d14fd23d7794321e6"
+        },
+        {
+          "file": "original-2.postcard",
+          "bytes": 336650,
+          "sha256": "26b9305230bdd3a38615d9920e00e6f4a4f30e8e932725fad3d446f51a79ebba"
+        },
+        {
+          "file": "original-3.postcard",
+          "bytes": 295747,
+          "sha256": "b9abade9fd67d382d25105f1aff4887231b42995f8a6e335fa74d39093aef7bb"
+        },
+        {
+          "file": "original-4.postcard",
+          "bytes": 715955,
+          "sha256": "407b36bdf68be712a1350634aa51de4de6f2c6d5765b0e385bba25a8449c90dd"
+        }
+      ],
+      "gpu_proofs": [
+        {
+          "file": "original-0.postcard",
+          "bytes": 795991,
+          "sha256": "996bc2f9cb3983608d9a28017b44354e70b7c8d9f286cf530f4dd701f37c1945"
+        },
+        {
+          "file": "original-1.postcard",
+          "bytes": 739725,
+          "sha256": "fd45ff938c2249b8df6f3bb773475233979ee770fd159a4d14fd23d7794321e6"
+        },
+        {
+          "file": "original-2.postcard",
+          "bytes": 336650,
+          "sha256": "26b9305230bdd3a38615d9920e00e6f4a4f30e8e932725fad3d446f51a79ebba"
+        },
+        {
+          "file": "original-3.postcard",
+          "bytes": 295747,
+          "sha256": "b9abade9fd67d382d25105f1aff4887231b42995f8a6e335fa74d39093aef7bb"
+        },
+        {
+          "file": "original-4.postcard",
+          "bytes": 715955,
+          "sha256": "407b36bdf68be712a1350634aa51de4de6f2c6d5765b0e385bba25a8449c90dd"
+        }
+      ]
+    },
+    {
+      "name": "root32k",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-paired-results/root32k-fixed",
+      "both_passed": true,
+      "same_binary": true,
+      "same_public_contract": true,
+      "all_proof_bytes_equal": true,
+      "cpu_proofs": [
+        {
+          "file": "root.proof",
+          "bytes": 1023252,
+          "sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+        }
+      ],
+      "gpu_proofs": [
+        {
+          "file": "root.proof",
+          "bytes": 1023252,
+          "sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+        }
+      ]
+    },
+    {
+      "name": "root32k_v3_safe",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-stage-v3/root32k-stage-v3-safe-prep1",
+      "both_passed": true,
+      "same_binary": true,
+      "same_public_contract": true,
+      "all_proof_bytes_equal": true,
+      "cpu_proofs": [
+        {
+          "file": "root.proof",
+          "bytes": 1023252,
+          "sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+        }
+      ],
+      "gpu_proofs": [
+        {
+          "file": "root.proof",
+          "bytes": 1023252,
+          "sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+        }
+      ]
+    },
+    {
+      "name": "root32k_v3_fast_failure",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-stage-v3/root32k-stage-v3-fast",
+      "both_passed": false,
+      "same_binary": null,
+      "same_public_contract": null,
+      "all_proof_bytes_equal": null,
+      "cpu_proofs": [],
+      "gpu_proofs": []
+    },
+    {
+      "name": "interrupted_safe_prep4",
+      "directory": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cuda-numeric-deep-20261030/h200-stage-v3/root32k-stage-v3-safe",
+      "both_passed": false,
+      "same_binary": null,
+      "same_public_contract": null,
+      "all_proof_bytes_equal": null,
+      "cpu_proofs": [],
+      "gpu_proofs": []
+    }
+  ]
+}

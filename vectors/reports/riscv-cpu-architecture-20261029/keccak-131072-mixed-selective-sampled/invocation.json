@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-b8-real-mixed-original-invocation-v1",
+  "binary_sha256": "8a43779b35e0cde007c18d81b76ebfdc9df1cc5e5f23ab0bed19a34c81519a96",
+  "build_manifest_sha256": "3802b399c60bfd3304aba24495f7c01a5d8af99b08933eb9cebfb11279155d2b",
+  "capture_sha256": "24f6f4a39c5b4550bc55f5302de864659638db116d0bc30c78859d58f83b25ca",
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 131072
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+  "outgoing_sha256": "7f486db5f9d2653270f040c998bc97ea72fde66ff2c70af926c7298f4662b2b9",
+  "workers": 8,
+  "allocator": "std.heap.smp_allocator",
+  "profiled": true,
+  "cpu_only": true,
+  "global_ram_closed": false,
+  "recursive_root": false,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/stwo-b8-mixed-selective-build-20261030/benchmark"
+  ],
+  "started_unix_ns": 1793339881726851000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793339904847323000,
+  "report_sha256": "954d8c4e6284bc80ee3b2146851a0c640aef23c78a201960736f6bd7be5756af"
+}

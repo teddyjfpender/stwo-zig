@@ -1,0 +1,10 @@
+1/8 block_v7_complete_union_wire_test_root.test_0...OK
+2/8 prover.tests.block_v7_complete_union_wire_test.test.v7 complete union bounded wire reload and hostile framing...V7_COMPLETE_UNION_WIRE profile=canonical_q70_pow26 bytes=5886710 verified_cycles=20495 decode_peak_bytes=19275906 independent_policy=true producers_present=false
+OK
+3/8 air.semantic_eval.test_0...OK
+4/8 prover.block_execution_external_trace_v2.test_0...OK
+5/8 prover.block_execution_external_access_bridge_v2.test_0...OK
+6/8 air.memory_commitment.poseidon2_air.test_0...OK
+7/8 air.lookups.tables.mod.test_0...OK
+8/8 air.lookups.tables.source_ingest.test_0...OK
+All 8 tests passed.

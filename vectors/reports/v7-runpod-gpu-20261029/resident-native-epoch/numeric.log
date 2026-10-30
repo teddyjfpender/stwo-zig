@@ -1,0 +1,4 @@
+{"status":"pass","scope":"native_epoch_transcript_primitive","cases":32,"secure_outputs_per_case":106,"compared_words":13888,"device_total_ns":10071647,"full_native_proof_qualified":false}
+24413d11276978f3bef93c4fac0ff2567447032f27120c6fa27fc1ece8f23ecb  epoch-oracle
+c8d2ccc9517c709c96b4f03d39f20c789d4c7d2f2cb31b6951a3b59a1627647f  runner.cu
+def4f7b1ddce591817b0f1fba617862909cdb8486f6fae9f413bd18b9dfb12d1  vectors.bin

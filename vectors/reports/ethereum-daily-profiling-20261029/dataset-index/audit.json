@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "synthetic_runs_checked": 27,
+  "synthetic_successes": 25,
+  "synthetic_failures_retained": 2,
+  "real_proving_timing_rows": 6,
+  "real_cold_verification_rows": 3,
+  "real_canonical_artifacts_checked": 3,
+  "all_stage_rows": 2107,
+  "source_and_report_hash_checks": "passed",
+  "known_limits": [
+    "Real-window prover binary hash/compile command are recorded, but an exact prover-source manifest was not captured before those builds; guest-artifact hashes are distinct from prover-source hashes.",
+    "Original real-native RSS remains unmeasured (null); a distinct same-binary native repeat now records RSS, as do recovery and Keccak instrumented repeats.",
+    "Producer checkpoint I/O is0 by in-memory code contract. Real artifact payload I/O is explicitly counted from successful file APIs; physical disk traffic remains null, and artifact writes occur after the reported verified boundary.",
+    "Real-window prefixes are replayed only to prepare externally admitted endpoints and are not proved; partial-leaf timings cannot be compared as same-contract speedups to complete synthetic v7 union.",
+    "Recursion is not measured by these campaigns; null is intentional, never zero.",
+    "Small baseline basket predates explicit RAM-clock layout; final architecture comparisons use one final binary and matched statements.",
+    "Raw benchmark stdout exact_physical_claims=false denotes disabled oracle comparison, not missing transcript binding; timing=shared_host_diagnostic is conservative hardcoded text."
+  ],
+  "binaries": {
+    "62f2f0d75619a0978fa9159fa43fe8806b4ba217bf56ee90e499ddddc51c6f13": {
+      "source_sha256": "c5c89b8d4200b9409e43790326835413982e51ec053102dd128a02fc79c0f47e",
+      "source_binding": "recorded_build",
+      "build_command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/zig_protocol_test.py",
+        "--lock",
+        "/tmp/stwo-zig-integration-build.lock",
+        "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+        "-OReleaseSafe",
+        "--test-filter",
+        "v7 multi union genuine contiguous original STARK with all-provider oracle",
+        "--test-no-exec",
+        "-femit-bin=/private/tmp/v7-ethereum-daily-build-final/prover"
+      ],
+      "compile_seconds": 99.87467229100002,
+      "software": {
+        "os": "Darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "cpu_count": 18,
+        "memory_bytes": 68719476736,
+        "cpu_model": "Apple M5 Max",
+        "python": "3.14.6",
+        "zig": "0.15.2"
+      }
+    },
+    "0aba83b8644fe2f5229e8456addbd1d40a4f667004502eeb82d1c2996849ad9e": {
+      "source_sha256": "b45e85a90759bab69eb0c9b0f08bcfda853a61cf91b8882f9fc7d77f897351fe",
+      "source_binding": "recorded_build",
+      "build_command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/zig_protocol_test.py",
+        "--lock",
+        "/tmp/stwo-zig-integration-build.lock",
+        "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+        "-OReleaseSafe",
+        "--test-filter",
+        "v7 multi union genuine contiguous original STARK with all-provider oracle",
+        "--test-no-exec",
+        "-femit-bin=/private/tmp/v7-ethereum-daily-build-actual-ram-layout/prover"
+      ],
+      "compile_seconds": 176.6995767920016,
+      "software": {
+        "os": "Darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "cpu_count": 18,
+        "memory_bytes": 68719476736,
+        "cpu_model": "Apple M5 Max",
+        "python": "3.14.6",
+        "zig": "0.15.2",
+        "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+      }
+    },
+    "1adef8759819fc011fb13f601d614d5865a23378acbd6a166469bf01d51e38b8": {
+      "source_sha256": "44f0e49aafc1a8e544852e679c37df13a4034e6729ede184c86109579277efd3",
+      "source_binding": "recorded_build",
+      "build_command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/zig_protocol_test.py",
+        "--lock",
+        "/tmp/stwo-zig-integration-build.lock",
+        "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+        "-OReleaseSafe",
+        "--test-filter",
+        "v7 multi union genuine contiguous original STARK with all-provider oracle",
+        "--test-no-exec",
+        "-femit-bin=/private/tmp/v7-ethereum-daily-build-representative/prover"
+      ],
+      "compile_seconds": 117.53377779100265,
+      "software": {
+        "os": "Darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "cpu_count": 18,
+        "memory_bytes": 68719476736,
+        "cpu_model": "Apple M5 Max",
+        "python": "3.14.6",
+        "zig": "0.15.2",
+        "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+      }
+    },
+    "0200b5212c4bf8775ee709edc02276d3d0321934acbfffe4a035d03700e17570": {
+      "source_sha256": "d07aa55b960695ff8feec9c7073a017a10b8945291c8d61fedaffca5d1c245ae",
+      "source_binding": "recorded_build",
+      "build_command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/zig_protocol_test.py",
+        "--lock",
+        "/tmp/stwo-zig-integration-build.lock",
+        "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+        "-OReleaseSafe",
+        "--test-filter",
+        "v7 multi union genuine contiguous original STARK with all-provider oracle",
+        "--test-no-exec",
+        "-femit-bin=/private/tmp/v7-ethereum-daily-build-ratio-policy/prover"
+      ],
+      "compile_seconds": 117.33100041699072,
+      "software": {
+        "os": "Darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "cpu_count": 18,
+        "memory_bytes": 68719476736,
+        "cpu_model": "Apple M5 Max",
+        "python": "3.14.6",
+        "zig": "0.15.2",
+        "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+      }
+    }
+  }
+}

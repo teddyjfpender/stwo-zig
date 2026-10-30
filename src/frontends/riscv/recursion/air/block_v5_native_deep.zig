@@ -5,11 +5,14 @@ const capture_mod = @import("../../prover/block_v5_native_execution_proof_v1.zig
 pub fn prepare(a: std.mem.Allocator, admitted: *const admission.Prepared, capture: *const capture_mod.VerifiedCapture, expected: [32]u8) !@import("blake3_native_deep.zig").Prepared {
     try capture.validate(admitted, expected);
     const joined = try @import("../../prover/blake3_execution_components.zig").Owner.initWithExternalForProfile(
-        a, admitted.shape, capture.native_claims, capture.relations, admitted.pin,
-        admitted.template.external_retirements, admitted.template.execution_profile,
+        a,
+        admitted.shape,
+        capture.native_claims,
+        capture.relations,
+        admitted.pin,
+        admitted.template.external_retirements,
+        admitted.template.execution_profile,
     );
     defer joined.deinit();
-    return @import("blake3_execution_deep.zig").prepareComponents(a,
-        core.air.components.Components{ .components = joined.verifying.components.active(), .n_preprocessed_columns = admitted.logs[0].len },
-        admitted.logs, admitted.config, &capture.proof);
+    return @import("blake3_execution_deep.zig").prepareComponents(a, core.air.components.Components{ .components = joined.verifying.components.active(), .n_preprocessed_columns = admitted.logs[0].len }, admitted.logs, admitted.config, &capture.proof);
 }

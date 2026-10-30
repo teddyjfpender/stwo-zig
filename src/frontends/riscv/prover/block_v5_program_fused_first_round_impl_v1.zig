@@ -21,5 +21,19 @@ pub fn ForCapacity(comptime capacity: bool) type {
             try @import("block_v5_program_lightweight_first_round_v1.zig").add(self, fetches, statement, template_id, instance_id, roots, request_roots);
             self.request_entries[index] = projection;
         }
+        /// Seal the entire one-layout relation before drawing any global
+        /// challenge. A legacy projection identity is not interchangeable.
+        pub fn addPartitioned(self: anytype, fetches: []const Census.Fetch, statement: *const Shape, template_id: [32]u8, instance_id: [32]u8, roots: Seal.Roots, request_roots: Seal.Roots, external_retirements: u32, register_custody_mode: u32, frame: Frame, witness_root: [32]u8) !void {
+            if (capacity) return error.UnsupportedPartitionedCapacityLayout;
+            if (statement.localZeroCustody()) return error.UnqualifiedPartitionedLocalZeroRecipe;
+            var layout = try @import("block_v6_relation_layout_v1.zig").Layout.init(self.allocator, statement, external_retirements, register_custody_mode);
+            defer layout.deinit();
+            const memory_slots = try Memory.slotsFromStatementForMode(self.allocator, statement, frame, register_custody_mode);
+            defer self.allocator.free(memory_slots);
+            const index = self.next;
+            const projection = Fused.entry(template_id, instance_id, roots, witness_root, index, frame, layout.slots, memory_slots);
+            try @import("block_v5_program_lightweight_first_round_v1.zig").add(self, fetches, statement, template_id, instance_id, roots, request_roots);
+            self.request_entries[index] = projection;
+        }
     };
 }

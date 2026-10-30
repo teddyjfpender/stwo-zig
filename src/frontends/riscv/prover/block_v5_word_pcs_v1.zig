@@ -20,29 +20,61 @@ pub fn For(comptime Backend: type, comptime Spec: type) type {
             }
         };
         pub fn commit(a: std.mem.Allocator, fixed: []const Column, main: []const Column, first_channel: suite.Channel, config: core.pcs.PcsConfig, retain: bool) !First {
+            return commitWithStorage(a, fixed, main, first_channel, config, retain, null);
+        }
+        /// Explicit input-only CPU storage option; default commit is unchanged.
+        pub fn commitWithStorage(a: std.mem.Allocator, fixed: []const Column, main: []const Column, first_channel: suite.Channel, config: core.pcs.PcsConfig, retain: bool, compact_min_log: ?u32) !First {
             if (fixed.len != Spec.FIXED_COUNT or main.len != Spec.MAIN_COUNT) return error.InvalidV5WordColumns;
+            if (compact_min_log) |log| if (!retain or log == 0 or log > 30) return error.InvalidV5WordStorage;
             var scheme = try Scheme.init(a, config);
             errdefer scheme.deinit(a);
             scheme.setCoefficientRetentionPolicy(if (retain) .always else .never);
+            if (compact_min_log) |log| scheme.setCompactPolynomialStorage(log);
             var channel = first_channel;
             try scheme.commitBorrowedStreaming(a, fixed, 16, &channel);
             try scheme.commitBorrowedStreaming(a, main, 16, &channel);
+            scheme.compact_polynomial_storage = false;
             var roots = try scheme.roots(a);
             defer roots.deinit(a);
             if (roots.items.len != 2) return error.InvalidV5WordFirstRound;
             return .{ .scheme = scheme, .roots = roots.items[0..2].* };
         }
         pub fn prove(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, columns: []const Column, channel_value: suite.Channel) !suite.Proof {
-            if (!first.owns_scheme or columns.len != Spec.INTERACTION_COUNT) return error.InvalidV5WordPhase;
+            return proveWithDomainOptions(a, first, spec, log, columns, channel_value, null);
+        }
+        pub fn proveWithDomainOptions(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, columns: []const Column, channel_value: suite.Channel, options: ?@import("block_v7_word_quotient_tiles_v1.zig").Options) !suite.Proof {
+            return proveWithStorageAndDomainOptions(a, first, spec, log, columns, channel_value, options, null);
+        }
+        pub fn proveWithStorageAndDomainOptions(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, columns: []const Column, channel_value: suite.Channel, options: ?@import("block_v7_word_quotient_tiles_v1.zig").Options, compact_min_log: ?u32) !suite.Proof {
             var channel = channel_value;
-            try first.scheme.commitBorrowedStreaming(a, columns, 8, &channel);
-            return proveCommitted(a, first, spec, log, channel);
+            try commitInteractionWithStorage(a, first, columns, &channel, compact_min_log);
+            return proveCommittedWithDomainOptions(a, first, spec, log, channel, options);
+        }
+        /// On success, callers may release their raw interaction columns.
+        pub fn commitInteractionWithStorage(a: std.mem.Allocator, first: *First, columns: []const Column, channel: *suite.Channel, compact_min_log: ?u32) !void {
+            if (!first.owns_scheme or first.scheme.trees.items.len != 2 or columns.len != Spec.INTERACTION_COUNT) return error.InvalidV5WordPhase;
+            if (compact_min_log) |minimum| {
+                if (minimum == 0 or minimum > 30) return error.InvalidV5WordStorage;
+                first.scheme.setCoefficientRetentionPolicy(.always);
+                first.scheme.setCompactPolynomialStorage(minimum);
+            }
+            try first.scheme.commitBorrowedStreaming(a, columns, 8, channel);
+            if (compact_min_log != null) first.scheme.compact_polynomial_storage = false;
         }
         fn proveCommitted(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, channel_value: suite.Channel) !suite.Proof {
+            return proveCommittedWithDomainOptions(a, first, spec, log, channel_value, null);
+        }
+        pub fn proveCommittedWithDomainOptions(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, channel_value: suite.Channel, options: ?@import("block_v7_word_quotient_tiles_v1.zig").Options) !suite.Proof {
+            return proveCommittedWithDomainOptionsAndRecorder(a, first, spec, log, channel_value, options, null);
+        }
+        pub fn proveCommittedWithDomainOptionsAndRecorder(a: std.mem.Allocator, first: *First, spec: Spec, log: u32, channel_value: suite.Channel, options: ?@import("block_v7_word_quotient_tiles_v1.zig").Options, recorder: ?*engine.stage_profile.Recorder) !suite.Proof {
+            if (!first.owns_scheme or first.scheme.trees.items.len != 3) return error.InvalidV5WordPhase;
             var channel = channel_value;
-            const component = Component{ .spec = spec, .log_size = log };
+            const component = Component{ .spec = spec, .log_size = log, .tile_options = options };
             first.owns_scheme = false;
-            return engine.prove.prove(Backend, suite.Hasher, suite.MerkleChannel, a, &.{component.asProverComponent()}, &channel, first.scheme);
+            var extended = try engine.prove.proveExWithRecorder(Backend, suite.Hasher, suite.MerkleChannel, a, &.{component.asProverComponent()}, &channel, first.scheme, false, recorder);
+            extended.aux.deinit(a);
+            return extended.proof;
         }
         /// Device-only commitments. A backend decline fails closed, never
         /// selecting the generic CPU transform or interaction route.

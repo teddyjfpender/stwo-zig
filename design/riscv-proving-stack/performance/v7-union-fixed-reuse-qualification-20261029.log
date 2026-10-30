@@ -1,0 +1,15 @@
+1/11 block_v7_complete_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+V7_UNION_FIXED_REUSE same_proof=true same_claims=true reuse_prove_ns=4265677000 rebuild_prove_ns=4286275875 comparison=shared_host_single_pair
+V7_COMPLETE_UNION profile=csp_q70_pow26 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_enabled=false trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=0 union_queried=1196370 oracle_queried=0 setup_ns=399392583 union_prove_ns=4265677000 oracle_prove_ns=0 fresh_verify_ns=1441922625 proof_bytes=5841554 proof_peak_bytes=359966086 direct_peak_bytes=369752478 contiguous_ns=10729590291 destruction_ns=45002375 encode_decode_ns=180999750 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.lookups.tables.mod.test_0...OK
+6/11 air.memory_commitment.poseidon2_air.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

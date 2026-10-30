@@ -1,0 +1,29 @@
+1/22 riscv_circuit_originals_test_root.test_0...OK
+2/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved admission and original material q70...RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=28557 groups=16 current_divisions=1998990 grouped_divisions=1120
+RISC_ORIGINAL_QUALIFIED family=mixed trees=15 samples=22969 q=70 pow=26 circuits=false nonterminal_cycles=6 native_air_receipts=0 native_parent_proofs=0 peak_bytes=62673147
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUALIFIED family=bridge trees=4 samples=40 q=70 pow=26 circuits=false nonterminal_cycles=6 native_air_receipts=0 native_parent_proofs=0 peak_bytes=62673147
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_QUALIFIED family=global trees=8 samples=128 q=70 pow=26 circuits=false nonterminal_cycles=6 native_air_receipts=0 native_parent_proofs=0 peak_bytes=62673147
+OK
+3/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved complete circuit q70 QM31 and NoValue...SKIP
+4/22 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals combined window q70...SKIP
+5/22 integrations.circuit_cpu.riscv_originals_v1.native_qualification.test.RISC direct original native initial middle terminal and depth two q70...SKIP
+6/22 frontends.riscv.runner.elf_loader.test.loadElf rejects non-RISC-V...OK
+7/22 frontends.riscv.air.component.test.RISC-V component keeps legacy memory default and selects split V3 explicitly...OK
+8/22 frontends.riscv.air.semantic_eval.test_0...OK
+9/22 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+10/22 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+11/22 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+12/22 frontends.riscv.air.lookups.tables.mod.test_0...OK
+13/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit lowering preserves canonical field inverse and zero anchors...OK
+14/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit registry rejects nominated outer equation authorities...OK
+15/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit liveness preserves input ordinals and direct zero anchors...OK
+16/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC circuit liveness retains nonzero guards of unused inverse results...OK
+17/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC Blake3 digest and full XOF satisfy canonical gate multiplicities...OK
+18/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC complete native-parent circuit wrapper genuine q70 fresh bytes and hostile material...SKIP
+19/22 integrations.circuit_cpu.riscv_recursion.qualification_v1.test.RISC valid PCS and public supply invalid typed AIR rejected by actual complete leaf q70...SKIP
+20/22 frontends.riscv.runner.mod.test_0...OK
+21/22 frontends.riscv.runner.decode.test_0...OK
+22/22 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+17 passed; 5 skipped; 0 failed.

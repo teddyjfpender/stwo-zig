@@ -1,0 +1,45 @@
+{
+  "status": "calculated design only; no new protocol implemented",
+  "current": {
+    "fixed": 24,
+    "main": 88,
+    "interaction": 116,
+    "planes": 29,
+    "range_planes": 24,
+    "constraints": 161,
+    "degree": 4,
+    "expansion": 2
+  },
+  "candidate": {
+    "fixed": 24,
+    "main": 88,
+    "interaction": 84,
+    "planes": 21,
+    "range_planes": 16,
+    "constraints": 153,
+    "degree": 4,
+    "expansion": 2
+  },
+  "range_fractions": 48,
+  "typed_categories_preserved": [
+    "transition",
+    "ordered_link",
+    "initial_interval",
+    "range16",
+    "first_touch_census",
+    "range_census"
+  ],
+  "at_log22": {
+    "native_coefficients_saved_bytes": 536870912,
+    "blowup_one_lde_saved_bytes": 1073741824,
+    "oods_qm31_samples_removed": 64,
+    "query_leaf_m31_words_removed_per_query": 32
+  },
+  "limits": [
+    "No peak or timing forecast from column area",
+    "Census bounds stay events*24",
+    "Naive triple arithmetic costs more; exact common-challenge factoring must be measured",
+    "New identity and all physical transcript claims mandatory",
+    "Current whole-root and recursive qualification does not qualify proposed layout"
+  ]
+}

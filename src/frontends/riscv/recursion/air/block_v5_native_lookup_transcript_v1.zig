@@ -9,13 +9,21 @@ const universal = @import("universal_challenges.zig");
 const recorder = @import("blake3_native_recorder.zig");
 const shared = @import("blake3_native_transcript.zig");
 pub fn prefix(a: std.mem.Allocator, r: *recorder.Recorder, admitted: *const Admission.Prepared, claims: [6]@import("stwo_core").fields.qm31.QM31) !universal.UniversalRelations {
+    return prefixWith(false, a, r, admitted, claims);
+}
+pub fn prefixFixed(a: std.mem.Allocator, r: *@import("blake3_fixed_operation_recorder_v1.zig").Recorder, admitted: *const Admission.Prepared) !void {
+    return prefixWith(true, a, r, admitted, @splat(@import("stwo_core").fields.qm31.QM31.zero()));
+}
+fn prefixWith(comptime fixed: bool, a: std.mem.Allocator, r: anytype, admitted: *const Admission.Prepared, claims: [6]@import("stwo_core").fields.qm31.QM31) !(if (fixed) void else universal.UniversalRelations) {
     const channel = @import("../../prover/block_v5_universal_channel_v1.zig");
     r.mixU32s(&.{ channel.TAG, channel.VERSION });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 0 }, admitted.sealed.digest);
-    const relations = try universal.UniversalRelations.draw(a, r);
+    const relations = if (fixed) try r.universalPairs(0, universal.RELATION_COUNT) else try universal.UniversalRelations.draw(a, r);
     r.mixU32s(&.{ 0x42354c54, 1 });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 8 }, try admitted.plan.identity());
-    for (admitted.roots) |root| r.mixRoot(root);
+    for (admitted.roots, 0..) |root, i| {
+        if (fixed) r.mixPublicRoot(try @import("blake3_root_sources.zig").caller(i), @splat(0)) else r.mixRoot(root);
+    }
     for (claims, 0..) |claim, index| {
         if (!@import("universal_provider_relations.zig").secureIsCanonical(&claim)) return error.InvalidBlockV5NativeLookupClaim;
         r.mixPublicFelts(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = @intCast(16 + 4 * index) }, &.{claim});

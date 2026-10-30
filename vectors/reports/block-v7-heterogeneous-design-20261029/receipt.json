@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "kind": "existing_measurement_architecture_census",
+  "profile": "diagnostic_q8_pow0",
+  "new_proof_run": false,
+  "ethereum_block": false,
+  "canonical_security": false,
+  "controlled_ab": false,
+  "provenance": {
+    "log_basename": "block-v7-active-cohort-complete-run.log",
+    "log_sha256": "17a7306dfcf3b7c4ec9d6db5fd44fbcacef125fc9514367822d398ae16a72af1",
+    "exact_summary": "V7_STREAMING_COMPLETE iterations=4096 profile=diagnostic_q8_pow0 source={\"cycles\":20495,\"segments\":2,\"callers\":1,\"events\":8293,\"fetches\":20496,\"original_proofs\":11,\"checkpoint_bytes\":68968544,\"native_checkpoint_bytes\":36953856,\"caller_checkpoint_bytes\":6164400,\"max_native_restore_codec_bytes\":19477120,\"event_storage_bytes\":12582912,\"setup_ns\":1397166,\"execution_ns\":1155334,\"collection_ns\":424008041,\"providers_first_ns\":89315875,\"native_proof_ns\":1118700625,\"caller_proof_ns\":3168047459,\"memory_proof_ns\":347983291,\"rom_proof_ns\":7736834,\"lookup_proof_ns\":102281083,\"verification_ns\":2580439500,\"consumer_ns\":53878208875,\"whole_ns\":61719274166,\"charged_peak_bytes\":7375674152} recursive={\"metadata_ns\":411674416,\"caller_compile_ns\":712665125,\"cold_key_ns\":9972502667,\"capture_witness_join_ns\":17689326167,\"parity_ns\":17986666,\"plan_ns\":1196497667,\"proof_ns\":23725317625,\"encoding_ns\":93875500,\"whole_ns\":53819845917,\"retained_rows_bytes\":1600790316,\"fixed_commitment_reused\":true} root_verification_ns=769492250 execution_to_verified_root_ns=62981386125 proof_bytes=158878 charged_peak_bytes=7375674152 original_owners_destroyed=true complete_global_closure=true ethereum_block=false",
+    "family_order": "original ordered mixed collection; native2, activecaller1, program1, compactlookup1, separateRAM3+interval+range16+terminal"
+  },
+  "source": {
+    "cycles": 20495,
+    "segments": 2,
+    "callers": 1,
+    "events": 8293,
+    "fetches": 20496,
+    "original_proofs": 11,
+    "checkpoint_bytes": 68968544,
+    "native_checkpoint_bytes": 36953856,
+    "caller_checkpoint_bytes": 6164400,
+    "max_native_restore_codec_bytes": 19477120,
+    "event_storage_bytes": 12582912,
+    "setup_ns": 1397166,
+    "execution_ns": 1155334,
+    "collection_ns": 424008041,
+    "providers_first_ns": 89315875,
+    "native_proof_ns": 1118700625,
+    "caller_proof_ns": 3168047459,
+    "memory_proof_ns": 347983291,
+    "rom_proof_ns": 7736834,
+    "lookup_proof_ns": 102281083,
+    "verification_ns": 2580439500,
+    "consumer_ns": 53878208875,
+    "whole_ns": 61719274166,
+    "charged_peak_bytes": 7375674152
+  },
+  "recursive": {
+    "metadata_ns": 411674416,
+    "caller_compile_ns": 712665125,
+    "cold_key_ns": 9972502667,
+    "capture_witness_join_ns": 17689326167,
+    "parity_ns": 17986666,
+    "plan_ns": 1196497667,
+    "proof_ns": 23725317625,
+    "encoding_ns": 93875500,
+    "whole_ns": 53819845917,
+    "retained_rows_bytes": 1600790316,
+    "fixed_commitment_reused": true
+  },
+  "root_verification_ns": 769492250,
+  "execution_to_verified_root_ns": 62981386125,
+  "parent_stages": [
+    {
+      "id": "parent.validation",
+      "seconds": 0.394912
+    },
+    {
+      "id": "parent.main_setup",
+      "seconds": 0.945966
+    },
+    {
+      "id": "parent.main_commit",
+      "seconds": 2.93409
+    },
+    {
+      "id": "parent.interaction_generation",
+      "seconds": 3.638786
+    },
+    {
+      "id": "parent.interaction_commit",
+      "seconds": 2.653261
+    },
+    {
+      "id": "parent.core",
+      "seconds": 13.158039
+    },
+    {
+      "id": "parent.core.draw_random_coeff",
+      "seconds": 5e-06
+    },
+    {
+      "id": "parent.core.composition_trace_extract",
+      "seconds": 2.4e-05
+    },
+    {
+      "id": "parent.core.composition_evaluation",
+      "seconds": 9.76757
+    },
+    {
+      "id": "parent.core.composition_interpolate_and_split",
+      "seconds": 0.013927
+    },
+    {
+      "id": "parent.core.composition_commit",
+      "seconds": 0.272512
+    },
+    {
+      "id": "parent.core.oods_point_and_mask_points",
+      "seconds": 0.024862
+    },
+    {
+      "id": "parent.core.sampled_value_evaluation",
+      "seconds": 0.26154
+    },
+    {
+      "id": "parent.core.sampled_value_channel_mix",
+      "seconds": 8e-05
+    },
+    {
+      "id": "parent.core.fri_quotient_build_and_commit",
+      "seconds": 1.787953
+    },
+    {
+      "id": "parent.core.proof_of_work",
+      "seconds": 1e-06
+    },
+    {
+      "id": "parent.core.fri_decommit",
+      "seconds": 0.027773
+    },
+    {
+      "id": "parent.core.trace_decommit",
+      "seconds": 0.893556
+    },
+    {
+      "id": "parent.core.constraint_check_and_assembly",
+      "seconds": 0.000389
+    }
+  ],
+  "totals": {
+    "arithmetic_rows": 650166,
+    "blake3_g_rows": 2622592,
+    "blake3_xor_rows": 749312,
+    "planned_path_openings": 1312
+  },
+  "derived_bounds": {
+    "arithmetic_rows_to_reach_2pow19": 125878,
+    "caller_arithmetic_share": 0.797067210527773,
+    "source_before_recursive_consumer_ns": 7841065291,
+    "optimistic_remove_all_recursion_ns": 8333685000,
+    "optimistic_remove_all_recursion_speedup": 7.557447410719267,
+    "tenfold_target_ns": 6298138612.5
+  },
+  "interpretation": "Bounds only: replacing eleven originals by one has not been implemented, proved, timed or qualified. Remaining direct-STARK construction and verification may add work. Stage timings are from a shared-host diagnostic."
+}

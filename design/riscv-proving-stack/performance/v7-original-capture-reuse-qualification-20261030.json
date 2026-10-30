@@ -1,0 +1,75 @@
+{
+  "schema": "stwo-v7-original-capture-reuse-v1",
+  "status": "focused-original-and-parent-proof-qualified",
+  "problem_match": {
+    "measured_source": "v7-parallel-preparation-qualification-20261030.json",
+    "observed": "Full source receiver already cryptographically verifies each original, while later recursive Collection repeated verification and independent fixed-root reconstruction. ROM inclusive capture/preparation alone was3.89s in native32K control.",
+    "change": "Same full receiver verification optionally retains owned typed captures. Recursive Collection consumes each capture once after exact request/entry and complete-proof/physical-claim fingerprint checks. Independent family profiles, equations, transcript and cold key remain selected afresh.",
+    "default": "Off; separate memory and dense lookup are explicitly unsupported when selected.",
+    "authority": "Opaque capture set has no public constructor or decoder. Seal is set only after all original verifications and strict execution/window global closure succeed.",
+    "ownership": "Synchronized request budget,4GiB default. Every consumed capture retains allocator ownership; all row preparation jobs join before set destruction. Distinct canonical slots may drain in parallel; same-slot concurrent consumption is unsupported.",
+    "memory_telemetry": "retained_capture_bytes is charged live heap after source verification; capture_verification_peak_bytes includes its transient verification scratch. Neither is process RSS.",
+    "performance": "Not yet measured. Source verification now includes content fingerprints; total source+recursive wall time must be compared, not only reduced recursive capture phase."
+  },
+  "tests": {
+    "semantic": "PASS",
+    "runtime": "PASS11",
+    "independent_read_only_review": "C found no authority/lifetime defect in exact typed/request/fingerprint checks or allocator ownership.",
+    "verified": [
+      "exact genuine six-original Verified equality",
+      "cross-request epoch and independent profile substitution rejection",
+      "changed physical claim and OODS sample rejection",
+      "capture byte cap and allocation failure cleanup",
+      "capture outlives opaque set",
+      "all fixed/main rows,wires,public frames and cold key parity",
+      "entire parent proof byte equality",
+      "fresh complete receiver after original producers/captures destroyed"
+    ]
+  },
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/prover/block_v7_execution_receiver_v1.zig",
+      "sha256": "f827219f26e6e350bbca58a6550dbc6801f31b26e25ae26c5578ee57cd689ae1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v7_original_capture_fingerprint_v1.zig",
+      "sha256": "6c02dd72202bf2c645a98fd419fb6e1f928f89e4ba7b04744c273e8591a265fe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v7_caller_recursive_capture_v1.zig",
+      "sha256": "c2c8826549b4f3204b373acefbc4fe0f509aee6c9fa51494d0993078ca47c0f6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig",
+      "sha256": "520132077e4ba66c7a366607e4b3f2204b7d0e53cd38332a2cfaba305e29e3c4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+      "sha256": "49d00a896e3017081ff44c1ced427336d06de94f6c3434c1d975ea556caa3aa1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+      "sha256": "7604d50256c6a1a0bd83d40528022c01f0dc3c004b9b6aae1ffe3b794528193d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_original_captures_test_v1.zig",
+      "sha256": "7c4f07429c68f54238d8af19d13f135b48af01f1d74fd2f8b9798ad66c44d1b7"
+    }
+  ],
+  "binary_sha256": "8351bdb3656741e435ca9367a21b96ba1f98b18f0a25be10398fbd08c29f2482",
+  "limitations": [
+    "Current focused fixture uses diagnostic q8/pow0; canonical real-window measurement pending.",
+    "No protocol, verifier key or proof-wire change.",
+    "Full-block performance claim is not established."
+  ],
+  "runtime": {
+    "seconds": 102.25,
+    "rss_bytes": 10076078080,
+    "purpose": "correctness; not a latency comparison"
+  },
+  "evidence_directory": "vectors/reports/block-v7-original-capture-reuse-20261030",
+  "initial_failure": "Test assumed first OODS column nonempty and hit bounds check; fixed test selects first nonempty column. No production/protocol change.",
+  "postbuild_changes": [
+    "Documentation-only same-slot concurrency/immutable candidate storage precondition in Captures.take."
+  ]
+}

@@ -1,0 +1,6 @@
+1/1 riscv_cuda_numeric_device_test_root.test.actual NVIDIA CUDA DEEP output equals independent CPU quotient oracle...==PROF== Connected to process 11336 (/workspace/stwo-v7-evidence/binaries/cuda-numeric-fixed/prover)
+==ERROR== ERR_NVGPUCTRPERM - The user does not have permission to access NVIDIA GPU Performance Counters on the target device 0. For instructions on enabling permissions and to get more information see https://developer.nvidia.com/ERR_NVGPUCTRPERM
+CUDA_DEEP_RECEIPT {"calls":1,"source_columns":3,"terms":7,"groups":5,"device_peak_bytes":4664,"host_metadata_peak_bytes":984,"h2d_bytes":952,"d2h_bytes":2048,"kernel_launches":2,"planning_ns":124995,"source_materialization_cpu_ns":49894,"upload_ns":7280077,"kernel_ns":2764527,"download_ns":55755,"total_ns":10497552}
+OK
+All 1 tests passed.
+==PROF== Disconnected from process 11336

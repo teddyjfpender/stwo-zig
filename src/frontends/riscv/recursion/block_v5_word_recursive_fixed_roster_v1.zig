@@ -10,6 +10,7 @@ const Sources = @import("block_v5_word_recursive_fixed_sources_v1.zig");
 const Public = @import("block_v5_word_recursive_fixed_public_v1.zig");
 const OriginalRoster = @import("block_v5_recursive_parent_fixed_roster_v1.zig");
 const Assembly = @import("block_v5_recursive_parent_fixed_assembly_v1.zig");
+const Namespace = @import("air/block_v5_recursive_fixed_namespace_v1.zig");
 const Storage = @import("air/blake3_parent_row_storage.zig");
 const Base = @import("blake3_execution_parent_protocol.zig");
 const Parent = @import("blake3_execution_parent_proof.zig");
@@ -33,6 +34,7 @@ pub fn ForFamily(comptime family: @import("air/block_v5_word_recursive_shape_com
             allocator: std.mem.Allocator,
             budget: *Budget,
             fixed: Storage.FixedTuple(false),
+            namespace: Namespace.Plan,
             wires: []Bus.Wire,
             context: Base.Context,
             profile: Base.Profile,
@@ -62,13 +64,16 @@ pub fn ForFamily(comptime family: @import("air/block_v5_word_recursive_shape_com
                 const selectors = try Assembly.selectorsForGraphs(a, &native.deep_graph, &native.fri_graph);
                 const fixed = try OriginalRoster.compileOriginalRoster(a, sources, null, pcs.openings, pcs.ports, &transcript.fixed, &pcs.paths, &native.arithmetic, selectors, &native.deep_graph);
                 errdefer inline for (0..Storage.Airs.len) |i| a.free(fixed[i]);
+                var namespace = try Namespace.prepareForArithmetic(a, fixed, 1, .{ .plan = &native.arithmetic.plan, .reference = native.arithmetic.reference, .kind = .segment_leaf });
+                errdefer namespace.deinit();
+                try namespace.requireIndependentMainPort();
                 const wires = try a.dupe(Bus.Wire, public.wires);
                 errdefer a.free(wires);
                 const context = Base.Context{ .child_key_id = expected, .child_config = admitted.config, .graph_ids = .{ native.composition.circuit.identity_digest, native.deep_graph.graph().identity_digest, native.fri_graph.graph().identity_digest }, .transcript_plan_id = transcript.fixed.id };
                 _ = try Base.contextIdentity(context);
                 _ = try Bus.scheduleDigest(wires);
                 try admitted.validate(expected);
-                return .{ .allocator = a, .budget = budget, .fixed = fixed, .wires = wires, .context = context, .profile = profile, .retry_capacity = capacity, .limits = limits, .shape_id = native.shape.seal };
+                return .{ .allocator = a, .budget = budget, .fixed = fixed, .namespace = namespace, .wires = wires, .context = context, .profile = profile, .retry_capacity = capacity, .limits = limits, .shape_id = native.shape.seal };
             }
             pub fn validateAgainst(self: *const Self, admitted: *const Admission.Prepared, expected: [32]u8, capacity: u32, profile: Base.Profile, limits: Limits) !void {
                 if (self.retry_capacity != capacity or self.profile != profile or !std.meta.eql(self.limits, limits)) return error.UntrustedWordFixedRoster;
@@ -95,6 +100,7 @@ pub fn ForFamily(comptime family: @import("air/block_v5_word_recursive_shape_com
             pub fn deinit(self: *Self) void {
                 const a = self.allocator;
                 const budget = self.budget;
+                self.namespace.deinit();
                 a.free(self.wires);
                 inline for (0..Storage.Airs.len) |i| a.free(self.fixed[i]);
                 self.* = undefined;

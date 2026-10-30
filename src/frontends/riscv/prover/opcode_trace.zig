@@ -111,7 +111,12 @@ pub fn generate(
     exec_trace: *const trace.Trace,
     statement: anytype,
 ) !Columns {
+    return generateWithDirectRamClockV3(allocator, exec_trace, statement, false);
+}
+pub fn generateWithDirectRamClockV3(allocator: std.mem.Allocator, exec_trace: *const trace.Trace, statement: anytype, direct_v3: bool) !Columns {
     const use_local_zero = localZeroEnabled(statement);
+    const shard_rows = shardRows(statement);
+    if (direct_v3 and use_local_zero) return error.UnsupportedDirectRamClockProfile;
     // Run the filter once, up front, and carry its result.
     //
     // Both loops below classify every row, and both used to do it through a
@@ -211,6 +216,8 @@ pub fn generate(
         family_component_counts: *const [trace.N_FAMILIES]usize,
         lookup_counters: *lookup_counter.Set,
         use_local_zero: bool,
+        direct_v3: bool,
+        shard_rows: usize,
         old_programs: *const [trace.N_FAMILIES]?LookupProgram,
         err: ?anyerror = null,
 
@@ -236,13 +243,13 @@ pub fn generate(
                 const family_index = @intFromEnum(family);
                 const family_row = offsets[family_index];
                 offsets[family_index] += 1;
-                const shard_index = family_row / MAX_OPCODE_SHARD_ROWS;
+                const shard_index = family_row / work.shard_rows;
                 if (shard_index >= work.family_component_counts[family_index]) continue;
                 const component_index = work.first_component[family_index] + shard_index;
-                const row_index = family_row - shard_index * MAX_OPCODE_SHARD_ROWS;
+                const row_index = family_row - shard_index * work.shard_rows;
                 if (row_index >= work.domain_sizes[component_index]) continue;
                 const physical_row = work.placements[component_index].?.map(row_index);
-                trace.validateFamilyRow(row, family) catch {
+                (if (work.direct_v3 and family == .load_store) @import("../runner/direct_ram_clock_v3.zig").validateTraceRow(row) else trace.validateFamilyRow(row, family)) catch {
                     work.err = error.InvalidSemanticWitness;
                     return;
                 };
@@ -254,6 +261,11 @@ pub fn generate(
                 );
                 if (work.use_local_zero) {
                     work.fillLocalZero(family, component_index, physical_row) catch |err| {
+                        work.err = err;
+                        return;
+                    };
+                } else if (work.direct_v3 and family == .load_store) {
+                    @import("block_v8_ram_clock_v3_lookup.zig").registerGenerated(&work.result.components[component_index].columns, physical_row, work.lookup_counters) catch |err| {
                         work.err = err;
                         return;
                     };
@@ -322,6 +334,8 @@ pub fn generate(
             .family_component_counts = &family_component_counts,
             .lookup_counters = &worker_counters[worker],
             .use_local_zero = use_local_zero,
+            .direct_v3 = direct_v3,
+            .shard_rows = shard_rows,
             .old_programs = &old_programs,
         };
     }
@@ -349,7 +363,7 @@ pub fn generate(
         const family_index = @intFromEnum(statement.component_descs[component_index].family);
         const shard_index = component_index - first_component[family_index];
         result.components[component_index].n_real_rows = @min(
-            row_counters[family_index] -| shard_index * MAX_OPCODE_SHARD_ROWS,
+            row_counters[family_index] -| shard_index * shard_rows,
             domain_sizes[component_index],
         );
     }
@@ -367,6 +381,14 @@ pub fn generate(
     return result;
 }
 
+pub fn shardRows(statement: anytype) usize {
+    const T = switch (@typeInfo(@TypeOf(statement))) {
+        .pointer => |pointer| pointer.child,
+        else => @TypeOf(statement),
+    };
+    if (@hasField(T, "native_shard_version")) if (statement.native_shard_version == 1) return 1 << 24;
+    return MAX_OPCODE_SHARD_ROWS;
+}
 fn localZeroEnabled(statement: anytype) bool {
     const T = switch (@typeInfo(@TypeOf(statement))) {
         .pointer => |pointer| pointer.child,

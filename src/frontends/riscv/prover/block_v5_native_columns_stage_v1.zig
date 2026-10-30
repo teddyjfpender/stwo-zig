@@ -25,10 +25,11 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, owner: *co
     return Store.write(a, dir, name, scope(proposal), owner.main.items, limits.columns);
 }
 
-fn rebuild(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits) !*Native.Owner {
+fn rebuild(comptime census: bool, a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits) !*Native.Owner {
     try proposal.template.admit(&proposal.shape, proposal.template_id);
     if (!std.meta.eql(Public.publicDigest(&proposal.shape.public_data), proposal.public_digest)) return error.ChangedV5StagedNativePublic;
-    return Rebuild.rebuild(a, dir, name, &proposal.shape, proposal.template.external_retirements, scope(proposal), pin, limits);
+    const run = if (census) Rebuild.rebuild else Rebuild.rebuildForProving;
+    return run(a, dir, name, &proposal.shape, proposal.template.external_retirements, scope(proposal), pin, limits);
 }
 
 pub fn ForBackend(comptime Backend: type) type {
@@ -61,12 +62,29 @@ pub fn ForBackend(comptime Backend: type) type {
         /// Returned PCS owns the one fresh recommit so a subsequent admitted
         /// producer can consume it without an additional commitment pass.
         pub fn load(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits, profile: Profile) !Prepared {
-            const owner = try rebuild(a, dir, name, proposal, pin, limits);
+            return loadMode(true, a, dir, name, proposal, pin, limits, profile);
+        }
+        pub fn loadForProving(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits, profile: Profile) !Prepared {
+            return loadMode(false, a, dir, name, proposal, pin, limits, profile);
+        }
+        fn loadMode(comptime census: bool, a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits, profile: Profile) !Prepared {
+            const owner = try rebuild(census, a, dir, name, proposal, pin, limits);
             errdefer owner.deinit();
             var first = try Physical.commitPhysical(a, owner, proposal.template.config, profile, proposal.index);
             errdefer first.deinit(a);
             if (!std.meta.eql(first.roots, proposal.roots) or !std.meta.eql(first.template, proposal.template) or
                 !std.meta.eql(first.template_id, proposal.template_id)) return error.V5StagedNativeRootMismatch;
+            return .{ .owner = owner, .first = first };
+        }
+        /// Restores original first-pass PCS state instead of recommitting raw
+        /// columns. This is CPU proving material, not a verification receipt.
+        /// The unchanged native/global verifiers remain mandatory.
+        pub fn loadWithCommitment(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, proposal: *const Root.Proposal, pin: Pin, limits: Limits, profile: Profile, checkpoint_name: []const u8, checkpoint_pin: @import("block_v6_native_commitment_store_v1.zig").Pin, checkpoint_limits: @import("block_v6_native_commitment_store_v1.zig").Limits) !Prepared {
+            if (comptime Backend != @import("stwo_cpu_backend").CpuBackend) @compileError("Native PCS checkpoints currently require the CPU backend");
+            if (proposal.template.execution_profile != profile) return error.ChangedV5StagedNativeAdmission;
+            const owner = try rebuild(false, a, dir, name, proposal, pin, limits);
+            errdefer owner.deinit();
+            const first = try @import("block_v6_native_commitment_store_v1.zig").load(a, dir, checkpoint_name, proposal, checkpoint_pin, checkpoint_limits);
             return .{ .owner = owner, .first = first };
         }
     };

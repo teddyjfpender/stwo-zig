@@ -1,0 +1,11 @@
+{
+  "schema": "stwo-b8-endpoint-aborted-diagnostic-v1",
+  "benchmark_ranked": false,
+  "completed_root": false,
+  "exit_code": 130,
+  "instrumentation": "one-second macOS sample",
+  "reason": "checkExternal redundantly scans all previous external inputs although seen bitmap already rejects duplicates; 3.1M external inputs triggers quadratic work",
+  "stack": "blake3_parent_input_inventory.checkExternal at nested external_nodes[0..i] scan",
+  "source_capture_count": 1,
+  "source_report": "source-report.json"
+}

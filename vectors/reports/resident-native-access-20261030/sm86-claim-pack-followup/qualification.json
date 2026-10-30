@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-native-claim-pack-empty-buffer-fix-v1",
+  "actual_device_attempt": "failed InvalidDeviceAddress at claim_pack; no original proof produced",
+  "actual_binary_sha256": "3a988418ec5baf8906f6bc9e78f2175717e4170d1ef0e022e2f2ae195565a8d8",
+  "cause": "N4 has zero access count buffer; Zig wrapper unconditionally requested a device address for a zero-length slice.",
+  "fix": "Optional C ABI fields/counts pointer; pass null only when corresponding length is zero. Existing C ABI already permits this and checks length before access.",
+  "linux_full_n4_n5_semantic": true,
+  "fixed_device_execution": false,
+  "pod_unavailable_after_fix": true,
+  "no_new_provision": true,
+  "source_files": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_claim_pack_v1.zig",
+      "sha256": "a91ac4315e878d8db8867ca028c9f06c673b3ca5343f9090c5cb2bad6b49464a"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_claim_pack_v1.cu",
+      "sha256": "261686deef4cbc78d80f3f02fa953af7ff5c388e86b0daa56c0f1657690ce72b"
+    }
+  ],
+  "next_step": "New immutable LLVM build and original verifier/CPU byte oracle; same CUDA objects are ABI-compatible."
+}

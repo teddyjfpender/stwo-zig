@@ -60,6 +60,6 @@ const Repeated = struct {
         self.recorder.mixU32s(words);
     }
     pub fn drawSecureFelts(self: *Repeated, a: std.mem.Allocator, count: usize) ![]@import("stwo_core").fields.qm31.QM31 {
-        return self.recorder.drawSecureFeltsUnexported(a, count);
+        return self.recorder.drawSecureFeltsDiscarded(a, count);
     }
 };

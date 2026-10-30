@@ -1,0 +1,25 @@
+1/6 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...V7_RAM_INPUT_STORAGE compact=true retain=true interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=31312 interaction_bytes=58128 before_core_bytes=58128 compact_interaction=true
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=true tiled=false row_log=5 proof_bytes=17677 charged_peak=419656 commit_ns=3347333 proof_ns=27361667 verification_ns=11699416 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=true retain=true interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=31312 interaction_bytes=58128 before_core_bytes=58128 compact_interaction=true
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=5 proof_bytes=17677 charged_peak=419656 commit_ns=2603167 proof_ns=68300125 verification_ns=10729625 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=45648 interaction_bytes=87312 before_core_bytes=87312 compact_interaction=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=false tiled=false row_log=5 proof_bytes=17677 charged_peak=474928 commit_ns=2134125 proof_ns=15014541 verification_ns=10382084 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=45648 interaction_bytes=87312 before_core_bytes=87312 compact_interaction=false
+V7_RAM_PROOF_SHA256 a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b
+V7_RAM_QUOTIENT_TILES retain=false tiled=true row_log=5 proof_bytes=17677 charged_peak=474928 commit_ns=2170459 proof_ns=62854125 verification_ns=10226708 exact_original_verification=true
+V7_RAM_INPUT_STORAGE compact=false retain=false interaction_recovery=false
+V7_RAM_PHASE_LIVE input_bytes=45648 interaction_bytes=87312 before_core_bytes=87312 compact_interaction=false
+OK
+3/6 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled production defaults select only large memory components...OK
+4/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+5/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled cache admission accounts recovered coefficients and three cache owners...OK
+6/6 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled wider retained layout clamps before scratch allocation...OK
+All 6 tests passed.

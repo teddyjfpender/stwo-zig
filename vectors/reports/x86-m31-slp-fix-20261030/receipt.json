@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "scope": "x86_native_scalar_M31_constant_weighted_reduction",
+  "compiler": "0.15.2",
+  "system": "Linux-6.8.0-94-generic-x86_64-with-glibc2.39",
+  "cpu": "INTEL(R) XEON(R) GOLD 6548Y+",
+  "optimization": "ReleaseSafe",
+  "cpu_target": "native",
+  "immutable_original": "/workspace/stwo-v7",
+  "original_m31_sha256": "a5d47cc1a8c57a858b943c25e63eb1561b9f994fdff36ea38517bc166ea66d73",
+  "final_m31_sha256": "6b2be2ed6b0cf9da5787495734141837d815c7d22eee95a18196830a135324fc",
+  "baseline_reproducer_binary_sha256": "2efedd05760e14f57ce169499b4efba3c87356e5b2c1273d0f5601e6ab49b651",
+  "twofold_reproducer_binary_sha256": "387c2c351a7927951e49987c83e4a6c3c1ce2501d9a558135e8a92cb97a2706c",
+  "combined_twofold_binary_sha256": "7bd47eb06ddf9ca062646c03657395083f26a02c29d1506836b41c0d17abc0b4",
+  "final_field_binary_sha256": "04df9061bef2cde60fb5604e660aa6504718ea0ec5907247f81f991f50b0d4b9",
+  "counterexample": {
+    "inputs": [
+      1092977403,
+      946294386,
+      16996009,
+      1785744226,
+      447332180,
+      1295435440,
+      2133147911,
+      1772688346
+    ],
+    "weights": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "actual_before": 1157025234,
+    "integer_oracle": 1157025244
+  },
+  "tests": {
+    "original_access_suite": {
+      "passed": 162,
+      "failed": 1,
+      "note": "All four fused-access tests pass; scalar runtime DAG test fails"
+    },
+    "candidate_combined_native": {
+      "passed": 437,
+      "skipped": 1,
+      "failed": 0
+    },
+    "exact_final_field": {
+      "passed": 6,
+      "failed": 0
+    },
+    "explicit_packed_u128": {
+      "passed": 1,
+      "failed": 0
+    }
+  },
+  "files": {
+    "run.log": "cfe8e9df6c3c8b20304438ba25de03833565cdd25109cd52c643fa7c750f39a4",
+    "runtime-dag-run.log": "d5f60a8c98a81b68681efe1f3dde0fa6ae22f5e49d42738f205efd27bce0fbad",
+    "runtime-dag-detail-run.log": "a6448a01a828d592baec21e74cfff29acba0bc64b32f1414350ae373c367c5c8",
+    "m31-weighted-twofold-run.log": "8d5f4849504f5e00524d26dc059a3b4ca5dbe472308eb986c61fec06e3e21810",
+    "m31-packed-run.log": "9e07d96511f83bc6e3e9aab792f226c7e739c72579676c9a7ec7f49aa478e68d",
+    "runtime-dag-twofold-run.log": "f60297c0853c453cc845d613c2a6f12848980b075c265d5a2b4e0ea4188ebbc4",
+    "native-twofold-run.log": "36d58b25eef2036734b40b1f82567c54742761a97856c3b8da7c4805e43011c0",
+    "m31-final.log": "049b09292a4a89ca9b5d3f0698671b707d1e19afa993e0582301b5a544b92b3e",
+    "m31-weighted.asm": "ae3eb8f890d0477646286cd0df117c22f1a70710f3c3f3bc6abdbad01b2c56d0",
+    "m31-weighted-twofold.asm": "b88cd22799c6faa6a850077caf8beeb43ffe0a02227bef4fa33b7fb74e5927be"
+  },
+  "notes": [
+    "Original source and old binaries remain unchanged.",
+    "Diagnostic overlay instruments mismatches only; permanent change is x86_64 M31.mul twofold reduction plus regressions.",
+    "Actual retained32K CPU and GPU complete proof are separate pending qualification."
+  ],
+  "arm_final": {
+    "passed": 6,
+    "failed": 0,
+    "log_sha256": "049b09292a4a89ca9b5d3f0698671b707d1e19afa993e0582301b5a544b92b3e",
+    "source_sha256": "6b2be2ed6b0cf9da5787495734141837d815c7d22eee95a18196830a135324fc"
+  },
+  "permanent_change": {
+    "file": "src/core/fields/m31.zig",
+    "scope": "x86_64 scalar multiplication only; ARM scalar and explicit packed arithmetic unchanged",
+    "tests": "Exact eight-value counterexample, randomized/edge weighted and composed contexts, explicit four/native-width packed constant products; independent u128 modulus oracle"
+  },
+  "first_scalar_family": {
+    "family": "shifts_imm",
+    "constraint": 65,
+    "active": 0,
+    "base_eval_before": 353219528,
+    "symbolic_replay_and_integer_oracle": 353219524
+  },
+  "fused_domain_failure": {
+    "family": "shifts_reg",
+    "mode": 0,
+    "slot": 2,
+    "domain": "range_check_20",
+    "entry_indices": [
+      9,
+      18
+    ],
+    "row": 1,
+    "eval_log": 3,
+    "source": "A independent diagnostic; baseline ISA passed"
+  }
+}

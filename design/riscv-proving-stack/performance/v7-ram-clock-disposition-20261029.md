@@ -1,0 +1,21 @@
+# V7 RAM clock-gap disposition
+
+The ratio-matched synthetic workload (1,726,115 cycles, four windows) generated a valid original STARK but its complete receiver rejected a nonzero auxiliary RAM clock-gap sum. An exact producer diagnostic found zero ordinary-memory residuals in every window and 21,152–21,158 clock-gap rows per window. The smaller corpus had not exercised this case.
+
+## Problem match and authority
+
+V6's native accounting subtracts the auxiliary RAM clock sum from the complete native LogUp total. V7 instead proves original direct equations and independently partitioned lookup terms. Its actual RAM consistency is supplied by the authenticated ordinary-access opposite relation, byte-bound current event tuple, WORD transition bus and the global initialized/terminal memory chain. Synthetic predecessor-clock gap rows are not actual RAM operations, and cannot become extra WORD events. They have no consumer in this new relation layout. Requiring their sum to vanish is an incorrect completeness condition.
+
+The implementation introduces a distinct V7 relation-layout policy and identity. It first derives and symbolically validates the complete V6 schedule, then removes exactly the mode-one clock-source RAM projection. It preserves every opcode relation, all register-clock projections, clock direct equations, and clock range-table requests. The V6 full-coverage validator remains unchanged. V7 coverage independently reconstructs this exact filtered schedule; missing, duplicate, reordered or substituted terms are rejected. All physical claims that remain are transcript-bound as before. Native entry identity, original/recursive geometry, decoder dimensions and keys use the new layout digest.
+
+The complete receiver's zero auxiliary-residual guard stays in place: canonical new layouts contain no auxiliary RAM projection, so there is no unclosed public claim to ignore. Register clock chains remain checked per window. Dropping register projections or ordinary RAM projections is forbidden.
+
+## Proof obligations and qualification
+
+An actual operation's before/after value and current clock remain constrained by native opcode equations, the opposite access relation, canonical byte reconstruction and the global WORD chain. The producer diagnostic is unauthenticated evidence only. Required gates are exact schedule negatives; complete high-gap original proof and fresh verification; and mutations of actual RAM values/clock rejected by the unchanged memory relations. The 421-case proof must be rerun under the changed identity; the previous failed attempt remains recorded. No old/new proof-byte parity is expected across this explicit protocol change.
+
+The focused layout gate passed (271 transitive tests passed, one skipped) on the first implementation. It checks every opcode family's exact retained roster, rejects removal/substitution of register-clock or range slots, rejects the old ghost-containing schedule under the new policy, and confirms the old V6 validator still rejects the filtered schedule. A second test holds honest high-clock ordinary-access interaction values fixed and changes the before byte, after byte, or actual current clock; each produces a nonzero original constraint. This is equation-level malicious-input coverage, not yet an independently recommitted malicious whole proof. Full high-gap verification is pending.
+
+## High-gap completion evidence
+
+The new-layout diagnostic closes both ordinary and auxiliary native residuals in all four windows. The same source-bound binary then completed the full canonical q70/PoW26 proof and independent complete verification after producer destruction: 1,726,115 cycles, 421 Keccak calls, one recovery call, 452,200 actual RAM events, four native and four caller windows. Request time was113.412s; the complete envelope was21,906,041 bytes; tracked peak9,047,532,314 bytes. Evidence is retained under `vectors/reports/ethereum-daily-profiling-20261029/ratio-matched-421-actual-ram/`. This establishes high-gap completeness for the actual complete original proof route. A fully recommitted malicious RAM-chain proof remains a separate negative-test obligation; the focused mutations above remain equation-level evidence.

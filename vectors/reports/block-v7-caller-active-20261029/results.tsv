@@ -1,0 +1,6 @@
+workload	original_main	active_main	original_interaction	active_interaction	original_oods	active_oods	queries	pow_bits	layout_version	fresh_wire_verified	internal_relations_closed	complete_global_root
+sha	6732	525	7508	824			8	0	2	True	True	False
+keccak	6732	2731	7508	4996			8	0	2	True	True	False
+recovery	6732	4526	7508	3336			8	0	2	True	True	False
+mixed	6732	2731	7508	4996	49804	32547	8	0	2	True	True	False
+recovery_keccak	6732	6732	7508	7508			8	0	2	True	True	False

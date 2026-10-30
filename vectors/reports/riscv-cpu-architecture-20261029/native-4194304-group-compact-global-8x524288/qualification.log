@@ -1,0 +1,30 @@
+1/11 block_v8_endpoint_group_execution_test_root.test_0...OK
+2/11 prover.tests.block_v8_endpoint_group_pipeline_benchmark.test.real shared group complete original bundle performance benchmark...OK
+3/11 runner.decode.test_0...OK
+4/11 air.memory_commitment.poseidon2_air.test_0...OK
+5/11 prover.block_execution_external_trace_v2.test_0...OK
+6/11 runner.mod.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 air.lookups.tables.mod.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.
+       25.58 real       103.12 user         6.49 sys
+         11562876928  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3527598  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              138020  involuntary context switches
+       1455702450843  instructions retired
+        465785913599  cycles elapsed
+         11572579288  peak memory footprint

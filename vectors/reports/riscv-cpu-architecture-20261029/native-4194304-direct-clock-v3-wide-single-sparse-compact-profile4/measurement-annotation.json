@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-v3-wide-measurement-annotation-v1",
+  "qualification": "fresh all-three-original bundle verified; no recursive root",
+  "cpu_only": true,
+  "cpu_workers": 8,
+  "native_batch": false,
+  "shared_budget_bytes": 51539607552,
+  "same_frozen_binary_sha256": "e2073f6ec3addff46675d421496dced278cb936ad75881d6d41fc05d228dae4c",
+  "timing_isolated": true,
+  "brief_parallel_compiler_overlap": false,
+  "overlap_note": null,
+  "source_archive": "source-exact.tar captures frozenbinary sources; later working-tree staging-only changes do not alter frozen executable",
+  "whole_ns": 25804580250,
+  "fresh_bundle_verify_ns": 1118878375,
+  "charged_peak_bytes": 23344380455
+}

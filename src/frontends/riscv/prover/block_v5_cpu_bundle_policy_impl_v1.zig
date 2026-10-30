@@ -35,6 +35,15 @@ pub fn ForCapacity(comptime capacity: bool) type {
             return (try collect(a, pins, limits)).policies;
         }
         pub fn collect(a: std.mem.Allocator, pins: global.Pins, limits: store.Limits) !Owned {
+            return collectSelected(false, a, pins, limits);
+        }
+        /// B6JP native files use their own bounded codec. Admit that exact
+        /// relation layout, then derive original global/caller file policies.
+        pub fn buildProvidersForPartitioned(a: std.mem.Allocator, pins: global.Pins, limits: store.Limits) ![]store.Policy {
+            if (capacity or pins.memory.readonly != null) return error.UnsupportedPartitionedProviderPolicy;
+            return (try collectSelected(true, a, pins, limits)).policies;
+        }
+        fn collectSelected(comptime partitioned: bool, a: std.mem.Allocator, pins: global.Pins, limits: store.Limits) !Owned {
             try limits.validate();
             const config = pins.tables.seal.config;
             const memory = pins.memory.memory;
@@ -43,7 +52,7 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 if (pin.pin != null) extra_native = try std.math.add(usize, extra_native, 1);
             };
             const ordinary_count = try std.math.add(usize, 1, try std.math.add(usize, try std.math.add(usize, try std.math.mul(usize, pins.tables.executions.len, 2), try std.math.mul(usize, pins.tables.extensions.len, 2)), try std.math.add(usize, memory.instanceCount(), try std.math.add(usize, memory.rangeRoots().len, pins.tables.providers.len))));
-            const count = try std.math.add(usize, ordinary_count, extra_native);
+            const count = try std.math.sub(usize, try std.math.add(usize, ordinary_count, extra_native), if (partitioned) try std.math.mul(usize, pins.tables.executions.len, 2) else 0);
             const metadata = try std.math.mul(usize, count, @sizeOf(store.Policy));
             if (count > limits.max_files or metadata > limits.max_metadata_bytes) return error.V5BundleMetadataResourceLimit;
             try validateStructure(pins);
@@ -60,6 +69,13 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 if (!std.meta.eql(entry.roots[0], pin.template.fixed_root) or !std.meta.eql(pin.template.config, config) or
                     !std.meta.eql(try Programs.expectedInstance(pin, entry.roots, index), entry.instance_id))
                     return error.UntrustedV5BundleNativeInstance;
+                if (partitioned) {
+                    var layout = try @import("block_v6_relation_layout_v1.zig").Layout.init(a, pin.shape, Programs.externalRetirements(pin), sealed.register_custody_mode);
+                    defer layout.deinit();
+                    const frame = @import("../air/block/memory_event.zig").Frame{ .clock_frame = .leaf_local, .global_first_cycle = pin.admission.context.first_cycle, .cycle_count = pin.shape.public_data.clock };
+                    _ = try @import("block_v6_partitioned_native_proof_v1.zig").admitIdentity(a, index, Programs.fusedPin(pin), .{ .frame = frame, .expected_events = pins.memory.ordinary_events[index], .witness_root = pins.memory.opcode_witness_roots[index] }, sealed, pins.tables.seal, pins.tables.roster, pins.tables.catalog, &layout);
+                    continue;
+                }
                 const native_columns = if (capacity) blk: {
                     const plan = try native.Plan.fromShape(pin.shape, pin.external_retirements);
                     try pin.limits.native.require(&plan, pin.shape);

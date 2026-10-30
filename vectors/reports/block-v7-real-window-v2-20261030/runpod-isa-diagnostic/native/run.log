@@ -1,0 +1,40 @@
+1/35 block_v7_native_cache_parity_test_root.test_0...OK
+2/35 block_v7_native_cache_parity_test_root.test_1...OK
+3/35 block_v7_native_cache_parity_test_root.test_2...OK
+4/35 prover.tests.block_v7_native_cache_parity_test.test.v7 native leased cache preserves genuine q3 access proof bytes claims and recorder independence...OK
+5/35 prover.tests.block_v7_native_mul_q3_test.test.native MUL degree5 projections q3 genuine proof without access...OK
+6/35 prover.tests.block_v7_native_mul_q3_test.test.native MUL degree5 projections q3 genuine proof with access...OK
+7/35 prover.tests.block_v5_native_projection_fused_unit_test.test.block-v5 fused native nonproving masks OODS and domain equations match separate projections...expected 2058740386, found 1964683192
+Field v incorrect. expected 2058740386, found 1964683192
+Field a incorrect. expected .{ .v = 2058740386 }, found .{ .v = 1964683192 }
+Field c0 incorrect. expected .{ .a = .{ .v = 2058740386 }, .b = .{ .v = 256872519 } }, found .{ .a = .{ .v = 1964683192 }, .b = .{ .v = 122297168 } }
+FAIL (TestExpectedEqual)
+8/35 prover.tests.block_v5_native_projection_fused_unit_test.test.block-v5 fused native nonproving producer and fresh receiver APIs compile...OK
+9/35 prover.tests.block_v5_native_projection_fused_unit_test.test.native projection tiled inversion preserves every physical prefix across opcode families and modes...OK
+10/35 prover.tests.block_v5_native_projection_fused_unit_test.test.native projection parallel tiles and unavailable nested lease preserve scalar prefix...OK
+11/35 prover.tests.block_v7_native_access_interaction_test.test.v7 fused native access matches all49 columns and nine physical sums across bounded tiles...OK
+12/35 prover.tests.block_v7_native_access_interaction_test.test.v7 fused native access parallel uneven partition and nested lease fallback match old generators...OK
+13/35 prover.tests.block_v7_native_access_interaction_test.test.v7 fused access rejects active zero denominators changed seals and malformed native tuples...OK
+14/35 prover.tests.block_v7_native_access_interaction_test.test.v7 fused access allocation failures unwind output and bounded worker scratch...OK
+15/35 runner.mod.test_0...OK
+16/35 runner.decode.test_0...OK
+17/35 air.lookups.tables.mod.test_0...OK
+18/35 air.memory_commitment.poseidon2_air.test_0...OK
+19/35 air.x0_native_envelope_v1.test.block-v5 x0 native envelope retains authentic schedules domains roles and ordinals...OK
+20/35 air.semantic_eval.test_0...OK
+21/35 prover.block_memory_relation_v2.test.native witness-side transition and cross-instance link sums detect altered events...OK
+22/35 prover.block_v5_opcode_memory_interaction_v1.test.v5 opcode memory opposite claim keeps native consume and emit clocks distinct...OK
+23/35 prover.block_execution_external_trace_v2.test_0...OK
+24/35 air.lookups.tables.source_ingest.test_0...OK
+25/35 diagnostics.mod.test_0...OK
+26/35 prover.block_v5_native_template_catalog_v1.test.native-v5 catalog rejects reordered and changed leaf records...OK
+27/35 prover.block_v5_program_request_source_v1.test.v5 program request source covers every native opcode family once...OK
+28/35 prover.block_execution_external_access_bridge_v2.test_0...OK
+29/35 prover.block_execution_external_access_bridge_v2.test.block-v5 external access bridge preserves exact native consumed clocks...OK
+30/35 prover.block_execution_external_access_bridge_v2.test.block-v4 active signer source matches native byte addresses and clocks...OK
+31/35 prover.block_v5_native_lookup_plan_v1.test.native lookup planning partitions exact demands without padding...OK
+32/35 air.lookups.tables.framework_export.test.native table framework export matches all six native AIRs at base and secure points...OK
+33/35 air.lookups.tables.framework_export.test.native table framework identity excludes invocation challenges and binds placement...OK
+34/35 air.lookups.tables.framework_export.test.native table framework rejects corrupted bindings and challenges before use...OK
+35/35 air.lookups.tables.framework_export.test.native table framework cleans up every failed export allocation...OK
+34 passed; 0 skipped; 1 failed.

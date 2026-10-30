@@ -1,0 +1,4 @@
+fixture	cycles	native_windows	callers	setup_ns	prove_ns	oracle_prove_verify_ns	fresh_verify_ns	proof_bytes	charged_proof_peak_bytes	envelope_bytes	decode_peak_bytes	timing
+one-window	20495	1	1	407129750	3380550583	6915745792	1388581750	5840895	360052756	5886710	19275906	shared_host_diagnostic
+two-windows	20495	2	1	398907125	4149626583	8004566791	1525494583	6001584	311708246	6048463	20114846	shared_host_diagnostic
+isolated-callers	20	7	3	305514416	3991571375	20257994250	1748805125	7098779	370452251	7206278	47819868	shared_host_diagnostic

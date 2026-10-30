@@ -56,7 +56,12 @@ pub const Plan = struct {
 
         var placements = try allocator.alloc(Placement, ordered.len);
         errdefer allocator.free(placements);
-        var total_words = try placeSorted(ordered, placements);
+        // Keep placed intervals sorted by offset. Each first-fit search can
+        // then walk them once instead of rescanning every placement after
+        // every blocker (cubic behavior for thousands of simultaneous slots).
+        const by_offset = try allocator.alloc(Placement, ordered.len);
+        defer allocator.free(by_offset);
+        var total_words = try placeSorted(ordered, placements, by_offset);
 
         // First-fit decreasing is usually tight, but large mixed-lifetime
         // proofs can strand several GB in holes. Try a bounded set of stable
@@ -75,7 +80,7 @@ pub const Plan = struct {
                 if (total_words <= target) break;
                 @memcpy(ordered, requirements);
                 std.mem.sort(Requirement, ordered, @as(u64, @intCast(index)) + 1, orderPerturbed);
-                const candidate_words = try placeSorted(ordered, candidate);
+                const candidate_words = try placeSorted(ordered, candidate, by_offset);
                 if (candidate_words < total_words) {
                     std.mem.swap([]Placement, &placements, &candidate);
                     total_words = candidate_words;
@@ -247,13 +252,21 @@ fn splitmix64(input: u64) u64 {
     return value ^ (value >> 31);
 }
 
-fn placeSorted(requirements: []const Requirement, placements: []Placement) runtime_error.Error!usize {
+fn placeSorted(requirements: []const Requirement, placements: []Placement, by_offset: []Placement) runtime_error.Error!usize {
     var total_words: usize = 0;
     for (requirements, 0..) |requirement, index| {
-        const offset = try findOffset(requirement, placements[0..index]);
+        const offset = try findOffset(requirement, by_offset[0..index]);
         const located = Placement{ .requirement = requirement, .offset_words = offset };
         placements[index] = located;
         total_words = @max(total_words, try located.endWords());
+        var low: usize = 0;
+        var high = index;
+        while (low < high) {
+            const middle = low + (high - low) / 2;
+            if (by_offset[middle].offset_words <= offset) low = middle + 1 else high = middle;
+        }
+        std.mem.copyBackwards(Placement, by_offset[low + 1 .. index + 1], by_offset[low..index]);
+        by_offset[low] = located;
     }
     return total_words;
 }
@@ -284,28 +297,26 @@ fn findOffset(
     placed: []const Placement,
 ) runtime_error.Error!usize {
     var candidate: usize = 0;
-    while (true) {
-        candidate = std.mem.alignForward(
-            usize,
-            candidate,
-            requirement.alignment_words,
-        );
+    for (placed) |other| {
+        if (!lifetimesOverlap(requirement, other.requirement)) continue;
+        candidate = try alignOffset(candidate, requirement.alignment_words);
         const candidate_end = std.math.add(
             usize,
             candidate,
             requirement.words,
         ) catch return error.SizeOverflow;
-        var blocker_end: usize = 0;
-        for (placed) |other| {
-            if (!lifetimesOverlap(requirement, other.requirement)) continue;
-            const other_end = try other.endWords();
-            if (candidate < other_end and other.offset_words < candidate_end) {
-                blocker_end = @max(blocker_end, other_end);
-            }
-        }
-        if (blocker_end == 0) return candidate;
-        candidate = blocker_end;
+        // All subsequent intervals start at or after this one. Once the
+        // aligned request fits before it, this is the original first fit.
+        if (candidate_end <= other.offset_words) return candidate;
+        candidate = @max(candidate, try other.endWords());
     }
+    candidate = try alignOffset(candidate, requirement.alignment_words);
+    _ = std.math.add(usize, candidate, requirement.words) catch return error.SizeOverflow;
+    return candidate;
+}
+fn alignOffset(value: usize, alignment: usize) runtime_error.Error!usize {
+    const padded = std.math.add(usize, value, alignment - 1) catch return error.SizeOverflow;
+    return padded & ~(alignment - 1);
 }
 
 fn lifetimesOverlap(lhs: Requirement, rhs: Requirement) bool {
@@ -514,4 +525,65 @@ test "arena plans clone without sharing placement ownership" {
     try std.testing.expect(
         @intFromPtr(plan.placements.ptr) != @intFromPtr(cloned.placements.ptr),
     );
+}
+
+test "arena offset ordering preserves legacy first fit across lifetimes and alignments" {
+    const a = std.testing.allocator;
+    const Reference = struct {
+        fn offset(r: Requirement, placed: []const Placement) !usize {
+            var candidate: usize = 0;
+            while (true) {
+                candidate = std.mem.alignForward(usize, candidate, r.alignment_words);
+                const end = try std.math.add(usize, candidate, r.words);
+                var blocker: usize = 0;
+                for (placed) |other| if (lifetimesOverlap(r, other.requirement) and candidate < try other.endWords() and other.offset_words < end) {
+                    blocker = @max(blocker, try other.endWords());
+                };
+                if (blocker == 0) return candidate;
+                candidate = blocker;
+            }
+        }
+    };
+    var seed = std.Random.DefaultPrng.init(0x91ce4bb85);
+    const rng = seed.random();
+    var requirements: [96]Requirement = undefined;
+    var expected: [96]Placement = undefined;
+    var actual: [96]Placement = undefined;
+    var scratch: [96]Placement = undefined;
+    for (0..128) |iteration| {
+        const n = 1 + rng.uintLessThan(usize, 96);
+        for (requirements[0..n], 0..) |*r, i| {
+            const first = rng.uintLessThan(usize, telemetry.stage_count * 2);
+            const last = first + rng.uintLessThan(usize, telemetry.stage_count * 2 - first);
+            r.* = .{ .id = @intCast(i), .words = 1 + rng.uintLessThan(usize, 4096), .alignment_words = @as(usize, 1) << rng.uintLessThan(u6, 12), .live_from = @enumFromInt(first / 2), .live_through = @enumFromInt(last / 2), .live_from_phase = @intCast(first % 2), .live_through_phase = @intCast(last % 2) };
+        }
+        if (iteration % 2 == 0) std.mem.sort(Requirement, requirements[0..n], {}, orderRequirements) else std.mem.sort(Requirement, requirements[0..n], @as(u64, @intCast(iteration)), orderPerturbed);
+        var reference_peak: usize = 0;
+        for (requirements[0..n], 0..) |r, i| {
+            expected[i] = .{ .requirement = r, .offset_words = try Reference.offset(r, expected[0..i]) };
+            reference_peak = @max(reference_peak, try expected[i].endWords());
+        }
+        const peak = try placeSorted(requirements[0..n], actual[0..n], scratch[0..n]);
+        try std.testing.expectEqual(reference_peak, peak);
+        for (expected[0..n], actual[0..n]) |e, v| try std.testing.expectEqual(e.offset_words, v.offset_words);
+    }
+    try std.testing.expectError(error.SizeOverflow, Plan.init(a, &.{
+        .{ .id = 1, .words = std.math.maxInt(usize), .alignment_words = 64, .live_from = .ingress, .live_through = .decommit },
+        .{ .id = 2, .words = 1, .alignment_words = 64, .live_from = .ingress, .live_through = .decommit },
+    }));
+}
+
+test "arena thousands of simultaneous slots remain compact and bounded" {
+    const a = std.testing.allocator;
+    const n = 4096;
+    const requirements = try a.alloc(Requirement, n);
+    defer a.free(requirements);
+    for (requirements, 0..) |*r, i| r.* = .{ .id = @intCast(i), .words = 64, .alignment_words = 64, .live_from = .ingress, .live_through = .decommit };
+    var timer = try std.time.Timer.start();
+    var plan = try Plan.init(a, requirements);
+    defer plan.deinit(a);
+    const elapsed = timer.read();
+    try std.testing.expectEqual(@as(usize, n * 64), plan.total_words);
+    for (0..n) |i| try std.testing.expectEqual(@as(usize, i * 64), (try plan.placement(@intCast(i))).offset_words);
+    std.debug.print("ARENA_PLANNER simultaneous_slots={d} elapsed_ns={d} words={d}\n", .{ n, elapsed, plan.total_words });
 }

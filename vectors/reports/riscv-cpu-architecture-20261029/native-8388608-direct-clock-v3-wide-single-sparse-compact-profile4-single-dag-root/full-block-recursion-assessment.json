@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "status": "measured_native_window_roots_upper_reduction_unqualified",
+  "measured": {
+    "cycles_4m": 4194304,
+    "root_4m_seconds": 52.658570916,
+    "root_4m_bytes": 1007493,
+    "root_4m_charged_peak_bytes": 12298360979,
+    "cycles_8m": 8388608,
+    "root_8m_seconds": 63.748588625,
+    "root_8m_bytes": 1032737,
+    "root_8m_charged_peak_bytes": 14274845394,
+    "same_frozen_binary": true,
+    "q70_pow26_fresh_bytes_verified": true,
+    "source_original_reproof": false,
+    "windows_overlap": true
+  },
+  "ratios": {
+    "cycle_ratio": 2,
+    "root_time_ratio": 1.2106023296129815,
+    "root_bytes_ratio": 1.02505625349258,
+    "old_4m_root_speedup": 5.522867083953357
+  },
+  "extrapolation": {
+    "target_cycles": 139200000,
+    "eight_million_cycle_windows": 17,
+    "serial_leaf_recursion_seconds_using_full_8m_cost": 1083.7260066249999,
+    "serial_leaf_recursion_minutes": 18.062100110416665,
+    "binary_upper_folds_needed": 16,
+    "upper_fold_seconds": null,
+    "complete_block_seconds": null,
+    "formula": "native_leaf_original_cost + 17 * measured_8m_root_cost + 16 * unknown_upper_fold_cost + caller_and_terminal_cost",
+    "scope": "native-only nonterminal window extrapolation; not a full Ethereum block proof ETA"
+  },
+  "missing_upper_adapter": [
+    "B8 Join public-coordinate recorder and exact custom-domain transcript routing",
+    "Symbolic public supply closure against every physical child parent claim",
+    "Independent reconstruction and admission of each child fixed verifier key",
+    "Upper statement with adjacent CPU boundaries, snapshot IDs and cycle spans",
+    "Canonical q70/26 genuine nested proof plus hostile-boundary and byte-only receiver qualification"
+  ],
+  "reuse_limits": {
+    "native_parent_generic_composition": "constrains sum(claims)=0; B8 Join requires sum(claims)+public_supply=0",
+    "v5_open_parent": "different public term ABI, transcript routing and span statement",
+    "existing_circuit_fold": "different Blake2/Cairo proof ABI"
+  },
+  "additional_full_block_boundaries": [
+    "DirectRAM V3 caller profile unsupported",
+    "Terminal HALT1/public output binding not yet implemented",
+    "Single compact global provider finite event geometry must be checked against full-block endpoint count",
+    "Measured early native workload is not representative of all caller-heavy execution"
+  ],
+  "next_adjacent_window_if_upper_implemented": {
+    "skip_cycles": 4194305,
+    "cycles": 4194304,
+    "incoming_snapshot_id": "86cb55cac6cdbf4954aecb9b4ead702703bb5739592f808b7343402110c42314",
+    "outgoing_snapshot_id": "57e9be55596fccccc29393f6d6c56b4bcf753cd527433b10fb178d1f171882a5"
+  }
+}

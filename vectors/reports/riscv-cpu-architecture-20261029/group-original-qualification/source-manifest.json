@@ -1,0 +1,57 @@
+{
+  "scope": "direct group source files only; not a frozen full transitive binary manifest",
+  "files": [
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_codec_v1.zig",
+      "sha256": "ee21ee0b3ef0b38ffbd61522efeb4dbc030ea6b98817f4667ffa08b0003bd0fe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_context_v1.zig",
+      "sha256": "98c02f40457600b5190372553cc0fb1a8a2645135d1748a2b020720fa87b5637"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_layout_v1.zig",
+      "sha256": "28087745ba110694d0d6e9be400d357167c89171cb814c2538a54340a7a8a264"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_ledger_v1.zig",
+      "sha256": "aaec467000e770f0b7c77a9c0be09553322506bc79702b29146c30df85dd7998"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_proof_v1.zig",
+      "sha256": "b3e0f505331bcd443f02005fa846fa0102e540a4618b29f52cad839241783936"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_range_v1.zig",
+      "sha256": "690b4c541b45d28ebd43217075e927ee1431c137a582c20732e5293951c1e761"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_scope_v1.zig",
+      "sha256": "f2151e883bc3f4964aa2ed13c4fc134b2f42c377ad48212cdecc51c427d88136"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_shape_v1.zig",
+      "sha256": "c7cf84dd11402d19042550b1aaecd076a80d3a4200d28ccf90f8da922d8de530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_group_statement_v1.zig",
+      "sha256": "1e05680da2b4a54a0f8d2fe8690c8da9dd36053ecfbe7860e3793e38c539dab3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_endpoint_local_retained_v1.zig",
+      "sha256": "1c8ef0a965c35196247b904777cd30dd0a64b5e72358a464c34094c1aab687de"
+    },
+    {
+      "path": "src/frontends/riscv/block_v8_endpoint_group_proof_test_root.zig",
+      "sha256": "658066328a1fb249dbad6cf6310385aa6bff5743e35577da8dee6972a4031957"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_endpoint_group_fixture.zig",
+      "sha256": "2141dd93788d162f7d2b30033ec0c49475718feee7f414b69ed7c6b1d6efa798"
+    },
+    {
+      "path": "src/frontends/riscv/prover/tests/block_v8_endpoint_group_proof_test.zig",
+      "sha256": "fea89b3e75fa335f0eb7a9becc944d22ddbe002f125b13e56092d31f1341638c"
+    }
+  ]
+}

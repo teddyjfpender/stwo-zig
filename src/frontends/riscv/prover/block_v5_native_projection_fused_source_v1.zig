@@ -57,7 +57,84 @@ pub fn fromCommittedMain(slot: Slot, main: []const Q, relations: *const Universa
     return .{ .entry_count = pair.entry_count, .numerators = pair.numerators, .denominators = pair.denominators };
 }
 
-pub fn mixSlot(channel: *core.proof_suites.Blake3.Channel, slot: Slot) void {
+/// Exact base-row specialization of the same typed request algebra. Evaluation
+/// domains and committed witness rows contain M31 cells; OODS stays secure.
+/// No typed AIR, event ordinal, partition weight or physical claim is changed.
+pub fn fromCommittedMainBase(slot: Slot, main: []const core.fields.m31.M31, relations: *const Universal) !Pair {
+    const M = core.fields.m31.M31;
+    if (main.len != slot.width or main.len > opcode.MAX_FAMILY_COLUMNS) return error.InvalidV5FusedProjectionSlot;
+    const Base = @import("../air/semantic_eval.zig").BaseScalar;
+    var cells: [opcode.MAX_FAMILY_COLUMNS]Base = undefined;
+    for (cells[0..main.len], main) |*cell, value| cell.* = Base.fromBase(value);
+    switch (slot.kind) {
+        .program => |family| {
+            const request = try @import("block_v5_program_request_source_v1.zig").fromCommittedOpcodeMain(Base, family, cells[0..main.len]);
+            var tuple: [5]M = undefined;
+            for (&tuple, request.tuple) |*out, value| out.* = value.value;
+            return .{ .entry_count = 1, .numerators = .{ Q.fromBase(request.numerator.value), Q.zero() }, .denominators = .{ try relations.get(.program_access).combineBase(&tuple), Q.one() } };
+        },
+        .lookup => |lookup| {
+            if (main.len != lookup.width) return error.InvalidV5LookupRequestSlot;
+            var list: @import("../air/lookups/entry.zig").Builder(Base).List = undefined;
+            switch (lookup.source) {
+                .opcode => |family| try @import("../air/lookups/opcode_entries.zig").Entries(Base).fromMainInto(family, cells[0..main.len], &list),
+                .clock => {
+                    const Clock = @import("../air/clock_update_interaction.zig");
+                    list = Clock.orderedEntriesGeneric(Base, try Clock.RowFor(Base).fromMain(cells[0..main.len]));
+                },
+            }
+            const pair = try @import("block_v5_native_fused_algebra_v1.zig").Algebra(Q).lookupProjectionFromEntries(lookup, &list, relations);
+            return .{ .entry_count = pair.entry_count, .numerators = pair.numerators, .denominators = pair.denominators };
+        },
+    }
+}
+
+pub const BaseEntries = @import("../air/lookups/entry.zig").Builder(@import("../air/semantic_eval.zig").BaseScalar).List;
+/// Producer-only row recipe shared by all projections of one native component.
+/// The verifier still evaluates the original typed equations at opened points.
+pub fn baseEntries(slot: Slot, main: []const core.fields.m31.M31) !BaseEntries {
+    if (main.len != slot.width or main.len > opcode.MAX_FAMILY_COLUMNS) return error.InvalidV5FusedProjectionSlot;
+    const Base = @import("../air/semantic_eval.zig").BaseScalar;
+    var cells: [opcode.MAX_FAMILY_COLUMNS]Base = undefined;
+    for (cells[0..main.len], main) |*cell, value| cell.* = Base.fromBase(value);
+    var list: BaseEntries = undefined;
+    switch (slot.kind) {
+        .program => |family| try @import("../air/lookups/opcode_entries.zig").Entries(Base).fromMainInto(family, cells[0..main.len], &list),
+        .lookup => |lookup| {
+            if (main.len != lookup.width) return error.InvalidV5LookupRequestSlot;
+            switch (lookup.source) {
+                .opcode => |family| try @import("../air/lookups/opcode_entries.zig").Entries(Base).fromMainInto(family, cells[0..main.len], &list),
+                .clock => {
+                    const Clock = @import("../air/clock_update_interaction.zig");
+                    list = Clock.orderedEntriesGeneric(Base, try Clock.RowFor(Base).fromMain(cells[0..main.len]));
+                },
+            }
+        },
+    }
+    return list;
+}
+pub fn fromBaseEntries(slot: Slot, list: *const BaseEntries, relations: *const Universal) !Pair {
+    switch (slot.kind) {
+        .program => {
+            const M = core.fields.m31.M31;
+            var result: ?Pair = null;
+            for (list.entries[0..list.len]) |entry| {
+                if (entry.domain != .program_access) continue;
+                if (result != null or entry.role != .request or entry.arity != 5) return error.InvalidProgramRequestRoster;
+                var tuple: [5]M = undefined;
+                for (&tuple, entry.values[0..5]) |*value, cell| value.* = cell.value;
+                result = .{ .entry_count = 1, .numerators = .{ Q.fromBase(entry.numerator.value), Q.zero() }, .denominators = .{ try relations.get(.program_access).combineBase(&tuple), Q.one() } };
+            }
+            return result orelse error.MissingProgramRequest;
+        },
+        .lookup => |lookup| {
+            const pair = try @import("block_v5_native_fused_algebra_v1.zig").Algebra(Q).lookupProjectionFromEntries(lookup, list, relations);
+            return .{ .entry_count = pair.entry_count, .numerators = pair.numerators, .denominators = pair.denominators };
+        },
+    }
+}
+
+pub fn mixSlot(channel: anytype, slot: Slot) void {
     channel.mixU32s(&.{ @intFromEnum(std.meta.activeTag(slot.kind)), slot.degree, slot.log_size, slot.n_rows, @intCast(slot.main_offset), @intCast(slot.width), slot.register_custody_mode });
     switch (slot.kind) {
         .program => |family| channel.mixU32s(&.{@intFromEnum(family)}),
@@ -67,6 +144,7 @@ pub fn mixSlot(channel: *core.proof_suites.Blake3.Channel, slot: Slot) void {
                 .clock => opcode.N_FAMILIES,
             };
             channel.mixU32s(&.{ id, @intFromEnum(lookup.partition), lookup.entries[0], lookup.entries[1], lookup.entry_count });
+            if (lookup.direct_ram_clock_v3) channel.mixU32s(&.{ 0x52434c33, 3 });
         },
     }
 }

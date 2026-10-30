@@ -1,0 +1,21 @@
+{
+  "schema": "stwo-riscv-direct-original-window-q70-v1",
+  "scope": "nonterminal six-cycle sha-keccak fixture",
+  "q": 70,
+  "pow_bits": 26,
+  "native_parent_proofs": 0,
+  "source_count": 3,
+  "root_bytes": 1113224,
+  "root_sha256": "af0da006af56f4f7336e9a1ff87438f4fc4f5ce7a7e93662c7b2a3ac216b08c0",
+  "fresh_verify_ns": 16817414000,
+  "producer_times": {
+    "admission_ns": 185017667,
+    "material_ns": 444977625,
+    "key_ns": 16012822458,
+    "witness_ns": 2459406000,
+    "prove_and_serialize_ns": 120805146333,
+    "whole_ns": 139907370167
+  },
+  "charged_peak_bytes": 38422874799,
+  "fresh_independent_receiving": true
+}

@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-29",
+  "scope": "Full and finite-active SHA+Keccak caller compiler reuse: original proofs, exact independent fixed and MAIN rows, genuine detached parent proofs",
+  "security": "diagnostic_q8_pow0",
+  "ranked": false,
+  "timing_limitations": [
+    "Single paired diagnostic observations; qualification includes baseline/candidate coexistence and hostile tests",
+    "Not whole Ethereum block or canonical-security throughput",
+    "Cold compilation remains inside producer accounting"
+  ],
+  "tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "full": {
+    "baseline_live_ns": 6993814125,
+    "capsule_live_ns": 5826632583,
+    "capsule_compile_ns": 840929250,
+    "fixed_from_capsule_ns": 2977483750,
+    "baseline_cold_ns": 3942713625,
+    "composition_nodes": 263489,
+    "parent_bytes": 152714,
+    "capsule_destroyed_before_parent_key_and_proof": true
+  },
+  "active_sha_keccak": {
+    "baseline_live_ns": 5702070708,
+    "capsule_live_ns": 4974675708,
+    "composition_nodes": 195060,
+    "parent_bytes": 149644,
+    "omitted_field_mutations_rejected": 20,
+    "explicit_zero_fields": 638
+  },
+  "stage_groups_in_run_order": [
+    {
+      "reused": false,
+      "stages_ns": {
+        "composition": 1753126792,
+        "deep": 335268833,
+        "fri": 58174917,
+        "transcript_plan": 1773427541,
+        "links": 319452209,
+        "plan": 4239482833,
+        "public_schedule": 2927708,
+        "emit": 1993373625,
+        "assembly": 690181792
+      }
+    },
+    {
+      "reused": true,
+      "stages_ns": {
+        "composition": 861204083,
+        "deep": 35958042,
+        "fri": 56643583,
+        "transcript_plan": 1784069750,
+        "links": 316512792,
+        "plan": 3054426416,
+        "public_schedule": 2924334,
+        "emit": 2035695416,
+        "assembly": 659776750
+      }
+    },
+    {
+      "reused": true,
+      "stages_ns": {
+        "composition": 650182791,
+        "deep": 24622042,
+        "fri": 40486167,
+        "transcript_plan": 1534719666,
+        "links": 214922000,
+        "plan": 2464954291,
+        "public_schedule": 2703625,
+        "emit": 1976405917,
+        "assembly": 456281750
+      }
+    },
+    {
+      "reused": false,
+      "stages_ns": {
+        "composition": 1273609458,
+        "deep": 244344625,
+        "fri": 41929917,
+        "transcript_plan": 1538111416,
+        "links": 215695459,
+        "plan": 3313717500,
+        "public_schedule": 2746125,
+        "emit": 1858665125,
+        "assembly": 454504709
+      }
+    }
+  ],
+  "whole_qualification": {
+    "seconds": 97.04,
+    "max_rss_bytes": 6446661632,
+    "scope": "Both complete paired fixtures and parent proofs, cold setup and negative checks; not candidate production peak"
+  },
+  "checks": [
+    "Every emitted fixed and MAIN row matches ordinary preparation",
+    "Every public frame, namespace, wire and independent context matches",
+    "Altered captured sampled values rejected",
+    "Full fixture compiler destroyed before parent key/proof construction",
+    "Independent fresh receivers verify genuine parent proofs"
+  ],
+  "binary_sha256": "8bdf3627e557d8c5e02a7e11270b3cd16c117dda8d819dc1bbf89d6dcb2fc21e",
+  "log_sha256": "c35afbd5baab4e76138abf78e0c1e606c09a71338e31ecb146cdd470c0048c34"
+}

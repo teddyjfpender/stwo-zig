@@ -170,8 +170,13 @@ pub fn ForBackend(comptime Backend: type) type {
             const shared = try providers.SharedProviderRelations.init(&challenges.universal_prefix);
             try native.generateInteractions(&shared.native);
             var joined = try joined_mod.Owner.initWithExternalForProfile(
-                a, &native.statement, &native.claims, challenges.universal_prefix,
-                first.pin, native.external_retirements, first.template.execution_profile,
+                a,
+                &native.statement,
+                &native.claims,
+                challenges.universal_prefix,
+                first.pin,
+                native.external_retirements,
+                first.template.execution_profile,
             );
             defer joined.deinit();
             const claims = try a.create(statement.RiscVInteractionClaim);
@@ -250,8 +255,13 @@ pub fn ForBackend(comptime Backend: type) type {
             const challenges = try relations_mod.Challenges.draw(a, sealed);
             const shared = try providers.SharedProviderRelations.init(&challenges.universal_prefix);
             var joined = try joined_mod.Owner.initWithExternalForProfile(
-                a, shape, proof.claims, challenges.universal_prefix,
-                pin, expected_template.external_retirements, execution_profile,
+                a,
+                shape,
+                proof.claims,
+                challenges.universal_prefix,
+                pin,
+                expected_template.external_retirements,
+                execution_profile,
             );
             defer joined.deinit();
             try shared.validateAgainst(&challenges.universal_prefix);
@@ -279,9 +289,7 @@ pub fn ForBackend(comptime Backend: type) type {
                 errdefer a.destroy(proof.claims);
                 var capture: core.verifier.ProofCapture(suite.Hasher) = undefined;
                 try core.verifier.verifyWithProofCapture(suite.Hasher, suite.MerkleChannel, a, joined.verifying.components.active(), &channel, &verifier, proof.stark, &capture);
-                var result = VerifiedCapture{ .allocator = a, .proof = capture, .native_claims = proof.claims,
-                    .relations = challenges.universal_prefix, .final_channel = channel,
-                    .receipt = receipt, .seal = undefined };
+                var result = VerifiedCapture{ .allocator = a, .proof = capture, .native_claims = proof.claims, .relations = challenges.universal_prefix, .final_channel = channel, .receipt = receipt, .seal = undefined };
                 errdefer capture.deinit(a);
                 result.seal = try result.identity(shape);
                 return result;
@@ -308,7 +316,8 @@ fn admitTemplate(template: Template, template_id: Digest, index: u32, sealed: se
     if (catalog) |trusted| {
         try trusted.admit(pins, sealed, index, template, template_id);
     } else if (!std.meta.eql(pins.native_template_id, template_id) or
-        !std.meta.eql(pins.native_template_catalog_digest, @as(Digest, @splat(0)))) {
+        !std.meta.eql(pins.native_template_catalog_digest, @as(Digest, @splat(0))))
+    {
         return error.UntrustedNativeV5Template;
     }
 }

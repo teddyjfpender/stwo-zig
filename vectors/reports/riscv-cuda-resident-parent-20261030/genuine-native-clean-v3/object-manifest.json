@@ -1,0 +1,62 @@
+[
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-parent-sm90/libstwo_cuda_kernels.a",
+    "sha256": "b47e34a8dcf6f66742bb3a8043b6b872bf2b977e351e07fee6d761ce27d94a78",
+    "bytes": 194355980
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-framework-v1/framework_util.o",
+    "sha256": "2d20e78484278d5fab202bf9badcdc022a2d42759870909c5c8584fd3c0d2baa",
+    "bytes": 332640
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-twiddle/parent_tiny.o",
+    "sha256": "561a2106a2a5627ca4b0b973fb5c05a86905e63acb4281458146e13466ed4af7",
+    "bytes": 30808
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-hash-phased-v1/resident_hash.o",
+    "sha256": "d3b3bd01d0521091b43552ff6334e64aea9c04286f4a1754687a8fb65bfd0f6f",
+    "bytes": 112144
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-arithmetic-v1/arithmetic.o",
+    "sha256": "11c3509df7f934b7f35e7b75ecb75ac8105a3dbda123dd28f6c9df94c2206231",
+    "bytes": 34064
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-native-diagnostic/readonly-fixed.o",
+    "sha256": "ccf187c46493a302ffc3e0038325af61c694fca927c2c9ad144087b24fb8b4b9",
+    "bytes": 765872
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/v7-resident-wire-resolve/resolve.o",
+    "sha256": "c40937188c91a3df784d1d93bb316e5e158dae80852c28e23e07de917aeee0e3",
+    "bytes": 26768
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-fri-v2/fri.o",
+    "sha256": "3a3c170145a1a6414c7277b6d95b0162a692ec56ded8f7d0f0c67be78bc49281",
+    "bytes": 133504
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-blake3-final/parent-direct-composite-v6.o",
+    "sha256": "aa333e85fd422e72ce931a6ff6aea175ece31ad81b389d5a6b7f154d4b199335",
+    "bytes": 1363728
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-blake3-final/child-paths.o",
+    "sha256": "54262ea42be8132d12450767c52d8c1dfd435e0a8e84cfedacb1d08126c34ac3",
+    "bytes": 420944
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-blake3-final/child-packet.o",
+    "sha256": "2cd74e4b843609b2fa2a5fed7b4b96c5a97834d8a93a447a20a50d4781fe88f5",
+    "bytes": 25080
+  },
+  {
+    "path": "/workspace/stwo-v7-evidence/resident-blake3-final/child-transcript.o",
+    "sha256": "dcc1c25aad48ad5fac0e88199e5f4d79581cd0dbc742616fe37bdde6a842460b",
+    "bytes": 765176
+  }
+]

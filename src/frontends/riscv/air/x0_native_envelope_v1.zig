@@ -16,6 +16,7 @@ const model = @import("extract/model.zig");
 const runtime = @import("extract/runtime_program.zig");
 const prover = @import("stwo_prover_engine").air.component_prover;
 pub const VERSION: u32 = 1;
+pub const WitnessPlan = @import("x0_native_witness_plan_v1.zig");
 pub const MAX_GROUPS: usize = 3;
 pub const MAX_HINT_COLUMNS = MAX_GROUPS * zero.HINT_COLUMNS;
 pub const MAX_MAIN_COLUMNS = trace.MAX_FAMILY_COLUMNS;
@@ -142,24 +143,52 @@ pub fn fillHints(family: trace.OpcodeFamily, physical: []const M, hints: []M) !v
 /// owns the exact predecessor column; a compound expression is rejected.
 /// Used before the new root exists, never during OODS/quotient evaluation.
 pub fn normalizePredecessors(family: trace.OpcodeFamily, physical: []M, old_program: *const prover.OwnedLookupPolynomialProgram) !void {
+    return normalizePredecessorsImpl(family, physical, old_program, &.{ 0, 0, 0 });
+}
+/// Cold extraction of the exact old typed source columns. This is metadata,
+/// not a numeric witness. GPU writers reuse the same normalization below with
+/// these admitted column indices instead of copying an allocated source DAG.
+pub fn predecessorColumns(family: trace.OpcodeFamily, old_program: *const prover.OwnedLookupPolynomialProgram) ![MAX_GROUPS]u32 {
     const width = trace.nColumnsForFamily(family);
-    if (physical.len != width or old_program.column_count != width) return error.InvalidX0HintGeometry;
+    if (old_program.column_count != width) return error.InvalidX0HintGeometry;
+    const layout = try schedule(family);
+    var result: [MAX_GROUPS]u32 = @splat(0);
+    for (layout.groups[0..layout.len], 0..) |group, i| {
+        const root = old_program.entries[group.consume].values[2];
+        if (root >= old_program.nodes.len) return error.InvalidX0PredecessorSource;
+        const node = old_program.nodes[root];
+        if (node.op != .column or node.value >= width) return error.InvalidX0PredecessorSource;
+        result[i] = @intCast(node.value);
+    }
+    return result;
+}
+pub fn normalizePredecessorsWithColumns(family: trace.OpcodeFamily, physical: []M, columns: []const u32) !void {
+    return normalizePredecessorsImpl(family, physical, null, columns);
+}
+inline fn normalizePredecessorsImpl(family: trace.OpcodeFamily, physical: []M, old_program: ?*const prover.OwnedLookupPolynomialProgram, columns: []const u32) !void {
+    const width = trace.nColumnsForFamily(family);
+    if (physical.len != width or (if (old_program) |p| p.column_count != width else false)) return error.InvalidX0HintGeometry;
     var lifted: [trace.MAX_FAMILY_COLUMNS]Q = undefined;
     for (physical, lifted[0..width]) |value, *out| out.* = Q.fromBase(value);
     const list = try entries.fromMain(family, lifted[0..width]);
     const layout = try Schedule.fromList(&list);
-    for (layout.groups[0..layout.len]) |group| {
+    if (old_program == null and columns.len != layout.len) return error.InvalidX0HintGeometry;
+    for (layout.groups[0..layout.len], 0..) |group, i| {
         const before = list.entries[group.consume];
         const after = list.entries[group.emit];
         if (try base(after.numerator) == 0 or try base(before.values[0]) != 0 or try base(before.values[1]) != 0) continue;
         for (before.values[3..7], after.values[3..7]) |first, last| {
             if (!first.isZero() or !last.isZero()) return error.NonzeroX0SemanticWitness;
         }
-        const root = old_program.entries[group.consume].values[2];
-        if (root >= old_program.nodes.len) return error.InvalidX0PredecessorSource;
-        const node = old_program.nodes[root];
-        if (node.op != .column or node.value >= width) return error.InvalidX0PredecessorSource;
-        physical[node.value] = M.zero();
+        const column = if (old_program) |program| blk: {
+            const root = program.entries[group.consume].values[2];
+            if (root >= program.nodes.len) return error.InvalidX0PredecessorSource;
+            const node = program.nodes[root];
+            if (node.op != .column or node.value >= width) return error.InvalidX0PredecessorSource;
+            break :blk node.value;
+        } else columns[i];
+        if (column >= width) return error.InvalidX0PredecessorSource;
+        physical[column] = M.zero();
     }
 }
 fn base(value: Q) !u32 {

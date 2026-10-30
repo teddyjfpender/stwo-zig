@@ -1,0 +1,41 @@
+{
+  "schema": "stwo-v7-real-window-new-invocation-v2",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/private/tmp/v7-preparation-cpu-build/prover"
+  ],
+  "capture_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+  "binary_sha256": "bf9047a22056f9f75c2f50c787f495614a433f90056818871b5d2e43fb6388cc",
+  "runner_sha256": "f2fa3e977b6b3ddc72afc9ab01494bc51f7b151bd4d3edc21442906ea88eb2e3",
+  "complete_recursive_root": true,
+  "worker_count": 12,
+  "native_layout": "degree-bounded-q2",
+  "sparse_initialization": true,
+  "resident_memory": true,
+  "native_main_cache_mib": 2048,
+  "deep_group_mib": 4,
+  "cuda_deep": false,
+  "cuda_reference": false,
+  "cuda_composition": false,
+  "reuse_native_compiler": true,
+  "native_compiler_mib": 2048,
+  "root_resources": {
+    "preparation_mib": 24576,
+    "row_log": 25,
+    "batch_size": 0,
+    "parallel_families": 4,
+    "parallel_preparation": 1
+  },
+  "report_checked": true,
+  "build_manifest_sha256": "b214c4363ed20430a86ead3c648e4310aa9504fa1ca405ddc2d411f7873f961c",
+  "preparation": {
+    "decompressed_snapshot_bytes_read": 24152776,
+    "temporary_snapshot_bytes_written": 24152776,
+    "prefix_replay": false,
+    "physical_disk_bytes": null
+  },
+  "started_unix_ns": 1793274779650393000,
+  "returncode": 0,
+  "finished_unix_ns": 1793274850392075000
+}

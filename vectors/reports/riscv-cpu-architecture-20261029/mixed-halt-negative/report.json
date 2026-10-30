@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-v8-integrated-mixed-transient-halt-negative-v1",
+  "created_utc": "2026-10-30T04:50:34.116474+00:00",
+  "source_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "production_active": false,
+  "scope": "Original mixed local execution soundness negative; no global RAM/root/block claim",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "test_result": {
+    "passed": 464,
+    "skipped": 1,
+    "failed": 0
+  },
+  "positive_control": {
+    "actual_successful_recovery": true,
+    "status_written": 1,
+    "status_cleared_by_native_store": true,
+    "halt_flag_is_different_address": true,
+    "initial_status_endpoint": 0,
+    "final_status_endpoint": 0,
+    "producer_destroyed_fresh_codec_verification": true,
+    "duration_ns": null
+  },
+  "attack": {
+    "actual_successful_recovery": true,
+    "halt_flag_address": 1048996,
+    "runner_stop_on_halt_flag": false,
+    "caller_status_written": 1,
+    "native_cleared_value": 0,
+    "initial_halt_endpoint": 0,
+    "final_halt_endpoint": 0,
+    "last_local_clock": 15,
+    "all_local_bus_closures_passed": true,
+    "first_and_interaction_commitments_completed": true,
+    "reached_core_prover": true,
+    "rejected_error": "ConstraintsNotSatisfied",
+    "proof_published": false,
+    "duration_ns": null
+  },
+  "timing_status": "Exact control and attack durations were not printed by this qualification gate; no timing is inferred. A follow-up diagnostic hook will record them after CPU timing isolation is released.",
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v8_endpoint_mixed_halt_negative_test_root.zig -OReleaseSafe",
+  "qualification_log_sha256": "59ad635cd86e9f29ee2c07f906850f2e459a820e735c6a67b32631f34b62f4f6",
+  "receiver_and_fixture_sources": {
+    "src/frontends/riscv/prover/block_v8_caller_halt_component_v1.zig": "3a42fcada5a82d6fe76ff37b82bf682d7ca4c094e6f2631bf5fbf8ef8c1431a0",
+    "src/frontends/riscv/prover/block_v8_caller_halt_policy_v1.zig": "76e9ec908b0c3ec1593f0928f2e8983f8e518a8affc42b5d450bac8d3f3174e4",
+    "src/frontends/riscv/prover/tests/block_v8_endpoint_mixed_fixture.zig": "37db7f7718c34d8525ba7907c1af27b23c6495bc0b3a236c03bd1309663cb752",
+    "src/frontends/riscv/prover/tests/block_v8_endpoint_mixed_halt_negative_test.zig": "cb513beb850c8a51cd6183deebc667da64adbdde5e9b3e9674b9c0bfe05c1bed",
+    "src/frontends/riscv/prover/block_v8_endpoint_mixed_context_v1.zig": "f704d88635295d3b0ee14d89e3b9e15bdce27e1ea7ce13fe82a2a1a482c96ce5",
+    "src/frontends/riscv/prover/block_v8_endpoint_mixed_proof_v1.zig": "c8e88d710680c730797260a6124a8ea3db5dc21d003754c82166866c652d0034"
+  },
+  "build_manifest_status": "No full binary/source build manifest captured for this focused soundness gate."
+}

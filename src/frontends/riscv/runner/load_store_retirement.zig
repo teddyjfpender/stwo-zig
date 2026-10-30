@@ -68,6 +68,7 @@ pub const Plan = struct {
     first_raw_previous_clock: u32,
     second_raw_previous_clock: u32,
     memory_raw_previous_clock: u32,
+    direct_ram_max_clock: u32 = 0,
     memory_initial_value: u32,
     expected_access_len: u32,
     expected_memory_gap_len: u32,
@@ -99,7 +100,7 @@ pub const Plan = struct {
                     !self.memory_initial_was_present,
             ),
             .access_count = 3,
-            .memory_clock_update_count = state_chain.StateChainTracker.clockGapCount(
+            .memory_clock_update_count = if (self.direct_ram_max_clock != 0) 0 else state_chain.StateChainTracker.clockGapCount(
                 self.memory_raw_previous_clock,
                 third,
             ),
@@ -236,6 +237,7 @@ pub const Plan = struct {
         self: *const Plan,
         tracker: *const StateChainTracker,
     ) bool {
+        if ((tracker.direct_ram_max_clock orelse 0) != self.direct_ram_max_clock) return false;
         if (tracker.reg_last_clk[self.instruction.rs1] !=
             self.first_raw_previous_clock)
         {
@@ -427,6 +429,7 @@ pub inline fn stage(
     }
     const memory_raw = memory_last orelse 0;
     if (memory_raw >= third) return error.NonIncreasingClock;
+    tracker.requireDirectRamClock(retirement.aligned_address, third, memory_raw) catch return error.StateChainInvariantViolation;
 
     return .{
         .instruction = instruction,
@@ -443,6 +446,7 @@ pub inline fn stage(
         .first_raw_previous_clock = first_raw,
         .second_raw_previous_clock = second_raw,
         .memory_raw_previous_clock = memory_raw,
+        .direct_ram_max_clock = tracker.direct_ram_max_clock orelse 0,
         .memory_initial_value = memory_initial orelse 0,
         .expected_access_len = std.math.cast(u32, tracker.accesses.items.len) orelse
             return error.StateChainInvariantViolation,
@@ -605,7 +609,7 @@ inline fn publishMemoryAssumeCapacity(
     next_value: u32,
     raw_previous_clock: u32,
 ) void {
-    const gap_count = StateChainTracker.clockGapCount(
+    const gap_count = tracker.memoryClockGapCount(
         raw_previous_clock,
         current_clock,
     );
@@ -642,7 +646,7 @@ inline fn canonicalRow(plan: *const Plan) TraceRow {
         plan.second_raw_previous_clock,
         second,
     );
-    const memory_previous = StateChainTracker.effectivePreviousClock(
+    const memory_previous = if (plan.direct_ram_max_clock != 0) plan.memory_raw_previous_clock else StateChainTracker.effectivePreviousClock(
         plan.memory_raw_previous_clock,
         third,
     );

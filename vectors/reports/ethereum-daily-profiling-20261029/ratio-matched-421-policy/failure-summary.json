@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "status": "failed_closed",
+  "verified": false,
+  "workload": "mixed_ethereum",
+  "iterations": 421,
+  "native_rounds_per_call": 512,
+  "first_touch_native_words": 215552,
+  "security": "q70/PoW26",
+  "memory_event_limit": 1048576,
+  "memory_stage_limit_bytes": 8589934592,
+  "request_limit_bytes": 25769803776,
+  "retained_pcs_limit_bytes": 8589934592,
+  "command_wall_seconds": 112.08990616700612,
+  "failure": "UnclosedV7NativeRelations",
+  "proof_generation_completed": true,
+  "fresh_complete_verification_completed": false,
+  "tracked_peak_bytes_from_producer_log": 9062228863,
+  "process_peak_rss_bytes": null,
+  "profile": null,
+  "binary_sha256": "0200b5212c4bf8775ee709edc02276d3d0321934acbfffe4a035d03700e17570",
+  "source_sha256": "d07aa55b960695ff8feec9c7073a017a10b8945291c8d61fedaffca5d1c245ae",
+  "note": "Explicit benchmark event/shard policy admitted workload. Original proof generation completed; fresh receiver rejected nonzero auxiliary RAM clock-gap claims in all four native windows. Exact producer diagnostic finds every ordinary-memory residual zero. Diagnostic confers no proof authority. No successful complete timing is claimed.",
+  "diagnosis": {
+    "native_ordinary_memory_residuals_zero": true,
+    "native_auxiliary_clock_memory_nonzero": 4,
+    "clock_update_rows": [
+      21152,
+      21152,
+      21153,
+      21158
+    ],
+    "cycles": 1726115,
+    "native_clocks": [
+      431529,
+      431529,
+      431529,
+      431528
+    ],
+    "diagnostic_only": true,
+    "verified": false,
+    "report_sha256": "a2698021bebba365e9649da86f431679642dc054f21b5879cdd2a163206c3bf7"
+  }
+}

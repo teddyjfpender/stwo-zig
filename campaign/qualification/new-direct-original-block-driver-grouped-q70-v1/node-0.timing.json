@@ -1,0 +1,21 @@
+{
+  "index": 0,
+  "role": 3,
+  "source_window": 0,
+  "children": [],
+  "read_ns": 259791,
+  "produce_ns": 23350706459,
+  "fresh_verify_ns": 2430417916,
+  "whole_ns": 25781384166,
+  "proof_bytes": 981000,
+  "proof_sha256": "419e00d70fec7043b4777667cabe9ab477be03d94851165815365dc7b4fe43e0",
+  "original_phases": {
+    "admission_ns": 38414625,
+    "material_ns": 81782166,
+    "key_ns": 2152696584,
+    "witness_ns": 823672125,
+    "prove_and_serialize_ns": 20232356083,
+    "whole_ns": 23328921625
+  },
+  "produce_scope": "direct original circuit window; all setup/witness/proving/serialization; separate fresh verification"
+}

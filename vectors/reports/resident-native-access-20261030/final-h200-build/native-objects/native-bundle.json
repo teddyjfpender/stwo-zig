@@ -1,0 +1,24 @@
+{
+  "name": "native-bundle",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_90,code=sm_90",
+    "--threads",
+    "4",
+    "-I/workspace/stwo-final/src/backends/cuda/native",
+    "/workspace/final-evidence/native-objects/sources/native-bundle.cu",
+    "-o",
+    "/workspace/final-evidence/native-objects/native-bundle.o"
+  ],
+  "exit_code": 0,
+  "seconds": 7.735680818557739,
+  "source_sha256": "ef769eed8ccfcd390c7a2f83a4c6fb83d438beaf601a9a28acac9a9d78d25922",
+  "object_sha256": "04728810be4b82a8ae63d67c3a969e062a59f5894a05effd7f232093a277cfc4"
+}

@@ -1,0 +1,7 @@
+{
+  "src/integrations/riscv_cuda/resident_parent_direct_writers_v1.zig": "b3b2d412bda0224fec1936d2acf67cbe518a12c5e4844bb2ec5d2dd35e9a7ca5",
+  "scripts/riscv_parent_direct_witness_cuda.py": "5937e298ec8a1775cd7122a52b6b4c57e9d6d2954f5fd50c59d3a238a1d1d940",
+  "src/riscv_cuda_parent_direct_export_v1.zig": "9f957120f297c0882db29404827b38d59ed313c139bb8b186a8545be41a2b196",
+  "src/integrations/riscv_cuda/tests/resident_parent_direct_vectors_v1.zig": "62c01273e1a171dc3a25587d43fd1b9db2ee536156a474bb0b278ce8d5428177",
+  "src/integrations/riscv_cuda/tests/resident_parent_direct_runner_v1.cu": "5f99b0515058c0b52bab866d5213327086be9cb339d9951513c813dd271b1552"
+}

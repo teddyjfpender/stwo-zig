@@ -274,6 +274,27 @@ test "prover air component prover: composition accumulation" {
         widened_polynomial.evalAtPoint(circle.SECURE_FIELD_CIRCLE_GEN),
     ));
 
+    // Actual Ethereum can join q1 semantic components with q3 lookup
+    // projections. The nonconstant original must retain its exact OODS value.
+    const twice = try ordinary_component.withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 2,
+        .composition_log_split = 3,
+    });
+    const twice_handles = [_]ComponentProver{twice};
+    const twice_provers = ComponentProvers{ .components = &twice_handles, .n_preprocessed_columns = 0 };
+    var twice_column = try twice_provers.computeCompositionEvaluation(alloc, QM31.fromU32Unchecked(7, 0, 0, 0), &trace);
+    defer twice_column.deinit(alloc);
+    try std.testing.expectEqual(@as(usize, 16), twice_column.len());
+    var twice_polynomial = try secure_poly.interpolateFromEvaluation(alloc, canonic.CanonicCoset.new(4).circleDomain(), &twice_column);
+    defer twice_polynomial.deinit(alloc);
+    var twice_view = try twice_provers.componentsView(alloc);
+    defer twice_view.deinit(alloc);
+    const twice_core = twice_view.asCore();
+    const twice_eval = try twice_core.evalCompositionPolynomialAtPoint(circle.SECURE_FIELD_CIRCLE_GEN, &mask_values, QM31.fromU32Unchecked(5, 0, 0, 0), twice.maxConstraintLogDegreeBound());
+    try std.testing.expect(twice_eval.eql(twice_polynomial.evalAtPoint(circle.SECURE_FIELD_CIRCLE_GEN)));
+    try std.testing.expect(twice_eval.eql(eval));
+    try std.testing.expect(twice.backend_composition_capability == null);
+
     // The same useful work succeeds through the cold profiled path, but a
     // component with no owner callback must never manufacture a zero receipt.
     var absent_mask_capture = oods_work.Capture{};
@@ -320,7 +341,7 @@ test "prover air component prover: composition accumulation" {
     try std.testing.expect(split_only.domain_parallel_evaluator == wide.domain_parallel_evaluator);
     try std.testing.expect(split_only.backend_composition_capability != null);
     try std.testing.expectError(error.UnsupportedCompositionGeometryOverride, wide.withCompositionGeometryOverrideV1(.{
-        .max_constraint_log_degree_bound_delta = 2,
+        .max_constraint_log_degree_bound_delta = 3,
         .composition_log_split = 2,
     }));
     var split_accumulator = try accumulation.DomainEvaluationAccumulator.init(alloc, QM31.one(), 3, 2);

@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "tests_passed": 69,
+  "default_metadata_mib": 1,
+  "opt_in_metadata_mib": [
+    4,
+    8
+  ],
+  "core_environment_knob": false,
+  "request_allocator_charges_retained_metadata": true,
+  "census_reports_actual_cap": true,
+  "weighted_quotient_oracle_columns": 70000,
+  "partial_and_complete_group_admission_checked": true,
+  "complete_proof_byte_parity_pending": true,
+  "performance_measured": false,
+  "scoped_source_hashes_at_completion": {
+    "src/prover/pcs/quotient_group_budget.zig": "2e626fc1d3e2cf269b2c8345e28ad50cc919af714b2c561bc1212c922fe7bdac",
+    "src/prover/pcs/scheme.zig": "69254fb64d9e13d1bebf46af14752b70c045574842b6e56188473b9d64bb9dd4",
+    "src/prover/pcs/quotient_ops.zig": "b209c6427fb13b1db3dd47ffe662dadd7d8e2e3d7fc4546afb6c1e44020e9de8",
+    "src/prover/pcs/quotients/lazy_provider.zig": "09164015731e3864abba9100653c4369713cd8e59755ffbcc96a70b46b258467",
+    "src/prover/pcs/quotients/lazy_provider_init.zig": "9c65cc0820caa3aeb0afc318b6103536411e385220e90541cf76c4dd6dbbbfd5"
+  }
+}

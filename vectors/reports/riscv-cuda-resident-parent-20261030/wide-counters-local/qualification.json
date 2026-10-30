@@ -1,0 +1,46 @@
+{
+  "schema": "stwo-resident-parent-wide-counters-local-v1",
+  "device_qualified": false,
+  "performance_qualified": false,
+  "default_enabled": false,
+  "option": "Framework.Plan.init Limits.wide_counters",
+  "bound": "sum(original selected entries * trace_rows) * (M31.modulus-1) <= UINT64_MAX independently per table",
+  "max_requests_per_table": 8589934600,
+  "additional_wide_storage_bytes": 2621440,
+  "fallback": "original modular CAS when opt-in is false or bound cannot be proved",
+  "physical_output": "unchanged original two u32 MAIN counter columns in committed row order",
+  "local_tests": {
+    "cold_plan_and_export": 7,
+    "signed_modular_and_boundaries": 2,
+    "full_linux_pipeline_semantic": true,
+    "cuda_host_syntax": true
+  },
+  "host_syntax_note": "Clang CUDA host-only parser with declaration-only CUDA stubs; neither NVCC device compilation nor execution",
+  "qualification_ready_oracle": "numeric_runner.cu + framework_util.cu + numeric.bin; includes23 original cohort old/wide comparisons, signed10003-request contention, canonical rejection and u64 reduction edges",
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_counter_wide_v1.zig",
+      "sha256": "0adab658cad8c623ae2f8e81615131dfcaa8b35eb36c59c4fe9d47d651b8aed1"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_counter_wide_v1.cuh",
+      "sha256": "026c6316a306081cf4d3db6a0ceca78b957005588b95bf430efdde4207b42720"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_framework_plan_v1.zig",
+      "sha256": "4fcc454eefc08b484989dae80d2fcb15e1382f44a384b26c0c228b622823e086"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_framework_v1.zig",
+      "sha256": "2b58e6682b8d355051c795bc7c64af7abff1b149f6e5c53f0d27d031a6c9bc8c"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_framework_codegen_v1.zig",
+      "sha256": "72ff5cdbf5eeb392789294832c2594cf6f8fe525eb3774b51209ba8683c484ba"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_framework_numeric_runner_v1.cpp",
+      "sha256": "056a44d7472296db699a8c916542bb85181491496d8adf5dacd1a478a27560d5"
+    }
+  ]
+}

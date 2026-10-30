@@ -1,0 +1,22 @@
+1/11 recursion.block_v7_original_captures_test_v1.test.capture once genuine source verification exact parent bytes detached receiver and substitutions...v7_authentic_calls segments=2 cycles=12 sha=1 keccak=1 ram_events=77 joint_memory=true compact_lookup=true original_proofs=6 source_closure=verified recursion=unqualified security=q8_pow0
+thread 2852415 panic: index out of bounds: index 0, len 0
+Unable to dump stack trace: debug info stripped
+time: command terminated abnormally
+       17.25 real        11.50 user         5.46 sys
+          1280901120  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1118434  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                7511  involuntary context switches
+        302746299600  instructions retired
+         77187613168  cycles elapsed
+          1273662656  peak memory footprint

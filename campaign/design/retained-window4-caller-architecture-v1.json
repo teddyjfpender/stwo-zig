@@ -1,0 +1,391 @@
+{
+  "schema": "stwo-retained-window4-caller-architecture-v1",
+  "scope": "read-only retained 1,048,576-cycle window4; metadata and raw opening inventory; no new execution, proof, or verification receipt",
+  "provenance": {
+    "directory": "vectors/reports/riscv-cpu-architecture-20261029/full-block-assembly-v1/retained-139m-native4m-workers16-v1/proof/window-4",
+    "metadata_sha256": "4ad91c6c9fff700e078175f197d6e02a62fb409e1b7dab46771bfe2c2863f0b7",
+    "original_sha256": "0fd7832c0916728d17a5f502ceb2d8a5f34c93ba0248f00bac8e260054325a12"
+  },
+  "calls": {
+    "keccak": 507,
+    "recovery": 66,
+    "sha": 0
+  },
+  "mixed": {
+    "columns": 15314,
+    "samples": 39540,
+    "fri_start_log": 21,
+    "caller_main": {
+      "tree": 6,
+      "columns": 6402,
+      "samples": 22644,
+      "maximum_degree_log": 17,
+      "commitment_height": 18
+    },
+    "caller_arithmetic_interactions": {
+      "tree": 12,
+      "columns": 6688,
+      "samples": 13376,
+      "maximum_degree_log": 17,
+      "commitment_height": 18
+    }
+  },
+  "keccak_confirmed": {
+    "component_kind": 1,
+    "main_columns": 2204,
+    "interaction_columns": 4164,
+    "fixed_columns": 31,
+    "main_samples": 10422,
+    "interaction_samples": 8328,
+    "calls_per_paired_slot": 2,
+    "paired_slots": 254,
+    "rounds_already_sequential": 24,
+    "rows_per_slot": 29,
+    "state_groups": {
+      "input_plain": 2,
+      "round_states": 25,
+      "output_plain": 2
+    },
+    "live_rows": 7366,
+    "padded_rows": 8192,
+    "log_size": 13,
+    "main_cells": 18055168,
+    "interaction_cells": 34111488,
+    "fixed_cells": 253952,
+    "main_interaction_cells": 52166656,
+    "main_interaction_bytes": 208666624,
+    "main_interaction_MiB": 199.0,
+    "share_all_mixed_columns": 0.4158286535196552,
+    "share_all_mixed_samples": 0.47420333839150225,
+    "main_layout": [
+      {
+        "name": "state_bit_positions",
+        "columns": 1600,
+        "samples_per_column": 6,
+        "masks": [
+          0,
+          -2,
+          -1,
+          1,
+          2,
+          27
+        ]
+      },
+      {
+        "name": "theta_parity_positions",
+        "columns": 320,
+        "samples_per_column": 1
+      },
+      {
+        "name": "two_io_tuples",
+        "columns": 218,
+        "samples_per_column": 2,
+        "masks": [
+          0,
+          -1
+        ]
+      },
+      {
+        "name": "embedded_caller",
+        "columns": 64,
+        "samples_per_column": 1
+      },
+      {
+        "name": "activation_flags",
+        "columns": 2,
+        "samples_per_column": 1
+      }
+    ],
+    "interaction_layout": {
+      "chi_events_per_round": 1600,
+      "xor5_events_per_round": 320,
+      "permutation_io_events": 2,
+      "caller_events": 160,
+      "total_event_ports": 2082,
+      "batch_size": 2,
+      "secure_batches": 1041,
+      "M31_columns_per_secure_batch": 4
+    },
+    "source_pointers": [
+      {
+        "file": "src/frontends/riscv/air/guest_precompile/keccakf_authority.zig",
+        "line": 55,
+        "subject": "25 lanes/row; two calls/slot; 29 state-group rows; compact chi/xor event counts"
+      },
+      {
+        "file": "src/frontends/riscv/air/guest_precompile/keccakf_witness.zig",
+        "line": 1,
+        "subject": "round states already temporal across rows2..26; plain boundaries0,1,27,28"
+      },
+      {
+        "file": "src/frontends/riscv/air/guest_precompile/keccakf_trace.zig",
+        "line": 39,
+        "subject": "state/parity/IO/caller column layout"
+      },
+      {
+        "file": "src/frontends/riscv/air/guest_precompile/keccakf_interaction_plan.zig",
+        "line": 1,
+        "subject": "2082 event ports,1041 two-event LogUp batches,4164 interaction columns"
+      },
+      {
+        "file": "src/frontends/riscv/air/guest_precompile/keccakf_component.zig",
+        "line": 237,
+        "subject": "per-column mask assignment"
+      },
+      {
+        "file": "src/frontends/riscv/prover/block_v8_endpoint_mixed_shape_v1.zig",
+        "line": 31,
+        "subject": "caller main tree6; arithmetic interaction tree12"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "keccak_shard",
+      "kind": 1,
+      "log": 13,
+      "live": 7366,
+      "fixed": 31,
+      "main": 2204,
+      "inter": 4164,
+      "main_samples": 10422,
+      "inter_samples": 8328,
+      "main_cells": 18055168,
+      "inter_cells": 34111488
+    },
+    {
+      "name": "keccak_chi",
+      "kind": 2,
+      "log": 13,
+      "live": 8192,
+      "fixed": 7,
+      "main": 1,
+      "inter": 4,
+      "main_samples": 1,
+      "inter_samples": 8,
+      "main_cells": 8192,
+      "inter_cells": 32768
+    },
+    {
+      "name": "keccak_xor5",
+      "kind": 3,
+      "log": 10,
+      "live": 1024,
+      "fixed": 7,
+      "main": 1,
+      "inter": 4,
+      "main_samples": 1,
+      "inter_samples": 8,
+      "main_cells": 1024,
+      "inter_cells": 4096
+    },
+    {
+      "name": "secp_product_base",
+      "kind": 4,
+      "log": 17,
+      "live": 68991,
+      "fixed": 3,
+      "main": 318,
+      "inter": 572,
+      "main_samples": 954,
+      "inter_samples": 1144,
+      "main_cells": 41680896,
+      "inter_cells": 74973184
+    },
+    {
+      "name": "secp_product_scalar",
+      "kind": 5,
+      "log": 9,
+      "live": 396,
+      "fixed": 3,
+      "main": 318,
+      "inter": 572,
+      "main_samples": 954,
+      "inter_samples": 1144,
+      "main_cells": 162816,
+      "inter_cells": 292864
+    },
+    {
+      "name": "secp_linear_base",
+      "kind": 6,
+      "log": 17,
+      "live": 99973,
+      "fixed": 3,
+      "main": 199,
+      "inter": 260,
+      "main_samples": 597,
+      "inter_samples": 520,
+      "main_cells": 26083328,
+      "inter_cells": 34078720
+    },
+    {
+      "name": "secp_linear_scalar",
+      "kind": 7,
+      "log": 9,
+      "live": 391,
+      "fixed": 3,
+      "main": 199,
+      "inter": 260,
+      "main_samples": 597,
+      "inter_samples": 520,
+      "main_cells": 101888,
+      "inter_cells": 133120
+    },
+    {
+      "name": "secp_point",
+      "kind": 8,
+      "log": 14,
+      "live": 15194,
+      "fixed": 3,
+      "main": 523,
+      "inter": 48,
+      "main_samples": 1569,
+      "inter_samples": 96,
+      "main_cells": 8568832,
+      "inter_cells": 786432
+    },
+    {
+      "name": "secp_split",
+      "kind": 9,
+      "log": 8,
+      "live": 132,
+      "fixed": 3,
+      "main": 227,
+      "inter": 12,
+      "main_samples": 681,
+      "inter_samples": 24,
+      "main_cells": 58112,
+      "inter_cells": 3072
+    },
+    {
+      "name": "secp_scalar_program",
+      "kind": 10,
+      "log": 14,
+      "live": 8413,
+      "fixed": 3,
+      "main": 1124,
+      "inter": 156,
+      "main_samples": 3372,
+      "inter_samples": 312,
+      "main_cells": 18415616,
+      "inter_cells": 2555904
+    },
+    {
+      "name": "secp_signed_table",
+      "kind": 11,
+      "log": 13,
+      "live": 4488,
+      "fixed": 3,
+      "main": 284,
+      "inter": 12,
+      "main_samples": 852,
+      "inter_samples": 24,
+      "main_cells": 2326528,
+      "inter_cells": 98304
+    },
+    {
+      "name": "secp_recovery",
+      "kind": 12,
+      "log": 7,
+      "live": 66,
+      "fixed": 3,
+      "main": 517,
+      "inter": 348,
+      "main_samples": 1551,
+      "inter_samples": 696,
+      "main_cells": 66176,
+      "inter_cells": 44544
+    },
+    {
+      "name": "secp_byte_table",
+      "kind": 13,
+      "log": 8,
+      "live": 256,
+      "fixed": 3,
+      "main": 11,
+      "inter": 4,
+      "main_samples": 33,
+      "inter_samples": 8,
+      "main_cells": 2816,
+      "inter_cells": 1024
+    },
+    {
+      "name": "secp_recovery_caller",
+      "kind": 14,
+      "log": 7,
+      "live": 66,
+      "fixed": 3,
+      "main": 292,
+      "inter": 272,
+      "main_samples": 876,
+      "inter_samples": 544,
+      "main_cells": 37376,
+      "inter_cells": 34816
+    }
+  ],
+  "architectural_inferences": [
+    {
+      "proposal": "Lane/bit-position serialization inside each already-sequential round",
+      "status": "design hypothesis; unimplemented/unqualified",
+      "axis": "Current row carries all25x64 state bit positions in parallel, with two calls paired in each sliced cell. Round serialization alone has no remaining24x factor.",
+      "nominal_row_transposes": [
+        {
+          "factor": 8,
+          "live_rows": 58928,
+          "padded_rows": 65536,
+          "degree_log": 16
+        },
+        {
+          "factor": 16,
+          "live_rows": 117856,
+          "padded_rows": 131072,
+          "degree_log": 17
+        },
+        {
+          "factor": 25,
+          "live_rows": 184150,
+          "padded_rows": 262144,
+          "degree_log": 18
+        }
+      ],
+      "boundaries": "Separating IO/caller rows avoids copying218 IO+64caller columns through every lane subrow. Exact memory,program,input/output and halt relations must bind these components.",
+      "lookup_trade": "Serialize the1041 secure LogUp batches into fewer lanes over additional rows while preserving exact chi/xor/caller request census and noncancelling scope.",
+      "mask_trade": "A naive matrix transpose can multiply mask offsets and erase OODS savings. A few-mask keyed state/shuffle relation or carefully aligned lane AIR is needed; current direct PCS mask cap is8.",
+      "floor_trade": "8x transpose raises Keccak log13 to16, matching shared R16 floor. 16x reaches existing caller tree max17, so caller commitment heights remain18. 25x raises those two caller trees by1; whole mixed FRI start21 remains dominated by native log20 until larger growth. This row-count comparison assumes maximum constraint degree/composition split do not increase; a new AIR must rederive the complete key.",
+      "area_trade": "Ideal width/rows transpose approximately preserves base cells; extra state-link columns, lookup work, boundary binding and power-of-two padding are excluded. No proving-time claim."
+    },
+    {
+      "proposal": "Sequentialize scalar-program transitions",
+      "status": "design hypothesis; unimplemented/unqualified",
+      "facts": "Scalar program has1124 main+156 interaction columns at log14 (8413live,16384padded rows). One row carries a doubling and up to4additions plus selected/after points.",
+      "source": {
+        "file": "src/frontends/riscv/air/guest_precompile/secp256k1_scalar_direct.zig",
+        "line": 18
+      },
+      "trade": "A several-row transition machine could reduce parallel point columns while staying near log16. Split/table/program/point custody and recurrence constraints must remain exact."
+    },
+    {
+      "proposal": "Component-specific Secp mask liveness",
+      "status": "read-only source finding; requires new original proof geometry, not reinterpretation of saved proofs",
+      "facts": "Generic Secp adapter requests current,previous,next for EVERY main column. Product and Linear configs explicitly ignore previous/next in BOTH arithmetic and lookup kernels; other stateless configs do as well.",
+      "minimum_unused_samples_products_linears": 2068,
+      "source_pointers": [
+        {
+          "file": "src/frontends/riscv/air/guest_precompile/secp256k1_component.zig",
+          "line": 170
+        },
+        {
+          "file": "src/frontends/riscv/air/guest_precompile/secp256k1_component_config.zig",
+          "line": 36
+        }
+      ],
+      "trade": "Derive reads from canonical typed kernels including all inverse guards. Update eager sample adapters, shapes and transcript consistently; do not simply delete saved proof samples."
+    },
+    {
+      "proposal": "Treat non-native base arithmetic as a separate original-memory target",
+      "status": "measured geometry fact plus design hypothesis",
+      "facts": "ProductBase318+572cols at log17 consumes445MiB main+interaction; LinearBase199+260 at log17 consumes229.5MiB. These dominate caller base cells despite Keccak dominating openings.",
+      "trade": "Narrow limb/operation rows may help original proving memory, but require new carry/range/canonical modulus proofs;16-bit products exceed M31 and are not a drop-in limb substitution."
+    }
+  ]
+}

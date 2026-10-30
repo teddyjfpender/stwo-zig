@@ -1,0 +1,30 @@
+1/10 block_v8_endpoint_local_execution_benchmark_root.test_0...OK
+2/10 prover.tests.block_v8_endpoint_local_execution_test.test.continuous clean local producer proves two real cohorts and closes one shared global window...B8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 freshly_verified=true
+OK
+3/10 prover.tests.block_v8_endpoint_local_execution_benchmark.test.real clean local pipeline performance benchmark...OK
+4/10 runner.decode.test_0...OK
+5/10 runner.mod.test_0...OK
+6/10 air.memory_commitment.poseidon2_air.test_0...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.
+       53.36 real       173.45 user         7.88 sys
+          2823405568  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             5032498  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              182176  involuntary context switches
+       2666186023510  instructions retired
+        776278560399  cycles elapsed
+          2822591624  peak memory footprint

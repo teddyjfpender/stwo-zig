@@ -1,0 +1,7 @@
+{
+  "schema": "stwo-resident-framework-parameters-v1",
+  "source_sha256": "831f1d1e8182ed2e84e1aa69824ec2e7591400fbf767ed446bdf764138c43373",
+  "cases": 75,
+  "scope": "GPU relation and composition parameter assembly; complete resident proof pending",
+  "cpu_challenges_as_ingress": "numeric oracle only"
+}

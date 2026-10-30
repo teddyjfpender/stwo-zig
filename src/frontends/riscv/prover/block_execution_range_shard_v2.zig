@@ -18,7 +18,9 @@ pub const Plan = struct {
     total_events: u64,
     digest: [32]u8,
     pub fn deinit(self: *Plan, a: std.mem.Allocator) void {
-        a.free(self.shards); a.free(self.event_counts); self.* = undefined;
+        a.free(self.shards);
+        a.free(self.event_counts);
+        self.* = undefined;
     }
 };
 
@@ -47,15 +49,17 @@ pub fn plan(a: std.mem.Allocator, counts: []const u64) !Plan {
     const owned_shards = try shards.toOwnedSlice(a);
     errdefer a.free(owned_shards);
     const owned_counts = try a.dupe(u64, counts);
-    return .{ .shards = owned_shards, .event_counts = owned_counts, .total_events = total,
-        .digest = digestRoster(owned_shards, owned_counts, total) };
+    return .{ .shards = owned_shards, .event_counts = owned_counts, .total_events = total, .digest = digestRoster(owned_shards, owned_counts, total) };
 }
 
 fn appendShard(a: std.mem.Allocator, shards: *std.ArrayList(Shard), first: usize, end: usize, first_event: u64, events: u64) !void {
     if (end <= first or events == 0) return error.InvalidExecutionRangeRoster;
     const shard = Shard{
-        .index = @intCast(shards.items.len), .first_instance = @intCast(first), .instance_count = @intCast(end - first),
-        .first_event = first_event, .event_count = events,
+        .index = @intCast(shards.items.len),
+        .first_instance = @intCast(first),
+        .instance_count = @intCast(end - first),
+        .first_event = first_event,
+        .event_count = events,
         .max_requests = try std.math.mul(u64, events, memory_shard.REQUESTS_PER_EVENT),
     };
     try shard.validate();
@@ -92,17 +96,26 @@ pub fn digestRoster(shards: []const Shard, counts: []const u64, total: u64) [32]
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo-zig/block-execution/range-shards/v2\x00");
     var word: [8]u8 = undefined;
-    std.mem.writeInt(u32, word[0..4], TAG, .little); hash.update(word[0..4]);
-    std.mem.writeInt(u32, word[0..4], @intCast(shards.len), .little); hash.update(word[0..4]);
-    std.mem.writeInt(u32, word[0..4], @intCast(counts.len), .little); hash.update(word[0..4]);
-    std.mem.writeInt(u64, &word, total, .little); hash.update(&word);
-    for (counts) |count| { std.mem.writeInt(u64, &word, count, .little); hash.update(&word); }
+    std.mem.writeInt(u32, word[0..4], TAG, .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u32, word[0..4], @intCast(shards.len), .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u32, word[0..4], @intCast(counts.len), .little);
+    hash.update(word[0..4]);
+    std.mem.writeInt(u64, &word, total, .little);
+    hash.update(&word);
+    for (counts) |count| {
+        std.mem.writeInt(u64, &word, count, .little);
+        hash.update(&word);
+    }
     for (shards) |shard| {
         for ([_]u32{ shard.index, shard.first_instance, shard.instance_count }) |part| {
-            std.mem.writeInt(u32, word[0..4], part, .little); hash.update(word[0..4]);
+            std.mem.writeInt(u32, word[0..4], part, .little);
+            hash.update(word[0..4]);
         }
         for ([_]u64{ shard.first_event, shard.event_count, shard.max_requests }) |part| {
-            std.mem.writeInt(u64, &word, part, .little); hash.update(&word);
+            std.mem.writeInt(u64, &word, part, .little);
+            hash.update(&word);
         }
     }
     return hash.finalResult();

@@ -141,6 +141,9 @@ pub fn ForCapacity(comptime capacity: bool) type {
                 pub fn addLightweightFused(self: *Self, fetches: []const census_mod.Fetch, statement: *const shape.Blake3ExecutionStatement, template_id: [32]u8, native_instance_id: [32]u8, roots: seal.Roots, request_roots: seal.Roots, external_retirements: u32, register_custody_mode: u32, frame: @import("../air/block/memory_event.zig").Frame, witness_root: [32]u8) !void {
                     return @import("block_v5_program_fused_first_round_v1.zig").ForCapacity(capacity).add(self, fetches, statement, template_id, native_instance_id, roots, request_roots, external_retirements, register_custody_mode, frame, witness_root);
                 }
+                pub fn addLightweightPartitioned(self: *Self, fetches: []const census_mod.Fetch, statement: *const shape.Blake3ExecutionStatement, template_id: [32]u8, native_instance_id: [32]u8, roots: seal.Roots, request_roots: seal.Roots, external_retirements: u32, register_custody_mode: u32, frame: @import("../air/block/memory_event.zig").Frame, witness_root: [32]u8) !void {
+                    return @import("block_v5_program_fused_first_round_v1.zig").ForCapacity(capacity).addPartitioned(self, fetches, statement, template_id, native_instance_id, roots, request_roots, external_retirements, register_custody_mode, frame, witness_root);
+                }
                 pub fn addLightweightExtension(self: *Self, index: u32, complete: []const census_mod.Fetch, subset: []const census_mod.Fetch, expected_calls: u64, pin: ?ExtensionPin) !void {
                     return @import("block_v5_program_lightweight_first_round_v1.zig").addExtension(self, index, complete, subset, expected_calls, pin);
                 }

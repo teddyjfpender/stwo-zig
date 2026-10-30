@@ -43,7 +43,10 @@ pub fn evaluate(self: anytype, source: *const engine.air.component_prover.Trace,
     const state_offset = descriptor.main_offset + keccak_trace.Layout.state;
     const witness_index = fixed_count + caller_count + state_count;
     const interaction_index = witness_index + integer.COLUMN_COUNT;
-    const count = interaction_index + interaction_count;
+    const clock_index = interaction_index + interaction_count;
+    const clock_count: usize = if (self.fixed_clock_offset != null) 8 else 0;
+    const count = clock_index + clock_count;
+    if (self.fixed_clock_offset) |offset| if (offset > trees[0].len or trees[0].len - offset < 8) return error.InvalidExternalAccessColumns;
     const polys = try a.alloc(engine.air.component_prover.Poly, count);
     defer a.free(polys);
     if (fixed_count != 0) polys[0] = trees[0][descriptor.fixed_offset];
@@ -51,6 +54,9 @@ pub fn evaluate(self: anytype, source: *const engine.air.component_prover.Trace,
     for (0..state_count) |i| polys[fixed_count + caller_count + i] = trees[1][state_offset + (descriptor.slot - 1) * 32 + i];
     for (0..integer.COLUMN_COUNT) |i| polys[witness_index + i] = trees[2][self.witness_offset + i];
     for (0..interaction_count) |i| polys[interaction_index + i] = trees[3][self.interaction_offset + i];
+    if (self.fixed_clock_offset) |offset| for (0..8) |i| {
+        polys[clock_index + i] = trees[0][offset + i];
+    };
 
     const eval_log = self.log_size + 2;
     const domain = canonic.CanonicCoset.new(eval_log).circleDomain();
@@ -78,7 +84,7 @@ pub fn evaluate(self: anytype, source: *const engine.air.component_prover.Trace,
         // Common caller columns and SHA's fixed selector are used by every
         // access slot. Selected Keccak word columns and own witness/interaction
         // columns are unique to a slot and remain in bounded local scratch.
-        if (index < fixed_count + caller_count) if (self.quotient_cache) |cache| {
+        if (index < fixed_count + caller_count or index >= clock_index) if (self.quotient_cache) |cache| {
             if (try cache.get(if (self.v5_packed != null) .packed_word else .retained, poly, self.log_size, eval_log, transform)) |shared| {
                 out.* = shared;
                 continue;
@@ -130,7 +136,11 @@ pub fn evaluate(self: anytype, source: *const engine.air.component_prover.Trace,
         }
         var residuals: [v5_eval.CONSTRAINT_COUNT]Q = undefined;
         if (self.v5_universal != null) {
-            const current = try v5_eval.evaluatePair(self, pair, witness, interaction, previous);
+            const current = if (self.fixed_clock_offset != null) blk: {
+                var bytes: [8]Q = undefined;
+                for (&bytes, 0..) |*value, i| value.* = Q.fromBase(values[clock_index + i][row]);
+                break :blk try v5_eval.evaluatePairWithClock(self, pair, witness, interaction, previous, bytes);
+            } else try v5_eval.evaluatePair(self, pair, witness, interaction, previous);
             @memcpy(residuals[0..current.len], &current);
         } else {
             var old_interaction: [sidecar_eval.INTERACTION_COUNT]Q = undefined;

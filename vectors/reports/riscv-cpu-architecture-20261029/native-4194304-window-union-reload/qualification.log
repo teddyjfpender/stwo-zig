@@ -1,0 +1,26 @@
+1/7 block_v7_window_union_reload_benchmark_root.test.reload saved shared union proof from pinned complete endpoints...OK
+2/7 air.semantic_eval.test_0...OK
+3/7 prover.block_execution_external_trace_v2.test_0...OK
+4/7 prover.block_execution_external_access_bridge_v2.test_0...OK
+5/7 air.memory_commitment.poseidon2_air.test_0...OK
+6/7 air.lookups.tables.mod.test_0...OK
+7/7 air.lookups.tables.source_ingest.test_0...OK
+All 7 tests passed.
+       11.04 real        16.42 user         1.00 sys
+          1896841216  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              333949  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               15985  involuntary context switches
+        341067124611  instructions retired
+         77231720086  cycles elapsed
+          1896024368  peak memory footprint

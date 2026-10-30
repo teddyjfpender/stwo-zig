@@ -14,6 +14,7 @@ pub const clock_update_interaction = @import("clock_update_interaction.zig");
 pub const component_order = @import("component_order.zig");
 pub const composition_work_support = @import("composition_work_support.zig");
 pub const constraint_program = @import("constraint_program.zig");
+pub const x0_native_envelope = @import("x0_native_envelope_v1.zig");
 pub const diagnostic_hints = @import("diagnostic_hints.zig");
 pub const extract = @import("extract/mod.zig");
 pub const guest_precompile = @import("guest_precompile/mod.zig");

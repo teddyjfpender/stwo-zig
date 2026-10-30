@@ -1,0 +1,19 @@
+{
+  "head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "working_tree_uncommitted": true,
+  "scope": "original CPU proof closure; no recursive root or canonical security claim",
+  "timing": "shared-host diagnostic; fresh independent verification included separately; not matched v6 A/B",
+  "binary_sha256": "c818e3f336abf4195d48d28a4d791e93f9f0dd07765b6848ba0d9ca093480336",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_streaming_execution_v1.zig": "34f2f14b68eb3bd878b5cb2b0a7a59338525e37f0d97f924086de4b31795e6a0",
+    "src/frontends/riscv/prover/block_v7_caller_checkpoint_v1.zig": "e03ae069e4ae78cc50b3c7deb5c073aa8efd33c70edbb806710ee6893beefec0",
+    "src/frontends/riscv/prover/tests/block_v7_streaming_execution_test.zig": "add9e4d31a935d73b7b0cc1d84cef7daa91d1d7e656804401427695e669dd039",
+    "src/frontends/riscv/prover/tests/block_v7_scaling_guest_test_support.zig": "a3362f44171eacaeffffda373064bd1e1a54e4a74173f2fa5610228e495bfcdc",
+    "src/frontends/riscv/recursion/block_v7_caller_geometry_census_v1.zig": "a8f3d24e0ebe7660d34c8f0bafc2dde6bee4e308cf4ffea2eb7f972416751de7"
+  },
+  "known_rejected_case": {
+    "segment_cycles": 3,
+    "error": "UnqualifiedV7NativeGeometry",
+    "reason": "precompile-only segment has zero native components; fail-closed source guard remains"
+  }
+}

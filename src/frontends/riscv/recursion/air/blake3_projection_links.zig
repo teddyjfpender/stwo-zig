@@ -46,7 +46,7 @@ fn buildMode(comptime direct: bool, a: std.mem.Allocator, backing: std.mem.Alloc
     if (lifting == 0 or lifting > 31 or raw.len != links.len) return error.InvalidProjectionLink;
     var counts: [32]u32 = @splat(0);
     for (logs) |log| {
-        if (log == 0 or log > lifting) return error.InvalidProjectionLink;
+        if (log == 0 or log > 31) return error.InvalidProjectionLink;
         counts[log] = try std.math.add(u32, counts[log], 1);
         if (counts[log] >= core.fields.m31.Modulus) return error.InvalidProjectionLink;
     }
@@ -84,7 +84,7 @@ fn buildMode(comptime direct: bool, a: std.mem.Allocator, backing: std.mem.Alloc
                 };
                 for (0..4) |j| {
                     const bit = start + j;
-                    const source = if (bit == 0 or bit >= log) 0 else lifting - log + bit;
+                    const source = if (bit >= log) 0 else try queries.traceBit(lifting, @intCast(log), @intCast(bit));
                     nodes[j] = query.bits[source].deep;
                     bits[j] = M.fromCanonical(@intCast((position >> @intCast(source)) & 1));
                     bit_reads[q][source] = try std.math.add(u32, bit_reads[q][source], 1);
@@ -113,7 +113,10 @@ fn buildMode(comptime direct: bool, a: std.mem.Allocator, backing: std.mem.Alloc
                 if (byte.v > 255) return error.InvalidProjectionLink;
                 actual |= byte.v << @as(u5, @intCast(8 * i));
             }
-            const expected = ((position >> @intCast(lifting - log + 1)) << 1) | (position & 1);
+            const expected = if (log > lifting)
+                ((position >> 1) << @intCast(log - lifting + 1)) | (position & 1)
+            else
+                ((position >> @intCast(lifting - log + 1)) << 1) | (position & 1);
             if (actual != expected) return error.InvalidProjectionLink;
         }
     }

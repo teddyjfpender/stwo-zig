@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "status": "opt_in_original_RAM_only_qualified_log5_log13_log18",
+  "test": "block_v7_word_quotient_tiles_test_v1: v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention",
+  "security": "diagnostic q8 PoW0; not production-security qualification",
+  "invariants": [
+    "Original fixed/main roots, per-physical claims, transcript, masks, degree and constraint folding unchanged",
+    "Complete original proof bytes equal across retained/recovered coefficients and old/tiled quotient",
+    "Every proof freshly verified by original verifier",
+    "Insufficient workspace explicitly rejected",
+    "Bit-reversed predecessor mapping exhaustively checked for small domains",
+    "Recovered nonzero high coefficients explicitly rejected before output allocation or random coefficient power consumption"
+  ],
+  "measurement_scope": "Tracked peaks include commit, original proof, verification/capture within helper, excluding externally prepared raw witness and interaction matrices. Nested tile workspace excludes borrowed source trees and original output accumulator. Timings diagnostic and not isolated; no speedup claim.",
+  "limits": [
+    "Not selected by default",
+    "Only existing packed RAM Spec accepted",
+    "Other retained trees and phases remain live",
+    "No whole-block or canonical-security root qualification from this test",
+    "Log18 helper peak improvement 46.16% retained /37.93% recovered; not whole-block improvement."
+  ],
+  "runs": [
+    {
+      "log": "v7-word-tiles-runtime.log",
+      "log_sha256": "420b79fe3d00c6c8eb8d3b5fbaff6833b0569be91f9129c128cbcf9a420c03b4",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17978,
+          "charged_peak": 510472,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17978,
+          "charged_peak": 510472,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17978,
+          "charged_peak": 474928,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17978,
+          "charged_peak": 474928,
+          "exact_original_verification": true
+        }
+      ],
+      "tiled_workspaces": [
+        {
+          "charged_peak_bytes": 82856,
+          "coefficient_bytes": 0,
+          "tile_log": 3,
+          "tiles": 16
+        },
+        {
+          "charged_peak_bytes": 112040,
+          "coefficient_bytes": 29184,
+          "tile_log": 3,
+          "tiles": 16
+        }
+      ]
+    },
+    {
+      "log": "v7-word-tiles-medium-runtime.log",
+      "log_sha256": "6a9610174909758b818727e529f70775d669232d2b533fa518ab58b53e50970a",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 13,
+          "proof_bytes": 38737,
+          "charged_peak": 56371600,
+          "commit_ns": 22333333,
+          "proof_ns": 149331208,
+          "verification_ns": 22024167,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 13,
+          "proof_bytes": 38737,
+          "charged_peak": 56097672,
+          "commit_ns": 22295583,
+          "proof_ns": 170104625,
+          "verification_ns": 21851458,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 13,
+          "proof_bytes": 38737,
+          "charged_peak": 48895024,
+          "commit_ns": 22656958,
+          "proof_ns": 178902417,
+          "verification_ns": 21772125,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 13,
+          "proof_bytes": 38737,
+          "charged_peak": 48620208,
+          "commit_ns": 23039291,
+          "proof_ns": 220917084,
+          "verification_ns": 22377333,
+          "exact_original_verification": true
+        }
+      ],
+      "tiled_workspaces": [
+        {
+          "charged_peak_bytes": 3991496,
+          "coefficient_bytes": 0,
+          "tile_log": 11,
+          "tiles": 16
+        },
+        {
+          "charged_peak_bytes": 11462600,
+          "coefficient_bytes": 7471104,
+          "tile_log": 11,
+          "tiles": 16
+        }
+      ]
+    },
+    {
+      "log": "v7-word-tiles-large-parallel-runtime.log",
+      "log_sha256": "5ae1a89fe8cc59616c5b493ddbc7fff1cf1d46d08e0b9499e8ebcd7e3f7b913c",
+      "passed": true,
+      "workers": 4,
+      "extra_events": 262145,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 1802546472,
+          "commit_ns": 183719209,
+          "proof_ns": 1706996708,
+          "verification_ns": 72473250,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 970434368,
+          "commit_ns": 186244417,
+          "proof_ns": 1736722166,
+          "verification_ns": 71500459,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 1563465672,
+          "commit_ns": 201556166,
+          "proof_ns": 2057358125,
+          "verification_ns": 71228584,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 970428896,
+          "commit_ns": 191122416,
+          "proof_ns": 2670213667,
+          "verification_ns": 77944833,
+          "exact_original_verification": true
+        }
+      ],
+      "tiled_workspaces": [
+        {
+          "charged_peak_bytes": 128387032,
+          "coefficient_bytes": 0,
+          "tile_log": 15,
+          "tiles": 32
+        },
+        {
+          "charged_peak_bytes": 367462360,
+          "coefficient_bytes": 239075328,
+          "tile_log": 15,
+          "tiles": 32
+        }
+      ],
+      "quotient_evaluation": [
+        {
+          "tiled": false,
+          "trace_log": 18,
+          "elapsed_ns": 1289088125
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 1325476125
+        },
+        {
+          "tiled": false,
+          "trace_log": 18,
+          "elapsed_ns": 1538323458
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 2153946041
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 41
+        }
+      ],
+      "process_max_rss_bytes": 2497232896,
+      "process_peak_memory_footprint_bytes": 2497087624,
+      "process_real_seconds": 12.91,
+      "process_swaps": 0,
+      "original_expanded_quotient_bytes": 956301312,
+      "notes": [
+        "Complete four-case process RSS includes persistent fixture witness and original staged commitments; cannot attribute to one case.",
+        "Parallel AIR tile rows with bounded joined WorkPool lease; exact same original equation and accumulator cursor order.",
+        "This binary predates final once-per-recovery interpolation twiddle reuse; latter awaits proof gate."
+      ]
+    },
+    {
+      "log": "v7-word-tiles-final-runtime.log",
+      "log_sha256": "0f1810746ce431c04f84d981d3b7d8744f484755d7fc048989fd8c922c1ecbe4",
+      "binary_sha256": "199a5a37b64ad04f377c6b6306ca29ce33e3344252777ccad87c53f630915936",
+      "passed": true,
+      "workers": 4,
+      "extra_events": 262145,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 1802546472,
+          "commit_ns": 177345750,
+          "proof_ns": 1658941625,
+          "verification_ns": 71059291,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 970434368,
+          "commit_ns": 178073167,
+          "proof_ns": 1716357625,
+          "verification_ns": 72812750,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 1563465672,
+          "commit_ns": 189782042,
+          "proof_ns": 2005648250,
+          "verification_ns": 72198583,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 18,
+          "proof_bytes": 62879,
+          "charged_peak": 970428896,
+          "commit_ns": 181481000,
+          "proof_ns": 2062302666,
+          "verification_ns": 72649459,
+          "exact_original_verification": true
+        }
+      ],
+      "tiled_workspaces": [
+        {
+          "charged_peak_bytes": 128387032,
+          "coefficient_bytes": 0,
+          "tile_log": 15,
+          "tiles": 32
+        },
+        {
+          "charged_peak_bytes": 367462360,
+          "coefficient_bytes": 239075328,
+          "tile_log": 15,
+          "tiles": 32
+        }
+      ],
+      "quotient_evaluation": [
+        {
+          "tiled": false,
+          "trace_log": 18,
+          "elapsed_ns": 1258230416
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 1272692750
+        },
+        {
+          "tiled": false,
+          "trace_log": 18,
+          "elapsed_ns": 1519277750
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 1576971791
+        },
+        {
+          "tiled": true,
+          "trace_log": 18,
+          "elapsed_ns": 84
+        }
+      ],
+      "all_four_proof_sha256": [
+        "847d7b28a2686f0548ab0c6cf69fa4310043bd9c8af9cff0a46feb5651b0cd9d"
+      ],
+      "process_max_rss_bytes": 2497036288,
+      "process_peak_memory_footprint_bytes": 2496923784,
+      "process_real_seconds": 12.41,
+      "process_swaps": 0,
+      "original_expanded_quotient_bytes": 956301312,
+      "notes": [
+        "Final recovery shares one exact interpolation twiddle tree and frees it before row tiles.",
+        "Hostile recovered high-degree coefficients reject before quotient output allocation or random-power cursor mutation.",
+        "Compilation may overlap; timings are diagnostic, not a controlled performance claim.",
+        "RSS includes all four cases and retained original fixture commitments; not a per-case RSS measure."
+      ]
+    }
+  ]
+}

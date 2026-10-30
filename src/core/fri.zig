@@ -822,6 +822,7 @@ pub const FoldLineWorkspace = folding.FoldLineWorkspace;
 pub const FoldCircleWorkspace = folding.FoldCircleWorkspace;
 pub const foldLine = folding.foldLine;
 pub const foldLineSingleStep = folding.foldLineSingleStep;
+pub const foldPairWithInverse = folding.foldPairWithInverse;
 pub const foldLineNWithWorkspace = folding.foldLineNWithWorkspace;
 pub const foldLineWithWorkspace = folding.foldLineWithWorkspace;
 pub const foldLineInPlaceNWithWorkspace = folding.foldLineInPlaceNWithWorkspace;

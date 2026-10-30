@@ -1,0 +1,42 @@
+{
+  "schema": "stwo-v8-group-single-dag-qualification-v1",
+  "scope": "declared nonterminal two-cohort native window recursively closed; not full Ethereum block",
+  "queries": 70,
+  "pow_bits": 26,
+  "group_originals": 1,
+  "bridge_originals": 1,
+  "compact_originals": 1,
+  "intermediate_recursive_proofs": 0,
+  "cohorts": 2,
+  "cycles": 8,
+  "root_bytes": 975915,
+  "root_sha256": "b5ff39b0779975889454bd4cbf5c5f796df3e97c11a0ae409d5db568645087b6",
+  "proof_ns": 33515579125,
+  "parent_whole_ns": 58302787875,
+  "retained_rows_bytes": 2537913440,
+  "timing_isolated": false,
+  "fresh_file_receiver": true,
+  "all_producer_owners_destroyed_before_receiving": true,
+  "proof_bytes_retained_after_test": false,
+  "canonical_gate": "All 11 tests passed",
+  "negative_controls": [
+    "dropped-member coverage rejects in fresh receiver",
+    "each member endpoint root bound separately in closure graph",
+    "opposite changed member root words reject",
+    "CPU boundary byte mutation rejects",
+    "Group symbolic closure member RAM +delta/-delta rejects (independent Group recursion gate)"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_graph_v1.zig": "80a46a8b22858f917b49c8d4ba0865ab09ea659f01670eff5ee47ae1f0a946b5",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_pipeline_v1.zig": "6ad278f335cb2254599929e92c07eb21db898c1408f48a96925eae57e81e4a97",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_protocol_v1.zig": "153aa84574b7c3ab6d3207f3560ac8c68fcc15751ea79532b1d9030736b800b4",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_public_v1.zig": "06834b8f465aeb4c8b40ed65d5f3056b7526396154ca862652cc650db53f191f",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_receiver_v1.zig": "4b0d2d152057f15c6f44c6f8219dcd93bb32271f30e016541f0ac80fd0714bf5",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_roster_v1.zig": "879e9d17bd13178f752772cfdfec69f33cdc0c2f0fcd2d1dee68cc268c6c6ce8",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_saved_v1.zig": "300fc50786fac3aeb453fd92e2982770a4949037943221ede709ca65edb30b4e",
+    "src/frontends/riscv/recursion/block_v8_endpoint_group_join_source_v1.zig": "9854b58e2c038f4bd4cfd7285b9900199864e9a1f06f6ce9834f2a1e39e9a3f0",
+    "src/frontends/riscv/recursion/tests/block_v8_endpoint_group_join_test.zig": "bd9c36b7a3600b09c08ca863a9ade3cd6ebd05fad04cc668edb6cf35ebf2b3b0",
+    "src/frontends/riscv/block_v8_endpoint_group_join_test_root.zig": "b5e08dc4c73c22d2ce83cad2b44194d0746f7608a9bedece20fd7a26bc462107"
+  },
+  "log_sha256": "0c6b6d79542585e26a02d02c2b283281c80517545ad571e4bf0aed1661c85190"
+}

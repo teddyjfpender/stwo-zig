@@ -211,7 +211,7 @@ pub fn VerifiedCaptureFor(comptime Policy: type) type {
             defer a.free(witness_logs);
             const expected_logs = [_][]const u32{ schedule.fixed, schedule.main, witness_logs, logs };
             if (self.proof.column_log_sizes.len != 5) return error.InvalidV5CallerReadonlyCapture;
-            for (expected_logs, 0..) |expected, i| if (!std.mem.eql(u32, self.proof.column_log_sizes[i], expected)) return error.InvalidV5CallerReadonlyCapture;
+            for (expected_logs, 0..) |expected, i| try @import("proof_capture_geometry_v1.zig").requireExtendedLogs(error.InvalidV5CallerReadonlyCapture, expected, self.proof.column_log_sizes[i], pins.config.fri_config.log_blowup_factor);
             var original_receipt = try receipts(a, &self.claims, &schedule, binding, witness, sealed, Policy.originalAuthority(authority));
             var owns_original_receipt = true;
             errdefer if (owns_original_receipt) original_receipt.deinit(a);

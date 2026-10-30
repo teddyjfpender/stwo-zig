@@ -9,18 +9,28 @@ const universal = @import("universal_challenges.zig");
 const recorder = @import("blake3_native_recorder.zig");
 const shared = @import("blake3_native_transcript.zig");
 pub fn prefix(a: std.mem.Allocator, r: *recorder.Recorder, admitted: *const Admission.Prepared, claim: @import("stwo_core").fields.qm31.QM31) !universal.UniversalRelations {
+    return prefixWith(false, a, r, admitted, claim);
+}
+pub fn prefixFixed(a: std.mem.Allocator, r: *@import("blake3_fixed_operation_recorder_v1.zig").Recorder, admitted: *const Admission.Prepared) !void {
+    return prefixWith(true, a, r, admitted, @import("stwo_core").fields.qm31.QM31.zero());
+}
+fn prefixWith(comptime fixed: bool, a: std.mem.Allocator, r: anytype, admitted: *const Admission.Prepared, claim: @import("stwo_core").fields.qm31.QM31) !(if (fixed) void else universal.UniversalRelations) {
     const channel = @import("../../prover/block_v5_universal_channel_v1.zig");
     r.mixU32s(&.{ channel.TAG, channel.VERSION });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 0 }, admitted.sealed.digest);
-    const relations = try universal.UniversalRelations.draw(a, r);
+    const relations = if (fixed) try r.universalPairs(0, universal.RELATION_COUNT) else try universal.UniversalRelations.draw(a, r);
     try r.restartChannel();
     r.mixU32s(&.{ Native.TAG, Source.VERSION });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 0 }, admitted.sealed.digest);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 8 }, admitted.sealed.native_roster_digest);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 16 }, admitted.sealed.program_plan_digest);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 24 }, admitted.plan.program_root.bytes);
-    r.mixRoot(admitted.roots[0]);
-    r.mixRoot(admitted.roots[1]);
+    if (fixed) {
+        for (0..2) |i| r.mixPublicRoot(try @import("blake3_root_sources.zig").caller(i), @splat(0));
+    } else {
+        r.mixRoot(admitted.roots[0]);
+        r.mixRoot(admitted.roots[1]);
+    }
     r.mixPublicFelts(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 32 }, &.{claim});
     try r.check();
     return relations;

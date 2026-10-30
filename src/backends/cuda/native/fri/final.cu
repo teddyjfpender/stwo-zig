@@ -20,8 +20,21 @@ __global__ void circuit_degree_verdict_kernel(
     const uint32_t *fri_degree_error,
     const uint32_t *circuit_error,
     uint32_t *verdict) {
-    if (blockIdx.x == 0 && threadIdx.x == 0)
+    if (blockIdx.x == 0 && threadIdx.x == 0) {
+#if defined(STWO_RESIDENT_PARENT_DIAGNOSTIC_VERDICT)
+        // Diagnostic archive only: retain the first device witness failure.
+        // Detailed producer tags reserve bit31 and already use bit0 as a
+        // generic rejection marker; bit0 here instead reports FRI rejection.
+        // Ordinary small error masks shift left once. Zero remains success,
+        // and every nonzero source remains a rejecting terminal verdict.
+        const uint32_t witness = *circuit_error;
+        const uint32_t tagged = (witness & 0x80000000u) != 0
+            ? (witness & ~1u) : (witness << 1);
+        *verdict = tagged | uint32_t(*fri_degree_error != 0);
+#else
         *verdict = (*fri_degree_error != 0 || *circuit_error != 0) ? 1u : 0u;
+#endif
+    }
 }
 
 __global__ void naturalize_kernel(

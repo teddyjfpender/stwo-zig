@@ -1,0 +1,28 @@
+{
+  "schema": "resident-composite-error-diagnostic-v1",
+  "scope": "error-only instrumentation; not a proof qualification",
+  "header_sha256": "9658149597566ddd8f38d87b4b2afac8c88e0fceed23b13ffcd79e8c042297f9",
+  "cuda_sha256": "8ea187cbfa6354e968348c7f7533b8952532386104c3ad28c9fd2901a5a92faf",
+  "object_sha256": "bac3a3d000755d31bb761fd61ab431c1dd78d8c73338e12a6acff96deec03398",
+  "remote_object": "/workspace/stwo-v7-evidence/resident-blake3-final/parent-direct-composite-v7.o",
+  "encoding": {
+    "marker": "bit31",
+    "category": "bits30:27",
+    "subject": "bits26:22",
+    "row_or_index_modulo_2pow21": "bits21:1",
+    "legacy_sticky": "bit0"
+  },
+  "categories": {
+    "1": "write source/byte length: subject source kind, index source index",
+    "2": "write destination: subject destination, index write index",
+    "3": "write extent: subject destination, index write index",
+    "4": "direct header: subject cohort, index logical row",
+    "5": "direct source: subject cohort, index logical row",
+    "6": "direct input/fixed/SoA shape: subject cohort, index logical row",
+    "7": "original row constructor rejected: subject cohort, index logical row",
+    "8": "unknown direct cohort",
+    "9": "hash scatter header",
+    "10": "hash scatter extent"
+  },
+  "behavior": "first detailed error wins via atomicCAS; existing generic1 may be upgraded; later OR1 preserves encoded bits; success0 unchanged; no added D2H"
+}

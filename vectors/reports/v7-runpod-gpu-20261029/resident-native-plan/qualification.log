@@ -1,0 +1,28 @@
+1/11 riscv_cuda_resident_native_plan_test_root.test.resident native original source plan semantic...OK
+2/11 frontends.riscv.air.semantic_eval.test_0...OK
+3/11 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+4/11 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+5/11 frontends.riscv.air.lookups.tables.mod.test_0...OK
+6/11 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+7/11 integrations.riscv_cuda.resident_native_plan_test_v1.test.resident native original four five tree cold programs exact placement and detached metadata...native empty mask tree=0 column=0 log=1
+native empty mask tree=0 column=2 log=1
+native cold trees=4 q2=false components=20 constraints=57 samples=252 bytes=17424
+native empty mask tree=0 column=0 log=1
+native empty mask tree=0 column=2 log=1
+native cold trees=4 q2=true components=22 constraints=59 samples=252 bytes=17232
+native empty mask tree=0 column=0 log=2
+native empty mask tree=0 column=2 log=1
+native empty mask tree=0 column=4 log=1
+native empty mask tree=0 column=6 log=1
+native cold trees=5 q2=false components=41 constraints=282 samples=750 bytes=55448
+native empty mask tree=0 column=0 log=2
+native empty mask tree=0 column=2 log=1
+native empty mask tree=0 column=4 log=1
+native empty mask tree=0 column=6 log=1
+native cold trees=5 q2=true components=43 constraints=284 samples=750 bytes=54616
+OK
+8/11 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+9/11 frontends.riscv.runner.mod.test_0...OK
+10/11 frontends.riscv.runner.decode.test_0...OK
+11/11 frontends.riscv.diagnostics.mod.test_0...OK
+All 11 tests passed.

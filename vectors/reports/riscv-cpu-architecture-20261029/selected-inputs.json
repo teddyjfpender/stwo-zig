@@ -1,0 +1,97 @@
+{
+  "scope": "explicit nonterminal continuation inputs; skipped prefix not proved",
+  "cases": [
+    {
+      "case": "native-131072",
+      "capture_manifest_sha256": "8baf444d36f71f4c42b2c0916f3d5f87ed30a07ca78a01af58ba51ff13cf04aa",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 131072
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "53dcc35c01a4837a6dd9943511c3affc304ef11488a0d4ded3337d4369dbe9a2",
+      "new_v7_recursive_root_qualified": true,
+      "recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-131072-row-fused",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "report_sha256": "6a0c09e22f7a383d9f2fe59d70bcc5445de63353935d777d0ab815677d83e221",
+        "root_sha256": "03708f09a14d53e9689746a032f63918c501214ba0e26f736920b8115e81777f"
+      },
+      "shared_original_recursive_root_qualified": true,
+      "shared_original_recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-131072-window-union-capsule",
+        "report_sha256": "77846ae8dece1f40770ddf07dad90cd86ad04c4372ab4d8f91bc2cc92598b457",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "root_sha256": "20e37f8d6d0f487a12c9c940a0055f571f8b41ca22df5ade502f1c32eb3c24e7"
+      }
+    },
+    {
+      "case": "native-524288",
+      "capture_manifest_sha256": "7d4c8cfb876c68c09a268ca94ab1e604c4c5cbef674f5796d520d4b8d8cc1de2",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 524288
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "b97360e39180e04ecce06cc71430358127ced0b0a8df214e2e223fb4175d31e4",
+      "new_v7_recursive_root_qualified": true,
+      "recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-524288-row-fused",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "report_sha256": "5f82cda787794c9c097c0efe4ec099902ef941df567f6f5a8c14a4e1d9f161b5",
+        "root_sha256": "42c38766f5531cadb48ba9a7ae07253c45a68e5ffc1193967657a86bb54587cf"
+      }
+    },
+    {
+      "case": "native-1048576",
+      "capture_manifest_sha256": "3e5908648b480362c81dfefd945c0b31fa79cdb961e254ff1caa4dfc6dfb3350",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 1048576
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "91aaaff6cec0524141f4e979c39816ca54f1200c2faf9daaaab7f098a4a434af",
+      "new_v7_recursive_root_qualified": true,
+      "recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-1048576-row-fused",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "report_sha256": "095c7d8235c3d6942c220902750a1e04eab99e8531b817287aabb23cebb9307d",
+        "root_sha256": "4a2e01c7ef0eb6d73c2206987b63a5a5d545984080d4e6160e6daa09f290134a"
+      },
+      "shared_original_recursive_root_qualified": true,
+      "shared_original_recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-1048576-window-union-capsule",
+        "report_sha256": "64ad9f4abfae66a0e7771f760ff03f9941315bcab3a9bab1246603f664b9818d",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "root_sha256": "367d294a9528094f1555ae4fbba868aeba992cc074818c935eba7d6df547255e"
+      }
+    },
+    {
+      "case": "native-4194304",
+      "capture_manifest_sha256": "70caa759453633873c50a3c964b7a0af4fabda3beb243703f46fde9fe80fecd3",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 4194304
+      },
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "86cb55cac6cdbf4954aecb9b4ead702703bb5739592f808b7343402110c42314",
+      "new_v7_recursive_root_qualified": false,
+      "new_v7_shared_original_qualified": true,
+      "shared_original_qualification": {
+        "directory": "native-4194304-window-union-reconstruction",
+        "recursive_root": false
+      },
+      "shared_original_recursive_root_qualified": true,
+      "shared_original_recursive_qualification": {
+        "directory": "vectors/reports/riscv-cpu-architecture-20261029/native-4194304-window-union-window-tiles",
+        "report_sha256": "1d991def26a4a21e8a1e665ca0ded47c50c7aab09ce0d89fcd652c9f3e6e0e58",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "root_sha256": "313bb0cd6aa4676efc3cb242d46ef05db508eb6bb916540e29802615f0728f37"
+      }
+    }
+  ]
+}

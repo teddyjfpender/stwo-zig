@@ -1,0 +1,132 @@
+{
+  "qualification": "independently_compiled_native_capsule_reuse",
+  "recorded_utc": "2026-10-29T10:19:35.030390+00:00",
+  "result": {
+    "passed": 14,
+    "failed": 0,
+    "log": "/tmp/v7-native-compiler-capsule-run2.log",
+    "log_sha256": "c033a9140a80acce9976e4af4ebcd26314a7454633949432e540973576b3f7ac",
+    "elapsed_job_seconds": 33.57,
+    "process_max_rss_bytes": 855048192,
+    "timing_qualification": "diagnostic; concurrent compiler; includes original proofs, negative checks, both parent proofs and verification"
+  },
+  "binary": {
+    "path": "/tmp/v7-native-compiler-capsule-tests",
+    "sha256": "6a6a130405034b1b65b37c00241905c3829c19eae7f58f8eab4d4b96734b9cb1"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v7_native_compiler_capsule_v1.zig": "ecbf371cc1cbe0ecfdac749119a2837b579c5e92c78d952cf2bbc82ae61652dc",
+    "src/frontends/riscv/recursion/block_v7_native_compiler_set_v1.zig": "52b078696d04451367ae66a39b5c523455afee57b4a5a3ae5562bf92ffe2bb0c",
+    "src/frontends/riscv/recursion/block_v7_native_fixed_roster_v1.zig": "6ef8ba4f3ea8185c2b9aed27d9901b812de8383f7448ef06130c92dba303cf06",
+    "src/frontends/riscv/recursion/block_v7_native_preparation_v1.zig": "8657ea0fa217800ebe0ba44edab4ab032fc0d9513fddedff02f2e8855f4b4650",
+    "src/frontends/riscv/recursion/block_v7_mixed_fixed_v1.zig": "b659be171f4c5f5e7fb44f00ff6855685c693e2d3326ac2faa279e2a36223f94",
+    "src/frontends/riscv/recursion/block_v7_shared_epoch_mixed_fixed_v1.zig": "fc568abb79008e02e0c2d949e1c2d2289ab083dfd79244022730e2cf8f1c8da5",
+    "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig": "580a1838596c3e9d4d55d84d771e51297cdf89f20d4281e2885fb62c1454d362",
+    "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig": "85d57cba507aa09911c1c3b7e200d7443390ea41ffa682af45afa4c7524d02f1",
+    "src/frontends/riscv/recursion/block_v7_bounded_complete_cpu_producer_v1.zig": "cd81423fb5ec0fc768aa4ac35df8e702e165929b92ad94fc1b12a63c7eb54906",
+    "src/frontends/riscv/recursion/air/block_v7_native_transcript_v1.zig": "8d45028ee9da08b716a7e8a16d62b16de97e1a62f8ddd3bf3f474cf937c27751",
+    "src/frontends/riscv/recursion/air/block_v7_program_transcript_v1.zig": "3f57237275034666bdd5406d477fc0707d55adb2163b086d811d3f7a070b1d2d",
+    "src/frontends/riscv/recursion/air/block_v7_lookup_compact_transcript_v1.zig": "7f7c53d52b096e51bb8202693209236712cd5da765e59102fde09b8c74fbb43d",
+    "src/frontends/riscv/recursion/air/block_v7_memory_joint_transcript_mode_v1.zig": "d06224377fe9a75c250d2f4d3659e18b91a29e4fa0bddfde38b0b43994012512",
+    "src/frontends/riscv/recursion/air/block_v7_caller_recursive_transcript_v1.zig": "a6058ee3a71a0cc0eba166d8b01b73d92e9af77a3dc0fc33bbd85c0bdcef38cf",
+    "src/frontends/riscv/recursion/block_v7_native_compiler_set_test_v1.zig": "f54102884732123581259c3c82bedc64aee91f8362c4c9dc05a67ef671f43861",
+    "src/frontends/riscv/prover/tests/block_v7_native_compiler_capsule_test.zig": "63989e9644ab8cd20d8604e528d9e2018e598db90a0f9fc4af5d951413049a76",
+    "src/frontends/riscv/block_v7_native_compiler_capsule_test_root.zig": "d51ed53975a79c070fdbc0f08f4f461735a72b9b2b86eb9108b934c8c0b3283c"
+  },
+  "cases": [
+    "Canonical no-access original -> identical uncached/cached parent proof bytes and detached receiver.",
+    "Canonical q3 MUL/store/load original -> identical uncached/cached parent proof bytes and detached receiver.",
+    "Degree-bounded q2 MUL/store/load original -> identical uncached/cached parent proof bytes and detached receiver.",
+    "Two actual native original profiles from full SHA/Keccak source fixture -> bounded parallel capsule set, exact canonical cold rows/wires/context, unavailable-lease serial fallback and aggregate allocator failure cleanup."
+  ],
+  "checks": [
+    "All fixed and MAIN columns, wires, context and canonical public frames equal.",
+    "Exact transcript operations/plan identity, composition inputs/values and DEEP inputs equal in q3/q2 access cases.",
+    "Original proofs, source sessions, wide traces and counters destroyed before recursive comparison.",
+    "Selected metadata copy destroyed after capsule construction; capsule destroyed before proving.",
+    "Changed selected mask, layout mode, root and config rejected.",
+    "Changed physical claim, OODS sample and final transcript state rejected; fresh receiver rejects altered claim and fixed key.",
+    "All compiler metadata, graphs, lowering plans and concurrent child products charged to one capped active-window allocator."
+  ],
+  "cleanup_fix": {
+    "cause": "Wrong final-channel rejection destroyed a transferred replay arena before unconditional statement cleanup touched it.",
+    "fix": "Local statement cleanup only while local arena ownership remains; otherwise replay result owns and frees arena.",
+    "qualified_hostile": "Native actual capture final-channel mutation returns InvalidNativeTranscript cleanly.",
+    "analogous_reviewed_guards": [
+      "caller",
+      "program",
+      "compact_lookup",
+      "joint_and_window_memory"
+    ],
+    "protocol_changes": false
+  },
+  "integration": {
+    "default_reuse": false,
+    "complete_options": [
+      "reuse_native_compiler",
+      "max_native_compiler_bytes",
+      "native_compiler_parallelism"
+    ],
+    "bounded_options": [
+      "reuse_native_compiler",
+      "max_native_compiler_bytes",
+      "parallel_families"
+    ],
+    "fixed_and_collection": "Optional native_compilers slice; exact profile matching before borrowing.",
+    "release": "Compiler owners cleared before wide parent commitments/proving.",
+    "cold_only_probe": "Retains no capsule because no live consumer follows.",
+    "semantics": [
+      "/tmp/v7-native-capsule-complete-semantic.log",
+      "/tmp/v7-native-capsule-shared-semantic.log"
+    ]
+  },
+  "diagnostic_phase_rows": [
+    {
+      "access": "false",
+      "mul": "false",
+      "mode": "canonical_v1",
+      "parent": "true",
+      "compile_ns": 15195625,
+      "cold_uncached_ns": 210189083,
+      "cold_cached_ns": 200759625,
+      "live_uncached_ns": 272619292,
+      "live_cached_ns": 260148416,
+      "exact_rows": "true",
+      "producer_destroyed": "true",
+      "timings": "diagnostic"
+    },
+    {
+      "access": "true",
+      "mul": "true",
+      "mode": "canonical_v1",
+      "parent": "true",
+      "compile_ns": 32126875,
+      "cold_uncached_ns": 361843417,
+      "cold_cached_ns": 343082958,
+      "live_uncached_ns": 478401125,
+      "live_cached_ns": 458908083,
+      "exact_rows": "true",
+      "producer_destroyed": "true",
+      "timings": "diagnostic"
+    },
+    {
+      "access": "true",
+      "mul": "true",
+      "mode": "degree_bounded_q2_v1",
+      "parent": "true",
+      "compile_ns": 33968500,
+      "cold_uncached_ns": 377025583,
+      "cold_cached_ns": 359281875,
+      "live_uncached_ns": 495151500,
+      "live_cached_ns": 471273375,
+      "exact_rows": "true",
+      "producer_destroyed": "true",
+      "timings": "diagnostic"
+    }
+  ],
+  "limitations": [
+    "No actual-Ethereum or canonical-security speedup inferred from tiny q8 correctness fixtures.",
+    "Complete/bounded/shared producer integrations are semantic-qualified here; final combined runtime comparison remains parent-owned.",
+    "Fresh transcript replay, capture evaluation and row emission remain required; no witness/challenge/proof-success authority is cached."
+  ]
+}

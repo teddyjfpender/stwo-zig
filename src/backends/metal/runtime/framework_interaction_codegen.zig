@@ -74,7 +74,7 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
         const second = first + 1;
         if (batch.entry_count > 2) {
             try polynomial.emitWideFraction(writer, program, batch, index);
-            try writer.print(" RiscvQm31 n{} = wide_n{}, d{} = wide_d{};\n", .{index,index,index,index});
+            try writer.print(" RiscvQm31 n{} = wide_n{}, d{} = wide_d{};\n", .{ index, index, index, index });
         } else if (batch.entry_count == 1) {
             try writer.print(" RiscvQm31 n{} = {{l{},0u,0u,0u}}, d{} = denominator{};\n", .{ index, program.entries[first].numerator, index, first });
         } else {

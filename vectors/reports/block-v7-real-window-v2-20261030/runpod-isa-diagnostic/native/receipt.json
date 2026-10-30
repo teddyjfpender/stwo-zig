@@ -1,0 +1,26 @@
+{
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-v7-isa-build.lock",
+    "src/frontends/riscv/block_v7_native_cache_parity_test_root.zig",
+    "-target",
+    "x86_64-linux-gnu.2.39",
+    "-mcpu=native",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-lc",
+    "--test-filter",
+    "native",
+    "--test-no-exec",
+    "-femit-bin=/workspace/stwo-v7-evidence/isa-controls/native/prover"
+  ],
+  "started_unix_ns": 1793271696627088345,
+  "source_sha256": "30f30e2e98d3680d3b8e49b122831092fcea6287b4a1a04b26007b898270a2a9",
+  "mcpu": "native",
+  "build_returncode": 0,
+  "finished_unix_ns": 1793271814454250690,
+  "binary_sha256": "e700635c0d74ae33c1b76b8b59953352aa1e1c4829690d643547747a71d16eae",
+  "runtime_returncode": 1
+}

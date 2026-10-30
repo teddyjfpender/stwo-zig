@@ -8,37 +8,56 @@ const recorder = @import("blake3_native_recorder.zig");
 const universal = @import("universal_challenges.zig");
 const shared = @import("blake3_native_transcript.zig");
 const Q = @import("stwo_core").fields.qm31.QM31;
-pub const ClaimsChannel = struct {
-    recorder: *recorder.Recorder,
-    cursor: u32 = Bus.CLAIM_WORD_BASE,
-    pub fn mixU32s(self: *ClaimsChannel, words: []const u32) void {
-        self.recorder.mixU32s(words);
-    }
-    pub fn mixFelts(self: *ClaimsChannel, values: []const Q) void {
-        self.recorder.mixPublicFelts(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = self.cursor }, values);
-        self.cursor += @intCast(values.len * 4);
-    }
-};
+pub const ClaimsChannel = ClaimsChannelFor(recorder.Recorder);
+fn ClaimsChannelFor(comptime Recorder: type) type {
+    return struct {
+        recorder: *Recorder,
+        cursor: u32 = Bus.CLAIM_WORD_BASE,
+        pub fn mixU32s(self: *@This(), words: []const u32) void {
+            self.recorder.mixU32s(words);
+        }
+        pub fn mixFelts(self: *@This(), values: []const Q) void {
+            self.recorder.mixPublicFelts(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = self.cursor }, values);
+            self.cursor += @intCast(values.len * 4);
+        }
+    };
+}
 pub fn prefix(a: std.mem.Allocator, r: *recorder.Recorder, admitted: *const Admission.Prepared, claims: *const Admission.Profile.ExtensionClaim) !Admission.Profile.Relations {
+    return prefixWith(false, a, r, admitted, claims);
+}
+pub fn prefixFixed(a: std.mem.Allocator, r: *@import("blake3_fixed_operation_recorder_v1.zig").Recorder, admitted: *const Admission.Prepared) !void {
+    const shape_only = try Admission.Profile.ExtensionClaim.zeroForStatement(&admitted.statement);
+    return prefixWith(true, a, r, admitted, &shape_only);
+}
+fn prefixWith(comptime fixed: bool, a: std.mem.Allocator, r: anytype, admitted: *const Admission.Prepared, claims: *const Admission.Profile.ExtensionClaim) !(if (fixed) void else Admission.Profile.Relations) {
     try admitted.validate(admitted.template_id);
     try claims.validate(&admitted.statement);
-    r.mixRoot(admitted.roots[0]);
-    r.mixRoot(admitted.roots[1]);
+    if (fixed) {
+        for (0..2) |i| r.mixPublicRoot(try @import("blake3_root_sources.zig").caller(i), @splat(0));
+    } else {
+        r.mixRoot(admitted.roots[0]);
+        r.mixRoot(admitted.roots[1]);
+    }
     try r.restartChannel();
     const channel = @import("../../prover/block_v5_universal_channel_v1.zig");
     r.mixU32s(&.{ channel.TAG, channel.VERSION });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 0 }, admitted.sealed.digest);
-    const vm = try universal.UniversalRelations.draw(a, r);
+    const vm = if (fixed) try r.universalPairs(0, universal.RELATION_COUNT) else try universal.UniversalRelations.draw(a, r);
     const Protocol = Admission.Protocol;
     r.mixU32s(&.{ Protocol.TAG, Protocol.VERSION, @intFromEnum(Protocol.circuit_profile) });
-    const relations = try Admission.Profile.Relations.drawAfterVm(a, r, vm);
+    const relations = if (fixed) blk: {
+        // Original ETH13 draws precede SHA's independent wire frame.
+        try r.universalPairs(universal.RELATION_COUNT, 13);
+        r.mixU32s(&.{ 0x53484157, 1 }); // sha256_relations.draw: SHAW v1.
+        break :blk try r.universalPairs(universal.RELATION_COUNT + 13, 1);
+    } else try Admission.Profile.Relations.drawAfterVm(a, r, vm);
     r.mixPublicWords(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = Bus.INDEX_WORD_BASE }, &.{ Protocol.TAG, Protocol.VERSION, admitted.binding.execution_index });
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 8 }, admitted.binding.execution_instance_id);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 16 }, admitted.binding.caller_key_id);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 24 }, admitted.binding.caller_instance_id);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 32 }, admitted.roots[0]);
     r.mixPublicRoot(.{ .circuit = Bus.PUBLIC_CIRCUIT, .first_wire = 40 }, admitted.roots[1]);
-    var routed = ClaimsChannel{ .recorder = r };
+    var routed = ClaimsChannelFor(@TypeOf(r.*)){ .recorder = r };
     claims.mixInto(&routed);
     try r.check();
     return relations;

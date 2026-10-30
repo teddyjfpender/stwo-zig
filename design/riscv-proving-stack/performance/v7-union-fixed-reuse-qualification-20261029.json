@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-29",
+  "result": "PASS11",
+  "profile": {
+    "queries": 70,
+    "pow_bits": 26,
+    "cycles": 20495,
+    "ram_events": 8293,
+    "ram_shards": 3,
+    "native_windows": 1
+  },
+  "change": "Lease original fixed-polynomial LDE and coefficient buffers; recompute merged Merkle commitment without reinterpolation or extension. Native fixed coefficients opt in at first commitment; old collection defaults and main retention unchanged.",
+  "proof_bytes": 5841554,
+  "exact_stark_bytes_and_all_physical_claims": true,
+  "fresh_original_verification_after_producer_destruction": true,
+  "proof_phase_peak_bytes": 359966086,
+  "diagnostic_single_pair": {
+    "reuse_prove_ns": 4265677000,
+    "rebuild_prove_ns": 4286275875,
+    "timing": "shared_host_single_pair_not_ranked",
+    "claim": "No substantial speedup established. Both proofs use the same retained-fixed first stages."
+  },
+  "excluded_metrics": {
+    "contiguous_ns_from_raw_log": 10729590291,
+    "reason": "That test binary includes the extra raw-rebuild oracle in its whole-path clock. Current source suppresses the contiguous metric whenever the comparison oracle is enabled. This is not an end-to-end timing result."
+  },
+  "source_ownership": "Explicit borrowed column descriptors, borrowed coefficient descriptors, source-tree leases and direct SharedHostBudget leases; original verifier reconstructs independent fixed roots unchanged.",
+  "log": {
+    "path": "design/riscv-proving-stack/performance/v7-union-fixed-reuse-qualification-20261029.log",
+    "sha256": "6a044c2489a92fb882176ee9dfee2f3873a1c9fc9549c78ccd156fb4691083e8"
+  },
+  "binary_sha256": "1cf10e119f03a040caf2bca6f6c47514559d692d0fe42b25a5f6e1edfdba85ea",
+  "remaining": [
+    "Multiwindow engine still rebuilds fixed data until separately integrated and qualified.",
+    "Compact or coefficient-missing sources explicitly fall back to raw reconstruction; reuse_required rejects fallback.",
+    "This removes duplicate fixed polynomial transforms, not fixed-column multiplicity or total AIR opening width."
+  ],
+  "ownership_gate": {
+    "result": "PASS3",
+    "checks": [
+      "all allocation-failure positions",
+      "original source producers and child budget root destroyed before borrowed-buffer reads and Merkle opening",
+      "wrong fixed root, config and column geometry reject before allocation",
+      "missing coefficients, coefficient-only input and compact destination select explicit fallback"
+    ],
+    "log": "design/riscv-proving-stack/performance/v7-union-fixed-reuse-ownership-20261029.log",
+    "sha256": "6caeede5eaeb2cb64d3a9fc51b2a35705bf649c81576b7182e66c64df16ed803"
+  }
+}

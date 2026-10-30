@@ -240,7 +240,7 @@ __global__ void b2n_continue(
     static_assert(
         !(Duplicate && CompactDepth != 0u),
         "a B2N continuation cannot duplicate and compact its output");
-    static_assert(CompactDepth <= 2u, "unsupported compact split depth");
+    static_assert(CompactDepth <= 3u, "unsupported compact split depth");
     constexpr uint32_t stage_count = 2u * LogValues;
     const uint32_t column_index = blockIdx.z;
     const uint32_t block_start =
@@ -482,8 +482,8 @@ inline cudaError_t launch_b2n_continue_compact(
     const M31 *twiddles,
     cudaStream_t stream) {
     static_assert(
-        CompactDepth == 1u || CompactDepth == 2u,
-        "compact B2N supports depth one or two");
+        CompactDepth >= 1u && CompactDepth <= 3u,
+        "compact B2N supports finite depths one through three");
     if (columns.base == nullptr || compact_outputs.base == nullptr ||
         log_n < CompactDepth ||
         compact_outputs.stride_words != (1u << (log_n - CompactDepth)) ||

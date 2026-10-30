@@ -1,0 +1,176 @@
+{
+  "case": "keccak",
+  "timing_status": "instrumented shared-host diagnostic",
+  "profile": "canonical q70 pow26",
+  "charged_peak_bytes": 10008545901,
+  "maximum_resident_set_size_bytes": 10067312640,
+  "proof_sha256": "e01b9be0ea3db447fdf46a2775bbc0e2795b70c4cf85d6282c6191b2a497da28",
+  "profiling_preserves_original_proof_bytes": true,
+  "stage_profiles": {
+    "BLAKE3_WITNESS_STAGE_PROFILE": {
+      "schema_version": 1,
+      "runtime": "host",
+      "example": "blake3-ethereum-witness",
+      "stages": [
+        {
+          "id": "witness.precompile",
+          "label": "Preflight and precompile witness",
+          "seconds": 0.122842,
+          "children": null
+        },
+        {
+          "id": "witness.memory",
+          "label": "Memory commitment plan",
+          "seconds": 1.21181,
+          "children": null
+        },
+        {
+          "id": "witness.hashes",
+          "label": "Hash columns and witness",
+          "seconds": 7.422492,
+          "children": null
+        },
+        {
+          "id": "witness.native",
+          "label": "Native execution columns",
+          "seconds": 0.032593,
+          "children": null
+        },
+        {
+          "id": "witness.lookup_counts",
+          "label": "Shared lookup counts and statement",
+          "seconds": 1.20034,
+          "children": null
+        }
+      ]
+    },
+    "BLAKE3_EXECUTION_STAGE_PROFILE": {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-extension",
+      "stages": [
+        {
+          "id": "execution.fixed",
+          "label": "Admission and fixed commitment",
+          "seconds": 2.02382,
+          "children": null
+        },
+        {
+          "id": "execution.main",
+          "label": "Main commitment",
+          "seconds": 3.530708,
+          "children": null
+        },
+        {
+          "id": "execution.native_interaction",
+          "label": "Native interaction generation",
+          "seconds": 0.059962,
+          "children": null
+        },
+        {
+          "id": "execution.hash_interaction",
+          "label": "Hash interaction generation",
+          "seconds": 3.990021,
+          "children": null
+        },
+        {
+          "id": "execution.extension_interaction",
+          "label": "Precompile interaction generation",
+          "seconds": 0.639869,
+          "children": null
+        },
+        {
+          "id": "execution.interaction_commit",
+          "label": "Interaction closure and commitment",
+          "seconds": 4.0768,
+          "children": null
+        },
+        {
+          "id": "execution.core",
+          "label": "Core STARK proof",
+          "seconds": 19.818339,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 4e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 9.9e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 12.854599,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.025844,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.507093,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.159239,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 1.888726,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.001321,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 3.298603,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.45906,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.036818,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.343855,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.002329,
+              "children": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

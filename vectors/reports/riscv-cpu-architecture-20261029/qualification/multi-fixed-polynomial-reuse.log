@@ -1,0 +1,7 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 15s
+1/4 block_v7_union_fixed_reuse_test_root.test_0...OK
+2/4 prover.tests.block_v7_union_fixed_reuse_test.test.v7 fixed reuse owns descriptors and leases distinct source budgets...OK
+3/4 prover.tests.block_v7_union_fixed_reuse_test.test.v7 fixed reuse allocation failures release every acquired lease...OK
+4/4 prover.tests.block_v7_union_fixed_reuse_test.test.v7 fixed reuse preserves ordered multi-source rosters and rejects reshaped columns...OK
+All 4 tests passed.

@@ -23,8 +23,7 @@ pub fn qualify(a: std.mem.Allocator, dir: std.fs.Dir, pins: Global.Pins, manifes
     var store = try Store.Store.initReader(a, dir, policies, files.files, pins.tables.seal.config, limits);
     defer store.deinit();
     const pin = pins.tables.executions[index];
-    const native = try Native.ForBackend(Cpu).verifyOwnedWithCatalog(a, try store.take(.native, index), pin.shape, pin.admission,
-        pin.template, pin.template_id, pin.profile, index, sealed, pins.tables.seal, pins.tables.roster, pins.tables.catalog);
+    const native = try Native.ForBackend(Cpu).verifyOwnedWithCatalog(a, try store.take(.native, index), pin.shape, pin.admission, pin.template, pin.template_id, pin.profile, index, sealed, pins.tables.seal, pins.tables.roster, pins.tables.catalog);
     const slots = try Source.slotsFromShapeForMode(a, pin.shape, pin.template.external_retirements, 1);
     defer a.free(slots);
     const fixed = try Template.columnLogs(a, pin.shape, pin.template.external_retirements, .fixed);
@@ -33,27 +32,35 @@ pub fn qualify(a: std.mem.Allocator, dir: std.fs.Dir, pins: Global.Pins, manifes
     defer a.free(main);
     const received = try store.take(.native_projection, index);
     var owns_received = true;
-    defer if (owns_received) { var proof = received; proof.deinit(a); };
+    defer if (owns_received) {
+        var proof = received;
+        proof.deinit(a);
+    };
     var forged = try clone(Projection.Proof, a, received);
     var found = false;
     for (slots, forged.claims) |slot, *claim| if (slot.partition == .register_memory_access) {
-        claim.sum = claim.sum.add(Q.one()); found = true; break;
+        claim.sum = claim.sum.add(Q.one());
+        found = true;
+        break;
     };
-    if (!found) { forged.deinit(a); return error.MissingProvedNativeRegisterPartition; }
-    if (Projection.ForBackend(Cpu).verifyOwned(a, forged, sealed, index, pin.template_id, native.instance_id, slots, fixed, main,
-        native.first_roots, native.first_roots, pins.tables.seal.config)) |_| return error.AcceptedForgedNativeRegisterClaim else |_| {}
+    if (!found) {
+        forged.deinit(a);
+        return error.MissingProvedNativeRegisterPartition;
+    }
+    if (Projection.ForBackend(Cpu).verifyOwned(a, forged, sealed, index, pin.template_id, native.instance_id, slots, fixed, main, native.first_roots, native.first_roots, pins.tables.seal.config)) |_| return error.AcceptedForgedNativeRegisterClaim else |_| {}
     owns_received = false;
-    const fresh = try Projection.ForBackend(Cpu).verifyOwned(a, received, sealed, index, pin.template_id, native.instance_id, slots, fixed, main,
-        native.first_roots, native.first_roots, pins.tables.seal.config);
+    const fresh = try Projection.ForBackend(Cpu).verifyOwned(a, received, sealed, index, pin.template_id, native.instance_id, slots, fixed, main, native.first_roots, native.first_roots, pins.tables.seal.config);
     var register_sum = fresh.register_memory_sum.add(fresh.register_clock_memory_sum);
     for (pins.tables.extensions) |extension| {
         if (extension.execution_index != index) continue;
         const Caller = @import("block_v5_precompile_family_proof_v1.zig");
-        const caller = try Caller.ForBackend(Cpu).verifyOwned(a, try store.take(.caller, index), extension.statement, extension.total_steps,
-            extension.expected_key_id, native.instance_id, index, sealed, pins.tables.seal, pins.tables.roster);
+        const caller = try Caller.ForBackend(Cpu).verifyOwned(a, try store.take(.caller, index), extension.statement, extension.total_steps, extension.expected_key_id, native.instance_id, index, sealed, pins.tables.seal, pins.tables.roster);
         const received_caller = try store.take(.caller_tables, index);
         var owns_caller = true;
-        defer if (owns_caller) { var proof = received_caller; proof.deinit(a); };
+        defer if (owns_caller) {
+            var proof = received_caller;
+            proof.deinit(a);
+        };
         var forged_caller = try clone(CallerProjection.Proof, a, received_caller);
         const owner = try CallerSource.Owner.init(a);
         defer owner.destroy(a);
@@ -61,14 +68,17 @@ pub fn qualify(a: std.mem.Allocator, dir: std.fs.Dir, pins: Global.Pins, manifes
         defer a.free(caller_slots);
         found = false;
         for (caller_slots, forged_caller.claims) |slot, *claim| if (slot.table == .register_memory) {
-            claim.sum = claim.sum.add(Q.one()); found = true; break;
+            claim.sum = claim.sum.add(Q.one());
+            found = true;
+            break;
         };
-        if (!found) { forged_caller.deinit(a); return error.MissingProvedCallerRegisterPartition; }
-        if (CallerProjection.ForBackend(Cpu).verifyOwned(a, forged_caller, sealed, pins.tables.seal, pins.tables.roster, &caller,
-            extension.statement, extension.total_steps)) |_| return error.AcceptedForgedCallerRegisterClaim else |_| {}
+        if (!found) {
+            forged_caller.deinit(a);
+            return error.MissingProvedCallerRegisterPartition;
+        }
+        if (CallerProjection.ForBackend(Cpu).verifyOwned(a, forged_caller, sealed, pins.tables.seal, pins.tables.roster, &caller, extension.statement, extension.total_steps)) |_| return error.AcceptedForgedCallerRegisterClaim else |_| {}
         owns_caller = false;
-        const fresh_caller = try CallerProjection.ForBackend(Cpu).verifyOwned(a, received_caller, sealed, pins.tables.seal, pins.tables.roster,
-            &caller, extension.statement, extension.total_steps);
+        const fresh_caller = try CallerProjection.ForBackend(Cpu).verifyOwned(a, received_caller, sealed, pins.tables.seal, pins.tables.roster, &caller, extension.statement, extension.total_steps);
         register_sum = register_sum.add(fresh_caller.register_memory_sum);
     }
     var channel = sealed.sharedChannel();

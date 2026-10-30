@@ -1,4 +1,4 @@
-//! Native four/ten-commitment fixed PCS ports from original trusted emitters.
+//! Native four/five/ten-commitment fixed PCS ports from original trusted emitters.
 //! A routing compiler accepts no values/capture/key and confers no admission.
 //! The typed RAM/range entrypoint also independently authenticates its original
 //! policy, shape and transcript. PAGE's transcript/context port stays separate.
@@ -15,7 +15,7 @@ const Paths = @import("air/blake3_stark_paths.zig");
 const Ports = @import("air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig");
 const Openings = @import("air/block_v5_recursive_parent_fixed_openings_v1.zig");
 pub fn ForCommitments(comptime N: usize) type {
-    if (N != 4 and N != 10) @compileError("native PCS requires the original four or ten commitment trees");
+    if (N != 4 and N != 5 and N != 6 and N != 10) @compileError("native PCS requires the original four, five, six or ten commitment trees");
     return struct {
         pub const Owned = struct {
             const Self = @This();

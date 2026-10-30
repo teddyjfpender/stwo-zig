@@ -1,0 +1,16 @@
+{
+  "exit_code": 0,
+  "wall_s": 260.3733489513397,
+  "objects": [
+    {
+      "original": "/workspace/stwo-v7-resident-native-v2/.zig-cache/tmp/a37b0e3f771fac5f/prover_zcu.o",
+      "path": "/workspace/stwo-v7-evidence/resident-native-diagnostic/prover_zcu.o",
+      "bytes": 86718320,
+      "sha256": "904fbd450085174aa3c7d85533de2d5dce6f4990bfac34390c38695ead056d23"
+    }
+  ],
+  "zig_source_sha256": "3231fe038eb5d6de7b5c88b33ba14710bd69e45d226ef3ed9e1782865913a1ce",
+  "diagnostic_only": true,
+  "no_extra_device_reads": true,
+  "binary_sha256": "ca1d3d329a01c6e9d899a1f746886edf314538f58c93f920611bc8bf6d145533"
+}

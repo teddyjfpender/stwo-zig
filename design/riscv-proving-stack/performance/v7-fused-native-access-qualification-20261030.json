@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "scope": "Exact producer-only ordinary-memory sidecar interaction fusion; no AIR, verifier equation, mask, physical-claim grouping, transcript, or statement change. B independently added opt-in native layout selector; canonical selector remains default.",
+  "algorithm": {
+    "old_inversions_per_active_access": 17,
+    "tile_rows": 256,
+    "max_workers": 16,
+    "worker_scratch_upper_bytes_excluding_headers": 6426624,
+    "output_columns": 49,
+    "independent_secure_claims": 9,
+    "count_claim": 1,
+    "source_pair_reads_per_row": 1,
+    "prefix_order": "original logical order, same committedRow permutation",
+    "capacity_fallback": "nonblocking WorkPool lease falls back to one worker",
+    "allocation_lifetime": "Outputs transfer once into interaction tree; bounded scratch uses enclosing charged backing allocator and releases between slots even if outputs use a metadata arena"
+  },
+  "native_cache": {
+    "default_mib": 256,
+    "explicit_max_mib": 2048,
+    "zero_disables": true,
+    "request_budget_enforced_by": "same bounded charged proof allocator, not a global or page allocator",
+    "one_owner_per_proof": true,
+    "cli": "--native-main-cache-mib",
+    "environment": "STWO_V7_NATIVE_MAIN_CACHE_MIB",
+    "reports_require_requested_budget": true
+  },
+  "evidence": [
+    {
+      "log": "/tmp/v7-native-access-interaction-tests.log",
+      "passed": 163,
+      "failed": 0,
+      "cases": "Old Word+Range+Universal generators vs fused all49 columns/all9 sums/count; inactive and multi-tile; unequal3-worker partitions; nested unavailable lease; all3 active zero-denominator buses; wrongcounter seal; malformed typedtuple; allocation failure unwind; exactly one pairAt call per row"
+    },
+    {
+      "log": "/tmp/v7-native-fused-access-parity.log",
+      "passed": 449,
+      "skipped": 1,
+      "failed": 0,
+      "cases": "Genuine native q3 access proofs freshverified, cache-disabled vs eviction-heavy cache exact bytes/claims and recorder independence; all-family cached domain/OODS; pending lifetime races;2GiB configuration admission"
+    },
+    {
+      "log": "/tmp/v7-fused-access-union-semantic.log",
+      "exit": 0,
+      "scope": "Full Multi/shared-Keccak benchmark harness instantiated, no performance/proof runtime"
+    },
+    {
+      "log": "/tmp/v7-cache-cli-tests.log",
+      "passed": 11,
+      "scope": "CLI/report budget admission and non-pooling across cache caps"
+    }
+  ],
+  "performance_status": "No fused-sidecar end-to-end speedup measured yet. Controlled complete canonical Mixed421 proof/hash comparison pending; prior immutable baseline and scaling stay separately qualified.",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_native_access_interaction_v1.zig": "d0c0c4747d188d64597a84476d8d56be9f970c80c17e7cd8bdee91448470ee94",
+    "src/frontends/riscv/prover/block_v7_native_proof_v1.zig": "fc6362af59dbd1f4025cc1e5eb82ab02656953a4d5fb21d51625f62829c7e435",
+    "src/frontends/riscv/prover/block_v7_native_caller_union_proof_v1.zig": "ab1ff2b76e30347cbeed594ee726ac3a714ef68ba08e30048aeb4d96a5f9cdd3",
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_v1.zig": "811f73e0b99d2b09070b18028873b19945e4b2218cc681115e299dbeb530288f",
+    "src/frontends/riscv/prover/block_v7_keccak_union_proof_v1.zig": "bf319e7c53ab29c0dc1c249f1bacbad65abd5b28b0b6b68cf1d5d316d2bf0910",
+    "src/frontends/riscv/prover/block_v7_complete_union_proof_v1.zig": "1bf6084b8b97930718bd36ae4d0711150d85901dafed06e613f2b66e4b813fa4",
+    "src/frontends/riscv/prover/block_v7_shared_quotient_cache_v1.zig": "58af704f998d037869a1ed2d652518fc0bb774a37f1812338f69736c8a2c500a",
+    "src/frontends/riscv/prover/block_v7_leased_quotient_cache_v1.zig": "1f0eac3100547734f88898121e0a88c787e1dfd4326da37796b477169035ba56",
+    "src/frontends/riscv/prover/tests/block_v7_native_access_interaction_test.zig": "a8c239151c0b8ec27c97c6350f68ec5e6c99c39ebb3295ec4ee16262e068b2e4",
+    "src/frontends/riscv/prover/tests/block_v7_native_cache_parity_test.zig": "cc32673a13f0757d488b2add2cc3f6faf468b9059df3cab85c58b7494a61d00f",
+    "src/frontends/riscv/prover/tests/block_v7_shared_quotient_cache_test.zig": "8696885ca5ca19a22588ac35eb4b6b727d54026fccb1056c3db00237093ae9af",
+    "scripts/benchmark_riscv_ethereum.py": "c3de87fd6333d006d3432f868a90e9ce062c57dbc92de41dfcb857de82b2cff1",
+    "scripts/tests/test_benchmark_riscv_ethereum.py": "80f6277aba985e4354397acc0354b75ddd956c9cafdafa29f18ddaac11b59cf7",
+    "src/frontends/riscv/prover/tests/block_v7_multi_union_test.zig": "c404e2de21ff4405ff5b9d2d70d08bd6019de25b6173d4251d86a42a4b3d7a36",
+    "src/frontends/riscv/benchmarks/shared_keccak_profile_v1.zig": "4ee27369a1ae9ad5d7e32b6361a45ad299e9720f95b70c81959d915d14a27108"
+  },
+  "binary_sha256": {
+    "/tmp/v7-native-access-interaction-tests": "12cbee55acc1ea9b0ae4ab09906cb603b9107463c14fa66ed58e9494be30115c",
+    "/tmp/v7-native-fused-access-parity": "d945dc4eacc079b85834668203103cedb419cc41e627278796791b50c8014dc0"
+  }
+}

@@ -36,15 +36,24 @@ pub fn prepareCapturedExternal(a: std.mem.Allocator, proof: anytype, root: [32]u
 /// All eight original premix/semantic roots are independently public PAGE
 /// inputs. The two remaining roots and FRI roots retain original word AIR.
 pub fn prepareCapturedExternalFor(comptime count: usize, a: std.mem.Allocator, proof: anytype, root: [32]u8, config: core.pcs.PcsConfig, transcript: *const transcript_mod.Planned, prefix: usize) !Prepared {
-    comptime if (count != 10) @compileError("explicit PAGE root route requires ten commitments");
-    if (prefix != 8) return error.InvalidExecutionRoots;
+    comptime if (count != 6 and count != 10) @compileError("explicit caller/PAGE root route requires six/ten commitments");
+    if (prefix != (if (count == 6) @as(usize, 3) else 8)) return error.InvalidExecutionRoots;
     return prepareMode(true, count, a, proof, root, config, transcript, prefix);
 }
+/// Joined-original roots use the independently reconstructed finite placement.
+/// This entry point does not broaden legacy native/caller root admission.
+pub fn prepareCapturedExternalBounded(a: std.mem.Allocator, proof: anytype, root: [32]u8, config: core.pcs.PcsConfig, transcript: *const transcript_mod.Planned, prefix: usize, commitments: usize) !Prepared {
+    if (commitments < 4 or commitments > 257 or proof.commitments.len != commitments or prefix < 2 or prefix >= commitments) return error.InvalidExecutionRoots;
+    return prepareAccepted(true, a, proof, root, config, transcript, prefix);
+}
 fn prepareMode(comptime direct: bool, comptime exact_count: ?usize, a: std.mem.Allocator, proof: anytype, root: [32]u8, config: core.pcs.PcsConfig, transcript: *const transcript_mod.Planned, prefix: usize) !Prepared {
-    const joint = prefix >= 2;
     if (comptime exact_count) |count| {
         if (proof.commitments.len != count) return error.InvalidExecutionRoots;
     } else if (proof.commitments.len != 4 and proof.commitments.len != 5) return error.InvalidExecutionRoots;
+    return prepareAccepted(direct, a, proof, root, config, transcript, prefix);
+}
+fn prepareAccepted(comptime direct: bool, a: std.mem.Allocator, proof: anytype, root: [32]u8, config: core.pcs.PcsConfig, transcript: *const transcript_mod.Planned, prefix: usize) !Prepared {
+    const joint = prefix >= 2;
     if (prefix >= proof.commitments.len) return error.InvalidExecutionRoots;
     if (!std.mem.eql(u8, &proof.commitments[0], &root)) return error.InvalidExecutionRoots;
     const count = try std.math.add(usize, proof.commitments.len, proof.fri.layers.len);
@@ -67,8 +76,8 @@ fn prepareMode(comptime direct: bool, comptime exact_count: ?usize, a: std.mem.A
         const first = try roots.caller(0);
         const second = try roots.caller(1);
         for (0..8) |coordinate| {
-            const first_row = try boundary.logicalRow(first.circuit, first.first_wire + @as(u32, @intCast(coordinate)), M.fromCanonical(path_reads), std.mem.readInt(u32, proof.commitments[0][coordinate * 4 ..][0..4], .little));
-            const second_row = try boundary.logicalRow(second.circuit, second.first_wire + @as(u32, @intCast(coordinate)), M.fromCanonical(path_reads), std.mem.readInt(u32, proof.commitments[1][coordinate * 4 ..][0..4], .little));
+            const first_row = try boundary.logicalRow(first.circuit, first.first_wire + @as(u32, @intCast(coordinate)), M.fromCanonical(@intCast(proof.trace_paths[0].positions.len)), std.mem.readInt(u32, proof.commitments[0][coordinate * 4 ..][0..4], .little));
+            const second_row = try boundary.logicalRow(second.circuit, second.first_wire + @as(u32, @intCast(coordinate)), M.fromCanonical(@intCast(proof.trace_paths[1].positions.len)), std.mem.readInt(u32, proof.commitments[1][coordinate * 4 ..][0..4], .little));
             if (direct) {
                 try columns.?.putFixed(2, coordinate, first_row, first_row);
                 try columns.?.putFixed(2, 8 + coordinate, second_row, second_row);
@@ -85,7 +94,8 @@ fn prepareMode(comptime direct: bool, comptime exact_count: ?usize, a: std.mem.A
         const operation = transcript.operations[receipt.operation].routed_root;
         if (!std.meta.eql(operation.source, source) or !std.meta.eql(operation.value, digest)) return error.InvalidExecutionRoots;
         for (receipt.uses, 0..) |reads, coordinate| {
-            const uses = try std.math.add(u32, reads, path_reads);
+            const actual_path_reads: u32 = if (index < proof.commitments.len) @intCast(proof.trace_paths[index].positions.len) else path_reads;
+            const uses = try std.math.add(u32, reads, actual_path_reads);
             if (uses >= core.fields.m31.Modulus) return error.InvalidExecutionRoots;
             const wire = try std.math.add(u32, source.first_wire, @intCast(coordinate));
             const value = std.mem.readInt(u32, digest[coordinate * 4 ..][0..4], .little);

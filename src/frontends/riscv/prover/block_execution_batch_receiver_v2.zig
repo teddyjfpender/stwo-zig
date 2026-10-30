@@ -82,15 +82,17 @@ fn ForNativeProfile(comptime Backend: type, comptime NativeModule: type, comptim
                     return error.InvalidEmptyExecutionSidecar;
                 var shared = sealed.sharedChannel();
                 var receipt = sidecar.VerifiedExecutionReceipt{
-                    .instance_index = instance_index, .transition_sum = core.fields.qm31.QM31.zero(),
+                    .instance_index = instance_index,
+                    .transition_sum = core.fields.qm31.QM31.zero(),
                     .event_count = 0,
                     .range_claims = try a.alloc(@import("block_execution_byte_range_v2.zig").Claims, 0),
-                    .native_roots = roots, .witness_root = trusted_witness_root,
-                    .native_key_id = expected_key_id, .sealed_channel_digest = shared.digestBytes(),
+                    .native_roots = roots,
+                    .witness_root = trusted_witness_root,
+                    .native_key_id = expected_key_id,
+                    .sealed_channel_digest = shared.digestBytes(),
                 };
                 errdefer receipt.deinit(a);
-                try leaf.validate(statement, &native_shape.public_data, config, sealed,
-                    expected_key_id, roots, trusted_witness_root, &receipt);
+                try leaf.validate(statement, &native_shape.public_data, config, sealed, expected_key_id, roots, trusted_witness_root, &receipt);
                 return receipt;
             }
             if (wire.sidecar_stark.len == 0) return error.InvalidBlockExecutionReceiverInput;
@@ -111,10 +113,22 @@ fn ForNativeProfile(comptime Backend: type, comptime NativeModule: type, comptim
             owns_stark = false;
             owns_claims = false;
             const receipt = try SidecarApi.verifyOwned(
-                a, received, sealed, instance_index, expected_key_id, slots,
-                prepared.logs[0], prepared.logs[1], roots, trusted_witness_root, config,
+                a,
+                received,
+                sealed,
+                instance_index,
+                expected_key_id,
+                slots,
+                prepared.logs[0],
+                prepared.logs[1],
+                roots,
+                trusted_witness_root,
+                config,
             );
-            errdefer { var owned = receipt; owned.deinit(a); }
+            errdefer {
+                var owned = receipt;
+                owned.deinit(a);
+            }
             try leaf.validate(statement, &native_shape.public_data, config, sealed, expected_key_id, roots, trusted_witness_root, &receipt);
             return receipt;
         }
@@ -162,6 +176,12 @@ test "ethereum SHA receiver rejects an unbound proof batch before decoding" {
     try std.testing.expectError(error.InvalidBlockExecutionReceiverInput, Receiver.verify(
         std.testing.allocator,
         .{ .native_artifact = &.{}, .sidecar_stark = &.{}, .sidecar_claims = &.{} },
-        undefined, @splat(0), undefined, unbound, 0, @splat(0), config,
+        undefined,
+        @splat(0),
+        undefined,
+        unbound,
+        0,
+        @splat(0),
+        config,
     ));
 }

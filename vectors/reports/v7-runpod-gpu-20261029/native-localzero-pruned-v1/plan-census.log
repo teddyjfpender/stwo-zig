@@ -1,0 +1,20 @@
+1/2 riscv_cuda_native_x0_plan_test_root.test.native x0 plan modules...OK
+2/2 frontends.riscv.air.x0_native_witness_plan_v1.test.native x0 pruned witness plans preserve exact original tuple roots...X0_PLAN family=base_alu_reg groups=3 nodes=29
+X0_PLAN family=base_alu_imm groups=2 nodes=26
+X0_PLAN family=shifts_reg groups=3 nodes=33
+X0_PLAN family=shifts_imm groups=2 nodes=24
+X0_PLAN family=lt_reg groups=3 nodes=31
+X0_PLAN family=lt_imm groups=2 nodes=22
+X0_PLAN family=branch_eq groups=2 nodes=22
+X0_PLAN family=branch_lt groups=2 nodes=26
+X0_PLAN family=lui groups=1 nodes=11
+X0_PLAN family=auipc groups=1 nodes=11
+X0_PLAN family=jalr groups=2 nodes=20
+X0_PLAN family=jal groups=1 nodes=11
+X0_PLAN family=load_store groups=3 nodes=38
+X0_PLAN family=mul groups=3 nodes=29
+X0_PLAN family=mulh groups=3 nodes=33
+X0_PLAN family=div groups=3 nodes=35
+X0_PLAN family=fence groups=0 nodes=0
+OK
+All 2 tests passed.

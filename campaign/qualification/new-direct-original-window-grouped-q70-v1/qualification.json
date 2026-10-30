@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-riscv-grouped-direct-original-proof-qualification-v1",
+  "scope": "saved six-cycle mixed original bundle; source STARK proof and independent receiving",
+  "quotient_layout": "grouped_deep_v1_GDP1_authority_v2",
+  "compiled_binary_sha256": "353a61f3e398e985bbe912a20bdc08855c094b757ab88e2851c077cc20e9d7d4",
+  "optimize": "ReleaseSafe",
+  "whole_combined_gate_seconds": 244.17,
+  "whole_combined_gate_maximum_resident_bytes": 20808646656,
+  "whole_combined_gate_peak_footprint_bytes": 20813905568,
+  "whole_combined_gate_tests_passed": 15,
+  "whole_combined_gate_tests_skipped": 5,
+  "whole_combined_gate_tests_failed": 0,
+  "whole_gate_includes_other_qualification_case": true,
+  "complete_retained_block_proved": false,
+  "raw_report": "report.json"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "stwo-real-window-v2-build",
+  "source_sha256": "63ddbe84ab4ed99db9464ff2943ac7dbe1c61db204bf536951281af419c877fd",
+  "source_manifest": "source-before.json",
+  "before_after_equal": true,
+  "binary_sha256": "b12bc5e82fd7fe857b23f0e72500d235180bef37728714cff809a023babce77e",
+  "binary": "/tmp/v7-real-window-v2-benchmark",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "--lock",
+    "/tmp/stwo-zig-build.lock",
+    "src/frontends/riscv/block_v7_real_window_v2_benchmark_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-femit-bin=/tmp/v7-real-window-v2-benchmark"
+  ],
+  "validation": "472 passed; 2 skipped; 0 failed; actual corpus benchmark deliberately skipped until external capsule pins supplied"
+}

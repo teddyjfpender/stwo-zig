@@ -1,0 +1,937 @@
+{
+  "all_trees": [
+    {
+      "columns": 206,
+      "extended_cells": 73526856,
+      "index": 0,
+      "maximum_raw_log": 22,
+      "minimum_raw_log": 1,
+      "raw_cells": 36763428,
+      "samples": 129
+    },
+    {
+      "columns": 3107,
+      "extended_cells": 432475344,
+      "index": 1,
+      "maximum_raw_log": 22,
+      "minimum_raw_log": 1,
+      "raw_cells": 216237672,
+      "samples": 3107
+    },
+    {
+      "columns": 23,
+      "extended_cells": 24117248,
+      "index": 2,
+      "maximum_raw_log": 19,
+      "minimum_raw_log": 19,
+      "raw_cells": 12058624,
+      "samples": 25
+    },
+    {
+      "columns": 1,
+      "extended_cells": 131072,
+      "index": 3,
+      "maximum_raw_log": 16,
+      "minimum_raw_log": 16,
+      "raw_cells": 65536,
+      "samples": 1
+    },
+    {
+      "columns": 0,
+      "extended_cells": 0,
+      "index": 4,
+      "maximum_raw_log": 0,
+      "minimum_raw_log": 0,
+      "raw_cells": 0,
+      "samples": 0
+    },
+    {
+      "columns": 81,
+      "extended_cells": 2632960,
+      "index": 5,
+      "maximum_raw_log": 20,
+      "minimum_raw_log": 7,
+      "raw_cells": 1316480,
+      "samples": 81
+    },
+    {
+      "columns": 90,
+      "extended_cells": 47316992,
+      "index": 6,
+      "maximum_raw_log": 19,
+      "minimum_raw_log": 16,
+      "raw_cells": 23658496,
+      "samples": 99
+    },
+    {
+      "columns": 2884,
+      "extended_cells": 456349872,
+      "index": 7,
+      "maximum_raw_log": 22,
+      "minimum_raw_log": 1,
+      "raw_cells": 228174936,
+      "samples": 5768
+    },
+    {
+      "columns": 44,
+      "extended_cells": 46137344,
+      "index": 8,
+      "maximum_raw_log": 19,
+      "minimum_raw_log": 19,
+      "raw_cells": 23068672,
+      "samples": 88
+    },
+    {
+      "columns": 8,
+      "extended_cells": 1048576,
+      "index": 9,
+      "maximum_raw_log": 16,
+      "minimum_raw_log": 16,
+      "raw_cells": 524288,
+      "samples": 16
+    },
+    {
+      "columns": 4,
+      "extended_cells": 8388608,
+      "index": 10,
+      "maximum_raw_log": 20,
+      "minimum_raw_log": 20,
+      "raw_cells": 4194304,
+      "samples": 8
+    },
+    {
+      "columns": 24,
+      "extended_cells": 8991744,
+      "index": 11,
+      "maximum_raw_log": 20,
+      "minimum_raw_log": 7,
+      "raw_cells": 4495872,
+      "samples": 48
+    },
+    {
+      "columns": 140,
+      "extended_cells": 74448896,
+      "index": 12,
+      "maximum_raw_log": 19,
+      "minimum_raw_log": 16,
+      "raw_cells": 37224448,
+      "samples": 280
+    },
+    {
+      "columns": 16,
+      "extended_cells": 134217728,
+      "index": 13,
+      "maximum_raw_log": 22,
+      "minimum_raw_log": 22,
+      "raw_cells": 67108864,
+      "samples": 16
+    }
+  ],
+  "boundary": "offline exact cell inventory plus unqualified V3 arithmetic scenario; no runtime/proof qualification",
+  "families": [
+    {
+      "family": "load_store",
+      "main_cells": 85606400,
+      "main_cells_per_real_instruction": 50.047705460872166,
+      "padded_rows": 1712128,
+      "padding_cells": 81600,
+      "row_percent": 40.781402587890625,
+      "rows": 1710496,
+      "shards": 27,
+      "width": 50
+    },
+    {
+      "family": "base_alu_imm",
+      "main_cells": 55336960,
+      "main_cells_per_real_instruction": 35.064537755061956,
+      "padded_rows": 1581056,
+      "padding_cells": 101850,
+      "row_percent": 37.625932693481445,
+      "rows": 1578146,
+      "shards": 25,
+      "width": 35
+    },
+    {
+      "family": "branch_eq",
+      "main_cells": 22609920,
+      "main_cells_per_real_instruction": 30.450250498303078,
+      "padded_rows": 753664,
+      "padding_cells": 334320,
+      "row_percent": 17.70305633544922,
+      "rows": 742520,
+      "shards": 12,
+      "width": 30
+    },
+    {
+      "family": "branch_lt",
+      "main_cells": 2424832,
+      "main_cells_per_real_instruction": 43.118089514021015,
+      "padded_rows": 65536,
+      "padding_cells": 344063,
+      "row_percent": 1.340794563293457,
+      "rows": 56237,
+      "shards": 1,
+      "width": 37
+    },
+    {
+      "family": "base_alu_reg",
+      "main_cells": 2293760,
+      "main_cells_per_real_instruction": 44.35300487276665,
+      "padded_rows": 65536,
+      "padding_cells": 483700,
+      "row_percent": 1.2330055236816406,
+      "rows": 51716,
+      "shards": 1,
+      "width": 35
+    },
+    {
+      "family": "shifts_imm",
+      "main_cells": 835584,
+      "main_cells_per_real_instruction": 54.59192473539788,
+      "padded_rows": 16384,
+      "padding_cells": 54978,
+      "row_percent": 0.36492347717285156,
+      "rows": 15306,
+      "shards": 1,
+      "width": 51
+    },
+    {
+      "family": "jalr",
+      "main_cells": 671744,
+      "main_cells_per_real_instruction": 49.071809482065895,
+      "padded_rows": 16384,
+      "padding_cells": 110495,
+      "row_percent": 0.3263711929321289,
+      "rows": 13689,
+      "shards": 1,
+      "width": 41
+    },
+    {
+      "family": "auipc",
+      "main_cells": 475136,
+      "main_cells_per_real_instruction": 57.872838002436055,
+      "padded_rows": 16384,
+      "padding_cells": 237046,
+      "row_percent": 0.1957416534423828,
+      "rows": 8210,
+      "shards": 1,
+      "width": 29
+    },
+    {
+      "family": "lui",
+      "main_cells": 294912,
+      "main_cells_per_real_instruction": 26.996704503844747,
+      "padded_rows": 16384,
+      "padding_cells": 98280,
+      "row_percent": 0.2604484558105469,
+      "rows": 10924,
+      "shards": 1,
+      "width": 18
+    },
+    {
+      "family": "mul",
+      "main_cells": 159744,
+      "main_cells_per_real_instruction": 57.73183953740513,
+      "padded_rows": 4096,
+      "padding_cells": 51831,
+      "row_percent": 0.06597042083740234,
+      "rows": 2767,
+      "shards": 1,
+      "width": 39
+    },
+    {
+      "family": "jal",
+      "main_cells": 81920,
+      "main_cells_per_real_instruction": 28.673433671683583,
+      "padded_rows": 4096,
+      "padding_cells": 24780,
+      "row_percent": 0.0681161880493164,
+      "rows": 2857,
+      "shards": 1,
+      "width": 20
+    },
+    {
+      "family": "lt_imm",
+      "main_cells": 75776,
+      "main_cells_per_real_instruction": 55.02977487291213,
+      "padded_rows": 2048,
+      "padding_cells": 24827,
+      "row_percent": 0.032830238342285156,
+      "rows": 1377,
+      "shards": 1,
+      "width": 37
+    },
+    {
+      "family": "lt_reg",
+      "main_cells": 2816,
+      "main_cells_per_real_instruction": 67.04761904761905,
+      "padded_rows": 64,
+      "padding_cells": 968,
+      "row_percent": 0.0010013580322265625,
+      "rows": 42,
+      "shards": 1,
+      "width": 44
+    },
+    {
+      "family": "mulh",
+      "main_cells": 752,
+      "main_cells_per_real_instruction": 47.0,
+      "padded_rows": 16,
+      "padding_cells": 0,
+      "row_percent": 0.0003814697265625,
+      "rows": 16,
+      "shards": 1,
+      "width": 47
+    },
+    {
+      "family": "shifts_reg",
+      "main_cells": 120,
+      "main_cells_per_real_instruction": 120.0,
+      "padded_rows": 2,
+      "padding_cells": 60,
+      "row_percent": 2.384185791015625e-05,
+      "rows": 1,
+      "shards": 1,
+      "width": 60
+    }
+  ],
+  "geometry": {
+    "authenticates_statement": false,
+    "cycles": 4194304,
+    "decoded_prefix_bytes": 1036,
+    "final_pc": 209312,
+    "full_statement_bytes": 1500,
+    "infrastructure": [
+      {
+        "columns": 10,
+        "index": 0,
+        "kind": "clock_update",
+        "log": 22,
+        "rows": 3826293
+      }
+    ],
+    "initial_pc": 1028,
+    "shards": [
+      {
+        "columns": 29,
+        "family": "auipc",
+        "index": 0,
+        "log": 14,
+        "rows": 8210
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 1,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 2,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 3,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 4,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 5,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 6,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 7,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 8,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 9,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 10,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 11,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 12,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 13,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 14,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 15,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 16,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 17,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 18,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 19,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 20,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 21,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 22,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 23,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 24,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_imm",
+        "index": 25,
+        "log": 13,
+        "rows": 5282
+      },
+      {
+        "columns": 35,
+        "family": "base_alu_reg",
+        "index": 26,
+        "log": 16,
+        "rows": 51716
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 27,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 28,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 29,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 30,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 31,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 32,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 33,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 34,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 35,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 36,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 37,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 30,
+        "family": "branch_eq",
+        "index": 38,
+        "log": 15,
+        "rows": 21624
+      },
+      {
+        "columns": 37,
+        "family": "branch_lt",
+        "index": 39,
+        "log": 16,
+        "rows": 56237
+      },
+      {
+        "columns": 20,
+        "family": "jal",
+        "index": 40,
+        "log": 12,
+        "rows": 2857
+      },
+      {
+        "columns": 41,
+        "family": "jalr",
+        "index": 41,
+        "log": 14,
+        "rows": 13689
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 42,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 43,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 44,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 45,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 46,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 47,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 48,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 49,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 50,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 51,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 52,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 53,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 54,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 55,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 56,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 57,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 58,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 59,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 60,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 61,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 62,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 63,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 64,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 65,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 66,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 67,
+        "log": 16,
+        "rows": 65536
+      },
+      {
+        "columns": 50,
+        "family": "load_store",
+        "index": 68,
+        "log": 13,
+        "rows": 6560
+      },
+      {
+        "columns": 37,
+        "family": "lt_imm",
+        "index": 69,
+        "log": 11,
+        "rows": 1377
+      },
+      {
+        "columns": 44,
+        "family": "lt_reg",
+        "index": 70,
+        "log": 6,
+        "rows": 42
+      },
+      {
+        "columns": 18,
+        "family": "lui",
+        "index": 71,
+        "log": 14,
+        "rows": 10924
+      },
+      {
+        "columns": 39,
+        "family": "mul",
+        "index": 72,
+        "log": 12,
+        "rows": 2767
+      },
+      {
+        "columns": 47,
+        "family": "mulh",
+        "index": 73,
+        "log": 4,
+        "rows": 16
+      },
+      {
+        "columns": 51,
+        "family": "shifts_imm",
+        "index": 74,
+        "log": 14,
+        "rows": 15306
+      },
+      {
+        "columns": 60,
+        "family": "shifts_reg",
+        "index": 75,
+        "log": 1,
+        "rows": 1
+      }
+    ]
+  },
+  "geometry_sources": [
+    {
+      "bytes": 14783,
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/opcode_manifest.zig",
+      "sha256": "bc4adb2263c2970eb82e04a564d4880eaaff4a7fd06eece16aeb46f7e97706f3"
+    },
+    {
+      "bytes": 28865,
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig",
+      "sha256": "5872272a4d5e6ef5875aba2215ee818677b256220aa85f1a7c42a29d7f8ee228"
+    },
+    {
+      "bytes": 19456,
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/src/frontends/riscv/runner/state_chain.zig",
+      "sha256": "966ddebf69e9b3c98f194b87c9f48f992a73b06e3dfd111e080316262aed36a8"
+    }
+  ],
+  "infrastructure": [
+    {
+      "columns": 10,
+      "fixed_cells": 8388608,
+      "index": 0,
+      "interaction_cells": 67108864,
+      "kind": "clock_update",
+      "log": 22,
+      "main_cells": 41943040,
+      "padded_rows": 4194304,
+      "q1_direct_domain_rows": 8388608,
+      "q2_projection_domain_rows": 16777216,
+      "rows": 3826293
+    }
+  ],
+  "inputs": {
+    "full_census": {
+      "bytes": 5956,
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/native-4194304-clean-endpoint-v2-closed-root-attempt1-quadratic-audit/source-report.json",
+      "sha256": "c39cf03dbe67df74acf6e8baf88029ef25d9731bd24f21cf7f83a12791ca3a04"
+    },
+    "metadata": {
+      "bytes": 5958093,
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/native-4194304-clean-endpoint-v2/public-metadata.json",
+      "sha256": "9646301b1553e4a443039fb3909d77b392218baf4ae98d81fe489946f03bd071"
+    }
+  },
+  "native": {
+    "fixed": {
+      "bytes": 67584656,
+      "cells": 16896164,
+      "columns": 154
+    },
+    "halt_guard_cells": 3424256,
+    "interaction": {
+      "bytes": 912699744,
+      "cells": 228174936,
+      "columns": 2884
+    },
+    "main_with_guards": 216237672,
+    "padding_main_cells": 5628908,
+    "raw_main_without_guards": 212813416
+  },
+  "schema": "stwo-b8-native-geometry-cost-model-v1",
+  "total_extended_cells": 1309783240,
+  "total_raw_cells": 654891620,
+  "v3_scenario": {
+    "assumptions": [
+      "all non-clock existing raw logs <=20; new V3 components respect that bound",
+      "current and predecessor access clocks independently authenticated below 2^27",
+      "three new LSU cells low16/high11/slack11 and three actual range16 supplies",
+      "retain source gap10 for stores and destination gap13 for loads; retain base register gap5",
+      "new V3 typed authority, source roster, RAM endpoint closure and session dispatch required"
+    ],
+    "baseline_default_changed": false,
+    "candidate_composition_raw_log": 20,
+    "candidate_total_raw_cells_upper_under_assumptions": 506688100,
+    "composition_cells_saved": 50331648,
+    "measured_runtime_speedup": null,
+    "modeled_raw_cell_reduction": 1.292494574078215,
+    "new_gap_interaction_cells_upper": 13697024,
+    "new_gap_main_cells": 5136384,
+    "new_separate_range16_provider_cells_upper": 720896,
+    "old_clock_all_tree_cells": 117440512,
+    "qualified": false,
+    "ram_hop_lower_bound": 3825781,
+    "rationale": "RAM gap hops dominate: register hops have a deterministic 32-register upper bound",
+    "register_hop_upper_bound": 512,
+    "retained_register_all_tree_cells_upper": 14336,
+    "synthetic_rows": 3826293
+  }
+}

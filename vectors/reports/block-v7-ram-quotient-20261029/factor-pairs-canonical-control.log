@@ -1,0 +1,47 @@
+1/11 block_v7_complete_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+WORD_QUOTIENT_TILED {"base_field_rows":true,"factor_range_pairs":false,"charged_peak_bytes":7961052,"coefficient_bytes":0,"tile_log":12,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":3125,"mapping_ns":16875,"rows_ns":14160541,"current":{"prepare_ns":631666,"jobs_ns":89691918,"block_fold_cpu_ns":272367,"block_fft_cpu_ns":2419415,"group_changes":0,"prefold_elements_read":0,"block_elements_read":933888,"fft_elements":1867776,"jobs":456},"previous":{"prepare_ns":727417,"jobs_ns":269290792,"block_fold_cpu_ns":356152,"block_fft_cpu_ns":2699370,"group_changes":0,"prefold_elements_read":0,"block_elements_read":1024000,"fft_elements":2048000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=376810000
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=13 elapsed_ns=4190750
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=5 elapsed_ns=268333
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=226959
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=245125
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=8020167
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=225500
+WORD_QUOTIENT_TILED {"base_field_rows":true,"factor_range_pairs":false,"charged_peak_bytes":7961052,"coefficient_bytes":0,"tile_log":12,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":1750,"mapping_ns":15542,"rows_ns":13325209,"current":{"prepare_ns":258791,"jobs_ns":4070833,"block_fold_cpu_ns":228154,"block_fft_cpu_ns":2465631,"group_changes":0,"prefold_elements_read":0,"block_elements_read":933888,"fft_elements":1867776,"jobs":456},"previous":{"prepare_ns":477666,"jobs_ns":4168707,"block_fold_cpu_ns":203324,"block_fft_cpu_ns":2706555,"group_changes":0,"prefold_elements_read":0,"block_elements_read":1024000,"fft_elements":2048000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=23177917
+WORD_QUOTIENT_TILED {"base_field_rows":true,"factor_range_pairs":false,"charged_peak_bytes":358364,"coefficient_bytes":0,"tile_log":7,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":2208,"mapping_ns":625,"rows_ns":432333,"current":{"prepare_ns":63124,"jobs_ns":3380126,"block_fold_cpu_ns":21493,"block_fft_cpu_ns":72291,"group_changes":0,"prefold_elements_read":0,"block_elements_read":29184,"fft_elements":58368,"jobs":456},"previous":{"prepare_ns":171041,"jobs_ns":3728542,"block_fold_cpu_ns":14511,"block_fft_cpu_ns":76081,"group_changes":0,"prefold_elements_read":0,"block_elements_read":32000,"fft_elements":64000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=6 elapsed_ns=8199666
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=7 elapsed_ns=201125
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=12379459
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=286750
+V7_COMPLETE_UNION profile=csp_q70_pow26 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_enabled=false trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=0 union_queried=1196370 oracle_queried=0 setup_ns=401916250 union_prove_ns=3322099334 oracle_prove_ns=0 fresh_verify_ns=1336700958 proof_bytes=5840895 proof_peak_bytes=363388744 direct_peak_bytes=363388744 contiguous_ns=5269121375 destruction_ns=41501583 encode_decode_ns=166893958 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.lookups.tables.mod.test_0...OK
+6/11 air.memory_commitment.poseidon2_air.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.
+       11.76 real        11.73 user         3.30 sys
+           385171456  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              701222  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   4  voluntary context switches
+               29697  involuntary context switches
+        301632473370  instructions retired
+         66593276401  cycles elapsed
+           380945704  peak memory footprint

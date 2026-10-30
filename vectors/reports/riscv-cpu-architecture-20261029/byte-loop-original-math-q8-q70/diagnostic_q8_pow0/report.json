@@ -1,0 +1,133 @@
+{
+  "schema": "stwo-same-rom-byte-loop-original-proof-result-v1",
+  "profile": "diagnostic_q8_pow0",
+  "proof_bytes": 62083,
+  "proof_sha256": "ea80ed829eb8302b6ada8fae750b9f3423595107fe01f2ebf4032a4332dadce5",
+  "original_fresh_fixed_key_verified": true,
+  "local_value_queries_closed": true,
+  "byte_ranges_closed": true,
+  "local_ram_closed": true,
+  "physical_claims": 31,
+  "trace_trees": 13,
+  "composition_split": 2,
+  "whole_vm_qualified": false,
+  "summary": {
+    "scope": "standalone_original_macro_open_external_relations",
+    "retired_instructions": 85,
+    "program_fetches": 85,
+    "logical_ram_accesses": 34,
+    "external_ram_word_edges": 10,
+    "program": {
+      "c0": {
+        "a": {
+          "v": 70740565
+        },
+        "b": {
+          "v": 1076594587
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 2099239872
+        },
+        "b": {
+          "v": 1128611029
+        }
+      }
+    },
+    "state": {
+      "c0": {
+        "a": {
+          "v": 522085268
+        },
+        "b": {
+          "v": 945493777
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 182408448
+        },
+        "b": {
+          "v": 714882034
+        }
+      }
+    },
+    "registers": {
+      "c0": {
+        "a": {
+          "v": 2038338259
+        },
+        "b": {
+          "v": 158615663
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 1406708501
+        },
+        "b": {
+          "v": 1394497305
+        }
+      }
+    },
+    "ram_source": {
+      "c0": {
+        "a": {
+          "v": 1132112096
+        },
+        "b": {
+          "v": 1215339350
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 1288813625
+        },
+        "b": {
+          "v": 838225988
+        }
+      }
+    },
+    "ram_destination": {
+      "c0": {
+        "a": {
+          "v": 723477282
+        },
+        "b": {
+          "v": 678668824
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 1951612104
+        },
+        "b": {
+          "v": 1214352237
+        }
+      }
+    },
+    "global_transition": {
+      "c0": {
+        "a": {
+          "v": 1071374493
+        },
+        "b": {
+          "v": 1924984256
+        }
+      },
+      "c1": {
+        "a": {
+          "v": 188164059
+        },
+        "b": {
+          "v": 1025345887
+        }
+      }
+    },
+    "local_ram_closed": true,
+    "local_value_closed": true,
+    "byte_ranges_closed": true,
+    "whole_vm_qualified": false
+  }
+}

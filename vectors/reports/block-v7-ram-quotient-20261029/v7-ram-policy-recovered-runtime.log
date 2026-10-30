@@ -1,0 +1,30 @@
+1/3 prover.block_v7_ram_quotient_policy_v1.test.v7 RAM tiled policy bounds automatic selection without changing small domains...OK
+2/3 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...WORD_QUOTIENT_DOMAIN tiled=false trace_log=20 elapsed_ns=6472698334
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=false tiled=false row_log=20 proof_bytes=70451 charged_peak=5876259128 commit_ns=749111625 proof_ns=8344244500 verification_ns=216459333 exact_original_verification=true
+WORD_QUOTIENT_TILED {"charged_peak_bytes":1269762376,"coefficient_bytes":956301312,"tile_log":15,"tiles":128}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=6776844916
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=false tiled=true row_log=20 proof_bytes=70451 charged_peak=3304035520 commit_ns=729604000 proof_ns=8634999500 verification_ns=217596584 exact_original_verification=true
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=208
+OK
+3/3 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+All 3 tests passed.
+       31.70 real        70.07 user         1.20 sys
+          8322809856  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1332491  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               54207  involuntary context switches
+       1196614013257  instructions retired
+        307382172638  cycles elapsed
+          8325978952  peak memory footprint

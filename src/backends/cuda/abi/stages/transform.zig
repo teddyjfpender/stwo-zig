@@ -205,3 +205,8 @@ pub extern "c" fn stwo_lde_n2b_columns_before_circle_on(
     stream: *anyopaque,
     launches_out: *u32,
 ) c_int;
+
+/// Two/four-row inverse on the first bit-reversed half of a canonical DEEP
+/// domain. The admitted initial index must equal 1 << (29 - coefficient_log).
+/// This is distinct from the canonical two/four-row inverse.
+pub extern fn stwo_quotient_tiny_inverse_on(input: [*]const u32, input_stride: usize, output: [*]u32, output_stride: usize, columns: u32, coefficient_log: u32, initial_index: u32, stream: ?*anyopaque) c_int;

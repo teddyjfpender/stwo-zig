@@ -247,3 +247,46 @@ test "keccakf component: explicit Ethereum log18 admits real campaign geometry w
     try std.testing.expect(slots <= authority.geometry.maximum_slots);
     try std.testing.expect(slots * authority.geometry.compact.chi_lookups_per_slot < 0x7fff_ffff);
 }
+
+test "parallel Keccak domain rows match serial nonzero quotients for one two and four workers" {
+    const a = std.testing.allocator;
+    const trace_log: u32 = 7;
+    const eval_log = trace_log + 1;
+    var values: [1 << eval_log]M31 = undefined;
+    for (&values, 0..) |*value, i| value.* = M31.fromU64((i * 17 + 3) % 257);
+    const count = component_mod.preprocessed_column_count + component_mod.main_column_count + component_mod.interaction_column_count;
+    const polys = try a.alloc(prover_component.Poly, count);
+    defer a.free(polys);
+    @memset(polys, .{ .log_size = eval_log, .values = &values });
+    const main_start = component_mod.preprocessed_column_count;
+    const interaction_start = main_start + component_mod.main_column_count;
+    var trees = [_][]const prover_component.Poly{ polys[0..main_start], polys[main_start..interaction_start], polys[interaction_start..] };
+    const input = prover_component.Trace{ .polys = .initOwned(&trees) };
+    const relations = relations_mod.Relations.dummy();
+    const claim = component_mod.Claim{ .log_size = trace_log, .n_rows = 3 * @import("../keccakf_witness.zig").row_count, .first_call_index = 0, .call_count = 6, .batch_sums = @splat(QM31.zero()), .component_sum = QM31.zero() };
+    const component = try component_mod.KeccakShardComponent.initProver(claim, .{ .preprocessed_offset = 0, .main_offset = 0, .interaction_offset = 0 }, &relations);
+    const handle = component.asProverComponent();
+    try std.testing.expect(handle.pool_exclusive_domain);
+    try std.testing.expect(handle.domain_parallel_evaluator != null);
+    const alpha = QM31.fromM31Array(.{ M31.fromU64(3), M31.fromU64(5), M31.fromU64(7), M31.fromU64(11) });
+    var serial = try prover_accumulation.DomainEvaluationAccumulator.init(a, alpha, eval_log, component.nConstraints());
+    defer serial.deinit();
+    try component.evaluateConstraintQuotientsOnDomain(&input, &serial);
+    var expected = try serial.finalize();
+    defer expected.deinit(a);
+    var nonzero = false;
+    for (0..expected.len()) |i| nonzero = nonzero or !expected.at(i).isZero();
+    try std.testing.expect(nonzero);
+    for ([_]usize{ 1, 2, 4 }) |workers| {
+        var pool: work_pool.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = a });
+        defer pool.deinit();
+        var parallel = try prover_accumulation.DomainEvaluationAccumulator.init(a, alpha, eval_log, component.nConstraints());
+        defer parallel.deinit();
+        try handle.evaluateConstraintQuotientsOnDomainParallel(&input, &parallel, &pool);
+        var actual = try parallel.finalize();
+        defer actual.deinit(a);
+        try std.testing.expectEqual(expected.len(), actual.len());
+        for (0..actual.len()) |i| try std.testing.expectEqualDeep(expected.at(i), actual.at(i));
+    }
+}

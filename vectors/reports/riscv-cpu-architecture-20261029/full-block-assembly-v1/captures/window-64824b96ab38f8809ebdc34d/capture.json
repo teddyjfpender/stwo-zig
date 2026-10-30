@@ -1,0 +1,21 @@
+{
+  "schema": "stwo-b8-one-pass-captured-window-input-v1",
+  "proof_verified": false,
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "incoming_sha256": "968d4b2e570fe604a7c97fd715888b60745593c323e782fbd409cac2da4ca089",
+  "outgoing_sha256": "df11703413c534a0f98a178dd33f3ce7cebc4154a9ed1674a1cb6b442288a0a7",
+  "window": {
+    "skip_cycles": 131072000,
+    "cycles": 1048576
+  },
+  "stats": {
+    "cycles": 1048576,
+    "core_rows": 1047929,
+    "keccak_calls": 647,
+    "recovery_calls": 0,
+    "sha_calls": 0
+  },
+  "initial": false,
+  "terminal": false
+}

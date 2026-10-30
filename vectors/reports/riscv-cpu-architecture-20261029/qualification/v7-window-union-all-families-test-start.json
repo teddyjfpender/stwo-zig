@@ -1,0 +1,7 @@
+{
+  "src/frontends/riscv/prover/tests/block_v7_window_union_test.zig": "77612476a79d0bc5b275f245ed94117bd35b794536a234ccf0ffd9cdad707c56",
+  "src/frontends/riscv/prover/block_v7_real_window_execution_test_support_v2.zig": "7df778df30905d374214a17de6e6180ecbc6378644ecd814c60931c4bc2bcf40",
+  "src/frontends/riscv/recursion/air/block_v7_union_composition_v1.zig": "ad1e516ba21696a6eb6b935936aee51723e6b3bceb84b546f8814bf2b6cbfd19",
+  "src/frontends/riscv/recursion/air/block_v7_union_caller_composition_v1.zig": "9a84474cf3e8c7698fc65b45099c01f1965e41ad1f022f37e23ef861a7e80311",
+  "src/frontends/riscv/recursion/air/block_v7_caller_recursive_composition_v1.zig": "ed2869d66279e1d10ebd19e9b918a53c89e215fd9cf4cee41ee9cb8596911a1b"
+}

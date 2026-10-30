@@ -1,0 +1,7 @@
+{
+  "exit_code": 0,
+  "wall_s": 0.2037804126739502,
+  "host_llvm_recompiled": false,
+  "host_llvm_sha256": "66a094c0e1e17169798b3f9679e607c9e0f9e67000bd9e0f4913048bd9d5b6b5",
+  "binary_sha256": "a4fdd35c160917c296010553fd2fea1e9462a73ec09a3af94f2442680e355d50"
+}

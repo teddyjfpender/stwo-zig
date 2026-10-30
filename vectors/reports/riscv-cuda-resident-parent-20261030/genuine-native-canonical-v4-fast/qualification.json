@@ -1,0 +1,102 @@
+{
+  "schema": "resident-native-parent-qualification-v1",
+  "scope": "Fully device-resident prover for the unchanged original native-child recursive verifier. CPU creates the raw child fixture separately; complete execution closure and original RISC-V GPU proving are not qualified here.",
+  "profile": {
+    "child_queries": 70,
+    "child_pow_bits": 26,
+    "parent_queries": 70,
+    "parent_pow_bits": 26,
+    "fold_step": 1
+  },
+  "raw_child_fixture": {
+    "cpu_generated": true,
+    "executed_instructions": 3,
+    "instruction_families": [
+      "addi",
+      "mul"
+    ],
+    "setup_ns": 6086390461
+  },
+  "parent_cold_compile_ns": 5263283826,
+  "retained_runtime_open_ns": 2145749,
+  "independent_original_receiver_verified": true,
+  "test_exit_code": 0,
+  "tests_passed": 10,
+  "retained_requests": 2,
+  "proof_bytes": 754766,
+  "proof_sha256": "a68eaaffb7235b1593c113bf21e4f0f16968bb05956509082a41667c9788e9e9",
+  "proof_bytes_equal": true,
+  "child_receipt": true,
+  "execution_closed": false,
+  "whole_riscv_gpu_prover": false,
+  "host_parent_witness_uploaded": false,
+  "cpu_fallback_attempts": 0,
+  "requests": [
+    {
+      "iteration": 0,
+      "queries": 70,
+      "pow_bits": 26,
+      "max_device_bytes": 8589934592,
+      "device_bytes": 999153672,
+      "elapsed_ns": 4120863554,
+      "proof_bytes": 754766,
+      "proof_wall_ns": 4121991348,
+      "verify_ns": 482929236,
+      "terminal_reads": 1,
+      "terminal_bytes": 4153288,
+      "device_elapsed_ns": 4080048862,
+      "kernel_launches": 22881,
+      "h2d_bytes": 70808424
+    },
+    {
+      "iteration": 1,
+      "queries": 70,
+      "pow_bits": 26,
+      "max_device_bytes": 8589934592,
+      "device_bytes": 999153672,
+      "elapsed_ns": 3374797213,
+      "proof_bytes": 754766,
+      "proof_wall_ns": 3376022434,
+      "verify_ns": 498676301,
+      "terminal_reads": 1,
+      "terminal_bytes": 4153288,
+      "device_elapsed_ns": 3331756157,
+      "kernel_launches": 22881,
+      "h2d_bytes": 70808424
+    }
+  ],
+  "host_peak_rss_bytes": null,
+  "nvml_peak_bytes": null,
+  "device_memory_metric": "explicit per-proof arena, not total device RSS",
+  "timings_ranked": false,
+  "timing_note": "Two correctness samples, not a controlled comparative benchmark. Cold plan and CPU raw-child fixture are reported separately.",
+  "host_source_sha256": "92d74d68c3e0e3fd1fd996f342ca1da40c80ae60a0e3262f1190cc047bbaa05f",
+  "changed_cuda_objects": [
+    {
+      "path": "/workspace/stwo-v7-evidence/resident-blake3-final/child-paths-fast.o",
+      "sha256": "cafa006d6f440c3234efcb60a00aa38ce4f8a842c6b144c858973b9f0a3cf1f9"
+    },
+    {
+      "path": "/workspace/stwo-v7-evidence/resident-framework-v1/framework_util-fast.o",
+      "sha256": "98c6bd3e9875f78de65b86cc3968e164820fa9606dc8059903386073484e9345"
+    }
+  ],
+  "host_llvm_sha256": "66a094c0e1e17169798b3f9679e607c9e0f9e67000bd9e0f4913048bd9d5b6b5",
+  "binary_sha256": "a4fdd35c160917c296010553fd2fea1e9462a73ec09a3af94f2442680e355d50",
+  "positive_run_env": {
+    "STWO_RESIDENT_NATIVE_CANONICAL": "1",
+    "STWO_RESIDENT_NATIVE_RETAINED": "1"
+  },
+  "hostile": {
+    "profile": "q8_pow0",
+    "raw_query_word": 1040,
+    "canonical_field_delta": 1,
+    "cold_plan_unchanged": true,
+    "device_rejected": true,
+    "test_exit_code": 0,
+    "tests_passed": 10,
+    "run_env": {
+      "STWO_RESIDENT_NATIVE_HOSTILE": "1"
+    }
+  }
+}

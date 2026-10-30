@@ -1,0 +1,17 @@
+{
+  "binary": "/tmp/stwo-b8-direct-clock-wide-saved-root-bench",
+  "environment": {
+    "STWO_B8_JOIN_SOURCE_DIR": "vectors/reports/riscv-cpu-architecture-20261029/native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4/artifacts",
+    "STWO_B8_JOIN_OUTPUT": "vectors/reports/riscv-cpu-architecture-20261029/native-16777216-direct-clock-v3-wide-2x8388608-sparse-compact-profile4-single-dag-root",
+    "STWO_B8_JOIN_ELF": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+    "STWO_B8_JOIN_ELF_SHA256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "STWO_B8_JOIN_INCOMING": "/tmp/stwo-b8-durable-reload-inputs-16m/incoming.b7win",
+    "STWO_B8_JOIN_OUTGOING": "/tmp/stwo-b8-durable-reload-inputs-16m/outgoing.b7win",
+    "STWO_B8_JOIN_INCOMING_SHA256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+    "STWO_B8_JOIN_OUTGOING_SHA256": "c095021f804b6e3b4f16f46f5e70a4c77a13e291e14fa3b863158b379579dd0d",
+    "STWO_B8_JOIN_SKIP": "1",
+    "STWO_B8_JOIN_CYCLES": "16777216",
+    "STWO_B8_JOIN_GLOBAL_G": "1",
+    "STWO_B8_JOIN_SOURCE_WORKERS": "2"
+  }
+}

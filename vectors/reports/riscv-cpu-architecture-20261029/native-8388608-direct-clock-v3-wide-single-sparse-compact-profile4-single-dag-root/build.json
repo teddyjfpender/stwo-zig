@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-direct-clock-wide-saved-root-frozen-build-v4",
+  "binary_sha256": "b1b1e8254a2b283b76deef264ec68d0010cfc30504b0f2c4c2735d67ee38dd16",
+  "compiler": "zig0.15.2",
+  "mode": "ReleaseFast",
+  "cpu_workers": 8,
+  "source_workers": 2,
+  "global_g_repartition": true,
+  "budget_bytes": 51539607552,
+  "original_proofs_reproved": false,
+  "source_originals": 3,
+  "native_profile": 4,
+  "snapshot_byte_ports": 0
+}

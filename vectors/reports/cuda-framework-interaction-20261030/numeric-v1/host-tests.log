@@ -1,0 +1,165 @@
+1/162 riscv_cuda_framework_interaction_test_root.test.CUDA framework interaction lifecycle semantic...OK
+2/162 riscv_cuda_framework_interaction_test_root.test.interaction invocation rejects stale geometry and accepts only output claim shape...OK
+3/162 backends.cuda.abi.types.test.platform snapshot rejects incomplete provenance...OK
+4/162 backends.cuda.abi.types.test.strict AOT stats reject every non-AOT provenance...OK
+5/162 backends.cuda.abi.types.test.AOT verification receipt requires exact nonzero digest equality...OK
+6/162 backends.cuda.runtime.error.test.only CUDA success status is accepted...cuda runtime call failed status=1
+cuda runtime call failed status=-1
+OK
+7/162 backends.cuda.abi.schema.test.CUDA AOT schema identities are explicit and nonzero...OK
+8/162 backends.cuda.runtime.kernel.test.kernel receipt binds launch to the admitted device and stream...OK
+9/162 backends.cuda.runtime.kernel.test.empty and degenerate kernel descriptions are rejected...OK
+10/162 backends.cuda.runtime.telemetry.test.allocation telemetry carries a high-water mark and balances...OK
+11/162 backends.cuda.runtime.telemetry.test.stage evidence requires every ordered protocol stage...OK
+12/162 backends.cuda.runtime.telemetry.test.terminal proof reads count operations and bytes per stage...OK
+13/162 backends.cuda.runtime.telemetry.test.device timings cover every stage exactly once...OK
+14/162 backends.cuda.runtime.telemetry.test.topology stability ignores elapsed time but not work...OK
+15/162 backends.cuda.runtime.telemetry.test.graph replay preserves logical work while cache provenance changes...OK
+16/162 backends.cuda.aot.module_globals.test.module-global requirements have one canonical wire spelling...OK
+17/162 frontends.riscv.air.lookups.tables.framework_export.test.native table framework export matches all six native AIRs at base and secure points...OK
+18/162 frontends.riscv.air.lookups.tables.framework_export.test.native table framework identity excludes invocation challenges and binds placement...OK
+19/162 frontends.riscv.air.lookups.tables.framework_export.test.native table framework rejects corrupted bindings and challenges before use...OK
+20/162 frontends.riscv.air.lookups.tables.framework_export.test.native table framework cleans up every failed export allocation...OK
+21/162 frontends.riscv.air.lookups.tables.component.test.lookup table prepared domain: resource geometry and cancellation cadence are bounded...OK
+22/162 frontends.riscv.air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+23/162 frontends.riscv.air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+24/162 frontends.riscv.air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+25/162 frontends.riscv.air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+26/162 frontends.riscv.air.lookups.tables.schema.test.table schemas match pinned log sizes, arities, and boundary tuples...OK
+27/162 frontends.riscv.air.lookups.tables.schema.test.table indices roundtrip sampled rows and reject mutations...OK
+28/162 frontends.riscv.air.lookups.tables.schema.test.range M31 duplicate row is deterministic but not index-addressable...OK
+29/162 frontends.riscv.air.lookups.tables.schema.test.preprocessed columns use deterministic committed bit-reversed order...OK
+30/162 frontends.riscv.air.extract.symbolic.test.symbolic scalar interns structurally equal subexpressions once...OK
+31/162 frontends.riscv.air.extract.symbolic.test.symbolic replay reproduces field arithmetic including wraparound...OK
+32/162 frontends.riscv.air.lookups.tables.interaction.test.base table denominator matches canonical entry for every schema...OK
+33/162 frontends.riscv.air.lookups.tables.interaction.test.table singleton balances signed source multiplicity for all six domains...OK
+34/162 frontends.riscv.air.lookups.tables.interaction.test.table AIR identity rejects multiplicity, tuple, and claim mutations...OK
+35/162 frontends.riscv.air.lookups.tables.interaction.test.generated singleton column closes one signed range M31 request...OK
+36/162 frontends.riscv.air.lookups.tables.interaction.test.chunked table interaction is byte-identical across inversion boundaries...OK
+37/162 frontends.riscv.air.lookups.tables.interaction.test.chunked table interaction rolls back every allocation failure...OK
+38/162 frontends.riscv.air.lookups.tables.interaction.test.parallel table chunks retain two balanced waves above cache floor...OK
+39/162 frontends.riscv.air.lookups.entry.test.lookup entry domains retain transcript order...OK
+40/162 frontends.riscv.air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+41/162 frontends.riscv.air.extract.runtime_program.test.runtime polynomial export replays the production active selector...OK
+42/162 frontends.riscv.air.composition_work_support.test.composition profile support counts relation combination from SSOT...OK
+43/162 frontends.riscv.air.prepared_parallel.test.prepared parallel failure boundary preserves canonical range priority...OK
+44/162 frontends.riscv.air.logup.test.geometry: trace-order shift equals evaluation at point minus coset step...OK
+45/162 frontends.riscv.air.logup.test.cumulativeColumn accumulates batched fractions and reports the claim...OK
+46/162 frontends.riscv.air.logup.test.pairConstraint vanishes exactly on honest cumulative columns...OK
+47/162 frontends.riscv.air.logup.test.state chain closes for one, two, many, and interleaved shards...OK
+48/162 frontends.riscv.air.logup.test.state chain rejects omission, duplication, boundary mutation, and field cycles...OK
+49/162 frontends.riscv.air.logup.test.program bus balances executed rows against ROM multiplicities...OK
+50/162 frontends.riscv.air.lookups.tables.counter.test.signed counter preserves consumer signs and committed order...OK
+51/162 frontends.riscv.air.lookups.tables.counter.test.counter rejects value, result, domain, and extension-field mutations...OK
+52/162 frontends.riscv.air.lookups.tables.counter.test.counter set registers every lookup domain without semantic branching...OK
+53/162 frontends.riscv.infra_trace.test.infra_trace: genPoseidon2Columns basic...OK
+54/162 frontends.riscv.infra_trace.test.infra_trace: genPoseidon2Columns empty traces...OK
+55/162 frontends.riscv.infra_trace.test.infra_trace: genMerkleColumns basic...OK
+56/162 frontends.riscv.infra_trace.test.infra_trace: genMerkleColumns empty...OK
+57/162 frontends.riscv.infra_trace.test.infra_trace: genMerkleColumns clamps to domain_size...OK
+58/162 frontends.riscv.infra_trace.test.infra_trace: genProgramColumns basic...OK
+59/162 frontends.riscv.infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns basic...OK
+60/162 frontends.riscv.infra_trace.test.infra_trace: genProgramColumns row count with duplicates...OK
+61/162 frontends.riscv.infra_trace.test.infra_trace: genProgramColumns enabler count and multiplicity sum...OK
+62/162 frontends.riscv.infra_trace.test.infra_trace: genProgramColumns all columns have domain_size length...OK
+63/162 frontends.riscv.infra_trace.test.infra_trace: genProgramColumns empty trace...OK
+64/162 frontends.riscv.infra_trace.test.infra_trace: genMemoryColumns row count...OK
+65/162 frontends.riscv.infra_trace.test.infra_trace: genMemoryColumns value decomposition...OK
+66/162 frontends.riscv.infra_trace.test.infra_trace: genMemoryColumns all columns have domain_size length...OK
+67/162 frontends.riscv.infra_trace.test.infra_trace: genMemoryColumns includes register accesses...OK
+68/162 frontends.riscv.infra_trace.test.infra_trace: genMemClockUpdateColumns empty when no gaps...OK
+69/162 frontends.riscv.infra_trace.test.infra_trace: genMemClockUpdateColumns with gap filling...OK
+70/162 frontends.riscv.infra_trace.test.infra_trace: genMemClockUpdateColumns all columns have domain_size length...OK
+71/162 frontends.riscv.infra_trace.test.infra_trace: genRegClockUpdateColumns empty when no gaps...OK
+72/162 frontends.riscv.infra_trace.test.infra_trace: genRegClockUpdateColumns with gap filling...OK
+73/162 frontends.riscv.infra_trace.test.infra_trace: genRegClockUpdateColumns all columns have domain_size length...OK
+74/162 frontends.riscv.infra_trace.test.infra_trace: unified clock updates preserve address spaces...OK
+75/162 frontends.riscv.infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns empty trace...OK
+76/162 frontends.riscv.infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns all tables same size...OK
+77/162 frontends.riscv.infra_trace.test.infra_trace: multiplicityLogSize consistency...OK
+78/162 frontends.riscv.opcode_manifest.test.opcode manifest is complete and preserves legacy protocol ids...OK
+79/162 frontends.riscv.opcode_manifest.test.host-control instructions have no proof-family field...OK
+80/162 frontends.riscv.opcode_manifest.test.opcode manifest owns a unique fail-closed decoder matrix...OK
+81/162 frontends.riscv.air.semantic_eval.test.semantic evaluator covers every family without exceeding its bound...OK
+82/162 frontends.riscv.air.semantic_eval.test.semantic evaluator exposes schema-driven clock and pc columns...OK
+83/162 frontends.riscv.air.semantic_eval.test.semantic evaluator accepts canonical inactive padding for compatible families...OK
+84/162 frontends.riscv.air.semantic_eval.test.base-field domain evaluator matches QM31 embedding for every family...OK
+85/162 frontends.riscv.air.semantic_eval.test.semantic evaluator rejects active placement for a padding row...OK
+86/162 frontends.riscv.air.semantic_eval.test_0...OK
+87/162 frontends.riscv.air.constraint_program.test.constraint program full and section views preserve every ordered event...OK
+88/162 frontends.riscv.air.constraint_program.test.constraint program access groups are explicit contiguous triples...OK
+89/162 frontends.riscv.air.constraint_program.test.constraint program active row is the exact placement left operand...OK
+90/162 frontends.riscv.air.transcript.claims.test.claim transcript: canonical component order is pinned...OK
+91/162 frontends.riscv.air.transcript.claims.test.claim transcript: main and interaction mix call boundaries are canonical...OK
+92/162 frontends.riscv.common.poseidon2.test.poseidon2: permutation is deterministic...OK
+93/162 frontends.riscv.common.poseidon2.test.poseidon2: non-zero output from zero input...OK
+94/162 frontends.riscv.common.poseidon2.test.poseidon2: hashPair produces 8 elements...OK
+95/162 frontends.riscv.common.poseidon2.test.poseidon2: sbox is x^5...OK
+96/162 frontends.riscv.common.poseidon2.test.poseidon2: mds4x4 circulant correctness...OK
+97/162 frontends.riscv.common.poseidon2.test.poseidon2: permuteTraced produces same output as permute...OK
+98/162 frontends.riscv.common.poseidon2.test.poseidon2: permuteTraced captures initial state...OK
+99/162 frontends.riscv.common.poseidon2.test.poseidon2: PermuteTrace flatten produces 443 values...OK
+100/162 frontends.riscv.common.poseidon2.test.poseidon2: permuteTraced round traces are non-trivial...OK
+101/162 frontends.riscv.runner.decode.test_0...OK
+102/162 frontends.riscv.isa.decode.test.decode ADD x1, x2, x3 (0x003100B3)...OK
+103/162 frontends.riscv.isa.decode.test.architectural operand and memory effects ignore encoding-only fields...OK
+104/162 frontends.riscv.isa.decode.test.decode ADDI x5, x0, 42 (0x02A00293)...OK
+105/162 frontends.riscv.isa.decode.test.decode SW x5, 0(x2) (0x00512023)...OK
+106/162 frontends.riscv.isa.decode.test.decode LW x6, 0(x2) (0x00012303)...OK
+107/162 frontends.riscv.isa.decode.test.decode BEQ x1, x2, +8 (0x00208463)...OK
+108/162 frontends.riscv.isa.decode.test.decode JAL x1, +0 (0x000000EF)...OK
+109/162 frontends.riscv.isa.decode.test.decode LUI x1, 0x12345000 (0x12345_0B7)...OK
+110/162 frontends.riscv.isa.decode.test.decode MUL x1, x2, x3 (0x023100B3)...OK
+111/162 frontends.riscv.isa.decode.test.decoder and proof boundary reject the manifest-owned preflight matrix...OK
+112/162 frontends.riscv.isa.decode.test.proof opcode conversion covers the profile and rejects host controls...OK
+113/162 frontends.riscv.isa.decode.test.decode SUB x1, x2, x3 (0x403100B3)...OK
+114/162 frontends.riscv.isa.decode.test.decode ADDI with negative immediate...OK
+115/162 frontends.riscv.isa.decode.test.decoder equivalence: Zig decoder vs known RV32IM instruction encodings...OK
+116/162 frontends.riscv.air.trace_columns.test.opcode-family widths pin compact reads and sound x0 extensions...OK
+117/162 frontends.riscv.air.trace_columns.test.total opcode family columns is 646...OK
+118/162 frontends.riscv.air.program.table.test.decoded program table: unique PCs retain order and multiplicity...OK
+119/162 frontends.riscv.air.program.table.test.decoded program table: changing a word at one PC is rejected...OK
+120/162 frontends.riscv.air.program.table.test.decoded program table: instruction addresses are aligned and commitment-bounded...OK
+121/162 frontends.riscv.air.program.table.test.decoded program table: manifest rejection matrix fails before row construction...OK
+122/162 frontends.riscv.air.program.table.test.decoded program table: empty fetch stream produces an empty table...OK
+123/162 frontends.riscv.air.program.decode.test.decoded program: every proof-bearing RV32IM word maps to its protocol id...OK
+124/162 frontends.riscv.air.program.decode.test.decoded program: pinned numeric tuple vectors...OK
+125/162 frontends.riscv.air.program.decode.test.decoded program: negative signed immediates use canonical M31...OK
+126/162 frontends.riscv.air.program.decode.test.decoded program: rejects the manifest-owned proof preflight matrix...OK
+127/162 frontends.riscv.air.program.decode.test.decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple...OK
+128/162 frontends.riscv.air.program.decode.test.decoded program: Keccak-f profile owns the same isolated extension slot...OK
+129/162 frontends.riscv.air.program.decode.test.decoded program: Ethereum profile separates Keccak-f and signer recovery...OK
+130/162 frontends.riscv.air.program.decode.test.decoded program: CUSTOM-0 authority remains profile-separated...OK
+131/162 frontends.riscv.air.program.decode.test.decoded declared program: Ethereum unimp padding is exact and never executable...OK
+132/162 frontends.riscv.isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+133/162 frontends.riscv.air.program.opcode.test.program opcode: legacy ids stay stable and local extensions append...OK
+134/162 frontends.riscv.runner.state_chain.test.state_chain: register access tracking...OK
+135/162 frontends.riscv.runner.state_chain.test.state_chain: clock gap filling...OK
+136/162 frontends.riscv.runner.state_chain.test.state_chain: decomposeU32...OK
+137/162 frontends.riscv.runner.state_chain.test.state_chain: memory access tracking...OK
+138/162 frontends.riscv.runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+139/162 frontends.riscv.runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+140/162 frontends.riscv.runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+141/162 frontends.riscv.runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+142/162 frontends.riscv.runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+143/162 frontends.riscv.runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+144/162 frontends.riscv.runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+145/162 frontends.riscv.air.lookups.opcode_entries.test.opcode lookup caller-owned and by-value paths are exact...OK
+146/162 frontends.riscv.air.lookups.opcode_entries.test.opcode lookup matrix preserves reviewed family geometry...OK
+147/162 frontends.riscv.air.lookups.opcode_entries.test.opcode lookup vectors preserve exact domain order and batching...OK
+148/162 frontends.riscv.access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+149/162 frontends.riscv.access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+150/162 frontends.riscv.air.semantics.common.Ops(fields.qm31.QM31).selfTests().test.semantics common: compose little-endian word...OK
+151/162 frontends.riscv.air.semantics.control_common.Ops(fields.qm31.QM31).selfTests().test.control common: register access preserves signed relation requests...OK
+152/162 frontends.riscv.air.trace_columns.m_extension.test.RV32M layouts expose exact oracle boundary fields...OK
+153/162 frontends.riscv.isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+154/162 frontends.riscv.isa.custom0.test.Poseidon2 CUSTOM-0 admits exactly the 32 rs1 encodings in the extension profile...OK
+155/162 frontends.riscv.isa.custom0.test.Poseidon2 CUSTOM-0 compares every fixed encoding bit...OK
+156/162 frontends.riscv.isa.custom0.test.CUSTOM-0 decoder does not claim ordinary RV32IM words...OK
+157/162 frontends.riscv.isa.custom0.test.Keccak-f encoding is exact and admitted only by its profile...OK
+158/162 frontends.riscv.isa.custom0.test.Ethereum profile combines unchanged Keccak-f and exact signer recovery...OK
+159/162 frontends.riscv.isa.sha256_compression_v1.test.SHA compression encoding preserves both registers and rejects reserved bits...OK
+160/162 frontends.riscv.air.x0_native_envelope_v1.test.block-v5 x0 native envelope retains authentic schedules domains roles and ordinals...OK
+161/162 frontends.riscv.air.x0_local_custody_v1.test.block-v5 x0 local algebra rejects coherent source write and hint forgeries without a chain...OK
+162/162 frontends.riscv.air.x0_local_custody_v1.test.block-v5 x0 local algebra preserves nonzero register and RW fractions all ordinals...OK
+All 162 tests passed.

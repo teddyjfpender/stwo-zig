@@ -1,0 +1,2682 @@
+[
+  {
+    "schema_version": 1,
+    "runtime": "native",
+    "example": "blake3-recursive-parent",
+    "stages": [
+      {
+        "id": "parent.validation",
+        "label": "Authenticated row validation",
+        "seconds": 1.904048,
+        "children": null
+      },
+      {
+        "id": "parent.main_setup",
+        "label": "Main columns and lookup counts",
+        "seconds": 2.693494,
+        "children": null
+      },
+      {
+        "id": "parent.main_commit",
+        "label": "Main commitment",
+        "seconds": 19.857163,
+        "children": [
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 5.1e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 8.2e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.000168,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.000382,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.006875,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.015915,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008321,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023519,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.007314,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022249,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.007743,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.029584,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008195,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023532,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008318,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023208,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008268,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022693,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.00819,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022746,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008347,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022744,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.00826,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022703,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008328,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.022756,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.027802,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.061047,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.012553,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.028436,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.011973,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.029249,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.053685,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.178855,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042036,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092272,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041643,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092216,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041928,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093815,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041925,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092829,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041778,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092639,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04201,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092535,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042018,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092517,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042098,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092183,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041724,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093399,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041716,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.0925,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041866,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092437,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042028,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092809,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041832,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094671,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041648,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092511,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041718,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092726,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041815,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092505,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041845,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092014,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041835,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092547,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041662,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09287,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041929,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092518,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041865,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092808,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041775,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092271,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041666,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093362,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041683,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092849,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041166,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092417,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041915,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092865,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04214,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092715,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.043136,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092797,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041944,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092496,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041725,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092624,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042011,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093188,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041609,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092741,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041926,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092798,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041785,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092631,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041842,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092774,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04186,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093016,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041875,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09283,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041892,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092839,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042041,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092139,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041915,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092599,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041839,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092867,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042096,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092273,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041986,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092666,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041674,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09274,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041764,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094213,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041795,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093079,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042036,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092656,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042199,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099583,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042362,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093117,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041832,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093582,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.0422,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092732,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042208,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093079,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04212,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093792,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041976,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093151,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042307,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092987,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042109,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.095884,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041806,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09554,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041508,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093372,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041281,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092531,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040896,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096737,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041347,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098908,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041465,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09925,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041021,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100656,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042033,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098768,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041976,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098645,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041505,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097361,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041207,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097764,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041523,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098194,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041706,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097448,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041792,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097988,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042085,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.101153,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041929,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100844,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042022,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100305,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041815,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100935,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041844,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.101317,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042043,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.101865,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042249,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.101611,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042577,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098368,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042015,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099986,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042029,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099701,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042362,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.1001,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042308,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099894,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042132,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100686,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042166,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.095431,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041746,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.100154,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041366,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098224,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041393,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097555,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041597,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098069,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041794,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098114,
+            "children": null
+          },
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 6.431864,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "parent.interaction_generation",
+        "label": "Interaction generation",
+        "seconds": 8.32627,
+        "children": null
+      },
+      {
+        "id": "parent.interaction_commit",
+        "label": "Interaction commitment",
+        "seconds": 18.557721,
+        "children": [
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 4.6e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 7.9e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 3.5e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 6.3e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.001586,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.004294,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.007814,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023347,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008167,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023179,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008991,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023809,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008828,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.024789,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008898,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.025362,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.009512,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.024792,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.009532,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.025156,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.009048,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.024477,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008902,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.025051,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.008751,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.024445,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.00839,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.023211,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.012746,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.032634,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.023281,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.057178,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.045605,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099953,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.043912,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099134,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.042951,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094254,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040974,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092826,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040944,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093681,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040782,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093399,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040901,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.0934,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040882,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093227,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040873,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093102,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040855,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093952,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040971,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096248,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04129,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093332,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040713,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.095524,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040859,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093762,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040716,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093929,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040231,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093326,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041028,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094077,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040841,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094311,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04112,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094618,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041186,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094393,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041387,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097303,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041314,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094308,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041242,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094209,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041307,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094221,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041005,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093246,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04069,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093739,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040858,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094018,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040748,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093107,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040753,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094269,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040773,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093747,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04086,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093021,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04059,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093409,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040846,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093911,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04103,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093218,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040969,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09321,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040768,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093779,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040748,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094204,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040752,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093849,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040847,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093693,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040746,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093607,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040749,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093578,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040924,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093062,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040784,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093673,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040855,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.094173,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040862,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092533,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040741,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092288,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040746,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093161,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040998,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092483,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.040797,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092968,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041127,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.092393,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041626,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093538,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041518,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09345,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041499,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093241,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.043182,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09396,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041172,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093578,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041518,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093021,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041556,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.093675,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041542,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.095044,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041618,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098227,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041526,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096391,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041597,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097515,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04158,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098664,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041473,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098842,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041166,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097677,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041357,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098756,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.043188,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.10012,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041737,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099731,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041598,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098881,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041347,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098392,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041224,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09638,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041633,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096229,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041632,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096646,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041558,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097176,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041457,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.095848,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041613,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098241,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041551,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096997,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.0418,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096903,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041394,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098102,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041526,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099859,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041287,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098179,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041419,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097989,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041506,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.098282,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041646,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09805,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041563,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.09863,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.04127,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097622,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041273,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.099577,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041678,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.096699,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041433,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097433,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.041545,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.097504,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.02065,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.047207,
+            "children": null
+          },
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 5.687395,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "parent.core",
+        "label": "Core STARK proof",
+        "seconds": 18.562866,
+        "children": [
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 1e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 1.1e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 13.083944,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.05367,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.506332,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 8.3e-05,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 1.580904,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 6.2e-05,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 2.589669,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 0.426174,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.013578,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.018812,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.000111,
+            "children": null
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -37,15 +37,21 @@ pub const Trace = struct {
         return std.math.mul(usize, try std.math.mul(usize, rows, Air.MAIN_COLUMNS + Air.FIXED_COLUMNS), @sizeOf(M));
     }
     pub fn init(a: std.mem.Allocator, claim: Protocol.Claim, limits: Limits) !Trace {
+        const trace = try allocateForCheckpoint(a, claim, limits);
+        @memset(trace.main, M.zero());
+        fillFixed(trace.fixed, claim);
+        return trace;
+    }
+    /// Bounded raw checkpoint destination; storage must be completely filled
+    /// before the caller marks it sealed or publishes it to a proof producer.
+    pub fn allocateForCheckpoint(a: std.mem.Allocator, claim: Protocol.Claim, limits: Limits) !Trace {
         try claim.validate();
         if (claim.row_log > limits.max_row_log or claim.events > limits.max_events or try ownedBytes(claim) > limits.max_owned_bytes) return error.V5RamLanesResourceLimit;
         const size: usize = claim.rowCapacity();
         const main = try a.alloc(M, try std.math.mul(usize, size, Air.MAIN_COLUMNS));
         errdefer a.free(main);
-        @memset(main, M.zero());
         const fixed = try a.alloc(M, try std.math.mul(usize, size, Air.FIXED_COLUMNS));
         errdefer a.free(fixed);
-        fillFixed(fixed, claim);
         return .{ .a = a, .claim = claim, .main = main, .fixed = fixed, .previous = claim.preceding };
     }
     pub fn append(self: *Trace, event: Transition) !void {

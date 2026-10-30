@@ -139,6 +139,13 @@ fn checkSchedule(shape: *const Shape, mode: u32) !void {
         var domain_accumulator = try DomainAccumulator.init(a, value(9), slot.log_size + split, 1);
         defer domain_accumulator.deinit();
         try fused.evaluateConstraintQuotientsOnDomain(&trace, &domain_accumulator);
+        const cache = (try @import("../block_v7_shared_quotient_cache_v1.zig").Owner.create(a, 256)).?;
+        defer cache.destroy();
+        var leased = fused;
+        leased.leased_quotient_cache = &cache.cache;
+        var leased_accumulator = try DomainAccumulator.init(a, value(9), slot.log_size + split, 1);
+        defer leased_accumulator.deinit();
+        try leased.evaluateConstraintQuotientsOnDomain(&trace, &leased_accumulator);
         const eval_log = slot.log_size + split;
         const domain = core.poly.circle.canonic.CanonicCoset.new(eval_log).circleDomain();
         for (0..domain.size()) |row| {
@@ -150,6 +157,7 @@ fn checkSchedule(shape: *const Shape, mode: u32) !void {
             var reference = Accumulator.init(value(9));
             try separateAtPoint(fused, domain_point, &mask, &reference);
             try std.testing.expectEqualDeep(reference.finalize(), domain_accumulator.sub_accumulations[eval_log].?.at(row));
+            try std.testing.expectEqualDeep(reference.finalize(), leased_accumulator.sub_accumulations[eval_log].?.at(row));
         }
         // Restore arbitrary secure (nonbase) OODS samples for the next slot.
         for (main_storage, 0..) |*cell, j| cell.* = .{value(100 + j)};
@@ -178,4 +186,101 @@ test "block-v5 fused native nonproving producer and fresh receiver APIs compile"
     std.mem.doNotOptimizeAway(prove);
     std.mem.doNotOptimizeAway(verify);
     std.mem.doNotOptimizeAway(stage);
+}
+
+fn checkGenerated(slot: Source.Slot, relations: *const @import("../../recursion/air/universal_challenges.zig").UniversalRelations) !void {
+    const a = std.testing.allocator;
+    const Column = engine.pcs.ColumnEvaluation;
+    const Generator = @import("../block_v5_native_projection_fused_proof_v2.zig");
+    const Framework = @import("../../recursion/air/framework_interaction.zig");
+    const size = @as(usize, 1) << @intCast(slot.log_size);
+    const columns = try a.alloc(Column, slot.main_offset + slot.width);
+    defer a.free(columns);
+    const storage = try a.alloc(M, columns.len * size);
+    defer a.free(storage);
+    for (columns, 0..) |*column, i| {
+        column.* = .{ .log_size = slot.log_size, .values = storage[i * size ..][0..size] };
+        for (storage[i * size ..][0..size], 0..) |*cell, j| cell.* = M.fromCanonical(@intCast((i * 17 + j * 7 + 3) % 1009));
+    }
+    const generated = try Generator.generateProjection(a, columns, slot, relations);
+    defer for (generated.columns) |column| a.free(column);
+    const terms = try a.alloc(Q, size);
+    defer a.free(terms);
+    var sum = Q.zero();
+    // Independent old scalar algorithm: each denominator is inverted alone.
+    for (terms, 0..) |*term, logical| {
+        var row: [Opcode.MAX_FAMILY_COLUMNS]Q = undefined;
+        const physical = Framework.committedRow(logical, slot.log_size);
+        for (row[0..slot.width], columns[slot.main_offset..]) |*cell, column| cell.* = Q.fromBase(column.values[physical]);
+        const pair = try Source.fromCommittedMain(slot, row[0..slot.width], relations);
+        term.* = pair.numerator().mul(try pair.denominator().inv());
+        sum = sum.add(term.*);
+    }
+    try std.testing.expectEqualDeep(sum, generated.sum);
+    const shift = try sum.divM31(M.fromCanonical(@intCast(size)));
+    var running = Q.zero();
+    for (terms, 0..) |term, logical| {
+        running = running.add(term).sub(shift);
+        for (generated.columns, running.toM31Array()) |column, limb| try std.testing.expectEqualDeep(limb, column[Framework.committedRow(logical, slot.log_size)]);
+    }
+    // Geometry errors must be caught even if that column's request is inactive.
+    columns[slot.main_offset].log_size += 1;
+    try std.testing.expectError(error.InvalidV5FullFusedRoster, Generator.generateProjection(a, columns, slot, relations));
+    columns[slot.main_offset].log_size -= 1;
+    var zero_relations = relations.*;
+    for (&zero_relations.elements) |*element| {
+        element.z = Q.zero();
+        element.alpha = Q.zero();
+        @memset(&element.alpha_powers, Q.zero());
+    }
+    const zero_error = Q.zero().inv();
+    try std.testing.expectError(if (zero_error) |_| unreachable else |err| err, Generator.generateProjection(a, columns, slot, &zero_relations));
+}
+
+test "native projection tiled inversion preserves every physical prefix across opcode families and modes" {
+    const a = std.testing.allocator;
+    var channel = core.proof_suites.Blake3.Channel{};
+    channel.mixU32s(&.{ 19, 83, 101 });
+    const relations = try @import("../../recursion/air/universal_challenges.zig").UniversalRelations.draw(a, &channel);
+    for (0..Opcode.N_FAMILIES) |index| {
+        const family: Opcode.OpcodeFamily = @enumFromInt(index);
+        if (!@import("../../air/semantic_eval.zig").isTraceCompatible(family)) continue;
+        var shape = shapeFor(family);
+        for ([_]u32{ 0, 1 }) |mode| {
+            const slots = try Source.slotsFromShapeForMode(a, &shape, 0, mode);
+            defer a.free(slots);
+            for (slots) |slot| try checkGenerated(slot, &relations);
+            // Cross a tile boundary without changing the original typed recipe.
+            if (index == 0) {
+                var large = slots[0];
+                large.log_size = 13;
+                large.n_rows = 8192;
+                try checkGenerated(large, &relations);
+            }
+        }
+    }
+}
+
+test "native projection parallel tiles and unavailable nested lease preserve scalar prefix" {
+    const a = std.testing.allocator;
+    const Pool = engine.work_pool;
+    var pool: Pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try Pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var channel = core.proof_suites.Blake3.Channel{};
+    channel.mixU32s(&.{ 193, 181, 107 });
+    const relations = try @import("../../recursion/air/universal_challenges.zig").UniversalRelations.draw(a, &channel);
+    var shape = shapeFor(.base_alu_imm);
+    const slots = try Source.slotsFromShapeForMode(a, &shape, 0, 1);
+    defer a.free(slots);
+    var slot = slots[0];
+    slot.log_size = 15;
+    slot.n_rows = 32768;
+    try checkGenerated(slot, &relations);
+    var held = try pool.acquire(try Pool.WorkerBudget.init(3));
+    defer held.deinit();
+    // Must fall back without waiting for the lease held by this coordinator.
+    try checkGenerated(slot, &relations);
 }

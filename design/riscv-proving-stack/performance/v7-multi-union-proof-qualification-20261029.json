@@ -1,0 +1,264 @@
+{
+  "date": "2026-10-29",
+  "qualification": "bounded_complete_multiwindow_original_stark",
+  "whole_ethereum_block_qualified": false,
+  "binary_sha256": "711e09ce7e414121dd32d849966964edb3c3231054ce5e2375a7fae4790c76bb",
+  "build_arguments": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-no-exec"
+  ],
+  "timing_status": "diagnostic; no controlled comparison or end-to-end speedup claimed",
+  "memory_limits": {
+    "outer_allocator_bytes": 25769803776,
+    "trace_pcs_estimate_cap_bytes": 8589934592,
+    "max_native_windows": 16,
+    "max_trace_trees": 128
+  },
+  "runs": [
+    {
+      "name": "three_windows",
+      "environment": {},
+      "exit_code": 0,
+      "tests_passed": 467,
+      "tests_skipped": 1,
+      "metrics": {
+        "profile": "diagnostic_q8_pow0",
+        "cycles": 20,
+        "cut": 7,
+        "native_windows": 3,
+        "callers": 1,
+        "no_access": 1,
+        "physical_frames": 0,
+        "original_starks": 1,
+        "oracle_starks": 7,
+        "trees": 20,
+        "estimated_trace_pcs_bytes": 67541136,
+        "setup_ns": 241952625,
+        "prove_ns": 2360281167,
+        "oracle_prove_verify_ns": 5309101625,
+        "fresh_verify_ns": 1176383583,
+        "proof_bytes": 1261735,
+        "charged_proof_peak_bytes": 240858652,
+        "all_producer_and_oracle_owners_destroyed": true,
+        "exact_physical_claims": true,
+        "global_closure": true,
+        "timing": "shared_host_diagnostic"
+      },
+      "fixed_column_census": {
+        "columns": 179,
+        "unique_columns": 117,
+        "repeated_within_source": 15,
+        "repeated_across_sources": 47,
+        "lde_cells": 444336,
+        "unique_lde_cells": 424288
+      },
+      "full_log_sha256": "af730fd3e9cbf9339c9361002e2c9980cd075c879a89c3a8a2169be108153d97"
+    },
+    {
+      "name": "physical_frame",
+      "environment": {
+        "STWO_V7_MULTI_UNION_CUT": "3"
+      },
+      "exit_code": 0,
+      "tests_passed": 467,
+      "tests_skipped": 1,
+      "metrics": {
+        "profile": "diagnostic_q8_pow0",
+        "cycles": 20,
+        "cut": 3,
+        "native_windows": 7,
+        "callers": 1,
+        "no_access": 4,
+        "physical_frames": 1,
+        "original_starks": 1,
+        "oracle_starks": 11,
+        "trees": 29,
+        "estimated_trace_pcs_bytes": 67574040,
+        "setup_ns": 245036083,
+        "prove_ns": 2448272125,
+        "oracle_prove_verify_ns": 5507195958,
+        "fresh_verify_ns": 1209024542,
+        "proof_bytes": 1276430,
+        "charged_proof_peak_bytes": 366006408,
+        "all_producer_and_oracle_owners_destroyed": true,
+        "exact_physical_claims": true,
+        "global_closure": true,
+        "timing": "shared_host_diagnostic"
+      },
+      "fixed_column_census": {
+        "columns": 188,
+        "unique_columns": 115,
+        "repeated_within_source": 16,
+        "repeated_across_sources": 57,
+        "lde_cells": 444328,
+        "unique_lde_cells": 424272
+      },
+      "full_log_sha256": "2443a2a60bacbd2eb572f65ecb67fc618806fbe06255e4a3ae92513a7cf2ead1"
+    },
+    {
+      "name": "two_large_windows_q8",
+      "environment": {
+        "STWO_V7_MULTI_UNION_ITERATIONS": "4096",
+        "STWO_V7_MULTI_UNION_CUT": "10248"
+      },
+      "exit_code": 0,
+      "tests_passed": 467,
+      "tests_skipped": 1,
+      "metrics": {
+        "profile": "diagnostic_q8_pow0",
+        "cycles": 20495,
+        "cut": 10248,
+        "native_windows": 2,
+        "callers": 1,
+        "no_access": 0,
+        "physical_frames": 0,
+        "original_starks": 1,
+        "oracle_starks": 6,
+        "trees": 18,
+        "estimated_trace_pcs_bytes": 187993904,
+        "setup_ns": 409622792,
+        "prove_ns": 3121423750,
+        "oracle_prove_verify_ns": 6372066875,
+        "fresh_verify_ns": 1220671542,
+        "proof_bytes": 1287171,
+        "charged_proof_peak_bytes": 342366001,
+        "all_producer_and_oracle_owners_destroyed": true,
+        "exact_physical_claims": true,
+        "global_closure": true,
+        "timing": "shared_host_diagnostic"
+      },
+      "fixed_column_census": {
+        "columns": 205,
+        "unique_columns": 133,
+        "repeated_within_source": 61,
+        "repeated_across_sources": 11,
+        "lde_cells": 1156984,
+        "unique_lde_cells": 789332
+      },
+      "full_log_sha256": "78f5e1a809e2838d284ede5d3fc00786883aad9dc7873a16a30c5a2e2c1a73bb"
+    },
+    {
+      "name": "two_large_windows_canonical",
+      "environment": {
+        "STWO_V7_MULTI_UNION_ITERATIONS": "4096",
+        "STWO_V7_MULTI_UNION_CUT": "10248",
+        "STWO_V7_MULTI_UNION_CANONICAL": "1"
+      },
+      "exit_code": 0,
+      "tests_passed": 467,
+      "tests_skipped": 1,
+      "metrics": {
+        "profile": "csp_q70_pow26",
+        "cycles": 20495,
+        "cut": 10248,
+        "native_windows": 2,
+        "callers": 1,
+        "no_access": 0,
+        "physical_frames": 0,
+        "original_starks": 1,
+        "oracle_starks": 6,
+        "trees": 18,
+        "estimated_trace_pcs_bytes": 187993904,
+        "setup_ns": 378395333,
+        "prove_ns": 3479271500,
+        "oracle_prove_verify_ns": 9078682292,
+        "fresh_verify_ns": 1389045000,
+        "proof_bytes": 6016333,
+        "charged_proof_peak_bytes": 342298617,
+        "all_producer_and_oracle_owners_destroyed": true,
+        "exact_physical_claims": true,
+        "global_closure": true,
+        "timing": "shared_host_diagnostic"
+      },
+      "fixed_column_census": {
+        "columns": 205,
+        "unique_columns": 133,
+        "repeated_within_source": 61,
+        "repeated_across_sources": 11,
+        "lde_cells": 1156984,
+        "unique_lde_cells": 789332
+      },
+      "full_log_sha256": "da6f4bd0d520e4560d16b3aadd74d3182b4131e0e82628b8b8a7ebcb836b982a",
+      "whole_qualification_process": {
+        "wall_seconds": 31.49,
+        "maximum_rss_bytes": 357531648,
+        "scope": "Includes original-proof oracle, repeated hostile verification, static pair and all imported tests; not service latency."
+      }
+    },
+    {
+      "name": "multiple_callers",
+      "environment": {
+        "STWO_V7_MULTI_UNION_CUT": "2"
+      },
+      "exit_code": 0,
+      "tests_passed": 467,
+      "tests_skipped": 1,
+      "metrics": {
+        "profile": "diagnostic_q8_pow0",
+        "cycles": 20,
+        "cut": 2,
+        "native_windows": 10,
+        "callers": 2,
+        "no_access": 7,
+        "physical_frames": 1,
+        "original_starks": 1,
+        "oracle_starks": 15,
+        "trees": 39,
+        "estimated_trace_pcs_bytes": 68677576,
+        "setup_ns": 314368791,
+        "prove_ns": 3170184084,
+        "oracle_prove_verify_ns": 7188972459,
+        "fresh_verify_ns": 1516782083,
+        "proof_bytes": 1538501,
+        "charged_proof_peak_bytes": 470682840,
+        "all_producer_and_oracle_owners_destroyed": true,
+        "exact_physical_claims": true,
+        "global_closure": true,
+        "timing": "shared_host_diagnostic"
+      },
+      "fixed_column_census": {
+        "columns": 231,
+        "unique_columns": 116,
+        "repeated_within_source": 20,
+        "repeated_across_sources": 95,
+        "lde_cells": 445912,
+        "unique_lde_cells": 419504
+      },
+      "full_log_sha256": "d05e7e793bcfab711e8fe07ced627f035976e65d71a42e44b9ca0b556689eca3"
+    }
+  ],
+  "negative_cases": [
+    "compensated lookup physical claims",
+    "compensated caller SHA physical claims",
+    "compensated RAM physical claims",
+    "swapped native claim sets",
+    "missing native",
+    "missing caller",
+    "changed merged fixed root",
+    "swapped private roots",
+    "changed trusted output",
+    "changed trusted ELF digest"
+  ],
+  "ownership": "All original proofs, runners, native/caller/witness/provider owners destroyed before proof postcard roundtrip and fresh independent verification. Trusted ELF and statement metadata remain independently owned.",
+  "fixed_frame_regression": "Physical-frame native contributes the exact original log2 fixed column; count and log checks against independently admitted source metadata precede merging.",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_multi_union_proof_v1.zig": "91ed2bfa8d9efb5d149fd39c51e2d5a604ac23fcf18c13bdd069d793ea28e2b6",
+    "src/frontends/riscv/prover/block_v7_multi_union_scope_v1.zig": "c2704a10bff63f14e6191075a7fdedaf2504d002eae641a38a1eb3eadd998b3e",
+    "src/frontends/riscv/prover/block_v7_multi_union_placement_v1.zig": "a9053e6a1c37f9112a6222f5f9472f10a3a87234dbe4ae84c87b20091a62d93b",
+    "src/frontends/riscv/prover/block_v7_multi_union_residency_v1.zig": "d564b0de6474ece08a75b2b51987b6697b6a3c8aaa1470f4a2d3ec0c2d130bbb",
+    "src/frontends/riscv/prover/block_v7_heterogeneous_components_v1.zig": "496c4aa0d40d64519d5b95025df796ed2e84db689acdaff4365b05fa602f4c7c",
+    "src/frontends/riscv/prover/block_v7_fixed_column_census_v1.zig": "141ac34fa8a8608d710ea31dbfa3b3142094fa3ed3773bb9ef064bb8d27b0b51",
+    "src/frontends/riscv/prover/tests/block_v7_multi_union_test.zig": "60e9b40ea96755970d88b080b6f6f8355e1e5c15d42b30892667611cbe2c52be",
+    "src/frontends/riscv/block_v7_multi_union_test_root.zig": "ea1d8d41305cbfe54e18f5daf6f5f6e1719e73e1b0f952787a2f2357c0eb88ea"
+  },
+  "pending": [
+    "bounded checkpoint-to-union production path",
+    "arbitrary jobs above admitted per-group memory/window limits",
+    "canonical multiple-caller workload (multiple caller test currently diagnostic q8)",
+    "independent serialized multiwindow metadata+proof envelope; current test roundtrips STARK and retains independently owned typed claims/metadata"
+  ]
+}

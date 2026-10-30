@@ -198,7 +198,7 @@ fn hashInt(comptime T: type, hash: *std.crypto.hash.sha2.Sha256, value: T) void 
     hash.update(&bytes);
 }
 
-const Builder = struct {
+pub const Builder = struct {
     allocator: std.mem.Allocator,
     slots: std.ArrayList(Slot) = .empty,
 
@@ -296,7 +296,7 @@ const Builder = struct {
         try self.add(.composition_alpha, 0, 4, 4, .constraint_evaluation, .constraint_evaluation);
     }
 
-    fn addOods(self: *Builder, plan: *const oods.Plan) !void {
+    pub fn addOods(self: anytype, plan: *const oods.Plan) !void {
         const samples = plan.offsets.len;
         try self.add(.oods_parameter, 0, 4, 4, .oods, .quotient);
         try self.add(.oods_offsets, 0, try mul(samples, @sizeOf(field.CirclePointBaseField) / 4), 2, .ingress, .oods);
@@ -310,7 +310,7 @@ const Builder = struct {
         try self.add(.oods_values, 0, try mul(samples, 4), 4, .oods, .quotient);
     }
 
-    fn addQuotient(self: *Builder, plan: *const quotient.Topology, fri_log: u32) !void {
+    pub fn addQuotient(self: anytype, plan: *const quotient.Topology, fri_log: u32) !void {
         const terms = plan.prepared_terms.len;
         const groups = plan.group_log_sizes.len;
         try self.add(.quotient_challenge, 0, 4, 4, .oods, .quotient);
@@ -334,11 +334,11 @@ const Builder = struct {
         try self.add(.quotient_coefficient_logs, 0, 4, 1, .ingress, .quotient);
     }
 
-    fn addFri(self: *Builder, plan: *const fri.Plan) !void {
+    pub fn addFri(self: anytype, plan: *const fri.Plan) !void {
         try self.add(.fri_alpha, 0, 4, 4, .fri_commit, .fri_commit);
         for (plan.layers, 0..) |layer, ordinal| {
             if (ordinal != 0) try self.add(.fri_coordinates, ordinal, try mul(layer.evaluation_size, 4), 64, .fri_commit, .decommit);
-            try self.add(.fri_hashes, ordinal, try mul(try addSize(try mul(layer.evaluation_size >> 2, 2), 0) - 1, 8), 64, .fri_commit, .decommit);
+            try self.add(.fri_hashes, ordinal, try mul(try addSize(try mul(layer.evaluation_size >> @intCast(layer.log_rows_per_leaf), 2), 0) - 1, 8), 64, .fri_commit, .decommit);
             try self.add(.fri_layers, ordinal, try mul(layer.merkle_count, @sizeOf(field.MerkleLayerDescriptor) / 4), 2, .ingress, .decommit);
         }
         const rows = try pow2(plan.final_log);
@@ -348,7 +348,7 @@ const Builder = struct {
         try self.add(.fri_last_transcript, 0, try mul(try pow2(plan.final_degree_log), 4), 4, .fri_commit, .fri_commit);
     }
 
-    fn addDecommit(self: *Builder, plan: *const decommit.Plan) !void {
+    pub fn addDecommit(self: anytype, plan: anytype) !void {
         const topo = &plan.topology;
         const queries = topo.query_count;
         var max_expanded = queries;

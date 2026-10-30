@@ -56,10 +56,8 @@ test "native template contract accepts two distinct instances only under their o
     try std.testing.expect(!std.mem.eql(u8, &one_id, &two_id));
     try contract.validateBound(t, one, try binding(t, one), try pins(t, one));
     try contract.validateBound(t, two, try binding(t, two), try pins(t, two));
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, one, try binding(t, two), try pins(t, one)));
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, one, try binding(t, one), try pins(t, two)));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, one, try binding(t, two), try pins(t, one)));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, one, try binding(t, one), try pins(t, two)));
 }
 
 test "native template contract rejects missing or swapped dynamic authority" {
@@ -70,37 +68,29 @@ test "native template contract rejects missing or swapped dynamic authority" {
 
     var changed = original;
     changed.source_seal = digest(20);
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, changed, fresh, trusted));
     changed = original;
     changed.exact_plan = digest(21);
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, changed, fresh, trusted));
     changed = original;
     changed.native_public = digest(22);
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, changed, fresh, trusted));
     changed = original;
     changed.source_seal = digest(0);
-    try std.testing.expectError(error.MissingInstanceAuthority,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.MissingInstanceAuthority, contract.validateBound(t, changed, fresh, trusted));
     changed = original;
     changed.global_closure = digest(0);
-    try std.testing.expectError(error.MissingInstanceAuthority,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.MissingInstanceAuthority, contract.validateBound(t, changed, fresh, trusted));
     changed = original;
     changed.segment_index = 2;
-    try std.testing.expectError(error.InvalidInstanceOrdinal,
-        contract.validateBound(t, changed, fresh, trusted));
+    try std.testing.expectError(error.InvalidInstanceOrdinal, contract.validateBound(t, changed, fresh, trusted));
 
     var forged = fresh;
     forged.first_round_roster = digest(23);
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, original, forged, trusted));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, original, forged, trusted));
     forged = fresh;
     forged.global_closure = digest(24);
-    try std.testing.expectError(error.InstanceBindingMismatch,
-        contract.validateBound(t, original, forged, trusted));
+    try std.testing.expectError(error.InstanceBindingMismatch, contract.validateBound(t, original, forged, trusted));
 }
 
 test "native template contract binds setup geometry config and fixed root" {
@@ -111,11 +101,9 @@ test "native template contract binds setup geometry config and fixed root" {
     inline for (.{ "air_abi", "pcs_config", "geometry", "fixed_root" }) |field| {
         var changed = t;
         @field(changed, field) = digest(30);
-        try std.testing.expectError(error.TemplateBindingMismatch,
-            contract.validateBound(changed, i, fresh, trusted));
+        try std.testing.expectError(error.TemplateBindingMismatch, contract.validateBound(changed, i, fresh, trusted));
     }
     var absent = t;
     absent.fixed_root = digest(0);
-    try std.testing.expectError(error.MissingTemplateAuthority,
-        contract.validateBound(absent, i, fresh, trusted));
+    try std.testing.expectError(error.MissingTemplateAuthority, contract.validateBound(absent, i, fresh, trusted));
 }

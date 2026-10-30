@@ -1,0 +1,47 @@
+1/11 block_v7_complete_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+WORD_QUOTIENT_TILED {"base_field_rows":true,"charged_peak_bytes":7961052,"coefficient_bytes":0,"tile_log":12,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":1916,"mapping_ns":16625,"rows_ns":13330542,"current":{"prepare_ns":375917,"jobs_ns":109605916,"block_fold_cpu_ns":257631,"block_fft_cpu_ns":2446450,"group_changes":0,"prefold_elements_read":0,"block_elements_read":933888,"fft_elements":1867776,"jobs":456},"previous":{"prepare_ns":1853959,"jobs_ns":442646125,"block_fold_cpu_ns":268245,"block_fft_cpu_ns":2676177,"group_changes":0,"prefold_elements_read":0,"block_elements_read":1024000,"fft_elements":2048000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=569770292
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=13 elapsed_ns=4279041
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=5 elapsed_ns=280292
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=242667
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=251291
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=7897500
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=224542
+WORD_QUOTIENT_TILED {"base_field_rows":true,"charged_peak_bytes":7961052,"coefficient_bytes":0,"tile_log":12,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":2000,"mapping_ns":16416,"rows_ns":12486167,"current":{"prepare_ns":261250,"jobs_ns":3885875,"block_fold_cpu_ns":253001,"block_fft_cpu_ns":2414658,"group_changes":0,"prefold_elements_read":0,"block_elements_read":933888,"fft_elements":1867776,"jobs":456},"previous":{"prepare_ns":487583,"jobs_ns":4220876,"block_fold_cpu_ns":161003,"block_fft_cpu_ns":2643745,"group_changes":0,"prefold_elements_read":0,"block_elements_read":1024000,"fft_elements":2048000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=22190750
+WORD_QUOTIENT_TILED {"base_field_rows":true,"charged_peak_bytes":358364,"coefficient_bytes":0,"tile_log":7,"tiles":2,"requested_group_bytes":33554432,"group_bytes":33554432,"phases":{"recovery_ns":1709,"mapping_ns":542,"rows_ns":407459,"current":{"prepare_ns":68791,"jobs_ns":3295250,"block_fold_cpu_ns":17843,"block_fft_cpu_ns":67199,"group_changes":0,"prefold_elements_read":0,"block_elements_read":29184,"fft_elements":58368,"jobs":456},"previous":{"prepare_ns":123334,"jobs_ns":3862916,"block_fold_cpu_ns":12051,"block_fft_cpu_ns":75996,"group_changes":0,"prefold_elements_read":0,"block_elements_read":32000,"fft_elements":64000,"jobs":500},"group_logs":[0,0,0]}}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=6 elapsed_ns=8134125
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=7 elapsed_ns=214083
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=11820416
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=303500
+V7_COMPLETE_UNION profile=csp_q70_pow26 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_enabled=false trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=0 union_queried=1196370 oracle_queried=0 setup_ns=406865833 union_prove_ns=4087158417 oracle_prove_ns=0 fresh_verify_ns=1386191042 proof_bytes=5841554 proof_peak_bytes=363388744 direct_peak_bytes=363388744 contiguous_ns=6095534792 destruction_ns=42473334 encode_decode_ns=172828583 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.lookups.tables.mod.test_0...OK
+6/11 air.memory_commitment.poseidon2_air.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.
+       12.01 real        14.81 user         3.41 sys
+           385105920  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              701421  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               29311  involuntary context switches
+        335720596211  instructions retired
+         78015486502  cycles elapsed
+           380896552  peak memory footprint

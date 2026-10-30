@@ -2,4 +2,5 @@
 comptime {
     _ = @import("poly/circle/evaluation.zig");
     _ = @import("pcs/sampled_values_work_test.zig");
+    _ = @import("pcs/sampled_coefficient_split.zig");
 }

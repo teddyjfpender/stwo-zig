@@ -1,0 +1,1949 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "unchanged RAM equations with bounded coefficient tiles and base-field real-domain specialization; enabled for v7 RAM at log18+",
+  "policy": {
+    "minimum_trace_log": 18,
+    "tile_log": 15,
+    "group_bytes_by_trace_log": {
+      "18": 33554432,
+      "19": 67108864,
+      "20": 134217728,
+      "21": 536870912,
+      "22+": 1073741824
+    },
+    "max_workspace_bytes": 4294967296,
+    "clamped_to_request_cap": true,
+    "no_unbounded_fallback": true,
+    "explicit_override": "ram_quotient = .whole_domain",
+    "generic_word_pcs_default_unchanged": true,
+    "cache_selection": "Minimum coefficient-read two-stage prefold shape within target; targets are not reservations.",
+    "retained_large_tile_log": 18,
+    "retained_large_tile_threshold": 22,
+    "retained_large_tile_admission": "Every polynomial must retain native-degree coefficients; preferred tile shrinks until tile payload <= one quarter of actual scratch cap. Mixed/recovered source defaults to base tile15.",
+    "base_field_rows": true,
+    "base_field_rows_scope": "v7 bounded RAM policy only; generic WordPCS and generic tile Options defaults unchanged"
+  },
+  "qualified_routes": [
+    "restored spill cohorts with five RAM originals and three providers, q70 PoW26, byte parity to untiled in-memory originals after producer destruction",
+    "complete one-window fifteen-tree original STARK, 20495 cycles, q70 PoW26, exact saved root and public metadata",
+    "standalone log20 RAM original proof, four retained/recovered and untiled/tiled variants, diagnostic q8 PoW0",
+    "log22 original RAM proof with compact fixed/main input trees plus retained interaction coefficients and adaptive tile18; exact original proof hash and fresh verification",
+    "log22 original RAM proof with all fixed/main/interaction input trees compact, default adaptive tiles and base-field rows, exact saved original hash and fresh verification"
+  ],
+  "same_canonical_complete_proof": {
+    "proof.stark.postcard": {
+      "baseline_repository_path": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/proof.stark.postcard",
+      "identical": true,
+      "sha256": "62f94cd2d70b5f3eba3aae3196047dbc9175957ca7f5daaedc9db9196f338efb",
+      "bytes": 5841554
+    },
+    "public-metadata.json": {
+      "baseline_repository_path": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/public-metadata.json",
+      "identical": true,
+      "sha256": "9e667bfcda1e71c76ebb0fb63dfbd78153224f1424c241a07c7b0a9d4916602d",
+      "bytes": 318157
+    },
+    "guest.elf": {
+      "baseline_repository_path": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/guest.elf",
+      "identical": true,
+      "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d",
+      "bytes": 1492
+    }
+  },
+  "canonical_receipt": {
+    "profile": "csp_q70_pow26",
+    "verified": {
+      "statement": [
+        251,
+        122,
+        93,
+        59,
+        1,
+        7,
+        218,
+        239,
+        253,
+        175,
+        20,
+        138,
+        122,
+        21,
+        150,
+        192,
+        188,
+        250,
+        158,
+        251,
+        137,
+        79,
+        53,
+        194,
+        222,
+        251,
+        203,
+        178,
+        67,
+        4,
+        253,
+        125
+      ],
+      "epoch": [
+        26,
+        57,
+        139,
+        3,
+        251,
+        155,
+        229,
+        181,
+        1,
+        199,
+        201,
+        241,
+        29,
+        111,
+        72,
+        94,
+        138,
+        139,
+        255,
+        168,
+        154,
+        124,
+        156,
+        222,
+        37,
+        183,
+        212,
+        190,
+        147,
+        176,
+        195,
+        60
+      ],
+      "cycles": 20495,
+      "segments": 1,
+      "ram_events": 8293,
+      "program_fetches": 20495,
+      "output": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    },
+    "iterations": 4096,
+    "proof_bytes": 5841554,
+    "proof_peak_bytes": 369555298,
+    "test_peak_bytes": 369555298,
+    "setup_ns": 394430458,
+    "union_prove_ns": 4214106917,
+    "oracle_prove_ns": 0,
+    "fresh_verify_ns": 1416606833,
+    "phase_sum_ns": 6025144208,
+    "input_to_verified_root_ns": 6246411625,
+    "destruction_ns": 43582583,
+    "encode_decode_ns": 177675500,
+    "direct_peak_bytes": 369555298,
+    "oracle_enabled": false,
+    "all_physical_claims_equal": null,
+    "producers_destroyed": true,
+    "timing": "shared_host_diagnostic",
+    "scope": "finite_one_window_direct_original_stark",
+    "public_wire_decoder_implemented": false,
+    "all_physical_claims_note": "The no-oracle run does not compare physical claims individually; it compares the complete encoded proof against the previously qualified original."
+  },
+  "logs": {
+    "cohorts": {
+      "log": "v7-ram-tiled-cohort-runtime.log",
+      "sha256": "daf57b55029ccca49ff126d8d699a05644e461bf80979782068c20ae2eadec4b",
+      "passed": true,
+      "maximum_rss_bytes": 103268352,
+      "peak_memory_footprint_bytes": 101646960,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-tiled-cohort-runtime.log"
+    },
+    "union": {
+      "log": "v7-ram-tiled-union-runtime.log",
+      "sha256": "2bc53a9d87cb2eabfc3e0c123ffc41357ad518634cbd7326ed3c3b8b296a382a",
+      "passed": true,
+      "maximum_rss_bytes": 392527872,
+      "peak_memory_footprint_bytes": 388383968,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-tiled-union-runtime.log"
+    },
+    "policy": {
+      "log": "v7-ram-policy-runtime.log",
+      "sha256": "f63e6996bcc0d49074caf7c012531cb3ace39998761c10c00afb1111717deba1",
+      "passed": true,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-policy-runtime.log"
+    },
+    "log20": {
+      "log": "v7-ram-log20-runtime.log",
+      "sha256": "d9938f7d0c4c5e7a4c6d9d750fb85f80490fe92930d8d2d215490502478d2ff1",
+      "passed": true,
+      "maximum_rss_bytes": 9279242240,
+      "peak_memory_footprint_bytes": 9282526192,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 6832565912,
+          "commit_ns": 746580583,
+          "proof_ns": 6923497084,
+          "verification_ns": 224854666,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 3326121864,
+          "commit_ns": 732886541,
+          "proof_ns": 9007302667,
+          "verification_ns": 226309792,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 5876259128,
+          "commit_ns": 755154500,
+          "proof_ns": 8388481708,
+          "verification_ns": 226437500,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 3118961584,
+          "commit_ns": 767807084,
+          "proof_ns": 10657972250,
+          "verification_ns": 224315333,
+          "exact_original_verification": true
+        }
+      ],
+      "all_four_proof_sha256": [
+        "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216"
+      ],
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-log20-runtime.log"
+    },
+    "log20_retained_128MiB": {
+      "log": "v7-ram-prefold128-runtime.log",
+      "sha256": "2326dcf2e90f9639fe796b6f44cac2162279649381ed19388e0055d3cbeb4c6b",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 6832565912,
+          "commit_ns": 724276625,
+          "proof_ns": 6919559166,
+          "verification_ns": 225914250,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 3326121864,
+          "commit_ns": 721387666,
+          "proof_ns": 7092302542,
+          "verification_ns": 227341708,
+          "exact_original_verification": true
+        }
+      ],
+      "proof_sha256": [
+        "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216"
+      ],
+      "max_rss_bytes": 9279225856,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-prefold128-runtime.log"
+    },
+    "log20_recovered_adaptive_policy": {
+      "log": "v7-ram-policy-recovered-runtime.log",
+      "sha256": "1c72158b1b5bc34124a7c2bfa4fb2a7bbbe2aa08b5d281a4b8da6b1c2997c2a2",
+      "passed": true,
+      "cases": [
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 5876259128,
+          "commit_ns": 749111625,
+          "proof_ns": 8344244500,
+          "verification_ns": 216459333,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 3304035520,
+          "commit_ns": 729604000,
+          "proof_ns": 8634999500,
+          "verification_ns": 217596584,
+          "exact_original_verification": true
+        }
+      ],
+      "proof_sha256": [
+        "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216"
+      ],
+      "max_rss_bytes": 8322809856,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-policy-recovered-runtime.log"
+    },
+    "log22_initial128": {
+      "log": "v7-ram-log22-runtime.log",
+      "sha256": "2d59ba5b0efe77f263f046f6083dd7dbd8ebde0dc9aaf8a1168501a465e57279",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 27330129928,
+          "commit_ns": 3275629167,
+          "proof_ns": 29293524917,
+          "verification_ns": 911032833,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 13304371208,
+          "commit_ns": 3417397750,
+          "proof_ns": 41182551667,
+          "verification_ns": 974320000,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [
+        {
+          "charged_peak_bytes": 444533160,
+          "coefficient_bytes": 0,
+          "tile_log": 15,
+          "tiles": 512
+        }
+      ],
+      "max_rss_bytes": 37037326336,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "comparison": "same-binary byte equality plus fresh original verification",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-log22-runtime.log"
+    },
+    "log22_requested1GiB": {
+      "log": "v7-ram-log22-prefold-runtime.log",
+      "sha256": "c89590925a0204c7d956948f04f2e020e8d69b1c86fc66710e8a0745012d8e61",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 27330129928,
+          "commit_ns": 3287663291,
+          "proof_ns": 29049431709,
+          "verification_ns": 952670875,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 13304371208,
+          "commit_ns": 3729936209,
+          "proof_ns": 40848109291,
+          "verification_ns": 1028608292,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [
+        {
+          "charged_peak_bytes": 564070776,
+          "coefficient_bytes": 0,
+          "tile_log": 15,
+          "tiles": 512,
+          "requested_group_bytes": 1073741824,
+          "group_bytes": 1073741824
+        }
+      ],
+      "max_rss_bytes": 37037342720,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "comparison": "same-binary byte equality plus fresh original verification",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-log22-prefold-runtime.log"
+    },
+    "log22_phase_profile": {
+      "log": "v7-ram-phase-profile-runtime.log",
+      "sha256": "54c8862289b2b21c1a22e569e9715a79e432044a9b2f56e8d4b62ef73591716f",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 13304371208,
+          "commit_ns": 3317502833,
+          "proof_ns": 36368285500,
+          "verification_ns": 924441750,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "max_rss_bytes": 23012655104,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "comparison": "fresh original verification plus exact recorded control SHA256",
+      "binary_sha256": "a527d832bf0798fe5e087335402771770f3b225a2f7e6057b11f9e6c35a8a701",
+      "source_sha256": {
+        "src/prover/poly/circle/coset_blocks.zig": "ba55e37f01c5fb586216b170b8abdaf58b2da1d8694ca85dde3b1382f3fa96c7",
+        "src/frontends/riscv/prover/block_v7_word_quotient_tiles_v1.zig": "031a5901d04af755c7ec14ea69dc0bde6a301ea68ba2fd9881794bcd162f3a19",
+        "src/frontends/riscv/prover/block_v7_word_quotient_profile_v1.zig": "4da2f989e28f5370956b661c1ec5a7663df57e408739467385ff092f0b0672cf",
+        "src/frontends/riscv/prover/block_v7_ram_quotient_policy_v1.zig": "54f5053de50898ba03dddd290abc46013c7620c7423d1d77b520f0cb580ed7f5"
+      },
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-phase-profile-runtime.log"
+    },
+    "log22_tile18_phase_profile": {
+      "log": "v7-ram-tile18-runtime.log",
+      "sha256": "7ba6fffc087e5a48bf60a79c7be032f567a2816c9eb7089442c6e5fcbecdf0cd",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 14469455088,
+          "commit_ns": 3280921333,
+          "proof_ns": 27914475750,
+          "verification_ns": 985100709,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "comparison": "fresh original verification plus exact previously recorded control SHA256; timing from separate diagnostic runs",
+      "max_rss_bytes": 24177377280,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-tile18-runtime.log"
+    },
+    "log22_compact_adaptive": {
+      "log": "v7-ram-compact-log22-runtime.log",
+      "sha256": "37b321d2e2a77391ef6b781923e06e9bdc2e2453ba2aeaf3ff95dbffa7919dab",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 10711356016,
+          "commit_ns": 5900814291,
+          "proof_ns": 30584969542,
+          "verification_ns": 1008463833,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [
+        {
+          "charged_peak_bytes": 2507258536,
+          "coefficient_bytes": 0,
+          "tile_log": 18,
+          "tiles": 64,
+          "requested_group_bytes": 1073741824,
+          "group_bytes": 1073741824,
+          "phases": {
+            "recovery_ns": 3625,
+            "mapping_ns": 37802169,
+            "rows_ns": 12872891211,
+            "current": {
+              "prepare_ns": 912350418,
+              "jobs_ns": 3628820126,
+              "block_fold_cpu_ns": 2420127418,
+              "block_fft_cpu_ns": 8316237028,
+              "group_changes": 16,
+              "prefold_elements_read": 15300820992,
+              "block_elements_read": 15300820992,
+              "fft_elements": 3825205248,
+              "jobs": 14592
+            },
+            "previous": {
+              "prepare_ns": 1060043752,
+              "jobs_ns": 3944307756,
+              "block_fold_cpu_ns": 2647547431,
+              "block_fft_cpu_ns": 8998630230,
+              "group_changes": 32,
+              "prefold_elements_read": 16777216000,
+              "block_elements_read": 16777216000,
+              "fft_elements": 4194304000,
+              "jobs": 16000
+            },
+            "group_logs": [
+              2,
+              2,
+              2
+            ]
+          }
+        }
+      ],
+      "input_storage": [
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": false
+        }
+      ],
+      "max_rss_bytes": 20419264512,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "comparison": "Same original proof hash as prior resident/whole-domain controls, freshly verified; separate diagnostic runs, not ranked timing.",
+      "input_storage_scope": "fixed/main coefficient-backed, interaction retains coefficients and LDE (Joint-like mode); large Cohort mixed-interaction recovery not measured",
+      "binary_sha256": "48e12350f9038115790e980f9a24c023839fd44d7706dc4fa73ead46b0735e48",
+      "helper_peak_saved_vs_whole_bytes": 16618773912,
+      "helper_peak_saved_vs_resident_tile18_bytes": 3758099072,
+      "note": "Process RSS also includes raw fixture matrices, independently staged resident source commitments and a final low-budget negative proof attempt.",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-compact-log22-runtime.log"
+    },
+    "compact_mixed_small": {
+      "log": "v7-ram-compact-mixed-runtime.log",
+      "sha256": "ff5d1b12d3c33f92852e6325334bd0783ea496999e227b6da0323dbf188b1297",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 460592,
+          "commit_ns": 2935958,
+          "proof_ns": 21344542,
+          "verification_ns": 11385375,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 460592,
+          "commit_ns": 2436166,
+          "proof_ns": 64888042,
+          "verification_ns": 10947417,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2266125,
+          "proof_ns": 15675917,
+          "verification_ns": 10892833,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2152916,
+          "proof_ns": 63566625,
+          "verification_ns": 10878209,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "input_storage": [
+        {
+          "compact": true,
+          "retain": true,
+          "interaction_recovery": true
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": true
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": true
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": true
+        }
+      ],
+      "proof_sha256": [
+        "a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b"
+      ],
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-compact-mixed-runtime.log"
+    },
+    "adaptive_small": {
+      "log": "v7-ram-adaptive-small-runtime.log",
+      "sha256": "5bbe14e386086a69dcc66d9d54109d64de4d177187bc26af585eda5cbcb71f5a",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 510472,
+          "commit_ns": 2001250,
+          "proof_ns": 17026791,
+          "verification_ns": 11180542,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 510472,
+          "commit_ns": 1979458,
+          "proof_ns": 61334709,
+          "verification_ns": 11296750,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2270333,
+          "proof_ns": 15862167,
+          "verification_ns": 11044833,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2279166,
+          "proof_ns": 65626792,
+          "verification_ns": 12053458,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "input_storage": [
+        {
+          "compact": false,
+          "retain": true,
+          "interaction_recovery": false
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": false
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": false
+        },
+        {
+          "compact": false,
+          "retain": false,
+          "interaction_recovery": false
+        }
+      ],
+      "proof_sha256": [
+        "a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b"
+      ],
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-adaptive-small-runtime.log"
+    },
+    "adaptive_overflow_boundary": {
+      "log": "v7-ram-policy-boundary-runtime.log",
+      "sha256": "2d8721736be430d64469037148a83d69a22af9f343c432ec6819ef55bed324f9",
+      "passed": true,
+      "cases": [],
+      "tile_stats": [],
+      "input_storage": [],
+      "proof_sha256": [],
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-policy-boundary-runtime.log"
+    },
+    "log22_base_rows": {
+      "log": "v7-ram-base-log22-runtime.log",
+      "sha256": "7d6dca390c9b6345a8fcb0645a0c5c58bb1c71b00cafd74b1c039671ce3d26aa",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 14469455088,
+          "commit_ns": 3265433750,
+          "proof_ns": 23779611500,
+          "verification_ns": 946078917,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [
+        {
+          "charged_peak_bytes": 2507258536,
+          "coefficient_bytes": 0,
+          "tile_log": 18,
+          "tiles": 64,
+          "requested_group_bytes": 1073741824,
+          "group_bytes": 1073741824,
+          "phases": {
+            "recovery_ns": 4667,
+            "mapping_ns": 31658419,
+            "rows_ns": 8342994123,
+            "current": {
+              "prepare_ns": 825699004,
+              "jobs_ns": 3313662707,
+              "block_fold_cpu_ns": 2210664395,
+              "block_fft_cpu_ns": 7583378466,
+              "group_changes": 16,
+              "prefold_elements_read": 15300820992,
+              "block_elements_read": 15300820992,
+              "fft_elements": 3825205248,
+              "jobs": 14592
+            },
+            "previous": {
+              "prepare_ns": 961547372,
+              "jobs_ns": 3578093042,
+              "block_fold_cpu_ns": 2387347854,
+              "block_fft_cpu_ns": 8178524563,
+              "group_changes": 32,
+              "prefold_elements_read": 16777216000,
+              "block_elements_read": 16777216000,
+              "fft_elements": 4194304000,
+              "jobs": 16000
+            },
+            "group_logs": [
+              2,
+              2,
+              2
+            ]
+          }
+        }
+      ],
+      "phase_live": [
+        {
+          "input_bytes": 5754596720,
+          "interaction_bytes": 11626633248,
+          "before_core_bytes": 11626633248,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 3875545840,
+          "interaction_bytes": 7801422528,
+          "before_core_bytes": 7801422528,
+          "compact_interaction": false
+        }
+      ],
+      "max_rss_bytes": 24177410048,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "base_field_rows": true,
+      "comparison": "Independent fresh verification plus matching original control SHA; timing from separate diagnostic runs.",
+      "binary_sha256": "d5c8147a5ba63a32b2c5e97053fecc8dd4ab7e0480fa5f9fe6826235dca10a60",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-base-log22-runtime.log"
+    },
+    "base_rows_small": {
+      "log": "v7-ram-base-small-runtime.log",
+      "sha256": "eee4be63ff5fd86813ebfb41847c1e429b46cff347aefa0e9c70ebc2e0375703",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 510472,
+          "commit_ns": 2615375,
+          "proof_ns": 21480000,
+          "verification_ns": 12381500,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 510472,
+          "commit_ns": 2096000,
+          "proof_ns": 61565792,
+          "verification_ns": 10642375,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2187583,
+          "proof_ns": 14909709,
+          "verification_ns": 10445375,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2180375,
+          "proof_ns": 63040250,
+          "verification_ns": 10335250,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "phase_live": [
+        {
+          "input_bytes": 62672,
+          "interaction_bytes": 121968,
+          "before_core_bytes": 121968,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 62672,
+          "interaction_bytes": 121968,
+          "before_core_bytes": 121968,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        }
+      ],
+      "proof_sha256": [
+        "a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b"
+      ],
+      "base_field_rows": true,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-base-small-runtime.log"
+    },
+    "base_rows_allcompact_small": {
+      "log": "v7-ram-base-allcompact-small-runtime.log",
+      "sha256": "7b6807ba4b18a7771cdf931ad356961d2507b8d695ad48e4b1e657ab1c259d7e",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 419656,
+          "commit_ns": 3347333,
+          "proof_ns": 27361667,
+          "verification_ns": 11699416,
+          "exact_original_verification": true
+        },
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 419656,
+          "commit_ns": 2603167,
+          "proof_ns": 68300125,
+          "verification_ns": 10729625,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": false,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2134125,
+          "proof_ns": 15014541,
+          "verification_ns": 10382084,
+          "exact_original_verification": true
+        },
+        {
+          "retain": false,
+          "tiled": true,
+          "row_log": 5,
+          "proof_bytes": 17677,
+          "charged_peak": 474928,
+          "commit_ns": 2170459,
+          "proof_ns": 62854125,
+          "verification_ns": 10226708,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [],
+      "phase_live": [
+        {
+          "input_bytes": 31312,
+          "interaction_bytes": 58128,
+          "before_core_bytes": 58128,
+          "compact_interaction": true
+        },
+        {
+          "input_bytes": 31312,
+          "interaction_bytes": 58128,
+          "before_core_bytes": 58128,
+          "compact_interaction": true
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        },
+        {
+          "input_bytes": 45648,
+          "interaction_bytes": 87312,
+          "before_core_bytes": 87312,
+          "compact_interaction": false
+        }
+      ],
+      "proof_sha256": [
+        "a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b"
+      ],
+      "base_field_rows": true,
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-base-allcompact-small-runtime.log"
+    },
+    "base_rows_canonical_union": {
+      "log": "v7-ram-base-canonical-runtime.log",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-base-canonical-runtime.log",
+      "sha256": "3b2fe938c976d51d8f0055582d15863fa4530bbca9a3c4c25b113a02302fc651",
+      "passed": true,
+      "tile_stats": [
+        {
+          "base_field_rows": true,
+          "charged_peak_bytes": 7961052,
+          "coefficient_bytes": 0,
+          "tile_log": 12,
+          "tiles": 2,
+          "requested_group_bytes": 33554432,
+          "group_bytes": 33554432,
+          "phases": {
+            "recovery_ns": 1916,
+            "mapping_ns": 16625,
+            "rows_ns": 13330542,
+            "current": {
+              "prepare_ns": 375917,
+              "jobs_ns": 109605916,
+              "block_fold_cpu_ns": 257631,
+              "block_fft_cpu_ns": 2446450,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 933888,
+              "fft_elements": 1867776,
+              "jobs": 456
+            },
+            "previous": {
+              "prepare_ns": 1853959,
+              "jobs_ns": 442646125,
+              "block_fold_cpu_ns": 268245,
+              "block_fft_cpu_ns": 2676177,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 1024000,
+              "fft_elements": 2048000,
+              "jobs": 500
+            },
+            "group_logs": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "base_field_rows": true,
+          "charged_peak_bytes": 7961052,
+          "coefficient_bytes": 0,
+          "tile_log": 12,
+          "tiles": 2,
+          "requested_group_bytes": 33554432,
+          "group_bytes": 33554432,
+          "phases": {
+            "recovery_ns": 2000,
+            "mapping_ns": 16416,
+            "rows_ns": 12486167,
+            "current": {
+              "prepare_ns": 261250,
+              "jobs_ns": 3885875,
+              "block_fold_cpu_ns": 253001,
+              "block_fft_cpu_ns": 2414658,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 933888,
+              "fft_elements": 1867776,
+              "jobs": 456
+            },
+            "previous": {
+              "prepare_ns": 487583,
+              "jobs_ns": 4220876,
+              "block_fold_cpu_ns": 161003,
+              "block_fft_cpu_ns": 2643745,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 1024000,
+              "fft_elements": 2048000,
+              "jobs": 500
+            },
+            "group_logs": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        {
+          "base_field_rows": true,
+          "charged_peak_bytes": 358364,
+          "coefficient_bytes": 0,
+          "tile_log": 7,
+          "tiles": 2,
+          "requested_group_bytes": 33554432,
+          "group_bytes": 33554432,
+          "phases": {
+            "recovery_ns": 1709,
+            "mapping_ns": 542,
+            "rows_ns": 407459,
+            "current": {
+              "prepare_ns": 68791,
+              "jobs_ns": 3295250,
+              "block_fold_cpu_ns": 17843,
+              "block_fft_cpu_ns": 67199,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 29184,
+              "fft_elements": 58368,
+              "jobs": 456
+            },
+            "previous": {
+              "prepare_ns": 123334,
+              "jobs_ns": 3862916,
+              "block_fold_cpu_ns": 12051,
+              "block_fft_cpu_ns": 75996,
+              "group_changes": 0,
+              "prefold_elements_read": 0,
+              "block_elements_read": 32000,
+              "fft_elements": 64000,
+              "jobs": 500
+            },
+            "group_logs": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "max_rss_bytes": 385105920,
+      "exact_archived_artifact_parity": {
+        "proof.stark.postcard": {
+          "identical": true,
+          "sha256": "62f94cd2d70b5f3eba3aae3196047dbc9175957ca7f5daaedc9db9196f338efb",
+          "bytes": 5841554,
+          "control": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/proof.stark.postcard"
+        },
+        "public-metadata.json": {
+          "identical": true,
+          "sha256": "9e667bfcda1e71c76ebb0fb63dfbd78153224f1424c241a07c7b0a9d4916602d",
+          "bytes": 318157,
+          "control": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/public-metadata.json"
+        },
+        "guest.elf": {
+          "identical": true,
+          "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d",
+          "bytes": 1492,
+          "control": "vectors/reports/block-v7-complete-union-20261029/q70-contiguous/guest.elf"
+        }
+      },
+      "security": "q70 PoW26",
+      "cycles": 20495,
+      "caller_layout_epoch": "before pending active-caller VERSION3; no changed identity assumed"
+    },
+    "base_rows_default_small": {
+      "log": "v7-ram-default-base-small.log",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-default-base-small.log",
+      "sha256": "103114537cb690d84188551338ea1d76b2c8626aa063382e6569cc82087dfee6",
+      "passed": true,
+      "tile_stats": []
+    },
+    "base_rows_scalar_small": {
+      "log": "v7-ram-base-final-small.log",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-base-final-small.log",
+      "sha256": "70df056f9c6e333224c9abc7f7c144177fa0f61984a43b709f35eb261f20cc18",
+      "passed": true,
+      "tile_stats": []
+    },
+    "log22_allcompact_base_rows": {
+      "log": "v7-ram-allcompact-log22-runtime.log",
+      "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/v7-ram-allcompact-log22-runtime.log",
+      "sha256": "4b780a78c86991ad1211807e4037a5a56f30dd052f61f9846d78cff1a7b7b1ec",
+      "passed": true,
+      "cases": [
+        {
+          "retain": true,
+          "tiled": true,
+          "row_log": 22,
+          "proof_bytes": 85955,
+          "charged_peak": 6819039120,
+          "commit_ns": 5703669708,
+          "proof_ns": 29258206583,
+          "verification_ns": 979035209,
+          "exact_original_verification": true
+        }
+      ],
+      "tile_stats": [
+        {
+          "base_field_rows": true,
+          "charged_peak_bytes": 2507258536,
+          "coefficient_bytes": 0,
+          "tile_log": 18,
+          "tiles": 64,
+          "requested_group_bytes": 1073741824,
+          "group_bytes": 1073741824,
+          "phases": {
+            "recovery_ns": 3250,
+            "mapping_ns": 34480915,
+            "rows_ns": 8647849458,
+            "current": {
+              "prepare_ns": 913640372,
+              "jobs_ns": 3618075295,
+              "block_fold_cpu_ns": 2283920130,
+              "block_fft_cpu_ns": 8418680212,
+              "group_changes": 16,
+              "prefold_elements_read": 15300820992,
+              "block_elements_read": 15300820992,
+              "fft_elements": 3825205248,
+              "jobs": 14592
+            },
+            "previous": {
+              "prepare_ns": 1048258751,
+              "jobs_ns": 3936824288,
+              "block_fold_cpu_ns": 2542551952,
+              "block_fft_cpu_ns": 9077958006,
+              "group_changes": 32,
+              "prefold_elements_read": 16777216000,
+              "block_elements_read": 16777216000,
+              "fft_elements": 4194304000,
+              "jobs": 16000
+            },
+            "group_logs": [
+              2,
+              2,
+              2
+            ]
+          }
+        }
+      ],
+      "phase_live": [
+        {
+          "input_bytes": 1996497648,
+          "interaction_bytes": 3976217280,
+          "before_core_bytes": 3976217280,
+          "compact_interaction": true
+        },
+        {
+          "input_bytes": 3875545840,
+          "interaction_bytes": 7801422528,
+          "before_core_bytes": 7801422528,
+          "compact_interaction": false
+        }
+      ],
+      "base_field_rows": true,
+      "max_rss_bytes": 18013782016,
+      "proof_sha256": [
+        "4c0030e6d3769e5ab23d05c5786d35d307688f7fabfb30084f802135f5135521"
+      ],
+      "binary_sha256": "53e1c60d4beba571b1412cb365e14963bd065b71f458b88707be8f6be4af8957",
+      "security": "diagnostic q8 PoW0",
+      "input_storage": "fixed/main/interaction coefficients+Merkle retained, LDE released; composition storage remains original",
+      "scope": "single original RAM STARK, raw fixture witnesses outside helper",
+      "timing": "separate diagnostic runs, not ranked",
+      "negative_attempt": "Last phase_live record is the deliberate noncompact low-budget rejection, not the positive compact proof",
+      "comparison": {
+        "whole_domain_helper_peak_bytes": 27330129928,
+        "allcompact_helper_peak_bytes": 6819039120,
+        "reduction_percent": 75.04937174479429,
+        "resident_before_core_live_bytes": 11626633248,
+        "allcompact_before_core_live_bytes": 3976217280
+      }
+    }
+  },
+  "limitations": [
+    "finite one-window original root; no whole-block or new recursive scalability qualification",
+    "log20 helper peaks exclude externally prepared matrices and retained original first-stage commitments; process RSS includes them",
+    "timings are diagnostic and some correctness runs overlap other processes",
+    "Log22 retained original proof is qualified at q8/PoW0; adaptive tile18 lowers helper peak47.06% and removes the measured tile15 time penalty in diagnostic runs. Whole-block and canonical-security large RAM timing remain unqualified."
+  ],
+  "log20_core_attribution": {
+    "scope": "Same focused binary, sequential diagnostic runs; q8/PoW0; no ranked timing claim. Exact original proof bytes and ordinary verification in every run. RSS includes independent test fixture and final noncompact rejection case.",
+    "selected_opening_hypothesis": "Falsified: CPU host Merkle trees already choose coefficient_opening.decommit selected evaluator; no alternative policy added.",
+    "runs": {
+      "initial_opening_profile": {
+        "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/log20-opening-selected-profile.log",
+        "log_sha256": "5928ce73edfd82365052462e2c804437dac8f35714bead9c4f6843557ac4c8f6",
+        "passed": true,
+        "retain": "true",
+        "tiled": "true",
+        "row_log": 20,
+        "proof_bytes": 70451,
+        "charged_peak": 1589661136,
+        "commit_ns": 1130892708,
+        "proof_ns": 8050120459,
+        "verification_ns": 258559125,
+        "exact_original_verification": "true",
+        "proof_sha256": "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216",
+        "max_rss_bytes": 4524752896,
+        "openings": [
+          {
+            "mode": "selected",
+            "columns": 24,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10137917,
+            "expansion_ns": 19859958,
+            "leaf_ns": 44125,
+            "merkle_ns": 1187834,
+            "total_ns": 35287000
+          },
+          {
+            "mode": "selected",
+            "columns": 88,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10440042,
+            "expansion_ns": 72983582,
+            "leaf_ns": 163543,
+            "merkle_ns": 1384625,
+            "total_ns": 98864500
+          },
+          {
+            "mode": "selected",
+            "columns": 116,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10407542,
+            "expansion_ns": 101282289,
+            "leaf_ns": 214958,
+            "merkle_ns": 1557625,
+            "total_ns": 132642375
+          }
+        ],
+        "phase_live": {
+          "input_bytes": 499131056,
+          "interaction_bytes": 994067040,
+          "before_core_bytes": 994067040,
+          "compact_interaction": "true"
+        }
+      },
+      "compact": {
+        "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/log20-core-compact-profile.log",
+        "log_sha256": "ef3b385ed0b2679b79a4b581f791a91253c9cc031ad940ba1f02a1bb8a7a1ba7",
+        "passed": true,
+        "retain": "true",
+        "tiled": "true",
+        "row_log": 20,
+        "proof_bytes": 70451,
+        "charged_peak": 1589661136,
+        "commit_ns": 989649417,
+        "proof_ns": 7028185708,
+        "verification_ns": 239138792,
+        "exact_original_verification": "true",
+        "proof_sha256": "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216",
+        "max_rss_bytes": 4524851200,
+        "openings": [
+          {
+            "mode": "selected",
+            "columns": 24,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10198375,
+            "expansion_ns": 19175541,
+            "leaf_ns": 32001,
+            "merkle_ns": 1204208,
+            "total_ns": 33867333
+          },
+          {
+            "mode": "selected",
+            "columns": 88,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10352750,
+            "expansion_ns": 71547125,
+            "leaf_ns": 144626,
+            "merkle_ns": 1421709,
+            "total_ns": 96628375
+          },
+          {
+            "mode": "selected",
+            "columns": 116,
+            "queries": 8,
+            "leaf_positions": 128,
+            "log": 21,
+            "setup_ns": 10468417,
+            "expansion_ns": 93876041,
+            "leaf_ns": 179541,
+            "merkle_ns": 1470083,
+            "total_ns": 123506458
+          }
+        ],
+        "interaction_commit_ns": 1040238292,
+        "core_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "v7_ram_original",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 6e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.1e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 4.70431,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.010733,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.157449,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.002565,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.156486,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 1.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.637886,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.016776,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.256839,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 5.4e-05,
+              "children": null
+            }
+          ]
+        },
+        "phase_live": {
+          "input_bytes": 499131056,
+          "interaction_bytes": 994067040,
+          "before_core_bytes": 994067040,
+          "compact_interaction": "true"
+        }
+      },
+      "resident": {
+        "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/log20-core-resident-profile.log",
+        "log_sha256": "63d0503cfcd7c4d902fb761655d98a1835f58a68bbc56b7f008f8bee942c87f5",
+        "passed": true,
+        "retain": "true",
+        "tiled": "true",
+        "row_log": 20,
+        "proof_bytes": 70451,
+        "charged_peak": 3326122520,
+        "commit_ns": 764059208,
+        "proof_ns": 6310488250,
+        "verification_ns": 238563458,
+        "exact_original_verification": "true",
+        "proof_sha256": "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216",
+        "max_rss_bytes": 5774032896,
+        "openings": [],
+        "interaction_commit_ns": 730152333,
+        "core_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "v7_ram_original",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 7e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 4.722583,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.010625,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.156829,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.002556,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.078352,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 2.1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.542126,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.017222,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.006938,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 6.1e-05,
+              "children": null
+            }
+          ]
+        },
+        "phase_live": {
+          "input_bytes": 1438657840,
+          "interaction_bytes": 2906675136,
+          "before_core_bytes": 2906675136,
+          "compact_interaction": "false"
+        }
+      }
+    }
+  },
+  "factored_range_pairs": {
+    "status": "Canonical q70 complete-root exact-byte equality qualified; opt-in flag remains false by default while production measurement work takes priority.",
+    "scope": "Exact polynomial factorization of existing pair residuals only; no plane/claim/layout/proof-protocol changes. Original generic/scalar/recursive evaluator retained.",
+    "challenge_cases": [
+      "original",
+      "A=0,z=0",
+      "A=0,z=extension",
+      "A=7,z=0",
+      "A=extension,z=extension",
+      "A=extension,z=0"
+    ],
+    "tests": "All161 equations in original order, three boundary geometries, random packed cells and random fold powers, scalar lane parity; original complete proof bytes and fresh verifier.",
+    "runs": {
+      "small": {
+        "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/factor-pairs-small.log",
+        "log_sha256": "354f68679f41b1831db66536ca7455db74547a131e10ea4971fe016487bffc66",
+        "passed": true,
+        "proof_hashes": [
+          "a4645485a7859755321796d8fc21a41557acbc656512205dcaa3e7ffda23f67b"
+        ]
+      },
+      "log20": {
+        "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/factor-pairs-log20.log",
+        "log_sha256": "ae442cf156fdfb1e5ad186f824d0633d2ed83f297ff72bafa17dc63b3721bf6d",
+        "passed": true,
+        "proof_hashes": [
+          "058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216"
+        ],
+        "quotient": {
+          "base_field_rows": true,
+          "factor_range_pairs": true,
+          "charged_peak_bytes": 313506488,
+          "coefficient_bytes": 0,
+          "tile_log": 15,
+          "tiles": 128,
+          "requested_group_bytes": 134217728,
+          "group_bytes": 134217728,
+          "phases": {
+            "recovery_ns": 3208,
+            "mapping_ns": 7844285,
+            "rows_ns": 1576525550,
+            "current": {
+              "prepare_ns": 460412916,
+              "jobs_ns": 785190836,
+              "block_fold_cpu_ns": 499751147,
+              "block_fft_cpu_ns": 1496873400,
+              "group_changes": 32,
+              "prefold_elements_read": 7650410496,
+              "block_elements_read": 3825205248,
+              "fft_elements": 956301312,
+              "jobs": 29184
+            },
+            "previous": {
+              "prepare_ns": 523126002,
+              "jobs_ns": 861257698,
+              "block_fold_cpu_ns": 549917556,
+              "block_fft_cpu_ns": 1640682835,
+              "group_changes": 64,
+              "prefold_elements_read": 8388608000,
+              "block_elements_read": 4194304000,
+              "fft_elements": 1048576000,
+              "jobs": 32000
+            },
+            "group_logs": [
+              2,
+              2,
+              2
+            ]
+          }
+        },
+        "interaction_commit_ns": 1059356750,
+        "core_profile": {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "v7_ram_original",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 6e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.1e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 4.252224,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.010253,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.16207,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.002545,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.155498,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 1.9e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.635818,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 5e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.016859,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.247963,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 5.3e-05,
+              "children": null
+            }
+          ]
+        },
+        "max_rss_bytes": 4524851200,
+        "proof": {
+          "retain": "true",
+          "tiled": "true",
+          "row_log": 20,
+          "proof_bytes": 70451,
+          "charged_peak": 1589661136,
+          "commit_ns": 1000881042,
+          "proof_ns": 6588890958,
+          "verification_ns": 236646208,
+          "exact_original_verification": "true"
+        }
+      },
+      "canonical_same_binary": {
+        "runs": {
+          "control": {
+            "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/factor-pairs-canonical-control.log",
+            "log_sha256": "98be4f46973379bd5a4a7f139839aefb8cd8a24484eca93f8c0fee7fbd5908eb",
+            "passed": true,
+            "receipt": {
+              "profile": "csp_q70_pow26",
+              "verified": {
+                "statement": [
+                  251,
+                  122,
+                  93,
+                  59,
+                  1,
+                  7,
+                  218,
+                  239,
+                  253,
+                  175,
+                  20,
+                  138,
+                  122,
+                  21,
+                  150,
+                  192,
+                  188,
+                  250,
+                  158,
+                  251,
+                  137,
+                  79,
+                  53,
+                  194,
+                  222,
+                  251,
+                  203,
+                  178,
+                  67,
+                  4,
+                  253,
+                  125
+                ],
+                "epoch": [
+                  153,
+                  23,
+                  212,
+                  140,
+                  156,
+                  28,
+                  3,
+                  108,
+                  157,
+                  181,
+                  103,
+                  221,
+                  132,
+                  79,
+                  167,
+                  255,
+                  152,
+                  63,
+                  234,
+                  124,
+                  241,
+                  53,
+                  240,
+                  230,
+                  29,
+                  220,
+                  236,
+                  159,
+                  255,
+                  76,
+                  61,
+                  13
+                ],
+                "cycles": 20495,
+                "segments": 1,
+                "ram_events": 8293,
+                "program_fetches": 20495,
+                "output": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+              },
+              "iterations": 4096,
+              "proof_bytes": 5840895,
+              "proof_peak_bytes": 363388744,
+              "test_peak_bytes": 363388744,
+              "setup_ns": 401916250,
+              "union_prove_ns": 3322099334,
+              "oracle_prove_ns": 0,
+              "fresh_verify_ns": 1336700958,
+              "phase_sum_ns": 5060716542,
+              "input_to_verified_root_ns": 5269121375,
+              "destruction_ns": 41501583,
+              "encode_decode_ns": 166893958,
+              "direct_peak_bytes": 363388744,
+              "oracle_enabled": false,
+              "all_physical_claims_equal": null,
+              "producers_destroyed": true,
+              "timing": "shared_host_diagnostic",
+              "scope": "finite_one_window_direct_original_stark",
+              "public_wire_decoder_implemented": false
+            },
+            "artifacts": {
+              "proof.stark.postcard": {
+                "bytes": 5840895,
+                "sha256": "17632306198e8673b30437399febc2f8f746c41e62449f961508190817821eb9"
+              },
+              "public-metadata.json": {
+                "bytes": 318523,
+                "sha256": "cf854c33bf138548cf0cdb23bb7742427a4679e010369a684baff67f3820f322"
+              },
+              "guest.elf": {
+                "bytes": 1492,
+                "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+              }
+            }
+          },
+          "candidate": {
+            "repository_log": "vectors/reports/block-v7-ram-quotient-20261029/factor-pairs-canonical-candidate.log",
+            "log_sha256": "c2380a8053ecb77de28f6ab316e091885b721ccbaf382aa248d4c1ead6363940",
+            "passed": true,
+            "receipt": {
+              "profile": "csp_q70_pow26",
+              "verified": {
+                "statement": [
+                  251,
+                  122,
+                  93,
+                  59,
+                  1,
+                  7,
+                  218,
+                  239,
+                  253,
+                  175,
+                  20,
+                  138,
+                  122,
+                  21,
+                  150,
+                  192,
+                  188,
+                  250,
+                  158,
+                  251,
+                  137,
+                  79,
+                  53,
+                  194,
+                  222,
+                  251,
+                  203,
+                  178,
+                  67,
+                  4,
+                  253,
+                  125
+                ],
+                "epoch": [
+                  153,
+                  23,
+                  212,
+                  140,
+                  156,
+                  28,
+                  3,
+                  108,
+                  157,
+                  181,
+                  103,
+                  221,
+                  132,
+                  79,
+                  167,
+                  255,
+                  152,
+                  63,
+                  234,
+                  124,
+                  241,
+                  53,
+                  240,
+                  230,
+                  29,
+                  220,
+                  236,
+                  159,
+                  255,
+                  76,
+                  61,
+                  13
+                ],
+                "cycles": 20495,
+                "segments": 1,
+                "ram_events": 8293,
+                "program_fetches": 20495,
+                "output": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+              },
+              "iterations": 4096,
+              "proof_bytes": 5840895,
+              "proof_peak_bytes": 362919136,
+              "test_peak_bytes": 362919136,
+              "setup_ns": 398925750,
+              "union_prove_ns": 3342145208,
+              "oracle_prove_ns": 0,
+              "fresh_verify_ns": 1333511542,
+              "phase_sum_ns": 5074582500,
+              "input_to_verified_root_ns": 5283619084,
+              "destruction_ns": 41533792,
+              "encode_decode_ns": 167499541,
+              "direct_peak_bytes": 362919136,
+              "oracle_enabled": false,
+              "all_physical_claims_equal": null,
+              "producers_destroyed": true,
+              "timing": "shared_host_diagnostic",
+              "scope": "finite_one_window_direct_original_stark",
+              "public_wire_decoder_implemented": false
+            },
+            "artifacts": {
+              "proof.stark.postcard": {
+                "bytes": 5840895,
+                "sha256": "17632306198e8673b30437399febc2f8f746c41e62449f961508190817821eb9"
+              },
+              "public-metadata.json": {
+                "bytes": 318523,
+                "sha256": "cf854c33bf138548cf0cdb23bb7742427a4679e010369a684baff67f3820f322"
+              },
+              "guest.elf": {
+                "bytes": 1492,
+                "sha256": "53be4c1452a40786acf5fafa67aa3cc3372057cfc942f6290e7f1bd68d8afa4d"
+              }
+            }
+          }
+        },
+        "all_artifacts_identical": true,
+        "scope": "One-window finite complete union; active caller layoutV3; 20495cycles,3RAMshards; producers destroyed before fresh verifier. Not a full Ethereum block."
+      }
+    }
+  }
+}

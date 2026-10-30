@@ -181,7 +181,9 @@ pub fn ForBackend(comptime Backend: type) type {
             if (frame != cores.frames.len or compression != cores.geometry.compressions) return error.InvalidSourceFoldInventory;
             for ([_]Tables.Kind{ .bitwise, .range_check_8_8 }, 0..) |kind, i| {
                 try Register.tablePreprocessed(bounded, kind, &owner.table_fixed);
-                owner.table_main[i] = try bounded.dupe(M, cores.counters[i].values);
+                // Counters are indexed by logical tuple ordinal. Fixed and
+                // interaction columns use committed circle/bit-reversed order.
+                owner.table_main[i] = try cores.counters[i].committedColumn(bounded);
             }
             owner.fixed = try bounded.alloc(engine.pcs.ColumnEvaluation, cores.fixed.items.len + owner.table_fixed.items.len);
             @memcpy(owner.fixed[0..cores.fixed.items.len], cores.fixed.items);

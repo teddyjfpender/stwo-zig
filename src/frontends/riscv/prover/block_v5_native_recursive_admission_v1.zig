@@ -25,9 +25,7 @@ pub const Prepared = struct {
     reusable_public_inputs: bool = false,
 
     pub fn init(a: std.mem.Allocator, shape: *const shape_mod.Blake3ExecutionStatement, pin: plan_mod.Admission, template: template_mod.Template, expected_id: [32]u8, index: u32, sealed: seal_mod.Sealed, pins: seal_mod.Pins, entries: []const seal_mod.Entry, catalog: ?catalog_mod.Admission) !Prepared {
-        var self = Prepared{ .allocator = a, .shape = shape, .pin = pin, .template = template,
-            .expected_id = expected_id, .index = index, .config = pins.config, .sealed = sealed,
-            .pins = pins, .entries = entries, .catalog = catalog, .logs = undefined };
+        var self = Prepared{ .allocator = a, .shape = shape, .pin = pin, .template = template, .expected_id = expected_id, .index = index, .config = pins.config, .sealed = sealed, .pins = pins, .entries = entries, .catalog = catalog, .logs = undefined };
         try self.validate(expected_id);
         self.logs[0] = try template_mod.columnLogs(a, shape, template.external_retirements, .fixed);
         errdefer a.free(self.logs[0]);

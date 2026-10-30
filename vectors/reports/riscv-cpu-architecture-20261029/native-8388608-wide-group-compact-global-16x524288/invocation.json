@@ -1,0 +1,65 @@
+{
+  "schema": "stwo-b8-pinned-group-complete-original-bundle-invocation-v1",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig-block-lab/vectors/reports/riscv-cpu-architecture-20261029/group-complete-bundle-benchmark-build/benchmark"
+  ],
+  "binary_sha256": "8477379d558749d8adbf715dd78142889fc32933ea5525e593d7fa7a68e6153c",
+  "build_manifest_sha256": "bc05a7a8ceb3520c9b6d800036f69561bcacba342bee014acc176eb8bcd78fd9",
+  "runner_sha256": "e78215c63bd9d83f7eb0f5ef25f9fc4cdd8c292fe6e6b34784bd1af6f08b40aa",
+  "capture_sha256": "0818ae75487ff4d111d0b087fa1d2adf246057667787d35df52f0eed6bfd1d08",
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 8388608
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "57e9be55596fccccc29393f6d6c56b4bcf753cd527433b10fb178d1f171882a5",
+  "workers": 8,
+  "cohorts": 16,
+  "cohort_cycles": 524288,
+  "original_proofs": 3,
+  "group_original_proofs": 1,
+  "cpu_only": true,
+  "global_ram_closed": true,
+  "group_profile": "native_wide_v2",
+  "budget_bytes": 51539607552,
+  "native_batch": false,
+  "recursive_root": false,
+  "ethereum_block": false,
+  "skipped_prefix_proved": false,
+  "started_unix_ns": 1793342383091475000,
+  "report_checked": true,
+  "returncode": 0,
+  "finished_unix_ns": 1793342431462607000,
+  "artifacts": [
+    {
+      "name": "bridge-0.proof",
+      "bytes": 1107048,
+      "sha256": "5cdadfe0a22cefc6071c816ce35e12650916f706652f5ab327362a3462b17391"
+    },
+    {
+      "name": "global-memory.proof",
+      "bytes": 520577,
+      "sha256": "adec657fc1add6057608fec405e7678af201803fc7113fcc003a38c1be7742d0"
+    },
+    {
+      "name": "global-public.json",
+      "bytes": 9062196,
+      "sha256": "73201379cddd2504f60f3d7b1652a806c2b4d1c7dbf78ee23c91daa81590b36e"
+    },
+    {
+      "name": "group-0.json",
+      "bytes": 142153,
+      "sha256": "493c902657b7df30ed3d805600ea6a0df147d04c2800b8acfcf140a2d0adf074"
+    },
+    {
+      "name": "group-0.proof",
+      "bytes": 10763810,
+      "sha256": "439db6f75d815b64c2c12b814f0d9ea4f8d8fdec17fa759e95a36d024ec5c5c5"
+    }
+  ],
+  "report_sha256": "c3dc0f5ac4ab9f3b4e0f0d6070a9b1edfe019067090897d3ccee94faa403e5e9",
+  "publication_validation_runner_sha256": "e78215c63bd9d83f7eb0f5ef25f9fc4cdd8c292fe6e6b34784bd1af6f08b40aa"
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "v7-joint-memory-recursive-seam-v1",
+  "date": "2026-10-29",
+  "status": "superseded_by_interval_draw_correction",
+  "security_profile": "diagnostic_q8_pow0",
+  "execution_epoch_version": 3,
+  "joint_layout_version": 2,
+  "joint_protocol_version": 2,
+  "ram_main_columns": 88,
+  "ram_constraints": 161,
+  "ram_claim_planes": 29,
+  "ram_shards": 5,
+  "guest_events": 16,
+  "terminal_reads": 13,
+  "original_proof_bytes": 99491,
+  "checks": [
+    "original_fixed_policy_root",
+    "original_stark_fresh_verify",
+    "composition_actual_capture",
+    "deep_actual_capture",
+    "fri_actual_capture",
+    "cold_live_transcript_identity",
+    "changed_root_epoch_claim_fixed_plan_invariance",
+    "compensated_physical_claim_rejection"
+  ],
+  "log_sha256": "5e93263ac2d6f092f439ff610dba389f515cb92e5f26d71724a4aa6760c5c555",
+  "outer_parent_qualified": false,
+  "complete_execution_qualified": false,
+  "canonical_security_qualified": false,
+  "performance_measurement": false,
+  "limitation": "The historical seam gate compared final channels and plan IDs but did not compare every exported challenge value. The parent live link caught an incorrect batched interval draw; the native epoch uses two single draws. Explicit universal_half routing and every-limb regression replace that prefix. No outer parent was accepted."
+}

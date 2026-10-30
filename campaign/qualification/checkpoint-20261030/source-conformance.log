@@ -1,0 +1,256 @@
+warning: src/core/fri.zig: 833 lines approaches the 850-line manual-source ceiling (17 line(s) of headroom)
+warning: src/frontends/riscv/runner/elf_loader.zig: 832 lines approaches the 850-line manual-source ceiling (18 line(s) of headroom)
+warning: scripts/cuda_build_lib/builder.py: 823 lines approaches the 850-line manual-source ceiling (27 line(s) of headroom)
+warning: src/prover/pcs/scheme.zig: 822 lines approaches the 850-line manual-source ceiling (28 line(s) of headroom)
+warning: src/integrations/cairo_cuda/executor/pcs_decommit_topology.zig: 809 lines approaches the 850-line manual-source ceiling (41 line(s) of headroom)
+warning: src/backends/cuda/runtime/session.zig: 801 lines approaches the 850-line manual-source ceiling (49 line(s) of headroom)
+warning: src/core/fields/m31.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/prover/pcs/sampled_values_work_test.zig: 783 lines approaches the 850-line manual-source ceiling (67 line(s) of headroom)
+warning: src/prover/fri_commit_ops.zig: 779 lines approaches the 850-line manual-source ceiling (71 line(s) of headroom)
+warning: src/frontends/riscv/recursion/air/tests/pcs_deep_circuit_test.zig: 776 lines approaches the 850-line manual-source ceiling (74 line(s) of headroom)
+note: 303 unchanged file(s) are within 10% of a size ceiling; rerun with --show-headroom to list them
+error: backends/cpu_scalar/riscv_composition.zig: 872 lines exceeds the 850-line manual-source ceiling
+error: backends/cuda/runtime/context.zig: 1062 lines exceeds the 850-line manual-source ceiling
+error: backends/cuda/runtime/stages/relation.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/commit_backend.zig: 1251 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime.m: 1118 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/base_polynomial_composition.zig: 1572 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/bindings.zig: 1164 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/fri_fold_commit.m: 875 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/lifecycle_and_tree.m: 863 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/merkle_epochs.m: 1133 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/opening_operations.zig: 881 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/polynomial_evaluation.m: 1125 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/quotients.m: 1174 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/shaders/blake3_interactions.metal: 2811 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/tests/fri_fold_commit.zig: 852 lines exceeds the 850-line manual-source ceiling
+error: core/crypto/blake2s_backend.zig: 884 lines exceeds the 850-line manual-source ceiling
+error: frontends/cairo/proving/transaction.zig: 931 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/guest_precompile/bulk_memcpy_lifted_composition_diagnostic_v1.zig: 1116 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/guest_precompile/keccakf_component.zig: 861 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/lang/row_window.zig: 870 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/build_focused_tests.zig: 890 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/diagnostics/segment_manifest.zig: 997 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_orchestration_v1.zig: 936 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/incremental_ethereum_omit_orchestration_v4.zig: 1393 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/incremental_ethereum_verifier_v3.zig: 1011 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/main_trace_plan_execution_production_state.zig: 856 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_candidate_provider_v1.zig: 858 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_omit_provider_proof_v1.zig: 1190 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_provider_order_proof_v2.zig: 894 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/ethereum_omit_protocol_v1.zig: 1455 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/provider_order_component.zig: 1043 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/framework_interaction.zig: 1129 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig: 870 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/relation_interaction_runtime.zig: 1010 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/air/tests/universal_typed_component_test.zig: 1107 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/binary_fri_outer_bundle_bundle_for_source_schedule_and_manifest.zig: 869 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/detached_fri_core_part_03.zig: 1140 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/detached_fri_core_part_11.zig: 859 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/ethereum_leaf_context_v1.zig: 967 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/incremental_ethereum_vm_composition_program_v4.zig: 909 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recording_poseidon_channel_v4.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig: 932 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_heterogeneous_session_v3.zig: 1453 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig: 894 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig: 948 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/segment_outer_transaction_v2.zig: 994 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/tests/recursion_air_composition_circuit_v3_test.zig: 871 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig: 1396 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/runner/segment_session.zig: 862 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/test_inventory.zig: 853 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/eval/controller.zig: 921 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/proof_session.zig: 851 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/resident_plan.zig: 936 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/executor/trace_commit.zig: 944 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/relation_adapter.zig: 859 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/request_compiler.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_cuda/tests/relation_adapter_test.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: integrations/cairo_metal/eval_codegen.zig: 918 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/build_artifact_steps.zig: 1083 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/build_segment_steps.zig: 2815 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/bulk_memcpy_current_selected_segment_authority_v1.zig: 1171 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/bulk_memcpy_retained_replay_v1.zig: 1304 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_block_leaf_materializer.zig: 1132 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_candidate_degree5_provider_shared_batch_v1_test.zig: 896 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_candidate_leaf_proof_test.zig: 956 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_boundary_artifact_v4.zig: 1008 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_boundary_authority_v1.zig: 856 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_capture_postprocess_authority_v4.zig: 951 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_capture_postprocess_command_v4.zig: 1243 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig: 1040 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_full_leaf_replay_command_v4.zig: 1019 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1.zig: 1288 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1_test.zig: 1018 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1.zig: 1823 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_provider_transcript_v1_test.zig: 1160 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_prepared_program_commitment_v1.zig: 1020 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_matched_ab_rematerialization_authority_v1.zig: 1025 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_provider_hpc_v1.zig: 961 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_provider_stage_b_prefix_v2.zig: 1405 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_v4_leaf_component_test_root.zig: 1306 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_precompile_proof_test.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig: 1090 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig: 1090 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig: 1102 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig: 1099 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig: 1240 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig: 893 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig: 1266 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig: 1659 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_campaign_final_proof_v2.zig: 1379 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_campaign_prefinal_v2_test.zig: 1922 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig: 1015 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig: 1115 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_wrapper_padding_remint_v2_test.zig: 1126 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_node_artifact_v1_test.zig: 879 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_final_description_v2.zig: 873 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_final_driver_v2.zig: 974 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_genuine_stage102_tree_lifecycle_v4.zig: 1511 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_genuine_three_leaf_tree_gate_v2.zig: 1007 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_target_native_q193_pairs_v2.zig: 1536 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_incremental_campaign_importer_v4.zig: 1441 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_campaign_consumers_v2.zig: 1047 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_campaign_real_leaf_v4.zig: 965 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_native_leaf_v4.zig: 1030 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_v1.zig: 1022 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig: 895 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig: 1297 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_secure_parent_artifact_v1.zig: 1055 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig: 2260 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/segment_v2_native_proof_test.zig: 1093 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_metal/stage101_degree5_provider_sweep_v1.zig: 1092 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_metal/stage101_leaf_autoresearch_v1.zig: 1037 lines exceeds the 850-line manual-source ceiling
+error: interop/postcard/proof_preflight.zig: 1061 lines exceeds the 850-line manual-source ceiling
+error: prover/air/accumulation.zig: 1102 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_parallel.zig: 906 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_programs.zig: 1104 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_prover.zig: 929 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/columns/preparation.zig: 943 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/quotient_tile_executor.zig: 961 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/quotients/planning.zig: 1025 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/sampled_coefficient_plans.zig: 959 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/sampled_values.zig: 1015 lines exceeds the 850-line manual-source ceiling
+error: prover/prove.zig: 934 lines exceeds the 850-line manual-source ceiling
+error: prover/vcs_lifted/leaves.zig: 876 lines exceeds the 850-line manual-source ceiling
+error: prover/work_pool.zig: 867 lines exceeds the 850-line manual-source ceiling
+error: prover_api/work_profile_execution.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: scripts/check_upstream_pins.py: 860 lines exceeds the 850-line manual-source ceiling
+error: scripts/riscv_refinement_lib/sail_lean_bridge.py: 863 lines exceeds the 850-line manual-source ceiling
+error: scripts/tests/test_cuda_build.py: 867 lines exceeds the 850-line manual-source ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: 1377 lines exceeds the 850-line manual-source ceiling
+error: block_v5_ram_lanes_gpu_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_ram_lanes_metal_producer_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_ram_lanes_resident_producer_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_cuda_resident_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_cuda_runtime_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_gpu_aot_export.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_gpu_codegen_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_gpu_runtime_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: block_v5_word_metal_quotient_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: borrowed_native_capture_codegen_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: borrowed_proof_capture_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: circuit_blake3_channel_reuse_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: circuit_blake3_fri_reuse_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: circuit_blake3_merkle_reuse_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: circuit_blake3_pcs_reuse_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: circuit_blake3_reuse_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: cuda_static_native_policy_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_circle_lde_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_composition_pool_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_composition_pool_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_external_allocation_admission_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_fri_inverse_lease_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_allocation_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_allocation_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_quotient_result_ownership_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_resident_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_sampled_budget_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: metal_sampled_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_circuit_native_parent_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_circuit_originals_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_circuit_recursion_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_arena_planner_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_blake3_device_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_blake3_runtime_semantic_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_composition_split_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_framework_export_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_framework_interaction_export_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_framework_interaction_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_framework_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_access_witness_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_claim_routes_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_code_identity_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_decommit_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_epoch_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_epoch_vectors_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_infra_witness_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_infra_witness_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_localzero_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_localzero_pruned_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_oods_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_tiny_quotient_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_transcript_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_witness_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_witness_vectors_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_native_x0_plan_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_numeric_codegen.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_numeric_device_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_numeric_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_child_packet_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_child_runtime_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_child_transcript_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_counter_wide_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_direct_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_direct_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_parent_tiny_oracle_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_arithmetic_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_composite_compile_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_deep_answers_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_framework_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_fri_export_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_fri_runtime_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_fri_subset_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_fri_vectors_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_hash_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_access_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_candidate_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_counter_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_direct_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_genuine_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_memory_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_plan_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_producer_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_program_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_projection_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_native_prover_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_original_protocol_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_parent_compile_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_parent_native_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_parent_padding_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_parent_terminal_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_parent_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_readonly_test_root_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_registry_genuine_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_registry_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_row_maps_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_schedule_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_twiddle_oracle_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_resident_value_routes_test_v1.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_cuda_window_benchmark.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_ethereum_execution_census.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_frontend_encoding_census.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_grouped_deep_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_native_polynomial_aot_export.zig: executable, test, or implementation source belongs in a responsibility directory
+error: riscv_native_polynomial_aot_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: shared_external_memory_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: shared_external_pcs_budget_test_root.zig: executable, test, or implementation source belongs in a responsibility directory
+error: build_support/graph/modules.zig: build-support owner exceeds the 500-line ceiling
+error: build_support/products/riscv_cpu.zig: build-support owner exceeds the 500-line ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/function_value/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_admission/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/pc_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling

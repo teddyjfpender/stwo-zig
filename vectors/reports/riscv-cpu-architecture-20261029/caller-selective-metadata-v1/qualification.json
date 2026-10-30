@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-v8-caller-selective-metadata-qualification-v1",
+  "qualification": "466 passed; 1 skipped; 0 failed",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "optimization": "Keccak RAM projections extend only four authenticated metadata columns instead of the whole64-column caller metadata row; equations, mask points and serialization unchanged",
+  "proof_checks": [
+    "genuine native+SHA+Keccak mixed original fresh serialized-only verification",
+    "genuine native+recovery mixed original fresh serialized-only verification",
+    "all50 Keccak RAM slots: four reads match full-row formula at nonbase QM31 points",
+    "existing canonical native caller event tuple comparisons"
+  ],
+  "log_sha256": "d21cc210b6794d182f9204c4efe8184ee8a1151c45445e9ffaa67126fb948e2a",
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/prover/block_execution_external_access_bridge_v2.zig",
+      "sha256": "992575009378034705970f2ff7e2a003d7989b490fcca0f5a37ac075d7b6d700"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v8_caller_ram_component_v1.zig",
+      "sha256": "20499ca626b63d4b6a2c28e0eb7553974fa9d13ad882a0531bbe7d000f3128d6"
+    }
+  ],
+  "real_window_timing_qualified": false,
+  "full_root": false
+}

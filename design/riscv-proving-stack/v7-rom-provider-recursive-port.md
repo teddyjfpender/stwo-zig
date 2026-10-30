@@ -1,0 +1,7 @@
+# V7 ROM provider recursive port
+
+The task is exact verifier arithmetization with partial evaluation: authenticate the original decoded-ROM AIR under the actual v7 epoch and export its open fetch relation. Original equations, DEEP and FRI stay unchanged. Independent public metadata determines geometry and fixed wiring; claims, roots, samples and challenges remain inputs. This finite protocol port reuses the qualified joint-memory parent pieces and original `block_v5_program_table_composition_v1.recordEquation`. Reusing the old v5 transcript is invalid because its challenge prefix differs.
+
+The original has four commitment trees, including a genuinely empty main tree, six fixed columns, four interaction columns and sixteen composition columns. Setup scales with verifier geometry and query count. Independent admission retains the complete decoded ELF image and exact integer fetch census and rebuilds both first roots. No actual root, claim or epoch draw may become a fixed graph constant.
+
+The falsifier is any original-versus-symbolic equation mismatch, changed exported epoch value, cold/live row or namespace mismatch, or malformed public routing. Qualification uses a genuine original proof, independent cold key, fresh encoded-parent verification and changed claim/root/key negatives. The result remains one open program claim until typed global algebra closes execution fetches. Canonical full-block time is unmeasured.

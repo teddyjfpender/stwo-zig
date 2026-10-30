@@ -1,0 +1,270 @@
+{
+  "schema": "stwo-b8-local-rom-sparse-geometry-hypothesis-v1",
+  "status": "geometry-only projection; sparse-ROM prover not implemented",
+  "observations": [
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-0",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 3784,
+      "sparse_row_projection": 4096,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 24576,
+      "full_rom_row_reduction": 256.0,
+      "metadata_bytes": 1642307
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-1",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 301,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641816
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-2",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641739
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-3",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 294,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641789
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-4",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641760
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-5",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641732
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-6",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 296,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641829
+    },
+    {
+      "case": "native-4194304-local-8x524288",
+      "cohort": "local-7",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641731
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-0",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 3784,
+      "sparse_row_projection": 4096,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 24576,
+      "full_rom_row_reduction": 256.0,
+      "metadata_bytes": 1642307
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-1",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 301,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641816
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-10",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641753
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-11",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 701,
+      "sparse_row_projection": 1024,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 6144,
+      "full_rom_row_reduction": 1024.0,
+      "metadata_bytes": 1641836
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-12",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 285,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641563
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-13",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 285,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641672
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-14",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641625
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-15",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 285,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641666
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-2",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641739
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-3",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 294,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641789
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-4",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641760
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-5",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641732
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-6",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 296,
+      "sparse_row_projection": 512,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 3072,
+      "full_rom_row_reduction": 2048.0,
+      "metadata_bytes": 1641829
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-7",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641731
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-8",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 146,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641748
+    },
+    {
+      "case": "native-8388608-local-16x524288",
+      "cohort": "local-9",
+      "full_rom_rows": 1048576,
+      "touched_rom_words": 147,
+      "sparse_row_projection": 256,
+      "full_fixed_cells": 6291456,
+      "projected_sparse_fixed_cells": 1536,
+      "full_rom_row_reduction": 4096.0,
+      "metadata_bytes": 1641780
+    }
+  ]
+}

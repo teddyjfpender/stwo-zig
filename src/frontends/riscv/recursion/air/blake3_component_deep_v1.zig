@@ -5,7 +5,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const Q = core.fields.qm31.QM31;
 const deep = @import("pcs_deep_circuit.zig");
-const layouts = @import("../sample_point_layout.zig");
+const layouts = @import("../component_sample_layout_v1.zig");
 const capture_mod = @import("../pcs_arithmetic_capture.zig");
 pub const Prepared = @import("blake3_native_deep.zig").Prepared;
 pub const MAX_TRACE_TREES: usize = 4;
@@ -28,8 +28,6 @@ fn prepareInternal(comptime max_trees: usize, a: std.mem.Allocator, all: core.ai
     const split = try all.compositionLogSplit();
     const mask_log = core.verifier_types.compositionMaskLogSize(all.compositionLogDegreeBound(), split) orelse return error.InvalidComponentDeepGeometry;
     const current = core.circle.SECURE_FIELD_CIRCLE_GEN;
-    const step = core.poly.circle.canonic.CanonicCoset.new(mask_log).step();
-    const previous = current.sub(.{ .x = Q.fromBase(step.x), .y = Q.fromBase(step.y) });
     var masks = try all.maskPoints(temp, current, mask_log, false);
     defer masks.deinitDeep(temp);
     if (masks.items.len != column_logs.len or proof.column_log_sizes.len != column_logs.len + 1) return error.InvalidComponentDeepGeometry;
@@ -46,16 +44,10 @@ fn prepareInternal(comptime max_trees: usize, a: std.mem.Allocator, all: core.ai
             out.* = try std.math.add(u32, log, blowup);
             if (out.* != captured_log) return error.InvalidComponentDeepGeometry;
             if (points.len != 0) lifting = @max(lifting, out.*);
-            const layout = layouts.classifyColumn(points, current, previous) catch blk: {
-                // The only non-composition-step mask admitted by this generic
-                // path is the original fused Keccak current/+27 pair.
-                const physical_step = core.poly.circle.canonic.CanonicCoset.new(log).step();
-                const physical_previous = current.sub(.{ .x = Q.fromBase(physical_step.x), .y = Q.fromBase(physical_step.y) });
-                break :blk try layouts.classifyKeccakPair(points, current, physical_previous);
-            };
-            if (layout == .current_keccak_final) physical_pair = true;
-            try ordered.append(temp, layout);
-            try mask_logs.append(temp, if (layout == .current_keccak_final) log else mask_log);
+            const resolved = try layouts.resolve(points, current, mask_log, log);
+            if ((resolved.layout == .current_keccak_final or resolved.layout == .current_keccak_final_composition)) physical_pair = true;
+            try ordered.append(temp, resolved.layout);
+            try mask_logs.append(temp, resolved.mask_log);
         }
         tree.* = .{ .column_log_sizes = extended };
     }

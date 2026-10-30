@@ -1,0 +1,23 @@
+//! Terminal compatibility API. Nonterminal windows use an explicit, distinct protocol.
+pub const ForMode = @import("block_v7_multi_union_proof_family_v1.zig").ForMode;
+const Default = ForMode(false);
+pub const Input = Default.Input;
+pub const Limits = Default.Limits;
+pub const ProducerStats = Default.ProducerStats;
+pub const ProveOptions = Default.ProveOptions;
+pub const TAG = Default.TAG;
+pub const VERSION = Default.VERSION;
+pub const NativeStage = Default.NativeStage;
+pub const Stages = Default.Stages;
+pub const NativeClaims = Default.NativeClaims;
+pub const CallerClaims = Default.CallerClaims;
+pub const Claims = Default.Claims;
+pub const Proof = Default.Proof;
+pub const ProofView = Default.ProofView;
+pub const NativeClaimDiagnostic = Default.NativeClaimDiagnostic;
+pub const diagnoseNativeClaims = Default.diagnoseNativeClaims;
+pub const freeNativeClaimDiagnostics = Default.freeNativeClaimDiagnostics;
+pub const prove = Default.prove;
+pub const proveWithOptions = Default.proveWithOptions;
+pub const verify = Default.verify;
+pub const verifyView = Default.verifyView;

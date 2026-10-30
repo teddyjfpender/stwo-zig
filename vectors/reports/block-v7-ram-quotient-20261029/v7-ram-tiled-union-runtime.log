@@ -1,0 +1,47 @@
+1/11 block_v7_complete_union_test_root.test_0...OK
+2/11 prover.tests.block_v7_complete_union_test.test.v7 complete union genuine one original proof and five proof oracle...V7_COMPLETE_UNION_GEOMETRY native_access_cells=1572864 fixture_cell_cap=16777216 native_slots=2 whole_byte_cap=25769803776
+WORD_QUOTIENT_TILED {"charged_peak_bytes":7915452,"coefficient_bytes":0,"tile_log":12,"tiles":2}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=495783667
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=13 elapsed_ns=4294875
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=5 elapsed_ns=268042
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=257833
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=255708
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=7856042
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=215500
+WORD_QUOTIENT_TILED {"charged_peak_bytes":7915452,"coefficient_bytes":0,"tile_log":12,"tiles":2}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=11 elapsed_ns=29393333
+WORD_QUOTIENT_TILED {"charged_peak_bytes":312764,"coefficient_bytes":0,"tile_log":7,"tiles":2}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=6 elapsed_ns=8005583
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=7 elapsed_ns=222375
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=16 elapsed_ns=11736583
+WORD_QUOTIENT_DOMAIN tiled=false trace_log=4 elapsed_ns=298417
+V7_COMPLETE_UNION profile=csp_q70_pow26 cycles=20495 iterations=4096 native_windows=1 original_starks=1 oracle_enabled=false trees=15 oracle_trees=23 ram_shards=3 events=8293 fetches=20495 union_oods=34534 oracle_oods=0 union_queried=1196370 oracle_queried=0 setup_ns=394430458 union_prove_ns=4214106917 oracle_prove_ns=0 fresh_verify_ns=1416606833 proof_bytes=5841554 proof_peak_bytes=369555298 direct_peak_bytes=369555298 contiguous_ns=6246411625 destruction_ns=43582583 encode_decode_ns=177675500 all_producer_owners_destroyed=true global_closure=true timing=shared_host_diagnostic
+OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.lookups.tables.mod.test_0...OK
+6/11 air.memory_commitment.poseidon2_air.test_0...OK
+7/11 air.semantic_eval.test_0...OK
+8/11 prover.block_execution_external_trace_v2.test_0...OK
+9/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.
+       12.38 real        15.16 user         3.52 sys
+           392527872  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              709753  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               34485  involuntary context switches
+        335280068964  instructions retired
+         78469264187  cycles elapsed
+           388383968  peak memory footprint

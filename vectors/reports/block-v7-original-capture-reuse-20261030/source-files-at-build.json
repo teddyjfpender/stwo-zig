@@ -1,0 +1,30 @@
+[
+  {
+    "path": "src/frontends/riscv/prover/block_v7_execution_receiver_v1.zig",
+    "sha256": "f827219f26e6e350bbca58a6550dbc6801f31b26e25ae26c5578ee57cd689ae1"
+  },
+  {
+    "path": "src/frontends/riscv/prover/block_v7_original_capture_fingerprint_v1.zig",
+    "sha256": "6c02dd72202bf2c645a98fd419fb6e1f928f89e4ba7b04744c273e8591a265fe"
+  },
+  {
+    "path": "src/frontends/riscv/prover/block_v7_caller_recursive_capture_v1.zig",
+    "sha256": "c2c8826549b4f3204b373acefbc4fe0f509aee6c9fa51494d0993078ca47c0f6"
+  },
+  {
+    "path": "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig",
+    "sha256": "520132077e4ba66c7a366607e4b3f2204b7d0e53cd38332a2cfaba305e29e3c4"
+  },
+  {
+    "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+    "sha256": "49d00a896e3017081ff44c1ced427336d06de94f6c3434c1d975ea556caa3aa1"
+  },
+  {
+    "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+    "sha256": "7604d50256c6a1a0bd83d40528022c01f0dc3c004b9b6aae1ffe3b794528193d"
+  },
+  {
+    "path": "src/frontends/riscv/recursion/block_v7_original_captures_test_v1.zig",
+    "sha256": "7c4f07429c68f54238d8af19d13f135b48af01f1d74fd2f8b9798ad66c44d1b7"
+  }
+]

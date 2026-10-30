@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-v8-group-qualification-record-v1",
+  "kind": "canonical-dynamic-group-recursive-source",
+  "queries": 70,
+  "pow_bits": 26,
+  "exit_code": 0,
+  "tests": {
+    "passed": 485,
+    "skipped": 1,
+    "failed": 0
+  },
+  "production_active": false,
+  "log_sha256": "26470af21cfddcd3313ca3074071761fcb391009b5c16ee158151eca33c270ba",
+  "proof_bytes_retained": false,
+  "scope": "group_execution_global_ram_open; not a complete recursive window or Ethereum block",
+  "native_members": 2,
+  "trace_trees": 15,
+  "first_roots": 8,
+  "recursive_proof_bytes": 927130,
+  "parent_proof_ns": 15083569542,
+  "timing_context": "tiny diagnostic qualification, not isolated/performance claim",
+  "all_original_capture_profile_key_objects_destroyed_before_fresh_receiver": true,
+  "symbolic_opposite_member_ram_residuals_rejected": true,
+  "symbolic_open_global_plane_control_passed": true,
+  "symbolic_changed_cpu_boundary_rejected": true
+}

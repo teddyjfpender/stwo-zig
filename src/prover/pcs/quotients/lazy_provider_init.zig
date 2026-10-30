@@ -24,7 +24,7 @@ const CombinedContributionView = row_executor.CombinedContributionView;
 const QuotientOpsError = column_geometry.QuotientOpsError;
 const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 const COMPACT_GROUP_MIN_SHIFT: std.math.Log2Int(usize) = 2;
-const MAX_COMPACT_GROUP_BYTES: usize = 1024 * 1024;
+const GroupBudget = @import("../quotient_group_budget.zig").Budget;
 const LAZY_QUOTIENT_CHUNK_SIZE: usize = 1024;
 
 pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
@@ -111,6 +111,20 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             lifting_log_size: u32,
             work_recorder: ?*quotient_work.WorkRecorder,
         ) !LazyQuotientProvider {
+            return initForBackendWithWorkRecorderAndGroupBudget(B, allocator, columns, sampled_points, sampled_values, random_coeff, lifting_log_size, work_recorder, .one_mib);
+        }
+
+        pub fn initForBackendWithWorkRecorderAndGroupBudget(
+            comptime B: type,
+            allocator: std.mem.Allocator,
+            columns: TreeVec([]const ColumnEvaluation),
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            random_coeff: QM31,
+            lifting_log_size: u32,
+            work_recorder: ?*quotient_work.WorkRecorder,
+            group_budget: GroupBudget,
+        ) !LazyQuotientProvider {
             const backend_raw = comptime B != void and @hasDecl(B, "rawQuotientInputs") and B.rawQuotientInputs;
             return initForBackendWithModeAndWorkRecorder(
                 B,
@@ -127,6 +141,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 else
                     .combined_compatibility,
                 work_recorder,
+                group_budget,
             );
         }
 
@@ -140,6 +155,20 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             lifting_log_size: u32,
             input_mode: InputMode,
         ) !LazyQuotientProvider {
+            return initForBackendWithModeAndGroupBudget(B, allocator, columns, sampled_points, sampled_values, random_coeff, lifting_log_size, input_mode, .one_mib);
+        }
+
+        pub fn initForBackendWithModeAndGroupBudget(
+            comptime B: type,
+            allocator: std.mem.Allocator,
+            columns: TreeVec([]const ColumnEvaluation),
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            random_coeff: QM31,
+            lifting_log_size: u32,
+            input_mode: InputMode,
+            group_budget: GroupBudget,
+        ) !LazyQuotientProvider {
             return initForBackendWithModeAndWorkRecorder(
                 B,
                 allocator,
@@ -150,6 +179,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 lifting_log_size,
                 input_mode,
                 null,
+                group_budget,
             );
         }
 
@@ -163,6 +193,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             lifting_log_size: u32,
             requested_mode: InputMode,
             work_recorder: ?*quotient_work.WorkRecorder,
+            group_budget: GroupBudget,
         ) !LazyQuotientProvider {
             var coefficient_input = false;
             for (columns.items) |tree| for (tree) |column| {
@@ -265,7 +296,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                         const plan = try planning.buildCombinedContributionPlan(allocator, flat_columns, prepared.contribution_plan.active_column_indices, prepared.contribution_plan.ranges, prepared.contribution_plan.contributions, coefficient_nonzero, lifting_log_size);
                         combined_views = plan.views;
                     }
-                    const optional_compact_plan = try planning.buildCompactContributionPlan(
+                    const optional_compact_plan = try planning.buildPartialCompactContributionPlan(
                         allocator,
                         flat_columns,
                         prepared.contribution_plan.active_column_indices,
@@ -274,18 +305,26 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                         direct_nonzero,
                         lifting_log_size,
                         COMPACT_GROUP_MIN_SHIFT,
-                        MAX_COMPACT_GROUP_BYTES,
+                        group_budget.bytes(),
                     );
                     const compact_admitted = optional_compact_plan != null;
                     if (optional_compact_plan) |plan| compact_plan = plan;
-                    direct_plan = try tile_executor.buildDirectContributionPlan(
+                    direct_plan = if (compact_admitted) try @import("../quotient_direct_plan.zig").buildExcludingSelected(
                         allocator,
                         flat_columns,
                         prepared.contribution_plan.active_column_indices,
                         prepared.contribution_plan.ranges,
                         direct_nonzero,
                         lifting_log_size,
-                        if (compact_admitted) COMPACT_GROUP_MIN_SHIFT else null,
+                        compact_plan.selected,
+                    ) else try tile_executor.buildDirectContributionPlan(
+                        allocator,
+                        flat_columns,
+                        prepared.contribution_plan.active_column_indices,
+                        prepared.contribution_plan.ranges,
+                        direct_nonzero,
+                        lifting_log_size,
+                        null,
                     );
                     if (work_recorder != null) {
                         for (direct_plan.ranges) |range| {
@@ -303,7 +342,8 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                     }
                 },
                 .raw_backend => {
-                    if (coefficient_input) {
+                    const retains_original_coefficients = comptime B != void and @hasDecl(B, "preservesRawCoefficientInputs") and B.preservesRawCoefficientInputs;
+                    if (coefficient_input and !retains_original_coefficients) {
                         const selected = try allocator.dupe(bool, nonzero_columns);
                         defer allocator.free(selected);
                         for (flat_columns, selected) |column, *enabled| if (column.coefficient_values == null) {
@@ -356,6 +396,27 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                     prepared.contribution_plan.contributions.len,
                 );
                 try quotient_work.recordPreparation(work_recorder, preparation);
+            }
+
+            // Diagnostic only: no algorithm/config/transcript branch depends
+            // on this flag, and the counting walk is absent by default.
+            if (comptime builtin.os.tag == .macos or builtin.os.tag == .linux) {
+                if (std.posix.getenv("STWO_PCS_DEEP_CENSUS")) |flag| {
+                    if (std.mem.eql(u8, flag, "1")) {
+                        var direct_terms: usize = 0;
+                        for (direct_plan.ranges) |range| direct_terms += range.len;
+                        std.debug.print("PCS_DEEP_CENSUS mode={s} log={d} columns={d} sample_batches={d} contributions={d} grouped_terms={d} groups={d} minimum_shift={d} metadata_bytes={d} metadata_cap={d} direct_columns={d} direct_terms={d} coefficient_views={d}\n", .{
+                            @tagName(input_mode),        lifting_log_size,                             flat_columns.len,
+                            prepared.sample_batches.len, prepared.contribution_plan.contributions.len, compact_plan.members.len,
+                            compact_plan.groups.len,     compact_plan.minimum_shift,                   compact_plan.retainedBytes(),
+                            group_budget.bytes(),        direct_plan.views.len,                        direct_terms,
+                            combined_views.len,
+                        });
+                        for (compact_plan.groups) |group| std.debug.print("PCS_DEEP_GROUP batch={d} values={d} shift={d} terms={d}\n", .{
+                            group.batch_index, group.value_count, group.shift_amt, group.members.len,
+                        });
+                    }
+                }
             }
 
             return .{

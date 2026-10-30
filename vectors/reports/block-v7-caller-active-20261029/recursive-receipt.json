@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "Five standalone active caller recursive parents; genuine original proofs, exact cold/live fixed rows, independently selected parent keys and detached fresh verification. Not a complete execution or canonical-security qualification.",
+  "git_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "uncommitted_sources": true,
+  "queries": 8,
+  "pow_bits": 0,
+  "tests_passed": 11,
+  "command": "STWO_V7_ACTIVE_CALLER_PARENT=1 /tmp/block-v7-caller-active-parent",
+  "binary_sha256": "0d0763cfd7660d1f0deb8a2e50f650b2ddae640789ba4558161959ca8a3e269a",
+  "recursive_source_sha256": {
+    "src/frontends/riscv/prover/block_v7_caller_recursive_admission_v1.zig": "34b99d4f6b30c5ca86264fdb1e820ad9327531c9338466e2e4d56571add4af13",
+    "src/frontends/riscv/prover/block_v7_caller_recursive_capture_v1.zig": "745f5c5cd6fad9712fdea0915b65be0085023ed3a91dc9d559675fb9ebad44de",
+    "src/frontends/riscv/prover/tests/block_v7_caller_active_recursive_test_support.zig": "ff8df4e6ea3c6fae30633c3a5a8221775de67efdfc05314002ef09bef9bdecbc",
+    "src/frontends/riscv/recursion/air/block_v5_caller_arithmetic_record_v1.zig": "42d396e6ce2dddc504f21fd9e22f0a2e987a4395debcef6e7cbc2285d1d4e21f",
+    "src/frontends/riscv/recursion/air/block_v7_caller_recursive_composition_v1.zig": "334d3e07c8a21c3384024a8cacbafd3a559af1728240caadd7fcbde3b9a38705",
+    "src/frontends/riscv/recursion/air/block_v7_caller_recursive_statement_v1.zig": "6b53b3ca4235d778406bd414757f37b15aaf40c489a58a47cc5a2565cab2ca96",
+    "src/frontends/riscv/recursion/air/block_v7_caller_recursive_transcript_v1.zig": "c3af9a2d779b368c98a6e61405cd52badcfa7968595a6e465b3d4ce3187af524",
+    "src/frontends/riscv/recursion/block_v7_caller_family_v1.zig": "2516265090a24951da03cecaa9d1ff19bb080f2ac472bde204105fd6abe1121a",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_compiler_capsule_v1.zig": "40eeb7f3326469af206b7389003a169156214803825d461f5030ea62f8cfa5a3",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_fixed_profile_v1.zig": "d41ee19c05090472d0fc9f53997346f4472256b6b7a670ede9ec9b328ef0c77d",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_fixed_roster_v1.zig": "d6bd90f6ae15f9f25a3e4c0ef4917b41ff217ac9a0cf67dd460daca7e3da5b79",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_fixed_transcript_v1.zig": "cf694912f2c0e29d78c569fb531b02f9e9813943bd11ebffec1639cbcf7817c9",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_fixed_v1.zig": "96b68dd8183b4feef04556be36fd9b6caf5a55f6bfc9cbd81c37062aa65d8448",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_parent_protocol_v1.zig": "6044183074c93d8d51da4fd46579d7e361399589a89432a16f7b4736371b1069",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_pcs_shape_v1.zig": "4c36954d73ff2154bff4a4ec94aa2aa12ded9ae1fcc7ce5d191a60010aa91eeb",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_preparation_v1.zig": "07c71c45c981c2e9661f08193bae558ab9b564b63d83fdd5cfcbc629ecd810b0",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_public_v1.zig": "c81dd9eeaf44e7d14219440fbf62a717b2d03ba912c5c5f9af848f1361119800",
+    "src/frontends/riscv/recursion/block_v7_caller_recursive_receiver_v1.zig": "074c33bd1cb55531eebd47096a618d41a8838c5cee00046ed2b61325072085cf"
+  },
+  "source_manifest_limit": "Recursive template/recorder files unchanged since binary compilation. Not a transitive manifest. Active stage/proof subsequently gained checkpoint handoff and are deliberately excluded; final source integration requires its own gate.",
+  "evidence": [
+    "recursive-parent-gate.log",
+    "recursive-results.tsv"
+  ],
+  "timing_scope": "Shared-host correctness run; no elapsed-time speedup claimed.",
+  "negative_tests": [
+    "Every omitted physical/aggregate scalar has an explicit zero constraint; first and last scalar per omitted family mutated and rejected",
+    "Independent parent key mutation rejected",
+    "Original active/fixed-root and cancellation attacks from original gate remain active"
+  ]
+}

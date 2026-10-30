@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-memory-class-census-invocation-v1",
+  "binary_sha256": "f7464442b6c870b4b38b44949f2013af56f9bb6add3a24c031c073a6c92491a8",
+  "source_sha256": "2af1b20fb62525c91b17d5236c3f9044cd8c71b0a7cf3aadc23ec54785596ed3",
+  "settings": {
+    "STWO_V7_CENSUS_ELF": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+    "STWO_V7_CENSUS_ELF_SHA256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "STWO_V7_CENSUS_INPUT": "vectors/reports/block-v7-real-window-corpus-20261029/source/input.bin",
+    "STWO_V7_CENSUS_INPUT_SHA256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "STWO_V7_CENSUS_OUTPUT_SHA256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "STWO_V7_CENSUS_OUTPUT": "vectors/reports/riscv-cpu-architecture-20261029/full-execution-memory-cohorts",
+    "STWO_V7_CENSUS_EXPECTED_CYCLES": "139214856",
+    "STWO_V7_CENSUS_SEGMENT_CYCLES": "524288"
+  },
+  "proving": false,
+  "isolated_timing": false,
+  "purpose": "Count exact distinct RAM keys at 524K, 4M and 8M cohort sizes to size endpoint-only memory proofs; not a proof or isolated performance benchmark.",
+  "command": [
+    "/tmp/v7-ethereum-memory-cohorts-census-20261029"
+  ],
+  "returncode": 0
+}

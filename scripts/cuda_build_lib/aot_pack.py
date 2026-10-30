@@ -45,6 +45,9 @@ ABI_SCHEMAS = {
     "secure_mean_v1": 27,
     "secure_word_witness_v4": 28,
     "secure_range_witness_v4": 29,
+    "framework_polynomial_composition_v1": 30,
+    "framework_interaction_fractions_v1": 31,
+    "framework_interaction_scan_v1": 32,
 }
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 

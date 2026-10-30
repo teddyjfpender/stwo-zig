@@ -15,8 +15,14 @@ pub const Layout = struct {
     }
     /// Explicit higher-tree protocol selection preserves legacy admission.
     pub fn initForCommitments(comptime count: usize, a: std.mem.Allocator, transcript: Counts, capture: *const core.verifier.ProofCapture(suite.Hasher)) !Layout {
-        comptime if (count != 10) @compileError("explicit PAGE hash route requires ten commitments");
+        comptime if (count != 6 and count != 10) @compileError("explicit caller/PAGE hash route requires six/ten commitments");
         if (capture.column_log_sizes.len != count) return error.InvalidNativeHashLayout;
+        return initInternal(a, transcript, capture);
+    }
+    /// Finite independently selected joined-original inventory. This only
+    /// sizes hash witnesses; it never admits a received proof or key.
+    pub fn initForBoundedCommitments(count: usize, a: std.mem.Allocator, transcript: Counts, capture: *const core.verifier.ProofCapture(suite.Hasher)) !Layout {
+        if (count < 4 or count > 257 or capture.column_log_sizes.len != count) return error.InvalidNativeHashLayout;
         return initInternal(a, transcript, capture);
     }
     fn initInternal(a: std.mem.Allocator, transcript: Counts, capture: *const core.verifier.ProofCapture(suite.Hasher)) !Layout {
@@ -25,6 +31,10 @@ pub const Layout = struct {
         defer cache.deinit();
         var paths = Counts{ .g = 0, .xor = 0 };
         for (capture.column_log_sizes, capture.trace_paths) |columns, path| {
+            if (columns.len == 0) {
+                if (path.path_depth != 0 or path.positions.len != 0 or path.siblings.len != 0) return error.InvalidNativeHashLayout;
+                continue;
+            }
             try addGroup(a, &cache, &paths, 1, columns.len, path.path_depth, path.positions.len);
         }
         for (capture.fri.layers) |layer| {

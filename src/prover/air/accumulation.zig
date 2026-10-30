@@ -60,8 +60,12 @@ pub const DomainEvaluationAccumulator = struct {
     /// be merged once and transformed once, rather than allocating one q2
     /// column per component.
     polynomial_extension_accumulations: ?[]?SecureColumnByCoords = null,
+    /// A distinct bucket family is necessary: source-log equality does not
+    /// make one-log and two-log polynomial extensions interchangeable.
+    polynomial_extension_double_accumulations: ?[]?SecureColumnByCoords = null,
     constant_accumulations: []QM31,
     polynomial_extension_active: bool = false,
+    polynomial_extension_delta: u8 = 0,
     /// When true this accumulator owns `random_coeff_powers` and will free it
     /// on deinit. Sub-accumulators created via `initForComponent` borrow the
     /// parent's powers and set this to false.
@@ -98,12 +102,12 @@ pub const DomainEvaluationAccumulator = struct {
         for (self.sub_accumulations) |*maybe_col| {
             if (maybe_col.*) |*col| col.deinit(self.allocator);
         }
-        if (self.polynomial_extension_accumulations) |extensions| {
+        inline for (.{ self.polynomial_extension_accumulations, self.polynomial_extension_double_accumulations }) |maybe_extensions| if (maybe_extensions) |extensions| {
             for (extensions) |*maybe_col| {
                 if (maybe_col.*) |*col| col.deinit(self.allocator);
             }
             self.allocator.free(extensions);
-        }
+        };
         self.allocator.free(self.sub_accumulations);
         self.allocator.free(self.constant_accumulations);
         if (self.owns_powers) {
@@ -128,22 +132,39 @@ pub const DomainEvaluationAccumulator = struct {
     pub fn beginPolynomialExtensionV1(
         self: *DomainEvaluationAccumulator,
     ) (std.mem.Allocator.Error || AccumulationError)!void {
+        return self.beginPolynomialExtensionV2(1);
+    }
+    /// Finite admitted extension depths. The actual polynomial is recovered
+    /// once and evaluated directly on the wider domain before ordinary lift.
+    pub fn beginPolynomialExtensionV2(self: *DomainEvaluationAccumulator, delta: u8) (std.mem.Allocator.Error || AccumulationError)!void {
+        if (delta == 0 or delta > 2 or delta > self.max_log_size) return error.InvalidLogSize;
         if (self.polynomial_extension_active)
             return error.NestedPolynomialExtension;
-        if (self.polynomial_extension_accumulations == null) {
+        const slot = if (delta == 1) &self.polynomial_extension_accumulations else &self.polynomial_extension_double_accumulations;
+        if (slot.* == null) {
             const extensions = try self.allocator.alloc(
                 ?SecureColumnByCoords,
                 self.max_log_size + 1,
             );
             @memset(extensions, null);
-            self.polynomial_extension_accumulations = extensions;
+            slot.* = extensions;
         }
         self.polynomial_extension_active = true;
+        self.polynomial_extension_delta = delta;
     }
 
     pub fn endPolynomialExtensionV1(self: *DomainEvaluationAccumulator) void {
         std.debug.assert(self.polynomial_extension_active);
         self.polynomial_extension_active = false;
+        self.polynomial_extension_delta = 0;
+    }
+    fn selectedBuckets(self: *DomainEvaluationAccumulator) []?SecureColumnByCoords {
+        if (!self.polynomial_extension_active) return self.sub_accumulations;
+        return if (self.polynomial_extension_delta == 1) self.polynomial_extension_accumulations.? else self.polynomial_extension_double_accumulations.?;
+    }
+    fn requireSourceLog(self: *const DomainEvaluationAccumulator, log: u32) AccumulationError!void {
+        if (log > self.max_log_size or (self.polynomial_extension_active and
+            self.polynomial_extension_delta > self.max_log_size - log)) return error.InvalidLogSize;
     }
 
     /// Returns mutable bucket accumulators for requested log sizes and allocates
@@ -159,13 +180,10 @@ pub const DomainEvaluationAccumulator = struct {
         errdefer allocator.free(out);
 
         for (requests, 0..) |request, i| {
-            if (request.log_size > self.max_log_size) return AccumulationError.InvalidLogSize;
+            try self.requireSourceLog(request.log_size);
             if (request.n_cols > self.next_power_index) return AccumulationError.NotEnoughCoefficients;
 
-            const buckets = if (self.polynomial_extension_active)
-                self.polynomial_extension_accumulations.?
-            else
-                self.sub_accumulations;
+            const buckets = self.selectedBuckets();
             const fresh_bucket = buckets[request.log_size] == null;
             if (fresh_bucket) {
                 buckets[request.log_size] = try SecureColumnByCoords.zeros(
@@ -191,7 +209,7 @@ pub const DomainEvaluationAccumulator = struct {
         log_size: u32,
         evaluation: *const SecureColumnByCoords,
     ) (std.mem.Allocator.Error || AccumulationError)!void {
-        if (log_size > self.max_log_size) return AccumulationError.InvalidLogSize;
+        try self.requireSourceLog(log_size);
         const expected_len = try checkedPow2(log_size);
         if (evaluation.len() != expected_len) return AccumulationError.ShapeMismatch;
         if (self.next_power_index == 0) return AccumulationError.NotEnoughCoefficients;
@@ -205,10 +223,7 @@ pub const DomainEvaluationAccumulator = struct {
             return;
         }
 
-        const buckets = if (self.polynomial_extension_active)
-            self.polynomial_extension_accumulations.?
-        else
-            self.sub_accumulations;
+        const buckets = self.selectedBuckets();
         if (buckets[log_size]) |*acc| {
             if (acc.len() != expected_len) return AccumulationError.ShapeMismatch;
             for (0..expected_len) |row| {
@@ -288,24 +303,22 @@ pub const DomainEvaluationAccumulator = struct {
                 .add(other.constant_accumulations[i]);
             mergeBucketAt(self.sub_accumulations, other.sub_accumulations, i);
         }
-        if (other.polynomial_extension_accumulations) |other_extensions| {
-            if (self.polynomial_extension_accumulations) |self_extensions| {
+        inline for (.{ "polynomial_extension_accumulations", "polynomial_extension_double_accumulations" }) |name| if (@field(other, name)) |other_extensions| {
+            if (@field(self, name)) |self_extensions| {
                 for (0..self_extensions.len) |i| {
                     mergeBucketAt(self_extensions, other_extensions, i);
                 }
             } else {
-                self.polynomial_extension_accumulations = other_extensions;
-                other.polynomial_extension_accumulations = null;
+                @field(self, name) = other_extensions;
+                @field(other, name) = null;
             }
-        }
+        };
     }
 
     pub fn hasPolynomialExtensions(self: *const DomainEvaluationAccumulator) bool {
-        const extensions = self.polynomial_extension_accumulations orelse
-            return false;
-        for (extensions) |bucket| {
+        inline for (.{ self.polynomial_extension_accumulations, self.polynomial_extension_double_accumulations }) |maybe_extensions| if (maybe_extensions) |extensions| for (extensions) |bucket| {
             if (bucket != null) return true;
-        }
+        };
         return false;
     }
 
@@ -320,12 +333,10 @@ pub const DomainEvaluationAccumulator = struct {
     ) !usize {
         var secure_bytes: usize = 0;
         var max_twiddle_bytes: usize = 0;
-        const extensions = self.polynomial_extension_accumulations orelse
-            return 0;
-        for (extensions, 0..) |bucket, source_log_usize| {
+        inline for (.{ self.polynomial_extension_accumulations, self.polynomial_extension_double_accumulations }, 1..) |maybe_extensions, delta| if (maybe_extensions) |extensions| for (extensions, 0..) |bucket, source_log_usize| {
             if (bucket == null) continue;
             const source_log: u32 = @intCast(source_log_usize);
-            const target_log = std.math.add(u32, source_log, 1) catch
+            const target_log = std.math.add(u32, source_log, delta) catch
                 return error.InvalidLogSize;
             if (target_log > self.max_log_size) return error.InvalidLogSize;
             const rows = try checkedPow2(target_log);
@@ -350,7 +361,7 @@ pub const DomainEvaluationAccumulator = struct {
                 @sizeOf(M31),
             ) catch return error.InvalidLogSize;
             max_twiddle_bytes = @max(max_twiddle_bytes, twiddle_bytes);
-        }
+        };
         if (secure_bytes != 0) {
             const final_rows = try checkedPow2(self.max_log_size);
             const final_values = std.math.mul(
@@ -471,19 +482,24 @@ pub const DomainEvaluationAccumulator = struct {
     fn materializePolynomialExtensions(
         self: *DomainEvaluationAccumulator,
     ) anyerror!void {
-        const extensions = self.polynomial_extension_accumulations orelse
+        try self.materializeExtensionBuckets(&self.polynomial_extension_accumulations, 1);
+        try self.materializeExtensionBuckets(&self.polynomial_extension_double_accumulations, 2);
+    }
+    fn materializeExtensionBuckets(self: *DomainEvaluationAccumulator, slot: *?[]?SecureColumnByCoords, delta: u8) anyerror!void {
+        const extensions = slot.* orelse
             return;
         for (extensions, 0..) |*maybe_source, source_log_usize| {
             if (maybe_source.* == null) continue;
             const source_log: u32 = @intCast(source_log_usize);
-            const target_log = std.math.add(u32, source_log, 1) catch
+            const target_log = std.math.add(u32, source_log, delta) catch
                 return error.InvalidLogSize;
             if (target_log > self.max_log_size) return error.InvalidLogSize;
 
-            var extended = try extendPolynomialEvaluationOneLog(
+            var extended = try extendPolynomialEvaluationBy(
                 self.allocator,
                 source_log,
                 maybe_source,
+                delta,
             );
             errdefer extended.deinit(self.allocator);
 
@@ -500,7 +516,7 @@ pub const DomainEvaluationAccumulator = struct {
             }
         }
         self.allocator.free(extensions);
-        self.polynomial_extension_accumulations = null;
+        slot.* = null;
     }
 };
 
@@ -534,10 +550,14 @@ fn extendPolynomialEvaluationOneLog(
     source_log: u32,
     source_slot: *?SecureColumnByCoords,
 ) anyerror!SecureColumnByCoords {
+    return extendPolynomialEvaluationBy(allocator, source_log, source_slot, 1);
+}
+fn extendPolynomialEvaluationBy(allocator: std.mem.Allocator, source_log: u32, source_slot: *?SecureColumnByCoords, delta: u8) anyerror!SecureColumnByCoords {
+    if (delta == 0 or delta > 2) return error.InvalidLogSize;
     var source = source_slot.* orelse return error.ShapeMismatch;
     const source_domain = canonic.CanonicCoset.new(source_log).circleDomain();
     if (source.len() != source_domain.size()) return error.ShapeMismatch;
-    const target_log = std.math.add(u32, source_log, 1) catch
+    const target_log = std.math.add(u32, source_log, delta) catch
         return error.InvalidLogSize;
     const target_domain = canonic.CanonicCoset.new(target_log).circleDomain();
 
@@ -685,6 +705,62 @@ test "prover air accumulation: polynomial extension is allocated and resource ac
     defer extended.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 8), extended.len());
     try std.testing.expect(!accumulator.hasPolynomialExtensions());
+}
+
+test "prover air accumulation: two-log extension matches two independent one-log transforms" {
+    const a = std.testing.allocator;
+    const values = [_]QM31{ QM31.fromU32Unchecked(1, 7, 3, 9), QM31.fromU32Unchecked(2, 4, 8, 1), QM31.fromU32Unchecked(6, 5, 4, 3), QM31.fromU32Unchecked(9, 2, 7, 8) };
+    var source = try SecureColumnByCoords.fromSecureSlice(a, &values);
+    defer source.deinit(a);
+    var reference: ?SecureColumnByCoords = try SecureColumnByCoords.fromSecureSlice(a, &values);
+    defer if (reference) |*column| column.deinit(a);
+    reference = try extendPolynomialEvaluationOneLog(a, 2, &reference);
+    reference = try extendPolynomialEvaluationOneLog(a, 3, &reference);
+    var accumulator = try DomainEvaluationAccumulator.init(a, QM31.one(), 4, 1);
+    defer accumulator.deinit();
+    try accumulator.beginPolynomialExtensionV2(2);
+    try accumulator.accumulateColumn(2, &source);
+    accumulator.endPolynomialExtensionV1();
+    try std.testing.expectEqual(@as(usize, 576), try accumulator.polynomialExtensionResourceBytes());
+    var actual = try accumulator.finalize();
+    defer actual.deinit(a);
+    for (0..16) |i| try std.testing.expect(actual.at(i).eql(reference.?.at(i)));
+    try std.testing.expect(!accumulator.hasPolynomialExtensions());
+}
+
+test "prover air accumulation: distinct extension depths preserve weighting and merge" {
+    const a = std.testing.allocator;
+    const values = [_]QM31{ QM31.fromU32Unchecked(3, 2, 1, 4), QM31.fromU32Unchecked(1, 8, 2, 9), QM31.fromU32Unchecked(6, 1, 9, 2), QM31.fromU32Unchecked(5, 2, 7, 4) };
+    var source = try SecureColumnByCoords.fromSecureSlice(a, &values);
+    defer source.deinit(a);
+    var one: ?SecureColumnByCoords = try SecureColumnByCoords.fromSecureSlice(a, &values);
+    defer if (one) |*column| column.deinit(a);
+    one = try extendPolynomialEvaluationOneLog(a, 2, &one);
+    var two: ?SecureColumnByCoords = try SecureColumnByCoords.fromSecureSlice(a, &values);
+    defer if (two) |*column| column.deinit(a);
+    two = try extendPolynomialEvaluationOneLog(a, 2, &two);
+    two = try extendPolynomialEvaluationOneLog(a, 3, &two);
+    const alpha = QM31.fromU32Unchecked(7, 3, 2, 1);
+    var parent = try DomainEvaluationAccumulator.init(a, alpha, 4, 2);
+    defer parent.deinit();
+    try parent.beginPolynomialExtensionV1();
+    try parent.accumulateColumn(2, &source);
+    parent.endPolynomialExtensionV1();
+    var child = try DomainEvaluationAccumulator.init(a, QM31.one(), 4, 1);
+    defer child.deinit();
+    try child.beginPolynomialExtensionV2(2);
+    try child.accumulateColumn(2, &source);
+    child.endPolynomialExtensionV1();
+    try parent.skipCoeffs(1);
+    parent.merge(&child);
+    try std.testing.expect(!child.hasPolynomialExtensions());
+    var actual = try parent.finalize();
+    defer actual.deinit(a);
+    for (0..16) |i| {
+        const expected = (try liftedValueAt(one.?, 3, 4, i)).mul(alpha).add(two.?.at(i));
+        try std.testing.expect(actual.at(i).eql(expected));
+    }
+    try std.testing.expectError(error.InvalidLogSize, parent.beginPolynomialExtensionV2(3));
 }
 
 test "prover air accumulation: generate secure powers" {

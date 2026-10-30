@@ -13,7 +13,7 @@ const pools = @import("../work_pool.zig");
 pub const low_log_limit: usize = 10;
 pub const minimum_log: u32 = 12;
 
-pub fn evaluate(coefficients: []const polynomial.CircleCoefficients, factors: []const QM31, out: []const []QM31, allow_parallel: bool) bool {
+pub fn evaluate(allocator: std.mem.Allocator, coefficients: []const polynomial.CircleCoefficients, factors: []const QM31, out: []const []QM31, allow_parallel: bool) !bool {
     if (coefficients.len == 0 or coefficients.len != out.len) return false;
     const log = coefficients[0].log_size;
     if (log < minimum_log or log >= @bitSizeOf(usize)) return false;
@@ -26,8 +26,8 @@ pub fn evaluate(coefficients: []const polynomial.CircleCoefficients, factors: []
     const low_log = @min(@as(usize, log), low_log_limit);
     const low_rows = @as(usize, 1) << @intCast(low_log);
     const high_rows = rows / low_rows;
-    const scratch = std.heap.page_allocator.alloc(QM31, low_rows + high_rows) catch return false;
-    defer std.heap.page_allocator.free(scratch);
+    const scratch = try allocator.alloc(QM31, low_rows + high_rows);
+    defer allocator.free(scratch);
     const low = scratch[0..low_rows];
     const high = scratch[low_rows..];
     const pool = if (allow_parallel) pools.getGlobalPool() else null;
@@ -110,7 +110,7 @@ test "sampled split bases match independent polynomial evaluation with ragged co
             var binding = try pools.ScopedPoolBinding.init(&pool);
             defer binding.deinit();
             for ([_]usize{ 1, 2, 3, 4, 7, 11 }) |count| {
-                try std.testing.expect(evaluate(coefficients[0..count], factors[0 .. 2 * log], outputs[0..count], true));
+                try std.testing.expect(try evaluate(allocator, coefficients[0..count], factors[0 .. 2 * log], outputs[0..count], true));
                 for (coefficients[0..count], values[0..count]) |column, actual| {
                     for (actual, 0..) |value, point_index|
                         try std.testing.expect(value.eql(column.evalAtPointWithFactors(factors[point_index * log ..][0..log])));
@@ -118,4 +118,27 @@ test "sampled split bases match independent polynomial evaluation with ragged co
             }
         }
     }
+}
+
+test "sampled split basis honors caller scratch budget without uncharged fallback" {
+    const Budget = @import("../host_budget_allocator.zig").SharedHostBudget;
+    const a = std.testing.allocator;
+    const data = try a.alloc(M31, 1 << minimum_log);
+    defer a.free(data);
+    @memset(data, M31.one());
+    const coefficients = [_]polynomial.CircleCoefficients{try polynomial.CircleCoefficients.initBorrowed(data)};
+    const factors = [_]QM31{QM31.one()} ** minimum_log;
+    var values: [1]QM31 = undefined;
+    const outputs = [_][]QM31{&values};
+    const bytes = @sizeOf(QM31) * ((1 << low_log_limit) + (1 << (minimum_log - low_log_limit)));
+    const small = try Budget.create(a, bytes - 1);
+    defer small.destroy();
+    try std.testing.expectError(error.OutOfMemory, evaluate(small.allocator(), &coefficients, &factors, &outputs, false));
+    try std.testing.expectEqual(@as(usize, 0), small.snapshot().live_bytes);
+    const enough = try Budget.create(a, bytes);
+    defer enough.destroy();
+    try std.testing.expect(try evaluate(enough.allocator(), &coefficients, &factors, &outputs, false));
+    try std.testing.expectEqual(bytes, enough.snapshot().peak_live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), enough.snapshot().live_bytes);
+    try std.testing.expect(values[0].eql(coefficients[0].evalAtPointWithFactors(&factors)));
 }

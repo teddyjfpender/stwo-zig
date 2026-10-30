@@ -303,7 +303,9 @@ test "open-v3 incremental queue rejects missing leaves and wakes waiting lanes" 
     var queue = try Queue.initStreaming(a, &dag, 5, 1);
     defer queue.deinit();
     const Worker = struct {
-        fn run(q: *Queue) void { std.debug.assert(q.take() == null); }
+        fn run(q: *Queue) void {
+            std.debug.assert(q.take() == null);
+        }
     };
     const thread = try std.Thread.spawn(.{}, Worker.run, .{&queue});
     try std.testing.expectError(error.IncompleteMixedForestLeaves, queue.closeLeaves());

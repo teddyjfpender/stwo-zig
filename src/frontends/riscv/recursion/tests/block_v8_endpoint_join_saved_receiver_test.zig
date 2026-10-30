@@ -1,0 +1,57 @@
+const std = @import("std");
+const engine = @import("stwo_prover_engine");
+const Receiver = @import("../block_v8_endpoint_join_receiver_v1.zig");
+const Window = @import("../../prover/block_v7_real_window_policy_v2.zig");
+const Capture = @import("../../prover/block_v7_real_window_capture_v1.zig");
+const Report = struct { schema: []const u8, queries: u32, pow_bits: u32, cohorts: u32, cycles: u32, external: Window.Trusted, selected_addresses: []const u32, global_roots: [4][32]u8, cohort_policy: Window.CohortPolicy };
+test "canonical saved endpoint root byte-only receiver independently derives all keys" {
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(std.testing.allocator, 16 << 30);
+    defer budget.destroy();
+    const a = budget.allocator();
+    var pool: engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 8, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var dir = try std.fs.cwd().openDir("campaign/qualification/new-endpoint-single-dag-q70", .{});
+    defer dir.close();
+    const report_bytes = try dir.readFileAlloc(a, "qualification.json", 1 << 20);
+    defer a.free(report_bytes);
+    var parsed = try std.json.parseFromSlice(Report, a, report_bytes, .{ .ignore_unknown_fields = true });
+    defer parsed.deinit();
+    const report = parsed.value;
+    try std.testing.expectEqual(@as(u32, 70), report.queries);
+    try std.testing.expectEqual(@as(u32, 26), report.pow_bits);
+    try std.testing.expectEqual(@as(u32, 2), report.cohorts);
+    try std.testing.expectEqual(@as(u32, 8), report.cycles);
+    try requireHash(report.external.elf_sha256, "a00a14c3988b00b7ff08f345af67adccb9cdebae5f7a9321768b53a4a87f39fe");
+    try requireHash(report.external.incoming_sha256, "ec23f6d1af0d8b076c73f4597d6f518b44a91d9dda2069cfca72f9a4d4a4171a");
+    try requireHash(report.external.outgoing_sha256, "5fd011c19fcff664995d2ccca4fbfa77fba61eeac534ff2d33f6dac8d07975ff");
+    const elf = try dir.readFileAlloc(a, "guest.elf", 1 << 20);
+    defer a.free(elf);
+    const incoming_bytes = try dir.readFileAlloc(a, "incoming.b7win", 1 << 20);
+    defer a.free(incoming_bytes);
+    const outgoing_bytes = try dir.readFileAlloc(a, "outgoing.b7win", 1 << 20);
+    defer a.free(outgoing_bytes);
+    var incoming = try Capture.Snapshot.decode(a, incoming_bytes, report.external.incoming_sha256, .{});
+    defer incoming.deinit(a);
+    var outgoing = try Capture.Snapshot.decode(a, outgoing_bytes, report.external.outgoing_sha256, .{});
+    defer outgoing.deinit(a);
+    const root = try dir.readFileAlloc(a, "root.proof", 16 << 20);
+    defer a.free(root);
+    const claims = try dir.readFileAlloc(a, "physical-claims.bin", 8 << 20);
+    defer a.free(claims);
+    const first = try dir.readFileAlloc(a, "local-0.json", 16 << 20);
+    defer a.free(first);
+    const second = try dir.readFileAlloc(a, "local-1.json", 16 << 20);
+    defer a.free(second);
+    var timer = try std.time.Timer.start();
+    var verified = try Receiver.verify(a, .{ .elf = elf, .incoming = incoming, .outgoing = outgoing, .trusted = report.external, .config = @import("../blake3_execution_parent_protocol.zig").Profile.csp_q70_pow26.config() }, .{ .root = root, .physical_claims = claims, .local_metadata = .{ first, second }, .global_roots = report.global_roots, .cohort_policy = report.cohort_policy, .selected_addresses = report.selected_addresses });
+    defer verified.deinit();
+    std.debug.print("B8_ENDPOINT_SAVED_ROOT_RECEIVER queries=70 pow=26 bytes={d} workers=8 fresh_receiver_ns={d} originals_loaded=0 producer_keys_loaded=0 global_ram=closed\n", .{ root.len, timer.read() });
+}
+fn requireHash(actual: [32]u8, comptime expected: []const u8) !void {
+    var hash: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&hash, expected);
+    try std.testing.expectEqualDeep(hash, actual);
+}

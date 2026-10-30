@@ -1,0 +1,15 @@
+---
+title: Fused bounded sidecar interaction generation without repeated inversions or decoding
+author: Teddy Pender
+created_utc: 2026-10-29T08:58:06Z
+---
+
+Task and semantics: generate original49 sidecar interaction columns, nine independently transcript-bound secure sums (transition, opposite universal, seven ranges) and event count byte-identically, from one authenticated ordinary-memory trace.
+Evidence/model: same binary mixed421 scaling native preparation7.591s(1worker),5.095s(4),4.898s(8),4.690s(12), while composition improves8.08x. Code still serially invokes Word.generate,Range.generate,Universal.generate. Workload421*512*2+4=431108 ordinary accesses, each17 secure inversions =>7,328,836 inversions plus padded scans. Existing record timing does not separately attribute these kernels; attribution is source-backed and measured aggregate only.
+Canonical match: bounded Montgomery batch inversion plus parallel map and deterministic prefix scan. Reuse existing strict core.fields.batchInverseInPlace and WorkPool nonblocking lease pattern. Exact fields permit deterministic reduction regrouping, unlike floating point. Related implementation/proof notes in 20261029-072550 native projection brief.
+Constraints: active zero denominator rejects; inactive rows skip denominators as before; exact byte counter snapshot must match original; decoded clocks/space/addresses and transition tuple validation unchanged. All17 denominator lanes remain separate original claims, no aggregate authority. Each row's pair/witness decoded once, workers own disjoint output rows and private byte counters.
+Design:256-row tiles,17 denominators/row, cap16workers, two4352-Q scratch arrays perworker and256KiB byte counter; <6.5MiB scratch at16workers, plus existing49 output columns. Nonblocking WorkLease falls back serial when nested capacity unavailable. One deterministic logical prefix pass normalizes each sum once. Move original output columns into consumer, avoid49-column duplicate copy and temporary full-domain transition/universal row arrays.
+Alternatives: parallel old generators retains repeated decoding/copies; singleinverse perrow remains expensive; whole-trace denominator buffers unbounded. Range-only inverse dictionary65536keys may help later but adds another policy and is not necessary for first exact fused generator.
+Integration: new producer module; Pair.nativeInteraction and Native.prove use same implementation, original individual generators retained as independent test oracle. No AIR, transcript or verifier edits.
+Prediction: remove millions of inversions and repeated typed decoding from serial nativeprep; no quantified total speedup until same-proof canonical benchmark. Prefix scan or bandwidth may become next limit.
+Validation: independent old three generators on inactive/random/uneven/multitile fixtures, forcedzero challenges, wrongsnapshot/malformedtuples, serial/parallel/nested fallback; actual native q3 RAM proof exact bytes and canonical Mixed421 exact proofSHA. Full parent closure unchanged.

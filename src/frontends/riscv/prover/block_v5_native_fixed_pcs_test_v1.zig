@@ -262,3 +262,56 @@ test "native fixed PCS: original raw PAGE ten-root masks columns and FRI ordinal
 test "native fixed PCS: original fold PAGE ten-root masks columns and FRI ordinal" {
     try pageParity(.fold);
 }
+
+// Mathematical empty-tree geometry oracle only; never an admitted family/key.
+const EmptyMainView = struct {
+    pub const commitment_trees = 4;
+    const canonical = [4][]const u32{ &.{3}, &.{}, &.{3}, &.{ 3, 3, 3, 3 } };
+    columns: [4][]const u32 = canonical,
+    widths: []const u32 = &.{ 2, 2 },
+    config: core.pcs.PcsConfig,
+    lifting_log: u32 = 3,
+    seal: [32]u8 = @splat(93),
+    const trees = [_]Deep.TreeProfile{ .{ .column_log_sizes = canonical[0] }, .{ .column_log_sizes = canonical[1] }, .{ .column_log_sizes = canonical[2] }, .{ .column_log_sizes = canonical[3] } };
+    pub fn deepProfile(self: *const @This()) Deep.Profile {
+        return .{ .trees = &trees, .sample_layouts = &@as([6]@import("../recursion/sample_point_layout.zig").Layout, @splat(.current)), .lifting_log_size = 3, .log_blowup_factor = self.config.fri_config.log_blowup_factor, .query_count = @intCast(self.config.fri_config.n_queries) };
+    }
+    pub fn friProfile(self: *const @This()) Fri.Profile {
+        return .{ .lifting_log_size = 3, .log_blowup_factor = self.config.fri_config.log_blowup_factor, .log_last_layer_degree_bound = self.config.fri_config.log_last_layer_degree_bound, .fold_widths = self.widths, .query_count = @intCast(self.config.fri_config.n_queries) };
+    }
+    pub fn validate(self: *const @This()) !void {
+        if (!std.meta.eql(self.config, try pcsConfig()) or self.lifting_log != 3 or !std.mem.eql(u32, self.widths, &.{ 2, 2 })) return error.UntrustedNativeFixedPcsProfile;
+        for (self.columns, canonical) |got, want| if (!std.mem.eql(u32, got, want)) return error.UntrustedNativeFixedPcsProfile;
+        try self.deepProfile().validate();
+        try self.friProfile().validate();
+    }
+};
+test "native fixed PCS empty main omits openings but preserves original tree and FRI root indices" {
+    const a = std.testing.allocator;
+    const view = EmptyMainView{ .config = try pcsConfig() };
+    var dg = try Deep.build(a, view.deepProfile());
+    defer dg.deinit();
+    var fg = try Fri.build(a, view.friProfile());
+    defer fg.deinit();
+    const Schema = @import("../recursion/air/blake3_pcs_operation_schema_v1.zig");
+    var arena = std.heap.ArenaAllocator.init(a);
+    defer arena.deinit();
+    const temp = arena.allocator();
+    var operations: std.ArrayList(Schema.Operation) = .empty;
+    try Schema.appendPcsSuffix(temp, &operations, view.config, view.deepProfile(), view.friProfile(), 4);
+    var sink = @import("../recursion/air/blake3_fixed_operation_recorder_v1.zig").Recorder{ .a = temp, .limits = .{} };
+    for (operations.items) |operation| try sink.suffix(operation);
+    var transcript = try @import("../recursion/air/blake3_transcript_plan.zig").Plan.initCompact(a, .{ .namespace = 1_000_000, .attempt_capacity = 1 }, sink.operations.items);
+    defer transcript.deinit();
+    const owned = try Fixed.ForCommitments(4).Owned.compile(a, &view, &dg, &fg, &transcript);
+    defer owned.deinit();
+    try std.testing.expectEqual(@as(usize, 5), owned.paths.input_routes.len);
+    for (owned.paths.input_routes, [_]usize{ 0, 2, 3, 4, 5 }) |route, tree| {
+        try std.testing.expectEqual(tree, route.tree);
+        try std.testing.expectEqual(@as(usize, 0), route.query);
+        try std.testing.expect(route.uses.len != 0);
+    }
+    // Index compaction must never renumber tree2 to the absent tree1.
+    owned.paths.input_routes[1].tree = 1;
+    try std.testing.expectError(error.InvalidOpeningInput, @import("../recursion/air/block_v5_recursive_parent_fixed_openings_v1.zig").compileProfile(4, a, &view, &dg, &fg, &owned.paths, &owned.ports.projection));
+}

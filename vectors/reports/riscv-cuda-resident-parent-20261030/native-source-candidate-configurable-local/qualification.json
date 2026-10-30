@@ -1,0 +1,66 @@
+{
+  "schema": "stwo-resident-native-configurable-candidate-local-v1",
+  "local_tests_passed": 14,
+  "device_qualified": false,
+  "full_linux_semantic": true,
+  "default_identity_unchanged": true,
+  "tiny_geometry": {
+    "composition_log": 4,
+    "fri_log": 2,
+    "mask_log": 1
+  },
+  "real_workloads": [
+    {
+      "retirements": 64,
+      "mul": 31,
+      "fri_log": 6
+    },
+    {
+      "retirements": 1024,
+      "mul": 511,
+      "fri_log": 10
+    },
+    {
+      "retirements": 32768,
+      "mul": 16383,
+      "fri_log": 15
+    }
+  ],
+  "descriptor_rows_equal_actual_retirements": true,
+  "n5_access_cpu_proof_and_detached_verify": {
+    "retirements": 64,
+    "layout": "q2",
+    "queries": 8,
+    "pow_bits": 0
+  },
+  "q70_actual64_metadata": true,
+  "q70_cpu_proof_tested": false,
+  "selection": {
+    "STWO_NATIVE_CANDIDATE_TREES": "4|5",
+    "STWO_NATIVE_CANDIDATE_RETIREMENTS": "actual total retired instructions; default3(N4)/7(N5); max1048576",
+    "STWO_NATIVE_CANDIDATE_SECURITY": "q8|q70",
+    "STWO_NATIVE_CANDIDATE_LAYOUT": "q3|q2"
+  },
+  "same_options_for_export_and_runtime": true,
+  "scope": "synthetic original-source candidate and backend validation, not an Ethereum execution or complete block proof",
+  "generated_64q3_tu": {
+    "path": "/tmp/v7-native-candidate-64-q3.cu",
+    "sha256": "1ee260881216ae81bef219b7a7e7cbe6ac2fc6333fc3f497a484df7d46e6d8a0",
+    "cuda_host_syntax": true,
+    "device_compiled": false
+  },
+  "owned_sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_candidate_v1.zig",
+      "sha256": "734977beaaeb66779a52cfabbe39cce2c009ac3e28ab20c42f5a0436225aa0fc"
+    },
+    {
+      "path": "src/riscv_cuda_resident_native_candidate_test_root.zig",
+      "sha256": "a2925c51e5315707acc9945c7705c004d5f366bc6d68be6ac7ab6461d5fe0847"
+    },
+    {
+      "path": "src/riscv_cuda_resident_native_genuine_test_root.zig",
+      "sha256": "bb422b246a71f2877324e90daddcd408301c9d3f799e65d186fbd46c3f0c9ec9"
+    }
+  ]
+}

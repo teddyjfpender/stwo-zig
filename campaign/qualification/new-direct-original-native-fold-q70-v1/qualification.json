@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-riscv-direct-original-depth2-qualification-v1",
+  "scope": "saved genuine initial/middle/terminal seven-cycle ELF; not full retained block",
+  "optimize": "ReleaseSafe",
+  "worker_count": 4,
+  "whole_gate_seconds": 180.51,
+  "maximum_resident_bytes": 18264424448,
+  "peak_memory_footprint_bytes": 18268632960,
+  "tests_passed": 17,
+  "tests_skipped": 5,
+  "tests_failed": 0,
+  "compiled_binary_sha256": "f8040119b820fad11610faee06defb32604550b824a54422bddc20c5cee83c1f",
+  "fresh_wire_full_receiver": true,
+  "producer_and_child_artifacts_destroyed_before_full_receiving": true,
+  "proof_report": "report.json",
+  "quotient_layout": "ungrouped_v1"
+}

@@ -12,9 +12,20 @@ pub const Context = struct {
     recovery: []const recovery_calls.Record,
 
     pub fn register(self: *const Context, counters: *table_counter.Set) !void {
+        return self.registerForKeccakRecipe(counters, false);
+    }
+
+    /// Explicit original local-zero Keccak recipe; other callers retain their
+    /// existing equations. Validation remains transactional before any count.
+    pub fn registerForKeccakRecipe(self: *const Context, counters: *table_counter.Set, keccak_local_zero: bool) !void {
         try validateCounterSet(counters);
-        try visit(false, self, null);
-        visit(true, self, counters) catch unreachable;
+        if (keccak_local_zero) {
+            try visit(false, true, self, null);
+            visit(true, true, self, counters) catch unreachable;
+        } else {
+            try visit(false, false, self, null);
+            visit(true, false, self, counters) catch unreachable;
+        }
     }
 
     pub fn erased(
@@ -28,11 +39,13 @@ pub const Context = struct {
 
 fn visit(
     comptime apply: bool,
+    comptime keccak_local_zero: bool,
     context: *const Context,
     counters: ?*table_counter.Set,
 ) !void {
     for (context.keccak) |record| {
-        try range20(
+        if (keccak_local_zero and record.pointer_register == 0 and (record.state_ptr != 0 or record.pointer_previous_clock != 0)) return error.InvalidX0KeccakRecord;
+        if (!keccak_local_zero or record.pointer_register != 0) try range20(
             apply,
             try gap(record.execution_clock, 1, record.pointer_previous_clock),
             counters,

@@ -1,0 +1,9 @@
+{
+  "binary_sha256": "89c501aa16f3b2f3379241fca7b3cc46ab53651f202d605102e600f2dfbf5836",
+  "root": "src/frontends/riscv/block_v7_real_window_continuation_export_v2_root.zig",
+  "optimize": "ReleaseFast",
+  "scope": "explicit corpus preparation up to 8M cycles; no proof authority",
+  "edited_surface": {
+    "src/frontends/riscv/prover/tests/block_v7_real_window_continuation_export_v2.zig": "327a3c3f6b265d761c45b218643b5f2d46bebdc33b22450be3b2ec1632e2ad38"
+  }
+}

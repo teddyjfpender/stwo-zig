@@ -1,0 +1,1 @@
+CUDA_FRAMEWORK_INTERACTION_NUMERIC PASS cases=134 negatives=46 checked_words=655856 kernel_launches=398

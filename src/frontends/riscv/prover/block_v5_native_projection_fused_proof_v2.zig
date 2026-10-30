@@ -1,7 +1,8 @@
 //! A single PCS/STARK for native projections AND packed ordinary access.
 //! Four trace trees: fixed, main, source-sealed access witness, interaction.
-//! The native base AIR remains independently freshly verified. This module
-//! emits separate open bus receipts, never complete block authority.
+//! The ordinary route requires a separately verified native AIR; explicit joint
+//! contexts instead include that AIR in this same proof. Both produce open bus
+//! receipts only, never complete block authority.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -98,7 +99,7 @@ pub fn interactionLogs(a: std.mem.Allocator, projections: []const Source.Slot, s
     defer layout.deinit(a);
     return interactionLogsForLayout(a, projections, slots, layout);
 }
-fn interactionLogsForLayout(a: std.mem.Allocator, projections: []const Source.Slot, slots: []const Memory.Slot, layout: Joint.ProjectionLayout) ![]u32 {
+pub fn interactionLogsForLayout(a: std.mem.Allocator, projections: []const Source.Slot, slots: []const Memory.Slot, layout: Joint.ProjectionLayout) ![]u32 {
     const count = try std.math.add(usize, try std.math.mul(usize, layout.count, 4), try std.math.mul(usize, slots.len, Eval.INTERACTION_COUNT));
     const logs = try a.alloc(u32, count);
     var retained: usize = 0;
@@ -130,7 +131,7 @@ pub fn ForBackend(comptime Backend: type) type {
 
         pub fn proveForNativeFirstRoundWithJoint(a: std.mem.Allocator, first: *FirstRound, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, catalog: Catalog.Admission, native: *Native.ForBackend(Backend).FirstRound, index: u32, frame: Frame, witness_root: Digest, joint: ?Joint.Context) !Proof {
             if (!native.owns_scheme or native.index != index or !native.native.native_only_v5 or native.native.failed or
-                !native.native.tables_ready or native.native.interaction_ready != (joint != null) or native.scheme.trees.items.len != 2 or
+                !native.native.tables_ready or native.native.interaction_ready != (if (joint) |joined| joined.separateInteraction() else false) or native.scheme.trees.items.len != 2 or
                 !std.meta.eql(native.scheme.config, pins.config)) return error.UntrustedV5FullFusedNativePhase;
             try native.pin.require(pins, &native.native.statement.public_data);
             try native.template.admit(&native.native.statement, native.template_id);
@@ -146,7 +147,14 @@ pub fn ForBackend(comptime Backend: type) type {
             const main_logs = try Template.columnLogs(a, &native.native.statement, native.template.external_retirements, .main);
             defer a.free(main_logs);
             if (!std.mem.eql(u32, fixed_logs, first.fixed_logs) or !std.mem.eql(u32, main_logs, first.main_logs)) return error.UntrustedV5FullFusedNativePhase;
-            const canonical = try Source.slotsFromShapeForMode(a, &native.native.statement, native.template.external_retirements, sealed.register_custody_mode);
+            const canonical = if (joint != null and joint.?.partitioned != null) blk: {
+                var layout = try @import("block_v6_relation_layout_v1.zig").Layout.init(a, &native.native.statement, native.template.external_retirements, sealed.register_custody_mode);
+                if (!std.meta.eql(layout.digest, joint.?.layout_digest)) {
+                    layout.deinit();
+                    return error.ChangedPartitionedRelationLayout;
+                }
+                break :blk layout.slots;
+            } else try Source.slotsFromShapeForMode(a, &native.native.statement, native.template.external_retirements, sealed.register_custody_mode);
             defer a.free(canonical);
             try requireProjectionRoster(projections, canonical);
             const memory_slots = try Batch.slotsFromStatementForMode(a, &native.native.statement, frame, sealed.register_custody_mode);
@@ -162,7 +170,7 @@ pub fn ForBackend(comptime Backend: type) type {
         }
 
         fn proveBound(a: std.mem.Allocator, first: *FirstRound, main: []const Column, inputs: []const Memory.Input, slots: []const Memory.Slot, projections: []const Source.Slot, sealed: Seal.Sealed, template: Digest, native: Digest, index: u32, witness_root: Digest, roots: [2]Digest, joint: ?Joint.Context) !Proof {
-            try validateRoster(projections, slots, first.main_logs, sealed.register_custody_mode);
+            try validateJointRoster(joint, projections, slots, first.main_logs, sealed.register_custody_mode);
             if (!first.owns_scheme or first.scheme.trees.items.len != (if (slots.len == 0) @as(usize, 2) else 3) or inputs.len != slots.len or first.snapshots.len != slots.len or
                 !std.meta.eql(first.roots[0..2].*, roots) or !std.meta.eql(first.roots[2], witness_root)) return error.UntrustedV5FullFusedFirstRound;
             var actual_roots = try first.scheme.roots(a);
@@ -182,7 +190,7 @@ pub fn ForBackend(comptime Backend: type) type {
             }
             const layout = try Joint.ProjectionLayout.init(a, joint, projections);
             defer layout.deinit(a);
-            const logs = try interactionLogsForLayout(a, projections, slots, layout);
+            const logs = if (isPartitionedFrame(joint, projections, slots)) try a.dupe(u32, &.{@import("block_v5_native_frame_v1.zig").LOG_SIZE}) else try interactionLogsForLayout(a, projections, slots, layout);
             defer a.free(logs);
             const witness_logs = try witnessLogs(a, slots);
             defer a.free(witness_logs);
@@ -240,13 +248,21 @@ pub fn ForBackend(comptime Backend: type) type {
                 component.inner.quotient_cache = &cache;
                 handles[layout.count + i] = component.asProverComponent();
             }
+            if (isPartitionedFrame(joint, projections, slots)) {
+                const pad = try a.alloc(M, 1 << @import("block_v5_native_frame_v1.zig").LOG_SIZE);
+                errdefer a.free(pad);
+                @memset(pad, M.zero());
+                try interactions.append(a, .{ .log_size = @import("block_v5_native_frame_v1.zig").LOG_SIZE, .values = pad });
+            }
             // Both physical claim sets precede either interaction commitment.
             if (joint) |joined| try joined.mix(&channel);
             try mixClaims(&channel, template, native, index, projections, slots, claims, memory_claims);
-            if (joint) |joined| try first.scheme.commitBorrowedStreaming(a, joined.columns, 8, &channel);
+            if (joint) |joined| if (joined.separateInteraction()) {
+                try first.scheme.commitBorrowedStreaming(a, joined.columns, 8, &channel);
+            };
             try first.scheme.commitBorrowedStreaming(a, interactions.items, 8, &channel);
             if (joint) |joined| {
-                var combined = try Joint.Combined(true).init(a, joined.native.proving.components.active(), handles, slots.len != 0);
+                var combined = try Joint.Combined(true).initWithLayout(a, joined.provers(), handles, slots.len != 0, joined.partitioned != null);
                 defer combined.deinit(a);
                 first.owns_scheme = false;
                 return .{ .stark = try engine.prove.prove(Backend, suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, first.scheme), .claims = claims, .memory_claims = memory_claims };
@@ -263,6 +279,9 @@ pub fn ForBackend(comptime Backend: type) type {
         }
 
         pub fn verifyOwnedWithJoint(a: std.mem.Allocator, received: Proof, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, native: *const Native.OpenReceipt, index: u32, frame: Frame, projections: []const Source.Slot, slots: []const Memory.Slot, fixed_logs: []const u32, main_logs: []const u32, witness_root: Digest, empty_entry: ?Seal.Entry, joint: ?Joint.Context) !Verified {
+            return verifyOwnedWithJointCaptured(a, received, sealed, pins, entries, native, index, frame, projections, slots, fixed_logs, main_logs, witness_root, empty_entry, joint, null, null);
+        }
+        pub fn verifyOwnedWithJointCaptured(a: std.mem.Allocator, received: Proof, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, native: anytype, index: u32, frame: Frame, projections: []const Source.Slot, slots: []const Memory.Slot, fixed_logs: []const u32, main_logs: []const u32, witness_root: Digest, empty_entry: ?Seal.Entry, joint: ?Joint.Context, capture: ?*core.verifier.ProofCapture(suite.Hasher), final_channel: ?*suite.Channel) !Verified {
             var proof = received;
             var owns = true;
             defer if (owns) proof.deinit(a);
@@ -272,10 +291,10 @@ pub fn ForBackend(comptime Backend: type) type {
             };
             if (!std.meta.eql(native.sealed_digest, sealed.digest)) return error.UntrustedV5FullFusedNativeSeal;
             try admit(sealed, pins, entries, index, native.template_id, native.instance_id, native.first_roots, witness_root, frame, projections, slots, empty_entry);
-            try validateRoster(projections, slots, main_logs, sealed.register_custody_mode);
+            try validateJointRoster(joint, projections, slots, main_logs, sealed.register_custody_mode);
             if (proof.claims.len != projections.len or proof.memory_claims.len != slots.len or !std.meta.eql(proof.stark.commitment_scheme_proof.config, pins.config)) return error.InvalidV5FullFusedProof;
             const roots = proof.stark.commitment_scheme_proof.commitments.items;
-            if (roots.len != (if (slots.len == 0) @as(usize, 4) else 5) + @as(usize, @intFromBool(joint != null)) or !std.meta.eql(roots[0..2].*, native.first_roots) or
+            if (roots.len != (if (slots.len == 0) @as(usize, 4) else 5) + @as(usize, @intFromBool(if (joint) |joined| joined.separateInteraction() else false)) or !std.meta.eql(roots[0..2].*, native.first_roots) or
                 (slots.len != 0 and !std.meta.eql(roots[2], witness_root))) return error.UntrustedV5FullFusedFirstRound;
             var channel = firstChannel(native.template_id, native.instance_id, index, projections, slots);
             var verifier = try Verifier.init(a, pins.config);
@@ -287,7 +306,7 @@ pub fn ForBackend(comptime Backend: type) type {
             if (slots.len != 0) try verifier.commit(a, roots[2], witness_logs, &channel);
             const layout = try Joint.ProjectionLayout.init(a, joint, projections);
             defer layout.deinit(a);
-            const logs = try interactionLogsForLayout(a, projections, slots, layout);
+            const logs = if (isPartitionedFrame(joint, projections, slots)) try a.dupe(u32, &.{@import("block_v5_native_frame_v1.zig").LOG_SIZE}) else try interactionLogsForLayout(a, projections, slots, layout);
             defer a.free(logs);
             const mask = try mainMask(a, main_logs.len, projections, slots);
             defer a.free(mask);
@@ -297,8 +316,10 @@ pub fn ForBackend(comptime Backend: type) type {
             if (joint) |joined| try joined.mix(&channel);
             try mixClaims(&channel, native.template_id, native.instance_id, index, projections, slots, proof.claims, proof.memory_claims);
             const interaction_tree: usize = if (slots.len == 0) 2 else 3;
-            if (joint) |joined| try verifier.commit(a, roots[interaction_tree], joined.logs, &channel);
-            try verifier.commit(a, roots[interaction_tree + @as(usize, @intFromBool(joint != null))], logs, &channel);
+            if (joint) |joined| if (joined.separateInteraction()) {
+                try verifier.commit(a, roots[interaction_tree], joined.logs, &channel);
+            };
+            try verifier.commit(a, roots[interaction_tree + @as(usize, @intFromBool(if (joint) |joined| joined.separateInteraction() else false))], logs, &channel);
             const projection_components = try a.alloc(Adapter.ProjectionComponent, layout.count);
             defer a.free(projection_components);
             const memory_components = try a.alloc(Adapter.AccessComponent, slots.len);
@@ -321,28 +342,39 @@ pub fn ForBackend(comptime Backend: type) type {
                 component.* = try accessComponent(slot, i, layout.count, fixed_logs, main_logs, witness_logs, logs, claim, &challenges, &word_challenges, compositionSplit(projections), sealed.register_custody_mode);
                 handles[layout.count + i] = component.asVerifierComponent();
             }
-            var result = try receipts(a, proof.claims, proof.memory_claims, projections, native, witness_root, index, sealed);
+            var result = try deriveOpenReceipts(a, proof.claims, proof.memory_claims, projections, native, witness_root, index, sealed);
             errdefer result.deinit(a);
             if (joint) |joined| {
-                var combined = try Joint.Combined(false).init(a, joined.native.verifying.components.active(), handles, slots.len != 0);
+                var combined = try Joint.Combined(false).initWithLayout(a, joined.verifiers(), handles, slots.len != 0, joined.partitioned != null);
                 defer combined.deinit(a);
                 owns = false;
-                try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, &verifier, proof.stark);
+                if (capture) |out| try core.verifier.verifyWithProofCapture(suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, &verifier, proof.stark, out) else try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, combined.handles, &channel, &verifier, proof.stark);
             } else {
                 owns = false;
-                try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, handles, &channel, &verifier, proof.stark);
+                if (capture) |out| try core.verifier.verifyWithProofCapture(suite.Hasher, suite.MerkleChannel, a, handles, &channel, &verifier, proof.stark, out) else try core.verifier.verify(suite.Hasher, suite.MerkleChannel, a, handles, &channel, &verifier, proof.stark);
             }
+            if (final_channel) |out| out.* = channel;
             return result;
         }
     };
 }
 
-fn accessComponent(slot: Memory.Slot, ordinal: usize, projection_count: usize, fixed: []const u32, main: []const u32, witness: []const u32, interactions: []const u32, claim: Memory.Claim, challenges: *const Bus.Challenges, word_challenges: *const Word.Challenges, split: u32, mode: u32) !Adapter.AccessComponent {
+pub fn accessComponent(slot: Memory.Slot, ordinal: usize, projection_count: usize, fixed: []const u32, main: []const u32, witness: []const u32, interactions: []const u32, claim: Memory.Claim, challenges: *const Bus.Challenges, word_challenges: *const Word.Challenges, split: u32, mode: u32) !Adapter.AccessComponent {
     return (Adapter.AccessComponent{ .composition_split = split, .inner = .{ .register_custody_mode = mode, .family = slot.family, .slot = slot.slot, .log_size = slot.log_size, .base_clock = try Integer.baseClockFromPublicFrame(slot.frame), .fixed_logs = fixed, .main_logs = main, .witness_logs = witness, .interaction_logs = interactions, .root_owner = false, .main_offset = slot.main_offset, .witness_offset = ordinal * Integer.COLUMN_COUNT, .interaction_offset = projection_count * 4 + ordinal * Eval.INTERACTION_COUNT, .transition_claim = claim.transition_sum, .transition_count = claim.active_count, .range_claims = claim.range_claims, .challenges = challenges, .v5_packed = .{ .elements = word_challenges }, .v5_universal = .{ .claim = claim.universal_sum, .elements = word_challenges.universal_prefix.get(.memory_access) } } }).init();
 }
 pub fn requireProjectionRoster(actual: []const Source.Slot, expected: []const Source.Slot) !void {
     if (actual.len != expected.len) return error.InvalidV5FullFusedRoster;
     for (actual, expected) |left, right| if (!std.meta.eql(left, right)) return error.InvalidV5FullFusedRoster;
+}
+fn isPartitionedFrame(joint: ?Joint.Context, projections: []const Source.Slot, slots: []const Memory.Slot) bool {
+    if (joint) |context| if (context.partitioned) |native| return native.frame != null and projections.len == 0 and slots.len == 0;
+    return false;
+}
+fn validateJointRoster(joint: ?Joint.Context, projections: []const Source.Slot, slots: []const Memory.Slot, main: []const u32, mode: u32) !void {
+    if (!isPartitionedFrame(joint, projections, slots)) return validateRoster(projections, slots, main, mode);
+    const frame = @import("block_v5_native_frame_v1.zig");
+    if (mode > 1 or main.len != frame.MAIN_COLUMNS) return error.InvalidPartitionedFrameRoster;
+    for (main) |log| if (log != frame.LOG_SIZE) return error.InvalidPartitionedFrameRoster;
 }
 pub fn validateRoster(projections: []const Source.Slot, slots: []const Memory.Slot, main: []const u32, mode: u32) !void {
     if (projections.len == 0) return error.EmptyV5FullFusedRequiresTypedAbsence;
@@ -399,6 +431,11 @@ fn proofChannel(a: std.mem.Allocator, sealed: Seal.Sealed) !suite.Channel {
     return channel;
 }
 pub fn mixClaims(channel: *suite.Channel, template: Digest, native: Digest, index: u32, projections: []const Source.Slot, slots: []const Memory.Slot, claims: []const Claim, memory_claims: []const Memory.Claim) !void {
+    return recordClaims(channel, template, native, index, projections, slots, claims, memory_claims);
+}
+/// Identical original framing for native hashing and symbolic transcript
+/// recording. Every physical sum retains the same canonicality checks.
+pub fn recordClaims(channel: anytype, template: Digest, native: Digest, index: u32, projections: []const Source.Slot, slots: []const Memory.Slot, claims: []const Claim, memory_claims: []const Memory.Claim) !void {
     if (claims.len != projections.len or memory_claims.len != slots.len) return error.InvalidV5FullFusedClaims;
     channel.mixU32s(&.{ TAG, VERSION, 2, index, @intCast(claims.len), @intCast(memory_claims.len) });
     channel.mixRoot(template);
@@ -417,8 +454,8 @@ pub fn mixClaims(channel: *suite.Channel, template: Digest, native: Digest, inde
         try Range.mixClaims(claim.range_claims, index, slot.family, slot.slot, channel);
     }
 }
-const Generated = struct { columns: [4][]M, sum: Q };
-fn generateProjection(a: std.mem.Allocator, main: []const Column, slot: Source.Slot, relations: *const @import("../recursion/air/universal_challenges.zig").UniversalRelations) !Generated {
+pub const Generated = struct { columns: [4][]M, sum: Q };
+pub fn generateProjection(a: std.mem.Allocator, main: []const Column, slot: Source.Slot, relations: *const @import("../recursion/air/universal_challenges.zig").UniversalRelations) !Generated {
     const size: usize = @as(usize, 1) << @intCast(slot.log_size);
     var columns: [4][]M = undefined;
     var initialized: usize = 0;
@@ -429,17 +466,56 @@ fn generateProjection(a: std.mem.Allocator, main: []const Column, slot: Source.S
     }
     const terms = try a.alloc(Q, size);
     defer a.free(terms);
-    for (0..size) |logical| {
-        var row: [Opcode.MAX_FAMILY_COLUMNS]Q = undefined;
-        const physical = Framework.committedRow(logical, slot.log_size);
-        if (slot.main_offset > main.len or slot.width > main.len - slot.main_offset) return error.InvalidV5FullFusedRoster;
-        for (row[0..slot.width], main[slot.main_offset..][0..slot.width]) |*value, column| {
-            if (column.log_size != slot.log_size or column.values.len != size) return error.InvalidV5FullFusedRoster;
-            value.* = Q.fromBase(column.values[physical]);
-        }
-        const request = try Source.fromCommittedMain(slot, row[0..slot.width], relations);
-        terms[logical] = request.numerator().mul(try request.denominator().inv());
+    // Validate once, before the hot row loop. No malformed column can be
+    // hidden by an inactive request or by batching denominator inversions.
+    if (slot.width > Opcode.MAX_FAMILY_COLUMNS or slot.main_offset > main.len or slot.width > main.len - slot.main_offset) return error.InvalidV5FullFusedRoster;
+    const source_columns = main[slot.main_offset..][0..slot.width];
+    for (source_columns) |column| {
+        if (column.log_size != slot.log_size or column.values.len != size) return error.InvalidV5FullFusedRoster;
     }
+    // Montgomery's trick replaces one QM31 inverse per row with one per
+    // bounded tile. Keep strict zero-denominator rejection, including requests
+    // whose numerator is zero, and preserve the original logical prefix order.
+    const pool_mod = engine.work_pool;
+    var lease: ?pool_mod.WorkLease = null;
+    if (size >= 16384) if (pool_mod.currentScopedPool()) |pool| {
+        const count = @min(pool.workerCount(), size / 4096);
+        if (count > 1) lease = pool.acquire(try pool_mod.WorkerBudget.init(count)) catch |err| switch (err) {
+            error.WorkerBudgetUnavailable => null, // Never wait on a nested lease.
+            else => return err,
+        };
+    };
+    defer if (lease) |*held| held.deinit();
+    const job_count = if (lease) |*held| held.workerCount() else 1;
+    const tile_size = @min(size, 4096);
+    const denominators = try a.alloc(Q, tile_size * job_count);
+    defer a.free(denominators);
+    const inverses = try a.alloc(Q, tile_size * job_count);
+    defer a.free(inverses);
+    var jobs: [pool_mod.MAX_WORKERS]ProjectionJob = undefined;
+    var wait = std.Thread.WaitGroup{};
+    {
+        // All workers join before scratch, terms, columns or the lease can be
+        // released, including submission/error paths. Workers allocate nothing.
+        defer {
+            wait.wait();
+            if (lease) |*held| held.completeWave();
+        }
+        for (jobs[0..job_count], 0..) |*job, i| {
+            job.* = .{
+                .main = source_columns,
+                .slot = slot,
+                .relations = relations,
+                .terms = terms,
+                .begin = size * i / job_count,
+                .end = size * (i + 1) / job_count,
+                .denominators = denominators[i * tile_size ..][0..tile_size],
+                .inverses = inverses[i * tile_size ..][0..tile_size],
+            };
+            if (i + 1 < job_count) try lease.?.spawnWg(&wait, ProjectionJob.run, .{job}) else job.run();
+        }
+    }
+    for (jobs[0..job_count]) |job| if (job.failure) |err| return err;
     var sum = Q.zero();
     for (terms) |term| sum = sum.add(term);
     const shift = try sum.divM31(M.fromCanonical(@intCast(size)));
@@ -451,14 +527,50 @@ fn generateProjection(a: std.mem.Allocator, main: []const Column, slot: Source.S
     }
     return .{ .columns = columns, .sum = sum };
 }
-fn appendColumns(a: std.mem.Allocator, output: *std.ArrayList(Column), log: u32, columns: []const []M) !void {
+const ProjectionJob = struct {
+    main: []const Column,
+    slot: Source.Slot,
+    relations: *const @import("../recursion/air/universal_challenges.zig").UniversalRelations,
+    terms: []Q,
+    begin: usize,
+    end: usize,
+    denominators: []Q,
+    inverses: []Q,
+    failure: ?anyerror = null,
+
+    fn run(self: *ProjectionJob) void {
+        self.fill() catch |err| {
+            self.failure = err;
+        };
+    }
+    fn fill(self: *ProjectionJob) !void {
+        var begin = self.begin;
+        while (begin < self.end) {
+            const end = @min(self.end, begin + self.denominators.len);
+            for (begin..end) |logical| {
+                var row: [Opcode.MAX_FAMILY_COLUMNS]M = undefined;
+                const physical = Framework.committedRow(logical, self.slot.log_size);
+                for (row[0..self.slot.width], self.main) |*value, column| value.* = column.values[physical];
+                const request = try Source.fromCommittedMainBase(self.slot, row[0..self.slot.width], self.relations);
+                self.terms[logical] = request.numerator();
+                self.denominators[logical - begin] = request.denominator();
+            }
+            try core.fields.batchInverseInPlace(Q, self.denominators[0 .. end - begin], self.inverses[0 .. end - begin]);
+            for (self.terms[begin..end], self.inverses[0 .. end - begin]) |*term, inverse| term.* = term.mul(inverse);
+            begin = end;
+        }
+    }
+};
+pub fn appendColumns(a: std.mem.Allocator, output: *std.ArrayList(Column), log: u32, columns: []const []M) !void {
     for (columns) |values| {
         const owned = try a.dupe(M, values);
         errdefer a.free(owned);
         try output.append(a, .{ .log_size = log, .values = owned });
     }
 }
-fn receipts(a: std.mem.Allocator, claims: []const Claim, memory: []const Memory.Claim, projections: []const Source.Slot, native: *const Native.OpenReceipt, access: Digest, index: u32, sealed: Seal.Sealed) !Verified {
+/// Pure typed ledger derivation; caller must authenticate every input claim.
+/// This function alone grants no proof validity or native admission.
+pub fn deriveOpenReceipts(a: std.mem.Allocator, claims: []const Claim, memory: []const Memory.Claim, projections: []const Source.Slot, native: anytype, access: Digest, index: u32, sealed: Seal.Sealed) !Verified {
     var totals: [Source.PARTITION_COUNT]Q = @splat(Q.zero());
     var program_sum = Q.zero();
     var fetches: u64 = 0;

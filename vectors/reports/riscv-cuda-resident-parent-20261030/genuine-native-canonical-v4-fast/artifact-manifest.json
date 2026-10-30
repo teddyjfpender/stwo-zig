@@ -1,0 +1,7 @@
+{
+  "archive_path": "/Users/theodorepender/code/cryptography/artifacts/stwo-v7-gpu-20261029/native-parent-canonical-v4-fast.tar.gz",
+  "sha256": "e686ee96d5af9e610cf208d5ce5eae335ccdb11c6ff81057450989a144bcfa60",
+  "transfer_complete": true,
+  "retained_llvm_archive": "../genuine-native-canonical-v4/artifact-manifest.json",
+  "scope": "Only two CUDA objects replaced; original immutable Zig LLVM object reused."
+}

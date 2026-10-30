@@ -1,0 +1,15 @@
+{
+  "schema": "stwo-b8-three-window-depth2-full-driver-qualification-v1",
+  "scope": "tiny genuine RV32 test ELF, initial/middle/terminal and oddcarry; not retained Ethereum block",
+  "queries": 70,
+  "pow_bits": 26,
+  "windows": [
+    4,
+    2,
+    1
+  ],
+  "folds": 2,
+  "depth": 2,
+  "root_sha256": "8794e41d3e08dec3a97c1ef3662844ac9696e696834538df02b177f5b4f09128",
+  "fresh_serialized_full_receiver": true
+}

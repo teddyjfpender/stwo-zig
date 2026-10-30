@@ -1,0 +1,37 @@
+[
+  {
+    "path": "/workspace/final-evidence/native-objects/native-bundle.o",
+    "bytes": 1052040,
+    "sha256": "04728810be4b82a8ae63d67c3a969e062a59f5894a05effd7f232093a277cfc4"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/native-witness.o",
+    "bytes": 337296,
+    "sha256": "a55d2afe93088b660740873bc450cc1a9b1c6d74af91d0dd16c130a0ed19e649"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/native-access.o",
+    "bytes": 665096,
+    "sha256": "be64a2c355cd5932604d1b09efcf22d7bc6a77014d50ec8f7d3a029c02a2c361"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/native-infra.o",
+    "bytes": 24488,
+    "sha256": "a96615479c255955265fb3a8b1893ff00e8c6a94d1c9870cd6fa1666b829aef3"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/native-ingress.o",
+    "bytes": 473752,
+    "sha256": "036ea3f5da7ffff0cef29952977803a4f4526fbecce2ea27aaa20e833532e93e"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/native-claim-pack.o",
+    "bytes": 14848,
+    "sha256": "1ff7c834e5a1bdc8cfb9ec6292134e0c32d907c8c531a595713a92896eff8d64"
+  },
+  {
+    "path": "/workspace/final-evidence/native-objects/libstwo_cuda_native_final.a",
+    "bytes": 194454264,
+    "sha256": "5501574aab7ee8faaf72b4c0831ca8630e2c4646b8efcdd47395991b197e303d"
+  }
+]

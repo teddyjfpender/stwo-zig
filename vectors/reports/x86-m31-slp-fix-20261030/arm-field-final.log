@@ -1,0 +1,7 @@
+1/6 m31.test.m31: constant-weighted scalar contexts match independent integer reduction...OK
+2/6 m31.test.m31: explicit packed constant products match independent integer reduction...OK
+3/6 m31.test.m31: bounded product reduction matches generic reduction...OK
+4/6 m31.test.m31: generic reduction canonicalizes the full u64 range...OK
+5/6 m31.test.m31: packed four-term dot product matches scalar accumulation...OK
+6/6 m31.test.m31: packed reduction edge cases...OK
+All 6 tests passed.

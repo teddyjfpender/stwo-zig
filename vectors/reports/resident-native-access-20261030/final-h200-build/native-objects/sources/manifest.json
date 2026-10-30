@@ -1,0 +1,36 @@
+{
+  "schema": "stwo-native-final-sources-v1",
+  "program_identity": "255223cac5af6f08e94488e8f07648fea42d80c1ab9bd1dfc77f00bf8eac48f1",
+  "files": [
+    {
+      "path": "native-access.cu",
+      "bytes": 19795497,
+      "sha256": "54c6d6b6aaa45ad4b214e21a650ea595db068f1a6d2120fbb0670fe8b882af3e"
+    },
+    {
+      "path": "native-bundle.cu",
+      "bytes": 341121,
+      "sha256": "ef769eed8ccfcd390c7a2f83a4c6fb83d438beaf601a9a28acac9a9d78d25922"
+    },
+    {
+      "path": "native-claim-pack.cu",
+      "bytes": 2421,
+      "sha256": "261686deef4cbc78d80f3f02fa953af7ff5c388e86b0daa56c0f1657690ce72b"
+    },
+    {
+      "path": "native-infra.cu",
+      "bytes": 46109,
+      "sha256": "716d00137922e2cfc52a7e1cc5f3cfd215988bc666aff695deb5a0e14b53be43"
+    },
+    {
+      "path": "native-ingress.cu",
+      "bytes": 3261,
+      "sha256": "89d64c02298db22144da035b475b7f80f0afae61bb808160600db74a79f9e82b"
+    },
+    {
+      "path": "native-witness.cu",
+      "bytes": 2225595,
+      "sha256": "622c0491c622abb11304999b54499aba287256f434800c124fc30b3536c6033a"
+    }
+  ]
+}

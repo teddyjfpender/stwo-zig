@@ -1,0 +1,16 @@
+{
+  "schema": "stwo-b8-continued-execution-capture-v1",
+  "parent_capture_sha256": "0818ae75487ff4d111d0b087fa1d2adf246057667787d35df52f0eed6bfd1d08",
+  "binary_sha256": "89c501aa16f3b2f3379241fca7b3cc46ab53651f202d605102e600f2dfbf5836",
+  "proof_verified": false,
+  "settings": {
+    "STWO_WINDOW_CONTINUE_ELF": "vectors/reports/block-v7-real-window-corpus-20261029/source/guest.elf",
+    "STWO_WINDOW_CONTINUE_ELF_SHA256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "STWO_WINDOW_CONTINUE_INCOMING": "/tmp/stwo-b8-16m-tail-input",
+    "STWO_WINDOW_CONTINUE_INCOMING_SHA256": "57e9be55596fccccc29393f6d6c56b4bcf753cd527433b10fb178d1f171882a5",
+    "STWO_WINDOW_CONTINUE_CYCLES": "8388608",
+    "STWO_WINDOW_CONTINUE_SKIP": "8388609",
+    "STWO_WINDOW_CONTINUE_OUTPUT": "vectors/reports/riscv-cpu-architecture-20261029/captures/native-16m-tail"
+  },
+  "returncode": 0
+}

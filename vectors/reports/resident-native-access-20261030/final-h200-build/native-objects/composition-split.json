@@ -1,0 +1,24 @@
+{
+  "name": "composition-split",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_90,code=sm_90",
+    "--threads",
+    "4",
+    "-I/workspace/stwo-final/src/backends/cuda/native",
+    "/workspace/stwo-final/src/backends/cuda/native/transform/composition_split.cu",
+    "-o",
+    "/workspace/final-evidence/native-objects/composition-split.o"
+  ],
+  "exit_code": 0,
+  "seconds": 2.596060276031494,
+  "source_sha256": "9d315bcc2966d01385da110ad41dc80866ac381b1dcd207d24b85073221d4be5",
+  "object_sha256": "86c1eb2af997cac21d026a3daeaf861a486cc67625a4cff42a6f75e8ce897e44"
+}

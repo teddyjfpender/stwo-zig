@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "scope": "original ROM and lookup providers under new whole-execution epoch; open claims only",
+  "configuration": {
+    "optimize": "ReleaseSafe",
+    "queries": 8,
+    "pow_bits": 0
+  },
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 4,
+    "execution_qualified": false,
+    "recursion_qualified": false,
+    "canonical_security_qualified": false
+  },
+  "coverage": [
+    "nonzero ROM multiplicities and independently pinned decoded program root",
+    "nonzero counters in all six lookup tables including negative canonical residues",
+    "serialized proof decoded and original allocation destroyed before fresh verification",
+    "changed epoch rejects through original PCS verifier",
+    "ROM physical claim mutation rejects",
+    "lookup cancelling physical claim mutations reject despite unchanged aggregate",
+    "alternate self-consistent epoch and changed proof fixed root reject against independently regenerated tables"
+  ],
+  "source_state": "uncommitted development worktree; selected hashes are not a complete reproducible archive",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v7_program_provider_v1.zig": "38f7a5c49625080f9ca3b1402a4e525fda4edb8c6edb3917fa478ae95f8e80fb",
+    "src/frontends/riscv/prover/block_v7_lookup_provider_v1.zig": "5c1d8e2f04b0c90eef9c3801015de859d4946bc45097fcf120a4abb8a591285f",
+    "src/frontends/riscv/prover/block_v7_global_provider_test_v1.zig": "b6615f7210e67f2f9cc6a0b75b8b5af067e4a51269a83e54333ca196399f73ad",
+    "src/frontends/riscv/prover/block_v7_execution_epoch_v1.zig": "2e05f3af7375d3f89081db0923a66c948f70772a35ca36f80ad7d4574164b91f"
+  },
+  "binary_sha256": "198b53f3577b83fad71072bd9bbb2725e74a51a7d6fe3114a38e414fd20e3ceb",
+  "log": [
+    "1/4 prover.block_v7_global_provider_test_v1.test.v7 global providers ROM original proof binds independent table and new epoch...OK",
+    "2/4 prover.block_v7_global_provider_test_v1.test.v7 global providers lookup original proof binds each physical sum and independent fixed root...OK",
+    "3/4 air.lookups.tables.mod.test_0...OK",
+    "4/4 air.lookups.tables.source_ingest.test_0...OK",
+    "All 4 tests passed."
+  ]
+}

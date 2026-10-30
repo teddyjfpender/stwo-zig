@@ -1,0 +1,440 @@
+{
+  "schema": "stwo-v7-source-patch-v1",
+  "base_source_sha256": "ef0e1ff67c8d646001e145e378b86921b4abaa5dc207847b86ef3fe41a149775",
+  "source_sha256": "270a62b6e8d06363208524c7c17a9c1e463fd1e62b411789b71f2cca5b92a5f0",
+  "changes": [
+    {
+      "path": "scripts/cuda_build_lib/aot_identity.py",
+      "before": {
+        "path": "scripts/cuda_build_lib/aot_identity.py",
+        "bytes": 14348,
+        "sha256": "da36513d34bba27e0f534317004e1c08deb5cb21e6e859f2ea8c4f1dbf276571"
+      },
+      "after": {
+        "path": "scripts/cuda_build_lib/aot_identity.py",
+        "bytes": 14581,
+        "sha256": "95736e0c1629b4dad9817710736ec33075750519e5d8dde4d9c05b5202cc481b"
+      }
+    },
+    {
+      "path": "scripts/cuda_build_lib/aot_pack.py",
+      "before": {
+        "path": "scripts/cuda_build_lib/aot_pack.py",
+        "bytes": 8344,
+        "sha256": "ed1dcf37b17d61175d4b0eaf5d396a4480a8b2900755a05890087abc5221888d"
+      },
+      "after": {
+        "path": "scripts/cuda_build_lib/aot_pack.py",
+        "bytes": 8391,
+        "sha256": "237590f2a07622aad63ed0ae90d05994730b0cabd4ddb630d74a877379c1a5ac"
+      }
+    },
+    {
+      "path": "scripts/cuda_build_lib/builder.py",
+      "before": {
+        "path": "scripts/cuda_build_lib/builder.py",
+        "bytes": 29316,
+        "sha256": "7c89aa39a8aec8091cc7faeb595c2ad7fdf090d996392d5520a10818c04e1ee7"
+      },
+      "after": {
+        "path": "scripts/cuda_build_lib/builder.py",
+        "bytes": 30178,
+        "sha256": "4c43be7435bdb7dfac6ce989141d865d80eb1d2502b7cc5e4a3917f16870ef07"
+      }
+    },
+    {
+      "path": "scripts/cuda_build_lib/framework_identity.py",
+      "before": null,
+      "after": {
+        "path": "scripts/cuda_build_lib/framework_identity.py",
+        "bytes": 7862,
+        "sha256": "b18506d831ba13acfbf88cecf007fb187956ffc46706ff728e425af94b4cfe46"
+      }
+    },
+    {
+      "path": "scripts/riscv_framework_cuda_aot.py",
+      "before": null,
+      "after": {
+        "path": "scripts/riscv_framework_cuda_aot.py",
+        "bytes": 1958,
+        "sha256": "d8d4f552796785fb91beb8b5217fbd8b8f5be0e22fd455aa64fbbebb37b9f165"
+      }
+    },
+    {
+      "path": "scripts/test_v7_cuda_campaign_results.py",
+      "before": null,
+      "after": {
+        "path": "scripts/test_v7_cuda_campaign_results.py",
+        "bytes": 2040,
+        "sha256": "17b4683a5b543c55095669a0865f2569202db0dfc86ffec81851e3233a92a812"
+      }
+    },
+    {
+      "path": "scripts/tests/test_cuda_cubin_cache.py",
+      "before": {
+        "path": "scripts/tests/test_cuda_cubin_cache.py",
+        "bytes": 3884,
+        "sha256": "3cf4103bf5c3ee7acaba7f23777b9373f49dab0d34e6f2f53c412fc563bd4f57"
+      },
+      "after": {
+        "path": "scripts/tests/test_cuda_cubin_cache.py",
+        "bytes": 6799,
+        "sha256": "77152eb890791a8489e321dabf1333b99397b0a77fcbb5b78f009c0e40ad62ce"
+      }
+    },
+    {
+      "path": "scripts/tests/test_cuda_framework_product.py",
+      "before": null,
+      "after": {
+        "path": "scripts/tests/test_cuda_framework_product.py",
+        "bytes": 5033,
+        "sha256": "37d82fbe1eb7fc37c8122489f1b3465d22acf410aac9a171a550f9d09a041cd2"
+      }
+    },
+    {
+      "path": "scripts/tests/test_v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 6845,
+        "sha256": "546d4f26198f5cc66b78dba9b58882ebb3b290c395eba45a25560c53814a79cd"
+      },
+      "after": {
+        "path": "scripts/tests/test_v7_real_window_v2.py",
+        "bytes": 8281,
+        "sha256": "963f39978472f156ec25b3ab42360ef4422a132c835861a66934e735de2fec57"
+      }
+    },
+    {
+      "path": "scripts/v7_cuda_campaign_results.py",
+      "before": null,
+      "after": {
+        "path": "scripts/v7_cuda_campaign_results.py",
+        "bytes": 8007,
+        "sha256": "aaafb5ed168c947aad5d3dfa834e8869818060da1f3acbc69ed83a5fe56ce376"
+      }
+    },
+    {
+      "path": "scripts/v7_real_window_v2.py",
+      "before": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 17143,
+        "sha256": "df8aac8d9d4714e8fe3291286405ebe3514ea7fa51bac63c3ab658ba2b165a76"
+      },
+      "after": {
+        "path": "scripts/v7_real_window_v2.py",
+        "bytes": 19518,
+        "sha256": "05595185d8396da3ea9ef4696370d9315380a41c97f8cab911d409bd4483f816"
+      }
+    },
+    {
+      "path": "src/backends/cuda/abi/schema.zig",
+      "before": {
+        "path": "src/backends/cuda/abi/schema.zig",
+        "bytes": 1407,
+        "sha256": "08dcd73354723a9a8bd7c271f8e4c4976342f8801e0eb04e7ef607248c4d6875"
+      },
+      "after": {
+        "path": "src/backends/cuda/abi/schema.zig",
+        "bytes": 1453,
+        "sha256": "0f2c2152ab089514b601b33b9ee0edc366d1b0c8d85a1b4839b211af0518557a"
+      }
+    },
+    {
+      "path": "src/backends/cuda/framework_polynomial_codegen_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/backends/cuda/framework_polynomial_codegen_v1.zig",
+        "bytes": 3704,
+        "sha256": "c2e8cb9886db68fc0284c626384612129d3dca955305106a8def1d57709a991d"
+      }
+    },
+    {
+      "path": "src/backends/cuda/native/framework_polynomial_v1.cuh",
+      "before": null,
+      "after": {
+        "path": "src/backends/cuda/native/framework_polynomial_v1.cuh",
+        "bytes": 2017,
+        "sha256": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd"
+      }
+    },
+    {
+      "path": "src/backends/metal/runtime/framework_polynomial_codegen.zig",
+      "before": {
+        "path": "src/backends/metal/runtime/framework_polynomial_codegen.zig",
+        "bytes": 14489,
+        "sha256": "2ef67c7b31190e59ad03ec55ddcfd05ac7a28429b08ef906498dc9b13c93f3d0"
+      },
+      "after": {
+        "path": "src/backends/metal/runtime/framework_polynomial_codegen.zig",
+        "bytes": 6390,
+        "sha256": "fd4a709ca83d645e49ddf515ad280c3f01605c31284e30239a7f09d9b6b89b85"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/benchmarks/cuda_framework_catalog_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/benchmarks/cuda_framework_catalog_v1.zig",
+        "bytes": 12508,
+        "sha256": "0356c62399c70a5ee16a78266d01bac138ff7b7c4e91e00f5950c72876466f54"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/benchmarks/cuda_framework_numeric_runner_v1.cpp",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/benchmarks/cuda_framework_numeric_runner_v1.cpp",
+        "bytes": 2038,
+        "sha256": "a8497867f4891ff7d0a2f5a64d6f23ec09b39d88ca084f657b02d38568acdc07"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/block_v7_parallel_preparation_test_root.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/block_v7_parallel_preparation_test_root.zig",
+        "bytes": 153,
+        "sha256": "2df30cea5e143ed562a48ccdfb9c7881ab461a6a856351209e21b854bc515cc2"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig",
+      "before": {
+        "path": "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig",
+        "bytes": 31265,
+        "sha256": "2d0bab349553c83f227b44a9b5a07494d46ad28c543130e50ff7fadfd9857b16"
+      },
+      "after": {
+        "path": "src/frontends/riscv/prover/block_v7_streaming_execution_mode_v1.zig",
+        "bytes": 31651,
+        "sha256": "33e623582daf828c622de7bac517f04a42dc7d33ccb4967af66c98644ef568a6"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+        "bytes": 26831,
+        "sha256": "4389a82f74d2c8545480fe515e4ebe83c83f5a26843569793b5dbbe65d58e671"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+        "bytes": 27828,
+        "sha256": "f34709e0654da09a296e887d0673d60ea6594b2f6e2c2ccf28bc13d13f6d85f4"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_parent_composition_executor_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/recursion/blake3_parent_composition_executor_v1.zig",
+        "bytes": 882,
+        "sha256": "cb7ea849b6596428a85721757e523523af04a3d47f1f7e58f26897bffd3784d2"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_bounded_complete_cpu_producer_v1.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_bounded_complete_cpu_producer_v1.zig",
+        "bytes": 15269,
+        "sha256": "cd81423fb5ec0fc768aa4ac35df8e702e165929b92ad94fc1b12a63c7eb54906"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_bounded_complete_cpu_producer_v1.zig",
+        "bytes": 15601,
+        "sha256": "4c15d4ee5ab298acc9f6c1ac15211b6a7f144ae259262595003ed00bdfcdaa0d"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+        "bytes": 8816,
+        "sha256": "85d57cba507aa09911c1c3b7e200d7443390ea41ffa682af45afa4c7524d02f1"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_complete_cpu_family_v1.zig",
+        "bytes": 9228,
+        "sha256": "6a92c916601128f64e48e643d36203ec45fe399577d72422bfeeeaa71fe93395"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_mixed_batch_producer_v1.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_mixed_batch_producer_v1.zig",
+        "bytes": 5115,
+        "sha256": "fc2e78f0adb442feebe8f4e9f56a11038f1fc6f6ae33137614ccd722f8db80b4"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_mixed_batch_producer_v1.zig",
+        "bytes": 5306,
+        "sha256": "0c75fc56d99a14299ef13ae1fc10980aa50d54835239889b86af68dd00a6656f"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+        "bytes": 11729,
+        "sha256": "580a1838596c3e9d4d55d84d771e51297cdf89f20d4281e2885fb62c1454d362"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_mixed_collection_family_v1.zig",
+        "bytes": 14460,
+        "sha256": "ddf8415caddea642b61858b58c31fcf93a03948088bfe4fcdc424f0b1ab89880"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_parallel_preparation_test_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_parallel_preparation_test_v1.zig",
+        "bytes": 5119,
+        "sha256": "c12e38358acb594ed73496a6424d2dc58772f8abb10080c3dfa8f76795e69e4e"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_test_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_test_v1.zig",
+        "bytes": 2116,
+        "sha256": "41edfec40d3f1bcb83f3464396a917fcfea36854384512ecb9b0090fc5abe8be"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_preparation_jobs_v1.zig",
+        "bytes": 2179,
+        "sha256": "956788d22546f918cda88840cb7c307984059151fcf41b2260fe57a87329512e"
+      }
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+      "before": {
+        "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+        "bytes": 17485,
+        "sha256": "12543eec5cbf0247f659e32265cdc26738e90b1f953f1f90e4c754d51ffdd1d5"
+      },
+      "after": {
+        "path": "src/frontends/riscv/recursion/block_v7_real_window_root_test_v2.zig",
+        "bytes": 18297,
+        "sha256": "09b0e631fda610877bd6c7860ed3f6aec4a096a5bb8914a7e4dcd8b87915f43e"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig",
+        "bytes": 27813,
+        "sha256": "fb9261387b3681e39161862c249fa0d383a9f6959d40a565eac14249ddf5b9f6"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/hybrid_quotient_executor_v1.zig",
+      "before": {
+        "path": "src/integrations/riscv_cuda/hybrid_quotient_executor_v1.zig",
+        "bytes": 13897,
+        "sha256": "d8dd1b9a476fbe739f4a03cb5e018ed2b9da06e74819a18db46a409f74b251b0"
+      },
+      "after": {
+        "path": "src/integrations/riscv_cuda/hybrid_quotient_executor_v1.zig",
+        "bytes": 20054,
+        "sha256": "76d36dc5d8aab9b9485f7fe922a1ce8caa3a325ba1549378d42aca541df01de8"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/hybrid_quotient_plan_v1.zig",
+      "before": {
+        "path": "src/integrations/riscv_cuda/hybrid_quotient_plan_v1.zig",
+        "bytes": 8175,
+        "sha256": "d1ff0c30484eb216ad951228875ad07e04d410a5b1661eff7e172f2d36b33161"
+      },
+      "after": {
+        "path": "src/integrations/riscv_cuda/hybrid_quotient_plan_v1.zig",
+        "bytes": 9355,
+        "sha256": "63d5a877b2518fcab1f0d3eaa5373f731c669fcdaf3f694adbd3a328b5711f25"
+      }
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/hybrid_quotient_test_v1.zig",
+      "before": {
+        "path": "src/integrations/riscv_cuda/tests/hybrid_quotient_test_v1.zig",
+        "bytes": 6485,
+        "sha256": "866a372072aa465905b9ac249a23fe68738c7fb12814e54e04773fd28646f3db"
+      },
+      "after": {
+        "path": "src/integrations/riscv_cuda/tests/hybrid_quotient_test_v1.zig",
+        "bytes": 8854,
+        "sha256": "7fc8d9df8397865aea2cc6ca4c2b70987ad8794fe6defcc11cb31028d1f22c39"
+      }
+    },
+    {
+      "path": "src/prover/air/framework_polynomial_emitter_v1.zig",
+      "before": null,
+      "after": {
+        "path": "src/prover/air/framework_polynomial_emitter_v1.zig",
+        "bytes": 9082,
+        "sha256": "b8e2b3ef569557ab3ead4cec01a019151399545a931d2810de8b4c8e82498b70"
+      }
+    },
+    {
+      "path": "src/prover/air/mod.zig",
+      "before": {
+        "path": "src/prover/air/mod.zig",
+        "bytes": 1221,
+        "sha256": "7160907e9ddb3e895eedbcffeb635463b57b9584a0b8dae229f2a850d8a72c55"
+      },
+      "after": {
+        "path": "src/prover/air/mod.zig",
+        "bytes": 1314,
+        "sha256": "f952771c090eaf7fcbba06570f1e14898784f8ce9c4c3a442b34b24b7db09ffd"
+      }
+    },
+    {
+      "path": "src/riscv_cuda_framework_export_test_root.zig",
+      "before": null,
+      "after": {
+        "path": "src/riscv_cuda_framework_export_test_root.zig",
+        "bytes": 433,
+        "sha256": "cb4c8ee67b722cd9fe900a2e38a19e18a32c22888423e2174cb64cdb838bac92"
+      }
+    },
+    {
+      "path": "src/riscv_cuda_framework_test_root.zig",
+      "before": null,
+      "after": {
+        "path": "src/riscv_cuda_framework_test_root.zig",
+        "bytes": 828,
+        "sha256": "87807f3fa42be98574e5fd7165c0e484e1f8704ded983bebd45e83213e443dac"
+      }
+    },
+    {
+      "path": "src/riscv_cuda_window_benchmark.zig",
+      "before": {
+        "path": "src/riscv_cuda_window_benchmark.zig",
+        "bytes": 5674,
+        "sha256": "026da0d120b435f501e4a735a64d87cd308b9a375616a5d3de8f77b6b4953ba0"
+      },
+      "after": {
+        "path": "src/riscv_cuda_window_benchmark.zig",
+        "bytes": 9431,
+        "sha256": "dc243c89dbab842903ea5ff5135b2b8145162356bcd7c62a47c375d2b3d0af17"
+      }
+    },
+    {
+      "path": "src/riscv_ethereum_execution_census.zig",
+      "before": null,
+      "after": {
+        "path": "src/riscv_ethereum_execution_census.zig",
+        "bytes": 8446,
+        "sha256": "aac6e4db8225843ce8d1d6d626d284c5df927fcf386da552b377721570befe76"
+      }
+    }
+  ],
+  "cuda_native_inputs_unchanged": false,
+  "cuda_archive_policy": "Must build a new framework archive against this exact snapshot; do not reuse original archive for new composition entrypoints."
+}

@@ -1,0 +1,24 @@
+{
+  "name": "native-witness",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_90,code=sm_90",
+    "--threads",
+    "4",
+    "-I/workspace/stwo-final/src/backends/cuda/native",
+    "/workspace/final-evidence/native-objects/sources/native-witness.cu",
+    "-o",
+    "/workspace/final-evidence/native-objects/native-witness.o"
+  ],
+  "exit_code": 0,
+  "seconds": 5.594722747802734,
+  "source_sha256": "622c0491c622abb11304999b54499aba287256f434800c124fc30b3536c6033a",
+  "object_sha256": "a55d2afe93088b660740873bc450cc1a9b1c6d74af91d0dd16c130a0ed19e649"
+}

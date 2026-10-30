@@ -7,6 +7,8 @@ pub const proof_of_work = @import("proof_of_work.zig");
 pub const tiled_commit = @import("tiled_commit.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
+pub const QuotientExecutor = @import("quotient_executor.zig").Executor;
+pub const DeepGroupBudget = @import("quotient_group_budget.zig").Budget;
 /// `proving_5a7c5ed` commitment heights: the single lifting step of every
 /// commit path and the FRI/PoW view of a V2 configuration.
 pub const revision_lifting = scheme.revision_lifting;

@@ -69,7 +69,7 @@ pub fn build(
     const pool = work_pool.getGlobalPool();
     const n_workers = if (pool) |active| @min(active.workerCount(), n_chunks) else 1;
 
-    const Shared = RowShared(@TypeOf(context), fillRow);
+    const Shared = RowShared(@TypeOf(context), fillRow, false);
     var shared = Shared{
         .context = context,
         .columns = columns,
@@ -110,12 +110,67 @@ pub fn build(
     return .{ .columns = columns, .claimed_sum = claimed_sum };
 }
 
+/// Fill caller-owned columns with independent cyclic LogUp planes. Unlike
+/// `build`, no plane contains earlier planes' fractions: every physical sum is
+/// returned separately and every plane is normalized and prefix-summed.
+pub fn buildIndependentInto(
+    allocator: std.mem.Allocator,
+    log_size: u32,
+    columns: []prover_pcs.ColumnEvaluation,
+    sums: []QM31,
+    context: anytype,
+    comptime fillRow: fn (@TypeOf(context), usize, []Fraction) anyerror!void,
+) !void {
+    if (sums.len == 0 or log_size >= @bitSizeOf(usize) or
+        columns.len != try std.math.mul(usize, sums.len, 4))
+        return error.InvalidPreparedGeometry;
+    const row_count = @as(usize, 1) << @intCast(log_size);
+    for (columns) |column| if (column.log_size != log_size or column.values.len != row_count)
+        return error.InvalidPreparedGeometry;
+    const chunk_rows = @min(row_count, rows_per_chunk);
+    const n_chunks = row_count / chunk_rows;
+    const partials = try allocator.alloc(QM31, try std.math.mul(usize, n_chunks, sums.len));
+    defer allocator.free(partials);
+    const pool = work_pool.getGlobalPool();
+    const n_workers = if (pool) |active| @min(active.workerCount(), n_chunks) else 1;
+    const Shared = RowShared(@TypeOf(context), fillRow, true);
+    var shared = Shared{ .context = context, .columns = columns, .secure_columns = sums.len, .chunk_rows = chunk_rows, .n_chunks = n_chunks, .partials = partials };
+    const workers = try allocator.alloc(Shared.Worker, n_workers);
+    defer allocator.free(workers);
+    var ready: usize = 0;
+    defer for (workers[0..ready]) |*worker| worker.deinit(allocator);
+    for (workers) |*worker| {
+        worker.* = try Shared.Worker.init(allocator, &shared);
+        ready += 1;
+    }
+    if (pool != null and n_workers > 1) {
+        var group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| pool.?.spawnWg(&group, Shared.Worker.run, .{worker});
+        Shared.Worker.run(&workers[0]);
+        group.wait();
+    } else Shared.Worker.run(&workers[0]);
+    for (workers) |worker| if (worker.err) |err| return err;
+    @memset(sums, QM31.zero());
+    for (0..n_chunks) |chunk| for (sums, 0..) |*sum, plane| {
+        sum.* = sum.add(partials[chunk * sums.len + plane]);
+    };
+    for (sums, 0..) |sum, plane| {
+        const shift = (try sum.divM31(M31.fromU64(row_count))).toM31Array();
+        for (shift, 0..) |coordinate, limb| {
+            const values = @constCast(columns[4 * plane + limb].values);
+            for (values) |*value| value.* = value.sub(coordinate);
+            try inclusivePrefixSum(allocator, values);
+        }
+    }
+}
+
 /// Rows one worker fills and inverts as a batch.
 const rows_per_chunk: usize = 1 << 12;
 
 fn RowShared(
     comptime Context: type,
     comptime fillRow: fn (Context, usize, []Fraction) anyerror!void,
+    comptime independent: bool,
 ) type {
     return struct {
         const Self = @This();
@@ -179,13 +234,19 @@ fn RowShared(
                 for (self.fractions, self.denominators) |fraction, *denominator| denominator.* = fraction.denominator;
                 try fields.batchInverseInPlace(QM31, self.denominators, self.inverses);
 
+                if (independent) @memset(shared.partials[index * width ..][0..width], QM31.zero());
                 var partial = QM31.zero();
                 for (0..shared.chunk_rows) |offset| {
                     const row = first_row + offset;
                     var cumulative = QM31.zero();
                     for (0..width) |batch| {
                         const at = offset * width + batch;
-                        cumulative = cumulative.add(self.fractions[at].numerator.mul(self.inverses[at]));
+                        const fraction = self.fractions[at].numerator.mul(self.inverses[at]);
+                        cumulative = if (independent) fraction else cumulative.add(fraction);
+                        if (independent) {
+                            const part = &shared.partials[index * width + batch];
+                            part.* = part.add(fraction);
+                        }
                         const coordinates = cumulative.toM31Array();
                         for (coordinates, 0..) |coordinate, coordinate_index| {
                             @constCast(shared.columns[4 * batch + coordinate_index].values)[row] = coordinate;
@@ -193,7 +254,7 @@ fn RowShared(
                     }
                     partial = partial.add(cumulative);
                 }
-                shared.partials[index] = partial;
+                if (!independent) shared.partials[index] = partial;
             }
         };
     };

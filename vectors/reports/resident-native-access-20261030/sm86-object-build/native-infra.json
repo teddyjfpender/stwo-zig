@@ -1,0 +1,24 @@
+{
+  "name": "native-infra",
+  "command": [
+    "/usr/local/cuda/bin/nvcc",
+    "-c",
+    "-O3",
+    "--std=c++17",
+    "--expt-relaxed-constexpr",
+    "-Xcompiler",
+    "-fPIC",
+    "-gencode",
+    "arch=compute_86,code=sm_86",
+    "--threads",
+    "1",
+    "-I/workspace/stwo-sm86/src/backends/cuda/native",
+    "/workspace/sm86-evidence/native-objects/sources/native-infra.cu",
+    "-o",
+    "/workspace/sm86-evidence/native-objects/native-infra.o"
+  ],
+  "exit_code": 0,
+  "seconds": 0.8289530160836875,
+  "source_sha256": "716d00137922e2cfc52a7e1cc5f3cfd215988bc666aff695deb5a0e14b53be43",
+  "object_sha256": "053ea5697286b42ecc72538a8c8f0709148b3c72d071208af5f1f450bbbbbb16"
+}

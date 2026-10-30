@@ -1,0 +1,29 @@
+1/2 prover.block_v7_word_quotient_tiles_test_v1.test.v7 RAM tiled quotient preserves complete original proofs with and without coefficient retention...WORD_QUOTIENT_DOMAIN tiled=false trace_log=20 elapsed_ns=5376888500
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=false row_log=20 proof_bytes=70451 charged_peak=6832565912 commit_ns=724276625 proof_ns=6919559166 verification_ns=225914250 exact_original_verification=true
+WORD_QUOTIENT_TILED {"charged_peak_bytes":313461064,"coefficient_bytes":0,"tile_log":15,"tiles":128}
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=5554897792
+V7_RAM_PROOF_SHA256 058621d8089c3ec3175efce731cf4e2e2205b6420d65411ee5ad1a50b1466216
+V7_RAM_QUOTIENT_TILES retain=true tiled=true row_log=20 proof_bytes=70451 charged_peak=3326121864 commit_ns=721387666 proof_ns=7092302542 verification_ns=227341708 exact_original_verification=true
+WORD_QUOTIENT_DOMAIN tiled=true trace_log=20 elapsed_ns=208
+OK
+2/2 prover.block_v7_word_quotient_tiles_v1.test.v7 RAM tiled quotient rejects recovered high-degree coefficients before folding...OK
+All 2 tests passed.
+       28.74 real        65.30 user         1.11 sys
+          9279225856  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1213279  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               54276  involuntary context switches
+       1112039275254  instructions retired
+        287066775265  cycles elapsed
+          9282526192  peak memory footprint

@@ -1,0 +1,95 @@
+{
+  "schema": "stwo-zig/source-fold-correctness/v1",
+  "date": "2026-10-28",
+  "source_base": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "source_state": "uncommitted development worktree; complete source patch not frozen",
+  "source_files": {
+    "src/frontends/riscv/prover/block_v5_memory_source_fold_premix_v1.zig": "0e482b0df97962426380435c96820f1f4c6c650b9a9283c3d6691b7826ba82c9",
+    "src/frontends/riscv/prover/block_v5_memory_source_page_composition_v1.zig": "cddf32cd23f221472652cc1f5185c61e150f6adfffad7900d5b53c3ee22f1019",
+    "src/frontends/riscv/prover/block_v5_memory_source_page_composition_test_v1.zig": "7fff9fc0afa115abeea123282195848f0525f1329fa140381a491ee2e3412243",
+    "src/frontends/riscv/prover/block_v5_memory_source_fold_premix_order_test_v1.zig": "d3fbdfacb5133c79c9d05899098ffdc8e9cd82510cfa6a29b9826b578b3813ea",
+    "src/frontends/riscv/recursion/block_v6_source_direct_test_v1.zig": "308f5caa9b80d4c7433449beeda45aa897d6b224ff1f09a651792743c613b04b"
+  },
+  "source_parent_binary_sha256": "ea98ddb4a60021d537b3d2b0fb5d446353c256d3db059b9da89e5f0492d9d7a3",
+  "root_cause": "FOLD table multiplicities were committed in logical order instead of the circle order used by fixed and interaction columns",
+  "changes": [
+    "use Counter.committedColumn for both original FOLD lookup tables",
+    "accept the canonical OODS composition tree after validating its exact shape"
+  ],
+  "constraints_relaxed": false,
+  "temporary_production_diagnostics_removed": true,
+  "proof_profile": {
+    "queries": 8,
+    "pow_bits": 0
+  },
+  "performance_ranked": false,
+  "scope": {
+    "original_raw_fold_fresh_verification": true,
+    "source_algebra_closure": true,
+    "one_parent_for_both_pages": true,
+    "base_proofs_and_captures_released_before_parent": true,
+    "changed_claim_and_missing_page_rejected": true,
+    "source_fixture": "empty source with real padded hash requests and root fold",
+    "nonempty_first_round_regression": true,
+    "canonical_security_whole_block": false,
+    "full_detached_page_claim_roundtrip": false,
+    "complete_ethereum_root": false
+  },
+  "runs": [
+    {
+      "name": "fold_premix_order",
+      "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_memory_source_fold_premix_order_test_root.zig -OReleaseSafe -fstrip",
+      "result": "All 3 tests passed.",
+      "log_sha256": "aaa4f6f1a616a08cd774f46a11612aea5b533c0f7de5323345525b5aab9e4198",
+      "evidence": [
+        "1/3 block_v5_memory_source_fold_premix_order_test_root.test_0...OK",
+        "2/3 prover.block_v5_memory_source_fold_premix_order_test_v1.test.source FOLD premix table order: zero compressions still commit padded requests in physical order...OK",
+        "3/3 prover.block_v5_memory_source_fold_premix_order_test_v1.test.source FOLD premix table order: changed shared default and branch recipes...OK",
+        "All 3 tests passed."
+      ]
+    },
+    {
+      "name": "unified_page",
+      "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_memory_source_unified_page_test_root.zig -OReleaseSafe -fstrip --test-filter 'source unified PAGE'",
+      "result": "All 20 tests passed.",
+      "log_sha256": "4fe90140d74bcc9c64fdd61dd6177668359fa64a8c01942cd604b5af3bef66ab",
+      "evidence": [
+        "1/20 block_v5_memory_source_unified_page_test_root.test.source unified PAGE root...OK",
+        "2/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: original leaf/node byte framing equals independent bit hash97 and rejects input/output framing swaps...OK",
+        "3/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: default and shared recipes cannot omit private before/after operands...OK",
+        "4/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: all48 original BLAKE boundary wires include discarded outputs and weighted input uses...OK",
+        "5/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: capture scalar packed off-domain equations preserve degree3 and exact normalized claims...OK",
+        "6/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: omitted original source cells have explicit Boolean zero constraints and exact live masks...OK",
+        "7/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: compact fold operand preserves full clocks routing and canonical enum bytes...OK",
+        "8/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: genuine page graph direct arithmetic and all original input uses match authoritative lowering...OK",
+        "9/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: semantic graph and complete original input-routing every allocation failure releases owners...OK",
+        "10/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: complete original core tables capture input and arithmetic claim closure with independent fixed projection...OK",
+        "11/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: exact shared masks and original scalar equations without duplicated main...OK",
+        "12/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: every combined mask/point-owner allocation failure is transactional...OK",
+        "13/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: mismatched alias geometry and bounded masks reject before equation evaluation...OK",
+        "14/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: ten-tree structural parser exact counts truncation and caps...OK",
+        "15/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: ten-tree overlong counts and nested sample bombs reject before allocation...OK",
+        "16/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: bad domain version kind and ABI reject under deny-all allocator...OK",
+        "17/20 prover.block_v5_memory_source_fold_fixed_test_v1.test.source unified PAGE: independent fold fixed rows match original changed shared default and branch recipes...OK",
+        "18/20 prover.block_v5_memory_source_fold_fixed_test_v1.test.source unified PAGE: every public-only fold fixed allocation failure releases exact owners...OK",
+        "19/20 block_v5_memory_source_unified_page_codegen.test.source unified PAGE bodies: actual compact fold six-root collect replay retained leases and one-graph direct materialization...OK",
+        "20/20 air.memory_commitment.poseidon2_air.test_0...OK",
+        "All 20 tests passed."
+      ]
+    },
+    {
+      "name": "source_parent",
+      "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v6_source_direct_test_root.zig -OReleaseSafe -fstrip --test-filter 'auxiliary source direct genuine'",
+      "result": "All 6 tests passed.",
+      "log_sha256": "c6df910cce6498649918e4ade6b73d4e1af58e426f30ef293a267cac2a58df30",
+      "evidence": [
+        "2/6 prover.block_execution_external_trace_v2.test_0...OK",
+        "3/6 prover.block_execution_external_access_bridge_v2.test_0...OK",
+        "4/6 air.lookups.tables.mod.test_0...OK",
+        "5/6 air.memory_commitment.poseidon2_air.test_0...OK",
+        "6/6 air.lookups.tables.source_ingest.test_0...OK",
+        "All 6 tests passed."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "rchsxh5l5pj2ee",
+  "name": "stwo-v7-gpu-20261029",
+  "desiredStatus": "RUNNING",
+  "costPerHr": 3.59,
+  "gpuCount": 1,
+  "vcpuCount": 16,
+  "memoryInGb": 251,
+  "ports": [
+    "22/tcp"
+  ]
+}

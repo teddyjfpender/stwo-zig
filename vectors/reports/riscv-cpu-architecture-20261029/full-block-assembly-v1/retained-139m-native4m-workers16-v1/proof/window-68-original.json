@@ -1,0 +1,35 @@
+{
+  "preparation_ns": 788545042,
+  "original_ns": 4479419875,
+  "source_publication_ns": 73594208,
+  "wide_release_ns": 7241208,
+  "memory_preparation_ns": 409140084,
+  "bridge_ns": 212154958,
+  "narrow_release_ns": 803542,
+  "global_memory_ns": 125292125,
+  "global_publication_ns": 43548125,
+  "fresh_verification_ns": 708878250,
+  "whole_ns": 6848617417,
+  "preparation": {
+    "image_ns": 47748208,
+    "restore_ns": 70945500,
+    "execution_ns": 181287708,
+    "native_ns": 100324958,
+    "caller_ns": 11048084,
+    "endpoint_ns": 238389875,
+    "providers_ns": 97194625,
+    "whole_ns": 746939000
+  },
+  "original": {
+    "fixed_ns": 63349542,
+    "guards_ns": 18826625,
+    "first_commits_ns": 223495541,
+    "admission_ns": 21910292,
+    "interactions_ns": 715049292,
+    "preflight_ns": 155833,
+    "interaction_commits_ns": 240013792,
+    "claim_copy_ns": 31833,
+    "core_ns": 3193602750,
+    "whole_ns": 4479419834
+  }
+}

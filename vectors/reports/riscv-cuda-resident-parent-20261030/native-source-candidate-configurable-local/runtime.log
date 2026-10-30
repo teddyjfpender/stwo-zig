@@ -1,0 +1,20 @@
+1/14 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate detached raw ingress and exact finite bundle...RESIDENT_NATIVE_COLD_GEOMETRY composition=4 fri=2 mask=1
+OK
+2/14 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate original CPU oracle survives fixture teardown...OK
+3/14 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate configured exact finite bundle export...RESIDENT_NATIVE_CANDIDATE identity=6bc9d9cc515675f9462bb2268333fc8caf517daa9b5bd18d22ceed1fde3e61cb trees=4 split=3 retirements=64 mul=31 loads=0 stores=0 clocks=0 raw_words=1536 queries=8 pow=0 composition=8 fri=6 mask=5 gpu_qualified=false
+OK
+4/14 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate genuine configurable retirement counts...RESIDENT_NATIVE_REAL_SIZE retirements=64 mul=31 actual_descriptor_rows=64 fri=6
+RESIDENT_NATIVE_REAL_SIZE retirements=1024 mul=511 actual_descriptor_rows=1024 fri=10
+RESIDENT_NATIVE_REAL_SIZE retirements=32768 mul=16383 actual_descriptor_rows=32768 fri=15
+OK
+5/14 riscv_cuda_resident_native_candidate_test_root.test.resident native candidate real access optional q70 admission and detached CPU oracle...OK
+6/14 frontends.riscv.runner.mod.test_0...OK
+7/14 frontends.riscv.runner.decode.test_0...OK
+8/14 frontends.riscv.air.lookups.tables.mod.test_0...OK
+9/14 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+10/14 frontends.riscv.air.semantic_eval.test_0...OK
+11/14 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+12/14 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+13/14 frontends.riscv.diagnostics.mod.test_0...OK
+14/14 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+All 14 tests passed.

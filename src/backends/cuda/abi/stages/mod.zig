@@ -1,5 +1,6 @@
 //! Exact allocation-free explicit-stream proof-stage ABI.
 
+pub const blake3 = @import("blake3.zig");
 pub const commitment = @import("commitment.zig");
 pub const commitment_plain = @import("commitment_plain.zig");
 pub const cairo_base = @import("cairo_base.zig");
@@ -22,6 +23,7 @@ pub const transcript = @import("transcript.zig");
 pub const transform = @import("transform.zig");
 
 test {
+    _ = blake3;
     _ = commitment;
     _ = commitment_plain;
     _ = cairo_base;

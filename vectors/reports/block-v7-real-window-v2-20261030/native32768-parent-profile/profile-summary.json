@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "scope": "diagnostic_local_mac_parent_stage_attribution",
+  "new_validation_promotion": false,
+  "source_sha256": "d7e06ae504157b3a6d526f0998faad412037275ce32be9fbe0b6570df0692b48",
+  "binary_sha256": "01a67eb494c42444c305a4607f983778ebd7a9d443358b6a1016e301c81efb30",
+  "root_sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400",
+  "prior_root_hash_equal": true,
+  "top_level_seconds": {
+    "parent.validation": 0.852573,
+    "parent.main_setup": 0.912478,
+    "parent.main_commit": 4.898681,
+    "parent.interaction_generation": 6.051585,
+    "parent.interaction_commit": 4.680022,
+    "parent.core": 19.323143
+  },
+  "leaf_seconds_by_id": {
+    "composition_evaluation": 12.697791,
+    "parent.interaction_generation": 6.051585,
+    "evaluate_extended_domain": 2.9428339999999995,
+    "fri_quotient_build_and_commit": 2.905275,
+    "trace_decommit": 2.458387,
+    "interpolate_columns": 0.9586089999999999,
+    "parent.main_setup": 0.912478,
+    "parent.validation": 0.852573,
+    "sampled_value_evaluation": 0.747621,
+    "merkle_commit": 0.472296,
+    "composition_commit": 0.243989,
+    "proof_of_work": 0.114963,
+    "composition_interpolate_and_split": 0.025991,
+    "fri_decommit": 0.010654,
+    "constraint_check_and_assembly": 0.000221,
+    "oods_point_and_mask_points": 0.0001,
+    "sampled_value_channel_mix": 5.9e-05,
+    "composition_trace_extract": 1e-05,
+    "draw_random_coeff": 1e-06
+  },
+  "leaf_seconds_sum": 31.395437,
+  "top_level_seconds_sum": 36.718482,
+  "coverage": [
+    {
+      "path": "parent.main_commit",
+      "inclusive_seconds": 4.898681,
+      "direct_child_seconds": 2.150844,
+      "unattributed_seconds": 2.7478369999999996,
+      "children_overlap_or_rounding": false
+    },
+    {
+      "path": "parent.interaction_commit",
+      "inclusive_seconds": 4.680022,
+      "direct_child_seconds": 2.222895,
+      "unattributed_seconds": 2.4571270000000003,
+      "children_overlap_or_rounding": false
+    },
+    {
+      "path": "parent.core",
+      "inclusive_seconds": 19.323143,
+      "direct_child_seconds": 19.205062,
+      "unattributed_seconds": 0.1180810000000001,
+      "children_overlap_or_rounding": false
+    }
+  ],
+  "method": "Only terminal child nodes are summed; inclusive parent times never added to leaves. Unattributed parent overhead and any overlaps are reported separately."
+}

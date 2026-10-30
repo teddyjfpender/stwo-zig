@@ -1,0 +1,5 @@
+1/4 riscv_cuda_numeric_test_root.test_0...OK
+2/4 integrations.riscv_cuda.tests.hybrid_quotient_test_v1.test.CUDA DEEP topology preserves every source/sample with compact inputs and exact resource caps...OK
+3/4 backends.cuda.abi.field.test.CUDA field layouts remain plain explicit words...OK
+4/4 backends.cuda.abi.compact_source.test.compact source ABI is stable...OK
+All 4 tests passed.

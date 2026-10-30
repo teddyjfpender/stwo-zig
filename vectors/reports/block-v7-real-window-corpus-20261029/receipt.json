@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "source_recovered_exactly": true,
+  "source_import_verified": true,
+  "proof_verified": true,
+  "proof_adapter_status": "all three real 32768-cycle canonical original windows qualified, externally admitted cold-process reload passed, full stage profiles recorded",
+  "capture_scope": "explicit benchmark machine states; no authentication of skipped Ethereum prefix",
+  "tests": {
+    "capture": "139 passed, 1 skipped, 0 failed",
+    "importer": "4 passed",
+    "partial_proof": "419 passed, 1 skipped, 0 failed",
+    "partial_proof_scope": "tiny actual Keccak window; original leaf, not the selected real Ethereum window",
+    "cold_reload_each": "343 passed, 1 skipped, 0 failed"
+  },
+  "cases": {
+    "startup": {
+      "skipped_cycles": 0,
+      "cycles": 32768,
+      "core_rows": 32768,
+      "keccak_calls": 0,
+      "recovery_calls": 0,
+      "sha_calls": 0,
+      "incoming_words": 1508894,
+      "outgoing_words": 1510166,
+      "prefix_ns": 0,
+      "window_ns": 36048625
+    },
+    "recovery": {
+      "skipped_cycles": 24718000,
+      "cycles": 32768,
+      "core_rows": 32730,
+      "keccak_calls": 32,
+      "recovery_calls": 6,
+      "sha_calls": 0,
+      "incoming_words": 2270701,
+      "outgoing_words": 2271052,
+      "prefix_ns": 16256701417,
+      "window_ns": 42953209,
+      "proof": {
+        "directory": "recovery/proof",
+        "canonical": true,
+        "report_sha256": "2d264c3b4672eef5bc4da321c6a57239c235da2051547a325128b1f111ea82a8",
+        "timing_status": "single shared-host diagnostic, not an idle repeated benchmark",
+        "scope": "independently selected complete state transition; skipped prefix unauthenticated",
+        "fresh_process_verified": true,
+        "fresh_process_log": "recovery/proof/fresh-process.log",
+        "profiled_exact_proof_parity": true,
+        "cold_reload": {
+          "loading_ns": 56250125,
+          "fresh_verification_ns": 5081562333,
+          "whole_request_ns": 5137812458,
+          "charged_peak": 665452617
+        }
+      }
+    },
+    "keccak": {
+      "skipped_cycles": 42700000,
+      "cycles": 32768,
+      "core_rows": 32540,
+      "keccak_calls": 228,
+      "recovery_calls": 0,
+      "sha_calls": 0,
+      "incoming_words": 2761110,
+      "outgoing_words": 2761124,
+      "prefix_ns": 32438479959,
+      "window_ns": 59262625,
+      "proof": {
+        "directory": "keccak/proof",
+        "canonical": true,
+        "report_sha256": "78365403d5ab757de20e295ca0d705cba6125a90316355140bd030193e0c7d1c",
+        "timing_status": "single shared-host diagnostic, not an idle repeated benchmark",
+        "scope": "independently selected complete state transition; skipped prefix unauthenticated",
+        "fresh_process_verified": true,
+        "fresh_process_log": "keccak/proof/fresh-process.log",
+        "profiled_exact_proof_parity": true,
+        "cold_reload": {
+          "loading_ns": 60342167,
+          "fresh_verification_ns": 7800555875,
+          "whole_request_ns": 7860898042,
+          "charged_peak": 2079581662
+        }
+      }
+    },
+    "native": {
+      "skipped_cycles": 1,
+      "cycles": 32768,
+      "core_rows": 32768,
+      "keccak_calls": 0,
+      "recovery_calls": 0,
+      "sha_calls": 0,
+      "incoming_words": 1508894,
+      "outgoing_words": 1510166,
+      "prefix_ns": 33090375,
+      "window_ns": 38118667,
+      "proof": {
+        "directory": "native/proof",
+        "canonical": true,
+        "report_sha256": "f1afbcc074d4d1bbe5f8839dd82ed71aec6004d773b970e8287f861f4a772a55",
+        "timing_status": "instrumented shared-host diagnostic",
+        "scope": "independently selected complete state transition; first instruction skipped, not authenticated",
+        "fresh_process_verified": true,
+        "fresh_process_log": "native/proof/fresh-process.log",
+        "profiled_exact_proof_parity": true,
+        "cold_reload": {
+          "loading_ns": 35735875,
+          "fresh_verification_ns": 6708110708,
+          "whole_request_ns": 6743846583,
+          "charged_peak": 2036070651
+        },
+        "rss_repeat": {
+          "directory": "native/rss-repeat",
+          "maximum_resident_set_size_bytes": 9579806720,
+          "charged_peak_bytes": 9576764819,
+          "proof_and_metadata_byte_identical": true,
+          "timing_status": "instrumented shared-host diagnostic; overlapped C small canonical hostile gate"
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "guest.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "input.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "proof_binary_sha256": "2889a7b45ff2ffcfe36193cacb85dd310abc3b055734dc3cdfd80603714d7f90",
+  "proof_binary_command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v7_real_window_proof_test_root.zig -OReleaseSafe -fstrip -femit-bin=/tmp/v7-real-window-proof-final",
+  "hardware": {
+    "model": "Mac17,7",
+    "processor": "Apple M5 Max",
+    "physical_memory_bytes": 68719476736,
+    "prover_workers": 4,
+    "tracked_host_cap_bytes": 25769803776,
+    "timing_status": "shared-host diagnostics; no idle-host or repeated-confidence claim"
+  },
+  "reload_binary_sha256": "7528c00d0cc8bd1878d34ac3468869dcc8a3a1bcbb706f33ce466390e939e251",
+  "remaining_scope": [
+    "No skipped-prefix authentication; endpoint capsules are explicit benchmark inputs.",
+    "No claim of complete Ethereum block, terminal v7 union or compact recursive root.",
+    "Stage times are nested inclusive durations; do not sum parent and child rows."
+  ],
+  "prover_source_snapshot": {
+    "status": "not captured before binary build",
+    "full_source_manifest_sha256": null,
+    "note": "Guest source hashes and executable hashes are retained; do not attribute the later mutable checkout as exact compiled prover source."
+  },
+  "io_accounting": {
+    "json": "io-accounting.json",
+    "csv": "artifact-io.csv",
+    "producer_checkpoint_read_bytes": 0,
+    "producer_checkpoint_write_bytes": 0,
+    "physical_disk_bytes_measured": false,
+    "basis": "logical artifact payload accounting from exact successful file APIs and retained payload lengths",
+    "artifact_publication_in_whole_request_ns": false
+  }
+}

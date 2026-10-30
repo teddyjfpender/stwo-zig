@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "scope": "Original native table-counter numeric primitive, not complete native STARK",
+  "host": {
+    "tests": 6,
+    "physical_projections": 222,
+    "families": 17,
+    "layouts": [
+      "canonical",
+      "degree_bounded_q2_v1"
+    ]
+  },
+  "h200": {
+    "schemas": 6,
+    "full_counter_positive_cases": 11,
+    "invalid_tuple_rejections": 13
+  },
+  "command": "nvcc -O3 -arch=sm_90 -I/workspace/stwo-v7-resident-parent-v1/src/backends/cuda/native native-counter-oracle.cu -o native-counter-oracle",
+  "source": {
+    "src/integrations/riscv_cuda/resident_native_projection_counter_v1.zig": "f6a52a2ccaaf0c4b69edf765ff860f1584a5d2a5f4fd1a235968fb0cc1c89fb6",
+    "src/integrations/riscv_cuda/resident_native_projection_counter_test_v1.zig": "73f2a46029df0894a9cf5cb973308a3d4882f88c31d45ad0a42ee208497eb2ae",
+    "src/integrations/riscv_cuda/resident_native_projection_counter_oracle_v1.zig": "29a3e73641c051b811f72c23fca51911745cee24ea524404cb64063d4b4bee27",
+    "src/riscv_cuda_resident_native_counter_test_root.zig": "ec3090e1a1e80437b2e6c6b2e11b0a27109f08ecd0b2db9d29ca831e336202d6"
+  },
+  "artifacts": {
+    "native-counter-build.log": "d8e784c8fbd5492cd3c46779ecc0b5910c81d6bcf808d16eb11c7852710c1bcf",
+    "native-counter-oracle": "86d955ececb335c982972d85d47d70c3af63777aba7ccac05539de02c075cc9e",
+    "native-counter-oracle.cu": "b027dd48e9389c0f507ff98ade9a9c864fe9f4e1fbc34ebd7b5829e113454c3d",
+    "host.log": "578811d7ae4e1c5eb9598eed8e16dc647960e4d6100992670e1f950038fbf50d",
+    "native-counter-run.log": "e43fb71acfd27a93cb891f5fe9ed1674c525f73adb7bc97e67329845bc916f8b"
+  },
+  "semantics": "Original projection entry weights and tuples; zero weights skip tuple membership; each selected canonical table index receives signed M31 atomic sum; counter order is canonical row order, not commitment permutation. No host-derived production witness input."
+}

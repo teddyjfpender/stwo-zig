@@ -52,13 +52,19 @@ pub fn prepare(comptime Engine: type, a: std.mem.Allocator, capture: *const veri
 /// Call only after the enclosing proof capture and verifier-owned DEEP geometry
 /// have been admitted. Shared by legacy and full-width execution adapters.
 pub fn prepareCaptured(a: std.mem.Allocator, proof: anytype, config: core.pcs.PcsConfig, deep: *const native_deep.Prepared, deep_circuit: u32, fri_circuit: u32) !Prepared {
-    return prepareMode(true, a, proof, config, deep, deep_circuit, fri_circuit);
+    return prepareMode(true, a, proof, config, deep, deep_circuit, fri_circuit, null);
 }
 /// Explicit dense-row parity oracle after enclosing proof capture admission.
 pub fn prepareCapturedRows(a: std.mem.Allocator, proof: anytype, config: core.pcs.PcsConfig, deep: *const native_deep.Prepared, deep_circuit: u32, fri_circuit: u32) !Prepared {
-    return prepareMode(false, a, proof, config, deep, deep_circuit, fri_circuit);
+    return prepareMode(false, a, proof, config, deep, deep_circuit, fri_circuit, null);
 }
-fn prepareMode(comptime direct: bool, a: std.mem.Allocator, proof: anytype, config: core.pcs.PcsConfig, deep: *const native_deep.Prepared, deep_circuit: u32, fri_circuit: u32) !Prepared {
+/// Opt-in reuse of an independently compiled graph. The caller owns its cold
+/// authority; this boundary checks exact native-derived FRI geometry and clones
+/// all storage before evaluating this request's freshly captured inputs.
+pub fn prepareCapturedWithGraph(a: std.mem.Allocator, proof: anytype, config: core.pcs.PcsConfig, deep: *const native_deep.Prepared, deep_circuit: u32, fri_circuit: u32, compiled: *const fri.Circuit) !Prepared {
+    return prepareMode(true, a, proof, config, deep, deep_circuit, fri_circuit, compiled);
+}
+fn prepareMode(comptime direct: bool, a: std.mem.Allocator, proof: anytype, config: core.pcs.PcsConfig, deep: *const native_deep.Prepared, deep_circuit: u32, fri_circuit: u32, compiled: ?*const fri.Circuit) !Prepared {
     try deep.graph.validateEvaluation(&deep.evaluation);
     const dp = deep.graph.profile();
     const fc = config.fri_config;
@@ -79,7 +85,10 @@ fn prepareMode(comptime direct: bool, a: std.mem.Allocator, proof: anytype, conf
     const profile = fri.Profile{ .lifting_log_size = dp.lifting_log_size, .log_blowup_factor = fc.log_blowup_factor, .log_last_layer_degree_bound = fc.log_last_layer_degree_bound, .fold_widths = widths.items, .query_count = dp.query_count };
     var inputs = try capture_mod.Owned.init(a, profile, proof);
     errdefer inputs.deinit();
-    var graph = try fri.build(a, profile);
+    var graph = if (compiled) |trusted| blk: {
+        if (!std.mem.eql(u8, &trusted.profile_digest, &profile.identityDigest())) return error.InvalidNativeFriProfile;
+        break :blk try @import("compiled_pcs_graph_clone_v1.zig").fri(a, trusted);
+    } else try fri.build(a, profile);
     errdefer graph.deinit();
     var evaluation = try graph.evaluate(a, inputs.inputs);
     errdefer evaluation.deinit();

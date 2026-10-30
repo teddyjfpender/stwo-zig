@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-v8-group-qualification-record-v1",
+  "kind": "canonical-native-projection-batch-full-proof-byte-parity",
+  "queries": 70,
+  "pow_bits": 26,
+  "exit_code": 0,
+  "tests": {
+    "passed": 463,
+    "skipped": 1,
+    "failed": 0
+  },
+  "production_active": false,
+  "log_sha256": "bf5abe1830993bffae330ab33c4c6dae85b113eac6803d4b92b0c9472c14fc15",
+  "proof_bytes_retained": false,
+  "scope": "group_execution_global_ram_open; not a complete recursive window or Ethereum block",
+  "native_members": 2,
+  "canonical_full_original_bytes": 401832,
+  "baseline_candidate_complete_bytes_identical": true,
+  "public_metadata_and_constraints_unchanged": true
+}

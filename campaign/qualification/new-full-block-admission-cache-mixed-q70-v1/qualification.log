@@ -1,0 +1,12 @@
+1/10 block_v8_admission_cache_mixed_saved_test_root.test_0...OK
+2/10 recursion.tests.block_v8_admission_cache_mixed_saved_test.test.actual saved 507 Keccak 66 recovery root verifies cached mixed admission then fresh uncached receiver...B8_CACHE_MIXED_SAVED keccak=507 recovery=66 cycles=1048576 global_g_repartition=true source_execution_count=0 source_proofs=0 parent_proofs=0 cached_mixed_verified=true final_uncached_window_receiver=true full_block=false retained_profile_peak_bytes=1155075 key_derivation_peak_bytes=8654257361
+OK
+3/10 air.semantic_eval.test_0...OK
+4/10 runner.mod.test_0...OK
+5/10 runner.decode.test_0...OK
+6/10 prover.block_execution_external_trace_v2.test_0...OK
+7/10 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/10 air.memory_commitment.poseidon2_air.test_0...OK
+9/10 air.lookups.tables.mod.test_0...OK
+10/10 air.lookups.tables.source_ingest.test_0...OK
+All 10 tests passed.

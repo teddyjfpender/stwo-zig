@@ -165,10 +165,18 @@ pub const Owner = struct {
         return unionMaskPoints(a, logs, self.children, self.limits, point, max_log);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, values: *const Components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log: u32) !void {
-        if (values.items.len != TREE_COUNT) return error.InvalidSourcePageComposition;
+        // The shared STARK OODS path forwards the final composition tree as
+        // well as the original trace trees. It is not a PAGE child mask.
+        if (values.items.len != TREE_COUNT and values.items.len != TREE_COUNT + 1) return error.InvalidSourcePageComposition;
+        if (values.items.len == TREE_COUNT + 1) {
+            const count = core.verifier_types.compositionColumnCount(self.split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidSourcePageComposition;
+            const composition = values.items[TREE_COUNT];
+            if (composition.len != count) return error.InvalidSourcePageComposition;
+            for (composition) |column| if (column.len != 1) return error.InvalidSourcePageComposition;
+        }
         var union_masks = try self.maskPoints(self.a, point, max_log);
         defer union_masks.deinitDeep(self.a);
-        for (values.items, union_masks.items) |columns, requests| {
+        for (values.items[0..TREE_COUNT], union_masks.items) |columns, requests| {
             if (columns.len != requests.len) return error.InvalidSourcePageComposition;
             for (columns, requests) |samples, points| if (samples.len != points.len) return error.InvalidSourcePageComposition;
         }

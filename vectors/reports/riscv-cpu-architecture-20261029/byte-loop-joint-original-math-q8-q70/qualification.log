@@ -1,0 +1,15 @@
+1/10 bulk_memcpy_byte_loop_joint_original_test_root.test_0...OK
+2/10 prover.tests.bulk_memcpy_byte_loop_joint_original_test.test.diagnostic joint native same ROM macro ORIGINAL closes state registers and RAM...JOINT_ORIGINAL_DIRECT_VERIFIED profile=diagnostic_q8_pow0 trees=16 columns=51,105,33,5,1,1,23,1,104,24,20,8,12,52,8,16,
+JOINT_ORIGINAL_FRESH_CODEC_VERIFIED profile=diagnostic_q8_pow0 bytes=76300
+OK
+3/10 prover.tests.bulk_memcpy_byte_loop_joint_original_test.test.canonical joint native same ROM macro ORIGINAL closes state registers and RAM...JOINT_ORIGINAL_DIRECT_VERIFIED profile=csp_q70_pow26 trees=16 columns=51,105,33,5,1,1,23,1,104,24,20,8,12,52,8,16,
+JOINT_ORIGINAL_FRESH_CODEC_VERIFIED profile=csp_q70_pow26 bytes=372081
+OK
+4/10 runner.mod.test_0...OK
+5/10 runner.decode.test_0...OK
+6/10 air.memory_commitment.poseidon2_air.test_0...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 air.lookups.tables.source_ingest.test_0...OK
+9/10 diagnostics.mod.test_0...OK
+10/10 air.lookups.tables.mod.test_0...OK
+All 10 tests passed.

@@ -1,0 +1,15 @@
+{
+  "src/integrations/riscv_cuda/resident_native_projection_interaction_v1.zig": "72e17727cd77c31c5e20973e91e6e8c45e12afb70676628d2a2a724f54bf8b1b",
+  "src/integrations/riscv_cuda/resident_native_projection_program_v1.zig": "b7282230e1078b95b89d14d2662a897b5d83708beb21098943ce30669816e116",
+  "src/integrations/riscv_cuda/resident_native_projection_oracle_v1.zig": "6873afa90f5c62e625c08bf5d0ffa9b4e041fac29b43138218d5161399a6a5ef",
+  "src/integrations/riscv_cuda/resident_native_projection_codegen_v1.zig": "abd556cc952ab2eee4614384c1aedcf1fd3f63152f5e284bd4bb6874cf458720",
+  "src/integrations/riscv_cuda/resident_native_projection_test_v1.zig": "0ce3515ef582ab40854f1e51dfa7af75462f6504ee7f430496e5bfe26e8e23cb",
+  "src/frontends/riscv/prover/block_v5_native_fused_algebra_v1.zig": "7139f73fa094ab2e815766f12aca27c4b6e251fca8b5cf1b5dbcfe99b8005d97",
+  "src/frontends/riscv/prover/block_v5_native_projection_fused_source_v1.zig": "6cec8e4483f3ba5a16227793f86bf4f2c92493af05d3aa07b77fd5db99068f6a",
+  "src/frontends/riscv/prover/block_v7_native_relation_layout_v1.zig": "7c7904fea9e427b49975d94401ed89f074559649abba03c0c0ee1c4f8259fd69",
+  "src/frontends/riscv/prover/block_v7_degree_bounded_relation_layout_v1.zig": "c3fc041b01d3fa61f574c612175dd7f2f938474646e239f4005e7665e2b4d90b",
+  "src/backends/cuda/framework_interaction_codegen_v1.zig": "2035778657464c9a2132fd5c6199dd5d11d283f1a59f3e254ab70ee6c834499c",
+  "src/backends/cuda/native/framework_interaction_v1.cuh": "bb0c3251bd143f20c38492665b4539ccb8f41f9bde3696f394144211a283ce6c",
+  "src/backends/cuda/native/framework_polynomial_v1.cuh": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd",
+  "src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+}

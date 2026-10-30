@@ -1,0 +1,69 @@
+{
+  "schema": "stwo-zig/nonempty-source-qualification/v1",
+  "date": "2026-10-28",
+  "source_base": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+  "source_state": "uncommitted development worktree; complete patch not frozen",
+  "profile": "diagnostic_q8_pow0",
+  "canonical_security_qualified": false,
+  "workload": {
+    "cycles": 20494,
+    "memory_events": 8293,
+    "segments": 2,
+    "raw_pages": 2,
+    "fold_pages": 2,
+    "guest": "mixed SHA/Keccak/arithmetic/load/store"
+  },
+  "qualified": {
+    "original_publication_and_fresh_verification": "all four nonempty PAGE proofs",
+    "cold_live_fixed_rows_public_wires_context_namespace_parity": "all four PAGE preparations",
+    "constrained_metadata_allocator_regression": "real fold page 0; passed before base-publication"
+  },
+  "limits_bytes": {
+    "page_capture": 536870912,
+    "page_preparation": 4294967296,
+    "source_collection": 8589934592
+  },
+  "diagnostic": {
+    "performance_benchmark": false,
+    "reason": "qualification includes independent setup comparisons and hostile allocation regression",
+    "source_publication_phase_seconds": 17.271937292,
+    "source_preparation_and_regression_seconds": 133.222513917,
+    "charged_peak_at_end_of_source_phase_bytes": 3480040540
+  },
+  "complete_root_qualified": false,
+  "complete_run_status": "later caller-fused recursive preparation failed SamplePointLayoutMismatch; source phase passed",
+  "binary_sha256": "b23a2d9c74c8a9aa3b6502266b39a524c7a55d23dbff2751f7f4b7658c137569",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_memory_source_fold_premix_v1.zig": "0e482b0df97962426380435c96820f1f4c6c650b9a9283c3d6691b7826ba82c9",
+    "src/frontends/riscv/prover/block_v5_memory_source_page_composition_v1.zig": "cddf32cd23f221472652cc1f5185c61e150f6adfffad7900d5b53c3ee22f1019",
+    "src/frontends/riscv/prover/block_v5_memory_source_unified_page_proof_v1.zig": "579f61bc1fb24172744e92e7b6efbb211901ad006de0d92fb26eab657925415d",
+    "src/frontends/riscv/prover/block_v5_memory_source_page_recursive_admission_v1.zig": "d45eaebf5740eb5ce05d342ed10fa022ce5b3d4a5842502eb5d3e98d87dbe988",
+    "src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_public_bus_v1.zig": "3fe3122be27be671414cc7f9118a29577eef347fd52c3135a82a7d157fff4342",
+    "src/frontends/riscv/recursion/block_v5_recursive_fused_public_bus_v1.zig": "8698de251f49b175589bf8c7acc7b3fc5781a866f0abd15ffb4fe921e46544fc",
+    "src/frontends/riscv/prover/tests/block_v6_complete_root_integration_test.zig": "2ad8eee603dd3499665292f4772a2cfbf1e07578fb8a4871d688f8c8ad7d8cce",
+    "src/frontends/riscv/prover/tests/block_v6_page_scratch_allocator_test_support.zig": "bc7f838aa539d2840f13937eebc51606d64229d1df492715796e8744412cc397"
+  },
+  "evidence": [
+    "1/12 prover.tests.block_v6_complete_root_integration_test.test.complete mixed root authenticates all real families after deleting intermediate files...COMPLETE_MIXED profile=diagnostic_q8_pow0 page_capture_limit=536870912 page_prepare_limit=4294967296 page_collection_limit=8589934592",
+    "BLOCK_V5_COLLECT segment=1/2 cycles=10247 memory_events=4194",
+    "BLOCK_V5_COLLECT segment=2/2 cycles=20494 memory_events=8293",
+    "BLOCK_V5_COLLECT sorted_events=8293 lookup_groups=1 global_roots_started=true",
+    "COMPLETE_MIXED stage=source-collection elapsed_ns=1093346167 live_bytes=574961 charged_peak_bytes=299437615",
+    "COMPLETE_MIXED children=12 raw=2 fold=2",
+    "COMPLETE_MIXED stage=source-publication elapsed_ns=1797878833 live_bytes=1548621 charged_peak_bytes=299437615",
+    "COMPLETE_MIXED stage=source-preparation elapsed_ns=19069816125 live_bytes=1548621 charged_peak_bytes=837361085",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=11048 removed_scalars=44192 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=36921 fma=48993 arithmetic_rows=548137 direct_columns=true",
+    "FIXED_PARITY family=source_raw index=0 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=11048 removed_scalars=44192 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=37359 fma=47759 arithmetic_rows=467469 direct_columns=true",
+    "FIXED_PARITY family=source_raw index=1 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=13120 removed_scalars=52480 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=103891 fma=263197 arithmetic_rows=1143275 direct_columns=true",
+    "FIXED_PARITY family=source_fold index=0 matched=true",
+    "BLAKE3_NATIVE_QUERY_FUSION groups=13120 removed_scalars=52480 direct_columns=true",
+    "BLAKE3_NATIVE_FUSION dot4=77083 fma=155067 arithmetic_rows=712344 direct_columns=true",
+    "FIXED_PARITY family=source_fold index=1 matched=true",
+    "COMPLETE_MIXED stage=base-publication elapsed_ns=152292330042 live_bytes=2620422483 charged_peak_bytes=3480040540"
+  ]
+}

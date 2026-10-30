@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-riscv-direct-original-quotient-census-v1",
+  "scope": "geometry-only saved six-cycle mixed fixture; no grouped gates or grouped proving qualified",
+  "mixed": {
+    "responses": 28557,
+    "groups": 16,
+    "current_divisions": 1998990,
+    "grouped_divisions": 1120
+  },
+  "bridge": {
+    "responses": 44,
+    "groups": 2,
+    "current_divisions": 3080,
+    "grouped_divisions": 140
+  },
+  "compact": {
+    "responses": 173,
+    "groups": 3,
+    "current_divisions": 12110,
+    "grouped_divisions": 210
+  },
+  "current_total_divisions": 2014180,
+  "grouped_total_divisions": 1470,
+  "blake3_gate_reduction": 0,
+  "no_end_to_end_speedup_claim": true
+}

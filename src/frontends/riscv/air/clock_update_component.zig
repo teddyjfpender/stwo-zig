@@ -63,9 +63,15 @@ pub fn evaluateGeneric(
             pairs[index],
         );
     }
-    result[interaction.N_SUMS] = row.enabler.mul(S.one().sub(row.enabler));
-    result[interaction.N_SUMS + 1] = row.enabler.sub(is_active);
-    result[interaction.N_SUMS + 2] = row.enabler.mul(
+    @memcpy(result[interaction.N_SUMS..], &try directConstraintsGeneric(S, main, is_active));
+    return result;
+}
+
+/// Shared semantic authority when lookup placement belongs to a different
+/// physical relation layout. These three equations are never omitted.
+pub fn directConstraintsGeneric(comptime S: type, main: []const S, is_active: S) ![3]S {
+    const row = try interaction.RowFor(S).fromMain(main);
+    return .{ row.enabler.mul(S.one().sub(row.enabler)), row.enabler.sub(is_active), row.enabler.mul(
         row.clock_prev.sub(
             row.clock_prev_low20.add(
                 row.clock_prev_high6.mul(S.fromBase(M31.fromU64(
@@ -73,8 +79,7 @@ pub fn evaluateGeneric(
                 ))),
             ),
         ),
-    );
-    return result;
+    ) };
 }
 
 pub const ClockUpdateComponent = struct {

@@ -1,0 +1,8 @@
+1/7 riscv_cuda_resident_framework_test_root.test_0...OK
+2/7 riscv_cuda_resident_framework_test_root.test_1...OK
+3/7 riscv_cuda_resident_framework_test_root.test.resident framework export numeric parameters...OK
+4/7 riscv_cuda_resident_framework_test_root.test_2...OK
+5/7 integrations.riscv_cuda.resident_parent_framework_plan_v1.test.resident framework cold bindings preserve all physical cohorts and bounded scratch...OK
+6/7 integrations.riscv_cuda.resident_parent_framework_plan_v1.test.resident framework wide counts are opt in bounded and preserve original metadata...OK
+7/7 integrations.riscv_cuda.resident_parent_framework_v1.test.resident framework native path compiles without host value APIs...OK
+All 7 tests passed.

@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_program_v1.zig",
+    "sha256": "01ca5113e1bd61395cb695d8d6ae386b49d47b8ec35aea2856c7372e1a63137a",
+    "bytes": 12056
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_witness_v1.zig",
+    "sha256": "ed585cccc731e33865495585c6ff049591e60ae3f09532bdd3a14226889d5caf",
+    "bytes": 12215
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_interaction_v1.zig",
+    "sha256": "da451c669f218d0123cb552a95522ee76c2b67936036e23cdade4f40a226b5c2",
+    "bytes": 15731
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_codegen_v1.zig",
+    "sha256": "8245dd1627b0f9a33dc9ed72d9e79fc3090e928ffbc43a942e42f3c5d8876150",
+    "bytes": 8997
+  },
+  {
+    "path": "src/integrations/riscv_cuda/resident_native_access_interaction_v1.cuh",
+    "sha256": "7fc292a99edc9f13873c2b12e6f672f028395b6d3d207ca3502a7ac8aab82594",
+    "bytes": 2431
+  },
+  {
+    "path": "scripts/riscv_native_access_witness_cuda.py",
+    "sha256": "ab446cf263bdd7c0fec623fe1781e42230a716f65328927540b16558b1f4c46d",
+    "bytes": 5342
+  }
+]

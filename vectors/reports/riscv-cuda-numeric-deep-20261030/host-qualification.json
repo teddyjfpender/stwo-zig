@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "scope": "host CUDA-DEEP topology and Linux compile qualification only",
+  "device_executed": false,
+  "complete_gpu_proof_verified": false,
+  "resident_proof": false,
+  "host_differential_passed": 4,
+  "linux_object_semantic_passed": true,
+  "linux_window_semantic_passed": true,
+  "host_binary_sha256": "ecb5c9b0f42998788c5c24011b67b77fed51cd3e54c2df1ae9f38cf646d023b5",
+  "source_hashes_at_receipt": {
+    "src/prover/pcs/quotient_executor.zig": "7a021610f4e305c662c1e0d234a78d7581f9e8eaa66ac8098acfbd88fef7ee52",
+    "src/prover/pcs/scheme.zig": "46abee795d7573e59c8800c93fd1c19eb76c0af98414616ab6a835366587997f",
+    "src/prover/fri_commit_ops.zig": "b007943f5b6aac0f71e5299c5f698eb933fb6945d862eb84d138fbc792674bf1",
+    "src/prover/pcs/fri_lazy_commit.zig": "ad79d4f70dc36d121759f620418837217b47c5a9467367c49ed21b0647ac5ad7",
+    "src/prover/pcs/quotients/lazy_provider.zig": "3150daa4d408594deb48fbcd0fd8bf319c3aafaafb1190c31e8740699c4a4348",
+    "src/prover/pcs/quotients/lazy_provider_init.zig": "e75e45f42efc0aaeac05b448cea71f259792c7fd3d755115be7c88801529a88c",
+    "src/integrations/riscv_cuda/hybrid_quotient_plan_v1.zig": "d1ff0c30484eb216ad951228875ad07e04d410a5b1661eff7e172f2d36b33161",
+    "src/integrations/riscv_cuda/hybrid_quotient_executor_v1.zig": "d8dd1b9a476fbe739f4a03cb5e018ed2b9da06e74819a18db46a409f74b251b0",
+    "src/integrations/riscv_cuda/tests/hybrid_quotient_test_v1.zig": "866a372072aa465905b9ac249a23fe68738c7fb12814e54e04773fd28646f3db",
+    "src/riscv_cuda_window_benchmark.zig": "ada185d7c651587d611068e61d80f6593d2096faf7dd1dd497e9de4b6e7516e7",
+    "src/riscv_cuda_numeric_device_test_root.zig": "702fe83c171d5df97cf7c99a5d14776a27e2cc4220e8604e439e840f71963e25"
+  },
+  "limitations": [
+    "No NVIDIA runtime available locally; actual numerical and full-proof parity pending.",
+    "Sampled log-zero columns explicitly rejected.",
+    "Device peak stats count explicit live executor buffers; whole-device memory requires external sampling.",
+    "Existing CPU/Metal logical work receipt is marked incomplete rather than misattributed to CUDA.",
+    "Compact source coefficients are reconstructed on CPU and timed separately."
+  ]
+}

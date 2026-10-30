@@ -33,7 +33,7 @@ pub const Slot = struct {
     width: usize,
 };
 pub const MAX_MAIN: usize = blk: {
-    var width: usize = @max(Keccak.Layout.main_columns + @as(usize, if (local_zero) 2 else 0), Signer.Layout.main_columns + @as(usize, if (local_zero) 2 else 0));
+    var width: usize = @max(Keccak.Layout.main_columns + 2, Signer.Layout.main_columns + @as(usize, if (local_zero) 2 else 0));
     for (Sha.Airs) |Air| width = @max(width, Air.PHYSICAL_MAIN_COLUMN_COUNT);
     break :blk width;
 };
@@ -45,15 +45,24 @@ pub const MAX_FIXED: usize = blk: {
 pub const Pair = Logup.RowPair;
 
 pub const Owner = struct {
+    /// Independent finite recipe selection. Legacy constructors preserve the
+    /// original profile; shared Keccak reconstructs this field from its Pin.
+    keccak_local_zero: bool = local_zero,
     sha: Sha.Roster.Tuple(.plan),
     pub fn init(a: std.mem.Allocator) !*Owner {
         const self = try a.create(Owner);
         errdefer a.destroy(self);
+        self.keccak_local_zero = local_zero;
         inline for (Sha.Airs, 0..) |Air, i| {
             var definition = try Air.build(a);
             defer definition.deinit();
             self.sha[i] = try Binding(Air).authenticate(&definition);
         }
+        return self;
+    }
+    pub fn initKeccakForRecipe(a: std.mem.Allocator, selected_local_zero: bool) !*Owner {
+        const self = try init(a);
+        self.keccak_local_zero = selected_local_zero;
         return self;
     }
     pub fn destroy(self: *Owner, a: std.mem.Allocator) void {
@@ -94,17 +103,7 @@ pub const Owner = struct {
         var main_offset: usize = 0;
         for (Profile.descriptors(statement), 0..) |desc, component| {
             if (component == 0 or component == 13) {
-                const is_keccak = component == 0;
-                const words: usize = if (is_keccak) Keccak.word_count else Signer.input_word_count + Signer.output_word_count;
-                if (mode == 1) try appendSlots(a, &out, if (is_keccak) .keccak else .signer, .register_memory, &.{ 3, 4 }, 3, desc, fixed_offset, main_offset);
-                var selected: [51]u8 = undefined;
-                selected[0] = 5;
-                for (0..words) |word| selected[word + 1] = @intCast(8 + 3 * word);
-                try appendSlots(a, &out, if (is_keccak) .keccak else .signer, .range_check_20, selected[0 .. words + 1], 3, desc, fixed_offset, main_offset);
-                selected[0] = @intCast(6 + 3 * words);
-                try appendSlots(a, &out, if (is_keccak) .keccak else .signer, .range_check_8_8, selected[0..1], 3, desc, fixed_offset, main_offset);
-                selected[0] += 1;
-                try appendSlots(a, &out, if (is_keccak) .keccak else .signer, .range_check_8_8_4, selected[0..1], 3, desc, fixed_offset, main_offset);
+                try appendGenericCallerSlots(a, &out, if (component == 0) .keccak else .signer, desc, fixed_offset, main_offset, mode == 1);
             } else if (component >= 14) {
                 inline for (Sha.Airs, 0..) |Air, i| if (component == 14 + i) {
                     inline for (0..Tables.KIND_COUNT) |kind_id| {
@@ -157,7 +156,7 @@ pub const Owner = struct {
             .keccak => {
                 const witness = @import("../air/guest_precompile/keccakf_witness.zig");
                 const zeros: [witness.state_cell_count]S = @splat(S.zero());
-                const events = if (local_zero) try @import("../air/guest_precompile/keccakf_caller_local_zero_v1.zig").coreEvents(S, main, &zeros, &zeros, &relations.ethereum.keccak) else Keccak.coreEvents(S, main, &zeros, &zeros, &relations.ethereum.keccak);
+                const events = if (self.keccak_local_zero) try @import("../air/guest_precompile/keccakf_caller_local_zero_v1.zig").coreEvents(S, main, &zeros, &zeros, &relations.ethereum.keccak) else Keccak.coreEvents(S, main, &zeros, &zeros, &relations.ethereum.keccak);
                 for (slot.entries[0..slot.entry_count], 0..) |index, i| setPairFor(S, &result, i, events[index].n1, events[index].d1);
             },
             .signer => {
@@ -182,6 +181,23 @@ pub const Owner = struct {
         return result;
     }
 };
+
+/// Shared original event selection only. The enclosing receiver still admits
+/// the exact component geometry and original caller equations independently.
+/// Shared-window batches omit register projection here and close it per owner.
+pub fn appendGenericCallerSlots(a: std.mem.Allocator, out: *std.ArrayList(Slot), kind: Kind, desc: Profile.Descriptor, fixed: usize, main: usize, registers: bool) !void {
+    if (kind != .keccak and kind != .signer) return error.InvalidV5CallerLookupSlot;
+    const words: usize = if (kind == .keccak) Keccak.word_count else Signer.input_word_count + Signer.output_word_count;
+    if (registers) try appendSlots(a, out, kind, .register_memory, &.{ 3, 4 }, 3, desc, fixed, main);
+    var selected: [51]u8 = undefined;
+    selected[0] = 5;
+    for (0..words) |word| selected[word + 1] = @intCast(8 + 3 * word);
+    try appendSlots(a, out, kind, .range_check_20, selected[0 .. words + 1], 3, desc, fixed, main);
+    selected[0] = @intCast(6 + 3 * words);
+    try appendSlots(a, out, kind, .range_check_8_8, selected[0..1], 3, desc, fixed, main);
+    selected[0] += 1;
+    try appendSlots(a, out, kind, .range_check_8_8_4, selected[0..1], 3, desc, fixed, main);
+}
 
 fn VisitorFor(comptime S: type, comptime Relations: type) type {
     return struct {
@@ -229,7 +245,7 @@ fn appendSlots(a: std.mem.Allocator, out: *std.ArrayList(Slot), source: Kind, ta
 
 /// Bound the actual projected rational recurrence, including pairs whose
 /// original AIR batch differs. Every degree comes from its authenticated DAG.
-fn projectedDegree(comptime Air: type, plan: *const Binding(Air).Runtime.Plan, selected: []const u8) !u8 {
+pub fn projectedDegree(comptime Air: type, plan: *const Binding(Air).Runtime.Plan, selected: []const u8) !u8 {
     var degrees: [Air.LOGICAL_INPUT_COUNT + @import("../recursion/air/relation_interaction_tuple_ledger.zig").MAX_COMPILED_NODES]u32 = @splat(1);
     for (plan.compiled_nodes[0..plan.compiled_node_count]) |node| degrees[node.destination] = switch (node.op) {
         .constant => 0,

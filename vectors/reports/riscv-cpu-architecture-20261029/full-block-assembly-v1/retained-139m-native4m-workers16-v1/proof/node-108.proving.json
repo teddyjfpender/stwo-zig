@@ -1,0 +1,11 @@
+{
+  "fixed_compile_ns": 1939494834,
+  "fixed_commit_ns": 1851668250,
+  "key_admission_ns": 7670916,
+  "witness_ns": 8428355667,
+  "plan_ns": 2248705833,
+  "proof_ns": 13915221250,
+  "encode_ns": 25381125,
+  "whole_ns": 28416497917,
+  "retained_rows_bytes": 3404933212
+}

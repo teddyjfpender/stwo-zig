@@ -1,0 +1,34 @@
+{
+  "schema": "stwo-v7-explicit-window-benchmark-input-v1",
+  "scope": "real RV32 window replay; incoming state is explicit benchmark input; no prefix, original-STARK, recursive or Ethereum-block proof",
+  "proof_verified": false,
+  "replay_verified": true,
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 32768
+  },
+  "stats": {
+    "skipped_cycles": 42700000,
+    "cycles": 32768,
+    "core_rows": 32540,
+    "keccak_calls": 228,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "incoming_words": 2761110,
+    "outgoing_words": 2761124,
+    "prefix_ns": 32438479959,
+    "window_ns": 59262625
+  },
+  "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+  "outgoing_sha256": "9f15dbb8bfb6f34fb3e0884080c397ffdd80b8d3566b96783bc235008188ac0f",
+  "behavior_sha256": "2d048c0ae3d202950cfefea1ca703a055feaf29a83d160bd02e4d613b8d5c0c0",
+  "incoming_file": "incoming.b7win.gz",
+  "outgoing_file": "outgoing.b7win.gz",
+  "incoming_file_sha256": "cb51c5af838c1e2ba6b1abc0ebca75c0f849cf1119eb06f1296128a164761eff",
+  "incoming_decoded_bytes": 22089028,
+  "outgoing_file_sha256": "f4d307b1d4e9420b9e1671780ec6c69ec9ff6f89689c1b77ca66896f6049df04",
+  "outgoing_decoded_bytes": 22089140,
+  "snapshot_encoding": "gzip(B7WIN001)"
+}

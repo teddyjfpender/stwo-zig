@@ -1,6 +1,7 @@
 //! Bounded proposal storage for witness-once execution. This codec has no proof
-//! authority. Callers independently pin scope/logs/SHA and MUST recommit the
-//! loaded main columns and compare both original first-round roots before use.
+//! authority. Callers independently pin scope/logs/SHA. Loaded cells must
+//! either be recommitted to the original roots or consumed by a fresh proof
+//! that is verified against those roots before granting any receipt.
 const std = @import("std");
 const core = @import("stwo_core");
 const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
@@ -11,7 +12,7 @@ const MAGIC = "B5WCOL01";
 const HEADER_BYTES = 140;
 const BUFFER_BYTES = 16 * 1024;
 
-pub const Kind = enum(u32) { native = 1, caller = 2 };
+pub const Kind = enum(u32) { native = 1, caller = 2, ram_lane = 3, caller_external = 4 };
 pub const Scope = struct {
     kind: Kind,
     execution_index: u32,
@@ -61,8 +62,7 @@ fn geometry(logs: []const u32, limits: Limits) !struct { cells: u64, bytes: u64 
     if (logs.len > limits.max_columns or logs.len > std.math.maxInt(u32)) return error.V5WitnessColumnLimit;
     var cells: u64 = 0;
     for (logs) |log| cells = try std.math.add(u64, cells, try rows(log, limits));
-    const bytes = try std.math.add(u64, HEADER_BYTES, try std.math.add(u64,
-        try std.math.mul(u64, logs.len, 12), try std.math.mul(u64, cells, 4)));
+    const bytes = try std.math.add(u64, HEADER_BYTES, try std.math.add(u64, try std.math.mul(u64, logs.len, 12), try std.math.mul(u64, cells, 4)));
     const loaded = try std.math.add(u64, try std.math.mul(u64, logs.len, @sizeOf(Column)), try std.math.mul(u64, cells, @sizeOf(M)));
     if (bytes > limits.max_file_bytes or loaded > limits.max_loaded_bytes) return error.V5WitnessColumnLimit;
     return .{ .cells = cells, .bytes = bytes };

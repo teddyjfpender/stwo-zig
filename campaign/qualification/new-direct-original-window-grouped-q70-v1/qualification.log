@@ -1,0 +1,508 @@
+1/20 riscv_circuit_originals_test_root.test_0...OK
+2/20 integrations.circuit_cpu.riscv_originals_v1.admission_test.test.RISC direct original reject intermediate mixed parent before allocation or metadata access...OK
+3/20 integrations.circuit_cpu.riscv_originals_v1.admission_test.test.RISC direct original CPU ports preserve full width and asymmetric byte order...OK
+4/20 integrations.circuit_cpu.riscv_originals_v1.saved_metadata_test.test.RISC direct original saved metadata from durable native and mixed originals...SKIP
+5/20 integrations.circuit_cpu.riscv_originals_v1.retained_qualification.test.RISC direct original retained window4 admission and geometry census only...SKIP
+6/20 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved admission and original material q70...SKIP
+7/20 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals saved complete circuit q70 QM31 and NoValue...SKIP
+8/20 integrations.circuit_cpu.riscv_originals_v1.qualification.test.RISC direct originals combined window q70...RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=28557 groups=16 current_divisions=1998990 grouped_divisions=1120
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=mixed stage=allocated variables=1355887
+RISC_ORIGINAL_STAGE family=mixed stage=transcript variables=1892081
+RISC_ORIGINAL_STAGE family=mixed stage=typed_air variables=2008644
+RISC_ORIGINAL_STAGE family=mixed stage=pcs variables=30373595
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=30487084
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=30571997
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=30572127
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=32820889
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=33349524
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=33442215
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=33442848
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=42938039
+RISC_ORIGINAL_JOIN_GEOMETRY value_mode=true padded_vars=46137344 raw_eq=117018 raw_qm31_ops=7871137 raw_triple_xor=1161056 raw_m31_to_u32=1433610 raw_blake_g_gate=8127392 padded_eq=131072 padded_qm31_ops=8388608 padded_triple_xor=2097152 padded_m31_to_u32=2097152 padded_blake_g_gate=8388608
+RISC_ORIGINAL_STAGE family=mixed stage=allocated variables=1355887
+RISC_ORIGINAL_STAGE family=mixed stage=transcript variables=1892081
+RISC_ORIGINAL_STAGE family=mixed stage=typed_air variables=2008644
+RISC_ORIGINAL_STAGE family=mixed stage=pcs variables=30373595
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=30487084
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=30571997
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=30572127
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=32820889
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=33349524
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=33442215
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=33442848
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=42938039
+RISC_ORIGINAL_JOIN_GEOMETRY value_mode=false padded_vars=46137344 raw_eq=117018 raw_qm31_ops=7871137 raw_triple_xor=1161056 raw_m31_to_u32=1433610 raw_blake_g_gate=8127392 padded_eq=131072 padded_qm31_ops=8388608 padded_triple_xor=2097152 padded_m31_to_u32=2097152 padded_blake_g_gate=8388608
+RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=28557 groups=16 current_divisions=1998990 grouped_divisions=1120
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=mixed stage=allocated variables=1355887
+RISC_ORIGINAL_STAGE family=mixed stage=transcript variables=1892081
+RISC_ORIGINAL_STAGE family=mixed stage=typed_air variables=2008644
+RISC_ORIGINAL_STAGE family=mixed stage=pcs variables=30373595
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=30487084
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=30571997
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=30572127
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=32820889
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=33349524
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=33442215
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=33442848
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=42938039
+RISC_ORIGINAL_STAGE family=mixed stage=allocated variables=1355887
+RISC_ORIGINAL_STAGE family=mixed stage=transcript variables=1892081
+RISC_ORIGINAL_STAGE family=mixed stage=typed_air variables=2008644
+RISC_ORIGINAL_STAGE family=mixed stage=pcs variables=30373595
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=30487084
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=30571997
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=30572127
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=32820889
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=33349524
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=33442215
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=33442848
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=42938039
+RISC_ORIGINAL_QUOTIENT_CENSUS family=mixed responses=28557 groups=16 current_divisions=1998990 grouped_divisions=1120
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=mixed stage=allocated variables=1355887
+RISC_ORIGINAL_STAGE family=mixed stage=transcript variables=1892081
+RISC_ORIGINAL_STAGE family=mixed stage=typed_air variables=2008644
+RISC_ORIGINAL_STAGE family=mixed stage=pcs variables=30373595
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=30487084
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=30571997
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=30572127
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=32820889
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=33349524
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=33442215
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=33442848
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=42938039
+RISC_ORIGINAL_JOIN_PROVED bytes=981000 fresh_verify_ns=5776511917 native_parent_proofs=0 peak_bytes=20790020583
+OK
+9/20 integrations.circuit_cpu.riscv_originals_v1.native_qualification.test.RISC direct original native initial middle terminal and depth two q70...SKIP
+10/20 integrations.circuit_cpu.riscv_originals_v1.block_pipeline_test.test.RISC direct original saved block driver rejects empty jobs before proving...OK
+11/20 integrations.circuit_cpu.riscv_originals_v1.block_pipeline_test.test.RISC direct original saved block driver rejects resource limits before admission...OK
+12/20 integrations.circuit_cpu.riscv_originals_v1.block_pipeline_test.test.RISC direct original saved block driver closes three windows without parent metadata q70...RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=852 groups=5 current_divisions=59640 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=572591
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=703086
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=707640
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10866993
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10937578
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=11022491
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=11022605
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12467467
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12978182
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=13070870
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=13071497
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22288928
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=773 groups=5 current_divisions=54110 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=569724
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=695466
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=699811
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10791354
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10861939
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10946852
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10946966
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12391828
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12902543
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12995231
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12995858
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22213289
+RISC_ORIGINAL_QUOTIENT_CENSUS family=local responses=629 groups=5 current_divisions=44030 grouped_divisions=350
+RISC_ORIGINAL_QUOTIENT_CENSUS family=bridge responses=44 groups=2 current_divisions=3080 grouped_divisions=140
+RISC_ORIGINAL_QUOTIENT_CENSUS family=global responses=173 groups=3 current_divisions=12110 grouped_divisions=210
+RISC_ORIGINAL_STAGE family=local stage=allocated variables=564513
+RISC_ORIGINAL_STAGE family=local stage=transcript variables=681708
+RISC_ORIGINAL_STAGE family=local stage=typed_air variables=685567
+RISC_ORIGINAL_STAGE family=local stage=pcs variables=10661140
+RISC_ORIGINAL_STAGE family=bridge stage=allocated variables=10731725
+RISC_ORIGINAL_STAGE family=bridge stage=transcript variables=10816638
+RISC_ORIGINAL_STAGE family=bridge stage=typed_air variables=10816752
+RISC_ORIGINAL_STAGE family=bridge stage=pcs variables=12261614
+RISC_ORIGINAL_STAGE family=global stage=allocated variables=12772329
+RISC_ORIGINAL_STAGE family=global stage=transcript variables=12865009
+RISC_ORIGINAL_STAGE family=global stage=typed_air variables=12865636
+RISC_ORIGINAL_STAGE family=global stage=pcs variables=22083067
+RISC_ORIGINAL_BLOCK_DRIVER q=70 pow=26 windows=3 folds=2 native_parent_proofs=0 original_proofs_generated=0 old_parent_metadata=0 root_bytes=981000 root_sha256=333136dc08443be90d50280e4c7dbaada8ee1b64ea4d27707cbb3a69e05ef1e8 whole_ns=169692416750 final_verify_ns=11313428125
+OK
+13/20 frontends.riscv.prover.block_execution_external_trace_v2.test_0...OK
+14/20 frontends.riscv.air.semantic_eval.test_0...OK
+15/20 frontends.riscv.prover.block_execution_external_access_bridge_v2.test_0...OK
+16/20 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+17/20 frontends.riscv.air.lookups.tables.mod.test_0...OK
+18/20 frontends.riscv.runner.mod.test_0...OK
+19/20 frontends.riscv.runner.decode.test_0...OK
+20/20 frontends.riscv.air.lookups.tables.source_ingest.test_0...OK
+15 passed; 5 skipped; 0 failed.
+      244.17 real       494.21 user        14.84 sys
+         20808646656  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            22338329  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  30  voluntary context switches
+               51600  involuntary context switches
+       7435626188068  instructions retired
+       2184829591600  cycles elapsed
+         20813905568  peak memory footprint

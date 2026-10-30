@@ -1,0 +1,59 @@
+1/6 block_v8_endpoint_join_saved_benchmark_root.test_0...OK
+2/6 recursion.tests.block_v8_endpoint_join_saved_benchmark.test.saved compact endpoint originals to one closed root benchmark...B8_SAVED_JOIN_CAPTURE local=1/8 original_verify_ns=95961041 profile_ns=86368792
+B8_SAVED_JOIN_CAPTURE local=2/8 original_verify_ns=183376916 profile_ns=167476750
+B8_SAVED_JOIN_CAPTURE local=3/8 original_verify_ns=273042666 profile_ns=250818875
+B8_SAVED_JOIN_CAPTURE local=4/8 original_verify_ns=357272291 profile_ns=329677500
+B8_SAVED_JOIN_CAPTURE local=5/8 original_verify_ns=442714125 profile_ns=409541625
+B8_SAVED_JOIN_CAPTURE local=6/8 original_verify_ns=531743417 profile_ns=492083417
+B8_SAVED_JOIN_CAPTURE local=7/8 original_verify_ns=744086584 profile_ns=696001833
+B8_SAVED_JOIN_CAPTURE local=8/8 original_verify_ns=832093584 profile_ns=778766208
+B8_JOIN_STAGE fixed_compile_ns=9359947041
+B8_JOIN_STAGE fixed_commit_ns=24400753500
+BLAKE3_NATIVE_QUERY_FUSION groups=17290 removed_scalars=69160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=66425 fma=59895 arithmetic_rows=233535 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=17710 removed_scalars=70840 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=67293 fma=60107 arithmetic_rows=235153 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=15610 removed_scalars=62440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=59570 fma=59212 arithmetic_rows=223270 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=17290 removed_scalars=69160 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=66569 fma=59105 arithmetic_rows=232508 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=15610 removed_scalars=62440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=59642 fma=58708 arithmetic_rows=222426 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=15610 removed_scalars=62440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=59642 fma=58711 arithmetic_rows=222475 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=15610 removed_scalars=62440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=59570 fma=59212 arithmetic_rows=223270 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=16940 removed_scalars=67760 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=67041 fma=74731 arithmetic_rows=266220 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=490 removed_scalars=1960 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=6036 fma=58839 arithmetic_rows=151209 direct_columns=true
+BLAKE3_NATIVE_QUERY_FUSION groups=3360 removed_scalars=13440 direct_columns=true
+BLAKE3_NATIVE_FUSION dot4=7641 fma=49388 arithmetic_rows=133186 direct_columns=true
+B8_JOIN_STAGE witness_ns=27577010167 retained_rows_bytes=17608030068
+B8_JOIN_STAGE compiler_released_bytes=8387775052 compiler_release_ns=44960708
+B8_JOIN_STAGE plan_ns=10834326833
+B8_SAVED_COMPACT_SINGLE_ROOT verified=true cohorts=8 cycles=4194304 root_bytes=1115560 parent_proof_ns=186963822792 fresh_receiver_ns=27575123625 peak_bytes=49240795317
+OK
+3/6 air.semantic_eval.test_0...OK
+4/6 air.memory_commitment.poseidon2_air.test_0...OK
+5/6 air.lookups.tables.mod.test_0...OK
+6/6 air.lookups.tables.source_ingest.test_0...OK
+All 6 tests passed.
+      291.47 real      1100.04 user        37.69 sys
+         49250680832  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            29129629  page reclaims
+                   1  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+              319658  involuntary context switches
+      15639244443001  instructions retired
+       4604342083007  cycles elapsed
+         49274547640  peak memory footprint

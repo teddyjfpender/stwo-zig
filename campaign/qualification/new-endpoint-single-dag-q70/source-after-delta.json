@@ -1,0 +1,11 @@
+{
+  "schema": "stwo-root-source-after-audit-v1",
+  "changes": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v8_endpoint_join_roster_v1.zig",
+      "before_sha256": "5d4237c58aea28f39ea32deb70b3f5405ca2f7e4644d946e706e30eacb9cf597",
+      "after_sha256": "e70cfce8b97b76cf7ecd8fd6ad44b53b5319b876229c806586c6661fd5bc3fc9"
+    }
+  ],
+  "note": "Proof source archive remains immutable. New byte-only receiver verifies the same proof under a stricter same-ELF/program admission."
+}

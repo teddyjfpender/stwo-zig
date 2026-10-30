@@ -1,0 +1,13 @@
+1/10 block_v8_endpoint_local_execution_test_root.test_0...OK
+2/10 prover.tests.block_v8_endpoint_local_execution_test.test.sparse clean local compact sequential producer closes fresh file-only bundle...B8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 compact=true freshly_verified=true
+OK
+3/10 prover.tests.block_v8_endpoint_local_execution_test.test.sparse clean local compact parallel producer closes fresh file-only bundle...B8_CLEAN_LOCAL_TRAIN queries=70 pow=26 cohorts=2 cycles=8 logical_events=4 endpoints=2 shared_global_providers=1 compact=true freshly_verified=true
+OK
+4/10 runner.decode.test_0...OK
+5/10 runner.mod.test_0...OK
+6/10 air.memory_commitment.poseidon2_air.test_0...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 air.lookups.tables.mod.test_0...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.

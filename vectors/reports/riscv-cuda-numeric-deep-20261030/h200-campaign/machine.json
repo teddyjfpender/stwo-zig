@@ -1,0 +1,10 @@
+{
+  "schema": "stwo-h200-machine-v1",
+  "platform": "Linux-6.8.0-94-generic-x86_64-with-glibc2.39",
+  "cpu_model": "INTEL(R) XEON(R) GOLD 6548Y+",
+  "cpu_quota_us": "1360000",
+  "cpu_period_us": "100000",
+  "cpu_max_v2": null,
+  "gpu_query": "name, uuid, driver_version, memory.total [MiB]\nNVIDIA H200, GPU-7e22e854-6c4d-3c60-d2f3-a7a16bc91ddc, 575.57.08, 143771 MiB\n",
+  "ncu_hardware_counters": "unavailable ERR_NVGPUCTRPERM; no privilege escalation attempted"
+}

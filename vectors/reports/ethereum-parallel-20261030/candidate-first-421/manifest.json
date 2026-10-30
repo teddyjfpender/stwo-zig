@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "started_utc": "2026-10-29T07:53:35.536004+00:00",
+  "status": "completed",
+  "source_kind": "synthetic_complete_execution",
+  "architecture": "per_window_callers",
+  "cases": [
+    [
+      "mixed_ethereum",
+      421
+    ]
+  ],
+  "repeats": 1,
+  "worker_count": 4,
+  "deep_census": true,
+  "machine": {
+    "os": "Darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu_count": 18,
+    "memory_bytes": 68719476736,
+    "cpu_model": "Apple M5 Max",
+    "python": "3.14.6",
+    "zig": "0.15.2",
+    "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+  },
+  "runner_sha256": "45bd80a525693c2a936b48de2843d0c4131583716ff16ad84d6d96e270967e1d",
+  "binary": "/private/tmp/v7-ethereum-parallel-build-20261029/prover",
+  "benchmark_lock": "/tmp/stwo-riscv-ethereum-benchmark.lock",
+  "lock_scope": "this CLI's campaigns only; unrelated processes are not prevented",
+  "compile_time_excluded_from_runs": true,
+  "machine_sha256": "b8dde42430799fdfaae75d0e13fb6f82964875d3b6be88c045f674a34d244e71",
+  "benchmark_lock_wait_seconds": 3.587499668356031e-05,
+  "current_source_sha256": "63ddbe84ab4ed99db9464ff2943ac7dbe1c61db204bf536951281af419c877fd",
+  "build": {
+    "reused": true,
+    "binary_sha256": "9cd3bc00a4afff892f8259dc88aea0fc892dc1ab2b029fb9e6b5613553c35766",
+    "compile_command_wall_seconds": 0,
+    "source_sha256": "63ddbe84ab4ed99db9464ff2943ac7dbe1c61db204bf536951281af419c877fd",
+    "source_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+    "source_binding": "recorded_build",
+    "original_build": {
+      "process_status": "completed",
+      "returncode": 0,
+      "started_utc": "2026-10-29T07:49:47.081260+00:00",
+      "finished_utc": "2026-10-29T07:52:52.674945+00:00",
+      "command_wall_seconds": 185.5939436250046,
+      "process_error": null,
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "scripts/zig_protocol_test.py",
+        "--lock",
+        "/tmp/stwo-zig-integration-build.lock",
+        "src/frontends/riscv/block_v7_multi_union_test_root.zig",
+        "-OReleaseSafe",
+        "--test-filter",
+        "v7 multi union genuine contiguous original STARK with all-provider oracle",
+        "--test-no-exec",
+        "-femit-bin=/private/tmp/v7-ethereum-parallel-build-20261029/prover"
+      ],
+      "reused": false,
+      "compile_command_wall_seconds": 185.5939436250046,
+      "compile_wall_includes_build_lock_wait": true,
+      "binary_sha256": "9cd3bc00a4afff892f8259dc88aea0fc892dc1ab2b029fb9e6b5613553c35766",
+      "source_binding": "recorded_build",
+      "source_sha256": "63ddbe84ab4ed99db9464ff2943ac7dbe1c61db204bf536951281af419c877fd",
+      "source_head": "6026e45e72c7f18569e78c4db90a72af116df2cb",
+      "software": {
+        "os": "Darwin",
+        "release": "25.6.0",
+        "architecture": "arm64",
+        "cpu_count": 18,
+        "memory_bytes": 68719476736,
+        "cpu_model": "Apple M5 Max",
+        "python": "3.14.6",
+        "zig": "0.15.2",
+        "zig_executable_sha256": "5c57faf6de2baa001be8cc3084d32ded7daf5a227ede514ca7f1161515aafa76"
+      },
+      "runner_sha256": "45bd80a525693c2a936b48de2843d0c4131583716ff16ad84d6d96e270967e1d"
+    }
+  },
+  "completed_runs": 1,
+  "failed_runs": 0,
+  "finished_utc": "2026-10-29T07:54:58.502935+00:00"
+}

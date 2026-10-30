@@ -47,30 +47,46 @@ pub const CoefficientFoldJob = struct {
     coefficients: [qm31.SECURE_EXTENSION_DEGREE]M31,
 };
 
+/// A pointer borrows the original immutable values; the length is shared by
+/// the group. The coefficient index borrows the already-owned sample plan.
+/// This halves metadata without retaining temporary flattened column headers.
 pub const CompactContributionMember = struct {
-    values: []const M31,
-    coefficients: [qm31.SECURE_EXTENSION_DEGREE]M31,
+    values: [*]const M31,
+    contribution_index: u32,
 };
 
 pub const CompactContributionGroup = struct {
     members: []const CompactContributionMember,
+    value_count: usize,
+    contributions: []const ColumnContribution,
+
     batch_index: usize,
     shift_amt: std.math.Log2Int(usize),
+
+    pub fn member(self: @This(), index: usize) struct { values: []const M31, coefficients: [4]M31 } {
+        const entry = self.members[index];
+        return .{ .values = entry.values[0..self.value_count], .coefficients = self.contributions[entry.contribution_index].value_coeff.toM31Array() };
+    }
 };
 
 pub const CompactContributionPlan = struct {
     groups: []CompactContributionGroup,
     members: []CompactContributionMember,
+    minimum_shift: std.math.Log2Int(usize) = 2,
+    /// Exact original contribution indices owned by groups. Empty on the
+    /// historical whole-tier plan. Charged to the same metadata cap.
+    selected: []u8 = &.{},
 
     pub fn deinit(self: *CompactContributionPlan, allocator: std.mem.Allocator) void {
         allocator.free(self.groups);
         allocator.free(self.members);
+        allocator.free(self.selected);
         self.* = undefined;
     }
 
     pub fn retainedBytes(self: CompactContributionPlan) usize {
         return self.groups.len * @sizeOf(CompactContributionGroup) +
-            self.members.len * @sizeOf(CompactContributionMember);
+            self.members.len * @sizeOf(CompactContributionMember) + self.selected.len;
     }
 };
 
@@ -528,20 +544,71 @@ pub fn buildCompactContributionPlan(
     min_shift_amt: std.math.Log2Int(usize),
     max_bytes: usize,
 ) !?CompactContributionPlan {
-    return buildCompactContributionPlanInner(
-        allocator,
-        flat_columns,
-        active_column_indices,
-        contribution_ranges,
-        contributions,
-        nonzero_columns,
-        lifting_log_size,
-        min_shift_amt,
-        max_bytes,
-    ) catch |err| switch (err) {
-        error.CompactContributionBudgetExceeded, error.OutOfMemory => null,
+    // Keep the highest-reuse lifted groups when a wide roster exceeds the
+    // cap. The caller excludes exactly this admitted threshold from its direct
+    // path. If even the highest-reuse tier cannot fit, retain the direct
+    // fallback; no term may disappear merely to satisfy this optional budget.
+    if (lifting_log_size >= @bitSizeOf(usize) - 1) return QuotientOpsError.InvalidColumnLogSize;
+    var minimum: u32 = min_shift_amt;
+    while (minimum <= lifting_log_size + 1) : (minimum += 1) {
+        const plan = buildCompactContributionPlanInner(
+            allocator,
+            flat_columns,
+            active_column_indices,
+            contribution_ranges,
+            contributions,
+            nonzero_columns,
+            lifting_log_size,
+            @intCast(minimum),
+            max_bytes,
+            false,
+        ) catch |err| switch (err) {
+            error.CompactContributionBudgetExceeded => continue,
+            error.OutOfMemory => return null,
+            else => return err,
+        };
+        if (plan.groups.len == 0) {
+            var empty = plan;
+            empty.deinit(allocator);
+            return null;
+        }
+        return plan;
+    }
+    return null;
+}
+
+/// Admit exact members instead of abandoning a whole lift tier. A group may
+/// own a prefix of its members; every other contribution stays in the direct
+/// plan. The bitset is preparation metadata, never read in the tile hot loop.
+pub fn buildPartialCompactContributionPlan(
+    allocator: std.mem.Allocator,
+    flat_columns: []const ColumnEvaluation,
+    active_column_indices: []const usize,
+    contribution_ranges: []const ColumnContributionRange,
+    contributions: []const ColumnContribution,
+    nonzero_columns: []const bool,
+    lifting_log_size: u32,
+    min_shift_amt: std.math.Log2Int(usize),
+    max_bytes: usize,
+) !?CompactContributionPlan {
+    if (lifting_log_size >= @bitSizeOf(usize) - 1) return QuotientOpsError.InvalidColumnLogSize;
+    // The selection bit identifies one occurrence. Require the canonical,
+    // disjoint range inventory rather than silently collapsing multiplicity.
+    var next: usize = 0;
+    for (contribution_ranges) |range| {
+        if (range.start != next) return QuotientOpsError.ShapeMismatch;
+        next = std.math.add(usize, next, range.len) catch return QuotientOpsError.ShapeMismatch;
+    }
+    if (next != contributions.len) return QuotientOpsError.ShapeMismatch;
+    var plan = buildCompactContributionPlanInner(allocator, flat_columns, active_column_indices, contribution_ranges, contributions, nonzero_columns, lifting_log_size, min_shift_amt, max_bytes, true) catch |err| switch (err) {
+        error.CompactContributionBudgetExceeded, error.OutOfMemory => return null,
         else => return err,
     };
+    if (plan.groups.len == 0) {
+        plan.deinit(allocator);
+        return null;
+    }
+    return plan;
 }
 
 const CompactGroupSpec = struct {
@@ -578,6 +645,7 @@ fn buildCompactContributionPlanInner(
     lifting_log_size: u32,
     min_shift_amt: std.math.Log2Int(usize),
     max_bytes: usize,
+    partial: bool,
 ) !CompactContributionPlan {
     if (active_column_indices.len != contribution_ranges.len or
         flat_columns.len != nonzero_columns.len)
@@ -630,6 +698,32 @@ fn buildCompactContributionPlanInner(
         }
     }
 
+    const selection_bytes = if (partial) std.math.divCeil(usize, contributions.len, 8) catch return error.CompactContributionBudgetExceeded else 0;
+    if (partial) {
+        if (selection_bytes > max_bytes) return error.CompactContributionBudgetExceeded;
+        // Each admitted term removes a full lifted output sweep. Prefer the
+        // greatest reuse; stable tie order makes budget boundary tests exact.
+        std.mem.sort(CompactGroupSpec, specs.items, {}, struct {
+            fn less(_: void, left: CompactGroupSpec, right: CompactGroupSpec) bool {
+                if (left.shift_amt != right.shift_amt) return left.shift_amt > right.shift_amt;
+                if (left.batch_index != right.batch_index) return left.batch_index < right.batch_index;
+                return left.value_count < right.value_count;
+            }
+        }.less);
+        var remaining = max_bytes - selection_bytes;
+        var kept: usize = 0;
+        total_members = 0;
+        for (specs.items) |spec| {
+            if (remaining < @sizeOf(CompactContributionGroup) + @sizeOf(CompactContributionMember)) break;
+            const count = @min(spec.member_count, (remaining - @sizeOf(CompactContributionGroup)) / @sizeOf(CompactContributionMember));
+            specs.items[kept] = spec;
+            specs.items[kept].member_count = count;
+            kept += 1;
+            total_members += count;
+            remaining -= @sizeOf(CompactContributionGroup) + count * @sizeOf(CompactContributionMember);
+        }
+        specs.shrinkRetainingCapacity(kept);
+    }
     const group_bytes = std.math.mul(
         usize,
         specs.items.len,
@@ -640,14 +734,18 @@ fn buildCompactContributionPlanInner(
         total_members,
         @sizeOf(CompactContributionMember),
     ) catch return error.CompactContributionBudgetExceeded;
-    const retained_bytes = std.math.add(usize, group_bytes, member_bytes) catch
+    const payload_bytes = std.math.add(usize, group_bytes, member_bytes) catch
         return error.CompactContributionBudgetExceeded;
+    const retained_bytes = std.math.add(usize, payload_bytes, selection_bytes) catch return error.CompactContributionBudgetExceeded;
     if (retained_bytes > max_bytes) return error.CompactContributionBudgetExceeded;
 
     const groups = try allocator.alloc(CompactContributionGroup, specs.items.len);
     errdefer allocator.free(groups);
     const members = try allocator.alloc(CompactContributionMember, total_members);
     errdefer allocator.free(members);
+    const selected = try allocator.alloc(u8, selection_bytes);
+    errdefer allocator.free(selected);
+    @memset(selected, 0);
     const next_offsets = try allocator.alloc(usize, specs.items.len);
     defer allocator.free(next_offsets);
 
@@ -656,6 +754,8 @@ fn buildCompactContributionPlanInner(
         const member_end = member_offset + spec.member_count;
         groups[index] = .{
             .members = members[member_offset..member_end],
+            .value_count = spec.value_count,
+            .contributions = contributions,
             .batch_index = spec.batch_index,
             .shift_amt = spec.shift_amt,
         };
@@ -671,23 +771,30 @@ fn buildCompactContributionPlanInner(
         const shift_amt: std.math.Log2Int(usize) = @intCast(log_shift + 1);
         if (shift_amt < min_shift_amt) continue;
         const contribution_end = contribution_range.start + contribution_range.len;
-        for (contributions[contribution_range.start..contribution_end]) |contribution| {
+        for (contributions[contribution_range.start..contribution_end], contribution_range.start..) |contribution, contribution_index| {
             const group_index = compactGroupIndex(
                 specs.items,
                 contribution.batch_index,
                 column.values.len,
                 shift_amt,
-            ) orelse unreachable;
+            ) orelse {
+                std.debug.assert(partial);
+                continue;
+            };
             const write_index = next_offsets[group_index];
+            const group_end = (@intFromPtr(groups[group_index].members.ptr) - @intFromPtr(members.ptr)) / @sizeOf(CompactContributionMember) + groups[group_index].members.len;
+            if (partial and write_index >= group_end) continue;
             members[write_index] = .{
-                .values = column.values,
-                .coefficients = contribution.value_coeff.toM31Array(),
+                .values = column.values.ptr,
+                .contribution_index = std.math.cast(u32, contribution_index) orelse return QuotientOpsError.ShapeMismatch,
             };
             next_offsets[group_index] = write_index + 1;
+            if (partial) selected[contribution_index / 8] |= @as(u8, 1) << @as(u3, @intCast(contribution_index % 8));
         }
     }
 
-    return .{ .groups = groups, .members = members };
+    const minimum = if (partial and groups.len != 0) groups[groups.len - 1].shift_amt else min_shift_amt;
+    return .{ .groups = groups, .members = members, .minimum_shift = minimum, .selected = selected };
 }
 
 pub fn materializeActiveLiftedColumns(
@@ -800,4 +907,119 @@ test "compact contribution plan groups lifted geometry and fails back on budget"
         2,
         0,
     )) == null);
+}
+
+test "compact admission keeps high-reuse groups and partitions every contribution" {
+    const a = std.testing.allocator;
+    const small = [_]M31{M31.one()} ** 4;
+    const medium = [_]M31{M31.one()} ** 8;
+    const large = [_]M31{M31.one()} ** 16;
+    const columns = [_]ColumnEvaluation{
+        .{ .log_size = 2, .values = &small },
+        .{ .log_size = 3, .values = &medium },
+        .{ .log_size = 4, .values = &large },
+    };
+    const indices = [_]usize{ 0, 1, 2 };
+    const ranges = [_]ColumnContributionRange{ .{ .start = 0, .len = 2 }, .{ .start = 2, .len = 1 }, .{ .start = 3, .len = 1 } };
+    const terms = [_]ColumnContribution{
+        .{ .batch_index = 0, .value_coeff = QM31.fromU32Unchecked(1, 2, 3, 4) },
+        .{ .batch_index = 1, .value_coeff = QM31.fromU32Unchecked(5, 6, 7, 8) },
+        .{ .batch_index = 0, .value_coeff = QM31.one() },
+        .{ .batch_index = 1, .value_coeff = QM31.zero() },
+    };
+    const active = [_]bool{true} ** 3;
+    const cap = 2 * (@sizeOf(CompactContributionGroup) + @sizeOf(CompactContributionMember));
+    var grouped = (try buildCompactContributionPlan(a, &columns, &indices, &ranges, &terms, &active, 5, 2, cap)).?;
+    defer grouped.deinit(a);
+    try std.testing.expectEqual(@as(u6, 4), grouped.minimum_shift);
+    try std.testing.expectEqual(cap, grouped.retainedBytes());
+    var direct = try @import("../quotient_direct_plan.zig").build(a, &columns, &indices, &ranges, &active, 5, grouped.minimum_shift);
+    defer direct.deinit(a);
+    var seen = [_]u8{0} ** terms.len;
+    for (grouped.groups) |group| for (group.members, 0..) |member_index, i| {
+        seen[member_index.contribution_index] += 1;
+        const value = group.member(i);
+        try std.testing.expect(value.values.ptr == columns[0].values.ptr);
+        try std.testing.expectEqualDeep(terms[member_index.contribution_index].value_coeff.toM31Array(), value.coefficients);
+        try std.testing.expectEqual(terms[member_index.contribution_index].batch_index, group.batch_index);
+    };
+    for (direct.ranges) |range| for (seen[range.start..][0..range.len]) |*count| {
+        count.* += 1;
+    };
+    try std.testing.expectEqualSlices(u8, &.{ 1, 1, 1, 1 }, &seen);
+    try std.testing.expectEqual(@as(usize, 16), @sizeOf(CompactContributionMember));
+    try std.testing.expect((try buildCompactContributionPlan(a, &columns, &indices, &ranges, &terms, &active, 5, 2, cap - 1)) == null);
+}
+
+test "partial compact admission fills its cap and splits exact contribution runs" {
+    const a = std.testing.allocator;
+    const values = [_]M31{ M31.one(), M31.fromCanonical(7), M31.fromCanonical(9), M31.fromCanonical(11) };
+    const columns = [_]ColumnEvaluation{.{ .log_size = 2, .values = &values }};
+    const indices = [_]usize{0};
+    const ranges = [_]ColumnContributionRange{.{ .start = 0, .len = 9 }};
+    var terms: [9]ColumnContribution = undefined;
+    for (&terms, 0..) |*term, i| term.* = .{ .batch_index = i % 2, .value_coeff = QM31.fromU32Unchecked(@intCast(i), 3, 5, 7) };
+    const active = [_]bool{true};
+    // Group0 takes five even indices; group1 takes only its first odd index.
+    // The remainder is three separated direct runs in the same source column.
+    const cap = 2 + 2 * @sizeOf(CompactContributionGroup) + 6 * @sizeOf(CompactContributionMember);
+    var plan = (try buildPartialCompactContributionPlan(a, &columns, &indices, &ranges, &terms, &active, 7, 2, cap)).?;
+    defer plan.deinit(a);
+    try std.testing.expectEqual(cap, plan.retainedBytes());
+    try std.testing.expectEqual(@as(usize, 6), plan.members.len);
+    var direct = try @import("../quotient_direct_plan.zig").buildExcludingSelected(a, &columns, &indices, &ranges, &active, 7, plan.selected);
+    defer direct.deinit(a);
+    try std.testing.expectEqual(@as(usize, 3), direct.ranges.len);
+    var seen = [_]u8{0} ** terms.len;
+    for (plan.groups) |group| for (group.members, 0..) |member_index, i| {
+        seen[member_index.contribution_index] += 1;
+        try std.testing.expectEqualDeep(terms[member_index.contribution_index].value_coeff.toM31Array(), group.member(i).coefficients);
+        try std.testing.expectEqual(terms[member_index.contribution_index].batch_index, group.batch_index);
+    };
+    for (direct.ranges) |range| for (seen[range.start..][0..range.len]) |*hit| {
+        hit.* += 1;
+    };
+    for (seen) |hit| try std.testing.expectEqual(@as(u8, 1), hit);
+    const malformed = [_]ColumnContributionRange{.{ .start = 1, .len = 8 }};
+    try std.testing.expectError(error.ShapeMismatch, buildPartialCompactContributionPlan(a, &columns, &indices, &malformed, &terms, &active, 7, 2, cap));
+    try std.testing.expectError(error.ShapeMismatch, @import("../quotient_direct_plan.zig").buildExcludingSelected(a, &columns, &indices, &ranges, &active, 7, &.{}));
+    try std.testing.expect((try buildPartialCompactContributionPlan(a, &columns, &indices, &ranges, &terms, &active, 7, 2, 2 + @sizeOf(CompactContributionGroup) + @sizeOf(CompactContributionMember) - 1)) == null);
+}
+
+test "wide compact indexed roster survives the previous one MiB metadata cliff" {
+    const a = std.testing.allocator;
+    const count = 33_000;
+    const values = [_]M31{ M31.one(), M31.fromCanonical(3), M31.fromCanonical(7), M31.fromCanonical(11) };
+    const columns = try a.alloc(ColumnEvaluation, count);
+    defer a.free(columns);
+    const indices = try a.alloc(usize, count);
+    defer a.free(indices);
+    const ranges = try a.alloc(ColumnContributionRange, count);
+    defer a.free(ranges);
+    const terms = try a.alloc(ColumnContribution, count);
+    defer a.free(terms);
+    const active = try a.alloc(bool, count);
+    defer a.free(active);
+    for (columns, indices, ranges, terms, active, 0..) |*column, *index, *range, *term, *nonzero, i| {
+        column.* = .{ .log_size = 2, .values = &values };
+        index.* = i;
+        range.* = .{ .start = i, .len = 1 };
+        term.* = .{ .batch_index = i % 3, .value_coeff = QM31.fromU32Unchecked(@intCast(i), 2, 3, 4) };
+        nonzero.* = true;
+    }
+    const cap = 1 << 20;
+    try std.testing.expect(count * 32 > cap);
+    var grouped = (try buildCompactContributionPlan(a, columns, indices, ranges, terms, active, 18, 2, cap)).?;
+    defer grouped.deinit(a);
+    try std.testing.expectEqual(@as(usize, count), grouped.members.len);
+    try std.testing.expectEqual(@as(usize, 3), grouped.groups.len);
+    try std.testing.expect(grouped.retainedBytes() < cap * 2 / 3);
+    var expected: [3]QM31 = @splat(QM31.zero());
+    var actual: [3]QM31 = @splat(QM31.zero());
+    for (terms) |term| expected[term.batch_index] = expected[term.batch_index].add(term.value_coeff);
+    for (grouped.groups) |group| for (group.members) |member_index| {
+        try std.testing.expect(member_index.values == &values);
+        actual[group.batch_index] = actual[group.batch_index].add(terms[member_index.contribution_index].value_coeff);
+    };
+    try std.testing.expectEqualDeep(expected, actual);
 }

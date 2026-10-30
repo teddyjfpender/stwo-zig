@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-v7-explicit-window-continuation-input-v2",
+  "scope": "actual guest continuation from independently selected incoming snapshot; no prefix replay or proof authority",
+  "proof_verified": false,
+  "execution_completed": true,
+  "window": {
+    "skip_cycles": 42700000,
+    "cycles": 131072
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+  "outgoing_sha256": "7f486db5f9d2653270f040c998bc97ea72fde66ff2c70af926c7298f4662b2b9",
+  "stats": {
+    "cycles": 131072,
+    "core_rows": 130182,
+    "keccak_calls": 890,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "setup_ns": 125148125,
+    "execution_ns": 428915250,
+    "snapshot_ns": 2215541
+  },
+  "incoming_words": 2761110,
+  "outgoing_words": 2761236,
+  "logical_source_bytes_read": 25873932,
+  "logical_snapshot_bytes_written": 44179064,
+  "physical_disk_bytes": null,
+  "charged_peak_bytes": 229401696
+}

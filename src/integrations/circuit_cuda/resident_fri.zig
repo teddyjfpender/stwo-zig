@@ -13,6 +13,7 @@ pub const Layer = struct {
     evaluation_log: u32,
     fold_step: u32,
     evaluation_size: u32,
+    log_rows_per_leaf: u32,
     merkle_first: usize,
     merkle_count: usize,
     twiddle_offsets: [4]u32,
@@ -28,8 +29,8 @@ pub const Plan = struct {
 
     pub fn init(
         allocator: std.mem.Allocator,
-        geometry: *const geometry_module.Geometry,
-        config: core.pcs.config_v2.PcsConfigV2,
+        geometry: anytype,
+        config: anytype,
         twiddle_words: usize,
     ) !Plan {
         const fri = config.fri_config;
@@ -38,7 +39,11 @@ pub const Plan = struct {
             fri.fold_step == 0 or fri.fold_step > 4)
             return error.InvalidCircuitFriGeometry;
         var descriptor_count: usize = 0;
-        for (geometry.fri_layers) |source| descriptor_count = try add(descriptor_count, source.evaluation_log - 1);
+        for (geometry.fri_layers, 0..) |source, ordinal| {
+            const packing_log: u32 = if ((if (ordinal == 0) fri.fold_step else source.fold_step) > 1 and source.evaluation_log >= core.fri.LOG_PACKED_LEAF_SIZE) core.fri.LOG_PACKED_LEAF_SIZE else 0;
+            if (source.leaf_log != source.evaluation_log - packing_log) return error.InvalidCircuitFriGeometry;
+            descriptor_count = try add(descriptor_count, source.leaf_log + 1);
+        }
         const layers = try allocator.alloc(Layer, geometry.fri_layers.len);
         errdefer allocator.free(layers);
         const descriptors = try allocator.alloc(field.MerkleLayerDescriptor, descriptor_count);
@@ -52,8 +57,9 @@ pub const Plan = struct {
                 (ordinal + 1 < layers.len and source.fold_step != fri.fold_step))
                 return error.InvalidCircuitFriGeometry;
             const rows = try pow2u32(source.evaluation_log);
-            const count = source.evaluation_log - 1;
-            try fillDescriptors(descriptors[cursor..][0..count], rows >> 2);
+            const count = source.leaf_log + 1;
+            const packing_log = source.evaluation_log - source.leaf_log;
+            try fillDescriptors(descriptors[cursor..][0..count], rows >> @intCast(packing_log));
             var offsets = [_]u32{0} ** 4;
             for (0..source.fold_step) |fold| {
                 const log = source.evaluation_log - @as(u32, @intCast(fold));
@@ -63,6 +69,7 @@ pub const Plan = struct {
                 .evaluation_log = source.evaluation_log,
                 .fold_step = source.fold_step,
                 .evaluation_size = rows,
+                .log_rows_per_leaf = packing_log,
                 .merkle_first = cursor,
                 .merkle_count = count,
                 .twiddle_offsets = offsets,
@@ -97,7 +104,7 @@ pub const Plan = struct {
         for (self.layers, view.activeLayers()) |layer, resident| {
             const rows: usize = layer.evaluation_size;
             if (resident.coordinates.column_stride_words != rows or resident.coordinates.storage.len != try mul(rows, 4) or
-                resident.merkle_hashes.len != try fullTreeHashes(rows >> 2) or resident.merkle_layers.len != layer.merkle_count)
+                resident.merkle_hashes.len != try fullTreeHashes(rows >> @intCast(layer.log_rows_per_leaf)) or resident.merkle_layers.len != layer.merkle_count)
                 return error.InvalidCircuitFriBuffers;
         }
         const final_rows = try pow2(self.final_log);
@@ -115,18 +122,21 @@ pub const Plan = struct {
     /// All arithmetic, Merkle commitments, challenge draws and terminal
     /// interpolation remain on the device. `sink` owns the exact transcript.
     pub fn execute(self: *const Plan, session: anytype, sink: anytype, view: shared.resident_views.Fri, inverse_twiddles: common.Words, proof: shared.resident_views.Proof) !void {
+        return self.executeWith(stages.commitment.PlainNative, session, sink, view, inverse_twiddles, proof);
+    }
+    pub fn executeWith(self: *const Plan, comptime Commitment: type, session: anytype, sink: anytype, view: shared.resident_views.Fri, inverse_twiddles: common.Words, proof: shared.resident_views.Proof) !void {
         try self.validate(view, inverse_twiddles);
         if (proof.fri_commitments.len != self.layers.len * 8 or
             proof.fri_last_layer.len != view.last_transcript.len * 4)
             return error.InvalidCircuitFriBuffers;
         try sink.setFriLayers(@intCast(self.layers.len));
-        const Builder = shared.commit_tree.BuilderFor(stages.commitment.PlainNative);
+        const Builder = shared.commit_tree.BuilderFor(Commitment);
         for (self.layers, 0..) |layer, ordinal| {
             const resident = view.layers[ordinal];
             const root = try Builder.fri(
                 session,
                 layer.evaluation_size,
-                2,
+                layer.log_rows_per_leaf,
                 resident.coordinates,
                 resident.merkle_hashes,
                 self.descriptors[layer.merkle_first..][0..layer.merkle_count],

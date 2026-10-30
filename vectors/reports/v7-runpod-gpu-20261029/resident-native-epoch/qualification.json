@@ -1,0 +1,56 @@
+{
+  "schema": "stwo-resident-native-epoch-v1",
+  "scope": "cold original grammar plus CPU differential and native controller semantic compilation",
+  "gpu_runtime_qualified": true,
+  "full_native_proof_qualified": false,
+  "original_reference_cases": 32,
+  "secure_outputs_per_case": 106,
+  "interval_consumption": "two independent single draws, never one paired draw",
+  "tests": [
+    {
+      "command": "python3 scripts/zig_protocol_test.py src/riscv_cuda_native_epoch_test_v1.zig -OReleaseSafe --test-filter 'native epoch resident schedule'",
+      "passed": 1
+    },
+    {
+      "command": "python3 scripts/zig_protocol_test.py src/riscv_cuda_native_epoch_test_v1.zig -OReleaseSafe -fno-emit-bin --test-filter 'native epoch controller'",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_epoch_v1.zig",
+      "sha256": "5840559e191143687b8b050340fbc9659406d8633e632baf69417a961b901f24"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_epoch_v1.zig",
+      "sha256": "c2b498f3617c93326bc21670ca7e7c43e8877c6106506e34aee8f7632aeeacdf"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_epoch_vectors_v1.zig",
+      "sha256": "bea6f8fdd6eb13282ff60ded1d11eeb7ed25680a2103444ec1aa3ba03c86c111"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/tests/resident_native_epoch_numeric_v1.cu",
+      "sha256": "c8d2ccc9517c709c96b4f03d39f20c789d4c7d2f2cb31b6951a3b59a1627647f"
+    },
+    {
+      "path": "src/riscv_cuda_native_epoch_vectors_v1.zig",
+      "sha256": "5b940d7aa7def9eff6390041705bf539a5c62eaa3476cb7d113b075f9b0c1e98"
+    }
+  ],
+  "gpu_result": {
+    "status": "pass",
+    "scope": "native_epoch_transcript_primitive",
+    "cases": 32,
+    "secure_outputs_per_case": 106,
+    "compared_words": 13888,
+    "device_total_ns": 10071647,
+    "full_native_proof_qualified": false
+  },
+  "gpu": "NVIDIA H200 SM90",
+  "cuda": "12.8.93",
+  "gpu_oracle": "Original Epoch.draw outputs and final draw counter are CPU test oracles only. GPU input consists of public epoch digest, constant grammar words and schedule offsets.",
+  "runtime_object_archive_sha256": "b47e34a8dcf6f66742bb3a8043b6b872bf2b977e351e07fee6d761ce27d94a78",
+  "gpu_runner_sha256": "24413d11276978f3bef93c4fac0ff2567447032f27120c6fa27fc1ece8f23ecb",
+  "gpu_vector_sha256": "def4f7b1ddce591817b0f1fba617862909cdb8486f6fae9f413bd18b9dfb12d1"
+}

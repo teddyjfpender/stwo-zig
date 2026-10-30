@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-window-memory-endpoint-hostile-gate-v1",
+  "status": "passed",
+  "tests_passed": 3,
+  "optimization": "ReleaseSafe",
+  "stripped": true,
+  "binary_sha256": "2f4583f8982bd51e219f08e2bd55183e61bd300dc8920a871fceb07bb519da77",
+  "binary_bytes": 2077952,
+  "full_prover_source_snapshot": null,
+  "test_source_sha256": {
+    "src/frontends/riscv/block_v7_window_memory_endpoint_test_root.zig": "ca1ef6faa427b295c4b43b3863e266fcf9e906e88aa83ca1f772642ec7aafdda",
+    "src/frontends/riscv/prover/tests/block_v7_window_memory_endpoint_test.zig": "dc8ee4a30d941f2dca51538f9d1970cd19361e1a8c6986f4061e9ec1339dc08e"
+  },
+  "command": "python3 scripts/zig_protocol_test.py --lock /tmp/stwo-zig-integration-build.lock src/frontends/riscv/block_v7_window_memory_endpoint_test_root.zig -OReleaseSafe -fstrip --test-filter 'window memory freshly' --test-no-exec -femit-bin=/tmp/v7-window-memory-endpoint-test",
+  "runtime_command": "/tmp/v7-window-memory-endpoint-test",
+  "input": {
+    "guest": "block_v7_keccak_execution_test_support",
+    "skip_cycles": 6,
+    "window_cycles": 3,
+    "keccak_calls": 1,
+    "actual_ram_transitions": 50
+  },
+  "positive_control": "Actual captured endpoints and exact Keccak RAM transitions pass fresh original WindowJoint verification.",
+  "attack": "Add a change to an allowed unchanged RAM word untouched by every actual transition; recompute outgoing snapshot hash, independently derive policy, recommit fixed/main trees, draw a new epoch and generate a fresh original STARK over the unchanged actual events.",
+  "verifier_boundary": "Destroy producer Stage; postcard serialize and decode STARK; independently rebuild fixed commitment and verify the original STARK before checking complete endpoint delta.",
+  "expected_rejection": "UnclosedV7WindowState",
+  "scope": "Open memory theorem. Does not itself close native/caller transition bus or prove whole execution/recursive root.",
+  "timing_qualified": false
+}

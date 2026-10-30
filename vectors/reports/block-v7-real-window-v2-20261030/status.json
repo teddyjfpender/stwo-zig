@@ -1,0 +1,73 @@
+{
+  "schema": "stwo-v7-real-window-v2-status",
+  "qualified": [
+    "genuine nonterminal Keccak execution in two native segments; fresh original source closure; compensated delta-claim forgery rejected",
+    "independently reconstructed endpoint policy and preserved terminal epoch framing",
+    "fully recommitted untouched outgoing-cell forgery rejected after original STARK verification (sibling gate)",
+    "Actual tiny MUL degree5 q3 proof with and without store/load; access wrapper now extends quotient evaluations rather than only relabelling split. Fixed gate427passed1skipped.",
+    "Real retained Ethereum canonical q70/26 new-v7 original sets: native32768, recovery32768, Keccak32768, native131072, native524288; exact incoming/outgoing states and all fresh source/global verification passed."
+  ],
+  "not_qualified": [
+    "Recursive root for these real windows (separate gate ongoing)",
+    "Whole Ethereum block and skipped-prefix authentication",
+    "Recovery/Keccak windows above32768 cycles"
+  ],
+  "native_geometry": {
+    "retired_instructions": 16384,
+    "target_composition_log_split": 3,
+    "native_component_splits": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "intrinsic_degree_log_bounds": [
+      7,
+      14,
+      11,
+      10,
+      14,
+      5,
+      7,
+      14,
+      3,
+      4,
+      8,
+      4,
+      10,
+      2
+    ],
+    "preexisting_overrides": false,
+    "culprit": "MUL paired range_check_8_11 lookups pairs9/10 and11/12 have degree5 and require q3. Native components needed true q1-to-q3 lift; access wrapper independently needed true q2-to-q3 lift.",
+    "log": "native-composition-geometry.log"
+  },
+  "scope": "externally admitted complete incoming/outgoing machine states; nonterminal execution; no rewritten guest/halt",
+  "benchmark_failure": "native-32768-run2/qualification.log",
+  "q3_diagnosis": {
+    "actual_corpus_failure": "native-32768-q3/qualification.log",
+    "discriminator_before": "mul-q3-access-before.log",
+    "discriminator_after": "mul-q3-access-fixed.log",
+    "without_access_before": "pass",
+    "with_access_before": "ConstraintsNotSatisfied",
+    "both_after": "pass",
+    "fix": "src/frontends/riscv/prover/block_v5_native_projection_fused_component_v2.zig",
+    "fix_sha256": "9307c4295d12453d4037234ed7544808a00017485dc085feb93ea1fc26ba3471",
+    "benchmark_claim": null
+  },
+  "tables": {
+    "summary": "original-window-times.csv",
+    "native_inclusive_stages": "native-core-stages.csv",
+    "proof_file_hashes": "original-window-artifacts.json",
+    "capsule_pins": "prepared-corpus.json"
+  }
+}

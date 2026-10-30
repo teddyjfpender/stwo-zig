@@ -1,0 +1,29 @@
+{
+  "schema": "stwo-resident-native-direct-numeric-v1",
+  "scope": "direct opcode composition kernels only; not a complete resident native proof",
+  "device": "NVIDIA H200 SM90",
+  "recipes": [
+    "legacy",
+    "local-x0"
+  ],
+  "opcode_families": 17,
+  "kernels": 34,
+  "rows_per_kernel": 8,
+  "exact_output_words": 1088,
+  "oracle": "Original Semantic.Eval(Q).evaluateForRecipeInto, including secure random coefficient fold",
+  "local_tests": "PASS4, including all roots on arbitrary extension-field samples and executable identity mutation",
+  "gpu_result": "PASS",
+  "cuda_source_sha256": "54fec5adeab35dd729cb788a6bfae6685008eead70fd03e2f492083fa31f9725",
+  "binary_sha256": "0f3d0d63a97375f71e4c1ef0dbb0257d62528d8d29c49935eb811ceab898d8f6",
+  "compile": [
+    "nvcc",
+    "-O2",
+    "-std=c++17",
+    "-arch=sm_90",
+    "--threads",
+    "8"
+  ],
+  "remote_evidence": "/workspace/stwo-v7-evidence/resident-native-direct-v1",
+  "proof_acceptance_authority": false,
+  "full_resident_proof_qualified": false
+}

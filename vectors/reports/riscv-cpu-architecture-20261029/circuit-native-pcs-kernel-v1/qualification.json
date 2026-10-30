@@ -1,0 +1,188 @@
+{
+  "schema": "stwo-circuit-full-native-unlifted-pcs-kernel-qualification-v1",
+  "scope": "Complete finite native PCS opening verifier circuit, including OODS/DEEP/PoW/all physical openings/FRI; not typed AIR, VM closure, authorized leaf or recursive circuit proof",
+  "production_active": false,
+  "backend": "CPU",
+  "optimize": "ReleaseSafe",
+  "passed": 19,
+  "failed": 0,
+  "command": "python3 scripts/zig_protocol_test.py src/circuit_blake3_pcs_reuse_test_root.zig -OReleaseSafe --test-filter 'circuit native PCS'",
+  "geometry": {
+    "physical_trees": 5,
+    "base_column_logs": [
+      [
+        6
+      ],
+      [
+        2,
+        3
+      ],
+      [],
+      [
+        1
+      ],
+      [
+        4,
+        2
+      ]
+    ],
+    "mask_counts": [
+      [
+        0
+      ],
+      [
+        1,
+        2
+      ],
+      [],
+      [
+        3
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "maximum_sampled_degree_log": 4,
+    "fri_domain_log": 5,
+    "higher_unsampled_tree_height": 7,
+    "fold_step": 1,
+    "log_last_layer_degree_bound": 0,
+    "log_blowup_factor": 1,
+    "independently_bound_masks": true
+  },
+  "checked_in_circuit": [
+    "native PcsConfig and ordered root absorption",
+    "OODS seed draw and rational circle point",
+    "ordered sample absorption and DEEP beta",
+    "native periodicity response and beta-power law",
+    "native conjugate-line coefficients and CM31 denominator in QM31",
+    "same authenticated queried cells feed DEEP values",
+    "native FRI roots/challenges/terminal absorption",
+    "PoW26 on raw first U32 and nonce absorption",
+    "authenticated raw queries and per-tree pairbit-preserving projection",
+    "all nonempty physical-tree Merkle paths",
+    "all FRI pair cosets, folds and constant terminal equations"
+  ],
+  "host_capture_authority": false,
+  "untrusted_witness_source": "native prover auxiliary values/paths, independently rechecked inside circuit",
+  "hostile_controls": [
+    "altered OODS evaluation",
+    "altered higher-unsampled-tree queried cell",
+    "wrong root",
+    "wrong FRI witness",
+    "false nominated DEEP value",
+    "known-invalid q70 PoW nonce",
+    "wrong sample inventory",
+    "unsupported explicit lifting",
+    "unsupported Cairo fold4"
+  ],
+  "NoValue_and_gatefree_parity": true,
+  "artifacts": [
+    {
+      "queries": 8,
+      "pow_bits": 0,
+      "geometry_identity": "0e1a0b6d16337bd9242494fe1b6a3c820654ac53c5bf170fbeb337ecdfb9d7c7",
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-pcs-kernel-v1/q8-pow0-native-pcs.bin",
+      "bytes": 2511,
+      "sha256": "9baab9fdbaee9263a27beb7fe3088665146f3f085c2d004a7c3b880d316f9040",
+      "nonce": 0,
+      "role": "Genuine native PCS opening proof; no typed AIR or VM statement",
+      "fresh_native_byte_verified": true,
+      "complete_circuit_satisfaction": true
+    },
+    {
+      "queries": 70,
+      "pow_bits": 26,
+      "geometry_identity": "da1a02178efaf10fd02c81a1a2680bd0d3f54c9812a62b28e34489eb6cc57ba1",
+      "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-pcs-kernel-v1/q70-pow26-native-pcs.bin",
+      "bytes": 2685,
+      "sha256": "de4df3f1e0dcb83a0f50172809aedcd372d2c822a93ad162281fc30fd53e15e8",
+      "nonce": 23851469,
+      "role": "Genuine native PCS opening proof; no typed AIR or VM statement",
+      "fresh_native_byte_verified": true,
+      "complete_circuit_satisfaction": true
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/circuit/builder/blake3_pcs_reuse_v1.zig",
+      "sha256": "4c75ed94a1c6e21a3eda8ade62909066d1903b9699f787d41e2660c48bc8fb2c"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_pcs_reuse_v1_test.zig",
+      "sha256": "d7a3d9403245e3a5944fdd148d386c3037cd77c4877d9b3637cfa3a8cce37879"
+    },
+    {
+      "path": "src/circuit_blake3_pcs_reuse_test_root.zig",
+      "sha256": "08a9432e6a653df710f63f9d7aaf7c8fc6447755fe9f8a72d4403c863f65d343"
+    },
+    {
+      "path": "campaign/design/riscv-blake3-circuit-pcs-v1.md",
+      "sha256": "95f6990f0c4058a4c5b49aca322ee34798350e13c0a46d5c5e990e19d5ecd161"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_channel_reuse_v1.zig",
+      "sha256": "3c9ae04eb7ad291be557e7f5510d96423c16b223e3dbc9539bf0f7395f5a4a04"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_merkle_reuse_v1.zig",
+      "sha256": "874012bebae25590bf3e82880913691caa64405f93f25046b62c3fb2b6d174a9"
+    },
+    {
+      "path": "src/frontends/circuit/builder/blake3_fri_reuse_v1.zig",
+      "sha256": "9b6bf3117c886e56e79b137675dc919911aa2226a00c62a563a8a49735ae9d38"
+    },
+    {
+      "path": "src/core/pcs/verifier.zig",
+      "sha256": "a7b4e1977dc29feb9341eacceda8e09bd77a6a11dcdb7d0e4c1eb18445570581"
+    },
+    {
+      "path": "src/core/pcs/quotients/samples.zig",
+      "sha256": "18848c2e180236b0d6807a4d2863f127a8830366ac1df038f5042359e9401e2e"
+    },
+    {
+      "path": "src/core/pcs/quotients/row_evaluation.zig",
+      "sha256": "30e9e8768b083ca3d218b9d4903d7e3805b4219971e7d92847303d9de5778442"
+    },
+    {
+      "path": "src/core/pcs/quotients/fri_answers.zig",
+      "sha256": "5280b74c1762860fad733066a40d96dada813908532e3b8854e0a3f02f182181"
+    },
+    {
+      "path": "src/core/constraints.zig",
+      "sha256": "4b8eb20e43d45ec28777f343a43e25566788c598b895d1f230b62da25e33dfea"
+    },
+    {
+      "path": "src/prover/pcs/scheme.zig",
+      "sha256": "46abee795d7573e59c8800c93fd1c19eb76c0af98414616ab6a835366587997f"
+    },
+    {
+      "path": "src/interop/postcard.zig",
+      "sha256": "0c7dfdc106bb66e94d6d87e5891c09c296c3210771d268ebcb068a27f2bc4d64"
+    }
+  ],
+  "log": {
+    "path": "vectors/reports/riscv-cpu-architecture-20261029/circuit-native-pcs-kernel-v1/qualification.log",
+    "sha256": "4b6c01b9e0d377cda6bed837679c48d924c13704f9bde3078f5a0451a7817872"
+  },
+  "limits": {
+    "physical_trees": 256,
+    "columns": 65536,
+    "masks_per_column": 8,
+    "domain_log": 30,
+    "fold_step": 1,
+    "last_degree_log": 0,
+    "sampler_attempts_per_challenge": 1,
+    "legitimate_sampler_rejection_fails_closed": true
+  },
+  "open": [
+    "RISC-V exact original root/claim transcript prelude",
+    "typed AIR/composition verification",
+    "CPU/register/public/caller/RAM closure",
+    "independently authorized circuit leaf key",
+    "actual circuit proof and bounded fold integration",
+    "general field-sampler retry grammar",
+    "full-block terminal statement and callers"
+  ]
+}

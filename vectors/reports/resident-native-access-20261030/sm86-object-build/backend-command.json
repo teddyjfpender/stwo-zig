@@ -1,0 +1,20 @@
+[
+  "python3",
+  "scripts/cuda_build.py",
+  "--frontend",
+  "native",
+  "--out-dir",
+  "/workspace/sm86-evidence/native-objects/backend",
+  "--nvcc",
+  "/usr/local/cuda/bin/nvcc",
+  "--host-cxx",
+  "/usr/bin/g++",
+  "--cuda-home",
+  "/usr/local/cuda-12.8",
+  "--cuda-library-dir",
+  "/usr/local/cuda-12.8/lib64",
+  "--arch",
+  "86",
+  "--jobs",
+  "6"
+]

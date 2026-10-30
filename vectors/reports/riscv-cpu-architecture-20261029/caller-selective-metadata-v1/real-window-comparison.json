@@ -1,0 +1,20 @@
+{
+  "schema": "stwo-v8-caller-selective-real-window-comparison-v1",
+  "pair": [
+    "keccak-131072-mixed-baseline-idle-original",
+    "keccak-131072-mixed-selective-original"
+  ],
+  "observation_kind": "single diagnostic pair; not repeated ranked median",
+  "whole_baseline_s": 20.939082583,
+  "whole_candidate_s": 19.770803958,
+  "whole_reduction_fraction": 0.05579416482881161,
+  "proof_and_metadata_byte_identical": true,
+  "proof_sha256": "ac6afba3ae35f20780e8adbd271f3d4a9ce453b13d94cd79b45185f6aa20ff4d",
+  "metadata_sha256": "675ef8ac7be5e71aa143fea10e305cd0e880f8f1597b8de1b227c93d3a3ebc02",
+  "profiled_observation": "keccak-131072-mixed-selective-profile",
+  "composition_evaluation_s": 14.929953,
+  "core_s": 15.3951565,
+  "global_ram_closed": false,
+  "recursive_root": false,
+  "ethereum_block": false
+}

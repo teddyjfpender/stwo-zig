@@ -29,6 +29,21 @@ pub const Trace = struct {
         return initForMode(a, family, main, slot, log_size, frame, 0);
     }
     pub fn initForMode(a: std.mem.Allocator, family: opcode.OpcodeFamily, main: *const opcode.TraceColumns, slot: usize, log_size: u32, frame: event.Frame, mode: u32) !Trace {
+        var result = try allocateForCheckpoint(a, family, main, slot, log_size, frame, mode);
+        errdefer result.deinit();
+        for (0..result.domainSize()) |logical| {
+            const pair = try result.pairAt(logical);
+            const converted = (try integer.Witness.fromPair(pair, result.base_clock)).columns();
+            const physical = framework.committedRow(logical, log_size);
+            for (converted, &result.witness) |value, *column| column.*[physical] = try secureBase(value);
+        }
+        return result;
+    }
+
+    /// Allocate exact independently derived geometry without deriving the
+    /// witness again. Caller must completely fill canonical storage before
+    /// reading it; cached witness bytes are never an acceptance receipt.
+    pub fn allocateForCheckpoint(a: std.mem.Allocator, family: opcode.OpcodeFamily, main: *const opcode.TraceColumns, slot: usize, log_size: u32, frame: event.Frame, mode: u32) !Trace {
         if (mode > 1) return error.InvalidV5RegisterCustodyMode;
         const old_width = opcode.nColumnsForFamily(family);
         const local_width = try @import("../air/x0_native_envelope_v1.zig").mainColumnCount(family);
@@ -44,12 +59,6 @@ pub const Trace = struct {
         errdefer a.free(storage);
         var result = Trace{ .register_custody_mode = mode, .allocator = a, .family = family, .main = main, .slot = slot, .log_size = log_size, .frame = frame, .base_clock = base_clock, .storage = storage, .witness = undefined };
         for (&result.witness, 0..) |*column, index| column.* = storage[index * size ..][0..size];
-        for (0..size) |logical| {
-            const pair = try result.pairAt(logical);
-            const converted = (try integer.Witness.fromPair(pair, base_clock)).columns();
-            const physical = framework.committedRow(logical, log_size);
-            for (converted, &result.witness) |value, *column| column.*[physical] = try secureBase(value);
-        }
         return result;
     }
 

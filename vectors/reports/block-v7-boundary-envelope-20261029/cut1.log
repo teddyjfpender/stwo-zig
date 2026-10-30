@@ -1,0 +1,14 @@
+1/11 prover.tests.block_v7_streaming_execution_test.test.v7 bounded dynamic execution restores each committed witness once...V7_BOUNDARY_ENVELOPE segments=3 physical_frames=3 state_register_rom_halt_rejected=true full_source_verified=true
+V7_STREAMING iterations=1 profile=diagnostic_q8_pow0 active_callers=true stats={"cycles":20,"segments":20,"callers":3,"events":103,"fetches":39,"original_proofs":26,"checkpoint_bytes":7693556,"native_checkpoint_bytes":59044,"caller_checkpoint_bytes":7634512,"max_native_restore_codec_bytes":12376,"event_storage_bytes":3672,"setup_ns":1157458,"execution_ns":3590294,"collection_ns":483104373,"providers_first_ns":97006417,"native_proof_ns":518287416,"caller_proof_ns":4763758875,"memory_proof_ns":123149250,"rom_proof_ns":7699292,"lookup_proof_ns":42568750,"verification_ns":3549593708,"consumer_ns":946516459,"whole_ns":10536432416,"charged_peak_bytes":125631880} original_verified=true recursive_root=false checkpoints_deleted=true
+OK
+2/11 prover.block_execution_external_trace_v2.test_0...OK
+3/11 runner.mod.test_0...OK
+4/11 runner.decode.test_0...OK
+5/11 air.memory_commitment.poseidon2_air.test_0...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/11 air.lookups.tables.mod.test_0...OK
+9/11 prover.block_v5_committed_trace_column_v1.test_0...OK
+10/11 air.lookups.tables.source_ingest.test_0...OK
+11/11 diagnostics.mod.test_0...OK
+All 11 tests passed.

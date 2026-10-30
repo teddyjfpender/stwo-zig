@@ -1,0 +1,15 @@
+1/14 prover.tests.block_v7_degree_bounded_relation_layout_test.test.degree-bounded v7 covers every canonical opcode relation and original partition weight...OK
+2/14 prover.tests.block_v7_degree_bounded_relation_layout_test.test.degree-bounded MUL adds exactly two claims and eight interaction columns for q2...OK
+3/14 prover.tests.block_v7_degree_bounded_relation_layout_test.test.degree-bounded physical claim framing binds each singleton before interaction...OK
+4/14 prover.tests.block_v7_degree_bounded_native_test.test.degree-bounded native MUL q3 control and q2 opt-in prove without access...OK
+5/14 prover.tests.block_v7_degree_bounded_native_test.test.degree-bounded native MUL q3 control and q2 opt-in prove with access...OK
+6/14 air.semantic_eval.test_0...OK
+7/14 air.lookups.tables.mod.test_0...OK
+8/14 runner.mod.test_0...OK
+9/14 runner.decode.test_0...OK
+10/14 air.memory_commitment.poseidon2_air.test_0...OK
+11/14 prover.block_execution_external_trace_v2.test_0...OK
+12/14 air.lookups.tables.source_ingest.test_0...OK
+13/14 diagnostics.mod.test_0...OK
+14/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+All 14 tests passed.

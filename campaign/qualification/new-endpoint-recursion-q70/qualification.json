@@ -1,0 +1,31 @@
+{
+  "source": "B8 endpoint original plus symbolic complete ledger",
+  "scope": "declared_nonterminal_window",
+  "layout_version": 2,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 4,
+  "endpoint_count": 1,
+  "proof_sha256": "42cd94bdddf6fbe8edb0e3b139db2108478f8b3c10741dbe5a46d47a0b0075e5",
+  "elf_sha256": "44408296a9906487495ccbf54697df6eaf3ca070687feb50cb1c500385aae15b",
+  "incoming_snapshot_sha256": "6e6c461ec1af64c4e09e7b1c78158d4e8768a7e46db1588de61ce6d89260a3cd",
+  "outgoing_snapshot_sha256": "85dcd81e44f9c12a0bd67791c134ef4812eb6f7183c642a1d75be5729ec1ac77",
+  "proof_bytes": 932280,
+  "claims_bytes": 1583,
+  "original_destroyed": true,
+  "detached_metadata": true,
+  "fresh_key": true,
+  "host_closure_authority": false,
+  "stats": {
+    "fixed_compile_ns": 3232599791,
+    "fixed_commit_ns": 974063000,
+    "witness_prepare_ns": 6471625417,
+    "fixed_parity_ns": 232301333,
+    "plan_ns": 759792500,
+    "proof_ns": 10923959792,
+    "encoding_ns": 30462333,
+    "whole_ns": 22624804250,
+    "retained_rows_bytes": 1171901964,
+    "fixed_commitment_reused": true
+  }
+}

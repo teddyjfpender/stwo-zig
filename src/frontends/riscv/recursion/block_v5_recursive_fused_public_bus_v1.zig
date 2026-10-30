@@ -6,15 +6,21 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Universal = @import("air/universal_challenges.zig");
 pub fn ForFamily(comptime Policy: type) type {
-    return ForFamilyInternal(Policy, null);
+    return ForFamilyInternal(Policy, null, false);
 }
 /// Explicit PAGE family. Only independently selected Policy can choose eight
 /// public prefix roots; existing family entrypoints retain their 2/3 grammar.
 pub fn ForFamilyWithRoots(comptime Policy: type, comptime roots: usize) type {
     comptime if (roots != 8) @compileError("explicit PAGE public prefix requires eight roots");
-    return ForFamilyInternal(Policy, roots);
+    return ForFamilyInternal(Policy, roots, false);
 }
-fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize) type {
+/// Explicit independently reconstructed union placement. Policy supplies the
+/// public word offset of each first root; legacy families retain 2/3/8 gates.
+pub fn ForFamilyWithBoundedRoots(comptime Policy: type) type {
+    comptime if (!@hasDecl(Policy, "rootWordOffset")) @compileError("bounded public roots require an explicit word-offset policy");
+    return ForFamilyInternal(Policy, null, true);
+}
+fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize, comptime bounded_roots: bool) type {
     return struct {
         const Admission = Policy.Admission;
         const Statement = Policy.Statement;
@@ -31,7 +37,13 @@ fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize) type {
             roots_count: usize,
             pub fn init(a: std.mem.Allocator, admitted: *const Admission.Prepared, claims: Policy.Claims) !Values {
                 try admitted.validate(admitted.template_id);
-                try Policy.validateClaims(admitted, claims);
+                // PAGE validation reconstructs wide original fixed data. It
+                // must use this bounded live-work allocator, never the small
+                // allocator that owns the admission metadata.
+                if (comptime @hasDecl(Policy, "validateClaimsWithAllocator"))
+                    try Policy.validateClaimsWithAllocator(a, admitted, claims)
+                else
+                    try Policy.validateClaims(admitted, claims);
                 var statement = try Policy.statement(a, admitted, claims);
                 errdefer statement.deinit();
                 const public = try Policy.publicInputs(a, admitted, claims);
@@ -62,6 +74,9 @@ fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize) type {
             pub fn validate(self: Values) !void {
                 if (comptime exact_roots) |count| {
                     if (self.roots_count != count) return error.InvalidFusedRecursivePublicInputs;
+                } else if (bounded_roots) {
+                    if (self.roots_count < 2 or self.roots_count > 256) return error.InvalidFusedRecursivePublicInputs;
+                    _ = try Policy.rootWordOffset(&self.statement, self.roots_count, self.roots_count - 1);
                 } else if (self.roots_count != 2 and self.roots_count != 3) return error.InvalidFusedRecursivePublicInputs;
                 const fields = try std.math.mul(usize, self.statement.felts.len, 4);
                 if (try std.math.add(usize, self.statement.words.len, fields) >= core.fields.m31.Modulus or self.public.len >= core.fields.m31.Modulus) return error.InvalidFusedRecursivePublicInputs;
@@ -86,7 +101,7 @@ fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize) type {
                     .first_root => blk: {
                         const tree = coordinate / 8;
                         if (tree >= self.roots_count) return error.InvalidFusedRecursivePublicSchedule;
-                        const offset = self.statement.roots_offset[tree];
+                        const offset = if (bounded_roots) try Policy.rootWordOffset(&self.statement, self.roots_count, tree) else self.statement.roots_offset[tree];
                         if (offset > self.statement.words.len or 8 > self.statement.words.len - offset) return error.InvalidFusedRecursivePublicSchedule;
                         break :blk self.statement.words[offset + coordinate % 8];
                     },
@@ -168,15 +183,27 @@ fn ForFamilyInternal(comptime Policy: type, comptime exact_roots: ?usize) type {
         /// original native graph/plan and public extents; the live caller below
         /// retains actual public input equality checks before this delegation.
         pub fn collectFixedSchedule(a: std.mem.Allocator, plan: *const @import("air/blake3_transcript_plan.zig").Plan, composition: anytype, words_count: usize, public_count: usize, roots_count: usize, path_reads: u32, max_wires: usize) ![]Wire {
+            if (path_reads == 0 or path_reads >= core.fields.m31.Modulus or roots_count > 8) return error.InvalidFusedRecursivePublicSchedule;
+            const per_tree: [8]u32 = @splat(path_reads);
+            return collectFixedSchedulePerTree(a, plan, composition, words_count, public_count, per_tree[0..roots_count], max_wires);
+        }
+        /// Exact original opening census, including genuinely empty committed
+        /// trees. The typed caller must derive this from independent geometry.
+        /// Empty roots remain bound through their canonical transcript fields.
+        pub fn collectFixedSchedulePerTree(a: std.mem.Allocator, plan: *const @import("air/blake3_transcript_plan.zig").Plan, composition: anytype, words_count: usize, public_count: usize, path_reads: []const u32, max_wires: usize) ![]Wire {
+            const roots_count = path_reads.len;
             if (comptime exact_roots) |count| {
                 if (roots_count != count) return error.InvalidFusedRecursivePublicSchedule;
+            } else if (bounded_roots) {
+                if (roots_count < 2 or roots_count > 256) return error.InvalidFusedRecursivePublicSchedule;
             } else if (roots_count != 2 and roots_count != 3) return error.InvalidFusedRecursivePublicSchedule;
-            if (path_reads == 0 or path_reads >= core.fields.m31.Modulus or words_count >= core.fields.m31.Modulus or public_count >= core.fields.m31.Modulus or max_wires == 0 or composition.sources.len != composition.circuit.input_count) return error.InvalidFusedRecursivePublicSchedule;
+            for (path_reads) |count| if (count >= core.fields.m31.Modulus) return error.InvalidFusedRecursivePublicSchedule;
+            if (words_count >= core.fields.m31.Modulus or public_count >= core.fields.m31.Modulus or max_wires == 0 or composition.sources.len != composition.circuit.input_count) return error.InvalidFusedRecursivePublicSchedule;
             var wires: std.ArrayList(Wire) = .empty;
             errdefer wires.deinit(a);
             const root_circuit = @import("air/blake3_root_sources.zig").CIRCUIT;
             for (0..roots_count) |tree| {
-                for (0..8) |coordinate| try append(a, &wires, .{ .circuit = root_circuit, .wire = @intCast(8 * tree + coordinate), .uses = path_reads, .source = .first_root, .coordinate = @intCast(8 * tree + coordinate) });
+                for (0..8) |coordinate| try append(a, &wires, .{ .circuit = root_circuit, .wire = @intCast(8 * tree + coordinate), .uses = path_reads[tree], .source = .first_root, .coordinate = @intCast(8 * tree + coordinate) });
             }
             for (plan.fixed.root_reads) |receipt| {
                 if (receipt.source.circuit != PUBLIC_CIRCUIT) continue;

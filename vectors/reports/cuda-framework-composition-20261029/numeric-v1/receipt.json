@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-cuda-framework-numeric-qualification-v1",
+  "status": "passed",
+  "device": "H200,sm90",
+  "cases": 132,
+  "checked_field_words": 44352,
+  "launches": 264,
+  "numeric_binary_sha256": "2dbf5adfb824e35f337b871461f1640ed4e628720727a7803fe949a5fc469105",
+  "kernels_source_sha256": "56c99fddbafd175f27e0b18c6b5f2472d27744ff051faa2f3531339b65133687",
+  "oracle": "Independent rational fractions plus original exported direct DAG; exact vanishing inverses and circle predecessor; nonzero initial output plus two additive launches. Twenty original parent AIRs and two original table AIRs; six runtime variants each.",
+  "scope": "Numeric kernel qualification only. Whole parent proof and live Owner transport are pending.",
+  "sources": {
+    "src/prover/air/framework_polynomial_emitter_v1.zig": "b8e2b3ef569557ab3ead4cec01a019151399545a931d2810de8b4c8e82498b70",
+    "src/backends/metal/runtime/framework_polynomial_codegen.zig": "fd4a709ca83d645e49ddf515ad280c3f01605c31284e30239a7f09d9b6b89b85",
+    "src/backends/cuda/framework_polynomial_codegen_v1.zig": "c2e8cb9886db68fc0284c626384612129d3dca955305106a8def1d57709a991d",
+    "src/backends/cuda/native/framework_polynomial_v1.cuh": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd",
+    "src/backends/cuda/native/oods/field.cuh": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec",
+    "src/integrations/riscv_cuda/hybrid_framework_composition_v1.zig": "fb9261387b3681e39161862c249fa0d383a9f6959d40a565eac14249ddf5b9f6",
+    "src/frontends/riscv/benchmarks/cuda_framework_catalog_v1.zig": "0356c62399c70a5ee16a78266d01bac138ff7b7c4e91e00f5950c72876466f54",
+    "src/frontends/riscv/benchmarks/cuda_framework_numeric_runner_v1.cpp": "a8497867f4891ff7d0a2f5a64d6f23ec09b39d88ca084f657b02d38568acdc07",
+    "src/riscv_cuda_framework_export_test_root.zig": "cb4c8ee67b722cd9fe900a2e38a19e18a32c22888423e2174cb64cdb838bac92",
+    "src/riscv_cuda_framework_test_root.zig": "87807f3fa42be98574e5fd7165c0e484e1f8704ded983bebd45e83213e443dac"
+  }
+}

@@ -1,0 +1,8 @@
+{"entries":1,"gpu_gather_sort_arguments_ns":70560,"cub_temporary_bytes":1}
+{"entries":2,"gpu_gather_sort_arguments_ns":43616,"cub_temporary_bytes":1}
+{"entries":3,"gpu_gather_sort_arguments_ns":36384,"cub_temporary_bytes":1}
+{"entries":127,"gpu_gather_sort_arguments_ns":22048,"cub_temporary_bytes":1}
+{"entries":512,"gpu_gather_sort_arguments_ns":20192,"cub_temporary_bytes":1}
+{"entries":4099,"gpu_gather_sort_arguments_ns":22912,"cub_temporary_bytes":1}
+{"entries":65536,"gpu_gather_sort_arguments_ns":186144,"cub_temporary_bytes":537087}
+{"status":"pass","scope":"resident_readonly_sort_primitive","fully_resident_prover":false,"cases":7,"entries":70280,"field_words":281120,"hostiles":20}

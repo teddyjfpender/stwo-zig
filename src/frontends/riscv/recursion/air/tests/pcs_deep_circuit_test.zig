@@ -68,6 +68,39 @@ test "R-012 PCS-DEEP circuit seals exact profile and row-24 input order" {
     try built.validate();
 }
 
+test "R-012 PCS-DEEP preserves empty tree slots without adding samples or quotient terms" {
+    const a = std.testing.allocator;
+    const trees = [_]circuit.TreeProfile{ .{ .column_log_sizes = &.{} }, TREES[0], .{ .column_log_sizes = &.{} }, TREES[1], .{ .column_log_sizes = &.{} } };
+    var profile = PROFILE;
+    profile.trees = &trees;
+    try profile.validate();
+    try std.testing.expectEqual(try PROFILE.columnCount(), try profile.columnCount());
+    try std.testing.expectEqual(try PROFILE.sampleCount(), try profile.sampleCount());
+    try std.testing.expectEqual(try PROFILE.termCount(), try profile.termCount());
+    try std.testing.expect(!std.meta.eql(PROFILE.identityDigest(), profile.identityDigest()));
+    const samples = [_]QM31{ secure(101), secure(107), secure(109) };
+    const query_values = [_]M31{ M31.fromCanonical(11), M31.fromCanonical(13), M31.fromCanonical(17), M31.fromCanonical(19), M31.fromCanonical(23), M31.fromCanonical(29) };
+    const queries = [_]M31{ M31.fromCanonical(3), M31.fromCanonical(17) };
+    const answers = try nativeAnswers(.current_previous, samples, query_values, secure(37), secure(41), queries);
+    defer a.free(answers);
+    var built = try circuit.build(a, profile);
+    defer built.deinit();
+    var witness = circuit.Witness{ .active = true, .sampled_values = &samples, .queried_values = &query_values, .oods_seed = secure(37), .deep_randomness = secure(41), .raw_queries = &queries, .answers = answers };
+    var evaluation = try built.evaluate(a, witness);
+    defer evaluation.deinit();
+    try evaluation.validateAgainst(&built);
+    witness.sampled_values = samples[0..2];
+    try std.testing.expectError(error.InvalidWitness, built.evaluate(a, witness));
+    witness.sampled_values = &samples;
+    witness.queried_values = query_values[0..5];
+    try std.testing.expectError(error.InvalidWitness, built.evaluate(a, witness));
+    profile.sample_layouts = SAMPLE_LAYOUTS[0..2];
+    try std.testing.expectError(error.ColumnCountMismatch, profile.validate());
+    profile.trees = &.{.{ .column_log_sizes = &.{} }};
+    profile.sample_layouts = &.{};
+    try std.testing.expectError(error.InvalidProfile, profile.validate());
+}
+
 test "R-012 PCS-DEEP prepared graph owns its profile and rejects changed evaluations" {
     var logs = TREE_0_LOGS;
     var trees = TREES;
@@ -315,7 +348,7 @@ test "R-012 PCS-DEEP binds both native two-point orders exactly" {
             // an accidental normalization observable.
             .current_previous => [_]QM31{ secure(101), secure(103), secure(107) },
             .previous_current => [_]QM31{ secure(103), secure(101), secure(107) },
-            .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
+            .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final, .current_keccak_final_composition => unreachable,
         };
         try expectNativeBatchOracle(
             pair_layout,
@@ -586,7 +619,7 @@ fn nativeAnswers(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final, .current_keccak_final_composition => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -641,7 +674,7 @@ fn expectNativeBatchOracle(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final, .current_keccak_final_composition => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -707,7 +740,7 @@ fn expectNativeBatchOracle(
     const current_batch_index: usize = switch (pair_layout) {
         .current_previous => 1,
         .previous_current => 2,
-        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final, .current_keccak_final_composition => unreachable,
     };
     const other_batch_index: usize = if (current_batch_index == 1) 2 else 1;
     try std.testing.expectEqual(@as(usize, 1), batches[0].cols_vals_randpows.len);

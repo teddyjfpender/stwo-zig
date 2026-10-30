@@ -138,10 +138,7 @@ pub fn prepare(
     capacity: u32,
 ) !parent.preparation.Prepared {
     try capture.validate(admitted, admitted.expected_id);
-    const binding = try provisionalIdentity(statement, &admitted.shape.public_data, admitted.config,
-        admitted.sealed, admitted.pins, admitted.entries,
-        admitted.catalog orelse return error.MissingBlockV5LeafCatalog,
-        admitted.template, &capture.receipt, sidecar);
+    const binding = try provisionalIdentity(statement, &admitted.shape.public_data, admitted.config, admitted.sealed, admitted.pins, admitted.entries, admitted.catalog orelse return error.MissingBlockV5LeafCatalog, admitted.template, &capture.receipt, sidecar);
     var result = try parent.preparation.prepare(a, admitted, capture, admitted.expected_id, capacity);
     errdefer result.deinit();
     if (result.context.statement_identity != null or result.context.span_binding_id != null)
@@ -169,10 +166,7 @@ pub fn verifyLeafBytes(
     if (!std.meta.eql(admission.expected_id, expected_leaf_key_id))
         return error.UnlinkedBlockV5RecursiveLeaf;
     try admitted.validate(admitted.expected_id);
-    const binding = try provisionalIdentity(statement, &admitted.shape.public_data, admitted.config,
-        admitted.sealed, admitted.pins, admitted.entries,
-        admitted.catalog orelse return error.MissingBlockV5LeafCatalog,
-        admitted.template, native, sidecar);
+    const binding = try provisionalIdentity(statement, &admitted.shape.public_data, admitted.config, admitted.sealed, admitted.pins, admitted.entries, admitted.catalog orelse return error.MissingBlockV5LeafCatalog, admitted.template, native, sidecar);
     const statement_id = (try span.identity.hash(&try statement.canonicalWords(), .statement)).bytes;
     const context = admission.key.context;
     if (!std.meta.eql(admission.expected_id, expected_leaf_key_id) or
@@ -193,8 +187,7 @@ pub fn verifyLeafBytes(
 
 test "block-v5 leaf protocol is distinct from v3 custody protocol" {
     const config = @import("blake3_execution_parent_protocol.zig").PCS_CONFIG;
-    try std.testing.expect(!std.meta.eql(protocolIdentity(config),
-        @import("blake3_block_execution_span_v3.zig").protocolIdentity(config)));
+    try std.testing.expect(!std.meta.eql(protocolIdentity(config), @import("blake3_block_execution_span_v3.zig").protocolIdentity(config)));
 }
 
 test "block-v5 recursive leaf rejects invalid parent version before witness input" {
@@ -202,6 +195,5 @@ test "block-v5 recursive leaf rejects invalid parent version before witness inpu
         .key = .{ .version = 0, .context = undefined, .log_sizes = undefined, .preprocessed_root = @splat(0) },
         .expected_id = @splat(0),
     };
-    try std.testing.expectError(error.InvalidBlake3ParentProfile,
-        verifyLeafBytes(std.testing.allocator, &.{}, invalid, @splat(0), undefined, undefined, undefined, undefined));
+    try std.testing.expectError(error.InvalidBlake3ParentProfile, verifyLeafBytes(std.testing.allocator, &.{}, invalid, @splat(0), undefined, undefined, undefined, undefined));
 }

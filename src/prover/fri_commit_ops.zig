@@ -148,7 +148,10 @@ pub fn CommitOps(
                 try SecureColumnByCoords.uninitialized(allocator, provider.domain_size);
             errdefer column.deinit(allocator);
 
-            var committed = if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
+            var committed = if (provider.numerical_executor) |executor| blk: {
+                try executor.execute(allocator, provider, &column);
+                break :blk try commitSecureColumnForFold(allocator, column, fold_step);
+            } else if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
                 if (!shouldPack(column.len(), fold_step)) {
                     break :blk FoldCommitment{
                         .merkle_tree = try B.commitLazyMerkle(H, allocator, provider, &column),
@@ -179,7 +182,7 @@ pub fn CommitOps(
             if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) committed.merkle_tree.compactForQueries();
             MC.mixRoot(channel, committed.merkle_tree.root());
             if (work_audit) |audit| {
-                const used_lazy_merkle = @hasDecl(B, "commitLazyMerkle") and
+                const used_lazy_merkle = provider.numerical_executor == null and @hasDecl(B, "commitLazyMerkle") and
                     !shouldPack(column.len(), fold_step);
                 if (used_lazy_merkle)
                     audit.observeLazyMerkle()

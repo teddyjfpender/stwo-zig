@@ -1,4 +1,4 @@
-//! Two isolated child-verifier witnesses to one final column layout. No expanded
+//! Isolated child-verifier witnesses to one final column layout. No expanded
 //! logical main rows are materialized. Span/key admission belongs to the caller.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -22,6 +22,92 @@ pub fn join(a: std.mem.Allocator, left: *const storage.Prepared, right: *const s
 pub fn joinDraining(a: std.mem.Allocator, left: *storage.Prepared, right: *storage.Prepared, ranges: [2]Range) !storage.Prepared {
     if (left == right) return error.AliasedAggregateChildren;
     return joinImpl(true, a, left, right, ranges, null);
+}
+/// Concatenate an already admitted/rebased roster directly into its final
+/// column geometry. Unlike repeated binary joins, every output cell is written
+/// once. Inputs must be destroyed on success/error and cannot be reused.
+pub fn joinManyDraining(a: std.mem.Allocator, sources: []const *storage.Prepared, ranges: []const Range) !storage.Prepared {
+    if (sources.len < 2 or sources.len > 64 or sources.len != ranges.len) return error.InvalidParentJoinColumns;
+    var input_count: usize = 0;
+    var counts: [storage.Airs.len]usize = @splat(0);
+    // Complete admission precedes mutation, including every source namespace.
+    for (sources, ranges, 0..) |source, range, index| {
+        try range.validate();
+        try validateColumns(source);
+        for (sources[0..index], ranges[0..index]) |previous, prior| {
+            if (previous == source) return error.AliasedAggregateChildren;
+            if (range.first < prior.end and prior.first < range.end) return error.OverlappingParentNamespaces;
+        }
+        try @import("blake3_parent_namespace.zig").rejectRange(source, 0, range.first);
+        try @import("blake3_parent_namespace.zig").rejectRange(source, range.end, core.fields.m31.Modulus);
+        input_count = try std.math.add(usize, input_count, source.input_count);
+        inline for (0..storage.Airs.len) |i| {
+            counts[i] = try std.math.add(usize, counts[i], source.fixed[i].len);
+            if (counts[i] > 1 << 30) return error.InvalidParentJoinColumns;
+        }
+    }
+    var result = storage.Prepared{ .allocator = a, .main = @splat(&.{}), .fixed = undefined, .input_count = input_count };
+    inline for (0..storage.Airs.len) |i| result.fixed[i] = &.{};
+    errdefer result.deinit();
+    inline for (storage.Airs, 0..) |Air, i| {
+        const count = counts[i];
+        const log: u32 = if (count < 2) 1 else std.math.log2_int_ceil(usize, count);
+        var ends: [64]usize = undefined;
+        var offset: usize = 0;
+        result.fixed[i] = try a.alloc(storage.FixedRow(Air), count);
+        for (sources, ends[0..sources.len]) |source, *end| {
+            const next = offset + source.fixed[i].len;
+            @memcpy(result.fixed[i][offset..next], source.fixed[i]);
+            source.allocator.free(source.fixed[i]);
+            source.fixed[i] = &.{};
+            end.* = next;
+            offset = next;
+        }
+        result.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+        for (result.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
+        var first: usize = 0;
+        while (first < result.main[i].len) {
+            const end = @min(first + COLUMN_BATCH, result.main[i].len);
+            const output = result.main[i][first..end];
+            for (output) |*column| column.values = try a.alloc(M, @as(usize, 1) << @intCast(log));
+            copyManyColumns(i, sources, ends[0..sources.len], first, output);
+            for (sources) |source| for (source.main[i][first..end]) |*column| {
+                source.allocator.free(column.values);
+                column.values = &.{};
+            };
+            first = end;
+        }
+    }
+    return result;
+}
+pub fn copyManyColumns(comptime air: usize, sources: []const *storage.Prepared, ends: []const usize, first_column: usize, output: []Column) void {
+    if (output.len == 0) return;
+    const log = output[0].log_size;
+    const Mapping = struct { source: usize, row: usize };
+    var mapping: [1024]Mapping = undefined;
+    var first: usize = 0;
+    while (first < output[0].values.len) {
+        const size = @min(mapping.len, output[0].values.len - first);
+        for (mapping[0..size], 0..) |*mapped, at| {
+            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(first + at, log), log);
+            // First cumulative end strictly above logical; empty children
+            // deliberately occupy no rows, including the all-empty case.
+            var low: usize = 0;
+            var high = sources.len;
+            while (low < high) {
+                const middle = low + (high - low) / 2;
+                if (logical < ends[middle]) high = middle else low = middle + 1;
+            }
+            mapped.* = if (low == sources.len) .{ .source = low, .row = 0 } else .{
+                .source = low,
+                .row = committed(logical - (if (low == 0) @as(usize, 0) else ends[low - 1]), sources[low].main[air][first_column].log_size),
+            };
+        }
+        for (output, 0..) |column, c| for (@constCast(column.values)[first..][0..size], mapping[0..size]) |*value, mapped| {
+            value.* = if (mapped.source == sources.len) M.zero() else sources[mapped.source].main[air][first_column + c].values[mapped.row];
+        };
+        first += size;
+    }
 }
 /// Both partitions must be destroyed on every path. The shared owner keeps its
 /// backing on failure and transfers it only after all fallible assembly succeeds.
@@ -97,7 +183,7 @@ fn joinImpl(comptime drain: bool, a: std.mem.Allocator, left: anytype, right: @T
     }
     return result;
 }
-fn validateColumns(parent: anytype) !void {
+pub fn validateColumns(parent: anytype) !void {
     inline for (storage.Airs, 0..) |Air, i| {
         const count = parent.fixed[i].len;
         if (count > (1 << 30) or parent.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentJoinColumns;

@@ -59,6 +59,13 @@ pub const Traces = struct {
     inputs: []sidecar.Input,
     initialized: usize = 0,
     pub fn init(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, limits: Limits) !Traces {
+        return initMode(false, a, owner, frame, limits);
+    }
+    /// Storage is uninitialized until the bounded checkpoint loader fills it.
+    pub fn allocateForCheckpoint(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, limits: Limits) !Traces {
+        return initMode(true, a, owner, frame, limits);
+    }
+    fn initMode(comptime checkpoint: bool, a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, limits: Limits) !Traces {
         const slots = try slots_mod.slotsFromStatementForMode(a, &owner.statement, frame, limits.register_custody_mode);
         errdefer a.free(slots);
         const metadata = try std.math.add(usize, @sizeOf(Proposal), try std.math.mul(usize, slots.len, @sizeOf(sidecar.Slot)));
@@ -82,7 +89,8 @@ pub const Traces = struct {
                 }
                 offset += desc.n_columns;
             }
-            self.traces[index] = try trace_mod.Trace.initForMode(a, slot.family, &owner.opcode_columns.components[found orelse return error.MissingV5NativeMemoryComponent], slot.slot, slot.log_size, slot.frame, limits.register_custody_mode);
+            const initialize = if (checkpoint) trace_mod.Trace.allocateForCheckpoint else trace_mod.Trace.initForMode;
+            self.traces[index] = try initialize(a, slot.family, &owner.opcode_columns.components[found orelse return error.MissingV5NativeMemoryComponent], slot.slot, slot.log_size, slot.frame, limits.register_custody_mode);
             self.initialized += 1;
             input.* = .{ .descriptor = slot, .trace = &self.traces[index] };
         }
@@ -120,26 +128,49 @@ pub fn ForBackend(comptime Backend: type) type {
         pub fn collect(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, native: *const physical.Proposal, global: *counters.Set, limits: Limits) !Proposal {
             return collectTimed(a, owner, frame, native, global, limits, null);
         }
+        pub const Retained = struct {
+            proposal: Proposal,
+            source: Traces,
+            scheme: Scheme,
+            snapshots: []bytes.SNAPSHOT,
+            pub fn deinitPhysical(self: *Retained, a: std.mem.Allocator) void {
+                self.source.deinit();
+                self.scheme.deinit(a);
+                a.free(self.snapshots);
+            }
+            pub fn deinit(self: *Retained, a: std.mem.Allocator) void {
+                self.deinitPhysical(a);
+                self.proposal.deinit();
+                self.* = undefined;
+            }
+        };
         pub fn collectTimed(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, native: *const physical.Proposal, global: *counters.Set, limits: Limits, timings: ?*CollectTimings) !Proposal {
+            var retained = try collectRetainedTimed(a, owner, frame, native, global, limits, timings);
+            defer retained.deinitPhysical(a);
+            return retained.proposal;
+        }
+        pub fn collectRetainedTimed(a: std.mem.Allocator, owner: *Owner, frame: frame_mod.Frame, native: *const physical.Proposal, global: *counters.Set, limits: Limits, timings: ?*CollectTimings) !Retained {
             var timer: ?std.time.Timer = if (timings != null) try std.time.Timer.start() else null;
             if (!owner.native_only_v5 or owner.failed or owner.interaction_ready or !owner.tables_ready or frame.cycle_count == 0 or
                 frame.global_first_cycle != native.first_cycle or frame.cycle_count != owner.statement.public_data.clock) return error.InvalidV5NativeMemoryPhase;
             try native.template.admit(&owner.statement, native.template_id);
             if (!std.meta.eql(native.public_digest, @import("block_v5_native_public_admission_v1.zig").publicDigest(&owner.statement.public_data))) return error.InvalidV5NativeMemoryPhase;
             var source = try Traces.init(a, owner, frame, limits);
-            defer source.deinit();
+            errdefer source.deinit();
             if (timer) |*clock| timings.?.trace_init_ns += clock.lap();
             var local = try counters.Counter.init(a, .range_check_8_8);
             defer local.deinit(a);
             var scheme = try Scheme.init(a, native.template.config);
-            defer scheme.deinit(a);
+            errdefer scheme.deinit(a);
             scheme.setCoefficientRetentionPolicy(.never);
             var channel = suite.Channel{};
             slots_mod.mixRoster(&channel, native.index, native.template_id, source.slots);
             var witness: std.ArrayList(engine.pcs.ColumnEvaluation) = .empty;
             defer witness.deinit(a);
-            for (source.inputs) |input| {
-                _ = try bytes.collectCounter(a, input.trace, &local);
+            const snapshots = try a.alloc(bytes.SNAPSHOT, source.inputs.len);
+            errdefer a.free(snapshots);
+            for (source.inputs, snapshots) |input, *pin| {
+                pin.* = try bytes.collectCounter(a, input.trace, &local);
                 for (input.trace.witness) |values| try witness.append(a, .{ .log_size = input.descriptor.log_size, .values = values });
             }
             if (timer) |*clock| timings.?.counter_ns += clock.lap();
@@ -156,7 +187,7 @@ pub fn ForBackend(comptime Backend: type) type {
             const slots = try a.dupe(sidecar.Slot, source.slots);
             for (global.get(.range_check_8_8).values, local.values) |*value, addend| value.* = value.add(addend);
             if (timer) |*clock| timings.?.finalize_ns += clock.lap();
-            return .{ .register_custody_mode = limits.register_custody_mode, .a = a, .slots = slots, .native_roots = native.roots, .template_id = native.template_id, .witness_root = root, .byte_snapshot = snapshot.counterSnapshot(&local), .ordinary_events = events, .index = native.index, .frame = frame };
+            return .{ .source = source, .scheme = scheme, .snapshots = snapshots, .proposal = .{ .register_custody_mode = limits.register_custody_mode, .a = a, .slots = slots, .native_roots = native.roots, .template_id = native.template_id, .witness_root = root, .byte_snapshot = snapshot.counterSnapshot(&local), .ordinary_events = events, .index = native.index, .frame = frame } };
         }
         fn onFirstRound(raw: *anyopaque, a: std.mem.Allocator, warm: Producer.WarmExecution) !void {
             const self: *Self = @ptrCast(@alignCast(raw));
@@ -191,6 +222,33 @@ pub fn ForBackend(comptime Backend: type) type {
             try self.sink.put_opcode(self.sink.context, warm.index, &proof);
             owned = false;
             self.next += 1;
+        }
+        /// Reuse the original independently pinned access tree. Snapshots are
+        /// prover inputs: range interaction generation rederives/checks each,
+        /// and fresh AIR/PCS/global verification remains authoritative.
+        pub fn borrowRetained(a: std.mem.Allocator, native: *Scheme, access: *Scheme, snapshots: []const bytes.SNAPSHOT, expected: *const Proposal) !sidecar.ForPackedBackend(Backend).FirstRound {
+            if (expected.slots.len == 0 or snapshots.len != expected.slots.len or access.trees.items.len != 1 or
+                access.pending_commit != null or !std.meta.eql(access.config, native.config) or
+                !std.meta.eql(access.trees.items[0].commitment.root(), expected.witness_root)) return error.InvalidV6RetainedAccess;
+            var channel = suite.Channel{};
+            slots_mod.mixRoster(&channel, expected.index, expected.template_id, expected.slots);
+            var scheme = try @import("block_v5_shared_first_round_v1.zig").copy(Backend, a, native, &channel);
+            errdefer scheme.deinit(a);
+            if (!std.meta.eql(scheme.trees.items[0].commitment.root(), expected.native_roots[0]) or
+                !std.meta.eql(scheme.trees.items[1].commitment.root(), expected.native_roots[1])) return error.InvalidV6RetainedAccess;
+            const fixed_logs = try treeLogs(a, scheme.trees.items[0].columns, scheme.config.fri_config.log_blowup_factor);
+            errdefer a.free(fixed_logs);
+            const main_logs = try treeLogs(a, scheme.trees.items[1].columns, scheme.config.fri_config.log_blowup_factor);
+            errdefer a.free(main_logs);
+            const saved = try a.dupe(bytes.SNAPSHOT, snapshots);
+            errdefer a.free(saved);
+            try access.trees.items[0].share(a);
+            var lease = access.trees.items[0].retainShared();
+            var owns = true;
+            defer if (owns) lease.deinit(a);
+            try scheme.appendCommittedTree(a, lease, &channel);
+            owns = false;
+            return .{ .scheme = scheme, .roots = .{ expected.native_roots[0], expected.native_roots[1], expected.witness_root }, .fixed_logs = fixed_logs, .main_logs = main_logs, .snapshots = saved };
         }
         pub fn borrow(a: std.mem.Allocator, native: *Scheme, inputs: []const sidecar.Input, slots: []const sidecar.Slot, counter: *counters.Counter, index: u32, template_id: Digest) !sidecar.ForPackedBackend(Backend).FirstRound {
             var channel = suite.Channel{};

@@ -1,0 +1,14 @@
+[
+  {
+    "path": "src/integrations/riscv_cuda/native/resident_parent_readonly_v1.cu",
+    "sha256": "bed78687bbaaf3bc3e5449cb2d20058da3fd4a7d42c3c16955d1fe77accde25a"
+  },
+  {
+    "path": "src/integrations/riscv_cuda/native/resident_parent_readonly_v1.cuh",
+    "sha256": "2fecacb7aaf4d63adae4fbf01ca421dfa2bb3b21aaab008f78d506c76e272847"
+  },
+  {
+    "path": "src/integrations/riscv_cuda/tests/resident_parent_readonly_numeric_v1.cu",
+    "sha256": "82fbe3128c06ece452f209410af6dd7347acbc9e7fb729ad52a59154aa1525e0"
+  }
+]

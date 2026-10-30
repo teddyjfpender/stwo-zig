@@ -1,0 +1,23 @@
+{
+  "schema": "stwo-resident-parent-wire-resolver-qualification-v1",
+  "timestamp": "2026-10-29T14:25:16.328363+00:00",
+  "scope": "cold canonical recursion-wire registry and device conditional resolver primitives; not a complete resident child proof",
+  "cold_tests": 9,
+  "device": "NVIDIA H200 SM90",
+  "device_cases": 8,
+  "exact_words": 32,
+  "hostile_conditions": [
+    "missing active producer",
+    "disagreeing active producers",
+    "noncanonical MAIN"
+  ],
+  "previous_error_status_preserved": true,
+  "host_private_selection": false,
+  "source_sha256": "54990b524101f7566dadff6270041d329f5ac4194cbbb6c49e72059f5c237502",
+  "object_sha256": "c40937188c91a3df784d1d93bb316e5e158dae80852c28e23e07de917aeee0e3",
+  "remote_directory": "/workspace/stwo-v7-evidence/v7-resident-wire-resolve",
+  "pending": [
+    "genuine native fixed-roster census",
+    "complete device scheduling and child-proof integration"
+  ]
+}

@@ -1,0 +1,608 @@
+{
+  "schema": "stwo-resident-native-deployment-inventory-v1",
+  "deployment_performed": false,
+  "spend_authorized_by_this_artifact": false,
+  "full_native_device_proof_qualified": false,
+  "candidates": [
+    "N4 MUL q3/depth3 first",
+    "N5 MUL+access next"
+  ],
+  "pending": "Next hardware qualification requires exact selected candidate export/runtime and fresh CUDA compilation; no GPU is currently provisioned.",
+  "toolchain": {
+    "zig": "0.15.2",
+    "target": "x86_64-linux-gnu.2.39",
+    "optimize": "ReleaseSafe",
+    "cuda_arch": "sm90",
+    "nvcc_flags": [
+      "-c",
+      "-O3",
+      "--std=c++17",
+      "--expt-relaxed-constexpr",
+      "-Xcompiler",
+      "-fPIC",
+      "-gencode",
+      "arch=compute_90,code=sm_90"
+    ],
+    "no_fast_math": true
+  },
+  "native_backend_closure_sha256": "574d75da53abd7cb3ac808692650036b133a239e493d24c7c3573028f3a490f2",
+  "native_backend_files": [
+    {
+      "path": "aot_loader.cpp",
+      "bytes": 27845,
+      "sha256": "4eb82b5ff7c84b3d6c89ea6c16a85b4d2e2b7e6a4934c791685fee110f1ccf3a"
+    },
+    {
+      "path": "aot_loader.h",
+      "bytes": 5375,
+      "sha256": "eed22f4b3a43184353173c9bd2fa84f3851b24a34f14130f6ac799d967b439af"
+    },
+    {
+      "path": "aot_sha256.h",
+      "bytes": 5371,
+      "sha256": "3736b85d3138484dd2d8e295a9076d0c11d364e797c76d3d17f4da71d97a93a1"
+    },
+    {
+      "path": "cairo/casm_input.cu",
+      "bytes": 3599,
+      "sha256": "6030ae7f0f620d07114b7a967f6145200b259d4156a3a526358aee09414929d0"
+    },
+    {
+      "path": "cairo/eval_params.cu",
+      "bytes": 4799,
+      "sha256": "fbd2043ed6c5c5e9946c6c61320c178de46f5cff4cb8e078c3dc8ee7e6ba1622"
+    },
+    {
+      "path": "cairo/memory_base.cu",
+      "bytes": 6661,
+      "sha256": "7aa8695b0727bb2c04ec0ebcb574951cbba7c537076891df3efd8e49266125b7"
+    },
+    {
+      "path": "cairo/memory_execution.cu",
+      "bytes": 3865,
+      "sha256": "ecf15f7feaaffd781f3481174a2f3478073c326420c32b266719cc539f2e4729"
+    },
+    {
+      "path": "cairo/safety.cuh",
+      "bytes": 1467,
+      "sha256": "58e59e2d3027a0c6888c95ec0ba5e4578727080113348d7a8c20085774dd53fa"
+    },
+    {
+      "path": "cairo/witness_compact_v2.cu",
+      "bytes": 10996,
+      "sha256": "b15e691f5117113fa80f9aca38342b7d37b17f02be6ea904788e7f817bc4ee6b"
+    },
+    {
+      "path": "cairo/witness_edge.cu",
+      "bytes": 5032,
+      "sha256": "dbed7a82c8fe38d92f83ef03d4ede1864c6b7c3bf92928d3548317f997925a82"
+    },
+    {
+      "path": "cairo/witness_multi_edge.cu",
+      "bytes": 7533,
+      "sha256": "3680c971f8174a87eb953d1502bd36b0610cec974ccb768198f49f279bf183c4"
+    },
+    {
+      "path": "cairo/witness_seed.cu",
+      "bytes": 3559,
+      "sha256": "33c3e04d26650edef0e00c669dc7a6f6a1b7fc1447254486e634e953a7188480"
+    },
+    {
+      "path": "circuit/base_witness.cu",
+      "bytes": 14479,
+      "sha256": "f5c90660fb101a7dd23b0c717288f3a3eaf3be86cfa7ab368dbd263657748036"
+    },
+    {
+      "path": "circuit/interaction_fractions.cu",
+      "bytes": 15003,
+      "sha256": "7c4c59ba1ac8cea689bf55d58d638244d8586ac05b9efd5f84e4c8dfe1e440f0"
+    },
+    {
+      "path": "circuit/lookup_sum.cu",
+      "bytes": 3774,
+      "sha256": "6190dc607dd0ec423f2389a3d76c4ba0114fa4a363fc3b9bf647cb0d208ddb9e"
+    },
+    {
+      "path": "commitment/blake2s_core.cuh",
+      "bytes": 6008,
+      "sha256": "900f5e34af77afbfde0b5253efd6ab0c0ead9c15cb83809c4cb0c8180dc515d7"
+    },
+    {
+      "path": "commitment/blake2s_domain_states.h",
+      "bytes": 823,
+      "sha256": "380318f129647f41dec900ebf5543263d20f18acefe079b291fae5fc3c548132"
+    },
+    {
+      "path": "commitment/blake2s_protocol.cuh",
+      "bytes": 1112,
+      "sha256": "5988ef51326af8b4680422530e036741a2b9c3ee01919b7fd133cd66ae0f709c"
+    },
+    {
+      "path": "commitment/blake3.cu",
+      "bytes": 14731,
+      "sha256": "be9f3182e0544f267a1fc1faea70ec0b09d8eebf1514388c78e8613a5b77923c"
+    },
+    {
+      "path": "commitment/blake3_protocol.cuh",
+      "bytes": 6019,
+      "sha256": "c6ba18dc2d1ff436a30ffffccc3fb6b425fea86c1ba1da286d701a3d45f06cb9"
+    },
+    {
+      "path": "commitment/merkle.cu",
+      "bytes": 12023,
+      "sha256": "1d9e34a915d92d8c7f3cdf0555077a0fcf5b458eb6e8d8d8ce92d257c76fec59"
+    },
+    {
+      "path": "commitment/progressive.cu",
+      "bytes": 30540,
+      "sha256": "e1a9e68688871e0a975a810d57a2f95cf1d084355f14dd743c2e9c341a87f114"
+    },
+    {
+      "path": "commitment/progressive_scalar.cuh",
+      "bytes": 4354,
+      "sha256": "80bbc807dfbcdc1351cca4f1aef2a7398f1b309dd6a4d25de5e55a8fd64d51b2"
+    },
+    {
+      "path": "commitment/resident_layout.cuh",
+      "bytes": 2202,
+      "sha256": "2d6b4f93097abdc97f046cd7d9a1c3fa91647478ec07add9fe3459c515681bdc"
+    },
+    {
+      "path": "common/circle_twiddle.cuh",
+      "bytes": 596,
+      "sha256": "70c5c2f306eeb3838a49f531febf96bed95126637781a595bbf5d39786012c91"
+    },
+    {
+      "path": "common/m31.cuh",
+      "bytes": 1268,
+      "sha256": "20fb8c44b80c0729275e7109993523ae8402125566ecb1430f26d641b2044c17"
+    },
+    {
+      "path": "common/provider_compat.cuh",
+      "bytes": 1011,
+      "sha256": "535a7099e74ebebb68a149e2939c4e6c7db0bce1f8988d3329ebaf649e1cbf05"
+    },
+    {
+      "path": "constraints/field.cuh",
+      "bytes": 1814,
+      "sha256": "819262cfef8eae4cdc34a007d9183fc4b2aa2e41dd8351b0da87584520fa7aec"
+    },
+    {
+      "path": "constraints/powers.cu",
+      "bytes": 2155,
+      "sha256": "eb14bf504d07afe1b34b4ee158c6e99e394a6a8bae1d749e47de07f5f6ecfa77"
+    },
+    {
+      "path": "decommit/contract.cuh",
+      "bytes": 8416,
+      "sha256": "dbb0a918536af005af90cefbdedfd3b7bbbcaca7f56167c5894bce57c338ea3c"
+    },
+    {
+      "path": "decommit/fri.cu",
+      "bytes": 13693,
+      "sha256": "b07c061457d229ec2449e9c16c4b731984676faeff9ddb87724ff9afbe626afc"
+    },
+    {
+      "path": "decommit/merkle_walk.cuh",
+      "bytes": 8704,
+      "sha256": "54b61ac2c0291b8a02ad2da14d404bd0cd61ab5311754e8d665ba4e26ed5ae67"
+    },
+    {
+      "path": "decommit/query_planning.cu",
+      "bytes": 13092,
+      "sha256": "1c27293cafb538f2f2bd2066a08f3f7dd4865b44c992edf533e151bc3a888018"
+    },
+    {
+      "path": "decommit/sparse_parents.cu",
+      "bytes": 3551,
+      "sha256": "8db2ffa8a4ea251b97614694985664cf273ffdf30c511e08c877174b81381aea"
+    },
+    {
+      "path": "decommit/trace.cu",
+      "bytes": 14857,
+      "sha256": "55a6c59606eaec532596ea917098865d295de30194ee78efb04cfa3bdc10a8d3"
+    },
+    {
+      "path": "framework_interaction_v1.cuh",
+      "bytes": 982,
+      "sha256": "bb0c3251bd143f20c38492665b4539ccb8f41f9bde3696f394144211a283ce6c"
+    },
+    {
+      "path": "framework_polynomial_v1.cuh",
+      "bytes": 2017,
+      "sha256": "050edb9c3164d1740ecdfffb39cbac6de4e5ba03dd41ef17ca0d9b61f837b6bd"
+    },
+    {
+      "path": "fri/field.cuh",
+      "bytes": 3172,
+      "sha256": "70cd85f72a272acd6c483bedb436dd5d0e7efc12f41c90f2f35c98e2e48cce3f"
+    },
+    {
+      "path": "fri/final.cu",
+      "bytes": 12199,
+      "sha256": "9cdb50ab816b9a90d53259e2ad32f253f821dfdf231a2945567c9d3912c9ce67"
+    },
+    {
+      "path": "fri/fold.cu",
+      "bytes": 18607,
+      "sha256": "1887af3e0f02d5bbfb710b1a513085f79148943c9bfee3fc4d2f5bca7551232e"
+    },
+    {
+      "path": "fri/safety.cuh",
+      "bytes": 1376,
+      "sha256": "908fb61a058d6c2e315ad493159ffcb4b526ffb04d2db83b25994b86b22f6051"
+    },
+    {
+      "path": "kernels/wide_fibonacci_trace.cu",
+      "bytes": 4046,
+      "sha256": "8fa8e12714b6ed1e0b364be010cef322d05250cf3581789847395aa1c21003e3"
+    },
+    {
+      "path": "kernels/xor_trace.cu",
+      "bytes": 3660,
+      "sha256": "540d63778a22acbd8985be3b3e60cc98dc24d92555fed2c9d310ec3e6d02dca1"
+    },
+    {
+      "path": "oods/barycentric.cu",
+      "bytes": 11126,
+      "sha256": "d651589a56a36f60c7199494371fbf24911be675aefb838fdacd1a653a0c9e6a"
+    },
+    {
+      "path": "oods/batch_inverse.cuh",
+      "bytes": 3417,
+      "sha256": "aef648d133e6a8736e8170442088ae78f10d88ccac1145312291d91fe9addfc1"
+    },
+    {
+      "path": "oods/evaluate.cu",
+      "bytes": 18974,
+      "sha256": "6da001e504807067d6efe70623bef302b41a5f3350b976ead42de84ea1ff36f8"
+    },
+    {
+      "path": "oods/field.cuh",
+      "bytes": 6396,
+      "sha256": "b9031b721438b6dbc6b944029aa6506abd2671d3123588f616b7fcaa516eeaec"
+    },
+    {
+      "path": "oods/safety.cuh",
+      "bytes": 1890,
+      "sha256": "70aea1083b9d1ac01fdbf65c60a5beb639d3424801ca8a843db65eef286fc145"
+    },
+    {
+      "path": "pow/candidate.cuh",
+      "bytes": 7016,
+      "sha256": "d03265b624303272f10ede8d4a43b8f92e527620c9b612182816fd9719d976d1"
+    },
+    {
+      "path": "pow/safety.cuh",
+      "bytes": 1132,
+      "sha256": "a6ed01cf960407dd2e195ce2af94df3f9028711856d53eba389cd9883f6ca205"
+    },
+    {
+      "path": "pow/search.cu",
+      "bytes": 10045,
+      "sha256": "e84dbcbe3856eda88fbe1896a6d61a26e4930ab16b6d4abdd8f6be4f07eeec73"
+    },
+    {
+      "path": "quotient/combine.cu",
+      "bytes": 15630,
+      "sha256": "7952800877371d186e865ed3081511e9f806517a0c48f184fc9fbe09ab76ea55"
+    },
+    {
+      "path": "quotient/field.cuh",
+      "bytes": 3353,
+      "sha256": "1ff101cdbc730ad34d538d6d1b6d176b1c1e10300f94c57c6f237990ca5b1e4b"
+    },
+    {
+      "path": "quotient/numerator.cu",
+      "bytes": 32806,
+      "sha256": "1253fae178449e71781b5bc3ddcc34dd0d198b38acf3b96a6176f17ac70be689"
+    },
+    {
+      "path": "quotient/prepare.cu",
+      "bytes": 7827,
+      "sha256": "416554309ab8bcda0cf8655e56e04aedbf38d284cc242b9cdb660dc780054eb3"
+    },
+    {
+      "path": "quotient/safety.cuh",
+      "bytes": 1374,
+      "sha256": "0b72bcc02dcf71a145cfc71801004af34f23735ae39b376d67a608e21ba49501"
+    },
+    {
+      "path": "quotient/types.cuh",
+      "bytes": 2381,
+      "sha256": "0827624135d8237b31d7080e211920cf427d106ce05de53aeaebd93dc83755be"
+    },
+    {
+      "path": "relation/batch_inverse.cu",
+      "bytes": 4905,
+      "sha256": "f421cb7e106857748b95911fee6559a69b8c991704a4b806761f27350a578838"
+    },
+    {
+      "path": "relation/batch_inverse.cuh",
+      "bytes": 303,
+      "sha256": "d536c11fe159e896a9c705d93fd3af7e6f477dc89f83bd01cf6a53dbff65fecf"
+    },
+    {
+      "path": "relation/graph.cu",
+      "bytes": 25604,
+      "sha256": "b4180c1988ed10cedd4ed886d13b9378d5e21b5c63ee1bdca5650c7c208b6345"
+    },
+    {
+      "path": "relation/layout.cuh",
+      "bytes": 6947,
+      "sha256": "8db4ce3edfb0a916d70f2371b4b01f139ff5458c247c6828053fc9fa213c9bdd"
+    },
+    {
+      "path": "runtime/context.cu",
+      "bytes": 38959,
+      "sha256": "64be59734e33026270cd951ea7e02c1e915384f6b976dee0aa126f86ca546cd6"
+    },
+    {
+      "path": "runtime/context_options.h",
+      "bytes": 1522,
+      "sha256": "5e7b8044792f82febf6cb75d14a5505a959e6e3a266e4caa524a910a17a63aca"
+    },
+    {
+      "path": "secure_polynomial_resident_v1.cuh",
+      "bytes": 6910,
+      "sha256": "b014db1cb0f3363fc9aec60bb9de1480eeb9b2f64a7c90c7b79cfc286441333b"
+    },
+    {
+      "path": "secure_polynomial_v1.cuh",
+      "bytes": 3071,
+      "sha256": "5ab22f1e7cb43634f49c501762b3fb3ae8ff595eb2895fdc75a58c71cea71c3e"
+    },
+    {
+      "path": "transcript/blake2s_words.cuh",
+      "bytes": 3664,
+      "sha256": "f07b30ce24db3426ac539a64a43c8d14eb48b4f774778c8b5cc5d1bb739d7921"
+    },
+    {
+      "path": "transcript/state.cuh",
+      "bytes": 3359,
+      "sha256": "93665a4568747788869e76d3ec276c95f71a0802e7c42a924e566bd97b6cedaf"
+    },
+    {
+      "path": "transcript/transcript.cu",
+      "bytes": 15132,
+      "sha256": "f089d9cf37b457f0a08f44ac496c6f75b17287f25b6e7a03ad6e4dee0cd2f552"
+    },
+    {
+      "path": "transform/b2n_fused.cuh",
+      "bytes": 19465,
+      "sha256": "95c3f57b296eff1980509a1c952c72a42bcf6dab312cc039e44b2d83fcc1a7f0"
+    },
+    {
+      "path": "transform/b2n_retained.cu",
+      "bytes": 11175,
+      "sha256": "0e6a8ec9d17e15d0b24255e1b88eff1f5563188855668bf09e731dbd0d2fcce6"
+    },
+    {
+      "path": "transform/composition_split.cu",
+      "bytes": 14129,
+      "sha256": "9d315bcc2966d01385da110ad41dc80866ac381b1dcd207d24b85073221d4be5"
+    },
+    {
+      "path": "transform/lde.cu",
+      "bytes": 16332,
+      "sha256": "e783cbd041dc1703e4a7306cf2996827ccae15a23dc98ca0ccf14fcc1e0c0d51"
+    },
+    {
+      "path": "transform/n2b.cu",
+      "bytes": 8822,
+      "sha256": "a9f24e0d1697a366fe5a62ad44c1451cbdcb247b2755c776e4f531efba129909"
+    },
+    {
+      "path": "transform/n2b_fused.cuh",
+      "bytes": 19086,
+      "sha256": "66fac1ef6679f18a6f8f1a5a45923aced339872d55dc715d6cd43cad5e100bac"
+    },
+    {
+      "path": "transform/parent_tiny.cu",
+      "bytes": 2252,
+      "sha256": "7de8a820a09fd17b8e94255a13d28fccf9ce288ca4f4aabf921298bb01b3ffa3"
+    },
+    {
+      "path": "transform/quotient_tiny.cu",
+      "bytes": 1270,
+      "sha256": "99f75c8a7cb63e1c9d6179d2c15ac2668260d54d783816e55715f1ea51174f93"
+    },
+    {
+      "path": "transform/quotient_tiny.cuh",
+      "bytes": 1334,
+      "sha256": "999fc0b40fedd7719ce2eed068aa656381f7d746bde8f4e39688c9570668dc5c"
+    },
+    {
+      "path": "transform/transform_internal.cuh",
+      "bytes": 5796,
+      "sha256": "72d58745f07fbb64a0e8e0976e1be0275d58ba28f5a669903c9913ba6e768d14"
+    },
+    {
+      "path": "transform/twiddle_tree.cu",
+      "bytes": 1495,
+      "sha256": "81f79cb41feb5fe79d2fd671d258b9b56ef29f96c4fb0f2a88bab57db329b600"
+    },
+    {
+      "path": "witness/active_feeds.cu",
+      "bytes": 4281,
+      "sha256": "97ced4ded1bbc869aaf3814a3b29fdc2a002dbf55af4aa92bd5988f3c91e8259"
+    }
+  ],
+  "objects": [
+    {
+      "object": "backend/libstwo_cuda_kernels.a",
+      "recipe": "python3 scripts/cuda_build.py --frontend native --arch 90 --out-dir <fresh>/backend (current native closure)",
+      "required_symbols": [
+        "stwo_ntt_b2n_composition_split_depth_three_on",
+        "stwo_canonical_twiddle_tree_on",
+        "stwo_parent_tiny_inverse_on",
+        "stwo_parent_tiny_extend_on",
+        "stwo_quotient_tiny_inverse_on"
+      ],
+      "includes": "all backend/native CUDA source TUs, including BLAKE3, OODS, DEEP/FRI, NTT/LDE, tiny transforms and depth3. Do not relink those sources separately. Tiny DEEP uses transform/quotient_tiny.cu; rebuild current closure, not the archived failed-at-ingress library.",
+      "tiny_deep_device_qualified": false
+    },
+    {
+      "object": "native-witness.o",
+      "generator": [
+        "python3",
+        "scripts/riscv_native_witness_cuda.py",
+        "--out-dir",
+        "<fresh>/raw17"
+      ],
+      "source": "<fresh>/raw17/native-witness.cu",
+      "required_symbols": [
+        "stwo_cuda_native_witness_v1_launch"
+      ],
+      "restriction": "legacy recipe only; Producer still rejects localZeroCustody. Do not silently substitute local-zero writer."
+    },
+    {
+      "object": "native-ingress.o",
+      "source": "src/integrations/riscv_cuda/native/resident_native_ingress_v1.cu",
+      "required_symbols": [
+        "stwo_native_ingress_temp_bytes_v1",
+        "stwo_native_ingress_on",
+        "stwo_native_main_place_on"
+      ],
+      "restriction": "includes CUB and actual source-to-committed-row placement; old saved ingress oracle object predates placement."
+    },
+    {
+      "object": "native-access-witness.o",
+      "generator": [
+        "python3",
+        "scripts/riscv_native_access_witness_cuda.py",
+        "--out-dir",
+        "<fresh>/access"
+      ],
+      "source": "<fresh>/access/native-access-witness.cu",
+      "required_symbols": [
+        "stwo_native_access_witness_on",
+        "stwo_native_access_count_on"
+      ]
+    },
+    {
+      "object": "native-infra.o",
+      "generator": [
+        "python3",
+        "scripts/riscv_native_infra_witness_cuda.py",
+        "--out-dir",
+        "<fresh>/infra"
+      ],
+      "source": "<fresh>/infra/native-infra.cu",
+      "required_symbols": [
+        "stwo_native_infra_clock_on",
+        "stwo_native_infra_frame_on",
+        "stwo_native_infra_fixed_on"
+      ],
+      "device_qualified": false
+    },
+    {
+      "object": "native-bundle.o",
+      "generator": "resident_native_kernel_bundle_v1.emit(N,a,writer,candidate.program), from the exact same candidate helper as runtime",
+      "source": "<candidate>/native-bundle.cu",
+      "required_symbols": [
+        "stwo_native_code_identity",
+        "stwo_native_program_on",
+        "stwo_native_table_counts_on",
+        "stwo_native_access_parameters_on",
+        "stwo_native_access_interactions_on",
+        "stwo_native_projection_parameters_on",
+        "stwo_native_projection_interactions_on",
+        "stwo_resident_framework_powers_on",
+        "stwo_resident_framework_add_on"
+      ],
+      "restriction": "Embeds Program.code_identity. Keep Program.identity independently bound to the request. Reuse requires exact code identity, including all emitted constants/equations/dispatch. Do not link standalone projection/access interactions or parent framework_util.o, which duplicate symbols."
+    },
+    {
+      "object": "native-claim-pack.o",
+      "source": "src/integrations/riscv_cuda/resident_native_claim_pack_v1.cu",
+      "required_symbols": [
+        "stwo_native_claim_pack_v1",
+        "stwo_native_root_equal_v1"
+      ],
+      "device_qualified": false
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cuda/native/resident_native_ingress_v1.cu",
+      "bytes": 3261,
+      "sha256": "89d64c02298db22144da035b475b7f80f0afae61bb808160600db74a79f9e82b"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_claim_pack_v1.cu",
+      "bytes": 2421,
+      "sha256": "261686deef4cbc78d80f3f02fa953af7ff5c388e86b0daa56c0f1657690ce72b"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_native_kernel_bundle_v1.zig",
+      "bytes": 9424,
+      "sha256": "d7393f3685667f285aaffffd445b809827ec8ecc2bd5cabda7d0b2c1da44c465"
+    },
+    {
+      "path": "src/integrations/riscv_cuda/resident_parent_framework_util_v1.cuh",
+      "bytes": 4253,
+      "sha256": "64cce592f2b04c3c4d416859441b026b76f8d3ed7945d6109bd1f7a0cea86457"
+    },
+    {
+      "path": "scripts/riscv_native_witness_cuda.py",
+      "bytes": 15386,
+      "sha256": "f9d1943dad52056a0a95c4d747ae4e67af398d463c295938d4141cc5a7a13623"
+    },
+    {
+      "path": "scripts/riscv_native_access_witness_cuda.py",
+      "bytes": 5342,
+      "sha256": "ab446cf263bdd7c0fec623fe1781e42230a716f65328927540b16558b1f4c46d"
+    },
+    {
+      "path": "scripts/riscv_native_infra_witness_cuda.py",
+      "bytes": 3943,
+      "sha256": "3ce5a485a7b9fd33fc8aaf80012da00f72ea4cd8f76d34c6f579111a5b60ebae"
+    }
+  ],
+  "final_link_libraries": [
+    "listed objects",
+    "backend/libstwo_cuda_kernels.a",
+    "cudart",
+    "cuda",
+    "stdc++",
+    "gcc_s"
+  ],
+  "required_preflight": [
+    "Freeze and hash source/generated TU/header/toolchain closure; save every compile/link argv.",
+    "Check required symbols with nm, reject missing or duplicate exported names.",
+    "Ensure linked stwo_native_code_identity equals independently derived Program.code_identity; separately bind full Program.identity to the admitted request.",
+    "Run split3/clock/frame/fixed/ingress placement primitive oracles before full original native proof.",
+    "Run qualification_only=true; fresh original verifier must accept and compare physical claims and proof bytes to independent CPU.",
+    "Malformed raw/claimed-root changes must reject; no CPU witness, challenge, or fixed-column uploads."
+  ],
+  "local_bundle_export_test": {
+    "passed": 13,
+    "cuda_host_syntax": true,
+    "candidate": "test fixture5 q2 only; final B candidate exports remain separate",
+    "generated_sha256": "f24dbca9dc8bab0fa5ccc44b3c31d5358044df67e23ad3a1713f0cba6a08cc13",
+    "historical": true,
+    "note": "Historical pre-code-identity syntax gate; not the deployable current candidate. See shared_candidate.code_identity_receipt for current export and exact code reuse."
+  },
+  "shared_candidate": {
+    "helper": "src/integrations/riscv_cuda/resident_native_candidate_v1.zig",
+    "export_root": "src/riscv_cuda_resident_native_candidate_test_root.zig",
+    "runtime_root": "src/riscv_cuda_resident_native_genuine_test_root.zig",
+    "options": [
+      "STWO_NATIVE_CANDIDATE_TREES",
+      "STWO_NATIVE_CANDIDATE_RETIREMENTS",
+      "STWO_NATIVE_CANDIDATE_SECURITY",
+      "STWO_NATIVE_CANDIDATE_LAYOUT"
+    ],
+    "local_receipt": "vectors/reports/riscv-cuda-resident-parent-20261030/native-source-candidate-configurable-local/qualification.json",
+    "export_receipt_schema": "stwo-native-candidate-export-v2",
+    "code_identity_receipt": "vectors/reports/riscv-cuda-resident-parent-20261030/native-code-reuse-local/qualification.json"
+  },
+  "identity_contract": {
+    "program_identity": "Full independently admitted request/proof identity; must match statement, epoch and geometry.",
+    "code_identity": "Domain-separated hash of exact neutral-identity emitted CUDA body; runtime Producer and Composition compare against linked stwo_native_code_identity.",
+    "reuse": "Reuse a library only when independently derived code_identity matches. Different request identities do not alone require rebuilding CUDA.",
+    "export_receipt": "<generated.cu>.json contains both identities and source_sha256; historical receipts remain unchanged."
+  },
+  "native_backend_closure_encoding": "SHA256 of UTF-8 compact JSON native_backend_files, sorted object keys"
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "stwo-v7-explicit-window-continuation-input-v2",
+  "scope": "actual chained guest continuation with matching intermediate state identities; no skipped-prefix proof or proof authority",
+  "proof_verified": false,
+  "execution_completed": true,
+  "window": {
+    "skip_cycles": 1,
+    "cycles": 16777216
+  },
+  "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+  "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+  "outgoing_sha256": "c095021f804b6e3b4f16f46f5e70a4c77a13e291e14fa3b863158b379579dd0d",
+  "stats": {
+    "cycles": 16777216,
+    "core_rows": 16777216,
+    "keccak_calls": 0,
+    "recovery_calls": 0,
+    "sha_calls": 0,
+    "setup_ns": 188204125,
+    "execution_ns": 39758907500,
+    "snapshot_ns": 3183083
+  },
+  "incoming_words": 1508894,
+  "outgoing_words": 2218899,
+  "continuation_capsules": [
+    {
+      "path": "../native-8388608/capture.json",
+      "sha256": "0818ae75487ff4d111d0b087fa1d2adf246057667787d35df52f0eed6bfd1d08"
+    },
+    {
+      "path": "../native-16m-tail/capture.json",
+      "sha256": "7ee5bb0a32b881adde2d75bcb138747d68c963392445a0813e313b3d7a389233"
+    }
+  ]
+}

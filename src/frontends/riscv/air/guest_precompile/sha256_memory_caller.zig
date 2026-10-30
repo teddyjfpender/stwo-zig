@@ -137,7 +137,7 @@ const Author = struct {
     }
 };
 pub fn build(a: std.mem.Allocator) !Definition {
-    var result = try buildForRecipe(a, false);
+    var result = try buildForRecipe(a, false, false);
     errdefer result.deinit();
     try result.validate();
     return result;
@@ -157,10 +157,17 @@ pub const LocalZeroCandidate = struct {
     }
 };
 pub fn buildLocalZeroCandidate(a: std.mem.Allocator) !LocalZeroCandidate {
-    const result = try buildForRecipe(a, true);
+    const result = try buildForRecipe(a, true, false);
     return .{ .arena = result.arena, .events = result.events };
 }
-fn buildForRecipe(a: std.mem.Allocator, local_zero: bool) !Definition {
+/// Explicit experimental recipe: the last parameter is a verifier-owned
+/// offset applied only to SHA wire IDs. Native PC/register/memory clocks keep
+/// their original local-window interpretation. The containing protocol must
+/// independently bound the frame and authenticate each local retirement.
+pub fn buildGlobalWireClock(a: std.mem.Allocator) !Definition {
+    return buildForRecipe(a, false, true);
+}
+fn buildForRecipe(a: std.mem.Allocator, local_zero: bool, global_wire: bool) !Definition {
     var o = Author{ .arena = lang.ir.Arena.init(a), .ids = undefined, .active_index = PHYSICAL_MAIN_COLUMN_COUNT + (if (local_zero) @as(usize, 4) else 0) };
     errdefer o.arena.deinit();
     for (o.ids[0 .. o.active_index + 1], 0..) |*id, i| {
@@ -168,7 +175,9 @@ fn buildForRecipe(a: std.mem.Allocator, local_zero: bool) !Definition {
         const ty: lang.types.Type = if (i == o.active_index) .selector else if (local_zero and i >= PHYSICAL_MAIN_COLUMN_COUNT) (if ((i - PHYSICAL_MAIN_COLUMN_COUNT) % 2 == 0) .bit else .felt) else columnType(i);
         id.* = try o.arena.input(try std.fmt.bufPrint(&name, "sha.caller.value_{d}", .{i}), ty, span);
     }
+    if (global_wire) o.ids[LOGICAL_INPUT_COUNT] = try o.arena.input("sha.caller.wire_clock_offset", .felt, span);
     const ids = o.ids;
+    const wire_clock = if (global_wire) try o.add(ids[Layout.clock], ids[LOGICAL_INPUT_COUNT]) else ids[Layout.clock];
     const active = ids[o.active_index];
     const one = try o.c(1);
     const four = try o.c(4);
@@ -213,8 +222,8 @@ fn buildForRecipe(a: std.mem.Allocator, local_zero: bool) !Definition {
         try o.event(.memory_access, .emit, &(.{ try o.c(1), try o.arena.alignedWordAddress(ids[Layout.addresses + word], span), ids[Layout.memory_clock] } ++ after.*));
         try o.event(.range_check_20, .request, &.{ids[Layout.gaps + word]});
         const sha_bytes = if (word < 8) before.* else .{ before[3], before[2], before[1], before[0] };
-        try o.event(.recursion_wire, .emit, &(.{ ids[Layout.clock], try o.c(@intCast(graph.input_boundary_offset + word)) } ++ sha_bytes));
-        if (word < 8) try o.event(.recursion_wire, .consume, &(.{ ids[Layout.clock], try o.c(topology.output[word]) } ++ after.*));
+        try o.event(.recursion_wire, .emit, &(.{ wire_clock, try o.c(@intCast(graph.input_boundary_offset + word)) } ++ sha_bytes));
+        if (word < 8) try o.event(.recursion_wire, .consume, &(.{ wire_clock, try o.c(topology.output[word]) } ++ after.*));
     }
     try lang.validate.validate(&o.arena);
     var events: [RELATION_EVENT_COUNT]lang.types.EffectId = undefined;

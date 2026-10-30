@@ -1,0 +1,82 @@
+{
+  "schema": "stwo-real-window-v2-prepared-corpus",
+  "authority": "Externally selected incoming and outgoing complete machine states. Preparation alone proves neither the window nor the skipped prefix.",
+  "cases": [
+    {
+      "case": "native-32768",
+      "directory": "vectors/reports/block-v7-real-window-corpus-20261029/native",
+      "capture_manifest_sha256": "2f77ea1d222a64e8bb25fc43f701f1c67b23e429cb2634a70b640eddc460aa81",
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "57fd5a0db77fe74ec52bd970335ad1b55e5ee85be1c8f85eb86f4c177157e6c1",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 32768
+      },
+      "new_v7_original_proof_qualified": true,
+      "new_v7_recursive_root_qualified": true,
+      "recursive_qualification": {
+        "directory": "vectors/reports/block-v7-real-window-v2-20261030/native-32768-composed-root",
+        "scope": "declared_nonterminal_window_to_complete_recursive_root",
+        "report_sha256": "ad10e7af003b93cb458bca2bab1dd68067f486ad69efcdd2097307f2e0d7e94e",
+        "root_sha256": "8ee14e8654e498f5c154dfc700a76cc8da1dbfbddb266c7cc7fd46ac9ccde400"
+      }
+    },
+    {
+      "case": "recovery-32768",
+      "directory": "vectors/reports/block-v7-real-window-corpus-20261029/recovery",
+      "capture_manifest_sha256": "99c3322a4023019a26928b3d82563e26931cf9a507fcc0ff59144a4b44410dee",
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "6b5d08ed74ba37b9fab79dc6ed8f68240583906d1f027474ecaaefee25438cc5",
+      "outgoing_sha256": "fa4501110600af86c16461f1fd44ae27b4ec6f1c75214a250daa5f3994d32cd3",
+      "window": {
+        "skip_cycles": 24718000,
+        "cycles": 32768
+      },
+      "new_v7_original_proof_qualified": true,
+      "new_v7_recursive_root_qualified": false
+    },
+    {
+      "case": "keccak-32768",
+      "directory": "vectors/reports/block-v7-real-window-corpus-20261029/keccak",
+      "capture_manifest_sha256": "be6dcb84cc448afbec5d5668e4eb5791eefc23e4a699374b6b1f5f49b5298aef",
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5f09416f2066f85cf53843b83752a700aaaf67a62e8502c9ac4550bd718138f4",
+      "outgoing_sha256": "9f15dbb8bfb6f34fb3e0884080c397ffdd80b8d3566b96783bc235008188ac0f",
+      "window": {
+        "skip_cycles": 42700000,
+        "cycles": 32768
+      },
+      "new_v7_original_proof_qualified": true,
+      "new_v7_recursive_root_qualified": false
+    },
+    {
+      "case": "native-131072",
+      "directory": "vectors/reports/block-v7-real-window-v2-20261030/native-131072-capture",
+      "capture_manifest_sha256": "9a2de2a9c31e4f7df75b755897cc7fe310e48d7a98de76127387bfc2816b98d6",
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "53dcc35c01a4837a6dd9943511c3affc304ef11488a0d4ded3337d4369dbe9a2",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 131072
+      },
+      "new_v7_original_proof_qualified": true,
+      "new_v7_recursive_root_qualified": false
+    },
+    {
+      "case": "native-524288",
+      "directory": "vectors/reports/block-v7-real-window-v2-20261030/native-524288-capture",
+      "capture_manifest_sha256": "fe5031f8eb1d4cca59b66fdcb4da359e949ea1c9206c4daebebe2af6591b6395",
+      "elf_sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+      "incoming_sha256": "5c8c0b2add59eb21131767c139865ba29d57cce630ac8a4127ada8bb464a5577",
+      "outgoing_sha256": "b97360e39180e04ecce06cc71430358127ced0b0a8df214e2e223fb4175d31e4",
+      "window": {
+        "skip_cycles": 1,
+        "cycles": 524288
+      },
+      "new_v7_original_proof_qualified": true,
+      "new_v7_recursive_root_qualified": false
+    }
+  ]
+}

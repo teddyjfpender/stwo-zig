@@ -1,0 +1,61 @@
+{
+  "status": "PASS11",
+  "scope": "Cold geometry/program/PCS plan; not complete resident native STARK",
+  "source": {
+    "src/integrations/riscv_cuda/resident_native_program_v1.zig": "5a2838a61b4c3c5847ff922118610912e2664c80d82d494e02de7c692c02e2ba",
+    "src/integrations/riscv_cuda/resident_native_pcs_v1.zig": "a11a4f7eb03231817f84b3c75b5d562da851ec026fdab24fa348898b6d47f94d",
+    "src/integrations/riscv_cuda/resident_native_plan_test_v1.zig": "58a8f93d9e1552ac0e65322cb5e49efd2b332706223d3e44bcc17f9c760bbfcd",
+    "src/riscv_cuda_resident_native_plan_test_root.zig": "bfb7ac52c0a706ab1095b6deb019d5888354b107c8c61848bf8beb504775d8f5"
+  },
+  "cases": [
+    {
+      "trees": 4,
+      "mode": "canonical",
+      "components": 20,
+      "constraints": 57,
+      "samples": 252,
+      "fixed_none_columns": [
+        0,
+        2
+      ]
+    },
+    {
+      "trees": 4,
+      "mode": "degree_bounded_q2_v1",
+      "components": 22,
+      "constraints": 59,
+      "samples": 252,
+      "fixed_none_columns": [
+        0,
+        2
+      ]
+    },
+    {
+      "trees": 5,
+      "mode": "canonical",
+      "components": 41,
+      "constraints": 282,
+      "samples": 750,
+      "fixed_none_columns": [
+        0,
+        2,
+        4,
+        6
+      ]
+    },
+    {
+      "trees": 5,
+      "mode": "degree_bounded_q2_v1",
+      "components": 43,
+      "constraints": 284,
+      "samples": 750,
+      "fixed_none_columns": [
+        0,
+        2,
+        4,
+        6
+      ]
+    }
+  ],
+  "ownership": "Original session, trace, commitment and profile owners destroyed before PCS derivation; Program owns independent selected metadata. Access witness retains ordinal2."
+}

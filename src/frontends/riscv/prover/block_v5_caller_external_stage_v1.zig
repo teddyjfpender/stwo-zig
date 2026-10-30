@@ -40,8 +40,14 @@ pub fn ForBackend(comptime Backend: type) type {
                 return initForMode(a, prefix, statement, frame, index, counter, 0);
             }
             pub fn initForMode(a: std.mem.Allocator, prefix: anytype, statement: *const @import("blake3_ethereum_sha_profile.zig").admission.Statement, frame: Frame, index: u32, counter: *Counters.Counter, mode: u32) !Prepared {
+                return initForModeWithCheckpoint(a, prefix, statement, frame, index, counter, mode, null, @splat(0));
+            }
+            pub fn initForModeWithCheckpoint(a: std.mem.Allocator, prefix: anytype, statement: *const @import("blake3_ethereum_sha_profile.zig").admission.Statement, frame: Frame, index: u32, counter: *Counters.Counter, mode: u32, checkpoint: ?@import("block_v6_external_commitment_store_v1.zig").Input, expected_root: [32]u8) !Prepared {
                 try Protocol.execution_recipe.requireMode(mode);
+                if (checkpoint != null and Backend != @import("stwo_cpu_backend").CpuBackend) return error.UnsupportedCallerCheckpointBackend;
+                const descriptor = @import("block_v5_caller_columns_stage_v1.zig").Descriptor{ .statement = statement.*, .total_steps = frame.cycle_count, .index = index, .frame = frame, .config = prefix.scheme.config, .key_id = prefix.key_id, .roots = prefix.roots };
                 if (!prefix.owns_scheme or counter.kind != .range_check_8_8) return error.UntrustedV5WarmExternalPrefix;
+                if (checkpoint) |cached| try @import("block_v6_external_commitment_store_v1.zig").preflight(a, cached, &descriptor, mode, expected_root);
                 const fixed_logs = try Protocol.columnLogs(a, statement, .fixed);
                 defer a.free(fixed_logs);
                 const main_logs = try Protocol.columnLogs(a, statement, .main);
@@ -66,15 +72,21 @@ pub fn ForBackend(comptime Backend: type) type {
                 errdefer for (traces[0..initialized]) |*trace| trace.deinit();
                 var count: u64 = 0;
                 for (slots, traces, inputs) |slot, *trace, *input| {
-                    trace.* = try Source.Trace.initSelected(a, slot, columns.fixed, columns.main);
+                    trace.* = if (checkpoint != null) try Source.Trace.allocateForCheckpoint(a, slot, columns.fixed, columns.main) else try Source.Trace.initSelected(a, slot, columns.fixed, columns.main);
                     initialized += 1;
                     input.* = .{ .descriptor = slot, .trace = trace };
-                    for (0..trace.domainSize()) |row| count = try std.math.add(u64, count, @intFromBool((try trace.row(row)).active));
                 }
+                if (checkpoint) |cached| try @import("block_v6_external_commitment_store_v1.zig").loadRaw(a, cached, &descriptor, mode, expected_root, traces);
+                for (traces) |*trace| for (0..trace.domainSize()) |row| {
+                    count = try std.math.add(u64, count, @intFromBool((try trace.row(row)).active));
+                };
                 if (count != demand.event_count) return error.InvalidV5WarmExternalCensus;
                 var local = try Counters.Counter.init(a, .range_check_8_8);
                 defer local.deinit(a);
-                var first = try Api.borrowFirstRound(a, &prefix.scheme, columns.fixed, columns.main, inputs, slots, &local, index, prefix.key_id);
+                var first = if (comptime Backend == @import("stwo_cpu_backend").CpuBackend)
+                    if (checkpoint) |cached| try @import("block_v6_external_commitment_store_v1.zig").loadFirst(a, cached, &descriptor, mode, expected_root, &prefix.scheme, traces, &local) else try Api.borrowFirstRound(a, &prefix.scheme, columns.fixed, columns.main, inputs, slots, &local, index, prefix.key_id)
+                else
+                    try Api.borrowFirstRound(a, &prefix.scheme, columns.fixed, columns.main, inputs, slots, &local, index, prefix.key_id);
                 errdefer first.deinit(a);
                 if (!std.meta.eql(first.roots[0..2].*, prefix.roots)) return error.UnsharedV5WarmExternalRoots;
                 var mass: u64 = 0;

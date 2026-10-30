@@ -43,6 +43,8 @@ pub const FriOpening = struct {
 };
 
 pub const OpeningTree = struct {
+    /// Optional ordinal-owned logs for protocols with an additional witness tree.
+    column_log_sizes: ?common.Words = null,
     ordinal: u32,
     role: proof_ir.CommitmentRole,
     column_count: u32,
@@ -76,6 +78,7 @@ pub const Topology = struct {
         session: anytype,
         decommit: shared_views.Decommit,
     ) !void {
+        if (self.trace_openings.len > 4) return error.InvalidKernelDescriptor;
         var cursor: usize = 0;
         for (self.trace_openings) |opening| {
             const count: usize = opening.column_count;
@@ -97,6 +100,20 @@ pub const Topology = struct {
         }
         if (cursor != self.column_log_sizes.len)
             return error.InvalidKernelDescriptor;
+    }
+    /// Upload immutable logs to each independently bound commitment ordinal.
+    pub fn uploadColumnLogsForTrees(self: Topology, session: anytype, logs: []const common.Words) !void {
+        if (logs.len != self.trace_openings.len) return error.InvalidKernelDescriptor;
+        var cursor: usize = 0;
+        for (self.trace_openings, logs, 0..) |opening, destination, ordinal| {
+            const count: usize = opening.column_count;
+            const end = try add(cursor, count);
+            if (opening.tree_index != ordinal or destination.len != count or end > self.column_log_sizes.len)
+                return error.InvalidKernelDescriptor;
+            try session.context.uploadSlice(u32, destination, self.column_log_sizes[cursor..end]);
+            cursor = end;
+        }
+        if (cursor != self.column_log_sizes.len) return error.InvalidKernelDescriptor;
     }
 };
 
@@ -124,6 +141,37 @@ pub fn deriveGeneric(
     assembly_capacity_words: usize,
     identity_seed: proof_ir.Digest,
 ) !Topology {
+    return deriveForTrees(allocator, &trees, layers, blowup, query_log, query_count, assembly_capacity_words, identity_seed, false);
+}
+
+/// Exact native inventory: fixed, main, access witness, interaction, composition.
+/// Witness has its own ordinal, commitment, logs and storage. The MAIN enum is
+/// only a numerical storage category; it never merges witness columns or roots.
+pub fn deriveNativeFiveTrees(
+    allocator: std.mem.Allocator,
+    trees: [5]GenericTree,
+    layers: []const GenericFriLayer,
+    blowup: u32,
+    query_log: u32,
+    query_count: usize,
+    assembly_capacity_words: usize,
+    identity_seed: proof_ir.Digest,
+) !Topology {
+    return deriveForTrees(allocator, &trees, layers, blowup, query_log, query_count, assembly_capacity_words, identity_seed, true);
+}
+
+fn deriveForTrees(
+    allocator: std.mem.Allocator,
+    trees: []const GenericTree,
+    layers: []const GenericFriLayer,
+    blowup: u32,
+    query_log: u32,
+    query_count: usize,
+    assembly_capacity_words: usize,
+    identity_seed: proof_ir.Digest,
+    native_witness: bool,
+) !Topology {
+    if (trees.len != @as(usize, if (native_witness) 5 else 4)) return error.InvalidKernelDescriptor;
     if (blowup == 0 or blowup > 4 or query_log == 0 or query_log > 30 or
         query_count == 0 or query_count > decommit_stage.max_protocol_queries or
         layers.len == 0 or layers.len > 32 or assembly_capacity_words == 0 or
@@ -173,7 +221,7 @@ pub fn deriveGeneric(
             return error.InvalidKernelDescriptor;
         opening.* = .{
             .tree_index = @intCast(ordinal),
-            .role = @enumFromInt(ordinal),
+            .role = if (native_witness) ([_]proof_ir.CommitmentRole{ .preprocessed, .main, .main, .interaction, .composition })[ordinal] else @enumFromInt(ordinal),
             .column_count = @intCast(tree.column_logs.len),
             .source_log_size = query_log,
             .tree_log_size = tree.lifted_log,
@@ -495,9 +543,10 @@ fn openTrace(
     {
         return error.InvalidKernelDescriptor;
     }
-    const logs = decommit.columnLogSizes(
+    const logs = tree.column_log_sizes orelse decommit.columnLogSizes(
         role(opening.role) orelse return error.InvalidKernelDescriptor,
     );
+    if (logs.len != opening.column_count) return error.InvalidKernelDescriptor;
     const first_group: usize = opening.first_group;
     const end_group = try add(first_group, opening.group_count);
     if (end_group > topology.trace_groups.len)
@@ -546,7 +595,7 @@ fn openTrace(
     try Decommit.assembleTrace(
         session,
         opening.tree_index,
-        @intFromEnum(opening.role),
+        opening.tree_index,
         opening.leaf_log_size,
         opening.leaf_log_size,
         opening.column_count,
