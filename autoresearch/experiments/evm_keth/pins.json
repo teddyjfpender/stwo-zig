@@ -1,0 +1,24 @@
+{
+  "schema": "stwo-zig-keth-integration-pins-v1",
+  "stwo_zig_base": "6692d40639c88becff2a203c45727f31cbe23ad3",
+  "keth": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "stwo_cairo_revision": "92232543984e20e984c5a7194561ff1fffa76dae",
+    "cairo_vm_revision": "3b5196e4469db0c0abb124cbcdc84bfbc8165acd",
+    "execution_specs_revision": "9e5f36b4d7f8e8ae2d8831d2460fbd88648fcdee",
+    "supported_chain_id": 1,
+    "minimum_block": 22615247
+  },
+  "op_reference": {
+    "repository": "https://github.com/ethereum-optimism/optimism",
+    "revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+    "op_geth_version": "v1.101702.4-rc.1",
+    "go_version": "1.26.10"
+  },
+  "zk_pig_reference": {
+    "repository": "https://github.com/kkrt-labs/zk-pig",
+    "revision": "637b69243c46c4d05ea286975b0d4a5f56e03635",
+    "scope": "Ethereum witness generator; unmodified source supports mainnet, Sepolia and Holesky, not OP chains"
+  }
+}

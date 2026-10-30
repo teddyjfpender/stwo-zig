@@ -1,0 +1,49 @@
+{
+  "schema": "keth-base-batch-blob-observation-v1",
+  "trusted_setup_sha256": "d39b9f2d047cc9dca2de58f264b6a09448ccd34db967881a6713eacacf0f26b7",
+  "scope": "host KZG verification and OP framing; derivation and L2 execution not proved",
+  "blobs": [
+    {
+      "versioned_hash": "0x013b12ac8b6d47b7b7eafe5f658eab2b67ce711ae99d9f3e77a1c7c081f7b02b",
+      "blob_sha256": "7bcfd9c0c7afcb43413d78fd4d828d21b7b75faebde005b65ec7293eb5baa889",
+      "op_data_bytes": 130044,
+      "kzg_verified": true,
+      "frames": [
+        {
+          "channel": "da764bb3740bb5ea12a9ea3d1ff27ff0",
+          "frame_number": 0,
+          "payload_bytes": 130020,
+          "last": false
+        }
+      ]
+    },
+    {
+      "versioned_hash": "0x019db2322fced824d52d13daada17bf731b1aae563e8148757ac46fe7a97aede",
+      "blob_sha256": "3049a9e405da6a3017ab80e1d7dc2fc7bbcffb3d30bfda39d9e8a92798876ce5",
+      "op_data_bytes": 112915,
+      "kzg_verified": true,
+      "frames": [
+        {
+          "channel": "da764bb3740bb5ea12a9ea3d1ff27ff0",
+          "frame_number": 2,
+          "payload_bytes": 112891,
+          "last": true
+        }
+      ]
+    },
+    {
+      "versioned_hash": "0x01c959f88715dd6e908840a49b69d99b7d574145861b366235ed496630e1d4a9",
+      "blob_sha256": "cb24d348a6f0d01edd492ecfb2eecef7fce85ba2bdf4af278b243749a17d04cb",
+      "op_data_bytes": 130044,
+      "kzg_verified": true,
+      "frames": [
+        {
+          "channel": "da764bb3740bb5ea12a9ea3d1ff27ff0",
+          "frame_number": 1,
+          "payload_bytes": 130020,
+          "last": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "b89f46265c1e6e096f5df67c4026aacd5dcf5a9f1a34c52e6b077dfdbc68975e",
+  "oracle_sha256": "62b87e805661a2445840575117081872fae2fbc72ca7518ebc8a364193a3c624",
+  "workload": {
+    "kind": "prove",
+    "path": "block-data/keth-integration-20261029/op-tx3-partition-1.cpi",
+    "sha256": "5111c289bffa900f9287ea625adfce88f28ecb2faefc4e9e26c0cee996e12668"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_ZIG_WORKERS": "8",
+    "STWO_CAIRO_FILE_BACKED_ALLOCATOR": "1",
+    "STWO_CAIRO_MAX_INPUT_BYTES": "17179869184",
+    "STWO_CAIRO_PREPROCESSED_CACHE_DIR": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-tx3-partition-1-cpu-proof/cache"
+  },
+  "status": "failed",
+  "trials": [
+    {
+      "index": 1,
+      "status": "failed",
+      "phase": "product",
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/zig-out/bin/stwo-cairo-cpu",
+        "prove",
+        "--prover-input",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-tx3-partition-1.cpi",
+        "--proof",
+        "block-data/keth-integration-20261029/op-tx3-partition-1-cpu-proof/trial-1.proof.json",
+        "--report-out",
+        "block-data/keth-integration-20261029/op-tx3-partition-1-cpu-proof/trial-1.report.json",
+        "--stage-profile-out",
+        "block-data/keth-integration-20261029/op-tx3-partition-1-cpu-proof/trial-1.stages.json",
+        "--verify"
+      ],
+      "process": {
+        "exit_code": 1,
+        "wall_ns": 142993604833,
+        "user_ns": 80586728000,
+        "system_ns": 182976524000,
+        "max_process_tree_rss_bytes": 48913235968,
+        "rss_is_simultaneous_process_tree_sum": false,
+        "footprint_watchdog": {
+          "source": "darwin_proc_pid_rusage_v6",
+          "limit_bytes": 25769803776,
+          "maximum_observed_bytes": 4352669208,
+          "samples": 11366,
+          "termination_reason": null,
+          "scope": "product process; not simultaneous process-tree or host memory"
+        }
+      },
+      "error": "product exited 1; see block-data/keth-integration-20261029/op-tx3-partition-1-cpu-proof/trial-1.product.log",
+      "error_type": "RuntimeError"
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "schema": "stwo-zig-keth-block-bundle-v1",
+  "status": "failed",
+  "source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "workload": {
+    "block_number": 22615247,
+    "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+    "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+    "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+    "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+    "gas_used": 1331413,
+    "transactions": 26,
+    "withdrawals": 16,
+    "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+    "fixture_bytes": 2078954
+  },
+  "body_chunk_size": 2,
+  "workers": 4,
+  "segments": [
+    {
+      "name": "init",
+      "role": "init",
+      "indices": [],
+      "status": "qualified",
+      "compiled_program_sha256": "3a255db218b94f9f17c1d1266e0499141cf34766c82056bda9abcec81bfcb229",
+      "trace": {
+        "exit_code": 0,
+        "wall_ns": 4260296610,
+        "user_ns": 4370935000,
+        "system_ns": 670889000,
+        "max_process_tree_rss_bytes": 352129024,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "legacy_input_sha256": "2333f1a0291cddc720a0e188b2f7d8dd3999d63daf70868902c10ceb85e7a15a",
+      "conversion": {
+        "schema": "keth-legacy-input-conversion-v1",
+        "from_stwo_cairo": "92232543984e20e984c5a7194561ff1fffa76dae",
+        "to_stwo_cairo": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+        "compiled_program_cells_checked": 176850,
+        "instruction_cache_cells_checked": 7022,
+        "execution_steps": 273354,
+        "wall_ns": 2246311815
+      },
+      "input_sha256": "29fac883d28ec7df3e614aebbab31a934a1cba061a34865838c295219f07a619",
+      "expected_public_output": [
+        96405932916938515096622000111007329132,
+        259390178797676935316883025769355943571,
+        257887035945121522402287500905015410028,
+        133320220386084587741131270332799236018
+      ],
+      "benchmark": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "Linux-6.18.55-x86_64-with-glibc2.39",
+        "host_details": {
+          "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+          "cpu": "x86_64",
+          "logical_cpus": 9
+        },
+        "product_sha256": "77b69025c5c4529d03c8b3919a6c16356c576b08c0d15a72714cdf46a7470eb3",
+        "oracle_sha256": "ef2935f17e4baa06c920e140c47a754203cc06289403c15d31f99cdc3f8f35f4",
+        "workload": {
+          "kind": "prove",
+          "path": "/workspace/scratch/4b671f922363/keth-block-22615247-bundle-2/init/input.json",
+          "sha256": "29fac883d28ec7df3e614aebbab31a934a1cba061a34865838c295219f07a619"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_ZIG_WORKERS": "4",
+          "STWO_CAIRO_PREPROCESSED_CACHE_DIR": "/workspace/scratch/4b671f922363/keth-block-22615247-bundle-2/cache"
+        },
+        "status": "qualified",
+        "summary": {
+          "median_process_wall_ns": 13511106174,
+          "median_prove_ns": 13081695343,
+          "peak_process_rss_bytes": 1422200832,
+          "peak_product_physical_footprint_bytes": null,
+          "physical_footprint_sample_count": 0,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      },
+      "trial": {
+        "index": 1,
+        "status": "qualified",
+        "phase": "complete",
+        "process": {
+          "exit_code": 0,
+          "wall_ns": 13511106174,
+          "user_ns": 28110268000,
+          "system_ns": 7497524000,
+          "max_process_tree_rss_bytes": 1422200832,
+          "rss_is_simultaneous_process_tree_sum": false
+        },
+        "official_verifier": {
+          "exit_code": 0,
+          "wall_ns": 267563788,
+          "user_ns": 222183000,
+          "system_ns": 43720000,
+          "max_process_tree_rss_bytes": 234741760,
+          "rss_is_simultaneous_process_tree_sum": false
+        },
+        "timing": {
+          "input_and_assets_ns": 284397591,
+          "proof_encode_ns": 47372543,
+          "request_until_publication_ns": 13499993360,
+          "execute_ns": 0,
+          "prove_ns": 13081695343,
+          "verify_ns": 75491252
+        },
+        "proof_sha256": "b5f6f852d7f00f71271e81cbbf403ddeddf9d9e60a851a68371534eee16d0b59",
+        "profile": "official-live-cairo-canonical-small",
+        "backend": "cpu",
+        "backend_evidence": {
+          "execution": "cpu-simd",
+          "pipeline_cache": null,
+          "archive_store": null,
+          "classification": "host-only",
+          "metal_dispatches": 0,
+          "cpu_fallbacks": 0,
+          "runtime_initializations": 0,
+          "runtime_shutdowns": 0,
+          "commit_source_arena_aliases": 0,
+          "commit_source_arena_memcpys": 0,
+          "commit_source_uploads": 0,
+          "cached_merkle_artifact_adoptions": 0,
+          "compacted_merkle_layer_adoptions": 0
+        },
+        "cache_evidence": {
+          "enabled": true,
+          "budget_bytes": 2147483648,
+          "hits": 0,
+          "misses": 2,
+          "stores": 2,
+          "evictions": 0,
+          "loaded_bytes": 0,
+          "stored_bytes": 10485984,
+          "evicted_bytes": 0,
+          "directory_bytes": 10485984,
+          "eviction_ns": 34276
+        },
+        "prover_process_usage": {
+          "source": "unsupported",
+          "lifetime_peak_physical_footprint_bytes": null,
+          "current_physical_footprint_bytes": null,
+          "process_cpu_ns": null,
+          "energy_nj": null,
+          "instructions": null,
+          "cycles": null,
+          "unavailable_reason": "proc_pid_rusage_v6 is available only on Darwin"
+        }
+      },
+      "public_statement": {
+        "program_len": 176850,
+        "output_len": 4,
+        "public_claim_words": {
+          "count": 176906,
+          "sha256_le": "48153cef58864dc9017812ccc6bb5a3e07128204edabe66e3df88f8d4e2d965e"
+        },
+        "public_claim_padded_words": {
+          "count": 176908,
+          "sha256_le": "f61e5df27a712a45a4caadb25fd402b3abe10cb793f67468a12b58e76271fff5"
+        },
+        "output_claim_words": {
+          "count": 112,
+          "sha256_le": "e8485b2ec9b00e7cbaeb44cf8cd08e207c1716b95e179a7d6e105d558e6a4002"
+        },
+        "program_claim_words": {
+          "count": 4951800,
+          "sha256_le": "ba2db73d9dffc52168b88c41375edc866c7a4c53fa050c50c4963110d5e7920b"
+        },
+        "output_root_blake2s": "e826f6accb21a039df285ad0609e0ed5ebc3820cf41bee5dcbde9ad5eca62344",
+        "program_root_blake2s": "7e4a0a0017ac5257f3209872996fd658c9988fea65338ba15144b41fd9d31046"
+      },
+      "public_output_matches": true,
+      "compressed_proof_sha256": "04e13a472be5e991065eac52dcc4b4eedd42c6751174ad98afe9a7341faf5ce5"
+    },
+    {
+      "name": "body_0_2",
+      "role": "body",
+      "indices": [
+        0,
+        2
+      ],
+      "status": "running",
+      "compiled_program_sha256": "2472349bcab9bbc88f1e71067bac2094f733d8b699da09513fb983ed50441e1d",
+      "trace": {
+        "exit_code": 0,
+        "wall_ns": 14494395765,
+        "user_ns": 12445951000,
+        "system_ns": 3372179000,
+        "max_process_tree_rss_bytes": 2469171200,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "legacy_input_sha256": "d2e8478690e1dc397540acb91b3a332a23637326beeb88f1dad9e67f33101fd0",
+      "conversion": {
+        "schema": "keth-legacy-input-conversion-v1",
+        "from_stwo_cairo": "92232543984e20e984c5a7194561ff1fffa76dae",
+        "to_stwo_cairo": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+        "compiled_program_cells_checked": 182537,
+        "instruction_cache_cells_checked": 17561,
+        "execution_steps": 7443682,
+        "wall_ns": 59601083322
+      },
+      "input_sha256": "a022cfc3bbe25f94502d52f071ad6af1f3b2ed9a2a8050e4655d5b380070345d",
+      "expected_public_output": [
+        96405932916938515096622000111007329132,
+        259390178797676935316883025769355943571,
+        99795018461204727404840928814477416813,
+        38817826300033076726257605061326854634
+      ]
+    }
+  ],
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "scope": "individually-verified-segment-bundle-with-consistency-proof",
+  "cache_policy": "fresh bundle cache; retained across serial segments",
+  "compilation_included": false,
+  "program_poseidon_hashes": {
+    "main_compiled.json": 1986195822013032864962323732444035372346256853419693843306528447298861497029,
+    "init_compiled.json": 1904219439639356325702719704852783489853522878819040032522499875800440447441,
+    "body_compiled.json": 151476497742226464142678066031824760298433644055028561728382320766333506297,
+    "mpt_diff_compiled.json": 599369415772957335354245574015055335375977938104279456839684152222468185574,
+    "aggregator_compiled.json": 745279893309693134702801024462728246014253878790565101733223397050827471075,
+    "teardown_compiled.json": 1490268008156325495050968280556540616632732064988531883974591303426082655616
+  },
+  "error": "product exited 1; see /workspace/scratch/4b671f922363/keth-block-22615247-bundle-2/body_0_2/proofs/trial-1.product.log",
+  "error_type": "RuntimeError",
+  "elapsed_wall_ns": 134920464584
+}

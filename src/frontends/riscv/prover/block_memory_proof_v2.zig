@@ -310,8 +310,12 @@ test "block-v2 experimental sorted-memory and range table prove and freshly veri
 
 const ProofByteCounter = struct {
     bytes_written: usize = 0,
-    pub fn writeAll(self: *ProofByteCounter, bytes: []const u8) !void { self.bytes_written += bytes.len; }
-    pub fn writeByte(self: *ProofByteCounter, _: u8) !void { self.bytes_written += 1; }
+    pub fn writeAll(self: *ProofByteCounter, bytes: []const u8) !void {
+        self.bytes_written += bytes.len;
+    }
+    pub fn writeByte(self: *ProofByteCounter, _: u8) !void {
+        self.bytes_written += 1;
+    }
 };
 
 test "block-v2 range table proves with the joint composition geometry" {

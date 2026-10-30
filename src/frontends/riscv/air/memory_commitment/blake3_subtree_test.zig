@@ -6,7 +6,7 @@ test "BLAKE3 subtree batch matches independent openings at every height" {
         const hasher = tree.TreeHasher.init(kind);
         const last = tree.indexLimit(kind) - 1;
         const leaves = [_]tree.Leaf{
-            .{ .index = 0, .value = 9 }, .{ .index = 1, .value = 0 },
+            .{ .index = 0, .value = 9 },        .{ .index = 1, .value = 0 },
             .{ .index = 7, .value = 0x123456 }, .{ .index = 65537, .value = 35 },
             .{ .index = last, .value = 63 },
         };

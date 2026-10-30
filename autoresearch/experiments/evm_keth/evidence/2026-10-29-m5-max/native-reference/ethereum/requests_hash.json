@@ -1,0 +1,85 @@
+{
+  "ancestor_headers": 1,
+  "block_hash": "0x2a4a2ccb6cabfbed12883b5c166e47ff1edbd3bc3f867f644ea6fa7d97d387cf",
+  "block_number": 22615247,
+  "body_roots_and_blob_accounting_checked": true,
+  "cairo_execution_proved": false,
+  "chain_config": {
+    "chainId": 1,
+    "homesteadBlock": 1150000,
+    "daoForkBlock": 1920000,
+    "daoForkSupport": true,
+    "eip150Block": 2463000,
+    "eip155Block": 2675000,
+    "eip158Block": 2675000,
+    "byzantiumBlock": 4370000,
+    "constantinopleBlock": 7280000,
+    "petersburgBlock": 7280000,
+    "istanbulBlock": 9069000,
+    "muirGlacierBlock": 9200000,
+    "berlinBlock": 12244000,
+    "londonBlock": 12965000,
+    "arrowGlacierBlock": 13773000,
+    "grayGlacierBlock": 15050000,
+    "shanghaiTime": 1681338455,
+    "cancunTime": 1710338135,
+    "pragueTime": 1746612311,
+    "osakaTime": 1764798551,
+    "bpo1Time": 1765290071,
+    "bpo2Time": 1767747671,
+    "terminalTotalDifficulty": 58750000000000000000000,
+    "depositContractAddress": "0x00000000219ab540356cbb839cbe05303d7705fa",
+    "ethash": {},
+    "blobSchedule": {
+      "cancun": {
+        "target": 3,
+        "max": 6,
+        "baseFeeUpdateFraction": 3338477
+      },
+      "prague": {
+        "target": 6,
+        "max": 9,
+        "baseFeeUpdateFraction": 5007716
+      },
+      "osaka": {
+        "target": 6,
+        "max": 9,
+        "baseFeeUpdateFraction": 5007716
+      },
+      "bpo1": {
+        "target": 10,
+        "max": 15,
+        "baseFeeUpdateFraction": 8346193
+      },
+      "bpo2": {
+        "target": 14,
+        "max": 21,
+        "baseFeeUpdateFraction": 11684671
+      }
+    }
+  },
+  "computed_receipt_root": "0x9bc3f74f51eab38e81a867922829be958b879c4b4ff6042cad41708c2b8a5f40",
+  "computed_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+  "consensus_authenticated": false,
+  "derivation_proved": false,
+  "embedded_registry_commit": "ac4e48516794322e20abfe4f4c175e379b9a5d19",
+  "error": "reference state validation: invalid requests hash (remote: 0000000000000000000000000000000000000000000000000000000000000000 local: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)",
+  "execution_header_rules_checked": true,
+  "execution_seconds": 0.001865584,
+  "gas_used": 1331413,
+  "geth_module": {
+    "Path": "github.com/ethereum/go-ethereum",
+    "Version": "v1.17.0",
+    "Replace": {
+      "Path": "github.com/ethereum-optimism/op-geth",
+      "Version": "v1.101702.4-rc.1",
+      "Sum": "h1:sEk7yfmJQwyyu/I38YWpN3kRgi0rK07UQrbg5uI3W54="
+    }
+  },
+  "go_version": "go1.26.10",
+  "offline_execution_checked": false,
+  "schema": "keth-op-reference-execution-v1",
+  "transactions": 26,
+  "witness_codes": 30,
+  "witness_nodes": 868
+}

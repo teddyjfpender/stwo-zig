@@ -1,0 +1,148 @@
+{
+  "schema": "keth-memory-iteration-v1",
+  "compiled_sha256": "8fdf7e5c1c9dea662011505820e11b75c073774a9bbd62bf9fc8231d7a117edc",
+  "input_sha256": "e8a08df6f723980467b39058c7287f32d07bd5882f597d61ad990db1345ddaa0",
+  "baseline_runtime_sha256": "06b34012f49318781d13e96cb2c2e73e393ce86ea2401a35117baa9c84fdd0cd",
+  "candidate_runtime_sha256": "1f1894776c27b69d5b08c98f77b76b23a412caae1ccfe7279a15034348a5ce00",
+  "baseline_footprint_bytes": 33889690368,
+  "baseline_trace_sha256": "76cbc2249667338edbb766f0c57fef75986101fa122d651bbe0f9f7ee75f43de",
+  "candidate_trace_sha256": "c8eb67e9659fa73c7eabcde806fb6e7543b587e8c03fdf4e81b9e4139f83cad1",
+  "candidate_footprint_bytes": 26305612952,
+  "reduction_bytes": 7584077416,
+  "reduction_percent": 22.378715572925945,
+  "accepted": true,
+  "witness_transport_equivalent": true,
+  "evidence_sha256": {
+    "block-data/keth-integration-20261029/keth-memory-profile-baseline/profile.json": "f1039e885fa865bd38ffcb37f6fa74655da40aa7890b2ecb299018a85a0a13af",
+    "block-data/keth-integration-20261029/keth-memory-profile-streamed/profile.json": "14406b182925b7abc93a7a2c45ca9b2bd4debee6a6a45e915ad1b1d997531e57",
+    "block-data/keth-integration-20261029/keth-memory-large-witness-parity.json": "90c0e1af5f66f9afa1a5803a12a01ed8b0cab225f9a65709409a7e8b4b5a9ecb"
+  },
+  "buffer_diagnostics_are_capacity_bytes": true,
+  "measurement_scope": "One process per fixed-workload run, Darwin physical footprint; trace generation and export only",
+  "full_prover_memory_reduction_qualified": false,
+  "op_block_execution_proved": false,
+  "baseline_stages": [
+    {
+      "stage": "adapter_start",
+      "time_ns": 1793337940113181000,
+      "footprint": 33400446976,
+      "peak": 33400446976,
+      "vm_buffers": 16913596448,
+      "relocated_memory": 21474836480,
+      "trace_buffers": 17179869168,
+      "maximum_observed_until_next_stage": 33425088560
+    },
+    {
+      "stage": "vm_buffers_released",
+      "time_ns": 1793337940398078000,
+      "footprint": 20043938720,
+      "peak": 33425088560,
+      "vm_buffers": 0,
+      "relocated_memory": 21474836480,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 33889264384
+    },
+    {
+      "stage": "memory_builder_ready",
+      "time_ns": 1793337957219033000,
+      "footprint": 17937593952,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 23304112896
+    },
+    {
+      "stage": "adapted_input_ready",
+      "time_ns": 1793337960593688000,
+      "footprint": 22868019488,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 20753056568
+    },
+    {
+      "stage": "serialization_start",
+      "time_ns": 1793337960663025000,
+      "footprint": 14225584368,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 15721034856
+    },
+    {
+      "stage": "serialization_end",
+      "time_ns": 1793338002022899000,
+      "footprint": 15721034856,
+      "peak": 33889690368,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 15215276584
+    }
+  ],
+  "candidate_stages": [
+    {
+      "stage": "adapter_start",
+      "time_ns": 1793338399688766000,
+      "footprint": 15656087144,
+      "peak": 18656933544,
+      "vm_buffers": 16913596448,
+      "relocated_memory": 0,
+      "trace_buffers": 17179869184,
+      "maximum_observed_until_next_stage": 24255989352
+    },
+    {
+      "stage": "streamed_memory_started",
+      "time_ns": 1793338400783296000,
+      "footprint": 24255989352,
+      "peak": 24255989352,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 26304023704
+    },
+    {
+      "stage": "memory_builder_ready",
+      "time_ns": 1793338423086938000,
+      "footprint": 15508533032,
+      "peak": 26305612952,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 23509552040
+    },
+    {
+      "stage": "adapted_input_ready",
+      "time_ns": 1793338426412882000,
+      "footprint": 22989162856,
+      "peak": 26305612952,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 21444904216
+    },
+    {
+      "stage": "serialization_start",
+      "time_ns": 1793338426497871000,
+      "footprint": 14346727736,
+      "peak": 26305612952,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 15770678424
+    },
+    {
+      "stage": "serialization_end",
+      "time_ns": 1793338469494287000,
+      "footprint": 15770678424,
+      "peak": 26305612952,
+      "vm_buffers": 0,
+      "relocated_memory": 0,
+      "trace_buffers": 0,
+      "maximum_observed_until_next_stage": 14815473904
+    }
+  ]
+}

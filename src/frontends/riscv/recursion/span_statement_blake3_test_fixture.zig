@@ -34,4 +34,3 @@ pub fn leaf(context: span.JobContext, index: u32, entry: span.MachineState, exit
         if (index + 1 == context.segment_count) try span.EdgeClaim.present(context.complete.public_output) else span.EdgeClaim.absent(),
     ));
 }
-

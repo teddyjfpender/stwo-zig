@@ -1,0 +1,10 @@
+{
+  "compiled_program_cells_checked": 173223,
+  "execution_steps": 4057477,
+  "from_stwo_cairo": "92232543984e20e984c5a7194561ff1fffa76dae",
+  "implementation": "typed-rust-v1",
+  "instruction_cache_cells_checked": 8407,
+  "schema": "keth-legacy-input-conversion-v1",
+  "to_stwo_cairo": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+  "transport": "compact-v1"
+}

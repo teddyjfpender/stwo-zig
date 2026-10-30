@@ -1,0 +1,23 @@
+{
+  "schema": "keth-pr304-script-checks-v1",
+  "script_contract_suite": {
+    "tests": 2334,
+    "failures": 36,
+    "errors": 61,
+    "skipped": 28,
+    "status": "failed",
+    "log_sha256": "ae246ca1390e972bdc36b42edfca02da16ec96ab3ce84e5536a95240abe850f1"
+  },
+  "focused_cairo_benchmark_contract_tests": {
+    "tests": 14,
+    "status": "passed"
+  },
+  "keth_python_tests": {
+    "tests": 20,
+    "status": "passed"
+  },
+  "system_python_tests": {
+    "tests": 32,
+    "status": "passed"
+  }
+}

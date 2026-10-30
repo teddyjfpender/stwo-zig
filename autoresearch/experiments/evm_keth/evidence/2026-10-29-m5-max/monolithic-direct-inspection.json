@@ -1,0 +1,706 @@
+{
+  "schema": "keth-monolithic-witness-v1",
+  "status": "inspected-not-proved",
+  "source": {
+    "repository": "https://github.com/kkrt-labs/keth",
+    "revision": "e90c0a51699182f140e51c94d09ff9045c194769",
+    "git_tree": "aa9b9a9b344a3a3bbde23b054f5546ebb9cedc8b"
+  },
+  "workload": {
+    "block_number": 22615247,
+    "block_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+    "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+    "post_state_root": "0x1f6dc5212b4406456276be869b309a30e1bceb43cadf292f1aefdb72186cb84f",
+    "pre_state_root": "0xbe3cc2842dba8d8161325f9a91fd69f2c14a12e2ce8a3ec038a1d95e7bc767b7",
+    "gas_used": 1331413,
+    "transactions": 26,
+    "withdrawals": 16,
+    "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+    "fixture_bytes": 2078954
+  },
+  "claims": {
+    "op_stack_validity_proof": false,
+    "kona_derivation_proved": false,
+    "ethereum_block_statement_bound": false,
+    "l1_verifier_compatible": false
+  },
+  "stages": {
+    "fixture-check": {
+      "exit_code": 0,
+      "wall_ns": 221227792,
+      "user_ns": 171718000,
+      "system_ns": 29717000,
+      "max_process_tree_rss_bytes": 66338816,
+      "rss_is_simultaneous_process_tree_sum": false
+    },
+    "trace": {
+      "exit_code": 0,
+      "wall_ns": 21131550208,
+      "user_ns": 22954930000,
+      "system_ns": 2712100000,
+      "max_process_tree_rss_bytes": 28233990144,
+      "rss_is_simultaneous_process_tree_sum": false
+    },
+    "conversion": {
+      "exit_code": 0,
+      "wall_ns": 8552883875,
+      "user_ns": 7564369000,
+      "system_ns": 836633000,
+      "max_process_tree_rss_bytes": 12270518272,
+      "rss_is_simultaneous_process_tree_sum": false
+    },
+    "inspect": {
+      "exit_code": 0,
+      "wall_ns": 422879875,
+      "user_ns": 298368000,
+      "system_ns": 114506000,
+      "max_process_tree_rss_bytes": 1824702464,
+      "rss_is_simultaneous_process_tree_sum": false
+    }
+  },
+  "workers": 8,
+  "compiled_program_sha256": "d528dea0e6247b7121c8fcebca23178e2d6deb9bbad7852c142e6ec4b35a6efe",
+  "converter_sha256": "13d99536daecdb0b0159f3e15caf2c61395372889eb1b905295d7e90a277f9d9",
+  "address_space_policy": {
+    "requested_gib": 0,
+    "enforced": false,
+    "scope": "per-process virtual address space; inherited by children",
+    "platform": "darwin"
+  },
+  "phase": "inspect",
+  "legacy_input_sha256": "0a29340eea8eefb94ce53131bf6bde920276a93cb7f1562d7f4d64973950db8e",
+  "conversion": {
+    "compiled_program_cells_checked": 188130,
+    "execution_steps": 64655336,
+    "from_stwo_cairo": "92232543984e20e984c5a7194561ff1fffa76dae",
+    "implementation": "typed-rust-v1",
+    "instruction_cache_cells_checked": 22023,
+    "schema": "keth-legacy-input-conversion-v1",
+    "to_stwo_cairo": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+    "transport": "compact-v1"
+  },
+  "input_sha256": "4f21afe5b22979bc0075c117af4b22350b01bafc8db4176ea4c25df42fba4ce7",
+  "input_bytes": 1815835512,
+  "inspection": {
+    "schema": "stwo-zig-cairo-input-plan-v1",
+    "input": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/ethereum-main-direct-inspection/main.cpi",
+    "profile": "official-live-cairo-canonical",
+    "source_revision": {
+      "stwo_cairo": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+      "stwo": "7b211edde786775016ef3eecb837a6240d8fe792"
+    },
+    "proof_qualified": false,
+    "execution_steps": 64655336,
+    "resources": {
+      "opcode_counts": [
+        0,
+        1391134,
+        2980688,
+        7754158,
+        6416388,
+        26265123,
+        5866470,
+        47,
+        3155379,
+        1148093,
+        2158447,
+        602288,
+        32048,
+        0,
+        0,
+        643698,
+        3076775,
+        3155426,
+        9174,
+        0
+      ],
+      "pc_count": 22023,
+      "memory_address_count": 102651582,
+      "memory_big_value_count": 16814391,
+      "memory_small_value_count": 5659469,
+      "builtin_segments": {
+        "add_mod_builtin": {
+          "begin_addr": 99058199,
+          "stop_ptr": 99086871
+        },
+        "bitwise_builtin": {
+          "begin_addr": 57037335,
+          "stop_ptr": 98980375
+        },
+        "output": {
+          "begin_addr": 54940177,
+          "stop_ptr": 54940183
+        },
+        "mul_mod_builtin": {
+          "begin_addr": 99086871,
+          "stop_ptr": 99144215
+        },
+        "pedersen_builtin": null,
+        "poseidon_builtin": {
+          "begin_addr": 98980375,
+          "stop_ptr": 98992663
+        },
+        "range_check96_builtin": {
+          "begin_addr": 98992663,
+          "stop_ptr": 99058199
+        },
+        "range_check_builtin": {
+          "begin_addr": 54940183,
+          "stop_ptr": 57037335
+        },
+        "ec_op_builtin": null
+      }
+    },
+    "prediction_error": "UnresolvableFeedGeometry",
+    "unresolved_components": 8,
+    "components": [
+      {
+        "name": "add_opcode",
+        "instance": 0,
+        "log_size": 22,
+        "sizing_source": "execution_resources",
+        "base_columns": 103,
+        "interaction_columns": 20,
+        "base_bytes": 1728053248,
+        "interaction_bytes": 335544320
+      },
+      {
+        "name": "add_opcode_small",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 39,
+        "interaction_columns": 20,
+        "base_bytes": 1308622848,
+        "interaction_bytes": 671088640
+      },
+      {
+        "name": "add_ap_opcode",
+        "instance": 0,
+        "log_size": 21,
+        "sizing_source": "execution_resources",
+        "base_columns": 17,
+        "interaction_columns": 16,
+        "base_bytes": 142606336,
+        "interaction_bytes": 134217728
+      },
+      {
+        "name": "assert_eq_opcode",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 12,
+        "interaction_columns": 12,
+        "base_bytes": 402653184,
+        "interaction_bytes": 402653184
+      },
+      {
+        "name": "assert_eq_opcode_imm",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 9,
+        "interaction_columns": 12,
+        "base_bytes": 301989888,
+        "interaction_bytes": 402653184
+      },
+      {
+        "name": "assert_eq_opcode_double_deref",
+        "instance": 0,
+        "log_size": 25,
+        "sizing_source": "execution_resources",
+        "base_columns": 19,
+        "interaction_columns": 16,
+        "base_bytes": 2550136832,
+        "interaction_bytes": 2147483648
+      },
+      {
+        "name": "blake_compress_opcode",
+        "instance": 0,
+        "log_size": 14,
+        "sizing_source": "execution_resources",
+        "base_columns": 174,
+        "interaction_columns": 148,
+        "base_bytes": 11403264,
+        "interaction_bytes": 9699328
+      },
+      {
+        "name": "call_opcode_abs",
+        "instance": 0,
+        "log_size": 6,
+        "sizing_source": "execution_resources",
+        "base_columns": 25,
+        "interaction_columns": 20,
+        "base_bytes": 6400,
+        "interaction_bytes": 5120
+      },
+      {
+        "name": "call_opcode_rel_imm",
+        "instance": 0,
+        "log_size": 22,
+        "sizing_source": "execution_resources",
+        "base_columns": 24,
+        "interaction_columns": 20,
+        "base_bytes": 402653184,
+        "interaction_bytes": 335544320
+      },
+      {
+        "name": "jnz_opcode_non_taken",
+        "instance": 0,
+        "log_size": 21,
+        "sizing_source": "execution_resources",
+        "base_columns": 9,
+        "interaction_columns": 12,
+        "base_bytes": 75497472,
+        "interaction_bytes": 100663296
+      },
+      {
+        "name": "jnz_opcode_taken",
+        "instance": 0,
+        "log_size": 22,
+        "sizing_source": "execution_resources",
+        "base_columns": 47,
+        "interaction_columns": 16,
+        "base_bytes": 788529152,
+        "interaction_bytes": 268435456
+      },
+      {
+        "name": "jump_opcode_rel",
+        "instance": 0,
+        "log_size": 15,
+        "sizing_source": "execution_resources",
+        "base_columns": 16,
+        "interaction_columns": 12,
+        "base_bytes": 2097152,
+        "interaction_bytes": 1572864
+      },
+      {
+        "name": "jump_opcode_rel_imm",
+        "instance": 0,
+        "log_size": 20,
+        "sizing_source": "execution_resources",
+        "base_columns": 13,
+        "interaction_columns": 12,
+        "base_bytes": 54525952,
+        "interaction_bytes": 50331648
+      },
+      {
+        "name": "mul_opcode",
+        "instance": 0,
+        "log_size": 22,
+        "sizing_source": "execution_resources",
+        "base_columns": 130,
+        "interaction_columns": 76,
+        "base_bytes": 2181038080,
+        "interaction_bytes": 1275068416
+      },
+      {
+        "name": "mul_opcode_small",
+        "instance": 0,
+        "log_size": 20,
+        "sizing_source": "execution_resources",
+        "base_columns": 37,
+        "interaction_columns": 24,
+        "base_bytes": 155189248,
+        "interaction_bytes": 100663296
+      },
+      {
+        "name": "ret_opcode",
+        "instance": 0,
+        "log_size": 22,
+        "sizing_source": "execution_resources",
+        "base_columns": 16,
+        "interaction_columns": 16,
+        "base_bytes": 268435456,
+        "interaction_bytes": 268435456
+      },
+      {
+        "name": "verify_instruction",
+        "instance": 0,
+        "log_size": 15,
+        "sizing_source": "execution_resources",
+        "base_columns": 17,
+        "interaction_columns": 12,
+        "base_bytes": 2228224,
+        "interaction_bytes": 1572864
+      },
+      {
+        "name": "blake_round",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 212,
+        "interaction_columns": 120,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "blake_g",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 53,
+        "interaction_columns": 36,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "blake_round_sigma",
+        "instance": 0,
+        "log_size": 4,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 64,
+        "interaction_bytes": 256
+      },
+      {
+        "name": "triple_xor_32",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 21,
+        "interaction_columns": 20,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "verify_bitwise_xor_12",
+        "instance": 0,
+        "log_size": 20,
+        "sizing_source": "execution_resources",
+        "base_columns": 16,
+        "interaction_columns": 32,
+        "base_bytes": 67108864,
+        "interaction_bytes": 134217728
+      },
+      {
+        "name": "add_mod_builtin",
+        "instance": 0,
+        "log_size": 12,
+        "sizing_source": "execution_resources",
+        "base_columns": 267,
+        "interaction_columns": 108,
+        "base_bytes": 4374528,
+        "interaction_bytes": 1769472
+      },
+      {
+        "name": "bitwise_builtin",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 89,
+        "interaction_columns": 76,
+        "base_bytes": 2986344448,
+        "interaction_bytes": 2550136832
+      },
+      {
+        "name": "mul_mod_builtin",
+        "instance": 0,
+        "log_size": 13,
+        "sizing_source": "execution_resources",
+        "base_columns": 426,
+        "interaction_columns": 376,
+        "base_bytes": 13959168,
+        "interaction_bytes": 12320768
+      },
+      {
+        "name": "poseidon_builtin",
+        "instance": 0,
+        "log_size": 11,
+        "sizing_source": "execution_resources",
+        "base_columns": 6,
+        "interaction_columns": 16,
+        "base_bytes": 49152,
+        "interaction_bytes": 131072
+      },
+      {
+        "name": "range_check96_builtin",
+        "instance": 0,
+        "log_size": 16,
+        "sizing_source": "execution_resources",
+        "base_columns": 12,
+        "interaction_columns": 8,
+        "base_bytes": 3145728,
+        "interaction_bytes": 2097152
+      },
+      {
+        "name": "range_check_builtin",
+        "instance": 0,
+        "log_size": 21,
+        "sizing_source": "execution_resources",
+        "base_columns": 17,
+        "interaction_columns": 4,
+        "base_bytes": 142606336,
+        "interaction_bytes": 33554432
+      },
+      {
+        "name": "poseidon_aggregator",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 342,
+        "interaction_columns": 56,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "poseidon_3_partial_rounds_chain",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 169,
+        "interaction_columns": 36,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "poseidon_full_round_chain",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 126,
+        "interaction_columns": 24,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "cube_252",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 141,
+        "interaction_columns": 200,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "poseidon_round_keys",
+        "instance": 0,
+        "log_size": 6,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 256,
+        "interaction_bytes": 1024
+      },
+      {
+        "name": "range_check_252_width_27",
+        "instance": 0,
+        "log_size": null,
+        "sizing_source": "witness_feed_cardinality",
+        "base_columns": 20,
+        "interaction_columns": 32,
+        "base_bytes": null,
+        "interaction_bytes": null
+      },
+      {
+        "name": "memory_address_to_id",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 32,
+        "interaction_columns": 32,
+        "base_bytes": 1073741824,
+        "interaction_bytes": 1073741824
+      },
+      {
+        "name": "memory_id_to_big",
+        "instance": 0,
+        "log_size": 25,
+        "sizing_source": "execution_resources",
+        "base_columns": 29,
+        "interaction_columns": 32,
+        "base_bytes": 3892314112,
+        "interaction_bytes": 4294967296
+      },
+      {
+        "name": "memory_id_to_small",
+        "instance": 0,
+        "log_size": 23,
+        "sizing_source": "execution_resources",
+        "base_columns": 9,
+        "interaction_columns": 12,
+        "base_bytes": 301989888,
+        "interaction_bytes": 402653184
+      },
+      {
+        "name": "range_check_6",
+        "instance": 0,
+        "log_size": 6,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 256,
+        "interaction_bytes": 1024
+      },
+      {
+        "name": "range_check_8",
+        "instance": 0,
+        "log_size": 8,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 1024,
+        "interaction_bytes": 4096
+      },
+      {
+        "name": "range_check_11",
+        "instance": 0,
+        "log_size": 11,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 8192,
+        "interaction_bytes": 32768
+      },
+      {
+        "name": "range_check_12",
+        "instance": 0,
+        "log_size": 12,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 16384,
+        "interaction_bytes": 65536
+      },
+      {
+        "name": "range_check_18",
+        "instance": 0,
+        "log_size": 18,
+        "sizing_source": "execution_resources",
+        "base_columns": 2,
+        "interaction_columns": 4,
+        "base_bytes": 2097152,
+        "interaction_bytes": 4194304
+      },
+      {
+        "name": "range_check_20",
+        "instance": 0,
+        "log_size": 20,
+        "sizing_source": "execution_resources",
+        "base_columns": 8,
+        "interaction_columns": 16,
+        "base_bytes": 33554432,
+        "interaction_bytes": 67108864
+      },
+      {
+        "name": "range_check_4_3",
+        "instance": 0,
+        "log_size": 7,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 512,
+        "interaction_bytes": 2048
+      },
+      {
+        "name": "range_check_4_4",
+        "instance": 0,
+        "log_size": 8,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 1024,
+        "interaction_bytes": 4096
+      },
+      {
+        "name": "range_check_9_9",
+        "instance": 0,
+        "log_size": 18,
+        "sizing_source": "execution_resources",
+        "base_columns": 8,
+        "interaction_columns": 16,
+        "base_bytes": 8388608,
+        "interaction_bytes": 16777216
+      },
+      {
+        "name": "range_check_7_2_5",
+        "instance": 0,
+        "log_size": 14,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 65536,
+        "interaction_bytes": 262144
+      },
+      {
+        "name": "range_check_3_6_6_3",
+        "instance": 0,
+        "log_size": 18,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 1048576,
+        "interaction_bytes": 4194304
+      },
+      {
+        "name": "range_check_4_4_4_4",
+        "instance": 0,
+        "log_size": 16,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 262144,
+        "interaction_bytes": 1048576
+      },
+      {
+        "name": "range_check_3_3_3_3_3",
+        "instance": 0,
+        "log_size": 15,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 131072,
+        "interaction_bytes": 524288
+      },
+      {
+        "name": "verify_bitwise_xor_4",
+        "instance": 0,
+        "log_size": 8,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 1024,
+        "interaction_bytes": 4096
+      },
+      {
+        "name": "verify_bitwise_xor_7",
+        "instance": 0,
+        "log_size": 14,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 65536,
+        "interaction_bytes": 262144
+      },
+      {
+        "name": "verify_bitwise_xor_8",
+        "instance": 0,
+        "log_size": 16,
+        "sizing_source": "execution_resources",
+        "base_columns": 2,
+        "interaction_columns": 4,
+        "base_bytes": 524288,
+        "interaction_bytes": 1048576
+      },
+      {
+        "name": "verify_bitwise_xor_9",
+        "instance": 0,
+        "log_size": 18,
+        "sizing_source": "execution_resources",
+        "base_columns": 1,
+        "interaction_columns": 4,
+        "base_bytes": 1048576,
+        "interaction_bytes": 4194304
+      }
+    ],
+    "trace_storage": {
+      "base_bytes": 18908514624,
+      "interaction_bytes": 15110952192,
+      "complete": false,
+      "is_peak_memory_estimate": false
+    },
+    "inspection_ns": 401814417
+  }
+}

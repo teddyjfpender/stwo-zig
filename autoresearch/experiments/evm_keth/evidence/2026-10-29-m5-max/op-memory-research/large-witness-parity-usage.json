@@ -1,0 +1,22 @@
+{
+  "schema": "keth-bounded-process-v1",
+  "command": [
+    "autoresearch/experiments/evm_keth/legacy_input_rs/target/release/keth-legacy-input",
+    "--compare-left",
+    "block-data/keth-integration-20261029/keth-memory-profile-baseline/trace.json",
+    "--compare-right",
+    "block-data/keth-integration-20261029/keth-memory-profile-streamed/trace.json",
+    "--receipt",
+    "block-data/keth-integration-20261029/keth-memory-large-witness-parity.json"
+  ],
+  "exit_code": 0,
+  "wall_ns": 151997972542,
+  "limit_bytes": 21474836480,
+  "started_utc_ns": 1793338519584684000,
+  "samples_path": null,
+  "maximum_observed_footprint_bytes": 12875245360,
+  "footprint_samples": 12017,
+  "footprint_source": "darwin_proc_pid_rusage_v6",
+  "termination_reason": null,
+  "completion_latency": true
+}

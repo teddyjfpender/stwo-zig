@@ -1,0 +1,12 @@
+{
+  "schema": "keth-ethereum-fixture-check-v1",
+  "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+  "header_hash": "0x0497f69549701d578c67a43951f9e4fcb92b1691b9f6bbdfa63a17bc41d3971e",
+  "parent_hash": "0x11e63a1dcfd1e9fe6350eba5697b9e39892b4a70e6c0cf4ae4f4891a5a333b50",
+  "signed_transaction_hashes_checked": 26,
+  "header_rlp_keccak_checked": true,
+  "parent_rlp_keccak_checked": true,
+  "ethereum_block_statement_bound_in_proof": false,
+  "rpc_block_sha256": "609b20a11e7056a0b42a3b6c0b203ebb9747bf926dd129abf781f8224b24c7d0",
+  "rpc_parent_sha256": "f5bbb44da34ff74a569401f1f96ae883c2d214a3e0625611471d33fefe71cd79"
+}

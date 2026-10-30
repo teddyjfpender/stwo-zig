@@ -1,0 +1,35 @@
+{
+  "schema": "keth-l1-rollup-submissions-v1",
+  "fixture_sha256": "48d9c58a2fe7a5e791bacf1c5b8518cbc8426894012a4ea3276916d2a484d99e",
+  "manifest_sha256": "2c4b1c56af08bf21458568dc24f83454f921623c87c2a9d09876a157d86549d7",
+  "submissions": [
+    {
+      "transaction_index": 15,
+      "transaction_hash": "0xde4edf4f7d27981d86b57420bd9b9f294f73b2ca5d2513a723bdddf407392341",
+      "transaction_type": "0x3",
+      "inbox": "0xff00000000000000000000000000000000008453",
+      "chain_id": 8453,
+      "chain_name": "Base",
+      "chain_config_sha256": "74f60e7f9e931fb4858883b59b4a096338623a8185ffffc4529c203ffe8403d1",
+      "gas_limit": 21000,
+      "calldata_bytes": 0,
+      "blob_versioned_hashes": [
+        "0x013b12ac8b6d47b7b7eafe5f658eab2b67ce711ae99d9f3e77a1c7c081f7b02b",
+        "0x01c959f88715dd6e908840a49b69d99b7d574145861b366235ed496630e1d4a9",
+        "0x019db2322fced824d52d13daada17bf731b1aae563e8148757ac46fe7a97aede"
+      ],
+      "segment": "body_15_1",
+      "segment_transaction_count": 1,
+      "segment_cairo_transitions": 1745224,
+      "segment_prove_ns": 3474777708,
+      "segment_peak_rss_bytes": 2916253696,
+      "segment_proof_sha256": "9fbc55721bfd0e55ddde91a2eb600dc1653c16600945a96175d5b8572b69292b",
+      "l1_execution_segment_verified": true,
+      "blob_data_verified": false,
+      "batch_authorization_verified": false,
+      "l2_derivation_proved": false,
+      "l2_execution_proved": false
+    }
+  ],
+  "scope": "configured inbox matches within an independently verified L1 execution workload"
+}

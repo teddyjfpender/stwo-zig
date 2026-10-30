@@ -1,0 +1,35 @@
+{
+  "schema": "keth-op-reference-build-v1",
+  "target": "execution",
+  "source": {
+    "repository": "https://github.com/ethereum-optimism/optimism",
+    "revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+    "git_tree": "5b196656c21660e5fd8f5e7adb359d87f820cfd5"
+  },
+  "source_files_sha256": {
+    "op_reference/main.go": "39e5d54c803726d02fad575f020d5e4ca89d3a68bee8dd8baaea97b428134ef2",
+    "op_reference/execution.go": "e1d1b39e31501a74d773ab8dc4067b9c744755188b9a0e63511be29ad276cc6a",
+    "op_reference/checkpoints.go": "d4e59e6a82db609d4caebf1ab2ca30b4f337f7b9655c2f2669536971e4ed9bd1"
+  },
+  "go_version": "1.26.10",
+  "go_mod_sha256": "43c6a2b6bcfca1343d3aab795eb56e0cb20dd1f822dd9b73086bca09c6a59115",
+  "go_sum_sha256": "36dc5dbcca300e068079779583dc7ac521c2fb29112f03ed5efd3f8b6a65f08f",
+  "binary_sha256": "da2841524751a9591a17e019976af337d370717cb4249079b44400c4be3f8ab7",
+  "command": [
+    "mise",
+    "exec",
+    "go@1.26.10",
+    "--",
+    "go",
+    "-C",
+    "/Users/theodorepender/code/cryptography/optimism-op-batch-reference",
+    "build",
+    "-trimpath",
+    "-o",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/op-reference-final",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/autoresearch/experiments/evm_keth/op_reference/main.go",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/autoresearch/experiments/evm_keth/op_reference/execution.go",
+    "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/autoresearch/experiments/evm_keth/op_reference/checkpoints.go"
+  ],
+  "elapsed_seconds": 1.8203497079957742
+}

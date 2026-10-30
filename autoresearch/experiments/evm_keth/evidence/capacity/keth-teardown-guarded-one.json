@@ -1,0 +1,60 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "host_details": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "logical_cpus": 9
+  },
+  "product_sha256": "77b69025c5c4529d03c8b3919a6c16356c576b08c0d15a72714cdf46a7470eb3",
+  "oracle_sha256": "ef2935f17e4baa06c920e140c47a754203cc06289403c15d31f99cdc3f8f35f4",
+  "workload": {
+    "kind": "prove",
+    "path": "/tmp/keth-failed-input-rxfndakx/input.cpi",
+    "sha256": "30df9a57e2b596c8bd69a10f9f61214cc84d017ee7b310c22b6ab177cce555b5"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_ZIG_WORKERS": "1",
+    "STWO_CAIRO_PREPROCESSED_CACHE_DIR": "/workspace/scratch/4b671f922363/keth-block-22615247-bundle-3/cache",
+    "STWO_CAIRO_PROFILE_ARENAS": "1",
+    "STWO_CAIRO_OVERLAP_PREPROCESSED": "0",
+    "STWO_CAIRO_CPU_WIDE_LDE": "0",
+    "STWO_CAIRO_COMPACT_POLYNOMIALS": "1",
+    "STWO_CAIRO_INCREMENTAL_MULTIPLICITIES": "1"
+  },
+  "status": "failed",
+  "trials": [
+    {
+      "index": 1,
+      "status": "failed",
+      "phase": "product",
+      "command": [
+        "/workspace/scratch/4b671f922363/stwo-zig/zig-out/bin/stwo-cairo-cpu",
+        "prove",
+        "--prover-input",
+        "/tmp/keth-failed-input-rxfndakx/input.cpi",
+        "--proof",
+        "/workspace/scratch/4b671f922363/keth-teardown-guarded-one/trial-1.proof.json",
+        "--report-out",
+        "/workspace/scratch/4b671f922363/keth-teardown-guarded-one/trial-1.report.json",
+        "--stage-profile-out",
+        "/workspace/scratch/4b671f922363/keth-teardown-guarded-one/trial-1.stages.json",
+        "--verify"
+      ],
+      "process": {
+        "exit_code": -15,
+        "wall_ns": 28470482801,
+        "user_ns": 11553367000,
+        "system_ns": 16816299000,
+        "max_process_tree_rss_bytes": 8001744896,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "error": "product exited -15; see /workspace/scratch/4b671f922363/keth-teardown-guarded-one/trial-1.product.log",
+      "error_type": "RuntimeError"
+    }
+  ]
+}

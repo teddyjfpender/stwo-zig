@@ -515,7 +515,8 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 if (comptime decompose_domains and RelationRuntime.BATCH_SIZE > 2) {
                     const row = if (logical_row < row_count)
                         (if (columns_source) |source| source.read(logical_row, log_size) else rows[logical_row])
-                    else (padding orelse continue);
+                    else
+                        (padding orelse continue);
                     for (plan.preparedEntries(row)) |entry| {
                         const denominator = try entry.denominator(relations);
                         if (denominator.eql(QM31.zero())) return error.ZeroDenominator;

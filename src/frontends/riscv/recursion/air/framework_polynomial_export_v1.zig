@@ -265,23 +265,23 @@ const Lowerer = struct {
     }
 
     fn number(self: *Lowerer, value: u32) !u32 {
-        return self.append(.{.op=.constant,.value=value});
+        return self.append(.{ .op = .constant, .value = value });
     }
     fn lowerMachine(self: *Lowerer, value: @import("../../air/lang/expr.zig").MachineDerived) !u32 {
         const types = @import("../../air/lang/types.zig");
-        return switch(value) {
+        return switch (value) {
             .register_address => |v| self.slot(types.idIndex(v.index)),
-            .aligned_word_address => |v| self.append(.{.op=.mul,.lhs=try self.slot(types.idIndex(v.word_index)),.rhs=try self.number(4)}),
-            .instruction_next_pc => |v| self.append(.{.op=.add,.lhs=try self.slot(types.idIndex(v.current)),.rhs=try self.number(4)}),
-            .instruction_next_clock => |v| self.append(.{.op=.add,.lhs=try self.slot(types.idIndex(v.current)),.rhs=try self.number(1)}),
+            .aligned_word_address => |v| self.append(.{ .op = .mul, .lhs = try self.slot(types.idIndex(v.word_index)), .rhs = try self.number(4) }),
+            .instruction_next_pc => |v| self.append(.{ .op = .add, .lhs = try self.slot(types.idIndex(v.current)), .rhs = try self.number(4) }),
+            .instruction_next_clock => |v| self.append(.{ .op = .add, .lhs = try self.slot(types.idIndex(v.current)), .rhs = try self.number(1) }),
             .access_clock => |v| blk: {
-                const previous = try self.append(.{.op=.sub,.lhs=try self.slot(types.idIndex(v.instruction_clock)),.rhs=try self.number(1)});
-                const scaled = try self.append(.{.op=.mul,.lhs=previous,.rhs=try self.number(4)});
-                break :blk self.append(.{.op=.add,.lhs=scaled,.rhs=try self.number(@intFromEnum(v.phase))});
+                const previous = try self.append(.{ .op = .sub, .lhs = try self.slot(types.idIndex(v.instruction_clock)), .rhs = try self.number(1) });
+                const scaled = try self.append(.{ .op = .mul, .lhs = previous, .rhs = try self.number(4) });
+                break :blk self.append(.{ .op = .add, .lhs = scaled, .rhs = try self.number(@intFromEnum(v.phase)) });
             },
             .strict_clock_gap => |v| blk: {
-                const difference = try self.append(.{.op=.sub,.lhs=try self.slot(types.idIndex(v.current_clock)),.rhs=try self.slot(types.idIndex(v.previous_clock))});
-                break :blk self.append(.{.op=.sub,.lhs=difference,.rhs=try self.number(1)});
+                const difference = try self.append(.{ .op = .sub, .lhs = try self.slot(types.idIndex(v.current_clock)), .rhs = try self.slot(types.idIndex(v.previous_clock)) });
+                break :blk self.append(.{ .op = .sub, .lhs = difference, .rhs = try self.number(1) });
             },
         };
     }

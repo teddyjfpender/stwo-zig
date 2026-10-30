@@ -1,0 +1,11 @@
+{
+  "schema": "keth-diagnostic-rendering-v1",
+  "change": "Trim trailing whitespace for repository hygiene; exact raw bytes retained in .raw.gz siblings",
+  "files": [
+    {
+      "path": "cpu-large-proof-vmmap.txt",
+      "original_sha256": "36c5f7ae016f466a337f97e1dbc2879b4b36774f8e95c54fea2c7445772456d0",
+      "rendered_sha256": "e471078130a2ad5730f5ce938e11f28133af4bc04163bb83a0834fbbb2f84efe"
+    }
+  ]
+}

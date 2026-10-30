@@ -1,0 +1,43 @@
+{
+  "schema": "keth-base-official-codec-validation-v1",
+  "source_repository": "https://github.com/ethereum-optimism/optimism",
+  "source_revision": "8aa2479d99d928d3adbb65f88975aa81cc009a1e",
+  "reference_binary_sha256": "3e5fed7aeebcd494f39acf195a04b356b9a521c365ff8ef6476c355248a333a9",
+  "decoded_channel_sha256": "46dd901da1ff8ceb6bc46c5c4b0978ef99b8f8d6b755dabf2d9378fbe522892e",
+  "retained_gzip_sha256": "bd75a7cffe3e80d63efcb2fbd69f8f178ab4769d85fc535c011b182424b7819c",
+  "reference_rollup_config_sha256": "58f1ec3ebd73354fa90924509ddd511274ffbb8254939573201eb79a05b4035b",
+  "channel_id": "da764bb3740bb5ea12a9ea3d1ff27ff0",
+  "channel_ready": true,
+  "invalid_frames": false,
+  "invalid_batches": false,
+  "batch_count": 3,
+  "l2_blocks": 12,
+  "sequencer_transactions": 2437,
+  "transaction_types": {
+    "0x2": 1938,
+    "0x0": 499
+  },
+  "first_block_timestamp": 1748846063,
+  "last_block_timestamp": 1748846085,
+  "first_l2_block_number": 31028358,
+  "last_l2_block_number": 31028369,
+  "transaction_hashes_sha256": "d182ba2bd2139dddfacf5e2df8fb757c2748297505560e00f58e74628ea07309",
+  "authorization_context": "Reference codec valid_sender flag was set from RPC sender matching the retained historical genesis batcher; dynamic SystemConfig authorization was not verified.",
+  "transaction_bodies_decoded": true,
+  "op_stack_derivation_proved": false,
+  "l2_execution_proved": false,
+  "settlement_proof_produced": false,
+  "all_explicit_transaction_chain_ids_match_8453": true,
+  "unprotected_legacy_transactions": 2,
+  "reference_input_gzip_sha256": "3e1cdb9db49fb781a66ea2e304b4ce90d6e3be18e39b6e22836beeacb952d9bf",
+  "reference_command": [
+    "op-batch-decoder",
+    "reassemble",
+    "--in",
+    "<directory containing decompressed official-decoder-input.json>",
+    "--out",
+    "<fresh channel directory>",
+    "--rollup-config",
+    "official-rollup-config.json"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "1ccfb0c9cc2050d646726ff78de7c6d07dd36df6e6f2707355826fa9640ad8e8",
+  "oracle_sha256": "62b87e805661a2445840575117081872fae2fbc72ca7518ebc8a364193a3c624",
+  "workload": {
+    "kind": "prove",
+    "path": "block-data/keth-integration-20261029/all-opcodes-small-spilled-v2.json",
+    "sha256": "3c1531a41d6d025e4a3aa187857927958ca4556fd4511836a21f81312725c842"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_ZIG_WORKERS": "4",
+    "STWO_CAIRO_PREPROCESSED_CACHE_DIR": "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/blake-spill-before-proof/cache"
+  },
+  "status": "failed",
+  "trials": [
+    {
+      "index": 1,
+      "status": "failed",
+      "phase": "product",
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/zig-out/bin/stwo-cairo-metal",
+        "prove",
+        "--prover-input",
+        "/Users/theodorepender/code/cryptography/stwo-zig-keth-integration/block-data/keth-integration-20261029/all-opcodes-small-spilled-v2.json",
+        "--proof",
+        "block-data/keth-integration-20261029/blake-spill-before-proof/trial-1.proof.json",
+        "--report-out",
+        "block-data/keth-integration-20261029/blake-spill-before-proof/trial-1.report.json",
+        "--stage-profile-out",
+        "block-data/keth-integration-20261029/blake-spill-before-proof/trial-1.stages.json",
+        "--verify"
+      ],
+      "process": {
+        "exit_code": 1,
+        "wall_ns": 127625375,
+        "user_ns": 95615000,
+        "system_ns": 28207000,
+        "max_process_tree_rss_bytes": 61308928,
+        "rss_is_simultaneous_process_tree_sum": false,
+        "footprint_watchdog": {
+          "source": "darwin_proc_pid_rusage_v6",
+          "limit_bytes": 8589934592,
+          "maximum_observed_bytes": 37880408,
+          "samples": 10,
+          "termination_reason": null,
+          "scope": "product process; not simultaneous process-tree or host memory"
+        }
+      },
+      "error": "product exited 1; see block-data/keth-integration-20261029/blake-spill-before-proof/trial-1.product.log",
+      "error_type": "RuntimeError"
+    }
+  ]
+}
