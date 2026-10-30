@@ -1,0 +1,6 @@
+{
+  "schema": "keth-current-reference-regression-v1",
+  "native_checkpoints": 70,
+  "roots_states_and_receipts_identical": true,
+  "current_native_replay_checked": true
+}

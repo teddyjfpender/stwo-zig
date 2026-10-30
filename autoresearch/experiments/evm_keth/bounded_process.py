@@ -13,12 +13,18 @@ import time
 
 from .bounded_prove import physical_usage
 from .bridge import write_new
+from .disk_reserve import DiskReserve
 
 
-def run(command: list[str], log: Path, receipt: Path, limit: int, samples_path: Path | None = None):
+def run(command: list[str], log: Path, receipt: Path, limit: int, samples_path: Path | None = None,
+        minimum_free_disk_bytes: int = 64 * 2**30):
     if sys.platform != 'darwin' or limit <= 0 or not command or receipt.exists():
         raise ValueError('require Darwin, a positive limit, command and new receipt')
     physical_usage(os.getpid())
+    disk = DiskReserve(log.parent, minimum_free_disk_bytes)
+    disk_reason = disk.check()
+    if disk_reason:
+        raise RuntimeError(disk_reason)
     maximum, samples, failures, reason = 0, 0, 0, None
     started = time.monotonic_ns()
     started_utc = time.time_ns()
@@ -32,6 +38,10 @@ def run(command: list[str], log: Path, receipt: Path, limit: int, samples_path: 
                 process.returncode = os.waitstatus_to_exitcode(status)
                 break
             try:
+                disk_reason = disk.check()
+                if disk_reason and reason is None:
+                    reason = disk_reason
+                    process.send_signal(signal.SIGKILL)
                 current, peak = physical_usage(process.pid)
                 maximum = max(maximum, current, peak)
                 samples += 1
@@ -53,6 +63,7 @@ def run(command: list[str], log: Path, receipt: Path, limit: int, samples_path: 
                   maximum_observed_footprint_bytes=maximum, footprint_samples=samples,
                   footprint_source='darwin_proc_pid_rusage_v6', termination_reason=reason,
                   completion_latency=process.returncode == 0 and reason is None)
+    result['disk_reserve'] = disk.record()
     write_new(receipt, result)
     return result
 
@@ -63,9 +74,11 @@ if __name__ == '__main__':
     parser.add_argument('--receipt', type=Path, required=True)
     parser.add_argument('--max-footprint-gib', type=float, default=48)
     parser.add_argument('--samples-path', type=Path)
+    parser.add_argument('--min-free-disk-gib', type=float, default=64)
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ['--'] else args.command
-    result = run(command, args.log, args.receipt, int(args.max_footprint_gib * 2**30), args.samples_path)
+    result = run(command, args.log, args.receipt, int(args.max_footprint_gib * 2**30), args.samples_path,
+                 int(args.min_free_disk_gib * 2**30))
     print(json.dumps(result, indent=2))
     raise SystemExit(0 if result['exit_code'] == 0 else 1)

@@ -20,8 +20,10 @@ import time
 
 if __package__:
     from .bridge import ROOT
+    from .disk_reserve import DiskReserve
 else:
     from bridge import ROOT
+    from disk_reserve import DiskReserve
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
 # Keth's environment also exports a top-level `scripts` package. Load the
@@ -57,6 +59,10 @@ def run(args):
             return original(command, log, env)
         started = time.monotonic_ns()
         maximum, samples, failures, reason = 0, 0, 0, None
+        disk = DiskReserve(log.parent, int(getattr(args, 'min_free_disk_gib', 64) * 2**30))
+        disk_reason = disk.check()
+        if disk_reason:
+            raise RuntimeError(disk_reason)
         with log.open('xb') as stream:
             process = subprocess.Popen(command, stdout=stream, stderr=subprocess.STDOUT, env=env)
             while True:
@@ -65,6 +71,10 @@ def run(args):
                     process.returncode = os.waitstatus_to_exitcode(status)
                     break
                 try:
+                    disk_reason = disk.check()
+                    if disk_reason and reason is None:
+                        reason = disk_reason
+                        process.send_signal(signal.SIGKILL)
                     current, peak = physical_usage(process.pid)
                     maximum = max(maximum, current, peak)
                     samples += 1
@@ -84,7 +94,8 @@ def run(args):
                 'rss_is_simultaneous_process_tree_sum': False,
                 'footprint_watchdog': {'source': 'darwin_proc_pid_rusage_v6', 'limit_bytes': limit,
                     'maximum_observed_bytes': maximum, 'samples': samples, 'termination_reason': reason,
-                    'scope': 'product process; not simultaneous process-tree or host memory'}}
+                    'scope': 'product process; not simultaneous process-tree or host memory'},
+                'disk_reserve': disk.record()}
 
     benchmark_cairo.measure = measured
     try:
@@ -102,6 +113,7 @@ if __name__ == '__main__':
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--max-footprint-gib', type=float, default=48)
     parser.add_argument('--workers', type=int, default=8)
+    parser.add_argument('--min-free-disk-gib', type=float, default=64)
     args = parser.parse_args()
     if args.max_footprint_gib <= 0 or args.workers < 1:
         parser.error('footprint limit and worker count must be positive')

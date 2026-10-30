@@ -169,6 +169,28 @@ small-integer representation assumption. A small reproducer rejects before the
 fix and proves with independent Rust acceptance after it; large qualification
 is still required. These figures do not constitute a completed proving run.
 
+The subsequent large execution proof **passes both Zig and the pinned Rust
+verifier** after the Blake representation and memory-geometry fixes. One
+qualification run took 1,509.49 seconds, with 20,843,019,232 bytes peak private
+footprint, 56,017,649,664 bytes peak RSS and 295,409,467,392 bytes peak file
+backing. It ran alongside other qualification work; this is not a repeated or
+representative benchmark. The ordered real prefix has 12 verified, linked
+phase proofs for system calls and transactions 0–2; transaction 3 has a separate
+verified execution phase. Its authentication/root-update phases and the rest
+of the block remain unfinished. Qualification stopped at the owner's wrap-up
+request, with completed proofs retained.
+
+A synthetic one-deposit fixture exercises the complete host verifier using six
+genuine STARKs. Six acceptance/rejection tests cover missing/reordered phases,
+substitution, bytecode/proof tampering, public body/receipt changes and required
+MessagePasser membership. This fixture is explicitly synthetic and makes no
+observed Mainnet, derivation or settlement claim. Evidence is under
+[`op-verifier-contract-fixture/`](evidence/2026-10-29-m5-max/op-verifier-contract-fixture)
+and [`op-execution-wrap-up/`](evidence/2026-10-29-m5-max/op-execution-wrap-up).
+Future bounded trace/proof runs retain a 64 GiB free-disk reserve by default.
+Cleanup removed 122 GiB of regenerable traces while retaining proofs, CPI inputs
+and provenance.
+
 The transport admission override `STWO_CAIRO_MAX_INPUT_BYTES` accepts an explicit
 4–64 GiB file bound. It leaves semantic address/value limits, AIRs, verifier pins
 and canonical proof parameters unchanged. Memory experiments, runtime patches,

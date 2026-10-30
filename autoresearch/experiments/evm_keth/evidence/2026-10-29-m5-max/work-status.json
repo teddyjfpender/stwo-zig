@@ -98,16 +98,17 @@
   "publication": {
     "replaces_pull_request": 304,
     "reason": "neutral branch and clean history requested by owner",
-    "status": "owner-authorized replacement on neutral branch; see replacement PR for current publication status"
+    "status": "owner-authorized replacement on neutral branch; see replacement PR for current publication status",
+    "code_milestone_commit": "e8c356c534b39405dd6e4c77d1dfe26483e8c921"
   },
   "op_execution_steps_1_to_3": {
-    "status": "execution-checked-full-proof-qualification-in-progress",
+    "status": "stopped-at-owner-wrap-up-request",
     "benchmark_campaign_deferred": true,
     "audit": "Constrained transient defaults, bounded nibble/history access, canonical trie/account/storage encodings; same-bytecode adversarial transient witness kept local.",
     "execution": "All 35 real transactions plus pre-system calls pass root-bound Cairo execution, exact gas/receipt hashes and DA footprint. Synthetic signed types 0/1/2/4, creation failures, P-256 and Jovian input boundaries match op-geth.",
     "root_binding": "All 35 intermediate root transitions and authenticated starting-state reads pass; header, parent history and OP base fee bind to the public header.",
-    "proof_qualification": "Three linked system phases independently verify. Every child of a complete ordered OP block bundle must still verify before completion.",
-    "capacity": "Fixed-workload export peak reduced from 33889690368 to 26305612952 bytes (22.38%) with exact typed equality across 269943130 states and 398606764 memory addresses. CPU file-backed large attempt reached 136152317952 backing bytes at 4352669208 private footprint bytes, then failed at Blake integer-tag handling. Tiny regression proves after fix; large retry is in progress. The next retry reached 244169113600 backing bytes, then exposed inconsistent 24/25-bit memory-table splitting; writer geometry now matches the pinned 25-bit claim bound. Ten focused Zig tests pass. Large retry and complete block phase qualification are running.",
+    "proof_qualification": "12 independently reverified, commitment-linked real phase proofs cover system calls and transactions 0, 1, 2. Separate transaction-3 execution proof independently verifies. Full 35-transaction certificate remains incomplete.",
+    "capacity": "Large 269943130-step execution proof qualified after Blake-tag and 25-bit memory geometry fixes: 1509485508375 ns process wall time, 20843019232-byte peak private footprint, 56017649664-byte peak RSS, 295409467392-byte peak file backing. Single qualification under concurrent load, not representative benchmarking. Export peak reduced 22.38% with complete typed witness equality.",
     "remaining": [
       "Complete all transaction phase proofs and independently verify complete ordered block bundle.",
       "Exercise full verifier rejection cases against the completed bundle.",
@@ -124,6 +125,15 @@
     "large_memory_witness_equality": "exact except instruction-cache vector order",
     "blake_spill_regression": "old helper rejects, fixed CPU proof independently accepted",
     "benchmark_campaign_started": false,
-    "memory_geometry_regression": "25-bit pinned upstream split now shared with claim geometry; 10 focused memory/Blake unit tests pass"
+    "memory_geometry_regression": "25-bit pinned upstream split now shared with claim geometry; 10 focused memory/Blake unit tests pass",
+    "large_execution_proof_qualified": true,
+    "synthetic_complete_verifier_contract_tests": 6,
+    "completed_real_phase_proofs": 13,
+    "linked_real_prefix_phase_proofs": 12,
+    "full_phase_count": 108,
+    "owner_requested_wrap_up": true,
+    "background_proof_jobs_running": false,
+    "cleanup_removed_logical_bytes": 131216319366,
+    "future_disk_reserve_bytes": 68719476736
   }
 }
