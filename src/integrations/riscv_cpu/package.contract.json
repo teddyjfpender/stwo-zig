@@ -26,6 +26,7 @@
     "stwo",
     "stwo_leaf_verifier",
     "stwo_parent_verifier",
+    "stwo_proof_wire",
     "stwo_riscv_detached_parent_producer"
   ],
   "api_surface": [
@@ -139,6 +140,8 @@
     "recursive_pipeline_worker_protocol_v1",
     "recursive_pipeline_worker_v1",
     "resource_usage",
+    "rv64",
+    "rv64_full",
     "verifyPoseidon2",
     "verifyRiscV",
     "verifyRiscVSegmentV2"

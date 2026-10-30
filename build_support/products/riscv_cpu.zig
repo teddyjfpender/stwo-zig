@@ -37,6 +37,73 @@ pub const descriptor = product_policy.Descriptor{
     .source_closure = source_closure,
 };
 pub fn addProduct(context: Context) void {
+    inline for (.{
+        .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
+        .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
+        .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 3 },
+        .{ "full-capture", "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig", 9 },
+        .{ "full-proof", "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig", 3 },
+        .{ "program-proof", "src/integrations/riscv_cpu/rv64_program_proof_test_root.zig", 3 },
+        .{ "providers", "src/integrations/riscv_cpu/rv64_providers_test_root.zig", 8 },
+        .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
+        .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 3 },
+    }) |suite| {
+        context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
+            .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),
+            .minimum = suite[2],
+        }}));
+    }
+    context.b.step("test-riscv64-proof", "Prove and verify authenticated RV64 execution").dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/integrations/riscv_cpu/rv64_proof_test_root.zig", &.{}),
+        .minimum = 9,
+    }}));
+    context.b.step("test-riscv64-air", "Test RV64 constraint authority").dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64_air_test_root.zig", &.{}),
+        .minimum = 35,
+    }}));
+    const rv64_execution = context.b.step("test-riscv64-execution", "Test experimental RV64IM execution without proof admission");
+    rv64_execution.dependOn(test_filter.addSuites(context.b, &.{.{
+        .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64_execution_test_root.zig", &.{}),
+        .minimum = 49,
+    }}));
+    // Compile standalone tools without injected proof modules: execution must
+    // stay usable independently of the frontend AIR/prover dependency graph.
+    for ([_][]const u8{ "diagnostic", "csp_benchmark", "benchmark" }) |tool| {
+        const executable = context.b.addExecutable(.{
+            .name = context.b.fmt("rv64-{s}-compile-check", .{tool}),
+            .root_module = graph.create(context.b, .{
+                .product = product,
+                .root_source_file = context.b.fmt("src/frontends/riscv/rv64/{s}.zig", .{tool}),
+                .target = context.target,
+                .optimize = context.optimize,
+            }),
+        });
+        rv64_execution.dependOn(&executable.step);
+    }
+    const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-qualification", .source = "src/integrations/riscv_cpu/rv64_qualification_main.zig" },
+        .{ .name = "rv64-csp-windows", .source = "src/integrations/riscv_cpu/rv64_csp_windows_main.zig" },
+        .{ .name = "rv64-window-verify", .source = "src/integrations/riscv_cpu/rv64_window_verify_main.zig" },
+        .{ .name = "rv64-csp-full", .source = "src/integrations/riscv_cpu/rv64_csp_full_main.zig" },
+        .{ .name = "rv64-full-verify", .source = "src/integrations/riscv_cpu/rv64_full_verify_main.zig" },
+        .{ .name = "rv64-quotient-benchmark", .source = "src/frontends/riscv/rv64_quotient_benchmark_main.zig" },
+        .{ .name = "pcs-commit-profile", .source = "src/integrations/riscv_cpu/pcs_commit_profile_main.zig" },
+        .{ .name = "pcs-owned-profile", .source = "src/integrations/riscv_cpu/pcs_owned_profile_main.zig" },
+    };
+    for (tools) |tool| {
+        const tool_root = graph.create(context.b, .{
+            .product = product,
+            .root_source_file = tool.source,
+            .target = context.target,
+            .optimize = context.optimize,
+        });
+        context.protocol.addImports(tool_root);
+        _ = graph.addProofWireImport(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        @import("../graph/integrations.zig").addRiscVCpuStack(context.b, context.protocol, product, context.target, context.optimize, tool_root);
+        const executable = context.b.addExecutable(.{ .name = tool.name, .root_module = tool_root });
+        const install = context.b.addInstallArtifact(executable, .{});
+        context.b.step(tool.name, "Build proof qualification and performance diagnostics").dependOn(&install.step);
+    }
     descriptor.validate() catch |err| std.debug.panic(
         "invalid RISC-V CPU descriptor: {s}",
         .{@errorName(err)},

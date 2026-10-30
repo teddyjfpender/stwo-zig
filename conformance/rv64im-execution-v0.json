@@ -1,0 +1,80 @@
+{
+  "oracle": "Unicorn",
+  "version": "2.1.4",
+  "seed": 1381381684,
+  "samples": 64,
+  "vector_sha256": "30c32ad2127f3ac53b6eafbf3920f19bb98b34ee73efacc4c63efd91f77b9d26",
+  "vectors": 14815,
+  "opcodes": 63,
+  "expected_opcodes": 63,
+  "proof_supported": false,
+  "sail_conformance": false,
+  "compiled_guest": {
+    "stop": "breakpoint",
+    "a0": 16810760518898651055,
+    "retired": 1025,
+    "proof_supported": false,
+    "sp1_abi_supported": false,
+    "native_a0": 16810760518898651055,
+    "source_sha256": "f53e950fd7b5f017061273cac2bbd2c0944d9e6043d4178a454c62d3fe303ed4"
+  },
+  "schema": "stwo-rv64-execution-evidence-v0",
+  "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
+  "zig_version": "0.15.2",
+  "source_sha256": {
+    "scripts/riscv64_differential.py": "c612ff012f3ed033a863ed1cd2947c4346fbab44e170524c2e58cf7bf2cca974",
+    "src/frontends/riscv/rv64/build.zig": "02b8641d2ddb902c570f00ca6a44b6165c0b4e2ba420a86b52df93e433254fb7",
+    "src/frontends/riscv/rv64/decode.zig": "b335abf03a1f4c4eba3f3d0422392af0669a1df83a7b929e94de64363307540e",
+    "src/frontends/riscv/rv64/diagnostic.zig": "4724782ceeacf75e4c0e4ed97639540f5328560a8296d6070489aba359525dbf",
+    "src/frontends/riscv/rv64/elf.zig": "96e43ffbdb71583d65adcaa6d244c9e91190f132ee6b9467b98bee2a078c9345",
+    "src/frontends/riscv/rv64/fixtures/arithmetic.c": "f53e950fd7b5f017061273cac2bbd2c0944d9e6043d4178a454c62d3fe303ed4",
+    "src/frontends/riscv/rv64/fixtures/arithmetic.ld": "bcfe9dc4b6446df7cdf2279a38d110fce8ee7e11dece4af79e6be53727e71aa7",
+    "src/frontends/riscv/rv64/machine.zig": "be5c67289b4431f5b2a20736b730b1b7f3d7517ec18e09a077100c48846eb556",
+    "src/frontends/riscv/rv64/memory.zig": "a4763fb4a70dad65f8f95cea41d0d656116a16b040ca78bb13f6e0f84a3bbb5a",
+    "src/frontends/riscv/rv64/mod.zig": "56056f9a7489f4d3380dc998e22f2673d114e6d0ba1e20fc1c591050807b2a61",
+    "src/frontends/riscv/rv64/tests.zig": "6e6699ba50c5c399ede57ab02077936e62588757dc9199446fc46ac2c32cf419",
+    "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05",
+    "src/frontends/riscv/rv64_execution_test_root.zig": "edba3d7424ba46a555c59db0b4bbf828ee86cd6888206d0176df1f8eb93aa063"
+  },
+  "unit_tests": {
+    "debug": 34,
+    "release_safe": 34,
+    "includes_existing_rv32_decoder_tests": true
+  },
+  "upstream_elf_inspection": {
+    "release": "OP Succinct v4.9.3",
+    "commit": "b9c24330ad21228cacc310e043c7f504fd388b2a",
+    "sha256": "223b0bb832ba485325d811a5a6e6e0e3a77dc10eb44377119e6cf0535a069bc4",
+    "file_bytes": 7473808,
+    "load_segments": 3,
+    "mapped_bytes": 4861896,
+    "entry": 2016052208,
+    "guest_executed": false
+  },
+  "broader_gates": {
+    "package_workspace": {
+      "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
+      "base_exit_code": 1,
+      "rv64_exit_code": 1,
+      "base_unique_messages": 289,
+      "rv64_unique_messages": 289,
+      "added_messages": [],
+      "removed_messages": []
+    },
+    "source_conformance": {
+      "base_errors": 96,
+      "branch_errors": 96,
+      "added_errors": []
+    },
+    "fast_ci": {
+      "base_exit_code": 1,
+      "branch_exit_code": 1,
+      "failure": "Existing circuit oracle provenance drift at check_upstream_pins.py"
+    },
+    "test_inventory": {
+      "base_exit_code": 1,
+      "branch_exit_code": 1,
+      "failure": "Existing test-bearing files absent from base inventory; all newly added test-bearing files are named"
+    }
+  }
+}

@@ -1,0 +1,1531 @@
+{
+  "schema": "rv32-rv64-csp-execution-v1",
+  "complete": true,
+  "proof_supported": false,
+  "host": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64"
+  },
+  "toolchain": "rustc 1.96.0-nightly (d9563937f 2026-03-03)\nbinary: rustc\ncommit-hash: d9563937fa3b030c5845811113505070109414d2\ncommit-date: 2026-03-03\nhost: aarch64-apple-darwin\nrelease: 1.96.0-nightly\nLLVM version: 22.1.0\n",
+  "source": {
+    "original_pins": {
+      "stark-v/guest/sha256/src/main.rs": "9108f936a93957e3a49eba709dddcfa9a55e6b6b53d170015c930bbc9a5602e8",
+      "stark-v/guest/sha256/Cargo.toml": "61c007fe03b1d380cda35e917d8381d845ffe2e147c2b8cdc54c6b59418ad6b3",
+      "stark-v/guest/sha256/Cargo.lock": "ca91746dfe2f6f2056c7fd95b6de72f1d29d8acebb4f643af895115675cd4ca1",
+      "stark-v/guest/keccak/src/main.rs": "29dda9c6bee20ac1771cf8f971fce105f161101772378bdbd24204341be07307",
+      "stark-v/guest/keccak/Cargo.toml": "647b437266821c05b71f998e111ad2911fb9f27ad1d1e5e77f3d40a9c5916026",
+      "stark-v/guest/keccak/Cargo.lock": "9b61a59556d3439d18ca2a9f7d502b7024c44ec759208a245d42fc214d40e403",
+      "vectors/riscv_guests/poseidon2_m31/src/main.rs": "4382737040a0b25c66f774ec104b6e74e86674fd4876d5352768453e5a9ccb9e",
+      "vectors/riscv_guests/poseidon2_m31/Cargo.toml": "f2765c6603c8d623796e29897c974728890f45f70c8f74ffc2c5199b803ffd2f",
+      "vectors/riscv_guests/poseidon2_m31/Cargo.lock": "2c55babf6ef5c6812c0e3a8b3c0a8746fd0465b9da14c3857884958ee193ede0",
+      "vectors/riscv_guests/poseidon2_m31/.cargo/config.toml": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "vectors/riscv_guests/poseidon2_m31/rust-toolchain.toml": "fd9f85e06f2cf5e5884bdcb5102f2d0ae281670e47d943381414840086ab4e69",
+      "vectors/riscv_guests/poseidon2_m31/linker.ld": "3f86ae3d5a74b8b3cddf589c50b027ca6f5985f9ca7539c5007141f6d847dcb0",
+      "vectors/riscv_guests/ecdsa_secp256k1/src/main.rs": "e79c7e52985880de310534087494bec786cd0a53d77b0b20551ed026edd2c0a8",
+      "vectors/riscv_guests/ecdsa_secp256k1/Cargo.toml": "6fec37242b95effac8b18f2c5de027a639afa1698e28c111551be90dffb857fc",
+      "vectors/riscv_guests/ecdsa_secp256k1/Cargo.lock": "bcc93ef93750564b9ceb1b4f78773de8cb1fb3f6d184fcaae162632086cb65b7",
+      "vectors/riscv_guests/ecdsa_secp256k1/.cargo/config.toml": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6",
+      "vectors/riscv_guests/ecdsa_secp256k1/rust-toolchain.toml": "1553745dccdeca9f2b9daa90c98574067fef94e9aec73a348cfd2fe669934700",
+      "vectors/riscv_guests/ecdsa_secp256k1/linker.ld": "297f2e4d221565cde8c913daf8da59765cbe785db87442f9641d24a15838f86c"
+    },
+    "adapted_source_sha256": {
+      "ecdsa_secp256k1/Cargo.lock": "bcc93ef93750564b9ceb1b4f78773de8cb1fb3f6d184fcaae162632086cb65b7",
+      "ecdsa_secp256k1/Cargo.toml": "6fec37242b95effac8b18f2c5de027a639afa1698e28c111551be90dffb857fc",
+      "ecdsa_secp256k1/linker.ld": "297f2e4d221565cde8c913daf8da59765cbe785db87442f9641d24a15838f86c",
+      "ecdsa_secp256k1/src/main.rs": "e79c7e52985880de310534087494bec786cd0a53d77b0b20551ed026edd2c0a8",
+      "keccak/Cargo.lock": "df36102902a80d7009e1864f014fa0be941a590876766761bb5a1a2f2b53e835",
+      "keccak/Cargo.toml": "d5e7d7c980b06d882e54fa56d96c0a3c4d21148a8c988624fe39b1c75ca68fbe",
+      "keccak/linker.ld": "297f2e4d221565cde8c913daf8da59765cbe785db87442f9641d24a15838f86c",
+      "keccak/src/main.rs": "bf7250e3a404e6f3973329ec788b88ab0daa4c8d1f7db2fe60791ba39b5a9525",
+      "keccak/src/runtime.rs": "71cad649f9a99637c0915a00e99093c55ee5d29fe5a5127d024efbbb26ec6961",
+      "poseidon2_m31/Cargo.lock": "2c55babf6ef5c6812c0e3a8b3c0a8746fd0465b9da14c3857884958ee193ede0",
+      "poseidon2_m31/Cargo.toml": "f2765c6603c8d623796e29897c974728890f45f70c8f74ffc2c5199b803ffd2f",
+      "poseidon2_m31/linker.ld": "3f86ae3d5a74b8b3cddf589c50b027ca6f5985f9ca7539c5007141f6d847dcb0",
+      "poseidon2_m31/src/main.rs": "4382737040a0b25c66f774ec104b6e74e86674fd4876d5352768453e5a9ccb9e",
+      "sha256/Cargo.lock": "70a8f3258247102e575e2126d0f6b8a407e0772ba81630b8e318cf87a7ad320a",
+      "sha256/Cargo.toml": "422c0842e96043aa3c5f7cbb4a07816496bb56fe2bb32ae2ec389dbb8da64d51",
+      "sha256/linker.ld": "297f2e4d221565cde8c913daf8da59765cbe785db87442f9641d24a15838f86c",
+      "sha256/src/main.rs": "3131e7e8228d7b28a5d399f25201b0e3c00532ed548795a6af4d04a35f4c9ce6",
+      "sha256/src/runtime.rs": "71cad649f9a99637c0915a00e99093c55ee5d29fe5a5127d024efbbb26ec6961"
+    },
+    "rustflags": "-C panic=abort -C opt-level=3 -C lto=fat -C embed-bitcode=yes -C codegen-units=1 -C link-arg=-Tlinker.ld"
+  },
+  "samples": 7,
+  "rows": [
+    {
+      "target": "sha256",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+      "rv32_instructions": 14060,
+      "rv64_instructions": 14035,
+      "committed_rv32_instructions": 14056,
+      "instruction_ratio_rv32_over_rv64": 1.001781261132882,
+      "rv32_wall_ns": 416766458,
+      "rv32_public_values_sha256": "5bc45e1d30b139539b59fddd4f97ca8eb888397e1f0744e57cd012b03d81c7f3",
+      "rv64_execution_ns_median": 157792,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 22208,
+            "execution_ns": 186000,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 19041,
+            "execution_ns": 168584,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 4167,
+            "execution_ns": 159375,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 3750,
+            "execution_ns": 157792,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 12709,
+            "execution_ns": 156959,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 16709,
+            "execution_ns": 148416,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 4042,
+            "execution_ns": 146875,
+            "instructions": 14035,
+            "allocated_pages": 10,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "9cd0f47b4d1b7545f22c981db05a0ab8e1ff259eb903750fd86f882ab5a33205",
+        "riscv64im-unknown-none-elf": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 14060,
+          "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 14035,
+          "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+        }
+      }
+    },
+    {
+      "target": "sha256",
+      "size": 256,
+      "negative": false,
+      "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+      "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+      "rv32_instructions": 22908,
+      "rv64_instructions": 22941,
+      "committed_rv32_instructions": 22832,
+      "instruction_ratio_rv32_over_rv64": 0.9985615273963646,
+      "rv32_wall_ns": 50243834,
+      "rv32_public_values_sha256": "6409035f2b3d5d8bdaff85ffac8139203355545a4b312852a7533d7a4eaa9c0a",
+      "rv64_execution_ns_median": 245792,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 21000,
+            "execution_ns": 267459,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 18041,
+            "execution_ns": 245959,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 4458,
+            "execution_ns": 245792,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 4208,
+            "execution_ns": 241458,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 7416,
+            "execution_ns": 243250,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 14042,
+            "execution_ns": 240625,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          },
+          {
+            "setup_ns": 4250,
+            "execution_ns": 247958,
+            "instructions": 22941,
+            "allocated_pages": 10,
+            "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "9cd0f47b4d1b7545f22c981db05a0ab8e1ff259eb903750fd86f882ab5a33205",
+        "riscv64im-unknown-none-elf": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 22908,
+          "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 22941,
+          "output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216"
+        }
+      }
+    },
+    {
+      "target": "sha256",
+      "size": 512,
+      "negative": false,
+      "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+      "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+      "rv32_instructions": 40604,
+      "rv64_instructions": 40753,
+      "committed_rv32_instructions": 40384,
+      "instruction_ratio_rv32_over_rv64": 0.996343827448286,
+      "rv32_wall_ns": 75227750,
+      "rv32_public_values_sha256": "4004e8ceef4a98437b0e6c7957f82a66f6b2eef5b4a8aa3332a81caf6e1a1bb3",
+      "rv64_execution_ns_median": 414042,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 34958,
+            "execution_ns": 519625,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 18667,
+            "execution_ns": 412541,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 4667,
+            "execution_ns": 404333,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 4208,
+            "execution_ns": 411750,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 6208,
+            "execution_ns": 421583,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 14292,
+            "execution_ns": 414042,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          },
+          {
+            "setup_ns": 4333,
+            "execution_ns": 417750,
+            "instructions": 40753,
+            "allocated_pages": 10,
+            "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "9cd0f47b4d1b7545f22c981db05a0ab8e1ff259eb903750fd86f882ab5a33205",
+        "riscv64im-unknown-none-elf": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 40604,
+          "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 40753,
+          "output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73"
+        }
+      }
+    },
+    {
+      "target": "sha256",
+      "size": 1024,
+      "negative": false,
+      "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+      "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+      "rv32_instructions": 75996,
+      "rv64_instructions": 76377,
+      "committed_rv32_instructions": 75488,
+      "instruction_ratio_rv32_over_rv64": 0.9950115872579441,
+      "rv32_wall_ns": 103815042,
+      "rv32_public_values_sha256": "72969635f29b993c5822c5623c181f3038032e89826f9504a4cadb6699d53eb5",
+      "rv64_execution_ns_median": 758958,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 25875,
+            "execution_ns": 806667,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 17667,
+            "execution_ns": 778250,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 4166,
+            "execution_ns": 787667,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 4583,
+            "execution_ns": 758958,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 6833,
+            "execution_ns": 748667,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 13000,
+            "execution_ns": 748666,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          },
+          {
+            "setup_ns": 4208,
+            "execution_ns": 743333,
+            "instructions": 76377,
+            "allocated_pages": 10,
+            "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "9cd0f47b4d1b7545f22c981db05a0ab8e1ff259eb903750fd86f882ab5a33205",
+        "riscv64im-unknown-none-elf": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 75996,
+          "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 76377,
+          "output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c"
+        }
+      }
+    },
+    {
+      "target": "sha256",
+      "size": 2048,
+      "negative": false,
+      "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+      "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+      "rv32_instructions": 146780,
+      "rv64_instructions": 147625,
+      "committed_rv32_instructions": 145696,
+      "instruction_ratio_rv32_over_rv64": 0.9942760372565622,
+      "rv32_wall_ns": 115720833,
+      "rv32_public_values_sha256": "e200c0d06b0d063513ddf0497deb42934176c4cde56a8515774753d09c701c87",
+      "rv64_execution_ns_median": 1435917,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 24625,
+            "execution_ns": 1457166,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 21042,
+            "execution_ns": 1444375,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 5708,
+            "execution_ns": 1430875,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 4084,
+            "execution_ns": 1435917,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 12167,
+            "execution_ns": 1430583,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 14041,
+            "execution_ns": 1415250,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          },
+          {
+            "setup_ns": 4375,
+            "execution_ns": 1446292,
+            "instructions": 147625,
+            "allocated_pages": 10,
+            "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "9cd0f47b4d1b7545f22c981db05a0ab8e1ff259eb903750fd86f882ab5a33205",
+        "riscv64im-unknown-none-elf": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 146780,
+          "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 147625,
+          "output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126"
+        }
+      }
+    },
+    {
+      "target": "keccak",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+      "rv32_instructions": 18629,
+      "rv64_instructions": 8721,
+      "committed_rv32_instructions": 19114,
+      "instruction_ratio_rv32_over_rv64": 2.1361082444673776,
+      "rv32_wall_ns": 125977208,
+      "rv32_public_values_sha256": "870beef2d72836c489f5c9aa6e039a491bd9c1f54a090572d3dd7eab10f8450e",
+      "rv64_execution_ns_median": 73334,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 17333,
+            "execution_ns": 89250,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 15583,
+            "execution_ns": 78292,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 8667,
+            "execution_ns": 71625,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 2875,
+            "execution_ns": 70709,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 3834,
+            "execution_ns": 70750,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 4083,
+            "execution_ns": 76542,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          },
+          {
+            "setup_ns": 2250,
+            "execution_ns": 73334,
+            "instructions": 8721,
+            "allocated_pages": 7,
+            "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "abc043c78242a51c8a84d29b57c651490f63c7e4648d14b6477c8dc09b1c6a9d",
+        "riscv64im-unknown-none-elf": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 18629,
+          "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 8721,
+          "output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1"
+        }
+      }
+    },
+    {
+      "target": "keccak",
+      "size": 256,
+      "negative": false,
+      "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+      "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+      "rv32_instructions": 36513,
+      "rv64_instructions": 16671,
+      "committed_rv32_instructions": 36904,
+      "instruction_ratio_rv32_over_rv64": 2.1902105452582328,
+      "rv32_wall_ns": 136805667,
+      "rv32_public_values_sha256": "40cf94d02bb58187768dc5c20e8201ac96acc2430033ee71f69ae1fa82893a77",
+      "rv64_execution_ns_median": 138500,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 17458,
+            "execution_ns": 148250,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 18917,
+            "execution_ns": 140000,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 7584,
+            "execution_ns": 132500,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 3292,
+            "execution_ns": 140792,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 3875,
+            "execution_ns": 134541,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 4917,
+            "execution_ns": 138500,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          },
+          {
+            "setup_ns": 2334,
+            "execution_ns": 130875,
+            "instructions": 16671,
+            "allocated_pages": 7,
+            "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "abc043c78242a51c8a84d29b57c651490f63c7e4648d14b6477c8dc09b1c6a9d",
+        "riscv64im-unknown-none-elf": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 36513,
+          "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 16671,
+          "output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263"
+        }
+      }
+    },
+    {
+      "target": "keccak",
+      "size": 512,
+      "negative": false,
+      "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+      "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+      "rv32_instructions": 72205,
+      "rv64_instructions": 32501,
+      "committed_rv32_instructions": 72408,
+      "instruction_ratio_rv32_over_rv64": 2.2216239500323067,
+      "rv32_wall_ns": 170203125,
+      "rv32_public_values_sha256": "3a5f73fb0b5699e1b97d19704ffa6a44c8211c134604acb81968db9060d04a36",
+      "rv64_execution_ns_median": 267917,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 19042,
+            "execution_ns": 287958,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 15459,
+            "execution_ns": 267917,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 7667,
+            "execution_ns": 264917,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 3750,
+            "execution_ns": 257042,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 4250,
+            "execution_ns": 260958,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 4042,
+            "execution_ns": 270708,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          },
+          {
+            "setup_ns": 3750,
+            "execution_ns": 270833,
+            "instructions": 32501,
+            "allocated_pages": 7,
+            "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "abc043c78242a51c8a84d29b57c651490f63c7e4648d14b6477c8dc09b1c6a9d",
+        "riscv64im-unknown-none-elf": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 72205,
+          "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 32501,
+          "output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9"
+        }
+      }
+    },
+    {
+      "target": "keccak",
+      "size": 1024,
+      "negative": false,
+      "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+      "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+      "rv32_instructions": 143589,
+      "rv64_instructions": 64161,
+      "committed_rv32_instructions": 143416,
+      "instruction_ratio_rv32_over_rv64": 2.2379482863421707,
+      "rv32_wall_ns": 181776917,
+      "rv32_public_values_sha256": "999512a9611b96e3d8a1a3fd9697b501643888ddce86db0ab5bb9c4d8aa478f3",
+      "rv64_execution_ns_median": 511250,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 18583,
+            "execution_ns": 544416,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 15875,
+            "execution_ns": 531792,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 9042,
+            "execution_ns": 529125,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 3250,
+            "execution_ns": 511250,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 5375,
+            "execution_ns": 496250,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 4583,
+            "execution_ns": 498334,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          },
+          {
+            "setup_ns": 2416,
+            "execution_ns": 485375,
+            "instructions": 64161,
+            "allocated_pages": 7,
+            "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "abc043c78242a51c8a84d29b57c651490f63c7e4648d14b6477c8dc09b1c6a9d",
+        "riscv64im-unknown-none-elf": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 143589,
+          "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 64161,
+          "output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442"
+        }
+      }
+    },
+    {
+      "target": "keccak",
+      "size": 2048,
+      "negative": false,
+      "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+      "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+      "rv32_instructions": 286381,
+      "rv64_instructions": 127510,
+      "committed_rv32_instructions": 285456,
+      "instruction_ratio_rv32_over_rv64": 2.245949337306878,
+      "rv32_wall_ns": 213583000,
+      "rv32_public_values_sha256": "f97b1bbf6072933eb6c54fefbd8a9769913fe6ad1f437471116b8ab8dc2f4204",
+      "rv64_execution_ns_median": 974583,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 19458,
+            "execution_ns": 1011417,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 17334,
+            "execution_ns": 1028666,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 9583,
+            "execution_ns": 968541,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 3583,
+            "execution_ns": 970792,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 4625,
+            "execution_ns": 967750,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 4292,
+            "execution_ns": 974583,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          },
+          {
+            "setup_ns": 3125,
+            "execution_ns": 981291,
+            "instructions": 127510,
+            "allocated_pages": 7,
+            "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "abc043c78242a51c8a84d29b57c651490f63c7e4648d14b6477c8dc09b1c6a9d",
+        "riscv64im-unknown-none-elf": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 286381,
+          "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 127510,
+          "output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308"
+        }
+      }
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 2,
+      "negative": false,
+      "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+      "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+      "rv32_instructions": 82297,
+      "rv64_instructions": 81898,
+      "committed_rv32_instructions": 82297,
+      "instruction_ratio_rv32_over_rv64": 1.0048719138440498,
+      "rv32_wall_ns": 211678000,
+      "rv32_public_values_sha256": "7daae48c92db77730cc2290fb7760bb10a3eed3e24c3c7b6fa7b1588260ec417",
+      "rv64_execution_ns_median": 572750,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 16083,
+            "execution_ns": 616458,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 7875,
+            "execution_ns": 572750,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 7292,
+            "execution_ns": 590000,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 7667,
+            "execution_ns": 578875,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 5625,
+            "execution_ns": 558208,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 583,
+            "execution_ns": 550000,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          },
+          {
+            "setup_ns": 500,
+            "execution_ns": 549042,
+            "instructions": 81898,
+            "allocated_pages": 6,
+            "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "389a432e06a6cfddae983bb00a6d586fcb8f98585e8fafdf51c9e068acc324c1",
+        "riscv64im-unknown-none-elf": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 82297,
+          "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 81898,
+          "output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e"
+        }
+      }
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 4,
+      "negative": false,
+      "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+      "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+      "rv32_instructions": 164403,
+      "rv64_instructions": 163666,
+      "committed_rv32_instructions": 164403,
+      "instruction_ratio_rv32_over_rv64": 1.0045030733322742,
+      "rv32_wall_ns": 239492792,
+      "rv32_public_values_sha256": "52b327115c607f2fbf1ad1cb7f1e080e49644431a1718104190215149e02d3ba",
+      "rv64_execution_ns_median": 1093250,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 13584,
+            "execution_ns": 1159375,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 7375,
+            "execution_ns": 1130417,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 8667,
+            "execution_ns": 1095500,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 6542,
+            "execution_ns": 1086042,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 6500,
+            "execution_ns": 1089166,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 750,
+            "execution_ns": 1093250,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          },
+          {
+            "setup_ns": 541,
+            "execution_ns": 1085458,
+            "instructions": 163666,
+            "allocated_pages": 6,
+            "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "389a432e06a6cfddae983bb00a6d586fcb8f98585e8fafdf51c9e068acc324c1",
+        "riscv64im-unknown-none-elf": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 164403,
+          "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 163666,
+          "output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d"
+        }
+      }
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 8,
+      "negative": false,
+      "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+      "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+      "rv32_instructions": 328615,
+      "rv64_instructions": 327202,
+      "committed_rv32_instructions": 328615,
+      "instruction_ratio_rv32_over_rv64": 1.0043184332614103,
+      "rv32_wall_ns": 252590833,
+      "rv32_public_values_sha256": "6fc2ab361eb1bc87ac94e5a25403defb3feb1024689a1fec136e0a089a3433b2",
+      "rv64_execution_ns_median": 2273292,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 13292,
+            "execution_ns": 2274458,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 7667,
+            "execution_ns": 2184083,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 6792,
+            "execution_ns": 2182000,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 10208,
+            "execution_ns": 2244583,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 5542,
+            "execution_ns": 2274875,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 666,
+            "execution_ns": 2273292,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          },
+          {
+            "setup_ns": 542,
+            "execution_ns": 2286708,
+            "instructions": 327202,
+            "allocated_pages": 6,
+            "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "389a432e06a6cfddae983bb00a6d586fcb8f98585e8fafdf51c9e068acc324c1",
+        "riscv64im-unknown-none-elf": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 328615,
+          "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 327202,
+          "output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25"
+        }
+      }
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 12,
+      "negative": false,
+      "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+      "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+      "rv32_instructions": 492827,
+      "rv64_instructions": 490738,
+      "committed_rv32_instructions": 492827,
+      "instruction_ratio_rv32_over_rv64": 1.004256853962807,
+      "rv32_wall_ns": 65589167,
+      "rv32_public_values_sha256": "44e8c475ed107ddc2d4910d39a5a7a317a87336c7937efc12e439d8dc75cb4a9",
+      "rv64_execution_ns_median": 3410000,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 13125,
+            "execution_ns": 3443458,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 7750,
+            "execution_ns": 3410000,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 7834,
+            "execution_ns": 3431334,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 8375,
+            "execution_ns": 3405250,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 5292,
+            "execution_ns": 3404708,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 709,
+            "execution_ns": 3409667,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          },
+          {
+            "setup_ns": 625,
+            "execution_ns": 3411417,
+            "instructions": 490738,
+            "allocated_pages": 6,
+            "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "389a432e06a6cfddae983bb00a6d586fcb8f98585e8fafdf51c9e068acc324c1",
+        "riscv64im-unknown-none-elf": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 492827,
+          "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 490738,
+          "output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f"
+        }
+      }
+    },
+    {
+      "target": "poseidon2_m31",
+      "size": 16,
+      "negative": false,
+      "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+      "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+      "rv32_instructions": 657039,
+      "rv64_instructions": 654274,
+      "committed_rv32_instructions": 657039,
+      "instruction_ratio_rv32_over_rv64": 1.0042260581958018,
+      "rv32_wall_ns": 106674334,
+      "rv32_public_values_sha256": "02a1404962c133c095a8d4f7b5e1a0a3c2b041c0f917ca8b049396ba751f9b5d",
+      "rv64_execution_ns_median": 4673833,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 14250,
+            "execution_ns": 4720750,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 8708,
+            "execution_ns": 4673833,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 12584,
+            "execution_ns": 4729583,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 10500,
+            "execution_ns": 4652834,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 5959,
+            "execution_ns": 4672875,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 875,
+            "execution_ns": 4646167,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          },
+          {
+            "setup_ns": 583,
+            "execution_ns": 4678792,
+            "instructions": 654274,
+            "allocated_pages": 6,
+            "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "389a432e06a6cfddae983bb00a6d586fcb8f98585e8fafdf51c9e068acc324c1",
+        "riscv64im-unknown-none-elf": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 657039,
+          "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 654274,
+          "output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059"
+        }
+      }
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "size": 32,
+      "negative": false,
+      "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+      "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+      "rv32_instructions": 5425005,
+      "rv64_instructions": 1625938,
+      "committed_rv32_instructions": 5425005,
+      "instruction_ratio_rv32_over_rv64": 3.336538662605831,
+      "rv32_wall_ns": 607221708,
+      "rv32_public_values_sha256": "b17bd870e2bbbc80a7b923e9dae563d1d8c38cf93b27ac5200ec5a677eef5bf7",
+      "rv64_execution_ns_median": 21598458,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 33250,
+            "execution_ns": 21740334,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 35667,
+            "execution_ns": 21114458,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 27542,
+            "execution_ns": 21598458,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 6583,
+            "execution_ns": 21618417,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 13334,
+            "execution_ns": 20749875,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 27250,
+            "execution_ns": 22220000,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          },
+          {
+            "setup_ns": 19875,
+            "execution_ns": 20447209,
+            "instructions": 1625938,
+            "allocated_pages": 34,
+            "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "10c84b56e3791d3729a22d8d53a0d00d47b88d5857e2893270ed6cf94e623496",
+        "riscv64im-unknown-none-elf": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 5425005,
+          "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 1625938,
+          "output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5"
+        }
+      }
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "size": 32,
+      "negative": true,
+      "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+      "output": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rv32_instructions": 5428253,
+      "rv64_instructions": 1627849,
+      "committed_rv32_instructions": 5428253,
+      "instruction_ratio_rv32_over_rv64": 3.3346170314322765,
+      "rv32_wall_ns": 565141875,
+      "rv32_public_values_sha256": "f68da6e045be893e5399afc77ee9b743fb3771d1672a02604a031b2b785c01a7",
+      "rv64_execution_ns_median": 18338583,
+      "rv64": {
+        "profile": "rv64im-execution-v0",
+        "proof_supported": false,
+        "trace_retained": false,
+        "cache_entries": 1024,
+        "samples": [
+          {
+            "setup_ns": 28958,
+            "execution_ns": 17811083,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 34875,
+            "execution_ns": 18338583,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 14667,
+            "execution_ns": 18830791,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 5666,
+            "execution_ns": 19298417,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 9000,
+            "execution_ns": 18074875,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 5083,
+            "execution_ns": 17794708,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "setup_ns": 5208,
+            "execution_ns": 18636208,
+            "instructions": 1627849,
+            "allocated_pages": 34,
+            "output": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      "elf_sha256": {
+        "riscv32im-unknown-none-elf": "10c84b56e3791d3729a22d8d53a0d00d47b88d5857e2893270ed6cf94e623496",
+        "riscv64im-unknown-none-elf": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199"
+      },
+      "oracle": {
+        "riscv32im-unknown-none-elf": {
+          "instructions": 5428253,
+          "output": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "riscv64im-unknown-none-elf": {
+          "instructions": 1627849,
+          "output": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    }
+  ],
+  "timing_scope": {
+    "rv32_wall_ns": "process + RV32 execution, witnesses, committed tree derivation and public-value encoding",
+    "rv64_execution_ns": "guest retirement + completion detection only; no retained trace, witness, tree or proof"
+  },
+  "oracle": "Unicorn 2.1.4",
+  "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "implementation_source_sha256": {
+    "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
+    "src/frontends/riscv/rv64/build.zig": "f9bb1f9b405384fa84a5ba56cc2606fb94057941fafae0c223019ef62536c921",
+    "src/frontends/riscv/rv64/csp_benchmark.zig": "defb1cd073e400a6b287db1fb76ae38a6d26c5d90cbb7f93a4a875c4a2155e78",
+    "src/frontends/riscv/rv64/decode.zig": "01ee555d073c9e1f0c6958797e61417b219f806c5882e735bc6badfb01d549a8",
+    "src/frontends/riscv/rv64/decode_cache.zig": "08ffe1569b2f3dcdb13efbc3b96189f282ecb2d0874a756d58bcae0eebb74924",
+    "src/frontends/riscv/rv64/diagnostic.zig": "f4a809c2dfc39783dd0258e2799c6c9764a5676dc22dae3ce55cda9a440da3eb",
+    "src/frontends/riscv/rv64/elf.zig": "ffc6a9bc8449d954a9d86ea93a25d1c55f6e57837c16fed758ba9b8b78d9fa85",
+    "src/frontends/riscv/rv64/foundations_test.zig": "bbf5c2084d94feb95a51fff5a53179e4125e3a1458be5bad50156a370ad8ea41",
+    "src/frontends/riscv/rv64/machine.zig": "4591075904a19e04b4893d44e1b24ead19a0d76b5f7e90e028e38e5097e50352",
+    "src/frontends/riscv/rv64/mappings.zig": "a142baa60946b8a53f27ae31bb85b1966a91324b17097b0691e7c423b7c85e09",
+    "src/frontends/riscv/rv64/memory.zig": "651280049bf85cffd1d140bb2b97ca5fa8ccdf685431c564cdd589fc070a3147",
+    "src/frontends/riscv/rv64/memory_types.zig": "d7d60e84dca17f7eaa8ba0a139f2985e58162ff14bfed7f651d8114b15fb0f3d",
+    "src/frontends/riscv/rv64/mod.zig": "77d91e6249c11e3491293173dab20576f861a2ea44abb3249daeacdf62619c12",
+    "src/frontends/riscv/rv64/pages.zig": "7e2ed48820f9cc8220c03c4dae9542646cbf119bfa9a1bcf24f2047783729a89",
+    "src/frontends/riscv/rv64/retirement.zig": "ff86c7bbce53d55e4aa2697f927e912872e400c9095e88637d686f8cbcd5d3ff",
+    "src/frontends/riscv/rv64/session.zig": "8eab827074bb671a3f51ae8ab051056662a70ade4836599681bf492ca279db48",
+    "src/frontends/riscv/rv64/tests.zig": "1ffc2464d664bdd5a945ba75fef9239cfebdce1e8cc7020147eca6094aa1fee8",
+    "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05"
+  },
+  "runner_sha256": {
+    "rv32": "ae3d344572d8bfcebab5ad91c07973cfb0272e1676078c2259dfb96353978d75",
+    "rv64": "b60be132cf370953403ac425224435fff28f40c43f6b5cecbbe2331e99acdb57"
+  }
+}

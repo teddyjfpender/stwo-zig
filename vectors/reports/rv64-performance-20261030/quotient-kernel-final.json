@@ -1,0 +1,47 @@
+{
+  "schema": "rv64-quotient-microbenchmark-v1",
+  "scope": "1024 rows and 1411 residuals with arbitrary prover-domain data, not a full STARK benchmark. All execution modes passed checksum equality in the measured binary.",
+  "checksum_equality": true,
+  "source_log_sha256": "25eb8710cb61a5714f1f6bcf04c1a4bf7a17bf8fa6977ba9968e0589375680d2",
+  "binary_sha256": "e26e9411c9782aa86a466e1c9272c96c8c4365cecdc69962a8d181020ea44e54",
+  "samples_ns": {
+    "identity_multiply": [
+      43850750,
+      32528583,
+      32498250
+    ],
+    "unscaled_horner": [
+      35457542,
+      32388583,
+      32389500
+    ],
+    "weighted": [
+      14028375,
+      13875584,
+      13839917
+    ],
+    "weighted_legacy_inflation": [
+      13535042,
+      13483375,
+      13562917
+    ],
+    "weighted_reused_inflation": [
+      12183417,
+      12289042,
+      12123500
+    ],
+    "weighted_original_byte_terms": [
+      13481333,
+      13521541,
+      13469542
+    ]
+  },
+  "medians_ns": {
+    "identity_multiply": 32528583,
+    "unscaled_horner": 32389500,
+    "weighted": 13875584,
+    "weighted_legacy_inflation": 13535042,
+    "weighted_reused_inflation": 12183417,
+    "weighted_original_byte_terms": 13481333
+  }
+}

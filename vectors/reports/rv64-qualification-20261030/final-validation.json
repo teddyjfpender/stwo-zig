@@ -1,0 +1,33 @@
+{
+  "schema": "rv64-full-final-validation-v1",
+  "branch": "codex/rv64im-frontend",
+  "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
+  "focused_release_safe_gates": {
+    "test-riscv64-air": "pass",
+    "test-riscv64-program": "pass",
+    "test-riscv64-program-proof": "pass",
+    "test-riscv64-providers": "pass",
+    "test-riscv64-coset": "pass",
+    "test-riscv64-parallel": "pass",
+    "test-riscv64-full-capture": "pass",
+    "test-riscv64-full-proof": "pass"
+  },
+  "release_fast_regressions": {
+    "test-riscv64-execution": "pass",
+    "test-riscv64-proof": "pass"
+  },
+  "python_tests_passed": 11,
+  "zig_fmt_check": "pass",
+  "git_diff_cached_check": "pass",
+  "complete_serial_cases": 17,
+  "complete_parallel_cases": 17,
+  "serial_parallel_all_artifacts_identical": true,
+  "full_profile_independent_rust_qualified": false,
+  "repository_source_conformance": {
+    "status": "pre-existing failures",
+    "error_paths": 96,
+    "error_paths_touched_by_this_work": 0
+  },
+  "commit_status": "staged; pre-commit source-conformance hook rejected existing unrelated failures; hook not bypassed",
+  "retained_compact_artifacts": "vectors/reports/interop_artifacts/rv64-full-20261030"
+}

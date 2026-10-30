@@ -1,0 +1,12 @@
+[
+  {
+    "variant": "memory",
+    "returncode": 0,
+    "wall_s": 19.082524291006848
+  },
+  {
+    "variant": "dynamic",
+    "returncode": 0,
+    "wall_s": 20.12577091701678
+  }
+]

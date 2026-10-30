@@ -4,6 +4,9 @@
 //! decode, execute) and AIR constraints for STARK proving of execution traces.
 
 pub const runner = @import("runner/mod.zig");
+/// Experimental RV64IM execution only; no RV32 proof or ABI compatibility.
+pub const rv64 = @import("rv64/mod.zig");
+pub const rv64_air = @import("rv64/air/mod.zig");
 pub const air = @import("air/mod.zig");
 pub const access_clock = @import("access_clock.zig");
 pub const diagnostics = @import("diagnostics/mod.zig");

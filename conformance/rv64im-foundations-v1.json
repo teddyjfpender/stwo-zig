@@ -1,0 +1,63 @@
+{
+  "schema": "rv64im-foundations-execution-v1",
+  "branch": "codex/rv64im-frontend",
+  "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
+  "proof_supported": false,
+  "sp1_abi_supported": false,
+  "generic_cpu_framework": false,
+  "unit_tests": {
+    "debug": 49,
+    "release_safe": 49,
+    "python": 3
+  },
+  "oracle_vectors": {
+    "uncached": 14815,
+    "cached": 14815,
+    "retiring_opcodes": 63
+  },
+  "csp": {
+    "complete": true,
+    "cases": 17,
+    "both_frontends_and_unicorn_agree": true
+  },
+  "source_sha256": {
+    "scripts/riscv64_csp_compare.py": "f09d4558d889359fc0d5911c96ad2a2d3054343e49e3a5a944cd2083c78180e6",
+    "scripts/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
+    "scripts/riscv64_foundations_benchmark.py": "b9cbc53189b3473a64e2861288f15928c363e9fd030b7095d0506733dbe86817",
+    "scripts/tests/test_riscv64_tools.py": "2f4eea392ae08fddabd4069386273f8a825a873717c21dce1a9acba6835de935",
+    "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
+    "src/frontends/riscv/rv64/build.zig": "f9bb1f9b405384fa84a5ba56cc2606fb94057941fafae0c223019ef62536c921",
+    "src/frontends/riscv/rv64/csp_benchmark.zig": "defb1cd073e400a6b287db1fb76ae38a6d26c5d90cbb7f93a4a875c4a2155e78",
+    "src/frontends/riscv/rv64/decode.zig": "01ee555d073c9e1f0c6958797e61417b219f806c5882e735bc6badfb01d549a8",
+    "src/frontends/riscv/rv64/decode_cache.zig": "08ffe1569b2f3dcdb13efbc3b96189f282ecb2d0874a756d58bcae0eebb74924",
+    "src/frontends/riscv/rv64/diagnostic.zig": "f4a809c2dfc39783dd0258e2799c6c9764a5676dc22dae3ce55cda9a440da3eb",
+    "src/frontends/riscv/rv64/elf.zig": "ffc6a9bc8449d954a9d86ea93a25d1c55f6e57837c16fed758ba9b8b78d9fa85",
+    "src/frontends/riscv/rv64/fixtures/arithmetic.c": "f53e950fd7b5f017061273cac2bbd2c0944d9e6043d4178a454c62d3fe303ed4",
+    "src/frontends/riscv/rv64/fixtures/arithmetic.ld": "bcfe9dc4b6446df7cdf2279a38d110fce8ee7e11dece4af79e6be53727e71aa7",
+    "src/frontends/riscv/rv64/fixtures/csp_runtime.rs": "71cad649f9a99637c0915a00e99093c55ee5d29fe5a5127d024efbbb26ec6961",
+    "src/frontends/riscv/rv64/foundations_test.zig": "bbf5c2084d94feb95a51fff5a53179e4125e3a1458be5bad50156a370ad8ea41",
+    "src/frontends/riscv/rv64/machine.zig": "4591075904a19e04b4893d44e1b24ead19a0d76b5f7e90e028e38e5097e50352",
+    "src/frontends/riscv/rv64/mappings.zig": "a142baa60946b8a53f27ae31bb85b1966a91324b17097b0691e7c423b7c85e09",
+    "src/frontends/riscv/rv64/memory.zig": "651280049bf85cffd1d140bb2b97ca5fa8ccdf685431c564cdd589fc070a3147",
+    "src/frontends/riscv/rv64/memory_types.zig": "d7d60e84dca17f7eaa8ba0a139f2985e58162ff14bfed7f651d8114b15fb0f3d",
+    "src/frontends/riscv/rv64/mod.zig": "77d91e6249c11e3491293173dab20576f861a2ea44abb3249daeacdf62619c12",
+    "src/frontends/riscv/rv64/pages.zig": "7e2ed48820f9cc8220c03c4dae9542646cbf119bfa9a1bcf24f2047783729a89",
+    "src/frontends/riscv/rv64/retirement.zig": "ff86c7bbce53d55e4aa2697f927e912872e400c9095e88637d686f8cbcd5d3ff",
+    "src/frontends/riscv/rv64/session.zig": "8eab827074bb671a3f51ae8ab051056662a70ade4836599681bf492ca279db48",
+    "src/frontends/riscv/rv64/tests.zig": "1ffc2464d664bdd5a945ba75fef9239cfebdce1e8cc7020147eca6094aa1fee8",
+    "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05"
+  },
+  "evidence_sha256": {
+    "vectors/reports/rv64-foundations-20261030/baseline-source.json": "74c54928aab20ce55612cbe7c4f262fca258cce8bf4c696ebf9c67936928b42b",
+    "vectors/reports/rv64-foundations-20261030/csp-execution.json": "5b0e5ed882c9809251578810f0cb1ecff146eb3b68ecb629a062e66f837356ee",
+    "vectors/reports/rv64-foundations-20261030/oracle.json": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05",
+    "vectors/reports/rv64-foundations-20261030/paired-execution.json": "2c51b600d0a561c3e1b1a8d14f508d2ba3f3833972203035e32f5498c405bac7"
+  },
+  "limitations": [
+    "No RV64 AIR or proof qualification",
+    "No SP1 ABI",
+    "Unicorn agreement is not Sail conformance",
+    "RV32 public derivation and RV64 execution-only wall times have different scopes",
+    "Broader base repository gates have pre-existing failures"
+  ]
+}

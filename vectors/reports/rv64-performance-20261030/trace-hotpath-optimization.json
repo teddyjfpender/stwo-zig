@@ -1,0 +1,156 @@
+{
+  "schema": "rv64-full-trace-hotpath-microbenchmark-v1",
+  "scope": "Actual complete ECDSA capture and physical witness construction; timing excludes hashing, commitments, proof generation and verification. One sample per experiment; whole-proof acceptance and serialized-proof parity are established by the separate full-lifecycle qualification reports.",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "build_mode": "ReleaseFast",
+  "command": "RV64_TRACE_BENCH_CONFIG=<case-config.json> zig build test-riscv64-full-capture -Doptimize=ReleaseFast",
+  "workload": {
+    "target": "ecdsa_secp256k1",
+    "size": 32,
+    "negative": false,
+    "steps": 1625938,
+    "rows": 2097152,
+    "main_columns": 519,
+    "interaction_columns": 260,
+    "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+    "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff"
+  },
+  "identical_outputs": {
+    "main_blake2s": "70b230fd48950415c5528768d356044970f617ec8fa60e18e80cc8ec0c5d2961",
+    "interaction_blake2s": "57f0326d64fa280790daa460f8426cb2ce786bf9cf2d708ceffd8370379f54e5",
+    "state_claim_m31": [
+      737815894,
+      1640391200,
+      950035426,
+      822899056
+    ]
+  },
+  "measurements": [
+    {
+      "variant": "reference: logical-order source columns and repeated QM31 inflation",
+      "init_ns": 9372895292,
+      "interaction_ns": 24495216458,
+      "retained": false,
+      "reference": true
+    },
+    {
+      "variant": "padding batching plus direct narrow column gathers",
+      "init_ns": 7364358250,
+      "interaction_ns": 32893593375,
+      "retained": false,
+      "reason": "Interaction regression"
+    },
+    {
+      "variant": "bounded physical-row cache",
+      "init_ns": 7186795542,
+      "interaction_ns": 17644249625,
+      "retained": false,
+      "reason": "Superseded by active-only metadata"
+    },
+    {
+      "variant": "active-only native state and compact lookup metadata",
+      "init_ns": 7383545000,
+      "interaction_ns": 4125598583,
+      "retained": true
+    },
+    {
+      "variant": "physical-order hints, cached ROM decoding, native frame advice",
+      "init_ns": 5309952792,
+      "interaction_ns": 4007646292,
+      "retained": true
+    },
+    {
+      "variant": "compiled projection with separate output pass",
+      "init_ns": 5882391667,
+      "interaction_ns": 4171145875,
+      "retained": false,
+      "reason": "No constructor gain"
+    },
+    {
+      "variant": "compiled projection fused with output writes",
+      "init_ns": 5355001667,
+      "interaction_ns": 4014960125,
+      "retained": false,
+      "reason": "No clear gain over simpler physical-order constructor"
+    },
+    {
+      "variant": "bounded existing-pool physical-row projection",
+      "workers": 18,
+      "init_ns": 641093833,
+      "interaction_ns": 4360554750,
+      "retained": true
+    },
+    {
+      "variant": "independent physical-order inverse/contribution fill plus joined logical prefix scan",
+      "workers": 18,
+      "init_ns": 639871958,
+      "interaction_ns": 584935875,
+      "retained": true
+    }
+  ],
+  "retained_changes": [
+    "Count canonical padding once with multiplicity",
+    "Retain active-only native state words/clocks and byte/table indices until interaction publication",
+    "Generate state inverse pairs from shared native tuple terms using QM31-by-M31 products",
+    "Batch 4096 state denominators with bounded scratch",
+    "Generate each hint once in physical order after native logical-order chain validation",
+    "Cache immutable ROM instruction decoding",
+    "Build frame advice directly in M31",
+    "Release narrow metadata after successful publication; reject reuse after consumption",
+    "Keep immutable fixed geometry solely in PreparedSetup",
+    "Borrow existing proof workers for disjoint physical-row ranges; per-worker histograms merge only after every helper has joined",
+    "Fill independent inverse columns and row contributions in parallel physical order, then scan five logical prefixes in their existing columns"
+  ],
+  "qualification_tests": [
+    "Constructor allocation failures release all buffers",
+    "Partial-zero state denominator leaves interaction unpublished",
+    "Aliased source/destination clocks preserve slot order",
+    "Forged RAM predecessor and state metadata are rejected",
+    "Forged lookup metadata cannot close original provider counts",
+    "513 retirements cross the 512-row state-inversion batch boundary",
+    "Generation after releasing main preserves all five claims",
+    "Consumption followed by retry fails closed",
+    "Mixed MUL/DIVU/shift/bitwise/RAM trace at full 64-bit addresses satisfies the unchanged CPU evaluator",
+    "Explicit serial/4-worker main, lookup metadata, every histogram and interaction-byte parity",
+    "Parallel constructor allocation-failure injection",
+    "Undersized worker stack rejected before submission",
+    "Invalid ROM word and unaligned intermediate journal PC rejected through Setup.lookup admission",
+    "Serial/4-worker physical interaction kernel produces identical full columns",
+    "Parallel state zero-denominator failure joins helpers and retains metadata",
+    "Every constructor and interaction coordinator allocation failure releases unpublished buffers"
+  ],
+  "remaining_costs": "A 1-second macOS sample attributed 38% of constructor samples to scalar projection, 15% to counts, and about 15% to witness row clearing/copying. Compiled projection experiments did not provide a measurable net gain and were removed. Legacy hint arithmetic and all constraint/security parameters remain unchanged.",
+  "parallel_projection": {
+    "maximum_workers": 32,
+    "minimum_rows_per_worker_production": 8192,
+    "physical_row_alignment": 32,
+    "histograms_freed_before_commit": true,
+    "ecdsa_18_worker_histogram_bytes": 9771264,
+    "worker_allocations": 0,
+    "submission": "Existing WorkPool structured lease; fixed contexts, joined before cleanup or failure publication",
+    "ownership": "Immutable borrowed ProjectionContext; disjoint 32-row-aligned main ranges and logical metadata rows; private count histograms; coordinator merges only after the structured wave has joined; all histograms released before main commitment."
+  },
+  "constructor_sample": {
+    "tool": "macOS sample",
+    "duration_seconds": 1,
+    "period_milliseconds": 1,
+    "samples": 747,
+    "stage": "serial physical-order constructor before parallel projection",
+    "inclusive_samples": {
+      "Plan.projectValue": 283,
+      "Trace.countRow": 111,
+      "Trace.init_projection_store_loops": 222,
+      "witness_clearing_copying_and_construction": 116
+    },
+    "interpretation": "Projection classification and column stores dominate. The hint recipes were left unchanged because most sampled witness construction time was row clearing/copying. The separately compiled and fused recipe experiments did not provide a clear net gain and were removed.",
+    "raw_sample": "trace-constructor-sample.txt"
+  },
+  "parallel_interaction": {
+    "maximum_workers": 32,
+    "scratch_bytes_per_worker": 131072,
+    "ecdsa_18_worker_scratch_bytes": 2359296,
+    "prefix_storage": "Existing five family prefix column slots temporarily hold row contributions; no additional wide intermediate",
+    "publication": "Join every helper, scan logical prefixes, check expected state closure, then publish and retire metadata",
+    "worker_allocations": 0
+  }
+}

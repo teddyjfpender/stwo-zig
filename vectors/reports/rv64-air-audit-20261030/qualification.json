@@ -1,0 +1,213 @@
+{
+  "schema": "stwo-rv64-bounded-air-audit-v1",
+  "date": "2026-10-30",
+  "branch": "codex/rv64im-frontend",
+  "base_commit": "9f65f77779f700d9e01f9ae7a33667b6b8ff142a",
+  "uncommitted_source": true,
+  "source_inventory_sha256": "2d061d0d291c6aac2394f5981fa574a80534caf01bc7ad6127a7052ced512579",
+  "source_files_sha256": {
+    "build_support/products/catalog.zig": "23bf4833ab2cc4fb10112105daf72cac90d4688407250050653bd1b8389ada03",
+    "build_support/products/riscv_cpu.zig": "735a8f9f9b756b6151ef852e999e923d7ddede9670c0bd985377d65599c5d7b7",
+    "scripts/riscv64_differential.py": "973b2ddddec9dd57920652cb69301100c64c500356fc35cee9aeb8a3c63eaa9f",
+    "scripts/tests/test_riscv64_tools.py": "2f4eea392ae08fddabd4069386273f8a825a873717c21dce1a9acba6835de935",
+    "src/frontends/riscv/mod.zig": "4cae927b9bb11e7af936ec1649c9c6bcb2c5a8fb0ba084b15f1ec0fb106a7711",
+    "src/frontends/riscv/package.contract.json": "8044b743246893c4406d221a47078f1dad2d508d5e90f925e7827bc367927ac0",
+    "src/frontends/riscv/rv64/.zig-cache/o/f1ea4330472a4c6ebcbfed6922919020/dependencies.zig": "878c385597e84ffd36cbdf9b0ad6479430021fef98e4a2830cc923111ce93d12",
+    "src/frontends/riscv/rv64/air/arithmetic_constraints.zig": "2e45f449b6cd1f7c97b08a132055364d5c4dd779edc0e55a5a837e6d48c7cdd4",
+    "src/frontends/riscv/rv64/air/component.zig": "0b369db23d1614ff2b16eb02be6d5dc4c595256600b930b55b50abb8357eba69",
+    "src/frontends/riscv/rv64/air/division_constraints.zig": "36c25907f0d2817b2f98a59dfe485777fae85a89fd1f4c18a01bb99e74ade8c1",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "6432eeedf6e7e09cc5519185cbb70ee792aeed35e2cb91f28db994684b7ef3f2",
+    "src/frontends/riscv/rv64/air/layout.zig": "858bd7b28c53d67644a52ac1dbe4ed6d563eb05d30a46f5b1c13f4dbc54787be",
+    "src/frontends/riscv/rv64/air/memory_constraints.zig": "8a1cb15dcfdfb6af3647e9286eeab7cd74db1bcbd16c19cd2f39dfe15679ff11",
+    "src/frontends/riscv/rv64/air/mod.zig": "8fe6dc83e2f575bc36924f2f28ec4039562a5bc7e90d72a6311bc6c65b308e05",
+    "src/frontends/riscv/rv64/air/operations.zig": "7aac915ffa12e08f7c2475984802eb61d0b806d05167b98132661954b7cca309",
+    "src/frontends/riscv/rv64/air/product_constraints.zig": "e2a1afcaf260c766213e7cb75f46a4dfbcb28d0a16f1460bde79e4c3c5974cfc",
+    "src/frontends/riscv/rv64/air/projection.zig": "1a722d87869cf0fc857a748da5c8bd17e622cd0734953a3ad383ee3c8aa71c2e",
+    "src/frontends/riscv/rv64/air/protocol.zig": "9f0a7fff2f1bce870d20be81e76a39eb1be32a16653707dcd86137ef71700599",
+    "src/frontends/riscv/rv64/air/relations.zig": "f0283420338e52bcf50220169c6dd40713c7591b2f82c6fe33c6d953dac71019",
+    "src/frontends/riscv/rv64/air/rows.zig": "3bb6535f026b5dffcdf4541b1f074ea7e6a1ae28585880eb855fe90bf9e49a3a",
+    "src/frontends/riscv/rv64/air/shift_constraints.zig": "f2a3e58079fe853f3adefc738d8e8ab121212cb272e09e83b234c36727a974bc",
+    "src/frontends/riscv/rv64/air/statement.zig": "6247acd8148e7e1c55a2cd5673ba93c4987ff790a9209007adcc9ff242174283",
+    "src/frontends/riscv/rv64/air/tests/admission_test.zig": "28f5afbc98206cb76081fd4f8b47ba47ca4089fd7e5b08f67992165bad5fc9fe",
+    "src/frontends/riscv/rv64/air/tests/degree_test.zig": "9ffe9b7b052da7923dd8f8fb0c91d4f6bf35f76cd698011b556269ff1f0663b6",
+    "src/frontends/riscv/rv64/air/tests/local_test.zig": "4a6eba718d8b8d0d137f9a99b508a3ab00283feae540b21abad611177edd571a",
+    "src/frontends/riscv/rv64/air/tests/relations_test.zig": "8f7cc7530a75a4ad333fc1440637976f56bc54212fea22050f2319bc7fc3e687",
+    "src/frontends/riscv/rv64/air/trace.zig": "afc52dfece8c26ae6994455df16b5f62c162475a70990138cb20b1d8e01c6506",
+    "src/frontends/riscv/rv64/air/witness.zig": "3140f26285f54cd7e4c8c45aa94d986a03985886ce67bc1479f23be961b34c34",
+    "src/frontends/riscv/rv64/air/witness_hints.zig": "922844e39f001e1e5048536ea1915197e77524222ff706e0d2963203f2ef251a",
+    "src/frontends/riscv/rv64/benchmark.zig": "c901d901f8dc3662af7a15ca24b80111066a07a918c8d266cc9f2fdb0802bc5c",
+    "src/frontends/riscv/rv64/build.zig": "3e429b9185f2ed4499901b32e6ee07903e635eaea14892e1bd26d68a960907dd",
+    "src/frontends/riscv/rv64/csp_benchmark.zig": "defb1cd073e400a6b287db1fb76ae38a6d26c5d90cbb7f93a4a875c4a2155e78",
+    "src/frontends/riscv/rv64/decode.zig": "01ee555d073c9e1f0c6958797e61417b219f806c5882e735bc6badfb01d549a8",
+    "src/frontends/riscv/rv64/decode_cache.zig": "08ffe1569b2f3dcdb13efbc3b96189f282ecb2d0874a756d58bcae0eebb74924",
+    "src/frontends/riscv/rv64/diagnostic.zig": "f4a809c2dfc39783dd0258e2799c6c9764a5676dc22dae3ce55cda9a440da3eb",
+    "src/frontends/riscv/rv64/elf.zig": "ffc6a9bc8449d954a9d86ea93a25d1c55f6e57837c16fed758ba9b8b78d9fa85",
+    "src/frontends/riscv/rv64/execution_test_root.zig": "e4d3e8e242dcb69710090a7830cad9a09c089a2c03a507aaa223de4308d37876",
+    "src/frontends/riscv/rv64/machine.zig": "4591075904a19e04b4893d44e1b24ead19a0d76b5f7e90e028e38e5097e50352",
+    "src/frontends/riscv/rv64/mappings.zig": "a142baa60946b8a53f27ae31bb85b1966a91324b17097b0691e7c423b7c85e09",
+    "src/frontends/riscv/rv64/memory.zig": "651280049bf85cffd1d140bb2b97ca5fa8ccdf685431c564cdd589fc070a3147",
+    "src/frontends/riscv/rv64/memory_types.zig": "d7d60e84dca17f7eaa8ba0a139f2985e58162ff14bfed7f651d8114b15fb0f3d",
+    "src/frontends/riscv/rv64/mod.zig": "74955913573843826d93f69c13790bf5ae083ad43de8b415dcf228345247cb63",
+    "src/frontends/riscv/rv64/pages.zig": "7e2ed48820f9cc8220c03c4dae9542646cbf119bfa9a1bcf24f2047783729a89",
+    "src/frontends/riscv/rv64/retirement.zig": "ff86c7bbce53d55e4aa2697f927e912872e400c9095e88637d686f8cbcd5d3ff",
+    "src/frontends/riscv/rv64/session.zig": "8eab827074bb671a3f51ae8ab051056662a70ade4836599681bf492ca279db48",
+    "src/frontends/riscv/rv64/tests/execution_test.zig": "781219c7bddac9f8e5b19a6159df8c59298f7420a3d1802fe02225cd59dadaa3",
+    "src/frontends/riscv/rv64/tests/foundations_test.zig": "09427a467e6e34d902c2989b3b48ec5d0d7c9540678b07a333d00056b31d2f88",
+    "src/frontends/riscv/rv64/word.zig": "ecb5a0cd4710aa593ce916a7956feb97a5eb45cad0329dd3e4d9793922c99a05",
+    "src/frontends/riscv/rv64_air_test_root.zig": "ef71e47446fad520118db74ec070838560a572ead525be9c2f34bdf699c6e8eb",
+    "src/frontends/riscv/rv64_execution_test_root.zig": "4baad2dd4bf12b678252780a6ea68ff0490663adb613f6d5a37d94c0aaa92ef2",
+    "src/frontends/riscv/test_inventory.zig": "1b00711b62d82cafc15f78a4134472a362374a7604ec4e67d2d5ef3b45962e2a",
+    "src/integrations/riscv_cpu/mod.zig": "061e068bcfd20c56321bfd467b2eabbac1f65d2fa5b439d655c45bc5c0342316",
+    "src/integrations/riscv_cpu/package.contract.json": "8ccf2ee0e2a6cc31070e2eff67afeca3a0c653704bfe7ff4569e15ce0dde3687",
+    "src/integrations/riscv_cpu/rv64.zig": "8fb44bc04f0e244c22e41a2aea7d9d22efd3422b48d3e4fde7dbd406114a095a",
+    "src/integrations/riscv_cpu/rv64_proof_test_root.zig": "54d7f2e4576ac30ca50b795b7474300f009584255b53618c021784876c989a90",
+    "src/integrations/riscv_cpu/tests/rv64_proof_test.zig": "c2dea5d6f5e9528b12bfe558364966e4c05920eda59345e0d78529b8573e0fe8"
+  },
+  "previous_qualification": "../rv64-air-20261030/qualification.json",
+  "fixes": [
+    "Separate dependency-free execution export riscv.rv64 from full-frontend riscv.rv64_air; fixes standalone tool builds broken by the original AIR export",
+    "Execution test gate additionally compiles diagnostic, CSP execution and benchmark tools without proof dependencies",
+    "Stream OODS constraints directly into existing core accumulator, removing hidden page-allocator vector",
+    "Validate proof tree/column/opening/query shapes before cryptographic verification",
+    "Put ordinary test bodies under tests directories and keep focused roots as import-only selectors; preserve standalone execution test target"
+  ],
+  "passed": {
+    "ReleaseSafe": [
+      "Execution-focused aggregate (minimum 49 compiled tests), including standalone tool compile guards",
+      "10 named AIR tests",
+      "8 named native proof tests",
+      "Standalone execution package tests"
+    ],
+    "ReleaseFast": [
+      "10 named AIR tests",
+      "8 named native proof tests"
+    ],
+    "Debug": [
+      "10 named AIR tests"
+    ],
+    "Python": [
+      "3 RV64 tooling tests"
+    ],
+    "format_and_diff": true,
+    "oracle": {
+      "oracle": "Unicorn",
+      "version": "2.1.4",
+      "seed": 1381381684,
+      "samples": 64,
+      "vector_sha256": "30c32ad2127f3ac53b6eafbf3920f19bb98b34ee73efacc4c63efd91f77b9d26",
+      "vectors": 14815,
+      "opcodes": 63,
+      "expected_opcodes": 63,
+      "cached_decode": false,
+      "proof_supported": false,
+      "cached_execution": {
+        "vectors": 14815,
+        "opcodes": 63,
+        "expected_opcodes": 63,
+        "cached_decode": true,
+        "proof_supported": false
+      },
+      "sail_conformance": false,
+      "compiled_guest": {
+        "stop": "breakpoint",
+        "a0": 16810760518898651055,
+        "retired": 1025,
+        "proof_supported": false,
+        "sp1_abi_supported": false,
+        "native_a0": 16810760518898651055,
+        "source_sha256": "f53e950fd7b5f017061273cac2bbd2c0944d9e6043d4178a454c62d3fe303ed4"
+      }
+    }
+  },
+  "additional_coverage": {
+    "random_arithmetic_cases": 1792,
+    "random_seed": 8247839366176141874,
+    "projection": "Round-trip every logical main/fixed coordinate and padding row for representative arithmetic, immediate, control and all load/store width/offset families",
+    "streamed_accumulation": "Matches buffered scaled core recurrence on six full-extension-field affine samples; declared-degree check retained",
+    "malformed_proofs": [
+      "Missing main opening columns",
+      "Missing column sample",
+      "Extra column sample",
+      "Missing main query columns"
+    ],
+    "admission": [
+      "Zero/oversized retirement count",
+      "Invalid projection geometry",
+      "Empty PC path",
+      "Out-of-range final clock",
+      "Nonzero x0 clock/state",
+      "Duplicate cells",
+      "Modified read-only final state"
+    ],
+    "interaction_failure": "Zero denominator releases unpublished storage; second publication rejects; production challenge redraw is not permitted",
+    "native_resource_boundaries": {
+      "program_words": 4096,
+      "memory_cells": 128,
+      "retirements": [
+        128,
+        256
+      ],
+      "largest_final_memory_clock": 1024,
+      "load_destination": "x0",
+      "memory_address": 18446744073709551608
+    },
+    "address_boundaries": [
+      "Program word at 2^64-4, JAL wrapping final PC to zero",
+      "Read-only RAM word at 2^64-8, LD to discarded x0"
+    ],
+    "existing_forgeries_rechecked": "Three captured failed proofs freshly decoded and rejected with OodsNotMatching"
+  },
+  "five_instruction_observations": {
+    "ReleaseSafe": {
+      "queries": 70,
+      "pow_bits": 26,
+      "bytes": 127224,
+      "fixed": 21,
+      "main": 643,
+      "interaction": 36,
+      "rows": 32,
+      "prove_ns": 1018973000,
+      "encode_ns": 1451917,
+      "setup_ns": 685250,
+      "verify_ns": 42793458,
+      "prove_peak_caller_bytes": 995370
+    },
+    "ReleaseFast": {
+      "queries": 70,
+      "pow_bits": 26,
+      "bytes": 127224,
+      "fixed": 21,
+      "main": 643,
+      "interaction": 36,
+      "rows": 32,
+      "prove_ns": 897177167,
+      "encode_ns": 349958,
+      "setup_ns": 660958,
+      "verify_ns": 40444500,
+      "prove_peak_caller_bytes": 995370
+    }
+  },
+  "benchmark_scope": "Single observed runs only; no timing speedup claim, no CSP/block/recursion workload. No layout/proof-size change from the compact first-pass fixture. Peak is caller-routed allocation payload, not process RSS.",
+  "logs_sha256": {
+    "release-safe-tests.log": "24b9c2680f80c91b76e3a31f11f3b9715f8a3df4696e4a98f9a0fe639ec108dc",
+    "execution-air-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "releasefast-tests.log": "90aed728140051919603fcef58a47fb23b6613d97a229cf94b969cd6651e7747",
+    "air-debug-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "standalone-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "oracle.log": "d04bf76ba69e473dbdc21b9786a25283bfd9831738b694fe16101ff2346e9b05"
+  },
+  "remaining_release_gaps": [
+    "Pinned Rust acceptance of this RV64 component (existing interop tool supports other examples)",
+    "RV64 Sail/formal qualification",
+    "Full CSP/OP guest proofs and runtime ABI",
+    "Memory-root continuation and complete multi-segment global closure",
+    "Independently sized crypto/RAM providers and specialized recursion",
+    "Complete retained-block proving/benchmark run"
+  ],
+  "repository_gates": {
+    "source_conformance": "Still red on existing unrelated findings; final output has no RV64 findings",
+    "package_workspace": "Still red on existing unrelated findings; final output has no RV64/API findings",
+    "full_release_gate_pass": false
+  },
+  "soundness_claim": "Expanded bounded test evidence and source review, not a formal soundness proof or independent cryptographic audit"
+}
