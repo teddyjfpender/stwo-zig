@@ -7,8 +7,7 @@ use crate::{
     CallInput, InstructionExecResult as Result, InstructionResult,
 };
 use context_interface::{cfg::GasParams, Host};
-use core::ptr;
-use primitives::{B256, KECCAK_EMPTY, U256};
+use primitives::{KECCAK_EMPTY, U256};
 
 use crate::InstructionContext as Ictx;
 
@@ -114,20 +113,28 @@ pub fn codecopy<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Loads 32 bytes of input data from the specified offset.
 pub fn calldataload<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([], offset_ptr, context.interpreter);
-    let mut word = B256::ZERO;
     let offset = as_usize_saturated!(*offset_ptr);
     let input = context.interpreter.input.input();
     let input_len = input.len();
+    let mut result = U256::ZERO;
     if offset < input_len {
         let count = 32.min(input_len - offset);
         let input = &*input.as_bytes_memory(&context.interpreter.memory);
-        // SAFETY: `count` is bounded by the calldata length.
-        // This is `word[..count].copy_from_slice(input[offset..offset + count])`, written using
-        // raw pointers as apparently the compiler cannot optimize the slice version, and using
-        // `get_unchecked` twice is uglier.
-        unsafe { ptr::copy_nonoverlapping(input.as_ptr().add(offset), word.as_mut_ptr(), count) };
+        let data = &input[offset..offset + count];
+        // stwo: the common full word converts straight to limbs; a short
+        // tail goes through a zero-padded buffer. No memcpy call either way.
+        if count == 32 {
+            let limb = |k: usize| u64::from_be_bytes(data[k * 8..k * 8 + 8].try_into().unwrap());
+            result = U256::from_limbs([limb(3), limb(2), limb(1), limb(0)]);
+        } else {
+            let mut word = [0u8; 32];
+            for (dst, src) in word.iter_mut().zip(data) {
+                *dst = *src;
+            }
+            result = U256::from_be_bytes(word);
+        }
     }
-    *offset_ptr = word.into();
+    *offset_ptr = result;
     Ok(())
 }
 

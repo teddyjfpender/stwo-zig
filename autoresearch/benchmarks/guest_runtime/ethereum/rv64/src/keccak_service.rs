@@ -82,8 +82,12 @@ pub unsafe extern "C" fn native_keccak256(input: *const u8, length: usize, outpu
             // A full block plus whatever follows it; the funnel may need up to
             // 8 - offset bytes of the next block for the final word.
             let words = funnel_words(offset, length - consumed).min(RATE / 8);
-            absorb_words(state_ptr, block, offset, words);
-            absorb_bytes(bytes.add(words * 8), block.add(words * 8), RATE - words * 8);
+            if words == RATE / 8 {
+                absorb_block(state_ptr, block, offset);
+            } else {
+                absorb_words(state_ptr, block, offset, words);
+                absorb_bytes(bytes.add(words * 8), block.add(words * 8), RATE - words * 8);
+            }
             permute(state_ptr);
         }
         consumed += RATE;
@@ -97,6 +101,39 @@ pub unsafe extern "C" fn native_keccak256(input: *const u8, length: usize, outpu
         *bytes.add(remaining) ^= 0x01;
         *bytes.add(RATE - 1) ^= 0x80;
         permute(state_ptr);
-        ptr::copy_nonoverlapping(bytes, output, 32);
+        if (output as usize) & 7 == 0 {
+            for i in 0..4 {
+                ptr::write(output.cast::<u64>().add(i), ptr::read(state_ptr.add(i)).to_le());
+            }
+        } else {
+            for i in 0..32 {
+                *output.add(i) = *bytes.add(i);
+            }
+        }
     }
+}
+/// One full rate block, fully unrolled.
+#[inline(always)]
+unsafe fn absorb_block(state: *mut u64, input: *const u8, offset: usize) {
+    macro_rules! lanes {
+        ($($i:literal),*) => {{
+            if offset == 0 {
+                $( unsafe {
+                    let value = u64::from_le(ptr::read(input.add($i * 8).cast::<u64>()));
+                    ptr::write(state.add($i), ptr::read(state.add($i)) ^ value);
+                } )*
+            } else {
+                let shift = (offset * 8) as u32;
+                let back = 64 - shift;
+                let base = unsafe { input.sub(offset) }.cast::<u64>();
+                let mut current = u64::from_le(unsafe { ptr::read(base) });
+                $( unsafe {
+                    let next = u64::from_le(ptr::read(base.add($i + 1)));
+                    ptr::write(state.add($i), ptr::read(state.add($i)) ^ ((current >> shift) | (next << back)));
+                    current = next;
+                } )*
+            }
+        }};
+    }
+    lanes!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
 }

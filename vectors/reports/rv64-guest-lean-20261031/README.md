@@ -229,17 +229,23 @@ on every field. The new `heap_start` is 33,648,416.
 | round 2: memory functions | 138,707,126 | 11,496 / 9,768 |
 | round 3: inversion, Keccak absorb | 126,471,926 | 11,496 / 9,768 |
 | round 4: EVM and MPT library paths | 107,513,360 | 11,496 / 9,768 |
+| round 5: streaming decode, Keccak block absorb | 104,253,913 | 11,496 / 9,768 |
 
-Total: −49.7% instructions and −53% secp256k1 service calls for the same
+Total: −51.2% instructions and −53% secp256k1 service calls for the same
 block, same 43-byte output, with no change to the execution profile, ECALL
 tags, packet layouts, AIR, prover or verifier.
 
-Largest remaining items in the round-3 profile: `memcpy` 28.2M (22%, dominated
-by compiler-generated struct moves in zeth-mpt RLP node decode), SHA-256
-compression 11.2M (9%, software), the revm mainnet handler 8.7M, zeth-mpt RLP
-decode 8.5M, revm legacy bytecode analysis 6.8M, and the secp256k1 square root
-in point decompression 4.5M. The square root and SHA-256 are host-hint or
-service candidates; the struct moves need an upstream zeth-mpt change.
+Largest remaining items in the round-5 profile: `memcpy` 13.8M (13%; 140k
+calls at 98 instructions, now dominated by `NodeRef` encodes, Keccak output
+copies, vector growth and the remaining digest-replacement moves), SHA-256
+compression 11.2M (11%, software, at the practical RV64IM floor), the revm
+interpreter dispatch loop 8.7M (19 instructions per EVM opcode), the jumpdest
+scan 5.9M (115 distinct bytecodes, 1.33 MB, no duplicates to memoize), MPT
+digest resolution 5.8M (IndexMap lookups keyed by 32-byte digests), the
+secp256k1 square root in point decompression 4.5M, and the remaining node
+decodes 3.6M. SHA-256 and the square root are host-hint or service candidates;
+the interpreter loop and digest lookups are structural to revm and the
+witness database.
 
 ## Round 4: EVM interpreter and MPT library paths
 
@@ -270,3 +276,28 @@ workspace-inherited manifest made concrete). Each change is a few lines:
 
 Receipts in `round4/`; the services oracle agrees with the native executor on
 every field. The new `heap_start` is 33,648,672.
+
+## Round 5: streaming node decode and Keccak block absorb
+
+1. `vendor/zeth-mpt` decodes a list node by walking its payload into a fixed
+   17-slot array of item slices instead of `Header::decode_raw`, which
+   allocated a `Vec<&[u8]>` per node. Digest resolution decides from the
+   encoding whether the preimage is itself a digest and then decodes straight
+   into place, removing the temporary and its second move.
+2. `src/keccak_service.rs` absorbs a full rate block with an unrolled 17-lane
+   funnel and writes the 32-byte output with word stores when the destination
+   is aligned.
+3. `vendor/revm-interpreter` builds the CALLDATALOAD word without a memcpy
+   call. An MLOAD change was tried and reverted: ruint already converts by
+   limb, and the per-call cost is gas and borrow bookkeeping.
+
+| Measure | round 4 | round 5 |
+| --- | ---: | ---: |
+| Instructions | 107,513,360 | 104,253,913 (−3.0%) |
+| zeth-mpt node decode | 3.9M | 3.6M |
+| `native_keccak256` glue | 3.6M | 3.3M |
+| memcpy | 15.3M (155,906 calls) | 13.8M (140,238 calls) |
+| ELF SHA-256 | `e5e27339…` | `8acf8385…` (see `round5/build-report.json`) |
+
+Receipts in `round5/`; the services oracle agrees with the native executor on
+every field. `heap_start` is 33,648,672.
