@@ -3,6 +3,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const E = @import("../evaluation.zig");
+const Profile = @import("profile.zig");
 const C = @import("component.zig");
 const M = core.fields.m31.M31;
 const Q = E.Q;
@@ -22,7 +23,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, inver
     while (begin < n) : (begin += LANES) {
         const count = @min(LANES, n - begin);
         var values: [C.MAX_COLUMNS]F = undefined;
-        var previous_main: [44]F = @splat(F.zero());
+        var previous_main: [Profile.MAX_MAIN]F = @splat(F.zero());
         var previous: [56]F = @splat(F.zero());
         for (columns, 0..) |column, i| values[i] = load(column, begin, count);
         var indices: [LANES]usize = undefined;
@@ -49,7 +50,7 @@ fn scalar(component: *const C.Component, columns: []const []const M, inverses: [
     const inter_start = widths[0] + widths[1];
     for (0..columns[0].len) |row| {
         var values: [C.MAX_COLUMNS]Q = undefined;
-        var previous_main: [44]Q = @splat(Q.zero());
+        var previous_main: [Profile.MAX_MAIN]Q = @splat(Q.zero());
         var previous: [56]Q = @splat(Q.zero());
         for (columns, 0..) |column, i| values[i] = Q.fromBase(column[row]);
         const prior = core.utils.previousBitReversedCircleDomainIndex(row, component.log_size, component.log_size + 1);

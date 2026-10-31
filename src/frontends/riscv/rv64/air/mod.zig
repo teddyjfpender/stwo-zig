@@ -97,10 +97,20 @@ pub const word16_v1 = struct {
     pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
     pub const binary_component = @import("word16_v1/binary_component.zig");
     pub const binary_source = @import("word16_v1/binary_source.zig");
+    /// Qualified ALU diagnostic; not the production full-ISA protocol.
+    pub const alu_experiment = struct {
+        pub const equations = @import("word16_v1/alu.zig");
+        pub const lookup = @import("word16_v1/alu_lookup.zig");
+        pub const component = @import("word16_v1/alu_component.zig");
+        pub const source = @import("word16_v1/alu_source.zig");
+        pub const range_source = @import("word16_v1/u16_source.zig");
+        pub const range_component = @import("word16_v1/u16_component.zig");
+    };
 };
 
 /// Concrete register-only BINARY CPU; legacy profiles retain their encoding.
 pub const word16_cpu = struct {
+    pub const profile = @import("word16_cpu/profile.zig");
     pub const layout = @import("word16_cpu/layout.zig");
     pub const public = @import("word16_cpu/public.zig");
     pub const lookup = @import("word16_cpu/lookup.zig");

@@ -5,6 +5,7 @@ const E = @import("../evaluation.zig");
 const L = @import("layout.zig");
 const P = @import("public.zig");
 const Lookup = @import("lookup.zig");
+const Profile = @import("profile.zig");
 const Function = @import("../word16_v1/function_bus.zig");
 pub fn functionTuple(comptime F: type, main: []const F) [13]F {
     var tuple: [13]F = undefined;
@@ -23,6 +24,19 @@ pub fn romTuple(comptime F: type, main: []const F) [16]F {
     @memcpy(tuple[10..13], main[L.main.registers..][0..3]);
     @memcpy(tuple[13..16], main[L.main.zero..][0..3]);
     return tuple;
+}
+pub fn romTupleProfile(comptime F: type, profile: Profile.Profile, main: []const F) [Profile.MAX_ROM]F {
+    var result: [Profile.MAX_ROM]F = @splat(F.zero());
+    @memcpy(result[0..16], &romTuple(F, main));
+    if (profile == .alu_binary_v2) {
+        const immediate = main[Profile.immediate];
+        const branch = main[Profile.branch];
+        result[16] = immediate;
+        result[17] = branch;
+        for (0..4) |limb| result[18 + limb] = immediate.mul(main[L.main.b + limb]);
+        result[22] = branch.mul(main[L.main.c]);
+    }
+    return result;
 }
 pub fn tick(comptime F: type, index: F, slot: usize) F {
     return index.mul(P.literal(F, 4)).add(P.literal(F, @intCast(slot + 1)));
@@ -53,6 +67,9 @@ fn range(comptime F: type, values: []const F, current: []const F, previous: []co
     Lookup.prefix(F, contribution, E.secureFor(F, current, sum_at), E.secureFor(F, previous, sum_at), first, last, claim, sink);
 }
 pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_main: []const F, current: []const F, previous: []const F, public: P.Public, claims: P.Claims, challenges: Lookup.Challenges, sink: *E.SinkFor(F)) void {
+    emitProfileFor(F, .binary_v1, fixed, main, previous_main, current, previous, public, claims, challenges, sink);
+}
+pub fn emitProfileFor(comptime F: type, profile: Profile.Profile, fixed: []const F, main: []const F, previous_main: []const F, current: []const F, previous: []const F, public: P.Public, claims: P.Claims, challenges: Lookup.Challenges, sink: *E.SinkFor(F)) void {
     const first = fixed[L.fixed.first];
     const last = fixed[L.fixed.last];
     const index = fixed[L.fixed.index];
@@ -85,7 +102,8 @@ pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_mai
             2 => L.main.previous_rd,
             else => unreachable,
         };
-        for (0..4) |limb| sink.emit(zero.mul(main[value + limb]));
+        const zero_weight = if (profile == .alu_binary_v2 and slot == 1) zero.mul(F.one().sub(main[Profile.immediate])) else zero;
+        for (0..4) |limb| sink.emit(zero_weight.mul(main[value + limb]));
         sink.emit(main[L.main.previous_clock + slot].add(main[L.main.gap16 + slot]).add(E.qFor(F, 65536).mul(main[L.main.gap8 + slot])).sub(tick(F, index, slot).sub(F.one())));
         sink.emit(F.one().sub(enabled).mul(main[L.main.previous_clock + slot]));
     }
@@ -99,7 +117,7 @@ pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_mai
     }
     Lookup.prefix(F, register_contribution, E.secureFor(F, current, L.inter.register_sum), E.secureFor(F, previous, L.inter.register_sum), first, last, claims.register, sink);
     Function.emitFor(F, functionTuple(F, main), active, first, last, E.secureFor(F, current, L.inter.function_inverse), E.secureFor(F, current, L.inter.function_sum), E.secureFor(F, previous, L.inter.function_sum), claims.function, challenges.function, sink);
-    Lookup.single(F, challenges.rom.denominatorFor(F, romTuple(F, main)), active, E.secureFor(F, current, L.inter.rom_inverse), E.secureFor(F, current, L.inter.rom_sum), E.secureFor(F, previous, L.inter.rom_sum), first, last, claims.rom, sink);
+    Lookup.single(F, challenges.rom.denominatorProfile(F, profile, romTupleProfile(F, profile, main)), active, E.secureFor(F, current, L.inter.rom_inverse), E.secureFor(F, current, L.inter.rom_sum), E.secureFor(F, previous, L.inter.rom_sum), first, last, claims.rom, sink);
     range(F, main[L.main.gap16..][0..3], current, previous, L.inter.range16_inverses, L.inter.range16_sum, first, last, claims.range16, challenges.range16, sink);
     range(F, main[L.main.gap8..][0..3], current, previous, L.inter.range8_inverses, L.inter.range8_sum, first, last, claims.range8, challenges.range8, sink);
 }

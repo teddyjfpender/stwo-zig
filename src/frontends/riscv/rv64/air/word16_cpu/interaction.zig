@@ -47,7 +47,9 @@ pub fn generate(source: *Source, challenges: Lookup.Challenges, range16: []const
                 scratch[5 * j + slot] = row[2 * slot].mul(row[2 * slot + 1]);
             }
             row[6] = affine(challenges.function.offset, &challenges.function.coefficients, &Eq.functionTuple(M, &main));
-            row[7] = affine(challenges.rom.offset, &challenges.rom.coefficients, &Eq.romTuple(M, &main));
+            const rom_tuple = Eq.romTupleProfile(M, source.program.profile, &main);
+            row[7] = affine(challenges.rom.offset, &challenges.rom.coefficients, rom_tuple[0..16]);
+            if (source.program.profile == .alu_binary_v2) row[7] = affine(row[7], &challenges.rom.control_coefficients, rom_tuple[16..]);
             scratch[5 * j + 3] = row[6];
             scratch[5 * j + 4] = row[7];
         }

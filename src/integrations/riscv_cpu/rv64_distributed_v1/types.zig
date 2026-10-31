@@ -8,7 +8,7 @@ pub const Scheme = engine.pcs.CommitmentSchemeProver(@import("stwo_cpu_backend")
 pub const Digest = [32]u8;
 /// Distinct from a packet content SHA and a native nine-limb RAM value root.
 pub const CommitmentRoot = struct { value: P.Hasher.Hash };
-pub const Protocol = enum(u32) { functional13_v1 = 1, ram64_v2 = 2 };
+pub const Protocol = enum(u32) { functional13_v1 = 1, ram64_v2 = 2, functional13_unified_v2 = 3 };
 pub const Role = enum(u32) { cpu = 1, alu = 2, binary = 3, shift = 4, load_store = 5, keccak_ram = 6, secp_ram = 7, ram_initialization = 8, ram_teardown = 9, terminal = 10, public_consumer = 11 };
 pub const Context = struct {
     protocol: Protocol = .functional13_v1,

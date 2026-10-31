@@ -1,0 +1,186 @@
+{
+  "status": "qualified standalone diagnostic; inactive in legacy and production profiles",
+  "scope": "ALU truth + independently expected committed public consumer + U16, one PCS/FRI; CPU/register/RAM not claimed",
+  "artifact": {
+    "directory": "vectors/reports/interop_artifacts/rv64-word16-alu-d3-v1",
+    "producer": {
+      "scope": "diagnostic-public-io-alu-u16-one-pcs",
+      "proof_bytes": 257280,
+      "proof_sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "source_cells": 791872,
+      "source_bytes": 3167488,
+      "trace_oods_masks": 198,
+      "alu": {
+        "log": 5,
+        "fixed": 2,
+        "main": 60,
+        "interaction": 52
+      },
+      "public_consumer": {
+        "log": 5,
+        "fixed": 34,
+        "main": 14,
+        "interaction": 8
+      },
+      "u16": {
+        "log": 16,
+        "fixed": 3,
+        "main": 1,
+        "interaction": 8
+      },
+      "positive_function_mass": 10,
+      "range_mass_including_padding": 640,
+      "max_degree": 3,
+      "quotient_factor": 2,
+      "cpu_bound": false,
+      "ram_bound": false
+    },
+    "fresh_process_receiver": {
+      "accepted": true,
+      "independently_expected_roster_and_fixed_root": true,
+      "cpu_bound": false,
+      "ram_bound": false
+    }
+  },
+  "gates": {
+    "local_safe": 9,
+    "local_fast": 9,
+    "q70_proof_safe": 1,
+    "q70_proof_fast": 1,
+    "fresh_process": true,
+    "logs": [
+      "/tmp/rv64-alu-local-safe-final.log",
+      "/tmp/rv64-alu-fast-final.log",
+      "/tmp/rv64-alu-proof-safe-final.log"
+    ],
+    "neutral_extraction": {
+      "local_safe": 9,
+      "local_fast": 9,
+      "q70_proof_safe": 1,
+      "q70_proof_fast": 1,
+      "artifact_bytes_exact": true,
+      "artifact_sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+      "fresh_process_receiver": true,
+      "artifact_directory": "vectors/reports/interop_artifacts/rv64-word16-alu-d3-neutral-v1",
+      "logs": [
+        "/tmp/rv64-alu-neutral-safe.log",
+        "/tmp/rv64-alu-neutral-fast.log"
+      ],
+      "legacy_three_proof_and_joined13": "PASS: old3 proof bytes exact and fresh receiver; joined14 Safe/Fast passed",
+      "joined_cpu_diagnostic": {
+        "safe_runtime_tests": 14,
+        "fast_runtime_tests": 14,
+        "logs": [
+          "/tmp/rv64-word16-alu-cpu-safe.log",
+          "/tmp/rv64-word16-alu-cpu-fast.log"
+        ],
+        "scope": "eight-role closed CPU+ALU+BINARY/ROM/REG/U16/U8; inactive profile; reported by owner program_setup"
+      },
+      "legacy_three_proofs": {
+        "cpu0": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+        "cpu1": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+        "binary": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161",
+        "unchanged": [
+          "Manifest",
+          "boundaries",
+          "claims"
+        ],
+        "fresh_process_receiver": true,
+        "logs": [
+          "/tmp/rv64-distributed-execution-produce-post-neutral.log",
+          "/tmp/rv64-distributed-execution-receive-post-neutral.log"
+        ],
+        "reported_by": "byte_range"
+      }
+    }
+  },
+  "physical_model": {
+    "main_cells": 67904,
+    "interaction_cells": 526208,
+    "fixed_cells": 197760,
+    "source_cells": 791872,
+    "source_bytes": 3167488,
+    "trace_oods_secure_masks": 198,
+    "quotient_factor": 2,
+    "degree_bound": 3,
+    "strict_inverse_pairs": 10,
+    "range_queries_per_padded_alu_row": 20,
+    "metadata_bytes_per_alu_row": 66,
+    "main_bytes_per_alu_row": 240
+  },
+  "soundness": {
+    "integer_limb_equations": "all absolute values <2^18 < M31 modulus; no word16 multiplication argument",
+    "canonicality": "A/B,sum,difference and twice each sign-low part are U16 members; Boolean carry/borrow/sign; C derives bounded sum/difference, W extension or predicate",
+    "signed_less": "one committed cubic identity; selector times advice keeps output equations cubic",
+    "function": "global IDs 0..9, affine payload13, committed multiplicity, strict inverse and cyclic closure",
+    "range": "all20 requests including padding; shared U16 dictionary validated before source publication; aggregate positive mass strictly below p before allocation",
+    "equations": "single generic authority for scalar arbitrary QM31 OODS and sixteen-lane base/secure domain",
+    "range_authority": "providers/scalar_range.zig: moved single/prefix/rangeFor and Challenges; CPU retains old aliases; ALU/U16 has no experimental CPU dependency"
+  },
+  "adversarial": [
+    "false result",
+    "nonboolean carry",
+    "locally zero false sign and forged closed function claim rejected by U16 membership",
+    "predecessor prefix sampled-value corruption",
+    "arbitrary QM31/PackedBase/PackedSecure all80 residual equality",
+    "nonaligned SIMD tails, previous masks and repeated additive output",
+    "owned/borrowed main destruction before interaction",
+    "exhaustive allocation failure",
+    "wrong shared dictionary",
+    "strict pole",
+    "late ledger mismatch with private output and retry"
+  ],
+  "telemetry": {
+    "fixture_producer_rss_bytes": 76759040,
+    "fixture_receiver_rss_bytes": 18432000,
+    "producer_time_seconds_rounded": 0.5,
+    "receiver_time_seconds_rounded": 0.01,
+    "scope": "one tiny diagnostic observation, no architecture speedup claim; includes native setup and public consumer; no worker attribution"
+  },
+  "limitations": [
+    "no default activation",
+    "no complete RV64 execution claim",
+    "native fact count is metadata only, not acceptance authority",
+    "whole-execution U16 lookup mass may exceed p; close locally or prove independent partition budget",
+    "new unified FUNCTION13 protocol is separate receiver qualification owned by distributed agent",
+    "new production cpu_word16_v1 schema remains under review"
+  ],
+  "source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "b73d567d37c826ccb4ce54d3874a667a77cdde2fdb43c18e1eec12bef84f928d",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "4e853a99527e0aa29580ee683cf3b85a1894c102cdff00f116b11a33db3503b6",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_component.zig": "8c8c7be6df79be5f6c28528cff14d2da6664d60f57c3d5ac045970e5b6028a61",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_packed_rows.zig": "c0ade0d67cf44006f8cfc60a85dff8d581faa35c0786a7e43b403c6d32a8d91f",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "72ecf3fcecdd3fac7275515d1b554dcb956f8d705285506f7229f6e2a575cc4b",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source.zig": "cb57623c0f92c8f7096715912ec734b3593a9672be0f4ab60ed0e867d94cc50a",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_component.zig": "435bc1790121cc2cab636ccf30790f4c1eed166f1ab14ba0371b357aadcbddb3",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_test.zig": "255969a3046772209aa80005f0db6cafcfc90f4bd3d412e5f2e76c38b6eb4f50",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig": "59bcb47698d57d750ba2b8e14fefa7e3d6176d0e8e9164a19bcab88562c94c54",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_packed_rows_test.zig": "04a30a8b031f65115a678d855930c67e2cff1e0dc2a4a48eab3e33e3b088d255",
+    "src/frontends/riscv/rv64/air/word16_v1/u16_source_test.zig": "61a5273b32fdfc8f3afa9eff254e08060cf7a9e8e563177b71440fec12b57fb8",
+    "src/frontends/riscv/rv64_word16_alu_test_root.zig": "e545e37be0b09bf89252c2ef3106288895ffb3b781c49700c20da096f2a27ed8",
+    "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig": "6d29ef6732cd34bfa9ec2b7b228fd2618390ad5b12810f5fd8edb471a92f81a6",
+    "src/integrations/riscv_cpu/tests/rv64_word16_alu_proof_test.zig": "1a6c24e59ad8cc74f9547722b305d22b6c2077055d80493cf4ebddc7e6d4d991",
+    "src/integrations/riscv_cpu/word16/alu_fixture.zig": "018493cf2f160f634edc12d85eb6d90709a26e994abb1d0b9cb5fc212c776afb",
+    "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig": "913bb6bcd5bb981c35b1be71b2516adeec8bd00c01fe4d37440f95827d25da08",
+    "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig": "a726f19e0f04e297fb43d6cf9cfd7730ee7163ed0443bd03e7e95b36564b3098",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802"
+  },
+  "shared_dependency_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "9222cd66618d88aae66d7d649a83aa0a6a46411a67431729d142912e3237406a",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "28983f5ec84743d8807bf47f819806b773bdd3b53a5c188ed288c366136a5de4",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/air/packed_fields16.zig": "bda65255b53e5bf98da36544d3d821c196efd467e1b2c988faea96a595db66ea",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700"
+  },
+  "moved_authority_compatibility_aliases": {
+    "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig": "55d83ea911479b1de62991af936e23f2b990c5ef30606967edfd6fec46c918e0",
+    "src/frontends/riscv/rv64/air/word16_cpu/table.zig": "290389d1a42c2dc525ba43ac2899acc98368774331c23fb0d09baa86c6f82638"
+  }
+}

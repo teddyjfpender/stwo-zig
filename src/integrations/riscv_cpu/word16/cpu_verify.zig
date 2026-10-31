@@ -25,7 +25,7 @@ pub fn verifyOpen(a: std.mem.Allocator, materials: *const Mat.Materials, manifes
 }
 fn verify(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, encoded: Stage.Encoded, mode: Mode) !Q {
     try public.validate(materials.geometry.cpu_log);
-    try encoded.claims.validate(materials.geometry.mode);
+    try encoded.claims.validateProfile(materials.geometry.mode, materials.geometry.profile, encoded.alu_claims);
     if (encoded.bytes.len > 64 * 1024 * 1024) return error.ThinCpuProofResourceLimit;
     var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
     var owns = true;
@@ -46,14 +46,14 @@ fn verify(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.publi
         try verifier.commit(a, pcs.commitments.items[tree], logs, &channel);
     }
     const draw = switch (mode) {
-        .local => Protocol.drawLocal(&channel, null),
-        .delegated => |stage2| Protocol.drawLocal(&channel, (try stage2.manifest.resumeReceiver(stage2.ordinal, &proof, &channel)).binary),
+        .local => Protocol.drawProfile(&channel, null, materials.geometry.profile),
+        .delegated => |stage2| Protocol.drawProfile(&channel, (try stage2.manifest.resumeReceiver(stage2.ordinal, &proof, &channel)).binary, materials.geometry.profile),
     };
-    Protocol.mixClaims(&channel, encoded.claims);
+    Protocol.mixClaimsProfile(&channel, encoded.claims, materials.geometry.profile, encoded.alu_claims);
     const logs = try materials.logs(a, 2);
     defer a.free(logs);
     try verifier.commit(a, pcs.commitments.items[2], logs, &channel);
-    var components = try Components.init(materials, public, draw, encoded.claims, false);
+    var components = try Components.initWithAlu(materials, public, draw, encoded.claims, encoded.alu_claims, false);
     const handles = try components.verifiers(a);
     defer a.free(handles);
     owns = false;

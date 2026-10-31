@@ -13,3 +13,6 @@ pub const Encoded = @import("cpu_stage.zig").Encoded;
 pub const produce = @import("cpu_stage.zig").produce;
 pub const verifyClosed = @import("cpu_verify.zig").verifyClosed;
 pub const verifyOpen = @import("cpu_verify.zig").verifyOpen;
+
+pub const Profile = @import("stwo_riscv_frontend").rv64_air.word16_cpu.profile.Profile;
+pub const schemaForProfile = @import("cpu_materials.zig").schemaForProfile;

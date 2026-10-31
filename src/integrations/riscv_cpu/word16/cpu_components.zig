@@ -13,10 +13,16 @@ pub const Components = struct {
     local: [5]W.component.Component,
     binary: [2]air.word16_v1.binary_component.Component = undefined,
     has_binary: bool,
+    alu: air.word16_v1.alu_experiment.component.Component = undefined,
+    has_alu: bool,
     pub fn init(materials: *const Mat.Materials, public: W.public.Public, challenges: Draw, claims: Sources.Claims, scalar_reference: bool) !Components {
-        try claims.validate(materials.geometry.mode);
+        return initWithAlu(materials, public, challenges, claims, .{ .range16 = core.fields.qm31.QM31.zero(), .function = core.fields.qm31.QM31.zero() }, scalar_reference);
+    }
+    pub fn initWithAlu(materials: *const Mat.Materials, public: W.public.Public, challenges: Draw, claims: Sources.Claims, alu_claims: air.word16_v1.alu_experiment.lookup.Claims, scalar_reference: bool) !Components {
+        try claims.validateProfile(materials.geometry.mode, materials.geometry.profile, alu_claims);
         var result: Components = undefined;
         result.materials = materials;
+        result.has_alu = materials.geometry.profile == .alu_binary_v2;
         result.has_binary = materials.geometry.mode == .local_binary;
         const roles = [_]Mat.Role{ .cpu, .rom, .boundary, .range16, .range8 };
         for (roles, &result.local) |role, *component| {
@@ -37,7 +43,7 @@ pub const Components = struct {
                 .range8 => claims.range8,
                 else => unreachable,
             };
-            component.* = .{ .kind = kind, .log_size = shape.log, .offsets = shape.offsets, .public = public, .cpu_claims = claims.cpu, .claim = claim, .challenges = challenges.cpu, .scalar_reference = scalar_reference };
+            component.* = .{ .kind = kind, .profile = materials.geometry.profile, .log_size = shape.log, .offsets = shape.offsets, .public = public, .cpu_claims = claims.cpu, .claim = claim, .challenges = challenges.cpu, .scalar_reference = scalar_reference };
         }
         if (result.has_binary) {
             const binary = try materials.shape(.binary);
@@ -47,21 +53,28 @@ pub const Components = struct {
                 .{ .kind = .and_table, .log_size = table.log, .offsets = table.offsets, .challenges = .{ .and_ = challenges.and_, .function = challenges.cpu.function }, .claims = .{ .and_ = claims.and_table, .function = core.fields.qm31.QM31.zero() } },
             };
         }
+        if (result.has_alu) {
+            const shape = try materials.shape(.alu);
+            result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .range16 = challenges.cpu.range16, .function = challenges.cpu.function }, .claims = alu_claims };
+        }
         return result;
     }
     const Handle = union(enum) {
         thin: *const W.component.Component,
         binary: *const air.word16_v1.binary_component.Component,
+        alu: *const air.word16_v1.alu_experiment.component.Component,
         fn prover(self: Handle) engine.air.component_prover.ComponentProver {
             return switch (self) {
                 .thin => |value| value.asProverComponent(),
                 .binary => |value| value.asProverComponent(),
+                .alu => |value| value.asProverComponent(),
             };
         }
         fn verifier(self: Handle) core.air.components.Component {
             return switch (self) {
                 .thin => |value| value.asVerifierComponent(),
                 .binary => |value| value.asVerifierComponent(),
+                .alu => |value| value.asVerifierComponent(),
             };
         }
     };
@@ -72,6 +85,7 @@ pub const Components = struct {
             .boundary => .{ .thin = &self.local[2] },
             .range16 => .{ .thin = &self.local[3] },
             .range8 => .{ .thin = &self.local[4] },
+            .alu => if (self.has_alu) .{ .alu = &self.alu } else error.OmittedThinCpuRole,
             .binary => if (self.has_binary) .{ .binary = &self.binary[0] } else error.OmittedThinCpuRole,
             .and_table => if (self.has_binary) .{ .binary = &self.binary[1] } else error.OmittedThinCpuRole,
         };

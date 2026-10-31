@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const L = @import("layout.zig");
 const Lookup = @import("lookup.zig");
+const Profile = @import("profile.zig");
 const Rom = @import("rom.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
@@ -13,6 +14,7 @@ pub const Kind = enum { rom, range16, range8 };
 pub const Source = struct {
     allocator: std.mem.Allocator,
     kind: Kind,
+    profile: Profile.Profile = .binary_v1,
     log_size: u32,
     fixed: []const M,
     counts: []const u64,
@@ -21,7 +23,9 @@ pub const Source = struct {
     dictionary: []Q = &.{},
     claim: ?Q = null,
     pub fn initRom(a: std.mem.Allocator, program: *const Rom.Setup, counts_physical: []const u64) !Source {
-        return init(a, .rom, program.log_size, program.fixed, counts_physical);
+        var result = try init(a, .rom, program.log_size, program.fixed, counts_physical);
+        result.profile = program.profile;
+        return result;
     }
     pub fn initRange16(a: std.mem.Allocator, fixed: []const M, counts: []const u64) !Source {
         return init(a, .range16, 16, fixed, counts);
@@ -32,7 +36,7 @@ pub const Source = struct {
     fn init(a: std.mem.Allocator, kind: Kind, log_size: u32, fixed: []const M, counts: []const u64) !Source {
         if (log_size < 5 or log_size > 22) return error.InvalidWord16TableGeometry;
         const n = @as(usize, 1) << @intCast(log_size);
-        if (counts.len != n or fixed.len != (if (kind == .rom) @as(usize, 18) else 3) * n) return error.InvalidWord16TableShape;
+        if (counts.len != n or (if (kind == .rom) (fixed.len != 18 * n and fixed.len != 25 * n) else fixed.len != 3 * n)) return error.InvalidWord16TableShape;
         var total: u64 = 0;
         for (counts) |count| {
             total = std.math.add(u64, total, count) catch return error.Word16MassExceeded;
@@ -86,6 +90,9 @@ pub const Source = struct {
             if (self.kind == .rom) {
                 var denominator = challenges.rom.offset;
                 for (challenges.rom.coefficients, 0..) |coefficient, column| denominator = denominator.sub(coefficient.mulM31(self.fixed[column * n + pos]));
+                if (self.profile == .alu_binary_v2) for (challenges.rom.control_coefficients, 0..) |coefficient, column| {
+                    denominator = denominator.sub(coefficient.mulM31(self.fixed[(16 + column) * n + pos]));
+                };
                 value.* = denominator;
             } else {
                 const ch = if (self.kind == .range16) challenges.range16 else challenges.range8;

@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const E = @import("../evaluation.zig");
+const Profile = @import("profile.zig");
 const L = @import("layout.zig");
 const P = @import("public.zig");
 const Lookup = @import("lookup.zig");
@@ -17,10 +18,11 @@ const Air = core.air.components;
 const M = core.fields.m31.M31;
 const Q = E.Q;
 const Point = core.circle.CirclePointQM31;
-pub const MAX_COLUMNS = L.fixed.COUNT + L.main.COUNT + L.inter.COUNT;
+pub const MAX_COLUMNS = L.fixed.COUNT + Profile.MAX_MAIN + L.inter.COUNT;
 pub const Kind = enum { cpu, rom, boundary, range16, range8 };
 pub const Component = struct {
     kind: Kind,
+    profile: Profile.Profile = .binary_v1,
     log_size: u32,
     offsets: [3]usize,
     public: P.Public,
@@ -37,8 +39,8 @@ pub const Component = struct {
     }
     pub fn widths(self: *const Component) [3]usize {
         return switch (self.kind) {
-            .cpu => .{ 3, 44, 56 },
-            .rom => .{ 18, 1, 8 },
+            .cpu => .{ 3, Profile.mainCount(self.profile), 56 },
+            .rom => .{ Profile.romCount(self.profile) + 2, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
         };
@@ -103,8 +105,8 @@ pub const Component = struct {
     }
     pub fn emitFor(self: *const Component, comptime F: type, fixed: []const F, main: []const F, current: []const F, previous_main: []const F, previous: []const F, sink: *E.SinkFor(F)) void {
         switch (self.kind) {
-            .cpu => Eq.emitFor(F, fixed, main, previous_main, current, previous, self.public, self.cpu_claims, self.challenges, sink),
-            .rom => @import("table.zig").romFor(F, fixed, main, current, previous, self.claim, self.challenges.rom, sink),
+            .cpu => Eq.emitProfileFor(F, self.profile, fixed, main, previous_main, current, previous, self.public, self.cpu_claims, self.challenges, sink),
+            .rom => @import("table.zig").romProfileFor(F, self.profile, fixed, main, current, previous, self.claim, self.challenges.rom, sink),
             .boundary => @import("boundary.zig").emitFor(F, fixed, current, previous, self.public, self.claim, self.challenges.register, sink),
             .range16 => @import("table.zig").rangeFor(F, fixed, main, current, previous, self.claim, self.challenges.range16, sink),
             .range8 => @import("table.zig").rangeFor(F, fixed, main, current, previous, self.claim, self.challenges.range8, sink),
@@ -113,7 +115,7 @@ pub const Component = struct {
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const Air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidWord16CpuMask;
         var values: [MAX_COLUMNS]Q = undefined;
-        var previous_main: [44]Q = @splat(Q.zero());
+        var previous_main: [Profile.MAX_MAIN]Q = @splat(Q.zero());
         var previous: [56]Q = @splat(Q.zero());
         var cursor: usize = 0;
         const widths_ = self.widths();
