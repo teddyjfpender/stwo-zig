@@ -198,3 +198,48 @@ test "failed unshifted FFT after partner swap invalidates cache and retry reinit
         try std.testing.expectEqualSlices(M, prior_want, previous);
     }
 }
+
+test "degree3 two-part bounded cosets match full native2n FFT values and predecessors" {
+    const C = cosets;
+    var coefficients: [3][8]M = undefined;
+    var sources: [3]engine.air.component_prover.Poly = undefined;
+    for (&coefficients, &sources, 0..) |*column, *source, c| {
+        for (column, 0..) |*v, i| v.* = M.fromCanonical(@intCast(1 + c * 8 + i));
+        source.* = .{ .log_size = 4, .values = &.{}, .coefficients = try engine.poly.circle.CircleCoefficients.initBorrowed(column) };
+    }
+    const domain = core.poly.circle.canonic.CanonicCoset.new(4).circleDomain();
+    var expected: [3][]const M = undefined;
+    var count: usize = 0;
+    defer for (expected[0..count]) |values| std.testing.allocator.free(values);
+    for (&expected, sources) |*values, source| {
+        values.* = (try source.coefficients.?.evaluate(std.testing.allocator, domain)).values;
+        count += 1;
+    }
+    var partition = try C.Evaluation.initDegreeThree(std.testing.allocator, &sources, 3, &.{ true, false, true });
+    defer partition.deinit();
+    try std.testing.expectEqual(@as(usize, 5 * 8), partition.scratch.len);
+    for ([_]usize{ 1, 0, 1, 0 }) |part| {
+        try partition.evaluatePart(part);
+        for (0..8) |row| {
+            const global = partition.globalRow(part, row);
+            const prior = core.utils.previousBitReversedCircleDomainIndex(global, 3, 4);
+            for (partition.current_values, expected) |actual, wanted| try std.testing.expect(actual[row].eql(wanted[global]));
+            for ([_]usize{ 0, 2 }) |c| try std.testing.expect(partition.previous_values[c][partition.previousRow(part, row)].eql(expected[c][prior]));
+            const point = domain.at(core.utils.bitReverseIndex(global, 4));
+            const denominator = try core.constraints.cosetVanishing(M, core.poly.circle.canonic.CanonicCoset.new(3).coset(), point).inv();
+            try std.testing.expect(denominator.eql(try partition.denominatorInverse(part)));
+        }
+    }
+    try std.testing.expectError(error.InvalidCosetPartition, partition.evaluatePart(2));
+}
+
+fn degreeThreeAllocationCase(allocator: std.mem.Allocator) !void {
+    const coefficients: [8]M = .{M.one()} ** 8;
+    const sources = [_]Poly{.{ .log_size = 4, .values = &.{}, .coefficients = try Polynomial.initBorrowed(&coefficients) }};
+    var evaluation = try cosets.Evaluation.initDegreeThree(allocator, &sources, 3, &.{true});
+    defer evaluation.deinit();
+    for (0..2) |part| try evaluation.evaluatePart(part);
+}
+test "degree3 coset initialization and each FFT allocation failure preserve ownership" {
+    try std.testing.checkAllAllocationFailures(a, degreeThreeAllocationCase, .{});
+}

@@ -6,3 +6,5 @@ pub const component = @import("component.zig");
 pub const policy = @import("policy.zig");
 pub const cpu = @import("cpu.zig");
 pub const cpu_bus = @import("cpu_bus.zig");
+
+pub const degree3_component = @import("degree3_component.zig");

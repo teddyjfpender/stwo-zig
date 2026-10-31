@@ -20,6 +20,7 @@ pub const Evaluation = struct {
     sources: []const Poly,
     previous_columns: []const bool,
     trace_log: u32,
+    log_expansion: u32 = 2,
     size: usize,
     current_values: [][]const M,
     previous_values: [][]const M,
@@ -33,7 +34,15 @@ pub const Evaluation = struct {
     /// coefficient sources remain borrowed and immutable until deinit. Missing coefficients
     /// fail closed; this operation never interpolates or silently allocates 4n.
     pub fn init(a: std.mem.Allocator, polys: []const Poly, trace_log: u32, previous_columns: []const bool) !Evaluation {
-        if (trace_log < 2 or trace_log > 26 or polys.len == 0 or previous_columns.len != polys.len) return error.InvalidRv64CosetGeometry;
+        return initWithExpansion(a, polys, trace_log, previous_columns, 2);
+    }
+    /// Two conjugate n-point parts cover the native degree-three 2n domain.
+    /// The legacy constructor remains four-way and keeps its exact geometry.
+    pub fn initDegreeThree(a: std.mem.Allocator, polys: []const Poly, trace_log: u32, previous_columns: []const bool) !Evaluation {
+        return initWithExpansion(a, polys, trace_log, previous_columns, 1);
+    }
+    fn initWithExpansion(a: std.mem.Allocator, polys: []const Poly, trace_log: u32, previous_columns: []const bool, log_expansion: u32) !Evaluation {
+        if ((log_expansion != 1 and log_expansion != 2) or trace_log < 2 or trace_log > 28 - log_expansion or polys.len == 0 or previous_columns.len != polys.len) return error.InvalidRv64CosetGeometry;
         const size = @as(usize, 1) << @intCast(trace_log);
         var previous_count: usize = 0;
         for (polys, previous_columns) |poly, previous| {
@@ -66,7 +75,7 @@ pub const Evaluation = struct {
                 unshifted_at += 1;
             }
         }
-        return .{ .allocator = a, .sources = polys, .previous_columns = previous_columns, .trace_log = trace_log, .size = size, .current_values = current, .previous_values = previous, .buffers = buffers, .unshifted_buffers = unshifted, .scratch = scratch };
+        return .{ .allocator = a, .sources = polys, .previous_columns = previous_columns, .trace_log = trace_log, .log_expansion = log_expansion, .size = size, .current_values = current, .previous_values = previous, .buffers = buffers, .unshifted_buffers = unshifted, .scratch = scratch };
     }
     pub fn deinit(self: *Evaluation) void {
         self.allocator.free(self.current_values);
@@ -77,7 +86,7 @@ pub const Evaluation = struct {
         self.* = undefined;
     }
     pub fn domain(self: *const Evaluation, part: usize) !CircleDomain {
-        return partition.domain(core.poly.circle.canonic.CanonicCoset.new(self.trace_log + 2).circleDomain(), 2, part);
+        return partition.domain(core.poly.circle.canonic.CanonicCoset.new(self.trace_log + self.log_expansion).circleDomain(), self.log_expansion, part);
     }
     /// Replaces all current/previous views. No field-value allocation occurs;
     /// each FFT owns only its n-point twiddle tree during that batch.
@@ -123,11 +132,11 @@ pub const Evaluation = struct {
         self.cached_part = part;
     }
     pub fn globalRow(self: *const Evaluation, part: usize, row: usize) usize {
-        std.debug.assert(part < PARTS and row < self.size);
+        std.debug.assert(part < (@as(usize, 1) << @intCast(self.log_expansion)) and row < self.size);
         return part * self.size + row;
     }
     pub fn previousRow(self: *const Evaluation, part: usize, row: usize) usize {
-        const previous = core.utils.previousBitReversedCircleDomainIndex(self.globalRow(part, row), self.trace_log, self.trace_log + 2);
+        const previous = core.utils.previousBitReversedCircleDomainIndex(self.globalRow(part, row), self.trace_log, self.trace_log + self.log_expansion);
         // The quotient domain's natural half-coset predecessor shifts by two.
         // In four-way bit-reversed partition order this changes part xor 1.
         std.debug.assert(previous / self.size == part ^ 1);
