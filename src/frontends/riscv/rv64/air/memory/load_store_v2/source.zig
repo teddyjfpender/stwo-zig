@@ -3,7 +3,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const R = @import("../closed_ram/mod.zig");
-const V1 = @import("../load_store_v1/mod.zig");
+const NativeFill = @import("native_fill.zig");
 const T = @import("types.zig");
 const L = @import("layout.zig");
 const Native = @import("native.zig");
@@ -72,12 +72,12 @@ pub const Source = struct {
     counts8: []u64,
     selection_counts: []u64,
     pub fn init(a: std.mem.Allocator, events: []const Event, log: u32) !Source {
-        return initInternal(a, events, log, null);
+        return initInternal(a, events, log, null, engine.work_pool.currentScopedPool(), null);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, events: []const Event, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, events, log, buffers);
+        return initInternal(a, events, log, buffers, engine.work_pool.currentScopedPool(), null);
     }
-    fn initInternal(a: std.mem.Allocator, events: []const Event, log: u32, buffers: ?MainBuffers) !Source {
+    fn initInternal(a: std.mem.Allocator, events: []const Event, log: u32, buffers: ?MainBuffers, pool: ?*engine.work_pool.WorkPool, fail_after: ?usize) !Source {
         const n = try sizeForLog(log);
         if (events.len >= n) return error.LsCapacityExceeded;
         _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ 35 * @as(u64, @intCast(n)), 5 * @as(u64, @intCast(n)), @as(u64, @intCast(n)) });
@@ -101,32 +101,26 @@ pub const Source = struct {
         const metadata = try a.alloc(Metadata, n);
         errdefer a.free(metadata);
         const main = if (buffers) |b| b.main else try a.alloc(M, L.MAIN * n);
+        errdefer if (buffers == null) a.free(main);
         @memset(c16, 0);
         @memset(c8, 0);
         @memset(cs, 0);
-        for (0..n) |position| {
-            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, log), log);
-            const values = Native.row(if (logical < events.len) events[logical] else null);
-            for (values, 0..) |v, c| main[c * n + position] = v;
-            const meta = &metadata[logical];
-            for (L.U16, 0..) |c, i| {
-                meta.range16[i] = @intCast(values[c].v);
-                c16[values[c].v] += 1;
-            }
-            for (L.U8, 0..) |c, i| {
-                meta.range8[i] = @intCast(values[c].v);
-                c8[values[c].v] += 1;
-            }
-            var parity: u32 = 0;
-            for ([_]usize{ 1, 3, 5, 7 }) |i| parity += values[V1.layout.offsets + i].v;
-            const index = 2 * values[V1.layout.selected_limb].v + parity;
-            meta.selection_words = .{ @truncate(index), @truncate(index >> 16) };
-            cs[index] += 1;
-            meta.opcode = @intCast(values[V1.layout.opcode].v);
-            meta.flags = @intCast(values[0].v | (values[22].v << 1) | (values[23].v << 2));
-        }
+        const fill = NativeFill.Fill{ .events = events, .log = log, .main = main, .metadata = metadata };
+        if (comptime @import("builtin").is_test) {
+            if (fail_after) |after| {
+                try NativeFill.testing.failSubmission(fill, a, c16, c8, cs, pool orelse return error.ExpectedLsNativePool, after);
+            } else try fill.run(a, c16, c8, cs, pool);
+        } else try fill.run(a, c16, c8, cs, pool);
         return .{ .allocator = a, .log_size = log, .rows = @intCast(events.len), .fixed = geometry, .main = main, .owns_main = buffers == null, .metadata = metadata, .counts16 = c16, .counts8 = c8, .selection_counts = cs };
     }
+    pub const testing = if (@import("builtin").is_test) struct {
+        pub fn initSerial(a: std.mem.Allocator, events: []const Event, log: u32) !Source {
+            return initInternal(a, events, log, null, null, null);
+        }
+        pub fn failSubmission(a: std.mem.Allocator, events: []const Event, log: u32, buffers: MainBuffers, pool: *engine.work_pool.WorkPool, after: usize) !Source {
+            return initInternal(a, events, log, buffers, pool, after);
+        }
+    } else struct {};
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
     }

@@ -1,0 +1,617 @@
+{
+  "schema_version": 1,
+  "scope": "Bounded parallel native LS MAIN/metadata/histogram construction. Existing row authority, AIR, fixed material, transcript, claims and interaction generation unchanged.",
+  "base_commit": "bdff7231cec4c1126724fd62e0cda0b1ac27c0fc",
+  "implementation": {
+    "input": "Existing immutable validated Native.Event array; no VM replay or Tape reexecution. Full prevalidation retained.",
+    "work": "One joined existing WorkPool lease, start-gated submissions, contiguous physical16-row partitions. Inverse physical permutation selects logical event and metadata position.",
+    "ownership": "Workers borrow all inputs/outputs; every helper drains before return. Allocations and all submissions finish before MAIN writes. Submission failure cancels waiting helpers and preserves borrowed MAIN. Metadata page establishment occurs only after successful submissions. Postjoin histogram validation has no fallible allocation; impossible invalid mass after validated native rows is still rejected.",
+    "histograms": "Private per-worker U16[65536],U8[256],selection[131072] u64 arrays, checked joined reduction. Serial path uses original destination histograms without scratch allocation.",
+    "histogram_scratch_bytes_per_worker": 1574912,
+    "histogram_scratch_bytes_at16": 25198592,
+    "workers": "min(explicit pool workers, max(1,N/4096)); no nested pool/global scratch",
+    "minimum_stack_bytes_release": 262144,
+    "minimum_stack_bytes_debug": 1048576,
+    "unchanged_physical_widths": {
+      "fixed": 3,
+      "main": 79,
+      "interaction": 116
+    },
+    "metadata_bytes_per_row": 82,
+    "padding": "Every physical row including padding uses the same Native.row authority; histogram totals remain35*N,5*N,N."
+  },
+  "qualification": {
+    "focused_safe_runtime6": "PASS",
+    "focused_fast_runtime6": "PASS",
+    "existing_memory_fast_runtime14": "PASS",
+    "existing_prepared_fast_runtime14": "PASS",
+    "focused_logs": [
+      "/tmp/rv64-ls-native-fill-safe.log",
+      "/tmp/rv64-ls-native-fill-fast.log"
+    ],
+    "regression_log": "/tmp/rv64-ls-native-fill-regression-fast.log",
+    "cases": [
+      "All65536 physical MAIN rows, logical metadata and all three histograms exact at1/3/16 workers;40001 active events cover all11 load/store opcodes, high64 addresses, wrapped immediates, signed loads and partial stores.",
+      "After MAIN release all116 interaction columns/five claims exact and all281 residuals vanish on every row.",
+      "Actual full17-role proof/33claim byte parity at1/3/16 workers, CPUlog14/LSlog16, independently rebuilt receiver setup.",
+      "Partial helper submission after0/1 cancels and joins, preserves sentinel borrowed MAIN, permits immediate pool reuse. Undersized1-worker stack fails before writes.",
+      "Exhaustive owned and borrowed source allocation failures retain balanced ownership and no running helpers."
+    ],
+    "format_and_diff": "PASS",
+    "conformance_test_runtime31": "PASS; existing repository-wide hook violations are outside this slice."
+  },
+  "real_packet": {
+    "directory": "/tmp/rv64-ls-native-fill-real0-v2",
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "steps": 4194303,
+    "control_proof": "/tmp/rv64-word16-pages-paired-20261031/1-on/proof.bin",
+    "proof_exact_bytes": true,
+    "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+    "proof_bytes": 1152816,
+    "ram_sidecar_exact_bytes": true,
+    "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "statement_semantics": "Exact JSON after adding pre-existing default omit_empty_division=false to old retained geometry; no endpoint/count/RAM difference.",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 905033458,
+      "image_ns": 312417625
+    },
+    "cli_sha256": "1132b2dec0652b628711d40476b27fb52980cf362edb7cc44d82f29be43d39d8",
+    "observations": "Concurrent, nonisolated functional run; external compilers/test jobs active. No matched speedup claim. Earlier real0-v1 used the previous installed CLI while the build was unfinished and is excluded from this new-code evidence.",
+    "process_time_line": "14.55 real        64.67 user         5.81 sys",
+    "report": {
+      "commit_batch_columns": 8,
+      "interaction_page_preparation": true,
+      "allocator": {
+        "policy": "smp",
+        "cache_cap_bytes": 0,
+        "stats": {
+          "reused_blocks": 0,
+          "mapped_blocks": 0,
+          "cached_bytes": 0
+        }
+      },
+      "public_ram_sidecar_bytes": 32612038,
+      "public_statement_json_bytes": 11953,
+      "proof_and_public_statement_bytes": 33776807,
+      "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "steps": 4194303,
+      "source_cells": {
+        "fixed": 67168160,
+        "main": 593751776,
+        "interaction": 655329792
+      },
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 20,
+        "binary_log": 20,
+        "shift_log": 20,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 13,
+        "ls_log": 21,
+        "boundary_log": 20,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "native_prepare_ns": 327376792,
+      "provider_source_ns": 1232627916,
+      "setup_ns": 350218250,
+      "prove_ns": 13008132792,
+      "same_process_verify_ns": 85775209,
+      "proof_bytes": 1152816,
+      "total_ns": 14044825917,
+      "memory": {
+        "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 856981504,
+        "last_rss_bytes": 1330495488,
+        "sampled_peak_rss_bytes": 11551768576,
+        "process_lifetime_peak_rss_bytes": 11551768576,
+        "samples": 927,
+        "failed_samples": 0
+      }
+    },
+    "selected_stages": {
+      "provider_source_construction": {
+        "id": "provider_source_construction",
+        "label": "Independent provider witnesses from retained native facts",
+        "seconds": 1.232647,
+        "children": [
+          {
+            "id": "source_cpu_materialize",
+            "label": "CPU materialization and final program binding",
+            "seconds": 1e-06,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1e-06,
+              "system_seconds": 0,
+              "minor_faults": 0,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_jalr",
+            "label": "Adopt prepared JALR witness",
+            "seconds": 1e-06,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0,
+              "system_seconds": 0,
+              "minor_faults": 0,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_alu",
+            "label": "ALU witness",
+            "seconds": 0.065455,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.312736,
+              "system_seconds": 0.591737,
+              "minor_faults": 64118,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 483
+            }
+          },
+          {
+            "id": "source_binary",
+            "label": "BINARY witness",
+            "seconds": 0.40038,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.392874,
+              "system_seconds": 0.007766,
+              "minor_faults": 14240,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 31
+            }
+          },
+          {
+            "id": "source_shift",
+            "label": "SHIFT witness",
+            "seconds": 0.3013,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.292821,
+              "system_seconds": 0.008648,
+              "minor_faults": 16288,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 27
+            }
+          },
+          {
+            "id": "source_division",
+            "label": "DIV witness",
+            "seconds": 3.2e-05,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 4e-06,
+              "system_seconds": 2.8e-05,
+              "minor_faults": 10,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_multiplication",
+            "label": "MUL witness",
+            "seconds": 0.002732,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.002585,
+              "system_seconds": 0.000143,
+              "minor_faults": 190,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_memory",
+            "label": "Memory witness construction",
+            "seconds": 0.455266,
+            "children": [
+              {
+                "id": "source_memory_collect",
+                "label": "Collect expected memory boundaries",
+                "seconds": 0.097504,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 0.090708,
+                  "system_seconds": 0.006871,
+                  "minor_faults": 12947,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 7
+                }
+              },
+              {
+                "id": "source_memory_validate",
+                "label": "Validate constructed memory statement against expected image",
+                "seconds": 0.01418,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 0.014136,
+                  "system_seconds": 5.3e-05,
+                  "minor_faults": 0,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 1
+                }
+              },
+              {
+                "id": "source_memory_ls",
+                "label": "Ordinary LS witness",
+                "seconds": 0.096479,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 1.003367,
+                  "system_seconds": 0.059895,
+                  "minor_faults": 54114,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 401
+                }
+              },
+              {
+                "id": "source_memory_initial",
+                "label": "Initial boundary witness",
+                "seconds": 0.121224,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 0.116405,
+                  "system_seconds": 0.004885,
+                  "minor_faults": 8608,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 13
+                }
+              },
+              {
+                "id": "source_memory_terminal",
+                "label": "Terminal boundary witness",
+                "seconds": 0.124082,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 0.119766,
+                  "system_seconds": 0.004388,
+                  "minor_faults": 8608,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 12
+                }
+              },
+              {
+                "id": "source_memory_selection",
+                "label": "Memory selection multiplicities",
+                "seconds": 0.001116,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 0.001049,
+                  "system_seconds": 6.3e-05,
+                  "minor_faults": 128,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 0
+                }
+              },
+              {
+                "id": "source_memory_range_counts",
+                "label": "Merge LS and boundary range histograms",
+                "seconds": 0.000101,
+                "children": null,
+                "process_usage": {
+                  "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                  "user_seconds": 6.1e-05,
+                  "system_seconds": 3.8e-05,
+                  "minor_faults": 33,
+                  "major_faults": 0,
+                  "voluntary_switches": 0,
+                  "involuntary_switches": 0
+                }
+              }
+            ],
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.345506,
+              "system_seconds": 0.076797,
+              "minor_faults": 84438,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 434
+            }
+          },
+          {
+            "id": "source_rom",
+            "label": "ROM multiplicities",
+            "seconds": 0.001122,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.000985,
+              "system_seconds": 0.000134,
+              "minor_faults": 256,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_range_counts",
+            "label": "Merge all physical range histograms",
+            "seconds": 0.0001,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 8.3e-05,
+              "system_seconds": 1.4e-05,
+              "minor_faults": 32,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_range16",
+            "label": "U16 multiplicities",
+            "seconds": 0.000217,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.000201,
+              "system_seconds": 1.5e-05,
+              "minor_faults": 16,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_range8",
+            "label": "U8 multiplicities",
+            "seconds": 1e-06,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0,
+              "system_seconds": 0,
+              "minor_faults": 0,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_and_table",
+            "label": "AND multiplicities",
+            "seconds": 0.000222,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.000202,
+              "system_seconds": 1.8e-05,
+              "minor_faults": 16,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_shift_table",
+            "label": "SHIFT table multiplicities",
+            "seconds": 0.004085,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.00396,
+              "system_seconds": 0.000136,
+              "minor_faults": 256,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 1
+            }
+          },
+          {
+            "id": "source_fact_retirement",
+            "label": "Retire temporary native family facts",
+            "seconds": 0.001707,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 2e-06,
+              "system_seconds": 0.001703,
+              "minor_faults": 0,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          }
+        ],
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 2.351973,
+          "system_seconds": 0.687193,
+          "minor_faults": 179863,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 976
+        }
+      },
+      "source_memory": {
+        "id": "source_memory",
+        "label": "Memory witness construction",
+        "seconds": 0.455266,
+        "children": [
+          {
+            "id": "source_memory_collect",
+            "label": "Collect expected memory boundaries",
+            "seconds": 0.097504,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.090708,
+              "system_seconds": 0.006871,
+              "minor_faults": 12947,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 7
+            }
+          },
+          {
+            "id": "source_memory_validate",
+            "label": "Validate constructed memory statement against expected image",
+            "seconds": 0.01418,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.014136,
+              "system_seconds": 5.3e-05,
+              "minor_faults": 0,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 1
+            }
+          },
+          {
+            "id": "source_memory_ls",
+            "label": "Ordinary LS witness",
+            "seconds": 0.096479,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.003367,
+              "system_seconds": 0.059895,
+              "minor_faults": 54114,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 401
+            }
+          },
+          {
+            "id": "source_memory_initial",
+            "label": "Initial boundary witness",
+            "seconds": 0.121224,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.116405,
+              "system_seconds": 0.004885,
+              "minor_faults": 8608,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 13
+            }
+          },
+          {
+            "id": "source_memory_terminal",
+            "label": "Terminal boundary witness",
+            "seconds": 0.124082,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.119766,
+              "system_seconds": 0.004388,
+              "minor_faults": 8608,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 12
+            }
+          },
+          {
+            "id": "source_memory_selection",
+            "label": "Memory selection multiplicities",
+            "seconds": 0.001116,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.001049,
+              "system_seconds": 6.3e-05,
+              "minor_faults": 128,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          },
+          {
+            "id": "source_memory_range_counts",
+            "label": "Merge LS and boundary range histograms",
+            "seconds": 0.000101,
+            "children": null,
+            "process_usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 6.1e-05,
+              "system_seconds": 3.8e-05,
+              "minor_faults": 33,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 0
+            }
+          }
+        ],
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 1.345506,
+          "system_seconds": 0.076797,
+          "minor_faults": 84438,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 434
+        }
+      },
+      "source_memory_ls": {
+        "id": "source_memory_ls",
+        "label": "Ordinary LS witness",
+        "seconds": 0.096479,
+        "children": null,
+        "process_usage": {
+          "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+          "user_seconds": 1.003367,
+          "system_seconds": 0.059895,
+          "minor_faults": 54114,
+          "major_faults": 0,
+          "voluntary_switches": 0,
+          "involuntary_switches": 401
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/native_fill.zig": "3a154db93c03bb2a0f72f8e8a938a2e2a75ccc9c7a2859ebff2be4ee42dcacf4",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/source.zig": "253f0fa160394da5f84f8cbd91bf7e9888be08f94e37ffd971394ec320e73953",
+    "src/integrations/riscv_cpu/word16_execution/memory/native_fill_test.zig": "ed95e37a40d053ea3406054be413b76d491835f1d81023256ba4c120d3af1976",
+    "src/integrations/riscv_cpu/rv64_word16_ls_native_fill_test_root.zig": "c700f641797d16ec52fb7d2bd7dd5463ff725a11aabf3dc1042985990589c39c",
+    "build_support/products/catalog.zig": "4f354338f213ee819c11bbf7fd0b70a5db53f14cfb57ea67f0729f0fec94666f",
+    "build_support/products/riscv_cpu.zig": "aa7bc813d643ea4ceb821b6da1ed741fc7c23e77aa0244d96d88ad70d6aa6aa9"
+  }
+}

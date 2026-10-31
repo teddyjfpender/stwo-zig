@@ -53,6 +53,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
         .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 15 },
+        .{ "word16-ls-native-fill", "src/integrations/riscv_cpu/rv64_word16_ls_native_fill_test_root.zig", 6 },
         .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 14 },
         .{ "multiplication-degree3", "src/integrations/riscv_cpu/delegations/multiplication/degree3_test_root.zig", 10 },
         .{ "division-degree3", "src/integrations/riscv_cpu/delegations/division/degree3_test_root.zig", 9 },
