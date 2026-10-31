@@ -79,3 +79,39 @@ attributing a cause or claiming a fix.
 The qualified thin CPU and shared provider prototypes address the representation
 cost but are not used by this run. Full ISA, global RAM closure, specialized
 recursion and a bounded resident GPU route remain required.
+
+## Opcode census and packing
+
+The bounded packet inspector now reuses admission's existing immutable-ROM
+walk to count opcodes. All 65 opcode totals across the 25 retained packets
+match the separately recorded native execution summary exactly; packet RAM
+root boundaries and step counts match the accepted proof receipts. This is planning evidence, not
+a cryptographic opcode-count claim.
+
+[Full census](opcode-census-v1.json) and [CSV](opcode-census-v1.csv).
+
+| Category | Retirements | Share |
+| --- | ---: | ---: |
+| alu | 28,802,270 | 27.627% |
+| binary | 13,582,670 | 13.028% |
+| shift | 12,715,792 | 12.197% |
+| load_store | 33,457,230 | 32.092% |
+| branch | 9,230,005 | 8.853% |
+| dynamic_jump | 2,337,567 | 2.242% |
+| static_result | 2,454,866 | 2.355% |
+| multiplication | 1,610,965 | 1.545% |
+| division | 6,270 | 0.006% |
+| service | 54,099 | 0.052% |
+| fence | 2,179 | 0.002% |
+
+SHIFT is bursty: batches 1/2 contain 1,227,493/1,261,585 calls, exceeding
+the proposed log20 capacity. BINARY likewise overflows that capacity in three
+batches. A fixed local log20 SHIFT policy needs 27 instances, compared with
+13 under ideal whole-execution packing. Sharing a table across independent
+proofs additionally requires authenticated shared challenges and claim closure;
+immutable setup caching alone does not supply that protocol.
+
+The census report compares explicit padding/table-sharing source-cell models.
+Those models exclude common CPU/range work and are not timing forecasts. In
+particular, the packed Word16 table candidate still needs physical proof and
+complete cost qualification.

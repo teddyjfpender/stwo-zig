@@ -50,7 +50,7 @@ pub fn addProduct(context: Context) void {
         .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
-        .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 1 },
+        .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },
         .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 8 },
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 3 },

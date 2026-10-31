@@ -10,7 +10,8 @@ const Secp = @import("rv64_ethereum_secp_context.zig");
 const Full = @import("rv64_full.zig");
 const H = @import("rv64_work_packet_header.zig");
 const IO = @import("rv64_work_packet_io.zig");
-pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *const Full.ProgramAuthority) !void {
+pub const OpcodeCounts = [@typeInfo(rv.decode.Opcode).@"enum".fields.len]u64;
+pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *const Full.ProgramAuthority) !OpcodeCounts {
     try canonical(public);
     const tape_start = try std.math.add(usize, H.BYTES + try h.bodyBytes(), h.graph_bytes);
     try file.seekTo(tape_start);
@@ -23,12 +24,14 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     var multiplication: u32 = 0;
     var memory: u32 = 0;
     var calls: [3]u32 = @splat(0);
+    var opcodes: OpcodeCounts = @splat(0);
     for (0..public.statement.steps) |_| {
         var step: [48]u8 = undefined;
         try reader.bytes(&step);
         // lookup validates row.valid BEFORE accessing its decoded cache entry.
         const index = try authority.program.lookup(pc);
         const opcode = authority.program.decoded[index].instruction.opcode;
+        opcodes[@intFromEnum(opcode)] += 1;
         switch (opcode) {
             .DIV, .DIVU, .REM, .REMU, .DIVW, .DIVUW, .REMW, .REMUW => division += 1,
             .MUL, .MULH, .MULHSU, .MULHU, .MULW => multiplication += 1,
@@ -56,6 +59,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
     if (pc != public.statement.final_pc or division != public.division_requests or multiplication != public.multiplication_requests or memory != std.mem.readInt(u32, raw[16..20], .little) or !std.mem.eql(u32, &calls, &expected_calls)) return error.InvalidWorkPacketRequestCount;
     const ram_bound = @as(u64, memory) + 25 * @as(u64, calls[0]) + 32 * (@as(u64, calls[1]) + calls[2]);
     if (h.cells > ram_bound) return error.InvalidWorkPacketRequestCount;
+    return opcodes;
 }
 fn requestLog(count: u32) u32 {
     return @max(5, std.math.log2_int_ceil(u32, @max(1, count)));
