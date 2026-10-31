@@ -199,3 +199,49 @@ test "merged BINARY circuit authority binds secure challenges claims and inverse
         try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
     }
 }
+
+test "LS48 same residual authority binds all typed Circuit challenges claims masks and strict pairs" {
+    const LS = front.rv64_air.memory.load_store_v2;
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    var ch: LS.types.Challenges = undefined;
+    inline for (.{ "ram", "owner", "selection" }) |field| {
+        @field(ch, field).offset = channel.drawSecureFelt();
+        for (&@field(ch, field).coefficients) |*v| v.* = channel.drawSecureFelt();
+    }
+    inline for (.{ "range16", "range8" }) |field| @field(ch, field) = .{ .offset = channel.drawSecureFelt(), .coefficient = channel.drawSecureFelt() };
+    var claims: LS.types.Claims = undefined;
+    inline for (.{ "ram", "owner", "range16", "range8", "selection" }) |field| @field(claims, field) = channel.drawSecureFelt();
+    var native: [5][LS.layout.MAIN]Q = undefined;
+    for (&native) |*group| for (group) |*v| {
+        v.* = channel.drawSecureFelt();
+    };
+    var reference: [LS.layout.constraints(.ls)]Q = undefined;
+    var ns = E.Sink{ .values = &reference };
+    LS.equations.emitLsFor(Q, native[0][0..3], &native[1], &native[2], native[3][0..LS.layout.INTERACTION], native[4][0..LS.layout.INTERACTION], 7, claims, ch, &ns);
+    for (0..5) |mutation| {
+        var ctx = try Context.init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        var cw: LS.types.ChallengesFor(F) = undefined;
+        inline for (.{ "ram", "owner", "selection" }) |field| {
+            @field(cw, field).offset = try wire(&ctx, @field(ch, field).offset.add(if (mutation == 1 and std.mem.eql(u8, field, "owner")) Q.one() else Q.zero()));
+            for (&@field(cw, field).coefficients, @field(ch, field).coefficients) |*v, q| v.* = try wire(&ctx, q);
+        }
+        inline for (.{ "range16", "range8" }) |field| @field(cw, field) = .{ .offset = try wire(&ctx, @field(ch, field).offset), .coefficient = try wire(&ctx, @field(ch, field).coefficient) };
+        var debt: LS.types.ClaimsFor(F) = undefined;
+        inline for (.{ "ram", "owner", "range16", "range8", "selection" }) |field| @field(debt, field) = try wire(&ctx, @field(claims, field).add(if (mutation == 2 and std.mem.eql(u8, field, "ram")) Q.one() else Q.zero()));
+        var masks: [5][LS.layout.MAIN]F = undefined;
+        for (&masks, native, 0..) |*group, input, tree| for (group, input, 0..) |*v, q, column| {
+            const change = (mutation == 3 and tree == 3 and column == LS.layout.LOCAL_INVERSES) or (mutation == 4 and tree == 1 and column == 40);
+            v.* = try wire(&ctx, q.add(if (change) Q.one() else Q.zero()));
+        };
+        var result: [LS.layout.constraints(.ls)]F = undefined;
+        var sink = E.SinkFor(F){ .values = &result };
+        LaneModule.begin(&ctx);
+        LS.equations.emitLsFor(F, masks[0][0..3], &masks[1], &masks[2], masks[3][0..LS.layout.INTERACTION], masks[4][0..LS.layout.INTERACTION], 7, debt, cw, &sink);
+        try LaneModule.finish();
+        try std.testing.expectEqual(reference.len, sink.count);
+        for (result, reference) |v, q| try ctx.eq(v.v, try ctx.constant(q));
+        try ctx.finalize(false);
+        try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
+    }
+}

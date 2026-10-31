@@ -33,8 +33,23 @@ pub fn isLoadStore(opcode: decode.Opcode) bool {
         else => false,
     };
 }
-pub const Challenges = struct { ram: R.RamChallenges, owner: OwnerChallenges, range16: Range.Challenges, range8: Range.Challenges, selection: Legacy.SelectionChallenges };
-pub const Claims = Legacy.Claims;
+pub fn SelectionChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [5]C,
+        pub fn denominatorFor(self: @This(), comptime F: type, tuple: [5]F) E.SecureFor(F) {
+            return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
+        }
+    };
+}
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { ram: R.RamChallengesFor(C), owner: OwnerChallengesFor(C), range16: Range.ChallengesFor(C), range8: Range.ChallengesFor(C), selection: if (C == Q) Legacy.SelectionChallenges else SelectionChallengesFor(C) };
+}
+pub const Challenges = ChallengesFor(Q);
+pub fn ClaimsFor(comptime C: type) type {
+    return if (C == Q) Legacy.Claims else struct { ram: C, owner: C, range16: C, range8: C, selection: C };
+}
+pub const Claims = ClaimsFor(Q);
 /// The checked v1 relation emits +1/D. Projecting to -D makes its SAME
 /// inverse/prefix equations emit -1/D for the CPU-owned nineteen-coordinate bus.
 /// m3 is repurposed from diagnostic owner ID to the exact scalar after-tick.

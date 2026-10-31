@@ -100,14 +100,14 @@ pub const Fill = struct {
             const values = Native.row(if (logical < self.events.len) self.events[logical] else null);
             for (values, 0..) |v, c| self.main[c * n + position] = v;
             const meta = &self.metadata[logical];
-            for (L.U16, 0..) |c, i| {
+            for (L.RELATION_U16, 0..) |c, i| {
                 meta.range16[i] = @intCast(values[c].v);
-                c16[values[c].v] += 1;
             }
-            for (L.U8, 0..) |c, i| {
+            for (L.RELATION_U8, 0..) |c, i| {
                 meta.range8[i] = @intCast(values[c].v);
-                c8[values[c].v] += 1;
             }
+            for (L.U16) |c| c16[values[c].v] += 1;
+            for (L.U8) |c| c8[values[c].v] += 1;
             var parity: u32 = 0;
             for ([_]usize{ 1, 3, 5, 7 }) |i| parity += values[V.offsets + i].v;
             const index = 2 * values[V.selected_limb].v + parity;

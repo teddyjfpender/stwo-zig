@@ -94,7 +94,7 @@ test "pure provider partition permits full head and rejects missing or overflowi
         try std.testing.expect(present[i].present());
     }
     // Combined padding masses are admitted before fixed/witness allocations.
-    const expected16: u64 = 3 * 256 + 20 * 96 + 9 * 64 + 35 * 32 + 4 * 64;
+    const expected16: u64 = 3 * 256 + 20 * 96 + 9 * 64 + 12 * 32 + 4 * 64;
     try std.testing.expectEqual(expected16, try LADDER.range16Mass());
 }
 test "one PCS all three pure function tails closes actual native loop and independent receiver" {

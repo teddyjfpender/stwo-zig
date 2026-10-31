@@ -152,27 +152,21 @@ fn fillChunkImpl(source: *const S.Source, ch: T.Challenges, dict16: []const Q, d
         prefix[0] = prefix[0].add(delta[i].mul(inv[i]).mulM31(meta.active()));
         R.trace.store(output, n, pos, 4, prefix[0]);
         prefix[1] = prefix[1].add(invOwner[i].mulM31(meta.active()));
-        // Pair OWNER with the first U16 query, then the remaining34 U16s.
-        const first_range = dict16[meta.range16[0]];
-        R.trace.store(output, n, pos, L.LOCAL_INVERSES, invOwner[i].mul(first_range));
-        prefix[2] = prefix[2].add(first_range);
-        for (0..17) |pair| {
-            const x = dict16[meta.range16[1 + 2 * pair]];
-            const y = dict16[meta.range16[2 + 2 * pair]];
-            R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * (1 + pair), x.mul(y));
-            prefix[2] = prefix[2].add(x).add(y);
+        var local: [L.LOCAL_FRACTIONS]Q = undefined;
+        local[0] = invOwner[i];
+        for (L.U16_CACHE, 0..) |cache, j| {
+            const inverse = dict16[meta.range16[cache]];
+            local[1 + j] = inverse;
+            prefix[2] = prefix[2].add(inverse);
         }
-        for (0..2) |pair| {
-            const x = dict8[meta.range8[2 * pair]];
-            const y = dict8[meta.range8[2 * pair + 1]];
-            R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * (18 + pair), x.mul(y));
-            prefix[3] = prefix[3].add(x).add(y);
+        for (L.U8_CACHE, 0..) |cache, j| {
+            const inverse = dict8[meta.range8[cache]];
+            local[1 + L.U16.len + j] = inverse;
+            prefix[3] = prefix[3].add(inverse);
         }
-        const last_range = dict8[meta.range8[4]];
-        const selected = selection[meta.selectionIndex()];
-        R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * 20, last_range.mul(selected));
-        prefix[3] = prefix[3].add(last_range);
-        prefix[4] = prefix[4].add(selected);
+        local[L.LOCAL_FRACTIONS - 1] = selection[meta.selectionIndex()];
+        prefix[4] = prefix[4].add(local[L.LOCAL_FRACTIONS - 1]);
+        for (0..L.LOCAL_PAIRS) |pair| R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * pair, local[2 * pair].mul(local[2 * pair + 1]));
         R.trace.store(output, n, pos, L.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
     }
 }

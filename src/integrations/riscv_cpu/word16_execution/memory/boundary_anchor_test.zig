@@ -39,7 +39,7 @@ fn repairRam(main: []const M, source: *X.boundary_source.Source, ch: R.types.Ram
     R.trace.center(source.interaction, n, 4, sum);
     return sum;
 }
-fn verifyPhysical(setup: *const Mat.Setup, admission: Execution.Admission, encoded: Execution.Encoded) !void {
+pub fn verifyPhysical(setup: *const Mat.Setup, admission: Execution.Admission, encoded: Execution.Encoded) !void {
     const wire = @import("stwo_proof_wire");
     var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
     var owns = true;

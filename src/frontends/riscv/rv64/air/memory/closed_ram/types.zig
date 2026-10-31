@@ -7,13 +7,16 @@ pub const Cell = struct { address: u64, state: State };
 pub const Operation = struct { id: u16, address: u64, epoch: u16, tick: u24, value: u64, write: bool };
 pub const Row = [28]@import("stwo_core").fields.m31.M31;
 pub const PublicRows = [32][14]@import("stwo_core").fields.m31.M31;
-pub const RamChallenges = struct {
-    offset: Q,
-    coefficients: [14]Q,
-    pub fn denominatorFor(self: @This(), comptime F: type, tuple: [14]F) E.SecureFor(F) {
-        return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
-    }
-};
+pub fn RamChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [14]C,
+        pub fn denominatorFor(self: @This(), comptime F: type, tuple: [14]F) E.SecureFor(F) {
+            return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
+        }
+    };
+}
+pub const RamChallenges = RamChallengesFor(Q);
 pub const OwnerChallenges = struct {
     offset: Q,
     coefficients: [13]Q,

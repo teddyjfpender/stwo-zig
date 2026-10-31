@@ -141,7 +141,7 @@ pub fn transitionLocalFor(comptime F: type, f: []const F, m: []const F, pm: []co
 }
 
 /// Same strict inverse and before-minus-after prefix used by the closed proof.
-pub fn transitionRamFor(comptime F: type, m: []const F, i: []const F, pi: []const F, first: F, last: F, claim: T.Q, ch: T.RamChallenges, out: *E.SinkFor(F)) void {
+pub fn transitionRamFor(comptime F: type, m: []const F, i: []const F, pi: []const F, first: F, last: F, claim: E.ConstFor(F), ch: T.RamChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const active = m[0];
     const before = ch.denominatorFor(F, ramTuple(F, .transition, m, false));
     const after = ch.denominatorFor(F, ramTuple(F, .transition, m, true));

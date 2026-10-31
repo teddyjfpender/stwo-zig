@@ -11,8 +11,10 @@ const M = T.M;
 pub const Event = Native.Event;
 pub const MainBuffers = struct { main: []M };
 pub const Metadata = struct {
-    range16: [35]u16,
-    range8: [5]u8,
+    // These relation caches include coordinates whose canonicality is inherited
+    // from the closed execution. U16_CACHE/U8_CACHE select actual range queries.
+    range16: [L.RELATION_U16.len]u16,
+    range8: [L.RELATION_U8.len]u8,
     selection_words: [2]u16,
     opcode: u8,
     flags: u8,
@@ -80,7 +82,7 @@ pub const Source = struct {
     fn initInternal(a: std.mem.Allocator, events: []const Event, log: u32, buffers: ?MainBuffers, pool: ?*engine.work_pool.WorkPool, fail_after: ?usize) !Source {
         const n = try sizeForLog(log);
         if (events.len >= n) return error.LsCapacityExceeded;
-        _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ 35 * @as(u64, @intCast(n)), 5 * @as(u64, @intCast(n)), @as(u64, @intCast(n)) });
+        _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ L.U16.len * @as(u64, @intCast(n)), L.U8.len * @as(u64, @intCast(n)), @as(u64, @intCast(n)) });
         if (buffers) |b| {
             if (b.main.len != L.MAIN * n) return error.InvalidLsMain;
             const x = @intFromPtr(b.main.ptr);

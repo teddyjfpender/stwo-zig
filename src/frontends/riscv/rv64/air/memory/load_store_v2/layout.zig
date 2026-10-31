@@ -4,12 +4,33 @@ const R = @import("../closed_ram/layout.zig");
 pub const Kind = enum { ls, initial, terminal, range16, range8, selection };
 pub const MAIN = V1.MAIN;
 pub const LOCAL_INVERSES = 8;
-pub const LOCAL_PREFIX = 92;
-pub const INTERACTION = 96;
+pub const LOCAL_PREFIX = LOCAL_INVERSES + 4 * LOCAL_PAIRS;
+pub const INTERACTION = LOCAL_PREFIX + 4;
 pub const BOUND_INTERACTION = 20;
 pub const BOUND_U16 = [_]usize{ 14, 15, 16, 17 };
-pub const U16 = V1.U16;
-pub const U8 = V1.U8;
+// A/I/B come from the closed CPU REG/ROM/OWNER relations. RAM before
+// coordinates inherit canonical produced states; addresses additionally use
+// strict RAM chronology and canonical aligned INIT coverage. Keep independent
+// write anchors (after-value and load C), clock limbs, all gaps and byte splits.
+pub const U16 = [_]usize{ 12, 18, 19, 20, 21, 24, 25, 40, 41, 42, 43, 68 };
+pub const U8 = [_]usize{ 13, 26, 73, 74 };
+pub const LOCAL_FRACTIONS = 2 + U16.len + U8.len;
+pub const LOCAL_PAIRS = (LOCAL_FRACTIONS + 1) / 2;
+// Narrow native caches still retain every RAM/OWNER coordinate. Removing a
+// lookup must never remove the metadata needed after MAIN ownership transfer.
+pub const RELATION_U16 = V1.U16;
+pub const RELATION_U8 = V1.U8;
+pub const U16_CACHE = cacheIndices(&U16, &RELATION_U16);
+pub const U8_CACHE = cacheIndices(&U8, &RELATION_U8);
+fn cacheIndices(comptime queries: []const usize, comptime cached: []const usize) [queries.len]usize {
+    var result: [queries.len]usize = undefined;
+    for (queries, 0..) |column, at| {
+        result[at] = for (cached, 0..) |c, i| {
+            if (c == column) break i;
+        } else @compileError("missing retained LS relation coordinate");
+    }
+    return result;
+}
 pub fn widths(kind: Kind) [3]usize {
     return switch (kind) {
         .ls => .{ 3, MAIN, INTERACTION },
@@ -21,7 +42,7 @@ pub fn widths(kind: Kind) [3]usize {
 }
 pub fn constraints(kind: Kind) usize {
     return switch (kind) {
-        .ls => 273,
+        .ls => 261,
         .initial, .terminal => 47,
         .selection => 3,
         .range16, .range8 => 3,

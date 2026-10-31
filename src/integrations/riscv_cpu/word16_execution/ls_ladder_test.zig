@@ -130,7 +130,7 @@ test "One PCS two LS instances native loop closes all claims and retained histog
     var r16: u64 = 0;
     for (memory.counts16) |c| r16 += c;
     const Ram = front.rv64_air.memory.load_store_v2.layout;
-    try std.testing.expectEqual(@as(u64, 35 * 96 + Ram.BOUND_U16.len * 64), r16);
+    try std.testing.expectEqual(@as(u64, 12 * 96 + Ram.BOUND_U16.len * 64), r16);
     var encoded = try prove(&f, LADDER);
     defer encoded.deinit(a);
     var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, LADDER);
