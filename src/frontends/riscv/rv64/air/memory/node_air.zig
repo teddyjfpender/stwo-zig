@@ -34,9 +34,16 @@ pub const CONSTRAINTS = 36; // prefix5 + hash bits6 + epoch/reuse3 + carry6 + ad
 pub const Row = [MAIN]M;
 pub const SecureRow = [MAIN]Q;
 pub const Fixed = [FIXED]Q;
-pub const Claims = [SUMS]Q;
-pub const Term = @import("policy_air.zig").Term;
-pub const Challenges = struct { io: C.PermutationChallenge, ram: relation.Prepared, bytes: Q };
+pub fn ClaimsFor(comptime K: type) type {
+    return [SUMS]K;
+}
+pub const Claims = ClaimsFor(Q);
+pub const Term = rational.Term;
+/// Node challenges over constant lane K (QM31 natively, external wires otherwise).
+pub fn ChallengesFor(comptime K: type) type {
+    return struct { io: C.PermutationChallengeFor(K), ram: relation.PreparedFor(K), bytes: K };
+}
+pub const Challenges = ChallengesFor(Q);
 pub const Shape = struct {
     nodes: u32,
     log_size: u32,
@@ -56,15 +63,18 @@ pub const Shape = struct {
 /// Same framing authority as the qualified node kernel; no separate copied
 /// sponge schedule. Inputs and digest are derived, not independently supplied.
 pub fn hashRow(main: *const SecureRow) qualified.Row(Q) {
-    var row: qualified.Row(Q) = undefined;
+    return hashRowFor(Q, main);
+}
+pub fn hashRowFor(comptime F: type, main: *const [MAIN]F) qualified.Row(F) {
+    var row: qualified.Row(F) = undefined;
     row.kind = main[KIND];
     @memcpy(&row.height_bits, main[HEIGHT_BITS..][0..5]);
     @memcpy(&row.left, main[LEFT..][0..9]);
     @memcpy(&row.right, main[RIGHT..][0..9]);
     for (&row.outputs, 0..) |*output, i| @memcpy(output, main[OUTPUTS + 16 * i ..][0..16]);
-    const words = qualified.absorptionWords(Q, row);
-    var state: [16]Q = @splat(Q.zero());
-    state[15] = E.q(qualified.DOMAIN).add(row.kind);
+    const words = qualified.absorptionWords(F, row);
+    var state: [16]F = @splat(F.zero());
+    state[15] = E.qFor(F, qualified.DOMAIN).add(row.kind);
     for (0..4) |call| {
         if (call < 3) for (0..7) |lane| {
             state[lane] = state[lane].add(words[7 * call + lane]);
@@ -77,61 +87,78 @@ pub fn hashRow(main: *const SecureRow) qualified.Row(Q) {
     return row;
 }
 pub fn height(main: *const SecureRow) Q {
-    var result = Q.one().add(E.q(32).mul(main[KIND]));
-    for (0..5) |i| result = result.add(E.q(@as(u32, 1) << @intCast(i)).mul(main[HEIGHT_BITS + i]));
+    return heightFor(Q, main);
+}
+pub fn heightFor(comptime F: type, main: *const [MAIN]F) F {
+    var result = F.one().add(E.qFor(F, 32).mul(main[KIND]));
+    for (0..5) |i| result = result.add(E.qFor(F, @as(u32, 1) << @intCast(i)).mul(main[HEIGHT_BITS + i]));
     return result;
 }
 pub fn ioTerm(main: *const SecureRow, challenge: C.PermutationChallenge, slot: usize) Term {
-    if (slot >= 4) return .{ .denominator = Q.one(), .numerator = Q.zero() };
-    const row = hashRow(main);
-    var tuple: [32]Q = undefined;
+    return ioTermFor(Q, main, challenge, slot);
+}
+pub fn ioTermFor(comptime F: type, main: *const [MAIN]F, challenge: C.PermutationChallengeFor(F), slot: usize) rational.TermFor(F) {
+    if (slot >= 4) return .{ .denominator = F.one(), .numerator = F.zero() };
+    const row = hashRowFor(F, main);
+    var tuple: [32]F = undefined;
     @memcpy(tuple[0..16], &row.inputs[slot]);
     @memcpy(tuple[16..32], &row.outputs[slot]);
     return .{ .denominator = challenge.combine(tuple), .numerator = main[ACTIVE].neg() };
 }
 pub fn nodeTerm(main: *const SecureRow, challenge: *const relation.Prepared, slot: usize) Term {
-    if (slot >= 4) return .{ .denominator = Q.one(), .numerator = Q.zero() };
-    const row = hashRow(main);
-    const h = height(main);
+    return nodeTermFor(Q, main, challenge, slot);
+}
+pub fn nodeTermFor(comptime F: type, main: *const [MAIN]F, challenge: *const relation.PreparedFor(F), slot: usize) rational.TermFor(F) {
+    if (slot >= 4) return .{ .denominator = F.one(), .numerator = F.zero() };
+    const row = hashRowFor(F, main);
+    const h = heightFor(F, main);
     const active = main[ACTIVE];
     var index = main[INDEX_BYTES..][0..7].*;
     return switch (slot) {
         0 => .{ .denominator = challenge.node(main[EPOCH], h, index, row.digest), .numerator = active.neg() },
-        1 => .{ .denominator = challenge.node(Q.one(), h, index, row.digest), .numerator = active.mul(main[REUSE]).neg() },
-        2 => .{ .denominator = challenge.node(main[EPOCH], h.sub(Q.one()), main[CHILD_BYTES..][0..7].*, row.left), .numerator = active },
+        1 => .{ .denominator = challenge.node(F.one(), h, index, row.digest), .numerator = active.mul(main[REUSE]).neg() },
+        2 => .{ .denominator = challenge.node(main[EPOCH], h.sub(F.one()), main[CHILD_BYTES..][0..7].*, row.left), .numerator = active },
         3 => blk: {
             index = main[CHILD_BYTES..][0..7].*;
-            index[0] = index[0].add(Q.one());
-            break :blk .{ .denominator = challenge.node(main[EPOCH], h.sub(Q.one()), index, row.right), .numerator = active };
+            index[0] = index[0].add(F.one());
+            break :blk .{ .denominator = challenge.node(main[EPOCH], h.sub(F.one()), index, row.right), .numerator = active };
         },
         else => unreachable,
     };
 }
 pub fn byteTerm(main: *const SecureRow, alpha: Q, slot: usize) Term {
-    return if (slot < 14) .{ .denominator = alpha.sub(main[INDEX_BYTES + slot]), .numerator = main[ACTIVE] } else .{ .denominator = Q.one(), .numerator = Q.zero() };
+    return byteTermFor(Q, main, alpha, slot);
+}
+pub fn byteTermFor(comptime F: type, main: *const [MAIN]F, alpha: F, slot: usize) rational.TermFor(F) {
+    return if (slot < 14) .{ .denominator = alpha.sub(main[INDEX_BYTES + slot]), .numerator = main[ACTIVE] } else .{ .denominator = F.one(), .numerator = F.zero() };
 }
 pub fn evaluate(shape: Shape, fixed: *const Fixed, main: *const SecureRow, previous: *const SecureRow, interaction: []const Q, previous_interaction: []const Q, claims: Claims, challenges: *const Challenges, out: *E.Sink) void {
-    prefix.evaluate(main[ACTIVE], previous[ACTIVE], fixed[FIRST], fixed[LAST], fixed[INDEX], shape.nodes, @intCast(shape.size()), out);
-    out.emit(main[KIND].mul(main[KIND].sub(Q.one())));
-    for (main[HEIGHT_BITS..][0..5]) |bit| out.emit(bit.mul(bit.sub(Q.one())));
-    out.emit(main[EPOCH].mul(main[EPOCH].sub(Q.one())));
-    out.emit(main[REUSE].mul(main[REUSE].sub(Q.one())));
+    return evaluateFor(Q, shape, fixed, main, previous, interaction, previous_interaction, claims, challenges, prefix.rows(shape.nodes, @intCast(shape.size())), out);
+}
+/// Same residuals over any secure lane; `rows` carries the active-row publics.
+pub fn evaluateFor(comptime F: type, shape: Shape, fixed: *const [FIXED]F, main: *const [MAIN]F, previous: *const [MAIN]F, interaction: []const F, previous_interaction: []const F, claims: ClaimsFor(F), challenges: *const ChallengesFor(F), rows: prefix.RowsFor(F), out: *E.SinkFor(F)) void {
+    _ = shape;
+    prefix.evaluateFor(F, main[ACTIVE], previous[ACTIVE], fixed[FIRST], fixed[LAST], fixed[INDEX], rows, out);
+    out.emit(main[KIND].mul(main[KIND].sub(F.one())));
+    for (main[HEIGHT_BITS..][0..5]) |bit| out.emit(bit.mul(bit.sub(F.one())));
+    out.emit(main[EPOCH].mul(main[EPOCH].sub(F.one())));
+    out.emit(main[REUSE].mul(main[REUSE].sub(F.one())));
     out.emit(main[EPOCH].mul(main[REUSE]));
-    for (main[CARRIES..][0..6]) |carry| out.emit(carry.mul(carry.sub(Q.one())));
+    for (main[CARRIES..][0..6]) |carry| out.emit(carry.mul(carry.sub(F.one())));
     for (0..7) |i| {
-        const input_carry = if (i == 0) Q.zero() else main[CARRIES + i - 1];
-        const output_carry = if (i == 6) Q.zero() else main[CARRIES + i];
-        out.emit(E.q(2).mul(main[INDEX_BYTES + i]).add(input_carry).sub(main[CHILD_BYTES + i]).sub(E.q(256).mul(output_carry)));
+        const input_carry = if (i == 0) F.zero() else main[CARRIES + i - 1];
+        const output_carry = if (i == 6) F.zero() else main[CARRIES + i];
+        out.emit(E.qFor(F, 2).mul(main[INDEX_BYTES + i]).add(input_carry).sub(main[CHILD_BYTES + i]).sub(E.qFor(F, 256).mul(output_carry)));
     }
     for (0..SUMS) |group| {
-        var denominators: [3]Q = undefined;
-        var numerators: [3]Q = undefined;
+        var denominators: [3]F = undefined;
+        var numerators: [3]F = undefined;
         for (0..3) |j| {
-            const term = if (group < 2) ioTerm(main, challenges.io, group * 3 + j) else if (group < 4) nodeTerm(main, &challenges.ram, (group - 2) * 3 + j) else byteTerm(main, challenges.bytes, (group - 4) * 3 + j);
+            const term = if (group < 2) ioTermFor(F, main, challenges.io, group * 3 + j) else if (group < 4) nodeTermFor(F, main, &challenges.ram, (group - 2) * 3 + j) else byteTermFor(F, main, challenges.bytes, (group - 4) * 3 + j);
             denominators[j] = term.denominator;
             numerators[j] = term.numerator;
         }
-        out.emit(rational.triple(rational.secure(interaction, group), rational.secure(previous_interaction, group), fixed[FIRST], claims[group], denominators, numerators));
+        out.emit(rational.tripleFor(F, rational.secureFor(F, interaction, group), rational.secureFor(F, previous_interaction, group), fixed[FIRST], claims[group], denominators, numerators));
     }
 }
 /// Uses the already filled provider outputs: no second permutation execution.

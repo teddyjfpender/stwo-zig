@@ -231,14 +231,24 @@ fn createProductModule(context: Context, product_descriptor: graph.Product) *std
 }
 
 fn createProductModuleAt(context: Context, product_descriptor: graph.Product, root_source_file: []const u8) *std.Build.Module {
-    const b = context.b;
-    const root = graph.create(b, .{
+    const root = graph.create(context.b, .{
         .product = product_descriptor,
         .root_source_file = root_source_file,
         .target = context.target,
         .optimize = context.optimize,
     });
     context.protocol.addImports(root);
+    addCircuitStack(context, product_descriptor, root);
+    return root;
+}
+
+/// Adds the circuit recursion stack to `root`: the CPU backend, the Cairo
+/// frontend and CPU integration, the wire package, the circuit frontend,
+/// the circuit CPU integration with its generated composition module, and
+/// the embedded circuit AIR assets. Other products (the RV64 recursion
+/// tools) reuse it so there is one construction of these modules.
+pub fn addCircuitStack(context: Context, product_descriptor: graph.Product, root: *std.Build.Module) void {
+    const b = context.b;
     const cpu_backend = graph.addCpuBackendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
     const cairo_frontend = graph.addCairoFrontendImport(b, context.protocol, product_descriptor, context.target, context.optimize, root);
     _ = integration_graph.addCairoCpuImport(b, context.protocol, product_descriptor, context.target, context.optimize, cpu_backend, cairo_frontend, root);
@@ -272,7 +282,6 @@ fn createProductModuleAt(context: Context, product_descriptor: graph.Product, ro
     root.addImport("stwo_circuit_cpu_integration", integration);
 
     for (embedded_assets) |asset| root.addAnonymousImport(asset.name, .{ .root_source_file = b.path(asset.path) });
-    return root;
 }
 
 /// The root build owns its generated module. Zig's build-module ownership

@@ -42,7 +42,7 @@ pub fn inflateFor(comptime V: type, advice: []const V, geometry: [Frame.FIXED]V)
 pub fn evaluate(advice: []const Q, previous: []const Q, geometry: Frame.Geometry, public: Frame.Public, log_size: u32, out: *E.Sink) void {
     return evaluateFor(Q, advice, previous, geometry, public, log_size, out);
 }
-pub fn evaluateFor(comptime V: type, advice: []const V, previous: []const V, geometry: [Frame.FIXED]V, public: Frame.Public, log_size: u32, out: *E.SinkFor(V)) void {
+pub fn evaluateFor(comptime V: type, advice: []const V, previous: []const V, geometry: [Frame.FIXED]V, public: Frame.PublicFor(E.ConstFor(V)), log_size: u32, out: *E.SinkFor(V)) void {
     const one = V.one();
     const active = advice[ACTIVE];
     const prior = previous[ACTIVE];
@@ -53,8 +53,8 @@ pub fn evaluateFor(comptime V: type, advice: []const V, previous: []const V, geo
     E.booleanFor(V, out, active);
     out.emit(first.mul(active.sub(one)));
     out.emit(nonfirst.mul(one.sub(prior)).mul(active));
-    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(E.qFor(V, public.steps))));
-    out.emit(last.mul(active).mul(E.qFor(V, public.steps).sub(E.qFor(V, @as(u32, 1) << @intCast(log_size)))));
+    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(Frame.stepsFor(V, public))));
+    out.emit(last.mul(active).mul(Frame.stepsFor(V, public).sub(E.qFor(V, @as(u32, 1) << @intCast(log_size)))));
     const tuple = entryViewFor(V, advice);
     out.emit(tuple[P.field.valid].sub(active));
     const selectors = advice[SELECTORS..][0..L.fixed.OPCODES].*;
@@ -63,8 +63,8 @@ pub fn evaluateFor(comptime V: type, advice: []const V, previous: []const V, geo
         if (i >= P.field.pc and i < P.field.pc + 3) continue;
         out.emit(one.sub(active).mul(tuple[i]));
     }
-    const initial = P.packFor(V, public.initial_pc);
-    const final = P.packFor(V, public.final_pc);
+    const initial = pcLimbsFor(V, public, false);
+    const final = pcLimbsFor(V, public, true);
     for (0..3) |i| {
         const pc = tuple[P.field.pc + i];
         const next = advice[NEXT_PC + i];
@@ -73,6 +73,12 @@ pub fn evaluateFor(comptime V: type, advice: []const V, previous: []const V, geo
         out.emit(one.sub(active).mul(next.sub(pc)));
         out.emit(last.mul(next.sub(final[i])));
     }
+}
+/// 24/24/16 PC limbs: packed natively from the u64, grouped linearly from the
+/// eight public byte wires on an external lane.
+fn pcLimbsFor(comptime V: type, public: Frame.PublicFor(E.ConstFor(V)), comptime final: bool) [3]V {
+    if (comptime E.isExternalLane(V)) return P.packBytesFor(V, if (final) public.final_pc else public.initial_pc);
+    return P.packFor(V, if (final) public.final_pc else public.initial_pc);
 }
 pub fn fillFromRowBase(out: []M, row: *const rom.Row, next_pc: u64, active: bool) void {
     @memset(out[0..WIDTH], M.zero());

@@ -63,27 +63,31 @@ pub const Kind = enum {
     }
 };
 
-pub const Challenges = struct {
-    offset: Q,
-    coefficients: [MAX_ARITY]Q,
-    pub fn draw(channel: anytype) Challenges {
-        var result: Challenges = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn denominator(self: Challenges, tuple: []const Q) Q {
-        std.debug.assert(tuple.len <= MAX_ARITY);
-        var result = self.offset;
-        for (tuple, self.coefficients[0..tuple.len]) |value, coefficient| result = result.sub(value.mul(coefficient));
-        return result;
-    }
-};
+/// Lookup challenges over constant lane C (QM31 natively, external wires otherwise).
+pub fn ChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [MAX_ARITY]C,
+        pub fn draw(channel: anytype) @This() {
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
+            return result;
+        }
+        pub fn denominator(self: @This(), tuple: []const Q) Q {
+            std.debug.assert(tuple.len <= MAX_ARITY);
+            var result = self.offset;
+            for (tuple, self.coefficients[0..tuple.len]) |value, coefficient| result = result.sub(value.mul(coefficient));
+            return result;
+        }
+    };
+}
+pub const Challenges = ChallengesFor(Q);
 
 pub fn evaluate(tuple: []const Q, first: Q, last: Q, multiplicity: Q, inverse: Q, sum: Q, previous: Q, claim: Q, challenges: Challenges) [N_CONSTRAINTS]Q {
     return evaluateFor(Q, tuple, first, last, multiplicity, inverse, sum, previous, claim, challenges);
 }
-pub fn evaluateFor(comptime F: type, tuple: []const F, first: F, last: F, multiplicity: F, inverse: E.SecureFor(F), sum: E.SecureFor(F), previous: E.SecureFor(F), claim: Q, challenges: Challenges) [N_CONSTRAINTS]E.SecureFor(F) {
+pub fn evaluateFor(comptime F: type, tuple: []const F, first: F, last: F, multiplicity: F, inverse: E.SecureFor(F), sum: E.SecureFor(F), previous: E.SecureFor(F), claim: E.ConstFor(F), challenges: ChallengesFor(E.ConstFor(F))) [N_CONSTRAINTS]E.SecureFor(F) {
     const S = E.SecureFor(F);
     const term = E.mulBaseFor(F, inverse, multiplicity);
     const d = E.denominatorFor(F, challenges.offset, challenges.coefficients[0..tuple.len], tuple, true);

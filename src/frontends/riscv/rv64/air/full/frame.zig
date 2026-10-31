@@ -34,6 +34,21 @@ pub const Public = struct {
         if (log_size < 5 or log_size > 22 or self.steps == 0 or self.steps > (@as(u32, 1) << @intCast(log_size))) return error.InvalidRv64FullGeometry;
     }
 };
+/// Boundary publics as a component lane stores them: native integers for the
+/// QM31 family, lane wires (steps, little-endian PC bytes) for an external lane.
+pub fn PublicFor(comptime Lane: type) type {
+    if (E.isExternalLane(Lane)) return struct { steps: Lane, initial_pc: [8]Lane, final_pc: [8]Lane };
+    return Public;
+}
+pub inline fn stepsFor(comptime F: type, public: PublicFor(E.ConstFor(F))) F {
+    if (comptime E.isExternalLane(F)) return public.steps;
+    return E.qFor(F, public.steps);
+}
+pub inline fn pcByteFor(comptime F: type, public: PublicFor(E.ConstFor(F)), comptime final: bool, index: usize) F {
+    if (comptime E.isExternalLane(F)) return (if (final) public.final_pc else public.initial_pc)[index];
+    const pc = if (final) public.final_pc else public.initial_pc;
+    return E.qFor(F, @intCast((pc >> @as(u6, @intCast(8 * index))) & 255));
+}
 pub fn needsPrevious(column: usize) bool {
     return column == ACTIVE or (column >= NEXT_PC and column < NEXT_PC + 8);
 }
@@ -60,7 +75,7 @@ pub fn inflateFor(comptime F: type, advice: *const [WIDTH]F, geometry: [FIXED]F)
 pub fn evaluate(advice: *const Advice, previous: *const Advice, geometry: Geometry, public: Public, log_size: u32, out: *E.Sink) void {
     return evaluateFor(Q, advice, previous, geometry, public, log_size, out);
 }
-pub fn evaluateFor(comptime F: type, advice: *const [WIDTH]F, previous: *const [WIDTH]F, geometry: [FIXED]F, public: Public, log_size: u32, out: *E.SinkFor(F)) void {
+pub fn evaluateFor(comptime F: type, advice: *const [WIDTH]F, previous: *const [WIDTH]F, geometry: [FIXED]F, public: PublicFor(E.ConstFor(F)), log_size: u32, out: *E.SinkFor(F)) void {
     const one = F.one();
     const active = advice[ACTIVE];
     const prior = previous[ACTIVE];
@@ -71,8 +86,8 @@ pub fn evaluateFor(comptime F: type, advice: *const [WIDTH]F, previous: *const [
     E.booleanFor(F, out, active);
     out.emit(first.mul(active.sub(one)));
     out.emit(nonfirst.mul(one.sub(prior)).mul(active));
-    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(E.qFor(F, public.steps))));
-    out.emit(last.mul(active).mul(E.qFor(F, public.steps).sub(E.qFor(F, @as(u32, 1) << @intCast(log_size)))));
+    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(stepsFor(F, public))));
+    out.emit(last.mul(active).mul(stepsFor(F, public).sub(E.qFor(F, @as(u32, 1) << @intCast(log_size)))));
     const tuple = entryFor(F, advice);
     const expanded = compact.expandFor(F, &tuple);
     out.emit(expanded[rom.field.valid].sub(active));
@@ -86,9 +101,8 @@ pub fn evaluateFor(comptime F: type, advice: *const [WIDTH]F, previous: *const [
     for (0..8) |i| {
         const pc = expanded[rom.field.pc + i];
         const next = advice[NEXT_PC + i];
-        const shift: u6 = @intCast(i * 8);
-        const initial_byte = E.qFor(F, @intCast((public.initial_pc >> shift) & 255));
-        const final_byte = E.qFor(F, @intCast((public.final_pc >> shift) & 255));
+        const initial_byte = pcByteFor(F, public, false, i);
+        const final_byte = pcByteFor(F, public, true, i);
         out.emit(first.mul(pc.sub(initial_byte)));
         out.emit(nonfirst.mul(pc.sub(previous[NEXT_PC + i])));
         out.emit(one.sub(active).mul(next.sub(pc)));
@@ -205,13 +219,13 @@ pub fn inflateWithControlFor(comptime F: type, advice: []const F, geometry: [FIX
 pub fn evaluateWithControl(advice: []const Q, previous: []const Q, geometry: Geometry, public: Public, log_size: u32, control: Control, out: *E.Sink) void {
     return evaluateWithControlFor(Q, advice, previous, geometry, public, log_size, control, out);
 }
-pub fn evaluateWithControlFor(comptime F: type, advice: []const F, previous: []const F, geometry: [FIXED]F, public: Public, log_size: u32, control: Control, out: *E.SinkFor(F)) void {
+pub fn evaluateWithControlFor(comptime F: type, advice: []const F, previous: []const F, geometry: [FIXED]F, public: PublicFor(E.ConstFor(F)), log_size: u32, control: Control, out: *E.SinkFor(F)) void {
     if (control == .bytes_v1) evaluateFor(F, advice[0..WIDTH], previous[0..WIDTH], geometry, public, log_size, out) else packed_frame.evaluateFor(F, advice, previous, geometry, public, log_size, out);
 }
 pub fn executionDenominatorWithControl(ch: @import("../program/provider.zig").Challenges, advice: []const Q, control: Control) Q {
     return executionDenominatorWithControlFor(Q, ch, advice, control);
 }
-pub fn executionDenominatorWithControlFor(comptime F: type, ch: @import("../program/provider.zig").Challenges, advice: []const F, control: Control) E.SecureFor(F) {
+pub fn executionDenominatorWithControlFor(comptime F: type, ch: @import("../program/provider.zig").ChallengesFor(E.ConstFor(F)), advice: []const F, control: Control) E.SecureFor(F) {
     return if (control == .bytes_v1) compact.executionDenominatorFor(F, ch, &entryFor(F, advice[0..WIDTH])) else @import("../program/packed_control.zig").executionDenominatorFor(F, ch, packed_frame.entryViewFor(F, advice));
 }
 pub fn fillFromRowBaseWithControl(out: []M, row: *const rom.Row, next_pc: u64, active: bool, control: Control) void {

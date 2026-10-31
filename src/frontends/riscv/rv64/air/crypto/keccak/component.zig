@@ -11,98 +11,141 @@ const accumulation = engine.air.accumulation;
 const canonic = core.poly.circle.canonic;
 const L = @import("layout.zig");
 const E = @import("equations.zig");
-const Sink = @import("../../evaluation.zig").Sink;
+const V = @import("../../evaluation.zig");
+const Sink = V.Sink;
+const lane = @import("../../lane.zig");
 const geometry = @import("../../geometry.zig");
 const cosets = @import("../../full/coset_evaluation.zig");
 const points = @import("../../../../air/component_point_support.zig");
 pub const Kind = enum { permutation, chi, xor5 };
 pub const Offsets = struct { fixed: usize = 0, main: usize = 0, interaction: usize = 0 };
-pub const Component = struct {
-    kind: Kind,
-    log_size: u32,
-    calls: u32 = 0,
-    first_call_id: u32 = 1,
-    offsets: Offsets = .{},
-    challenges: E.Challenges,
-    claim: Q,
-    stage_recorder: ?*engine.stage_profile.Recorder = null,
-    const Adapter = core.air.derive.ComponentAdapter(Component, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
-    pub fn parameters(self: *const Component) Parameters {
-        return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .batches = L.BATCHES, .lookup_degree = 4, .emit_q = emitTripleQ };
-    }
-    pub fn proverParameters(self: *const Component) Parameters {
-        var result = self.parameters();
-        result.emit_packed = emitTriplePacked;
-        result.legacy_gather = true;
-        return result;
-    }
-    pub fn asProverComponent(self: *const Component) cp.ComponentProver {
-        var result = Adapter.asProverComponent(self);
-        result.domain_parallel_evaluator = evaluateParallelErased;
-        result.pool_exclusive_domain = self.kind == .permutation;
-        return result;
-    }
-    pub fn asVerifierComponent(self: *const Component) air.Component {
-        return Adapter.asVerifierComponent(self);
-    }
-    fn evaluateParallelErased(ctx: *const anyopaque, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: *engine.work_pool.WorkPool) anyerror!void {
-        const self: *const Component = @ptrCast(@alignCast(ctx));
-        const parameters_value = self.proverParameters();
-        return parameters_value.evaluateDomain(trace, accumulator, pool);
-    }
-    pub fn validate(self: *const Component) !void {
-        const p = self.parameters();
-        return p.validate();
-    }
-    pub fn fixedCount(self: *const Component) usize {
-        const p = self.parameters();
-        return p.fixedCount();
-    }
-    pub fn mainCount(self: *const Component) usize {
-        const p = self.parameters();
-        return p.mainCount();
-    }
-    pub fn interactionCount(self: *const Component) usize {
-        const p = self.parameters();
-        return p.interactionCount();
-    }
-    pub fn nConstraints(self: *const Component) usize {
-        const p = self.parameters();
-        return p.nConstraints();
-    }
-    pub fn maxConstraintLogDegreeBound(self: *const Component) u32 {
-        const p = self.parameters();
-        return p.maxConstraintLogDegreeBound();
-    }
-    pub fn compositionLogSplit(self: *const Component) u32 {
-        const p = self.parameters();
-        return p.compositionLogSplit();
-    }
-    pub fn constraintDegreeBound(self: *const Component, index: usize) !u8 {
-        const p = self.parameters();
-        return p.constraintDegreeBound(index);
-    }
-    pub fn traceLogDegreeBounds(self: *const Component, a: std.mem.Allocator) !air.TraceLogDegreeBounds {
-        const p = self.parameters();
-        return p.traceLogDegreeBounds(a);
-    }
-    pub fn preprocessedColumnIndices(self: *const Component, a: std.mem.Allocator) ![]usize {
-        const p = self.parameters();
-        return p.preprocessedColumnIndices(a);
-    }
-    pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !air.MaskPoints {
-        const p = self.parameters();
-        return p.maskPoints(a, point, global_log);
-    }
-    pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
-        const p = self.parameters();
-        return p.evaluateConstraintQuotientsAtPoint(point, mask, accumulator, global_log);
-    }
-    pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
-        const p = self.proverParameters();
-        return p.evaluateDomain(trace, accumulator, null);
-    }
-};
+pub fn ComponentFor(comptime Lane: type) type {
+    return struct {
+        const Self = @This();
+        kind: Kind,
+        log_size: u32,
+        calls: V.CountFor(Lane) = V.countDefault(Lane, 0),
+        first_call_id: V.CountFor(Lane) = V.countDefault(Lane, 1),
+        /// External lanes supply the derived `calls != 0` wire here.
+        calls_nonzero: V.FlagFor(Lane) = V.flagDefault(Lane),
+        offsets: Offsets = .{},
+        challenges: E.ChallengesFor(Lane),
+        claim: Lane,
+        stage_recorder: ?*engine.stage_profile.Recorder = null,
+        const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
+        pub fn parameters(self: *const Self) Parameters {
+            return .{ .kind = self.kind, .log_size = self.log_size, .calls = self.calls, .first_call_id = self.first_call_id, .offsets = self.offsets, .challenges = self.challenges, .claim = self.claim, .stage_recorder = self.stage_recorder, .batches = L.BATCHES, .lookup_degree = 4, .emit_q = emitTripleQ };
+        }
+        pub fn proverParameters(self: *const Self) Parameters {
+            var result = self.parameters();
+            result.emit_packed = emitTriplePacked;
+            result.legacy_gather = true;
+            return result;
+        }
+        pub fn asProverComponent(self: *const Self) cp.ComponentProver {
+            var result = Adapter.asProverComponent(self);
+            result.domain_parallel_evaluator = evaluateParallelErased;
+            result.pool_exclusive_domain = self.kind == .permutation;
+            return result;
+        }
+        pub fn asVerifierComponent(self: *const Self) air.Component {
+            return Adapter.asVerifierComponent(self);
+        }
+        fn evaluateParallelErased(ctx: *const anyopaque, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: *engine.work_pool.WorkPool) anyerror!void {
+            const self: *const Self = @ptrCast(@alignCast(ctx));
+            const parameters_value = self.proverParameters();
+            return parameters_value.evaluateDomain(trace, accumulator, pool);
+        }
+        pub fn validate(self: *const Self) !void {
+            const p = self.parameters();
+            return p.validate();
+        }
+        pub fn fixedCount(self: *const Self) usize {
+            return if (self.kind == .permutation) L.FIXED else 7;
+        }
+        pub fn mainCount(self: *const Self) usize {
+            return if (self.kind == .permutation) L.MAIN else 1;
+        }
+        pub fn interactionCount(self: *const Self) usize {
+            return if (self.kind == .permutation) 4 * L.BATCHES else 4;
+        }
+        pub fn nConstraints(self: *const Self) usize {
+            return if (self.kind == .permutation) L.DIRECT + L.BATCHES else 1;
+        }
+        fn callSpan(self: *const Self) !V.CallSpanFor(Lane) {
+            if (comptime V.isExternalLane(Lane)) return .{ .calls = self.calls, .first_id = self.first_call_id, .nonempty = self.calls_nonzero orelse return error.MissingRv64LaneFlag };
+            return .{ .calls = self.calls, .first_id = self.first_call_id };
+        }
+        pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
+            const p = self.parameters();
+            return p.maxConstraintLogDegreeBound();
+        }
+        pub fn compositionLogSplit(self: *const Self) u32 {
+            const p = self.parameters();
+            return p.compositionLogSplit();
+        }
+        pub fn constraintDegreeBound(self: *const Self, index: usize) !u8 {
+            const p = self.parameters();
+            return p.constraintDegreeBound(index);
+        }
+        pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !air.TraceLogDegreeBounds {
+            const p = self.parameters();
+            return p.traceLogDegreeBounds(a);
+        }
+        pub fn preprocessedColumnIndices(self: *const Self, a: std.mem.Allocator) ![]usize {
+            const p = self.parameters();
+            return p.preprocessedColumnIndices(a);
+        }
+        pub fn maskPoints(self: *const Self, a: std.mem.Allocator, point: Point, global_log: u32) !air.MaskPoints {
+            const p = self.parameters();
+            return p.maskPoints(a, point, global_log);
+        }
+        pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: Point, mask: *const air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
+            var sink = Sink{ .values = null, .accumulator = accumulator };
+            self.evaluateQuotientsAtPointFor(Q, point, global_log, lane.NativeMasks{ .values = mask }, &sink) catch |err| return if (err == error.InvalidRv64MaskShape) error.InvalidKeccakMaskShape else err;
+            std.debug.assert(sink.count == self.nConstraints());
+        }
+        /// Lane-generic triple-batched point evaluation. Mask map: fixed[fixed + c]
+        /// sample 0; permutation main[main + c] samples [0,-2,-1,+1,+2] for
+        /// c < L.STATE (sample k = offset MASK_OFFSETS[k]), samples 0/1 for the
+        /// header columns c >= L.ACTIVE_A, sample 0 otherwise; tables main[main]
+        /// sample 0; interaction[interaction + i] sample 0, plus sample 1 for the
+        /// last four columns.
+        pub fn evaluateQuotientsAtPointFor(self: *const Self, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, sink: *V.SinkFor(F)) !void {
+            comptime if (V.ConstFor(F) != Lane) @compileError("Keccak component lane mismatch");
+            if (comptime !V.isExternalLane(F)) try self.validate();
+            const f = self.offsets.fixed;
+            const m = self.offsets.main;
+            const i = self.offsets.interaction;
+            const inter_count = self.interactionCount();
+            sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
+            const previous = try lane.secureSample(F, masks, 2, i + inter_count - 4, 1, 2);
+            if (self.kind != .permutation) {
+                var tuple: [6]F = undefined;
+                for (&tuple, 0..) |*v, c| v.* = try lane.sample(F, masks, 0, f + c, 0, 1);
+                const first = try lane.sample(F, masks, 0, f + 6, 0, 1);
+                const count = try lane.sample(F, masks, 1, m, 0, 1);
+                const current = try lane.secureSample(F, masks, 2, i, 0, 2);
+                sink.emit(tableResidualFor(F, self, &tuple, first, count, current, previous));
+                return;
+            }
+            var scratch: ScratchFor(F) = undefined;
+            for (&scratch.fixed, 0..) |*v, c| v.* = try lane.sample(F, masks, 0, f + c, 0, 1);
+            for (&scratch.main, 0..) |*v, c| v.* = try lane.sample(F, masks, 1, m + c, 0, if (c < L.STATE) 5 else if (c >= L.ACTIVE_A) 2 else 1);
+            for (&scratch.shifted, 1..) |*state, sample_index| for (state, 0..) |*v, c| {
+                v.* = try lane.sample(F, masks, 1, m + c, sample_index, 5);
+            };
+            for (&scratch.previous_header, 0..) |*v, c| v.* = try lane.sample(F, masks, 1, m + L.ACTIVE_A + c, 1, 2);
+            for (&scratch.interaction, 0..) |*v, batch| v.* = try lane.secureSample(F, masks, 2, i + 4 * batch, 0, if (4 * batch + 4 >= inter_count) 2 else 1);
+            E.emitFor(F, scratch.row(), &scratch.interaction, previous, self.claim, self.challenges, try self.callSpan(), sink);
+        }
+        pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
+            const p = self.proverParameters();
+            return p.evaluateDomain(trace, accumulator, null);
+        }
+    };
+}
+pub const Component = ComponentFor(Q);
 fn emitTripleQ(row: E.Row, interaction: []const Q, prior: Q, claim: Q, ch: E.Challenges, public: E.Public, sink: *Sink) void {
     E.emit(row, interaction, prior, claim, ch, public, sink);
 }
@@ -275,21 +318,23 @@ pub const Parameters = struct {
     }
 };
 
-pub const Scratch = struct {
-    fixed: [L.FIXED]Q,
-    main: [L.MAIN]Q,
-    shifted: [4][L.STATE]Q,
-    previous_header: [3]Q,
-    interaction: [L.BATCHES]Q,
-    pub fn row(self: *const Scratch) E.Row {
-        return .{ .fixed = &self.fixed, .main = &self.main, .previous_header = &self.previous_header, .state_minus_two = &self.shifted[0], .state_minus_one = &self.shifted[1], .state_plus_one = &self.shifted[2], .state_plus_two = &self.shifted[3] };
-    }
-};
+pub const Scratch = ScratchFor(Q);
+pub fn ScratchFor(comptime F: type) type {
+    return struct {
+        fixed: [L.FIXED]F,
+        main: [L.MAIN]F,
+        shifted: [4][L.STATE]F,
+        previous_header: [3]F,
+        interaction: [L.BATCHES]V.SecureFor(F),
+        pub fn row(self: *const @This()) E.RowFor(F) {
+            return .{ .fixed = &self.fixed, .main = &self.main, .previous_header = &self.previous_header, .state_minus_two = &self.shifted[0], .state_minus_one = &self.shifted[1], .state_plus_one = &self.shifted[2], .state_plus_two = &self.shifted[3] };
+        }
+    };
+}
 pub fn tableResidual(self: *const Component, tuple: *const [6]Q, first: Q, count: Q, current: Q, previous: Q) Q {
     return tableResidualFor(Q, self, tuple, first, count, current, previous);
 }
-pub fn tableResidualFor(comptime F: type, self: anytype, tuple: *const [6]F, first: F, count: F, current: @import("../../evaluation.zig").SecureFor(F), previous: @import("../../evaluation.zig").SecureFor(F)) @import("../../evaluation.zig").SecureFor(F) {
-    const V = @import("../../evaluation.zig");
+pub fn tableResidualFor(comptime F: type, self: anytype, tuple: *const [6]F, first: F, count: F, current: V.SecureFor(F), previous: V.SecureFor(F)) V.SecureFor(F) {
     const challenges = if (self.kind == .chi) self.challenges.chi else self.challenges.xor5;
     return current.sub(previous).add(V.mulBaseFor(F, V.splatFor(F, self.claim), first)).mul(V.denominatorFor(F, challenges.offset, &challenges.coefficients, tuple, true)).sub(V.liftFor(F, count));
 }

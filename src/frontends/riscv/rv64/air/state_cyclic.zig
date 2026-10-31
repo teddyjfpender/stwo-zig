@@ -14,6 +14,7 @@ pub const CONSTRAINTS = 3;
 pub const MAX_DEGREE = 4;
 pub const Values = [INTERACTION]Q;
 pub const Challenges = R.Challenges;
+pub const ChallengesFor = R.ChallengesFor;
 pub const Term = TermFor(Q);
 pub fn TermFor(comptime F: type) type {
     return struct { denominator: E.SecureFor(F), numerator: E.SecureFor(F) };
@@ -47,7 +48,7 @@ pub fn tupleFor(comptime F: type, v: E.ViewFor(F), slot: usize, before: bool, in
 pub fn terms(v: E.View, index: Q, challenges: Challenges) [CONSTRAINTS]Term {
     return termsFor(Q, v, index, challenges);
 }
-pub fn termsFor(comptime F: type, v: E.ViewFor(F), index: F, challenges: Challenges) [CONSTRAINTS]TermFor(F) {
+pub fn termsFor(comptime F: type, v: E.ViewFor(F), index: F, challenges: ChallengesFor(E.ConstFor(F))) [CONSTRAINTS]TermFor(F) {
     const denominators = @import("state_cyclic_denominators.zig").evaluateFor(F, v, index, challenges);
     const pair0 = denominators[0].mul(denominators[1]);
     const pair2 = denominators[4].mul(denominators[5]);
@@ -75,7 +76,7 @@ pub fn secureFor(comptime F: type, values: *const [INTERACTION]F, group: usize) 
 pub fn evaluate(v: E.View, index: Q, first: Q, current: *const Values, previous: *const Values, challenges: Challenges, claim: Q, out: *E.Sink) void {
     return evaluateFor(Q, v, index, first, current, previous, challenges, claim, out);
 }
-pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), index: F, first: F, current: *const [INTERACTION]F, previous: *const [INTERACTION]F, challenges: Challenges, claim: Q, out: *E.SinkFor(F)) void {
+pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), index: F, first: F, current: *const [INTERACTION]F, previous: *const [INTERACTION]F, challenges: ChallengesFor(E.ConstFor(F)), claim: E.ConstFor(F), out: *E.SinkFor(F)) void {
     const fractions = termsFor(F, v, index, challenges);
     var prior = secureFor(F, previous, CONSTRAINTS - 1).sub(E.mulBaseFor(F, E.splatFor(F, claim), first));
     for (fractions, 0..) |fraction, group| {

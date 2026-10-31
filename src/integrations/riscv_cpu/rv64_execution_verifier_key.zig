@@ -82,40 +82,87 @@ pub const ReceiverKey = struct {
             if (!std.meta.eql(current, self.ram_geometry.?)) return error.InvalidAuthenticatedRamGeometry;
         }
     }
+    /// Component instances for one request. `challenges` must outlive `out`:
+    /// the RAM provider borrows its relation draws from it.
+    pub fn buildComponents(self: *const ReceiverKey, public: A.Public, claims: A.Claims, challenges: *const A.Challenges, out: *Components) !void {
+        const shape = self.view();
+        out.cpu = try A.CS.Components.initView(shape.cpu, public.cpu, claims.cpu, challenges.cpu);
+        out.ram = if (public.ram) |counts| try A.RAM.Components.initAt(try counts.shapes(public.geometry), self.policy, &challenges.ram.?, &claims.ram.?, self.ram_offsets) else null;
+        var cpu_handles: [17]A.core.air.components.Component = undefined;
+        const n = out.cpu.verifiers(&cpu_handles);
+        @memcpy(out.handles[0..n], cpu_handles[0..n]);
+        var extra: usize = 0;
+        if (out.ram) |*value| {
+            const rs = try value.verifiersWithoutByte();
+            @memcpy(out.handles[n..][0..10], &rs);
+            extra = 10;
+        }
+        out.count = n + extra;
+    }
+    /// Shape-only roster for an external verifier: challenges come from a
+    /// fresh transcript and every claim is zero. Lane evaluation reads only
+    /// offsets, log sizes, kinds and plans from these instances, never a scalar.
+    pub fn shapeComponents(self: *const ReceiverKey, a: std.mem.Allocator, public: A.Public, challenges: *A.Challenges, out: *Components) !void {
+        var channel = P.Channel{};
+        challenges.* = try A.drawView(a, &channel, self.view());
+        const claims = A.Claims{ .cpu = std.mem.zeroes(A.CPU.Claims), .ram = if (public.ram != null) std.mem.zeroes(A.RAM.Claims) else null };
+        try self.buildComponents(public, claims, challenges, out);
+    }
+    /// Admits the request and replays the transcript up to the composition
+    /// draw without consuming the proof; `verifyOwned` continues from here.
+    pub fn openSession(self: *const ReceiverKey, a: std.mem.Allocator, public: A.Public, claims: A.Claims, proof: *const P.Proof, session: *Session) !void {
+        try self.validate(public);
+        const pcs = &proof.commitment_scheme_proof;
+        if (!std.meta.eql(pcs.config, P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.InvalidAuthenticatedExecutionConfig;
+        if (!std.mem.eql(u8, &pcs.commitments.items[0], &self.root)) return error.AuthenticatedExecutionFixedRootMismatch;
+        session.verifier = try Verifier.init(a, P.config());
+        errdefer session.verifier.deinit(a);
+        session.channel = P.Channel{};
+        const shape = self.view();
+        try A.mixPublicView(&session.channel, shape, public);
+        try session.verifier.commit(a, pcs.commitments.items[0], self.fixed_logs, &session.channel);
+        try session.verifier.commit(a, pcs.commitments.items[1], self.main_logs, &session.channel);
+        session.challenges = try A.drawView(a, &session.channel, shape);
+        try A.validateClaimsView(shape, public, claims, &session.challenges);
+        try self.buildComponents(public, claims, &session.challenges, &session.components);
+        A.mixClaims(&session.channel, public, claims);
+        try session.verifier.commit(a, pcs.commitments.items[2], self.interaction_logs, &session.channel);
+    }
     /// Consumes proof on every path. Counts, challenges and all component
     /// instances come from this invocation; only root/shape metadata is reused.
     pub fn verifyOwned(self: *const ReceiverKey, a: std.mem.Allocator, public: A.Public, claims: A.Claims, proof_value: P.Proof) !void {
         var proof = proof_value;
         var owns = true;
         defer if (owns) proof.deinit(a);
-        try self.validate(public);
-        const pcs = &proof.commitment_scheme_proof;
-        if (!std.meta.eql(pcs.config, P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.InvalidAuthenticatedExecutionConfig;
-        if (!std.mem.eql(u8, &pcs.commitments.items[0], &self.root)) return error.AuthenticatedExecutionFixedRootMismatch;
-        var verifier = try Verifier.init(a, P.config());
-        defer verifier.deinit(a);
-        var channel = P.Channel{};
-        const shape = self.view();
-        try A.mixPublicView(&channel, shape, public);
-        try verifier.commit(a, pcs.commitments.items[0], self.fixed_logs, &channel);
-        try verifier.commit(a, pcs.commitments.items[1], self.main_logs, &channel);
-        const ch = try A.drawView(a, &channel, shape);
-        try A.validateClaimsView(shape, public, claims, &ch);
-        var cpu = try A.CS.Components.initView(shape.cpu, public.cpu, claims.cpu, ch.cpu);
-        var ram: ?A.RAM.Components = if (public.ram) |counts| try A.RAM.Components.initAt(try counts.shapes(public.geometry), self.policy, &ch.ram.?, &claims.ram.?, self.ram_offsets) else null;
-        A.mixClaims(&channel, public, claims);
-        try verifier.commit(a, pcs.commitments.items[2], self.interaction_logs, &channel);
-        var cpu_handles: [17]A.core.air.components.Component = undefined;
-        const n = cpu.verifiers(&cpu_handles);
-        var handles: [27]A.core.air.components.Component = undefined;
-        @memcpy(handles[0..n], cpu_handles[0..n]);
-        const extra: usize = if (ram) |*value| blk: {
-            const rs = try value.verifiersWithoutByte();
-            @memcpy(handles[n..][0..10], &rs);
-            break :blk 10;
-        } else 0;
+        var session: Session = undefined;
+        try self.openSession(a, public, claims, &proof, &session);
+        defer session.verifier.deinit(a);
         owns = false;
-        try A.core.verifier.verify(P.Hasher, P.MerkleChannel, a, handles[0 .. n + extra], &channel, &verifier, proof);
+        try A.core.verifier.verify(P.Hasher, P.MerkleChannel, a, session.components.verifiers(), &session.channel, &session.verifier, proof);
+    }
+};
+/// Every component the native verifier evaluates, in its handle order.
+/// Instances borrow the challenges they were built from.
+pub const Components = struct {
+    cpu: A.CS.Components,
+    ram: ?A.RAM.Components,
+    handles: [27]A.core.air.components.Component,
+    count: usize,
+    pub fn verifiers(self: *const Components) []const A.core.air.components.Component {
+        return self.handles[0..self.count];
+    }
+};
+/// Transcript state after the three trace commitments, exactly as the
+/// native verifier reaches `core.verifier.verify`. Pinned in place because
+/// the component instances borrow `challenges`.
+pub const Session = struct {
+    verifier: Verifier,
+    channel: P.Channel,
+    challenges: A.Challenges,
+    components: Components,
+    pub fn deinit(self: *Session, a: std.mem.Allocator) void {
+        self.verifier.deinit(a);
+        self.* = undefined;
     }
 };
 /// Only exact owner-borrowed headers take the constant-time fast path. Other

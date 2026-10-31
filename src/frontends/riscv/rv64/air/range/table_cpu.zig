@@ -33,7 +33,7 @@ pub fn tupleFor(comptime F: type, plan: *const Plan, kind: Kind, logical: *const
 pub fn evaluate(plan: *const Plan, kind: Kind, logical: *const E.Main, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, challenges: Tables.Challenges, claim: Q, out: *E.Sink) void {
     return evaluateFor(Q, plan, kind, logical, physical, current, previous, first, last, challenges, claim, out);
 }
-pub fn evaluateFor(comptime F: type, plan: *const Plan, kind: Kind, logical: *const E.MainFor(F), physical: []const F, current: []const F, previous: []const F, first: F, last: F, challenges: Tables.Challenges, claim: Q, out: *E.SinkFor(F)) void {
+pub fn evaluateFor(comptime F: type, plan: *const Plan, kind: Kind, logical: *const E.MainFor(F), physical: []const F, current: []const F, previous: []const F, first: F, last: F, challenges: Tables.ChallengesFor(E.ConstFor(F)), claim: E.ConstFor(F), out: *E.SinkFor(F)) void {
     const count = requests(plan, kind);
     if (count == 0) return;
     const S = E.SecureFor(F);

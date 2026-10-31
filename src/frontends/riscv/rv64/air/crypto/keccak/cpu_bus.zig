@@ -11,15 +11,19 @@ const secure = @import("../../program/provider.zig").secure;
 const physical = @import("../../program/provider.zig").physical;
 pub const INTERACTION = 8;
 pub const CONSTRAINTS = 16;
-pub const Bus = struct {
-    challenges: equations.CallChallenges,
-    claim: E.Q,
-    calls: u32,
-    first_call_id: u32,
-    pub fn validate(self: Bus, steps: u32) !void {
-        if (steps == 0 or steps >= 1 << 22 or self.calls > steps or self.first_call_id == 0 or self.first_call_id >= core.fields.m31.Modulus or @as(u64, self.first_call_id) + self.calls > core.fields.m31.Modulus) return error.InvalidRv64KeccakHeaderSpan;
-    }
-};
+/// Header bus over constant lane C: counts are integers natively, wires externally.
+pub fn BusFor(comptime C: type) type {
+    return struct {
+        challenges: equations.CallChallengesFor(C),
+        claim: C,
+        calls: E.CountFor(C),
+        first_call_id: E.CountFor(C),
+        pub fn validate(self: @This(), steps: u32) !void {
+            if (steps == 0 or steps >= 1 << 22 or self.calls > steps or self.first_call_id == 0 or self.first_call_id >= core.fields.m31.Modulus or @as(u64, self.first_call_id) + self.calls > core.fields.m31.Modulus) return error.InvalidRv64KeccakHeaderSpan;
+        }
+    };
+}
+pub const Bus = BusFor(E.Q);
 pub fn evaluate(view: E.View, geometry: [3]E.Q, count: E.Q, previous_count: E.Q, current: *const [INTERACTION]E.Q, previous: *const [INTERACTION]E.Q, bus: Bus, out: *E.Sink) void {
     return evaluateWithSelector(view, geometry, count, previous_count, current, previous, bus, view.op(.ECALL), out);
 }
@@ -27,13 +31,13 @@ pub fn evaluate(view: E.View, geometry: [3]E.Q, count: E.Q, previous_count: E.Q,
 pub fn evaluateWithSelector(view: E.View, geometry: [3]E.Q, count: E.Q, previous_count: E.Q, current: *const [INTERACTION]E.Q, previous: *const [INTERACTION]E.Q, bus: Bus, enabled: E.Q, out: *E.Sink) void {
     return evaluateWithSelectorGeneric(E.Q, view, geometry, count, previous_count, current, previous, bus, enabled, out);
 }
-pub fn evaluateWithSelectorGeneric(comptime F: type, view: E.ViewFor(F), geometry: [3]F, count: F, previous_count: F, current: *const [INTERACTION]F, previous: *const [INTERACTION]F, bus: Bus, enabled: F, out: *E.SinkFor(F)) void {
+pub fn evaluateWithSelectorGeneric(comptime F: type, view: E.ViewFor(F), geometry: [3]F, count: F, previous_count: F, current: *const [INTERACTION]F, previous: *const [INTERACTION]F, bus: BusFor(E.ConstFor(F)), enabled: F, out: *E.SinkFor(F)) void {
     out.emit(count.sub(F.one().sub(geometry[1]).mul(previous_count)).sub(enabled));
     out.emit(geometry[1].mul(count.sub(enabled)));
-    out.emit(geometry[2].mul(count.sub(E.qFor(F, bus.calls))));
+    out.emit(geometry[2].mul(count.sub(E.scalarFor(F, bus.calls))));
     for (0..8) |i| out.emit(enabled.mul(view.byte(.b, i).sub(E.qFor(F, @intCast((profile.KECCAK_TAG >> @as(u6, @intCast(i * 8))) & 255)))));
     var tuple: [10]F = undefined;
-    tuple[0] = count.add(E.qFor(F, bus.first_call_id - 1));
+    tuple[0] = count.add(E.scalarMinusOneFor(F, bus.first_call_id));
     tuple[1] = geometry[0].mul(E.qFor(F, 4)).add(E.qFor(F, 4));
     for (0..8) |i| tuple[2 + i] = view.byte(.a, i);
     const inverse = E.secureFor(F, current, 0);

@@ -5,26 +5,34 @@ pub const Q = core.fields.qm31.QM31;
 const L = @import("layout.zig");
 const keccak = @import("../equations.zig");
 const ram = @import("../../../relations.zig");
-pub const CallChallenges = struct {
-    offset: Q,
-    coefficients: [10]Q,
-    pub fn draw(channel: anytype) CallChallenges {
-        // This family cannot cancel against any structurally similar bus.
-        channel.mixU32s(&.{ 0x4b43414c, 1, 10 });
-        var result: CallChallenges = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*v| v.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn denominator(self: CallChallenges, tuple: *const [10]Q) Q {
-        return self.denominatorFor(Q, tuple);
-    }
-    pub fn denominatorFor(self: CallChallenges, comptime F: type, tuple: *const [10]F) V.SecureFor(F) {
-        return V.denominatorFor(F, self.offset, &self.coefficients, tuple, true);
-    }
-};
-pub const Challenges = struct { io: keccak.Io, call: CallChallenges, ram: ram.Challenges, bytes: Q };
-pub const Public = struct { calls: u32, first_id: u32 };
+pub fn CallChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [10]C,
+        pub fn draw(channel: anytype) @This() {
+            // This family cannot cancel against any structurally similar bus.
+            channel.mixU32s(&.{ 0x4b43414c, 1, 10 });
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*v| v.* = channel.drawSecureFelt();
+            return result;
+        }
+        pub fn denominator(self: @This(), tuple: *const [10]Q) Q {
+            return self.denominatorFor(Q, tuple);
+        }
+        pub fn denominatorFor(self: @This(), comptime F: type, tuple: *const [10]F) V.SecureFor(F) {
+            comptime if (V.ConstFor(F) != C) @compileError("Keccak call challenges do not match the trace lane");
+            return V.denominatorFor(F, self.offset, &self.coefficients, tuple, true);
+        }
+    };
+}
+pub const CallChallenges = CallChallengesFor(Q);
+/// Bridge challenges over constant lane C; `ram`/`bytes`/`io` are shared draws.
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { io: keccak.IoFor(C), call: CallChallengesFor(C), ram: ram.ChallengesFor(C), bytes: C };
+}
+pub const Challenges = ChallengesFor(Q);
+pub const Public = V.CallSpanFor(Q);
 pub const Row = RowFor(Q);
 pub fn RowFor(comptime F: type) type {
     return struct {
@@ -85,7 +93,7 @@ pub fn ramTupleFor(comptime F: type, row: RowFor(F), after: bool) [ram.ARITY]F {
 pub fn event(row: Row, ch: Challenges, index: usize) Event {
     return eventFor(Q, row, ch, index);
 }
-pub fn eventFor(comptime F: type, row: RowFor(F), ch: Challenges, index: usize) EventFor(F) {
+pub fn eventFor(comptime F: type, row: RowFor(F), ch: ChallengesFor(V.ConstFor(F)), index: usize) EventFor(F) {
     if (index < L.RANGE_COUNT) return .{ .coefficient = F.one(), .denominator = V.splatFor(F, ch.bytes).sub(V.liftFor(F, row.main[L.RANGE_COLUMNS[index]])) };
     const active = row.main[L.ACTIVE];
     return switch (index - L.RANGE_COUNT) {
@@ -100,7 +108,7 @@ pub fn eventFor(comptime F: type, row: RowFor(F), ch: Challenges, index: usize) 
 pub fn emit(row: Row, interaction: *const [L.BATCHES]Q, previous_final: Q, claim: Q, ch: Challenges, public: Public, sink: anytype) void {
     return emitFor(Q, row, interaction, previous_final, claim, ch, public, sink);
 }
-pub fn emitFor(comptime F: type, row: RowFor(F), interaction: *const [L.BATCHES]V.SecureFor(F), previous_final: V.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: anytype) void {
+pub fn emitFor(comptime F: type, row: RowFor(F), interaction: *const [L.BATCHES]V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
     const main = row.main;
     const active = main[L.ACTIVE];
     const id = main[L.CALL_ID];
@@ -108,11 +116,11 @@ pub fn emitFor(comptime F: type, row: RowFor(F), interaction: *const [L.BATCHES]
     const previous_id = row.previous_header[1];
     const group_first = row.fixed[L.GROUP_FIRST];
     const continuation = F.one().sub(group_first);
-    const first_id = V.qFor(F, public.first_id);
-    const last_id = V.qFor(F, public.first_id + public.calls - 1);
+    const first_id = V.firstIdFor(F, public);
+    const last_id = V.lastIdFor(F, public);
     sink.emit(active.mul(active.sub(F.one())));
     sink.emit(F.one().sub(row.fixed[L.COMPLETE_GROUP]).mul(active));
-    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.qFor(F, @intFromBool(public.calls != 0)))));
+    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.nonemptyFor(F, public))));
     sink.emit(continuation.mul(active.sub(previous_active)));
     sink.emit(continuation.mul(id.sub(previous_id)));
     sink.emit(group_first.sub(row.fixed[L.FIRST]).mul(F.one().sub(previous_active)).mul(active));

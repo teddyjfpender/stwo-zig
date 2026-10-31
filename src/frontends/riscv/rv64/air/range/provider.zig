@@ -4,6 +4,7 @@ const core = @import("stwo_core");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const physical = @import("../witness.zig").physical;
+const E = @import("../evaluation.zig");
 pub const LOG_SIZE: u32 = 8;
 pub const SIZE: usize = 256;
 pub const N_FIXED = 3;
@@ -12,12 +13,16 @@ pub const N_INTERACTION = 8;
 pub const N_CONSTRAINTS = 4;
 
 pub fn evaluate(value: Q, first: Q, last: Q, multiplicity: Q, inverse: Q, sum: Q, previous: Q, claim: Q, alpha: Q) [N_CONSTRAINTS]Q {
-    const term = multiplicity.mul(inverse);
+    return evaluateFor(Q, value, first, last, multiplicity, inverse, sum, previous, claim, alpha);
+}
+/// Same four residuals over any trace lane; alpha and the claim are constants.
+pub fn evaluateFor(comptime F: type, value: F, first: F, last: F, multiplicity: F, inverse: E.SecureFor(F), sum: E.SecureFor(F), previous: E.SecureFor(F), claim: E.ConstFor(F), alpha: E.ConstFor(F)) [N_CONSTRAINTS]E.SecureFor(F) {
+    const term = E.mulBaseFor(F, inverse, multiplicity);
     return .{
-        inverse.mul(alpha.sub(value)).sub(Q.one()),
-        sum.sub(previous).add(first.mul(previous)).add(term),
-        first.mul(sum.add(term)),
-        last.mul(sum.sub(claim)),
+        inverse.mul(E.splatFor(F, alpha).sub(E.liftFor(F, value))).sub(E.SecureFor(F).one()),
+        sum.sub(previous).add(E.mulBaseFor(F, previous, first)).add(term),
+        E.mulBaseFor(F, sum.add(term), first),
+        E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last),
     };
 }
 

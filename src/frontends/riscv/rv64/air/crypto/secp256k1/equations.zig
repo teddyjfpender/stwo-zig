@@ -5,31 +5,38 @@ const M = core.fields.m31.M31;
 pub const Q = core.fields.qm31.QM31;
 const L = @import("layout.zig");
 const P = L.P;
-pub const Wire = struct {
-    offset: Q,
-    coefficients: [L.WIRE_ARITY]Q,
-    pub fn draw(channel: anytype) Wire {
-        channel.mixU32s(&.{0x53575031});
-        var out: Wire = undefined;
-        out.offset = channel.drawSecureFelt();
-        for (&out.coefficients) |*v| v.* = channel.drawSecureFelt();
-        return out;
-    }
-    pub fn denominator(self: Wire, tuple: *const [L.WIRE_ARITY]Q) Q {
-        var out = self.offset;
-        for (tuple, self.coefficients) |v, c| out = out.sub(v.mul(c));
-        return out;
-    }
-};
-pub const Challenges = struct {
-    polynomial: Q,
-    bytes: Q,
-    wire: Wire,
-    pub fn draw(channel: anytype) Challenges {
-        return .{ .polynomial = channel.drawSecureFelt(), .bytes = channel.drawSecureFelt(), .wire = Wire.draw(channel) };
-    }
-};
-pub const Public = struct { calls: u32, first_id: u32 = 1 };
+pub fn WireFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [L.WIRE_ARITY]C,
+        pub fn draw(channel: anytype) @This() {
+            channel.mixU32s(&.{0x53575031});
+            var out: @This() = undefined;
+            out.offset = channel.drawSecureFelt();
+            for (&out.coefficients) |*v| v.* = channel.drawSecureFelt();
+            return out;
+        }
+        pub fn denominator(self: @This(), tuple: *const [L.WIRE_ARITY]Q) Q {
+            var out = self.offset;
+            for (tuple, self.coefficients) |v, c| out = out.sub(v.mul(c));
+            return out;
+        }
+    };
+}
+pub const Wire = WireFor(Q);
+/// Modular-arithmetic challenges over constant lane C (QM31 natively).
+pub fn ChallengesFor(comptime C: type) type {
+    return struct {
+        polynomial: C,
+        bytes: C,
+        wire: WireFor(C),
+        pub fn draw(channel: anytype) @This() {
+            return .{ .polynomial = channel.drawSecureFelt(), .bytes = channel.drawSecureFelt(), .wire = Wire.draw(channel) };
+        }
+    };
+}
+pub const Challenges = ChallengesFor(Q);
+pub const Public = Eval.CallSpanFor(Q);
 pub const Row = RowFor(Q);
 pub fn RowFor(comptime F: type) type {
     return struct { fixed: *const [L.FIXED]F, main: []const F, previous_active: F = .zero(), previous_id: F = .zero() };
@@ -49,19 +56,19 @@ fn DirectSinkFor(comptime F: type) type {
 pub fn emit(kind: L.Kind, program: *const P.Program, row: Row, current: []const Q, previous_final: Q, claim: Q, ch: Challenges, public: Public, sink: *Eval.Sink) void {
     emitGeneric(Q, kind, program, row, current, previous_final, claim, ch, public, sink);
 }
-pub fn emitGeneric(comptime F: type, kind: L.Kind, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: *Eval.SinkFor(F)) void {
+pub fn emitGeneric(comptime F: type, kind: L.Kind, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
     const active = row.main[0];
     const id = row.main[L.base(kind)];
     const f = row.fixed;
-    const target = Eval.qFor(F, public.first_id + public.calls - 1);
+    const target = Eval.lastIdFor(F, public);
     if (kind == .product) L.mul.evaluateGeneric(F, row.main[0..L.mul.Layout.main_columns], P.field.base_modulus, Eval.splatFor(F, ch.polynomial), DirectSinkFor(F){ .sink = sink }) else L.linear.evaluateGeneric(F, row.main[0..L.linear.Layout.main_columns], P.field.base_modulus, DirectSinkFor(F){ .sink = sink });
     sink.emit(F.one().sub(f[L.COMPLETE]).mul(active));
-    sink.emit(f[L.FIRST].mul(active.sub(Eval.qFor(F, @intFromBool(public.calls != 0)))));
+    sink.emit(f[L.FIRST].mul(active.sub(Eval.nonemptyFor(F, public))));
     sink.emit(F.one().sub(f[L.PHASE_FIRST]).mul(active.sub(row.previous_active)));
     sink.emit(F.one().sub(f[L.PHASE_FIRST]).mul(id.sub(row.previous_id)));
     sink.emit(f[L.PHASE_FIRST].sub(f[L.FIRST]).mul(F.one().sub(row.previous_active)).mul(active));
     sink.emit(f[L.PHASE_FIRST].sub(f[L.FIRST]).mul(row.previous_active.sub(active)).mul(row.previous_id.sub(target)));
-    sink.emit(active.mul(id.sub(Eval.qFor(F, public.first_id)).sub(f[L.CALL_INDEX])));
+    sink.emit(active.mul(id.sub(Eval.firstIdFor(F, public)).sub(f[L.CALL_INDEX])));
     sink.emit(F.one().sub(active).mul(id));
     for (row.main[1..L.base(kind)]) |v| sink.emit(F.one().sub(active).mul(v));
     const rhs = if (kind == .product) L.mul.Layout.rhs else L.linear.Layout.rhs;

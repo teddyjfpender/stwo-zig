@@ -9,7 +9,10 @@ const T = @import("trace.zig");
 const secure = @import("../../range/cpu.zig").secure;
 const physical = @import("../../witness.zig").physical;
 pub const INTERACTION = 8;
-pub const Bus = struct { challenges: P.Challenges, claim: E.Q };
+pub fn BusFor(comptime C: type) type {
+    return struct { challenges: P.ChallengesFor(C), claim: C };
+}
+pub const Bus = BusFor(E.Q);
 pub const IndexedRequest = struct { row: u32, request: T.Request };
 pub const Columns = struct {
     allocator: std.mem.Allocator,
@@ -23,7 +26,7 @@ pub const Columns = struct {
 pub fn evaluate(view: E.View, current: *const [INTERACTION]E.Q, previous: *const [INTERACTION]E.Q, first: E.Q, last: E.Q, bus: Bus, out: *E.Sink) void {
     return evaluateGeneric(E.Q, view, current, previous, first, last, bus, out);
 }
-pub fn evaluateGeneric(comptime F: type, view: E.ViewFor(F), current: *const [INTERACTION]F, previous: *const [INTERACTION]F, first: F, last: F, bus: Bus, out: *E.SinkFor(F)) void {
+pub fn evaluateGeneric(comptime F: type, view: E.ViewFor(F), current: *const [INTERACTION]F, previous: *const [INTERACTION]F, first: F, last: F, bus: BusFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const enabled = view.sum(&L.OPCODES);
     var tuple: [L.TUPLE]F = undefined;
     tuple[0] = F.zero();

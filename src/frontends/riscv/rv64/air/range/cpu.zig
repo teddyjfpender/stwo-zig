@@ -69,14 +69,14 @@ pub fn buildInteraction(a: std.mem.Allocator, plan: *const Plan, main: []const [
 pub fn evaluate(plan: *const Plan, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, alpha: Q, claim: Q, out: *E.Sink) void {
     return evaluateFor(Q, plan, physical, current, previous, first, last, alpha, claim, out);
 }
-pub fn evaluateFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, alpha: Q, claim: Q, out: *E.SinkFor(F)) void {
-    const prepared = PreparedAlpha.init(alpha);
+pub fn evaluateFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, alpha: E.ConstFor(F), claim: E.ConstFor(F), out: *E.SinkFor(F)) void {
+    const prepared = PreparedAlphaFor(E.ConstFor(F)).init(alpha);
     evaluatePreparedFor(F, plan, physical, current, previous, first, last, &prepared, claim, out);
 }
 pub fn evaluatePrepared(plan: *const Plan, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, prepared: *const PreparedAlpha, claim: Q, out: *E.Sink) void {
     return evaluatePreparedFor(Q, plan, physical, current, previous, first, last, prepared, claim, out);
 }
-pub fn evaluatePreparedFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, prepared: *const PreparedAlpha, claim: Q, out: *E.SinkFor(F)) void {
+pub fn evaluatePreparedFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, prepared: *const PreparedAlphaFor(E.ConstFor(F)), claim: E.ConstFor(F), out: *E.SinkFor(F)) void {
     std.debug.assert(physical.len == plan.main_count);
     std.debug.assert(current.len == interactionCount(plan) and previous.len == current.len);
     var contribution = E.SecureFor(F).zero();
@@ -102,42 +102,48 @@ pub fn TermsFor(comptime F: type) type {
 /// Challenge-only powers are prepared once per component. The same symmetric
 /// polynomial is evaluated over both base-valued domains and arbitrary OODS
 /// coordinates; no field-type-specific constraint branch is introduced.
-pub const PreparedAlpha = struct {
-    alpha: Q,
-    square: Q,
-    cube: Q,
-    twice_alpha: Q,
-    thrice_square: Q,
-    pub fn init(alpha: Q) PreparedAlpha {
-        const square = alpha.square();
-        return .{ .alpha = alpha, .square = square, .cube = square.mul(alpha), .twice_alpha = alpha.add(alpha), .thrice_square = square.add(square).add(square) };
-    }
-    pub fn terms(self: *const PreparedAlpha, values: []const Q) Terms {
-        return self.termsFor(Q, values);
-    }
-    pub fn termsFor(self: *const PreparedAlpha, comptime F: type, values: []const F) TermsFor(F) {
-        std.debug.assert(values.len <= 3);
-        const S = E.SecureFor(F);
-        return switch (values.len) {
-            0 => .{ .numerator = S.zero(), .denominator = S.one() },
-            1 => .{ .numerator = S.one(), .denominator = E.splatFor(F, self.alpha).sub(E.liftFor(F, values[0])) },
-            2 => blk: {
-                const s1 = values[0].add(values[1]);
-                const s2 = values[0].mul(values[1]);
-                break :blk .{ .numerator = E.splatFor(F, self.twice_alpha).sub(E.liftFor(F, s1)), .denominator = E.splatFor(F, self.square).sub(E.mulBaseFor(F, E.splatFor(F, self.alpha), s1)).add(E.liftFor(F, s2)) };
-            },
-            3 => blk: {
-                const pair_sum = values[0].add(values[1]);
-                const pair_product = values[0].mul(values[1]);
-                const s1 = pair_sum.add(values[2]);
-                const s2 = pair_product.add(pair_sum.mul(values[2]));
-                const s3 = pair_product.mul(values[2]);
-                break :blk .{ .numerator = E.splatFor(F, self.thrice_square).sub(E.mulBaseFor(F, E.splatFor(F, self.twice_alpha), s1)).add(E.liftFor(F, s2)), .denominator = E.splatFor(F, self.cube).sub(E.mulBaseFor(F, E.splatFor(F, self.square), s1)).add(E.mulBaseFor(F, E.splatFor(F, self.alpha), s2)).sub(E.liftFor(F, s3)) };
-            },
-            else => unreachable,
-        };
-    }
-};
+/// The powers are derived from the single BYTE draw; an external lane derives
+/// them with its own multiplications from the drawn wire.
+pub fn PreparedAlphaFor(comptime C: type) type {
+    return struct {
+        alpha: C,
+        square: C,
+        cube: C,
+        twice_alpha: C,
+        thrice_square: C,
+        pub fn init(alpha: C) @This() {
+            const square = alpha.square();
+            return .{ .alpha = alpha, .square = square, .cube = square.mul(alpha), .twice_alpha = alpha.add(alpha), .thrice_square = square.add(square).add(square) };
+        }
+        pub fn terms(self: *const @This(), values: []const Q) Terms {
+            return self.termsFor(Q, values);
+        }
+        pub fn termsFor(self: *const @This(), comptime F: type, values: []const F) TermsFor(F) {
+            comptime if (E.ConstFor(F) != C) @compileError("byte alpha powers do not match the trace lane");
+            std.debug.assert(values.len <= 3);
+            const S = E.SecureFor(F);
+            return switch (values.len) {
+                0 => .{ .numerator = S.zero(), .denominator = S.one() },
+                1 => .{ .numerator = S.one(), .denominator = E.splatFor(F, self.alpha).sub(E.liftFor(F, values[0])) },
+                2 => blk: {
+                    const s1 = values[0].add(values[1]);
+                    const s2 = values[0].mul(values[1]);
+                    break :blk .{ .numerator = E.splatFor(F, self.twice_alpha).sub(E.liftFor(F, s1)), .denominator = E.splatFor(F, self.square).sub(E.mulBaseFor(F, E.splatFor(F, self.alpha), s1)).add(E.liftFor(F, s2)) };
+                },
+                3 => blk: {
+                    const pair_sum = values[0].add(values[1]);
+                    const pair_product = values[0].mul(values[1]);
+                    const s1 = pair_sum.add(values[2]);
+                    const s2 = pair_product.add(pair_sum.mul(values[2]));
+                    const s3 = pair_product.mul(values[2]);
+                    break :blk .{ .numerator = E.splatFor(F, self.thrice_square).sub(E.mulBaseFor(F, E.splatFor(F, self.twice_alpha), s1)).add(E.liftFor(F, s2)), .denominator = E.splatFor(F, self.cube).sub(E.mulBaseFor(F, E.splatFor(F, self.square), s1)).add(E.mulBaseFor(F, E.splatFor(F, self.alpha), s2)).sub(E.liftFor(F, s3)) };
+                },
+                else => unreachable,
+            };
+        }
+    };
+}
+pub const PreparedAlpha = PreparedAlphaFor(Q);
 pub fn secure(columns: []const Q, offset: usize) Q {
     return secureFor(Q, columns, offset);
 }

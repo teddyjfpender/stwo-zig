@@ -8,25 +8,32 @@ const modular = @import("../equations.zig");
 const P = @import("../program.zig");
 pub const PacketFormat = @import("../../../../execution_profile.zig").SecpPacketFormat;
 const ram = @import("../../../relations.zig");
-pub const CallChallenges = struct {
-    offset: Q,
-    coefficients: [11]Q,
-    pub fn draw(channel: anytype) CallChallenges {
-        // This family cannot cancel against any structurally similar bus.
-        channel.mixU32s(&.{ 0x5343414c, 1, 11 });
-        var result: CallChallenges = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*v| v.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn denominator(self: CallChallenges, tuple: *const [11]Q) Q {
-        var d = self.offset;
-        for (tuple, self.coefficients) |v, c| d = d.sub(v.mul(c));
-        return d;
-    }
-};
-pub const Challenges = struct { wire: modular.Wire, call: CallChallenges, ram: ram.Challenges, bytes: Q };
-pub const Public = struct { calls: u32, first_id: u32 };
+pub fn CallChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [11]C,
+        pub fn draw(channel: anytype) @This() {
+            // This family cannot cancel against any structurally similar bus.
+            channel.mixU32s(&.{ 0x5343414c, 1, 11 });
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*v| v.* = channel.drawSecureFelt();
+            return result;
+        }
+        pub fn denominator(self: @This(), tuple: *const [11]Q) Q {
+            var d = self.offset;
+            for (tuple, self.coefficients) |v, c| d = d.sub(v.mul(c));
+            return d;
+        }
+    };
+}
+pub const CallChallenges = CallChallengesFor(Q);
+/// Bridge challenges over constant lane C; `wire`/`ram`/`bytes` are shared draws.
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { wire: modular.WireFor(C), call: CallChallengesFor(C), ram: ram.ChallengesFor(C), bytes: C };
+}
+pub const Challenges = ChallengesFor(Q);
+pub const Public = Eval.CallSpanFor(Q);
 pub const Row = RowFor(Q);
 pub fn RowFor(comptime F: type) type {
     return struct {
@@ -96,7 +103,7 @@ pub fn ramTupleFor(comptime F: type, row: RowFor(F), after: bool, lane: usize) [
 pub fn event(program: *const P.Program, row: Row, ch: Challenges, index: usize) Event {
     return eventFor(Q, program, row, ch, index);
 }
-pub fn eventFor(comptime F: type, program: *const P.Program, row: RowFor(F), ch: Challenges, index: usize) EventFor(F) {
+pub fn eventFor(comptime F: type, program: *const P.Program, row: RowFor(F), ch: ChallengesFor(Eval.ConstFor(F)), index: usize) EventFor(F) {
     const S = Eval.SecureFor(F);
     if (index >= L.EVENTS) return .{ .coefficient = F.zero(), .denominator = S.one() };
     if (index < L.RANGE_COUNT) return .{ .coefficient = F.one(), .denominator = Eval.splatFor(F, ch.bytes).sub(Eval.liftFor(F, row.main[L.RANGE_COLUMNS[index]])) };
@@ -110,7 +117,7 @@ pub fn eventFor(comptime F: type, program: *const P.Program, row: RowFor(F), ch:
 pub fn emit(program: *const P.Program, row: Row, interaction: *const [L.BATCHES]Q, previous_final: Q, claim: Q, ch: Challenges, public: Public, sink: anytype) void {
     emitGeneric(Q, program, row, interaction, previous_final, claim, ch, public, sink);
 }
-pub fn emitGeneric(comptime F: type, program: *const P.Program, row: RowFor(F), interaction: *const [L.BATCHES]Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: anytype) void {
+pub fn emitGeneric(comptime F: type, program: *const P.Program, row: RowFor(F), interaction: *const [L.BATCHES]Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: anytype) void {
     const main = row.main;
     const active = main[L.ACTIVE];
     const id = main[L.CALL_ID];
@@ -118,11 +125,11 @@ pub fn emitGeneric(comptime F: type, program: *const P.Program, row: RowFor(F), 
     const previous_id = row.previous_header[1];
     const group_first = row.fixed[L.GROUP_FIRST];
     const continuation = F.one().sub(group_first);
-    const first_id = Eval.qFor(F, public.first_id);
-    const last_id = Eval.qFor(F, public.first_id + public.calls - 1);
+    const first_id = Eval.firstIdFor(F, public);
+    const last_id = Eval.lastIdFor(F, public);
     sink.emit(active.mul(active.sub(F.one())));
     sink.emit(F.one().sub(row.fixed[L.COMPLETE_GROUP]).mul(active));
-    sink.emit(row.fixed[L.FIRST].mul(active.sub(Eval.qFor(F, @intFromBool(public.calls != 0)))));
+    sink.emit(row.fixed[L.FIRST].mul(active.sub(Eval.nonemptyFor(F, public))));
     sink.emit(continuation.mul(active.sub(previous_active)));
     sink.emit(continuation.mul(id.sub(previous_id)));
     sink.emit(group_first.sub(row.fixed[L.FIRST]).mul(F.one().sub(previous_active)).mul(active));

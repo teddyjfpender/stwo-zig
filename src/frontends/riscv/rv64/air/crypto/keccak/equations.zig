@@ -6,31 +6,39 @@ pub const BatchPolicy = @import("batch_policy.zig").Policy;
 const L = @import("layout.zig");
 const V = @import("../../evaluation.zig");
 const tuples = @import("../../../../air/guest_precompile/keccakf_lookup_tuples.zig");
-pub const Lookup = @import("../../providers/tables.zig").Challenges;
-pub const Io = struct {
-    offset: Q,
-    coefficients: [L.IO_ARITY]Q,
-    pub fn draw(channel: anytype) Io {
-        var result: Io = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn denominator(self: Io, tuple: *const [L.IO_ARITY]Q) Q {
-        var result = self.offset;
-        for (tuple, self.coefficients) |value, coefficient| result = result.sub(value.mul(coefficient));
-        return result;
-    }
-};
-pub const Challenges = struct {
-    chi: Lookup,
-    xor5: Lookup,
-    io: Io,
-    pub fn draw(channel: anytype) Challenges {
-        return .{ .chi = Lookup.draw(channel), .xor5 = Lookup.draw(channel), .io = Io.draw(channel) };
-    }
-};
-pub const Public = struct { calls: u32, first_id: u32 };
+pub const LookupFor = @import("../../providers/tables.zig").ChallengesFor;
+pub const Lookup = LookupFor(Q);
+pub fn IoFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [L.IO_ARITY]C,
+        pub fn draw(channel: anytype) @This() {
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
+            return result;
+        }
+        pub fn denominator(self: @This(), tuple: *const [L.IO_ARITY]Q) Q {
+            var result = self.offset;
+            for (tuple, self.coefficients) |value, coefficient| result = result.sub(value.mul(coefficient));
+            return result;
+        }
+    };
+}
+pub const Io = IoFor(Q);
+/// Keccak lookup challenges over constant lane C (QM31 natively).
+pub fn ChallengesFor(comptime C: type) type {
+    return struct {
+        chi: LookupFor(C),
+        xor5: LookupFor(C),
+        io: IoFor(C),
+        pub fn draw(channel: anytype) @This() {
+            return .{ .chi = Lookup.draw(channel), .xor5 = Lookup.draw(channel), .io = Io.draw(channel) };
+        }
+    };
+}
+pub const Challenges = ChallengesFor(Q);
+pub const Public = V.CallSpanFor(Q);
 const zero_header: [3]Q = @splat(Q.zero());
 pub const Row = RowFor(Q);
 pub fn RowFor(comptime F: type) type {
@@ -49,7 +57,7 @@ pub fn RowFor(comptime F: type) type {
 pub fn lookupDenominator(row: Row, ch: Challenges, event: usize) Q {
     return lookupDenominatorFor(Q, row, ch, event);
 }
-pub fn lookupDenominatorFor(comptime F: type, row: RowFor(F), ch: Challenges, event: usize) V.SecureFor(F) {
+pub fn lookupDenominatorFor(comptime F: type, row: RowFor(F), ch: ChallengesFor(V.ConstFor(F)), event: usize) V.SecureFor(F) {
     if (event < L.STATE) return V.denominatorFor(F, ch.chi.offset, &ch.chi.coefficients, &tuples.chi(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], row.state_plus_one, row.fixed[2..26], event), true);
     return V.denominatorFor(F, ch.xor5.offset, &ch.xor5.coefficients, &tuples.xor5(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], event - L.STATE), true);
 }
@@ -87,16 +95,16 @@ pub fn ioActiveFor(comptime F: type, row: RowFor(F)) F {
 pub fn emit(row: Row, interaction: []const Q, previous_final: Q, claim: Q, ch: Challenges, public: Public, sink: anytype) void {
     return emitFor(Q, row, interaction, previous_final, claim, ch, public, sink);
 }
-pub fn emitFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: anytype) void {
+pub fn emitFor(comptime F: type, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
     return emitForBatch(F, 3, row, interaction, previous_final, claim, ch, public, sink);
 }
-pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: anytype) void {
+pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
     switch (policy) {
         .triple_v2 => emitForBatch(F, 3, row, interaction, previous_final, claim, ch, public, sink),
         .quartet_v3 => emitForBatch(F, 4, row, interaction, previous_final, claim, ch, public, sink),
     }
 }
-pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: Q, ch: Challenges, public: Public, sink: anytype) void {
+pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
     const active = row.main[L.ACTIVE_A];
     const second = row.main[L.ACTIVE_B];
     const id = row.main[L.BASE_ID];
@@ -105,13 +113,13 @@ pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), int
     const previous_id = row.previous_header[2];
     const phase_first = row.fixed[0];
     const continuation = F.one().sub(phase_first);
-    const first_id = V.qFor(F, public.first_id);
-    const last_id = V.qFor(F, public.first_id + public.calls - 1);
+    const first_id = V.firstIdFor(F, public);
+    const last_id = V.lastIdFor(F, public);
     sink.emit(active.mul(active.sub(F.one())));
     sink.emit(second.mul(second.sub(F.one())));
     sink.emit(second.mul(F.one().sub(active)));
     sink.emit(F.one().sub(row.fixed[L.COMPLETE_SLOT]).mul(active));
-    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.qFor(F, @intFromBool(public.calls != 0)))));
+    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.nonemptyFor(F, public))));
     sink.emit(continuation.mul(active.sub(previous_active)));
     sink.emit(continuation.mul(second.sub(previous_second)));
     sink.emit(continuation.mul(id.sub(previous_id)));

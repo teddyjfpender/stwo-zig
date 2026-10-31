@@ -45,8 +45,11 @@ pub const Shape = struct {
 };
 
 pub fn wordValues(bytes: *const [8]Q) [4]Q {
-    var result: [4]Q = undefined;
-    for (&result, 0..) |*value, i| value.* = bytes[2 * i].add(E.q(256).mul(bytes[2 * i + 1]));
+    return wordValuesFor(Q, bytes);
+}
+pub fn wordValuesFor(comptime F: type, bytes: *const [8]F) [4]F {
+    var result: [4]F = undefined;
+    for (&result, 0..) |*value, i| value.* = bytes[2 * i].add(E.qFor(F, 256).mul(bytes[2 * i + 1]));
     return result;
 }
 
