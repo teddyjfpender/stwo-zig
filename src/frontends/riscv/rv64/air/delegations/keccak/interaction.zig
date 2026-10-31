@@ -88,6 +88,7 @@ fn generateImpl(trace: *T.Trace, ch: E.Challenges, options: Options, faults: wav
     }
     const data = try trace.allocator.alloc(M, policy.interactionCount() * n);
     errdefer trace.allocator.free(data);
+    if (workers > 1) @import("../../native_output_pages.zig").prepare(data);
     const prepared = Prepared{ .trace = trace, .ch = ch, .inverses = inverses, .data = data, .batch_policy = policy };
     const sum = if (workers == 1) blk: {
         var stage = try engine.stage_profile.StageScope.begin(options.recorder, "keccak_interaction_prefix", "Keccak serial lookup prefix");

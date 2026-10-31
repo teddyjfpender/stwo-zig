@@ -1,0 +1,44 @@
+{
+  "scope": "Native Keccak primitive page-scatter diagnostic,1001 calls,trace log14,16workers; no CPU/RAM or Ethereum acceptance claim",
+  "base_commit": "c85409df2",
+  "binary_sha256": "bf8c4cc7b5f8c004902c4a349945f49b071539d9ef108d15dfbc40f6124d8d43",
+  "source_change": "native_output_pages.prepare before parallel scatter; no AIR/FS/policy/claim change",
+  "qualification": {
+    "keccak_and_quartet_safe_fast": "PASS",
+    "same_binary_off_on_full_proof_bytes": "PASS",
+    "separate_process_fresh_receivers_off_on": "PASS",
+    "merged_actual_CPU_K_RAM_fixture_fresh_receiver": "PASS"
+  },
+  "runs": [
+    {
+      "page_preparation": false,
+      "artifact_directory": "/tmp/rv64-keccak-pages-paired-20261031/off",
+      "proof_sha256": "29d9064d6108f72ccec69c7f621f325b06d25b53e3740778bafddaf7a5fcadfb",
+      "proof_bytes": 1643104,
+      "whole_process": {
+        "wall_seconds": 1.63,
+        "user_seconds": 6.25,
+        "system_seconds": 1.73,
+        "peak_rss_bytes": 1632813056,
+        "minor_faults": 231889
+      }
+    },
+    {
+      "page_preparation": true,
+      "artifact_directory": "/tmp/rv64-keccak-pages-paired-20261031/on",
+      "proof_sha256": "29d9064d6108f72ccec69c7f621f325b06d25b53e3740778bafddaf7a5fcadfb",
+      "proof_bytes": 1643104,
+      "whole_process": {
+        "wall_seconds": 1.02,
+        "user_seconds": 6.19,
+        "system_seconds": 0.16,
+        "peak_rss_bytes": 1633665024,
+        "minor_faults": 109258
+      }
+    }
+  ],
+  "limitations": [
+    "Single observation per arm while other engineering processes were active; no p50/p99 or production throughput claim.",
+    "Same-binary proof equality isolates operational page handling, not an encoding improvement."
+  ]
+}
