@@ -129,6 +129,7 @@ pub fn addProduct(context: Context) void {
         .{ .name = "rv64-word16-shift-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig" },
         .{ .name = "rv64-word16-shift-word-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_word_fixture_main.zig" },
         .{ .name = "rv64-word16-shift-packed-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig" },
+        .{ .name = "rv64-function-census", .source = "src/integrations/riscv_cpu/rv64_function_census_main.zig" },
         .{ .name = "rv64-word16-loop", .source = "src/integrations/riscv_cpu/rv64_word16_loop_main.zig" },
         .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_secp_fixture_main.zig" },
         .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_keccak_fixture_main.zig" },

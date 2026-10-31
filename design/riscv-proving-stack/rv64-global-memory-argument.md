@@ -201,6 +201,25 @@ Steps 1 to 5 are exactly what the leaf and parent circuits of
 
 ## 8. Attack tests required before promotion
 
+Shared range providers need a separate mass admission calculation from RAM.
+Using the round-5 opcode census, globally packed fixed instances for the current
+conservative CPU, ALU (including branch predicates), LOAD/STORE and SHIFT
+contracts, without weighted pure-function deduplication, would emit **2,408,579,072 U16 queries including padding**. This already
+exceeds M31's characteristic by 261,095,425, before any additional chips. A
+single global U16 ledger must therefore reject that proposed geometry. Current
+local proof closures remain independent and do not activate this global plan.
+
+One candidate partition assigns CPU/ALU to a 1,111,490,560-query ledger and
+LOAD/STORE/SHIFT to a 1,297,088,512-query ledger, each with a distinct scoped
+challenge and complete provider closure. Admission must include every later
+chip too. Immutable table setup can still be shared; multiplicities, challenge
+scope and physical claims cannot be reused across these ledgers. The
+[reproducible mass model](../../vectors/reports/rv64-guest-lean-20261031/round5/global-u16-mass-review-v1.json)
+records the experimental contracts and assumptions. This is a design requirement,
+not a qualified global range protocol. Weighted fact reuse can lower the selected
+roster; admission must use its actual padded physical rows and cannot assume
+this conservative geometry or its partition is mandatory for every design.
+
 Omitted shard, duplicated shard, reordered shards, memory root replaced after
 the challenge, RAM claim replaced in the wire proof, init omitted or duplicated
 for an address, wrong initial image or zero region, boundary fork (two

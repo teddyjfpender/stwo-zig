@@ -1,0 +1,85 @@
+{
+  "schema": "rv64-u16-global-mass-design-review-v1",
+  "scope": "future full-block global U16 provider admission model; not an activated protocol or measured speedup",
+  "census": {
+    "path": "vectors/reports/rv64-guest-lean-20261031/round5/opcode-census-v1.json",
+    "sha256": "fa38c57d59c336e2be78ce53af7b6fccaf1524bae8654b96c37763bfd42332a6",
+    "native_opcode_counts_exact": true
+  },
+  "assumptions": [
+    "CPU retains all25 log22 instances; ALU/LS/SHIFT use globally packed fixed instances with one partially occupied final instance per family.",
+    "Branch predicates execute in the ALU chip as in the qualified ALU/binary CPU diagnostic.",
+    "LS conservative35 U16 queries is the experimental base+immediate79-main/116-interaction contract, not an Ethereum-qualified component.",
+    "Positive query mass includes every padded row. Other future chips may add queries; these four families alone suffice for the counterexample.",
+    "Current closed CPU/LS proofs use local tables and local challenges; no existing acceptance path is changed.",
+    "Unit ALU/SHIFT truth facts, without weighted pure-function deduplication. Exact reuse can lower this modeled roster, but the actual selected padded instances and every additional chip still require admission. This is not a lower bound for an optimized frontend."
+  ],
+  "m31_characteristic": 2147483647,
+  "families": [
+    {
+      "family": "cpu",
+      "actual_operations": 104253913,
+      "fixed_log": 22,
+      "instances": 25,
+      "padded_rows": 104857600,
+      "u16_queries_per_padded_row": 3,
+      "u16_positive_mass": 314572800
+    },
+    {
+      "family": "alu_including_branches",
+      "actual_operations": 38032275,
+      "fixed_log": 21,
+      "instances": 19,
+      "padded_rows": 39845888,
+      "u16_queries_per_padded_row": 20,
+      "u16_positive_mass": 796917760
+    },
+    {
+      "family": "load_store_conservative",
+      "actual_operations": 33457230,
+      "fixed_log": 21,
+      "instances": 16,
+      "padded_rows": 33554432,
+      "u16_queries_per_padded_row": 35,
+      "u16_positive_mass": 1174405120
+    },
+    {
+      "family": "shift_packed_word16",
+      "actual_operations": 12715792,
+      "fixed_log": 20,
+      "instances": 13,
+      "padded_rows": 13631488,
+      "u16_queries_per_padded_row": 9,
+      "u16_positive_mass": 122683392
+    }
+  ],
+  "single_global_u16_mass": 2408579072,
+  "excess_over_characteristic": 261095425,
+  "single_global_admission_must_reject": true,
+  "candidate_two_independent_ledgers": [
+    {
+      "families": [
+        "cpu",
+        "alu_including_branches"
+      ],
+      "mass": 1111490560,
+      "headroom_before_characteristic": 1035993087
+    },
+    {
+      "families": [
+        "load_store_conservative",
+        "shift_packed_word16"
+      ],
+      "mass": 1297088512,
+      "headroom_before_characteristic": 850395135
+    }
+  ],
+  "protocol_requirements": [
+    "Distinct typed scoped U16 challenges for each admitted ledger after the complete stage-one manifest is sealed.",
+    "Exact deterministic query-owner inventory per ledger; every physical claim closes in its own ledger and enters the transcript.",
+    "Mass admission sums all provider and consumer padding, including any subsequently introduced chips.",
+    "Fixed table identity can be cached/shared independently of mutable multiplicity witnesses and fresh scoped challenges.",
+    "Any future removal of inherited read ranges needs the joint chronological REG/RAM canonicality induction qualified, not merely a native row check."
+  ],
+  "implementation_status": "design admission requirement only; current independent local closures remain authoritative"
+}

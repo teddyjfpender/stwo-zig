@@ -96,6 +96,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-parallel-interaction", .description = "Check bounded native interaction generation and exact serial parity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-index-control", .description = "Prove concrete indexed40 Word16 CPU and typed address map closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-alu-parallel-interaction", .description = "Check two-wave native ALU interactions and strict failure ownership", .scope = .riscv_cpu },
+    .{ .name = "rv64-function-census", .description = "Build bounded exact retained-packet function census", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-loop", .description = "Compare complete legacy and Word16 closed ALU BINARY branch proofs", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-rom-lookup", .description = "Check immutable contiguous and sparse full64 native ROM lookup", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-native-projection", .description = "Check physical native CPU formatting and transactional histograms", .scope = .riscv_cpu },
