@@ -29,6 +29,7 @@ fn generateImpl(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const
     claims.range8 = try I.countDot(source.counts8, d8);
     const output = try a.alloc(M, 48 * n);
     errdefer a.free(output);
+    @import("../../native_output_pages.zig").prepare(output);
     const scratch = try a.alloc(Q, workers * 2 * CHUNK);
     defer a.free(scratch);
     const summaries = try a.alloc([3]Q, chunks);

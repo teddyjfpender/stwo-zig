@@ -170,3 +170,5 @@ pub const word16_index_control = struct {
     pub const component = @import("word16_index_control/component.zig");
 };
 pub const word16_execution = @import("word16_execution/mod.zig");
+
+pub const native_output_pages = @import("native_output_pages.zig");

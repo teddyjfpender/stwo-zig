@@ -46,3 +46,29 @@ reduces JSON 304,297,459→31,079 bytes, with 32,788,310 bytes of RAM sidecar.
 See the per-slice receipts for source pins, security parameters, tests and
 limitations. q70/P26 is the retained nominal configuration; a whole-protocol
 security claim requires a separate lookup-degree/mass and union-bound budget.
+
+## Combined-prefix BINARY, owned MAIN, and native page preparation
+
+`binary-merged-prefix-v2.json` qualifies BINARY 28→24 interaction columns,
+52→50 constraints, with one combined prefix, strict inverses and degree three.
+The encoding identity changes explicitly. `owned-main-v1.json` qualifies direct
+transfer of original MAIN allocations to PCS, preserving exact proof bytes
+against borrowed streaming; only small AND/SHIFT multiplicity copies remain.
+
+`interaction-pages-v1.json` is a same-binary OFF/ON/ON/OFF comparison on the real
+packet. Before bit-reversed parallel stores, one word per output OS page is
+written synchronously. Workers subsequently write every actual output value.
+The page preparation leaves proof bytes identical and adds no retained cache.
+
+| Page preparation | Whole-process wall | Interaction generation | Interaction system CPU |
+|---|---:|---:|---:|
+| Disabled, two runs | 15.28–15.76 s | 2.290–2.359 s | 16.230–16.854 s |
+| Enabled, two runs | 14.09–14.14 s | 1.399–1.420 s | 0.087–0.088 s |
+
+Peak RSS is about 11.55 GB. All four proofs have SHA256
+`7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8`;
+fresh independent receivers accepted both arms. Architectural state and every
+public initial/terminal RAM byte agree with the earlier qualified layout.
+These two samples per arm establish the mechanism on this host, not p50/p99,
+other-host NUMA performance or a whole-block projection. Set
+`STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION=1` for the operational control.

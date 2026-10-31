@@ -33,6 +33,7 @@ fn generateImpl(source: *S.Source, challenges: P.Challenges, dictionary: []const
     const a = source.allocator;
     const output = try a.alloc(M, P.INTERACTION * n);
     errdefer a.free(output);
+    @import("../native_output_pages.zig").prepare(output);
     const scratch = try a.alloc(Q, 2 * CHUNK * workers);
     defer a.free(scratch);
     const summaries = try a.alloc([2]Q, chunks);

@@ -1,0 +1,2290 @@
+{
+  "scope": "Same-binary sequential OFF/ON/ON/OFF fresh-process page-scatter experiment; plain packet0, no services/full-block claim",
+  "base_commit": "b4adc692a",
+  "binary_sha256": "4ccc7402553d546b388ec65784c89d5c97922a5a8f53df221a39b0bb4d197a68",
+  "operator_opt_out": "STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION=1",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/native_output_pages.zig": "8752cfe7305330dbe81e5494bd7c50307a89b411cd79399fd1cd822449b4614d",
+    "src/frontends/riscv/rv64/air/mod.zig": "7e290239d32b6ba127e2fb22f20078e237fd2853b8f74daaf069d4b4be079850",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/interaction_parallel.zig": "8717a7c36ea11a45fa350e8e76c5bb3f37b23b6468a66dbe49380f990ba8916c",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_interaction_parallel.zig": "47327fde5774f32681b7082819140cee6326cd97b7b01785b2b8afcf7409a906",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction.zig": "366418a33c443653cbe7410bc3965c6da9022b7934b49fc47c0b6118fa2cd3ac",
+    "src/integrations/riscv_cpu/word16_execution/cpu_interaction.zig": "520d5f47509c91460e5b414b65aa66a61ddfe565a58d1d8f667ea16662cc339c",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "5ccda436c7c9da29b417c794d7580388d4d2433c0ab6814e67450cee13ca64f8"
+  },
+  "method": "Before scatter workers start, store one zero M31 word in each OS page of output. Every output value is subsequently fully written before publication. This does not initialize the full matrix.",
+  "qualification": {
+    "page_slice_bounds_and_partial_page_safe_fast": "PASS",
+    "memory_safe": "PASS",
+    "alu_parallel_safe": "PASS",
+    "cpu_execution_safe": "PASS",
+    "all_four_native_proof_bytes_identical": "PASS",
+    "separate_process_fresh_receivers_on_off": "PASS"
+  },
+  "runs": [
+    {
+      "label": "0-off",
+      "page_preparation": false,
+      "artifact_directory": "/tmp/rv64-word16-pages-paired-20261031/0-off",
+      "report_sha256": "87b4f32abe02f02a4d5bfe66d0e61c1db1ad27bc745d22b2608e898fe1d06ee0",
+      "stages_sha256": "23bfffb4c016274fbc764b9cab81db2755670eea80fd811f232f5ac186b86328",
+      "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+      "statement_sha256": "baa7643571838803eb82e2ace69d29c1dd025be4b4520d82ed5dd11aac49e514",
+      "cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "whole_process": {
+        "wall_seconds": 15.76,
+        "user_seconds": 61.62,
+        "system_seconds": 21.39
+      },
+      "peak_rss_bytes": 11551686656,
+      "prove_ns": 13678860541,
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.305023,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.338156,
+            "system_seconds": 0.110529,
+            "minor_faults": 151587,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 498
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.314057,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.763344,
+            "system_seconds": 0.263435,
+            "minor_faults": 121658,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1624
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 1.961742,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.145953,
+            "system_seconds": 0.775572,
+            "minor_faults": 186947,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 665
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.444219,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.599603,
+            "system_seconds": 1.106499,
+            "minor_faults": 450465,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5554
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 2.289674,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7.884504,
+            "system_seconds": 16.230375,
+            "minor_faults": 1651190,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 8564
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.689944,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.287118,
+            "system_seconds": 1.066081,
+            "minor_faults": 636311,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7932
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 8e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 7e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.2e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 5e-06,
+            "system_seconds": 5e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.827505,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 17.053046,
+            "system_seconds": 0.492863,
+            "minor_faults": 730442,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3945
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.044012,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.175396,
+            "system_seconds": 0.000274,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 19
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.113067,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.161336,
+            "system_seconds": 0.09483,
+            "minor_faults": 81923,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 362
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8.8e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 5.9e-05,
+            "system_seconds": 2.2e-05,
+            "minor_faults": 17,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.333268,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.653447,
+            "system_seconds": 0.002347,
+            "minor_faults": 235,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 95
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 9.8e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.8e-05,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.622449,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.425278,
+            "system_seconds": 0.164938,
+            "minor_faults": 133536,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1119
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.01076,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.171085,
+            "system_seconds": 0.000452,
+            "minor_faults": 6,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 42
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.00426,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.001973,
+            "system_seconds": 0.002364,
+            "minor_faults": 169,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.877739,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.258767,
+            "system_seconds": 0.944484,
+            "minor_faults": 683901,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3200
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000232,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000119,
+            "system_seconds": 0.000112,
+            "minor_faults": 12,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ],
+      "interaction_children": [
+        {
+          "id": "inter_r16_table",
+          "label": "U16 table interactions",
+          "seconds": 0.002464,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002284,
+            "system_seconds": 0.000178,
+            "minor_faults": 258,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_r8_table",
+          "label": "U8 table interactions",
+          "seconds": 6e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 5e-06,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_rom",
+          "label": "Immutable ROM interactions",
+          "seconds": 0.099142,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.09675,
+            "system_seconds": 0.002379,
+            "minor_faults": 3076,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 17
+          }
+        },
+        {
+          "id": "inter_and_table",
+          "label": "AND table interactions",
+          "seconds": 0.006436,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.006317,
+            "system_seconds": 0.000107,
+            "minor_faults": 128,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_shift_table",
+          "label": "Packed SHIFT table interactions",
+          "seconds": 0.022063,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.020988,
+            "system_seconds": 0.001074,
+            "minor_faults": 1617,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4
+          }
+        },
+        {
+          "id": "inter_register_boundary",
+          "label": "Public register boundary interactions",
+          "seconds": 2.5e-05,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9e-06,
+            "system_seconds": 1.4e-05,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_cpu",
+          "label": "CPU register function ROM and range interactions",
+          "seconds": 0.38813,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.420324,
+            "system_seconds": 1.757353,
+            "minor_faults": 280922,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1082
+          }
+        },
+        {
+          "id": "inter_alu",
+          "label": "ALU interactions",
+          "seconds": 0.176056,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.578446,
+            "system_seconds": 2.151766,
+            "minor_faults": 195659,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 891
+          }
+        },
+        {
+          "id": "inter_binary",
+          "label": "BINARY interactions",
+          "seconds": 0.160351,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.156811,
+            "system_seconds": 0.003538,
+            "minor_faults": 6218,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 23
+          }
+        },
+        {
+          "id": "inter_shift",
+          "label": "SHIFT interactions",
+          "seconds": 0.306386,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.300474,
+            "system_seconds": 0.00581,
+            "minor_faults": 12296,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 51
+          }
+        },
+        {
+          "id": "inter_jalr",
+          "label": "Composite JALR interactions",
+          "seconds": 0.00225,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002212,
+            "system_seconds": 3.7e-05,
+            "minor_faults": 58,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_division",
+          "label": "DIV REM interactions",
+          "seconds": 2e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_multiplication",
+          "label": "MUL interactions",
+          "seconds": 0.00514,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.004997,
+            "system_seconds": 0.000133,
+            "minor_faults": 265,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 1.121209,
+          "children": [
+            {
+              "id": "inter_ls",
+              "label": "Load store interactions",
+              "seconds": 0.758649,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 3.163094,
+                "system_seconds": 8.49706,
+                "minor_faults": 792678,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 4092
+              }
+            },
+            {
+              "id": "inter_initial",
+              "label": "INIT interactions",
+              "seconds": 0.158914,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.543563,
+                "system_seconds": 1.915852,
+                "minor_faults": 178537,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 1255
+              }
+            },
+            {
+              "id": "inter_terminal",
+              "label": "TEARDOWN interactions",
+              "seconds": 0.158781,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.543558,
+                "system_seconds": 1.894771,
+                "minor_faults": 179215,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 1143
+              }
+            },
+            {
+              "id": "inter_selection",
+              "label": "Selection table interactions",
+              "seconds": 0.00516,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.005004,
+                "system_seconds": 0.000152,
+                "minor_faults": 256,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 0
+              }
+            },
+            {
+              "id": "inter_boundary_authority",
+              "label": "Independent public memory boundary claims",
+              "seconds": 0.039681,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.039654,
+                "system_seconds": 4.3e-05,
+                "minor_faults": 4,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 4
+              }
+            }
+          ],
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 4.294878,
+            "system_seconds": 12.307934,
+            "minor_faults": 1150691,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6494
+          }
+        }
+      ]
+    },
+    {
+      "label": "1-on",
+      "page_preparation": true,
+      "artifact_directory": "/tmp/rv64-word16-pages-paired-20261031/1-on",
+      "report_sha256": "b105f1ed8412bfdabd6dde6cdc55de1654321e150b732053b77a51b169374433",
+      "stages_sha256": "704e29c7e7e494f07f06fc00591a2dd4ce8a355305ad23642ffe0bbb3937ecbc",
+      "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+      "statement_sha256": "baa7643571838803eb82e2ace69d29c1dd025be4b4520d82ed5dd11aac49e514",
+      "cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "whole_process": {
+        "wall_seconds": 14.09,
+        "user_seconds": 62.09,
+        "system_seconds": 5.38
+      },
+      "peak_rss_bytes": 11551637504,
+      "prove_ns": 13016800709,
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.320037,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.359601,
+            "system_seconds": 0.117361,
+            "minor_faults": 151586,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 505
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.32646,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.77453,
+            "system_seconds": 0.254463,
+            "minor_faults": 121657,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1751
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 1.987164,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.172486,
+            "system_seconds": 0.758015,
+            "minor_faults": 185608,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 722
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.5071,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 10.849693,
+            "system_seconds": 1.169151,
+            "minor_faults": 450461,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5438
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 1.39917,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7.505956,
+            "system_seconds": 0.087059,
+            "minor_faults": 163659,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1894
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.704859,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.358251,
+            "system_seconds": 1.096127,
+            "minor_faults": 636311,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6426
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 4e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.1e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 4e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.901144,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 17.369611,
+            "system_seconds": 0.516128,
+            "minor_faults": 730182,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3914
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.04617,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.181925,
+            "system_seconds": 0.000273,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 16
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.117724,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.189192,
+            "system_seconds": 0.093854,
+            "minor_faults": 81920,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 284
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8.8e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 5.9e-05,
+            "system_seconds": 2.8e-05,
+            "minor_faults": 15,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.34797,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.682937,
+            "system_seconds": 0.00223,
+            "minor_faults": 231,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 101
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.0001,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 9.9e-05,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.62027,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.432808,
+            "system_seconds": 0.1651,
+            "minor_faults": 133537,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1176
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.010786,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.170289,
+            "system_seconds": 0.000492,
+            "minor_faults": 5,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 52
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.004174,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.00194,
+            "system_seconds": 0.002231,
+            "minor_faults": 169,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.891284,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.295767,
+            "system_seconds": 0.986826,
+            "minor_faults": 683906,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3257
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000172,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000149,
+            "system_seconds": 2.2e-05,
+            "minor_faults": 12,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ],
+      "interaction_children": [
+        {
+          "id": "inter_r16_table",
+          "label": "U16 table interactions",
+          "seconds": 0.002575,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002417,
+            "system_seconds": 0.000158,
+            "minor_faults": 258,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_r8_table",
+          "label": "U8 table interactions",
+          "seconds": 7e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_rom",
+          "label": "Immutable ROM interactions",
+          "seconds": 0.102998,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.100524,
+            "system_seconds": 0.002466,
+            "minor_faults": 3076,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 17
+          }
+        },
+        {
+          "id": "inter_and_table",
+          "label": "AND table interactions",
+          "seconds": 0.006638,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.006498,
+            "system_seconds": 0.000137,
+            "minor_faults": 128,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 2
+          }
+        },
+        {
+          "id": "inter_shift_table",
+          "label": "Packed SHIFT table interactions",
+          "seconds": 0.022705,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.021561,
+            "system_seconds": 0.001132,
+            "minor_faults": 1617,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3
+          }
+        },
+        {
+          "id": "inter_register_boundary",
+          "label": "Public register boundary interactions",
+          "seconds": 1.6e-05,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-05,
+            "system_seconds": 5e-06,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_cpu",
+          "label": "CPU register function ROM and range interactions",
+          "seconds": 0.297971,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.294326,
+            "system_seconds": 0.023253,
+            "minor_faults": 41214,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 593
+          }
+        },
+        {
+          "id": "inter_alu",
+          "label": "ALU interactions",
+          "seconds": 0.044369,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.521417,
+            "system_seconds": 0.008167,
+            "minor_faults": 13445,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 183
+          }
+        },
+        {
+          "id": "inter_binary",
+          "label": "BINARY interactions",
+          "seconds": 0.164656,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.161014,
+            "system_seconds": 0.003596,
+            "minor_faults": 6218,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 26
+          }
+        },
+        {
+          "id": "inter_shift",
+          "label": "SHIFT interactions",
+          "seconds": 0.391401,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.385197,
+            "system_seconds": 0.006109,
+            "minor_faults": 12296,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 64
+          }
+        },
+        {
+          "id": "inter_jalr",
+          "label": "Composite JALR interactions",
+          "seconds": 0.002342,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002297,
+            "system_seconds": 5.5e-05,
+            "minor_faults": 58,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_division",
+          "label": "DIV REM interactions",
+          "seconds": 1e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_multiplication",
+          "label": "MUL interactions",
+          "seconds": 0.005253,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.005127,
+            "system_seconds": 0.000117,
+            "minor_faults": 265,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 0.358228,
+          "children": [
+            {
+              "id": "inter_ls",
+              "label": "Load store interactions",
+              "seconds": 0.226703,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 2.933748,
+                "system_seconds": 0.028126,
+                "minor_faults": 59989,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 731
+              }
+            },
+            {
+              "id": "inter_initial",
+              "label": "INIT interactions",
+              "seconds": 0.042938,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.512041,
+                "system_seconds": 0.006952,
+                "minor_faults": 12416,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 120
+              }
+            },
+            {
+              "id": "inter_terminal",
+              "label": "TEARDOWN interactions",
+              "seconds": 0.04369,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.515239,
+                "system_seconds": 0.00636,
+                "minor_faults": 12416,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 146
+              }
+            },
+            {
+              "id": "inter_selection",
+              "label": "Selection table interactions",
+              "seconds": 0.005203,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.005051,
+                "system_seconds": 0.000151,
+                "minor_faults": 256,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 0
+              }
+            },
+            {
+              "id": "inter_boundary_authority",
+              "label": "Independent public memory boundary claims",
+              "seconds": 0.039687,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.03947,
+                "system_seconds": 0.000206,
+                "minor_faults": 4,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 7
+              }
+            }
+          ],
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 4.005551,
+            "system_seconds": 0.041826,
+            "minor_faults": 85082,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1004
+          }
+        }
+      ]
+    },
+    {
+      "label": "2-on",
+      "page_preparation": true,
+      "artifact_directory": "/tmp/rv64-word16-pages-paired-20261031/2-on",
+      "report_sha256": "ec846af82f61d0f78e30076671f0f59d9ca20359197b31c439890642f6aada88",
+      "stages_sha256": "1eb1a1c24ff62eeba58fac2aeaa0de18b936e871144345cfd43b8c757d268f51",
+      "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+      "statement_sha256": "baa7643571838803eb82e2ace69d29c1dd025be4b4520d82ed5dd11aac49e514",
+      "cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "whole_process": {
+        "wall_seconds": 14.14,
+        "user_seconds": 62.61,
+        "system_seconds": 5.45
+      },
+      "peak_rss_bytes": 11551637504,
+      "prove_ns": 13127171709,
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.312247,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.342568,
+            "system_seconds": 0.117568,
+            "minor_faults": 151586,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 322
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.311373,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.754782,
+            "system_seconds": 0.272859,
+            "minor_faults": 121657,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1355
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 1.985873,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.169496,
+            "system_seconds": 0.775599,
+            "minor_faults": 187777,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 622
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.539086,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.080161,
+            "system_seconds": 1.217811,
+            "minor_faults": 450462,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7020
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 1.419983,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7.547472,
+            "system_seconds": 0.0879,
+            "minor_faults": 163659,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1687
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.718153,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.510964,
+            "system_seconds": 1.09651,
+            "minor_faults": 636311,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6895
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 5e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0,
+            "system_seconds": 4e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.1e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 4e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.927654,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 17.524629,
+            "system_seconds": 0.508271,
+            "minor_faults": 730188,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4715
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.048591,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.192243,
+            "system_seconds": 0.000382,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 17
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.118295,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.188429,
+            "system_seconds": 0.097326,
+            "minor_faults": 81921,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 289
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.1e-05,
+            "system_seconds": 1.8e-05,
+            "minor_faults": 13,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.35032,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.685354,
+            "system_seconds": 0.002321,
+            "minor_faults": 231,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 118
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000102,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000101,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.633401,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.455209,
+            "system_seconds": 0.167891,
+            "minor_faults": 133536,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1176
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.010868,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.170819,
+            "system_seconds": 0.000475,
+            "minor_faults": 5,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 50
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.004302,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.001993,
+            "system_seconds": 0.002302,
+            "minor_faults": 167,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.898139,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.28271,
+            "system_seconds": 0.966852,
+            "minor_faults": 683906,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3277
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000161,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000145,
+            "system_seconds": 1.6e-05,
+            "minor_faults": 12,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ],
+      "interaction_children": [
+        {
+          "id": "inter_r16_table",
+          "label": "U16 table interactions",
+          "seconds": 0.002652,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002486,
+            "system_seconds": 0.000164,
+            "minor_faults": 258,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_r8_table",
+          "label": "U8 table interactions",
+          "seconds": 7e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_rom",
+          "label": "Immutable ROM interactions",
+          "seconds": 0.105816,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.103186,
+            "system_seconds": 0.002601,
+            "minor_faults": 3076,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 18
+          }
+        },
+        {
+          "id": "inter_and_table",
+          "label": "AND table interactions",
+          "seconds": 0.006934,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.006839,
+            "system_seconds": 0.000103,
+            "minor_faults": 128,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_shift_table",
+          "label": "Packed SHIFT table interactions",
+          "seconds": 0.02372,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.022465,
+            "system_seconds": 0.001237,
+            "minor_faults": 1617,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4
+          }
+        },
+        {
+          "id": "inter_register_boundary",
+          "label": "Public register boundary interactions",
+          "seconds": 1.6e-05,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.1e-05,
+            "system_seconds": 5e-06,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_cpu",
+          "label": "CPU register function ROM and range interactions",
+          "seconds": 0.300962,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.312213,
+            "system_seconds": 0.022585,
+            "minor_faults": 41215,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 545
+          }
+        },
+        {
+          "id": "inter_alu",
+          "label": "ALU interactions",
+          "seconds": 0.045875,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.457692,
+            "system_seconds": 0.008292,
+            "minor_faults": 13443,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 130
+          }
+        },
+        {
+          "id": "inter_binary",
+          "label": "BINARY interactions",
+          "seconds": 0.165546,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.161762,
+            "system_seconds": 0.003759,
+            "minor_faults": 6218,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 25
+          }
+        },
+        {
+          "id": "inter_shift",
+          "label": "SHIFT interactions",
+          "seconds": 0.393876,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.387647,
+            "system_seconds": 0.006148,
+            "minor_faults": 12296,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 62
+          }
+        },
+        {
+          "id": "inter_jalr",
+          "label": "Composite JALR interactions",
+          "seconds": 0.002347,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002263,
+            "system_seconds": 7.5e-05,
+            "minor_faults": 58,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_division",
+          "label": "DIV REM interactions",
+          "seconds": 2e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_multiplication",
+          "label": "MUL interactions",
+          "seconds": 0.005348,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.00516,
+            "system_seconds": 0.000194,
+            "minor_faults": 265,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 0.366875,
+          "children": [
+            {
+              "id": "inter_ls",
+              "label": "Load store interactions",
+              "seconds": 0.237418,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 3.020792,
+                "system_seconds": 0.028605,
+                "minor_faults": 59990,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 669
+              }
+            },
+            {
+              "id": "inter_initial",
+              "label": "INIT interactions",
+              "seconds": 0.042229,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.510648,
+                "system_seconds": 0.006618,
+                "minor_faults": 12416,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 104
+              }
+            },
+            {
+              "id": "inter_terminal",
+              "label": "TEARDOWN interactions",
+              "seconds": 0.042435,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.509843,
+                "system_seconds": 0.007112,
+                "minor_faults": 12416,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 121
+              }
+            },
+            {
+              "id": "inter_selection",
+              "label": "Selection table interactions",
+              "seconds": 0.005132,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.004968,
+                "system_seconds": 0.000163,
+                "minor_faults": 256,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 0
+              }
+            },
+            {
+              "id": "inter_boundary_authority",
+              "label": "Independent public memory boundary claims",
+              "seconds": 0.039654,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.039477,
+                "system_seconds": 0.000173,
+                "minor_faults": 4,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 6
+              }
+            }
+          ],
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 4.085733,
+            "system_seconds": 0.042701,
+            "minor_faults": 85083,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 900
+          }
+        }
+      ]
+    },
+    {
+      "label": "3-off",
+      "page_preparation": false,
+      "artifact_directory": "/tmp/rv64-word16-pages-paired-20261031/3-off",
+      "report_sha256": "2cf41525375422e1b68879ea4c124ec0f0aea642fc7a429853be411588a58bfe",
+      "stages_sha256": "b51c3998ffbbbad11a3f380d57357b19961324201d067cc46f7d04b40d642f50",
+      "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+      "statement_sha256": "baa7643571838803eb82e2ace69d29c1dd025be4b4520d82ed5dd11aac49e514",
+      "cells_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "whole_process": {
+        "wall_seconds": 15.28,
+        "user_seconds": 63.81,
+        "system_seconds": 22.26
+      },
+      "peak_rss_bytes": 11551686656,
+      "prove_ns": 14255965042,
+      "stages": [
+        {
+          "id": "native_advice_preparation",
+          "seconds": 0.315125,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.340077,
+            "system_seconds": 0.118836,
+            "minor_faults": 151587,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 400
+          }
+        },
+        {
+          "id": "immutable_setup",
+          "seconds": 0.316779,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.771812,
+            "system_seconds": 0.263198,
+            "minor_faults": 121657,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1424
+          }
+        },
+        {
+          "id": "provider_source_construction",
+          "seconds": 2.016858,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.200632,
+            "system_seconds": 0.767055,
+            "minor_faults": 187816,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 632
+          }
+        },
+        {
+          "id": "main_commit",
+          "seconds": 1.540709,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.104597,
+            "system_seconds": 1.199478,
+            "minor_faults": 450461,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 5434
+          }
+        },
+        {
+          "id": "interaction_generation",
+          "seconds": 2.359278,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 8.071356,
+            "system_seconds": 16.85365,
+            "minor_faults": 1668675,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 8487
+          }
+        },
+        {
+          "id": "interaction_commit",
+          "seconds": 1.763118,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 11.633208,
+            "system_seconds": 1.145173,
+            "minor_faults": 636311,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 7150
+          }
+        },
+        {
+          "id": "draw_random_coeff",
+          "seconds": 4e-06,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1e-06,
+            "system_seconds": 3e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_trace_extract",
+          "seconds": 1.4e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 7e-06,
+            "system_seconds": 7e-06,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "composition_evaluation",
+          "seconds": 2.983397,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 17.85364,
+            "system_seconds": 0.540949,
+            "minor_faults": 730177,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6312
+          }
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "seconds": 0.051951,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.205642,
+            "system_seconds": 0.000391,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 23
+          }
+        },
+        {
+          "id": "composition_commit",
+          "seconds": 0.121868,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.209516,
+            "system_seconds": 0.098884,
+            "minor_faults": 81920,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 264
+          }
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "seconds": 8.6e-05,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6.4e-05,
+            "system_seconds": 2e-05,
+            "minor_faults": 14,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "seconds": 0.359614,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.703912,
+            "system_seconds": 0.00234,
+            "minor_faults": 231,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 121
+          }
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "seconds": 0.000103,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000102,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "seconds": 1.660572,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.491512,
+            "system_seconds": 0.1708,
+            "minor_faults": 133526,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1125
+          }
+        },
+        {
+          "id": "proof_of_work",
+          "seconds": 0.011058,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.171793,
+            "system_seconds": 0.000349,
+            "minor_faults": 5,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 38
+          }
+        },
+        {
+          "id": "fri_decommit",
+          "seconds": 0.0042,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.001998,
+            "system_seconds": 0.002201,
+            "minor_faults": 162,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "trace_decommit",
+          "seconds": 0.903969,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.327275,
+            "system_seconds": 0.964492,
+            "minor_faults": 683926,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 3642
+          }
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "seconds": 0.000165,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.000147,
+            "system_seconds": 1.8e-05,
+            "minor_faults": 12,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        }
+      ],
+      "interaction_children": [
+        {
+          "id": "inter_r16_table",
+          "label": "U16 table interactions",
+          "seconds": 0.002619,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002481,
+            "system_seconds": 0.000138,
+            "minor_faults": 258,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_r8_table",
+          "label": "U8 table interactions",
+          "seconds": 7e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 6e-06,
+            "system_seconds": 1e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_rom",
+          "label": "Immutable ROM interactions",
+          "seconds": 0.105231,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.103226,
+            "system_seconds": 0.001994,
+            "minor_faults": 3076,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 15
+          }
+        },
+        {
+          "id": "inter_and_table",
+          "label": "AND table interactions",
+          "seconds": 0.006986,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.006902,
+            "system_seconds": 9.4e-05,
+            "minor_faults": 128,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_shift_table",
+          "label": "Packed SHIFT table interactions",
+          "seconds": 0.023379,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.022367,
+            "system_seconds": 0.001009,
+            "minor_faults": 1617,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4
+          }
+        },
+        {
+          "id": "inter_register_boundary",
+          "label": "Public register boundary interactions",
+          "seconds": 1.6e-05,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.1e-05,
+            "system_seconds": 5e-06,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_cpu",
+          "label": "CPU register function ROM and range interactions",
+          "seconds": 0.39866,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.425102,
+            "system_seconds": 1.766483,
+            "minor_faults": 277709,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1157
+          }
+        },
+        {
+          "id": "inter_alu",
+          "label": "ALU interactions",
+          "seconds": 0.177941,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.600497,
+            "system_seconds": 2.149108,
+            "minor_faults": 194709,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 771
+          }
+        },
+        {
+          "id": "inter_binary",
+          "label": "BINARY interactions",
+          "seconds": 0.160672,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.157486,
+            "system_seconds": 0.00312,
+            "minor_faults": 6218,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 26
+          }
+        },
+        {
+          "id": "inter_shift",
+          "label": "SHIFT interactions",
+          "seconds": 0.31307,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.307282,
+            "system_seconds": 0.005672,
+            "minor_faults": 12296,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 52
+          }
+        },
+        {
+          "id": "inter_jalr",
+          "label": "Composite JALR interactions",
+          "seconds": 0.002467,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.002391,
+            "system_seconds": 8.5e-05,
+            "minor_faults": 58,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_division",
+          "label": "DIV REM interactions",
+          "seconds": 1e-06,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0,
+            "system_seconds": 0,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 0
+          }
+        },
+        {
+          "id": "inter_multiplication",
+          "label": "MUL interactions",
+          "seconds": 0.005511,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.005305,
+            "system_seconds": 0.000196,
+            "minor_faults": 265,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_memory",
+          "label": "LS INIT TEARDOWN and selection interactions",
+          "seconds": 1.162708,
+          "children": [
+            {
+              "id": "inter_ls",
+              "label": "Load store interactions",
+              "seconds": 0.786992,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 3.247392,
+                "system_seconds": 8.957616,
+                "minor_faults": 814337,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 4702
+              }
+            },
+            {
+              "id": "inter_initial",
+              "label": "INIT interactions",
+              "seconds": 0.165131,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.573712,
+                "system_seconds": 1.984743,
+                "minor_faults": 179380,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 756
+              }
+            },
+            {
+              "id": "inter_terminal",
+              "label": "TEARDOWN interactions",
+              "seconds": 0.165709,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.572503,
+                "system_seconds": 1.983151,
+                "minor_faults": 178361,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 995
+              }
+            },
+            {
+              "id": "inter_selection",
+              "label": "Selection table interactions",
+              "seconds": 0.00517,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.005036,
+                "system_seconds": 0.000138,
+                "minor_faults": 256,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 1
+              }
+            },
+            {
+              "id": "inter_boundary_authority",
+              "label": "Independent public memory boundary claims",
+              "seconds": 0.039699,
+              "children": null,
+              "process_usage": {
+                "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+                "user_seconds": 0.039642,
+                "system_seconds": 4.2e-05,
+                "minor_faults": 4,
+                "major_faults": 0,
+                "voluntary_switches": 0,
+                "involuntary_switches": 5
+              }
+            }
+          ],
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 4.43829,
+            "system_seconds": 12.925714,
+            "minor_faults": 1172339,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6459
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Two observations per arm; not a p50/p99 benchmark or whole-block throughput claim.",
+    "Measured macOS M5 Max,16 prover workers. NUMA placement and performance on other hosts require independent qualification.",
+    "Whole-process counters include all threads within intervals; nested intervals must not be summed.",
+    "No cache retention added; semantic BINARY-v2 change was already present in all four arms."
+  ],
+  "semantic_parity": {
+    "basis": "/tmp/rv64-word16-execution-real-packet0-v7-process",
+    "cpu_and_boundary_fields": [
+      "schema",
+      "geometry",
+      "cpu",
+      "epoch",
+      "division_requests",
+      "multiplication_requests",
+      "ls_count",
+      "memory_words"
+    ],
+    "every_initial_and_terminal_RAM_byte_identical": true
+  },
+  "fresh_receivers": {
+    "on": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 878975542,
+      "image_ns": 336392292
+    },
+    "off": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 826615792,
+      "image_ns": 290572500
+    }
+  },
+  "means": {
+    "False": {
+      "wall_seconds": 15.52,
+      "user_seconds": 62.715,
+      "system_seconds": 21.825000000000003
+    },
+    "True": {
+      "wall_seconds": 14.115,
+      "user_seconds": 62.35,
+      "system_seconds": 5.415
+    }
+  }
+}

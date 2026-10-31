@@ -59,6 +59,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     const a = source.allocator;
     const output = try a.alloc(M, X.layout.inter.COUNT * n);
     errdefer a.free(output);
+    @import("stwo_riscv_frontend").rv64_air.native_output_pages.prepare(output);
     const summaries = try a.alloc(Q, chunks);
     defer a.free(summaries);
     const scratch = try a.alloc(Q, workers * 10 * CHUNK);
