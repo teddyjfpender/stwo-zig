@@ -2,7 +2,6 @@
 //! shared RAM randomness; the receiver fresh-verifies EVERY physical shard.
 const std = @import("std");
 const core = @import("stwo_core");
-const engine = @import("stwo_prover_engine");
 const wire = @import("stwo_proof_wire");
 const front = @import("stwo_riscv_frontend");
 const A = front.rv64_air;
@@ -12,20 +11,11 @@ const Native = @import("../word16_execution/prepared.zig").Prepared;
 const Memory = @import("../word16_execution/memory/prepared.zig").Prepared;
 const Components = @import("../word16_execution/components.zig").Components;
 const Ledger = @import("collector.zig").Ledger;
-const Backend = @import("stwo_cpu_backend").CpuBackend;
 const Cell = A.memory.closed_ram.types.Cell;
 const Event = A.memory.load_store_v2.native.Event;
 const Q = P.Q;
-pub const Encoded = struct {
-    bytes: []u8,
-    request: P.Old.Request,
-    claims: P.Old.Claims,
-    pub fn deinit(self: *Encoded, a: std.mem.Allocator) void {
-        a.free(self.bytes);
-        a.free(self.request.memory.initial);
-        a.free(self.request.memory.terminal);
-    }
-};
+pub const Encoded = @import("encoded.zig").Encoded;
+pub const Stage1Worker = @import("stage1_worker.zig").Stage1Worker;
 pub const Bundle = struct {
     manifest: P.Manifest,
     proofs: []Encoded,
@@ -92,82 +82,47 @@ fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup)
 /// Source transfer consumes each native CPU/JALR on success or later error.
 pub fn produceWithAdvice(a: std.mem.Allocator, setups: []const *const P.Setup, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
     if (setups.len != prepared.len or setups.len != advice.events.len) return error.InvalidGlobalExecutionRoster;
-    var sources: std.ArrayList(S.Source) = .empty;
-    defer {
-        for (sources.items) |*s| s.deinit();
-        sources.deinit(a);
+    // Preflight the complete PUBLIC inventory before constructing or sealing a
+    // worker. Advice arrays remain narrow and are not an initial-state oracle.
+    const requests = try a.alloc(P.Old.Request, setups.len);
+    defer a.free(requests);
+    for (prepared, requests, 0..) |native, *request, index| {
+        const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
+        request.* = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(native.division.len), .multiplication_requests = @intCast(native.multiplication.len), .memory = .{ .initial = if (index == 0) advice.initial else &.{}, .terminal = if (index + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[index].len) } };
     }
+    try P.validateRequests(setups, requests, expected);
+    // This convenience harness retains worker PCS owners in one process. A
+    // distributed coordinator needs only each returned Sealed descriptor.
+    var workers: std.ArrayList(Stage1Worker) = .empty;
+    defer {
+        for (workers.items) |*worker| worker.deinit();
+        workers.deinit(a);
+    }
+    const seals = try a.alloc(Stage1Worker.Sealed, setups.len);
+    defer a.free(seals);
+    var first: u64 = 0;
     for (setups, prepared, 0..) |setup, native, index| {
-        const initial = try a.dupe(Cell, if (index == 0) advice.initial else &.{});
-        const terminal = a.dupe(Cell, if (index + 1 == setups.len) advice.terminal else &.{}) catch |err| {
+        const initial = try a.dupe(Cell, requests[index].memory.initial);
+        const terminal = a.dupe(Cell, requests[index].memory.terminal) catch |err| {
             a.free(initial);
             return err;
         };
         const memory = try Memory.initOwnedForGlobalRam(a, advice.events[index], initial, terminal, @intCast(index + 1), setup.materials.geometry.ls_log, setup.materials.geometry.boundary_log);
-        var source = try S.Source.fromPreparedWithOwnedMemory(a, &setup.materials, native, memory);
-        errdefer source.deinit();
-        try sources.append(a, source);
+        const source = try S.Source.fromPreparedWithOwnedMemory(a, &setup.materials, native, memory);
+        var worker = try Stage1Worker.init(a, setup, source, expected, index, first);
+        errdefer worker.deinit();
+        first += requests[index].cpu.steps;
+        seals[index] = try worker.seal();
+        try workers.append(a, worker);
     }
-    const requests = try a.alloc(P.Old.Request, sources.items.len);
-    defer a.free(requests);
-    for (sources.items, requests) |*source, *request| request.* = source.request();
-    try P.validateRequests(setups, requests, expected);
-    var workers: std.ArrayList(Worker) = .empty;
-    defer {
-        for (workers.items) |*worker| worker.deinit(a);
-        workers.deinit(a);
-    }
-    const specs = try a.alloc([32]u8, setups.len);
-    defer a.free(specs);
-    const receipts = try a.alloc(P.Receipt, setups.len);
-    defer a.free(receipts);
-    var first: u64 = 0;
-    for (setups, sources.items, requests, 0..) |setup, *source, request, index| {
-        var scheme = try P.T.Scheme.init(a, P.T.P.config());
-        errdefer scheme.deinit(a);
-        scheme.setCompactPolynomialStorage(5);
-        var ch = P.T.P.Channel{};
-        try P.begin(&ch, setup, request, expected, index, first);
-        specs[index] = ch.digestBytes();
-        first += request.cpu.steps;
-        try setup.appendFixed(a, &scheme, &ch);
-        const main = try source.columns(a, 1);
-        defer a.free(main);
-        try scheme.commitBorrowedStreaming(a, main, 8, &ch);
-        try source.releaseMain();
-        const receipt = try checkStage1(a, &scheme, setup);
-        receipts[index] = receipt;
-        try workers.append(a, .{ .scheme = scheme, .channel = ch, .receipt = receipt });
-    }
-    var manifest = try P.Manifest.init(a, specs, receipts);
+    var manifest = try Stage1Worker.manifestFromSeals(a, seals);
     errdefer manifest.deinit();
     const proofs = try a.alloc(Encoded, setups.len);
     errdefer a.free(proofs);
     var completed: usize = 0;
     errdefer for (proofs[0..completed]) |*proof| proof.deinit(a);
-    for (setups, sources.items, workers.items, 0..) |setup, *source, *worker, index| {
-        const actual = try checkStage1(a, &worker.scheme, setup);
-        if (!std.meta.eql(actual, manifest.roots[index])) return error.GlobalStage1RootMismatch;
-        const ch = try P.draw(&worker.channel, &manifest, index);
-        const claims = (try source.generateOpenForGlobalRam(ch)).physical;
-        worker.channel.mixFelts(&claims.values());
-        const interaction = try source.columns(a, 2);
-        defer a.free(interaction);
-        try worker.scheme.commitBorrowedStreaming(a, interaction, 8, &worker.channel);
-        source.releaseCommittedInteraction();
-        var components = try Components.init(&setup.materials, requests[index], ch, claims);
-        const handles = try components.provers(a);
-        defer a.free(handles);
-        worker.owns = false;
-        var proof = try engine.prove.prove(Backend, P.T.P.Hasher, P.T.P.MerkleChannel, a, handles, &worker.channel, worker.scheme);
-        defer proof.deinit(a);
-        const bytes = try wire.encodeProofBytesBinary(a, proof);
-        errdefer a.free(bytes);
-        var request = requests[index];
-        request.memory.initial = try a.dupe(Cell, request.memory.initial);
-        errdefer a.free(request.memory.initial);
-        request.memory.terminal = try a.dupe(Cell, request.memory.terminal);
-        proofs[index] = .{ .bytes = bytes, .request = request, .claims = claims };
+    for (workers.items, proofs) |*worker, *proof| {
+        proof.* = try worker.complete(&manifest);
         completed += 1;
     }
     return .{ .manifest = manifest, .proofs = proofs };

@@ -1,0 +1,46 @@
+{
+  "status": "qualified concrete owned Stage1Worker lifecycle; same global prefix protocol, not scalable distributed production qualification",
+  "base_global_commit": "a5baf583d",
+  "tests": {
+    "target": "test-riscv64-word16-global-execution",
+    "actual_runtime_minimum": 8,
+    "ReleaseSafe": "pass",
+    "ReleaseFast": "pass",
+    "logs": [
+      "/tmp/rv64-word16-global-worker-safe.log",
+      "/tmp/rv64-word16-global-worker-fast.log"
+    ]
+  },
+  "contract": [
+    "init consumes Source on success/error, borrows stable independently derived Setup",
+    "seal commits fixed/MAIN and checks ACTUAL roots/logs before publishing typed Sealed descriptor; MAIN retired",
+    "coordinator manifestFromSeals requires only ordinal/spec digest/two32B roots; no Source/PCS pointer",
+    "complete checks sealed ownstatement and remeasures retained PCS roots immediately before internal challenge draw",
+    "no loose alpha input; all physical33claims still transcript-bound",
+    "invalid pre-draw manifest preserves sealed channel for retry; post-draw errors become terminal failed",
+    "partial seal failure publishes no descriptor and source/PCS owners drain",
+    "successful completion consumes PCS and retires Source, output owns proof bytes/public boundaries"
+  ],
+  "gates": [
+    "all prior genuine cross-shardstore/load and actual locallyvalid false-reset fork proof tests retained",
+    "actual worker-produced full17role proof fresh-verifies with independently reconstructed key",
+    "wrong root/spec and phase replay rejected before FS mutation",
+    "MAIN retired while narrow metadata survives barrier",
+    "partial seal allocation failures publish no descriptor with balanced ownership"
+  ],
+  "cost_scope": [
+    "central qualification helper now constructs and seals one providerSource before next, instead of retaining allwideSource MAIN buffers",
+    "all PCS coefficients and narrow advice remain worker-owned across barrier; central helper still retains multiple workerowners",
+    "no25shard fanout/RSS or isolated speed guarantee",
+    "real01 old control artifacts remain qualified history; no new real whole-job proof-byte hash measured for this lifecycle refactor"
+  ],
+  "security_note": "q70/P26 nominal config96 only; whole protocol bits not established; retain characteristic/degree/union accounting. No parameter reduction.",
+  "files": {
+    "src/integrations/riscv_cpu/word16_global_execution/execution.zig": "fb87c7dd2776df3f510f4e0858bd4e301018d8cd15c035e5738a279d07dc1d1e",
+    "src/integrations/riscv_cpu/word16_global_execution/stage1_worker.zig": "bccd097478bed95ec649db8f781bb5d4f5e717079cc5f2a44f05b3531a90c2e5",
+    "src/integrations/riscv_cpu/word16_global_execution/encoded.zig": "827cbacd374add16403de6cab1fd4061d47353cbd84bd46466c17083fa304cb2",
+    "src/integrations/riscv_cpu/word16_global_execution/worker_test.zig": "cf7ac67d0a54292b20888df51fc4a0ee88116043ef9ca5b28349db2f42431a48",
+    "src/integrations/riscv_cpu/word16_global_execution/soundness_review.md": "25bcacb571f4e788584e5d86c330e5535331b209181d76bac4a872b9a989fe2c",
+    "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig": "4e6670dc1af33f8b3a122215bd8fd1a56290053f5c0266380825d65e4d927ea8"
+  }
+}

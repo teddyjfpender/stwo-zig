@@ -80,3 +80,27 @@ break epoch/PC/register/step adjacency. The old closed/genesis receiver still
 rejects these open fragments, including the epoch2 scope after rebasing its
 claimed local CPU initial endpoint. These tests supplement the existing dense-Q
 degree, SIMD, local clock, permission and range qualifications.
+
+## Worker ownership seam and security accounting
+
+The concrete `Stage1Worker` consumes one Source and owns its PCS scheme. `seal`
+commits fixed/MAIN, checks actual roots and geometry, retires MAIN, and only then
+returns an ordinal/spec/two-root descriptor. `manifestFromSeals` needs no witness
+or PCS pointer. `complete` remeasures the retained roots and matches its own
+statement before deriving randomness internally from the complete manifest.
+Failed pre-draw context checks preserve the sealed state; post-draw errors move
+to a terminal failed state. Partial seal failures publish no descriptor. Source
+and scheme owners drain on every error, and successful completion retires both.
+
+This is an ownership API, not a proof of bounded aggregate memory: PCS
+coefficients and narrow metadata remain worker-owned across the barrier. The
+central qualification helper still retains all worker owners in one process;
+production fanout needs explicit per-process/spill/resource budgets.
+
+The unchanged q70/P26/log-blowup1 configuration has nominal PCS config score96.
+This is not a fixed whole-protocol96-bit or128-bit security claim. Lookup degree,
+actual positive/absolute masses, identity checks and unions across relations and
+proofs require separate accounting. The real two-packet RAM absolute mass is
+4,974,878, below M31. The hard characteristic guard prevents multiplicity
+cancellation modulo p; it does not by itself establish a fixed security-bit
+bound for every admitted near-characteristic roster.
