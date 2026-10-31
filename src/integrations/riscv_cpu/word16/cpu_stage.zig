@@ -74,10 +74,20 @@ pub fn produce(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.
 /// The serial coordinator alone owns this optional recorder. Physical AIR
 /// components receive no shared hierarchical recorder or task capture.
 pub fn produceProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, scalar_reference: bool, recorder: ?*Profile.Recorder) !Encoded {
+    return produceInternal(a, materials, public, records, scalar_reference, recorder, false);
+}
+/// Optional native ALU grouping only; BINARY and all verifier equations remain unchanged.
+pub fn produceDeduplicated(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, scalar_reference: bool) !Encoded {
+    return produceInternal(a, materials, public, records, scalar_reference, null, true);
+}
+pub fn produceDeduplicatedProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, scalar_reference: bool, recorder: ?*Profile.Recorder) !Encoded {
+    return produceInternal(a, materials, public, records, scalar_reference, recorder, true);
+}
+fn produceInternal(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, scalar_reference: bool, recorder: ?*Profile.Recorder, deduplicate_alu: bool) !Encoded {
     if (materials.geometry.mode != .local_binary) return error.ExpectedClosedThinCpuMaterials;
     var source_stage = try Profile.StageScope.begin(recorder, "source_construction", "CPU and independent provider sources");
     defer source_stage.end();
-    var source = try Sources.Source.initProfiled(a, materials, public, records, recorder);
+    var source = if (deduplicate_alu) try Sources.Source.initDeduplicatedProfiled(a, materials, public, records, recorder) else try Sources.Source.initProfiled(a, materials, public, records, recorder);
     source_stage.end();
     defer source.deinit();
     var scheme = try T.Scheme.init(a, T.P.config());

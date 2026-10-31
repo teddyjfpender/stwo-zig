@@ -12,6 +12,8 @@ pub const Stage1 = @import("cpu_stage.zig").Stage1;
 pub const Encoded = @import("cpu_stage.zig").Encoded;
 pub const produce = @import("cpu_stage.zig").produce;
 pub const produceProfiled = @import("cpu_stage.zig").produceProfiled;
+pub const produceDeduplicated = @import("cpu_stage.zig").produceDeduplicated;
+pub const produceDeduplicatedProfiled = @import("cpu_stage.zig").produceDeduplicatedProfiled;
 pub const verifyClosed = @import("cpu_verify.zig").verifyClosed;
 pub const verifyOpen = @import("cpu_verify.zig").verifyOpen;
 

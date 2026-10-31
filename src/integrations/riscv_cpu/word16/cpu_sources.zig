@@ -56,6 +56,16 @@ pub const Source = struct {
         return initProfiled(a, materials, public, records, null);
     }
     pub fn initProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, recorder: ?*Profile.Recorder) !Source {
+        return initInternal(a, materials, public, records, recorder, false);
+    }
+    /// Prover-only witness choice. Geometry and the receiver remain unchanged.
+    pub fn initDeduplicated(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement) !Source {
+        return initInternal(a, materials, public, records, null, true);
+    }
+    pub fn initDeduplicatedProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, recorder: ?*Profile.Recorder) !Source {
+        return initInternal(a, materials, public, records, recorder, true);
+    }
+    fn initInternal(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, recorder: ?*Profile.Recorder, deduplicate_alu: bool) !Source {
         try public.validate(materials.geometry.cpu_log);
         if (materials.geometry.profile == .binary_v1 and materials.geometry.mode == .local_binary and public.steps > @as(u32, 1) << @intCast(materials.geometry.binary_log)) return error.ThinCpuBinaryCapacity;
         var cpu_stage = try Profile.StageScope.begin(recorder, "cpu_source", "Native CPU metadata and projection");
@@ -72,7 +82,7 @@ pub const Source = struct {
             defer alu_stage.end();
             const facts = try cpu.aluFacts(a);
             defer a.free(facts);
-            alu = try ALU.source.Source.init(a, facts, materials.geometry.alu_log);
+            alu = if (deduplicate_alu) try ALU.source.Source.initDeduplicated(a, facts, materials.geometry.alu_log) else try ALU.source.Source.init(a, facts, materials.geometry.alu_log);
             merged = try a.dupe(u64, cpu.range16_counts);
             for (merged, alu.?.range16_counts) |*count, addition| {
                 count.* = std.math.add(u64, count.*, addition) catch return error.Word16MassExceeded;

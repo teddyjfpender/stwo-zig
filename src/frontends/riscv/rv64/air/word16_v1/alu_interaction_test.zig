@@ -13,6 +13,9 @@ const Data = struct {
     ch: P.Challenges,
     dictionary: []Q,
     fn init() !Data {
+        return initMode(false);
+    }
+    fn initMode(weighted: bool) !Data {
         const facts = try a.alloc(S.Fact, 8193);
         defer a.free(facts);
         for (facts, 0..) |*fact, i| {
@@ -21,7 +24,10 @@ const Data = struct {
             const y = 0xffff000012345678 - @as(u64, @intCast(i));
             fact.* = .{ .op = op, .a = x, .b = y, .c = A.nativeResult(op, x, y) };
         }
-        var source = try S.Source.init(a, facts, 16);
+        const weights = try a.alloc(u32, facts.len);
+        defer a.free(weights);
+        for (weights, 0..) |*weight, i| weight.* = if (i == 0) 70000 else @intCast(i % 7);
+        var source = if (weighted) try S.Source.initWeighted(a, facts, weights, 16) else try S.Source.init(a, facts, 16);
         errdefer source.deinit();
         source.releaseMain();
         var channel = core.channel.blake2s.Blake2sChannel{};
@@ -116,4 +122,22 @@ test "ALU interaction poles ledger andbothwave failure drain preservemetadata an
     try std.testing.checkAllAllocationFailures(a, allocationCase, .{ &data, &pool });
     _ = try I.generate(&source, data.ch, data.dictionary, &pool);
     try std.testing.expectError(error.InvalidAluSourcePhase, I.generate(&source, data.ch, data.dictionary, &pool));
+}
+
+test "ALU weighted prefixes all52 columns and claims equal serial at1 4 16workers afterinputrelease" {
+    var data = try Data.initMode(true);
+    defer data.deinit();
+    var serial = try copy(a, data.source);
+    defer clear(&serial);
+    const expected = try serial.generateSerial(data.ch, data.dictionary);
+    for ([_]usize{ 1, 4, 16 }) |workers| {
+        var pool: engine.work_pool.WorkPool = .{};
+        try poolInit(&pool, workers);
+        defer pool.deinit();
+        var parallel = try copy(a, data.source);
+        defer clear(&parallel);
+        const actual = try I.generate(&parallel, data.ch, data.dictionary, &pool);
+        try std.testing.expectEqualDeep(expected, actual);
+        try std.testing.expectEqualSlices(M, serial.interaction, parallel.interaction);
+    }
 }

@@ -23,6 +23,7 @@ fn generateImpl(source: *S.Source, challenges: P.Challenges, dictionary: []const
     if (workers <= 1) return source.generateSerial(challenges, dictionary);
     if (source.interaction.len != 0 or source.metadata.len != n) return error.InvalidAluSourcePhase;
     if (dictionary.len != 65536 or source.range16_counts.len != 65536 or source.fact_count > n) return error.InvalidAluDictionary;
+    try Support.validateMetadata(source);
     try Support.validateDictionary(challenges, dictionary);
     var range_claim = Q.zero();
     for (source.range16_counts, dictionary) |count, inverse| {
@@ -106,7 +107,7 @@ const Job = struct {
                     Support.store(self.ctx.output, n, position, 40, sums[0]);
                     const inverse = self.scratch[CHUNK + i];
                     Support.store(self.ctx.output, n, position, 44, inverse);
-                    if (logical < self.ctx.fact_count) sums[1] = sums[1].sub(inverse);
+                    sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(metadata.multiplicity())));
                     Support.store(self.ctx.output, n, position, 48, sums[1]);
                 }
                 self.summaries[chunk] = sums;

@@ -16,9 +16,19 @@ const Q = E.Q;
 const CHUNK = 4096;
 pub const Fact = Ops.AluFact;
 pub const MainBuffers = struct { main: []M };
-pub const Metadata = struct { payload: [13]u16, range_indices: [20]u16 };
+pub const WeightedFacts = @import("alu_dedup.zig").WeightedFacts;
+pub const deduplicate = @import("alu_dedup.zig").deduplicate;
+/// Two u16 words preserve a four-byte increment without u32 alignment padding.
+pub const Metadata = struct {
+    payload: [13]u16,
+    range_indices: [20]u16,
+    multiplicity_words: [2]u16,
+    pub fn multiplicity(self: Metadata) u32 {
+        return @as(u32, self.multiplicity_words[0]) | (@as(u32, self.multiplicity_words[1]) << 16);
+    }
+};
 comptime {
-    std.debug.assert(@sizeOf(Metadata) == 66);
+    std.debug.assert(@sizeOf(Metadata) == 70);
 }
 pub const Mass = struct { fact_capacity: u64, range16_queries: u64 };
 pub fn massForLog(log: u32) !Mass {
@@ -83,6 +93,7 @@ pub const Source = struct {
     allocator: std.mem.Allocator,
     log_size: u32,
     fact_count: usize,
+    function_mass: u32,
     fixed: []M,
     main: []M,
     owns_main: bool,
@@ -90,19 +101,58 @@ pub const Source = struct {
     range16_counts: []u64,
     metadata: []Metadata,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
-        return initInternal(a, facts, log, null);
+        return initInternal(a, facts, null, log, null);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, facts, log, buffers);
+        return initInternal(a, facts, null, log, buffers);
     }
-    fn initInternal(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: ?MainBuffers) !Source {
+    pub fn initWeighted(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32) !Source {
+        return initInternal(a, facts, weights, log, null);
+    }
+    pub fn initWeightedWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32, buffers: MainBuffers) !Source {
+        return initInternal(a, facts, weights, log, buffers);
+    }
+    pub fn initDeduplicated(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
+        _ = try massForLog(log);
+        var grouped = try deduplicate(a, facts);
+        defer grouped.deinit();
+        return initWeighted(a, grouped.facts, grouped.weights, log);
+    }
+    pub fn initDeduplicatedWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers) !Source {
+        const mass = try massForLog(log);
+        const length = std.math.mul(usize, P.MAIN, @intCast(mass.fact_capacity)) catch return error.InvalidAluGeometry;
+        if (buffers.main.len != length) return error.InvalidAluMain;
+        if (overlaps(buffers.main, facts)) return error.OverlappingAluInputs;
+        var grouped = try deduplicate(a, facts);
+        defer grouped.deinit();
+        return initWeightedWithMainBuffers(a, grouped.facts, grouped.weights, log, buffers);
+    }
+    fn initInternal(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32, buffers: ?MainBuffers) !Source {
         const mass = try massForLog(log);
         const n: usize = @intCast(mass.fact_capacity);
         const length = std.math.mul(usize, P.MAIN, n) catch return error.InvalidAluGeometry;
         if (facts.len > n) return error.AluCapacityExceeded;
+        var function_mass: u64 = facts.len;
+        if (weights) |values| {
+            if (values.len != facts.len) return error.InvalidAluWeights;
+            function_mass = 0;
+            for (values) |value| {
+                if (value >= core.fields.m31.Modulus) return error.InvalidAluWeights;
+                function_mass = try std.math.add(u64, function_mass, value);
+                if (function_mass >= core.fields.m31.Modulus) return error.AluMultiplicityMassExceeded;
+            }
+        }
+        if (function_mass >= core.fields.m31.Modulus) return error.AluMultiplicityMassExceeded;
         if (buffers) |b| {
             if (b.main.len != length) return error.InvalidAluMain;
             if (overlaps(b.main, facts)) return error.OverlappingAluInputs;
+            if (weights) |values| {
+                const main_start = @intFromPtr(b.main.ptr);
+                const main_end = std.math.add(usize, main_start, std.mem.sliceAsBytes(b.main).len) catch return error.OverlappingAluInputs;
+                const weights_start = @intFromPtr(values.ptr);
+                const weights_end = std.math.add(usize, weights_start, std.mem.sliceAsBytes(values).len) catch return error.OverlappingAluInputs;
+                if (values.len != 0 and main_start < weights_end and weights_start < main_end) return error.OverlappingAluInputs;
+            }
         }
         for (facts) |f| if (@intFromEnum(f.op) > 9 or f.c != A.nativeResult(f.op, f.a, f.b)) return error.InvalidAluFact;
         const fixed = try fixedForLog(a, log);
@@ -122,9 +172,9 @@ pub const Source = struct {
         errdefer if (buffers == null) a.free(main);
         // No borrowed write occurs until all validation, allocation and helper
         // submissions succeed. A failed launch releases cancelled readers only.
-        const fill = NativeFill{ .main = main, .metadata = metadata, .inverses = inverses, .facts = facts, .log = log, .size = n };
+        const fill = NativeFill{ .main = main, .metadata = metadata, .inverses = inverses, .facts = facts, .weights = weights, .log = log, .size = n };
         try fill.run(a, counts, engine.work_pool.currentScopedPool());
-        return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .fixed = fixed, .main = main, .owns_main = buffers == null, .range16_counts = counts, .metadata = metadata };
+        return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .function_mass = @intCast(function_mass), .fixed = fixed, .main = main, .owns_main = buffers == null, .range16_counts = counts, .metadata = metadata };
     }
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
@@ -173,6 +223,7 @@ pub const Source = struct {
         const a = self.allocator;
         if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidAluSourcePhase;
         if (dictionary.len != 65536 or self.range16_counts.len != 65536 or self.fact_count > n) return error.InvalidAluDictionary;
+        try validateMetadataInternal(self);
         try validateDictionaryInternal(ch, dictionary);
         const output = try a.alloc(M, P.INTERACTION * n);
         errdefer a.free(output);
@@ -203,7 +254,7 @@ pub const Source = struct {
                 storeInternal(output, n, p, 40, prefix);
                 const inverse = scratch[CHUNK + i];
                 storeInternal(output, n, p, 44, inverse);
-                if (logical < self.fact_count) function_sum = function_sum.sub(inverse);
+                function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
                 storeInternal(output, n, p, 48, function_sum);
             }
         }
@@ -234,6 +285,16 @@ fn validateDictionaryInternal(ch: P.Challenges, dictionary: []const Q) !void {
         }
     }
 }
+fn validateMetadataInternal(source: *const Source) !void {
+    var mass: u64 = 0;
+    for (source.metadata, 0..) |meta, i| {
+        const value = meta.multiplicity();
+        if (value >= core.fields.m31.Modulus or (i >= source.fact_count and value != 0)) return error.InvalidAluMetadata;
+        mass += value;
+        if (mass >= core.fields.m31.Modulus) return error.InvalidAluMetadata;
+    }
+    if (mass != source.function_mass) return error.InvalidAluMetadata;
+}
 fn functionDenominatorsInternal(metadata: []const Metadata, output: []Q, ch: Bus.Challenges) void {
     std.debug.assert(metadata.len == output.len and metadata.len % E.LANES == 0);
     var start: usize = 0;
@@ -252,6 +313,7 @@ fn functionDenominatorsInternal(metadata: []const Metadata, output: []Q, ch: Bus
 pub const InteractionSupport = struct {
     pub const CHUNK_ROWS = CHUNK;
     pub const validateDictionary = validateDictionaryInternal;
+    pub const validateMetadata = validateMetadataInternal;
     pub const functionDenominators = functionDenominatorsInternal;
     pub const store = storeInternal;
 };
@@ -263,6 +325,7 @@ const NativeFill = struct {
     metadata: []Metadata,
     inverses: []const M,
     facts: []const Fact,
+    weights: ?[]const u32,
     log: u32,
     size: usize,
     fn rows(self: *const NativeFill, start: usize, end: usize, counts: []u64) void {
@@ -271,7 +334,9 @@ const NativeFill = struct {
             const row = nativeRow(if (i < self.facts.len) self.facts[i] else null, self.inverses);
             const values = P.rowToColumnsFor(M, row);
             for (values, 0..) |v, c| self.main[c * self.size + p] = v;
-            self.main[A.LOCAL_MAIN * self.size + p] = row.active;
+            const weight: u32 = if (i < self.facts.len) (if (self.weights) |weights| weights[i] else 1) else 0;
+            self.main[A.LOCAL_MAIN * self.size + p] = M.fromCanonical(weight);
+            self.metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
             for (row.payload, 0..) |v, c| self.metadata[i].payload[c] = @intCast(v.v);
             for (0..20) |j| {
                 const index = rangeIndex(&row, j);

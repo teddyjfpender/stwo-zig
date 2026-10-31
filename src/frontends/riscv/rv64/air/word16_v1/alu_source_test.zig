@@ -32,6 +32,13 @@ test "ALU physical native waves equal serial and cancelled submissions preserve 
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     const available = pool.availableWorkers();
+    const weights: [10]u32 = .{ 70000, 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    var weighted = try S.Source.initWeighted(a, &values, &weights, log);
+    defer weighted.deinit();
+    var weighted_serial = try S.Source.initWeighted(a, &values, &weights, 5);
+    defer weighted_serial.deinit();
+    // Logical row metadata is independent of native worker partitioning.
+    for (weighted_serial.metadata[0..values.len], weighted.metadata[0..values.len]) |x, y| try std.testing.expect(std.meta.eql(x, y));
     var parallel = try S.Source.init(a, &values, log);
     defer parallel.deinit();
     try std.testing.expectEqualSlices(M, serial.main, parallel.main);
@@ -44,6 +51,9 @@ test "ALU physical native waves equal serial and cancelled submissions preserve 
         S.testing.fail_after_helpers = failure;
         defer S.testing.fail_after_helpers = null;
         try std.testing.expectError(error.InjectedAluNativeSubmissionFailure, S.Source.initWithMainBuffers(a, &values, log, .{ .main = borrowed }));
+        for (borrowed) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
+        try std.testing.expectEqual(available, pool.availableWorkers());
+        try std.testing.expectError(error.InjectedAluNativeSubmissionFailure, S.Source.initWeightedWithMainBuffers(a, &values, &weights, log, .{ .main = borrowed }));
         for (borrowed) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
         try std.testing.expectEqual(available, pool.availableWorkers());
     }
@@ -97,7 +107,7 @@ test "ALUSource canonical native row cache equals Q authority all10 operations a
     var empty = try S.Source.init(a, &.{}, 5);
     defer empty.deinit();
     try std.testing.expectEqualSlices(M, source.fixed, empty.fixed);
-    try std.testing.expectEqual(@as(usize, 66), @sizeOf(S.Metadata));
+    try std.testing.expectEqual(@as(usize, 70), @sizeOf(S.Metadata));
     for (0..N) |i| {
         var row = if (i < values.len) try A.witness(values[i].op, values[i].a, values[i].b) else try A.witness(.add, 0, 0);
         if (i >= values.len) {
@@ -208,4 +218,131 @@ test "ALUSource allocation borrowed validation poles dictionary and late ledger 
     try std.testing.expectEqual(@as(usize, 0), base.interaction.len);
     base.range16_counts[0] -= 1;
     _ = try base.generate(challenge, range.dictionary);
+}
+
+test "ALU weighted source copies full u32 multiplicity and preserves unweighted range authority after main release" {
+    var values = facts();
+    var weights: [10]u32 = .{ 70000, 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    var source = try S.Source.initWeighted(a, &values, &weights, 5);
+    defer source.deinit();
+    const main = try a.dupe(M, source.main);
+    defer a.free(main);
+    var buffer: [P.MAIN * N]M = undefined;
+    var borrowed = try S.Source.initWeightedWithMainBuffers(a, &values, &weights, 5, .{ .main = &buffer });
+    defer borrowed.deinit();
+    try std.testing.expectEqualSlices(M, main, borrowed.main);
+    try std.testing.expectEqual(@as(u32, 70000), source.metadata[0].multiplicity());
+    try std.testing.expectEqual(@as(u32, 0), source.metadata[1].multiplicity());
+    var total: u64 = 0;
+    for (source.range16_counts) |n| total += n;
+    try std.testing.expectEqual(@as(u64, 20 * N), total);
+    var setup = try U.Setup.init(a);
+    defer setup.deinit();
+    var range = try U.Source.init(a, &setup, source.range16_counts);
+    defer range.deinit();
+    const challenge = ch();
+    const negative = try range.generate(challenge.range16);
+    const oracle = try reference(main, challenge);
+    defer a.free(oracle.data);
+    @memset(&values, .{ .op = .add, .a = 0, .b = 0, .c = 0 });
+    @memset(&weights, 0);
+    const transferred = try source.takeMainForCommit();
+    a.free(transferred);
+    borrowed.releaseMain();
+    @memset(&buffer, M.fromCanonical(17));
+    const claims = try source.generate(challenge, range.dictionary);
+    const other = try borrowed.generateSerial(challenge, range.dictionary);
+    try std.testing.expect(claims.function.eql(oracle.claims.function) and claims.range16.add(negative).isZero());
+    try std.testing.expect(claims.function.eql(other.function));
+    try std.testing.expectEqualSlices(M, oracle.data, source.interaction);
+    try std.testing.expectEqualSlices(M, oracle.data, borrowed.interaction);
+}
+
+test "ALU exact grouping is stable ordered full-word and shared by deduplicated owned borrowed constructors" {
+    const x = S.Fact{ .op = .eq, .a = 0, .b = 0, .c = 1 };
+    const y = S.Fact{ .op = .add, .a = 1, .b = 2, .c = 3 };
+    const z = S.Fact{ .op = .add, .a = 2, .b = 1, .c = 3 };
+    const inputs = [_]S.Fact{ x, y, x, z, y, x };
+    var grouped = try S.deduplicate(a, &inputs);
+    defer grouped.deinit();
+    try std.testing.expectEqualSlices(S.Fact, &.{ x, y, z }, grouped.facts);
+    try std.testing.expectEqualSlices(u32, &.{ 3, 2, 1 }, grouped.weights);
+    var direct = try S.Source.initWeighted(a, grouped.facts, grouped.weights, 5);
+    defer direct.deinit();
+    var grouped_source = try S.Source.initDeduplicated(a, &inputs, 5);
+    defer grouped_source.deinit();
+    var buffer: [P.MAIN * N]M = undefined;
+    var borrowed = try S.Source.initDeduplicatedWithMainBuffers(a, &inputs, 5, .{ .main = &buffer });
+    defer borrowed.deinit();
+    try std.testing.expectEqualSlices(M, direct.main, grouped_source.main);
+    try std.testing.expectEqualSlices(M, direct.main, borrowed.main);
+    try std.testing.expectEqual(@as(u32, inputs.len), grouped_source.function_mass);
+    try std.testing.expectEqual(@as(usize, 3), grouped_source.fact_count);
+}
+
+test "ALU weighted validation rejects characteristic mass weight shape alias and invalid fact before borrowed publication" {
+    const values = facts();
+    var buffer: [P.MAIN * N]M = @splat(M.fromCanonical(23));
+    const bound = core.fields.m31.Modulus;
+    var weights: [10]u32 = @splat(1);
+    try std.testing.expectError(error.InvalidAluWeights, S.Source.initWeightedWithMainBuffers(a, &values, weights[0..9], 5, .{ .main = &buffer }));
+    weights[0] = bound;
+    try std.testing.expectError(error.InvalidAluWeights, S.Source.initWeightedWithMainBuffers(a, &values, &weights, 5, .{ .main = &buffer }));
+    weights[0] = bound - 1;
+    try std.testing.expectError(error.AluMultiplicityMassExceeded, S.Source.initWeightedWithMainBuffers(a, &values, &weights, 5, .{ .main = &buffer }));
+    const aliased: [*]const u32 = @ptrCast(&buffer);
+    try std.testing.expectError(error.OverlappingAluInputs, S.Source.initWeightedWithMainBuffers(a, &values, aliased[0..10], 5, .{ .main = &buffer }));
+    var invalid = values;
+    invalid[0].c ^= 1 << 63;
+    try std.testing.expectError(error.InvalidAluFact, S.Source.initDeduplicatedWithMainBuffers(a, &invalid, 5, .{ .main = &buffer }));
+    for (buffer) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
+}
+
+test "ALU weighted and deduplicated exhaustive allocation failures preserve ownership" {
+    const values = facts();
+    var setup = try U.Setup.init(a);
+    defer setup.deinit();
+    var base = try S.Source.init(a, &values, 5);
+    defer base.deinit();
+    var range = try U.Source.init(a, &setup, base.range16_counts);
+    defer range.deinit();
+    const challenge = ch();
+    _ = try range.generate(challenge.range16);
+    const Runner = struct {
+        fn run(allocator: std.mem.Allocator, inputs: []const S.Fact, c: P.Challenges, dictionary: []const Q) !void {
+            var source = try S.Source.initDeduplicated(allocator, inputs, 5);
+            defer source.deinit();
+            source.releaseMain();
+            _ = try source.generate(c, dictionary);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Runner.run, .{ &values, challenge, range.dictionary });
+    var buffer: [P.MAIN * N]M = @splat(M.fromCanonical(23));
+    for (0..5) |failure| {
+        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = failure });
+        try std.testing.expectError(error.OutOfMemory, S.Source.initWeightedWithMainBuffers(failing.allocator(), &values, &@as([10]u32, @splat(3)), 5, .{ .main = &buffer }));
+        for (buffer) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
+    }
+}
+
+test "ALU weighted metadata corruption and poles publish no interaction and remain retryable" {
+    const values = facts();
+    var source = try S.Source.initWeighted(a, &values, &@as([10]u32, @splat(7)), 5);
+    defer source.deinit();
+    source.releaseMain();
+    var setup = try U.Setup.init(a);
+    defer setup.deinit();
+    var range = try U.Source.init(a, &setup, source.range16_counts);
+    defer range.deinit();
+    const challenge = ch();
+    _ = try range.generate(challenge.range16);
+    source.metadata[0].multiplicity_words[0] += 1;
+    try std.testing.expectError(error.InvalidAluMetadata, source.generate(challenge, range.dictionary));
+    source.metadata[0].multiplicity_words[0] -= 1;
+    var pole = challenge;
+    pole.function.offset = Q.zero();
+    pole.function.coefficients = @splat(Q.zero());
+    try std.testing.expectError(error.DivisionByZero, source.generate(pole, range.dictionary));
+    try std.testing.expectEqual(@as(usize, 0), source.interaction.len);
+    _ = try source.generate(challenge, range.dictionary);
 }
