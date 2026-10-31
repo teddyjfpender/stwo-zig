@@ -1,0 +1,302 @@
+{
+  "schema": "rv64-distributed-binary-execution-qualification-v1",
+  "scope": "experimental finite RV64 AND/OR/XOR register-only interval; two CPU shards and shared BINARY provider",
+  "actual_native_retirements": 6,
+  "cpu_execution_verified": true,
+  "supported_instructions": [
+    "AND",
+    "OR",
+    "XOR"
+  ],
+  "ram_bound": false,
+  "ethereum_bound": false,
+  "general_rv64_bound": false,
+  "production_activated": false,
+  "producer_processes": 1,
+  "retained_worker_owners": 3,
+  "cross_process_producer_fanout": false,
+  "fresh_receiver_processes": 1,
+  "clock_profile": "reset-v1",
+  "authority": {
+    "genesis": "independently expected PC and all32 register values",
+    "coverage": "independently expected6 steps; exact adjacent spans physically bound by per-shard prefix counts",
+    "intermediate": "PC and all32 register values must match; local clocks reset0, not carried",
+    "terminal": "independently expected PC and all32 final register values including outputx5",
+    "immutable": "expected raw program/PC ROM and trusted per-worker geometry/work IDs",
+    "local_closures": [
+      "REG+physical32-row endpoint component",
+      "ROM",
+      "U16",
+      "U8"
+    ],
+    "shared_closure": "FUNCTION only, after every actual child AIR/FRI proof verifies"
+  },
+  "configuration_per_proof": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup_factor": 1,
+    "fold_step": 1
+  },
+  "aggregate_96_bit_union_security_claimed": false,
+  "gates": {
+    "release_safe": {
+      "passed": true,
+      "tests": 10,
+      "includes_exhaustive_decode_allocation_failures": true
+    },
+    "release_fast": {
+      "passed": true,
+      "tests": 10
+    },
+    "named_release_safe_target": {
+      "passed": true,
+      "command": "zig build test-riscv64-distributed-execution -Doptimize=ReleaseSafe"
+    },
+    "fresh_process_receiver": {
+      "accepted_register_only_binary_execution": true,
+      "instructions": 6,
+      "cpu_shards": 2,
+      "verified_physical_proofs": 3,
+      "local_reg_rom_u16_u8_closed_each_shard": true,
+      "shared_function_closed": true,
+      "genesis_adjacency_terminal_output_checked": true,
+      "clock_profile": "reset-v1",
+      "ram_bound": false,
+      "ethereum_bound": false,
+      "general_rv64_bound": false
+    },
+    "fresh_process_attacks": [
+      {
+        "attack": "balanced-function",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: OodsNotMatching"
+      },
+      {
+        "attack": "cross-shard-register-debt",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: UnclosedThinCpuLocalClaims"
+      },
+      {
+        "attack": "balanced-local-register",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: OodsNotMatching"
+      },
+      {
+        "attack": "coverage-gap",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedExecutionCoverageGap"
+      },
+      {
+        "attack": "joint-middle-snapshot",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedInventoryMismatch"
+      },
+      {
+        "attack": "terminal-output",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedExecutionTerminalMismatch"
+      },
+      {
+        "attack": "high64-genesis",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedExecutionGenesisMismatch"
+      },
+      {
+        "attack": "geometry",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: InvalidDistributedCpuGeometry"
+      },
+      {
+        "attack": "proof-body",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: ProofOfWork"
+      },
+      {
+        "attack": "duplicate-cpu-proof",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: Stage1ProofRootMismatch"
+      },
+      {
+        "attack": "missing-cpu-proof",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: FileNotFound"
+      },
+      {
+        "attack": "manifest-root",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedManifestChanged"
+      }
+    ],
+    "immutable_fixed_tree_reuse": {
+      "same_geometry_shared_owner": true,
+      "per_worker_separate_lease_scheme": true,
+      "all_three_proofs_and_manifest_byte_identical_to_fresh_fixed_reference_snapshot": true,
+      "standalone_owner_control_report": "vectors/reports/rv64-ethereum-20261030/thin-word16-binary-cpu-v1.json"
+    }
+  },
+  "physical_layout": {
+    "cpu_each": {
+      "cpu_log": 5,
+      "cpu_main": 44,
+      "cpu_interaction": 56,
+      "cpu_constraints": 61,
+      "local_components": 5,
+      "rom_log": 5,
+      "boundary_log": 5,
+      "range16_log": 16,
+      "range8_log": 8
+    },
+    "shared_binary": {
+      "log": 5,
+      "main": 42,
+      "interaction": 28,
+      "and_log": 16
+    },
+    "physical_components": 12,
+    "physical_proofs": 3,
+    "committed_source_cells_including_fixed": 2509824,
+    "committed_source_bytes_including_fixed": 10039296,
+    "trace_oods_masks": 572,
+    "actual_positive_function_weight_sum": 6,
+    "conservative_manifest_positive_capacity": 131072,
+    "local_and_positive_mass_including_padding": 256,
+    "model_warning": "Tiny fixture is dominated by local fixed range tables; these counts are not a full-ISA or whole-Ethereum cost comparison."
+  },
+  "producer": {
+    "scope": "experimental-register-only-binary-reset-v1",
+    "instructions": 6,
+    "cpu_shards": 2,
+    "shared_binary_provider": 1,
+    "physical_components": 12,
+    "physical_proofs": 3,
+    "queries_per_proof": 70,
+    "pow_bits_per_proof": 26,
+    "ram_bound": false,
+    "ethereum_bound": false,
+    "general_rv64_bound": false,
+    "complete_manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0",
+    "actual_function_mass": 6,
+    "conservative_manifest_positive_capacity": 131072,
+    "cpu0_bytes": 276128,
+    "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+    "cpu1_bytes": 261632,
+    "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+    "binary_bytes": 227856,
+    "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+  },
+  "artifacts": {
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/binary.bin": {
+      "bytes": 227856,
+      "sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/boundaries.bin": {
+      "bytes": 1360,
+      "sha256": "cc552050847c1b991f5aaaf45e052a0ad2b16b9db9d49ad81d758ca4feb4f586"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/claims.json": {
+      "bytes": 2753,
+      "sha256": "7e6ece8cb6676a4f3b7351bb3088e3eff21aefcb63e21315aec608aa73f5e9eb"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/cpu-0.bin": {
+      "bytes": 276128,
+      "sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/cpu-1.bin": {
+      "bytes": 261632,
+      "sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/fresh-process-attacks.json": {
+      "bytes": 1588,
+      "sha256": "213b8fe483d4b88bf7d99c7a0abebc5f96715b096015e42393b295673d4c5003"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/manifest.bin": {
+      "bytes": 1664,
+      "sha256": "a4e79f031861018dfdc4c53b382abbbdd1e7a3edc0c42581e00f632fc066f868"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/producer.json": {
+      "bytes": 742,
+      "sha256": "db564e1bdf9664b676118ae69b67ff4055cf5ca87b10a38656c444859196c2fe"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/receiver.json": {
+      "bytes": 330,
+      "sha256": "41f32e941dfacd4e34a3f3f60a418fa5e24c12c1c36ddb39bc6c2aecf9fae420"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/rv64-distributed-execution-fast.log": {
+      "bytes": 1386,
+      "sha256": "fc3834589d7312b75670d4206f90a2c4ef13b4807975c9cf8480b2180adabc26"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/rv64-distributed-execution-named-safe.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/rv64-distributed-execution-produce-final.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/rv64-distributed-execution-receive-final.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-binary-execution-v1/rv64-distributed-execution-safe.log": {
+      "bytes": 1386,
+      "sha256": "fc3834589d7312b75670d4206f90a2c4ef13b4807975c9cf8480b2180adabc26"
+    }
+  },
+  "compiled_tool": {
+    "path": "/tmp/rv64-distributed-execution-fixture",
+    "sha256": "56e553122829f61ccfff4701897e871cceff2e068426cfbd93963ca5355e81cb"
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/aggregate.zig": "cfabeddb61156b88412e955d633227483535a032afff023c72b1243f2b9b2c7b",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/aggregate_test.zig": "850d0f961638a69a2ecc4b7130e92165f08e8f168504457b6f58eff2a594d8e3",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/binary_worker.zig": "7aeed259a3cb73af19f858dce39c13ad999d2d2213525bf1159fe222688683d9",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/binary_worker_test.zig": "b72fa18d2be3cb5e4435e26e19f5e00de72fcb1a832db3e8d60fc3bc727ede98",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/native_fixture.zig": "a68b1c1b1e5c6ee4b415b6097100e6e8daf9e02f762923c89788d8844a756295",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/public.zig": "c93afb079b66a5371de6f1fc1fc9569a6af2df82ecf5cf0db3af262127c42562",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/public_test.zig": "386a221aca53bd49176dd0eea32876797792c518612dec9a22e3710f4a8b8efb",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/receipt.zig": "1c5f1b26b4ef07e378c9ff7f6439a5f0c713f9f77160d86c128eb4077d505b1c",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_fixture_main.zig": "1c2477f6abaf29a540d516f685686574da6bf8b90d134e711f25914ee3beea79",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig": "22a6561648a15a3a97f0dea2afe08bd4d9108186966a4151e04fd4ee363c38eb",
+    "src/frontends/riscv/rv64/air/word16_cpu/boundary.zig": "8dc73bbddfdf94a9ca1b9967ef01b8902dceb60e224a5e518bc3fac446efc79c",
+    "src/frontends/riscv/rv64/air/word16_cpu/boundary_trace.zig": "c06d83a308666d7c94b5e85932668d28b56a7f5aa108798fb689fd0a3ff07898",
+    "src/frontends/riscv/rv64/air/word16_cpu/component.zig": "6d5050a291d683eb66e85814b715af894f2da0192c390ac88e15b42191762b81",
+    "src/frontends/riscv/rv64/air/word16_cpu/equations.zig": "f472f7507dab43d990b1ed2a4e7c7c706c398519896292556db7bf043bad13a0",
+    "src/frontends/riscv/rv64/air/word16_cpu/fixed.zig": "44995cd686317ad995cec05dd114be6187ceaccf6f045ca7bd37fa6b61451dfe",
+    "src/frontends/riscv/rv64/air/word16_cpu/interaction.zig": "3b581c889ea16c308c4908fde7c3bd98228849d2b3ea124d4e92d575bca5ea5c",
+    "src/frontends/riscv/rv64/air/word16_cpu/layout.zig": "54ba7dda85ec4825abe7c3f624247ced7f171b0db979fabdf52ea0acbe6ae98a",
+    "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig": "8aa97c415066489c674781d2750e75e255bd3e4dda39c4e5a806afb2b0db1272",
+    "src/frontends/riscv/rv64/air/word16_cpu/packed_rows.zig": "0e66e01d75d75b02d2a79896bd256317f5c6b846ad4df3e0be3f1ce52ba2e7bc",
+    "src/frontends/riscv/rv64/air/word16_cpu/public.zig": "9341e2f2cffe9e56ed0e35d0f4bb3968f65bc51089297b03ee4a14646f9bf15a",
+    "src/frontends/riscv/rv64/air/word16_cpu/rom.zig": "899e89c8c5cc178527c31e3ebc6ec3b4fc667070f1c94a852f1938dc641e7213",
+    "src/frontends/riscv/rv64/air/word16_cpu/table.zig": "0da888a389e5098c84b41db1ecfadfa44989fc02f2abd587ffb6e5d4d0c24b13",
+    "src/frontends/riscv/rv64/air/word16_cpu/table_trace.zig": "6a6443ea70a944ab73d5ed6147f2c1d1bc32169091bce5cb0f72a0fa1129d042",
+    "src/frontends/riscv/rv64/air/word16_cpu/trace.zig": "582d012bb93c399d4fde63d924333c0d9ebc49f953809bad04577c06318b5f9e",
+    "src/integrations/riscv_cpu/word16/cpu.zig": "9ba16d06a62b09a64fab2756810dcd7d083013809889fc12ac2c976a82616f80",
+    "src/integrations/riscv_cpu/word16/cpu_components.zig": "46d7b636e511197ee81f97c4ddaaeee05b1baa68277adddf494652a50a83263b",
+    "src/integrations/riscv_cpu/word16/cpu_materials.zig": "544e3f45f6de06e39f44cc94781a023010b4da30bd8171d01cdb274dab9c9c5e",
+    "src/integrations/riscv_cpu/word16/cpu_protocol.zig": "3ddb9d054a14ebf5be12e1fc7749ded65e100ee0d4023bc010da46ca612a2932",
+    "src/integrations/riscv_cpu/word16/cpu_sources.zig": "fff36dfbf475ba1f249f4a6d59901f02ec7ccf78d8b4b3404a6269eb701f72cf",
+    "src/integrations/riscv_cpu/word16/cpu_stage.zig": "b565250bcddbe9d9baffa5ed4412dfa439fa31b89eaa8e288a5d1a122eff7bc4",
+    "src/integrations/riscv_cpu/word16/cpu_verify.zig": "2a4276406211b8658188ceda727530d3ac075e9aebcf24432cb6a43059d8bc4d"
+  },
+  "existing_foundation": "a6016a9a7",
+  "remaining": [
+    "RAM/global init/teardown/origin/terminal memory unsupported",
+    "ALU/SHIFT/load-store/syscalls/full ELF runtime unsupported",
+    "Cross-process producer scheduling/session transport not implemented",
+    "Three q70/P26 leaf proofs need explicit aggregate security-union budgeting before a production96-bit claim",
+    "Root-chain Ethereum receiver remains independent qualified control"
+  ]
+}
