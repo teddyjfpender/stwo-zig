@@ -228,8 +228,9 @@ on every field. The new `heap_start` is 33,648,416.
 | round 1: lean recovery | 149,306,899 | 11,496 / 9,768 |
 | round 2: memory functions | 138,707,126 | 11,496 / 9,768 |
 | round 3: inversion, Keccak absorb | 126,471,926 | 11,496 / 9,768 |
+| round 4: EVM and MPT library paths | 107,513,360 | 11,496 / 9,768 |
 
-Total: −40.8% instructions and −53% secp256k1 service calls for the same
+Total: −49.7% instructions and −53% secp256k1 service calls for the same
 block, same 43-byte output, with no change to the execution profile, ECALL
 tags, packet layouts, AIR, prover or verifier.
 
@@ -239,3 +240,33 @@ compression 11.2M (9%, software), the revm mainnet handler 8.7M, zeth-mpt RLP
 decode 8.5M, revm legacy bytecode analysis 6.8M, and the secp256k1 square root
 in point decompression 4.5M. The square root and SHA-256 are host-hint or
 service candidates; the struct moves need an upstream zeth-mpt change.
+
+## Round 4: EVM interpreter and MPT library paths
+
+Three library crates are vendored and patched (`vendor/revm-interpreter`,
+`vendor/revm-bytecode`, `vendor/zeth-mpt`; the first two from crates.io
+42.0.0, the third from the pinned stateless revision with its
+workspace-inherited manifest made concrete). Each change is a few lines:
+
+1. `Stack::exchange` swaps the four limbs explicitly. `ptr::swap_nonoverlapping`
+   lowers to byte moves on this target, so every SWAPn cost about 145
+   instructions; it is now about 20. All SWAPn: 6.3M → 1.3M.
+2. The jumpdest scan uses a 256-entry advance table instead of a compare chain:
+   6.8M → 5.9M.
+3. Branch nodes decode their children through a digest fast path. A witness
+   child is almost always a bare 32-byte digest; the generic path decoded it
+   recursively into a 176-byte temporary and moved it twice into its box
+   (four memcpy calls per child, 37,651 children). Digest children are now
+   constructed inside their allocation and the recursive decode runs only for
+   embedded nodes: node decodes 41,509 → 3,858, memcpy 28.3M → 15.3M.
+
+| Measure | round 3 | round 4 |
+| --- | ---: | ---: |
+| Instructions | 126,471,926 | 107,513,360 (−15.0%) |
+| memcpy | 28.2M (306,510 calls) | 15.3M (155,906 calls) |
+| Stack SWAPn | 6.3M | 1.3M |
+| zeth-mpt node decode | 8.5M | 3.9M |
+| ELF SHA-256 | `5503ce33…` | `e5e27339…` (see `round4/build-report.json`) |
+
+Receipts in `round4/`; the services oracle agrees with the native executor on
+every field. The new `heap_start` is 33,648,672.

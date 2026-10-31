@@ -1,0 +1,295 @@
+// Copyright 2025 RISC Zero, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use super::{
+    children::{Children, Entry},
+    memoize::Memoization,
+    nibbles::NibbleSlice,
+};
+use alloc::boxed::Box;
+use alloy_primitives::{Bytes, B256};
+use alloy_trie::Nibbles;
+use core::mem;
+
+pub(super) type Child<M> = Box<Node<M>>;
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(bound(serialize = "", deserialize = "M: Default"))
+)]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize),
+    rkyv(bytecheck(bounds(__C: rkyv::validation::ArchiveContext))),
+    rkyv(serialize_bounds(__S: rkyv::ser::Writer + rkyv::ser::Allocator, __S::Error: rkyv::rancor::Source)),
+    rkyv(deserialize_bounds(__D::Error: rkyv::rancor::Source))
+)]
+pub(super) enum Node<M> {
+    #[default]
+    Null,
+    Leaf(
+        #[cfg_attr(feature = "rkyv", rkyv(with = super::rkyv::NibblesDef))] Nibbles,
+        #[cfg_attr(feature = "rkyv", rkyv(with = super::rkyv::BytesDef))] Bytes,
+        #[cfg_attr(feature = "serde", serde(skip))]
+        #[cfg_attr(feature = "rkyv", rkyv(with = rkyv::with::Skip))]
+        M,
+    ),
+    Extension(
+        #[cfg_attr(feature = "rkyv", rkyv(with = super::rkyv::NibblesDef))] Nibbles,
+        #[cfg_attr(feature = "rkyv", rkyv(omit_bounds))] Child<M>,
+        #[cfg_attr(feature = "serde", serde(skip))]
+        #[cfg_attr(feature = "rkyv", rkyv(with = rkyv::with::Skip))]
+        M,
+    ),
+    Branch(
+        Children<M>,
+        #[cfg_attr(feature = "serde", serde(skip))]
+        #[cfg_attr(feature = "rkyv", rkyv(with = rkyv::with::Skip))]
+        M,
+    ),
+    Digest(#[cfg_attr(feature = "rkyv", rkyv(with = super::rkyv::B256Def))] B256),
+}
+
+impl<M> PartialEq for Node<M> {
+    /// Equality between nodes ignores the cache.
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Node::Null, Node::Null) => true,
+            (Node::Leaf(n1, b1, _), Node::Leaf(n2, b2, _)) => n1 == n2 && b1 == b2,
+            (Node::Extension(n1, c1, _), Node::Extension(n2, c2, _)) => n1 == n2 && c1 == c2,
+            (Node::Branch(c1, _), Node::Branch(c2, _)) => c1 == c2,
+            (Node::Digest(d1), Node::Digest(d2)) => d1 == d2,
+            _ => false, // different variants are not equal
+        }
+    }
+}
+
+impl<M> Eq for Node<M> {}
+
+impl<M: Memoization> Node<M> {
+    /// Retrieves the value associated with a given key.
+    pub(super) fn get(&self, key: NibbleSlice) -> alloy_rlp::Result<Option<&Bytes>> {
+        Ok(match self {
+            Node::Null => None,
+            Node::Leaf(prefix, value, _) if prefix == key.as_nibbles() => Some(value),
+            Node::Leaf(..) => None,
+            Node::Extension(prefix, child, _) => match key.strip_prefix(prefix) {
+                Some(tail) => return child.get(tail),
+                None => None,
+            },
+            Node::Branch(children, _) => match key.split_first() {
+                Some((nib, tail)) => {
+                    // SAFETY: `key` is a `NibbleSlice` and thus only contains values < 0xf
+                    let child = unsafe { children.get_unchecked(nib) };
+                    match child {
+                        Some(node) => return node.get(tail),
+                        None => None,
+                    }
+                }
+                None => None, // branch nodes don't have values in our MPT version
+            },
+            // The witness omitted this node
+            Node::Digest(_) => return Err(alloy_rlp::Error::Custom("MPT: unresolved node access")),
+        })
+    }
+
+    /// Inserts a key-value pair into the trie.
+    pub(super) fn insert(&mut self, key: NibbleSlice, value: Bytes) {
+        assert!(!value.is_empty());
+        match self {
+            Node::Null => {
+                *self = Node::Leaf(key.into(), value, M::default());
+            }
+            Node::Leaf(prefix, leaf_val, cache) => {
+                let (common, key_rem, prefix_rem) = key.split_common_prefix(*prefix);
+                if common.len() == prefix.len() && common.len() == key.len() {
+                    *leaf_val = value;
+                    cache.clear();
+                    return;
+                } else if common.len() == prefix.len() || common.len() == key.len() {
+                    panic!("MPT: Value in branch");
+                }
+
+                let mut children = Children::default();
+                match prefix_rem.split_first() {
+                    Some((nib, tail)) => {
+                        children.insert(
+                            nib,
+                            Node::Leaf(tail.into(), mem::take(leaf_val), M::default()).into(),
+                        );
+                    }
+                    None => unreachable!(), // mid < prefix.len()
+                }
+                match key_rem.split_first() {
+                    Some((nib, tail)) => {
+                        children.insert(nib, Node::Leaf(tail.into(), value, M::default()).into())
+                    }
+                    None => unreachable!(), // mid < key.len()
+                };
+                let branch = Node::Branch(children, M::default());
+
+                *self = if common.is_empty() {
+                    branch
+                } else {
+                    Node::Extension(common.into(), branch.into(), M::default())
+                };
+            }
+            Node::Extension(prefix, child, cache) => {
+                let (common, key_rem, prefix_rem) = key.split_common_prefix(*prefix);
+                if common.len() == prefix.len() {
+                    child.insert(key_rem, value);
+                    cache.clear();
+                    return;
+                } else if common.len() == key.len() {
+                    panic!("MPT: Value in branch");
+                }
+
+                let mut children = Children::default();
+                let (nib, tail) = prefix_rem.split_first().expect("mid < prefix.len()");
+                if tail.is_empty() {
+                    children.insert(nib, mem::take(child));
+                } else {
+                    children.insert(
+                        nib,
+                        Node::Extension(tail.into(), mem::take(child), M::default()).into(),
+                    );
+                }
+                match key_rem.split_first() {
+                    Some((nib, tail)) => {
+                        children.insert(nib, Node::Leaf(tail.into(), value, M::default()).into())
+                    }
+                    None => unreachable!(), // mid < key.len()
+                };
+                let branch = Node::Branch(children, M::default());
+
+                *self = if common.is_empty() {
+                    branch
+                } else {
+                    Node::Extension(common.into(), branch.into(), M::default())
+                };
+            }
+            Node::Branch(children, cache) => match key.split_first() {
+                Some((nib, tail)) => match children.entry(nib) {
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().insert(tail, value);
+                        cache.clear();
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(Node::Leaf(tail.into(), value, M::default()).into());
+                        cache.clear();
+                    }
+                },
+                None => panic!("MPT: Value in branch"),
+            },
+            Node::Digest(_) => panic!("MPT: Unresolved node access"),
+        }
+    }
+
+    /// Removes a key-value pair from the trie.
+    ///
+    /// Returns an error when a node required to complete the removal was omitted from the witness
+    /// (represented as a digest) rather than panicking, so the validator can reject the block.
+    pub(super) fn remove(&mut self, key: NibbleSlice) -> alloy_rlp::Result<bool> {
+        Ok(match self {
+            Node::Null => false,
+            Node::Leaf(prefix, ..) if prefix == key.as_nibbles() => {
+                *self = Node::Null;
+                true
+            }
+            Node::Leaf(..) => false,
+            Node::Extension(prefix, child, cache) => {
+                let removed = match key.strip_prefix(prefix) {
+                    Some(tail) => child.remove(tail)?,
+                    None => false,
+                };
+                if !removed {
+                    return Ok(false);
+                }
+                cache.clear();
+
+                // an extension always points to a branch, if this has changed because of the remove
+                match **child {
+                    Node::Null => *self = Node::Null,
+                    Node::Leaf(ref extension, ref mut value, _) => {
+                        prefix.extend(extension);
+                        *self = Node::Leaf(mem::take(prefix), mem::take(value), M::default())
+                    }
+                    Node::Extension(ref extension, ref mut child, _) => {
+                        prefix.extend(extension);
+                        *self = Node::Extension(mem::take(prefix), mem::take(child), M::default())
+                    }
+                    Node::Branch(..) => {}
+                    Node::Digest(_) => unreachable!(), // child.remove() would have errored
+                }
+                true
+            }
+            Node::Branch(children, cache) => {
+                match key.split_first() {
+                    Some((nib, tail)) => match children.entry(nib) {
+                        Entry::Occupied(mut entry) => {
+                            if !entry.get_mut().remove(tail)? {
+                                return Ok(false);
+                            }
+                        }
+                        Entry::Vacant(_) => return Ok(false),
+                    },
+                    None => return Ok(false), // branch nodes don't have values in our MPT version
+                };
+                cache.clear();
+
+                if let Some((nib, only_child)) = children.take_single_child() {
+                    match *only_child {
+                        // if the only child is a leaf, prepend the corresponding nib to it
+                        Node::Leaf(extension, value, _) => {
+                            let mut prefix = Nibbles::from_nibbles_unchecked([nib]);
+                            prefix.extend(&extension);
+                            *self = Node::Leaf(prefix, value, M::default());
+                        }
+                        // if the only child is an extension, prepend the corresponding nib to it
+                        Node::Extension(extension, child, ..) => {
+                            let mut prefix = Nibbles::from_nibbles_unchecked([nib]);
+                            prefix.extend(&extension);
+                            *self = Node::Extension(prefix, child, M::default());
+                        }
+                        // if the only child is a branch, convert to an extension
+                        Node::Branch(..) => {
+                            let prefix = Nibbles::from_nibbles_unchecked([nib]);
+                            *self = Node::Extension(prefix, only_child, M::default());
+                        }
+                        Node::Digest(_) => {
+                            return Err(alloy_rlp::Error::Custom("MPT: unresolved node access"))
+                        }
+                        Node::Null => unreachable!(), // children does not contain any Node::Null
+                    }
+                }
+                true
+            }
+            Node::Digest(_) => return Err(alloy_rlp::Error::Custom("MPT: unresolved node access")),
+        })
+    }
+
+    /// Returns the number of full nodes in the trie.
+    pub(super) fn size(&self) -> usize {
+        match self {
+            Node::Null | Node::Digest(_) => 0,
+            Node::Leaf(..) => 1,
+            Node::Extension(_, child, ..) => 1 + child.size(),
+            Node::Branch(children, ..) => {
+                1 + children.iter().filter_map(Option::as_deref).map(Node::size).sum::<usize>()
+            }
+        }
+    }
+}

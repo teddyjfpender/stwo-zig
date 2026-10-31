@@ -10,6 +10,7 @@ use {
 };
 
 #[cfg(feature = "verifying")]
+#[cfg_attr(feature = "stwo-skip-redundant-recovery-verify", allow(unused_imports))]
 use {
     crate::{hazmat::VerifyPrimitive, VerifyingKey},
     elliptic_curve::{
