@@ -21,7 +21,7 @@ pub fn main() !void {
     // Keep the uncached path available for paired, fresh-process measurements.
     const raw_args = try std.process.argsAlloc(std.heap.smp_allocator);
     defer std.process.argsFree(std.heap.smp_allocator, raw_args);
-    const allocator_options = try allocatorOptions(raw_args);
+    const allocator_options = try operationalOptions(raw_args);
     const args = raw_args[0..allocator_options.argument_count];
     var recycler = Recycler.init(std.heap.smp_allocator, allocator_options.cap_bytes);
     defer recycler.deinit();
@@ -97,17 +97,17 @@ pub fn main() !void {
     const sources_start = timer.read();
     var source_scope = try Profile.StageScope.begin(&recorder, "provider_source_construction", "Independent provider witnesses from retained native facts");
     defer source_scope.end();
-    var source = try Sources.Source.fromPrepared(a, &setup.materials, Driver.admission(&image).image, &prepared);
+    var source = try Sources.Source.fromPreparedProfiled(a, &setup.materials, Driver.admission(&image).image, &prepared, &recorder);
     var owns_source = true;
     defer if (owns_source) source.deinit();
     source_scope.end();
     const provider_source_ns = timer.read() - sources_start;
     owns_source = false; // provePrepared consumes on success AND failure.
-    var encoded = try Execution.provePrepared(a, &setup, Driver.admission(&image), source, &recorder);
+    var encoded = try Execution.provePreparedWithOptions(a, &setup, Driver.admission(&image), source, &recorder, .{ .main_batch_columns = allocator_options.commit_batch_columns, .interaction_batch_columns = allocator_options.commit_batch_columns });
     defer encoded.deinit(a);
     const prove_ns = timer.read() - prove_start - setup_ns;
     const verify_start = timer.read();
-    try Execution.verify(a, &setup, Driver.admission(&image), encoded);
+    try Execution.verifyProfiled(a, &setup, Driver.admission(&image), encoded, &recorder);
     const verify_ns = timer.read() - verify_start;
     try Driver.publish(a, dir, &setup, encoded);
     var stages = try recorder.snapshot(a);
@@ -115,7 +115,7 @@ pub fn main() !void {
     try Driver.writeJson(a, dir, "stages.json", stages);
     const cell_bytes = (try dir.statFile("cells.bin")).size;
     const statement_bytes = (try dir.statFile("statement.json")).size;
-    const report = .{ .interaction_page_preparation = !std.process.hasEnvVarConstant("STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION"), .allocator = .{ .policy = if (allocator_options.cap_bytes == 0) "smp" else "large_block_recycler", .cache_cap_bytes = allocator_options.cap_bytes, .stats = recycler.stats() }, .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
+    const report = .{ .commit_batch_columns = allocator_options.commit_batch_columns, .interaction_page_preparation = !std.process.hasEnvVarConstant("STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION"), .allocator = .{ .policy = if (allocator_options.cap_bytes == 0) "smp" else "large_block_recycler", .cache_cap_bytes = allocator_options.cap_bytes, .stats = recycler.stats() }, .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
     try Driver.writeJson(a, dir, "report.json", report);
     try stdout(a, report);
 }
@@ -126,13 +126,30 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
     try std.fs.File.stdout().writeAll("\n");
 }
 
-/// A final operational option preserves all existing positional invocations.
-/// Zero bypasses the wrapper entirely; the cap bounds free cached blocks only.
-fn allocatorOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize } {
-    const prefix = "--recycler-cap-mib=";
-    if (args.len > 1 and std.mem.startsWith(u8, args[args.len - 1], prefix)) {
-        const mib = try std.fmt.parseUnsigned(usize, args[args.len - 1][prefix.len..], 10);
-        return .{ .argument_count = args.len - 1, .cap_bytes = try std.math.mul(usize, mib, 1024 * 1024) };
+/// Final operational options preserve existing positional invocations.
+/// Neither cache retention nor streaming batches change the proof statement.
+fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32 } {
+    var count = args.len;
+    var cap_bytes: usize = 0;
+    var batch_columns: u32 = 8;
+    var saw_cap = false;
+    var saw_batch = false;
+    while (count > 1) {
+        const option = args[count - 1];
+        const cache_prefix = "--recycler-cap-mib=";
+        const batch_prefix = "--commit-batch-columns=";
+        if (std.mem.startsWith(u8, option, cache_prefix)) {
+            if (saw_cap) return error.DuplicateOperationalOption;
+            saw_cap = true;
+            const mib = try std.fmt.parseUnsigned(usize, option[cache_prefix.len..], 10);
+            cap_bytes = try std.math.mul(usize, mib, 1024 * 1024);
+        } else if (std.mem.startsWith(u8, option, batch_prefix)) {
+            if (saw_batch) return error.DuplicateOperationalOption;
+            saw_batch = true;
+            batch_columns = try std.fmt.parseUnsigned(u32, option[batch_prefix.len..], 10);
+            try (Execution.ProveOptions{ .main_batch_columns = batch_columns, .interaction_batch_columns = batch_columns }).validate();
+        } else break;
+        count -= 1;
     }
-    return .{ .argument_count = args.len, .cap_bytes = 0 };
+    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns };
 }
