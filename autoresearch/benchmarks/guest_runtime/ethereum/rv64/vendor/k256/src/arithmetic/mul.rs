@@ -91,6 +91,17 @@ impl WordTable {
         }
         point
     }
+
+    /// acc += x * p without copying the table entry for positive digits.
+    fn add_digit(&self, acc: &mut words::Point, x: i8) {
+        debug_assert!(x != 0 && (-8..=8).contains(&x));
+        if x > 0 {
+            words::add_assign(acc, &self.0[usize::from(x.unsigned_abs()) - 1]);
+        } else {
+            let entry = self.select_vartime(x);
+            words::add_assign(acc, &entry);
+        }
+    }
 }
 
 /// GLV double-and-add over service word packets. Identical digit schedule to
@@ -141,11 +152,10 @@ fn lincomb_words<const N: usize>(xks: &[(ProjectivePoint, Scalar); N]) -> Projec
                 if digit == 0 {
                     continue;
                 }
-                let entry = table.select_vartime(digit);
                 if live {
-                    words::add_assign(&mut acc, &entry);
+                    table.add_digit(&mut acc, digit);
                 } else {
-                    acc = entry;
+                    acc = table.select_vartime(digit);
                     live = true;
                 }
             }
