@@ -154,6 +154,10 @@ def execute(config, timeout_seconds):
     state = {"instructions": 0, "keccak": 0, "add": 0, "double": 0, "halt_pc": None, "error": None, "ram_words": 0}
     sizes = {name: collections.Counter() for name in set(entries.values())}
     alignment = {name: collections.Counter() for name in set(entries.values())}
+    small_sizes = {name: collections.Counter() for name in sizes}
+    bytes_by_size = {name: collections.Counter() for name in sizes}
+    size_alignment = {name: collections.Counter() for name in sizes}
+    maximum_size = collections.Counter()
 
     def count(uc, address, size, _):
         state["instructions"] += 1
@@ -166,9 +170,15 @@ def execute(config, timeout_seconds):
         n = uc.reg_read(R.UC_RISCV_REG_A2)
         bucket = n if n < 64 else min(4096, 1 << (n.bit_length() - 1))
         sizes[name][bucket] += 1
+        bytes_by_size[name][bucket] += n
+        maximum_size[name] = max(maximum_size[name], n)
+        if n <= 128:
+            small_sizes[name][n] += 1
         if name != 'memset':
             a0, a1 = uc.reg_read(R.UC_RISCV_REG_A0), uc.reg_read(R.UC_RISCV_REG_A1)
-            alignment[name]['both8' if a0 & 7 == 0 and a1 & 7 == 0 else ('same' if (a0 ^ a1) & 7 == 0 else 'different')] += 1
+            kind = 'both8' if a0 & 7 == 0 and a1 & 7 == 0 else ('same' if (a0 ^ a1) & 7 == 0 else 'different')
+            alignment[name][kind] += 1
+            size_alignment[name][bucket, kind] += 1
 
     def service(uc, intno, _):
         # Unicorn has already advanced PC past the ECALL when this hook runs;
@@ -219,7 +229,14 @@ def execute(config, timeout_seconds):
     output = bytes(engine.mem_read(symbols["__output_data"], min(length, 4096))) if 0 < length <= 4096 else b''
     completed = state["error"] is None and state["halt_pc"] is not None and halt_flag == 1
     histogram = {name: {"calls": sum(sizes[name].values()), "sizes": {str(k): v for k, v in sorted(sizes[name].items())},
-                        "alignment": dict(alignment[name])} for name in sizes}
+                       "size_bucket_scheme": "exact below64; floor power-of-two from64;4096 includes every size>=4096",
+                       "counting_scope": "function entry events; aliases/tail-jump wrappers can count the same logical call more than once",
+                       "exact_sizes_through128": {str(k): v for k, v in sorted(small_sizes[name].items())},
+                       "requested_bytes": sum(bytes_by_size[name].values()), "maximum_size": maximum_size[name],
+                       "requested_bytes_by_size_bucket": {str(k): v for k, v in sorted(bytes_by_size[name].items())},
+                       "size_alignment": {str(k): {kind: size_alignment[name][k, kind] for kind in ('both8', 'same', 'different')}
+                                          for k in sorted(sizes[name])} if name != 'memset' else {},
+                       "alignment": dict(alignment[name])} for name in sorted(sizes)}
     return {"schema": "rv64-ethereum-services-unicorn-execution-v1", "oracle": "Unicorn2.1.4", "execution_only": True,
             "proof_verified": False, "completed": completed, "verified_output": completed and output == expected,
             "error": state["error"], "instructions": state["instructions"], "keccak_calls": state["keccak"],
