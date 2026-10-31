@@ -251,10 +251,8 @@ pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         try truth.key().append(a, &scheme, &channel);
         var main_stage = try Profile.StageScope.begin(recorder, "main_commit", "Crypto truth MAIN streaming commitment");
         defer main_stage.end();
-        const main = try ts.columns(a, 1);
-        defer a.free(main);
-        try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
-        try ts.releaseMain();
+        const main = try ts.takeMain();
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 8, recorder, &channel);
         main_stage.end();
         const l0 = try truth.logs(a, 0);
         defer a.free(l0);
@@ -340,9 +338,8 @@ pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         tw.channel.mixFelts(&claims);
         var inter_stage = try Profile.StageScope.begin(recorder, "interaction_commit", "Crypto truth interaction commitment");
         defer inter_stage.end();
-        const inter = try tw.source.columns(a, 2);
-        defer a.free(inter);
-        try tw.scheme.commitBorrowedStreamingWithRecorder(a, inter, 8, recorder, &tw.channel);
+        const inter = try tw.source.takeInteraction();
+        try tw.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 8, recorder, &tw.channel);
         inter_stage.end();
         var components = try TruthComponents.init(truth, ch, claims);
         const handles = components.provers();

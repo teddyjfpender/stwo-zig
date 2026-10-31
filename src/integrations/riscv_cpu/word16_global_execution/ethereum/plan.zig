@@ -26,6 +26,15 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         const ls = try ladder(captured.advice.events[i].len, 1);
         g.ls_log = ls.head;
         g.ls_tail_log = ls.tail;
+        const alu = try ladder(n.alu.facts.len, 0);
+        g.alu_log = alu.head;
+        g.alu_tail_log = alu.tail;
+        const binary = try ladder(n.binary.facts.len, 0);
+        g.binary_log = binary.head;
+        g.binary_tail_log = binary.tail;
+        const shift = try ladder(n.shift.len, 0);
+        g.shift_log = shift.head;
+        g.shift_tail_log = shift.tail;
         g.boundary_log = 5;
         g.initial_log = if (i == 0) boundary else 5;
         g.terminal_log = if (i + 1 == out.len) boundary else 5;

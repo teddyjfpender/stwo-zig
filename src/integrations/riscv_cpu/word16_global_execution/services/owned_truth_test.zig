@@ -30,7 +30,7 @@ fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
         },
     }
 }
-fn proveOwned(c: *const F.Case, advice: *const @import("collector.zig").Advice, index: usize, store: *@import("../retained_main_store.zig").Store) ![]u8 {
+fn proveMode(c: *const F.Case, advice: *const @import("collector.zig").Advice, index: usize, store: *@import("../retained_main_store.zig").Store, owned: bool) ![]u8 {
     const truth = c.truths()[index];
     var src = try R.TruthSource.init(a, truth, advice);
     defer src.deinit();
@@ -41,30 +41,43 @@ fn proveOwned(c: *const F.Case, advice: *const @import("collector.zig").Advice, 
     var channel = G.T.P.Channel{};
     P.beginTruth(&channel, truth, c.expected(), index);
     try truth.key().append(a, &scheme, &channel);
-    const main = try src.takeMain();
-    try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 8, null, &channel);
+    if (owned) {
+        const main = try src.takeMain();
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 8, null, &channel);
+    } else {
+        const main = try src.columns(a, 1);
+        defer a.free(main);
+        try scheme.commitBorrowedStreaming(a, main, 8, &channel);
+        try src.releaseMain();
+    }
     _ = try store.spill(a, &scheme.trees.items[1]);
     try std.testing.expectEqualSlices(u8, &scheme.trees.items[1].root(), &c.bundle.manifest.roots[2 + index].main.bytes);
     const ch = try P.drawTruth(&channel, &c.bundle.manifest, truth, index);
     const claims = try generate(&src, ch);
     try std.testing.expectEqualDeep(c.bundle.truths[index].claims, claims);
     channel.mixFelts(&claims);
-    // Both descriptor-allocation failure positions must leave every original
-    // interaction owner available for the successful retry below.
-    const before = try src.columns(a, 2);
-    defer a.free(before);
-    for (0..2) |fail_index| {
-        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = fail_index });
-        setAllocator(&src, failing.allocator());
-        const attempt = src.takeInteraction();
-        setAllocator(&src, a);
-        try std.testing.expectError(error.OutOfMemory, attempt);
-        const after = try src.columns(a, 2);
-        defer a.free(after);
-        for (before, after) |x, y| try std.testing.expectEqual(x.values.ptr, y.values.ptr);
+    if (owned) {
+        // Both descriptor-allocation failure positions must leave every original
+        // interaction owner available for the successful retry below.
+        const before = try src.columns(a, 2);
+        defer a.free(before);
+        for (0..2) |fail_index| {
+            var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = fail_index });
+            setAllocator(&src, failing.allocator());
+            const attempt = src.takeInteraction();
+            setAllocator(&src, a);
+            try std.testing.expectError(error.OutOfMemory, attempt);
+            const after = try src.columns(a, 2);
+            defer a.free(after);
+            for (before, after) |x, y| try std.testing.expectEqual(x.values.ptr, y.values.ptr);
+        }
+        const inter = try src.takeInteraction();
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 8, null, &channel);
+    } else {
+        const inter = try src.columns(a, 2);
+        defer a.free(inter);
+        try scheme.commitBorrowedStreaming(a, inter, 8, &channel);
     }
-    const inter = try src.takeInteraction();
-    try scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 8, null, &channel);
     if (truth == .keccak) {
         var components = @import("../keccak/shared/execution.zig").truthComponents(truth.keccak.setup, truth.first(), truth.count(), ch.keccak, claims);
         const handles = [_]engine.air.component_prover.ComponentProver{ components[0].asProverComponent(), components[1].asProverComponent(), components[2].asProverComponent() };
@@ -99,9 +112,12 @@ test "Owned K ADD DOUBLE truth MAIN INTER and mapped coefficients preserve compl
     var store = try @import("../retained_main_store.zig").Store.init(path, 64 << 20);
     defer store.deinit();
     for (0..3) |index| {
-        const bytes = try proveOwned(&c, &captured.advice, index, &store);
+        const bytes = try proveMode(&c, &captured.advice, index, &store, true);
         defer a.free(bytes);
         try std.testing.expectEqualSlices(u8, c.bundle.truths[index].bytes, bytes);
+        const borrowed = try proveMode(&c, &captured.advice, index, &store, false);
+        defer a.free(borrowed);
+        try std.testing.expectEqualSlices(u8, bytes, borrowed);
         var candidate = c.bundle;
         var tt = c.bundle.truths[0..3].*;
         tt[index].bytes = bytes;

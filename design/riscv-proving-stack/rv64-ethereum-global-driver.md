@@ -55,3 +55,30 @@ Safe/Fast receiver tests also prove programs with false halt, length or output;
 these valid prefixes fail completed acceptance. All 25 packets of block24,628,607
 have passed advice import and chronological collection, not yet whole-block
 proving in this receipt. Concurrent observations establish no speedup or p50.
+
+## Complete block qualification, schema4
+
+`ethereum-full-global-s4-v1.json` records block24,628,607 through all25 CPU and
+five independently sized truth STARKs:104,253,913 instructions,32,835 Keccak,
+11,496 ADD and9,768 DOUBLE calls,1,347,207 RAM words. The producer and a separate
+fresh receiver both require complete global closure and the pinned terminal43B
+output. The receiver uses no packet directory, tape or native replay.
+
+This functional run observed313.61s wall/38.67GB peak RSS. The fresh receiver
+observed11.78s wall/15.00GB peak RSS, with11.15s loading/setup and0.552s native
+verification. These concurrent engineering observations are not controlled
+speedups. Native commitments contain24.14G cells(231.53/retirement); physical
+proofs total36,647,820B, separately from the RAM sidecar. All45.61GB temporary
+MAIN mappings were released. This is a native bundle, not a recursive root.
+
+Root-stage accounting explains289.25s of the290.74s proving interval. Composition
+is61.80s; MAIN/INTER commitments68.68s; interaction generation38.51s; FRI40.32s;
+source construction34.33s; trace decommit17.98s; mapped writeback11.84s. CPU and
+truth portions are separately recorded. Fixed geometry still produces25 distinct
+CPU setup identities; eliminating redundant setup and its memory remains work.
+
+`riscv64_word16_profile_report.py DIRECTORY --output NEW_JSON` reproduces root
+stage/cell accounting. It rejects incomplete profile sets and never verifies a
+proof. Peak values are lifetime process high-water marks, not independently
+measured batch peaks. Neither the overall3–5x time target nor the1.5–2x whole-
+block memory target is claimed complete by this qualification.
