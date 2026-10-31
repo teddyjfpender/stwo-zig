@@ -1,0 +1,329 @@
+{
+  "schema": "rv64-shared-native-kernels-v1",
+  "base_commit": "b2e1b809494a82ad7878dafdc6f8e527844618f8",
+  "scope": "Shared host native scheduling/field-prefix kernels with concrete BINARY and CPU adapters. No AIR, transcript, schema, wire or GPU backend change.",
+  "kernel_contracts": {
+    "physical_fill": "Comptime Adapter.Context/BINS and range-row formatter; private per-worker histograms, physical16-row partitions, allocation/submission startgate, cancellation/drain, checked ordered histogram merge, success-only histogram publication.",
+    "prefix": "Comptime carry-count and typed job adapter; one existing WorkLease, two fresh joined WaitGroups with completeWave, logical ordered summary scan, per-component ledger check, then physical-range correction.",
+    "numerical_authority": "Existing row formatters remain unchanged. BINARY serial and pooled interactions invoke one factored numerical chunk writer. CPU chunk arithmetic and physical correction remain unchanged.",
+    "resource_ownership": "Caller owns provisional MAIN/INTER, metadata, per-worker heap scratch and immutable inputs; no nested pool/global scratch. INTER publishes and metadata retires only after both waves complete successfully."
+  },
+  "adapters": {
+    "BINARY": {
+      "histogram_bins": [
+        65536
+      ],
+      "histogram_mass_per_row": [
+        8
+      ],
+      "native_main_columns": 42,
+      "interaction_columns": 24,
+      "prefix_carries": [
+        "AND",
+        "FUNCTION"
+      ],
+      "explicit_serial_reference": true,
+      "strict_zero_weight_poles": true
+    },
+    "CPU": {
+      "histogram_bins": [
+        65536,
+        256
+      ],
+      "histogram_mass_per_row": [
+        3,
+        3
+      ],
+      "raw_physical_layouts": [
+        44,
+        46
+      ],
+      "indexed_physical_layout": 40,
+      "full_execution_main_columns": 53,
+      "full_execution_interaction_columns": 40,
+      "prefix_carries": [
+        "combined CPU sum"
+      ]
+    }
+  },
+  "gates": {
+    "ReleaseSafe": {
+      "binary_native_and_shared_kernels": 11,
+      "cpu_native_projection": 3,
+      "full_cpu_source": 7,
+      "binary_source": 12,
+      "thin_cpu": 14,
+      "indexed_control": 9
+    },
+    "ReleaseFast": {
+      "binary_native_and_shared_kernels": 11,
+      "cpu_native_projection": 3,
+      "full_cpu_source": 7,
+      "binary_source": 12,
+      "thin_cpu": 14,
+      "indexed_control": 9
+    },
+    "proof_bytes": "Actual joined q70 proof bytes and physical claims EXACT at1/3/16workers versus serial, with independently constructed fresh receivers. Indexed scalar/Packed16/pooled proof bytes EXACT.",
+    "matrix_claims": "Every MAIN/metadata/histogram/INTER/claim compared; CPU raw44/raw46/index40 controls at1/4/16workers, weightedBINARY at1/3/16; source MAIN released before challenged pooled generation.",
+    "errors": "Nondivisible physical ranges, partial chunks, physical prefix/halo mappings, checked histogram overflow and aliasing, OOM, both-wave0/1helper submission failures, callback failure/drain/pool reuse, strict late zero-weight padding pole and late histogram mismatch/retry.",
+    "source_conformance": "PASS31",
+    "fmt_and_diff": "PASS"
+  },
+  "logs": {
+    "affected_safe": "/tmp/rv64-shared-native-kernels-final-safe.log",
+    "affected_fast": "/tmp/rv64-shared-native-kernels-final-fast.log",
+    "thin_index_safe": "/tmp/rv64-shared-native-kernels-thin-index-safe.log",
+    "thin_index_fast": "/tmp/rv64-shared-native-kernels-thin-index-fast.log",
+    "conformance": "/tmp/rv64-shared-native-kernels-conformance.log"
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "301ee458192fd3f203dd67f0907067ad6d0d190625f211eab40f40aedaceec9e",
+    "src/frontends/riscv/rv64/air/mod.zig": "7b544ad9046bd1665135ed5d0b900dc0ae6a527498410858907239899069745a",
+    "src/frontends/riscv/rv64/air/providers/native_fill.zig": "38830d42d46d89ab145b0d834704af9d29d383bc71983d382f106de0c1d2795f",
+    "src/frontends/riscv/rv64/air/providers/prefix_waves.zig": "72b11b92a314396fcde8367d2f75650a6fb734f9e3553d881186d2a381ef860a",
+    "src/frontends/riscv/rv64/air/word16_cpu/native_projection.zig": "a298d3a0aacae7ee2dc95fed6ef7ab9dc6da000db3d1a73bb91760be046b6777",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_interaction.zig": "a332a8373d2782c7a58c5c172235e17c454fb5c704f6aecd0653798d2fe348a8",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_native_fill.zig": "01618ad8c87e7df43de9e88ddd814044895fff4d02aefaa04a5dde357c3faad4",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "1df7651dd3343c0a53524860f4848687a12cefe7891cec3cc5b0685da571d2a7",
+    "src/integrations/riscv_cpu/rv64_word16_binary_native_fill_test_root.zig": "9198fc5838b2796dd743ff1d3e224faff3f9a9835ca7775f734046b1fc4ac213",
+    "src/integrations/riscv_cpu/word16_execution/binary_native_fill_test.zig": "57215504662c8d7a462e6cd9e46a630147543c78507c581e83c13a7f2a1e297c",
+    "src/integrations/riscv_cpu/word16_execution/cpu_interaction.zig": "1f94bda7ecc66c3654ddd54d2ffe7bb949c5905e143a8433436e6c05b99c8b76",
+    "src/integrations/riscv_cpu/word16_execution/native_kernels_test.zig": "332b28992f5e7661fdc9426d3d7d9fe117231baf7accd61dff042af2da8c683e"
+  },
+  "limits": [
+    "No performance improvement is claimed from kernel extraction.",
+    "ALU/SHIFT/LS/boundary adapters intentionally unchanged in this slice.",
+    "Generic callbacks are total prevalidated row formatters, not VM execution; no replay or extra wide witness.",
+    "Pre-start submission/alloc failures preserve borrowed row output. Post-join histogram rejection can modify provisional row output; caller must discard it. No general rollback claim.",
+    "Accepting proof/transcript paths remain canonical; no new profile enum or machine factory.",
+    "Standalone historical artifact regeneration is separate from in-memory exact-byte proof gates."
+  ],
+  "runtime_metadata": {
+    "rv64_word16_binary_native_fill_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/91965cc3aeae0df21b440e9418a005bd/test",
+        "runtime_count": 11,
+        "names": [
+          "rv64_word16_binary_native_fill_test_root.test_0",
+          "word16_execution.native_kernels_test.test.shared physical fill covers nondivisible physical ranges and checked histograms at1 3 16workers",
+          "word16_execution.native_kernels_test.test.shared physical fill submission OOM and small-stack failures preserve outputs and drain leases",
+          "word16_execution.native_kernels_test.test.shared prefix waves preserve exact prefixes with partial chunks shifted physical halos and1 3 16workers",
+          "word16_execution.native_kernels_test.test.shared prefix both-wave partial submissions and callback failures drain leases before cleanup and reuse",
+          "word16_execution.binary_native_fill_test.test.BINARY native1 3 16worker weighted physical rows metadata histograms interactions and claims equal serial",
+          "word16_execution.binary_native_fill_test.test.BINARY native partial submissions and allocations preserve borrowed main drain pool and retry",
+          "word16_execution.binary_native_fill_test.test.BINARY native full joined proof bytes at1 3 16workers and fresh independent receivers",
+          "word16_execution.binary_native_fill_test.test.BINARY shared prefix bothwave submission and allocation failures preserve metadata drain and retry",
+          "word16_execution.binary_native_fill_test.test.BINARY shared prefix strict late padding pole and histogram disagreement preserve retry after main release",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/6c594d6bd4a13afdb5498948ced955c0/test",
+        "runtime_count": 11,
+        "names": [
+          "rv64_word16_binary_native_fill_test_root.test_0",
+          "word16_execution.native_kernels_test.test.shared physical fill covers nondivisible physical ranges and checked histograms at1 3 16workers",
+          "word16_execution.native_kernels_test.test.shared physical fill submission OOM and small-stack failures preserve outputs and drain leases",
+          "word16_execution.native_kernels_test.test.shared prefix waves preserve exact prefixes with partial chunks shifted physical halos and1 3 16workers",
+          "word16_execution.native_kernels_test.test.shared prefix both-wave partial submissions and callback failures drain leases before cleanup and reuse",
+          "word16_execution.binary_native_fill_test.test.BINARY native1 3 16worker weighted physical rows metadata histograms interactions and claims equal serial",
+          "word16_execution.binary_native_fill_test.test.BINARY native partial submissions and allocations preserve borrowed main drain pool and retry",
+          "word16_execution.binary_native_fill_test.test.BINARY native full joined proof bytes at1 3 16workers and fresh independent receivers",
+          "word16_execution.binary_native_fill_test.test.BINARY shared prefix bothwave submission and allocation failures preserve metadata drain and retry",
+          "word16_execution.binary_native_fill_test.test.BINARY shared prefix strict late padding pole and histogram disagreement preserve retry after main release",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      }
+    ],
+    "rv64_word16_native_projection_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/07cf8cb76970b2edbe5402ea7ea7d25b/test",
+        "runtime_count": 3,
+        "names": [
+          "rv64_word16_native_projection_test_root.test_0",
+          "tests.rv64_word16_native_projection_test.test.native physical raw44 raw46 index40 match logical matrices metadata and histograms at1 4 16",
+          "tests.rv64_word16_native_projection_test.test.native CPU projection cancelled helpers OOM and phase errors preserve source for retry"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/c0659f6df0df0ea1c0680faee3981856/test",
+        "runtime_count": 3,
+        "names": [
+          "rv64_word16_native_projection_test_root.test_0",
+          "tests.rv64_word16_native_projection_test.test.native physical raw44 raw46 index40 match logical matrices metadata and histograms at1 4 16",
+          "tests.rv64_word16_native_projection_test.test.native CPU projection cancelled helpers OOM and phase errors preserve source for retry"
+        ]
+      }
+    ],
+    "rv64_word16_execution_source_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/d46b66e30882b135dce7b65c8ff1ab79/test",
+        "runtime_count": 7,
+        "names": [
+          "rv64_word16_execution_source_test_root.test_0",
+          "tests.rv64_word16_execution_source_test.test.full execution source preserves architectural aliases normalized JALR and sealed row counts",
+          "tests.rv64_word16_execution_source_test.test.full CPU native interactions exactly satisfy authority after source main release",
+          "tests.rv64_word16_execution_source_test.test.full CPU strict padding ROM pole invalid dictionary and OOM remain retryable",
+          "tests.rv64_word16_execution_source_test.test.full CPU joined native waves reproduce every serial interaction column and claim",
+          "tests.rv64_word16_execution_source_test.test.full source keeps store input distinct from immediate and service pointer distinct from tag",
+          "tests.rv64_word16_execution_source_test.test.CPU capture materializes without Tape and retains retryable advice through OOM and projection failure"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/cb8084a22dc9d215f4271115537c1cde/test",
+        "runtime_count": 7,
+        "names": [
+          "rv64_word16_execution_source_test_root.test_0",
+          "tests.rv64_word16_execution_source_test.test.full execution source preserves architectural aliases normalized JALR and sealed row counts",
+          "tests.rv64_word16_execution_source_test.test.full CPU native interactions exactly satisfy authority after source main release",
+          "tests.rv64_word16_execution_source_test.test.full CPU strict padding ROM pole invalid dictionary and OOM remain retryable",
+          "tests.rv64_word16_execution_source_test.test.full CPU joined native waves reproduce every serial interaction column and claim",
+          "tests.rv64_word16_execution_source_test.test.full source keeps store input distinct from immediate and service pointer distinct from tag",
+          "tests.rv64_word16_execution_source_test.test.CPU capture materializes without Tape and retains retryable advice through OOM and projection failure"
+        ]
+      }
+    ],
+    "rv64_word16_binary_source_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/48213288309e9e80c74c817925a1ab15/test",
+        "runtime_count": 12,
+        "names": [
+          "rv64_word16_binary_source_test_root.test_0",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource native matrices match qualified Q witness with geometry-only keys and exact AND indexing",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource owned borrowed detached main and empty native interactions equal scalar oracle",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource allocation invalid fact pole and late ledger failures preserve ownership and publication",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource owns full u32 weights and keeps eight AND queries per physical row",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource canonical mass alias shape and allocator failures preserve borrowed main",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource corrupt weight ledger and strict padding pole publish nothing and retry",
+          "rv64.air.word16_v1.binary_source_test.test.merged BINARY prefix authenticates precisely the combined debt and all strict inverse poles",
+          "rv64.air.providers.tables.test.canonical AND and shift tables enumerate exact byte semantics",
+          "rv64.air.providers.tables.test.typed providers constrain every inverse and reset and terminal prefix",
+          "rv64.air.lane.test.lane power matches QM31 exponentiation",
+          "rv64.air.native_output_pages.test.page preparation stays inside a partial-page slice and leaves other words untouched"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/a6fcca49b43f5b4ceac3d122cd2a7b0d/test",
+        "runtime_count": 12,
+        "names": [
+          "rv64_word16_binary_source_test_root.test_0",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource native matrices match qualified Q witness with geometry-only keys and exact AND indexing",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource owned borrowed detached main and empty native interactions equal scalar oracle",
+          "rv64.air.word16_v1.binary_source_test.test.BinarySource allocation invalid fact pole and late ledger failures preserve ownership and publication",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource owns full u32 weights and keeps eight AND queries per physical row",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource canonical mass alias shape and allocator failures preserve borrowed main",
+          "rv64.air.word16_v1.binary_source_test.test.weighted BinarySource corrupt weight ledger and strict padding pole publish nothing and retry",
+          "rv64.air.word16_v1.binary_source_test.test.merged BINARY prefix authenticates precisely the combined debt and all strict inverse poles",
+          "rv64.air.providers.tables.test.canonical AND and shift tables enumerate exact byte semantics",
+          "rv64.air.providers.tables.test.typed providers constrain every inverse and reset and terminal prefix",
+          "rv64.air.lane.test.lane power matches QM31 exponentiation",
+          "rv64.air.native_output_pages.test.page preparation stays inside a partial-page slice and leaves other words untouched"
+        ]
+      }
+    ],
+    "rv64_word16_thin_cpu_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/618919a30c4e58f13ae2554c97e99844/test",
+        "runtime_count": 14,
+        "names": [
+          "rv64_word16_thin_cpu_test_root.test_0",
+          "tests.rv64_word16_thin_cpu_test.test.thin CPU every emitted polynomial is degree at most three on dense QM31 lines",
+          "tests.rv64_word16_thin_cpu_test.test.thin CPU projection closes real aliasing x0 full64 register and range relations",
+          "tests.rv64_word16_thin_cpu_test.test.thin immutable ROM preserves high PC carries wrap and rejects unsupported opcodes",
+          "tests.rv64_word16_thin_cpu_test.test.thin statement rejects oversized clocks and fixed data excludes request endpoints",
+          "tests.rv64_word16_thin_cpu_test.test.thin PC wrapping follows real native CPU at highest executable word",
+          "tests.rv64_word16_thin_proof_test.test.thin closed seven-role proof fresh-verifies and scalar SIMD proof bytes match",
+          "tests.rv64_word16_thin_proof_test.test.physical thin CPU proving rejects forged clocks values opcode and PC",
+          "tests.rv64_word16_thin_proof_test.test.immutable thin fixed commitment leases match fresh commits and survive owner release",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 real native signed W immediate and branch execution closes one PCS",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 physical engine rejects forged operand result PC immediate W and predicate",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 full CPU dense OODS lines have degree at most three",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 wrapping branch and invalid taken edge follow native RV64",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 combined source unwinds every construction allocation failure"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/a52c89b96b711e6d54192cb4a619c0c2/test",
+        "runtime_count": 14,
+        "names": [
+          "rv64_word16_thin_cpu_test_root.test_0",
+          "tests.rv64_word16_thin_cpu_test.test.thin CPU every emitted polynomial is degree at most three on dense QM31 lines",
+          "tests.rv64_word16_thin_cpu_test.test.thin CPU projection closes real aliasing x0 full64 register and range relations",
+          "tests.rv64_word16_thin_cpu_test.test.thin immutable ROM preserves high PC carries wrap and rejects unsupported opcodes",
+          "tests.rv64_word16_thin_cpu_test.test.thin statement rejects oversized clocks and fixed data excludes request endpoints",
+          "tests.rv64_word16_thin_cpu_test.test.thin PC wrapping follows real native CPU at highest executable word",
+          "tests.rv64_word16_thin_proof_test.test.thin closed seven-role proof fresh-verifies and scalar SIMD proof bytes match",
+          "tests.rv64_word16_thin_proof_test.test.physical thin CPU proving rejects forged clocks values opcode and PC",
+          "tests.rv64_word16_thin_proof_test.test.immutable thin fixed commitment leases match fresh commits and survive owner release",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 real native signed W immediate and branch execution closes one PCS",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 physical engine rejects forged operand result PC immediate W and predicate",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 full CPU dense OODS lines have degree at most three",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 wrapping branch and invalid taken edge follow native RV64",
+          "tests.rv64_word16_alu_cpu_test.test.ALU binary v2 combined source unwinds every construction allocation failure"
+        ]
+      }
+    ],
+    "rv64_word16_index_control_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/144416c6bd535520daf431ff6a317bb3/test",
+        "runtime_count": 9,
+        "names": [
+          "rv64_word16_index_control_test_root.test_0",
+          "tests.rv64_word16_index_control_test.test.indexed40 CPU closes real ALU binary branches REG and two ROM projections",
+          "tests.rv64_word16_index_control_test.test.indexed physical proving rejects wrong IDs operands and first PC padded map alias",
+          "tests.rv64_word16_index_control_test.test.indexed proof preserves sparse high64 PCs and binds even invalid raw program bytes",
+          "tests.rv64_word16_index_control_test.test.indexed IDs above u16 and full64 wrapping static exits physically verify",
+          "tests.rv64_word16_index_control_test.test.indexed CPU49 and dual ROM7 polynomials are dense QM31 degree at most three",
+          "tests.rv64_word16_index_control_test.test.indexed40 composite source unwinds every allocation failure",
+          "tests.rv64_word16_index_control_test.test.indexed packed16 and scalar oracle exact proof bytes match pooled disjoint ranges",
+          "tests.rv64_word16_index_control_test.test.indexed all CPU and map residuals match sixteen base and extension scalar lanes"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/2d05e3f27df50558ded947cca9942408/test",
+        "runtime_count": 9,
+        "names": [
+          "rv64_word16_index_control_test_root.test_0",
+          "tests.rv64_word16_index_control_test.test.indexed40 CPU closes real ALU binary branches REG and two ROM projections",
+          "tests.rv64_word16_index_control_test.test.indexed physical proving rejects wrong IDs operands and first PC padded map alias",
+          "tests.rv64_word16_index_control_test.test.indexed proof preserves sparse high64 PCs and binds even invalid raw program bytes",
+          "tests.rv64_word16_index_control_test.test.indexed IDs above u16 and full64 wrapping static exits physically verify",
+          "tests.rv64_word16_index_control_test.test.indexed CPU49 and dual ROM7 polynomials are dense QM31 degree at most three",
+          "tests.rv64_word16_index_control_test.test.indexed40 composite source unwinds every allocation failure",
+          "tests.rv64_word16_index_control_test.test.indexed packed16 and scalar oracle exact proof bytes match pooled disjoint ranges",
+          "tests.rv64_word16_index_control_test.test.indexed all CPU and map residuals match sixteen base and extension scalar lanes"
+        ]
+      }
+    ]
+  },
+  "matching_baseline_artifact_regression": {
+    "base_commit": "b2e1b8094",
+    "baseline": "/tmp/stwo-rv64-shared-native-kernels-baseline-v1",
+    "candidate": "/tmp/stwo-rv64-shared-native-kernels-historical-v1",
+    "all_proofs_manifest_claims_boundaries_and_receiver_records": "EXACT",
+    "independent_fresh_process_receivers": "PASS both",
+    "producer": {
+      "scope": "experimental-register-only-binary-reset-v1",
+      "instructions": 6,
+      "cpu_shards": 2,
+      "shared_binary_provider": 1,
+      "physical_components": 12,
+      "physical_proofs": 3,
+      "queries_per_proof": 70,
+      "pow_bits_per_proof": 26,
+      "ram_bound": false,
+      "ethereum_bound": false,
+      "general_rv64_bound": false,
+      "complete_manifest": "055edaa36591336d8eba40b3538e573f33105b12fee6a220aa1c0f9ca865cc71",
+      "actual_function_mass": 6,
+      "conservative_manifest_positive_capacity": 131072,
+      "cpu0_bytes": 269552,
+      "cpu0_sha256": "cf78da16fc9cd058886a717524ff70fba6ddc8c0c3567f66841c23ca824c4e29",
+      "cpu1_bytes": 273136,
+      "cpu1_sha256": "de4db05b823be26a60655af0e55b1e70731b145685cc05b3b881b177a4c4f552",
+      "binary_bytes": 237328,
+      "binary_sha256": "925470bbfb3433eabd6b71c064f5293980e716bb4b2a06187e6610634a17367b"
+    },
+    "note": "Ancient BINARY28 d768/b576/870 pins predate the qualified BINARY24 protocol. This comparison independently rebuilt the matching current b2e baseline; no obsolete hash parity claim."
+  }
+}

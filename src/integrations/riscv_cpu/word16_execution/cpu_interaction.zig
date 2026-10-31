@@ -9,6 +9,7 @@ const Source = @import("cpu_source.zig").Source;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const work = engine.work_pool;
+const Prefix = @import("stwo_riscv_frontend").rv64_air.providers.prefix_waves;
 const CHUNK = 1024;
 pub const Dictionaries = struct { rom: []const Q, range16: []const Q, range8: []const Q };
 const Hint = struct { delta: [3]Q, enabled: [3]M, function: M, active: M, gap16: [3]u16, gap8: [3]u8, rom_physical: u32 };
@@ -69,7 +70,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     const output = try a.alloc(M, X.layout.inter.COUNT * n);
     errdefer a.free(output);
     @import("stwo_riscv_frontend").rv64_air.native_output_pages.prepare(output);
-    const summaries = try a.alloc(Q, chunks);
+    const summaries = try a.alloc([1]Q, chunks);
     defer a.free(summaries);
     const scratch = try a.alloc(Q, workers * 10 * CHUNK);
     defer a.free(scratch);
@@ -77,46 +78,11 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     defer a.free(hints);
     var jobs: [work.MAX_WORKERS]Job = undefined;
     for (jobs[0..workers], 0..) |*job, i| job.* = .{ .source = source, .ch = ch, .dict = dictionaries, .padding_rom = padding_rom, .output = output, .summaries = summaries, .scratch = scratch[i * 10 * CHUNK ..][0 .. 10 * CHUNK], .hints = hints[i * CHUNK ..][0..CHUNK], .start = i, .end = chunks, .stride = workers };
-    if (workers > 1) {
-        var lease = try pool.?.acquire(try work.WorkerBudget.init(workers));
-        defer lease.deinit();
-        try wave(&lease, jobs[0..workers]);
-        var total = Q.zero();
-        for (summaries) |*summary| {
-            const local = summary.*;
-            summary.* = total;
-            total = total.add(local);
-        }
-        for (summaries) |*summary| summary.* = summary.sub(total);
-        for (jobs[0..workers], 0..) |*job, i| {
-            job.correct = true;
-            job.start = n * i / workers;
-            job.end = n * (i + 1) / workers;
-        }
-        try wave(&lease, jobs[0..workers]);
-        source.interaction = output;
-        a.free(source.metadata);
-        source.metadata = &.{};
-        return total;
-    }
-    jobs[0].run();
-    if (jobs[0].failure) |failure| return failure;
-    var total = Q.zero();
-    for (summaries) |*summary| {
-        const local = summary.*;
-        summary.* = total;
-        total = total.add(local);
-    }
-    for (summaries) |*summary| summary.* = summary.sub(total);
-    jobs[0].correct = true;
-    jobs[0].start = 0;
-    jobs[0].end = n;
-    jobs[0].run();
-    if (jobs[0].failure) |failure| return failure;
+    const totals = try Prefix.run(1, Job, jobs[0..workers], summaries, n, pool);
     source.interaction = output;
     a.free(source.metadata);
     source.metadata = &.{};
-    return total;
+    return totals[0];
 }
 const Job = struct {
     source: *const Source,
@@ -124,7 +90,7 @@ const Job = struct {
     dict: Dictionaries,
     padding_rom: Q,
     output: []M,
-    summaries: []Q,
+    summaries: [][1]Q,
     scratch: []Q,
     hints: []Hint,
     start: usize,
@@ -132,7 +98,8 @@ const Job = struct {
     stride: usize,
     correct: bool = false,
     failure: ?anyerror = null,
-    fn run(self: *Job) void {
+    pub fn validateTotals(_: *const Job, _: [1]Q) !void {}
+    pub fn run(self: *Job) void {
         self.execute() catch |err| {
             self.failure = err;
         };
@@ -142,7 +109,7 @@ const Job = struct {
         if (self.correct) {
             for (self.start..self.end) |p| {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, self.source.log_size), self.source.log_size);
-                const correction = self.summaries[logical / CHUNK].toM31Array();
+                const correction = self.summaries[logical / CHUNK][0].toM31Array();
                 for (correction, 0..) |value, c| self.output[(X.layout.inter.sum + c) * n + p] = self.output[(X.layout.inter.sum + c) * n + p].add(value);
             }
             return;
@@ -190,23 +157,10 @@ const Job = struct {
                 for (r8) |inverse| sum = sum.add(inverse);
                 store(self.output, n, p, X.layout.inter.sum, sum);
             }
-            self.summaries[chunk] = sum;
+            self.summaries[chunk] = .{sum};
         }
     }
 };
 fn store(output: []M, n: usize, p: usize, column: usize, value: Q) void {
     for (value.toM31Array(), 0..) |v, c| output[(column + c) * n + p] = v;
-}
-fn wave(lease: *work.WorkLease, jobs: []Job) !void {
-    var group = std.Thread.WaitGroup{};
-    var joined = false;
-    defer {
-        if (!joined) group.wait();
-        lease.completeWave();
-    }
-    for (jobs[1..]) |*job| try lease.spawnWg(&group, Job.run, .{job});
-    jobs[0].run();
-    group.wait();
-    joined = true;
-    for (jobs) |job| if (job.failure) |failure| return failure;
 }

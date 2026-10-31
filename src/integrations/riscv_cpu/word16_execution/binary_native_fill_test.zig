@@ -122,3 +122,70 @@ test "BINARY native full joined proof bytes at1 3 16workers and fresh independen
         try Execution.verify(a, &fresh, admission, actual);
     }
 }
+
+test "BINARY shared prefix bothwave submission and allocation failures preserve metadata drain and retry" {
+    const facts = try inputs(19);
+    defer a.free(facts);
+    var reference = try S.Source.testing.initSerial(a, facts, null, 14);
+    defer reference.deinit();
+    const expected = try reference.generateSerial(challenges());
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = 1024 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const available = pool.availableWorkers();
+    for (0..2) |which| for (0..2) |after| {
+        var actual = try S.Source.init(a, facts, 14);
+        defer actual.deinit();
+        actual.releaseMain();
+        try std.testing.expectError(error.InjectedNativePrefixSubmissionFailure, S.Source.testing.failInteractionSubmission(&actual, challenges(), &pool, which, after));
+        try std.testing.expectEqual(@as(usize, 0), actual.interaction.len);
+        try std.testing.expectEqual(actual.size(), actual.metadata.len);
+        try std.testing.expectEqual(available, pool.availableWorkers());
+        try std.testing.expectEqualDeep(expected, try actual.generate(challenges()));
+        try std.testing.expectEqualSlices(M, reference.interaction, actual.interaction);
+    };
+    for (0..4) |fail_index| {
+        var actual = try S.Source.init(a, facts, 14);
+        defer actual.deinit();
+        actual.releaseMain();
+        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = fail_index });
+        actual.allocator = failing.allocator();
+        const result = actual.generate(challenges());
+        actual.allocator = a;
+        try std.testing.expectError(error.OutOfMemory, result);
+        try std.testing.expectEqual(@as(usize, 0), actual.interaction.len);
+        try std.testing.expectEqual(actual.size(), actual.metadata.len);
+        try std.testing.expectEqual(available, pool.availableWorkers());
+        try std.testing.expectEqualDeep(expected, try actual.generate(challenges()));
+        try std.testing.expectEqualSlices(M, reference.interaction, actual.interaction);
+    }
+}
+test "BINARY shared prefix strict late padding pole and histogram disagreement preserve retry after main release" {
+    const facts = try inputs(12001);
+    defer a.free(facts);
+    var reference = try S.Source.testing.initSerial(a, facts, null, 14);
+    defer reference.deinit();
+    const expected = try reference.generateSerial(challenges());
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 1024 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var actual = try S.Source.init(a, facts, 14);
+    defer actual.deinit();
+    actual.releaseMain();
+    var pole = challenges();
+    pole.function.offset = core.fields.qm31.QM31.zero();
+    pole.function.coefficients = @splat(core.fields.qm31.QM31.zero());
+    pole.function.coefficients[0] = core.fields.qm31.QM31.one();
+    if (actual.generate(pole)) |_| return error.AcceptedZeroWeightPaddingPole else |_| {}
+    try std.testing.expectEqual(actual.size(), actual.metadata.len);
+    try std.testing.expectEqual(@as(usize, 0), actual.interaction.len);
+    actual.and_counts[0] += 1;
+    try std.testing.expectError(error.InvalidBinaryMetadata, actual.generate(challenges()));
+    actual.and_counts[0] -= 1;
+    try std.testing.expectEqualDeep(expected, try actual.generate(challenges()));
+    try std.testing.expectEqualSlices(M, reference.interaction, actual.interaction);
+}

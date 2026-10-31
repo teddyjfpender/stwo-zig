@@ -160,6 +160,9 @@ pub const Source = struct {
         return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .function_mass = @intCast(function_mass), .fixed = fixed, .main = main, .owns_main = buffers == null, .and_counts = counts, .metadata = metadata };
     }
     pub const testing = if (@import("builtin").is_test) struct {
+        pub fn failInteractionSubmission(source: *Source, ch: P.Challenges, pool: *engine.work_pool.WorkPool, which: usize, after: usize) !P.Claims {
+            return @import("binary_interaction.zig").testing.failSubmission(source, ch, pool, which, after);
+        }
         pub fn initSerial(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32) !Source {
             return initInternal(a, facts, weights, log, null, null, null);
         }
@@ -207,18 +210,13 @@ pub const Source = struct {
     /// Challenge inputs come from the complete sealed-root manifest. Metadata
     /// survives main adoption, and is retired only after private output passes.
     pub fn generate(self: *Source, ch: P.Challenges) !P.Claims {
+        return @import("binary_interaction.zig").generate(self, ch, @import("stwo_prover_engine").work_pool.currentScopedPool());
+    }
+    /// Explicit pre-parallel numerical reference.
+    pub fn generateSerial(self: *Source, ch: P.Challenges) !P.Claims {
         const n = self.size();
         const a = self.allocator;
-        if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidBinarySourcePhase;
-        if (self.and_counts.len != 65536 or self.fact_count > n) return error.InvalidBinaryMetadata;
-        var function_mass: u64 = 0;
-        for (self.metadata, 0..) |meta, i| {
-            const weight = meta.multiplicity();
-            if (weight >= core.fields.m31.Modulus or (i >= self.fact_count and weight != 0)) return error.InvalidBinaryMetadata;
-            function_mass += weight;
-            if (function_mass >= core.fields.m31.Modulus) return error.InvalidBinaryMetadata;
-        }
-        if (function_mass != self.function_mass) return error.InvalidBinaryMetadata;
+        try InteractionSupport.validate(self);
         const output = try a.alloc(M, INTERACTION * n);
         errdefer a.free(output);
         const dictionary = try a.alloc(Q, 65536);
@@ -231,38 +229,20 @@ pub const Source = struct {
             if (count >= core.fields.m31.Modulus) return error.InvalidBinaryMetadata;
             and_claim = and_claim.add(inverse.mulM31(M.fromCanonical(@intCast(count))));
         }
-        var and_prefix = and_claim.neg();
-        var function_sum = Q.zero();
+        var sums = [2]Q{ and_claim.neg(), Q.zero() };
         var start: usize = 0;
         while (start < n) : (start += CHUNK) {
-            const count: usize = @min(CHUNK, n - start);
-            functionDenominators(self.metadata[start..][0..count], scratch[0..count], ch.function);
-            try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
-            for (0..count) |i| {
-                const logical = start + i;
-                const p = physical(logical, self.log_size);
-                const meta = self.metadata[logical];
-                for (0..4) |batch| {
-                    const x = dictionary[meta.and_indices[2 * batch]];
-                    const y = dictionary[meta.and_indices[2 * batch + 1]];
-                    store(output, n, p, 4 * batch, x.mul(y));
-                    and_prefix = and_prefix.add(x).add(y);
-                }
-                const inverse = scratch[CHUNK + i];
-                store(output, n, p, 16, inverse);
-                function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
-                store(output, n, p, 20, and_prefix.add(function_sum));
-            }
+            try InteractionSupport.fillChunk(self.metadata, self.log_size, ch, dictionary, scratch, output, start, &sums);
         }
-        if (!and_prefix.isZero()) return error.InvalidBinaryMetadata;
-        const correction = function_sum.toM31Array();
+        if (!sums[0].isZero()) return error.InvalidBinaryMetadata;
+        const correction = sums[1].toM31Array();
         for (0..4) |c| for (0..n) |row| {
             output[(20 + c) * n + row] = output[(20 + c) * n + row].sub(correction[c]);
         };
         self.interaction = output;
         a.free(self.metadata);
         self.metadata = &.{};
-        return .{ .and_ = and_claim, .function = function_sum };
+        return .{ .and_ = and_claim, .function = sums[1] };
     }
 };
 
@@ -317,5 +297,53 @@ pub const NativeSupport = struct {
             metadata[i].and_indices[j] = @intCast(index);
             counts[index] += 1;
         }
+    }
+};
+
+/// Native numerical authority shared by serial and pooled prefix generation.
+pub const InteractionSupport = struct {
+    pub const CHUNK_ROWS = CHUNK;
+    pub const write = store;
+    /// Exactly one numerical chunk writer serves the serial reference and the
+    /// shared two-wave adapter. Prefix state is supplied by the caller.
+    pub fn fillChunk(metadata: []const Metadata, log: u32, ch: P.Challenges, dictionary_values: []const Q, scratch: []Q, output: []M, start: usize, sums: *[2]Q) !void {
+        const n = metadata.len;
+        const count: usize = @min(CHUNK, n - start);
+        functionDenominators(metadata[start..][0..count], scratch[0..count], ch.function);
+        try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
+        for (0..count) |i| {
+            const logical = start + i;
+            const p = physical(logical, log);
+            const meta = metadata[logical];
+            for (0..4) |batch| {
+                const x = dictionary_values[meta.and_indices[2 * batch]];
+                const y = dictionary_values[meta.and_indices[2 * batch + 1]];
+                store(output, n, p, 4 * batch, x.mul(y));
+                sums[0] = sums[0].add(x).add(y);
+            }
+            const inverse = scratch[CHUNK + i];
+            store(output, n, p, 16, inverse);
+            sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
+            store(output, n, p, 20, sums[0].add(sums[1]));
+        }
+    }
+    pub fn validate(self: *const Source) !void {
+        const n = self.size();
+        if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidBinarySourcePhase;
+        if (self.and_counts.len != 65536 or self.fact_count > n) return error.InvalidBinaryMetadata;
+        var function_mass: u64 = 0;
+        for (self.metadata, 0..) |meta, i| {
+            const weight = meta.multiplicity();
+            if (weight >= core.fields.m31.Modulus or (i >= self.fact_count and weight != 0)) return error.InvalidBinaryMetadata;
+            function_mass += weight;
+            if (function_mass >= core.fields.m31.Modulus) return error.InvalidBinaryMetadata;
+        }
+        if (function_mass != self.function_mass) return error.InvalidBinaryMetadata;
+    }
+    pub fn dictionary(values: []Q, scratch: []Q, ch: P.Challenges) !void {
+        return dictionaryInverses(values, scratch, ch);
+    }
+    pub fn denominators(metadata: []const Metadata, out: []Q, ch: @FieldType(P.Challenges, "function")) void {
+        functionDenominators(metadata, out, ch);
     }
 };

@@ -36,6 +36,8 @@ pub const range = struct {
     pub const table_cpu = @import("range/table_cpu.zig");
 };
 pub const providers = struct {
+    pub const native_fill = @import("providers/native_fill.zig");
+    pub const prefix_waves = @import("providers/prefix_waves.zig");
     pub const byte = @import("providers/byte.zig");
     pub const byte_degree3 = @import("providers/byte_degree3.zig");
     pub const tables = @import("providers/tables.zig");
