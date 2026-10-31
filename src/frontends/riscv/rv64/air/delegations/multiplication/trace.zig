@@ -92,7 +92,7 @@ pub const Trace = struct {
         const n = @as(usize, 1) << @intCast(log);
         for (requests) |request| _ = try L.opcodeIndex(request.opcode);
         if (borrowed) |main| {
-            const storage = @import("../../crypto/main_storage.zig");
+            const storage = @import("../main_storage.zig");
             const slices = [_]storage.Slice{.{ .values = main, .cells = L.MAIN * n }};
             try storage.validate(&slices);
             try storage.exclude(&slices, std.mem.sliceAsBytes(requests));

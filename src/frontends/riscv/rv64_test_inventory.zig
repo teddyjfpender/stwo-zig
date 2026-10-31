@@ -87,3 +87,7 @@ test {
 test {
     _ = @import("rv64/air/memory/prepared_graph_test.zig");
 }
+
+test {
+    _ = @import("rv64/air/delegations/tests/registry_test.zig");
+}

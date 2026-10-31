@@ -41,15 +41,17 @@ pub const providers = struct {
     pub const table_component = @import("providers/table_component.zig");
 };
 
-pub const arithmetic = struct {
-    pub const multiplication = @import("arithmetic/multiplication/mod.zig");
-    pub const division = @import("arithmetic/division/mod.zig");
-};
+pub const delegations = @import("delegations/mod.zig");
 
+// Compatibility aliases preserve public type identity and legacy callers.
+pub const arithmetic = struct {
+    pub const multiplication = delegations.multiplication;
+    pub const division = delegations.division;
+};
 pub const crypto = struct {
-    pub const main_storage = @import("crypto/main_storage.zig");
-    pub const secp256k1 = @import("crypto/secp256k1/mod.zig");
-    pub const keccak = @import("crypto/keccak/mod.zig");
+    pub const main_storage = delegations.main_storage;
+    pub const secp256k1 = delegations.secp256k1;
+    pub const keccak = delegations.keccak;
 };
 
 pub const memory = struct {

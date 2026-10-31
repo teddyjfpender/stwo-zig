@@ -5,7 +5,7 @@ const T = @import("private_trace.zig");
 const Owned = @import("openings.zig").Owned;
 const values = @import("values.zig");
 const batch = @import("batch.zig");
-const Storage = @import("../crypto/main_storage.zig");
+const Storage = @import("../delegations/main_storage.zig");
 pub fn validate(buffers: T.MainBuffers, cache: *const values.Cache, preparation: *const T.Preparation, owned: *const Owned) !void {
     var slices = try inputs(buffers, preparation, owned);
     // Inline zero digests/cache descriptors are read inputs; private hash-map

@@ -16,7 +16,7 @@ pub const Plan = struct {
     control_policy: @import("control_policy.zig").Policy = .bytes_v1,
     state_policy: @import("state_policy.zig").Policy = .inverse_v1,
     execution_profile: @import("../execution_profile.zig").Profile = .rv64im,
-    arithmetic_policy: @import("arithmetic/division/policy.zig").Policy = .inline_v4,
+    arithmetic_policy: @import("delegations/division/policy.zig").Policy = .inline_v4,
     allowed_opcodes: [L.fixed.OPCODES]bool = @splat(true),
     byte_bits: [L.WORDS][8]bool = @splat(@splat(false)),
     support: L.Support,
@@ -103,21 +103,21 @@ pub const Plan = struct {
 
     /// Explicit public arithmetic-provider policy; legacy callers remain inline.
     /// The service plan requires a CPU typed bus closed against its provider.
-    pub fn fromOpcodesWithPolicy(opcodes: []const E.O, policy: @import("arithmetic/division/policy.zig").Policy) Plan {
+    pub fn fromOpcodesWithPolicy(opcodes: []const E.O, policy: @import("delegations/division/policy.zig").Policy) Plan {
         return switch (policy) {
             .inline_v4 => fromOpcodes(opcodes),
-            .division_service_v2 => @import("arithmetic/division/cpu.zig").plan(opcodes),
-            .division_multiplication_services_v3 => @import("arithmetic/division/cpu.zig").planWithMultiplication(opcodes, .rv64im),
+            .division_service_v2 => @import("delegations/division/cpu.zig").plan(opcodes),
+            .division_multiplication_services_v3 => @import("delegations/division/cpu.zig").planWithMultiplication(opcodes, .rv64im),
         };
     }
 
     /// Concrete service ABI builder; it cannot imply an unclosed inline CPU.
-    pub fn fromOpcodesWithProfiles(opcodes: []const E.O, arithmetic: @import("arithmetic/division/policy.zig").Policy, execution: @import("../execution_profile.zig").Profile) !Plan {
+    pub fn fromOpcodesWithProfiles(opcodes: []const E.O, arithmetic: @import("delegations/division/policy.zig").Policy, execution: @import("../execution_profile.zig").Profile) !Plan {
         if (execution == .rv64im) return fromOpcodesWithPolicy(opcodes, arithmetic);
         if (execution != .keccak_service_v1 and execution != .ethereum_services_v1 and execution != .ethereum_services_v2) return error.UnsupportedRv64ServiceExecutionProfile;
         return switch (arithmetic) {
-            .division_service_v2 => @import("arithmetic/division/cpu.zig").planWithProfile(opcodes, execution),
-            .division_multiplication_services_v3 => @import("arithmetic/division/cpu.zig").planWithMultiplication(opcodes, execution),
+            .division_service_v2 => @import("delegations/division/cpu.zig").planWithProfile(opcodes, execution),
+            .division_multiplication_services_v3 => @import("delegations/division/cpu.zig").planWithMultiplication(opcodes, execution),
             else => error.UnsupportedRv64ServiceArithmetic,
         };
     }

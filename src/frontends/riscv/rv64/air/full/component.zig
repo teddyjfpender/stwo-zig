@@ -25,10 +25,10 @@ const tables = @import("../providers/tables.zig");
 const table_cpu = @import("../range/table_cpu.zig");
 const points = @import("../../../air/component_point_support.zig");
 const lane = @import("../lane.zig");
-const division = @import("../arithmetic/division/mod.zig");
-const keccak_bus = @import("../crypto/keccak/cpu_bus.zig");
-const multiplication = @import("../arithmetic/multiplication/mod.zig");
-const secp = @import("../crypto/secp256k1/mod.zig");
+const division = @import("../delegations/division/mod.zig");
+const keccak_bus = @import("../delegations/keccak/cpu_bus.zig");
+const multiplication = @import("../delegations/multiplication/mod.zig");
+const secp = @import("../delegations/secp256k1/mod.zig");
 pub const MAX_INTERACTION = 1024;
 pub const Offsets = struct { fixed: usize = 0, main: usize = 0, interaction: usize = 0 };
 /// CPU lookup challenges over constant lane C (QM31 natively, external wires otherwise).

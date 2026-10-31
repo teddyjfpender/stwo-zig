@@ -9,10 +9,10 @@ const Q = E.Q;
 const Plan = @import("../../encoding.zig").Plan;
 const frame = @import("../frame.zig");
 const bytes = @import("../../range/cpu.zig");
-const division = @import("../../arithmetic/division/mod.zig");
-const multiplication = @import("../../arithmetic/multiplication/mod.zig");
-const keccak_bus = @import("../../crypto/keccak/cpu_bus.zig");
-const secp = @import("../../crypto/secp256k1/mod.zig");
+const division = @import("../../delegations/division/mod.zig");
+const multiplication = @import("../../delegations/multiplication/mod.zig");
+const keccak_bus = @import("../../delegations/keccak/cpu_bus.zig");
+const secp = @import("../../delegations/secp256k1/mod.zig");
 pub fn emitRepeatedInflation(self: *const Component, fixed_geometry: frame.Geometry, physical: []const Q, previous_main: []const Q, current: []const Q, previous: []const Q, main: *const E.Main, out: *E.Sink) void {
     self.emitExecutionConstraints(fixed_geometry, physical, previous_main, current, previous, main, out);
     bytes.evaluatePrepared(self.plan, physical[0..self.plan.main_count], current[self.byteStart()..self.andStart()], previous[self.byteStart()..self.andStart()], fixed_geometry[1], fixed_geometry[2], &self.byte_alpha, self.claims.bytes, out);
@@ -65,7 +65,7 @@ pub fn componentForPlan(plan: *const Plan) !Component {
 test "single prepared CPU frame preserves every base and arbitrary-Q residual in all execution profiles" {
     const a = std.testing.allocator;
     const Profile = @import("../../../execution_profile.zig").Profile;
-    const Policy = @import("../../arithmetic/division/policy.zig").Policy;
+    const Policy = @import("../../delegations/division/policy.zig").Policy;
     const cases = [_]struct { Profile, Policy }{
         .{ .rv64im, .inline_v4 },                                         .{ .rv64im, .division_service_v2 },
         .{ .keccak_service_v1, .division_service_v2 },                    .{ .keccak_service_v1, .division_multiplication_services_v3 },
