@@ -27,6 +27,7 @@ critical-section = { version = "1.2", features = ["restore-state-bool"] }
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
 ecdsa = { version = "=0.16.9", default-features = false, optional = true }
 revm-precompile = { version = "=42.0.1", default-features = false }
+stwo-rv64-mem = { path = "../mem" }
 stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491", default-features = false }
 
 [profile.release]

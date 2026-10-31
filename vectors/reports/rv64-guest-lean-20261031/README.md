@@ -156,3 +156,38 @@ python3 scripts/riscv64_ethereum_profile.py --execution execution.json \
 cd autoresearch/benchmarks/guest_runtime/ethereum/rv64/projective_service_test && \
   cargo +nightly-2026-08-08 test --release --offline --features vartime
 ```
+
+## Round 2: memory functions for aligned-only RV64
+
+`autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem` provides strong
+`memcpy`, `memmove`, `memset`, `memcmp` and `bcmp` symbols that replace the
+weak `compiler_builtins` definitions (crate attribute `no_builtins` keeps LLVM
+from rewriting its loops back into calls). The guest traps on misaligned
+access, so every word access is aligned: 8-aligned copies run a four-word
+unrolled loop, 4-aligned sources use 32-bit loads, and mismatched alignment
+uses an aligned funnel-shift loop that never reads a source word outside the
+range. Tails up to 15 bytes are straight-line. `memcmp` compares whole words
+when both sides are aligned. Host property tests cover every length up to
+259 with every source and destination offset up to 15, both overlap
+directions for `memmove`, and the lexicographic sign of `memcmp`.
+
+| Measure | round 1 | round 2 |
+| --- | ---: | ---: |
+| Instructions | 149,306,899 | 138,707,126 (−7.1%) |
+| memcpy | 37.0M (313,045 calls, 118 each) | 28.7M (91 each) |
+| memcmp | 2.45M | 1.27M |
+| memset | 1.96M | 1.46M |
+| ELF SHA-256 | `691ff478…e2bb` | `4a0ef215…` (see `round2/build-report.json`) |
+
+Receipts in `round2/`: build report, execution config (new `heap_start`
+33,648,256), execution summary, function profile and the services oracle
+comparison, which again agrees with the native executor on every field.
+
+Where the remaining memcpy calls come from (Unicorn return-address
+histogram): 48% are four struct moves in zeth-mpt's RLP node decode of 32,
+128, 128 and 44 bytes per decoded node; 6.8% are `NodeRef` encodes of 32
+bytes; 6% are the 96-byte point returned by value from the k256 word table
+select (removed in round 3); the rest are allocation growth, Keccak input
+copies and EVM memory operations. The struct moves are compiler-generated and
+need an upstream change in zeth-mpt to avoid; the memcpy floor for them is
+the aligned word loop already in place.
