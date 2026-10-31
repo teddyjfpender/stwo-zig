@@ -47,6 +47,7 @@ pub fn addProduct(context: Context) void {
         .{ "multiplication", "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig", 5 },
         .{ "keccak-cpu", "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig", 10 },
         .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 9 },
+        .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 13 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
         .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 1 },
@@ -105,6 +106,7 @@ pub fn addProduct(context: Context) void {
     const tools = [_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_secp_fixture_main.zig" },
         .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_keccak_fixture_main.zig" },
+        .{ .name = "rv64-distributed-functional-fixture", .source = "src/integrations/riscv_cpu/rv64_distributed_functional_fixture_main.zig" },
         .{ .name = "rv64-word16-binary-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_binary_fixture_main.zig" },
         .{ .name = "rv64-qualification", .source = "src/integrations/riscv_cpu/rv64_qualification_main.zig" },
         .{ .name = "rv64-csp-windows", .source = "src/integrations/riscv_cpu/rv64_csp_windows_main.zig" },

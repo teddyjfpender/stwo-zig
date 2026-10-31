@@ -1,0 +1,193 @@
+{
+  "schema": "rv64-distributed-functional-qualification-v1",
+  "scope": "experimental independently expected public functional truth facts only",
+  "cpu_execution_bound": false,
+  "ram_bound": false,
+  "production_activated": false,
+  "configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup_factor": 1,
+    "fold_step": 1
+  },
+  "gates": {
+    "release_safe": {
+      "passed": true,
+      "tests": 13,
+      "log": "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-manifest-safe.log"
+    },
+    "release_fast": {
+      "passed": true,
+      "tests": 13,
+      "log": "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-manifest-fast.log"
+    },
+    "fresh_process_receiver": {
+      "accepted_public_functional_facts": true,
+      "actual_air_fri_proofs_verified": 2,
+      "independently_expected_roster": true,
+      "complete_manifest_alpha": true,
+      "all_physical_claims_closed": true,
+      "cpu_bound": false,
+      "ram_bound": false
+    },
+    "fresh_process_attacks": [
+      {
+        "attack": "balanced-claims",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: OodsNotMatching"
+      },
+      {
+        "attack": "proof-body",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: ProofOfWork"
+      },
+      {
+        "attack": "manifest-root",
+        "rejected": true,
+        "exit_code": 1,
+        "error": "error: DistributedManifestChanged"
+      }
+    ],
+    "named_build_target_release_safe": {
+      "passed": true,
+      "command": "zig build test-riscv64-distributed-functional -Doptimize=ReleaseSafe",
+      "log": "/tmp/rv64-distributed-functional-build-safe.log"
+    },
+    "named_fixture_release_fast": {
+      "passed": true,
+      "command": "zig build rv64-distributed-functional-fixture -Doptimize=ReleaseFast",
+      "log": "/tmp/rv64-distributed-functional-build-fast.log",
+      "installed_tool_sha256": "735df821396a99ad844ee2bd8ed39fa8d3e9722981a2227078877418bc8f9f58",
+      "fresh_receiver_passed": true
+    },
+    "existing_binary_control_after_additive_expected_main": {
+      "reported_by": "provider owner independent regression gate",
+      "release_fast_tests_passed": 2,
+      "proof_bytes": 240632,
+      "proof_sha256": "c1de65fc530fa639fb1fd32737c1ee8785133bb654e3c9ea71204c7e24a2b498",
+      "exact_retained_bytes": true,
+      "separate_process_receiver_passed": true,
+      "control_report": "vectors/reports/rv64-ethereum-20261030/word16-binary-v1-qualification.json"
+    }
+  },
+  "physical_layout": {
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8,
+      "residuals": 18,
+      "request_facts_not_in_fixed": true
+    },
+    "binary": {
+      "log": 5,
+      "fixed": 2,
+      "main": 42,
+      "interaction": 28
+    },
+    "and_table": {
+      "log": 16,
+      "fixed": 5,
+      "main": 1,
+      "interaction": 8
+    },
+    "source_cells": 921600,
+    "source_bytes": 3686400,
+    "trace_oods_masks": 158,
+    "conservative_global_positive_capacity": 32,
+    "actual_positive_roster_weight_sum": 3,
+    "local_and_positive_mass_including_padding": 256
+  },
+  "producer": {
+    "scope": "experimental-public-functional-facts-only",
+    "cpu_bound": false,
+    "ram_bound": false,
+    "queries": 70,
+    "pow_bits": 26,
+    "stage1_actual_pcs_roots": true,
+    "complete_manifest_digest": "6598ebea50188710d6076c8cccc888333bef7abc0146453567391b0258d44a18",
+    "consumer_bytes": 15496,
+    "consumer_sha256": "9c97cd39f2e10feb554d3db8b0a1a47ea4cb858728e6fbc8353476130bfd6a22",
+    "binary_bytes": 241504,
+    "binary_sha256": "5c25cb5a3ffbd51254bd2038f63f32a649386304e1e8fbbc572e6c0616b1b923",
+    "global_positive_capacity": 32,
+    "actual_positive_function_mass": 3,
+    "and_mass_including_padding": 256
+  },
+  "artifacts": {
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/binary.bin": {
+      "bytes": 241504,
+      "sha256": "5c25cb5a3ffbd51254bd2038f63f32a649386304e1e8fbbc572e6c0616b1b923"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/claims.json": {
+      "bytes": 524,
+      "sha256": "f06082d1e4d2fd146eaba8314e9a9436b16ff2af58b37eaafc859776528ea23d"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/consumer.bin": {
+      "bytes": 15496,
+      "sha256": "9c97cd39f2e10feb554d3db8b0a1a47ea4cb858728e6fbc8353476130bfd6a22"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/fresh-process-attacks.json": {
+      "bytes": 369,
+      "sha256": "dc39873d388c6d86dd73fee530e6d3bdeaf59464f8107e46d1cab0432ddcb699"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/manifest.bin": {
+      "bytes": 1076,
+      "sha256": "bf404fb12e3cc6fac932d7087633e1010b6ce2bfdccb01a43899416d201c1b04"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/producer.json": {
+      "bytes": 552,
+      "sha256": "b947748dc4f7df4e6da24964e119f708f63936fcf74d47ca580fc4801d091778"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/receiver.json": {
+      "bytes": 215,
+      "sha256": "a2d1540b216debb42bc14610011a712d3c6ddc9bbdad2d08e17b9fd7d35438f9"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-functional-produce.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-functional-receive.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-manifest-fast.log": {
+      "bytes": 1798,
+      "sha256": "67f742361c9ec084b14468920e60f92929e075e5c35efb7d97e4e3b8e5a1e447"
+    },
+    "vectors/reports/interop_artifacts/rv64-distributed-functional-v1/rv64-distributed-manifest-safe.log": {
+      "bytes": 1798,
+      "sha256": "67f742361c9ec084b14468920e60f92929e075e5c35efb7d97e4e3b8e5a1e447"
+    }
+  },
+  "compiled_tool": {
+    "path": "/tmp/rv64-distributed-functional-fixture",
+    "sha256": "326444ac5a8cdb732f0e71327b91afba0d2872390d18ba9886dfe87ecd2d7bdb"
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_distributed_v1/adversarial_test.zig": "2eb33aa6c2d4aec4248d44afad5cdfeacd85eb8264134a3de8b0d589207a226a",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/functional.zig": "77ba4c200d1674058157f9774c90eab04058a32305dceaaa76d3a5cc4b52e9a1",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/functional_test.zig": "17c36b59bd1275741525bac1605ebeec6a37f2dfd68b20f7ce27d11d58aa88b4",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/manifest.zig": "936456e5d46ceeb964bc1167fd7e91a42816735a2898aa86237b70a677db7d4a",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/manifest_test.zig": "f2b24d2edf088711d50be210719d522cd2ac1937a7450fc6b9088c7b3bc93c1d",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/receipt_wire.zig": "51cac02faf73c0d067ff5eb180edb7c06a5e8983fe2ed7235659b62dd339fb2a",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/types.zig": "9831bf806b42ed9cb5a570df613240dde3306fa6f56076ed03ae8a1ce648bb16",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/wire.zig": "da0dd7848bddb0333e3f0c32c0cc582d6c7345b6a96b25e7ceec8c9ec8f48c1d",
+    "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig": "cf3c4b3b0197676b84b8d24da34f94a6aea5bd69f476a47cc2b8cf505923d096",
+    "src/integrations/riscv_cpu/rv64_distributed_functional_fixture_main.zig": "e8e7c89580ff8702e7b98674bbf244d031098eb0301d4bc24f15bb9a0f94b81f",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "e4548067bb5019fb345cd752cb4320b054bc090e709351652ba98ac3f18690e4",
+    "src/frontends/riscv/rv64/air/word16_v1/expected_roster.zig": "2c47c28b744b1ad3af8d0233c995108ff382735e46716b3b710ab1ae4589194e",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/binary.zig": "78b69c822b99316921a97cc76dbbd302f9e3c3c31663df42e860de9b37c7e61c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_lookup.zig": "684e5e443ca7b0c4302d619c960ff3e14437ceaa6d08c019740cc000b7b71116",
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "9222cd66618d88aae66d7d649a83aa0a6a46411a67431729d142912e3237406a"
+  },
+  "remaining": [
+    "No CPU/ALU/SHIFT aggregate proof receiver; metadata role support is not execution acceptance",
+    "No RAM profile, initialization/teardown/terminal or origin-clock delegation acceptance",
+    "Root-chain packet protocol remains the qualified execution control",
+    "No distributed execution CLI activation or performance-speedup claim"
+  ]
+}

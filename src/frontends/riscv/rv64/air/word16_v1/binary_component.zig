@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const E = @import("../evaluation.zig");
 const P = @import("binary_lookup.zig");
+const Expected = @import("expected_roster.zig");
 const Tables = @import("../providers/tables.zig");
 const geometry = @import("../geometry.zig");
 const points = @import("../../../air/component_point_support.zig");
@@ -15,13 +16,18 @@ const Point = core.circle.CirclePointQM31;
 const air = core.air.components;
 const cp = engine.air.component_prover;
 const accumulation = engine.air.accumulation;
-pub const Kind = enum { binary, expected, and_table };
+pub const Kind = enum { binary, expected, and_table, expected_main };
+pub const ExpectedRoster = Expected.Roster;
+pub const expectedRosterDigest = Expected.digest;
+pub const expectedMainFixed = Expected.fixed;
+pub const expectedMainValues = Expected.main;
 pub const Component = struct {
     kind: Kind,
     log_size: u32,
     offsets: [3]usize,
     challenges: P.Challenges,
     claims: P.Claims,
+    expected_roster: ?*const ExpectedRoster = null,
     const Adapter = core.air.derive.ComponentAdapter(Component, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const Component) cp.ComponentProver {
         return Adapter.asProverComponent(self);
@@ -34,6 +40,7 @@ pub const Component = struct {
             .binary => .{ 2, P.MAIN, P.INTERACTION },
             .expected => .{ 16, 0, 8 },
             .and_table => .{ 5, 1, 8 },
+            .expected_main => .{ Expected.FIXED, Expected.WIDTH, 8 },
         };
     }
     pub fn nConstraints(self: *const Component) usize {
@@ -41,6 +48,7 @@ pub const Component = struct {
             .binary => P.CONSTRAINTS,
             .expected => 3,
             .and_table => Tables.N_CONSTRAINTS,
+            .expected_main => 18,
         };
     }
     pub fn maxConstraintLogDegreeBound(self: *const Component) u32 {
@@ -54,6 +62,7 @@ pub const Component = struct {
         return 3;
     }
     pub fn traceLogDegreeBounds(self: *const Component, a: std.mem.Allocator) !air.TraceLogDegreeBounds {
+        try self.validateContext();
         const widths_ = self.widths();
         var logs: [3][]u32 = undefined;
         var initialized: usize = 0;
@@ -65,6 +74,7 @@ pub const Component = struct {
         return air.TraceLogDegreeBounds.initOwned(try a.dupe([]u32, &logs));
     }
     pub fn preprocessedColumnIndices(self: *const Component, a: std.mem.Allocator) ![]usize {
+        try self.validateContext();
         const indices = try a.alloc(usize, self.widths()[0]);
         for (indices, 0..) |*index, i| index.* = self.offsets[0] + i;
         return indices;
@@ -73,6 +83,7 @@ pub const Component = struct {
         return if (self.kind == .binary) (column >= 16 and column < 20) or column >= 24 else column >= 4;
     }
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !air.MaskPoints {
+        try self.validateContext();
         _ = try geometry.localPoint(point, global_log, self.log_size);
         const widths_ = self.widths();
         var masks: [3][][]Point = undefined;
@@ -101,9 +112,26 @@ pub const Component = struct {
                 const residuals = Tables.evaluateFor(F, fixed[0..3], fixed[3], fixed[4], main[0], E.secureFor(F, inter, 0), E.secureFor(F, inter, 4), E.secureFor(F, previous, 4), self.claims.and_, self.challenges.and_);
                 for (residuals) |value| sink.emit(value);
             },
+            .expected_main => {
+                const roster = self.expected_roster.?;
+                for (0..Expected.WIDTH) |c| {
+                    var wanted = F.zero();
+                    for (0..Expected.ROWS) |i| wanted = wanted.add(fixed[2 + i].mul(E.qFor(F, roster[i][c].v)));
+                    sink.emit(main[c].sub(wanted));
+                }
+                sink.emit(main[13].mul(main[13].sub(F.one())));
+                P.emitFunctionFor(F, main[0..13].*, main[13], fixed[0], fixed[1], E.secureFor(F, inter, 0), E.secureFor(F, inter, 4), E.secureFor(F, previous, 4), self.claims.function, self.challenges.function, sink);
+            },
+        }
+    }
+    fn validateContext(self: *const Component) !void {
+        if (self.kind == .expected_main) {
+            if (self.log_size != Expected.LOG) return error.InvalidWord16RosterGeometry;
+            try Expected.validate(self.expected_roster orelse return error.MissingWord16ExpectedRoster);
         }
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const air.MaskValues, acc: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
+        try self.validateContext();
         if (mask.items.len < 3) return error.InvalidWord16Mask;
         const widths_ = self.widths();
         var values: [72]Q = undefined;
@@ -124,6 +152,7 @@ pub const Component = struct {
         std.debug.assert(sink.count == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
+        try self.validateContext();
         const a = acc.allocator;
         const widths_ = self.widths();
         const total = widths_[0] + widths_[1] + widths_[2];
