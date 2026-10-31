@@ -1,0 +1,156 @@
+{
+  "status": "qualified diagnostic prefix; no production/default activation",
+  "base_commit": "5b8be3eb11ac724c020a17b46de45370b3888f1c",
+  "scope": {
+    "cpu_shards": 2,
+    "cpu_instructions": 4,
+    "program": [
+      "SD x1,0(x2)",
+      "ECALL Keccak(a0,a7)",
+      "LD x0,0(a0)",
+      "ECALL Keccak(a0,a7)"
+    ],
+    "advice": "manually constructed CompactTape for independently pinned four-instruction program; full CPU AIR proves semantics",
+    "keccak_calls": 2,
+    "ram_words": 25,
+    "same_buffer": true,
+    "cross_page": true,
+    "full_64bit_pointer": "0x8000000000000ff8",
+    "genesis": "independently expected zero-value RW image callback; only first INIT; final TERM physically authenticated",
+    "not_claimed": [
+      "Ethereum full block",
+      "real-packet performance",
+      "halt/output certification",
+      "secp support",
+      "recursion",
+      "unbounded distributed memory budget"
+    ]
+  },
+  "security": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "whole_protocol_security_bits": null,
+    "note": "No parameter lowering. Rational lookup degree/mass and unions require independent budgeting."
+  },
+  "air": {
+    "fixed": 6,
+    "main": 66,
+    "interaction": 116,
+    "constraints": 167,
+    "native_max_degree": 3,
+    "native_domain": "2n",
+    "rows_per_call": 25,
+    "u16_queries_per_physical_row": 22,
+    "u8_queries_per_physical_row": 19,
+    "ood_samples": 217,
+    "main_previous_samples": 9,
+    "interaction_previous_samples": 20,
+    "local_physical_claims": 41,
+    "owner_arity": 19,
+    "ram_arity": 14,
+    "io_arity": 11,
+    "k_permutation": "unchanged triple-v2 degree4/4n",
+    "bridge_source_cells_log5": 6016,
+    "bridge_native_eval_cells_log5": 12032
+  },
+  "protocol": {
+    "stage1": "all actual fixed/MAIN roots sealed in complete ordered manifest before shared RAM and local OWNER/IO challenges",
+    "claims": "all41 physical claims mixed before interaction root; fresh STARK verification then per-shard non-RAM closure and aggregate RAM closure",
+    "chronology": "epoch16/tick24; lane-specific predecessor; same-epoch strict tick or strictly older epoch; all25 distinct lanes share CPU service tick",
+    "permissions": "R and W each word, unchanged across update; full64 pointer+8*lane with Boolean carries, alignment and no wrap",
+    "legacy": "old Prepared.init rejects services; old closed and RAM-only local closure checks unchanged; additive explicit typed source path"
+  },
+  "gates": {
+    "safe": "9 runtime PASS",
+    "fast": "9 runtime PASS",
+    "native": "empty/odd/even/padded calls; owned/borrowed/released MAIN exact interactions",
+    "polynomial": "every167 scalar/PackedBase residual equal across16 lanes; dense arbitrary-QM31 cubic differences; real2n q70 quotient proof",
+    "allocation": "checkAllAllocationFailures source+interaction; strict OWNER pole publishes no interaction and retains metadata for retry",
+    "physical_adversaries": [
+      "wrong K output: actual proofs reject local IO/OWNER closure",
+      "false cross-shard epoch0 predecessor with K truth recomputed consistently: local proofs verify; aggregate RAM rejects",
+      "globally/local balanced physical-claim alteration rejects OODS",
+      "wrong service count/capacity rejects",
+      "invented pristine initial value rejects"
+    ],
+    "fresh_process": "both 1-worker and16-worker artifacts verified from independent fixed setup/program/image",
+    "worker_parity": "workers1/16 metadata +both complete proof binaries exactly equal"
+  },
+  "artifacts": {
+    "metadata.json": {
+      "bytes": 49104,
+      "sha256": "49f9a4a0f0ec42836a2493ad8eb8295f3462edfd806e86aa9dd6ddd71a01af5f"
+    },
+    "proof1.bin": {
+      "bytes": 2475600,
+      "sha256": "b8b697acf925c136bc21cffcfc3192c8de9b66216b66307e3eab12c97c4053e1"
+    },
+    "proof0.bin": {
+      "bytes": 2476848,
+      "sha256": "5b47aa92d774d5dcbc7a0b8f29b5c4955002adfdd2423248ba20abc67eadb820"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-global-keccak-v1",
+  "tool": {
+    "path": "zig-out/bin/rv64-word16-global-keccak-fixture",
+    "sha256": "79c9714fd0097b462e896aa4a9ed4e48ace092e2ebe3e2db0b23be6079be1dbe"
+  },
+  "observations": {
+    "produce-w1": {
+      "wall_s": 4.61,
+      "user_s": 4.38,
+      "sys_s": 0.05,
+      "peak_rss_bytes": 299548672
+    },
+    "verify-w1": {
+      "wall_s": 0.23,
+      "user_s": 0.22,
+      "sys_s": 0.01,
+      "peak_rss_bytes": 108593152
+    },
+    "produce-w16": {
+      "wall_s": 0.68,
+      "user_s": 3.14,
+      "sys_s": 0.46,
+      "peak_rss_bytes": 322420736
+    },
+    "verify-w16": {
+      "wall_s": 0.08,
+      "user_s": 0.21,
+      "sys_s": 0.1,
+      "peak_rss_bytes": 110608384
+    }
+  },
+  "observation_scope": "single small diagnostic fixture runs; no real-workload speed claim",
+  "limitations": [
+    "service Setup currently retains a real unused legacy fixed-tree owner plus combined fixed tree; rootless material extraction is pending",
+    "convenience producer retains bounded worker PCS owners centrally",
+    "current qualified slice uses pre-BINARY24 baseline; merged-main qualification remains necessary"
+  ],
+  "source_sha256": {
+    "build_support/products/catalog.zig": "39213a990b127bbbd8ee7df30052e8cdacb5c3780e4f89d14c9901a7fb4adccb",
+    "build_support/products/riscv_cpu.zig": "e4e79f9eeed0d0f282f0b54c3bac260294f51554b12f8fcc08c6526359a19b5d",
+    "src/frontends/riscv/rv64/air/delegations/keccak/mod.zig": "8794b03882cf6648b77c6774c9614e79a76e8796082c92b3bc9450e9dcac4bc6",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/component.zig": "aa754b27de61fba029c2ec058463c01e1ccf20d1776a4031dac1ba2c677ffa29",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/equations.zig": "68a3a609f4f480a763c6c536f2c0f436afbff404b06895a4840120a212f6e237",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/layout.zig": "ecfffbad8f564930333b32cc99798bb916adc4bab74ffa0a2716196f4a6e9718",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/mod.zig": "e3986fd8fe7a548c95fc6faf5fda1c0a06656327c088a89159d4886130291559",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/packed_rows.zig": "d9916bd26ebe01c7b58fda9e67cd9d6388137a46f93796530d85bb1674e74905",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/source.zig": "60affd9107977c7ec79e75c4b7fa09598f63e959bb22b4516192bcb2c589f1cb",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/types.zig": "43354cb7dabf6af2e5f93761d2dac645b2a2575e99ff75c015f02f990ef022da",
+    "src/integrations/riscv_cpu/rv64_word16_global_keccak_fixture_main.zig": "7389830c050590ebcc4781c63fd79cd7e6eff461ca2075644a6356d64ea1459b",
+    "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig": "bd15d13c7f8ae14e6b26682cd9af80f0e658688333831ce246d5939be0daf3a8",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "abddaf2753e917d63c2bbbcf11b20c95a76960a55cefc5dbf48377349c1740c6",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "674c6edbbfca8b56c486b4a9df66c17d8ee818b15c7b342e5d3778cdccc8e17c",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/README.md": "955419c09a019d117765c3c09dc89b53690f0ac57a3fae62e842e966d65d212f",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/bridge_test.zig": "b32453f00ea599052cba41106520579db03a0318e1dca15f28d90b425cd027f2",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/collector.zig": "bc837116f9f0cab8d46e43061bf667d80ac5d4fd86f24315598594866dcd6e27",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution.zig": "2ad9e691244ca71539ca40dc46b612996ba0740e6a62aafefc6139125f9a7458",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution_test.zig": "7eec03d6d826d7244c02521b78f77acc155ba0924edecf83faf33065bddcb806",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture.zig": "4ac91390fcbcaa9823b7f6f4e4997320a9c468feabb8831de0612cf7f14a6d9b",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture_main.zig": "0f00a9363dd02babe4dbc26ac9daec9c6cbe8cf450d31dec40d4b35ac325db1a",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/roster.zig": "e85da92675383307fc37985ca4b91086a17dcbfbcc64d55142f5f11adea0096f"
+  }
+}

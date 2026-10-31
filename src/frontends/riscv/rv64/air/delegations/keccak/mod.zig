@@ -16,3 +16,5 @@ pub const cpu_bus = @import("cpu_bus.zig");
 
 /// Explicit inactive adapter; legacy component links only static triple kernels.
 pub const quartet_component = @import("quartet_component.zig");
+
+pub const word16_bridge = @import("word16_bridge/mod.zig");

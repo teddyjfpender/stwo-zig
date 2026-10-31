@@ -30,9 +30,18 @@ pub const Prepared = struct {
     raw_counts: Coverage.Counts,
     unique_memory_words: u32,
     pub fn init(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return initInternal(a, program, public, epoch, cpu_log, tape, options, false);
+    }
+    /// Explicit service witness route. Old constructors remain fail-closed;
+    /// acceptance belongs only to the complete Keccak service coordinator.
+    pub fn initForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return initInternal(a, program, public, epoch, cpu_log, tape, options, true);
+    }
+    fn initInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, allow_keccak: bool) !Prepared {
         var cpu = try CPU.Source.init(a, program, public, epoch, cpu_log, tape);
         errdefer cpu.deinit();
-        if (cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
+        if (!allow_keccak and cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
+        for (cpu.services.items) |call| if (call.tag != 0x10001) return error.UnqualifiedWord16ServiceOwners;
         var af: std.ArrayList(B.operations.AluFact) = .empty;
         defer af.deinit(a);
         var bf: std.ArrayList(Binary.Fact) = .empty;
@@ -75,7 +84,7 @@ pub const Prepared = struct {
         const division = try df.toOwnedSlice(a);
         errdefer a.free(division);
         const multiplication = try mf.toOwnedSlice(a);
-        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = @intCast(shift.len), .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = 0 }, .unique_memory_words = @intCast(words.count()) };
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = @intCast(shift.len), .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;

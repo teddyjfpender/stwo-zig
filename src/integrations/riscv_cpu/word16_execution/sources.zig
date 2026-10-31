@@ -128,13 +128,20 @@ pub const Source = struct {
         return self.generateProfiled(ch, null);
     }
     pub fn generateProfiled(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder) !P.Claims {
-        return self.generateInternal(ch, recorder, false);
+        return self.generateInternal(ch, recorder, .closed);
     }
     pub const OpenGlobalRamClaims = struct { physical: P.Claims };
     pub fn generateOpenForGlobalRam(self: *Source, ch: P.Draw) !OpenGlobalRamClaims {
-        return .{ .physical = try self.generateInternal(ch, null, true) };
+        return .{ .physical = try self.generateInternal(ch, null, .global_ram) };
     }
-    fn generateInternal(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder, open_ram: bool) !P.Claims {
+    pub const OpenKeccakClaims = struct { physical: P.Claims };
+    /// Additional OWNER/range debt is accepted ONLY by the concrete joined K
+    /// receiver. The old closed and RAM-only paths retain their exact checks.
+    pub fn generateForKeccakJoin(self: *Source, ch: P.Draw) !OpenKeccakClaims {
+        return .{ .physical = try self.generateInternal(ch, null, .keccak_join) };
+    }
+    const Closure = enum { closed, global_ram, keccak_join };
+    fn generateInternal(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder, closure: Closure) !P.Claims {
         if (self.claims != null) return error.InvalidWord16ExecutionPhase;
         const old = P.legacy(ch.cpu);
         const r16 = block: {
@@ -209,7 +216,11 @@ pub const Source = struct {
             break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
         };
         const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection };
-        if (open_ram) try validateOpenForGlobalRam(claims) else try claims.validate();
+        switch (closure) {
+            .closed => try claims.validate(),
+            .global_ram => try validateOpenForGlobalRam(claims),
+            .keccak_join => try validateCanonicalClaims(claims),
+        }
         self.claims = claims;
         return claims;
     }
@@ -287,12 +298,17 @@ fn addCounts(out: []u64, input: []const u64) !void {
     }
 }
 
-/// All per-shard relations except RAM must close BEFORE aggregate publication.
-/// Shared RAM is the only permitted open debt; this is not STARK verification.
-pub fn validateOpenForGlobalRam(claims: P.Claims) !void {
+/// Canonical physical values only; this helper deliberately certifies no debt
+/// closure. Accepting receivers must additionally enforce their complete roster.
+pub fn validateCanonicalClaims(claims: P.Claims) !void {
     const values = claims.values();
     for (values) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalExecutionClaim;
     for ([_]usize{ 23, 26, 28, 31 }) |index| if (!values[index].isZero()) return error.NonzeroOmittedMemoryClaim;
+}
+/// Existing RAM-only scope: all local debts must still close exactly.
+pub fn validateOpenForGlobalRam(claims: P.Claims) !void {
+    try validateCanonicalClaims(claims);
+    const values = claims.values();
     var local = Q.zero();
     for (values, 0..) |q, index| if (index != 17 and index != 22 and index != 27) {
         local = local.add(q);
