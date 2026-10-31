@@ -1,0 +1,767 @@
+{
+  "schema": "rv64-word16-fixed-setup-owned-payload-v1",
+  "base_commit": "dd2880d17959b798308b0fbe3bf516082d1b1efc",
+  "scope": "Measurement only. Independently reconstructs all fixed keys from trusted ELF/config and retained declarations; no VM/Tape/MAIN or proof acceptance.",
+  "measurement": {
+    "scope": "live unique setup allocation payloads; excludes allocator rounding, trusted Image, proof data, witnesses, mapped advice and RSS",
+    "no_vm_or_tape_or_main_witness": true,
+    "all_fixed_roots_match_retained_bundle": true,
+    "cpu_setups": 25,
+    "keccak_setups": 1,
+    "secp_setups": 3,
+    "feature_entry_size": 48,
+    "setup_ns": 15288517000,
+    "owned_payload": {
+      "original_fixed": 5664163456,
+      "program_metadata": 773785350,
+      "coefficients": 5664172288,
+      "retained_evaluations": 0,
+      "merkle": 923270240,
+      "auxiliary": 39936,
+      "headers": 283168
+    },
+    "owned_payload_total": 13025714438,
+    "records": [
+      {
+        "kind": "cpu",
+        "index": 0,
+        "payload": {
+          "original_fixed": 251371136,
+          "program_metadata": 30951414,
+          "coefficients": 251371136,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10104
+        },
+        "logical_fixed_bytes": 251371136,
+        "coefficient_view_bytes": 251371136,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 133,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 1,
+        "payload": {
+          "original_fixed": 222264960,
+          "program_metadata": 30951414,
+          "coefficients": 222265344,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 9976
+        },
+        "logical_fixed_bytes": 222265344,
+        "coefficient_view_bytes": 222265344,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 131,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 2,
+        "payload": {
+          "original_fixed": 221740672,
+          "program_metadata": 30951414,
+          "coefficients": 221741056,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 9848
+        },
+        "logical_fixed_bytes": 221741056,
+        "coefficient_view_bytes": 221741056,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 129,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 3,
+        "payload": {
+          "original_fixed": 224206848,
+          "program_metadata": 30951414,
+          "coefficients": 224207232,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11576
+        },
+        "logical_fixed_bytes": 224207232,
+        "coefficient_view_bytes": 224207232,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 156,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 4,
+        "payload": {
+          "original_fixed": 229580416,
+          "program_metadata": 30951414,
+          "coefficients": 229580800,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11064
+        },
+        "logical_fixed_bytes": 229580800,
+        "coefficient_view_bytes": 229580800,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 148,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 5,
+        "payload": {
+          "original_fixed": 229482112,
+          "program_metadata": 30951414,
+          "coefficients": 229482496,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11064
+        },
+        "logical_fixed_bytes": 229482496,
+        "coefficient_view_bytes": 229482496,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 148,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 6,
+        "payload": {
+          "original_fixed": 231612800,
+          "program_metadata": 30951414,
+          "coefficients": 231613184,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11448
+        },
+        "logical_fixed_bytes": 231613184,
+        "coefficient_view_bytes": 231613184,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 154,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 7,
+        "payload": {
+          "original_fixed": 221421184,
+          "program_metadata": 30951414,
+          "coefficients": 221421568,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10488
+        },
+        "logical_fixed_bytes": 221421568,
+        "coefficient_view_bytes": 221421568,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 139,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 8,
+        "payload": {
+          "original_fixed": 225222656,
+          "program_metadata": 30951414,
+          "coefficients": 225223040,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10552
+        },
+        "logical_fixed_bytes": 225223040,
+        "coefficient_view_bytes": 225223040,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 140,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 9,
+        "payload": {
+          "original_fixed": 219014272,
+          "program_metadata": 30951414,
+          "coefficients": 219014656,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10552
+        },
+        "logical_fixed_bytes": 219014656,
+        "coefficient_view_bytes": 219014656,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 140,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 10,
+        "payload": {
+          "original_fixed": 218281600,
+          "program_metadata": 30951414,
+          "coefficients": 218281984,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11704
+        },
+        "logical_fixed_bytes": 218281984,
+        "coefficient_view_bytes": 218281984,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 158,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 11,
+        "payload": {
+          "original_fixed": 216151680,
+          "program_metadata": 30951414,
+          "coefficients": 216152064,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10680
+        },
+        "logical_fixed_bytes": 216152064,
+        "coefficient_view_bytes": 216152064,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 142,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 12,
+        "payload": {
+          "original_fixed": 217069184,
+          "program_metadata": 30951414,
+          "coefficients": 217069568,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10680
+        },
+        "logical_fixed_bytes": 217069568,
+        "coefficient_view_bytes": 217069568,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 142,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 13,
+        "payload": {
+          "original_fixed": 217724544,
+          "program_metadata": 30951414,
+          "coefficients": 217724928,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10552
+        },
+        "logical_fixed_bytes": 217724928,
+        "coefficient_view_bytes": 217724928,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 140,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 14,
+        "payload": {
+          "original_fixed": 217446016,
+          "program_metadata": 30951414,
+          "coefficients": 217446400,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11576
+        },
+        "logical_fixed_bytes": 217446400,
+        "coefficient_view_bytes": 217446400,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 156,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 15,
+        "payload": {
+          "original_fixed": 222934656,
+          "program_metadata": 30951414,
+          "coefficients": 222935040,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10488
+        },
+        "logical_fixed_bytes": 222935040,
+        "coefficient_view_bytes": 222935040,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 139,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 16,
+        "payload": {
+          "original_fixed": 217534080,
+          "program_metadata": 30951414,
+          "coefficients": 217534464,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10296
+        },
+        "logical_fixed_bytes": 217534464,
+        "coefficient_view_bytes": 217534464,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 136,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 17,
+        "payload": {
+          "original_fixed": 222252672,
+          "program_metadata": 30951414,
+          "coefficients": 222253056,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10232
+        },
+        "logical_fixed_bytes": 222253056,
+        "coefficient_view_bytes": 222253056,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 135,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 18,
+        "payload": {
+          "original_fixed": 218910336,
+          "program_metadata": 30951414,
+          "coefficients": 218910720,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11576
+        },
+        "logical_fixed_bytes": 218910720,
+        "coefficient_view_bytes": 218910720,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 156,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 19,
+        "payload": {
+          "original_fixed": 218615424,
+          "program_metadata": 30951414,
+          "coefficients": 218615808,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11576
+        },
+        "logical_fixed_bytes": 218615808,
+        "coefficient_view_bytes": 218615808,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 156,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 20,
+        "payload": {
+          "original_fixed": 219297408,
+          "program_metadata": 30951414,
+          "coefficients": 219297792,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 11448
+        },
+        "logical_fixed_bytes": 219297792,
+        "coefficient_view_bytes": 219297792,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 154,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 21,
+        "payload": {
+          "original_fixed": 217020032,
+          "program_metadata": 30951414,
+          "coefficients": 217020416,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10680
+        },
+        "logical_fixed_bytes": 217020416,
+        "coefficient_view_bytes": 217020416,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 142,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 22,
+        "payload": {
+          "original_fixed": 225913472,
+          "program_metadata": 30951414,
+          "coefficients": 225913856,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10232
+        },
+        "logical_fixed_bytes": 225913856,
+        "coefficient_view_bytes": 225913856,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 135,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 23,
+        "payload": {
+          "original_fixed": 219094656,
+          "program_metadata": 30951414,
+          "coefficients": 219095040,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10488
+        },
+        "logical_fixed_bytes": 219095040,
+        "coefficient_view_bytes": 219095040,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 139,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "cpu",
+        "index": 24,
+        "payload": {
+          "original_fixed": 242556544,
+          "program_metadata": 30951414,
+          "coefficients": 242556544,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 0,
+          "headers": 10488
+        },
+        "logical_fixed_bytes": 242556544,
+        "coefficient_view_bytes": 242556544,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 139,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 23,
+        "program_words": 540147,
+        "program_rows": 572754
+      },
+      {
+        "kind": "keccak",
+        "index": 0,
+        "payload": {
+          "original_fixed": 33812480,
+          "program_metadata": 0,
+          "coefficients": 33812480,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 36864,
+          "headers": 3968
+        },
+        "logical_fixed_bytes": 0,
+        "coefficient_view_bytes": 33812480,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 46,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 19,
+        "program_words": 0,
+        "program_rows": 0
+      },
+      {
+        "kind": "secp",
+        "index": 0,
+        "payload": {
+          "original_fixed": 31460352,
+          "program_metadata": 0,
+          "coefficients": 31460352,
+          "retained_evaluations": 0,
+          "merkle": 33554400,
+          "auxiliary": 1024,
+          "headers": 3016
+        },
+        "logical_fixed_bytes": 0,
+        "coefficient_view_bytes": 31460352,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 33,
+        "merkle_nonempty_layers": 20,
+        "merkle_log": 19,
+        "program_words": 0,
+        "program_rows": 0
+      },
+      {
+        "kind": "secp",
+        "index": 1,
+        "payload": {
+          "original_fixed": 371712,
+          "program_metadata": 0,
+          "coefficients": 371712,
+          "retained_evaluations": 0,
+          "merkle": 524256,
+          "auxiliary": 1024,
+          "headers": 2920
+        },
+        "logical_fixed_bytes": 0,
+        "coefficient_view_bytes": 371712,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 33,
+        "merkle_nonempty_layers": 14,
+        "merkle_log": 13,
+        "program_words": 0,
+        "program_rows": 0
+      },
+      {
+        "kind": "secp",
+        "index": 2,
+        "payload": {
+          "original_fixed": 11799552,
+          "program_metadata": 0,
+          "coefficients": 11799552,
+          "retained_evaluations": 0,
+          "merkle": 16777184,
+          "auxiliary": 1024,
+          "headers": 3000
+        },
+        "logical_fixed_bytes": 0,
+        "coefficient_view_bytes": 11799552,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 33,
+        "merkle_nonempty_layers": 19,
+        "merkle_log": 18,
+        "program_words": 0,
+        "program_rows": 0
+      },
+      {
+        "kind": "registry_headers",
+        "index": 0,
+        "payload": {
+          "original_fixed": 0,
+          "program_metadata": 0,
+          "coefficients": 0,
+          "retained_evaluations": 0,
+          "merkle": 0,
+          "auxiliary": 0,
+          "headers": 896
+        },
+        "logical_fixed_bytes": 0,
+        "coefficient_view_bytes": 0,
+        "retained_evaluation_bytes": 0,
+        "uncovered_coefficient_bytes": 0,
+        "source_columns": 0,
+        "merkle_nonempty_layers": 0,
+        "merkle_log": 0,
+        "program_words": 0,
+        "program_rows": 0
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "bytes": 1161,
+      "sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+    },
+    {
+      "path": "/tmp/rv64-ethereum-word16-full-s4-owned-v1/bundle.json",
+      "bytes": 758267,
+      "sha256": "8047218c74f2c465c92895a67f1857335c27e430104496ced4489dbf4bbe8c1f"
+    },
+    {
+      "path": "/tmp/rv64-ethereum-word16-full-s4-owned-v1/cost.json",
+      "bytes": 15809,
+      "sha256": "23fa964c2b3ae98ec198175b8aa53945de5380c60f7c032ac8211873b5d50c55"
+    }
+  ],
+  "tool": {
+    "path": "/tmp/rv64-word16-setup-audit-tools/bin/rv64-word16-setup-ownership",
+    "bytes": 793880,
+    "sha256": "786a132406c7239924137fd93ea39e74346e45eb446d93a3f4d695fe68700ea1"
+  },
+  "run": {
+    "path": "/tmp/rv64-word16-setup-owned-bytes-v1.json",
+    "bytes": 18852,
+    "sha256": "02aa4779eca4a2eebfd5b54c565ede9e5c9eb0aec7d4148c9d36186448992214"
+  },
+  "time_l": {
+    "path": "/tmp/rv64-word16-setup-owned-bytes-v1.time",
+    "bytes": 777,
+    "sha256": "4206fa5c4b50d92ce1900e9095d90377ad97e2a697a954913d27f45022a34f96"
+  },
+  "maximum_rss_bytes": 8298905600,
+  "darwin_peak_memory_footprint_bytes": 14046314168,
+  "allocator": "std.heap.smp_allocator; unlike full-driver4GiB recycler",
+  "accounting_limits": [
+    "Requested allocation payloads exclude allocator rounding/cache, trusted image, transient FFT/hash scratch, mapped advice and RSS.",
+    "Coefficient/column descriptors and SharedOwner leases alias data; owner ranges counted once; partial overlaps reject.",
+    "No RSS savings claim follows from allocation-length savings."
+  ],
+  "tests": {
+    "Safe3": {
+      "path": "/tmp/rv64-word16-setup-audit-tests-safe.log",
+      "bytes": 153,
+      "sha256": "7b970e8e274d233e27f813ee53da1839b0088fc10deb1e245233f6df3bf3b022"
+    },
+    "Fast3": {
+      "path": "/tmp/rv64-word16-setup-audit-tests-fast.log",
+      "bytes": 152,
+      "sha256": "a2e8e7b9775b2f5c689350370b55c827d9d244a783a152ff91ed53a76be06852"
+    },
+    "runtime_metadata": {
+      "path": "/tmp/rv64-word16-setup-audit-runtime.json",
+      "bytes": 435,
+      "sha256": "48c5838bfded9c998263b396bfc020810a44306f44aa34db76688501cd2dde9c"
+    }
+  },
+  "next_step_proposal": {
+    "explicit_large_fixed_retirement_no_protocol_change": true,
+    "keep_small_fixed_bytes_per_CPU": 8396032,
+    "CPU_large_original_fixed_bytes_releasable": 5376818560,
+    "original_program_ROM_bytes_per_CPU": 134217728,
+    "prerequisite": "Program.tupleAt from existing immutable Entry.romTuple, row/edge maps and exact forward physical permutation; no wide rebuild.",
+    "unchanged": "Sealed root, native coefficient and Merkle ownership, fixed logs/shapes, all proof bytes; default old retain path.",
+    "catalog_status": "Not implemented; requires independent offset/log mapping, schema change and measured unused-column/height/opening costs."
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig": "c60773e8c4fc6e29cce513561f24e2f4d8cbdca4b4ba67e0935dcbbbb7801760",
+    "src/integrations/riscv_cpu/rv64_word16_setup_audit_test_root.zig": "4c35658d6afcd07b8e824d082e9a7a3070b0ba818d1900ffa453508f7341f208",
+    "src/integrations/riscv_cpu/word16_setup_audit/ownership.zig": "7d977a0ed240746f5a9f31cb08dda1aa1a702a14c472c205dba7e6edbc59e808",
+    "src/integrations/riscv_cpu/word16_setup_audit/ownership_test.zig": "91193f8a5b7e1786a55f7015a87ec94860a9d03077f2acc720bc463e3e54deaa",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig": "6fd1be5b57049938b4bedd346db352e9ac3218873eb4ac57aad18ce40489ebaa",
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "3c6b8ed0dc44d825aa092210a152193e15f1b06b0a0917dd0994f79c119f07c5",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig": "9ec0f950a3a0bfa827ad0371e51dd7924654b51556addb70e388617f03c1f36a",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "63ddcf6712787145d9440a9d4c3ced6c476c7b8a70673d367988832e131cb826",
+    "src/integrations/riscv_cpu/word16_execution/program.zig": "97cb205d5b12e1feadd50335d8d4869ee18fd5788cc3859f2089a7f569233716",
+    "src/prover/pcs/commitment_tree.zig": "b31121280623516dc0fde8e77b63e9b5dd0c6054e013bb570427efa0a5bd6dd4",
+    "src/prover/pcs/columns/preparation.zig": "559e7210765ea0fa48f7f35f8cc65d9ba5c7d6b81dfe017552c3aa284593feb0",
+    "src/prover/vcs_lifted/prover.zig": "0791a9776eb1dd39862216a3725585af3b5d46076606bbe9d49028c3ce9cea6f"
+  }
+}
