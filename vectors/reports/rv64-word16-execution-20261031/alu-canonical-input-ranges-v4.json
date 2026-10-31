@@ -1,0 +1,284 @@
+{
+  "schema": "rv64-alu-canonical-input-ranges-v4-qualification",
+  "base": "85560606ca5b25e878fbe043fe8e76cc16023491",
+  "scope": "Concrete ALU32 under closed canonical REG/ROM or independently expected u64 input authority; no new accepting open verifier or recursion receiver",
+  "status": "qualified isolated slice",
+  "layout": {
+    "fixed": 2,
+    "main": 52,
+    "interaction": 32,
+    "constraints": 63,
+    "range16_queries_per_padded_row": 12,
+    "range_pairs": 6,
+    "function_inverse_columns": 4,
+    "joint_prefix_columns": 4,
+    "previous_prefix_samples": 4,
+    "metadata_bytes": 54,
+    "degree": 3,
+    "native_quotient_factor": 2,
+    "composition_log_split": 1
+  },
+  "prior": {
+    "interaction": 48,
+    "constraints": 67,
+    "range16_queries": 20,
+    "metadata_bytes": 70
+  },
+  "encoding": "fc876c3f9e02bd5509ec90815bc57be4ba3962b18326c0885ba7091d8fec9ed2",
+  "retained_queries": [
+    "sum[0..4]",
+    "difference[0..4]",
+    "2*low[0..4]"
+  ],
+  "removed_queries": [
+    "payload A[0..4]",
+    "payload B[0..4]"
+  ],
+  "security_configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "nominal_bits": 96,
+    "whole_protocol_bits_established": false
+  },
+  "canonicality": [
+    "All queried active provider outputs C are independently canonical even before input canonicality: ranged sums/differences, W sign anchors, Boolean compare outputs",
+    "closed REG with strict integer clocks and known initial u64 values supplies canonical reads without circularity; LS C4 remains independently ranged",
+    "ROM supplies canonical immediates/PC and JALR composite inputs",
+    "CPU/LS/service state-effect weights remain Boolean/unit; only pure functional facts use multiplicities",
+    "one physical prefix authenticates range16+function total; ledger shares are not individually authenticated certificates"
+  ],
+  "gates": [
+    {
+      "target": "test-riscv64-word16-alu",
+      "runtime_floor": 29,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-alu-proof",
+      "runtime_floor": 2,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-alu-merged-circuit",
+      "runtime_floor": 2,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-alu-parallel-interaction",
+      "runtime_floor": 4,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-thin-cpu",
+      "runtime_floor": 14,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-index-control",
+      "runtime_floor": 9,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-weighted-alu",
+      "runtime_floor": 4,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-execution-coordinator",
+      "runtime_floor": 22,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-global-execution",
+      "runtime_floor": 15,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-combined-services",
+      "runtime_floor": 11,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-provider-ladder",
+      "runtime_floor": 10,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    }
+  ],
+  "strong_attack": {
+    "description": "A[3]=B[3]=(p+1)/2 and2*low=1; sum[3]=C[3]=1. All53 local residuals zero and all12 retained query values canonical. Adjusted range multiplicities precommitted; other debts close. Only actual FUNCTION claim changes.",
+    "actual_physical_full_proof": "fresh polynomial verifier ACCEPTS",
+    "closed_receiver": "exact error.UnclosedExecutionRelations",
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS"
+  },
+  "performance": "unmeasured: functional runs were not isolated; no proof-size monotonicity or whole-job timing claim",
+  "standalone_alu": {
+    "scope": "diagnostic-public-io-alu-u16-one-pcs",
+    "proof_bytes": 251408,
+    "proof_sha256": "bf2a54814b340e02e49b094b4121fe7458339704ad4fd04846d65ac09e9d29c7",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "encoding_identity": "fc876c3f9e02bd5509ec90815bc57be4ba3962b18326c0885ba7091d8fec9ed2",
+    "public_roster_digest": "3deb50aa63a1f15ad7acb664404c2a28a4b1fafd54456a11670d2774bf47f472",
+    "source_cells": 790976,
+    "source_bytes": 3163904,
+    "trace_oods_masks": 166,
+    "alu": {
+      "log": 5,
+      "fixed": 2,
+      "main": 52,
+      "interaction": 32
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 34,
+      "main": 14,
+      "interaction": 8
+    },
+    "u16": {
+      "log": 16,
+      "fixed": 3,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 10,
+    "range_mass_including_padding": 384,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "standalone_fresh_receiver": true,
+  "weighted_fixture": {
+    "steps": 1023,
+    "function_mass": 1023,
+    "range16_alu_mass": 384,
+    "proof_sha256": "a347af1af3bb3039476dff248b749e2685b1f06cdd4a5c9018d7b65583e35b25",
+    "fresh_receiver": true
+  },
+  "binary_only_control": {
+    "baseline_commit": "85560606ca5b25e878fbe043fe8e76cc16023491",
+    "baseline_tool": "/tmp/rv64-alu32-control-tools/bin/rv64-distributed-execution-fixture",
+    "all_three_proofs_and_complete_artifacts_byte_exact": true,
+    "fresh_receiver": true,
+    "hashes": {
+      "cpu-0.bin": "cf78da16fc9cd058886a717524ff70fba6ddc8c0c3567f66841c23ca824c4e29",
+      "cpu-1.bin": "de4db05b823be26a60655af0e55b1e70731b145685cc05b3b881b177a4c4f552",
+      "binary.bin": "925470bbfb3433eabd6b71c064f5293980e716bb4b2a06187e6610634a17367b"
+    }
+  },
+  "real_oracles": {
+    "ecdsa": {
+      "proof_bytes": 1114808,
+      "proof_sha256": "379671ed1e7f71976a5b8d1f01c9db8274b8c38f772b5cdc9dd57505730e248f",
+      "steps": 1625938,
+      "all_CPU_fields_exact_control": true,
+      "all_RAM_cells_exact_control": true,
+      "fresh_independently_expected_receiver": true,
+      "path": "/tmp/rv64-alu32-ecdsa"
+    },
+    "sail": {
+      "proof_bytes": 1040720,
+      "proof_sha256": "900d1be3b8dcb4e1471fa01d43316673e9b8ca3cb5b9a4ac5d5789b6d5646d65",
+      "steps": 1032240,
+      "all_CPU_fields_exact_control": true,
+      "all_RAM_cells_exact_control": true,
+      "fresh_independently_expected_receiver": true,
+      "path": "/tmp/rv64-alu32-sail"
+    }
+  },
+  "combined_services": {
+    "proofs": 5,
+    "fresh_independently_expected_receiver": true,
+    "cells_exact_prior_qualification_sha256": true,
+    "artifacts": {
+      "bundle.json": {
+        "bytes": 67273,
+        "sha256": "d230d7dd96c5b575a611cff5eace339206a3f87ed0ffb3cc0033b8ded8b4487f"
+      },
+      "cells.bin": {
+        "bytes": 1166,
+        "sha256": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556"
+      },
+      "cpu-0.bin": {
+        "bytes": 953280,
+        "sha256": "14c1e5bf4e43307bd2d9fac38e4491e93c2d88eab2d762f308b0da44f65fc039"
+      },
+      "cpu-1.bin": {
+        "bytes": 1124528,
+        "sha256": "232c3158bb35bd80c6e1464b19506bfd30ef6a09ac2c89b445f5724f0ce5f242"
+      },
+      "truth-0.bin": {
+        "bytes": 1617800,
+        "sha256": "82404ee5a05bbf0c1c260a332d30e31c2d896e5ddb2470e95562d5811012bdf7"
+      },
+      "truth-1.bin": {
+        "bytes": 366840,
+        "sha256": "dcb597ffabf55fb12ddfb3e92e92e28925dcd005cd978fcf20f3a5106f2d3b91"
+      },
+      "truth-2.bin": {
+        "bytes": 364632,
+        "sha256": "5d4115bf31f59cdbc9b87723fab829b53ce89e4f85d2aa6efdd54e19a0f8a0e7"
+      }
+    },
+    "path": "/tmp/rv64-alu32-combined"
+  },
+  "actual_S4_geometry_model": {
+    "padded_ALU_rows": 11423744,
+    "ALU_components": 40,
+    "saved_INTER_M31_cells": 182779904,
+    "saved_aggregate_INTER_source_bytes": 731119616,
+    "saved_narrow_metadata_bytes": 182779904,
+    "saved_U16_queries": 91389952,
+    "saved_Q_opening_samples": 640,
+    "saved_stage1_MAIN_backing_bytes": 0,
+    "scope": "exact actual admitted geometries; summed source volume and logical metadata, not measured speed/RSS"
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "e9f8ed355c7b2c528caa3375b6a499aa72c0c3944770b4284cf45c1ada5086a4",
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "042718ebface78f68925fbfbc8e88b0e86a78f1d53a66051a7613c3f179a4191",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_encoding.zig": "f71f77fcf082a33a278bc6d63e6a5b17d3f05f7fe96441e740864b60a4b431c6",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction.zig": "ad86769f058a74c2ba237509d755bff600a1bcb65d5164e46df7d5446609f21c",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction_test.zig": "9cfaf437c6da32e12bf4763bf49dbfc26a06dd596a20351f7e392b8071a4adb3",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "f680cddd7670123246df8f1cc5c8c22c72bfb8a521d9865166c83b5744f028f0",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_merged_prefix_test.zig": "c07b413b6d6d953280b2dc478365521a5cb234d54c3c3b06fb4742e2e4e3c349",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "4f303ef0c2fe09c2f1d3c9d5b76b12e331e14f82e5b0512bc59a25aa603a8b8b",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig": "b98b6aa5f308bfba2bfced6be79e4c1712c941def743ab553e27e6490878fc5c",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_test.zig": "d2287c9c5a98e70daa467ff22003fba33d1eb56e26651b3a66beddd272029413",
+    "src/integrations/riscv_cpu/rv64_word16_alu_fixture_main.zig": "cce508554962509e6f9fc3b3861a907a620e700bce75fd0ed6ce6f8f21ff281b",
+    "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig": "242818e19a584014ff3588dfa5900bed4a1ba2ba5cb01991f0af09b14d3552a2",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_alu_main.zig": "3b8eacf58de25e3da3fc7bae23e686ab908afcc29e86f777625154a9f1163e77",
+    "src/integrations/riscv_cpu/tests/rv64_alu_merged_circuit_test.zig": "899c79d6d73cd2549746d52e6a4cf79d957a6bd2e0735ec010b1f471a22c0505",
+    "src/integrations/riscv_cpu/tests/rv64_word16_weighted_alu_test.zig": "1363c5ddd094c863119b40043f5c7f623f7addd618728b58d225b1b8c91517f7",
+    "src/integrations/riscv_cpu/word16/alu_fixture.zig": "580d06387eea89b1ec313a324c10bbc6769d2db39f42d2b01813d37dd246a5a8",
+    "src/integrations/riscv_cpu/word16/alu_fixture_trace.zig": "832993931c3aad2cfd2109e92ecba1ece0281d0c464cfe6b31b43612e46b0200",
+    "src/integrations/riscv_cpu/word16/cpu_materials.zig": "ccfdc36df44f2ac6b3b07403c669c9d4e4476e49cab2284cbf060d869a3d2d41",
+    "src/integrations/riscv_cpu/word16/cpu_protocol.zig": "b55e56339838a16f63a60b14b10a069006672faa6334d7ee50849da98b302655",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "6508a59cefcd47783ade149765fc7274e27fa303ebbd6f58f337f7d0fa4500b1",
+    "src/integrations/riscv_cpu/word16_execution/provider_ladder_test.zig": "6489e38306f82e095d6a94997fa0d96e4264090780b864c9f355ee95ad3bc6eb",
+    "src/integrations/riscv_cpu/word16_index/materials.zig": "d625ea69fca519eb1e8471ffca6509fc77a8ef48a2d51fee75a6e237aff9591a",
+    "src/integrations/riscv_cpu/word16_execution/alu_read_induction_proof_test.zig": "e849605ed81f474e51d9c65978d9d92d19841a951c8f9745b656890d5d82fe89"
+  },
+  "source_conformance": "97 baseline violations, unchanged reported source files apart from equal-line-count existing511-line build owner; no new violations in changed AIR/tests; git diff --check PASS",
+  "tools": {
+    "rv64-word16-combined-services-fixture": "ffe0ce912fb962e7800393d06cd1f4f7b0d0563a4e376af52a4cdf6ce0f00565",
+    "rv64-word16-weighted-alu": "2327063d5fb875456ec6e4c9332955fd1137811c11e637a503d0856c8135a467",
+    "rv64-distributed-execution-fixture": "ec3617ccdd6eea7ef48277b0361cc028d2c2a4c759d2fbcd011f7ad5a06e5369",
+    "rv64-word16-csp": "52c32761bb47dc61ca259b2a61e2c3a29a0a97c8fc5246632651c9c3f0c787b4",
+    "rv64-word16-alu-fixture": "e31f5d4cadf5ee62c6b61ebcddb313ab3713f82789d1eea8b290b7de367f561c",
+    "rv64-word16-sail": "846f25c3623fcbe2ce0b2acaedeba84b150a0e2f0008589f9f6861ece4174020"
+  }
+}

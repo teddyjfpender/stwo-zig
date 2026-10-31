@@ -16,7 +16,7 @@ pub const Geometry = struct {
     binary_log: u32 = 5,
     pub fn validate(self: Geometry) !void {
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log }) |log| if (log < 5 or log > 22) return error.InvalidIndexGeometry;
-        _ = try B.function_bus.admitPositiveMass(&.{3 * (@as(u64, 1) << @intCast(self.cpu_log)) + 20 * (@as(u64, 1) << @intCast(self.alu_log))});
+        _ = try B.function_bus.admitPositiveMass(&.{3 * (@as(u64, 1) << @intCast(self.cpu_log)) + B.alu_experiment.equations.RANGE_QUERIES * (@as(u64, 1) << @intCast(self.alu_log))});
         _ = try B.binary_source.massForLog(self.binary_log);
     }
 };

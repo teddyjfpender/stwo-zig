@@ -21,7 +21,7 @@ fn evaluate(input: *const [N]Q, ch: P.Challenges, claims: P.Claims) [P.CONSTRAIN
     std.debug.assert(sink.count == P.CONSTRAINTS);
     return result;
 }
-test "ALU48 joint polynomial is genuinely cubic at arbitrary extension points and preserves arithmetic" {
+test "ALU32 joint polynomial is genuinely cubic at arbitrary extension points and preserves arithmetic" {
     const ch = challenges();
     const claims = P.Claims{ .range16 = dense(29), .function = dense(37) };
     var results: [5][P.CONSTRAINTS]Q = undefined;
@@ -46,7 +46,7 @@ test "ALU48 joint polynomial is genuinely cubic at arbitrary extension points an
     }
     try std.testing.expect(cubic);
 }
-test "ALU48 authenticates only combined physical claim and rejects unweighted poles" {
+test "ALU32 authenticates only combined physical claim and rejects unweighted poles" {
     const ch = challenges();
     var input: [N]Q = undefined;
     for (&input, 0..) |*v, i| v.* = dense(@intCast(3 * i));
@@ -61,7 +61,7 @@ test "ALU48 authenticates only combined physical claim and rejects unweighted po
     row.selectors[0] = Q.zero();
     @memcpy(input[0..A.LOCAL_MAIN], &P.rowToColumnsFor(Q, row));
     var range_claim = Q.zero();
-    for (0..10) |i| {
+    for (0..A.RANGE_QUERIES / 2) |i| {
         const dx = ch.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * i));
         const dy = ch.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * i + 1));
         const inverse = try dx.mul(dy).inv();
@@ -73,7 +73,7 @@ test "ALU48 authenticates only combined physical claim and rejects unweighted po
     var pole = ch;
     pole.function.offset = Q.zero();
     const bad = evaluate(&input, pole, .{ .range16 = range_claim, .function = Q.zero() });
-    for (bad[0 .. A.CONSTRAINTS + 1 + 10]) |value| try std.testing.expect(value.isZero());
-    try std.testing.expect(bad[A.CONSTRAINTS + 1 + 10].eql(Q.one().neg()));
-    for (bad[A.CONSTRAINTS + 2 + 10 ..]) |value| try std.testing.expect(value.isZero());
+    for (bad[0 .. A.CONSTRAINTS + 1 + A.RANGE_QUERIES / 2]) |value| try std.testing.expect(value.isZero());
+    try std.testing.expect(bad[A.CONSTRAINTS + 1 + A.RANGE_QUERIES / 2].eql(Q.one().neg()));
+    for (bad[A.CONSTRAINTS + 2 + A.RANGE_QUERIES / 2 ..]) |value| try std.testing.expect(value.isZero());
 }

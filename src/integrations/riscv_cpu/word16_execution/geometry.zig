@@ -66,7 +66,7 @@ pub const Geometry = struct {
     /// Counts include padding for every always-present physical provider.
     /// Future service rosters must extend this admission BEFORE allocation.
     pub fn range16Mass(self: Geometry) !u64 {
-        var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * familyRows(self.alu_log, self.alu_tail_log));
+        var total = try std.math.add(u64, 3 * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
         total = try std.math.add(u64, total, 9 * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
         return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));

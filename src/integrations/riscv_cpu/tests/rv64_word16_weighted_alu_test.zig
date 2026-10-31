@@ -31,7 +31,7 @@ test "weighted ALU one EQ fact serves 127 native BEQs and fresh unchanged verifi
     try std.testing.expectEqual(@as(u32, 127), source.alu.?.metadata[0].multiplicity());
     var range_mass: u64 = 0;
     for (source.alu.?.range16_counts) |count| range_mass += count;
-    try std.testing.expectEqual(@as(u64, 20 * 32), range_mass);
+    try std.testing.expectEqual(@as(u64, 12 * 32), range_mass);
     var weighted = try CPU.produceDeduplicated(a, &small, public, records, false);
     defer weighted.deinit(a);
     var scalar = try CPU.produceDeduplicated(a, &small, public, records, true);

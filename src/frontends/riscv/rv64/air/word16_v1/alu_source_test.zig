@@ -81,7 +81,7 @@ fn reference(main: []const M, challenge: P.Challenges) !struct { data: []M, clai
         var values: [P.MAIN]Q = undefined;
         for (&values, 0..) |*v, c| v.* = Q.fromBase(main[c * N + pos]);
         const row = P.rowFromColumnsFor(Q, &values);
-        for (0..10) |j| {
+        for (0..A.RANGE_QUERIES / 2) |j| {
             const x = try challenge.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * j)).inv();
             const y = try challenge.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * j + 1)).inv();
             store(data, pos, 4 * j, x.mul(y));
@@ -104,7 +104,7 @@ test "ALUSource canonical native row cache equals Q authority all10 operations a
     var empty = try S.Source.init(a, &.{}, 5);
     defer empty.deinit();
     try std.testing.expectEqualSlices(M, source.fixed, empty.fixed);
-    try std.testing.expectEqual(@as(usize, 70), @sizeOf(S.Metadata));
+    try std.testing.expectEqual(@as(usize, 54), @sizeOf(S.Metadata));
     for (0..N) |i| {
         var row = if (i < values.len) try A.witness(values[i].op, values[i].a, values[i].b) else try A.witness(.add, 0, 0);
         if (i >= values.len) {
@@ -114,14 +114,14 @@ test "ALUSource canonical native row cache equals Q authority all10 operations a
         const expected = P.rowToColumnsFor(Q, row);
         const pos = physical(i, 5);
         for (expected, 0..) |v, c| try std.testing.expect(v.eql(Q.fromBase(source.main[c * N + pos])));
-        for (0..20) |j| try std.testing.expectEqual((try A.rangeValueFor(Q, &row, j).tryIntoM31()).v, @as(u32, source.metadata[i].range_indices[j]));
+        for (0..A.RANGE_QUERIES) |j| try std.testing.expectEqual((try A.rangeValueFor(Q, &row, j).tryIntoM31()).v, @as(u32, source.metadata[i].range_indices[j]));
     }
     var total: u64 = 0;
     for (source.range16_counts) |value| total += value;
-    try std.testing.expectEqual(@as(u64, 20 * N), total);
+    try std.testing.expectEqual(@as(u64, 12 * N), total);
     try std.testing.expectError(error.InvalidAluGeometry, S.massForLog(27));
 }
-test "ALUSource shared U16 dictionary and released owned borrowed main preserve all48 columns and67 residuals" {
+test "ALUSource shared U16 dictionary and released owned borrowed main preserve all32 columns and63 residuals" {
     const values = facts();
     var source = try S.Source.init(a, &values, 5);
     defer source.deinit();
@@ -232,7 +232,7 @@ test "ALU weighted source copies full u32 multiplicity and preserves unweighted 
     try std.testing.expectEqual(@as(u32, 0), source.metadata[1].multiplicity());
     var total: u64 = 0;
     for (source.range16_counts) |n| total += n;
-    try std.testing.expectEqual(@as(u64, 20 * N), total);
+    try std.testing.expectEqual(@as(u64, 12 * N), total);
     var setup = try U.Setup.init(a);
     defer setup.deinit();
     var range = try U.Source.init(a, &setup, source.range16_counts);

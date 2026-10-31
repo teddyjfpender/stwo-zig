@@ -40,7 +40,7 @@ pub fn main() !void {
             .public_consumer = .{ .log = 5, .fixed = 34, .main = 14, .interaction = 8 },
             .u16 = .{ .log = 16, .fixed = 3, .main = 1, .interaction = 8 },
             .positive_function_mass = 10,
-            .range_mass_including_padding = 640,
+            .range_mass_including_padding = X.equations.RANGE_QUERIES * 32,
             .max_degree = 3,
             .quotient_factor = 2,
             .cpu_bound = false,

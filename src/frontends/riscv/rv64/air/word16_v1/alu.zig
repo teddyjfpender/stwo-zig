@@ -1,5 +1,7 @@
 //! Experimental ALU truth chip. Range queries are mandatory obligations,
-//! not host checks: all twenty rangeTuple values must close against U16.
+//! not host checks: twelve write/compare anchors close against U16. Inputs
+//! require closed canonical REG/ROM or independently expected u64 fact authority.
+const std = @import("std");
 const E = @import("../evaluation.zig");
 const WordAdd = @import("word_add.zig");
 pub const encoding = @import("alu_encoding.zig");
@@ -30,7 +32,6 @@ pub fn RowFor(comptime F: type) type {
 /// into a different integer carry. This bound does not apply to U16 products.
 pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     const one = F.one();
-    const two = E.qFor(F, 2);
     const radix = E.qFor(F, 65536);
     var selected = F.zero();
     var operation = F.zero();
@@ -63,8 +64,7 @@ pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     sink.emit(r.zero.mul(difference_sum));
     sink.emit(difference_sum.mul(r.inverse).add(r.zero).sub(one));
     const equal = r.zero;
-    const same_sign = one.sub(r.sign[0]).sub(r.sign[1]).add(two.mul(r.sign[0]).mul(r.sign[1]));
-    sink.emit(r.signed_less.sub(r.sign[0].mul(one.sub(r.sign[1])).add(same_sign.mul(r.borrow[3]))));
+    sink.emit(r.signed_less.sub(signedLessFor(F, r.sign[0], r.sign[1], r.borrow[3])));
     const predicates = [6]F{ r.signed_less, r.borrow[3], equal, one.sub(equal), one.sub(r.signed_less), one.sub(r.borrow[3]) };
     for (0..4) |i| {
         const addw = if (i < 2) r.sum[i] else r.sign[2].mul(E.qFor(F, 65535));
@@ -80,10 +80,19 @@ pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     for (r.payload[1..9]) |value| sink.emit(inactive.mul(value));
 }
 
+/// Shared staged predicate; Boolean arguments imply a Boolean result even
+/// before input-word canonicality is supplied by the closed REG/ROM relation.
+pub fn signedLessFor(comptime F: type, sign_a: F, sign_b: F, borrow: F) F {
+    const one = F.one();
+    const same_sign = one.sub(sign_a).sub(sign_b).add(E.qFor(F, 2).mul(sign_a).mul(sign_b));
+    return sign_a.mul(one.sub(sign_b)).add(same_sign.mul(borrow));
+}
+
 /// The final four queries enforce low<32768 by range-checking 2*low.
 /// Checking low directly as U16 would leave the sign witness ambiguous.
 pub fn rangeValueFor(comptime F: type, r: *const RowFor(F), index: usize) F {
-    return if (index < 8) r.payload[1 + index] else if (index < 12) r.sum[index - 8] else if (index < 16) r.difference[index - 12] else r.low[index - 16].mul(E.qFor(F, 2));
+    std.debug.assert(index < RANGE_QUERIES);
+    return if (index < 4) r.sum[index] else if (index < 8) r.difference[index - 4] else r.low[index - 8].mul(E.qFor(F, 2));
 }
 
 pub fn nativeResult(op: @import("operations.zig").Alu, a: u64, b: u64) u64 {

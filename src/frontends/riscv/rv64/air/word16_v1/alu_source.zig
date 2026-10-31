@@ -21,21 +21,21 @@ pub const deduplicate = @import("alu_dedup.zig").deduplicate;
 /// Two u16 words preserve a four-byte increment without u32 alignment padding.
 pub const Metadata = struct {
     payload: [13]u16,
-    range_indices: [20]u16,
+    range_indices: [A.RANGE_QUERIES]u16,
     multiplicity_words: [2]u16,
     pub fn multiplicity(self: Metadata) u32 {
         return @as(u32, self.multiplicity_words[0]) | (@as(u32, self.multiplicity_words[1]) << 16);
     }
 };
 comptime {
-    std.debug.assert(@sizeOf(Metadata) == 70);
+    std.debug.assert(@sizeOf(Metadata) == 54);
 }
 pub const Mass = struct { fact_capacity: u64, range16_queries: u64 };
 pub fn massForLog(log: u32) !Mass {
     if (log < 5 or log > 26) return error.InvalidAluGeometry;
     const n = @as(u64, 1) << @intCast(log);
-    _ = try Bus.admitPositiveMass(&.{20 * n});
-    return .{ .fact_capacity = n, .range16_queries = 20 * n };
+    _ = try Bus.admitPositiveMass(&.{A.RANGE_QUERIES * n});
+    return .{ .fact_capacity = n, .range16_queries = A.RANGE_QUERIES * n };
 }
 pub fn fixedForLog(a: std.mem.Allocator, log: u32) ![]M {
     _ = try massForLog(log);
@@ -86,7 +86,7 @@ fn nativeRow(value: ?Fact, inverses: []const M) A.RowFor(M) {
     return r;
 }
 fn rangeIndex(r: *const A.RowFor(M), i: usize) u16 {
-    const value = if (i < 8) r.payload[1 + i].v else if (i < 12) r.sum[i - 8].v else if (i < 16) r.difference[i - 12].v else 2 * r.low[i - 16].v;
+    const value = if (i < 4) r.sum[i].v else if (i < 8) r.difference[i - 4].v else 2 * r.low[i - 8].v;
     std.debug.assert(value < 65536);
     return @intCast(value);
 }
@@ -246,7 +246,7 @@ pub const Source = struct {
                 const logical = start + i;
                 const p = physical(logical, self.log_size);
                 const meta = self.metadata[logical];
-                for (0..10) |batch| {
+                for (0..A.RANGE_QUERIES / 2) |batch| {
                     const x = dictionary[meta.range_indices[2 * batch]];
                     const y = dictionary[meta.range_indices[2 * batch + 1]];
                     storeInternal(output, n, p, 4 * batch, x.mul(y));
@@ -338,7 +338,7 @@ const NativeFill = struct {
             self.main[A.LOCAL_MAIN * self.size + p] = M.fromCanonical(weight);
             self.metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
             for (row.payload, 0..) |v, c| self.metadata[i].payload[c] = @intCast(v.v);
-            for (0..20) |j| {
+            for (0..A.RANGE_QUERIES) |j| {
                 const index = rangeIndex(&row, j);
                 self.metadata[i].range_indices[j] = index;
                 counts[index] += 1;

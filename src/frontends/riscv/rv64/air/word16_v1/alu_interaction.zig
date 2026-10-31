@@ -99,7 +99,7 @@ const Job = struct {
                     const logical = start + i;
                     const position = @import("../witness.zig").physical(logical, self.ctx.log);
                     const metadata = self.ctx.metadata[logical];
-                    for (0..10) |batch| {
+                    for (0..@import("alu_encoding.zig").RANGE_QUERIES / 2) |batch| {
                         const x = self.ctx.dictionary[metadata.range_indices[2 * batch]];
                         const y = self.ctx.dictionary[metadata.range_indices[2 * batch + 1]];
                         Support.store(self.ctx.output, n, position, 4 * batch, x.mul(y));

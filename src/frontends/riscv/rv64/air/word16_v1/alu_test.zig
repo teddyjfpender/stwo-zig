@@ -37,7 +37,7 @@ test "Word16 ALU sign ambiguity fails the explicit range obligation" {
     // Keep the field sign decomposition valid while claiming that 0 has sign1.
     r.sign[0] = E.Q.one();
     r.low[0] = E.q(32768).neg();
-    try std.testing.expect(A.rangeValueFor(E.Q, &r, 16).toM31Array()[0].v >= 65536);
+    try std.testing.expect(A.rangeValueFor(E.Q, &r, 8).toM31Array()[0].v >= 65536);
 }
 
 test "Word16 staged signed predicate bounds every local polynomial by degree three" {
@@ -93,7 +93,7 @@ fn packedFields(comptime F: type, comptime n: usize, scalar: *[16][n]E.Q, counte
     }
     return output;
 }
-test "Word16 complete ALU authority preserves all67 residuals across base and arbitrary secure lanes" {
+test "Word16 complete ALU authority preserves all63 residuals across base and arbitrary secure lanes" {
     var ch = P.Challenges{ .range16 = .{ .offset = secure(3), .coefficient = secure(7) }, .function = .{ .offset = secure(11), .coefficients = undefined } };
     for (&ch.function.coefficients, 0..) |*v, i| v.* = secure(@intCast(17 + 4 * i));
     const claims = P.Claims{ .range16 = secure(71), .function = secure(79) };
@@ -133,5 +133,45 @@ test "ALU SUM zero needs physical U16 closure even for canonical input words" {
     A.emitFor(E.Q, &row, &sink);
     try std.testing.expect(!sink.nonzero);
     for (row.payload[1..9]) |value| try std.testing.expect((try value.tryIntoM31()).v < 65536);
-    try std.testing.expect((try A.rangeValueFor(E.Q, &row, 12).tryIntoM31()).v >= 65536);
+    try std.testing.expect((try A.rangeValueFor(E.Q, &row, 4).tryIntoM31()).v >= 65536);
+}
+
+test "ALU write predicates are Boolean independently of read-word canonicality" {
+    for (0..2) |a_sign| for (0..2) |b_sign| for (0..2) |borrow| {
+        const expected: u32 = @intCast(if (a_sign != b_sign) a_sign else borrow);
+        const value = A.signedLessFor(E.Q, E.q(@intCast(a_sign)), E.q(@intCast(b_sign)), E.q(@intCast(borrow)));
+        try std.testing.expect(value.eql(E.q(expected)));
+        try std.testing.expect(value.mul(value.sub(E.Q.one())).isZero());
+    };
+}
+
+test "ALU canonical read premise is essential even when all retained range and local obligations hold" {
+    var row = try A.witness(.eq, 0, 0);
+    // 2*half =1 in M31. Retained 2*low queries alone do not range A/B.
+    const half = E.q((@import("stwo_core").fields.m31.Modulus + 1) / 2);
+    row.payload[4] = half;
+    row.payload[8] = half;
+    row.low[0] = half;
+    row.low[1] = half;
+    row.sum[3] = E.Q.one();
+    var sink = Sink{};
+    A.emitFor(E.Q, &row, &sink);
+    try std.testing.expect(!sink.nonzero);
+    for (0..A.RANGE_QUERIES) |query| try std.testing.expect((try A.rangeValueFor(E.Q, &row, query).tryIntoM31()).v < 65536);
+    for (row.payload[9..13]) |c| try std.testing.expect((try c.tryIntoM31()).v < 65536);
+    try std.testing.expect((try row.payload[4].tryIntoM31()).v >= 65536);
+}
+
+test "ALU retained sum ranges independently exclude noncanonical register write compensation" {
+    var row = try A.witness(.add, 65535, 1);
+    row.sum[0] = E.q(65536);
+    row.sum[1] = E.Q.zero();
+    row.carry[0] = E.Q.zero();
+    row.low[2] = E.Q.zero();
+    row.payload[9] = row.sum[0];
+    row.payload[10] = row.sum[1];
+    var sink = Sink{};
+    A.emitFor(E.Q, &row, &sink);
+    try std.testing.expect(!sink.nonzero);
+    try std.testing.expect((try A.rangeValueFor(E.Q, &row, 0).tryIntoM31()).v >= 65536);
 }

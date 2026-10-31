@@ -55,7 +55,7 @@ pub const Fixture = struct {
     setup: U.Setup,
     range: U.Source,
     pub fn init(a: std.mem.Allocator, attack: Attack) !Fixture {
-        _ = try rv.word16_v1.function_bus.admitPositiveMass(&.{20 * N});
+        _ = try rv.word16_v1.function_bus.admitPositiveMass(&.{A.RANGE_QUERIES * N});
         const fixed = try a.alloc(M, 2 * N);
         errdefer a.free(fixed);
         @memset(fixed, M.zero());
@@ -169,7 +169,7 @@ pub const Fixture = struct {
             var main: [P.MAIN]Q = undefined;
             for (&main, 0..) |*v, c| v.* = Q.fromBase(self.main[c * N + physical]);
             const r = P.rowFromColumnsFor(Q, &main);
-            for (0..10) |batch| {
+            for (0..A.RANGE_QUERIES / 2) |batch| {
                 const dx = ch.range16.denominatorFor(Q, A.rangeValueFor(Q, &r, 2 * batch));
                 const dy = ch.range16.denominatorFor(Q, A.rangeValueFor(Q, &r, 2 * batch + 1));
                 const inverse = try dx.mul(dy).inv();

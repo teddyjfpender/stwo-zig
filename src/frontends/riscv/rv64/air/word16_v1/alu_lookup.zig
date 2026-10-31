@@ -1,4 +1,4 @@
-//! D3/2n ALU: twenty U16 memberships, ten strict pair inverses, one JOINT prefix
+//! D3/2n ALU: twelve U16 memberships, six strict pair inverses, one JOINT prefix
 //! for ranges and the shared affine function13 relation. No integer product-of-limbs AIR.
 const std = @import("std");
 const E = @import("../evaluation.zig");
@@ -7,7 +7,7 @@ const Bus = @import("function_bus.zig");
 const Ranges = @import("../providers/scalar_range.zig");
 pub const MAIN = A.encoding.MAIN;
 pub const INTERACTION = A.encoding.INTERACTION;
-pub const CONSTRAINTS = A.CONSTRAINTS + 14;
+pub const CONSTRAINTS = A.CONSTRAINTS + A.RANGE_QUERIES / 2 + 4;
 pub const FUNCTION_INVERSE = A.encoding.FUNCTION_INVERSE;
 pub const PREFIX = A.encoding.PREFIX;
 pub const Challenges = struct { range16: Ranges.Challenges, function: Bus.Challenges };
@@ -61,7 +61,7 @@ pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: 
     const multiplicity = main[A.LOCAL_MAIN];
     sink.emit(F.one().sub(row.active).mul(multiplicity));
     var contribution = S.zero();
-    for (0..10) |batch| {
+    for (0..A.RANGE_QUERIES / 2) |batch| {
         const dx = Ranges.affineDenominatorFor(F, ch.range16.offset, ch.range16.coefficient, A.rangeValueFor(F, &row, 2 * batch));
         const dy = Ranges.affineDenominatorFor(F, ch.range16.offset, ch.range16.coefficient, A.rangeValueFor(F, &row, 2 * batch + 1));
         const inverse = E.secureFor(F, current, 4 * batch);

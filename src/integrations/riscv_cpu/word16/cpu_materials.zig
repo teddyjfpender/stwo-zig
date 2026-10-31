@@ -22,7 +22,7 @@ pub const Geometry = struct {
     pub fn validate(self: Geometry) !void {
         if (self.cpu_log < 5 or self.cpu_log > 22 or self.binary_log < 5 or self.binary_log > 22 or (self.mode == .open_function and self.binary_log != 5)) return error.InvalidThinCpuGeometry;
         if (self.alu_log < 5 or self.alu_log > 22 or (self.profile == .binary_v1 and self.alu_log != 5) or (self.profile == .alu_binary_v2 and self.mode == .open_function)) return error.UnsupportedThinCpuProfile;
-        const range_mass = 3 * (@as(u64, 1) << @intCast(self.cpu_log)) + (if (self.profile == .alu_binary_v2) 20 * (@as(u64, 1) << @intCast(self.alu_log)) else 0);
+        const range_mass = 3 * (@as(u64, 1) << @intCast(self.cpu_log)) + (if (self.profile == .alu_binary_v2) @import("stwo_riscv_frontend").rv64_air.word16_v1.alu_experiment.equations.RANGE_QUERIES * (@as(u64, 1) << @intCast(self.alu_log)) else 0);
         _ = try Binary.function_bus.admitPositiveMass(&.{range_mass});
         _ = try Binary.function_bus.admitPositiveMass(&.{@as(u64, 1) << @intCast(self.cpu_log)});
         _ = try Binary.function_bus.admitPositiveMass(&.{3 * (@as(u64, 1) << @intCast(self.cpu_log)) + 32});
