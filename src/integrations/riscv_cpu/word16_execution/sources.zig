@@ -40,51 +40,102 @@ pub const Source = struct {
     boundary: []M = &.{},
     claims: ?P.Claims = null,
     pub fn init(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, public: A.word16_execution.types.Boundary, epoch: u16, tape: *const front.rv64.compact_tape.Tape) !Source {
+        return initProfiled(a, materials, image, public, epoch, tape, null);
+    }
+    pub fn initProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, public: A.word16_execution.types.Boundary, epoch: u16, tape: *const front.rv64.compact_tape.Tape, recorder: ?*Profile.Recorder) !Source {
+        var native_stage = try Profile.StageScope.begin(recorder, "source_native_advice", "Native CPU advice and family grouping");
+        defer native_stage.end();
         var prepared = try Prepared.init(a, &materials.program, public, epoch, materials.geometry.cpu_log, tape, .{ .deduplicate_binary = false, .jalr_log = materials.geometry.jalr_log });
         defer prepared.deinit();
-        return fromPrepared(a, materials, image, &prepared);
+        native_stage.end();
+        return fromPreparedProfiled(a, materials, image, &prepared, recorder);
     }
     /// Transfers CPU/JALR ownership on entry after identity/geometry checks.
     /// The caller always deinitializes Prepared to release remaining fact groups.
     /// On failure, transferred witnesses are destroyed here; never reconstructed.
     pub fn fromPrepared(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, prepared: *Prepared) !Source {
-        return fromPreparedInternal(a, materials, image, prepared, null);
+        return fromPreparedProfiled(a, materials, image, prepared, null);
+    }
+    pub fn fromPreparedProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, prepared: *Prepared, recorder: ?*Profile.Recorder) !Source {
+        return fromPreparedInternal(a, materials, image, prepared, null, recorder);
     }
     /// Witness-only, consumes owned memory on success AND failure. Accepting
     /// global proofs requires the separate complete-manifest receiver.
     pub fn fromPreparedWithOwnedMemory(a: std.mem.Allocator, materials: *const Mat.Materials, prepared: *Prepared, owned_memory: Memory.Prepared) !Source {
-        return fromPreparedInternal(a, materials, null, prepared, owned_memory);
+        return fromPreparedWithOwnedMemoryProfiled(a, materials, prepared, owned_memory, null);
     }
-    fn fromPreparedInternal(a: std.mem.Allocator, materials: *const Mat.Materials, image: ?Memory.public.Image, prepared: *Prepared, owned_memory: ?Memory.Prepared) !Source {
+    pub fn fromPreparedWithOwnedMemoryProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, prepared: *Prepared, owned_memory: Memory.Prepared, recorder: ?*Profile.Recorder) !Source {
+        return fromPreparedInternal(a, materials, null, prepared, owned_memory, recorder);
+    }
+    fn fromPreparedInternal(a: std.mem.Allocator, materials: *const Mat.Materials, image: ?Memory.public.Image, prepared: *Prepared, owned_memory: ?Memory.Prepared, recorder: ?*Profile.Recorder) !Source {
         var pending_memory = owned_memory;
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
         // A captured CPU materializes exactly once at the final Program owner;
         // projection failure preserves Prepared's narrow CPU/family advice.
-        try prepared.ensureCpuMain(&materials.program, g.cpu_log);
+        {
+            var stage = try Profile.StageScope.begin(recorder, "source_cpu_materialize", "CPU materialization and final program binding");
+            defer stage.end();
+            try prepared.ensureCpuMain(&materials.program, g.cpu_log);
+        }
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
-        var jalr = try prepared.takeJalr(g.jalr_log);
+        var jalr = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_jalr", "Adopt prepared JALR witness");
+            defer stage.end();
+            break :blk try prepared.takeJalr(g.jalr_log);
+        };
         errdefer jalr.deinit();
-        var alu = try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts, prepared.alu.weights, g.alu_log);
+        var alu = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_alu", "ALU witness");
+            defer stage.end();
+            break :blk try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts, prepared.alu.weights, g.alu_log);
+        };
         errdefer alu.deinit();
-        var binary = try B.binary_source.Source.initWeighted(a, prepared.binary.facts, prepared.binary.weights, g.binary_log);
+        var binary = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_binary", "BINARY witness");
+            defer stage.end();
+            break :blk try B.binary_source.Source.initWeighted(a, prepared.binary.facts, prepared.binary.weights, g.binary_log);
+        };
         errdefer binary.deinit();
-        var shift = try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
+        var shift = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_shift", "SHIFT witness");
+            defer stage.end();
+            break :blk try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
+        };
         errdefer shift.deinit();
-        var division = try A.arithmetic.division.trace.Trace.initWithLog(a, prepared.division, g.division_log);
+        var division = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_division", "DIV witness");
+            defer stage.end();
+            break :blk try A.arithmetic.division.trace.Trace.initWithLog(a, prepared.division, g.division_log);
+        };
         errdefer division.deinit();
-        var multiplication = try A.arithmetic.multiplication.trace.Trace.initWithLog(a, prepared.multiplication, g.multiplication_log);
+        var multiplication = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_multiplication", "MUL witness");
+            defer stage.end();
+            break :blk try A.arithmetic.multiplication.trace.Trace.initWithLog(a, prepared.multiplication, g.multiplication_log);
+        };
         errdefer multiplication.deinit();
         const epoch = cpu.epoch;
-        var memory = if (pending_memory) |value| block: {
-            pending_memory = null;
-            break :block value;
-        } else try Memory.Prepared.initIndependent(a, image.?, cpu.memory.items, epoch, g.ls_log, g.initialLog(), g.terminalLog());
+        var memory = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory", if (pending_memory != null) "Adopt prepared memory witnesses" else "Memory witness construction");
+            defer stage.end();
+            if (pending_memory) |value| {
+                pending_memory = null;
+                break :blk value;
+            }
+            break :blk try Memory.Prepared.initIndependentProfiled(a, image.?, cpu.memory.items, epoch, g.ls_log, g.initialLog(), g.terminalLog(), recorder);
+        };
         errdefer memory.deinit();
-        var rom = try ROM.Source.init(a, &materials.program, cpu.rom_counts);
+        var rom = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_rom", "ROM multiplicities");
+            defer stage.end();
+            break :blk try ROM.Source.init(a, &materials.program, cpu.rom_counts);
+        };
         errdefer rom.deinit();
+        var count_stage = try Profile.StageScope.begin(recorder, "source_range_counts", "Merge all physical range histograms");
+        defer count_stage.end();
         const c16 = try a.dupe(u64, cpu.counts16);
         errdefer a.free(c16);
         const c8 = try a.dupe(u64, cpu.counts8);
@@ -94,16 +145,37 @@ pub const Source = struct {
         try addCounts(c16, memory.counts16);
         try addCounts(c8, &multiplication.byte_counts);
         try addCounts(c8, memory.counts8);
-        var range16 = try W.table_trace.Source.initRange16(a, materials.range16_fixed, c16);
+        count_stage.end();
+        var range16 = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_range16", "U16 multiplicities");
+            defer stage.end();
+            break :blk try W.table_trace.Source.initRange16(a, materials.range16_fixed, c16);
+        };
         errdefer range16.deinit();
-        var range8 = try W.table_trace.Source.initRange8(a, materials.range8_fixed, c8);
+        var range8 = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_range8", "U8 multiplicities");
+            defer stage.end();
+            break :blk try W.table_trace.Source.initRange8(a, materials.range8_fixed, c8);
+        };
         errdefer range8.deinit();
-        var and_table = try A.providers.tables.Request.init(a, &materials.and_table, binary.and_counts);
+        var and_table = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_and_table", "AND multiplicities");
+            defer stage.end();
+            break :blk try A.providers.tables.Request.init(a, &materials.and_table, binary.and_counts);
+        };
         errdefer and_table.deinit();
-        var shift_table = try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift.shift_counts);
+        var shift_table = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_shift_table", "SHIFT table multiplicities");
+            defer stage.end();
+            break :blk try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift.shift_counts);
+        };
         errdefer shift_table.deinit();
-        cpu.releaseFacts();
-        prepared.releaseFacts();
+        {
+            var stage = try Profile.StageScope.begin(recorder, "source_fact_retirement", "Retire temporary native family facts");
+            defer stage.end();
+            cpu.releaseFacts();
+            prepared.releaseFacts();
+        }
         return .{ .allocator = a, .materials = materials, .cpu = cpu, .rom = rom, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .memory = memory, .and_table = and_table, .shift_table = shift_table, .range16 = range16, .range8 = range8, .counts16 = c16, .counts8 = c8 };
     }
     pub fn request(self: *const Source) P.Request {

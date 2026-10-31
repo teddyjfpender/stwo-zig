@@ -20,15 +20,26 @@ pub const Prepared = struct {
         return initIndependent(a, image, records, epoch, ls_log, boundary_log, boundary_log);
     }
     pub fn initIndependent(a: std.mem.Allocator, image: public.Image, records: []const CPU.MemoryRecord, epoch: u16, ls_log: u32, initial_log: u32, terminal_log: u32) !Prepared {
-        const collected = try Collector.collect(a, image, records, epoch);
+        return initIndependentProfiled(a, image, records, epoch, ls_log, initial_log, terminal_log, null);
+    }
+    pub fn initIndependentProfiled(a: std.mem.Allocator, image: public.Image, records: []const CPU.MemoryRecord, epoch: u16, ls_log: u32, initial_log: u32, terminal_log: u32, recorder: ?*Profile.Recorder) !Prepared {
+        const collected = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_collect", "Collect expected memory boundaries");
+            defer stage.end();
+            break :blk try Collector.collect(a, image, records, epoch);
+        };
         defer a.free(collected.events);
         errdefer {
             a.free(collected.initial);
             a.free(collected.terminal);
         }
         const statement = public.Statement{ .initial = collected.initial, .terminal = collected.terminal, .epoch = epoch, .ls_count = @intCast(records.len) };
-        try statement.validate(image);
-        return fromRows(a, collected.events, statement, ls_log, initial_log, terminal_log);
+        {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_validate", "Validate constructed memory statement against expected image");
+            defer stage.end();
+            try statement.validate(image);
+        }
+        return fromRows(a, collected.events, statement, ls_log, initial_log, terminal_log, recorder);
     }
     /// Witness-only global path: consumes both boundary arrays on success/error.
     /// Genesis authority and aggregate closure belong to the NEW global receiver.
@@ -41,17 +52,35 @@ pub const Prepared = struct {
             a.free(terminal);
         }
         const statement = public.Statement{ .initial = initial, .terminal = terminal, .epoch = epoch, .ls_count = @intCast(events.len) };
-        return fromRows(a, events, statement, ls_log, initial_log, terminal_log);
+        return fromRows(a, events, statement, ls_log, initial_log, terminal_log, null);
     }
-    fn fromRows(a: std.mem.Allocator, events: []const X.native.Event, statement: public.Statement, ls_log: u32, initial_log: u32, terminal_log: u32) !Prepared {
-        var ls = try X.source.Source.init(a, events, ls_log);
+    fn fromRows(a: std.mem.Allocator, events: []const X.native.Event, statement: public.Statement, ls_log: u32, initial_log: u32, terminal_log: u32, recorder: ?*Profile.Recorder) !Prepared {
+        var ls = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_ls", "Ordinary LS witness");
+            defer stage.end();
+            break :blk try X.source.Source.init(a, events, ls_log);
+        };
         errdefer ls.deinit();
-        var initial = try X.boundary_source.Source.init(a, .initial, statement.initial, initial_log);
+        var initial = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_initial", "Initial boundary witness");
+            defer stage.end();
+            break :blk try X.boundary_source.Source.init(a, .initial, statement.initial, initial_log);
+        };
         errdefer initial.deinit();
-        var terminal = try X.boundary_source.Source.init(a, .terminal, statement.terminal, terminal_log);
+        var terminal = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_terminal", "Terminal boundary witness");
+            defer stage.end();
+            break :blk try X.boundary_source.Source.init(a, .terminal, statement.terminal, terminal_log);
+        };
         errdefer terminal.deinit();
-        var selection = try X.selection_source.Source.init(a, ls.selection_counts);
+        var selection = blk: {
+            var stage = try Profile.StageScope.begin(recorder, "source_memory_selection", "Memory selection multiplicities");
+            defer stage.end();
+            break :blk try X.selection_source.Source.init(a, ls.selection_counts);
+        };
         errdefer selection.deinit();
+        var count_stage = try Profile.StageScope.begin(recorder, "source_memory_range_counts", "Merge LS and boundary range histograms");
+        defer count_stage.end();
         const counts16 = try a.dupe(u64, ls.counts16);
         errdefer a.free(counts16);
         const counts8 = try a.dupe(u64, ls.counts8);

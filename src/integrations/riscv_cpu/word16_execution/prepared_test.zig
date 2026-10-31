@@ -386,3 +386,90 @@ test "Capture keeps Keccak service ownership opt-in and rejects other service ta
     try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Prepared.Prepared.captureForKeccak(a, &program, public, 1, 5, &tape, .{}));
     try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Prepared.Prepared.initForKeccak(a, &program, public, 1, 5, &tape, .{}));
 }
+
+const StageProfile = @import("stwo_prover_api").stage_profile;
+fn findStage(nodes: []const StageProfile.StageNode, id: []const u8) ?*const StageProfile.StageNode {
+    for (nodes) |*node| {
+        if (std.mem.eql(u8, node.id, id)) return node;
+        if (node.children) |children| if (findStage(children, id)) |found| return found;
+    }
+    return null;
+}
+
+test "Constructor and admission profiling preserves proof bytes and records separate memory validation" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var setup = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, .{ .cpu_log = 8, .alu_log = 7, .binary_log = 7 });
+    defer setup.deinit();
+    const options: Prepared.Options = .{ .deduplicate_binary = false, .jalr_log = 5 };
+    var baseline_native = try Prepared.Prepared.init(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, options);
+    defer baseline_native.deinit();
+    const baseline_source = try Sources.Source.fromPrepared(a, &setup.materials, image(), &baseline_native);
+    var baseline = try Execution.provePrepared(a, &setup, admission(), baseline_source, null);
+    defer baseline.deinit(a);
+    var captured = try Prepared.Prepared.capture(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, options);
+    defer captured.deinit();
+    var recorder = StageProfile.Recorder.initWithOptions(a, "cpu", "source-construction", .{ .capture_tasks = false, .capture_process_usage = true });
+    defer recorder.deinit();
+    const source = blk: {
+        var stage = try StageProfile.StageScope.begin(&recorder, "provider_source_construction", "Provider source construction");
+        defer stage.end();
+        break :blk try Sources.Source.fromPreparedProfiled(a, &setup.materials, image(), &captured, &recorder);
+    };
+    var profiled = try Execution.provePrepared(a, &setup, admission(), source, &recorder);
+    defer profiled.deinit(a);
+    try std.testing.expectEqualSlices(u8, baseline.bytes, profiled.bytes);
+    try std.testing.expectEqualDeep(baseline.claims, profiled.claims);
+    var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, setup.materials.geometry);
+    defer fresh.deinit();
+    try Execution.verifyProfiled(a, &fresh, admission(), profiled, &recorder);
+    var profile = try recorder.snapshot(a);
+    defer profile.deinit(a);
+    const constructor = findStage(profile.stages, "provider_source_construction").?;
+    try std.testing.expectEqual(@as(usize, 15), constructor.children.?.len);
+    const memory = findStage(constructor.children.?, "source_memory").?;
+    try std.testing.expectEqual(@as(usize, 7), memory.children.?.len);
+    for ([_][]const u8{ "source_cpu_materialize", "source_jalr", "source_alu", "source_binary", "source_shift", "source_division", "source_multiplication", "source_memory_collect", "source_memory_validate", "source_memory_ls", "source_memory_initial", "source_memory_terminal", "source_memory_selection", "source_memory_range_counts", "source_rom", "source_range_counts", "source_range16", "source_range8", "source_and_table", "source_shift_table", "source_fact_retirement", "prove_admission", "verify_admission" }) |id| {
+        const node = findStage(profile.stages, id) orelse return error.MissingConstructorStage;
+        try std.testing.expect(std.math.isFinite(node.seconds) and node.seconds >= 0);
+        if (StageProfile.process_usage.read() != null) try std.testing.expect(node.process_usage != null);
+    }
+    try std.testing.expectEqual(@as(usize, 0), recorder.stack.items.len);
+}
+
+fn exerciseConstructorRecorderOom(recorder_allocator: std.mem.Allocator, setup: *const Setup, fixture: *const Fixture, owned_memory: bool) !void {
+    var captured = try Prepared.Prepared.capture(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, .{ .deduplicate_binary = false, .jalr_log = 5 });
+    defer captured.deinit();
+    var recorder = StageProfile.Recorder.initWithOptions(recorder_allocator, "cpu", "constructor-oom", .{ .capture_tasks = false });
+    defer recorder.deinit();
+    const source_result = if (owned_memory) blk: {
+        const Memory = @import("memory/prepared.zig").Prepared;
+        const g = setup.materials.geometry;
+        const memory = try Memory.initIndependent(a, image(), captured.cpu.?.memory.items, 1, g.ls_log, g.initialLog(), g.terminalLog());
+        // This API consumes memory on every path, including recorder failure.
+        break :blk Sources.Source.fromPreparedWithOwnedMemoryProfiled(a, &setup.materials, &captured, memory, &recorder);
+    } else Sources.Source.fromPreparedProfiled(a, &setup.materials, image(), &captured, &recorder);
+    var source = source_result catch |err| {
+        try std.testing.expectEqual(@as(usize, 0), recorder.stack.items.len);
+        if (captured.cpu) |cpu| {
+            try std.testing.expectEqual(@as(usize, 130), cpu.metadata.len);
+            try std.testing.expect(captured.jalr != null);
+        }
+        // No constructor can retire grouped facts before its last stage begins.
+        try std.testing.expect(captured.binary.facts.len != 0);
+        return err;
+    };
+    defer source.deinit();
+    try std.testing.expect(captured.cpu == null and captured.jalr == null);
+    try std.testing.expectEqual(@as(usize, 0), captured.binary.facts.len);
+    try std.testing.expectEqual(@as(usize, 0), recorder.stack.items.len);
+}
+
+test "Constructor recorder allocation failures preserve pre-transfer owners and clean post-transfer owners exactly once" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var setup = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, .{ .cpu_log = 8, .alu_log = 7, .binary_log = 7 });
+    defer setup.deinit();
+    try std.testing.checkAllAllocationFailures(a, exerciseConstructorRecorderOom, .{ &setup, &fixture, false });
+    try std.testing.checkAllAllocationFailures(a, exerciseConstructorRecorderOom, .{ &setup, &fixture, true });
+}

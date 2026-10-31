@@ -1,0 +1,42 @@
+{
+  "scope": "Opt-in constructor and admission timing in one canonical body; no validation, AIR, transcript, witness or ownership removal",
+  "base_commit": "0e657c201ed6bfe302665ef325c0b689f98c9a62",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "8ae62f20631d98b32700654328bc1fd0971e3e65a88f82b8e6a883766df6896d",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "930adc225e1423d72ee2edc1932324ec512891e3e4b753171fcc2cb951f36439",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "9b0d6448aa7a889e89b1049cb2c45c725578ca3034a9f1880c95c2bb4771cf85",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "565f74bde6a2f21472fbb29d114511dfcc1b7eab7d1ecab6853d1b362daa6425"
+  },
+  "qualification": {
+    "prepared_safe_fast_runtime14": "PASS",
+    "coordinator_fast_runtime20": "PASS",
+    "coordinator_safe_runtime20": "PASS"
+  },
+  "api": [
+    "Source.initProfiled(...,recorder)",
+    "Source.fromPreparedProfiled(a,materials,image,prepared,recorder)",
+    "Source.fromPreparedWithOwnedMemoryProfiled(...,recorder)",
+    "Memory.Prepared.initIndependentProfiled(...,recorder)",
+    "Execution.verifyProfiled(a,setup,admission,encoded,recorder)"
+  ],
+  "stage_structure": {
+    "constructor_children": 15,
+    "memory_constructor_children": 7,
+    "admission_stages": [
+      "prove_admission",
+      "verify_admission"
+    ]
+  },
+  "evidence": "Full proof bytes+all33 physical claims equal null-v-profile; fresh independent receiver. All recorder allocation failures preserve pre-transfer Prepared owners or reclaim post-transfer owners exactly once, for both normal and pre-owned memory.",
+  "limits": [
+    "Nested whole-process intervals are not additive. No per-row telemetry.",
+    "JALR and externally prepared memory are labelled adoption, not charged as constructor work.",
+    "CPU materialization occurs here only for capture-only Prepared; eager CLI default keeps its existing phase.",
+    "Collector/constructor/prover/receiver validation remains unchanged; no redundant pass removed before measurements."
+  ],
+  "logs": [
+    "/tmp/rv64-source-constructor-profile-safe.log",
+    "/tmp/rv64-source-constructor-profile-fast.log",
+    "/tmp/rv64-source-constructor-profile-coordinator-safe.log"
+  ]
+}

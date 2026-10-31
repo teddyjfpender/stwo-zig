@@ -76,7 +76,7 @@ pub const ProveOptions = struct {
 pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, public: @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary, tape: *const @import("stwo_riscv_frontend").rv64.compact_tape.Tape, recorder: ?*Recorder.Recorder) !Encoded {
     var source_stage = try Recorder.StageScope.begin(recorder, "source_construction", "One CPU and provider witness construction");
     defer source_stage.end();
-    const source = try S.Source.init(a, &setup.materials, admission.image, public, 1, tape);
+    const source = try S.Source.initProfiled(a, &setup.materials, admission.image, public, 1, tape, recorder);
     source_stage.end();
     return provePrepared(a, setup, admission, source, recorder);
 }
@@ -106,7 +106,11 @@ fn provePreparedWithOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, adm
     if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
     if ((owned_main or owned_interaction) and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
     var request = source.request();
-    try admission.validate(setup, request);
+    {
+        var stage = try Recorder.StageScope.begin(recorder, "prove_admission", "Prover CPU and memory admission");
+        defer stage.end();
+        try admission.validate(setup, request);
+    }
     var scheme = try T.Scheme.init(a, T.P.config());
     var owns = true;
     defer if (owns) scheme.deinit(a);
@@ -162,7 +166,14 @@ fn provePreparedWithOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, adm
     return .{ .bytes = bytes, .claims = claims, .request = request };
 }
 pub fn verify(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, encoded: Encoded) !void {
-    try admission.validate(setup, encoded.request);
+    return verifyProfiled(a, setup, admission, encoded, null);
+}
+pub fn verifyProfiled(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, encoded: Encoded, recorder: ?*Recorder.Recorder) !void {
+    {
+        var stage = try Recorder.StageScope.begin(recorder, "verify_admission", "Receiver CPU and memory admission");
+        defer stage.end();
+        try admission.validate(setup, encoded.request);
+    }
     try encoded.claims.validate();
     if (encoded.bytes.len > 64 * 1024 * 1024) return error.Word16ExecutionProofResourceLimit;
     var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
