@@ -7,6 +7,7 @@ test {
         .secp_test => _ = @import("delegations/secp256k1/test_root.zig"),
         .division_degree3_test => _ = @import("delegations/division/degree3_test_root.zig"),
         .division_test => _ = @import("delegations/division/test_root.zig"),
+        .multiplication_degree3_test => _ = @import("delegations/multiplication/degree3_test_root.zig"),
         .multiplication_test => _ = @import("delegations/multiplication/test_root.zig"),
         .borrowed_test => _ = @import("delegations/common/borrowed_test_root.zig"),
         else => @compileError("delegation CLI selected as a test root"),

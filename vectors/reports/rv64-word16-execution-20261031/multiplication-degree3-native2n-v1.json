@@ -1,0 +1,106 @@
+{
+  "schema": "rv64-multiplication-degree3-native2n-v1-qualification",
+  "status": "standalone closed component qualified; legacy defaults and full Word16 roster unchanged",
+  "scope": "Independently expected typed MUL requests only; no CPU ingress, RAM, Ethereum block or recursion claim",
+  "arithmetic_authority": "Unchanged legacy multiplication.provider.arithmeticFor / byteValuesFor / tupleFor / activeFor; exact first141 residual oracle",
+  "geometry": {
+    "fixed": 3,
+    "main": 87,
+    "interaction": 200,
+    "constraints": 192,
+    "degree": 3,
+    "legacy_interaction": 132,
+    "legacy_constraints": 174,
+    "legacy_native_factor": 4,
+    "new_native_factor": 2,
+    "legacy_split": 2,
+    "new_split": 1,
+    "byte_queries_per_padded_row": 96,
+    "maximum_positive_byte_mass": 402653184,
+    "characteristic": 2147483647,
+    "legacy_current_cells": 222,
+    "new_current_cells": 290,
+    "legacy_mask_values": 227,
+    "new_mask_values": 295,
+    "legacy_current_evaluated_cells_per_native_row": 888,
+    "new_current_evaluated_cells_per_native_row": 580,
+    "packed_heap_row_bytes": 18816
+  },
+  "proof": {
+    "schema": "rv64-mul-degree3-native2n-v1",
+    "scope": "independently-expected-typed-requests-not-CPU-ingress",
+    "requests": 15,
+    "log_size": 5,
+    "main": 87,
+    "interaction": 200,
+    "constraints": 192,
+    "degree": 3,
+    "quotient_factor": 2,
+    "queries": 70,
+    "pow_bits": 26,
+    "bytes": 117968,
+    "sha256": "4f44e64452c92f15f5a8f117da4a5daf662d4e82df42a8eb6104225891b4379f"
+  },
+  "SafeFast_proof_exact": true,
+  "fresh_receiver": true,
+  "legacy_control": {
+    "requests": 80,
+    "log_size": 7,
+    "queries": 70,
+    "pow_bits": 26,
+    "bytes": 99864,
+    "sha256": "a96a11d7b7b03e479ef9eac007910b474474a571c9c6bfa0962079c37ec2c9b3",
+    "historical_bytes_exact": true,
+    "fresh_receiver": true
+  },
+  "gates": {
+    "native_runtime_tests": 10,
+    "circuit_runtime_tests": 2,
+    "Safe": true,
+    "Fast": true,
+    "scalar_PackedBase_PackedSecure_all192_residuals": true,
+    "all_residual_denseQ_degree3_genuine_cubic": true,
+    "CircuitLane_all192_MUL_and4_BYTE_residuals": true,
+    "scalar_packed_complete_proof_exact_workers": [
+      1,
+      3,
+      16
+    ],
+    "pool_stack_bytes": 262144,
+    "actual_domain_on_separate_256KiB_worker": true,
+    "source_native_allocation_failure_cleanup": true,
+    "main_released_before_interactions": true,
+    "strict_padding_poles_and_retry": true,
+    "forged_signed_high_actual_prover_rejects": true,
+    "balanced_claims_actual_verifier_rejects": true
+  },
+  "parallelism": "SIMD16 rows serial; optional pool column FFT; bounded-stack test explicitly dispatches full domain onto helper with null nested pool",
+  "runtime_performance_measured": false,
+  "artifact": "vectors/reports/interop_artifacts/rv64-multiplication-degree3-native2n-v1",
+  "logs": [
+    "/tmp/rv64-mul-d3-final-safe.log",
+    "/tmp/rv64-mul-d3-final-fast.log",
+    "/tmp/rv64-mul-d3-legacy-fast.log"
+  ],
+  "source_conformance": {
+    "passed": false,
+    "log": "/tmp/rv64-mul-d3-source-conformance.log",
+    "scope": "Repository-wide baseline failures remain; no new MUL source rejected. Shared catalog vocabulary moved unchanged to catalog_types.zig; catalog is454lines, types58, both below ceilings."
+  },
+  "build_catalog_validation": {
+    "zig_build_help": "PASS",
+    "focused_python_comparison": {
+      "tests": 79,
+      "baseline_failures": 3,
+      "baseline_errors": 4,
+      "current_failures": 3,
+      "current_errors": 4,
+      "same_failure_and_error_names": true
+    },
+    "logs": [
+      "/tmp/rv64-catalog-types-build-help.log",
+      "/tmp/rv64-catalog-types-tests.log",
+      "/tmp/rv64-catalog-tests-baseline.log"
+    ]
+  }
+}

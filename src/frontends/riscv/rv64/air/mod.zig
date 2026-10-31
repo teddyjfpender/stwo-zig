@@ -37,6 +37,7 @@ pub const range = struct {
 };
 pub const providers = struct {
     pub const byte = @import("providers/byte.zig");
+    pub const byte_degree3 = @import("providers/byte_degree3.zig");
     pub const tables = @import("providers/tables.zig");
     pub const table_component = @import("providers/table_component.zig");
 };
