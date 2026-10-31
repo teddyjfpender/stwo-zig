@@ -35,7 +35,7 @@ pub fn main() !void {
     const setup_ns = timer.lap();
     try setup.verifyOwned(a, public.value, claims.value, proof);
     const verify_ns = timer.lap();
-    const report = try std.json.Stringify.valueAlloc(a, .{ .control_policy = control, .verified = true, .whole_guest_proof = true, .execution_witness_available = false, .decode_ns = decode_ns, .independent_setup_ns = setup_ns, .verify_ns = verify_ns, .proof_bytes = bytes.len }, .{});
+    const report = try std.json.Stringify.valueAlloc(a, .{ .pcs_config = @import("stwo_riscv_frontend").rv64_air.protocol.config(), .control_policy = control, .verified = true, .whole_guest_proof = true, .execution_witness_available = false, .decode_ns = decode_ns, .independent_setup_ns = setup_ns, .verify_ns = verify_ns, .proof_bytes = bytes.len }, .{});
     defer a.free(report);
     try std.fs.File.stdout().writeAll(report);
     try std.fs.File.stdout().writeAll("\n");
