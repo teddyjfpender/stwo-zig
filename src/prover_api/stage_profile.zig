@@ -4,6 +4,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const task_profile = @import("task_profile.zig");
 const work_profile = @import("work_profile.zig");
+pub const process_usage = @import("stage_process_usage.zig");
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -16,6 +17,8 @@ pub const RecorderOptions = struct {
     /// Exact logical work is a separate opt-in capability. The ordinary
     /// recorder path never exposes its state to prover operation boundaries.
     capture_work: bool = false,
+    /// Whole-process counters across all threads; overlapping stages are not additive.
+    capture_process_usage: bool = false,
 };
 
 pub const StageNode = struct {
@@ -23,6 +26,27 @@ pub const StageNode = struct {
     label: []const u8,
     seconds: f64,
     children: ?[]StageNode = null,
+    process_usage: ?process_usage.ProcessUsage = null,
+
+    /// Preserve the original field order and null children in disabled profiles.
+    pub fn jsonStringify(self: StageNode, writer: anytype) !void {
+        try writer.beginObject();
+        try writer.objectField("id");
+        try writer.write(self.id);
+        try writer.objectField("label");
+        try writer.write(self.label);
+        try writer.objectField("seconds");
+        try writer.write(self.seconds);
+        if (self.children != null or writer.options.emit_null_optional_fields) {
+            try writer.objectField("children");
+            try writer.write(self.children);
+        }
+        if (self.process_usage) |usage| {
+            try writer.objectField("process_usage");
+            try writer.write(usage);
+        }
+        try writer.endObject();
+    }
 
     pub fn deinit(self: *StageNode, allocator: std.mem.Allocator) void {
         if (self.children) |children| {
@@ -56,6 +80,8 @@ const MutableNode = struct {
     start_ns: i128,
     seconds: f64,
     children: std.ArrayList(*MutableNode),
+    usage_start: ?process_usage.Snapshot = null,
+    usage: ?process_usage.ProcessUsage = null,
 
     fn init(id: []const u8, label: []const u8) MutableNode {
         return .{
@@ -93,6 +119,7 @@ pub const Recorder = struct {
     work_recorder: work_profile.Recorder(true),
     capture_tasks: bool,
     capture_work: bool,
+    capture_process_usage: bool,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -118,6 +145,7 @@ pub const Recorder = struct {
             .work_recorder = .{},
             .capture_tasks = options.capture_tasks,
             .capture_work = options.capture_work,
+            .capture_process_usage = options.capture_process_usage,
         };
     }
 
@@ -250,6 +278,7 @@ pub const Recorder = struct {
     fn pushStage(self: *Recorder, id: []const u8, label: []const u8) !*MutableNode {
         const node = try self.allocator.create(MutableNode);
         node.* = MutableNode.init(id, label);
+        if (self.capture_process_usage) node.usage_start = process_usage.read();
         errdefer self.allocator.destroy(node);
 
         const destination = if (self.stack.items.len == 0)
@@ -269,6 +298,9 @@ pub const Recorder = struct {
         std.debug.assert(self.stack.items.len > 0);
         std.debug.assert(self.stack.items[self.stack.items.len - 1] == node);
         _ = self.stack.pop();
+        if (node.usage_start) |start| {
+            if (process_usage.read()) |end| node.usage = process_usage.delta(start, end);
+        }
         const elapsed_ns = std.time.nanoTimestamp() - node.start_ns;
         node.seconds = @as(f64, @floatFromInt(elapsed_ns)) / std.time.ns_per_s;
     }
@@ -332,6 +364,7 @@ fn snapshotNodes(
             .id = node.id,
             .label = node.label,
             .seconds = node.seconds,
+            .process_usage = node.usage,
             .children = if (node.children.items.len == 0)
                 null
             else
@@ -662,4 +695,59 @@ test "joined adoption recognizes stateless allocator identities without reading 
         // alignment exceeds max_align_t; identity itself is still stateless.
         try std.testing.expect(sameAllocator(std.heap.raw_c_allocator, std.heap.raw_c_allocator));
     }
+}
+
+test "stage process usage: disabled JSON preserves old schema bytes" {
+    const a = std.testing.allocator;
+    const Old = struct { id: []const u8, label: []const u8, seconds: f64, children: ?[]StageNode = null };
+    const old = try std.json.Stringify.valueAlloc(a, Old{ .id = "x", .label = "X", .seconds = 1.25 }, .{});
+    defer a.free(old);
+    const current = try std.json.Stringify.valueAlloc(a, StageNode{ .id = "x", .label = "X", .seconds = 1.25 }, .{});
+    defer a.free(current);
+    try std.testing.expectEqualStrings(old, current);
+    const options: std.json.Stringify.Options = .{ .whitespace = .indent_2, .emit_null_optional_fields = false };
+    const old_pretty = try std.json.Stringify.valueAlloc(a, Old{ .id = "x", .label = "X", .seconds = 1.25 }, options);
+    defer a.free(old_pretty);
+    const current_pretty = try std.json.Stringify.valueAlloc(a, StageNode{ .id = "x", .label = "X", .seconds = 1.25 }, options);
+    defer a.free(current_pretty);
+    try std.testing.expectEqualStrings(old_pretty, current_pretty);
+    var recorder = Recorder.init(a, "test", "disabled");
+    defer recorder.deinit();
+    var stage = try StageScope.begin(&recorder, "x", "X");
+    try std.testing.expect(stage.node.?.usage_start == null);
+    stage.end();
+    try std.testing.expect(stage.node.?.usage == null);
+}
+
+fn exerciseProcessStages(a: std.mem.Allocator) !void {
+    var parent = Recorder.initWithOptions(a, "test", "enabled", .{ .capture_process_usage = true });
+    defer parent.deinit();
+    var outer = try StageScope.begin(&parent, "outer", "Outer");
+    defer outer.end();
+    var inner = try StageScope.begin(&parent, "inner", "Inner");
+    inner.end();
+    var child = Recorder.initWithOptions(a, "test", "joined", .{ .capture_tasks = false, .capture_process_usage = true });
+    defer child.deinit();
+    var joined = try StageScope.begin(&child, "joined", "Joined");
+    joined.end();
+    try parent.adoptJoinedStages(&child);
+    outer.end();
+    try std.testing.expectEqual(@as(usize, 0), parent.stack.items.len);
+    var profile = try parent.snapshot(a);
+    defer profile.deinit(a);
+    if (process_usage.read() != null) {
+        const root = profile.stages[0];
+        try std.testing.expect(root.process_usage != null);
+        try std.testing.expectEqual(@as(usize, 2), root.children.?.len);
+        for (root.children.?) |node| try std.testing.expect(node.process_usage != null);
+        const json = try std.json.Stringify.valueAlloc(a, profile, .{});
+        defer a.free(json);
+        try std.testing.expect(std.mem.indexOf(u8, json, "\"process_usage\"") != null);
+        try std.testing.expect(std.mem.indexOf(u8, json, process_usage.SCOPE) != null);
+    }
+}
+
+test "stage process usage: nested and adopted intervals survive snapshot and OOM" {
+    try exerciseProcessStages(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseProcessStages, .{});
 }

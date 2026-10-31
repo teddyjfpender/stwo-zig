@@ -181,7 +181,7 @@ pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Req
     const cpu_witness_ns = timer.lap();
     // Neither wide builders nor the proof retain compact execution advice.
     tape.clearRetainingCapacity();
-    var recorder = @import("stwo_prover_api").stage_profile.Recorder.initWithOptions(a, "rv64", "ethereum_batch", .{ .capture_tasks = false });
+    var recorder = @import("stwo_prover_api").stage_profile.Recorder.initWithOptions(a, "rv64", "ethereum_batch", .{ .capture_tasks = false, .capture_process_usage = true });
     defer recorder.deinit();
     const ram_source = if (ram) |*value| A.RAM.Source.fromTrace(value) else null;
     const outcome = if (config.diagnose_constraints != .none) A.proveDiagnosed(a, &setup, public, &trace, ram_source, if (arena) |*value| value else null, if (config.profile_stages) &recorder else null, .{ .cpu = config.diagnose_constraints == .cpu or config.diagnose_constraints == .all, .ram = config.diagnose_constraints == .ram or config.diagnose_constraints == .providers or config.diagnose_constraints == .all, .arithmetic = config.diagnose_constraints == .arithmetic or config.diagnose_constraints == .providers or config.diagnose_constraints == .all, .crypto = config.diagnose_constraints == .crypto or config.diagnose_constraints == .providers or config.diagnose_constraints == .all }) else if (arena) |*value| A.proveArena(a, &setup, public, &trace, ram_source, value, if (config.profile_stages) &recorder else null) else if (config.profile_stages) A.proveProfiled(a, &setup, public, &trace, ram_source, &recorder) else A.proveTrace(a, &setup, public, &trace, ram_source);

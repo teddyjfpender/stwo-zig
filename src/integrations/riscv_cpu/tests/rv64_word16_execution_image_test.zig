@@ -187,7 +187,7 @@ test "full execution mixed native program closes seventeen physical chips and ve
     var encoded = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);
     defer encoded.deinit(a);
     const Profile = @import("stwo_prover_api").stage_profile;
-    var recorder = Profile.Recorder.init(a, "cpu", "word16-component-interactions");
+    var recorder = Profile.Recorder.initWithOptions(a, "cpu", "word16-component-interactions", .{ .capture_process_usage = true });
     defer recorder.deinit();
     var profiled = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, &recorder);
     defer profiled.deinit(a);
@@ -198,6 +198,7 @@ test "full execution mixed native program closes seventeen physical chips and ve
     defer profile.deinit(a);
     var found = false;
     for (profile.stages) |stage| if (std.mem.eql(u8, stage.id, "interaction_generation")) {
+        if (Profile.process_usage.read() != null) try std.testing.expect(stage.process_usage != null);
         const children = stage.children orelse return error.MissingInteractionStages;
         try std.testing.expectEqual(@as(usize, 14), children.len);
         var memory_found = false;

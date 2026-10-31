@@ -67,7 +67,7 @@ pub fn main() !void {
     var sampler: Memory.Sampler = .{ .report = .{ .scope = "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode" } };
     try sampler.start();
     defer _ = sampler.finish();
-    var recorder = Profile.Recorder.init(a, "cpu", "rv64-word16-genesis-prefix");
+    var recorder = Profile.Recorder.initWithOptions(a, "cpu", "rv64-word16-genesis-prefix", .{ .capture_process_usage = true });
     defer recorder.deinit();
     const prove_start = timer.read();
     var native_scope = try Profile.StageScope.begin(&recorder, "native_advice_preparation", "One CPU witness and exact family grouping");

@@ -17,7 +17,7 @@ pub const Group = struct {
         const parent = self.parent orelse return null;
         std.debug.assert(self.used < CAPACITY);
         const child = &self.children[self.used];
-        child.* = Stage.Recorder.initWithOptions(parent.allocator, parent.runtime, parent.example, .{ .capture_tasks = false });
+        child.* = Stage.Recorder.initWithOptions(parent.allocator, parent.runtime, parent.example, .{ .capture_tasks = false, .capture_process_usage = parent.capture_process_usage });
         self.used += 1;
         return child;
     }
