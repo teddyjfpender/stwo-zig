@@ -263,3 +263,72 @@ test "full source keeps store input distinct from immediate and service pointer 
     try std.testing.expectEqual(tape.storage[0].rhs, service.services.items[0].tag);
     try std.testing.expectEqual(@as(u24, 4), service.services.items[0].tick);
 }
+
+test "CPU capture materializes without Tape and retains retryable advice through OOM and projection failure" {
+    var fixture = try Fixture.init();
+    var tape_alive = true;
+    defer {
+        if (tape_alive) fixture.tape.deinit();
+        fixture.program.deinit();
+    }
+    const log = 14;
+    var eager = try S.init(a, &fixture.program, fixture.public, 7, log, &fixture.tape);
+    defer eager.deinit();
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    const fa = failing.allocator();
+    var captured = try S.capture(fa, &fixture.program, fixture.public, 7, log, &fixture.tape);
+    defer captured.deinit();
+    var retired = try S.capture(a, &fixture.program, fixture.public, 7, 5, &fixture.tape);
+    defer retired.deinit();
+    fixture.tape.deinit();
+    tape_alive = false;
+    try std.testing.expectEqual(@as(usize, 0), captured.main.len);
+    try std.testing.expect(!captured.main_projection_closed);
+    try std.testing.expectEqualSlices(@import("../word16_execution/cpu_source.zig").Metadata, eager.metadata, captured.metadata);
+    try std.testing.expectEqualDeep(eager.functions.items, captured.functions.items);
+    try std.testing.expectEqualSlices(u64, eager.rom_counts, captured.rom_counts);
+    for (captured.counts16) |count| try std.testing.expectEqual(@as(u64, 0), count);
+    for (captured.counts8) |count| try std.testing.expectEqual(@as(u64, 0), count);
+    // Private MAIN allocation and the projection's worker histogram allocation.
+    for (0..2) |fail_after| {
+        failing.fail_index = failing.alloc_index + fail_after;
+        try std.testing.expectError(error.OutOfMemory, captured.materializeMain());
+        failing.fail_index = std.math.maxInt(usize);
+        try std.testing.expectEqual(@as(usize, 0), captured.main.len);
+        try std.testing.expect(!captured.main_projection_closed);
+        try std.testing.expectEqualDeep(eager.metadata, captured.metadata);
+        try std.testing.expectEqualDeep(eager.functions.items, captured.functions.items);
+        for (captured.counts16) |count| try std.testing.expectEqual(@as(u64, 0), count);
+        for (captured.counts8) |count| try std.testing.expectEqual(@as(u64, 0), count);
+    }
+    var small: engine.work_pool.WorkPool = .{};
+    try small.initInPlaceWithOptions(.{ .worker_count = 1, .stack_size = 64 * 1024 });
+    defer small.deinit();
+    {
+        var binding = try engine.work_pool.ScopedPoolBinding.init(&small);
+        defer binding.deinit();
+        try std.testing.expectError(error.InvalidNativeProjectionStack, captured.materializeMain());
+    }
+    try std.testing.expectEqual(@as(usize, 0), captured.main.len);
+    try std.testing.expect(!captured.main_projection_closed);
+    for (captured.counts16) |count| try std.testing.expectEqual(@as(u64, 0), count);
+    for (captured.counts8) |count| try std.testing.expectEqual(@as(u64, 0), count);
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 262144 });
+    defer pool.deinit();
+    {
+        var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        try captured.materializeMain();
+    }
+    try std.testing.expect(captured.main_projection_closed);
+    try std.testing.expectEqualSlices(M, eager.main, captured.main);
+    try std.testing.expectEqualSlices(u64, eager.counts16, captured.counts16);
+    try std.testing.expectEqualSlices(u64, eager.counts8, captured.counts8);
+    try std.testing.expectError(error.ExecutionMainProjectionClosed, captured.materializeMain());
+    const main = try captured.takeMainForCommit();
+    defer fa.free(main);
+    try std.testing.expectError(error.ExecutionMainProjectionClosed, captured.materializeMain());
+    retired.releaseMain();
+    try std.testing.expectError(error.ExecutionMainProjectionClosed, retired.materializeMain());
+}

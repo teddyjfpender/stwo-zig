@@ -309,3 +309,80 @@ test "INTER ownership moves every original allocation after both allocation fail
         return error.AcceptedRepeatedInteractionTransfer;
     } else |_| {}
 }
+
+test "Prepared capture groups without CPU MAIN then projects once after Tape destruction with exact proof and retry" {
+    var fixture = try Fixture.init();
+    var tape_alive = true;
+    defer if (tape_alive) fixture.deinit();
+    var setup = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, .{ .cpu_log = 8, .alu_log = 7, .binary_log = 7 });
+    defer setup.deinit();
+    const options: Prepared.Options = .{ .deduplicate_binary = false, .jalr_log = 5 };
+    var eager = try Prepared.Prepared.init(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, options);
+    defer eager.deinit();
+    var captured = try Prepared.Prepared.capture(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, options);
+    defer captured.deinit();
+    try std.testing.expectEqual(@as(usize, 0), captured.cpu.?.main.len);
+    try std.testing.expect(!captured.cpu.?.main_projection_closed);
+    try std.testing.expectEqualDeep(try eager.geometry(), try captured.geometry());
+    try std.testing.expectEqualDeep(eager.raw_counts, captured.raw_counts);
+    try std.testing.expectEqualDeep(eager.alu.facts, captured.alu.facts);
+    try std.testing.expectEqualDeep(eager.binary.facts, captured.binary.facts);
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    var retryable = try Prepared.Prepared.capture(failing.allocator(), &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, options);
+    defer retryable.deinit();
+    fixture.deinit();
+    tape_alive = false;
+    failing.fail_index = failing.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, retryable.ensureCpuMain(&setup.materials.program, 8));
+    failing.fail_index = std.math.maxInt(usize);
+    try std.testing.expect(retryable.cpu != null);
+    try std.testing.expectEqual(@as(usize, 0), retryable.cpu.?.main.len);
+    try std.testing.expect(!retryable.cpu.?.main_projection_closed);
+    try std.testing.expectEqualDeep(captured.alu.facts, retryable.alu.facts);
+    try retryable.ensureCpuMain(&setup.materials.program, 8);
+    try std.testing.expectEqualSlices(core.fields.m31.M31, eager.cpu.?.main, retryable.cpu.?.main);
+    const eager_source = try Sources.Source.fromPrepared(a, &setup.materials, image(), &eager);
+    const captured_source = try Sources.Source.fromPrepared(a, &setup.materials, image(), &captured);
+    try std.testing.expectEqualSlices(core.fields.m31.M31, eager_source.cpu.main, captured_source.cpu.main);
+    try std.testing.expectEqualSlices(u64, eager_source.counts16, captured_source.counts16);
+    try std.testing.expectEqualSlices(u64, eager_source.counts8, captured_source.counts8);
+    var expected = try Execution.provePrepared(a, &setup, admission(), eager_source, null);
+    defer expected.deinit(a);
+    var actual = try Execution.provePrepared(a, &setup, admission(), captured_source, null);
+    defer actual.deinit(a);
+    try std.testing.expectEqualSlices(u8, expected.bytes, actual.bytes);
+    try std.testing.expectEqualDeep(expected.claims, actual.claims);
+    var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, setup.materials.geometry);
+    defer fresh.deinit();
+    try Execution.verify(a, &fresh, admission(), actual);
+}
+
+test "Capture keeps Keccak service ownership opt-in and rejects other service tags" {
+    var program = try Program.init(a, .{ .base = 4096, .words = &.{0x00000073} });
+    defer program.deinit();
+    var tape = try front.rv64.compact_tape.Tape.init(a, 1, 4096, 0, .ethereum_services_v2);
+    defer tape.deinit();
+    tape.len = 1;
+    const pointer: u64 = 0x8000000000001000;
+    tape.storage[0] = .{ .next_pc = 4100, .lhs = pointer, .rhs = 0x10001, .previous_rd = 0, .result = 0, .memory_index = front.rv64.compact_tape.NO_MEMORY, .flags = 0 };
+    var public: X.types.Boundary = .{ .steps = 1, .initial_pc = 4096, .final_pc = 4100, .initial_registers = @splat(0), .final_registers = @splat(0), .register_clocks = @splat(0) };
+    public.initial_registers[10] = pointer;
+    public.initial_registers[17] = 0x10001;
+    public.final_registers = public.initial_registers;
+    public.register_clocks[10] = 1;
+    public.register_clocks[17] = 2;
+    try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Prepared.Prepared.capture(a, &program, public, 1, 5, &tape, .{}));
+    var captured = try Prepared.Prepared.captureForKeccak(a, &program, public, 1, 5, &tape, .{});
+    defer captured.deinit();
+    try std.testing.expectEqual(@as(usize, 0), captured.cpu.?.main.len);
+    try std.testing.expectEqual(@as(u32, 1), captured.raw_counts.service);
+    try std.testing.expectEqual(@as(usize, 1), captured.cpu.?.services.items.len);
+    try std.testing.expectEqual(pointer, captured.cpu.?.services.items[0].pointer);
+    try captured.ensureCpuMain(&program, 5);
+    try std.testing.expect(captured.cpu.?.main_projection_closed);
+    tape.storage[0].rhs = 0x20001;
+    public.initial_registers[17] = 0x20001;
+    public.final_registers[17] = 0x20001;
+    try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Prepared.Prepared.captureForKeccak(a, &program, public, 1, 5, &tape, .{}));
+    try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Prepared.Prepared.initForKeccak(a, &program, public, 1, 5, &tape, .{}));
+}

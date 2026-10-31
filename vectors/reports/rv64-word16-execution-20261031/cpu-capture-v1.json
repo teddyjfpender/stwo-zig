@@ -1,0 +1,52 @@
+{
+  "scope": "Deferred CPU MAIN materialization from one narrow Tape capture; no AIR, transcript, wire or provider geometry change",
+  "base_commit": "c85409df2b2e84d654c3cd0609591b44eb83c71e",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/cpu_source.zig": "f12d4b72284a99453a630dfe0607338f42addde4482b953c23bf1d5432516260",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "58978d8ba048a8b4325e776a108772693b298b17b87abaac356f85aa5257c786",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "f34e925077236696b671aea6c42484c01168ffea02ffd3552acd5bcad2e32e8b",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_source_test.zig": "2553314895f95d914f51501f5ef09ce03b6ffb105caf6a11c17bb72822ed51a4",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "81019c6eefcc424b31efed52123076c4a7d6048e77ec6c9fb08e33d416358856"
+  },
+  "qualification": {
+    "source_safe_fast_runtime7": "PASS",
+    "prepared_safe_fast_runtime12": "PASS",
+    "coordinator_safe_fast_runtime20": "PASS",
+    "keccak_bridge_safe_fast_runtime9": "PASS"
+  },
+  "api": [
+    "CPU.Source.capture",
+    "CPU.Source.materializeMain",
+    "Prepared.capture",
+    "Prepared.captureForKeccak",
+    "Prepared.ensureCpuMain"
+  ],
+  "preserved_wrappers": [
+    "CPU.Source.init = capture+materializeMain",
+    "Prepared.init = capture+ensureCpuMain",
+    "Prepared.initForKeccak = captureForKeccak+ensureCpuMain"
+  ],
+  "tests": [
+    "Destroy Tape before materialization, compare every CPU MAIN/histogram to eager path",
+    "Both MAIN/histogram allocation failures preserve metadata/facts and zero histograms",
+    "Invalid-stack projection failure, retry with3-worker pool",
+    "Sticky phase rejects rebuilding after success, MAIN transfer or release",
+    "Capture-only grouped geometry/facts equal eager; Source.fromPrepared materializes at final Program owner",
+    "Actual proof bytes+all33 physical claims equal eager/capture; fresh independent receiver",
+    "Keccak remains explicit opt-in and onlytag0x10001; other tags rejected"
+  ],
+  "resource_limits": [
+    "Only CPU MAIN is delayed. Existing independently sized JALR MAIN is still constructed during grouping; narrow CPU/family/memory/service records remain owned.",
+    "This enables bounded planning/preparation, not bounded complete global Stage1 PCS state. All Stage1 roots precede global alpha, so complete proofs cannot be serially retired first. Retained coefficient state requires distributed owners or separately qualified durable coefficient checkpoints; no hidden replay.",
+    "Keccak Tape service sidecars must remain alive until the collector has copied/authenticated before/after calls; CPU materialization itself never rereads Tape.",
+    "No actual25-shard capture RSS or speedup claim made by this qualification."
+  ],
+  "logs": [
+    "/tmp/rv64-cpu-capture-source-safe.log",
+    "/tmp/rv64-cpu-capture-source-keccak-fast.log",
+    "/tmp/rv64-cpu-capture-prepared-fast.log",
+    "/tmp/rv64-cpu-capture-prepared-coordinator-safe.log",
+    "/tmp/rv64-cpu-capture-coordinator-fast.log",
+    "/tmp/rv64-cpu-capture-keccak-safe.log"
+  ]
+}

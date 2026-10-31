@@ -60,6 +60,9 @@ pub const Source = struct {
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
+        // A captured CPU materializes exactly once at the final Program owner;
+        // projection failure preserves Prepared's narrow CPU/family advice.
+        try prepared.ensureCpuMain(&materials.program, g.cpu_log);
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
         var jalr = try prepared.takeJalr(g.jalr_log);

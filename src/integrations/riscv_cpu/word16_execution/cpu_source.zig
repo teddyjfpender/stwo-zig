@@ -35,7 +35,10 @@ pub const Source = struct {
     epoch: u16,
     log_size: u32,
     metadata: []Metadata,
-    main: []M,
+    main: []M = &.{},
+    /// Sticky after successful projection or explicit retirement. A cleared
+    /// MAIN never authorizes a second wide projection from the same capture.
+    main_projection_closed: bool = false,
     interaction: []M = &.{},
     rom_counts: []u64,
     counts16: []u64,
@@ -43,7 +46,16 @@ pub const Source = struct {
     functions: std.ArrayList(FunctionFact) = .empty,
     memory: std.ArrayList(MemoryRecord) = .empty,
     services: std.ArrayList(ServiceRecord) = .empty,
+    /// Compatibility wrapper: one capture followed by one wide projection.
     pub fn init(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
+        var result = try capture(a, program, public, epoch, log_size, tape);
+        errdefer result.deinit();
+        try result.materializeMain();
+        return result;
+    }
+    /// Validates/restores Tape once and retains only narrow advice and facts.
+    /// Neither MAIN nor its range histograms are constructed in this phase.
+    pub fn capture(a: std.mem.Allocator, program: *const Program, public: X.types.Boundary, epoch: u16, log_size: u32, tape: *const Tape) !Source {
         _ = try X.types.inputs(public, epoch, log_size);
         if (tape.len != public.steps or tape.initial_pc != public.initial_pc) return error.InvalidExecutionAdvice;
         const metadata = try a.alloc(Metadata, public.steps);
@@ -99,13 +111,30 @@ pub const Source = struct {
             pc = next;
         }
         if (pc != public.final_pc or !std.mem.eql(u64, &registers, &public.final_registers) or !std.mem.eql(u32, &clocks, &public.register_clocks)) return error.InvalidExecutionBoundary;
-        const n = @as(usize, 1) << @intCast(log_size);
-        const main = try a.alloc(M, L.main.COUNT * n);
-        errdefer a.free(main);
-        var self = Source{ .allocator = a, .program = program, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .main = main, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
-        // All validation and allocation precede disjoint physical writes.
-        try Projection.fill(a, log_size, .{ .context = &self, .rows = fill }, counts16, counts8, engine.work_pool.currentScopedPool());
-        return self;
+        return .{ .allocator = a, .program = program, .public = public, .epoch = epoch, .log_size = log_size, .metadata = metadata, .rom_counts = rom_counts, .counts16 = counts16, .counts8 = counts8, .functions = functions, .memory = memory, .services = services };
+    }
+    /// A failed allocation/projection leaves the capture reusable: MAIN stays
+    /// empty, range histograms stay zero, metadata/facts/ROM counts stay owned.
+    /// No Tape access or instruction replay occurs here.
+    pub fn materializeMain(self: *Source) !void {
+        if (self.main_projection_closed or self.main.len != 0) return error.ExecutionMainProjectionClosed;
+        _ = try X.types.inputs(self.public, self.epoch, self.log_size);
+        if (self.metadata.len != self.public.steps) return error.InvalidExecutionSourcePhase;
+        @memset(self.counts16, 0);
+        @memset(self.counts8, 0);
+        errdefer {
+            @memset(self.counts16, 0);
+            @memset(self.counts8, 0);
+        }
+        const main = try self.allocator.alloc(M, L.main.COUNT * self.size());
+        errdefer self.allocator.free(main);
+        var staged = self.*;
+        staged.main = main;
+        // Total captured rows and all allocations/submissions are admitted
+        // before writes. Only this provisional matrix may be discarded.
+        try Projection.fill(self.allocator, self.log_size, .{ .context = &staged, .rows = fill }, self.counts16, self.counts8, engine.work_pool.currentScopedPool());
+        self.main = main;
+        self.main_projection_closed = true;
     }
     fn fill(ctx: *const anyopaque, start: usize, end: usize, counts16: []u64, counts8: []u64) void {
         const self: *const Source = @ptrCast(@alignCast(ctx));
@@ -132,6 +161,7 @@ pub const Source = struct {
         return @as(usize, 1) << @intCast(self.log_size);
     }
     pub fn releaseMain(self: *Source) void {
+        self.main_projection_closed = true;
         self.allocator.free(self.main);
         self.main = &.{};
     }
@@ -139,6 +169,7 @@ pub const Source = struct {
         if (self.main.len == 0) return error.ExecutionMainUnavailable;
         const main = self.main;
         self.main = &.{};
+        self.main_projection_closed = true;
         return main;
     }
     pub fn releaseFacts(self: *Source) void {

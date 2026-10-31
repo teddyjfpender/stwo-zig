@@ -30,15 +30,29 @@ pub const Prepared = struct {
     raw_counts: Coverage.Counts,
     unique_memory_words: u32,
     pub fn init(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        return initInternal(a, program, public, epoch, cpu_log, tape, options, false);
+        var result = try capture(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
     }
     /// Explicit service witness route. Old constructors remain fail-closed;
     /// acceptance belongs only to the complete Keccak service coordinator.
     pub fn initForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        return initInternal(a, program, public, epoch, cpu_log, tape, options, true);
+        var result = try captureForKeccak(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
     }
-    fn initInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, allow_keccak: bool) !Prepared {
-        var cpu = try CPU.Source.init(a, program, public, epoch, cpu_log, tape);
+    /// Geometry/grouping ready without CPU MAIN. JALR retains its existing
+    /// independently sized witness; this does not claim all providers narrow.
+    pub fn capture(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, false);
+    }
+    pub fn captureForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, true);
+    }
+    fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, allow_keccak: bool) !Prepared {
+        var cpu = try CPU.Source.capture(a, program, public, epoch, cpu_log, tape);
         errdefer cpu.deinit();
         if (!allow_keccak and cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
         for (cpu.services.items) |call| if (call.tag != 0x10001) return error.UnqualifiedWord16ServiceOwners;
@@ -89,6 +103,17 @@ pub const Prepared = struct {
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
         return .{ .cpu_log = cpu.log_size, .alu_log = try Coverage.minimalLog(@intCast(self.alu.facts.len)), .binary_log = try Coverage.minimalLog(@intCast(self.binary.facts.len)), .shift_log = try Coverage.minimalLog(@intCast(self.shift.len)), .jalr_log = (self.jalr orelse return error.PreparedExecutionConsumed).log_size, .division_log = try Coverage.minimalLog(@intCast(self.division.len)), .multiplication_log = try Coverage.minimalLog(@intCast(self.multiplication.len)), .ls_log = try Coverage.minimalPrefixLog(self.raw_counts.memory), .boundary_log = try Coverage.minimalPrefixLog(self.unique_memory_words) };
+    }
+    /// Validate/rebind before projection. A projection failure leaves the CPU
+    /// and grouped facts here for retry; no ownership moves on this barrier.
+    pub fn ensureCpuMain(self: *Prepared, program: *const Program, expected_cpu_log: u32) !void {
+        if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
+        const cpu = if (self.cpu) |*value| value else return error.PreparedExecutionConsumed;
+        if (cpu.log_size != expected_cpu_log) return error.PreparedGeometryMismatch;
+        cpu.program = program;
+        if (cpu.main_projection_closed) {
+            if (cpu.main.len == 0) return error.ExecutionMainUnavailable;
+        } else try cpu.materializeMain();
     }
     pub fn takeCpu(self: *Prepared, program: *const Program, expected_cpu_log: u32) !CPU.Source {
         if (!std.mem.eql(u8, &self.program_identity, &program.identity)) return error.PreparedProgramMismatch;
