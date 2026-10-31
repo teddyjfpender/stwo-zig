@@ -1,6 +1,7 @@
 # RV64 aggregation: leaves, parents, root
 
-Status: complete design for `rv64_aggregate_v1`. Reuses the detached
+Status: implementation proposal for `rv64_aggregate_v1`; no RV64 recursive
+leaf/parent/root proof is qualified yet. Reuses the detached
 recursion route already qualified for the RV32 typed frontend
 (`canonical-typed-recursion.md`: detached leaf producer, detached parent
 producer, standalone leaf and parent verifiers) and replaces its statement
@@ -9,10 +10,10 @@ contracts with the RV64 batch contract. Depends on fixed batch shapes
 
 ## 1. Shape of the problem
 
-One execution produces `S` batch proofs (36 for the reference block), one
-INIT/TEARDOWN proof, and a manifest. Today a native receiver verifies all of
-them in 13 s and 3.5 GB. The aggregate turns them into one proof whose
-verifier is a fixed key and sub-second.
+One execution produces `S` batch proofs (25 for the round-five reference block), one
+INIT/TEARDOWN proof, and a manifest. The current fresh native receiver verifies them in 7.16 s with 6.09 GB peak
+RSS in one isolated run. A fixed-key sub-second root verifier is a target,
+not a measured property of the existing route.
 
 Three circuits:
 
@@ -37,9 +38,11 @@ A batch proof verifiable by the leaf must have one shape per protocol version:
   Blake2s in-circuit costs roughly 10x more rows per hash; the repository's
   recursion lane already uses the degree-3 Poseidon lane
   (`recursive-poseidon-degree3.md`) and the memory commitment has a qualified
-  Poseidon2 AIR (`air/memory_commitment/poseidon2_air.zig`). The channel
-  stays Blake2s on the native side and Poseidon2 inside circuits; the batch
-  transcript therefore switches to the Poseidon2 channel for all mixes. This
+  Poseidon2 AIR (`air/memory_commitment/poseidon2_air.zig`). The batch transcript must use the **same Poseidon2 channel on the native and
+  circuit sides** for every mix and draw. Different hash functions cannot
+  replay one another's Fiat-Shamir transcript. Canonical root encoding, field
+  packing, domain tags, claim mixes and manifest-digest authority need explicit
+  versioned schemas and native/circuit known-answer fixtures. This
   is a protocol version change for batch proofs and is scheduled with the
   Word16 switch so there is one re-qualification.
 - Statement (public to the leaf): execution identity (ELF, input, policy,
@@ -80,7 +83,7 @@ shape, so the parent is also fixed) and folds:
   `(pc, registers, epoch)`, service ranges adjacent, counts summed);
 - RAM claims summed.
 
-Its public output is the folded span. Arity two means 35 parents for 36
+Its public output is the folded span. Arity two means S-1 parents for S
 batches; the boundary proof joins at the root.
 
 ## 5. Root
@@ -94,16 +97,37 @@ inside); output bytes equal the public block output. The root's public
 inputs are the execution identity and the output, which is what EthProofs or
 an on-chain verifier consumes. A SNARK wrap is out of scope for this version.
 
-## 6. Cost model
+## Required authority and cost reconciliation
 
-Leaf: verifying 70 queries over four trees of depth 22 with Poseidon2 costs
+- A child's verifier key must be independently authorized by the expected
+  protocol/role. A key supplied with a valid-looking proof is not authority.
+  Explain how leaf and parent identities and any recursive self-reference are
+  handled by the qualified detached verifier route.
+- A manifest digest is not the full inventory. Root/leaf constraints must
+  reconstruct the selected manifest hash or authenticate entries under that
+  exact digest and establish complete coverage. Switching child Merkle hashes
+  does not silently change the manifest hash.
+- Count leaf hashing of every disclosed value, shifted opening masks, FRI
+  layers, field/extension arithmetic and all provider components. Counting only
+  70 queries times tree depth omits the wide leaves themselves.
+- Fixed per-batch full rosters conflict with globally packed chip instances
+  whose padding is charged only once per execution. Resolve that statement/key
+  boundary with the Word16 ledger and compare complete proof and recursion
+  costs before fixing the leaf shape.
+- Every chip instance implied by packing needs coverage. An all-padding absent
+  chip and multiple fixed-size instances require an explicit bounded statement
+  and key contract, not a request-specific verifier key chosen by the prover.
+
+## 6. Unqualified cost hypothesis
+
+Incomplete hypothesis, not a sizing receipt. Leaf: verifying 70 queries over four trees of depth 22 with Poseidon2 costs
 about 70 x 4 x 22 x (Poseidon2 permutation rows) plus the composition
 evaluation of the batch constraint set at one point and FRI folding. With the
 degree-3 Poseidon lane at ~30 rows per permutation that is ~2^18 rows of hash
-work; the constraint evaluation adds a few thousand rows; the leaf lands near
+work; the originally assumed constraint cost has not been established; the leaf was projected near
 2^19 rows with Word16 batches. On one 5090 a 2^19-row proof is a fraction of a
-second; on the CPU about 3 to 5 s. Parents are the same size. The tree has
-depth 6 for 36 batches, so the critical path after the last batch is one leaf
+second; on the CPU about 3 to 5 s. Parents are the same size. The older 36-batch example has
+depth 6, so the critical path after the last batch is one leaf
 plus six parents plus the root: 3 to 5 s on GPU, overlapped with batch proving
 for all but the last batch.
 

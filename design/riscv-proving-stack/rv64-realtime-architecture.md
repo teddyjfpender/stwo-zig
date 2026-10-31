@@ -17,9 +17,9 @@ EthProofs) and zkDTVM (4x5090, 3.1 s average claimed, $0.0031). Concretely:
 | Batch proving on one 5090 | <= 1.0 s per 2^22-step batch | 16.2 s per batch on an 18-core M5 Max CPU |
 | Committed cells per retirement (CPU plus family chips) | <= 300 | 533 (385 main + 148 interaction) |
 | Quotient domain | 2n (degree <= 3) | 4n (degree 4) |
-| Peak host memory per batch | <= 16 GB | 29 to 34 GB |
-| Final artifact | one STARK root, fixed verifier key | 36 batch proofs plus terminal certificate, 151 MB |
-| Verifier | < 1 s, < 1 GB | 13 to 14 s, 3.5 GB |
+| Peak host memory | <= 16 GB | 41.86 GB process RSS in the complete round-five run |
+| Final artifact | one STARK root, fixed verifier key | 25 batch proofs plus terminal certificate, 72.85 MB |
+| Verifier | < 1 s, < 1 GB | 7.16 s, 6.09 GB peak RSS |
 
 The instruction count is no longer the first lever: the guest executes
 104,253,913 instructions for this block with 11,496 secp ADD, 9,768 secp DOUBLE
@@ -28,9 +28,16 @@ Further guest reductions (SHA-256, memcpy, square root hints) are worth 10 to
 20 percent and are tracked in `rv64-precompile-borrows.md`; they do not change
 this architecture.
 
+The complete round-five producer took 716.99 s on the CPU, followed by a
+separate fresh receiver. [Pinned full-block evidence](../../vectors/reports/rv64-guest-lean-20261031/round5/complete-block-isolated-v1.json)
+records all 25 proof/receipt/profile triples, the terminal certificate, input,
+ELF and executable identities. It is one observation with no recursive proof
+or GPU execution. The recycler/lifetime configuration trades retained memory
+against allocation work; neither memory target is met.
+
 ## Where the time goes today
 
-Per plain batch, M5 Max, lean guest, with commit preparation now attributed
+Per plain batch in the two-batch probe, M5 Max, lean guest, with commit preparation attributed
 (`vectors/reports/rv64-guest-lean-20261031/commit-recycler`):
 
 | Stage | Seconds | Scales with |
@@ -53,32 +60,38 @@ quotient domain. That is why the four deliverables are ordered as they are.
    becomes a ROM-authenticated bus emitter of about 70 main and 56 interaction
    columns; ALU, BINARY, SHIFT, LOAD/STORE and CONTROL become independently
    sized family chips; all constraints are degree <= 3 so the quotient domain
-   halves. Projected cells per retirement 271 (-49 percent); projected
+   halves. The draft 271-cell budget requires the store/ROM/range/degree reconciliation
+   ledger in that document before adoption; projected
    composition cost about 0.25x. Prerequisite for the GPU memory plan.
 2. **Global memory argument** (`rv64-global-memory-argument.md`). Replaces the
    per-batch Poseidon2 RAM roots with one LogUp memory relation across all
    batches under a shared challenge drawn from a sealed manifest of stage-one
-   roots. Removes RAM hashing (28.8 s of witness and up to 2.1M Poseidon rows
+   roots. Removes RAM hashing (30.41 s of witness and up to 2.1M Poseidon rows
    in the worst batch), removes the serial root chain, and makes batches
    independent once their memory advice is committed.
 3. **Aggregation** (`rv64-aggregation.md`). Fixed-shape batch proofs verified by
    a leaf circuit, parents of arity two checking adjacency and the manifest,
    one root. Depends on fixed instance shapes from (1) and on the manifest
-   from (2). Turns 36 proofs and 151 MB into one proof with a fixed key.
+   from (2). Targets one proof with a fixed key, replacing the current 25 proofs plus terminal
+   (72.85 MB). Root-key authority and leaf opening/hash costs still need qualification.
 4. **CUDA port** (`rv64-cuda-port.md`). Resident proving of one batch on one
    GPU, four GPUs proving batches in parallel, aggregation overlapped. Depends
    on (1) for the memory plan and on the strict-AOT CUDA runtime that already
    exists. Projected 10 to 30x over the 18-core CPU per batch.
 
-(1) and (2) can be built in parallel by different owners because they meet
-only at the load/store chip's RAM tuple. (3) needs the final batch shape from
+(1) and (2) can be built in parallel after agreeing the RAM tuple, service
+bridges, clock ownership and manifest contracts. (3) needs the final batch shape from
 (1) and (2). (4) can start on the current layout for kernels that do not depend
 on columns (FFT, Merkle, FRI) and must switch to the Word16 layout for the
 constraint and witness kernels.
 
 ## Projection to the target
 
-Projection, not measurement. Each step cites the assumption it rests on.
+Projection, not measurement. The CUDA byte-budget review found the original
+5 GB model understated buffers by approximately four. Until the corrected
+resource/lifetime model and real NVIDIA measurements exist, this table is a
+set of hypotheses, not an established path to the target. The 36-batch row is
+an older workload scenario; the current guest uses 25 batches.
 
 | Step | Plain batch | Basis |
 | --- | ---: | --- |
@@ -90,8 +103,8 @@ Projection, not measurement. Each step cites the assumption it rests on.
 | Aggregation, overlapped | +3 to 5 s | 36 leaves + 35 parents, leaf circuit ~2^19 rows on GPU |
 | End to end | 8 to 12 s p50 | within the 2 to 5x band of 3 to 10 s |
 
-The band is reachable; beating the leaders is not projected. Their remaining
-advantages are accelerator breadth (SHA-256, bn254, BLS, modexp, memcpy) and
+Reachability of this band remains unproven. The comparison systems have
+advantages in accelerator breadth (SHA-256, bn254, BLS, modexp, memcpy) and
 years of CUDA tuning.
 
 ## Engineering rules that apply to all four
