@@ -6,12 +6,13 @@ const engine = @import("stwo_prover_engine");
 const S = @import("source.zig");
 const I = @import("interaction.zig");
 const T = @import("types.zig");
+const L = @import("layout.zig");
 const M = T.M;
 const Q = T.Q;
 const work = engine.work_pool;
 pub const MIN_STACK_BYTES = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 const CHUNK: usize = 4096;
-const PREFIX = [_]usize{ 4, 12, 88, 104, 112 };
+const PREFIX = [_]usize{ 4, L.LOCAL_PREFIX };
 pub fn generate(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const Q, pool: ?*work.WorkPool) !T.Claims {
     return generateImpl(source, ch, d16, d8, pool, null, null);
 }
@@ -30,7 +31,7 @@ fn generateImpl(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const
     claims.range16 = try I.countDot(source.counts16, d16);
     claims.range8 = try I.countDot(source.counts8, d8);
     claims.selection = try I.countDot(source.selection_counts, selection);
-    const output = try a.alloc(M, 116 * n);
+    const output = try a.alloc(M, L.INTERACTION * n);
     errdefer a.free(output);
     @import("../../native_output_pages.zig").prepare(output);
     const scratch = try a.alloc(Q, workers * 5 * CHUNK);
@@ -89,7 +90,9 @@ const Job = struct {
         if (self.correct) {
             for (self.start..self.end) |physical| {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.source.log_size), self.source.log_size);
-                for (PREFIX, self.summaries[logical / CHUNK]) |column, offset| for (offset.toM31Array(), 0..) |value, c| {
+                const sums = self.summaries[logical / CHUNK];
+                const offsets = [2]Q{ sums[0], sums[1].add(sums[2]).add(sums[3]).add(sums[4]) };
+                for (PREFIX, offsets) |column, offset| for (offset.toM31Array(), 0..) |value, c| {
                     const at = (column + c) * n + physical;
                     self.output[at] = self.output[at].add(value);
                 };

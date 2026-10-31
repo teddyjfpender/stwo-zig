@@ -6,6 +6,7 @@ const R = @import("../closed_ram/mod.zig");
 const V1 = @import("../load_store_v1/mod.zig");
 const S = @import("source.zig");
 const T = @import("types.zig");
+const L = @import("layout.zig");
 const M = T.M;
 const Q = T.Q;
 const F = E.PackedBase;
@@ -109,7 +110,7 @@ pub fn generateSerial(source: *S.Source, ch: T.Challenges, dict16: []const Q, di
     claims.range16 = try countDot(source.counts16, dict16);
     claims.range8 = try countDot(source.counts8, dict8);
     claims.selection = try countDot(source.selection_counts, selection);
-    const output = try a.alloc(M, 116 * n);
+    const output = try a.alloc(M, L.INTERACTION * n);
     errdefer a.free(output);
     const scratch = try a.alloc(Q, 5 * CHUNK);
     defer a.free(scratch);
@@ -120,7 +121,7 @@ pub fn generateSerial(source: *S.Source, ch: T.Challenges, dict16: []const Q, di
     claims.owner = prefix[1];
     if (!prefix[2].isZero() or !prefix[3].isZero() or !prefix[4].isZero()) return error.InvalidLsCounts;
     R.trace.center(output, n, 4, claims.ram);
-    R.trace.center(output, n, 12, claims.owner);
+    R.trace.center(output, n, L.LOCAL_PREFIX, claims.owner);
     source.interaction = output;
     a.free(source.metadata);
     source.metadata = &.{};
@@ -150,36 +151,28 @@ fn fillChunkImpl(source: *const S.Source, ch: T.Challenges, dict16: []const Q, d
         R.trace.store(output, n, pos, 0, inv[i]);
         prefix[0] = prefix[0].add(delta[i].mul(inv[i]).mulM31(meta.active()));
         R.trace.store(output, n, pos, 4, prefix[0]);
-        R.trace.store(output, n, pos, 8, invOwner[i]);
         prefix[1] = prefix[1].add(invOwner[i].mulM31(meta.active()));
-        R.trace.store(output, n, pos, 12, prefix[1]);
-        for (0..18) |batch| {
-            const x = dict16[meta.range16[2 * batch]];
-            var inverse = x;
-            prefix[2] = prefix[2].add(x);
-            if (2 * batch + 1 < 35) {
-                const y = dict16[meta.range16[2 * batch + 1]];
-                inverse = inverse.mul(y);
-                prefix[2] = prefix[2].add(y);
-            }
-            R.trace.store(output, n, pos, 16 + 4 * batch, inverse);
+        // Pair OWNER with the first U16 query, then the remaining34 U16s.
+        const first_range = dict16[meta.range16[0]];
+        R.trace.store(output, n, pos, L.LOCAL_INVERSES, invOwner[i].mul(first_range));
+        prefix[2] = prefix[2].add(first_range);
+        for (0..17) |pair| {
+            const x = dict16[meta.range16[1 + 2 * pair]];
+            const y = dict16[meta.range16[2 + 2 * pair]];
+            R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * (1 + pair), x.mul(y));
+            prefix[2] = prefix[2].add(x).add(y);
         }
-        R.trace.store(output, n, pos, 88, prefix[2]);
-        for (0..3) |batch| {
-            const x = dict8[meta.range8[2 * batch]];
-            var inverse = x;
-            prefix[3] = prefix[3].add(x);
-            if (2 * batch + 1 < 5) {
-                const y = dict8[meta.range8[2 * batch + 1]];
-                inverse = inverse.mul(y);
-                prefix[3] = prefix[3].add(y);
-            }
-            R.trace.store(output, n, pos, 92 + 4 * batch, inverse);
+        for (0..2) |pair| {
+            const x = dict8[meta.range8[2 * pair]];
+            const y = dict8[meta.range8[2 * pair + 1]];
+            R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * (18 + pair), x.mul(y));
+            prefix[3] = prefix[3].add(x).add(y);
         }
-        R.trace.store(output, n, pos, 104, prefix[3]);
+        const last_range = dict8[meta.range8[4]];
         const selected = selection[meta.selectionIndex()];
+        R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * 20, last_range.mul(selected));
+        prefix[3] = prefix[3].add(last_range);
         prefix[4] = prefix[4].add(selected);
-        R.trace.store(output, n, pos, 108, selected);
-        R.trace.store(output, n, pos, 112, prefix[4]);
+        R.trace.store(output, n, pos, L.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
     }
 }

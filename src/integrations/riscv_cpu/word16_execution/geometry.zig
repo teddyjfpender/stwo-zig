@@ -92,7 +92,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
-            .ls => .{ 3, 79, 116 },
+            .ls => LS.widths(.ls),
             .initial, .terminal => .{ 3, 23, 48 },
             .selection => .{ 6, 2, 8 },
         };

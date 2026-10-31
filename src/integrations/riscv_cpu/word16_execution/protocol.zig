@@ -90,6 +90,7 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
     channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, 33, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
+    @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.encoding.mix(channel);
     digest(channel, materials.program.identity);
     digest(channel, image_identity);
     for (materials.shapes()) |shape| {

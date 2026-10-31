@@ -13,11 +13,21 @@ const Execution = @import("../word16_execution/execution.zig");
 const Tape = @import("stwo_riscv_frontend").rv64.compact_tape.Tape;
 /// One actual false prover attempt, preserving original typed metadata/facts.
 pub fn reject(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Execution.Admission, boundary: A.word16_execution.types.Boundary, tape: *const Tape, column: usize, logical: usize) !void {
+    return rejectImpl(a, setup, admission, boundary, tape, .{ .cpu = .{ .column = column, .logical = logical } });
+}
+pub fn rejectBalancedLsRam(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Execution.Admission, boundary: A.word16_execution.types.Boundary, tape: *const Tape) !void {
+    return rejectImpl(a, setup, admission, boundary, tape, .ls_ram_debt);
+}
+const Attack = union(enum) { cpu: struct { column: usize, logical: usize }, ls_ram_debt };
+fn rejectImpl(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Execution.Admission, boundary: A.word16_execution.types.Boundary, tape: *const Tape, attack: Attack) !void {
     var source = try Sources.Source.init(a, &setup.materials, admission.image, boundary, 1, tape);
     defer source.deinit();
-    const n = @as(usize, 1) << @intCast(setup.materials.geometry.cpu_log);
-    const pos = A.word16_execution.layout.physical(logical, setup.materials.geometry.cpu_log);
-    source.cpu.main[column * n + pos] = source.cpu.main[column * n + pos].add(core.fields.m31.M31.one());
+    if (attack == .cpu) {
+        const n = @as(usize, 1) << @intCast(setup.materials.geometry.cpu_log);
+        const pos = A.word16_execution.layout.physical(attack.cpu.logical, setup.materials.geometry.cpu_log);
+        const at = attack.cpu.column * n + pos;
+        source.cpu.main[at] = source.cpu.main[at].add(core.fields.m31.M31.one());
+    }
     const request = source.request();
     try admission.validate(setup, request);
     var scheme = try P.T.Scheme.init(a, P.T.P.config());
@@ -32,7 +42,13 @@ pub fn reject(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Executio
     try scheme.commitBorrowedStreaming(a, main, 8, &channel);
     try source.releaseMain();
     const draw = P.draw(&channel);
-    const claims = try source.generate(draw);
+    var claims = try source.generate(draw);
+    if (attack == .ls_ram_debt) {
+        // Preserve the whole ledger sum: an aggregate-only check cannot catch
+        // this. RAM must remain its own physically authenticated prefix.
+        claims.ls.ram = claims.ls.ram.add(A.evaluation.Q.one());
+        claims.ls.owner = claims.ls.owner.sub(A.evaluation.Q.one());
+    }
     channel.mixFelts(&claims.values());
     const interaction = try source.columns(a, 2);
     defer a.free(interaction);

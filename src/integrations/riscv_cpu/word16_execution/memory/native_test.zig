@@ -8,6 +8,9 @@ const E = front.rv64_air.evaluation;
 const M = X.types.M;
 const Q = X.types.Q;
 const a = std.testing.allocator;
+fn loadSecure(data: []const M, n: usize, row: usize, column: usize) Q {
+    return Q.fromM31Array(.{ data[column * n + row], data[(column + 1) * n + row], data[(column + 2) * n + row], data[(column + 3) * n + row] });
+}
 fn challenges() X.types.Challenges {
     var channel = core.channel.blake2s.Blake2sChannel{};
     channel.mixU32s(&.{ 0x4c534e32, 1 });
@@ -59,8 +62,8 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
         var f: [6]Q = undefined;
         var m: [79]Q = @splat(Q.zero());
         var pm: [79]Q = @splat(Q.zero());
-        var i: [116]Q = undefined;
-        var pi: [116]Q = @splat(Q.zero());
+        var i: [X.layout.INTERACTION]Q = undefined;
+        var pi: [X.layout.INTERACTION]Q = @splat(Q.zero());
         for (0..w[0]) |j| f[j] = Q.fromBase(fixed[j * n + pos]);
         for (0..w[1]) |j| {
             m[j] = Q.fromBase(main[j * n + pos]);
@@ -70,7 +73,7 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
             i[j] = Q.fromBase(interaction[j * n + pos]);
             pi[j] = Q.fromBase(interaction[j * n + previous]);
         }
-        var values: [281]Q = undefined;
+        var values: [273]Q = undefined;
         var sink = E.Sink{ .values = &values };
         X.equations.emitFor(Q, kind, f[0..w[0]], m[0..w[1]], pm[0..w[1]], i[0..w[2]], pi[0..w[2]], rows, claims, c, &sink);
         try std.testing.expectEqual(X.layout.constraints(kind), sink.count);
@@ -84,7 +87,7 @@ test "LS19 affine projection preserves arbitrary secure inputs and emitted negat
     const actual = V.equations.ownerTuple(Q, &m);
     try std.testing.expect(X.types.project(c).owner.denominatorFor(Q, actual).eql(c.owner.denominatorFor(Q, X.equations.ownerTuple(Q, &m)).neg()));
 }
-test "LS source after MAIN retirement exactly matches checked legacy interaction and all281 residuals" {
+test "LS source after MAIN retirement preserves checked legacy claims and projected interactions and all273 residuals" {
     var input = events();
     var source = try X.source.Source.init(a, &input, 5);
     defer source.deinit();
@@ -103,13 +106,60 @@ test "LS source after MAIN retirement exactly matches checked legacy interaction
     @memset(&input, input[0]);
     const got = try source.generate(c, dict.q16, dict.q8);
     try std.testing.expectEqualDeep(expected, got);
-    try std.testing.expectEqualSlices(M, legacy.interaction, source.interaction);
+    // Independent old layout projection: RAM remains exact; pair inverses
+    // come from the independently checked range dictionaries, and local sums
+    // are the sum of the four original, separately centred prefixes.
+    const n: usize = 32;
+    for (0..n) |pos| {
+        for (0..8) |column| try std.testing.expectEqual(legacy.interaction[column * n + pos], source.interaction[column * n + pos]);
+        const owner_inverse = loadSecure(legacy.interaction, n, pos, 8);
+        const first_range = dict.q16[legacy.main[V.layout.U16[0] * n + pos].v];
+        try std.testing.expect(loadSecure(source.interaction, n, pos, 8).eql(owner_inverse.mul(first_range)));
+        for (0..17) |pair| {
+            const x = dict.q16[legacy.main[V.layout.U16[1 + 2 * pair] * n + pos].v];
+            const y = dict.q16[legacy.main[V.layout.U16[2 + 2 * pair] * n + pos].v];
+            try std.testing.expect(loadSecure(source.interaction, n, pos, 12 + 4 * pair).eql(x.mul(y)));
+        }
+        for (0..2) |pair| {
+            const x = dict.q8[legacy.main[V.layout.U8[2 * pair] * n + pos].v];
+            const y = dict.q8[legacy.main[V.layout.U8[2 * pair + 1] * n + pos].v];
+            try std.testing.expect(loadSecure(source.interaction, n, pos, 80 + 4 * pair).eql(x.mul(y)));
+        }
+        // The independently generated V1 selection inverse is at column108.
+        const last_range = dict.q8[legacy.main[V.layout.U8[4] * n + pos].v];
+        try std.testing.expect(loadSecure(source.interaction, n, pos, 88).eql(last_range.mul(loadSecure(legacy.interaction, n, pos, 108))));
+        var local = Q.zero();
+        for ([_]usize{ 12, 88, 104, 112 }) |column| local = local.add(loadSecure(legacy.interaction, n, pos, column));
+        try std.testing.expect(loadSecure(source.interaction, n, pos, X.layout.LOCAL_PREFIX).eql(local));
+    }
     try nativeRows(.ls, 5, 2, source.fixed, main, source.interaction, c, got);
     const emptyMain = try a.dupe(M, empty.main);
     defer a.free(emptyMain);
     empty.releaseMain();
     const ec = try empty.generate(c, dict.q16, dict.q8);
     try nativeRows(.ls, 5, 0, empty.fixed, emptyMain, empty.interaction, c, ec);
+}
+test "LS local ledger shares redistribute only their sum while RAM stays independently bound" {
+    const input = events();
+    var source = try X.source.Source.init(a, &input, 5);
+    defer source.deinit();
+    const main = try a.dupe(M, source.main);
+    defer a.free(main);
+    const c = challenges();
+    const dict = try Dictionaries.init(c);
+    defer dict.deinit();
+    source.releaseMain();
+    const claims = try source.generate(c, dict.q16, dict.q8);
+    var redistributed = claims;
+    redistributed.owner = redistributed.owner.add(Q.one());
+    redistributed.range16 = redistributed.range16.sub(Q.one());
+    try nativeRows(.ls, 5, 2, source.fixed, main, source.interaction, c, redistributed);
+    // A malformed strict pair cannot disappear behind zero activity/weight.
+    const index = 8 * 32 + R.trace.physical(31, 5);
+    const old = source.interaction[index];
+    source.interaction[index] = old.add(M.one());
+    try std.testing.expectError(error.TestUnexpectedResult, nativeRows(.ls, 5, 2, source.fixed, main, source.interaction, c, claims));
+    source.interaction[index] = old;
 }
 test "Scalable4096 boundary cells and empty same-geometry source bind native authorized claims" {
     const cells = try a.alloc(R.types.Cell, 4096);
@@ -214,7 +264,7 @@ fn affine(values: []Q, t: Q, seed: u32) void {
 test "LS and scalable boundary complete arbitrary secure residuals are cubic including previous masks" {
     const c = challenges();
     for ([_]X.layout.Kind{ .ls, .initial, .terminal }) |kind| {
-        var samples: [5][281]Q = undefined;
+        var samples: [5][273]Q = undefined;
         const w = X.layout.widths(kind);
         const total = X.layout.constraints(kind);
         for (0..5) |k| {
@@ -222,8 +272,8 @@ test "LS and scalable boundary complete arbitrary secure residuals are cubic inc
             var f: [6]Q = undefined;
             var m: [79]Q = undefined;
             var pm: [79]Q = undefined;
-            var inter: [116]Q = undefined;
-            var previous: [116]Q = undefined;
+            var inter: [X.layout.INTERACTION]Q = undefined;
+            var previous: [X.layout.INTERACTION]Q = undefined;
             affine(&f, t, 10);
             affine(&m, t, 30);
             affine(&pm, t, 140);
@@ -267,4 +317,35 @@ test "LS strict owner poles late histogram and selection errors retain metadata 
     var storage: [79 * 32]M align(@alignOf(X.native.Event)) = @splat(M.zero());
     const alias: [*]const X.native.Event = @ptrCast(&storage);
     try std.testing.expectError(error.OverlappingLsInputs, X.source.Source.initWithMainBuffers(a, alias[0..1], 5, .{ .main = &storage }));
+}
+
+test "LS and boundary packed base lanes match every arbitrary scalar residual" {
+    const c = challenges();
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    channel.mixU32s(&.{ 0x4c534532, 96, 273 });
+    const claims = X.types.Claims{ .ram = channel.drawSecureFelt(), .owner = channel.drawSecureFelt(), .range16 = channel.drawSecureFelt(), .range8 = channel.drawSecureFelt(), .selection = channel.drawSecureFelt() };
+    for ([_]X.layout.Kind{ .ls, .initial, .terminal }) |kind| {
+        const widths = X.layout.widths(kind);
+        var native: [5][X.layout.INTERACTION][E.LANES]M = undefined;
+        var simd: [5][X.layout.INTERACTION]E.PackedBase = undefined;
+        for (&native, &simd) |*group, *columns| for (group, columns) |*lanes, *column| {
+            for (lanes) |*v| v.* = channel.drawSecureFelt().toM31Array()[0];
+            column.* = E.PackedBase.fromLanes(lanes.*);
+        };
+        var actual: [273]E.PackedSecure = undefined;
+        var sink = E.PackedSink{ .values = &actual };
+        X.equations.emitFor(E.PackedBase, kind, simd[0][0..widths[0]], simd[1][0..widths[1]], simd[2][0..widths[1]], simd[3][0..widths[2]], simd[4][0..widths[2]], 7, claims, c, &sink);
+        try std.testing.expectEqual(X.layout.constraints(kind), sink.count);
+        for (0..E.LANES) |lane| {
+            var scalar: [5][X.layout.INTERACTION]Q = undefined;
+            for (&scalar, native) |*group, columns| for (group, columns) |*v, lanes| {
+                v.* = Q.fromBase(lanes[lane]);
+            };
+            var expected: [273]Q = undefined;
+            var out = E.Sink{ .values = &expected };
+            X.equations.emitFor(Q, kind, scalar[0][0..widths[0]], scalar[1][0..widths[1]], scalar[2][0..widths[1]], scalar[3][0..widths[2]], scalar[4][0..widths[2]], 7, claims, c, &out);
+            try std.testing.expectEqual(sink.count, out.count);
+            for (expected[0..out.count], actual[0..sink.count]) |x, y| try std.testing.expect(x.eql(y.lane(lane)));
+        }
+    }
 }

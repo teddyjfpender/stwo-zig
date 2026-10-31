@@ -57,8 +57,8 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
         var f: [3]Q = undefined;
         var m: [79]Q = undefined;
         var pm: [79]Q = undefined;
-        var i: [116]Q = undefined;
-        var pi: [116]Q = undefined;
+        var i: [X.layout.INTERACTION]Q = undefined;
+        var pi: [X.layout.INTERACTION]Q = undefined;
         for (&f, 0..) |*v, c| v.* = Q.fromBase(fixed[c * n + pos]);
         for (m[0..widths[1]], pm[0..widths[1]], 0..) |*v, *pv, c| {
             v.* = Q.fromBase(main[c * n + pos]);
@@ -68,14 +68,14 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
             v.* = Q.fromBase(inter[c * n + pos]);
             pv.* = Q.fromBase(inter[c * n + before]);
         }
-        var residuals: [281]Q = undefined;
+        var residuals: [273]Q = undefined;
         var sink = A.evaluation.Sink{ .values = &residuals };
         X.equations.emitFor(Q, kind, &f, m[0..widths[1]], pm[0..widths[1]], i[0..widths[2]], pi[0..widths[2]], rows, claims, ch, &sink);
         try std.testing.expectEqual(X.layout.constraints(kind), sink.count);
         for (residuals[0..sink.count]) |v| try std.testing.expect(v.isZero());
     }
 }
-test "LS joined1 4 16 worker waves match serial116 columns fiveclaims after MAIN retirement" {
+test "LS joined1 4 16 worker waves match serial96 columns fiveclaims after MAIN retirement" {
     const data = try Data.init();
     defer data.deinit();
     const input = try events(8193);

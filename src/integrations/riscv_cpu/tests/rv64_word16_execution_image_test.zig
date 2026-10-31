@@ -223,6 +223,7 @@ test "full execution mixed native program closes seventeen physical chips and ve
     try FalseProver.reject(a, &setup, admission, fixture.boundary, &fixture.tape, fields.b, 10);
     try FalseProver.reject(a, &setup, admission, fixture.boundary, &fixture.tape, fields.immediate, 18);
     try FalseProver.reject(a, &setup, admission, fixture.boundary, &fixture.tape, fields.next_pc, 18);
+    try FalseProver.rejectBalancedLsRam(a, &setup, admission, fixture.boundary, &fixture.tape);
     var balanced = encoded;
     balanced.claims.cpu = balanced.claims.cpu.add(front.rv64_air.evaluation.Q.one());
     balanced.claims.rom = balanced.claims.rom.sub(front.rv64_air.evaluation.Q.one());

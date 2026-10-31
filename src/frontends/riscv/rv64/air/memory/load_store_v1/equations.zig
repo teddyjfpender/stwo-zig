@@ -24,6 +24,19 @@ pub fn selectionTuple(comptime F: type, m: []const F) [5]F {
     return .{ m[L.selected_limb], parity, m[L.selected_byte], m[L.selected_sign], m[L.limb_sign] };
 }
 pub fn emitFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    emitLocalFor(F, f, m, pm, rows, out);
+    const one = F.one();
+    const active = m[0];
+    R.transitionRamFor(F, m[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
+    S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, m)), active, E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
+    R.rangesFor(F, m, i, pi, &L.U16, L.RANGE16, f[1], f[2], claims.range16, ch.range16, out);
+    R.rangesFor(F, m, i, pi, &L.U8, L.RANGE8, f[1], f[2], claims.range8, ch.range8, out);
+    S.single(F, ch.selection.denominatorFor(F, selectionTuple(F, m)), one, E.secureFor(F, i, L.SELECTION), E.secureFor(F, i, L.SELECTION + 4), E.secureFor(F, pi, L.SELECTION + 4), f[1], f[2], claims.selection, out);
+}
+
+/// Shared local RAM/LS arithmetic; lookup encodings are separate authorities.
+/// The original emitFor preserves its exact residual order through this seam.
+pub fn emitLocalFor(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
     @setEvalBranchQuota(1000000);
     const one = F.one();
     const active = m[0];
@@ -105,9 +118,4 @@ pub fn emitFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: [
             out.emit(flag.mul(m[18 + c].sub(wanted)));
         }
     }
-    R.transitionRamFor(F, m[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
-    S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, m)), active, E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
-    R.rangesFor(F, m, i, pi, &L.U16, L.RANGE16, f[1], f[2], claims.range16, ch.range16, out);
-    R.rangesFor(F, m, i, pi, &L.U8, L.RANGE8, f[1], f[2], claims.range8, ch.range8, out);
-    S.single(F, ch.selection.denominatorFor(F, selectionTuple(F, m)), one, E.secureFor(F, i, L.SELECTION), E.secureFor(F, i, L.SELECTION + 4), E.secureFor(F, pi, L.SELECTION + 4), f[1], f[2], claims.selection, out);
 }

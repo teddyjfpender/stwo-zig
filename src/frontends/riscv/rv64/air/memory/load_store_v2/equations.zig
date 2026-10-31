@@ -14,7 +14,9 @@ pub fn ownerTuple(comptime F: type, m: []const F) [19]F {
 }
 pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
     if (kind == .ls) {
-        V1.equations.emitFor(F, f, m, pm, i, pi, rows, claims, T.project(ch), out);
+        V1.equations.emitLocalFor(F, f, m, pm, rows, out);
+        R.equations.transitionRamFor(F, m[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
+        @import("local_lookup.zig").emitFor(F, f, m, i, pi, claims, ch, out);
         out.emit(m[3].sub(m[12]).sub(m[13].mul(E.qFor(F, 65536))));
     } else if (kind == .selection) {
         V1.authority.emitFor(F, .selection, f, m, pm, i, pi, 0, null, claims, T.project(ch), out);

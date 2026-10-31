@@ -24,7 +24,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
         const count = @min(LANES, end - begin);
         var values: [256]F = undefined;
         var pm: [79]F = @splat(F.zero());
-        var pi: [116]F = @splat(F.zero());
+        var pi: [L.INTERACTION]F = @splat(F.zero());
         for (columns, 0..) |column, i| values[i] = load(column, begin, count);
         var indices: [LANES]usize = undefined;
         for (indices[0..count], 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, component.log_size, component.log_size + 1);
