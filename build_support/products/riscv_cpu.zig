@@ -46,7 +46,7 @@ pub fn addProduct(context: Context) void {
         .{ "full-proof", "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig", 3 },
         .{ "multiplication", "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig", 5 },
         .{ "keccak-cpu", "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig", 10 },
-        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 9 },
+        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 12 },
         .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 13 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
@@ -69,7 +69,7 @@ pub fn addProduct(context: Context) void {
         .{ "keccak-quartet", "src/integrations/riscv_cpu/rv64_keccak_quartet_test_root.zig", 5 },
         .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
-        .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 3 },
+        .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
     }) |suite| {
         context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
             .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),

@@ -287,11 +287,15 @@ pub fn CommitOps(
                     work_recorder,
                 )) return;
             var tree = blk: {
-                var prepare_stage = try stage_profile.StageScope.begin(
+                var prepare_stage = stage_profile.StageScope.begin(
                     recorder,
                     "owned_commit_prepare",
                     "Prepare owned columns for commit",
-                );
+                ) catch |err| {
+                    backed_columns.freeSource(allocator, owned_columns, source_arena);
+                    if (source_arena) |arena| allocator.free(arena);
+                    return err;
+                };
                 var prepare_stage_open = true;
                 defer if (prepare_stage_open) prepare_stage.end();
                 var prepared = column_preparation.prepareColumnsForCommitOwnedForBackend(
@@ -517,6 +521,14 @@ pub fn CommitOps(
             var consumed: usize = 0;
             while (consumed < owned_columns.len) {
                 const end = try boundedBatchEnd(owned_columns, order, consumed, effective_batch_size, self.config.fri_config.log_blowup_factor, byte_budget);
+                // Begin telemetry before taking any batch ownership: recorder
+                // OOM must leave the outer input cleanup sufficient.
+                var add_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "streaming_commit_prepare",
+                    "Prepare streaming column batch for commit",
+                );
+                defer add_stage.end();
                 const batch = try allocator.alloc(ColumnEvaluation, end - consumed);
                 var initialized: usize = 0;
                 for (order[consumed..end], 0..) |original_index, batch_index| {
@@ -537,12 +549,6 @@ pub fn CommitOps(
                     initialized += 1;
                 }
                 // This call consumes the batch on both success and error.
-                var add_stage = try stage_profile.StageScope.begin(
-                    recorder,
-                    "streaming_commit_prepare",
-                    "Prepare streaming column batch for commit",
-                );
-                defer add_stage.end();
                 if (source_arena) |arena|
                     try builder.addColumnsBorrowingArenaIndexed(batch, order[consumed..end], recorder, arena)
                 else

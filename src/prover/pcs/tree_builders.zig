@@ -380,7 +380,10 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             // Follow the same ownership convention as commitOwnedWithRecorder:
             // on error from prepareColumnsForCommitOwned the caller cleans up
             // the input; on success the result owns the data.
-            var transform_stage = try stage_profile.StageScope.begin(recorder, "streaming_transform", "Streaming batch interpolate and extend");
+            var transform_stage = stage_profile.StageScope.begin(recorder, "streaming_transform", "Streaming batch interpolate and extend") catch |err| {
+                self.freeBatch(owned_batch, arena);
+                return err;
+            };
             var transform_stage_open = true;
             defer if (transform_stage_open) transform_stage.end();
             var prepared = (if (arena) |source| column_preparation.prepareColumnsBorrowingArenaForBackend(

@@ -1,0 +1,166 @@
+{
+  "schema": "rv64-recycler-mainline-integration-v1",
+  "original_commit": "0dd656ab9421e84f7963b3acddf9f7b27f321f98",
+  "cherry_pick": "993bae7b991c8762dc0780fc2aa10183e0341f3b",
+  "followup_changes": [
+    "Page-aligned child ownership makes capacity-only cache bins safe across caller alignments.",
+    "Overflowing capacity requests return allocation failure; cache admission avoids addition overflow.",
+    "Both drivers release their recycler after all request and pool owners.",
+    "Profiling-scope allocation failure preserves PCS input ownership.",
+    "Allocator alignment/overflow and metadata-failure tests; recorded owned/streaming PCS OOM tests."
+  ],
+  "tests": {
+    "allocator_ReleaseSafe": 3,
+    "allocator_ReleaseFast": 3,
+    "PCS_recorder_OOM_ReleaseSafe": true,
+    "PCS_recorder_OOM_ReleaseFast": true,
+    "final_ReleaseFast_targets_passed": [
+      "test-riscv64-pcs-owned",
+      "test-riscv64-ethereum-chain",
+      "test-riscv64-full-proof"
+    ],
+    "final_log_sha256": "156cb42331e50baeeeae4a2ecaa7dd75fb998b85733c0cc8141d27563cb277d8"
+  },
+  "probe": {
+    "scope": "Round-five two-batch execution prefix only; producer includes both proofs and local verification, then fresh receiver separately. Not a full-block benchmark.",
+    "config": {
+      "elf": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+      "input": "/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+      "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+      "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+      "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+      "symbols": {
+        "input_start": 8388608,
+        "input_end": 12582912,
+        "halt_flag": 12582912,
+        "output_len": 12582916,
+        "output_data": 12582920,
+        "output_end": 16777216,
+        "stack_bottom": 16777216,
+        "stack_top": 33554432,
+        "heap_start": 33648672,
+        "heap_end": 268435456
+      },
+      "terminal_pc": 17308,
+      "batch_steps": 4194303,
+      "max_steps": 1000000000,
+      "workers": 16,
+      "control_policy": "limbs24_v2",
+      "state_policy": "cyclic_canonical_v3",
+      "shared_main_arena": true,
+      "omit_unused_arithmetic": true,
+      "profile_stages": true,
+      "output_directory": "/tmp/stwo-rv64-delivery/recycler-mainline-integration-v1/two-batch-proof",
+      "max_batches": 2
+    },
+    "cache_cap_bytes": 17179869184,
+    "producer_wall_seconds": 48.29,
+    "producer_user_seconds": 351.8,
+    "producer_kernel_seconds": 8.44,
+    "producer_peak_rss_bytes": 33867743232,
+    "proofs": [
+      {
+        "index": 0,
+        "bytes": 1037248,
+        "proof_sha256": "e9a6fb843802c6dd7b1fed8551059da86776e6616f6fc9dc2a5435fda493f54c",
+        "receipt_sha256": "ac6c28b853e97c8ad4aea0f5b208aa3cd3cbb926573c18b9660ff04e1f8d8c1d",
+        "exact_user_baseline_proof_and_receipt": true
+      },
+      {
+        "index": 1,
+        "bytes": 1027552,
+        "proof_sha256": "845f1457428e04f306c69e7249d9e6f4ec1a89a2fb89c276a37a97b8887c3134",
+        "receipt_sha256": "fd95c6b3e7b3bd5182284d04441fde0f15504dc26457e38100a1911dd46f45e0",
+        "exact_user_baseline_proof_and_receipt": true
+      }
+    ],
+    "fresh_receiver": {
+      "status": "authenticated_execution_prefix_verified",
+      "full_block_proof_verified": false,
+      "batches": 2,
+      "instructions": 8388606,
+      "calls": [
+        0,
+        0,
+        0
+      ],
+      "final_root": [
+        1171691733,
+        457450880,
+        2132709557,
+        506456742,
+        670272007,
+        1678836906,
+        519082460,
+        1930595745,
+        1931493399
+      ],
+      "final_pc": 1295356,
+      "final_registers": [
+        0,
+        11899832155491516416,
+        33544432,
+        33556480,
+        0,
+        16372311741725983432,
+        712,
+        16372311741725982720,
+        17178276254953338971,
+        1705269755348282802,
+        8506305178560051069,
+        1874140,
+        541301539856850095,
+        8065570810987530731,
+        17156209553864879174,
+        3351519342426670501,
+        5408582679172182776,
+        421925227,
+        14957352978847455480,
+        8772412260952612939,
+        1753333711978089746,
+        12282935781059193275,
+        16907112313477598505,
+        2205831902889103639,
+        3122210322019848638,
+        11899832155491529292,
+        15784979755912375855,
+        7131149601234631370,
+        12711088618663967688,
+        12702355586481984795,
+        2115924704397365361,
+        1580658975109579900
+      ],
+      "setup_ns": 662665250,
+      "verify_ns": 17525083,
+      "proof_bytes": 2064800,
+      "verifier_cache": {
+        "hits": 0,
+        "misses": 2,
+        "entries": 2,
+        "retained_bytes": 41832,
+        "peak_retained_bytes": 41832,
+        "cold_setup_ns": 662665250
+      }
+    },
+    "tool_sha256": {
+      "rv64-ethereum-proof": "9eb92f3d8740e14c60684d2a218de72eb82543fc7bf5c5b7914b4294c77407d4",
+      "rv64-ethereum-reprove": "87fca595d170c31f8187e983da57a147011a1203518b2919beb4e0dedb3de180"
+    },
+    "raw_artifacts": "/tmp/stwo-rv64-delivery/recycler-mainline-integration-v1"
+  },
+  "limitations": [
+    "One observation; no full-block timing or extrapolated sixty-second gain is established.",
+    "Recycler keeps free buffers resident. Cache cap excludes live proof allocations and metadata; peak remains above16GB.",
+    "Separate interaction-retirement receipt covers no-recycler retained round-one probes and complete receiver."
+  ],
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "b1fa394acc2f90a6b1830d441bf8baa47e083cbdc424227bb294dc2b293e2635",
+    "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig": "0dbb2b93631dccdc44de6bbcad3be07c4f8596dcc6fe19e3f31c5656bf996bd0",
+    "src/integrations/riscv_cpu/rv64_ethereum_proof_main.zig": "0410367709b27261a0a95b82ec893ed49f340e983d773ffa118dadbce828625c",
+    "src/integrations/riscv_cpu/rv64_ethereum_reprove_main.zig": "66b6bfff7606fd1156a7e490f34764aeeb06ec58feac25bee938f52ad273643c",
+    "src/integrations/riscv_cpu/rv64_large_block_recycler.zig": "b3858ffef9dff1f3ee9c6fffb7e8a8e06ae309ca593d4814157ab9afb61650e1",
+    "src/integrations/riscv_cpu/tests/pcs_owned_profile_test.zig": "b8497707053da80421ab58907e54bd76cb03ed30e2edfa2ad9f11c6b526045d4",
+    "src/prover/pcs/commit_ops.zig": "20b2a12ece2dbc7245a3e4032acdd7d85c489e6b9b6ee2072d56c8f6a3be4d3b",
+    "src/prover/pcs/tree_builders.zig": "ab1e10d0cf141b83b6dc5f4e02b187c25fcc7d5352271b249973dfdbefe84397"
+  }
+}

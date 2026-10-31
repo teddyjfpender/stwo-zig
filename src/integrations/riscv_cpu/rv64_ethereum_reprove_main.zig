@@ -16,6 +16,7 @@ var recycler = Recycler.init(std.heap.smp_allocator, 16 * 1024 * 1024 * 1024);
 const a: std.mem.Allocator = .{ .ptr = &recycler, .vtable = &Recycler.vtable };
 
 pub fn main() !void {
+    defer recycler.deinit();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
     if (args.len != 4) return error.ExpectedConfigBaselineDirectoryAndBatchIndex;
