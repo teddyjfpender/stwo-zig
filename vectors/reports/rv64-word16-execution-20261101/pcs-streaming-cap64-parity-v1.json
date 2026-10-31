@@ -1,0 +1,165 @@
+{
+  "status": "QUALIFIED generic resource-batch parity; no production policy mutation",
+  "base_commit": "8db7ac99c3adb977a7f91399864c6973fb15d19a",
+  "gate": {
+    "target": "zig build test-stwo-prover-coefficient-storage",
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "logs": [
+      "/tmp/pcs-cap64-safe.log",
+      "/tmp/pcs-cap64-fast.log"
+    ],
+    "new_case": "129 columns, interleaved native logs5/6/7, compact coefficient storage, pruned bottom4 layers, cap8 borrowed vs cap64 borrowed+owned, complete proof structural equality and independent fresh verification",
+    "scope": "quick PCS configuration n_queries8/pow0 for scheduling equivalence; no security-strength or whole-job performance claim"
+  },
+  "production_changes": [],
+  "opening_audit": {
+    "file": "src/prover/pcs/coefficient_opening.zig",
+    "decision": "No toggle/change: configured CPU has no evaluateCircleBuffers; CPU already uses evaluateSelectedBufferWithTwiddles. Metal has the native full-expansion method.",
+    "memory": "Selected expansion still allocates full LDE scratch; no queried-position-sized memory claim."
+  },
+  "accounting": {
+    "basis": "Exact per-height native column histograms of packet0 prefix1; source+LDE charge follows boundedBatchEnd, equal-height groups follow StreamingCommitter.addColumns. State visits modeled only; does not estimate cache misses, compression counts, or time.",
+    "source": "/tmp/rv64-ethereum-word16-prefix1-v1/cost.json",
+    "histogram": {
+      "fixed": {
+        "5": 34,
+        "8": 3,
+        "13": 3,
+        "14": 2,
+        "16": 32,
+        "18": 3,
+        "20": 47,
+        "22": 3
+      },
+      "main": {
+        "8": 1,
+        "13": 87,
+        "14": 18,
+        "16": 20,
+        "18": 79,
+        "20": 273,
+        "22": 53
+      },
+      "interaction": {
+        "5": 8,
+        "8": 8,
+        "13": 200,
+        "14": 12,
+        "16": 60,
+        "18": 96,
+        "20": 252,
+        "22": 40
+      }
+    },
+    "default_cpu_budget_mib": 256,
+    "compact_max_budget_mib": 512,
+    "modeled": {
+      "256": {
+        "fixed": [
+          {
+            "cap_columns": 8,
+            "batch_count": 16,
+            "hasher_state_visits": 24298304,
+            "source_cells": 64808768,
+            "lde_cells": 129617536
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 4,
+            "hasher_state_visits": 15516224,
+            "source_cells": 64808768,
+            "lde_cells": 129617536
+          }
+        ],
+        "main": [
+          {
+            "cap_columns": 8,
+            "batch_count": 71,
+            "hasher_state_visits": 180503040,
+            "source_cells": 531587328,
+            "lde_cells": 1063174656
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 27,
+            "hasher_state_visits": 123404800,
+            "source_cells": 531587328,
+            "lde_cells": 1063174656
+          }
+        ],
+        "interaction": [
+          {
+            "cap_columns": 8,
+            "batch_count": 88,
+            "hasher_state_visits": 150422080,
+            "source_cells": 462948608,
+            "lde_cells": 925897216
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 26,
+            "hasher_state_visits": 93684288,
+            "source_cells": 462948608,
+            "lde_cells": 925897216
+          }
+        ]
+      },
+      "512": {
+        "fixed": [
+          {
+            "cap_columns": 8,
+            "batch_count": 16,
+            "hasher_state_visits": 24298304,
+            "source_cells": 64808768,
+            "lde_cells": 129617536
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 3,
+            "hasher_state_visits": 13419072,
+            "source_cells": 64808768,
+            "lde_cells": 129617536
+          }
+        ],
+        "main": [
+          {
+            "cap_columns": 8,
+            "batch_count": 67,
+            "hasher_state_visits": 146948608,
+            "source_cells": 531587328,
+            "lde_cells": 1063174656
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 15,
+            "hasher_state_visits": 66781696,
+            "source_cells": 531587328,
+            "lde_cells": 1063174656
+          }
+        ],
+        "interaction": [
+          {
+            "cap_columns": 8,
+            "batch_count": 85,
+            "hasher_state_visits": 125256256,
+            "source_cells": 462948608,
+            "lde_cells": 925897216
+          },
+          {
+            "cap_columns": 64,
+            "batch_count": 16,
+            "hasher_state_visits": 47546944,
+            "source_cells": 462948608,
+            "lde_cells": 925897216
+          }
+        ]
+      }
+    }
+  },
+  "source_sha256": {
+    "src/prover/pcs/streaming_batch_parity_test.zig": "98a745824e1d9edb62c58733a1a20c514d7169e7bb0a66a16da665f523cf35ac",
+    "src/prover/coefficient_storage_test_root.zig": "4c545590499a1d7c187d02619bc2dc18df00d5e661dca681e3e8088089f47056",
+    "scripts/diagnostics/pcs_streaming_batch_accounting.py": "430cbe35f4613a9fa6c8271c087967f1cc0447cfc0a85181908dc8ce08c51757"
+  }
+}
