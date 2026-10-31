@@ -154,7 +154,10 @@ pub const TruthSource = struct {
     chi: K.tables.Trace,
     xor5: K.tables.Trace,
     pub fn init(a: std.mem.Allocator, inputs: []const K.trace.State, log: u32) !TruthSource {
-        var p = try K.trace.Trace.initWithLog(a, inputs, 1, log);
+        return initSpan(a, inputs, 1, log);
+    }
+    pub fn initSpan(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32) !TruthSource {
+        var p = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
         errdefer p.deinit();
         const counts = try K.interaction.Counts.fromTrace(&p);
         var c = try K.tables.Trace.init(a, .chi, &counts.chi);

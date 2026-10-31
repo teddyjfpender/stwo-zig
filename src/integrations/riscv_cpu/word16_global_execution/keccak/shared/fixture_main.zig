@@ -27,6 +27,8 @@ pub fn main() !void {
     defer pool.deinit();
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
+    if (std.mem.eql(u8, args[1], "produce-bounded")) return produceBounded(a, args[2]);
+    if (std.mem.eql(u8, args[1], "verify-bounded")) return verifyBounded(a, args[2]);
     if (std.mem.eql(u8, args[1], "produce")) {
         var c = try F.Case.init(a, .none);
         defer c.deinit();
@@ -75,4 +77,56 @@ pub fn main() !void {
         defer truth.deinit();
         try E.verify(a, &.{ &s0, &s1 }, &truth, Base.Case.expectedFor(s0.materials.program.identity), &bundle);
     } else return error.ExpectedProduceOrVerifyDirectoryWorkers;
+}
+
+const BoundedMetadata = struct { schema: u32, specs: [4][32]u8, roots: [4]G.Receipt, digest: [32]u8, requests: [2]P.Request, cpu_claims: [2]E.CpuClaims, truth_claims: [2][3]Q };
+fn produceBounded(a: std.mem.Allocator, path: []const u8) !void {
+    var c = try F.BoundedCase.init(a, .none);
+    defer c.deinit();
+    const keys = c.keys();
+    const truths = c.roster();
+    try E.verifyBounded(a, &keys, &truths, c.expected(), &c.bundle);
+    try std.fs.cwd().makeDir(path);
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const metadata = BoundedMetadata{ .schema = 3, .specs = c.bundle.manifest.specs[0..4].*, .roots = c.bundle.manifest.roots[0..4].*, .digest = c.bundle.manifest.digest, .requests = .{ c.bundle.cpus[0].request, c.bundle.cpus[1].request }, .cpu_claims = .{ c.bundle.cpus[0].claims, c.bundle.cpus[1].claims }, .truth_claims = .{ c.bundle.truths[0].claims, c.bundle.truths[1].claims } };
+    const json = try std.json.Stringify.valueAlloc(a, metadata, .{ .whitespace = .indent_2 });
+    defer a.free(json);
+    try write(dir, "metadata.json", json);
+    for (c.bundle.cpus, [_][]const u8{ "cpu0.bin", "cpu1.bin" }) |p, name| try write(dir, name, p.bytes);
+    for (c.bundle.truths, [_][]const u8{ "truth0.bin", "truth1.bin" }) |p, name| try write(dir, name, p.bytes);
+    try std.posix.fsync(dir.fd);
+}
+fn verifyBounded(a: std.mem.Allocator, path: []const u8) !void {
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    const json = try dir.readFileAlloc(a, "metadata.json", 4 * 1024 * 1024);
+    defer a.free(json);
+    var parsed = try std.json.parseFromSlice(BoundedMetadata, a, json, .{ .allocate = .alloc_always });
+    defer parsed.deinit();
+    const m = parsed.value;
+    if (m.schema != 3) return error.InvalidSharedTruthFixtureSchema;
+    var manifest = try G.Manifest.init(a, &m.specs, &m.roots);
+    defer manifest.deinit();
+    if (!std.mem.eql(u8, &manifest.digest, &m.digest)) return error.GlobalExecutionManifestChanged;
+    var bytes: [4][]u8 = undefined;
+    var read: usize = 0;
+    defer for (bytes[0..read]) |b| a.free(b);
+    for ([_][]const u8{ "cpu0.bin", "cpu1.bin", "truth0.bin", "truth1.bin" }, &bytes) |name, *b| {
+        b.* = try dir.readFileAlloc(a, name, 64 * 1024 * 1024);
+        read += 1;
+    }
+    var cpus = [2]E.CpuEncoded{ .{ .bytes = bytes[0], .request = m.requests[0], .claims = m.cpu_claims[0] }, .{ .bytes = bytes[1], .request = m.requests[1], .claims = m.cpu_claims[1] } };
+    var encoded_truths = [2]E.TruthEncoded{ .{ .bytes = bytes[2], .claims = m.truth_claims[0] }, .{ .bytes = bytes[3], .claims = m.truth_claims[1] } };
+    const bundle = E.BoundedBundle{ .manifest = manifest, .cpus = &cpus, .truths = &encoded_truths };
+    var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &Base.WORDS }, .{ .cpu_log = 5 }, 5);
+    defer s0.deinit();
+    var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &Base.WORDS }, .{ .cpu_log = 5 }, 5);
+    defer s1.deinit();
+    var t0 = try R.TruthSetup.init(a, 5);
+    defer t0.deinit();
+    var t1 = try R.TruthSetup.init(a, 5);
+    defer t1.deinit();
+    const truths = [_]P.Truth{ .{ .setup = &t0, .first_id = 1, .calls = 1 }, .{ .setup = &t1, .first_id = 2, .calls = 1 } };
+    try E.verifyBounded(a, &.{ &s0, &s1 }, &truths, Base.Case.expectedFor(s0.materials.program.identity), &bundle);
 }

@@ -13,7 +13,8 @@ count and independent Keccak geometry. Its first call ID is1. The receiver
 recomputes all CPU call-ID spans by prefix sums; they are disjoint and cover the
 truth span. Captured native u64 call IDs grant no proof authority.
 
-Each CPU proof contains the seventeen-role Word16 roster plus the existing
+Each CPU proof contains the canonical Word16 roster (seventeen roles in the
+fixture; sixteen when qualified empty DIV omission is explicitly selected) plus the existing
 66-MAIN/116-INTER bridge. The 1923-MAIN/2596-INTER permutation and chi/xor tables
 are absent from CPU proofs. The single truth proof contains those three unchanged
 components. Actual CPU OWNER19 closes locally against the bridge; IO11 closes
@@ -67,3 +68,33 @@ real32,835-call roster, one log19 provider and two log18 providers have the same
 summed native permutation area, while two providers halve each worker's peak and
 add one proof/mask/FRI/PoW roster. No claim is made that one option fits a32GB
 device until complete phase/lifetime measurements are available.
+
+## Bounded plural truth protocol
+
+The additive `produceBounded` / `verifyBounded` entry points select a distinct
+version-3 transcript. The original version-2 `produce` / `verify`, Bundle and
+single-truth durable wire remain unchanged wrappers around the same lifecycle.
+A receiver supplies ordered `Truth{setup, first_id, calls}` entries independently
+of the proof. Every span must begin exactly at the prior span's end, beginning
+at1 and ending at the sum of CPU calls plus1. Empty entries are rejected except
+one empty entry for a zero-call execution. This is an exact cover, not a native
+count assertion. First IDs also enter the permutation AIR instance parameters.
+
+The complete manifest orders all CPU fixed/MAIN roots first and all truth
+fixed/MAIN roots second. CPU public transcripts bind the truth roster length;
+each truth transcript binds its ordinal, roster length, first ID and count.
+Every worker remeasures its retained roots before deriving challenges. The
+receiver recomputes this complete expected inventory before decoding proofs.
+All truth and CPU proofs must verify. IO and RAM are drawn from the full
+manifest; chi/xor are drawn independently at each truth ordinal. The common IO
+positive mass is50 times total calls and must remain below the characteristic.
+Each truth separately satisfies the existing chi/xor admission bound. Summing
+local chi masses would wrongly couple independently challenged families.
+
+The four-proof control splits the two same-buffer calls into two log5 truth
+workers. This increases native padding and table/proof overhead versus the
+single paired log5 worker; it is a correctness and bounded-ownership gate,
+not a performance win. Larger bounded rosters trade a smaller per-worker peak
+against extra fixed-key/header/mask/FRI/PoW costs. Actual per-worker coefficient
+storage remains in the bounded central harness; arbitrary multiworker device
+fit or coordinator memory scaling is not established by this fixture.

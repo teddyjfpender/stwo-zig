@@ -66,6 +66,18 @@ pub const Bundle = struct {
         self.manifest.deinit();
     }
 };
+pub const BoundedBundle = struct {
+    manifest: G.Manifest,
+    cpus: []CpuEncoded,
+    truths: []TruthEncoded,
+    pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+        for (self.cpus) |*p| p.deinit(a);
+        a.free(self.cpus);
+        for (self.truths) |p| a.free(p.bytes);
+        a.free(self.truths);
+        self.manifest.deinit();
+    }
+};
 const CpuWorker = struct {
     source: R.CpuSource,
     scheme: G.T.Scheme,
@@ -118,12 +130,24 @@ fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridge: *co
     out[old.len] = try bridge.asVerifierComponent().withCompositionGeometryOverrideV1(.{ .composition_log_split = CoreComponents.COMPOSITION_LOG_SPLIT, .max_constraint_log_degree_bound_delta = CoreComponents.COMPOSITION_LOG_SPLIT - 1 });
     return out;
 }
-fn truthComponents(setup: *const R.TruthSetup, calls: u32, ch: K.equations.Challenges, claims: [3]Q) [3]K.component.Component {
-    return .{ .{ .kind = .permutation, .log_size = setup.log, .calls = calls, .challenges = ch, .claim = claims[0] }, .{ .kind = .chi, .log_size = 13, .offsets = .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .interaction = K.layout.INTERACTION }, .challenges = ch, .claim = claims[1] }, .{ .kind = .xor5, .log_size = 10, .offsets = .{ .fixed = K.layout.FIXED + 7, .main = K.layout.MAIN + 1, .interaction = K.layout.INTERACTION + 4 }, .challenges = ch, .claim = claims[2] } };
+fn truthComponents(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: K.equations.Challenges, claims: [3]Q) [3]K.component.Component {
+    return .{ .{ .kind = .permutation, .log_size = setup.log, .calls = calls, .first_call_id = first_id, .challenges = ch, .claim = claims[0] }, .{ .kind = .chi, .log_size = 13, .offsets = .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .interaction = K.layout.INTERACTION }, .challenges = ch, .claim = claims[1] }, .{ .kind = .xor5, .log_size = 10, .offsets = .{ .fixed = K.layout.FIXED + 7, .main = K.layout.MAIN + 1, .interaction = K.layout.INTERACTION + 4 }, .challenges = ch, .claim = claims[2] } };
 }
 /// Bounded qualification harness: coordinator retains several PCS owners here.
 /// No claim of fitting arbitrary execution fanout in one process is made.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *const R.TruthSetup, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
+    var calls: u32 = 0;
+    for (advice.calls) |cc| calls = try std.math.add(u32, calls, std.math.cast(u32, cc.len) orelse return error.KeccakLookupMassExceeded);
+    const bundle = try produceInternal(a, setups, &.{.{ .setup = truth, .first_id = 1, .calls = calls }}, prepared, advice, expected, .single_v2);
+    defer a.free(bundle.truths);
+    return .{ .manifest = bundle.manifest, .cpus = bundle.cpus, .truth = bundle.truths[0] };
+}
+/// Bounded qualification harness. Receiver chooses this distinct protocol;
+/// proofs never choose their own truth roster, parameters or challenge mode.
+pub fn produceBounded(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const P.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !BoundedBundle {
+    return produceInternal(a, setups, truths, prepared, advice, expected, .bounded_v3);
+}
+fn produceInternal(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const P.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected, mode: P.Mode) !BoundedBundle {
     if (setups.len != prepared.len or setups.len != advice.events.len or setups.len != advice.calls.len) return error.InvalidSharedTruthInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
@@ -131,10 +155,10 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         r.* = .{ .calls = @intCast(advice.calls[index].len), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (index == 0) advice.initial else &.{}, .terminal = if (index + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[index].len) } } };
     }
-    const calls = try P.admit(a, setups, truth, requests, expected);
-    const specs = try a.alloc([32]u8, setups.len + 1);
+    const calls = try P.admitBounded(a, setups, truths, requests, expected);
+    const specs = try a.alloc([32]u8, setups.len + truths.len);
     defer a.free(specs);
-    const receipts = try a.alloc(G.Receipt, setups.len + 1);
+    const receipts = try a.alloc(G.Receipt, setups.len + truths.len);
     defer a.free(receipts);
     const workers = try a.alloc(CpuWorker, setups.len);
     defer a.free(workers);
@@ -161,7 +185,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
         var channel = G.T.P.Channel{};
-        try P.beginCpu(&channel, s, r, expected, index, first_step, try P.firstCall(requests, index));
+        try P.beginCpuFor(mode, &channel, s, r, expected, index, first_step, try P.firstCall(requests, index), truths.len);
         first_step += r.base.cpu.steps;
         specs[index] = channel.digestBytes();
         try s.key.append(a, &scheme, &channel);
@@ -184,33 +208,36 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *
         inputs[at] = c.before;
         at += 1;
     };
-    var ts = try R.TruthSource.init(a, inputs, truth.log);
-    var owns_ts = true;
-    errdefer if (owns_ts) ts.deinit();
-    var scheme = try G.T.Scheme.init(a, G.T.P.config());
-    var owns_truth_scheme = true;
-    errdefer if (owns_truth_scheme) scheme.deinit(a);
-    scheme.setCompactPolynomialStorage(5);
-    var channel = G.T.P.Channel{};
-    P.beginTruth(&channel, truth, calls, expected);
-    specs[setups.len] = channel.digestBytes();
-    try truth.key.append(a, &scheme, &channel);
-    const tm = try ts.columns(a, 1);
-    defer a.free(tm);
-    try scheme.commitBorrowedStreaming(a, tm, 8, &channel);
-    try ts.releaseMain();
-    var tw = TruthWorker{ .source = ts, .scheme = scheme, .channel = channel };
-    owns_ts = false;
-    owns_truth_scheme = false;
-    defer tw.deinit(a);
-    const tf0 = try truth.logs(a, 0);
-    defer a.free(tf0);
-    const tf1 = try truth.logs(a, 1);
-    defer a.free(tf1);
-    receipts[setups.len] = try actual(a, &tw.scheme, truth.key.root, tf0, tf1);
+    const truth_workers = try a.alloc(TruthWorker, truths.len);
+    defer a.free(truth_workers);
+    var truth_done: usize = 0;
+    defer for (truth_workers[0..truth_done]) |*w| w.deinit(a);
+    for (truths, truth_workers, 0..) |t, *w, index| {
+        const begin: usize = t.first_id - 1;
+        var ts = try R.TruthSource.initSpan(a, inputs[begin..][0..t.calls], t.first_id, t.setup.log);
+        errdefer ts.deinit();
+        var scheme = try G.T.Scheme.init(a, G.T.P.config());
+        errdefer scheme.deinit(a);
+        scheme.setCompactPolynomialStorage(5);
+        var channel = G.T.P.Channel{};
+        P.beginTruthFor(mode, &channel, t, expected, index, truths.len);
+        specs[setups.len + index] = channel.digestBytes();
+        try t.setup.key.append(a, &scheme, &channel);
+        const tm = try ts.columns(a, 1);
+        defer a.free(tm);
+        try scheme.commitBorrowedStreaming(a, tm, 8, &channel);
+        try ts.releaseMain();
+        const tf0 = try t.setup.logs(a, 0);
+        defer a.free(tf0);
+        const tf1 = try t.setup.logs(a, 1);
+        defer a.free(tf1);
+        receipts[setups.len + index] = try actual(a, &scheme, t.setup.key.root, tf0, tf1);
+        w.* = .{ .source = ts, .scheme = scheme, .channel = channel };
+        truth_done += 1;
+    }
     var manifest = try G.Manifest.init(a, specs, receipts);
     errdefer manifest.deinit();
-    const common = try P.shared(&manifest);
+    const common = if (mode == .single_v2) try P.shared(&manifest) else try P.sharedBounded(&manifest);
     const cpus = try a.alloc(CpuEncoded, setups.len);
     errdefer a.free(cpus);
     var finished: usize = 0;
@@ -221,7 +248,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *
         const l1 = try s.logs(a, 1);
         defer a.free(l1);
         if (!std.meta.eql(try actual(a, &w.scheme, s.key.root, l0, l1), manifest.roots[index])) return error.SharedTruthStage1Mismatch;
-        const ch = try P.drawCpu(&w.channel, &manifest, index);
+        const ch = try P.drawCpuFor(mode, &w.channel, &manifest, index);
         const base = (try w.source.core.generateForKeccakJoin(ch)).physical;
         const bridge = try w.source.bridge.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.io, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, w.source.core.range16.dictionary, w.source.core.range8.dictionary);
         const claims = CpuClaims{ .base = base, .bridge = bridge };
@@ -245,21 +272,34 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *
         encoded.* = .{ .bytes = bytes, .request = req, .claims = claims };
         finished += 1;
     }
-    if (!std.meta.eql(try actual(a, &tw.scheme, truth.key.root, tf0, tf1), manifest.roots[setups.len])) return error.SharedTruthStage1Mismatch;
-    const ch = try P.drawTruth(&tw.channel, &manifest);
-    const claims = [3]Q{ try K.interaction.generate(&tw.source.permutation, ch), try tw.source.chi.generateInteraction(ch), try tw.source.xor5.generateInteraction(ch) };
-    tw.channel.mixFelts(&claims);
-    const ti = try tw.source.columns(a, 2);
-    defer a.free(ti);
-    try tw.scheme.commitBorrowedStreaming(a, ti, 8, &tw.channel);
-    var components = truthComponents(truth, calls, ch, claims);
-    var handles: [3]engine.air.component_prover.ComponentProver = undefined;
-    for (&components, &handles) |*c, *h| h.* = c.asProverComponent();
-    tw.owns = false;
-    var proof = try engine.prove.prove(Backend, G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &tw.channel, tw.scheme);
-    defer proof.deinit(a);
-    return .{ .manifest = manifest, .cpus = cpus, .truth = .{ .bytes = try wire.encodeProofBytesBinary(a, proof), .claims = claims } };
+    const encoded_truths = try a.alloc(TruthEncoded, truths.len);
+    errdefer a.free(encoded_truths);
+    var finished_truths: usize = 0;
+    errdefer for (encoded_truths[0..finished_truths]) |e| a.free(e.bytes);
+    for (truth_workers, truths, encoded_truths, 0..) |*tw, t, *encoded, index| {
+        const tf0 = try t.setup.logs(a, 0);
+        defer a.free(tf0);
+        const tf1 = try t.setup.logs(a, 1);
+        defer a.free(tf1);
+        if (!std.meta.eql(try actual(a, &tw.scheme, t.setup.key.root, tf0, tf1), manifest.roots[setups.len + index])) return error.SharedTruthStage1Mismatch;
+        const ch = try P.drawTruthFor(mode, &tw.channel, &manifest, index);
+        const claims = [3]Q{ try K.interaction.generate(&tw.source.permutation, ch), try tw.source.chi.generateInteraction(ch), try tw.source.xor5.generateInteraction(ch) };
+        tw.channel.mixFelts(&claims);
+        const ti = try tw.source.columns(a, 2);
+        defer a.free(ti);
+        try tw.scheme.commitBorrowedStreaming(a, ti, 8, &tw.channel);
+        var components = truthComponents(t.setup, t.first_id, t.calls, ch, claims);
+        var handles: [3]engine.air.component_prover.ComponentProver = undefined;
+        for (&components, &handles) |*c, *h| h.* = c.asProverComponent();
+        tw.owns = false;
+        var proof = try engine.prove.prove(Backend, G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &tw.channel, tw.scheme);
+        defer proof.deinit(a);
+        encoded.* = .{ .bytes = try wire.encodeProofBytesBinary(a, proof), .claims = claims };
+        finished_truths += 1;
+    }
+    return .{ .manifest = manifest, .cpus = cpus, .truths = encoded_truths };
 }
+
 fn checkRoots(proof: anytype, key: [32]u8, manifest: *const G.Manifest, index: usize) !void {
     const pcs = &proof.commitment_scheme_proof;
     if (!std.meta.eql(pcs.config, G.T.P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.SharedTruthPcsSuiteMismatch;
@@ -267,25 +307,38 @@ fn checkRoots(proof: anytype, key: [32]u8, manifest: *const G.Manifest, index: u
     if (!std.mem.eql(u8, &roots[0], &key) or !std.mem.eql(u8, &roots[0], &manifest.roots[index].fixed.bytes) or !std.mem.eql(u8, &roots[1], &manifest.roots[index].main.bytes)) return error.SharedTruthStage1Mismatch;
 }
 pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *const R.TruthSetup, expected: P.Expected, bundle: *const Bundle) !void {
+    var calls: u32 = 0;
+    for (bundle.cpus) |cpu| calls = try std.math.add(u32, calls, cpu.request.calls);
+    var encoded_truth = [1]TruthEncoded{bundle.truth};
+    const bounded = BoundedBundle{ .manifest = bundle.manifest, .cpus = bundle.cpus, .truths = &encoded_truth };
+    return verifyInternal(a, setups, &.{.{ .setup = truth, .first_id = 1, .calls = calls }}, expected, &bounded, .single_v2);
+}
+pub fn verifyBounded(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const P.Truth, expected: P.Expected, bundle: *const BoundedBundle) !void {
+    return verifyInternal(a, setups, truths, expected, bundle, .bounded_v3);
+}
+fn verifyInternal(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const P.Truth, expected: P.Expected, bundle: *const BoundedBundle, mode: P.Mode) !void {
     if (setups.len != bundle.cpus.len) return error.InvalidSharedTruthInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
     for (bundle.cpus, requests) |c, *r| r.* = c.request;
-    const calls = try P.admit(a, setups, truth, requests, expected);
-    const specs = try a.alloc([32]u8, setups.len + 1);
+    _ = try P.admitBounded(a, setups, truths, requests, expected);
+    if (bundle.truths.len != truths.len) return error.IncompleteGlobalExecutionManifest;
+    const specs = try a.alloc([32]u8, setups.len + truths.len);
     defer a.free(specs);
     var first: u64 = 0;
     for (setups, requests, specs[0..setups.len], 0..) |s, r, *spec, index| {
         var ch = G.T.P.Channel{};
-        try P.beginCpu(&ch, s, r, expected, index, first, try P.firstCall(requests, index));
+        try P.beginCpuFor(mode, &ch, s, r, expected, index, first, try P.firstCall(requests, index), truths.len);
         first += r.base.cpu.steps;
         spec.* = ch.digestBytes();
     }
-    var tch = G.T.P.Channel{};
-    P.beginTruth(&tch, truth, calls, expected);
-    specs[setups.len] = tch.digestBytes();
+    for (truths, 0..) |t, index| {
+        var ch = G.T.P.Channel{};
+        P.beginTruthFor(mode, &ch, t, expected, index, truths.len);
+        specs[setups.len + index] = ch.digestBytes();
+    }
     try bundle.manifest.check(specs);
-    const common = try P.shared(&bundle.manifest);
+    const common = if (mode == .single_v2) try P.shared(&bundle.manifest) else try P.sharedBounded(&bundle.manifest);
     var ram = Q.zero();
     var io = Q.zero();
     for (setups, bundle.cpus, 0..) |s, encoded, index| {
@@ -300,14 +353,14 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *c
         var channel = G.T.P.Channel{};
         var before: u64 = 0;
         for (requests[0..index]) |r| before += r.base.cpu.steps;
-        try P.beginCpu(&channel, s, encoded.request, expected, index, before, try P.firstCall(requests, index));
+        try P.beginCpuFor(mode, &channel, s, encoded.request, expected, index, before, try P.firstCall(requests, index), truths.len);
         const roots = proof.commitment_scheme_proof.commitments.items;
         for (0..2) |tree| {
             const logs = try s.logs(a, tree);
             defer a.free(logs);
             try verifier.commit(a, roots[tree], logs, &channel);
         }
-        const ch = try P.drawCpu(&channel, &bundle.manifest, index);
+        const ch = try P.drawCpuFor(mode, &channel, &bundle.manifest, index);
         if (!encoded.claims.base.initial.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.initial, true, common.ram)) or !encoded.claims.base.terminal.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.terminal, false, common.ram))) return error.GlobalBoundaryPhysicalClaimMismatch;
         channel.mixFelts(&encoded.claims.values());
         const logs = try s.logs(a, 2);
@@ -323,31 +376,35 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *c
         ram = ram.add(encoded.claims.ram());
         io = io.add(encoded.claims.bridge.io);
     }
-    for (bundle.truth.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSharedTruthClaim;
-    if (bundle.truth.bytes.len > 64 * 1024 * 1024) return error.SharedTruthProofLimit;
-    var proof = try wire.decodeProofBytesBinary(a, bundle.truth.bytes);
-    var owns = true;
-    defer if (owns) proof.deinit(a);
-    try checkRoots(proof, truth.key.root, &bundle.manifest, setups.len);
-    var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, G.T.P.config());
-    defer verifier.deinit(a);
-    const roots = proof.commitment_scheme_proof.commitments.items;
-    for (0..2) |tree| {
-        const logs = try truth.logs(a, tree);
+    for (truths, bundle.truths, 0..) |t, encoded, index| {
+        for (encoded.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSharedTruthClaim;
+        if (encoded.bytes.len > 64 * 1024 * 1024) return error.SharedTruthProofLimit;
+        var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
+        var owns = true;
+        defer if (owns) proof.deinit(a);
+        try checkRoots(proof, t.setup.key.root, &bundle.manifest, setups.len + index);
+        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, G.T.P.config());
+        defer verifier.deinit(a);
+        const roots = proof.commitment_scheme_proof.commitments.items;
+        var tch = G.T.P.Channel{};
+        P.beginTruthFor(mode, &tch, t, expected, index, truths.len);
+        for (0..2) |tree| {
+            const logs = try t.setup.logs(a, tree);
+            defer a.free(logs);
+            try verifier.commit(a, roots[tree], logs, &tch);
+        }
+        const ch = try P.drawTruthFor(mode, &tch, &bundle.manifest, index);
+        tch.mixFelts(&encoded.claims);
+        const logs = try t.setup.logs(a, 2);
         defer a.free(logs);
-        try verifier.commit(a, roots[tree], logs, &tch);
+        try verifier.commit(a, roots[2], logs, &tch);
+        var components = truthComponents(t.setup, t.first_id, t.calls, ch, encoded.claims);
+        var handles: [3]core.air.components.Component = undefined;
+        for (&components, &handles) |*c, *h| h.* = c.asVerifierComponent();
+        owns = false;
+        try core.verifier.verify(G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &tch, &verifier, proof);
+        for (encoded.claims) |q| io = io.add(q);
     }
-    const ch = try P.drawTruth(&tch, &bundle.manifest);
-    tch.mixFelts(&bundle.truth.claims);
-    const logs = try truth.logs(a, 2);
-    defer a.free(logs);
-    try verifier.commit(a, roots[2], logs, &tch);
-    var components = truthComponents(truth, calls, ch, bundle.truth.claims);
-    var handles: [3]core.air.components.Component = undefined;
-    for (&components, &handles) |*c, *h| h.* = c.asVerifierComponent();
-    owns = false;
-    try core.verifier.verify(G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &tch, &verifier, proof);
-    for (bundle.truth.claims) |q| io = io.add(q);
     if (!ram.isZero()) return error.UnclosedSharedTruthRam;
     if (!io.isZero()) return error.UnclosedSharedTruthIo;
 }
