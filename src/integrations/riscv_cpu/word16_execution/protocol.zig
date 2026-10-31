@@ -10,6 +10,8 @@ const B = A.word16_v1;
 const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
+/// One canonical full-core schema: native degree3/split1, MUL200 interaction.
+pub const SCHEMA: u32 = 2;
 pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
 pub const Request = struct {
     cpu: X.types.Boundary,
@@ -85,7 +87,7 @@ pub fn validateDivisionClass(geometry: @import("geometry.zig").Geometry, request
 pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
     try validateDivisionClass(materials.geometry, request.division_requests, Q.zero());
     T.P.config().mixInto(channel);
-    channel.mixU32s(&.{ 0x52563634, 0x57463137, 1, 53, 40, 30, 19, 33, 2, 1 });
+    channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, 33, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
     digest(channel, materials.program.identity);

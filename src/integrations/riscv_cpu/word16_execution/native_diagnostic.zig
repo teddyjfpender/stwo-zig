@@ -26,8 +26,8 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
             var f: [34]Q = undefined;
             var m: [1200]Q = undefined;
             var pm: [1200]Q = undefined;
-            var i: [160]Q = undefined;
-            var pi: [160]Q = undefined;
+            var i: [A.arithmetic.multiplication.degree3_layout.INTERACTION]Q = undefined;
+            var pi: [A.arithmetic.multiplication.degree3_layout.INTERACTION]Q = undefined;
             const fs = f[0..shape.widths[0]];
             const ms = m[0..shape.widths[1]];
             const pms = pm[0..shape.widths[1]];
@@ -58,11 +58,11 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
                 .jalr => components.jalr.emitFor(Q, fs, ms, pms, is, pis, &sink),
                 .division => {
                     const D = A.arithmetic.division;
-                    D.provider.evaluate(fs[0..3].*, ms[0..D.layout.MAIN], is[0..D.layout.INTERACTION], pis[0..D.layout.INTERACTION], pms[D.layout.COUNT], components.division.count, components.division.challenges, components.division.claim, &sink);
+                    D.provider.evaluate(fs[0..3].*, ms[0..D.layout.MAIN], is[0..D.layout.INTERACTION], pis[0..D.layout.INTERACTION], pms[D.layout.COUNT], components.division.base.count, components.division.base.challenges, components.division.base.claim, &sink);
                 },
                 .multiplication => {
                     const M = A.arithmetic.multiplication;
-                    M.provider.evaluate(fs[0..3].*, ms[0..M.layout.MAIN], is[0..M.layout.INTERACTION], pis[0..M.layout.INTERACTION], pms[M.layout.COUNT], components.multiplication.count, components.multiplication.challenges, &components.multiplication.byte_alpha, components.multiplication.claim, &sink);
+                    M.degree3_provider.evaluateFor(Q, fs[0..3].*, ms[0..M.degree3_layout.MAIN], is[0..M.degree3_layout.INTERACTION], Q.fromPartialEvals(pis[M.degree3_layout.PREFIX..][0..4].*), pms[M.layout.COUNT], Eval.q(components.multiplication.count), components.multiplication.challenges, components.multiplication.byte_alpha, components.multiplication.claim, &sink);
                 },
                 .ls => components.ls.emitFor(Q, fs, ms, pms, is, pis, &sink),
                 .initial => components.initial.emitFor(Q, fs, ms, pms, is, pis, &sink),

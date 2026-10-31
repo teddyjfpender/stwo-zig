@@ -94,10 +94,10 @@ test "Omitted DIV proves fresh with exact semantics, canonical zero claim and ow
     try std.testing.expect(proof.claims.division.isZero());
     const old_samples = try sampledCounts(old.bytes);
     const omitted_samples = try sampledCounts(proof.bytes);
-    try std.testing.expectEqual([4]usize{ 127, 1605, 724, 16 }, old_samples);
-    try std.testing.expectEqual([4]usize{ 124, 469, 712, 16 }, omitted_samples);
-    try std.testing.expectEqual(@as(usize, 2472), old_samples[0] + old_samples[1] + old_samples[2] + old_samples[3]);
-    try std.testing.expectEqual(@as(usize, 1321), omitted_samples[0] + omitted_samples[1] + omitted_samples[2] + omitted_samples[3]);
+    try std.testing.expectEqual([4]usize{ 127, 1605, 792, 8 }, old_samples);
+    try std.testing.expectEqual([4]usize{ 124, 469, 780, 8 }, omitted_samples);
+    try std.testing.expectEqual(@as(usize, 2532), old_samples[0] + old_samples[1] + old_samples[2] + old_samples[3]);
+    try std.testing.expectEqual(@as(usize, 1381), omitted_samples[0] + omitted_samples[1] + omitted_samples[2] + omitted_samples[3]);
     try std.testing.expectEqual(@as(usize, 1151), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
     try std.testing.expect(proof.bytes.len < old.bytes.len);
     try std.testing.expect(!std.mem.eql(u8, proof.bytes, old.bytes));

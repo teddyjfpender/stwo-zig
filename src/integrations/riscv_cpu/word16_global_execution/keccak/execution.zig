@@ -183,7 +183,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.Setup, prepared: [
         defer a.free(inter);
         try w.scheme.commitBorrowedStreaming(a, inter, 8, &w.ch);
         var bc = try CoreComponents.init(&w.setup.materials, w.request.base, ch.base, claims.base);
-        const bh = try bc.provers(a);
+        const bh = try bc.proversForDegree4Join(a);
         defer a.free(bh);
         var kc = R.Components.init(w.setup, w.request.calls, ch.keccak, ch.base, claims.keccak);
         const kh = try kc.proverHandles();
@@ -250,7 +250,7 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.Setup, expected: P.
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var bc = try CoreComponents.init(&s.materials, encoded.request.base, ch.base, encoded.claims.base);
-        const bh = try bc.verifiers(a);
+        const bh = try bc.verifiersForDegree4Join(a);
         defer a.free(bh);
         var kc = R.Components.init(s, encoded.request.calls, ch.keccak, ch.base, encoded.claims.keccak);
         const kh = try kc.verifierHandles();

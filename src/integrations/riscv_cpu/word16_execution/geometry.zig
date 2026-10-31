@@ -14,8 +14,8 @@ pub const Geometry = struct {
     shift_log: u32 = 5,
     jalr_log: u32 = 5,
     division_log: u32 = 5,
-    /// Explicit count-zero physical class. Default preserves historical keys,
-    /// transcript and proof bytes. Omission never changes the CPU FUNCTION bus.
+    /// Explicit count-zero physical class. Omission never changes the CPU
+    /// FUNCTION bus; the canonical core transcript is independently versioned.
     omit_empty_division: bool = false,
     multiplication_log: u32 = 5,
     ls_log: u32 = 5,
@@ -88,7 +88,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },
             .jalr => .{ 2, 18, 12 },
             .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.layout.FIXED, A.division.layout.MAIN, A.division.layout.INTERACTION },
-            .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.layout.INTERACTION },
+            .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
@@ -129,7 +129,7 @@ pub fn cells(actual: []const Shape) !Cells {
 }
 
 /// Native constraint kernels keep their independently sized evaluation domains.
-/// Only the weighted quotient is extended to the shared split-two format.
+/// All concrete roles now use native2n/split1, without weighted extension.
 pub const Domain = struct { role: Role, present: bool = true, native_evaluation_log: u32, composition_contribution_bound_log: u32, weighted_quotient_extension_logs: u8 };
 pub fn domains(actual: [ROLE_COUNT]Shape) [ROLE_COUNT]Domain {
     var out: [ROLE_COUNT]Domain = undefined;
@@ -138,8 +138,7 @@ pub fn domains(actual: [ROLE_COUNT]Shape) [ROLE_COUNT]Domain {
             domain.* = .{ .role = shape.role, .present = false, .native_evaluation_log = 0, .composition_contribution_bound_log = 0, .weighted_quotient_extension_logs = 0 };
             continue;
         }
-        const arithmetic = shape.role == .division or shape.role == .multiplication;
-        domain.* = .{ .role = shape.role, .native_evaluation_log = shape.log + @as(u32, if (arithmetic) 2 else 1), .composition_contribution_bound_log = shape.log + 2, .weighted_quotient_extension_logs = if (arithmetic) 0 else 1 };
+        domain.* = .{ .role = shape.role, .native_evaluation_log = shape.log + 1, .composition_contribution_bound_log = shape.log + 1, .weighted_quotient_extension_logs = 0 };
     }
     return out;
 }

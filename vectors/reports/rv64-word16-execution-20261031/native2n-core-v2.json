@@ -1,0 +1,141 @@
+{
+  "schema": "rv64-word16-native2n-v2-qualification",
+  "scope": "Canonical full64 Word16 core geometry; genesis-prefix and existing global-prefix fixtures. No new full-block or recursion acceptance claim.",
+  "base_commit": "286ebc5c7211b36cf1c8f70fa9984cc03f9042b5",
+  "transcript_schema": 2,
+  "native_core": {
+    "roles": 17,
+    "degree_max": 3,
+    "native_evaluation_factor": 2,
+    "composition_log_split": 1,
+    "weighted_quotient_extension_logs": 0,
+    "MUL": {
+      "fixed": 3,
+      "main": 87,
+      "interaction": 200,
+      "constraints": 192
+    },
+    "DIV": {
+      "fixed": 3,
+      "main": 1135,
+      "interaction": 8,
+      "constraints": 1567
+    }
+  },
+  "legacy_degree4_join": {
+    "api": [
+      "proversForDegree4Join",
+      "verifiersForDegree4Join"
+    ],
+    "all_core_roles_bound_lift": 1,
+    "composition_log_split": 2,
+    "legacy_integrated_keccak_actual_proofs_SafeFast": true,
+    "standalone_legacy_DIV_MUL_defaults_changed": false
+  },
+  "source_ownership": "Original LegacyTrace main/count/bytehist retained, pointer-taking D3 generateLegacy writes new interaction in place; no wide MAIN reconstruction/copy. Existing owned MAIN/INTER handoffs unchanged.",
+  "gates": {
+    "Safe": {
+      "coordinator": 20,
+      "prepared": 14,
+      "source": 7,
+      "global_execution": 15,
+      "keccak_bridge": 13,
+      "standalone_mul_degree3": 10
+    },
+    "Fast": {
+      "coordinator": 20,
+      "prepared": 14,
+      "source": 7,
+      "global_execution": 15,
+      "keccak_bridge": 13
+    },
+    "all_native_and_degree4_join_prover_verifier_bounds": true,
+    "decoded_openings_normal": [
+      127,
+      1605,
+      792,
+      8
+    ],
+    "decoded_openings_omittedDIV": [
+      124,
+      469,
+      780,
+      8
+    ],
+    "decoded_DIV_sample_reduction": 1151,
+    "old_proof_new_receiver_rejects": true,
+    "new_proof_old_receiver_rejects_after_optional_JSON_field_normalization": true
+  },
+  "real_packet0": {
+    "steps": 4194303,
+    "memory_words": 708957,
+    "full_CPU_boundary_and_counts_exact": true,
+    "all_RAM_records_byte_exact": true,
+    "geometry_exact_after_missing_omit_false_default": true,
+    "grouped_ALU_facts": 574440,
+    "grouped_BINARY_facts": 673582,
+    "geometry": {
+      "cpu_log": 22,
+      "alu_log": 20,
+      "binary_log": 20,
+      "shift_log": 20,
+      "jalr_log": 14,
+      "division_log": 5,
+      "omit_empty_division": false,
+      "multiplication_log": 13,
+      "ls_log": 21,
+      "boundary_log": 20,
+      "initial_log": null,
+      "terminal_log": null
+    },
+    "source_cells_control": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 655329792
+    },
+    "source_cells_new": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 655886848
+    },
+    "MUL_added_M31_cells": 557056,
+    "MUL_added_source_bytes": 2228224,
+    "native_current_evaluated_M31_cells_control": 2636210048,
+    "native_current_evaluated_M31_cells_new": 2633613568,
+    "global_composition_bound_log_control": 24,
+    "global_composition_bound_log_new": 23,
+    "composition_chunk_log_unchanged": 22,
+    "largest_trace_FRI_bound_unchanged": 22,
+    "composition_M31_columns_control": 16,
+    "composition_M31_columns_new": 8,
+    "proof_bytes": 1170896,
+    "proof_sha256": "ae33361987c2ed4286153c14796a9234f4d511b37b043900beab94f91af43518",
+    "RAM_sidecar_bytes": 32612038,
+    "RAM_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 843168875,
+      "image_ns": 303826792
+    },
+    "proof_byte_parity_required": false,
+    "counterpart": "/tmp/rv64-word16-real0-source-profile-b64",
+    "artifact": "vectors/reports/interop_artifacts/rv64-word16-native2n-v2"
+  },
+  "runtime_performance": {
+    "isolated_comparison_measured": false,
+    "functional_run_only": "Other functional gates were active; no speed claim. cap8192MiB and commit-batch64 explicitly selected.",
+    "do_not_use_raw_Coverage_plan_as_actual_grouped_cost": true
+  },
+  "logs": [
+    "/tmp/rv64-core-2n-first-fast.log",
+    "/tmp/rv64-core-2n-final-safe.log",
+    "/tmp/rv64-core-2n-packet0-functional.time"
+  ],
+  "repository_hook": {
+    "passed": false,
+    "reason": "Inherited repository-wide source-conformance errors in unchanged CPU/CUDA/Metal/core/recursion files and graph/modules ceiling. No file changed by this slice was named.",
+    "scoped_exception": "Previously user-authorized inherited-hook bypass; focused functional qualification unchanged."
+  }
+}

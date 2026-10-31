@@ -145,10 +145,24 @@ test "full execution concrete component roster matches every immutable physical 
     }
     const measured = try @import("../word16_execution/measurement.zig").inspect(a, &components);
     for (measured.components) |component| {
-        try std.testing.expectEqual(@as(u32, 2), component.composition_log_split);
-        const extra: u32 = if (component.role == .division or component.role == .multiplication) 2 else 1;
+        try std.testing.expectEqual(@as(u32, 1), component.composition_log_split);
+        const extra: u32 = 1;
         try std.testing.expectEqual(component.source_log + extra, component.native_evaluation_log);
-        try std.testing.expectEqual(component.source_log + 2, component.composition_contribution_bound_log);
+        try std.testing.expectEqual(component.source_log + 1, component.composition_contribution_bound_log);
+    }
+    const joined_p = try components.proversForDegree4Join(a);
+    defer a.free(joined_p);
+    const joined_v = try components.verifiersForDegree4Join(a);
+    defer a.free(joined_v);
+    for (provers, verifiers, joined_p, joined_v, materials.shapes()) |native_p, native_v, jp, jv, shape| {
+        try std.testing.expectEqual(shape.log + 1, native_p.maxConstraintLogDegreeBound());
+        try std.testing.expectEqual(shape.log + 1, native_v.maxConstraintLogDegreeBound());
+        try std.testing.expectEqual(@as(u32, 1), native_p.compositionLogSplit());
+        try std.testing.expectEqual(@as(u32, 1), native_v.compositionLogSplit());
+        try std.testing.expectEqual(shape.log + 2, jp.maxConstraintLogDegreeBound());
+        try std.testing.expectEqual(shape.log + 2, jv.maxConstraintLogDegreeBound());
+        try std.testing.expectEqual(@as(u32, 2), jp.compositionLogSplit());
+        try std.testing.expectEqual(@as(u32, 2), jv.compositionLogSplit());
     }
     var bad = claims;
     bad.initial.owner = core.fields.qm31.QM31.one();

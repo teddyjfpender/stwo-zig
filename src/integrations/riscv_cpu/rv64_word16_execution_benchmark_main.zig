@@ -69,7 +69,7 @@ pub fn main() !void {
         }
         try geometry.validate();
         const shapes = G.shapes(&program, geometry);
-        const planning = .{ .scope = "planning only; boundary capacity uses exact unique touched words", .physical_proof_verified = false, .global_chain_accepted = false, .packet_index = packet.metadata.index, .steps = packet.tape.len, .packet_bytes = try file.getEndPos(), .tape_retained_bytes = packet.tape.retainedBytes(), .image_ns = image_ns, .packet_read_ns = packet_ns, .total_ns = timer.read(), .counts = counts, .unique_memory_words = unique_words, .geometry = geometry, .shapes = shapes, .evaluation_domains = G.domains(shapes), .composition_log_split = 2, .source_cells = try G.cells(&shapes) };
+        const planning = .{ .scope = "planning only; boundary capacity uses exact unique touched words", .physical_proof_verified = false, .global_chain_accepted = false, .packet_index = packet.metadata.index, .steps = packet.tape.len, .packet_bytes = try file.getEndPos(), .tape_retained_bytes = packet.tape.retainedBytes(), .image_ns = image_ns, .packet_read_ns = packet_ns, .total_ns = timer.read(), .counts = counts, .unique_memory_words = unique_words, .geometry = geometry, .shapes = shapes, .evaluation_domains = G.domains(shapes), .composition_log_split = @import("word16_execution/components.zig").COMPOSITION_LOG_SPLIT, .source_cells = try G.cells(&shapes) };
         return stdout(a, planning);
     }
     try Coordinator.requireGenesis(&image, &packet);

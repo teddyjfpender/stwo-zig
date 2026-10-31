@@ -287,7 +287,7 @@ pub const Source = struct {
         const multiplication = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_multiplication", "MUL interactions");
             defer stage.end();
-            break :block try self.multiplication.generateInteraction(AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
+            break :block try A.arithmetic.multiplication.degree3_source.generateLegacy(&self.multiplication, AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
         };
         const memory = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_memory", "LS INIT TEARDOWN and selection interactions");

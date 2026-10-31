@@ -11,7 +11,7 @@ const Mat = @import("setup.zig");
 const P = @import("protocol.zig");
 const AB = @import("arithmetic_bus.zig");
 const Q = core.fields.qm31.QM31;
-pub const COMPOSITION_LOG_SPLIT: u8 = 2;
+pub const COMPOSITION_LOG_SPLIT: u8 = 1;
 pub const Components = struct {
     materials: *const Mat.Materials,
     cpu: X.component.Component,
@@ -21,8 +21,8 @@ pub const Components = struct {
     binary: B.binary_component.Component,
     shift: B.shift_word_packed_experiment.component.Component,
     jalr: X.jalr_component.Component,
-    division: A.arithmetic.division.component.Component,
-    multiplication: A.arithmetic.multiplication.component.Component,
+    division: A.arithmetic.division.degree3_component.Component,
+    multiplication: A.arithmetic.multiplication.degree3_component.Component,
     shift_table: B.shift_word_packed_experiment.table_component.Component,
     and_table: B.binary_component.Component,
     range16: W.component.Component,
@@ -70,8 +70,8 @@ pub const Components = struct {
                 },
                 .shift => result.shift = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift },
                 .jalr => result.jalr = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.function, .claim = claims.jalr },
-                .division => result.division = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function), .claim = claims.division },
-                .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = A.range.cpu.PreparedAlpha.init(ch.cpu.range8.offset) },
+                .division => result.division = .{ .base = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function), .claim = claims.division } },
+                .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset },
                 .shift_table => result.shift_table = .{ .offsets = shape.offsets, .prepared = B.shift_word_packed_experiment.table.Prepared.init(ch.shift_), .claim = claims.shift_table },
                 .ls, .initial, .terminal, .selection => {
                     const component = A.memory.load_store_v2.component.Component{ .kind = switch (shape.role) {
@@ -105,28 +105,42 @@ pub const Components = struct {
         }
         return result;
     }
-    fn geometryOverride(_: *const Components, role: Mat.Role) core.air.components.CompositionGeometryOverrideV1 {
-        return .{ .composition_log_split = COMPOSITION_LOG_SPLIT, .max_constraint_log_degree_bound_delta = @intFromBool(role != .division and role != .multiplication) };
-    }
+    /// Native degree-three components share split1 without coordinate lifts.
     pub fn provers(self: *const Components, a: std.mem.Allocator) ![]engine.air.component_prover.ComponentProver {
+        return self.proversImpl(false, a);
+    }
+    pub fn verifiers(self: *const Components, a: std.mem.Allocator) ![]core.air.components.Component {
+        return self.verifiersImpl(false, a);
+    }
+    /// A concrete join with a degree-four component requires actual weighted
+    /// quotient extension for EVERY degree-three role, including DIV and MUL.
+    pub fn proversForDegree4Join(self: *const Components, a: std.mem.Allocator) ![]engine.air.component_prover.ComponentProver {
+        return self.proversImpl(true, a);
+    }
+    pub fn verifiersForDegree4Join(self: *const Components, a: std.mem.Allocator) ![]core.air.components.Component {
+        return self.verifiersImpl(true, a);
+    }
+    fn proversImpl(self: *const Components, comptime degree4_join: bool, a: std.mem.Allocator) ![]engine.air.component_prover.ComponentProver {
         const result = try a.alloc(engine.air.component_prover.ComponentProver, Mat.G.componentCount(&self.materials.shapes()));
         errdefer a.free(result);
         var at: usize = 0;
         inline for (comptime std.enums.values(Mat.Role)) |role| {
             if (self.materials.shape(role).present()) {
-                result[at] = try @field(self, @tagName(role)).asProverComponent().withCompositionGeometryOverrideV1(self.geometryOverride(role));
+                const native = @field(self, @tagName(role)).asProverComponent();
+                result[at] = if (degree4_join) try native.withCompositionGeometryOverrideV1(.{ .composition_log_split = 2, .max_constraint_log_degree_bound_delta = 1 }) else native;
                 at += 1;
             }
         }
         return result;
     }
-    pub fn verifiers(self: *const Components, a: std.mem.Allocator) ![]core.air.components.Component {
+    fn verifiersImpl(self: *const Components, comptime degree4_join: bool, a: std.mem.Allocator) ![]core.air.components.Component {
         const result = try a.alloc(core.air.components.Component, Mat.G.componentCount(&self.materials.shapes()));
         errdefer a.free(result);
         var at: usize = 0;
         inline for (comptime std.enums.values(Mat.Role)) |role| {
             if (self.materials.shape(role).present()) {
-                result[at] = try @field(self, @tagName(role)).asVerifierComponent().withCompositionGeometryOverrideV1(self.geometryOverride(role));
+                const native = @field(self, @tagName(role)).asVerifierComponent();
+                result[at] = if (degree4_join) try native.withCompositionGeometryOverrideV1(.{ .composition_log_split = 2, .max_constraint_log_degree_bound_delta = 1 }) else native;
                 at += 1;
             }
         }

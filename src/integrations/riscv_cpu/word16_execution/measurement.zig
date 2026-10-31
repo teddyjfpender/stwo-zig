@@ -31,7 +31,7 @@ pub fn inspect(a: std.mem.Allocator, components: *const Components) !Geometry {
         }
         const handle = handles[at];
         at += 1;
-        const log = shape.log + @as(u32, if (shape.role == .division or shape.role == .multiplication) 2 else 1);
+        const log = shape.log + 1;
         if (log > 30) return error.InvalidExecutionEvaluationGeometry;
         const n = @as(u64, 1) << @intCast(log);
         value.* = .{ .role = shape.role, .source_log = shape.log, .native_evaluation_log = log, .composition_contribution_bound_log = handle.maxConstraintLogDegreeBound(), .evaluation_points = n, .composition_log_split = handle.compositionLogSplit() };
