@@ -1,0 +1,53 @@
+{
+  "scope": "Owned MAIN and INTER handoff in global stage1 worker; late CPU projection in explicit two-packet prototype",
+  "base_commit": "4ce588a22",
+  "gates": [
+    "Global execution15 ReleaseSafe and ReleaseFast including root/phase tamper and joined allocation failures",
+    "Actual8388606-instruction two-shard global RAM prefix, fresh receiver",
+    "Completeproofs/manifest/RAM sidecar bytes identical to borrowed/eager-projection control"
+  ],
+  "ownership": "Worker requires Source and PCS allocators to match; Source consumed on init success/error; PCS consumes taken backing lists on commit success/error. No wide witness copy or reconstruction.",
+  "failed_seal_test": "Source initialized under the same tracked allocator; failures injected relative to post-source allocation index so ownership transfers and cleanup are exercised.",
+  "files": [
+    {
+      "name": "cells.bin",
+      "bytes": 32788310,
+      "sha256": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a"
+    },
+    {
+      "name": "bundle.json",
+      "bytes": 31019,
+      "sha256": "4adec50ab33629005d35ddc82e3b20319794898d528792645f0aec4edba541ef"
+    },
+    {
+      "name": "proof1.bin",
+      "bytes": 1148336,
+      "sha256": "af025cb374deaa26b123ac255a6277511a3b12155195c301c7f7a1af7ed50263"
+    },
+    {
+      "name": "proof0.bin",
+      "bytes": 1140944,
+      "sha256": "359a187b52bc0ba78406860bec803c43fbadaa84ce7e9239410880712a799300"
+    }
+  ],
+  "observations": {
+    "control": {
+      "wall_seconds": 28.54,
+      "user_seconds": 119.09,
+      "system_seconds": 10.78,
+      "peak_RSS_bytes": 14766768128
+    },
+    "owned": {
+      "wall_seconds": 24.95,
+      "user_seconds": 115.09,
+      "system_seconds": 12.86,
+      "peak_RSS_bytes": 14766456832
+    }
+  },
+  "limits": [
+    "Engineering and another wide proof overlapped; no isolated speedup/p50 claim.",
+    "RSS peak did not materially change in this two-shard probe.",
+    "Retained PCS coefficients still remain resident; file-backed retention is a subsequent slice.",
+    "No services, full block, recursion or GPU qualification in this prefix."
+  ]
+}

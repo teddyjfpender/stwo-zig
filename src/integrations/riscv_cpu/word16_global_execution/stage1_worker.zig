@@ -28,6 +28,7 @@ pub const Stage1Worker = struct {
     pub fn init(a: std.mem.Allocator, setup: *const P.Setup, owned_source: S.Source, expected: P.Expected, ordinal: usize, first_step: u64) !Stage1Worker {
         var source = owned_source;
         errdefer source.deinit();
+        if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
         if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
         if (ordinal >= 65535 or source.cpu.epoch != ordinal + 1 or !std.mem.eql(u8, &setup.materials.program.identity, &expected.program_identity)) return error.GlobalWorkerContextMismatch;
         var scheme = try P.T.Scheme.init(a, P.T.P.config());
@@ -50,10 +51,10 @@ pub const Stage1Worker = struct {
         errdefer self.phase = .failed;
         try self.setup.appendFixed(self.allocator, &self.scheme, &self.channel);
         const source = &self.source.?;
-        const main = try source.columns(self.allocator, 1);
-        defer self.allocator.free(main);
-        try self.scheme.commitBorrowedStreaming(self.allocator, main, 8, &self.channel);
-        try source.releaseMain();
+        const main = try source.takeMainForCommit();
+        // The PCS consumes descriptors and original backing allocations on
+        // success and failure; only narrow relation metadata remains here.
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(self.allocator, main.columns, main.backings, 8, null, &self.channel);
         const roots = try checkStage1(self.allocator, &self.scheme, self.setup);
         const descriptor = Sealed{ .ordinal = self.ordinal, .statement = self.statement, .roots = roots };
         self.sealed = descriptor;
@@ -90,9 +91,8 @@ pub const Stage1Worker = struct {
         const ch = try P.draw(&self.channel, manifest, self.ordinal);
         const claims = (try source.generateOpenForGlobalRam(ch)).physical;
         self.channel.mixFelts(&claims.values());
-        const interaction = try source.columns(a, 2);
-        defer a.free(interaction);
-        try self.scheme.commitBorrowedStreaming(a, interaction, 8, &self.channel);
+        const interaction = try source.takeInteractionForCommit();
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, interaction.columns, interaction.backings, 8, null, &self.channel);
         source.releaseCommittedInteraction();
         var components = try Components.init(&self.setup.materials, self.request, ch, claims);
         const handles = try components.provers(a);

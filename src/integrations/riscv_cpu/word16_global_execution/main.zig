@@ -58,9 +58,9 @@ pub fn main() !void {
     defer program.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = p0.tape.len + p1.tape.len, .max_total_steps = config.value.max_steps, .final_pc = p1.public.statement.final_pc, .final_registers = p1.public.statement.final_registers };
     if (proving) {
-        var native0 = try Native.init(a, &program, C.boundary(&p0), 1, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p0.tape.len)), &p0.tape, .{});
+        var native0 = try Native.capture(a, &program, C.boundary(&p0), 1, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p0.tape.len)), &p0.tape, .{});
         defer native0.deinit();
-        var native1 = try Native.init(a, &program, C.boundary(&p1), 2, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p1.tape.len)), &p1.tape, .{});
+        var native1 = try Native.capture(a, &program, C.boundary(&p1), 2, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p1.tape.len)), &p1.tape, .{});
         defer native1.deinit();
         var advice = try E.collectAdvice(a, &.{ &native0, &native1 }, expected.admission.image);
         defer advice.deinit();

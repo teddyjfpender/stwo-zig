@@ -58,8 +58,9 @@ test "Worker failed seal publishes no descriptor and drains single-owner allocat
     defer setup.deinit();
     var failures: usize = 0;
     for (0..8) |index| {
-        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = index });
-        const source = try S.init(a, &setup.materials, Memory.fromOwner(&f.image), f.boundary, 1, &f.tape);
+        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = std.math.maxInt(usize) });
+        const source = try S.init(failing.allocator(), &setup.materials, Memory.fromOwner(&f.image), f.boundary, 1, &f.tape);
+        failing.fail_index = failing.alloc_index + index;
         var worker = W.init(failing.allocator(), &setup, source, expected(&f, &setup), 0, 0) catch |err| {
             try std.testing.expectEqual(error.OutOfMemory, err);
             failures += 1;
