@@ -51,7 +51,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
         .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },
-        .{ "closed-load-store", "src/integrations/riscv_cpu/rv64_load_store_test_root.zig", 12 },
+        .{ "closed-load-store", "src/integrations/riscv_cpu/rv64_load_store_test_root.zig", 15 },
         .{ "closed-ram", "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig", 11 },
         .{ "word16-shift", "src/frontends/riscv/rv64_word16_shift_test_root.zig", 8 },
         .{ "word16-shift-proof", "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig", 2 },
