@@ -56,7 +56,7 @@ test "native Word16 SHIFT writes physical columns exactly once and matches Q wit
     var empty = try S.Source.init(a, &.{}, 5);
     defer empty.deinit();
     try std.testing.expectEqualSlices(M, source.fixed, empty.fixed);
-    try std.testing.expectEqual(@as(usize, 26 * N), @sizeOf(S.Metadata) * source.metadata.len);
+    try std.testing.expectEqual(@as(usize, 30 * N), @sizeOf(S.Metadata) * source.metadata.len);
     var range_counts: [65536]u64 = @splat(0);
     const table_counts = try a.alloc(u64, T.SEMANTIC_FACTS);
     defer a.free(table_counts);

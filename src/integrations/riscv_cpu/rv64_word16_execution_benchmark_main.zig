@@ -24,6 +24,7 @@ pub fn main() !void {
     const allocator_options = try operationalOptions(raw_args);
     const args = raw_args[0..allocator_options.argument_count];
     const omit_division = allocator_options.omit_empty_division;
+    const deduplicate_shift = allocator_options.deduplicate_shift;
     var recycler = Recycler.init(std.heap.smp_allocator, allocator_options.cap_bytes);
     defer recycler.deinit();
     const a = if (allocator_options.cap_bytes == 0) std.heap.smp_allocator else recycler.allocator();
@@ -46,6 +47,7 @@ pub fn main() !void {
     const image_ns = timer.read();
     if (verifying) {
         if (omit_division) return error.OmissionFlagIsProducerOnly;
+        if (deduplicate_shift) return error.GroupingFlagIsProducerOnly;
         try Driver.verifyDirectory(a, &image, args[3]);
         try stdout(a, .{ .scope = "fresh independent genesis-prefix receiver", .physical_proof_verified = true, .global_chain_accepted = false, .receiver_ns = timer.read(), .image_ns = image_ns });
         return;
@@ -60,6 +62,7 @@ pub fn main() !void {
     defer if (owns_program) program.deinit();
     const cpu_log = try Coverage.minimalPrefixLog(@intCast(packet.tape.len));
     if (!proving) {
+        if (deduplicate_shift) return error.GroupingFlagRequiresProof;
         const counts = try Coverage.Counts.fromTape(&program, &packet.tape);
         const unique_words = try Coverage.memoryWords(a, &program, &packet.tape);
         var geometry = G.Geometry{ .cpu_log = try Coverage.minimalPrefixLog(@intCast(packet.tape.len)), .alu_log = try Coverage.minimalLog(counts.alu), .binary_log = try Coverage.minimalLog(counts.binary), .shift_log = try Coverage.minimalLog(counts.shift), .jalr_log = try Coverage.minimalLog(counts.jalr), .division_log = try Coverage.minimalLog(counts.division), .multiplication_log = try Coverage.minimalLog(counts.multiplication), .ls_log = try Coverage.minimalPrefixLog(counts.memory), .boundary_log = try Coverage.minimalPrefixLog(unique_words) };
@@ -85,14 +88,14 @@ pub fn main() !void {
     const prove_start = timer.read();
     var native_scope = try Profile.StageScope.begin(&recorder, "native_advice_preparation", "One CPU witness and exact family grouping");
     defer native_scope.end();
-    var prepared = try Prepared.init(a, &program, Coordinator.boundary(&packet), 1, cpu_log, &packet.tape, .{});
+    var prepared = try Prepared.init(a, &program, Coordinator.boundary(&packet), 1, cpu_log, &packet.tape, .{ .deduplicate_shift = deduplicate_shift });
     defer prepared.deinit();
     native_scope.end();
     const native_prepare_ns = timer.read() - prove_start;
     const proof_geometry = if (omit_division) try prepared.geometryOmittingEmptyDivision() else try prepared.geometry();
     if (omit_division and !proof_geometry.omit_empty_division) return error.OmittedDivisionRequests;
     const proof_shapes = G.shapes(&program, proof_geometry);
-    try Driver.writeJson(a, dir, "planning.json", .{ .scope = "actual grouped native advice; not a proof", .raw_counts = prepared.raw_counts, .alu_unique_facts = prepared.alu.facts.len, .binary_unique_facts = prepared.binary.facts.len, .geometry = proof_geometry, .shapes = proof_shapes, .evaluation_domains = G.domains(proof_shapes), .source_cells = try G.cells(&proof_shapes) });
+    try Driver.writeJson(a, dir, "planning.json", .{ .scope = "actual grouped native advice; not a proof", .raw_counts = prepared.raw_counts, .alu_unique_facts = prepared.alu.facts.len, .binary_unique_facts = prepared.binary.facts.len, .shift_unique_facts = prepared.shift.len, .shift_grouping = deduplicate_shift, .geometry = proof_geometry, .shapes = proof_shapes, .evaluation_domains = G.domains(proof_shapes), .source_cells = try G.cells(&proof_shapes) });
     const setup_start = timer.read();
     var setup_scope = try Profile.StageScope.begin(&recorder, "immutable_setup", "Program and selected geometry fixed commitment");
     defer setup_scope.end();
@@ -135,13 +138,14 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
 
 /// Final operational options preserve existing positional invocations.
 /// Neither cache retention nor streaming batches change the proof statement.
-fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool } {
+fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool } {
     var count = args.len;
     var cap_bytes: usize = 0;
     var batch_columns: u32 = 8;
     var saw_cap = false;
     var saw_batch = false;
     var omit_empty_division = false;
+    var deduplicate_shift = false;
     while (count > 1) {
         const option = args[count - 1];
         const cache_prefix = "--recycler-cap-mib=";
@@ -149,6 +153,9 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         if (std.mem.eql(u8, option, "--omit-empty-division")) {
             if (omit_empty_division) return error.DuplicateOperationalOption;
             omit_empty_division = true;
+        } else if (std.mem.eql(u8, option, "--deduplicate-shift")) {
+            if (deduplicate_shift) return error.DuplicateOperationalOption;
+            deduplicate_shift = true;
         } else if (std.mem.startsWith(u8, option, cache_prefix)) {
             if (saw_cap) return error.DuplicateOperationalOption;
             saw_cap = true;
@@ -162,5 +169,5 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         } else break;
         count -= 1;
     }
-    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division };
+    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift };
 }

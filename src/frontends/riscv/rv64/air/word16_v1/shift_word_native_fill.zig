@@ -16,6 +16,7 @@ pub const MIN_STACK_BYTES = if (builtin.mode == .Debug) 1024 * 1024 else 256 * 1
 
 pub const Fill = struct {
     facts: []const S.Fact,
+    weights: ?[]const u32 = null,
     log: u32,
     main: []M,
     metadata: []S.Metadata,
@@ -91,7 +92,7 @@ pub const Fill = struct {
         const n = @as(usize, 1) << @intCast(self.log);
         for (start..end) |position| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, self.log), self.log);
-            S.NativeSupport.write(self.facts, self.main, self.metadata, ranges, shifts, n, logical, position);
+            S.NativeSupport.write(self.facts, self.weights, self.main, self.metadata, ranges, shifts, n, logical, position);
         }
     }
 };

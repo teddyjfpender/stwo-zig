@@ -12,8 +12,10 @@ const J = @import("jalr_source.zig");
 const Coverage = @import("coverage.zig");
 const G = @import("geometry.zig");
 pub const Binary = @import("binary_dedup.zig");
+pub const Shift = @import("shift_dedup.zig");
 pub const Options = struct {
     deduplicate_binary: bool = true,
+    deduplicate_shift: bool = false,
     /// Legacy wrapper keeps its caller-declared padded JALR geometry.
     jalr_log: ?u32 = null,
 };
@@ -25,6 +27,7 @@ pub const Prepared = struct {
     alu: B.alu_experiment.source.WeightedFacts,
     binary: Binary.WeightedFacts,
     shift: []B.operations.ShiftFact,
+    shift_weights: []u32,
     division: []A.arithmetic.division.trace.Request,
     multiplication: []A.arithmetic.multiplication.trace.Request,
     raw_counts: Coverage.Counts,
@@ -93,12 +96,16 @@ pub const Prepared = struct {
         var words: std.AutoHashMapUnmanaged(u64, void) = .empty;
         defer words.deinit(a);
         for (cpu.memory.items) |record| try words.put(a, record.effect.address.toInt() & ~@as(u64, 7), {});
-        const shift = try sf.toOwnedSlice(a);
+        const raw_shift_count: u32 = @intCast(sf.items.len);
+        const grouped_shift = if (options.deduplicate_shift) try Shift.collect(a, sf.items, true) else null;
+        const shift = if (grouped_shift) |value| value.facts else try sf.toOwnedSlice(a);
         errdefer a.free(shift);
+        const shift_weights: []u32 = if (grouped_shift) |value| value.weights else &.{};
+        errdefer a.free(shift_weights);
         const division = try df.toOwnedSlice(a);
         errdefer a.free(division);
         const multiplication = try mf.toOwnedSlice(a);
-        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = @intCast(shift.len), .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
@@ -148,9 +155,11 @@ pub const Prepared = struct {
         self.binary.facts = &.{};
         self.binary.weights = &.{};
         self.allocator.free(self.shift);
+        self.allocator.free(self.shift_weights);
         self.allocator.free(self.division);
         self.allocator.free(self.multiplication);
         self.shift = &.{};
+        self.shift_weights = &.{};
         self.division = &.{};
         self.multiplication = &.{};
     }
@@ -160,6 +169,7 @@ pub const Prepared = struct {
         self.alu.deinit();
         self.binary.deinit();
         self.allocator.free(self.shift);
+        self.allocator.free(self.shift_weights);
         self.allocator.free(self.division);
         self.allocator.free(self.multiplication);
         self.* = undefined;

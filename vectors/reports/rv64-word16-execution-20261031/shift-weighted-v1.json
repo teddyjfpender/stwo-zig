@@ -1,0 +1,671 @@
+{
+  "schema_version": 1,
+  "scope": "Opt-in exact per-batch SHIFT FUNCTION tuple grouping and weighted native source, existing fullCPU+LS protocol. No new AIR, policy enum, fixed schema, transcript domain, service admission or cross-batch aggregation activation.",
+  "base_commit": "1efae05583a2c36fa1add468c5eb7638ca319a1b",
+  "decision": {
+    "threshold": "Parent requested implementation only if packet0 distinct reduction exceeds10%.",
+    "packet0_raw": 995056,
+    "packet0_distinct": 743839,
+    "packet0_reduction_fraction": 0.2524651878889228,
+    "packet0_height_change": "NONE: bothlog20. Grouping overhead does not buy physical cells here.",
+    "all25_scope": "Exact retained validated sorted fact runs, not VM replay or all25 physical proof qualification. Current native Prepared independently confirms packet0 count and full proof closure.",
+    "all25_raw": 12715792,
+    "all25_per_batch_distinct": 5515478,
+    "all25_raw_padded_SHIFT_rows": 17563648,
+    "all25_grouped_padded_SHIFT_rows": 7143424,
+    "all25_SHIFT_rows_removed": 10420224,
+    "all25_SHIFT_only_source_cells_removed_model": 1073283072,
+    "model": "SHIFT2fixed+53MAIN+48INTER times exact per-batch padded rows. Shared packed SHIFT table/U16 table heights unchanged. No speed or total-block proof claim; local challenge contexts must not be mixed.",
+    "future_default": "Consider grouping only when minimalLog drops; defaults remain unitSHIFT now."
+  },
+  "census": {
+    "record_layout": "32LE bytes a:u64,b:u64,c:u64,globalop:u32,count:u32; complete tuple including ignored high shift bits; SHIFT IDs32..37. Each run SHA checked against its pinned census JSON and raw sum against family count.",
+    "directory": "/tmp/stwo-rv64-round5-function-census-v1",
+    "jobs": [
+      {
+        "index": 0,
+        "raw": 995056,
+        "unique": 743839,
+        "maximum_multiplicity": 8381,
+        "raw_log": 20,
+        "grouped_log": 20,
+        "physical_SHIFT_rows_removed": 0,
+        "packet_digest": "b2a20fcafe3124b0ca7ff1bc57e0efcb7c5d5865b5df82145060a55ad35bed46",
+        "sorted_run_sha256": "fee1df27c1419c212c012ca816c6ca417ac0aaf3c90f459058179af3106c8753"
+      },
+      {
+        "index": 1,
+        "raw": 1227493,
+        "unique": 889226,
+        "maximum_multiplicity": 10575,
+        "raw_log": 21,
+        "grouped_log": 20,
+        "physical_SHIFT_rows_removed": 1048576,
+        "packet_digest": "f093501438fa3b825e12ce8efe06ceabece0fc7b455cb67786af7844d7fd1242",
+        "sorted_run_sha256": "7cdfefeca15ca775e05f1ce30f0542d5a6861841b09635744ee18e8b9988facd"
+      },
+      {
+        "index": 2,
+        "raw": 1261585,
+        "unique": 899678,
+        "maximum_multiplicity": 11245,
+        "raw_log": 21,
+        "grouped_log": 20,
+        "physical_SHIFT_rows_removed": 1048576,
+        "packet_digest": "691dd10cb653e4be63edbd57e079aade5d18808e114aece65b3df6ba552c68bf",
+        "sorted_run_sha256": "9c0e12d1431c977254f68ab645a4ddd8b981e1075ee3b70c671ce4f160ae27a2"
+      },
+      {
+        "index": 3,
+        "raw": 1016209,
+        "unique": 722203,
+        "maximum_multiplicity": 9032,
+        "raw_log": 20,
+        "grouped_log": 20,
+        "physical_SHIFT_rows_removed": 0,
+        "packet_digest": "37bc92f735f17acb0c727960802925e6fd4255cb7358d482a6396cb14bd49008",
+        "sorted_run_sha256": "df443876462c536f67048b7bbc50e50738b24efa08800f7c559b72e8745a7c8d"
+      },
+      {
+        "index": 4,
+        "raw": 670100,
+        "unique": 481064,
+        "maximum_multiplicity": 26680,
+        "raw_log": 20,
+        "grouped_log": 19,
+        "physical_SHIFT_rows_removed": 524288,
+        "packet_digest": "b02de8b840b07166c4659c6ac7b8c494e7e8acc732b69d74d4d18bed3f3a5e03",
+        "sorted_run_sha256": "8589a05a45179963f95865d6757794228afe79f7882d8c79d71b568d0c819568"
+      },
+      {
+        "index": 5,
+        "raw": 673419,
+        "unique": 486057,
+        "maximum_multiplicity": 26997,
+        "raw_log": 20,
+        "grouped_log": 19,
+        "physical_SHIFT_rows_removed": 524288,
+        "packet_digest": "84cefcc74795deee309f44dd58b9673ccace85a38a9509dc664b0e6acbc436d9",
+        "sorted_run_sha256": "4a5ea5d23c35d1099e16bce2db89d19120c8c6595ab37ecfeedd4ae088e8839f"
+      },
+      {
+        "index": 6,
+        "raw": 523453,
+        "unique": 224360,
+        "maximum_multiplicity": 11050,
+        "raw_log": 19,
+        "grouped_log": 18,
+        "physical_SHIFT_rows_removed": 262144,
+        "packet_digest": "d61a71e9e65cb5273a5132215ed42121f99845d4026db315e702fed84e7c8d62",
+        "sorted_run_sha256": "0e7dc2186750b7c4dc07172b82c829269a46e7ff81a9ec1d49e68e3e7fe58e6c"
+      },
+      {
+        "index": 7,
+        "raw": 282574,
+        "unique": 74170,
+        "maximum_multiplicity": 19372,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "c86e89868bf9e9df376ad80729084de8967d35987bd72b847018594551ed388c",
+        "sorted_run_sha256": "84e0a8b1b10f6904856b1297960db8104d6a472a9c82d722d80319aeaee536c5"
+      },
+      {
+        "index": 8,
+        "raw": 204043,
+        "unique": 68165,
+        "maximum_multiplicity": 18104,
+        "raw_log": 18,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 131072,
+        "packet_digest": "bc05b79b95fae9fe4a259a230747cd216e9ef5b9a7a33c7954b81f476e9c5ecf",
+        "sorted_run_sha256": "6e8ccb0ab4983f7e6d4675d4e4af6c931dd047d51e49e7771cdfa5dfdb88350a"
+      },
+      {
+        "index": 9,
+        "raw": 245635,
+        "unique": 72892,
+        "maximum_multiplicity": 18785,
+        "raw_log": 18,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 131072,
+        "packet_digest": "73792ed239aeb3f32c77c8af77585c1daf750c42c31eaf6010c31a1a83e15b42",
+        "sorted_run_sha256": "8d60acb54b0023a5a03a66935380b95ef345b99474e12afb1e601af1d3587d26"
+      },
+      {
+        "index": 10,
+        "raw": 368903,
+        "unique": 88201,
+        "maximum_multiplicity": 12209,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "00b3d99bcc9b7291b524db11c89cf46c462284be67e7ab484b0b8585c13b1b66",
+        "sorted_run_sha256": "57d330af8dd7fc729829f8740ee8ac34f980598bf5a506754076e992bed45ed8"
+      },
+      {
+        "index": 11,
+        "raw": 383736,
+        "unique": 39873,
+        "maximum_multiplicity": 10537,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "c6c551a4fad988e954973ed7e33cc47d5a1861d39b7fea6a2dfbb44f3ef6ca72",
+        "sorted_run_sha256": "54ccbf8f40097d57fa260e1670cbbc2c86632653c2add339d891f2cd6086221b"
+      },
+      {
+        "index": 12,
+        "raw": 411758,
+        "unique": 38794,
+        "maximum_multiplicity": 16463,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "7be4ac2a60e38b36e08a048a05e53f1d5e252f737a69e6a367310d41975a230a",
+        "sorted_run_sha256": "ceb4c5a777e20d4c05d3ca0b5664901852f7fb1a40b039bddc54c768164cf14e"
+      },
+      {
+        "index": 13,
+        "raw": 336726,
+        "unique": 39812,
+        "maximum_multiplicity": 11755,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "8c76e0037ed601e833feab6c5ae2e42be4edf0dcb708b346e8be65fed297664e",
+        "sorted_run_sha256": "67164b3f0d8bf3d978b8afafb1906b077b437cbaeebe3d8c5d44fe2d0dcddee5"
+      },
+      {
+        "index": 14,
+        "raw": 442651,
+        "unique": 55522,
+        "maximum_multiplicity": 16800,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "30fa6d8af9db6fd3836b2247955ff81456c38a37cbdd6707f4feff730030fdf9",
+        "sorted_run_sha256": "aaea510b7f00a826f8696b95a71956c7b4ed361c898be5d964a016cda193010d"
+      },
+      {
+        "index": 15,
+        "raw": 400069,
+        "unique": 35921,
+        "maximum_multiplicity": 12517,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "c5567631788504a66c65010bc62ec5ca466493c6fd59919dba2ca4997926e7ff",
+        "sorted_run_sha256": "0e1d2a933272e8e90a64f8498c0e697c63106d9267d52a021b82184306918d05"
+      },
+      {
+        "index": 16,
+        "raw": 374618,
+        "unique": 29577,
+        "maximum_multiplicity": 13381,
+        "raw_log": 19,
+        "grouped_log": 15,
+        "physical_SHIFT_rows_removed": 491520,
+        "packet_digest": "7e76e8e833403eebf53410624126890d52c0b8b75989c8680068d29c48d73bff",
+        "sorted_run_sha256": "0b0d8d4a323d6eea50b531dafbf158fa6294e5208cad0cf137b2475821a8f860"
+      },
+      {
+        "index": 17,
+        "raw": 418338,
+        "unique": 30075,
+        "maximum_multiplicity": 14512,
+        "raw_log": 19,
+        "grouped_log": 15,
+        "physical_SHIFT_rows_removed": 491520,
+        "packet_digest": "f7b973b6d2bfaeb0d36b68b9a85cfb0fc5c76f4cfd885dcdc88140c300966cb2",
+        "sorted_run_sha256": "f06616bdd1c1030229cd451d8488a31daa6881627ce599700bfaf28e33d88411"
+      },
+      {
+        "index": 18,
+        "raw": 496601,
+        "unique": 101603,
+        "maximum_multiplicity": 16067,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "f7cbaf4c54bdbb67381c53a9efa4fd9dffed6edd84db086db72801a62def6569",
+        "sorted_run_sha256": "58c17c2d8775f8ba3942da725867b450868ca102befb7f6394b6f92963756b10"
+      },
+      {
+        "index": 19,
+        "raw": 427833,
+        "unique": 72248,
+        "maximum_multiplicity": 12830,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "596cd958db5c62d9eab4e086c19f2d201a3c78f7fd6dd1674fd98533c2df827b",
+        "sorted_run_sha256": "be1842f90c397f0482b6c71d4d58d1091dff5239b0a104cdb288590112f31ae5"
+      },
+      {
+        "index": 20,
+        "raw": 417895,
+        "unique": 90748,
+        "maximum_multiplicity": 10682,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "b9ceefc020c37f4e1aeb2ef0ff464dc5cdf1c6166492a9de787999d015575ba0",
+        "sorted_run_sha256": "bf8a5c5c5f3ba8d241b099d8a9d5831f67ce6ec3ca27e1022a5560bda8affe32"
+      },
+      {
+        "index": 21,
+        "raw": 358189,
+        "unique": 34712,
+        "maximum_multiplicity": 10749,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "37c1904c4524c4c7556d1e2047d2daf6ab269c805ee324626eab4e9221b71a8f",
+        "sorted_run_sha256": "fc6f6a469c9cad5d38075d8d01d7af3d8cddb368b09b78251d48b4e37d15a062"
+      },
+      {
+        "index": 22,
+        "raw": 348521,
+        "unique": 62065,
+        "maximum_multiplicity": 12217,
+        "raw_log": 19,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 458752,
+        "packet_digest": "63f298b1060dd35d4bc2dbb2aa24bc78532e9c66f802ed07f169c6509398c23c",
+        "sorted_run_sha256": "ec0123ba0bb49a60403ee93e59a2e802aaaece1a74f8a11c4da8262f59ab6db3"
+      },
+      {
+        "index": 23,
+        "raw": 282211,
+        "unique": 88859,
+        "maximum_multiplicity": 28886,
+        "raw_log": 19,
+        "grouped_log": 17,
+        "physical_SHIFT_rows_removed": 393216,
+        "packet_digest": "f8be8da4a6b6eb5692bdb235d0311c4633dc33f6ca8220a8ffc05d2e6590bd94",
+        "sorted_run_sha256": "acf4b156ed27420c85197692c1f55b6635a2f97ee701289e72f33bd0ecfee0e8"
+      },
+      {
+        "index": 24,
+        "raw": 148176,
+        "unique": 45814,
+        "maximum_multiplicity": 17449,
+        "raw_log": 18,
+        "grouped_log": 16,
+        "physical_SHIFT_rows_removed": 196608,
+        "packet_digest": "c32662fe1890c2ef3eed6f1824915c2f06eed7d0748acc340b8f4f4d0573dd7d",
+        "sorted_run_sha256": "771055e80090c9989777ebfcf555775302b02353f578e36da56e3ae3114be0da"
+      }
+    ]
+  },
+  "implementation": {
+    "opt_in": "Prepared.Options.deduplicate_shift=false default; CLI suffix--deduplicate-shift producer-proof-only, duplicate rejected. Old Source.init/initWithMainBuffers remain unitweights; new initWeighted/initWeightedWithMainBuffers.",
+    "physical": "Unchanged53MAIN/48INTER. Existing \u03bccolumn52 and inactive*\u03bczero equation already support weighted truth membership. Every physical row still supplies5SHIFT+9U16 queries including padding, independent of\u03bc.",
+    "metadata": "30B payload+\u03bc2u16, previously26B. Full canonical u32\u03bc reconstructed; metadata-only generation after MAIN retirement. Default physical proof bytes unchanged.",
+    "admission": "Host source requires exact weight length, each\u03bc<p,total\u03bc<p, borrowed weight/input spans disjoint; generator verifies padded\u03bc0 and captured mass. These host checks do not replace AIR/FUNCTION closure.",
+    "soundness": "Only true SHIFT rows may supply committed \u03bc-weighted FUNCTION terms. Existing active truth constraints and closed CPU positive FN mass/namespace enforce functional membership; pure truth multiplicities are not an execution coverage count/prefix. No redundant \u03bcrange AIR introduced.",
+    "zero_poles": "All FUNCTION inverses remain strict for \u03bc0 active facts and inactive padding. Table/range dictionaries remain complete checked inverses, and physical claim totals are unchanged for fixed geometry.",
+    "parallel": "Same qualified concrete native formatter with optional weights; one MAIN fill, no Tape reexecution. Exact serial/1/3/16 matrices/meta/hists/interactions retained.",
+    "ownership": "Stable first-occurrence exact full tuple grouping; OOM frees transient map/facts/weights. Prepared shift_weights consumed/cleared with other facts; service guards unchanged."
+  },
+  "qualification": {
+    "weighted_safe_runtime6": "PASS",
+    "weighted_fast_runtime6": "PASS",
+    "old_shift_source_safe_fast_runtime8": "PASS; metadata-size assertion updated30B, all native/Q oracle checks unchanged.",
+    "old_native_fill_fast_runtime5": "PASS",
+    "old_prepared_fast_runtime14": "PASS",
+    "logs": [
+      "/tmp/rv64-shift-weighted-final-safe.log",
+      "/tmp/rv64-shift-weighted-final-fast.log",
+      "/tmp/rv64-shift-weighted-old-source-safe.log",
+      "/tmp/rv64-shift-weighted-old-fast.log"
+    ],
+    "tests": [
+      "Full65536physical weighted matrices/meta/histograms, \u03bc0 and\u03bc70001, all48INTER/3claims after MAIN retirement, serial/1/3/16 exact.",
+      "Length/canonical\u03bc/totalmass/borrowed-alias/OOM, strict zero-weight and padding FUNCTION poles, malformed padding metadata error/retry.",
+      "Actual native130-step SLL/BEQ loop,65 repeatedSHIFT facts\u21921, SHIFTlog7\u21925; full17-role unit and weighted proofs close all table/range/CPU claims; fresh independent setup receiver. Wrong \u03bc64 fails complete closure.",
+      "Exact stable grouping/allocation failures; highfull64 tuple fields retained.",
+      "CLI duplicate and verifier-only misuse reject."
+    ],
+    "cli_negative_cases": [
+      {
+        "error": "DuplicateOperationalOption",
+        "exit_code": 1
+      },
+      {
+        "error": "GroupingFlagIsProducerOnly",
+        "exit_code": 1
+      }
+    ],
+    "fmt_diff_conformance31": "PASS; inherited whole-repository hook violations bypassed for scoped commit."
+  },
+  "real_packet": {
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "steps": 4194303,
+    "operational_settings": "cap0, commitbatch64 both runs,16workers from trusted config",
+    "cli_sha256": "00351395a98461b0bbd85a5e358a783582d50327d6e85a0495949d7a9df7eba1",
+    "cli_build_log": "/tmp/rv64-shift-weighted-cli-fast.log",
+    "binary_production_source_frozen_before_build": true,
+    "test_note": "High-\u03bc test fixture strengthened after CLI build, production sources unchanged. FinalSafe/Fast6 include that fixture.",
+    "default_exact_current_unit_reference": true,
+    "current_unit_reference": "/tmp/rv64-main-2n-ls96-unitshift-real0-v1/proof.bin",
+    "cpu_epoch_counters_geometry_and_RAM_semantics_equal": true,
+    "ram_sidecar_exact_bytes": true,
+    "unit": {
+      "directory": "/tmp/rv64-shift-weighted-real0-unit-v1",
+      "proof_sha256": "6a6e0b669cdb800dba4aa84e40d59abca28f3a908fe0d6064adb39adb459a495",
+      "proof_bytes": 1164896,
+      "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "statement_sha256": "92d84ef3e828c6a68b7faba6190c79804f8c3cac844566425248ed0929c25188",
+      "planning": {
+        "raw_counts": {
+          "alu": 1135463,
+          "binary": 866612,
+          "shift": 995056,
+          "jalr": 9913,
+          "division": 0,
+          "multiplication": 5051,
+          "memory": 1202034,
+          "service": 0
+        },
+        "shift_unique_facts": 995056,
+        "shift_grouping": false,
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 613943808
+        }
+      },
+      "report": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11939,
+        "proof_and_public_statement_bytes": 33788873,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 613943808
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 338661041,
+        "provider_source_ns": 644758625,
+        "setup_ns": 378626625,
+        "prove_ns": 11483311458,
+        "same_process_verify_ns": 103640875,
+        "proof_bytes": 1164896,
+        "total_ns": 12614645250,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857079808,
+          "last_rss_bytes": 1330757632,
+          "sampled_peak_rss_bytes": 10983849984,
+          "process_lifetime_peak_rss_bytes": 10983849984,
+          "samples": 823,
+          "failed_samples": 0
+        }
+      },
+      "selected_stages": {
+        "native_advice_preparation": {
+          "id": "native_advice_preparation",
+          "label": "One CPU witness and exact family grouping",
+          "seconds": 0.338651,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.386616,
+            "system_seconds": 0.118935,
+            "minor_faults": 151583,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 549
+          }
+        },
+        "provider_source_construction": {
+          "id": "provider_source_construction",
+          "label": "Independent provider witnesses from retained native facts",
+          "seconds": 0.64476,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.330336,
+            "system_seconds": 0.819311,
+            "minor_faults": 192586,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1471
+          }
+        },
+        "source_shift": {
+          "id": "source_shift",
+          "label": "SHIFT witness",
+          "seconds": 0.04851,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.383555,
+            "system_seconds": 0.046379,
+            "minor_faults": 25248,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 195
+          }
+        }
+      },
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 931319708,
+        "image_ns": 315985958
+      },
+      "process_time_line": "13.48 real        63.28 user         6.92 sys"
+    },
+    "grouped": {
+      "directory": "/tmp/rv64-shift-weighted-real0-grouped-v1",
+      "proof_sha256": "0d6ea759e536c815147ed4198cfd223678cc67c33c037a74ad58b23fc51dcc8e",
+      "proof_bytes": 1163824,
+      "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "statement_sha256": "d971b7c8e349ad32b63ff00dc351cf46f9161b0d82c2e457743d8a179fed4bbb",
+      "planning": {
+        "raw_counts": {
+          "alu": 1135463,
+          "binary": 866612,
+          "shift": 995056,
+          "jalr": 9913,
+          "division": 0,
+          "multiplication": 5051,
+          "memory": 1202034,
+          "service": 0
+        },
+        "shift_unique_facts": 743839,
+        "shift_grouping": true,
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 613943808
+        }
+      },
+      "report": {
+        "commit_batch_columns": 64,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "smp",
+          "cache_cap_bytes": 0,
+          "stats": {
+            "reused_blocks": 0,
+            "mapped_blocks": 0,
+            "cached_bytes": 0
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11942,
+        "proof_and_public_statement_bytes": 33787804,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 613943808
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 406424750,
+        "provider_source_ns": 648874875,
+        "setup_ns": 376706542,
+        "prove_ns": 11403655167,
+        "same_process_verify_ns": 90535625,
+        "proof_bytes": 1163824,
+        "total_ns": 12511629375,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857079808,
+          "last_rss_bytes": 1330823168,
+          "sampled_peak_rss_bytes": 10983964672,
+          "process_lifetime_peak_rss_bytes": 10983964672,
+          "samples": 801,
+          "failed_samples": 0
+        }
+      },
+      "selected_stages": {
+        "native_advice_preparation": {
+          "id": "native_advice_preparation",
+          "label": "One CPU witness and exact family grouping",
+          "seconds": 0.406423,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 1.431718,
+            "system_seconds": 0.137032,
+            "minor_faults": 162933,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 586
+          }
+        },
+        "provider_source_construction": {
+          "id": "provider_source_construction",
+          "label": "Independent provider witnesses from retained native facts",
+          "seconds": 0.648876,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 2.34054,
+            "system_seconds": 0.818766,
+            "minor_faults": 197305,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1197
+          }
+        },
+        "source_shift": {
+          "id": "source_shift",
+          "label": "SHIFT witness",
+          "seconds": 0.049716,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.374631,
+            "system_seconds": 0.03374,
+            "minor_faults": 25248,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 167
+          }
+        }
+      },
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 982821583,
+        "image_ns": 335530625
+      },
+      "process_time_line": "12.53 real        65.40 user         6.83 sys"
+    },
+    "observations": "Concurrent engineering functional runs, not controlled speed measurements. Packet0 has no physical-cell reduction; capture grouping adds measured work and no speedup is claimed."
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "76b1fb943ab64c76ae0666f45a7394c0eece2682e33eb708481936c265830672",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_native_fill.zig": "da9979746252fda19050afe244005c2b6be0a784b732cacc76bb3c8e1b5af37b",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source_test.zig": "c29f9119e85fbce9dd4536f1cc106e97dabf4b34d1c49be42c4a5c9917984415",
+    "src/integrations/riscv_cpu/word16_execution/shift_dedup.zig": "7331166524663a9cfc09627ec596fe464bae65012a3e9b3c9b3de799e076a281",
+    "src/integrations/riscv_cpu/word16_execution/shift_weighted_test.zig": "c0c9383b97b9daa768619bde74926d9bc9ee2a10627f2cf6e93592b44a015d48",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "488046269375b689cd75aec0ab24cced597e695cbf5da1c499b5a483c5b37a83",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "1b24a2c7d83bf9efc4335ab12c2d44b8b73c5a8940103539443443c3df423778",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "bc3f2f05f970afebe65f8b57b084b170ce6fc1a54c1bf80156688c445e03b539",
+    "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig": "a7c2a6135421aa9a2dd68b72f28a5a819547cd3ecb487e3ab5fad1916722b451",
+    "build_support/products/catalog.zig": "a5c8054146aacf696bc24a81ffe65ae1e75a99427ce6a52b09a3787a8beb616c",
+    "build_support/products/riscv_cpu.zig": "2fb13ef9c5f44a3e7eb59348c25109522ea77d73e45a1ab7e2cc62301b72dbd6"
+  }
+}

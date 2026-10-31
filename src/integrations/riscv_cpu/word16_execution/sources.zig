@@ -103,7 +103,10 @@ pub const Source = struct {
         var shift = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_shift", "SHIFT witness");
             defer stage.end();
-            break :blk try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
+            break :blk if (prepared.shift_weights.len != 0)
+                try B.shift_word_packed_experiment.source.Source.initWeighted(a, prepared.shift, prepared.shift_weights, g.shift_log)
+            else
+                try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
         };
         errdefer shift.deinit();
         var division = blk: {
