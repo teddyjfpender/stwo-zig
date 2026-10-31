@@ -1,0 +1,189 @@
+{
+  "schema": "rv64-indexed-control-diagnostic-v1",
+  "status": "qualified diagnostic; no Ethereum activation",
+  "cpu": {
+    "main": 40,
+    "interaction": 56,
+    "constraints": 49,
+    "degree": 3
+  },
+  "rom": {
+    "fixed": 23,
+    "main": 2,
+    "interaction": 16,
+    "constraints": 7,
+    "degree": 3
+  },
+  "qualification": {
+    "authority": {
+      "safe": 7,
+      "fast": 7
+    },
+    "physical": {
+      "safe": 9,
+      "fast": 9,
+      "actual_testserver_metadata": 9
+    },
+    "raw_word16_regression": {
+      "safe": 14,
+      "fast": 14
+    },
+    "proof_parity": "scalar vs SIMD16 vs pool1/pool4 encoded bytes identical;8192 CPU evaluation rows",
+    "old_v1_fresh_process": "three historical proof hashes unchanged after shared helper factoring",
+    "negative_cases": [
+      "wrong current/next address IDs",
+      "operand forgery",
+      "balanced false address map",
+      "raw invalid-program identity replay",
+      "high64 low48 alias",
+      "unknown dynamic endpoint"
+    ],
+    "additional_gates": [
+      "full64 wrapping static endpoint",
+      "address IDs above65535",
+      "all49 CPU+7 ROM residuals sixteen independent base and extension lanes",
+      "dense degree<=3",
+      "all source allocation failures"
+    ]
+  },
+  "scope": [
+    "register-only ALU/binary/conditional branches",
+    "mapped static finite-prefix endpoints permitted but not a halt claim",
+    "no RAM,JALR,services,fullISA,Ethereum,aggregation or performance claim",
+    "independently rebuilt expected materials receiver runs in same test process; no new standalone indexed receiver CLI yet"
+  ],
+  "logs": [
+    "/tmp/rv64-index-authority-safe.log",
+    "/tmp/rv64-index-authority-fast.log",
+    "/tmp/rv64-index-control-safe-final.log",
+    "/tmp/rv64-index-control-fast-final.log",
+    "/tmp/rv64-word16-shared-factoring-fast.log"
+  ],
+  "owned_new_files": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/authority.zig",
+      "sha256": "233223c84ee12f5dce0458e797801e14fe560ad8a96a8b60a4021523e254cd9c"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/authority_test.zig",
+      "sha256": "da700d97576518eae9ef87405c774025bc52a18bdedef6fa618fdc3012644102"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/component.zig",
+      "sha256": "8113f327be0a9a7b19cb356678f4d22455da3897db48dcc08f4ade805d5d2032"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/equations.zig",
+      "sha256": "a1c7bdab833fabaf66eb1b91344b878df132da46e5157fabd59b763f894461d4"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/packed_rows.zig",
+      "sha256": "69ec21f3ba5b67a96d59fb854a556d339d4c19dd40c9dfa717fdfc58369a8718"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/rom_trace.zig",
+      "sha256": "b23f8e91aeb951154d90a64844d8070729676116862ba63d10f2e8cc24606def"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/trace.zig",
+      "sha256": "beae88c94c066f8965dbc164e98c05e7bb1e1ca70674bb61bdd8b302013be310"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_index/components.zig",
+      "sha256": "767e0c700bcc13ee5ddf31abbda4e29937a0610746c426fe076f939eb0f14ce3"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_index/materials.zig",
+      "sha256": "9d98aa22cb3e76f016cacc0559776d62b99e5d098ca3102cf5c114416af27bec"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_index/proof.zig",
+      "sha256": "260f72d0c2d69e0f86349d6c37e4828883292246bdf39c3f14538febd8a86e25"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_index/protocol.zig",
+      "sha256": "61daab0c4ce808939215c31e9dc893aa9ce1c2be63dd7bec0c9b2e85ac9e390e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16_index/sources.zig",
+      "sha256": "ab382a11c97cb1fcd919cd8b377609b1d5fa2fbcd1d6ae7857668a631d6bdc26"
+    },
+    {
+      "path": "src/frontends/riscv/rv64_index_control_test_root.zig",
+      "sha256": "f2187c99dc5a1760d7b526f585518d8d94970d68a9f806100521e1942fa17f60"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_word16_index_control_test_root.zig",
+      "sha256": "87c7bd7b090b3b7810f033253d99ca0d42e238e19567308c81aafde94cc7782c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_index_control_test.zig",
+      "sha256": "1f428decb9070dcdadc042ab740ed37fada03efb261c4bd1d474bf03fd72c7a2"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/alu_cpu_fixture_data.zig",
+      "sha256": "a00fb76f59a5ea80d7d269e3ee10a9cf4ecc31315dff5f37a407098285f1cb8b"
+    },
+    {
+      "path": "design/riscv-proving-stack/rv64-indexed-control-diagnostic.md",
+      "sha256": "813edc7bb4caf59fae7722b8d807348846fe6d43bf452d55669dccd6906d7fec"
+    }
+  ],
+  "shared_factoring": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/equations.zig",
+      "sha256": "abedb096ecbda130c47bb762e5cd4ddd832407d25620613e299932898f703a59"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/rom.zig",
+      "sha256": "ca1597bfd1bf099534f7dd6e0165430b41bd02b04900c8d6af00cbbc88bea5ef"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/trace.zig",
+      "sha256": "6f51acd0f57a3305ed374025b9a4b35b3bf819c60891751212202b281110351a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/interaction.zig",
+      "sha256": "5b95e6a1dc8957ff6aed846f4148245a499e46dd324120a7eb0982b64700acb8"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/layout.zig",
+      "sha256": "92eb94e4df55eefc0e10204d1d34f2c85219ef7d80869e4176c5a397c58e97f6"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/public.zig",
+      "sha256": "f1430b50b4697286743e920655e1dca01191760068274518ed1b8ce0aebf3a53"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_v1/operations.zig",
+      "sha256": "c68530b20c7a795bfea0dc71c645e341b8aff19694a83bc9609e0f5bfef56368"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig",
+      "sha256": "5869f3510f7c5008761bb587b2a27224710e8beb7b1df2354360aad39bfc222a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_alu_cpu_test.zig",
+      "sha256": "28eef2f0b4f648d16392beb8d454b693274a937a68786fd68dc84055d67ef888"
+    }
+  ],
+  "root_owned_dependencies_not_part_of_index_slice": [
+    {
+      "path": "src/frontends/riscv/rv64/air/providers/domain_transform.zig",
+      "sha256": "b4bf3592d1f0497251b76bfbd245a59ceb14db18fd02cda9e12641c2ba5efebe"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/providers/parallel_rows.zig",
+      "sha256": "d216cbab74b7f101f0ef293ed2fe4dc18c42368d5d26f29c8e88ac48a7f6b50c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_sources.zig",
+      "sha256": "bba9f7b959bb83fddddea3abbb359871e929c903c66178778b9967a56062783a"
+    }
+  ],
+  "selective_hunks": [
+    "air/mod.zig appends word16_index_control namespace only",
+    "build_support/products/riscv_cpu.zig appends index-authority minimum7 and index-control minimum9 only",
+    "build_support/products/catalog.zig corresponding two target entries only"
+  ]
+}

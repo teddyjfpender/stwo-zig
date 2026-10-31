@@ -32,7 +32,16 @@ pub const Component = struct {
     scalar_reference: bool = false,
     const Adapter = core.air.derive.ComponentAdapter(Component, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const Component) cp.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var result = Adapter.asProverComponent(self);
+        if (self.kind == .cpu) {
+            result.domain_parallel_evaluator = evaluateParallel;
+            result.pool_exclusive_domain = true;
+        }
+        return result;
+    }
+    fn evaluateParallel(ctx: *const anyopaque, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: *engine.work_pool.WorkPool) anyerror!void {
+        const self: *const Component = @ptrCast(@alignCast(ctx));
+        return self.evaluateDomain(trace, accumulator, pool);
     }
     pub fn asVerifierComponent(self: *const Component) Air.Component {
         return Adapter.asVerifierComponent(self);
@@ -136,6 +145,9 @@ pub const Component = struct {
         std.debug.assert(sink.count == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
+        return self.evaluateDomain(trace, accumulator, null);
+    }
+    fn evaluateDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
         try self.validate();
         const a = accumulator.allocator;
         const widths_ = self.widths();
@@ -163,13 +175,23 @@ pub const Component = struct {
         if (owned_count != 0) {
             var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
             defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("../providers/domain_transform.zig").evaluate(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles), pool);
         }
         const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
         defer a.free(inverses);
         const columns = try accumulator.columns(a, &.{.{ .log_size = eval_log, .n_cols = self.nConstraints() }});
         defer a.free(columns);
         var output = columns[0];
-        try @import("packed_rows.zig").evaluate(self, evaluations[0..total], inverses, &output);
+        const rows = Rows{ .component = self, .columns = evaluations[0..total], .inverses = inverses };
+        try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = Rows.run }, n, &output, pool);
+    }
+};
+const Rows = struct {
+    component: *const Component,
+    columns: []const []const M,
+    inverses: []const M,
+    fn run(ctx: *const anyopaque, start: usize, end: usize, output: *accumulation.ColumnAccumulator) anyerror!void {
+        const self: *const Rows = @ptrCast(@alignCast(ctx));
+        return @import("packed_rows.zig").evaluateRange(self.component, self.columns, start, end, self.inverses, output);
     }
 };

@@ -19,16 +19,31 @@ comptime {
 }
 pub const Source = struct {
     allocator: std.mem.Allocator,
-    program: *const Rom.Setup,
+    program: Rom.MetadataView,
     public: P.Public,
     log_size: u32,
     metadata: []Metadata,
     main: []M,
     interaction: []M = &.{},
     rom_counts: []u64,
+    rows_projected: usize = 0,
     range16_counts: []u64,
     range8_counts: []u64,
     pub fn init(a: std.mem.Allocator, program: *const Rom.Setup, public: P.Public, log_size: u32, records: []const Record) !Source {
+        var source = try initMetadata(a, program.metadataView(), public, log_size, records);
+        errdefer source.deinit();
+        const n = source.size();
+        source.main = try a.alloc(M, Profile.mainCount(source.program.profile) * n);
+        for (0..n) |row| {
+            const values = source.projectRow(row);
+            const pos = L.physical(row, log_size);
+            for (values[0..Profile.mainCount(source.program.profile)], 0..) |value, column| source.main[column * n + pos] = value;
+        }
+        return source;
+    }
+    /// Capture/validate narrow metadata without allocating any CPU-wide advice.
+    /// Exactly ONE caller-owned projection pass must call projectRow for all n.
+    pub fn initMetadata(a: std.mem.Allocator, program: Rom.MetadataView, public: P.Public, log_size: u32, records: []const Record) !Source {
         try public.validate(log_size);
         if (records.len != public.steps) return error.InvalidWord16CpuRecords;
         const metadata = try a.alloc(Metadata, records.len);
@@ -45,7 +60,8 @@ pub const Source = struct {
         for (records, metadata, 0..) |record, *meta, index| {
             const word_index = try program.lookup(pc);
             const instruction = program.decoded[word_index];
-            const operation = Operations.classify(instruction.opcode).?;
+            if (program.admitted.len != 0 and !program.admitted[word_index]) return error.InvalidWord16CpuRecords;
+            const operation = Operations.classify(instruction.opcode) orelse return error.InvalidWord16CpuRecords;
             const ids = Rom.effectiveIds(instruction, program.profile);
             const immediate: u64 = @bitCast(instruction.imm);
             const writes = @import("../../decode.zig").effects(instruction.opcode).writes_rd;
@@ -69,21 +85,29 @@ pub const Source = struct {
         errdefer a.free(range8_counts);
         @memset(range16_counts, 0);
         @memset(range8_counts, 0);
-        const n = @as(usize, 1) << @intCast(log_size);
-        const main = try a.alloc(M, Profile.mainCount(program.profile) * n);
-        errdefer a.free(main);
-        var source = Source{ .allocator = a, .program = program, .public = public, .log_size = log_size, .metadata = metadata, .main = main, .rom_counts = rom_counts, .range16_counts = range16_counts, .range8_counts = range8_counts };
-        for (0..n) |row| {
-            const values = source.rowValues(row);
-            const pos = L.physical(row, log_size);
-            for (values[0..Profile.mainCount(program.profile)], 0..) |value, column| main[column * n + pos] = value;
-            for (0..3) |slot| {
-                range16_counts[values[L.main.gap16 + slot].v] += 1;
-                range8_counts[values[L.main.gap8 + slot].v] += 1;
-            }
-        }
-        return source;
+        return .{ .allocator = a, .program = program, .public = public, .log_size = log_size, .metadata = metadata, .main = &.{}, .rom_counts = rom_counts, .range16_counts = range16_counts, .range8_counts = range8_counts };
     }
+    /// Shared direct writer input, also records the exact mandatory clock ranges.
+    pub fn projectRow(self: *Source, index: usize) [Profile.MAX_MAIN]M {
+        const values = self.rowValues(index);
+        self.countProjection(index, &values);
+        return values;
+    }
+    /// Indexed writers do not unpack any raw PC into transient word limbs.
+    pub fn projectDataRow(self: *Source, index: usize) [Profile.MAX_MAIN]M {
+        const values = self.dataValues(index);
+        self.countProjection(index, &values);
+        return values;
+    }
+    fn countProjection(self: *Source, index: usize, values: *const [Profile.MAX_MAIN]M) void {
+        std.debug.assert(index == self.rows_projected and index < self.size());
+        for (0..3) |slot| {
+            self.range16_counts[values[L.main.gap16 + slot].v] += 1;
+            self.range8_counts[values[L.main.gap8 + slot].v] += 1;
+        }
+        self.rows_projected += 1;
+    }
+
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
     }
@@ -115,7 +139,7 @@ pub const Source = struct {
         }
         return result;
     }
-    pub const AluFact = struct { op: Operations.Alu, a: u64, b: u64, c: u64 };
+    pub const AluFact = Operations.AluFact;
     pub fn aluFacts(self: *const Source, a: std.mem.Allocator) ![]AluFact {
         var count: usize = 0;
         for (self.metadata) |meta| if (Operations.classify(self.program.rowInstruction(meta.rom_row).opcode).?.family == .alu) {
@@ -134,17 +158,20 @@ pub const Source = struct {
     /// The SAME projection fills committed main and post-commit lookup inputs.
     /// Every PC/NEXT has4x16bits. Padding links unmasked to the final public PC.
     pub fn rowValues(self: *const Source, index: usize) [Profile.MAX_MAIN]M {
+        var result = self.dataValues(index);
+        const pc = if (index < self.metadata.len) self.program.rowPc(self.metadata[index].rom_row) else self.public.final_pc;
+        const next = if (index < self.metadata.len) self.program.rowNext(self.metadata[index].rom_row) else self.public.final_pc;
+        @memcpy(result[L.main.pc..][0..4], &P.word(M, pc));
+        @memcpy(result[L.main.next_pc..][0..4], &P.word(M, next));
+        return result;
+    }
+    pub fn dataValues(self: *const Source, index: usize) [Profile.MAX_MAIN]M {
         std.debug.assert(index < self.size() and self.metadata.len == self.public.steps);
         var result: [Profile.MAX_MAIN]M = @splat(M.zero());
         if (index < self.metadata.len) {
             const meta = self.metadata[index];
-            const pc = self.program.rowPc(meta.rom_row);
             const instruction = self.program.rowInstruction(meta.rom_row);
             const operation = Operations.classify(instruction.opcode).?;
-            const pc_word = P.word(M, pc);
-            const next_word = P.word(M, self.program.rowNext(meta.rom_row));
-            @memcpy(result[L.main.pc..][0..4], &pc_word);
-            @memcpy(result[L.main.next_pc..][0..4], &next_word);
             result[L.main.opcode] = M.fromCanonical(operation.busId());
             result[L.main.active] = M.one();
             if (self.program.profile == .alu_binary_v2) {
@@ -164,9 +191,6 @@ pub const Source = struct {
                 @memcpy(result[start..][0..4], &limbs);
             }
         } else {
-            const pc_word = P.word(M, self.public.final_pc);
-            @memcpy(result[L.main.pc..][0..4], &pc_word);
-            @memcpy(result[L.main.next_pc..][0..4], &pc_word);
             for (0..3) |slot| result[L.main.zero + slot] = M.one();
         }
         for (0..3) |slot| {
@@ -178,6 +202,22 @@ pub const Source = struct {
             result[L.main.gap8 + slot] = M.fromCanonical(gap >> 16);
         }
         return result;
+    }
+    /// Active rows reuse the independently sealed ROM provider dictionary.
+    /// Padding has valid=1 and an inactive consumer weight, so its strict pole
+    /// inverse is computed separately once rather than borrowed from a valid=0
+    /// padded provider row. No raw PC unpacking occurs inside the row loop.
+    pub fn generateCachedRom(self: *Source, challenges: Lookup.Challenges, range16: []const Q, range8: []const Q, rom_dictionary: []const Q) !P.Claims {
+        try self.public.validate(self.log_size);
+        if (self.metadata.len != self.public.steps or self.rows_projected != self.size()) return error.InvalidWord16CpuPhase;
+        const padding = self.rowValues(self.public.steps);
+        const fields = @import("equations.zig").romTupleProfile(M, self.program.profile, &padding);
+        var denominator = challenges.rom.offset;
+        for (challenges.rom.coefficients, fields[0..16]) |coefficient, value| denominator = denominator.sub(coefficient.mulM31(value));
+        if (self.program.profile == .alu_binary_v2) for (challenges.rom.control_coefficients, fields[16..]) |coefficient, value| {
+            denominator = denominator.sub(coefficient.mulM31(value));
+        };
+        return @import("interaction.zig").generateWithRomCacheParallel(self, challenges, range16, range8, .{ .inverses = rom_dictionary, .padding_inverse = try denominator.inv() }, @import("stwo_prover_engine").work_pool.currentScopedPool());
     }
     pub fn generate(self: *Source, challenges: Lookup.Challenges, range16: []const Q, range8: []const Q) !P.Claims {
         return @import("interaction.zig").generate(self, challenges, range16, range8);

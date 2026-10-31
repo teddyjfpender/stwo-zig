@@ -14,7 +14,6 @@ const CircleDomain = core.poly.circle.domain.CircleDomain;
 const partition = engine.poly.circle.coset_partition;
 const work = engine.work_pool;
 pub const PARTS = 4;
-const MIN_FFT_CELLS_PER_WORKER = 8192;
 
 pub const Evaluation = struct {
     allocator: std.mem.Allocator,
@@ -142,26 +141,7 @@ pub const Evaluation = struct {
         var twiddles = try engine.poly.twiddles.precomputeM31(self.allocator, target.half_coset);
         defer engine.poly.twiddles.deinitM31(self.allocator, &twiddles);
         const tree = engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles);
-        const workers = if (pool) |active| @min(active.workerCount(), @min(buffers.len, @max(1, buffers.len * self.size / MIN_FFT_CELLS_PER_WORKER))) else 1;
-        if (workers <= 1) {
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(buffers, target, tree);
-            if (comptime @import("builtin").is_test) self.test_transformed_columns += buffers.len;
-            return;
-        }
-        var lease = try pool.?.acquire(try work.WorkerBudget.init(workers));
-        defer lease.deinit();
-        var jobs: [work.MAX_WORKERS]TransformJob = undefined;
-        for (jobs[0..workers], 0..) |*job, i| job.* = .{ .buffers = buffers[buffers.len * i / workers .. buffers.len * (i + 1) / workers], .target = target, .twiddles = tree };
-        {
-            var group = std.Thread.WaitGroup{};
-            defer {
-                group.wait();
-                lease.completeWave();
-            }
-            for (jobs[1..workers]) |*job| try lease.spawnWg(&group, TransformJob.run, .{job});
-            jobs[0].run();
-        }
-        for (jobs[0..workers]) |job| if (job.failure) |failure| return failure;
+        try @import("../providers/domain_transform.zig").evaluate(buffers, target, tree, pool);
         if (comptime @import("builtin").is_test) self.test_transformed_columns += buffers.len;
     }
 };
@@ -170,15 +150,3 @@ fn copyCoefficients(poly: Poly, buffer: []M) void {
     @memcpy(buffer[0..source.len], source);
     @memset(buffer[source.len..], M.zero());
 }
-
-const TransformJob = struct {
-    buffers: [][]M,
-    target: CircleDomain,
-    twiddles: engine.poly.twiddles.TwiddleTree([]const M),
-    failure: ?anyerror = null,
-    fn run(self: *TransformJob) void {
-        engine.poly.circle.poly.evaluateBuffersWithTwiddles(self.buffers, self.target, self.twiddles) catch |err| {
-            self.failure = err;
-        };
-    }
-};

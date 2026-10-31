@@ -1,4 +1,5 @@
 const std = @import("std");
+const engine = @import("stwo_prover_engine");
 const core = @import("stwo_core");
 const E = @import("../evaluation.zig");
 const A = @import("alu.zig");
@@ -19,6 +20,36 @@ fn facts() [10]S.Fact {
         result[i] = .{ .op = op, .a = x, .b = y, .c = A.nativeResult(op, x, y) };
     }
     return result;
+}
+test "ALU physical native waves equal serial and cancelled submissions preserve borrowed main" {
+    const values = facts();
+    const log = 14;
+    var serial = try S.Source.init(a, &values, log);
+    defer serial.deinit();
+    var pool: engine.work_pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = 1024 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const available = pool.availableWorkers();
+    var parallel = try S.Source.init(a, &values, log);
+    defer parallel.deinit();
+    try std.testing.expectEqualSlices(M, serial.main, parallel.main);
+    try std.testing.expectEqualSlices(u64, serial.range16_counts, parallel.range16_counts);
+    for (serial.metadata, parallel.metadata) |x, y| try std.testing.expect(std.meta.eql(x, y));
+    const borrowed = try a.alloc(M, P.MAIN * (@as(usize, 1) << log));
+    defer a.free(borrowed);
+    @memset(borrowed, M.fromCanonical(23));
+    for ([_]usize{ 0, 1 }) |failure| {
+        S.testing.fail_after_helpers = failure;
+        defer S.testing.fail_after_helpers = null;
+        try std.testing.expectError(error.InjectedAluNativeSubmissionFailure, S.Source.initWithMainBuffers(a, &values, log, .{ .main = borrowed }));
+        for (borrowed) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
+        try std.testing.expectEqual(available, pool.availableWorkers());
+    }
+    var recovered = try S.Source.initWithMainBuffers(a, &values, log, .{ .main = borrowed });
+    defer recovered.deinit();
+    try std.testing.expectEqualSlices(M, serial.main, recovered.main);
 }
 fn ch() P.Challenges {
     var channel = core.channel.blake2s.Blake2sChannel{};

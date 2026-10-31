@@ -94,31 +94,66 @@ pub const Setup = struct {
         self.allocator.free(self.words);
         self.* = undefined;
     }
+    /// Borrowed immutable cache. The owner must outlive all sources/views.
+    pub fn metadataView(self: *const Setup) MetadataView {
+        return .{ .words = self.words, .addresses = self.addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .log_size = self.log_size, .profile = self.profile };
+    }
     pub fn size(self: *const Setup) usize {
-        return @as(usize, 1) << @intCast(self.log_size);
+        return self.metadataView().size();
     }
     pub fn fixedCount(self: *const Setup) usize {
         return Profile.romCount(self.profile) + 2;
     }
     pub fn rowPc(self: *const Setup, index: usize) u64 {
-        return self.addresses[self.row_words[index]];
+        return self.metadataView().rowPc(index);
     }
     pub fn rowInstruction(self: *const Setup, index: usize) isa.Instruction {
-        return self.decoded[self.row_words[index]];
+        return self.metadataView().rowInstruction(index);
     }
     pub fn rowNext(self: *const Setup, index: usize) u64 {
+        return self.metadataView().rowNext(index);
+    }
+    pub fn factIndex(self: *const Setup, word: usize, taken: bool) !usize {
+        return self.metadataView().factIndex(word, taken);
+    }
+    pub fn lookup(self: *const Setup, pc: u64) !usize {
+        return self.metadataView().lookup(pc);
+    }
+};
+/// Native decode metadata only: no fixed tree, wide matrix or fake allocator.
+/// Stored by VALUE; slices borrow one independently derived immutable owner.
+pub const MetadataView = struct {
+    words: []const u32,
+    addresses: []const u64,
+    decoded: []const isa.Instruction,
+    word_rows: []const u32,
+    row_words: []const u32,
+    admitted: []const bool = &.{},
+    log_size: u32,
+    profile: Profile.Profile,
+    pub fn size(self: *const MetadataView) usize {
+        return @as(usize, 1) << @intCast(self.log_size);
+    }
+    pub fn rowPc(self: *const MetadataView, index: usize) u64 {
+        return self.addresses[self.row_words[index]];
+    }
+    pub fn rowInstruction(self: *const MetadataView, index: usize) isa.Instruction {
+        return self.decoded[self.row_words[index]];
+    }
+    pub fn rowNext(self: *const MetadataView, index: usize) u64 {
         const word = self.row_words[index];
         const pc = self.addresses[word];
         return if (index == self.word_rows[word]) pc +% 4 else pc +% @as(u64, @bitCast(self.decoded[word].imm));
     }
-    pub fn factIndex(self: *const Setup, word: usize, taken: bool) !usize {
+    pub fn factIndex(self: *const MetadataView, word: usize, taken: bool) !usize {
+        if (word >= self.words.len or (self.admitted.len != 0 and !self.admitted[word])) return error.InvalidWord16CpuRecords;
         const first = self.word_rows[word];
         if (!taken) return first;
         const next = first + 1;
         if (next >= self.row_words.len or self.row_words[next] != word) return error.InvalidWord16BranchEdge;
         return next;
     }
-    pub fn lookup(self: *const Setup, pc: u64) !usize {
+    pub fn lookup(self: *const MetadataView, pc: u64) !usize {
         var lo: usize = 0;
         var hi = self.addresses.len;
         while (lo < hi) {

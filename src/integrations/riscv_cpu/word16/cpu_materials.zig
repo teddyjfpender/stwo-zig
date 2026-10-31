@@ -1,4 +1,4 @@
-//! Immutable program/geometry materials for the concrete three-opcode CPU.
+//! Immutable program/geometry materials for limited Word16 CPU diagnostics.
 //! Public steps/PCs/registers/clocks never enter these fixed polynomials.
 const std = @import("std");
 const core = @import("stwo_core");

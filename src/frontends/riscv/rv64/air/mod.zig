@@ -135,6 +135,7 @@ pub const word16_v1 = struct {
 
 /// Concrete register-only BINARY CPU; legacy profiles retain their encoding.
 pub const word16_cpu = struct {
+    pub const interaction = @import("word16_cpu/interaction.zig");
     pub const profile = @import("word16_cpu/profile.zig");
     pub const layout = @import("word16_cpu/layout.zig");
     pub const public = @import("word16_cpu/public.zig");
@@ -148,4 +149,13 @@ pub const word16_cpu = struct {
     pub const component = @import("word16_cpu/component.zig");
     pub const table_trace = @import("word16_cpu/table_trace.zig");
     pub const boundary_trace = @import("word16_cpu/boundary_trace.zig");
+};
+
+/// Concrete indexed-address ALU/binary diagnostic, not a runtime profile flag.
+pub const word16_index_control = struct {
+    pub const authority = @import("word16_index_control/authority.zig");
+    pub const equations = @import("word16_index_control/equations.zig");
+    pub const trace = @import("word16_index_control/trace.zig");
+    pub const rom_trace = @import("word16_index_control/rom_trace.zig");
+    pub const component = @import("word16_index_control/component.zig");
 };

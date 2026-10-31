@@ -12,6 +12,7 @@ const Mat = @import("cpu_materials.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Column = engine.pcs.ColumnEvaluation;
+const Profile = @import("stwo_prover_api").stage_profile;
 pub const Claims = struct {
     cpu: W.public.Claims,
     rom: Q,
@@ -52,20 +53,25 @@ pub const Source = struct {
     claims: ?Claims = null,
     alu_claims: ?ALU.lookup.Claims = null,
     pub fn init(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement) !Source {
+        return initProfiled(a, materials, public, records, null);
+    }
+    pub fn initProfiled(a: std.mem.Allocator, materials: *const Mat.Materials, public: W.public.Public, records: []const front.rv64.machine.Retirement, recorder: ?*Profile.Recorder) !Source {
         try public.validate(materials.geometry.cpu_log);
         if (materials.geometry.profile == .binary_v1 and materials.geometry.mode == .local_binary and public.steps > @as(u32, 1) << @intCast(materials.geometry.binary_log)) return error.ThinCpuBinaryCapacity;
+        var cpu_stage = try Profile.StageScope.begin(recorder, "cpu_source", "Native CPU metadata and projection");
+        defer cpu_stage.end();
         var cpu = try W.trace.Source.init(a, &materials.program, public, materials.geometry.cpu_log, records);
+        cpu_stage.end();
         errdefer cpu.deinit();
         var alu: ?ALU.source.Source = null;
         errdefer if (alu) |*value| value.deinit();
         var merged: []u64 = &.{};
         errdefer a.free(merged);
         if (materials.geometry.profile == .alu_binary_v2) {
-            const narrow = try cpu.aluFacts(a);
-            defer a.free(narrow);
-            const facts = try a.alloc(ALU.source.Fact, narrow.len);
+            var alu_stage = try Profile.StageScope.begin(recorder, "alu_source", "Independent ALU witness and range counts");
+            defer alu_stage.end();
+            const facts = try cpu.aluFacts(a);
             defer a.free(facts);
-            for (narrow, facts) |fact, *destination| destination.* = .{ .op = fact.op, .a = fact.a, .b = fact.b, .c = fact.c };
             alu = try ALU.source.Source.init(a, facts, materials.geometry.alu_log);
             merged = try a.dupe(u64, cpu.range16_counts);
             for (merged, alu.?.range16_counts) |*count, addition| {
@@ -84,6 +90,8 @@ pub const Source = struct {
         var and_request: ?Tables.Request = null;
         errdefer if (and_request) |*value| value.deinit();
         if (materials.geometry.mode == .local_binary) {
+            var binary_stage = try Profile.StageScope.begin(recorder, "binary_source", "Independent BINARY witness and table counts");
+            defer binary_stage.end();
             const facts = try cpu.binaryFacts(a);
             defer a.free(facts);
             binary = try Binary.binary_source.Source.init(a, facts, materials.geometry.binary_log);
@@ -112,6 +120,20 @@ pub const Source = struct {
         if (self.alu) |*value| value.releaseMain();
         // AND's tiny multiplicity column supplies its existing generator.
     }
+    /// PCS owns the committed coefficients/evaluations after streaming returns.
+    /// Retain physical claims and metadata; no raw interaction matrix must stay
+    /// live through composition, FRI and decommitment.
+    pub fn releaseCommittedInteraction(self: *Source) void {
+        std.debug.assert(self.claims != null and self.alu_claims != null);
+        release(self.allocator, &self.cpu.interaction);
+        release(self.allocator, &self.rom.interaction);
+        release(self.allocator, &self.range16.interaction);
+        release(self.allocator, &self.range8.interaction);
+        release(self.allocator, &self.boundary);
+        if (self.binary) |*value| release(self.allocator, &value.interaction);
+        if (self.alu) |*value| release(self.allocator, &value.interaction);
+        if (self.and_request) |*value| release(self.allocator, &value.interaction);
+    }
     pub fn columns(self: *const Source, a: std.mem.Allocator, tree: usize) ![]Column {
         if (tree == 0) return self.materials.fixedColumns(a);
         if (tree > 2 or (tree == 2 and self.claims == null)) return error.InvalidThinCpuSourcePhase;
@@ -136,18 +158,33 @@ pub const Source = struct {
         return result;
     }
     pub fn generate(self: *Source, challenges: W.lookup.Challenges, and_challenges: Tables.Challenges) !Claims {
+        return self.generateProfiled(challenges, and_challenges, null);
+    }
+    pub fn generateProfiled(self: *Source, challenges: W.lookup.Challenges, and_challenges: Tables.Challenges, recorder: ?*Profile.Recorder) !Claims {
         if (self.claims != null or self.boundary.len != 0) return error.InvalidThinCpuSourcePhase;
+        var tables_stage = try Profile.StageScope.begin(recorder, "table_interactions", "ROM ranges and register boundary");
+        defer tables_stage.end();
         const range16 = try self.range16.generate(challenges);
         const range8 = try self.range8.generate(challenges);
         const rom = try self.rom.generate(challenges);
         const boundary = try W.boundary_trace.generate(self.allocator, self.materials.boundary_fixed, self.cpu.public, self.materials.geometry.cpu_log, challenges.register);
         self.boundary = boundary.values;
-        const cpu = try self.cpu.generate(challenges, self.range16.dictionary, self.range8.dictionary);
+        tables_stage.end();
+        var cpu_stage = try Profile.StageScope.begin(recorder, "cpu_interactions", "CPU relation interactions");
+        defer cpu_stage.end();
+        const cpu = try self.cpu.generateCachedRom(challenges, self.range16.dictionary, self.range8.dictionary, self.rom.dictionary);
+        cpu_stage.end();
+        var binary_stage = try Profile.StageScope.begin(recorder, "binary_interactions", "BINARY and AND interactions");
+        defer binary_stage.end();
         var binary = Binary.binary_lookup.Claims{ .and_ = Q.zero(), .function = Q.zero() };
         var and_table = Q.zero();
         if (self.binary) |*value| binary = try value.generate(.{ .and_ = and_challenges, .function = challenges.function });
         if (self.and_request) |*value| and_table = try value.generateInteraction(and_challenges);
+        binary_stage.end();
+        var alu_stage = try Profile.StageScope.begin(recorder, "alu_interactions", "ALU function and range interactions");
+        defer alu_stage.end();
         const alu = if (self.alu) |*value| try value.generate(.{ .range16 = challenges.range16, .function = challenges.function }, self.range16.dictionary) else ALU.lookup.Claims{ .range16 = Q.zero(), .function = Q.zero() };
+        alu_stage.end();
         const claims = Claims{ .cpu = cpu, .rom = rom, .boundary = boundary.claim, .range16 = range16, .range8 = range8, .binary = binary, .and_table = and_table };
         try claims.validateProfile(self.materials.geometry.mode, self.materials.geometry.profile, alu);
         self.alu_claims = alu;
@@ -155,3 +192,7 @@ pub const Source = struct {
         return claims;
     }
 };
+fn release(a: std.mem.Allocator, values: *[]M) void {
+    a.free(values.*);
+    values.* = &.{};
+}

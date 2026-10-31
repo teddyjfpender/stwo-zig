@@ -14,7 +14,7 @@ const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;
 const Q = E.Q;
 const CHUNK = 4096;
-pub const Fact = struct { op: Ops.Alu, a: u64, b: u64, c: u64 };
+pub const Fact = Ops.AluFact;
 pub const MainBuffers = struct { main: []M };
 pub const Metadata = struct { payload: [13]u16, range_indices: [20]u16 };
 comptime {
@@ -119,21 +119,11 @@ pub const Source = struct {
         for (nonzero, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 1));
         try core.fields.batchInverseInPlace(M, nonzero, inverses[1..]);
         const main = if (buffers) |b| b.main else try a.alloc(M, length);
-        // Every allocation/validation precedes the first borrowed write.
-        @memset(counts, 0);
-        for (0..n) |i| {
-            const row = nativeRow(if (i < facts.len) facts[i] else null, inverses);
-            const values = P.rowToColumnsFor(M, row);
-            const p = physical(i, log);
-            for (values, 0..) |v, c| main[c * n + p] = v;
-            main[A.LOCAL_MAIN * n + p] = row.active;
-            for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
-            for (0..20) |j| {
-                const index = rangeIndex(&row, j);
-                metadata[i].range_indices[j] = index;
-                counts[index] += 1;
-            }
-        }
+        errdefer if (buffers == null) a.free(main);
+        // No borrowed write occurs until all validation, allocation and helper
+        // submissions succeed. A failed launch releases cancelled readers only.
+        const fill = NativeFill{ .main = main, .metadata = metadata, .inverses = inverses, .facts = facts, .log = log, .size = n };
+        try fill.run(a, counts, engine.work_pool.currentScopedPool());
         return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .fixed = fixed, .main = main, .owns_main = buffers == null, .range16_counts = counts, .metadata = metadata };
     }
     pub fn size(self: *const Source) usize {
@@ -176,11 +166,14 @@ pub const Source = struct {
     /// Dictionary is the ONE shared local U16 provider's post-challenge output.
     /// Native validation is bounded by table size, not repeated per query.
     pub fn generate(self: *Source, ch: P.Challenges, dictionary: []const Q) !P.Claims {
+        return @import("alu_interaction.zig").generate(self, ch, dictionary, engine.work_pool.currentScopedPool());
+    }
+    pub fn generateSerial(self: *Source, ch: P.Challenges, dictionary: []const Q) !P.Claims {
         const n = self.size();
         const a = self.allocator;
         if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidAluSourcePhase;
         if (dictionary.len != 65536 or self.range16_counts.len != 65536 or self.fact_count > n) return error.InvalidAluDictionary;
-        try validateDictionary(ch, dictionary);
+        try validateDictionaryInternal(ch, dictionary);
         const output = try a.alloc(M, P.INTERACTION * n);
         errdefer a.free(output);
         const scratch = try a.alloc(Q, 2 * CHUNK);
@@ -195,7 +188,7 @@ pub const Source = struct {
         var start: usize = 0;
         while (start < n) : (start += CHUNK) {
             const count = @min(CHUNK, n - start);
-            functionDenominators(self.metadata[start..][0..count], scratch[0..count], ch.function);
+            functionDenominatorsInternal(self.metadata[start..][0..count], scratch[0..count], ch.function);
             try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
             for (0..count) |i| {
                 const logical = start + i;
@@ -204,14 +197,14 @@ pub const Source = struct {
                 for (0..10) |batch| {
                     const x = dictionary[meta.range_indices[2 * batch]];
                     const y = dictionary[meta.range_indices[2 * batch + 1]];
-                    store(output, n, p, 4 * batch, x.mul(y));
+                    storeInternal(output, n, p, 4 * batch, x.mul(y));
                     prefix = prefix.add(x).add(y);
                 }
-                store(output, n, p, 40, prefix);
+                storeInternal(output, n, p, 40, prefix);
                 const inverse = scratch[CHUNK + i];
-                store(output, n, p, 44, inverse);
+                storeInternal(output, n, p, 44, inverse);
                 if (logical < self.fact_count) function_sum = function_sum.sub(inverse);
-                store(output, n, p, 48, function_sum);
+                storeInternal(output, n, p, 48, function_sum);
             }
         }
         if (!prefix.isZero()) return error.InvalidAluMetadata;
@@ -225,10 +218,10 @@ pub const Source = struct {
         return .{ .range16 = range_claim, .function = function_sum };
     }
 };
-fn store(data: []M, n: usize, row: usize, start: usize, value: Q) void {
+fn storeInternal(data: []M, n: usize, row: usize, start: usize, value: Q) void {
     for (value.toM31Array(), 0..) |v, c| data[(start + c) * n + row] = v;
 }
-fn validateDictionary(ch: P.Challenges, dictionary: []const Q) !void {
+fn validateDictionaryInternal(ch: P.Challenges, dictionary: []const Q) !void {
     var start: usize = 0;
     while (start < dictionary.len) : (start += E.LANES) {
         var inputs: [E.LANES]M = undefined;
@@ -241,7 +234,7 @@ fn validateDictionary(ch: P.Challenges, dictionary: []const Q) !void {
         }
     }
 }
-fn functionDenominators(metadata: []const Metadata, output: []Q, ch: Bus.Challenges) void {
+fn functionDenominatorsInternal(metadata: []const Metadata, output: []Q, ch: Bus.Challenges) void {
     std.debug.assert(metadata.len == output.len and metadata.len % E.LANES == 0);
     var start: usize = 0;
     while (start < metadata.len) : (start += E.LANES) {
@@ -255,3 +248,93 @@ fn functionDenominators(metadata: []const Metadata, output: []Q, ch: Bus.Challen
         for (0..E.LANES) |i| output[start + i] = values.lane(i);
     }
 }
+
+pub const InteractionSupport = struct {
+    pub const CHUNK_ROWS = CHUNK;
+    pub const validateDictionary = validateDictionaryInternal;
+    pub const functionDenominators = functionDenominatorsInternal;
+    pub const store = storeInternal;
+};
+
+// Physical-order writing keeps all wide-column stores sequential. Only narrow
+// facts and metadata use the inverse permutation; workers never share counts.
+const NativeFill = struct {
+    main: []M,
+    metadata: []Metadata,
+    inverses: []const M,
+    facts: []const Fact,
+    log: u32,
+    size: usize,
+    fn rows(self: *const NativeFill, start: usize, end: usize, counts: []u64) void {
+        for (start..end) |p| {
+            const i = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, self.log), self.log);
+            const row = nativeRow(if (i < self.facts.len) self.facts[i] else null, self.inverses);
+            const values = P.rowToColumnsFor(M, row);
+            for (values, 0..) |v, c| self.main[c * self.size + p] = v;
+            self.main[A.LOCAL_MAIN * self.size + p] = row.active;
+            for (row.payload, 0..) |v, c| self.metadata[i].payload[c] = @intCast(v.v);
+            for (0..20) |j| {
+                const index = rangeIndex(&row, j);
+                self.metadata[i].range_indices[j] = index;
+                counts[index] += 1;
+            }
+        }
+    }
+    fn run(self: *const NativeFill, a: std.mem.Allocator, counts: []u64, pool: ?*engine.work_pool.WorkPool) !void {
+        const workers = if (pool) |active| @min(active.workerCount(), @max(1, self.size / 4096)) else 1;
+        if (pool) |active| if (active.stackSize() < @import("../providers/parallel_rows.zig").MIN_STACK) return error.InvalidAluWorkerStack;
+        if (workers == 1) {
+            @memset(counts, 0);
+            self.rows(0, self.size, counts);
+            return;
+        }
+        const private_counts = try a.alloc(u64, workers * 65536);
+        defer a.free(private_counts);
+        @memset(private_counts, 0);
+        var lease = try pool.?.acquire(try engine.work_pool.WorkerBudget.init(workers));
+        defer lease.deinit();
+        var gate: std.Thread.ResetEvent = .{};
+        var cancelled: std.atomic.Value(bool) = .init(false);
+        var released = false;
+        var jobs: [engine.work_pool.MAX_WORKERS]NativeJob = undefined;
+        for (jobs[0..workers], 0..) |*job, i| job.* = .{ .fill = self, .counts = private_counts[i * 65536 ..][0..65536], .start = self.size * i / workers, .end = self.size * (i + 1) / workers, .gate = &gate, .cancelled = &cancelled };
+        {
+            var group = std.Thread.WaitGroup{};
+            defer {
+                if (!released) {
+                    cancelled.store(true, .release);
+                    gate.set();
+                }
+                group.wait();
+                lease.completeWave();
+            }
+            for (jobs[1..workers], 0..) |*job, submitted| {
+                if (comptime @import("builtin").is_test) if (testing.fail_after_helpers == submitted) return error.InjectedAluNativeSubmissionFailure;
+                try lease.spawnWg(&group, NativeJob.run, .{job});
+            }
+            released = true;
+            gate.set();
+            jobs[0].run();
+        }
+        @memset(counts, 0);
+        for (jobs[0..workers]) |job| for (counts, job.counts) |*total, count| {
+            total.* += count;
+        };
+    }
+};
+const NativeJob = struct {
+    fill: *const NativeFill,
+    counts: []u64,
+    start: usize,
+    end: usize,
+    gate: *std.Thread.ResetEvent,
+    cancelled: *std.atomic.Value(bool),
+    fn run(self: *NativeJob) void {
+        self.gate.wait();
+        if (self.cancelled.load(.acquire)) return;
+        self.fill.rows(self.start, self.end, self.counts);
+    }
+};
+pub const testing = if (@import("builtin").is_test) struct {
+    pub threadlocal var fail_after_helpers: ?usize = null;
+} else struct {};

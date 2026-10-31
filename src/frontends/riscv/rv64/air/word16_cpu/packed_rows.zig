@@ -13,15 +13,19 @@ const Column = @import("stwo_prover_engine").air.accumulation.ColumnAccumulator;
 const LANES = E.LANES;
 pub fn evaluate(component: *const C.Component, columns: []const []const M, inverses: []const M, output: *Column) !void {
     const n = @as(usize, 1) << @intCast(component.log_size + 1);
+    return evaluateRange(component, columns, 0, n, inverses, output);
+}
+pub fn evaluateRange(component: *const C.Component, columns: []const []const M, start: usize, end: usize, inverses: []const M, output: *Column) !void {
+    const n = @as(usize, 1) << @intCast(component.log_size + 1);
     const widths = component.widths();
     const inter_start = widths[0] + widths[1];
-    if (columns.len != inter_start + widths[2] or inverses.len != 2 or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidWord16CpuDomain;
+    if (start > end or end > n or columns.len != inter_start + widths[2] or inverses.len != 2 or output.random_coeff_powers.len != component.nConstraints()) return error.InvalidWord16CpuDomain;
     for (columns) |column| if (column.len != n) return error.InvalidWord16CpuDomain;
     for (output.col.columns) |column| if (column.len < n) return error.InvalidWord16CpuDomain;
-    if (component.scalar_reference) return scalar(component, columns, inverses, output);
-    var begin: usize = 0;
-    while (begin < n) : (begin += LANES) {
-        const count = @min(LANES, n - begin);
+    if (component.scalar_reference) return scalar(component, columns, start, end, inverses, output);
+    var begin: usize = start;
+    while (begin < end) : (begin += LANES) {
+        const count = @min(LANES, end - begin);
         var values: [C.MAX_COLUMNS]F = undefined;
         var previous_main: [Profile.MAX_MAIN]F = @splat(F.zero());
         var previous: [56]F = @splat(F.zero());
@@ -45,10 +49,10 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, inver
         accumulate(output, begin, count, accumulator.accumulation.mulBase(F.fromLanes(denominators)));
     }
 }
-fn scalar(component: *const C.Component, columns: []const []const M, inverses: []const M, output: *Column) !void {
+fn scalar(component: *const C.Component, columns: []const []const M, start: usize, end: usize, inverses: []const M, output: *Column) !void {
     const widths = component.widths();
     const inter_start = widths[0] + widths[1];
-    for (0..columns[0].len) |row| {
+    for (start..end) |row| {
         var values: [C.MAX_COLUMNS]Q = undefined;
         var previous_main: [Profile.MAX_MAIN]Q = @splat(Q.zero());
         var previous: [56]Q = @splat(Q.zero());

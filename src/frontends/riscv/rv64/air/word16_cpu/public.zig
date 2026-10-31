@@ -1,4 +1,5 @@
-//! Public instance data. Fixed setup depends only on immutable program and
+//! Public data for binary and ALU/branch diagnostics, not full RV64 execution.
+//! Fixed setup depends only on immutable program and
 //! geometry; these values are mixed afresh and never become fixed columns.
 const std = @import("std");
 const core = @import("stwo_core");

@@ -11,6 +11,7 @@ pub const schema = @import("cpu_materials.zig").schema;
 pub const Stage1 = @import("cpu_stage.zig").Stage1;
 pub const Encoded = @import("cpu_stage.zig").Encoded;
 pub const produce = @import("cpu_stage.zig").produce;
+pub const produceProfiled = @import("cpu_stage.zig").produceProfiled;
 pub const verifyClosed = @import("cpu_verify.zig").verifyClosed;
 pub const verifyOpen = @import("cpu_verify.zig").verifyOpen;
 
