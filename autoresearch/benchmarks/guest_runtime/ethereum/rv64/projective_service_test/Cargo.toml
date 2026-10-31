@@ -8,7 +8,12 @@ publish = false
 
 [features]
 word-packets = ["k256-service/stwo-projective-word-service"]
+vartime = ["word-packets", "k256-service/stwo-vartime", "k256-service/ecdsa", "k256-control/ecdsa", "ecdsa/stwo-skip-redundant-recovery-verify"]
 
 [dependencies]
 k256-control = { package = "k256", version = "=0.13.4", default-features = false, features = ["arithmetic", "expose-field"] }
 k256-service = { package = "k256", path = "../vendor/k256", default-features = false, features = ["arithmetic", "expose-field", "stwo-projective-service"] }
+ecdsa = { version = "=0.16.9", default-features = false }
+
+[patch.crates-io]
+ecdsa = { path = "../vendor/ecdsa" }

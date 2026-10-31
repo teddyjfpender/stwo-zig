@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--execution-report", type=Path)
     parser.add_argument("--oracle-report", type=Path)
-    parser.add_argument("--guest-profile", choices=("software", "keccak-service-v1", "ethereum-services-v1", "ethereum-services-v2"), default="software")
+    parser.add_argument("--guest-profile", choices=("software", "keccak-service-v1", "ethereum-services-v1", "ethereum-services-v2", "ethereum-services-v2-lean"), default="software")
     args = parser.parse_args()
     if not 1 <= args.jobs <= 8:
         parser.error("jobs must be in 1..8")
@@ -46,7 +46,7 @@ def main():
     env = dict(os.environ, RUSTFLAGS="-C link-arg=-Tlinker.ld")
     service_features = ["--features", "keccak-service"] if args.guest_profile != "software" else []
     if args.guest_profile.startswith("ethereum-services-"):
-        service_features = ["--features", "keccak-service,secp-word-service" if args.guest_profile.endswith("v2") else "keccak-service,secp-service"]
+        service_features = ["--features", {"ethereum-services-v1": "keccak-service,secp-service", "ethereum-services-v2": "keccak-service,secp-word-service", "ethereum-services-v2-lean": "keccak-service,secp-lean"}[args.guest_profile]]
         for name in ("linker.ld", "riscv64i-stwo.json"):
             if (workspace / name).read_bytes() != (HERE / name).read_bytes():
                 raise ValueError("service workspace runtime contract differs: " + name)
@@ -55,7 +55,7 @@ def main():
          "build-std-features=compiler-builtins-mem"], workspace, env=env)
     elf = workspace / "target/riscv64i-stwo/release/stwo-ethereum-rv64-guest"
     # Keep the executable source target immutable and publish a separate artifact.
-    guest_name = {"software": "ethereum-rv64-software.elf", "keccak-service-v1": "ethereum-rv64-keccak-service-v1.elf", "ethereum-services-v1": "ethereum-rv64-services-v1.elf", "ethereum-services-v2": "ethereum-rv64-services-v2.elf"}[args.guest_profile]
+    guest_name = {"software": "ethereum-rv64-software.elf", "keccak-service-v1": "ethereum-rv64-keccak-service-v1.elf", "ethereum-services-v1": "ethereum-rv64-services-v1.elf", "ethereum-services-v2": "ethereum-rv64-services-v2.elf", "ethereum-services-v2-lean": "ethereum-rv64-services-v2-lean.elf"}[args.guest_profile]
     guest = artifacts / guest_name
     guest.write_bytes(elf.read_bytes())
     report = {"schema": "stwo.rv64.ethereum-software-build.v1", "toolchain": TOOLCHAIN,

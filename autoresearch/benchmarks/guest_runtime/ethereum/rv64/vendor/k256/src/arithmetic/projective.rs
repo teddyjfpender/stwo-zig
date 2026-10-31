@@ -27,6 +27,8 @@ use alloc::vec::Vec;
 
 #[cfg(feature = "stwo-projective-service")]
 mod stwo_service;
+#[cfg(feature = "stwo-vartime")]
+pub(crate) use stwo_service::words as stwo_words;
 
 #[rustfmt::skip]
 const ENDOMORPHISM_BETA: FieldElement = FieldElement::from_bytes_unchecked(&[

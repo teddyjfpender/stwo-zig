@@ -50,3 +50,17 @@ with `--prepare-fixture`. The script checks freshly built ELF/source identity,
 validated input/output, exact instruction count, all registers, PC and the oracle
 report's native-report hash before publishing execution status. Proof status
 always remains false. See `vectors/reports/rv64-ethereum-20261030/ORACLE.md`.
+
+## Lean services profile (`ethereum-services-v2-lean`)
+
+`build.py --guest-profile ethereum-services-v2-lean` builds the same Keccak and
+secp256k1 word-service guest with two guest-side changes and no change to the
+execution profile, ECALL tags, packet layouts or AIR: ECDSA recovery no longer
+re-verifies the recovered key (the check is algebraically implied; see
+`vendor/ecdsa/src/recovery.rs`), and the GLV scalar multiplication runs on
+service word packets in variable time (`k256` feature `stwo-vartime`; public
+signature data only). On block 24,628,607 this executes 149,306,899 instead of
+213,659,488 instructions with half the secp256k1 service calls. Receipts and the
+independent services oracle are in `vectors/reports/rv64-guest-lean-20261031/`.
+The `heap_start` ABI symbol differs between the two ELFs; always derive
+execution and proving request symbols from the ELF being run.
