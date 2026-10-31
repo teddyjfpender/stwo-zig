@@ -52,13 +52,12 @@ fn oracle(main: []const M, log: u32, ch: P.Challenges) !Oracle {
             store(data, n, r, 4 * batch, ix.mul(iy));
             and_sum = and_sum.add(ix).add(iy);
         }
-        store(data, n, r, 16, and_sum);
         const inverse = try ch.function.denominatorFor(Q, row.payload).inv();
-        store(data, n, r, 20, inverse);
+        store(data, n, r, 16, inverse);
         function_sum = function_sum.sub(inverse.mul(values[B.LOCAL_MAIN]));
-        store(data, n, r, 24, function_sum);
+        store(data, n, r, 20, and_sum.add(function_sum));
     }
-    for ([_]usize{ 16, 24 }, [_]Q{ and_sum, function_sum }) |start, claim| {
+    for ([_]usize{20}, [_]Q{and_sum.add(function_sum)}) |start, claim| {
         const correction = claim.toM31Array();
         for (correction, 0..) |v, c| for (0..n) |r| {
             data[(start + c) * n + r] = data[(start + c) * n + r].sub(v);
@@ -260,4 +259,56 @@ test "weighted BinarySource corrupt weight ledger and strict padding pole publis
     try std.testing.expectError(error.DivisionByZero, source.generate(ch));
     try std.testing.expectEqual(@as(usize, 0), source.interaction.len);
     _ = try source.generate(challenges());
+}
+
+test "merged BINARY prefix authenticates precisely the combined debt and all strict inverse poles" {
+    const ch = challenges();
+    const row = B.witness(.xor, 0x1234fedcba987654, 0xfedc010203040506);
+    var main: [P.MAIN]Q = undefined;
+    main[0..B.LOCAL_MAIN].* = P.rowToColumnsFor(Q, row);
+    main[B.LOCAL_MAIN] = E.q(7);
+    var inter: [P.INTERACTION]Q = @splat(Q.zero());
+    var and_claim = Q.zero();
+    for (0..4) |batch| {
+        const x = try ch.and_.denominator(&B.andTupleFor(Q, &row, 2 * batch)).inv();
+        const y = try ch.and_.denominator(&B.andTupleFor(Q, &row, 2 * batch + 1)).inv();
+        for (x.mul(y).toM31Array(), 0..) |v, c| inter[4 * batch + c] = Q.fromBase(v);
+        and_claim = and_claim.add(x).add(y);
+    }
+    const inverse = try ch.function.denominatorFor(Q, row.payload).inv();
+    for (inverse.toM31Array(), 0..) |v, c| inter[16 + c] = Q.fromBase(v);
+    const claims = P.Claims{ .and_ = and_claim, .function = inverse.mul(E.q(7)).neg() };
+    const previous: [P.INTERACTION]Q = @splat(Q.zero());
+    for (0..4) |mutation| {
+        var current = inter;
+        var altered = claims;
+        if (mutation == 1) {
+            // Neither field is a separately authenticated certificate. Replacing
+            // an additive split while preserving its sum preserves this AIR.
+            altered.and_ = altered.and_.add(E.q(13));
+            altered.function = altered.function.sub(E.q(13));
+        }
+        if (mutation == 2) altered.function = altered.function.add(E.q(1));
+        if (mutation == 3) current[16] = current[16].add(E.q(1));
+        var residuals: [P.CONSTRAINTS]Q = undefined;
+        var sink = E.Sink{ .values = &residuals };
+        P.emitFor(Q, &main, &current, &previous, Q.one(), Q.one(), altered, ch, &sink);
+        var clean = true;
+        for (residuals) |v| clean = clean and v.isZero();
+        try std.testing.expectEqual(mutation < 2, clean);
+    }
+    // A zero-weight padding row still cannot omit the strict FUNCTION inverse.
+    var padding = B.witness(.and_, 0, 0);
+    padding.active = Q.zero();
+    padding.payload[0] = Q.zero();
+    padding.selectors = @splat(Q.zero());
+    main[0..B.LOCAL_MAIN].* = P.rowToColumnsFor(Q, padding);
+    main[B.LOCAL_MAIN] = Q.zero();
+    var pole = ch;
+    pole.function.offset = Q.zero();
+    pole.function.coefficients = @splat(Q.zero());
+    var residuals: [P.CONSTRAINTS]Q = undefined;
+    var sink = E.Sink{ .values = &residuals };
+    P.emitFor(Q, &main, &inter, &previous, Q.one(), Q.one(), claims, pole, &sink);
+    try std.testing.expect(!residuals[P.CONSTRAINTS - 3].isZero());
 }

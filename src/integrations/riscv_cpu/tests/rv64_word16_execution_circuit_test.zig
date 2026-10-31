@@ -146,3 +146,56 @@ test "ROM and unit JALR circuit point adapters bind physical claims without nati
         }
     }
 }
+
+test "merged BINARY circuit authority binds secure challenges claims and inverse witnesses" {
+    const B = front.rv64_air.word16_v1.binary_lookup;
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    var ch: B.Challenges = undefined;
+    inline for (.{ "and_", "function" }) |field| {
+        @field(ch, field).offset = channel.drawSecureFelt();
+        for (&@field(ch, field).coefficients) |*v| v.* = channel.drawSecureFelt();
+    }
+    const claims = B.Claims{ .and_ = channel.drawSecureFelt(), .function = channel.drawSecureFelt() };
+    var main: [B.MAIN]Q = undefined;
+    var current: [B.INTERACTION]Q = undefined;
+    var previous: [B.INTERACTION]Q = undefined;
+    for (&main) |*v| v.* = channel.drawSecureFelt();
+    for (&current, &previous) |*v, *p| {
+        v.* = channel.drawSecureFelt();
+        p.* = channel.drawSecureFelt();
+    }
+    const first = channel.drawSecureFelt();
+    const last = channel.drawSecureFelt();
+    var reference: [B.CONSTRAINTS]Q = undefined;
+    var ns = E.Sink{ .values = &reference };
+    B.emitFor(Q, &main, &current, &previous, first, last, claims, ch, &ns);
+    for (0..4) |mutation| {
+        var ctx = try Context.init(std.testing.allocator, 0);
+        defer ctx.deinit();
+        var cw: B.ChallengesFor(F) = undefined;
+        inline for (.{ "and_", "function" }) |field| {
+            @field(cw, field).offset = try wire(&ctx, @field(ch, field).offset.add(if (mutation == 1 and std.mem.eql(u8, field, "function")) Q.one() else Q.zero()));
+            for (&@field(cw, field).coefficients, @field(ch, field).coefficients) |*v, q| v.* = try wire(&ctx, q);
+        }
+        const claims_w = B.ClaimsFor(F){ .and_ = try wire(&ctx, claims.and_), .function = try wire(&ctx, claims.function.add(if (mutation == 2) Q.one() else Q.zero())) };
+        var mw: [B.MAIN]F = undefined;
+        var iw: [B.INTERACTION]F = undefined;
+        var pw: [B.INTERACTION]F = undefined;
+        for (&mw, main) |*v, q| v.* = try wire(&ctx, q);
+        for (&iw, &pw, current, previous, 0..) |*v, *p, q, prior, c| {
+            v.* = try wire(&ctx, q.add(if (mutation == 3 and c == 16) Q.one() else Q.zero()));
+            p.* = try wire(&ctx, prior);
+        }
+        const fw = try wire(&ctx, first);
+        const lw = try wire(&ctx, last);
+        var actual: [B.CONSTRAINTS]F = undefined;
+        var sink = E.SinkFor(F){ .values = &actual };
+        LaneModule.begin(&ctx);
+        B.emitFor(F, &mw, &iw, &pw, fw, lw, claims_w, cw, &sink);
+        try LaneModule.finish();
+        try std.testing.expectEqual(B.CONSTRAINTS, sink.count);
+        for (actual, reference) |v, q| try ctx.eq(v.v, try ctx.constant(q));
+        try ctx.finalize(false);
+        try std.testing.expectEqual(mutation == 0, try ctx.isCircuitValid());
+    }
+}

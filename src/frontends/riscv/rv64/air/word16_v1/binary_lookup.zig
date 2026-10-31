@@ -5,12 +5,32 @@ const E = @import("../evaluation.zig");
 const B = @import("binary.zig");
 const Tables = @import("../providers/tables.zig");
 pub const MAIN = B.LOCAL_MAIN + 1; // final column is committed fact multiplicity.
-pub const INTERACTION = 28; // AND:4 inverses+prefix; function:inverse+prefix.
-pub const CONSTRAINTS = B.CONSTRAINTS + 10;
+pub const INTERACTION = 24; // Four AND pair inverses, FUNCTION inverse, one merged prefix.
+pub const encoding = @import("binary_encoding.zig");
+pub const CONSTRAINTS = B.CONSTRAINTS + 8;
 const FunctionBus = @import("function_bus.zig");
 pub const FunctionChallenges = FunctionBus.Challenges;
 pub const Challenges = struct { and_: Tables.Challenges, function: FunctionChallenges };
+/// Only the sum is authenticated by this component. Integrations must close
+/// the combined debt against the AND provider and FUNCTION consumers; these
+/// fields are an additive ledger decomposition, not separate certificates.
 pub const Claims = struct { and_: E.Q, function: E.Q };
+pub fn ClaimsFor(comptime C: type) type {
+    return if (C == E.Q) Claims else struct { and_: C, function: C };
+}
+pub fn ChallengesFor(comptime C: type) type {
+    if (C == E.Q) return Challenges;
+    return struct {
+        and_: struct { offset: C, coefficients: [6]C },
+        function: struct {
+            offset: C,
+            coefficients: [13]C,
+            pub fn denominatorFor(self: @This(), comptime F: type, tuple: [13]F) E.SecureFor(F) {
+                return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
+            }
+        },
+    };
+}
 
 pub fn rowFromColumnsFor(comptime F: type, values: []const F) B.RowFor(F) {
     std.debug.assert(values.len >= B.LOCAL_MAIN);
@@ -49,7 +69,7 @@ pub fn rowToColumnsFor(comptime F: type, row: B.RowFor(F)) [B.LOCAL_MAIN]F {
 /// equation rejects a pole even when multiplicity is zero.
 pub const emitFunctionFor = FunctionBus.emitFor;
 
-pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: []const F, first: F, last: F, claims: Claims, ch: Challenges, sink: anytype) void {
+pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: []const F, first: F, last: F, claims: ClaimsFor(E.ConstFor(F)), ch: ChallengesFor(E.ConstFor(F)), sink: anytype) void {
     const S = E.SecureFor(F);
     const row = rowFromColumnsFor(F, main);
     B.emitFor(F, &row, sink);
@@ -66,8 +86,10 @@ pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: 
         sink.emit(dx.mul(dy).mul(inverse).sub(S.one()));
         contribution = contribution.add(dx.add(dy).mul(inverse));
     }
-    const sum = E.secureFor(F, current, 16);
-    sink.emit(sum.sub(E.secureFor(F, previous, 16)).add(E.mulBaseFor(F, E.splatFor(F, claims.and_), first)).sub(contribution));
+    const inverse = E.secureFor(F, current, 16);
+    sink.emit(inverse.mul(ch.function.denominatorFor(F, row.payload)).sub(S.one()));
+    contribution = contribution.sub(E.mulBaseFor(F, inverse, multiplicity));
+    const sum = E.secureFor(F, current, 20);
+    sink.emit(sum.sub(E.secureFor(F, previous, 20)).add(E.mulBaseFor(F, E.splatFor(F, claims.and_.add(claims.function)), first)).sub(contribution));
     sink.emit(E.mulBaseFor(F, sum, last));
-    emitFunctionFor(F, row.payload, multiplicity.neg(), first, last, E.secureFor(F, current, 20), E.secureFor(F, current, 24), E.secureFor(F, previous, 24), claims.function, ch.function, sink);
 }

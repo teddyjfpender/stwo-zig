@@ -80,7 +80,7 @@ pub const Component = struct {
         return indices;
     }
     pub fn needsPrevious(self: *const Component, column: usize) bool {
-        return if (self.kind == .binary) (column >= 16 and column < 20) or column >= 24 else column >= 4;
+        return if (self.kind == .binary) column >= 20 else column >= 4;
     }
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !air.MaskPoints {
         try self.validateContext();

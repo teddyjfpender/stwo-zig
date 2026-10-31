@@ -10,6 +10,7 @@ pub const Draw = struct { cpu: W.lookup.Challenges, and_: air.providers.tables.C
 pub fn mixLocal(channel: *P.Channel, materials: *const Mat.Materials, public: W.public.Public) !void {
     if (materials.geometry.mode != .local_binary) return error.ExpectedClosedThinCpuMaterials;
     P.config().mixInto(channel);
+    air.word16_v1.binary_lookup.encoding.mix(channel);
     if (materials.geometry.profile == .binary_v1) {
         channel.mixU32s(&.{ 0x57313643, 1, @intFromEnum(materials.geometry.mode), materials.geometry.cpu_log, materials.geometry.binary_log, 44, 56, 16, 6, 13, 24 });
     } else {

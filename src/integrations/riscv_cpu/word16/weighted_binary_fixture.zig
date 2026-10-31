@@ -125,6 +125,7 @@ const Fixture = struct {
 };
 fn mix(channel: *Channel, roster: *const C.ExpectedRoster) !void {
     CONFIG.mixInto(channel);
+    P.encoding.mix(channel);
     // Version, ordered role IDs/logs/widths and all positive relation masses.
     channel.mixU32s(&.{ 0x57424d55, 1, 1, 5, 2, S.MAIN, S.INTERACTION, 2, 5, 34, 14, 8, 3, 16, 5, 1, 8, 13, 31, 256 });
     const digest = try C.expectedRosterDigest(roster);

@@ -65,12 +65,13 @@ pub fn diagnosticRoster() Roster {
     return roster;
 }
 fn schema(role: T.Role) T.Digest {
-    var digest: T.Digest = undefined;
-    std.crypto.hash.sha2.Sha256.hash(if (role == .public_consumer)
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(if (role == .public_consumer)
         "rv64.distributed.functional13.public-roster.main14.fixed34.v1"
     else
-        "rv64.distributed.functional13.binary42.and65536.v1", &digest, .{});
-    return digest;
+        "rv64.distributed.functional13.binary42.inter24.merged-debt.and65536.v2");
+    if (role != .public_consumer) hash.update(&B.encoding.identity());
+    return hash.finalResult();
 }
 fn admitRoster(roster: *const Roster) !void {
     _ = try C.expectedRosterDigest(roster);

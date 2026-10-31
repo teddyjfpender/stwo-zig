@@ -60,9 +60,10 @@ pub const Materials = struct {
     }
 };
 pub fn schema() T.Digest {
-    var digest: T.Digest = undefined;
-    std.crypto.hash.sha2.Sha256.hash("rv64.distributed.binary-worker.v1.main42.and65536.function13", &digest, .{});
-    return digest;
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("rv64.distributed.binary-worker.v2.main42.inter24.merged-debt.and65536.function13");
+    hash.update(&P.encoding.identity());
+    return hash.finalResult();
 }
 fn validateSpec(materials: *const Materials, spec: T.Spec) !void {
     try T.validateSpec(spec);

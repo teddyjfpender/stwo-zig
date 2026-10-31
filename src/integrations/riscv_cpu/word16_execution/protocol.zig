@@ -1,5 +1,6 @@
-//! One concrete full64 execution transcript. All component claims are physical,
-//! mixed before interaction commitment and constrained by this exact roster.
+//! One concrete full64 execution transcript. Component totals are physical;
+//! BINARY exposes two additive ledger fields authenticated by one combined
+//! prefix. All fields are mixed before interaction commitment.
 const std = @import("std");
 const core = @import("stwo_core");
 const front = @import("stwo_riscv_frontend");
@@ -70,6 +71,7 @@ pub fn mix(channel: *T.P.Channel, setup: *const @import("setup.zig").Setup, requ
     T.P.config().mixInto(channel);
     channel.mixU32s(&.{ 0x52563634, 0x57463137, 1, 53, 40, 30, 19, 33, 2, 1 });
     digest(channel, X.features.identity());
+    B.binary_lookup.encoding.mix(channel);
     digest(channel, setup.materials.program.identity);
     digest(channel, image_identity);
     for (setup.materials.shapes()) |shape| {

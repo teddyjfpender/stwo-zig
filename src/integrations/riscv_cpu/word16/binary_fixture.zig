@@ -138,11 +138,10 @@ pub const Fixture = struct {
                 store(data, r, 4 * batch, inverse);
                 and_sum = and_sum.add(dx.add(dy).mul(inverse));
             }
-            store(data, r, 16, and_sum);
             const inverse = try ch.function.denominatorFor(Q, row.payload).inv();
-            store(data, r, 20, inverse);
+            store(data, r, 16, inverse);
             function_sum = function_sum.sub(inverse.mul(source[B.LOCAL_MAIN]));
-            store(data, r, 24, function_sum);
+            store(data, r, 20, and_sum.add(function_sum));
             var expected_tuple: [13]Q = undefined;
             for (&expected_tuple, 0..) |*v, j| v.* = Q.fromBase(self.expected[j * N + r]);
             const expected_inverse = try ch.function.denominatorFor(Q, expected_tuple).inv();
@@ -151,8 +150,7 @@ pub const Fixture = struct {
             store(expected_data, r, 4, expected_sum);
         }
         for (0..N) |r| {
-            for (and_sum.toM31Array(), 0..) |_, j| data[(16 + j) * N + r] = data[(16 + j) * N + r].sub(and_sum.toM31Array()[j]);
-            for (function_sum.toM31Array(), 0..) |_, j| data[(24 + j) * N + r] = data[(24 + j) * N + r].sub(function_sum.toM31Array()[j]);
+            for (and_sum.add(function_sum).toM31Array(), 0..) |v, j| data[(20 + j) * N + r] = data[(20 + j) * N + r].sub(v);
             for (expected_sum.toM31Array(), 0..) |_, j| expected_data[(4 + j) * N + r] = expected_data[(4 + j) * N + r].sub(expected_sum.toM31Array()[j]);
         }
         const table_claim = try self.request.generateInteraction(ch.and_);
@@ -170,6 +168,7 @@ pub const CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_blo
 fn mix(channel: *Channel) void {
     CONFIG.mixInto(channel);
     // Version, ordered roles, native logs, payload arity, exact positive masses.
+    P.encoding.mix(channel);
     channel.mixU32s(&.{ 0x57313642, 1, 1, 5, 2, 5, 3, 16, 13, 3, 8 * N, 2 });
 }
 fn draw(channel: *Channel) P.Challenges {
@@ -287,7 +286,7 @@ pub fn verify(a: std.mem.Allocator, encoded: Encoded, tamper: bool) !void {
     @memset(logs[0 .. P.INTERACTION + 8], 5);
     @memset(logs[P.INTERACTION + 8 ..], 16);
     try verifier.commit(a, commitments[2], &logs, &channel);
-    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][24][1] = proof.commitment_scheme_proof.sampled_values.items[2][24][1].add(Q.one());
+    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][20][1] = proof.commitment_scheme_proof.sampled_values.items[2][20][1].add(Q.one());
     const c = components(ch, encoded.claims);
     const handles = [_]core.air.components.Component{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() };
     owns = false;

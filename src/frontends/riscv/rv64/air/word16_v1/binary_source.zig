@@ -248,17 +248,16 @@ pub const Source = struct {
                     store(output, n, p, 4 * batch, x.mul(y));
                     and_prefix = and_prefix.add(x).add(y);
                 }
-                store(output, n, p, 16, and_prefix);
                 const inverse = scratch[CHUNK + i];
-                store(output, n, p, 20, inverse);
+                store(output, n, p, 16, inverse);
                 function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
-                store(output, n, p, 24, function_sum);
+                store(output, n, p, 20, and_prefix.add(function_sum));
             }
         }
         if (!and_prefix.isZero()) return error.InvalidBinaryMetadata;
         const correction = function_sum.toM31Array();
         for (0..4) |c| for (0..n) |row| {
-            output[(24 + c) * n + row] = output[(24 + c) * n + row].sub(correction[c]);
+            output[(20 + c) * n + row] = output[(20 + c) * n + row].sub(correction[c]);
         };
         self.interaction = output;
         a.free(self.metadata);

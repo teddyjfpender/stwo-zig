@@ -167,3 +167,43 @@ test "Word16 binary complete mixed lookup authority matches scalar OODS and nati
         }
     }
 }
+
+test "merged BINARY residuals are cubic at arbitrary full extension coordinates" {
+    var channel = @import("stwo_core").channel.blake2s.Blake2sChannel{};
+    const ch = P.Challenges{ .and_ = .{ .offset = channel.drawSecureFelt(), .coefficients = blk: {
+        var c: [6]E.Q = undefined;
+        for (&c) |*v| v.* = channel.drawSecureFelt();
+        break :blk c;
+    } }, .function = .{ .offset = channel.drawSecureFelt(), .coefficients = blk: {
+        var c: [13]E.Q = undefined;
+        for (&c) |*v| v.* = channel.drawSecureFelt();
+        break :blk c;
+    } } };
+    const claims = P.Claims{ .and_ = channel.drawSecureFelt(), .function = channel.drawSecureFelt() };
+    const N = P.MAIN + 2 * P.INTERACTION + 2;
+    var origin: [N]E.Q = undefined;
+    var slope: [N]E.Q = undefined;
+    for (&origin, &slope) |*o, *s| {
+        o.* = channel.drawSecureFelt();
+        s.* = channel.drawSecureFelt();
+    }
+    var evaluations: [5][P.CONSTRAINTS]E.Q = undefined;
+    for (&evaluations, 0..) |*result, i| {
+        var v: [N]E.Q = undefined;
+        for (&v, origin, slope) |*out, o, s| out.* = o.add(s.mul(E.q(@intCast(i))));
+        var sink = E.Sink{ .values = result };
+        P.emitFor(E.Q, v[0..P.MAIN], v[P.MAIN..][0..P.INTERACTION], v[P.MAIN + P.INTERACTION ..][0..P.INTERACTION], v[N - 2], v[N - 1], claims, ch, &sink);
+        try std.testing.expectEqual(P.CONSTRAINTS, sink.count);
+    }
+    var genuine_cubic = false;
+    for (0..P.CONSTRAINTS) |c| {
+        var differences: [5]E.Q = undefined;
+        for (&differences, evaluations) |*d, row| d.* = row[c];
+        for (0..4) |order| {
+            for (0..4 - order) |i| differences[i] = differences[i + 1].sub(differences[i]);
+            if (order == 2) genuine_cubic = genuine_cubic or !differences[0].isZero();
+        }
+        try std.testing.expect(differences[0].isZero());
+    }
+    try std.testing.expect(genuine_cubic);
+}

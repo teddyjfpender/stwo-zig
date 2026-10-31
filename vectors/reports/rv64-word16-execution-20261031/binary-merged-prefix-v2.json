@@ -1,0 +1,132 @@
+{
+  "schema": "rv64-word16-binary-merged-prefix-v2-qualification",
+  "scope": "BINARY physical prefix encoding; semantic FUNCTION13/AND truth unchanged; not a standalone CPU or RAM proof",
+  "encoding_sha256": "10e5f6a4e55ae19cee58ba5e210af4f3e62e24f7d404ca6dce0c35efbeb72e0e",
+  "geometry": {
+    "fixed": 2,
+    "main": 42,
+    "old_interaction": 28,
+    "new_interaction": 24,
+    "old_constraints": 52,
+    "new_constraints": 50,
+    "old_masks": 80,
+    "new_masks": 72,
+    "native_quotient_factor": 2,
+    "degree": 3,
+    "strict_secure_inverses": 5,
+    "old_secure_prefixes": 2,
+    "new_secure_prefixes": 1
+  },
+  "claims": "Only AND+FUNCTION sum is physically authenticated in BINARY. Ledger split stays serialized and transcript-bound; all accepting owners close the joint debt. Local redistributed split intentionally preserves residuals.",
+  "security_gates": [
+    "strict AND pairs and FUNCTION pole inverse including inactive/zero weight",
+    "weighted witness reconstruction and allocation failure/retry",
+    "arbitrary QM31 cubic degree; scalar/PackedM31/PackedQM31 residual parity",
+    "actual CircuitLane parity with altered challenge/claim/inverse rejected",
+    "closed q70/P26 proof and separate fresh receiver",
+    "full17-role execution coordinator and true two-CPU/shared-BINARY aggregate",
+    "typed AND/FUNCTION closures and complete-root FS inventories retained"
+  ],
+  "qualified": {
+    "ReleaseSafe": [
+      "test-riscv64-word16-binary-source",
+      "test-riscv64-word16-binary-proof",
+      "test-riscv64-word16-chips",
+      "test-riscv64-word16-execution-circuit",
+      "test-riscv64-word16-execution-coordinator",
+      "test-riscv64-distributed-execution",
+      "test-riscv64-distributed-functional"
+    ],
+    "ReleaseFast": [
+      "test-riscv64-word16-binary-source",
+      "test-riscv64-word16-binary-proof",
+      "test-riscv64-word16-chips",
+      "test-riscv64-word16-execution-circuit",
+      "test-riscv64-word16-execution-coordinator",
+      "test-riscv64-distributed-execution",
+      "test-riscv64-distributed-functional"
+    ]
+  },
+  "proof": {
+    "scope": "diagnostic-public-io-binary-and-one-pcs",
+    "proof_bytes": 243440,
+    "proof_sha256": "9777c317201e1cdceb91f37f6a05d1a69ffb760040446aa502686202c1e3253f",
+    "encoding_version": 2,
+    "encoding_sha256": "10e5f6a4e55ae19cee58ba5e210af4f3e62e24f7d404ca6dce0c35efbeb72e0e",
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup": 1,
+    "nominal_config_bits": 96,
+    "explicit_scoped_worker_pool": false,
+    "source_cells": 920448,
+    "source_bytes": 3681792,
+    "trace_oods_masks": 118,
+    "binary": {
+      "log": 5,
+      "fixed": 2,
+      "main": 42,
+      "interaction": 24
+    },
+    "public_consumer": {
+      "log": 5,
+      "fixed": 16,
+      "main": 0,
+      "interaction": 8
+    },
+    "and_provider": {
+      "log": 16,
+      "fixed": 5,
+      "main": 1,
+      "interaction": 8
+    },
+    "positive_function_mass": 3,
+    "and_mass_including_padding": 256,
+    "quotient_factor": 2,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "proof_artifact": "vectors/reports/interop_artifacts/rv64-word16-binary-merged-prefix-v2",
+  "fresh_receiver": {
+    "accepted": true,
+    "independently_expected_roster_and_fixed_root": true,
+    "cpu_bound": false,
+    "ram_bound": false
+  },
+  "performance": {
+    "measured": false,
+    "claim": "No runtime/peak-RSS/proof-size improvement claimed. New proof hashes intentionally differ; old layout remains historical control."
+  },
+  "cost": {
+    "source_bytes_saved_per_domain_row": 16,
+    "native_2n_current_extension_bytes_saved_per_row_when_allocated": 32,
+    "separate_previous_matrix": false,
+    "lookup_count_unchanged": true,
+    "main_unchanged": true,
+    "whole_standalone_source_cells": 920448
+  },
+  "logs": [
+    "/tmp/rv64-binary-merged-safe.log",
+    "/tmp/rv64-binary-merged-fast-summary.log",
+    "/tmp/rv64-binary-merged-integration-safe.log",
+    "/tmp/rv64-binary-merged-distributed-fast.log",
+    "/tmp/rv64-binary-merged-distributed-safe-final.log"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary_encoding.zig": "6538ca18c1654c7b541d805c51131e3a70a15540fd370a6e3eb0b969484559d7",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_lookup.zig": "e9d647d785ac09e6816fcbd9999c0989bf9d07f12365a7b26ad5f758e2015957",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "3ae7ee283bbc986d5130baf609aeec7ef78d1bada8fa1378495458f06f54936c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "38a49e427cbc6ff084b9615e82c4779f766ac0ed82bbb3820e05a3b93b6736de",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_test.zig": "4e471e850df5e79fdebe0e2644ae1f3924aa4c3be58b95d8caf82fbcd04d7ea6",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source_test.zig": "15218c2fad240a8b4e364b688d23e1621297cd316f2ad875d9b646dbf3bdfab0",
+    "src/integrations/riscv_cpu/rv64_distributed_execution_v1/binary_worker.zig": "f705dea9f2e8c0972f25692359b29a4d387005d9a11a35c3e72dbabcd60db2f5",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/functional.zig": "93d952fa224e8240d55267d8fdc906d86ef9100655dc89a0d91f16b5fbd989fc",
+    "src/integrations/riscv_cpu/rv64_word16_binary_fixture_main.zig": "c3538abe00c55e281a8f4042683cb3ae5af9be7ae706333c611dbc7d24b1c79d",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_circuit_test.zig": "0102286c47c3320eb1934740000d5cc13ea4240c133ad0a749250b377d9f434d",
+    "src/integrations/riscv_cpu/word16/binary_fixture.zig": "6d495c4eb085ad05cb6aca75e651a4dab69161c4a7ac303e37ebffa3f80ae559",
+    "src/integrations/riscv_cpu/word16/weighted_binary_fixture.zig": "558c51e4224b8877784155d7f889006018678baf7abab052b2b53b36b4a4255c",
+    "src/integrations/riscv_cpu/word16/cpu_protocol.zig": "c30acea434dcc2bb15eeee041f661d12d5886511638edf3e2d5e33ac1ac64fcd",
+    "src/integrations/riscv_cpu/word16_index/protocol.zig": "cc52451da18bcf6210819f332172bd05cb2b0909bbe0e0b096341063dec7c257",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "3d651951580f6a7399c7d1da02840ab72d57b6c9b225452126d6a1b7a789668e",
+    "design/riscv-proving-stack/rv64-binary-merged-prefix.md": "778a0618718b99f029571ce59304a6da0561392701ff8bb3138d7bb095e9e834"
+  }
+}
