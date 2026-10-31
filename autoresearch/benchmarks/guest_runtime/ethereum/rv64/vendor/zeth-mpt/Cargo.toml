@@ -1,0 +1,17 @@
+# Vendored from paradigmxyz/stateless rev a134a621 (crates/zeth-mpt) with the
+# workspace-inherited fields made concrete and the unused optional features
+# removed; the stateless crate enables no features. See src/mpt/rlp.rs for the
+# stwo changes.
+[package]
+name = "zeth-mpt"
+edition = "2021"
+version = "0.1.0"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+alloy-trie = { version = "0.9.4", default-features = false, features = ["ethereum"] }
+alloy-rlp = { version = "0.3.16", default-features = false }
+alloy-primitives = { version = "1.6.1", default-features = false, features = ["map-foldhash", "map-indexmap"] }
+arrayvec = { version = "0.7", default-features = false }

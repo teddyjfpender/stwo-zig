@@ -43,3 +43,8 @@ panic = "abort"
 [patch.crates-io]
 k256 = { path = "../vendor/k256" }
 ecdsa = { path = "../vendor/ecdsa" }
+revm-interpreter = { path = "../vendor/revm-interpreter" }
+revm-bytecode = { path = "../vendor/revm-bytecode" }
+
+[patch."https://github.com/paradigmxyz/stateless.git"]
+zeth-mpt = { path = "../vendor/zeth-mpt" }

@@ -1,0 +1,27 @@
+{
+  "elf": "/private/tmp/stwo-rv64-guest-lean/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/target/riscv64i-stwo/release/stwo-ethereum-rv64-guest",
+  "input": "/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+  "elf_sha256": "e5e27339669ca07367e16bb76a1a07be76a7c8d7d47923bca76d59ce19f1b5de",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "symbols": {
+    "input_start": 8388608,
+    "input_end": 12582912,
+    "halt_flag": 12582912,
+    "output_len": 12582916,
+    "output_data": 12582920,
+    "output_end": 16777216,
+    "stack_bottom": 16777216,
+    "stack_top": 33554432,
+    "heap_start": 33648672,
+    "heap_end": 268435456
+  },
+  "max_steps": 1000000000,
+  "execution_profile": "ethereum_services_v2",
+  "pc_profile": {
+    "start": 1024,
+    "end": 4194304
+  },
+  "compact_capture_batch_steps": 1048576,
+  "census_batch_steps": 1048576
+}

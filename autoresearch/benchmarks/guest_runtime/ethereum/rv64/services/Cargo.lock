@@ -2457,8 +2457,6 @@ dependencies = [
 [[package]]
 name = "revm-bytecode"
 version = "42.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "537356bdec80dbc04e4e6bb688b3441ff7cf18eecdcf3cac23150633c46467f1"
 dependencies = [
  "bitvec",
  "phf",
@@ -2561,8 +2559,6 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "42.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd310927437752ce4bac6997b385772823b84843f04c82e151993bec1265a5ed"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -3393,7 +3389,6 @@ dependencies = [
 [[package]]
 name = "zeth-mpt"
 version = "0.1.0"
-source = "git+https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621bad7229ff7f980e42dfca8e22d101491"
 dependencies = [
  "alloy-primitives",
  "alloy-rlp",
