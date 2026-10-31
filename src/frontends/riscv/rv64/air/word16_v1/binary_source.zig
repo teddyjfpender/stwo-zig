@@ -10,6 +10,7 @@ const B = @import("binary.zig");
 const P = @import("binary_lookup.zig");
 const Bus = @import("function_bus.zig");
 const Operations = @import("operations.zig");
+const NativeFill = @import("binary_native_fill.zig");
 const Tables = @import("../providers/tables.zig");
 const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;
@@ -100,18 +101,18 @@ pub const Source = struct {
     and_counts: []u64,
     metadata: []Metadata,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
-        return initInternal(a, facts, null, log, null);
+        return initInternal(a, facts, null, log, null, engine.work_pool.currentScopedPool(), null);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, facts, null, log, buffers);
+        return initInternal(a, facts, null, log, buffers, engine.work_pool.currentScopedPool(), null);
     }
     pub fn initWeighted(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32) !Source {
-        return initInternal(a, facts, weights, log, null);
+        return initInternal(a, facts, weights, log, null, engine.work_pool.currentScopedPool(), null);
     }
     pub fn initWeightedWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, facts, weights, log, buffers);
+        return initInternal(a, facts, weights, log, buffers, engine.work_pool.currentScopedPool(), null);
     }
-    fn initInternal(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32, buffers: ?MainBuffers) !Source {
+    fn initInternal(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32, buffers: ?MainBuffers, pool: ?*engine.work_pool.WorkPool, fail_after: ?usize) !Source {
         const mass = try massForLog(log);
         const n: usize = @intCast(mass.fact_capacity);
         const main_len = std.math.mul(usize, MAIN, n) catch return error.InvalidBinaryGeometry;
@@ -148,25 +149,24 @@ pub const Source = struct {
         const metadata = try a.alloc(Metadata, n);
         errdefer a.free(metadata);
         const main = if (buffers) |value| value.main else try a.alloc(M, main_len);
-        // No allocations or fallible operations after the first borrowed write.
+        errdefer if (buffers == null) a.free(main);
         @memset(counts, 0);
-        for (0..n) |i| {
-            const row = nativeRow(if (i < facts.len) facts[i] else null);
-            const values = P.rowToColumnsFor(M, row);
-            const p = physical(i, log);
-            for (values, 0..) |v, c| main[c * n + p] = v;
-            const weight: u32 = if (i < facts.len) (if (weights) |input_weights| input_weights[i] else 1) else 0;
-            main[B.LOCAL_MAIN * n + p] = M.fromCanonical(weight);
-            metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
-            for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
-            for (0..8) |j| {
-                const index = Tables.Kind.byte_and.rowIndex(.{ row.a[j].v, row.b[j].v, row.ab[j].v, 0, 0, 0 }) catch unreachable;
-                metadata[i].and_indices[j] = @intCast(index);
-                counts[index] += 1;
-            }
-        }
+        const fill = NativeFill.Fill{ .facts = facts, .weights = weights, .log = log, .main = main, .metadata = metadata };
+        if (comptime @import("builtin").is_test) {
+            if (fail_after) |after| {
+                try NativeFill.testing.failSubmission(fill, a, counts, pool orelse return error.ExpectedBinaryNativePool, after);
+            } else try fill.run(a, counts, pool);
+        } else try fill.run(a, counts, pool);
         return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .function_mass = @intCast(function_mass), .fixed = fixed, .main = main, .owns_main = buffers == null, .and_counts = counts, .metadata = metadata };
     }
+    pub const testing = if (@import("builtin").is_test) struct {
+        pub fn initSerial(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32) !Source {
+            return initInternal(a, facts, weights, log, null, null, null);
+        }
+        pub fn failSubmission(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers, pool: *engine.work_pool.WorkPool, after: usize) !Source {
+            return initInternal(a, facts, null, log, buffers, pool, after);
+        }
+    } else struct {};
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
     }
@@ -301,3 +301,21 @@ fn functionDenominators(metadata: []const Metadata, values: []Q, ch: P.FunctionC
         for (0..E.LANES) |lane| values[start + lane] = result_.lane(lane);
     }
 }
+
+/// One native row authority, shared by scalar and joined physical formatters.
+pub const NativeSupport = struct {
+    pub fn write(facts: []const Fact, weights: ?[]const u32, main: []M, metadata: []Metadata, counts: []u64, n: usize, i: usize, p: usize) void {
+        const row = nativeRow(if (i < facts.len) facts[i] else null);
+        const values = P.rowToColumnsFor(M, row);
+        for (values, 0..) |v, c| main[c * n + p] = v;
+        const weight: u32 = if (i < facts.len) (if (weights) |w| w[i] else 1) else 0;
+        main[B.LOCAL_MAIN * n + p] = M.fromCanonical(weight);
+        metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
+        for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
+        for (0..8) |j| {
+            const index = Tables.Kind.byte_and.rowIndex(.{ row.a[j].v, row.b[j].v, row.ab[j].v, 0, 0, 0 }) catch unreachable;
+            metadata[i].and_indices[j] = @intCast(index);
+            counts[index] += 1;
+        }
+    }
+};
