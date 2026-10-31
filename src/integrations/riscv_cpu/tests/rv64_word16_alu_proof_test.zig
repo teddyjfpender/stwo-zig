@@ -6,7 +6,7 @@ test "experimental Word16 ALU D3 proves complete paired U16/function closures in
     defer a.free(encoded.bytes);
     try F.verify(a, encoded, false);
     if (F.verify(a, encoded, true)) |_| return error.ExpectedPrefixRejection else |_| {}
-    inline for (.{ .result, .carry, .sign_range }) |attack| {
+    inline for (.{ .result, .carry, .sign_range, .sum_zero_range }) |attack| {
         if (F.produce(a, attack)) |forged| {
             a.free(forged.bytes);
             return error.ExpectedAluForgeryRejection;

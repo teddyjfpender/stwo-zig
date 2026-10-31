@@ -7,7 +7,8 @@ const S = @import("sources.zig");
 pub fn mix(channel: *P.Channel, materials: *const Mat.Materials, state: air.word16_cpu.public.Public, pairs: []const Mat.Pair) !void {
     const endpoints = try materials.validatePublic(state, pairs);
     P.config().mixInto(channel);
-    channel.mixU32s(&.{ 0x49445843, 1, materials.geometry.cpu_log, materials.geometry.alu_log, materials.geometry.binary_log, 40, 56, 17, 5, 49 });
+    channel.mixU32s(&.{ 0x49445843, 2, materials.geometry.cpu_log, materials.geometry.alu_log, materials.geometry.binary_log, 40, 56, 17, 5, 49 });
+    air.word16_v1.alu_experiment.equations.encoding.mix(channel);
     mixDigest(channel, materials.authority.identity);
     mixDigest(channel, try air.word16_cpu.public.digest(state, materials.geometry.cpu_log));
     channel.mixU32s(&.{ endpoints.initial_id, endpoints.final_id });

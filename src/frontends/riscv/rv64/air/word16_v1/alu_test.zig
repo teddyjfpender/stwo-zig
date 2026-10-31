@@ -93,7 +93,7 @@ fn packedFields(comptime F: type, comptime n: usize, scalar: *[16][n]E.Q, counte
     }
     return output;
 }
-test "Word16 complete ALU authority preserves all80 residuals across base and arbitrary secure lanes" {
+test "Word16 complete ALU authority preserves all69 residuals across base and arbitrary secure lanes" {
     var ch = P.Challenges{ .range16 = .{ .offset = secure(3), .coefficient = secure(7) }, .function = .{ .offset = secure(11), .coefficients = undefined } };
     for (&ch.function.coefficients, 0..) |*v, i| v.* = secure(@intCast(17 + 4 * i));
     const claims = P.Claims{ .range16 = secure(71), .function = secure(79) };
@@ -118,4 +118,20 @@ test "Word16 complete ALU authority preserves all80 residuals across base and ar
             for (residuals, reference) |actual, expected| try std.testing.expect(actual.lane(lane).eql(expected));
         }
     }
+}
+
+test "ALU SUM zero needs physical U16 closure even for canonical input words" {
+    var row = try A.witness(.eq, 65536, 1);
+    row.difference = .{ E.Q.one().neg(), E.Q.one(), E.Q.zero(), E.Q.zero() };
+    row.borrow = @splat(E.Q.zero());
+    row.zero = E.Q.one();
+    row.inverse = E.Q.zero();
+    row.sign[3] = E.Q.zero();
+    row.low[3] = E.Q.one();
+    row.payload[9] = E.Q.one();
+    var sink = Sink{};
+    A.emitFor(E.Q, &row, &sink);
+    try std.testing.expect(!sink.nonzero);
+    for (row.payload[1..9]) |value| try std.testing.expect((try value.tryIntoM31()).v < 65536);
+    try std.testing.expect((try A.rangeValueFor(E.Q, &row, 12).tryIntoM31()).v >= 65536);
 }

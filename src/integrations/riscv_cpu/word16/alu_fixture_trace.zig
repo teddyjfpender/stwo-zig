@@ -11,7 +11,7 @@ const U = X.range_source;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const N = 32;
-pub const Attack = enum { none, result, carry, sign_range };
+pub const Attack = enum { none, result, carry, sign_range, sum_zero_range };
 fn row(i: usize) !A.RowFor(Q) {
     return switch (i) {
         0 => A.witness(.add, 0xffffffffffffffff, 1),
@@ -31,6 +31,16 @@ fn row(i: usize) !A.RowFor(Q) {
             break :blk r;
         },
     };
+}
+/// Narrow semantic statement, independent of physical ALU hint encoding.
+pub fn expectedRoster() !C.ExpectedRoster {
+    var roster: C.ExpectedRoster = @splat(@splat(M.zero()));
+    for (0..N) |i| {
+        const r = try row(i);
+        for (r.payload, 0..) |value, c| roster[i][c] = try value.tryIntoM31();
+        roster[i][13] = try r.active.tryIntoM31();
+    }
+    return roster;
 }
 pub const Fixture = struct {
     allocator: std.mem.Allocator,
@@ -58,7 +68,7 @@ pub const Fixture = struct {
         @memset(counts, 0);
         var roster: C.ExpectedRoster = @splat(@splat(M.zero()));
         for (0..N) |i| {
-            var r = try row(i);
+            var r = if (i == 6 and attack == .sum_zero_range) try A.witness(.eq, 65536, 1) else try row(i);
             const honest = r;
             if (i == 0 and attack == .result) r.payload[9] = r.payload[9].add(Q.one());
             if (i == 0 and attack == .carry) r.carry[0] = rv.evaluation.q(2);
@@ -71,6 +81,19 @@ pub const Fixture = struct {
                 var sink = rv.evaluation.Sink{ .values = &residuals };
                 A.emitFor(Q, &r, &sink);
                 for (residuals) |v| if (!v.isZero()) return error.InvalidAluForgeryOracle;
+            }
+            if (i == 6 and attack == .sum_zero_range) {
+                r.difference = .{ Q.one().neg(), Q.one(), Q.zero(), Q.zero() };
+                r.borrow = @splat(Q.zero());
+                r.zero = Q.one();
+                r.inverse = Q.zero();
+                r.sign[3] = Q.zero();
+                r.low[3] = Q.one();
+                r.payload[9] = Q.one();
+                var residuals: [A.CONSTRAINTS]Q = undefined;
+                var sink = rv.evaluation.Sink{ .values = &residuals };
+                A.emitFor(Q, &r, &sink);
+                for (residuals) |v| if (!v.isZero()) return error.InvalidAluSumForgeryOracle;
             }
             const values = P.rowToColumnsFor(Q, r);
             const physical = rv.witness.physical(i, 5);

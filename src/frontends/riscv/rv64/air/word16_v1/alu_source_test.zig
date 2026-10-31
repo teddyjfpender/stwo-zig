@@ -346,3 +346,17 @@ test "ALU weighted metadata corruption and poles publish no interaction and rema
     try std.testing.expectEqual(@as(usize, 0), source.interaction.len);
     _ = try source.generate(challenge, range.dictionary);
 }
+
+test "ALU SUM inverse cache reaches262140 without truncating to U16" {
+    const values = [_]S.Fact{.{ .op = .eq, .a = 0, .b = 1, .c = 0 }};
+    var source = try S.Source.init(a, &values, 5);
+    defer source.deinit();
+    var fields: [P.MAIN]M = undefined;
+    for (&fields, 0..) |*value, c| value.* = source.main[c * N + physical(0, 5)];
+    const row = P.rowFromColumnsFor(M, &fields);
+    var total: u32 = 0;
+    for (row.difference) |limb| total += limb.v;
+    try std.testing.expectEqual(@as(u32, A.encoding.DIFFERENCE_SUM_MAX), total);
+    try std.testing.expect(row.zero.isZero());
+    try std.testing.expect(row.inverse.mul(M.fromCanonical(total)).eql(M.one()));
+}

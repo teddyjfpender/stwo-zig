@@ -73,14 +73,15 @@ fn nativeRow(value: ?Fact, inverses: []const M) A.RowFor(M) {
         r.difference[i] = M.fromCanonical(difference & 65535);
         r.carry[i] = M.fromCanonical(carry);
         r.borrow[i] = M.fromCanonical(borrow);
-        r.zero[i] = M.fromCanonical(@intFromBool((difference & 65535) == 0));
-        r.inverse[i] = inverses[difference & 65535];
     }
     for ([4]M{ r.payload[4], r.payload[8], r.sum[1], r.difference[1] }, 0..) |v, i| {
         r.sign[i] = M.fromCanonical(v.v >> 15);
         r.low[i] = M.fromCanonical(v.v & 32767);
     }
-    r.zero_pair = .{ r.zero[0].mul(r.zero[1]), r.zero[2].mul(r.zero[3]) };
+    var difference_sum: u32 = 0;
+    for (r.difference) |limb| difference_sum += limb.v;
+    r.zero = M.fromCanonical(@intFromBool(difference_sum == 0));
+    r.inverse = inverses[difference_sum];
     r.signed_less = M.fromCanonical(@intCast(A.nativeResult(.slt, f.a, f.b)));
     return r;
 }
@@ -161,10 +162,10 @@ pub const Source = struct {
         errdefer a.free(counts);
         const metadata = try a.alloc(Metadata, n);
         errdefer a.free(metadata);
-        const inverses = try a.alloc(M, 65536);
+        const inverses = try a.alloc(M, A.encoding.INVERSE_CACHE_LEN);
         defer a.free(inverses);
         inverses[0] = M.zero();
-        const nonzero = try a.alloc(M, 65535);
+        const nonzero = try a.alloc(M, A.encoding.DIFFERENCE_SUM_MAX);
         defer a.free(nonzero);
         for (nonzero, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 1));
         try core.fields.batchInverseInPlace(M, nonzero, inverses[1..]);

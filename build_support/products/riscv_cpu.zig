@@ -70,7 +70,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 3 },
         .{ "word16-weighted-alu", "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig", 4 },
-        .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 19 },
+        .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 21 },
         .{ "word16-alu-proof", "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig", 2 },
         .{ "word16-thin-cpu", "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig", 14 },
         .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 10 },

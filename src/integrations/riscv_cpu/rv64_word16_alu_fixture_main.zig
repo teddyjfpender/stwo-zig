@@ -2,6 +2,8 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const F = @import("word16/alu_fixture.zig");
+const X = @import("stwo_riscv_frontend").rv64_air.word16_v1.alu_experiment;
+const C = @import("stwo_riscv_frontend").rv64_air.word16_v1.binary_component;
 
 pub fn main() !void {
     const a = std.heap.smp_allocator;
@@ -20,6 +22,7 @@ pub fn main() !void {
         try dir.writeFile(.{ .sub_path = "claims.json", .data = claims });
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded.bytes, &digest, .{});
+        const roster = try @import("word16/alu_fixture_trace.zig").expectedRoster();
         const receipt = .{
             .scope = "diagnostic-public-io-alu-u16-one-pcs",
             .proof_bytes = encoded.bytes.len,
@@ -28,10 +31,12 @@ pub fn main() !void {
             .pow_bits = 26,
             .log_blowup = 1,
             .nominal_config_bits = 96,
-            .source_cells = 791872,
-            .source_bytes = 3167488,
-            .trace_oods_masks = 198,
-            .alu = .{ .log = 5, .fixed = 2, .main = 60, .interaction = 52 },
+            .encoding_identity = std.fmt.bytesToHex(X.equations.encoding.identity(), .lower),
+            .public_roster_digest = std.fmt.bytesToHex(try C.expectedRosterDigest(&roster), .lower),
+            .source_cells = 791616,
+            .source_bytes = 3166464,
+            .trace_oods_masks = 190,
+            .alu = .{ .log = 5, .fixed = 2, .main = X.lookup.MAIN, .interaction = 52 },
             .public_consumer = .{ .log = 5, .fixed = 34, .main = 14, .interaction = 8 },
             .u16 = .{ .log = 16, .fixed = 3, .main = 1, .interaction = 8 },
             .positive_function_mass = 10,
