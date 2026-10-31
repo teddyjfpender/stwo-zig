@@ -38,6 +38,7 @@ pub const descriptor = product_policy.Descriptor{
 };
 pub fn addProduct(context: Context) void {
     inline for (.{
+        .{ "word16-csp", "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig", 9 },
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
         .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
@@ -150,6 +151,8 @@ pub fn addProduct(context: Context) void {
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
+        .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
+        .{ .name = "rv64-word16-csp", .source = "src/integrations/riscv_cpu/rv64_word16_csp_main.zig" },
         .{ .name = "rv64-word16-global-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_secp_fixture_main.zig" },
         .{ .name = "rv64-word16-shared-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shared_keccak_fixture_main.zig" },
         .{ .name = "rv64-word16-global-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_keccak_fixture_main.zig" },

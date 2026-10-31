@@ -1,0 +1,1057 @@
+{
+  "schema": "rv64-word16-independent-qualification-v1",
+  "qualified_scope": "complete software CSP32 requests and one continuous ordinary RV64IM Sail execution on the joined Word16 CPU/RAM AIR",
+  "implementation_base": "e230e954504a5f04a1e5f73f3f9e190f09256d14",
+  "core_schema": 3,
+  "structural_roles": 18,
+  "physical_claims": 38,
+  "proof_configuration": {
+    "queries": 70,
+    "proof_of_work_bits": 26
+  },
+  "legacy_proofs_used": false,
+  "formal_isa_correctness_proof": false,
+  "rust_same_air_receiver_qualified": false,
+  "excluded_scope": [
+    "ECALL/service semantics",
+    "EBREAK/trap rollback",
+    "misaligned memory",
+    "arbitrary 64-bit PC or wrapping-address coverage",
+    "cross-shard global RAM",
+    "Ethereum block",
+    "recursion"
+  ],
+  "source_sha256": {
+    "build_support/products/catalog.zig": "d89cd487385e8b33fa6ee4234440e8d170fe028cc1d7d013d82c66336dd89290",
+    "build_support/products/riscv_cpu.zig": "b95de04371566bd7a6550c889f500de1b555f0f6a5c70bbff8a0927a8320c920",
+    "design/riscv-proving-stack/rv64-word16-independent-qualification.md": "a7b24e27a8935738df90b8d92dfa458d8b5db73eed0662787ba1b09055310572",
+    "scripts/riscv64_word16_csp_qualify.py": "9024c835516dcb9c4c0221533064adc0380eaefc57be7b864dcb172ad9db939c",
+    "scripts/riscv64_word16_receiver_attacks.py": "608833031e0b3c9b9caf7256337a0372ea641d9cbf1c4352e0d1a58a3755e0b4",
+    "scripts/riscv64_word16_sail_workload.py": "53e8b4d0450299397f478872975439f73b9ec667b977c20b476ef708ddeb25a3",
+    "src/integrations/riscv_cpu/rv64_word16_csp_main.zig": "d61f17674303d5e77f2010709c618aab1546628fe5dee154548e1107a197d777",
+    "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig": "9fd29c9e4e815a7e222357bd2df5efb8cf5f7f4e201422fc3651c1141bfeb230",
+    "src/integrations/riscv_cpu/rv64_word16_sail_main.zig": "99b884c69b7286335ee37180bd9b884a7f99c3d7c9eb83b554e962bee4c2009f",
+    "src/integrations/riscv_cpu/tests/rv64_word16_csp_authority_test.zig": "0b18836766584bdbd85536cb1b14893e1869a03ea3ce50961db81925a3c792be",
+    "src/integrations/riscv_cpu/tests/rv64_word16_sail_authority_test.zig": "b7158a7c6f7a0245b367b1f032d3dc5304ce51255ebe9692562aeb4007071d76",
+    "src/integrations/riscv_cpu/word16_qualification/csp_capture.zig": "f16a3c345d7ffffb32ec4daa90d0cf2b65dd34800334789e0d394352757fc9fd",
+    "src/integrations/riscv_cpu/word16_qualification/csp_execution.zig": "7fab81892d3a4fa7936cbcaa4d1142e65879ea8392d565fc5102c0d281775e03",
+    "src/integrations/riscv_cpu/word16_qualification/csp_image.zig": "72aa9c22a3b72451ede7b9ab1b62fb27e1fa9d31dde7f13fe49104e4326e3678",
+    "src/integrations/riscv_cpu/word16_qualification/native_geometry.zig": "934be16508823de09096a4588df0e75f839a21884af11bfb8471967d793e0608",
+    "src/integrations/riscv_cpu/word16_qualification/sail_capture.zig": "51d01ca8e95889de581d09577a471a3c14227e5dccf276c232e219672732e4c6",
+    "src/integrations/riscv_cpu/word16_qualification/sail_execution.zig": "c3871b11c161ac7c08308e1cd96428cc89294cefea36fb7d555369bded06cee8",
+    "src/integrations/riscv_cpu/word16_qualification/sail_image.zig": "f8a1c441d325ab6f64c9c7ee1048708f0cf989b01b2790a0e3e740363d3457a4"
+  },
+  "tools": {
+    "csp_fast": {
+      "path": "/tmp/rv64-word16-qualification-tools-v3/bin/rv64-word16-csp",
+      "sha256": "c211e2364834606a29a894a952d9500a8933862c6f4873ae04a53ebdf9639098"
+    },
+    "csp_safe": {
+      "path": "/tmp/rv64-word16-qualification-tools-safe-v3/bin/rv64-word16-csp",
+      "sha256": "343d7fbd31dfae1275b51b74e0201d1c0ec5c6d37f5400cb5b56bb55e0e8c8e6"
+    },
+    "sail_fast": {
+      "path": "/tmp/rv64-word16-qualification-tools-v3/bin/rv64-word16-sail",
+      "sha256": "64367646e6127d13e5850175824a70e6f45dddb438f978e16dddd960cd506058"
+    },
+    "sail_safe": {
+      "path": "/tmp/rv64-word16-qualification-tools-safe-v3/bin/rv64-word16-sail",
+      "sha256": "7eb87f8e14f3c7d16b69d4ecba186a40d0342dd0a7adf8c9d9dd3d35d6c2f9bf"
+    }
+  },
+  "gates": {
+    "ReleaseSafe_authority_tests": {
+      "runtime_tests": 9,
+      "log": "/tmp/rv64-word16-sail-consumed-pin-safe.log"
+    },
+    "ReleaseFast_authority_tests": {
+      "runtime_tests": 9,
+      "log": "/tmp/rv64-word16-oracle-final-fast-tests.log"
+    },
+    "safe_fast_exact_encoded_proof_bytes": [
+      "ECDSA positive ladder",
+      "continuous strengthened Sail"
+    ],
+    "CSP_all17_fresh_receivers": [
+      "ReleaseFast",
+      "ReleaseSafe"
+    ]
+  },
+  "csp": {
+    "schema": "rv64-word16-whole-CSP-qualification-v1",
+    "complete": true,
+    "new_word16_joined_air": true,
+    "legacy_proofs_used": false,
+    "execution_oracle": "Unicorn 2.1.4",
+    "execution_report_sha256": "cc90cc1276bbe91a93a4d792018b9d9f91f407d035485a2dea236c2b830c5b3b",
+    "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+    "tool_sha256": "c211e2364834606a29a894a952d9500a8933862c6f4873ae04a53ebdf9639098",
+    "driver_sha256": "9024c835516dcb9c4c0221533064adc0380eaefc57be7b864dcb172ad9db939c",
+    "workers": 8,
+    "ls_ladder": true,
+    "timing_scope": "functional complete processes; no controlled speedup comparison",
+    "cases": [
+      {
+        "target": "keccak",
+        "size": 128,
+        "negative": false,
+        "instructions": 8721,
+        "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "config_sha256": "9ce1d6cc03719868a00f52834a19f969c4810ff94052598acbb34fa31c67cac4",
+        "proof_sha256": "35365c229b0fdfeb3de7c789e16d4a973a38bfb9c822a94995c0396dc065691b",
+        "proof_bytes": 911520,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 241267709,
+        "receiver_process_ns": 33215084,
+        "actual_geometry": {
+          "cpu_log": 14,
+          "alu_log": 11,
+          "binary_log": 12,
+          "shift_log": 11,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 11,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2239552,
+          "main": 2793472,
+          "interaction": 5100672
+        }
+      },
+      {
+        "target": "sha256",
+        "size": 128,
+        "negative": false,
+        "instructions": 14035,
+        "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "config_sha256": "c971aae5d693f241ca13cfbce663b7d4f396432e7ba0d3d29a3e1d566c8447a4",
+        "proof_sha256": "b9ab08168cb677841ff0dff890f857816bc399d839340224e107ee926c699893",
+        "proof_bytes": 956896,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 479642750,
+        "receiver_process_ns": 35630625,
+        "actual_geometry": {
+          "cpu_log": 14,
+          "alu_log": 12,
+          "binary_log": 13,
+          "shift_log": 12,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 11,
+          "ls_tail_log": 9,
+          "boundary_log": 8,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2452544,
+          "main": 3215360,
+          "interaction": 5459072
+        }
+      },
+      {
+        "target": "keccak",
+        "size": 256,
+        "negative": false,
+        "instructions": 16671,
+        "expected_output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "config_sha256": "0da3889083107eb70e424d60f75400ac7eb7515900212940f75f985ffa12fecb",
+        "proof_sha256": "9426fb7e058cb260a3fe7d4e3c12e073b40682f963c47db514fdd86be3ce3275",
+        "proof_bytes": 902384,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 328731958,
+        "receiver_process_ns": 34676583,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 12,
+          "binary_log": 13,
+          "shift_log": 12,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 12,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2311232,
+          "main": 4210688,
+          "interaction": 6222976
+        }
+      },
+      {
+        "target": "sha256",
+        "size": 256,
+        "negative": false,
+        "instructions": 22941,
+        "expected_output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "config_sha256": "352fa318a47ed873dd8272efe2113711f30187948198ebabd9171eab44ff73fc",
+        "proof_sha256": "913a345c26776dd603c8ac789de050b077257376666e5a155032dd2a4af492b8",
+        "proof_bytes": 905840,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 447249583,
+        "receiver_process_ns": 34877375,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 13,
+          "binary_log": 13,
+          "shift_log": 13,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 12,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2524224,
+          "main": 4646912,
+          "interaction": 6616192
+        }
+      },
+      {
+        "target": "keccak",
+        "size": 512,
+        "negative": false,
+        "instructions": 32501,
+        "expected_output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "config_sha256": "bfeee07459175cccb1452574c5d0083bd674bb828f20932ed7b3d4672adb04cc",
+        "proof_sha256": "4f1e7441b7de5cd47b080407a33ab791e77f24a826307bce75c0620d8613c2e0",
+        "proof_bytes": 910272,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 426731875,
+        "receiver_process_ns": 35031041,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 12,
+          "binary_log": 14,
+          "shift_log": 13,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 13,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2348096,
+          "main": 5095424,
+          "interaction": 6960256
+        }
+      },
+      {
+        "target": "sha256",
+        "size": 512,
+        "negative": false,
+        "instructions": 40753,
+        "expected_output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "config_sha256": "8ebdfe80986511ba1ab3d99d9c97ca96d9df3f24eb80db50eba902526f077b51",
+        "proof_sha256": "25dbdca02c19fc24fa3152c2a8e6fc72d9e4f72cd51bef463fa690419031f052",
+        "proof_bytes": 915232,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 479274709,
+        "receiver_process_ns": 32780750,
+        "actual_geometry": {
+          "cpu_log": 16,
+          "alu_log": 13,
+          "binary_log": 14,
+          "shift_log": 14,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 13,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2667584,
+          "main": 7485440,
+          "interaction": 8811648
+        }
+      },
+      {
+        "target": "keccak",
+        "size": 1024,
+        "negative": false,
+        "instructions": 64161,
+        "expected_output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "config_sha256": "27dd4c518f6fa5fef59779a3ab0089e8f6d7923d18e6cb26f772ca82c1ea01dc",
+        "proof_sha256": "cdb74e53e0da16f95153727317a9766be9684d687e92e00dc3589e16823a3a39",
+        "proof_bytes": 908928,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 334853333,
+        "receiver_process_ns": 34960042,
+        "actual_geometry": {
+          "cpu_log": 16,
+          "alu_log": 13,
+          "binary_log": 15,
+          "shift_log": 14,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 14,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2528320,
+          "main": 8814592,
+          "interaction": 9942144
+        }
+      },
+      {
+        "target": "sha256",
+        "size": 1024,
+        "negative": false,
+        "instructions": 76377,
+        "expected_output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "config_sha256": "607007f2e6c2d0b2b5d24e6d6892a15c064133384a9bf62e2ebd7de4bbcb93cf",
+        "proof_sha256": "f146026c507a776f532c6c69804f8aa6c08a86e795429a94ee7d6f7b17a92c32",
+        "proof_bytes": 949112,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 395385958,
+        "receiver_process_ns": 36523334,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 14,
+          "binary_log": 15,
+          "shift_log": 15,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 14,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2970688,
+          "main": 13588480,
+          "interaction": 13595776
+        }
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 2,
+        "negative": false,
+        "instructions": 81898,
+        "expected_output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+        "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "config_sha256": "f1ec064ddf9b98f950f9c66505e869400817e7fe6775f2d24d39e62a8fd553fa",
+        "proof_sha256": "297024d144ac5da3847780fc762a8c28a0dfb3cad2e291ac2bfb5b23cf12ab15",
+        "proof_bytes": 996360,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 421147292,
+        "receiver_process_ns": 41167333,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 15,
+          "binary_log": 13,
+          "shift_log": 14,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 12,
+          "ls_log": 13,
+          "ls_tail_log": 12,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2787680,
+          "main": 12545184,
+          "interaction": 13571456
+        }
+      },
+      {
+        "target": "keccak",
+        "size": 2048,
+        "negative": false,
+        "instructions": 127510,
+        "expected_output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "config_sha256": "9cd6479ad418979996c92bad2b45400379d6505693be376600595165c0ed538d",
+        "proof_sha256": "ae0183f1da8bb6e6d547d883ee8aee025f1174f5bbf1001fd52f141c477ce711",
+        "proof_bytes": 942456,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 814664375,
+        "receiver_process_ns": 38637292,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 14,
+          "binary_log": 16,
+          "shift_log": 15,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 15,
+          "ls_tail_log": null,
+          "boundary_log": 10,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2891840,
+          "main": 16276480,
+          "interaction": 15926400
+        }
+      },
+      {
+        "target": "sha256",
+        "size": 2048,
+        "negative": false,
+        "instructions": 147625,
+        "expected_output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "config_sha256": "3b4b25219d6025fbe01bddd32ffc6cb1634a7b320a27eb495f6d6bfc2c361d0f",
+        "proof_sha256": "848009300536418fe914c1070131fd955c8837a602e929416561592ea6e5658b",
+        "proof_bytes": 981168,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 835753667,
+        "receiver_process_ns": 46734292,
+        "actual_geometry": {
+          "cpu_log": 18,
+          "alu_log": 15,
+          "binary_log": 16,
+          "shift_log": 16,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 15,
+          "ls_tail_log": null,
+          "boundary_log": 10,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 3579968,
+          "main": 25818112,
+          "interaction": 23184512
+        }
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 4,
+        "negative": false,
+        "instructions": 163666,
+        "expected_output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "config_sha256": "5d6ee0fe8f4e3f740b7f5c547e4f05265d5733978edc3c64b3b3e674b82738b2",
+        "proof_sha256": "87d284be0ddef9b2fcad238ff40bad4b13305d6e87b444fd808bf70d356f1c2c",
+        "proof_bytes": 1032496,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 802347291,
+        "receiver_process_ns": 52059875,
+        "actual_geometry": {
+          "cpu_log": 18,
+          "alu_log": 16,
+          "binary_log": 14,
+          "shift_log": 15,
+          "jalr_log": 6,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 14,
+          "ls_tail_log": 13,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 3344800,
+          "main": 23736032,
+          "interaction": 23172864
+        }
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 8,
+        "negative": false,
+        "instructions": 327202,
+        "expected_output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+        "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "config_sha256": "56af530facba41af7d46e3f44cb61d5fe94bb41a356c62adfe1c266173727777",
+        "proof_sha256": "7985cbde79606f17792a4773c2c2bbc4835a346db9312d9b739ba65534f8fd55",
+        "proof_bytes": 1067448,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 1172026458,
+        "receiver_process_ns": 72385584,
+        "actual_geometry": {
+          "cpu_log": 19,
+          "alu_log": 17,
+          "binary_log": 15,
+          "shift_log": 16,
+          "jalr_log": 7,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 14,
+          "ls_log": 15,
+          "ls_tail_log": 14,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 4459040,
+          "main": 46117728,
+          "interaction": 42375680
+        }
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 12,
+        "negative": false,
+        "instructions": 490738,
+        "expected_output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+        "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "config_sha256": "8fc6ae3f1ab42f456215db1a6f7b1e3561049bad661a3a9ab32918e014c56d3b",
+        "proof_sha256": "0551294d8f3965815bec3cdf648ba11d203fcccd1a691b0e7335eacec51e5f39",
+        "proof_bytes": 1021752,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 2187694000,
+        "receiver_process_ns": 68270583,
+        "actual_geometry": {
+          "cpu_log": 19,
+          "alu_log": 18,
+          "binary_log": 15,
+          "shift_log": 16,
+          "jalr_log": 7,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 15,
+          "ls_log": 16,
+          "ls_tail_log": null,
+          "boundary_log": 7,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 4819872,
+          "main": 55656160,
+          "interaction": 53519360
+        }
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 16,
+        "negative": false,
+        "instructions": 654274,
+        "expected_output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "config_sha256": "07f29c11bf745ab65ee4393f7d6c14cb7d7640ddec284fd1aee24cfb3b6aee8f",
+        "proof_sha256": "3c231fac9c5639f722a96db10f94acd7a64b21c6172f53388ccaeeeb3fae7ddd",
+        "proof_bytes": 1103472,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 1969333500,
+        "receiver_process_ns": 116047583,
+        "actual_geometry": {
+          "cpu_log": 20,
+          "alu_log": 18,
+          "binary_log": 16,
+          "shift_log": 17,
+          "jalr_log": 8,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 15,
+          "ls_log": 16,
+          "ls_tail_log": 15,
+          "boundary_log": 7,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 6687904,
+          "main": 90884064,
+          "interaction": 80783872
+        }
+      },
+      {
+        "target": "ecdsa_secp256k1",
+        "size": 32,
+        "negative": false,
+        "instructions": 1625938,
+        "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+        "config_sha256": "23cdaf1b9e03c16fab1a097e02730e87af0f17ec5ba82f556fae413446c42e21",
+        "proof_sha256": "f8c6b4f50c8e3e5fb7d17a37f92d6d789b391b2c1c7ef1065e05afc4d22d6a01",
+        "proof_bytes": 1148600,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 5570150375,
+        "receiver_process_ns": 221519833,
+        "actual_geometry": {
+          "cpu_log": 21,
+          "alu_log": 19,
+          "binary_log": 17,
+          "shift_log": 17,
+          "jalr_log": 13,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 18,
+          "ls_log": 19,
+          "ls_tail_log": 15,
+          "boundary_log": 11,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 13498272,
+          "main": 219299552,
+          "interaction": 227199488
+        }
+      },
+      {
+        "target": "ecdsa_secp256k1",
+        "size": 32,
+        "negative": true,
+        "instructions": 1627849,
+        "expected_output": "0000000000000000000000000000000000000000000000000000000000000000",
+        "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+        "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+        "config_sha256": "becfef112d57fbd93da95733a577be20c05dfaed2cc0eba31e98937b516dc35f",
+        "proof_sha256": "6fac1feea8b57a4c6ca5fa954c9f957b4e0602041610a93a409b95d1e942f9dc",
+        "proof_bytes": 1155736,
+        "fresh_receiver_verified": true,
+        "producer_process_ns": 5703422542,
+        "receiver_process_ns": 225049875,
+        "actual_geometry": {
+          "cpu_log": 21,
+          "alu_log": 19,
+          "binary_log": 17,
+          "shift_log": 17,
+          "jalr_log": 13,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 18,
+          "ls_log": 19,
+          "ls_tail_log": 15,
+          "boundary_log": 11,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 13498272,
+          "main": 219299552,
+          "interaction": 227199488
+        }
+      }
+    ]
+  },
+  "sail": {
+    "oracle_path": "/tmp/rv64-word16-sail-workload-v2/oracle.json",
+    "oracle_sha256": "acd11c3af331517630f627444387c9bf29080f8e664523f96133115f4182ea87",
+    "elf_sha256": "ffd638bf944f6b43d8e96d8a2d495939abb9b17a6474f67afe912d27dd089229",
+    "rvfi_sha256": "099971a9ce6123c2c93d6b1d3672e89bbf1f0d019393e1b830b7f6429b923179",
+    "sail_revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+    "target_cases": 12903,
+    "setup_instructions": 1019337,
+    "steps": 1032240,
+    "ordinary_retiring_opcodes": 63,
+    "every_retirement_compared": true,
+    "input_extension_zero_handling": "independent prestate reconstructed from all prior Sail rd outputs",
+    "proof_bytes": 1052400,
+    "proof_sha256": "965c0d86e5f101aac90f0ff3641302721937395f8a830a6e6d70d27102a6ad97",
+    "source_cells": {
+      "fixed": 39966784,
+      "main": 88144128,
+      "interaction": 73764736
+    },
+    "geometry": {
+      "cpu_log": 20,
+      "alu_log": 12,
+      "binary_log": 18,
+      "shift_log": 18,
+      "jalr_log": 5,
+      "division_log": 11,
+      "omit_empty_division": false,
+      "multiplication_log": 11,
+      "ls_log": 15,
+      "ls_tail_log": null,
+      "boundary_log": 5,
+      "initial_log": null,
+      "terminal_log": null
+    },
+    "actual_consumed_RVFI_pin": {
+      "mutated_unused_rvfi_field": true,
+      "error": "error: SailTraceDigestMismatch",
+      "native_capture_rejected_before_main_or_proof": true,
+      "fresh_receiver_without_RVFI_data": true
+    },
+    "fresh_receiver_requires_RVFI_or_native_reexecution": false
+  },
+  "ECDSA_single_vs_ladder": {
+    "steps": 1625938,
+    "ls_operations": 549261,
+    "single_geometry": {
+      "cpu_log": 21,
+      "alu_log": 19,
+      "binary_log": 17,
+      "shift_log": 17,
+      "jalr_log": 13,
+      "division_log": 5,
+      "omit_empty_division": false,
+      "multiplication_log": 18,
+      "ls_log": 20,
+      "ls_tail_log": null,
+      "boundary_log": 11,
+      "initial_log": null,
+      "terminal_log": null
+    },
+    "ladder_geometry": {
+      "cpu_log": 21,
+      "alu_log": 19,
+      "binary_log": 17,
+      "shift_log": 17,
+      "jalr_log": 13,
+      "division_log": 5,
+      "omit_empty_division": false,
+      "multiplication_log": 18,
+      "ls_log": 19,
+      "ls_tail_log": 15,
+      "boundary_log": 11,
+      "initial_log": null,
+      "terminal_log": null
+    },
+    "single_source_cells": {
+      "fixed": 14972832,
+      "main": 258129632,
+      "interaction": 274385408
+    },
+    "ladder_source_cells": {
+      "fixed": 13498272,
+      "main": 219299552,
+      "interaction": 227199488
+    },
+    "source_cells_saved": 87490560,
+    "exact_public_CPU_and_counts": true,
+    "exact_all_RAM_bytes": true,
+    "RAM_sidecar_sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800",
+    "single_proof_bytes": 1094760,
+    "single_proof_sha256": "01181fb6ef7ad490dfabc9f06a39029aafe98ce09690f31a209c3a74fd4ac66d",
+    "ladder_proof_bytes": 1148600,
+    "ladder_proof_sha256": "f8c6b4f50c8e3e5fb7d17a37f92d6d789b391b2c1c7ef1065e05afc4d22d6a01",
+    "timing_speedup_claim": false
+  },
+  "fresh_process_attacks": {
+    "ecdsa_ladder": {
+      "schema": "rv64-word16-actual-receiver-mutations-v1",
+      "kind": "csp",
+      "positive_fresh_receiver": true,
+      "steps": 1625938,
+      "tool_sha256": "c211e2364834606a29a894a952d9500a8933862c6f4873ae04a53ebdf9639098",
+      "config_sha256": "23cdaf1b9e03c16fab1a097e02730e87af0f17ec5ba82f556fae413446c42e21",
+      "proof_sha256": "f8c6b4f50c8e3e5fb7d17a37f92d6d789b391b2c1c7ef1065e05afc4d22d6a01",
+      "attacks": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspOutput"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidCspProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "false-halt",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        },
+        {
+          "attack": "false-output-length",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        }
+      ]
+    },
+    "ecdsa_single": {
+      "schema": "rv64-word16-actual-receiver-mutations-v1",
+      "kind": "csp",
+      "positive_fresh_receiver": true,
+      "steps": 1625938,
+      "tool_sha256": "c211e2364834606a29a894a952d9500a8933862c6f4873ae04a53ebdf9639098",
+      "config_sha256": "fde087c52a0b5529924026569b8220c9609f1049867e8e15026ec1e301e85ccf",
+      "proof_sha256": "01181fb6ef7ad490dfabc9f06a39029aafe98ce09690f31a209c3a74fd4ac66d",
+      "attacks": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspOutput"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidCspProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "nonzero-absent-LS-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedLsTailClaim"
+        },
+        {
+          "attack": "false-halt",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        },
+        {
+          "attack": "false-output-length",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        }
+      ]
+    },
+    "sail": {
+      "schema": "rv64-word16-actual-receiver-mutations-v1",
+      "kind": "sail",
+      "positive_fresh_receiver": true,
+      "steps": 1032240,
+      "tool_sha256": "ef382803cc1d434046a78e7efadbd463160c3341246fda7a1ed85a2157366b13",
+      "config_sha256": "094efa4f2884c6e160db6c5d7a9fba55255a5b1363e23576a55bac59373aa020",
+      "proof_sha256": "965c0d86e5f101aac90f0ff3641302721937395f8a830a6e6d70d27102a6ad97",
+      "attacks": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailCpuEndpointMismatch"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailCpuEndpointMismatch"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailMemoryEndpointMismatch"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidSailProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "nonzero-absent-LS-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedLsTailClaim"
+        }
+      ]
+    }
+  },
+  "measurement_scope": "CSP process durations are functional complete processes; builds/proofs elsewhere were concurrent. Tool internal total_ns excludes expected-image/pool initialization and final teardown. No controlled comparative speedup claim.",
+  "retained_artifact_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-v1"
+}
