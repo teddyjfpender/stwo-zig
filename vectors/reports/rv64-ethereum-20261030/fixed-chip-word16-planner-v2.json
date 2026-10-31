@@ -1,0 +1,40 @@
+{
+  "schema": "rv64-fixed-chip-word16-planner-qualification-v2",
+  "status": "inactive-diagnostic-only",
+  "physical_bus_closed": false,
+  "proof_acceptance_enabled": false,
+  "roles_added": [
+    "alu",
+    "binary",
+    "shift"
+  ],
+  "word_payload_coordinates": 13,
+  "representation": "four canonical 16-bit limbs per u64 operand/result; future explicit WORD16 profile",
+  "identity_domain": "rv64-fixed-chip-caps-word16-diagnostic-v2",
+  "count_dependent_setup_identity": false,
+  "tests": {
+    "count": 8,
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "command": "zig build test-riscv64-ethereum-chip-plan -Doptimize={ReleaseSafe,ReleaseFast}"
+  },
+  "coverage": [
+    "independent role capacity and partial final instance",
+    "many CPU contexts per provider and multiple providers per CPU",
+    "endpoint and request-span continuity",
+    "role/epoch/profile/instance substitution rejection",
+    "overcoverage rejection before allocation",
+    "immutable capacity identity and count-independent reuse",
+    "checked M31 ID spans and bounded instances",
+    "WORD16 mass fails closed pending actual provider accounting"
+  ],
+  "remaining_obligations": [
+    "ROM-authenticated family and opcode classification",
+    "committed effective-B mux equations and affine typed bus",
+    "actual PCS stage1 operand/weight/namespace root commitments",
+    "complete ordered stage1 manifest and derived stage2 typed challenges",
+    "physical CPU/provider request cancellation",
+    "range16 and internal padding/cardinality admission",
+    "aggregate receiver coverage and shared RAM closure"
+  ]
+}

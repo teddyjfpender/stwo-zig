@@ -88,3 +88,8 @@ pub const memory = struct {
 
 pub const state_policy = @import("state_policy.zig");
 pub const state_cyclic = @import("state_cyclic.zig");
+
+/// Inactive Word16 request vocabulary; no production profile selects it.
+pub const word16_v1 = struct {
+    pub const operations = @import("word16_v1/operations.zig");
+};

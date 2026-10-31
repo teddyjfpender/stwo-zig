@@ -1,0 +1,57 @@
+{
+  "schema": "rv64-word16-cpu-request-projection-v1",
+  "status": "inactive-polynomial-projection-only",
+  "physical_bus_closed": false,
+  "payload_fields": [
+    "family_op_id",
+    "a[4]",
+    "effective_b[4]",
+    "c[4]"
+  ],
+  "payload_coordinates": 13,
+  "dedicated_effective_b_advice": 4,
+  "quadratic_mux_constraints": 4,
+  "mapping_authority": "rv64_air.word16_v1.operations.classify + Operation.busId()",
+  "branch_result": "C=[taken,0,0,0]",
+  "range_requirement": "all operand/result/immediate limbs canonical u16; lookup table65536",
+  "tests": {
+    "count": 3,
+    "ReleaseSafe": "PASS",
+    "ReleaseFast": "PASS",
+    "command": "zig build test-riscv64-word16-cpu -Doptimize={ReleaseSafe,ReleaseFast}"
+  },
+  "qualification": [
+    "dense QM31 payload affine",
+    "dense QM31 mux degree at most2",
+    "each effective-B limb mutation rejected",
+    "register/immediate mux paths",
+    "full64 and high-bit preservation",
+    "branch result convention",
+    "LD/JALR unsupported rather than silently delegated",
+    "all19 canonical function IDs globally disjoint; all opcode aliases map through the shared helper"
+  ],
+  "unimplemented": [
+    "ROM/control authentication",
+    "register/control state linkage",
+    "range16 physical lookup",
+    "shared Stage1 PCS payload/weight commitments and manifest identity",
+    "complete ordered manifest and Stage2 challenge binding",
+    "CPU/provider physical claim cancellation",
+    "aggregate receiver acceptance"
+  ],
+  "pure_function_tuple_scope": "payload13 only; active/multiplicity outside tuple; full identities/roles/geometry/counts in complete FS manifest; no per-query CPU owner/row/ordinal",
+  "function_ids": {
+    "alu": [
+      0,
+      9
+    ],
+    "binary": [
+      16,
+      18
+    ],
+    "shift": [
+      32,
+      37
+    ]
+  }
+}

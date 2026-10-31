@@ -75,6 +75,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-multiplication", .description = "Qualify concrete RV64 multiplication service", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-keccak-cpu", .description = "Prove joined RV64 CPU Keccak service and RAM", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-chain", .description = "Check serialized Ethereum proof receipts and expected authority continuity", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-cpu", .description = "Check inactive WORD16 CPU request projection and affine payload", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-ethereum-chip-plan", .description = "Check diagnostic fixed chip capacity packing and lookup mass admission", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-cpu-degree-diagnostic", .description = "Audit full D3 cyclic service CPU polynomial degree", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-verifier-cache", .description = "Check bounded immutable verifier keys and fresh request admission", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-simd-fields", .description = "Check sixteen-row base/secure SIMD arithmetic and mixed residual weighting", .scope = .riscv_cpu },
