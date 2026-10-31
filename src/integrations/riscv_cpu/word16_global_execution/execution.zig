@@ -81,6 +81,11 @@ fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup)
 /// Advice is borrowed; every native event is copied once to provider metadata.
 /// Source transfer consumes each native CPU/JALR on success or later error.
 pub fn produceWithAdvice(a: std.mem.Allocator, setups: []const *const P.Setup, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
+    return produceWithAdviceStorage(a, setups, prepared, advice, expected, null);
+}
+/// File storage changes only ownership/residency of sealed native polynomials.
+/// The complete public inventory is still admitted before the first worker.
+pub fn produceWithAdviceStorage(a: std.mem.Allocator, setups: []const *const P.Setup, prepared: []const *Native, advice: *const Advice, expected: P.Expected, retained: ?*@import("retained_main_store.zig").Store) !Bundle {
     if (setups.len != prepared.len or setups.len != advice.events.len) return error.InvalidGlobalExecutionRoster;
     // Preflight the complete PUBLIC inventory before constructing or sealing a
     // worker. Advice arrays remain narrow and are not an initial-state oracle.
@@ -113,6 +118,7 @@ pub fn produceWithAdvice(a: std.mem.Allocator, setups: []const *const P.Setup, p
         errdefer worker.deinit();
         first += requests[index].cpu.steps;
         seals[index] = try worker.seal();
+        if (retained) |store| _ = try worker.spillSealedMain(store);
         try workers.append(a, worker);
     }
     var manifest = try Stage1Worker.manifestFromSeals(a, seals);

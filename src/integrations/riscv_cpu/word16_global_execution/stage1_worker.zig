@@ -61,6 +61,18 @@ pub const Stage1Worker = struct {
         self.phase = .sealed;
         return descriptor;
     }
+    /// Operational storage only: the sealed commitment and FS state stay exact.
+    /// Failure leaves the sealed worker retryable; Store outlives completion.
+    pub fn spillSealedMain(self: *Stage1Worker, store: *@import("retained_main_store.zig").Store) !usize {
+        if (self.phase != .sealed) return error.InvalidGlobalWorkerPhase;
+        const before = try checkStage1(self.allocator, &self.scheme, self.setup);
+        if (!std.meta.eql(before, self.sealed.?.roots)) return error.GlobalStage1RootMismatch;
+        const bytes = try store.spill(self.allocator, &self.scheme.trees.items[1]);
+        // No allocation or fallible work follows the ownership transfer.
+        std.debug.assert(std.mem.eql(u8, &before.fixed.bytes, &self.scheme.trees.items[0].root()));
+        std.debug.assert(std.mem.eql(u8, &before.main.bytes, &self.scheme.trees.items[1].root()));
+        return bytes;
+    }
     /// Coordinator copies ONLY ordinal/spec digest/two actual32-byte roots.
     /// This does not verify a proof or certify coverage by itself.
     pub fn manifestFromSeals(a: std.mem.Allocator, seals: []const Sealed) !P.Manifest {

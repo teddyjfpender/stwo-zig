@@ -10,6 +10,7 @@ pub const air = @import("air/mod.zig");
 pub const channel = @import("channel/mod.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const pcs = @import("pcs/mod.zig");
+pub const file_backed_allocator = @import("file_backed_allocator.zig");
 pub const poly = @import("poly/mod.zig");
 pub const secure_column = @import("secure_column.zig");
 pub const session = @import("session.zig");

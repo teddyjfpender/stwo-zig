@@ -12,11 +12,17 @@ const C = @import("../word16_execution/coordinator.zig");
 const E = @import("execution.zig");
 const P = @import("protocol.zig");
 const Wire = @import("wire.zig");
+const Store = @import("retained_main_store.zig").Store;
 
 pub fn main() !void {
     const a = std.heap.smp_allocator;
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
+    const raw_args = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, raw_args);
+    const options = try storageOptions(raw_args);
+    const args = raw_args[0..options.count];
+    if (options.path != null and (args.len < 2 or !std.mem.eql(u8, args[1], "produce"))) return error.RetainedStorageProducerOnly;
+    var store: ?Store = null;
+    defer if (store) |*owner| owner.deinit();
     if (args.len == 4 and std.mem.eql(u8, args[1], "migrate")) {
         var source_dir = try std.fs.cwd().openDir(args[2], .{});
         defer source_dir.close();
@@ -58,6 +64,9 @@ pub fn main() !void {
     defer program.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = p0.tape.len + p1.tape.len, .max_total_steps = config.value.max_steps, .final_pc = p1.public.statement.final_pc, .final_registers = p1.public.statement.final_registers };
     if (proving) {
+        var dir = try newDirectory(args[5]);
+        defer dir.close();
+        if (options.path) |path| store = try Store.init(path, options.limit_bytes);
         var native0 = try Native.capture(a, &program, C.boundary(&p0), 1, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p0.tape.len)), &p0.tape, .{});
         defer native0.deinit();
         var native1 = try Native.capture(a, &program, C.boundary(&p1), 2, try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(p1.tape.len)), &p1.tape, .{});
@@ -78,15 +87,13 @@ pub fn main() !void {
         var setup1 = try Setup.initWithAuthority(a, &image.authority, g1);
         defer setup1.deinit();
         var timer = try std.time.Timer.start();
-        var bundle = try E.produceWithAdvice(a, &.{ &setup0, &setup1 }, &.{ &native0, &native1 }, &advice, expected);
+        var bundle = try E.produceWithAdviceStorage(a, &.{ &setup0, &setup1 }, &.{ &native0, &native1 }, &advice, expected, if (store) |*owner| owner else null);
         defer bundle.deinit(a);
         const prove_ns = timer.read();
         try E.verify(a, &.{ &setup0, &setup1 }, expected, &bundle);
         const verify_ns = timer.read() - prove_ns;
-        var dir = try newDirectory(args[5]);
-        defer dir.close();
         try Wire.write(a, dir, .{ g0, g1 }, &bundle);
-        try Driver.writeJson(a, dir, "report.json", .{ .scope = "two real CPU shards; global RAM; no services/full-block/recursion claim", .steps = expected.total_steps, .words = advice.initial.len, .physical_proofs = 2, .global_ram_prefix_accepted = true, .produce_after_setup_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = .{ bundle.proofs[0].bytes.len, bundle.proofs[1].bytes.len } });
+        try Driver.writeJson(a, dir, "report.json", .{ .scope = "two real CPU shards; global RAM; no services/full-block/recursion claim", .steps = expected.total_steps, .words = advice.initial.len, .physical_proofs = 2, .retained_main_storage = if (store) |*owner| owner.stats() else null, .global_ram_prefix_accepted = true, .produce_after_setup_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = .{ bundle.proofs[0].bytes.len, bundle.proofs[1].bytes.len } });
         try std.posix.fsync(dir.fd);
     } else {
         var dir = try std.fs.cwd().openDir(args[5], .{});
@@ -109,4 +116,30 @@ fn newDirectory(path: []const u8) !std.fs.Dir {
     defer parent.close();
     try std.posix.fsync(parent.fd);
     return std.fs.cwd().openDir(path, .{});
+}
+
+fn storageOptions(args: []const [:0]u8) !struct { count: usize, path: ?[]const u8, limit_bytes: usize } {
+    var count = args.len;
+    var path: ?[]const u8 = null;
+    var limit: usize = 64 * 1024 * 1024 * 1024;
+    var saw_limit = false;
+    while (count > 1) {
+        const arg = args[count - 1];
+        const dir_prefix = "--retained-main-dir=";
+        const cap_prefix = "--retained-main-cap-mib=";
+        if (std.mem.startsWith(u8, arg, dir_prefix)) {
+            if (path != null) return error.DuplicateRetainedStorageOption;
+            const value = arg[dir_prefix.len..];
+            if (value.len == 0) return error.InvalidRetainedStorageDirectory;
+            path = value;
+        } else if (std.mem.startsWith(u8, arg, cap_prefix)) {
+            if (saw_limit) return error.DuplicateRetainedStorageOption;
+            saw_limit = true;
+            limit = try std.math.mul(usize, try std.fmt.parseUnsigned(usize, arg[cap_prefix.len..], 10), 1024 * 1024);
+            if (limit == 0) return error.InvalidRetainedMainLimit;
+        } else break;
+        count -= 1;
+    }
+    if (saw_limit and path == null) return error.MissingRetainedStorageDirectory;
+    return .{ .count = count, .path = path, .limit_bytes = limit };
 }
