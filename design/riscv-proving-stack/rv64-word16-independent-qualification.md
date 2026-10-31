@@ -167,3 +167,42 @@ set of chip semantics or accepting host-supplied OODS residuals would not close
 this gap. No such accepting adapter is introduced by this slice. These are
 empirical differential and cryptographic proof qualifications, not a formal
 proof of the ISA implementation.
+
+## Schema4 requalification
+
+The additive `independent-qualification-schema4-v1.json` receipt records a new
+run at commit `026567e00`, using core schema4, 21 structural role tags and 45
+canonical ledger fields. The original schema3 receipt remains historical
+qualification evidence. No AIR equations, proof configuration or guest binaries
+were changed for this rerun.
+
+All 17 complete CSP requests (5,522,860 total instructions per build) passed both
+ReleaseSafe and ReleaseFast producers and separate fresh receivers. Every
+corresponding Safe/Fast encoded proof is byte-identical. The strengthened
+continuous Sail workload also passed both builds: 12,903 target cases and
+1,032,240 retired instructions, with every retirement compared against the
+pinned RVFI stream. Its fresh receiver succeeds with a deliberately nonexistent
+RVFI path. Safe/Fast Sail proofs are byte-identical. Schema3 and schema4 hashes
+are intentionally different because the transcript and claim ledger changed.
+
+The positive software ECDSA request also passed in one-shot single-LS and
+LS-ladder geometries. Both constrain the same 1,625,938-instruction CPU statement
+and produce byte-identical authenticated RAM sidecars. Safe/Fast proofs match
+within each geometry. The ladder removes 87,490,560 logical committed source
+cells, while adding 187 sampled QM31 values and 76,096 proof bytes. These are
+physical geometry and wire measurements, not a performance claim. Functional
+process timings were collected during concurrent engineering; controlled
+benchmarking is recorded separately.
+
+Pure ALU/BINARY/SHIFT tails remain absent in these CSP/Sail configurations.
+Actual fresh-receiver mutation runs add a nonzero claim to each absent tail
+and an equal opposite CPU claim, preserving the aggregate sum. Each must reject
+with its specific canonical omission-guard error. The complete suites reject 17
+mutations for ECDSA single-LS, 16 for ECDSA LS-ladder and 15 for Sail. They also
+retain endpoint, initial/terminal memory, epoch, proof corruption and LS-tail
+attacks. This qualifies absence enforcement; accepting present pure-function
+tails is separately covered by `pure-function-ladders-v1.json`.
+
+All previous scope exclusions and the same-AIR Rust verifier gap remain.
+These proofs are complete CSP requests and one ordinary-ISA Sail execution;
+they are not Ethereum block, service, cross-shard or recursion acceptance.

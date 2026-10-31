@@ -1,0 +1,1369 @@
+{
+  "schema": "rv64-word16-independent-qualification-schema4-v1",
+  "written_utc": "2026-10-31T22:35:56.807397+00:00",
+  "implementation_base": "026567e0088546dacb36ab8e44c08f7c0fdf0e4b",
+  "qualified_scope": "Complete software CSP32 requests and one continuous ordinary RV64IM Sail execution on the joined Word16 CPU/family/RAM AIR, with separately fresh receivers; no legacy proof substitution or windowing.",
+  "core_schema": 4,
+  "structural_role_tags": 21,
+  "canonical_ledger_fields": 45,
+  "ledger_scope": "Existing components constrain their physical merged aggregates; additive bookkeeping fields are not all independent relation totals. Omitted pure-tail fields are individually zero.",
+  "proof_configuration": {
+    "queries": 70,
+    "proof_of_work_bits": 26,
+    "log_blowup_factor": 1
+  },
+  "no_AIR_edits": true,
+  "legacy_proofs_used": false,
+  "formal_ISA_correctness_proof": false,
+  "rust_same_AIR_receiver_qualified": false,
+  "exclusions": [
+    "service/ECALL semantics",
+    "EBREAK/trap rollback",
+    "misaligned memory",
+    "arbitrary 64-bit PC/wrap coverage",
+    "cross-shard/global RAM",
+    "Ethereum block",
+    "recursion"
+  ],
+  "tools": {
+    "fast": {
+      "csp": {
+        "path": "/tmp/stwo-rv64-word16-schema4-tools-fast/bin/rv64-word16-csp",
+        "bytes": 3980400,
+        "sha256": "ae687fc196254aa9af1c61664ac5a4bab1ad2696a875657c7d2319a4f6beed04"
+      },
+      "sail": {
+        "path": "/tmp/stwo-rv64-word16-schema4-tools-fast/bin/rv64-word16-sail",
+        "bytes": 3882784,
+        "sha256": "ba1d140c263c53b3233f939eea04e78dfc16f46ac4f783c6f2990bb120f85d24"
+      }
+    },
+    "safe": {
+      "csp": {
+        "path": "/tmp/stwo-rv64-word16-schema4-tools-safe/bin/rv64-word16-csp",
+        "bytes": 4341952,
+        "sha256": "d1d8c4b09d3e4df7c05149f5ecdb1dc6b788c249a8c15faafd5780d305288dbe"
+      },
+      "sail": {
+        "path": "/tmp/stwo-rv64-word16-schema4-tools-safe/bin/rv64-word16-sail",
+        "bytes": 4261088,
+        "sha256": "0added3f7c11cce1c0fce1514276f07be450dab8fa2cebd3635c61cb9eb01333"
+      }
+    }
+  },
+  "gates": {
+    "ReleaseSafe_authority_runtime9": {
+      "path": "/tmp/rv64-word16-schema4-toolchain-safe.log",
+      "bytes": 339,
+      "sha256": "2739f7ba98088626e5f1e53f179b8cf863e889dde75b3d79693dfac8885e6ed1"
+    },
+    "ReleaseFast_authority_runtime9": {
+      "path": "/tmp/rv64-word16-schema4-toolchain-fast.log",
+      "bytes": 340,
+      "sha256": "8bc894839a302a8a84af7ce81bb8bee21e7c44d6efff33f8cb5c1cc7022cb24a"
+    },
+    "driver_Python13": {
+      "path": "/tmp/rv64-word16-schema4-driver-python.log",
+      "bytes": 618,
+      "sha256": "a9b535e2429d7014b8d5839afb4ac698dbb75e1a8cc48f23100323961e90026b"
+    },
+    "source_conformance_unit31": {
+      "path": "/tmp/rv64-word16-schema4-conformance-unit.log",
+      "bytes": 130,
+      "sha256": "fba35749e67fbe1c8931fafd84d38c878465dc71945a31198c1aaa7c63306745"
+    },
+    "syntax_and_diff_checks": "PASS"
+  },
+  "CSP": {
+    "complete_requests_per_build": 17,
+    "instructions_per_build": 5522860,
+    "independent_oracle": "retained Unicorn2.1.4 execution report, separately pinned ELF/input/expected output/step count",
+    "independent_execution_report": {
+      "path": "vectors/reports/rv64-qualification-20261030/csp-execution-final.json",
+      "bytes": 61206,
+      "sha256": "cc90cc1276bbe91a93a4d792018b9d9f91f407d035485a2dea236c2b830c5b3b"
+    },
+    "manifest": {
+      "path": "vectors/riscv_csp/manifest-v2.json",
+      "bytes": 12939,
+      "sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af"
+    },
+    "workers": 8,
+    "ls_ladder_enabled": true,
+    "all_safe_fast_encoded_proofs_exact": true,
+    "all_both_build_fresh_receivers": true,
+    "cases": [
+      {
+        "target": "keccak",
+        "size": 128,
+        "negative": false,
+        "instructions": 8721,
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+        "proof_sha256": "c716746befc601c335d2db15c66376983db024bbd8277c5488874abb138fb1d9",
+        "proof_bytes": 914976,
+        "actual_geometry": {
+          "cpu_log": 14,
+          "alu_log": 11,
+          "alu_tail_log": null,
+          "binary_log": 12,
+          "binary_tail_log": null,
+          "shift_log": 11,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 11,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2239552,
+          "main": 2793472,
+          "interaction": 5100672
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/keccak-128-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/keccak-128-0"
+      },
+      {
+        "target": "sha256",
+        "size": 128,
+        "negative": false,
+        "instructions": 14035,
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "proof_sha256": "d85acee1f4fff15742c3ebfdbfdba99adc9343910d5d71bbdb4e65db793121b0",
+        "proof_bytes": 966288,
+        "actual_geometry": {
+          "cpu_log": 14,
+          "alu_log": 12,
+          "alu_tail_log": null,
+          "binary_log": 13,
+          "binary_tail_log": null,
+          "shift_log": 12,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 11,
+          "ls_tail_log": 9,
+          "boundary_log": 8,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2452544,
+          "main": 3215360,
+          "interaction": 5459072
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/sha256-128-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/sha256-128-0"
+      },
+      {
+        "target": "keccak",
+        "size": 256,
+        "negative": false,
+        "instructions": 16671,
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "expected_output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+        "proof_sha256": "fd6eef888f838ee56e44b346b70502d312d99f157828caccae3a24dccbe078a8",
+        "proof_bytes": 907232,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 12,
+          "alu_tail_log": null,
+          "binary_log": 13,
+          "binary_tail_log": null,
+          "shift_log": 12,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 12,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2311232,
+          "main": 4210688,
+          "interaction": 6222976
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/keccak-256-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/keccak-256-0"
+      },
+      {
+        "target": "sha256",
+        "size": 256,
+        "negative": false,
+        "instructions": 22941,
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "expected_output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+        "proof_sha256": "ada2779f44fd5d95faa4f1ac880cde55111d670c6f0f667dc35716cad03b5c89",
+        "proof_bytes": 901464,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 13,
+          "alu_tail_log": null,
+          "binary_log": 13,
+          "binary_tail_log": null,
+          "shift_log": 13,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 12,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2524224,
+          "main": 4646912,
+          "interaction": 6616192
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/sha256-256-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/sha256-256-0"
+      },
+      {
+        "target": "keccak",
+        "size": 512,
+        "negative": false,
+        "instructions": 32501,
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "expected_output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+        "proof_sha256": "6fd880deab8a3d6e59f03535f129a36e67575c805daaba59af161767f1322207",
+        "proof_bytes": 908304,
+        "actual_geometry": {
+          "cpu_log": 15,
+          "alu_log": 12,
+          "alu_tail_log": null,
+          "binary_log": 14,
+          "binary_tail_log": null,
+          "shift_log": 13,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 13,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2348096,
+          "main": 5095424,
+          "interaction": 6960256
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/keccak-512-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/keccak-512-0"
+      },
+      {
+        "target": "sha256",
+        "size": 512,
+        "negative": false,
+        "instructions": 40753,
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "expected_output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+        "proof_sha256": "cf96cb085a057a548db6ad3cf678c77795935231996a11b9fdada984cbd38955",
+        "proof_bytes": 907264,
+        "actual_geometry": {
+          "cpu_log": 16,
+          "alu_log": 13,
+          "alu_tail_log": null,
+          "binary_log": 14,
+          "binary_tail_log": null,
+          "shift_log": 14,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 13,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2667584,
+          "main": 7485440,
+          "interaction": 8811648
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/sha256-512-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/sha256-512-0"
+      },
+      {
+        "target": "keccak",
+        "size": 1024,
+        "negative": false,
+        "instructions": 64161,
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "expected_output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+        "proof_sha256": "66fde53b858cfc4ae0a6d4a81b83042bc3db616b9744e66c2ef3926c26f7c804",
+        "proof_bytes": 909200,
+        "actual_geometry": {
+          "cpu_log": 16,
+          "alu_log": 13,
+          "alu_tail_log": null,
+          "binary_log": 15,
+          "binary_tail_log": null,
+          "shift_log": 14,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 14,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2528320,
+          "main": 8814592,
+          "interaction": 9942144
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/keccak-1024-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/keccak-1024-0"
+      },
+      {
+        "target": "sha256",
+        "size": 1024,
+        "negative": false,
+        "instructions": 76377,
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "expected_output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+        "proof_sha256": "364e6d21e7f0c17683fbd8060555e3633fd20d5637f16c1987011d2f887c75ac",
+        "proof_bytes": 946920,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 14,
+          "alu_tail_log": null,
+          "binary_log": 15,
+          "binary_tail_log": null,
+          "shift_log": 15,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 14,
+          "ls_tail_log": null,
+          "boundary_log": 9,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2970688,
+          "main": 13588480,
+          "interaction": 13595776
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/sha256-1024-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/sha256-1024-0"
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 2,
+        "negative": false,
+        "instructions": 81898,
+        "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "expected_output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+        "proof_sha256": "7765378121760ba1e01b133075f3d194cacff3faf4913ba01a0eb31250dfcb7f",
+        "proof_bytes": 999688,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 15,
+          "alu_tail_log": null,
+          "binary_log": 13,
+          "binary_tail_log": null,
+          "shift_log": 14,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 12,
+          "ls_log": 13,
+          "ls_tail_log": 12,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2787680,
+          "main": 12545184,
+          "interaction": 13571456
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/poseidon2_m31-2-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/poseidon2_m31-2-0"
+      },
+      {
+        "target": "keccak",
+        "size": 2048,
+        "negative": false,
+        "instructions": 127510,
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+        "expected_output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "proof_sha256": "fcfd895ba39f4587ea214b3c747bbf972a17125db5cb5275ab8075d0c228eb7d",
+        "proof_bytes": 942344,
+        "actual_geometry": {
+          "cpu_log": 17,
+          "alu_log": 14,
+          "alu_tail_log": null,
+          "binary_log": 16,
+          "binary_tail_log": null,
+          "shift_log": 15,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 15,
+          "ls_tail_log": null,
+          "boundary_log": 10,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 2891840,
+          "main": 16276480,
+          "interaction": 15926400
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/keccak-2048-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/keccak-2048-0"
+      },
+      {
+        "target": "sha256",
+        "size": 2048,
+        "negative": false,
+        "instructions": 147625,
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "elf_sha256": "dc057d65922c1affb657e09fe861d69bf15a245e5a0e103b6548fae30ac5e1e6",
+        "expected_output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "proof_sha256": "b5453a17809ceece8e5f65efbc51f09472b5645728d3f1911732eef467d2cee3",
+        "proof_bytes": 977744,
+        "actual_geometry": {
+          "cpu_log": 18,
+          "alu_log": 15,
+          "alu_tail_log": null,
+          "binary_log": 16,
+          "binary_tail_log": null,
+          "shift_log": 16,
+          "shift_tail_log": null,
+          "jalr_log": 5,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 5,
+          "ls_log": 15,
+          "ls_tail_log": null,
+          "boundary_log": 10,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 3579968,
+          "main": 25818112,
+          "interaction": 23184512
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/sha256-2048-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/sha256-2048-0"
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 4,
+        "negative": false,
+        "instructions": 163666,
+        "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "expected_output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "proof_sha256": "4781589194dd5095f01a1bcd2a0a11971ac5a6ec1b05fd9036dc10ca42b0ea7d",
+        "proof_bytes": 1032352,
+        "actual_geometry": {
+          "cpu_log": 18,
+          "alu_log": 16,
+          "alu_tail_log": null,
+          "binary_log": 14,
+          "binary_tail_log": null,
+          "shift_log": 15,
+          "shift_tail_log": null,
+          "jalr_log": 6,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 13,
+          "ls_log": 14,
+          "ls_tail_log": 13,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 3344800,
+          "main": 23736032,
+          "interaction": 23172864
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/poseidon2_m31-4-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/poseidon2_m31-4-0"
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 8,
+        "negative": false,
+        "instructions": 327202,
+        "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "expected_output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+        "proof_sha256": "e23f589aee5a99a62fee5cc263fa41fed7c1f1e56500ac54ec16dd07eaad620c",
+        "proof_bytes": 1061272,
+        "actual_geometry": {
+          "cpu_log": 19,
+          "alu_log": 17,
+          "alu_tail_log": null,
+          "binary_log": 15,
+          "binary_tail_log": null,
+          "shift_log": 16,
+          "shift_tail_log": null,
+          "jalr_log": 7,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 14,
+          "ls_log": 15,
+          "ls_tail_log": 14,
+          "boundary_log": 6,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 4459040,
+          "main": 46117728,
+          "interaction": 42375680
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/poseidon2_m31-8-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/poseidon2_m31-8-0"
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 12,
+        "negative": false,
+        "instructions": 490738,
+        "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "expected_output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+        "proof_sha256": "defa2cde0390e24347ebf418c0b1b2d69bc97aae9d74cd04d9eae8cc4860d5b9",
+        "proof_bytes": 1020952,
+        "actual_geometry": {
+          "cpu_log": 19,
+          "alu_log": 18,
+          "alu_tail_log": null,
+          "binary_log": 15,
+          "binary_tail_log": null,
+          "shift_log": 16,
+          "shift_tail_log": null,
+          "jalr_log": 7,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 15,
+          "ls_log": 16,
+          "ls_tail_log": null,
+          "boundary_log": 7,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 4819872,
+          "main": 55656160,
+          "interaction": 53519360
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/poseidon2_m31-12-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/poseidon2_m31-12-0"
+      },
+      {
+        "target": "poseidon2_m31",
+        "size": 16,
+        "negative": false,
+        "instructions": 654274,
+        "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+        "elf_sha256": "dad6a4b1f2a8b0bf9380f3381002cdf2007c466979abbcc119e3aae38940eb25",
+        "expected_output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "proof_sha256": "e3a6cea10a2d3a9f1eb9dbbadb44af68e2d803f5401a3ae0786165d2eb7fa222",
+        "proof_bytes": 1111952,
+        "actual_geometry": {
+          "cpu_log": 20,
+          "alu_log": 18,
+          "alu_tail_log": null,
+          "binary_log": 16,
+          "binary_tail_log": null,
+          "shift_log": 17,
+          "shift_tail_log": null,
+          "jalr_log": 8,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 15,
+          "ls_log": 16,
+          "ls_tail_log": 15,
+          "boundary_log": 7,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 6687904,
+          "main": 90884064,
+          "interaction": 80783872
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/poseidon2_m31-16-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/poseidon2_m31-16-0"
+      },
+      {
+        "target": "ecdsa_secp256k1",
+        "size": 32,
+        "negative": false,
+        "instructions": 1625938,
+        "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+        "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "proof_sha256": "55320715c3f1dd35e8ac8fba2a05a4580fbad9a891910fbac9c8e0cb3008d9a8",
+        "proof_bytes": 1157816,
+        "actual_geometry": {
+          "cpu_log": 21,
+          "alu_log": 19,
+          "alu_tail_log": null,
+          "binary_log": 17,
+          "binary_tail_log": null,
+          "shift_log": 17,
+          "shift_tail_log": null,
+          "jalr_log": 13,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 18,
+          "ls_log": 19,
+          "ls_tail_log": 15,
+          "boundary_log": 11,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 13498272,
+          "main": 219299552,
+          "interaction": 227199488
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-0",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/ecdsa_secp256k1-32-0"
+      },
+      {
+        "target": "ecdsa_secp256k1",
+        "size": 32,
+        "negative": true,
+        "instructions": 1627849,
+        "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+        "elf_sha256": "a44e9ff8be924815dcadcc23f80ec46e71eb383844aa8a38d9dad2c151e0c199",
+        "expected_output": "0000000000000000000000000000000000000000000000000000000000000000",
+        "proof_sha256": "d243a645e5e2f9ab7814f15780251317c7032a60ffba1ed946d7ae41b5119cc3",
+        "proof_bytes": 1151816,
+        "actual_geometry": {
+          "cpu_log": 21,
+          "alu_log": 19,
+          "alu_tail_log": null,
+          "binary_log": 17,
+          "binary_tail_log": null,
+          "shift_log": 17,
+          "shift_tail_log": null,
+          "jalr_log": 13,
+          "division_log": 5,
+          "omit_empty_division": false,
+          "multiplication_log": 18,
+          "ls_log": 19,
+          "ls_tail_log": 15,
+          "boundary_log": 11,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "source_cells": {
+          "fixed": 13498272,
+          "main": 219299552,
+          "interaction": 227199488
+        },
+        "safe_fast_encoded_bytes_exact": true,
+        "fresh_receivers_both_builds": true,
+        "fast_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-1",
+        "safe_directory": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/ecdsa_secp256k1-32-1"
+      }
+    ],
+    "full_reports": {
+      "fast": {
+        "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/qualification.json",
+        "bytes": 23041,
+        "sha256": "f6931df3c10a44a96c3978c3ccd30584b7dbf5ae958340a2a1c92798fd1a6ebc"
+      },
+      "safe": {
+        "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-safe/qualification.json",
+        "bytes": 23043,
+        "sha256": "01831ef4ed422977d031d10c9d2597436845347ca141374d00dc63b40dc32de0"
+      }
+    }
+  },
+  "Sail": {
+    "instructions": 1032240,
+    "target_cases": 12903,
+    "setup_instructions": 1019337,
+    "admitted_ordinary_opcode_families": 63,
+    "all_retirements_compared_to_consumed_pinned_RVFI": true,
+    "input_extension_note": "Pinned Sail model leaves RVFI input-register extension zero; producer reconstructs prestate from all prior independent write outputs and checks native operands. No duplicate arithmetic oracle.",
+    "safe_fast_proof_bytes_exact": true,
+    "safe_fast_RAM_bytes_exact": true,
+    "fresh_receiver_requires_RVFI": false,
+    "fresh_config": {
+      "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/config-no-rvfi.json",
+      "bytes": 428,
+      "sha256": "c7f433634c2bd97122992f33c567654c5e24b984b6535e202f7cdb2a8216114e"
+    },
+    "producer_config": {
+      "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/config.json",
+      "bytes": 467,
+      "sha256": "6ffb3dc15a28b0d86f1d296aa27f11c2f1d255090e6c257bbd08a87115c7b2d5"
+    },
+    "oracle": {
+      "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-v1/sail/oracle.json",
+      "bytes": 1690,
+      "sha256": "acd11c3af331517630f627444387c9bf29080f8e664523f96133115f4182ea87"
+    },
+    "rvfi": {
+      "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-v1/sail/retirements.rvfi",
+      "bytes": 90837120,
+      "sha256": "099971a9ce6123c2c93d6b1d3672e89bbf1f0d019393e1b830b7f6429b923179"
+    },
+    "elf": {
+      "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-v1/sail/workload.elf",
+      "bytes": 4165188,
+      "sha256": "ffd638bf944f6b43d8e96d8a2d495939abb9b17a6474f67afe912d27dd089229"
+    },
+    "reports": {
+      "fast": {
+        "proof.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-fast/proof.bin",
+          "bytes": 1055824,
+          "sha256": "189e8ac0efa776b86a95ff8461d29c03ae3b67ff1d15c87cdc5e983849e71a1e"
+        },
+        "statement.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-fast/statement.json",
+          "bytes": 14789,
+          "sha256": "9f7bc4ea276fa926ace11becd9283acb1c2ed409e2ddfe09c3b9f643be944f8d"
+        },
+        "cells.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-fast/cells.bin",
+          "bytes": 108,
+          "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+        },
+        "report.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-fast/report.json",
+          "bytes": 9958,
+          "sha256": "953e074a9576f08efe6c97436f6e6ccd87ff155501c2d49d22798813c87ac714"
+        }
+      },
+      "safe": {
+        "proof.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-safe/proof.bin",
+          "bytes": 1055824,
+          "sha256": "189e8ac0efa776b86a95ff8461d29c03ae3b67ff1d15c87cdc5e983849e71a1e"
+        },
+        "statement.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-safe/statement.json",
+          "bytes": 14789,
+          "sha256": "9f7bc4ea276fa926ace11becd9283acb1c2ed409e2ddfe09c3b9f643be944f8d"
+        },
+        "cells.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-safe/cells.bin",
+          "bytes": 108,
+          "sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+        },
+        "report.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/proof-safe/report.json",
+          "bytes": 9959,
+          "sha256": "0cd50b0026121b160566eb91bec07292eb7bcb67d6305b37f675dda7db728128"
+        }
+      }
+    },
+    "fresh_receivers": {
+      "fast": {
+        "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+        "physical_proof_verified": true,
+        "steps": 1032240,
+        "proof_bytes": 1055824,
+        "receiver_ns": 411415041
+      },
+      "safe": {
+        "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+        "physical_proof_verified": true,
+        "steps": 1032240,
+        "proof_bytes": 1055824,
+        "receiver_ns": 438584291
+      }
+    }
+  },
+  "ECDSA_single_vs_LS_ladder": {
+    "scope": "same complete one-shot software request; different physical geometry; semantic parity, not proof byte parity across classes",
+    "instructions": 1625938,
+    "LS_requests": 549261,
+    "same_CPU_public_and_RAM_semantics": true,
+    "RAM_sidecar_bytes_exact": true,
+    "safe_fast_encoded_proofs_exact_within_each_class": true,
+    "single": {
+      "geometry": {
+        "cpu_log": 21,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 17,
+        "binary_tail_log": null,
+        "shift_log": 17,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 18,
+        "ls_log": 20,
+        "ls_tail_log": null,
+        "boundary_log": 11,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "source_cells": {
+        "fixed": 14972832,
+        "main": 258129632,
+        "interaction": 274385408
+      },
+      "proof_bytes": 1081720,
+      "sampled_values_per_tree": [
+        127,
+        1605,
+        668,
+        8
+      ],
+      "artifacts": {
+        "proof.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-fast/proof.bin",
+          "bytes": 1081720,
+          "sha256": "9e6ca71605dbd730da3a61a1159948fdcca690f3f679e7084873234eb1aa5844"
+        },
+        "statement.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-fast/statement.json",
+          "bytes": 14920,
+          "sha256": "f7cb14cc6925713f0d703ee0d3628d400370b007c0087a3b6167607f260ad3a7"
+        },
+        "cells.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-fast/cells.bin",
+          "bytes": 83460,
+          "sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+        },
+        "report.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-fast/report.json",
+          "bytes": 9880,
+          "sha256": "9334fc37fc821e67ce13f68369075ee90d6c7ff672404134605b16655a6b2da5"
+        }
+      },
+      "safe_artifacts": {
+        "proof.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-safe/proof.bin",
+          "bytes": 1081720,
+          "sha256": "9e6ca71605dbd730da3a61a1159948fdcca690f3f679e7084873234eb1aa5844"
+        },
+        "statement.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-safe/statement.json",
+          "bytes": 14920,
+          "sha256": "f7cb14cc6925713f0d703ee0d3628d400370b007c0087a3b6167607f260ad3a7"
+        },
+        "cells.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-safe/cells.bin",
+          "bytes": 83460,
+          "sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+        },
+        "report.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/ecdsa-positive-single-safe/report.json",
+          "bytes": 9882,
+          "sha256": "cb00cf177539017ffa2bd806d1b28da07a1828fefa1a5ab74b31e04ad0d686da"
+        }
+      }
+    },
+    "ladder": {
+      "geometry": {
+        "cpu_log": 21,
+        "alu_log": 19,
+        "alu_tail_log": null,
+        "binary_log": 17,
+        "binary_tail_log": null,
+        "shift_log": 17,
+        "shift_tail_log": null,
+        "jalr_log": 13,
+        "division_log": 5,
+        "omit_empty_division": false,
+        "multiplication_log": 18,
+        "ls_log": 19,
+        "ls_tail_log": 15,
+        "boundary_log": 11,
+        "initial_log": null,
+        "terminal_log": null
+      },
+      "source_cells": {
+        "fixed": 13498272,
+        "main": 219299552,
+        "interaction": 227199488
+      },
+      "proof_bytes": 1157816,
+      "sampled_values_per_tree": [
+        130,
+        1685,
+        772,
+        8
+      ],
+      "artifacts": {
+        "proof.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-0/proof.bin",
+          "bytes": 1157816,
+          "sha256": "55320715c3f1dd35e8ac8fba2a05a4580fbad9a891910fbac9c8e0cb3008d9a8"
+        },
+        "statement.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-0/statement.json",
+          "bytes": 15084,
+          "sha256": "e2d156602dc4eabef6dbcf2e6c288dbaa74b1d0d7f32f6fec89678205920b797"
+        },
+        "cells.bin": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-0/cells.bin",
+          "bytes": 83460,
+          "sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+        },
+        "report.json": {
+          "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-all17-fast/ecdsa_secp256k1-32-0/report.json",
+          "bytes": 9883,
+          "sha256": "603ad6d0f32be4e211d1732ae9e7d08f0d9cbf148f69d78075698a5112e4423f"
+        }
+      }
+    },
+    "delta": {
+      "source_cells_removed": 87490560,
+      "sampled_QM31_added": 187,
+      "proof_bytes_added": 76096
+    },
+    "sample_inspector_output": {
+      "path": "/tmp/rv64-word16-schema4-ecdsa-samples.txt",
+      "bytes": 376,
+      "sha256": "604cab6e9c7a86765577a8a32fdefcb654f962d7a048cc295b546a93623940a7"
+    },
+    "fresh_single_receivers": {
+      "fast": {
+        "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+        "physical_proof_verified": true,
+        "steps": 1625938,
+        "proof_bytes": 1081720,
+        "receiver_ns": 254943208
+      },
+      "safe": {
+        "scope": "fresh CSP32 receiver with independently pinned ELF/input and expected output",
+        "physical_proof_verified": true,
+        "steps": 1625938,
+        "proof_bytes": 1081720,
+        "receiver_ns": 313370500
+      }
+    }
+  },
+  "actual_receiver_attacks": {
+    "ecdsa_single": {
+      "report": {
+        "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/schema4-single-attacks.json",
+        "bytes": 3153,
+        "sha256": "70481ed3e8c1beb4900378cc64b144470a56d136928502184061d6253b84fef9"
+      },
+      "rejected_count": 17,
+      "results": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspOutput"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidCspProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "nonzero-absent-LS-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedLsTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-ALU-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedAluTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-BINARY-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedBinaryTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-SHIFT-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedShiftTailClaim"
+        },
+        {
+          "attack": "false-halt",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        },
+        {
+          "attack": "false-output-length",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        }
+      ]
+    },
+    "ecdsa_ladder": {
+      "report": {
+        "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/csp-controls/schema4-ladder-attacks.json",
+        "bytes": 2978,
+        "sha256": "a520b9bbc3e07885156682fa9411642777bbfcab1f7c56ef3a0139b2b24301eb"
+      },
+      "rejected_count": 16,
+      "results": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedWord16MemoryBoundaryClaim"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspOutput"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidCspProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "nonzero-absent-ALU-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedAluTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-BINARY-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedBinaryTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-SHIFT-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedShiftTailClaim"
+        },
+        {
+          "attack": "false-halt",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        },
+        {
+          "attack": "false-output-length",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedCspCompletion"
+        }
+      ]
+    },
+    "sail": {
+      "report": {
+        "path": "/tmp/stwo-rv64-delivery/word16-independent-qualification-schema4-v1/sail/schema4-attacks.json",
+        "bytes": 2842,
+        "sha256": "d3676736d5ef7bdfdaa472ac6f766870795abaf84a9f5800e461195f8598de51"
+      },
+      "rejected_count": 15,
+      "results": [
+        {
+          "attack": "false-final-pc",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailCpuEndpointMismatch"
+        },
+        {
+          "attack": "false-final-register",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailCpuEndpointMismatch"
+        },
+        {
+          "attack": "incomplete-step-count",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidWord16CpuClock"
+        },
+        {
+          "attack": "balanced-physical-claims",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: OodsNotMatching"
+        },
+        {
+          "attack": "foreign-initial-value",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "foreign-initial-rights",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: UntrustedMemoryInitialState"
+        },
+        {
+          "attack": "wrong-authenticated-output",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: SailMemoryEndpointMismatch"
+        },
+        {
+          "attack": "invalid-local-epoch",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidSailProofBundle"
+        },
+        {
+          "attack": "truncated-public-cells",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidMemorySidecarSize"
+        },
+        {
+          "attack": "corrupted-proof",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: ProofOfWork"
+        },
+        {
+          "attack": "invalid-LS-tail-capacity",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: InvalidExecutionMemoryCount"
+        },
+        {
+          "attack": "nonzero-absent-LS-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedLsTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-ALU-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedAluTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-BINARY-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedBinaryTailClaim"
+        },
+        {
+          "attack": "nonzero-absent-SHIFT-tail-balanced-claim",
+          "rejected": true,
+          "exit_code": 1,
+          "receiver_error": "error: NonzeroOmittedShiftTailClaim"
+        }
+      ]
+    }
+  },
+  "compatibility": "Schema3 artifacts intentionally differ and are not accepted as schema4. Every corresponding Safe/Fast CSP/Sail proof and ECDSA single control is exact within schema4. No default pure-family-tail planner change.",
+  "pure_tail_scope": "ALU/BINARY/SHIFT tails are absent in these qualification tools. Actual balanced ghost mutations require specific canonical omission-guard rejection. Accepting present pure tails is separately qualified in pure-function-ladders-v1.json.",
+  "performance_scope": "All process and stage timings in retained functional artifacts are concurrent engineering observations, not controlled speedup claims. Controlled CSP comparisons are a subsequent separately recorded task.",
+  "source_sha256": {
+    "design/riscv-proving-stack/rv64-word16-independent-qualification.md": "5a2729d8a1a96292a186da2d7987c80e7f4c374ed48a2802295cbbfc5c0b3b18",
+    "scripts/riscv64_word16_csp_qualify.py": "9024c835516dcb9c4c0221533064adc0380eaefc57be7b864dcb172ad9db939c",
+    "scripts/riscv64_word16_receiver_attacks.py": "444f6cd2d62fdd9599c03579037fcd83777ccb588d1fe7b943377c9ea6df76ef",
+    "scripts/riscv64_word16_sail_workload.py": "53e8b4d0450299397f478872975439f73b9ec667b977c20b476ef708ddeb25a3",
+    "src/integrations/riscv_cpu/rv64_word16_csp_main.zig": "d61f17674303d5e77f2010709c618aab1546628fe5dee154548e1107a197d777",
+    "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig": "9fd29c9e4e815a7e222357bd2df5efb8cf5f7f4e201422fc3651c1141bfeb230",
+    "src/integrations/riscv_cpu/rv64_word16_sail_main.zig": "99b884c69b7286335ee37180bd9b884a7f99c3d7c9eb83b554e962bee4c2009f",
+    "src/integrations/riscv_cpu/tests/rv64_word16_csp_authority_test.zig": "0b18836766584bdbd85536cb1b14893e1869a03ea3ce50961db81925a3c792be",
+    "src/integrations/riscv_cpu/tests/rv64_word16_sail_authority_test.zig": "b7158a7c6f7a0245b367b1f032d3dc5304ce51255ebe9692562aeb4007071d76",
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "0190a538497b6c7025569ea1e802ea24b3fcceb6f91b2495f769c9ca5fbc5b8b",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "bb719204f43268ccc27fbc301f80edb1af2444d75c31026a1590f01bb6d11bb1",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "31dfbc183e14cc45c16cff3da6baa02eaadbf136c6a3def9a37761cc3cf67659",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "348f932266a338c50f2505525599f0a6fbf3d1c4a374186bb368f7ba964e73f9",
+    "src/integrations/riscv_cpu/word16_execution/interaction_ownership.zig": "d87ea645c9f3695110c9472f255b14651e22628da6feb6355ee020725c3430b5",
+    "src/integrations/riscv_cpu/word16_execution/main_ownership.zig": "444b9a424497781867fc81ac6a4bfe610aab24972045fd61d0a95dc0cad89602",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "39f3fc7fc9fcd143179164856472784c0ce34e8d8eaf66b50e30eba5b3108ff1",
+    "src/integrations/riscv_cpu/word16_execution/provider_tails.zig": "0f431f985ad19ae37f0be1f436c65a4555c9213ddd6a5ede8d42c2b5b62c470b",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "63ddcf6712787145d9440a9d4c3ced6c476c7b8a70673d367988832e131cb826",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "26d80656111c01130e068aef78216e2c6acf1142c2b090c60b72847cf8aac872",
+    "src/integrations/riscv_cpu/word16_qualification/csp_capture.zig": "f16a3c345d7ffffb32ec4daa90d0cf2b65dd34800334789e0d394352757fc9fd",
+    "src/integrations/riscv_cpu/word16_qualification/csp_execution.zig": "7fab81892d3a4fa7936cbcaa4d1142e65879ea8392d565fc5102c0d281775e03",
+    "src/integrations/riscv_cpu/word16_qualification/csp_image.zig": "72aa9c22a3b72451ede7b9ab1b62fb27e1fa9d31dde7f13fe49104e4326e3678",
+    "src/integrations/riscv_cpu/word16_qualification/native_geometry.zig": "934be16508823de09096a4588df0e75f839a21884af11bfb8471967d793e0608",
+    "src/integrations/riscv_cpu/word16_qualification/sail_capture.zig": "51d01ca8e95889de581d09577a471a3c14227e5dccf276c232e219672732e4c6",
+    "src/integrations/riscv_cpu/word16_qualification/sail_execution.zig": "c3871b11c161ac7c08308e1cd96428cc89294cefea36fb7d555369bded06cee8",
+    "src/integrations/riscv_cpu/word16_qualification/sail_image.zig": "f8a1c441d325ab6f64c9c7ee1048708f0cf989b01b2790a0e3e740363d3457a4"
+  }
+}

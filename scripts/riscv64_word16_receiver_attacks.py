@@ -111,6 +111,19 @@ def main():
                     limb['v'] = (limb['v'] - 1) % 2147483647
                 mutate_statement(directory, change)
             attacks.append(('nonzero-absent-LS-tail-balanced-claim', absent_tail))
+    expected_guard_errors = {}
+    for family in ('alu', 'binary', 'shift'):
+        tail = family + '_tail'
+        if tail in statement['claims'] and statement['geometry'].get(tail + '_log') is None:
+            name = 'nonzero-absent-' + family.upper() + '-tail-balanced-claim'
+            def absent_pure_tail(directory, tail=tail):
+                def change(s):
+                    s['claims'][tail]['function']['c0']['a']['v'] = 1
+                    limb = s['claims']['cpu']['c0']['a']
+                    limb['v'] = (limb['v'] - 1) % 2147483647
+                mutate_statement(directory, change)
+            attacks.append((name, absent_pure_tail))
+            expected_guard_errors[name] = 'error: NonzeroOmitted' + family.title() + 'TailClaim'
     if args.kind == 'csp':
         halt = config['guest']['symbols']['halt_flag']
         length = config['guest']['symbols']['output_len']
@@ -127,8 +140,11 @@ def main():
             result = run(target)
             if result.returncode == 0:
                 raise ValueError(f'Attack accepted: {name}')
+            receiver_error = result.stderr.decode(errors='replace').splitlines()[0]
+            if name in expected_guard_errors and receiver_error != expected_guard_errors[name]:
+                raise ValueError(f'Wrong rejection authority for {name}: {receiver_error}')
             results.append({'attack': name, 'rejected': True, 'exit_code': result.returncode,
-                            'receiver_error': result.stderr.decode(errors='replace').splitlines()[0]})
+                            'receiver_error': receiver_error})
     report = {'schema': 'rv64-word16-actual-receiver-mutations-v1', 'kind': args.kind,
               'positive_fresh_receiver': True, 'steps': statement['cpu']['steps'],
               'tool_sha256': sha(args.tool), 'config_sha256': sha(args.config),
