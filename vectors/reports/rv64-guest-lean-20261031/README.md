@@ -301,3 +301,54 @@ every field. The new `heap_start` is 33,648,672.
 
 Receipts in `round5/`; the services oracle agrees with the native executor on
 every field. `heap_start` is 33,648,672.
+
+## Wide-CPU commit path: attributed gap and recycled column buffers
+
+The 36-batch benchmark left 178.9 s (19.6%) of proving time outside every
+named stage. Two-batch probes of the lean guest (`commit-recycler/`,
+batch 1 is a plain CPU batch) attribute it and remove part of it.
+
+**Attribution.** New stage scopes in `src/prover/pcs/commit_ops.zig` and
+`src/prover/pcs/tree_builders.zig` time the column preparation that the PCS
+performed outside its "Merkle commit" scope. For a plain batch the untimed
+slice was the streaming commit of the 385 main, 148 interaction and 3 fixed
+columns in 8-column batches: 2.1 s of interpolate-and-extend (already on the
+worker pool, at the same per-column rate as the composition coset FFTs) and
+1.1 s of leaf hashing and compaction. The remaining untimed time per batch is
+now about 0.15 s.
+
+**Page faults.** `/usr/bin/time -l` on the baseline probe showed 9.67M page
+reclaims and 30.7 s of kernel time for two batches: Zig's smp allocator maps
+and unmaps every block above 64 KiB, so each batch re-faulted about 20 GB of
+column buffers. `src/integrations/riscv_cpu/rv64_large_block_recycler.zig`
+keeps freed blocks of at least 256 KiB mapped in per-capacity free lists
+(bounded, 16 GiB) and hands them back on the next request; small blocks keep
+the child allocator's lock-free path, and a recycled block is never shrunk
+below the threshold so ownership is decided from the length without a lock.
+Both Ethereum drivers use it as their base allocator.
+
+| Two-batch probe | baseline | recycler |
+| --- | ---: | ---: |
+| Wall | 49.95 s | 46.88 s |
+| Kernel time | 30.7 s | 8.1 s |
+| Page reclaims | 9.67M | 3.63M |
+| Batch 0 proving (RAM hashing) | 23.86 s | 22.00 s |
+| Batch 1 proving (plain) | 17.81 s | 16.15 s |
+| Peak RSS | 29.0 GB | 34.1 GB |
+| Proof bytes | identical | identical |
+
+The first version of the recycler took its mutex on every free and made the
+batch slower (19.05 s); the length-based ownership rule fixed that. The RSS
+increase is the retained cache; `cap_bytes` in the drivers trades it against
+re-faulting. Across 36 batches this is roughly 60 s. Receipts:
+`commit-recycler/summary.json`, the two batch-1 stage profiles, both
+`batches.jsonl` files and the probe configuration.
+
+What the probes rule out: enabling the wide row-parallel interpolation
+(`STWO_CAIRO_CPU_WIDE_LDE=1`) does not change the preparation time, and the
+2n commitment domain is disjoint from the 4n quotient domain, so the
+committed extension cannot stand in for two of the four composition cosets.
+The remaining wide-CPU cost per plain batch is composition 6.5 s (coset FFTs
+3.5 s, constraint rows 2.7 s), commit preparation 3.2 s, FRI 2.0 s,
+interactions 1.8 s, decommit 1.4 s; all of it scales with column count, which
+the Word16 and 2n-domain work on the main branch addresses.

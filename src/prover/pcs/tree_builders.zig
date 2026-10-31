@@ -380,6 +380,9 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             // Follow the same ownership convention as commitOwnedWithRecorder:
             // on error from prepareColumnsForCommitOwned the caller cleans up
             // the input; on success the result owns the data.
+            var transform_stage = try stage_profile.StageScope.begin(recorder, "streaming_transform", "Streaming batch interpolate and extend");
+            var transform_stage_open = true;
+            defer if (transform_stage_open) transform_stage.end();
             var prepared = (if (arena) |source| column_preparation.prepareColumnsBorrowingArenaForBackend(
                 B,
                 self.allocator,
@@ -402,8 +405,12 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 return err;
             };
             errdefer prepared.deinit(self.allocator);
+            transform_stage.end();
+            transform_stage_open = false;
 
             if (self.compact_committer) |*committer| {
+                var hash_stage = try stage_profile.StageScope.begin(recorder, "streaming_leaf_hash", "Streaming batch leaf hashing and compaction");
+                defer hash_stage.end();
                 if (prepared.columns.len > compact_max_columns - self.compact_column_count)
                     return error.CompactMerkleLeafTooWide;
                 const references = try self.allocator.alloc(MerkleProver.ColumnRef, prepared.columns.len);

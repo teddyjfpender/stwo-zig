@@ -287,6 +287,13 @@ pub fn CommitOps(
                     work_recorder,
                 )) return;
             var tree = blk: {
+                var prepare_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "owned_commit_prepare",
+                    "Prepare owned columns for commit",
+                );
+                var prepare_stage_open = true;
+                defer if (prepare_stage_open) prepare_stage.end();
                 var prepared = column_preparation.prepareColumnsForCommitOwnedForBackend(
                     B,
                     allocator,
@@ -301,6 +308,8 @@ pub fn CommitOps(
                     if (source_arena) |arena| allocator.free(arena);
                     return err;
                 };
+                prepare_stage.end();
+                prepare_stage_open = false;
                 errdefer prepared.deinit(allocator);
                 var merkle_commit_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -528,6 +537,12 @@ pub fn CommitOps(
                     initialized += 1;
                 }
                 // This call consumes the batch on both success and error.
+                var add_stage = try stage_profile.StageScope.begin(
+                    recorder,
+                    "streaming_commit_prepare",
+                    "Prepare streaming column batch for commit",
+                );
+                defer add_stage.end();
                 if (source_arena) |arena|
                     try builder.addColumnsBorrowingArenaIndexed(batch, order[consumed..end], recorder, arena)
                 else
