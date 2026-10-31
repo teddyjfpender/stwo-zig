@@ -100,6 +100,7 @@ test "Omitted DIV proves fresh with exact semantics, canonical zero claim and ow
     for (old_samples, omitted_samples, [_]usize{ 3, 1136, 12, 0 }) |normal, absent, removed| {
         try std.testing.expectEqual(removed, normal - absent);
     }
+
     try std.testing.expectEqual(@as(usize, 1151), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
     try std.testing.expect(proof.bytes.len < old.bytes.len);
     try std.testing.expect(!std.mem.eql(u8, proof.bytes, old.bytes));

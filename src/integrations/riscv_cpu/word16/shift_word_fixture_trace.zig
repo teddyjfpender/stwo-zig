@@ -196,42 +196,22 @@ pub const Fixture = struct {
             var main: [P.MAIN]Q = undefined;
             for (&main, 0..) |*v, c| v.* = Q.fromBase(self.main[c * N + physical]);
             const r = S.rowFromColumnsFor(Q, &main);
-            for (0..3) |batch| {
-                const first = 2 * batch;
-                const tuple_a = S.tableTupleFor(Q, &r, first);
-                const da = ch.shift.denominator(&tuple_a);
-                var dp = da;
-                var dn = Q.one();
-                if (first + 1 < S.TABLE_QUERIES) {
-                    const tuple_b = S.tableTupleFor(Q, &r, first + 1);
-                    const db = ch.shift.denominator(&tuple_b);
-                    dp = dp.mul(db);
-                    dn = da.add(db);
-                }
-                const inverse = try dp.inv();
-                store(output, physical, 4 * batch, inverse);
-                shift_sum = shift_sum.add(dn.mul(inverse));
+            for (0..P.encoding.PAIRS) |pair| {
+                const qa = 2 * pair;
+                const qb = qa + 1;
+                const dx = P.unitDenominatorFor(Q, &r, qa, ch);
+                const dy = P.unitDenominatorFor(Q, &r, qb, ch);
+                const inverse = try dx.mul(dy).inv();
+                store(output, physical, 4 * pair, inverse);
+                const ix = try dx.inv();
+                const iy = try dy.inv();
+                if (qa < 5) shift_sum = shift_sum.add(ix) else range_sum = range_sum.add(ix);
+                if (qb < 5) shift_sum = shift_sum.add(iy) else range_sum = range_sum.add(iy);
             }
-            for (0..5) |batch| {
-                const first = 2 * batch;
-                const ra = ch.range16.denominatorFor(Q, S.rangeValueFor(Q, &r, first));
-                var rp = ra;
-                var rn = Q.one();
-                if (first + 1 < S.RANGE_QUERIES) {
-                    const rb = ch.range16.denominatorFor(Q, S.rangeValueFor(Q, &r, first + 1));
-                    rp = rp.mul(rb);
-                    rn = ra.add(rb);
-                }
-                const inverse = try rp.inv();
-                store(output, physical, 16 + 4 * batch, inverse);
-                range_sum = range_sum.add(rn.mul(inverse));
-            }
-            store(output, physical, 12, shift_sum);
-            store(output, physical, 36, range_sum);
             const inverse = try ch.function.denominatorFor(Q, r.payload).inv();
-            store(output, physical, 40, inverse);
+            store(output, physical, P.FUNCTION_INVERSE, inverse);
             function_sum = function_sum.sub(inverse.mul(main[S.LOCAL_MAIN]));
-            store(output, physical, 44, function_sum);
+            store(output, physical, P.PREFIX, shift_sum.add(range_sum).add(function_sum));
             var tuple: [13]Q = undefined;
             for (&tuple, 0..) |*v, c| v.* = Q.fromBase(self.known_main[c * N + physical]);
             const known_inverse = try ch.function.denominatorFor(Q, tuple).inv();
@@ -239,11 +219,9 @@ pub const Fixture = struct {
             known_sum = known_sum.add(known_inverse.mulM31(self.known_main[13 * N + physical]));
             store(known, physical, 4, known_sum);
         }
-        for ([_]usize{ 12, 36, 44 }, [_]Q{ shift_sum, range_sum, function_sum }) |start, claim| {
-            for (claim.toM31Array(), 0..) |v, c| for (0..N) |r| {
-                output[(start + c) * N + r] = output[(start + c) * N + r].sub(v);
-            };
-        }
+        for (shift_sum.add(range_sum).add(function_sum).toM31Array(), 0..) |v, c| for (0..N) |r| {
+            output[(P.PREFIX + c) * N + r] = output[(P.PREFIX + c) * N + r].sub(v);
+        };
         for (known_sum.toM31Array(), 0..) |v, c| for (0..N) |r| {
             known[(4 + c) * N + r] = known[(4 + c) * N + r].sub(v);
         };

@@ -255,40 +255,25 @@ pub const Source = struct {
                 if (logical < self.fact_count) {
                     if (meta.payload[0] < 32 or meta.payload[0] > 37) return error.InvalidShiftMetadata;
                 } else for (meta.payload) |value| if (value != 0) return error.InvalidShiftMetadata;
-                for (0..3) |batch| {
-                    const x = shift_dictionary[tableIndex(meta, 2 * batch)];
-                    var inverse = x;
-                    shift_prefix = shift_prefix.add(x);
-                    if (2 * batch + 1 < 5) {
-                        const y = shift_dictionary[tableIndex(meta, 2 * batch + 1)];
-                        inverse = inverse.mul(y);
-                        shift_prefix = shift_prefix.add(y);
-                    }
-                    store(output, n, p, 4 * batch, inverse);
+                for (0..P.encoding.PAIRS) |pair| {
+                    const qa = 2 * pair;
+                    const qb = qa + 1;
+                    const x = if (qa < 5) shift_dictionary[tableIndex(meta, qa)] else range_dictionary[rangeIndex(meta, qa - 5)];
+                    const y = if (qb < 5) shift_dictionary[tableIndex(meta, qb)] else range_dictionary[rangeIndex(meta, qb - 5)];
+                    if (qa < 5) shift_prefix = shift_prefix.add(x) else range_prefix = range_prefix.add(x);
+                    if (qb < 5) shift_prefix = shift_prefix.add(y) else range_prefix = range_prefix.add(y);
+                    store(output, n, p, 4 * pair, x.mul(y));
                 }
-                store(output, n, p, 12, shift_prefix);
-                for (0..5) |batch| {
-                    const x = range_dictionary[rangeIndex(meta, 2 * batch)];
-                    var inverse = x;
-                    range_prefix = range_prefix.add(x);
-                    if (2 * batch + 1 < 9) {
-                        const y = range_dictionary[rangeIndex(meta, 2 * batch + 1)];
-                        inverse = inverse.mul(y);
-                        range_prefix = range_prefix.add(y);
-                    }
-                    store(output, n, p, 16 + 4 * batch, inverse);
-                }
-                store(output, n, p, 36, range_prefix);
                 const inverse = scratch[window + i];
-                store(output, n, p, 40, inverse);
+                store(output, n, p, P.FUNCTION_INVERSE, inverse);
                 const weight = meta.multiplicity();
                 if (weight == 1) function_sum = function_sum.sub(inverse) else if (weight != 0) function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(weight)));
-                store(output, n, p, 44, function_sum);
+                store(output, n, p, P.PREFIX, shift_prefix.add(range_prefix).add(function_sum));
             }
         }
         if (!shift_prefix.isZero() or !range_prefix.isZero()) return error.InvalidShiftMetadata;
         for (function_sum.toM31Array(), 0..) |v, c| for (0..n) |p| {
-            output[(44 + c) * n + p] = output[(44 + c) * n + p].sub(v);
+            output[(P.PREFIX + c) * n + p] = output[(P.PREFIX + c) * n + p].sub(v);
         };
         self.interaction = output;
         a.free(self.metadata);

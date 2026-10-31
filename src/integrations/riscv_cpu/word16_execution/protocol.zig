@@ -92,6 +92,7 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
+    B.shift_word_packed_experiment.lookup.encoding.mix(channel);
     @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.encoding.mix(channel);
     @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.boundary_encoding.mix(channel);
     digest(channel, materials.program.identity);

@@ -68,7 +68,7 @@ pub fn addProduct(context: Context) void {
         .{ "closed-ram", "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig", 11 },
         .{ "word16-shift", "src/frontends/riscv/rv64_word16_shift_test_root.zig", 8 },
         .{ "word16-shift-proof", "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig", 2 },
-        .{ "word16-shift-word", "src/frontends/riscv/rv64_word16_shift_word_test_root.zig", 9 },
+        .{ "word16-shift-word", "src/frontends/riscv/rv64_word16_shift_word_test_root.zig", 12 },
         .{ "word16-shift-word-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_proof_test_root.zig", 2 },
         .{ "word16-shift-packed-table", "src/frontends/riscv/rv64_word16_shift_packed_table_test_root.zig", 6 },
         .{ "word16-shift-source", "src/frontends/riscv/rv64_word16_shift_source_test_root.zig", 7 },

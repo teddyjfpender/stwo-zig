@@ -2,6 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const Profile = @import("word16/fixture_profile.zig");
+const X = @import("stwo_riscv_frontend").rv64_air.word16_v1.shift_word_packed_experiment;
 const F = @import("word16/shift_word_packed_fixture.zig");
 
 pub fn main() !void {
@@ -27,20 +28,21 @@ pub fn main() !void {
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded.bytes, &digest, .{});
         const receipt = .{
+            .encoding_identity = std.fmt.bytesToHex(X.lookup.encoding.identity(), .lower),
             .scope = "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
             .witness_source = if (produce_native) "native-owned" else if (produce_borrowed) "native-borrowed" else "scalar-oracle",
             .main_released_before_challenge = produce_native or produce_borrowed,
-            .retained_payload_bytes_per_row = if (produce_native or produce_borrowed) @as(u32, 26) else 0,
+            .retained_payload_bytes_per_row = if (produce_native or produce_borrowed) @as(u32, @sizeOf(X.source.Metadata)) else 0,
             .proof_bytes = encoded.bytes.len,
             .proof_sha256 = std.fmt.bytesToHex(digest, .lower),
             .queries = 70,
             .pow_bits = 26,
             .log_blowup = 1,
             .nominal_config_bits = 96,
-            .source_cells = 5379040,
-            .source_bytes = 21516160,
-            .trace_oods_masks = 265,
-            .shift = .{ .log = 5, .fixed = 2, .main = 53, .interaction = 48 },
+            .source_cells = 5379040 - 12 * 32,
+            .source_bytes = 4 * (5379040 - 12 * 32),
+            .trace_oods_masks = 265 - 20,
+            .shift = .{ .log = 5, .fixed = 2, .main = 53, .interaction = X.lookup.INTERACTION },
             .shift_table = .{ .log = 16, .fixed = 18, .main = 16, .interaction = 36 },
             .public_consumer = .{ .log = 5, .fixed = 34, .main = 14, .interaction = 8 },
             .u16 = .{ .log = 16, .fixed = 3, .main = 1, .interaction = 8 },

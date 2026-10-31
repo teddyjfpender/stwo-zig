@@ -118,7 +118,7 @@ fn packedFields(comptime F: type, comptime n: usize, scalar: *[16][n]E.Q, counte
     }
     return result;
 }
-test "SHIFT complete paired-table range and function polynomial preserves all43 secure SIMD residuals" {
+test "SHIFT complete paired-table range and function polynomial preserves all38 secure SIMD residuals" {
     var ch = P.Challenges{ .shift = .{ .offset = secure(3), .coefficients = undefined }, .range16 = .{ .offset = secure(7), .coefficient = secure(11) }, .function = .{ .offset = secure(13), .coefficients = undefined } };
     for (&ch.shift.coefficients, 0..) |*v, i| v.* = secure(@intCast(17 + 4 * i));
     for (&ch.function.coefficients, 0..) |*v, i| v.* = secure(@intCast(41 + 4 * i));

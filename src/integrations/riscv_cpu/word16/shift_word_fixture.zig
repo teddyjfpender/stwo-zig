@@ -21,7 +21,8 @@ pub const CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_blo
 pub const Encoded = struct { bytes: []u8, claims: [6]Q };
 fn mix(channel: *Channel, roster: *const C.ExpectedRoster) !void {
     CONFIG.mixInto(channel);
-    channel.mixU32s(&.{ X.table.DOMAIN_TAG, 1, 5, 5, 20, 16, 53, 48, 13, 7, 160, 288, 3 });
+    channel.mixU32s(&.{ X.table.DOMAIN_TAG, 1, 5, 5, 20, 16, P.MAIN, P.INTERACTION, 13, 7, 160, 288, 3 });
+    P.encoding.mix(channel);
     const digest = try C.expectedRosterDigest(roster);
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[i * 4 ..][0..4], .little);
@@ -135,7 +136,7 @@ pub fn verify(a: std.mem.Allocator, encoded: Encoded, tamper: bool) !void {
     @memset(logs[P.INTERACTION + 8 .. P.INTERACTION + 16], 20);
     @memset(logs[P.INTERACTION + 16 ..], 16);
     try verifier.commit(a, commitments[2], &logs, &channel);
-    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][44][1] = proof.commitment_scheme_proof.sampled_values.items[2][44][1].add(Q.one());
+    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][P.PREFIX][1] = proof.commitment_scheme_proof.sampled_values.items[2][P.PREFIX][1].add(Q.one());
     const c = Components.init(ch, encoded.claims, &f.roster);
     const handles = [_]core.air.components.Component{ c.shift.asVerifierComponent(), c.known.asVerifierComponent(), c.table.asVerifierComponent(), c.range.asVerifierComponent() };
     owns = false;

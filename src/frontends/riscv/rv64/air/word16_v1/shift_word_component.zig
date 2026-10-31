@@ -57,7 +57,7 @@ pub const Component = struct {
         return result;
     }
     pub fn needsPrevious(column: usize) bool {
-        return (column >= 12 and column < 16) or (column >= 36 and column < 40) or column >= 44;
+        return column >= P.PREFIX;
     }
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
         _ = try geometry.localPoint(point, global_log, self.log_size);

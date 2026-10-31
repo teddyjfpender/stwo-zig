@@ -25,6 +25,14 @@ test "inactive packed-table Word16 SHIFT D3 proves strict table U16 and FUNCTION
     balanced.claims[0] = balanced.claims[0].add(@import("stwo_core").fields.qm31.QM31.one());
     balanced.claims[4] = balanced.claims[4].sub(@import("stwo_core").fields.qm31.QM31.one());
     try std.testing.expectError(error.OodsNotMatching, F.verify(a, balanced, false));
+    var cross_balanced = encoded;
+    const one = @import("stwo_core").fields.qm31.QM31.one();
+    cross_balanced.claims[0] = cross_balanced.claims[0].add(one);
+    cross_balanced.claims[4] = cross_balanced.claims[4].sub(one);
+    cross_balanced.claims[1] = cross_balanced.claims[1].sub(one);
+    cross_balanced.claims[5] = cross_balanced.claims[5].add(one);
+    // All per-family closures and the consumer's joint total are preserved.
+    try std.testing.expectError(error.OodsNotMatching, F.verify(a, cross_balanced, false));
     var noncanonical = encoded;
     noncanonical.claims[4].c0.a.v = @import("stwo_core").fields.m31.Modulus;
     try std.testing.expectError(error.NonCanonicalShiftClaim, F.verify(a, noncanonical, false));

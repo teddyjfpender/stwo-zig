@@ -97,45 +97,24 @@ fn oracle(a: std.mem.Allocator, main: []const M) !struct { values: []M, claims: 
         var row_values: [P.MAIN]Q = undefined;
         for (&row_values, 0..) |*v, c| v.* = Q.fromBase(main[c * N + p]);
         const row = A.rowFromColumnsFor(Q, &row_values);
-        for (0..3) |batch| {
-            const tuple_a = A.tableTupleFor(Q, &row, 2 * batch);
-            const da = challenges.shift.denominator(&tuple_a);
-            var product = da;
-            var numerator = Q.one();
-            if (2 * batch + 1 < 5) {
-                const tuple_b = A.tableTupleFor(Q, &row, 2 * batch + 1);
-                const db = challenges.shift.denominator(&tuple_b);
-                product = product.mul(db);
-                numerator = da.add(db);
-            }
-            const inverse = try product.inv();
-            store(output, p, 4 * batch, inverse);
-            sums[0] = sums[0].add(numerator.mul(inverse));
+        var inverse_units: [14]Q = undefined;
+        for (&inverse_units, 0..) |*inverse, q| {
+            inverse.* = if (q < 5) try challenges.shift.denominator(&A.tableTupleFor(Q, &row, q)).inv() else try challenges.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, q - 5)).inv();
+            const family: usize = if (q < 5) 0 else 1;
+            sums[family] = sums[family].add(inverse.*);
         }
-        for (0..5) |batch| {
-            const da = challenges.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * batch));
-            var product = da;
-            var numerator = Q.one();
-            if (2 * batch + 1 < 9) {
-                const db = challenges.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, 2 * batch + 1));
-                product = product.mul(db);
-                numerator = da.add(db);
-            }
-            const inverse = try product.inv();
-            store(output, p, 16 + 4 * batch, inverse);
-            sums[1] = sums[1].add(numerator.mul(inverse));
-        }
+        for (0..7) |pair| store(output, p, 4 * pair, inverse_units[2 * pair].mul(inverse_units[2 * pair + 1]));
         const inverse = try challenges.function.denominatorFor(Q, row.payload).inv();
-        store(output, p, 40, inverse);
+        store(output, p, P.FUNCTION_INVERSE, inverse);
         sums[2] = sums[2].sub(inverse.mul(row_values[A.LOCAL_MAIN]));
-        for ([_]usize{ 12, 36, 44 }, sums) |start, sum| store(output, p, start, sum);
+        store(output, p, P.PREFIX, sums[0].add(sums[1]).add(sums[2]));
     }
-    for ([_]usize{ 12, 36, 44 }, sums) |start, sum| for (sum.toM31Array(), 0..) |v, c| for (0..N) |row| {
-        output[(start + c) * N + row] = output[(start + c) * N + row].sub(v);
+    for (sums[0].add(sums[1]).add(sums[2]).toM31Array(), 0..) |v, c| for (0..N) |row| {
+        output[(P.PREFIX + c) * N + row] = output[(P.PREFIX + c) * N + row].sub(v);
     };
     return .{ .values = output, .claims = .{ .shift = sums[0], .range16 = sums[1], .function = sums[2] } };
 }
-test "Word16 SHIFT owned and borrowed main retire before native generation with all48 interactions unchanged" {
+test "Word16 SHIFT owned and borrowed main retire before native generation with all36 interactions" {
     const a = std.testing.allocator;
     var requests = facts();
     var source = try S.Source.init(a, &requests, 5);

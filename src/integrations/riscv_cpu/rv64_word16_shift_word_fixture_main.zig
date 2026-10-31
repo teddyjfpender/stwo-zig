@@ -2,6 +2,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const Profile = @import("word16/fixture_profile.zig");
+const X = @import("stwo_riscv_frontend").rv64_air.word16_v1.shift_word_experiment;
 const F = @import("word16/shift_word_fixture.zig");
 
 pub fn main() !void {
@@ -24,6 +25,7 @@ pub fn main() !void {
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded.bytes, &digest, .{});
         const receipt = .{
+            .encoding_identity = std.fmt.bytesToHex(X.lookup.encoding.identity(), .lower),
             .scope = "diagnostic-public-io-word16-shift-table-u16-one-pcs",
             .proof_bytes = encoded.bytes.len,
             .proof_sha256 = std.fmt.bytesToHex(digest, .lower),
@@ -31,10 +33,10 @@ pub fn main() !void {
             .pow_bits = 26,
             .log_blowup = 1,
             .nominal_config_bits = 96,
-            .source_cells = 18617312,
-            .source_bytes = 74469248,
-            .trace_oods_masks = 212,
-            .shift = .{ .log = 5, .fixed = 2, .main = 53, .interaction = 48 },
+            .source_cells = 18617312 - 12 * 32,
+            .source_bytes = 4 * (18617312 - 12 * 32),
+            .trace_oods_masks = 212 - 20,
+            .shift = .{ .log = 5, .fixed = 2, .main = 53, .interaction = X.lookup.INTERACTION },
             .shift_table = .{ .log = 20, .fixed = 8, .main = 1, .interaction = 8 },
             .public_consumer = .{ .log = 5, .fixed = 34, .main = 14, .interaction = 8 },
             .u16 = .{ .log = 16, .fixed = 3, .main = 1, .interaction = 8 },

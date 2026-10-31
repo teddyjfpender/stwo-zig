@@ -35,6 +35,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-global-execution", .description = "Actual multi-shard CPU and global RAM prefix", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-memory", .description = "Check CPU-owned scalable LS and RAM boundary sources", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-division-degree3-circuit", .description = "Qualify degree3 DIV external CircuitLane point authority", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-shift-merged-circuit", .description = "Qualify shared SHIFT range prefix in external arithmetic lanes", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-alu-merged-circuit", .description = "Qualify ALU joint prefix in external arithmetic lanes", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-multiplication-degree3-circuit", .description = "Qualify strict-pair MUL and BYTE CircuitLane authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-multiplication-degree3", .description = "Qualify strict-pair MUL degree3 native2n provider", .scope = .riscv_cpu },

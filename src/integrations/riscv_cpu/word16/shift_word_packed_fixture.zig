@@ -21,7 +21,8 @@ pub const CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_blo
 pub const Encoded = struct { bytes: []u8, claims: [6]Q };
 fn mix(channel: *Channel, roster: *const C.ExpectedRoster) !void {
     CONFIG.mixInto(channel);
-    channel.mixU32s(&.{ X.table.SHAPE_TAG, 2, X.table.SEMANTIC_TAG, 5, 5, 16, 16, 53, 48, 18, 16, 36, 13, 7, 160, 288, 3 });
+    channel.mixU32s(&.{ X.table.SHAPE_TAG, 2, X.table.SEMANTIC_TAG, 5, 5, 16, 16, P.MAIN, P.INTERACTION, 18, 16, 36, 13, 7, 160, 288, 3 });
+    P.encoding.mix(channel);
     const digest = try C.expectedRosterDigest(roster);
     var words: [8]u32 = undefined;
     for (&words, 0..) |*word, i| word.* = std.mem.readInt(u32, digest[i * 4 ..][0..4], .little);
@@ -109,7 +110,7 @@ fn produceInternal(a: std.mem.Allocator, attack: Trace.Attack, recorder: ?*Profi
     return .{ .bytes = try @import("stwo_proof_wire").encodeProofBytesBinary(a, proof), .claims = claims };
 }
 pub fn verify(a: std.mem.Allocator, encoded: Encoded, tamper: bool) !void {
-    return verifyPrefix(a, encoded, if (tamper) 44 else null);
+    return verifyPrefix(a, encoded, if (tamper) P.PREFIX else null);
 }
 pub fn verifyTablePrefixMutation(a: std.mem.Allocator, encoded: Encoded) !void {
     return verifyPrefix(a, encoded, P.INTERACTION + 8 + 32);
