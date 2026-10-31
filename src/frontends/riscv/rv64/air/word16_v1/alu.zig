@@ -1,6 +1,7 @@
 //! Experimental ALU truth chip. Range queries are mandatory obligations,
 //! not host checks: all twenty rangeTuple values must close against U16.
 const E = @import("../evaluation.zig");
+const WordAdd = @import("word_add.zig");
 pub const LOCAL_MAIN = 59;
 pub const MAIN = LOCAL_MAIN;
 pub const CONSTRAINTS = 64;
@@ -51,7 +52,7 @@ pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     for (0..4) |i| {
         const previous_carry = if (i == 0) F.zero() else r.carry[i - 1];
         const previous_borrow = if (i == 0) F.zero() else r.borrow[i - 1];
-        sink.emit(r.payload[1 + i].add(r.payload[5 + i]).add(previous_carry).sub(r.sum[i]).sub(radix.mul(r.carry[i])));
+        sink.emit(WordAdd.limbResidualFor(F, r.payload[1 + i], r.payload[5 + i], previous_carry, r.sum[i], r.carry[i]));
         sink.emit(r.payload[1 + i].sub(r.payload[5 + i]).sub(previous_borrow).sub(r.difference[i]).add(radix.mul(r.borrow[i])));
     }
     for (0..4) |i| {
