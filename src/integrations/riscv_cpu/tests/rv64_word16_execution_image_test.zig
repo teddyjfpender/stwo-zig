@@ -272,3 +272,30 @@ test "execution memory count preflight rejects overcapacity before sidecar alloc
     bad.boundary_log = 64;
     try std.testing.expectError(error.InvalidExecutionGeometry, Admission.validateCounts(bad, 1, 0, 0));
 }
+
+test "joined execution proofs are exact with serial and1 4 16worker multichunk LS prefixes" {
+    const MixedFixture = @import("rv64_word16_execution_fixture.zig").Fixture;
+    const Setup = @import("../word16_execution/setup.zig");
+    const Execution = @import("../word16_execution/execution.zig");
+    const Driver = @import("../word16_execution/driver.zig");
+    const work = @import("stwo_prover_engine").work_pool;
+    var fixture = try MixedFixture.init(a);
+    defer fixture.deinit();
+    var setup = try Setup.Setup.initWithAuthority(a, &fixture.image.authority, .{ .cpu_log = 14, .ls_log = 14 });
+    defer setup.deinit();
+    const admission = Driver.admission(&fixture.image);
+    var reference = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);
+    defer reference.deinit(a);
+    for ([_]usize{ 1, 4, 16 }) |workers| {
+        var pool: work.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = 1024 * 1024, .backing_allocator = a });
+        defer pool.deinit();
+        var binding = try work.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        var actual = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);
+        defer actual.deinit(a);
+        try std.testing.expectEqualDeep(reference.claims, actual.claims);
+        try std.testing.expectEqualSlices(u8, reference.bytes, actual.bytes);
+        try Execution.verify(a, &setup, admission, actual);
+    }
+}

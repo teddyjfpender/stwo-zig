@@ -7,3 +7,6 @@ pub const native = @import("native.zig");
 pub const source = @import("source.zig");
 pub const boundary_source = @import("boundary_source.zig");
 pub const selection_source = @import("selection_source.zig");
+
+pub const interaction = @import("interaction.zig");
+pub const interaction_parallel = @import("interaction_parallel.zig");

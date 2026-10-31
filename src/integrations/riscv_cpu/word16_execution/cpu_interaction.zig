@@ -66,7 +66,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     const hints = try a.alloc(Hint, workers * CHUNK);
     defer a.free(hints);
     var jobs: [work.MAX_WORKERS]Job = undefined;
-    for (jobs[0..workers], 0..) |*job, i| job.* = .{ .source = source, .ch = ch, .dict = dictionaries, .padding_rom = padding_rom, .output = output, .summaries = summaries, .scratch = scratch[i * 10 * CHUNK ..][0 .. 10 * CHUNK], .hints = hints[i * CHUNK ..][0..CHUNK], .start = chunks * i / workers, .end = chunks * (i + 1) / workers };
+    for (jobs[0..workers], 0..) |*job, i| job.* = .{ .source = source, .ch = ch, .dict = dictionaries, .padding_rom = padding_rom, .output = output, .summaries = summaries, .scratch = scratch[i * 10 * CHUNK ..][0 .. 10 * CHUNK], .hints = hints[i * CHUNK ..][0..CHUNK], .start = i, .end = chunks, .stride = workers };
     if (workers > 1) {
         var lease = try pool.?.acquire(try work.WorkerBudget.init(workers));
         defer lease.deinit();
@@ -119,6 +119,7 @@ const Job = struct {
     hints: []Hint,
     start: usize,
     end: usize,
+    stride: usize,
     correct: bool = false,
     failure: ?anyerror = null,
     fn run(self: *Job) void {
@@ -136,7 +137,11 @@ const Job = struct {
             }
             return;
         }
-        for (self.start..self.end) |chunk| {
+        // Logical consecutive ranges interleave physical cache lines after
+        // bit reversal. For power-of-two teams, round-robin chunks isolate
+        // physical regions; summaries retain exact logical-prefix ordering.
+        var chunk = self.start;
+        while (chunk < self.end) : (chunk += self.stride) {
             const begin = chunk * CHUNK;
             const count: usize = @min(CHUNK, n - begin);
             for (0..count) |i| {

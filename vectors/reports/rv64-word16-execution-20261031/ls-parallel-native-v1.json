@@ -1,0 +1,224 @@
+{
+  "schema": "rv64.word16.ls-joined-native-interaction.v1",
+  "scope": "protocol-preserving native LS interaction generation; no AIR, claim, transcript, root or instance geometry change",
+  "baseline": "20cfcddf7 plus integration layout4f18e67de",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/interaction.zig": "0cc3d94e478a497dcf085fc19e03dcc95b489d3a44db968f76916d5bd0fb06b1",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/interaction_parallel.zig": "4c5ff1b7d90f71c2c638cc1f67194d50e11079d3a31eb9e0a1eb0a4d02719097",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/mod.zig": "3d92c739df0f36b7f311aa6a6504e1780ea76d56f744e5aa76c6e2c9d44f9ed6",
+    "src/integrations/riscv_cpu/word16_execution/memory/parallel_test.zig": "4d538349b047ab7a01f2180f63637d36af84e214ba78511c0983257dbe3d593c",
+    "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig": "a1942063448eef730c8ee58703becb2b273c3edd055f50772517c191d4aa97b1",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig": "239e64b2a4f532775f24ddedf36bf5b1f3506476e071865be421a7fc39527164",
+    "src/integrations/riscv_cpu/word16_execution/cpu_interaction.zig": "346e15ef838d42a3d58434034ba37cea68de019880c088512a6560374ce702ce"
+  },
+  "algorithm": {
+    "reference": "explicit generateSerial retained; one fillChunk row writer shared with joined path",
+    "first_wave": "4096-row chunks with local five-prefix sums; round-robin chunk ownership reduces physical cache-line sharing under bit reversal for power-of-two worker counts",
+    "join": "one existing structured WorkLease; each wave drains all submitted jobs before summary use or cleanup; no nested pool or global scratch",
+    "summary": "serial scan of five QM31 totals per chunk checks three lookup ledgers and computes all five prefix corrections",
+    "second_wave": "disjoint contiguous physical ranges apply prefix offsets to columns4/12/88/104/112",
+    "publication": "116-column output stays private until both waves and all ledgers succeed; only then Source.interaction publishes and saved82B-per-row metadata retires",
+    "source_main": "never read or regenerated; all tests release MAIN before interactions"
+  },
+  "resources": {
+    "chunk_rows": 4096,
+    "secure_scratch_bytes_per_worker": 327680,
+    "secure_scratch_bytes_16workers": 5242880,
+    "summary_bytes_per_chunk": 80,
+    "shared_selection_dictionary_values": 131072,
+    "release_safe_fast_min_worker_stack_bytes": 262144,
+    "debug_min_worker_stack_bytes": 1048576,
+    "effective_workers": "min(explicit pool worker count,logical chunk count), serial reference fallback at1"
+  },
+  "qualification": {
+    "ReleaseSafe": {
+      "memory_runtime_tests": 12,
+      "coordinator_runtime_tests": 20,
+      "result": "PASS",
+      "log": "/tmp/rv64-word16-ls-final-guards-safe.log"
+    },
+    "ReleaseFast": {
+      "memory_runtime_tests": 12,
+      "coordinator_runtime_tests": 20,
+      "result": "PASS",
+      "log": "/tmp/rv64-word16-ls-final-guards-fast.log"
+    },
+    "native_matrix": "65,536 LS rows/16chunks; serial-v1/4/16worker all116physicalcolumns and all5claims exact; all281 residuals on every physical row clean",
+    "actual_stark": "CPUlog14/LSlog14 gives16CPUchunks and4LSchunks; actual joined17role q70/P26 proofs atserial and1/4/16workers are byte-identical with identical claims, and each verifies through the typed receiver. The separate mixed fixture rebuilds independent expected setup.",
+    "errors": [
+      "phase/geometry/metadata flags and selection-index admission shared by serial and parallel",
+      "wave0/wave1 submission failures after0/1helper drain and leave metadata retryable",
+      "first/later/padding owner poles reject without publication and retry successfully",
+      "failing-allocator offsets0..6; allocation errors preserve owner state and retry",
+      "late count-ledger mismatch rejects after joined first wave",
+      "stack certificate enforced before serial fallback"
+    ]
+  },
+  "large_real_packet_parity": {
+    "v4_v5_proofs_exact": true,
+    "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+    "current_receiver_accepts_historical_v3_v4_v5": true,
+    "authority": "parent fresh-process CLI qualification; artifacts pinned below"
+  },
+  "large_real_packet_observations": {
+    "v4-prepared": {
+      "steps": 4194303,
+      "report": {
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11870,
+        "proof_and_public_statement_bytes": 33778836,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 659524096
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20
+        },
+        "native_prepare_ns": 301473833,
+        "provider_source_ns": 2015220500,
+        "setup_ns": 314180500,
+        "prove_ns": 15242450208,
+        "same_process_verify_ns": 76646500,
+        "proof_bytes": 1154928,
+        "total_ns": 16224728333,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857063424,
+          "last_rss_bytes": 1338343424,
+          "sampled_peak_rss_bytes": 11602001920,
+          "process_lifetime_peak_rss_bytes": 11602001920,
+          "samples": 1076,
+          "failed_samples": 0
+        }
+      },
+      "interaction_generation_seconds": 3.722896,
+      "cpu_interaction_seconds": 0.610488,
+      "ls_interaction_seconds": 1.603357
+    },
+    "v5-parallel": {
+      "steps": 4194303,
+      "report": {
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11870,
+        "proof_and_public_statement_bytes": 33778836,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 659524096
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20
+        },
+        "native_prepare_ns": 300483791,
+        "provider_source_ns": 1961998125,
+        "setup_ns": 316392250,
+        "prove_ns": 14020658583,
+        "same_process_verify_ns": 76683583,
+        "proof_bytes": 1154928,
+        "total_ns": 15031051000,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 856965120,
+          "last_rss_bytes": 1338474496,
+          "sampled_peak_rss_bytes": 11602083840,
+          "process_lifetime_peak_rss_bytes": 11602083840,
+          "samples": 991,
+          "failed_samples": 0
+        }
+      },
+      "interaction_generation_seconds": 2.654687,
+      "cpu_interaction_seconds": 0.386746,
+      "ls_interaction_seconds": 0.771585
+    }
+  },
+  "performance_scope": "Sequential retained-packet observations, not a statistically isolated benchmark. V5 combines LS chunk waves with CPU round-robin ownership; no whole-block extrapolation.",
+  "artifacts": {
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/report.json": {
+      "bytes": 1347,
+      "sha256": "e74b0e437857f3c0a23016c53b9705a6bbaead06777cbd67a09e1fb4508673d2"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/stages.json": {
+      "bytes": 300609,
+      "sha256": "89707bba06235393bd1bb75e793710140f88e33eb4fb261507f6a85294eb8f7d"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/planning.json": {
+      "bytes": 6519,
+      "sha256": "2911fe74315515430372d20206aa16d9aaf575bce2b8a55ca27a7952ec86e0ab"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/statement.json": {
+      "bytes": 11870,
+      "sha256": "a8190242423e790403d7b8cc6d9260e2cf5bdb4cd582530ab79317ae8101a428"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/proof.bin": {
+      "bytes": 1154928,
+      "sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/report.json": {
+      "bytes": 1346,
+      "sha256": "816e6dc4e7d01925ea041bfafb34923f869bbd80be31917b181415fe9509a12e"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/stages.json": {
+      "bytes": 300567,
+      "sha256": "32b86482cf525978844883cce8c03486781128d76b07cc13b46a38095b3a23d8"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/planning.json": {
+      "bytes": 6519,
+      "sha256": "2911fe74315515430372d20206aa16d9aaf575bce2b8a55ca27a7952ec86e0ab"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/statement.json": {
+      "bytes": 11870,
+      "sha256": "a8190242423e790403d7b8cc6d9260e2cf5bdb4cd582530ab79317ae8101a428"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/proof.bin": {
+      "bytes": 1154928,
+      "sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel.fresh.time": {
+      "bytes": 777,
+      "sha256": "abdebab638bededc66f28a9b1e5d78dcb575952d126a97e9e34c460b9228968b"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel.fresh.json": {
+      "bytes": 181,
+      "sha256": "04ae51f4fa8de1aba463489813542da749781e1a9cc79a44dc5fd25f04149120"
+    }
+  }
+}
