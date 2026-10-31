@@ -1,0 +1,54 @@
+{
+  "schema": "rv64.prepared-root-chain-work-packet.v1.qualification",
+  "status": "codec-safe-fast-qualified-process-integration-separate",
+  "protocol": "root-chain-control-v1-not-distributed-stage1",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_prepared_work_packet.zig": "06c2539bb8e02ac01608fef0f3d0df77b56887d1d0ec8b6ce24f5763f2321a3b",
+    "src/integrations/riscv_cpu/rv64_work_packet_admission.zig": "9ff86a98fb1d27fddc43fd1e5451bc86ff9a5a473125c7c61501a8c78c03f5a5",
+    "src/integrations/riscv_cpu/rv64_work_packet_body.zig": "dc966a3cecc568030ded16fa712be796905e77cade9a3f7d6a7dfcf1dbba90ce",
+    "src/integrations/riscv_cpu/rv64_work_packet_budget.zig": "6fa9240d049dabddc58f3551acddb1fa7175694a2a5cba7d85638fcd8f12dacc",
+    "src/integrations/riscv_cpu/rv64_work_packet_header.zig": "66739fde61267f65918e65a29be3f92b26d8fec201f9de039d44579147c8b37d",
+    "src/integrations/riscv_cpu/rv64_work_packet_io.zig": "568796ae9fa3bd97f7ba380966a00aeb761084bfd6f559210be26d8e3e4a895d",
+    "src/integrations/riscv_cpu/rv64_work_packet_public.zig": "611b23074cb4eed097a1b5823a0c8ae02d2a1acc77078c90997a16cb1acbb663",
+    "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig": "55ef49d21744c6fddd52c8f74d73b80384a69ed01a7f2f00640a029141a22726",
+    "src/integrations/riscv_cpu/tests/rv64_work_packet_adversarial_test.zig": "e0a26b9347e38e7cfb473327d2ad2df53579be52279c5f59183ebf07992496a5",
+    "src/integrations/riscv_cpu/tests/rv64_work_packet_publication_test.zig": "da6ce7d2608514b5d4d37f824501a0cb7e32b396de44882487e1c0afbb17ea5a",
+    "src/integrations/riscv_cpu/tests/rv64_work_packet_test.zig": "ec0944d1cbbff48928049c9843e98334a7a776a51fd7ed8946c384babfc3c2f1"
+  },
+  "tests": 8,
+  "test_minimum": 8,
+  "gates": [
+    {
+      "command": "zig build test-riscv64-work-packet -Doptimize=ReleaseSafe",
+      "exit_code": 0,
+      "log": "/tmp/rv64-work-packet-safe.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "zig build test-riscv64-work-packet -Doptimize=ReleaseFast",
+      "exit_code": 0,
+      "log": "/tmp/rv64-work-packet-fast.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": {
+    "wire_bytes": 536870912,
+    "decode_allocation_bytes": 536870912,
+    "chunk_bytes": 512,
+    "execution_profiles": [
+      "ethereum_services_v1",
+      "ethereum_services_v2"
+    ],
+    "controls": [
+      "bytes_v1",
+      "limbs24_v2"
+    ]
+  },
+  "ownership": "write borrows; successful read owns Finished+optional Native.Prepared+Tape; worker consumption followed by Packet.deinit is safe",
+  "publication": "exclusive random pending0600; file sync; exclusive linkat; recorded+recomputed digest idempotence; directory sync; no final target deletion/overwrite",
+  "authority": "program/opcode policy and state/policy expected independently; SHA and native roots are not proof acceptance",
+  "process_pilot": "vectors/reports/rv64-ethereum-20261030/process-control-pilot-v1.json",
+  "process_pilot_status": "coordinator reports actual2job out-of-order fresh workers and131072-step fresh prefix receiver passed; outer-directory-fsync final rerun tracked separately",
+  "distributed_stage1_or_aggregate_activation": false,
+  "design": "design/riscv-proving-stack/rv64-prepared-work-packet.md"
+}
