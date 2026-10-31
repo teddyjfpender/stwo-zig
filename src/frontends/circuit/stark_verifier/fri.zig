@@ -157,7 +157,7 @@ pub fn friDecommit(
 }
 
 /// `split_off(..n)` on a slice: returns the first `n` items and advances.
-pub fn splitOff(comptime T: type, items: *[]const T, n: usize) []const T {
+fn splitOff(comptime T: type, items: *[]const T, n: usize) []const T {
     std.debug.assert(items.len >= n);
     const head = items.*[0..n];
     items.* = items.*[n..];
@@ -166,7 +166,7 @@ pub fn splitOff(comptime T: type, items: *[]const T, n: usize) []const T {
 
 /// `fold_coset`: folds `2^n` coset values to one with `n` folds, fold `i`
 /// using `twiddles_per_fold[i]` (length `2^(n-1-i)`) and `alphas[i]`.
-pub fn foldCoset(comptime V: type, ctx: *Context(V), coset_values: []const Var, twiddles_per_fold: []const []Var, alphas: []const Var) Error!Var {
+fn foldCoset(comptime V: type, ctx: *Context(V), coset_values: []const Var, twiddles_per_fold: []const []Var, alphas: []const Var) Error!Var {
     std.debug.assert(coset_values.len == @as(usize, 1) << @intCast(twiddles_per_fold.len));
     std.debug.assert(alphas.len == twiddles_per_fold.len);
     const values = try ctx.scratch().dupe(Var, coset_values);
@@ -184,7 +184,7 @@ pub fn foldCoset(comptime V: type, ctx: *Context(V), coset_values: []const Var, 
 
 /// `validate_query_position_in_coset`: each query value equals the coset
 /// value its low `step` bits select.
-pub fn validateQueryPositionInCoset(
+fn validateQueryPositionInCoset(
     comptime V: type,
     ctx: *Context(V),
     witness: []const Var,
@@ -204,7 +204,7 @@ pub fn validateQueryPositionInCoset(
 /// `circle_compute_twiddles_from_base_point`: the y twiddles of the
 /// circle-to-line fold, then the x twiddles of the line folds. The result is
 /// `[fold][twiddle]`, each twiddle packed across queries.
-pub fn circleComputeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), base_point: Point(Simd), fold_step: usize) Error![]const []const Simd {
+fn circleComputeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), base_point: Point(Simd), fold_step: usize) Error![]const []const Simd {
     std.debug.assert(fold_step > 0);
     const scratch = ctx.scratch();
     if (fold_step == 1) {
@@ -237,7 +237,7 @@ pub fn circleComputeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), ba
 
 /// `compute_x_twiddles`: `out.len` folds; each inverts the current x
 /// coordinates, then (except the last) keeps every other one, doubled.
-pub fn computeXTwiddles(comptime V: type, ctx: *Context(V), x_coords: []const Simd, out: [][]const Simd) Error!void {
+fn computeXTwiddles(comptime V: type, ctx: *Context(V), x_coords: []const Simd, out: [][]const Simd) Error!void {
     var xs = x_coords;
     for (out, 0..) |*fold, fold_idx| {
         const inverses = try ctx.scratch().alloc(Simd, xs.len);
@@ -254,7 +254,7 @@ pub fn computeXTwiddles(comptime V: type, ctx: *Context(V), x_coords: []const Si
 
 /// `compute_twiddles_from_base_point`: the x twiddles of a line-to-line
 /// step.
-pub fn computeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), base_point: Point(Simd), fold_step: usize) Error![]const []const Simd {
+fn computeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), base_point: Point(Simd), fold_step: usize) Error![]const []const Simd {
     std.debug.assert(fold_step > 0);
     const coset_points = try circle.computeHalfCosetPoints(V, ctx, base_point, @intCast(fold_step));
     // The last half-coset point's y is not necessarily used (a single-point
@@ -269,7 +269,7 @@ pub fn computeTwiddlesFromBasePoint(comptime V: type, ctx: *Context(V), base_poi
 
 /// `circle_translate_to_base_point`: the circle bit negates `y`, the rest
 /// are line bits.
-pub fn circleTranslateToBasePoint(comptime V: type, ctx: *Context(V), point: Point(Simd), packed_bits: []const Simd) Error!Point(Simd) {
+fn circleTranslateToBasePoint(comptime V: type, ctx: *Context(V), point: Point(Simd), packed_bits: []const Simd) Error!Point(Simd) {
     const minus_y = try select_queries.negSimd(V, ctx, point.y);
     const selected: Point(Simd) = .{ .x = point.x, .y = try simd.select(V, ctx, packed_bits[0], point.y, minus_y) };
     return translateToBasePoint(V, ctx, selected, packed_bits[1..]);
@@ -277,7 +277,7 @@ pub fn circleTranslateToBasePoint(comptime V: type, ctx: *Context(V), point: Poi
 
 /// `translate_to_base_point`: subtracts the generator of the subgroup of
 /// size `2^(i+1)` from every lane whose bit `i` is set.
-pub fn translateToBasePoint(comptime V: type, ctx: *Context(V), point: Point(Simd), packed_bits: []const Simd) Error!Point(Simd) {
+fn translateToBasePoint(comptime V: type, ctx: *Context(V), point: Point(Simd), packed_bits: []const Simd) Error!Point(Simd) {
     var base = point;
     for (packed_bits, 0..) |bit, i| {
         const generator = try circle.generatorPointSimd(V, ctx, i + 1, base.x.len);

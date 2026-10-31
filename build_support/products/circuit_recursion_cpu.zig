@@ -142,6 +142,9 @@ const integration_build = "src/integrations/circuit_cpu/build.zig";
 
 /// Rungs that run within the 8 GB development budget.
 const local_rungs = [_]Rung{
+    // The StarkWare-parity surface pin: the pinned circuits' bytes are
+    // unchanged, or the change is deliberate and re-pinned.
+    .{ .build_file = frontend_build, .step = "circuit-starkware-pin" },
     // R0: the wire formats' vectors (felt252, base64, leaf JSON, serializers).
     .{ .build_file = "src/interop/circuit_recursion/build.zig", .step = "test" },
     // R0 (FRI), R1, R2, R3 and R5: the frontend's unit and fixture tests.

@@ -200,7 +200,29 @@ multiverifier fixpoint than the production one.
 - The root receiver is native and cheap: one circuit proof verification,
   a digest recomputation over 36 leaves, and the existing chain adjacency.
 
-## 7. Gates before this is production
+## 7. Separation from the StarkWare-parity circuits
+
+The Starknet pipeline's circuits are pinned to `proving@5a7c5ed` byte for
+byte, and nothing RV64 does may move them. The boundary is enforced three
+ways:
+
+- The native-protocol verifier is a sibling module (`native_verifier/`)
+  with its own copies of the FRI folding helpers (`fold_helpers.zig`); it
+  imports the pinned verifier's circle and query gadgets read-only and
+  changes nothing under `stark_verifier/`, `statements/`, `air_eval/`,
+  `common/` or `builder/`.
+- Any RV64-specific fold statement, registry target or evaluator goes in a
+  new module or a new registry file, never in `multiverifier.zig`,
+  `canonical.zig` or the committed registries. Until then the RV64 leaf
+  pads to the production target and the production multiverifier folds it
+  unchanged.
+- `zig build circuit-starkware-pin` (first rung of `circuit-parity-local`)
+  checks one SHA-256 over the whole pinned surface against
+  `vectors/circuit/official/starkware_surface_pin.txt`. A StarkWare-side
+  change re-runs the parity ladder and updates the pin in the same commit;
+  an accidental edit from another lane fails loudly.
+
+## 8. Gates before this is production
 
 1. A topology per layout. Component log sizes, rosters and RAM counts are
    circuit constants, so every distinct batch layout is a distinct leaf

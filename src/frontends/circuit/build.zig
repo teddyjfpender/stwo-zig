@@ -59,6 +59,16 @@ pub fn build(b: *std.Build) void {
     const native_verifier_tests = b.addRunArtifact(b.addTest(.{ .root_module = native_verifier_root, .filters = filters }));
     native_verifier_tests.setCwd(repository_root);
     const native_verifier_step = b.step("native-verifier-test", "Test the native-protocol in-circuit verifier (native_verifier/), end to end against the prover");
+    // The StarkWare-parity surface pin: `zig build circuit-starkware-pin`.
+    const pin_root = b.createModule(.{
+        .root_source_file = b.path("starkware_surface_pin_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const pin_tests = b.addRunArtifact(b.addTest(.{ .root_module = pin_root }));
+    pin_tests.setCwd(repository_root);
+    b.step("circuit-starkware-pin", "Check the pinned digest of the StarkWare-parity circuit surface").dependOn(&pin_tests.step);
+
     native_verifier_step.dependOn(&native_verifier_tests.step);
 
     const test_step = b.step("test", "Compile and test the stwo_circuit_frontend package");
