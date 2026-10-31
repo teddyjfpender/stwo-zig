@@ -480,8 +480,7 @@
         "receiver_ns": 979234583,
         "image_ns": 328142375
       },
-      "fresh_maximum_rss_bytes": 2050000000,
-      "fresh_rss_note": "rounded; exact OS sample pinned in fresh.time",
+      "fresh_maximum_rss_bytes": 2014281728,
       "top_level_stages": [
         {
           "id": "source_construction",
