@@ -1,0 +1,13 @@
+[package]
+name = "stwo-rv64-mem"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "memcpy/memmove/memset/memcmp for an RV64 guest without misaligned access"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
+
+[dependencies]

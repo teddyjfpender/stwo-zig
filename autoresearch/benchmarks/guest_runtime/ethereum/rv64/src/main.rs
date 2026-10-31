@@ -12,6 +12,10 @@ mod allocator;
 mod single_thread_atomics;
 #[cfg(feature = "keccak-service")]
 mod keccak_service;
+// Strong `memcpy`/`memmove`/`memset`/`memcmp` symbols for aligned-only RV64;
+// they replace the weak compiler_builtins definitions at link time.
+#[cfg(target_arch = "riscv64")]
+extern crate stwo_rv64_mem;
 #[global_allocator]
 static HEAP: allocator::ExactLayoutFreeListHeapV2 = allocator::ExactLayoutFreeListHeapV2::empty();
 unsafe extern "C" {
