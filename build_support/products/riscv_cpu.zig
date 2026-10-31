@@ -62,6 +62,8 @@ pub fn addProduct(context: Context) void {
         .{ "word16-parallel-interaction", "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig", 4 },
         .{ "word16-index-control", "src/integrations/riscv_cpu/rv64_word16_index_control_test_root.zig", 9 },
         .{ "word16-alu-parallel-interaction", "src/frontends/riscv/rv64_alu_parallel_interaction_test_root.zig", 3 },
+        .{ "word16-rom-lookup", "src/frontends/riscv/rv64_rom_lookup_test_root.zig", 4 },
+        .{ "word16-native-projection", "src/integrations/riscv_cpu/rv64_word16_native_projection_test_root.zig", 3 },
         .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 8 },
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 3 },

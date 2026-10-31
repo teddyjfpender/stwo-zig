@@ -13,6 +13,8 @@ const Rom = @import("rom.zig");
 const Lookup = @import("lookup.zig");
 const Operations = @import("../word16_v1/operations.zig");
 const Binary = @import("../word16_v1/binary_source.zig");
+const Projection = @import("native_projection.zig");
+const work = @import("stwo_prover_engine").work_pool;
 pub const Metadata = struct { values: [4]u64, previous_clocks: [3]u32, rom_row: u32 };
 comptime {
     std.debug.assert(@sizeOf(Metadata) == 48);
@@ -32,14 +34,29 @@ pub const Source = struct {
     pub fn init(a: std.mem.Allocator, program: *const Rom.Setup, public: P.Public, log_size: u32, records: []const Record) !Source {
         var source = try initMetadata(a, program.metadataView(), public, log_size, records);
         errdefer source.deinit();
-        const n = source.size();
-        source.main = try a.alloc(M, Profile.mainCount(source.program.profile) * n);
-        for (0..n) |row| {
-            const values = source.projectRow(row);
-            const pos = L.physical(row, log_size);
-            for (values[0..Profile.mainCount(source.program.profile)], 0..) |value, column| source.main[column * n + pos] = value;
-        }
+        try source.fillMain();
         return source;
+    }
+    /// Format the validated native advice directly in physical matrix order.
+    pub fn fillMain(self: *Source) !void {
+        return self.fillMainImpl(work.currentScopedPool(), null);
+    }
+    fn fillMainImpl(self: *Source, pool: ?*work.WorkPool, fail_after: ?usize) !void {
+        try self.public.validate(self.log_size);
+        if (self.main.len != 0 or self.rows_projected != 0 or self.metadata.len != self.public.steps or self.interaction.len != 0) return error.InvalidWord16ProjectionPhase;
+        if (pool) |active| if (active.stackSize() < Projection.MIN_STACK_BYTES) return error.InvalidNativeProjectionStack;
+        const n = self.size();
+        const main = try self.allocator.alloc(M, Profile.mainCount(self.program.profile) * n);
+        errdefer self.allocator.free(main);
+        const rows = NativeRows{ .source = self, .main = main };
+        const kernel = Projection.Kernel{ .context = &rows, .rows = NativeRows.run };
+        if (comptime @import("builtin").is_test) {
+            if (fail_after) |after| {
+                try Projection.testing.failSubmission(self.allocator, self.log_size, kernel, self.range16_counts, self.range8_counts, pool.?, after);
+            } else try Projection.fill(self.allocator, self.log_size, kernel, self.range16_counts, self.range8_counts, pool);
+        } else try Projection.fill(self.allocator, self.log_size, kernel, self.range16_counts, self.range8_counts, pool);
+        self.main = main;
+        self.rows_projected = n;
     }
     /// Capture/validate narrow metadata without allocating any CPU-wide advice.
     /// Exactly ONE caller-owned projection pass must call projectRow for all n.
@@ -223,3 +240,27 @@ pub const Source = struct {
         return @import("interaction.zig").generate(self, challenges, range16, range8);
     }
 };
+
+const NativeRows = struct {
+    source: *const Source,
+    main: []M,
+    fn run(ctx: *const anyopaque, start: usize, end: usize, counts16: []u64, counts8: []u64) void {
+        const self: *const NativeRows = @ptrCast(@alignCast(ctx));
+        const log = self.source.log_size;
+        const n = self.source.size();
+        for (start..end) |position| {
+            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, log), log);
+            const values = self.source.rowValues(logical);
+            for (values[0..Profile.mainCount(self.source.program.profile)], 0..) |value, column| self.main[column * n + position] = value;
+            for (0..3) |slot| {
+                counts16[values[L.main.gap16 + slot].v] += 1;
+                counts8[values[L.main.gap8 + slot].v] += 1;
+            }
+        }
+    }
+};
+pub const testing = if (@import("builtin").is_test) struct {
+    pub fn failProjectionSubmission(source: *Source, pool: *work.WorkPool, after: usize) !void {
+        return source.fillMainImpl(pool, after);
+    }
+} else struct {};

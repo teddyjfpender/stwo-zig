@@ -135,6 +135,7 @@ pub const word16_v1 = struct {
 
 /// Concrete register-only BINARY CPU; legacy profiles retain their encoding.
 pub const word16_cpu = struct {
+    pub const native_projection = @import("word16_cpu/native_projection.zig");
     pub const interaction = @import("word16_cpu/interaction.zig");
     pub const profile = @import("word16_cpu/profile.zig");
     pub const layout = @import("word16_cpu/layout.zig");

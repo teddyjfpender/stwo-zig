@@ -21,6 +21,7 @@ pub const Authority = struct {
     allocator: std.mem.Allocator,
     words: []u32,
     word_addresses: []u64,
+    contiguous: bool = false,
     decoded: []Decoded,
     valid: []bool,
     admitted: []bool,
@@ -135,7 +136,7 @@ pub const Authority = struct {
         errdefer a.free(owned_addresses);
         const owned_edges = try edges.toOwnedSlice(a);
         errdefer a.free(owned_edges);
-        return .{ .allocator = a, .words = words, .word_addresses = word_addresses, .decoded = decoded, .valid = valid, .admitted = admitted, .word_rows = word_rows, .row_words = row_words, .addresses = owned_addresses, .id_words = id_words, .first_rows = first_rows, .edges = owned_edges, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult() };
+        return .{ .allocator = a, .words = words, .word_addresses = word_addresses, .contiguous = @import("../word16_cpu/rom.zig").contiguousAddresses(word_addresses), .decoded = decoded, .valid = valid, .admitted = admitted, .word_rows = word_rows, .row_words = row_words, .addresses = owned_addresses, .id_words = id_words, .first_rows = first_rows, .edges = owned_edges, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult() };
     }
     pub fn deinit(self: *Authority) void {
         self.allocator.free(self.fixed);
@@ -153,7 +154,7 @@ pub const Authority = struct {
         self.* = undefined;
     }
     pub fn metadataView(self: *const Authority) @import("../word16_cpu/rom.zig").MetadataView {
-        return .{ .words = self.words, .addresses = self.word_addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .admitted = self.admitted, .log_size = self.log_size, .profile = .alu_binary_v2 };
+        return .{ .words = self.words, .addresses = self.word_addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .admitted = self.admitted, .contiguous = self.contiguous, .log_size = self.log_size, .profile = .alu_binary_v2 };
     }
     pub fn idForPc(self: *const Authority, pc: u64) !u32 {
         return find(self.addresses, pc);

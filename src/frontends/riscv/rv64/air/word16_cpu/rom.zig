@@ -26,6 +26,7 @@ pub const Setup = struct {
     profile: Profile.Profile,
     word_rows: []u32,
     row_words: []u32,
+    contiguous: bool = false,
     pub fn init(a: std.mem.Allocator, program: Program) !Setup {
         return initWithProfile(a, program, .binary_v1);
     }
@@ -83,7 +84,7 @@ pub const Setup = struct {
         }
         fixed[tuple_count * n + L.physical(0, @intCast(log_size))] = M.one();
         fixed[(tuple_count + 1) * n + L.physical(n - 1, @intCast(log_size))] = M.one();
-        return .{ .allocator = a, .words = words, .addresses = addresses, .decoded = decoded, .fixed = fixed, .log_size = @intCast(log_size), .identity = hash.finalResult(), .profile = profile, .word_rows = word_rows, .row_words = row_words };
+        return .{ .allocator = a, .words = words, .addresses = addresses, .decoded = decoded, .fixed = fixed, .log_size = @intCast(log_size), .identity = hash.finalResult(), .profile = profile, .word_rows = word_rows, .row_words = row_words, .contiguous = contiguousAddresses(addresses) };
     }
     pub fn deinit(self: *Setup) void {
         self.allocator.free(self.row_words);
@@ -96,7 +97,7 @@ pub const Setup = struct {
     }
     /// Borrowed immutable cache. The owner must outlive all sources/views.
     pub fn metadataView(self: *const Setup) MetadataView {
-        return .{ .words = self.words, .addresses = self.addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .log_size = self.log_size, .profile = self.profile };
+        return .{ .words = self.words, .addresses = self.addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .log_size = self.log_size, .profile = self.profile, .contiguous = self.contiguous };
     }
     pub fn size(self: *const Setup) usize {
         return self.metadataView().size();
@@ -129,6 +130,7 @@ pub const MetadataView = struct {
     word_rows: []const u32,
     row_words: []const u32,
     admitted: []const bool = &.{},
+    contiguous: bool = false,
     log_size: u32,
     profile: Profile.Profile,
     pub fn size(self: *const MetadataView) usize {
@@ -154,14 +156,25 @@ pub const MetadataView = struct {
         return next;
     }
     pub fn lookup(self: *const MetadataView, pc: u64) !usize {
-        var lo: usize = 0;
-        var hi = self.addresses.len;
-        while (lo < hi) {
-            const middle = lo + (hi - lo) / 2;
-            if (self.addresses[middle] < pc) lo = middle + 1 else hi = middle;
-        }
-        if (lo == self.addresses.len or self.addresses[lo] != pc) return error.UnknownWord16CpuPc;
-        return lo;
+        const index = if (self.contiguous) contiguous: {
+            if (pc & 3 != 0 or self.addresses.len == 0 or pc < self.addresses[0]) return error.UnknownWord16CpuPc;
+            const word = (pc - self.addresses[0]) / 4;
+            if (word >= self.addresses.len) return error.UnknownWord16CpuPc;
+            break :contiguous @as(usize, @intCast(word));
+        } else sparse: {
+            var lo: usize = 0;
+            var hi = self.addresses.len;
+            while (lo < hi) {
+                const middle = lo + (hi - lo) / 2;
+                if (self.addresses[middle] < pc) lo = middle + 1 else hi = middle;
+            }
+            if (lo == self.addresses.len or self.addresses[lo] != pc) return error.UnknownWord16CpuPc;
+            break :sparse lo;
+        };
+        // The immutable admission mask must be checked BEFORE callers access
+        // decoded[index]. Invalid words remain identity-bound, never fetchable.
+        if (self.admitted.len != 0 and !self.admitted[index]) return error.InvalidWord16CpuRecords;
+        return index;
     }
 };
 fn deriveWithProfile(pc: u64, instruction: isa.Instruction, profile: Profile.Profile, taken: bool) [Profile.MAX_ROM]M {
@@ -189,4 +202,13 @@ pub fn effectiveIds(instruction: isa.Instruction, profile: Profile.Profile) [3]u
     if (profile == .binary_v1) return .{ instruction.rs1, instruction.rs2, instruction.rd };
     const effects = isa.effects(instruction.opcode);
     return .{ if (effects.reads_rs1) instruction.rs1 else 0, if (effects.reads_rs2) instruction.rs2 else 0, if (effects.writes_rd) instruction.rd else 0 };
+}
+
+/// Independently derived once, never a request/program-identity input.
+pub fn contiguousAddresses(addresses: []const u64) bool {
+    if (addresses.len == 0) return false;
+    for (addresses[0 .. addresses.len - 1], addresses[1..]) |previous, next| {
+        if (previous > std.math.maxInt(u64) - 4 or next != previous + 4) return false;
+    }
+    return true;
 }

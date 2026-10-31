@@ -1,0 +1,21 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <time.h>
+static uint64_t u64(const unsigned char *p){uint64_t v;memcpy(&v,p,8);return v;}
+static uint32_t u32(const unsigned char *p){uint32_t v;memcpy(&v,p,4);return v;}
+static uint64_t ns(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000000000+t.tv_nsec;}
+static size_t old(const uint64_t *addresses,size_t n,uint64_t pc){size_t lo=0,hi=n;while(lo<hi){size_t mid=lo+(hi-lo)/2;if(addresses[mid]<pc)lo=mid+1;else hi=mid;}if(lo==n||addresses[lo]!=pc)return SIZE_MAX;return lo;}
+static size_t direct(uint64_t base,size_t n,uint64_t pc){if(pc<base||(pc&3))return SIZE_MAX;uint64_t i=(pc-base)/4;if(i>=n)return SIZE_MAX;return i;}
+static volatile uint64_t observable;
+int main(int argc,char **argv){if(argc<2)return 2;const uint64_t base=1024;const size_t words=540147;uint64_t *addresses=malloc(words*8);if(!addresses)return 3;for(size_t i=0;i<words;i++)addresses[i]=base+4*i;
+for(int file=1;file<argc;file++){int fd=open(argv[file],O_RDONLY);struct stat st;if(fd<0||fstat(fd,&st))return 4;unsigned char *p=mmap(NULL,(size_t)st.st_size,PROT_READ,MAP_PRIVATE,fd,0);if(p==MAP_FAILED)return 5;if(memcmp(p,"RV64WP01",8)||u64(p+16)!=(uint64_t)st.st_size)return 6;
+size_t tape=384+768+(size_t)u32(p+24)*32+(size_t)u32(p+28)*(8+64*21)+u64(p+32);if(tape+48>(size_t)st.st_size||memcmp(p+tape,"RV64TP01",8))return 7;const unsigned char *header=p+tape,*steps=header+48;size_t count=u32(header+12);if(48+48*count+8*(size_t)u32(header+16)+432*(size_t)u32(header+20)+424*(size_t)u32(header+24)!=u64(p+40))return 8;
+uint64_t expected=0,pc=u64(header+32);for(size_t i=0;i<count;i++){size_t a=old(addresses,words,pc),b=direct(base,words,pc);if(a!=b||a==SIZE_MAX){fprintf(stderr,"badpc %zu %llu\n",i,(unsigned long long)pc);return 9;}expected+=a;pc=u64(steps+48*i);}
+for(int rep=0;rep<4;rep++)for(int arm=0;arm<2;arm++){int method=(arm+rep)%2;uint64_t sum=0,start=ns();pc=u64(header+32);if(method==0){for(size_t i=0;i<count;i++){sum+=old(addresses,words,pc);pc=u64(steps+48*i);}}else{for(size_t i=0;i<count;i++){sum+=direct(base,words,pc);pc=u64(steps+48*i);}}uint64_t elapsed=ns()-start;observable=sum;if(sum!=expected)return 10;printf("{\"file\":\"%s\",\"steps\":%zu,\"method\":\"%s\",\"repeat\":%d,\"ns\":%llu,\"checksum\":%llu}\n",argv[file],count,method?"checked_contiguous":"binary_search",rep,(unsigned long long)elapsed,(unsigned long long)sum);}
+munmap(p,(size_t)st.st_size);close(fd);}free(addresses);return 0;}
