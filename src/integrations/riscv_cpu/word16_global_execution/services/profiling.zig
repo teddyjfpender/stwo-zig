@@ -5,6 +5,8 @@ const core = @import("stwo_core");
 const Profile = @import("stwo_prover_api").stage_profile;
 const G = @import("../protocol.zig");
 pub const Options = struct {
+    commit_batch_columns: u32 = 64,
+    schedule: @import("schedule.zig").Policy = .{},
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,
@@ -12,6 +14,8 @@ pub const Options = struct {
     /// constructed. Advice outer headers remain valid and must be deinitialized.
     consume_memory_events: bool = false,
     pub fn validate(self: Options, count: usize) !void {
+        try self.schedule.validate();
+        if (self.commit_batch_columns == 0) return error.InvalidStreamingBatchSize;
         if (self.recorders.len != 0 and self.recorders.len != count) return error.InvalidServiceRecorderRoster;
         if (self.directory != null and self.recorders.len == 0) return error.MissingServiceRecorders;
     }
