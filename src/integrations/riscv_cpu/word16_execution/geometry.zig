@@ -3,9 +3,8 @@ const std = @import("std");
 const front = @import("stwo_riscv_frontend");
 const B = front.rv64_air.word16_v1;
 const A = front.rv64_air.arithmetic;
-const Ram = front.rv64_air.memory.closed_ram.layout;
 const LS = front.rv64_air.memory.load_store_v2.layout;
-pub const ROLE_COUNT = 17;
+pub const ROLE_COUNT = @typeInfo(Role).@"enum".fields.len;
 const P = @import("program.zig").Program;
 pub const Geometry = struct {
     cpu_log: u32,
@@ -19,6 +18,8 @@ pub const Geometry = struct {
     omit_empty_division: bool = false,
     multiplication_log: u32 = 5,
     ls_log: u32 = 5,
+    /// Optional second LS instance in the SAME PCS. Null supplies no columns.
+    ls_tail_log: ?u32 = null,
     boundary_log: u32 = 5,
     /// Optional independently sized RAM boundary roles. Null preserves the
     /// historical shared geometry, immutable roots and transcript exactly.
@@ -33,6 +34,7 @@ pub const Geometry = struct {
     pub fn validate(self: Geometry) !void {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        if (self.ls_tail_log) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         _ = try B.function_bus.admitPositiveMass(&.{try self.range16Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
@@ -40,17 +42,33 @@ pub const Geometry = struct {
         _ = try B.binary_source.massForLog(self.binary_log);
         _ = try B.shift_word_packed_experiment.source.massForLog(self.shift_log);
     }
+    pub const LsCounts = struct { head: u32, tail: u32 };
+    /// Every present LS instance needs a trailing inactive row. Tail is used
+    /// only after the head's N-1 capacity; counts are receiver-derived.
+    pub fn lsCounts(self: Geometry, total: u32) !LsCounts {
+        if (self.ls_log < 5 or self.ls_log > 22) return error.InvalidExecutionGeometry;
+        const head: u32 = @intCast(@min(total, rows(self.ls_log) - 1));
+        const tail = total - head;
+        if (self.ls_tail_log) |log| {
+            if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+            if (tail == 0 or tail >= rows(log)) return error.InvalidLsTailCapacity;
+        } else if (tail != 0) return error.InvalidLsTailCapacity;
+        return .{ .head = head, .tail = tail };
+    }
+    pub fn lsRows(self: Geometry) u64 {
+        return rows(self.ls_log) + if (self.ls_tail_log) |log| rows(log) else @as(u64, 0);
+    }
     /// Counts include padding for every always-present physical provider.
     /// Future service rosters must extend this admission BEFORE allocation.
     pub fn range16Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * rows(self.alu_log));
         total = try std.math.add(u64, total, 9 * rows(self.shift_log));
-        total = try std.math.add(u64, total, LS.U16.len * rows(self.ls_log));
+        total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
         return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }
     pub fn range8Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
-        total = try std.math.add(u64, total, LS.U8.len * rows(self.ls_log));
+        total = try std.math.add(u64, total, LS.U8.len * self.lsRows());
         return total;
     }
 };
@@ -58,7 +76,7 @@ pub fn rows(log: u32) u64 {
     return @as(u64, 1) << @intCast(log);
 }
 /// Structural roster tags, not runtime semantic/CPU policy alternatives.
-pub const Role = enum { cpu, rom, boundary, alu, binary, shift, jalr, division, multiplication, shift_table, and_table, range16, range8, ls, initial, terminal, selection };
+pub const Role = enum { cpu, rom, boundary, alu, binary, shift, jalr, division, multiplication, shift_table, and_table, range16, range8, ls, initial, terminal, selection, ls_tail };
 pub const Shape = struct {
     role: Role,
     log: u32,
@@ -93,6 +111,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .and_table => .{ 5, 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
             .ls => LS.widths(.ls),
+            .ls_tail => if (geometry.ls_tail_log != null) LS.widths(.ls) else .{ 0, 0, 0 },
             .initial => LS.widths(.initial),
             .terminal => LS.widths(.terminal),
             .selection => .{ 6, 2, 8 },
@@ -110,6 +129,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .range8 => 8,
             .boundary => 5,
             .ls => geometry.ls_log,
+            .ls_tail => geometry.ls_tail_log orelse 5,
             .initial => geometry.initialLog(),
             .terminal => geometry.terminalLog(),
             .selection => 16,

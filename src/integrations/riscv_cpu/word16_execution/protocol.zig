@@ -11,7 +11,9 @@ const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 /// One canonical full-core schema: native degree3/split1, MUL200 interaction.
-pub const SCHEMA: u32 = 2;
+pub const SCHEMA: u32 = 3;
+pub const CLAIM_LS_TAIL: usize = 33;
+pub const CLAIM_COUNT: usize = CLAIM_LS_TAIL + 5;
 pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
 pub const Request = struct {
     cpu: X.types.Boundary,
@@ -44,8 +46,9 @@ pub const Claims = struct {
     initial: A.memory.load_store_v2.types.Claims,
     terminal: A.memory.load_store_v2.types.Claims,
     selectiontable: Q,
-    pub fn values(self: Claims) [33]Q {
-        var out: [33]Q = undefined;
+    ls_tail: A.memory.load_store_v2.types.Claims = zeroMemoryClaim(),
+    pub fn values(self: Claims) [CLAIM_COUNT]Q {
+        var out: [CLAIM_COUNT]Q = undefined;
         out[0..17].* = .{ self.cpu, self.rom, self.regboundary, self.r16, self.r8, self.alu.range16, self.alu.function, self.binary.and_, self.binary.function, self.shift.shift, self.shift.range16, self.shift.function, self.and_table, self.shift_table, self.jalr, self.division, self.multiplication };
         var at: usize = 17;
         for ([_]A.memory.load_store_v2.types.Claims{ self.ls, self.initial, self.terminal }) |c| {
@@ -53,6 +56,7 @@ pub const Claims = struct {
             at += 5;
         }
         out[32] = self.selectiontable;
+        out[CLAIM_LS_TAIL..].* = .{ self.ls_tail.ram, self.ls_tail.owner, self.ls_tail.range16, self.ls_tail.range8, self.ls_tail.selection };
         return out;
     }
     pub fn validate(self: Claims) !void {
@@ -87,8 +91,9 @@ pub fn validateDivisionClass(geometry: @import("geometry.zig").Geometry, request
 
 pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
     try validateDivisionClass(materials.geometry, request.division_requests, Q.zero());
+    try validateLsTailClass(materials.geometry, request.memory.ls_count, zeroMemoryClaim());
     T.P.config().mixInto(channel);
-    channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, 33, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
+    channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, CLAIM_COUNT, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
@@ -136,4 +141,18 @@ fn relation(comptime R: type, channel: *T.P.Channel) R {
 }
 pub fn legacy(ch: X.types.Challenges) A.word16_cpu.lookup.Challenges {
     return .{ .register = .{ .offset = ch.register.offset, .coefficients = ch.register.coefficients }, .function = .{ .offset = ch.function.offset, .coefficients = ch.function.coefficients }, .rom = .{ .offset = Q.zero(), .coefficients = @splat(Q.zero()) }, .range16 = .{ .offset = ch.range16.offset, .coefficient = ch.range16.coefficient }, .range8 = .{ .offset = ch.range8.offset, .coefficient = ch.range8.coefficient } };
+}
+
+pub fn zeroMemoryClaim() A.memory.load_store_v2.types.Claims {
+    return .{ .ram = Q.zero(), .owner = Q.zero(), .range16 = Q.zero(), .range8 = Q.zero(), .selection = Q.zero() };
+}
+pub fn ramClaim(claims: Claims) Q {
+    return claims.ls.ram.add(claims.ls_tail.ram).add(claims.initial.ram).add(claims.terminal.ram);
+}
+pub fn validateLsTailClass(geometry: @import("geometry.zig").Geometry, total: u32, claim: A.memory.load_store_v2.types.Claims) !void {
+    _ = try geometry.lsCounts(total);
+    if (geometry.ls_tail_log == null) {
+        const c = [_]Q{ claim.ram, claim.owner, claim.range16, claim.range8, claim.selection };
+        for (c) |q| if (!q.isZero()) return error.NonzeroOmittedLsTailClaim;
+    }
 }

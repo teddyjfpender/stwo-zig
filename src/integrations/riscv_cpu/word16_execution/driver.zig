@@ -9,7 +9,7 @@ const Memory = @import("memory/statement.zig");
 const Cells = @import("cells_wire.zig");
 const Receipt = @import("../rv64_ethereum_batch_receipt.zig");
 pub const Bundle = struct {
-    schema: u32 = 2,
+    schema: u32 = P.SCHEMA,
     geometry: Mat.Geometry,
     cpu: @FieldType(P.Request, "cpu"),
     epoch: u16,
@@ -42,10 +42,11 @@ pub fn verifyDirectory(a: std.mem.Allocator, image: *const Image.Owner, path: []
     const parsed = try std.json.parseFromSlice(Bundle, a, data, .{});
     defer parsed.deinit();
     const b = parsed.value;
-    if (b.schema != 2) return error.InvalidExecutionBundle;
+    if (b.schema != P.SCHEMA) return error.InvalidExecutionBundle;
     try admission(image).validateCpu(b.geometry, b.cpu);
     try E.Admission.validateCounts(b.geometry, b.cpu.steps, b.ls_count, b.memory_words);
     try P.validateDivisionClass(b.geometry, b.division_requests, b.claims.division);
+    try P.validateLsTailClass(b.geometry, b.ls_count, b.claims.ls_tail);
     try b.claims.validate();
     if (b.epoch != 1 or b.cpu.initial_pc != image.initial_pc or !std.mem.eql(u64, &b.cpu.initial_registers, &image.initial_registers)) return error.UntrustedWord16InitialCpu;
     const cells = try Cells.read(a, dir, b.memory_words);

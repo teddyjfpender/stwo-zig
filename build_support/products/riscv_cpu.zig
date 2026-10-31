@@ -59,6 +59,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-shift-weighted", "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig", 6 },
         .{ "word16-shift-native-fill", "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig", 5 },
         .{ "word16-binary-native-fill", "src/integrations/riscv_cpu/rv64_word16_binary_native_fill_test_root.zig", 5 },
+        .{ "word16-ls-ladder", "src/integrations/riscv_cpu/rv64_word16_ls_ladder_test_root.zig", 9 },
         .{ "word16-ls-native-fill", "src/integrations/riscv_cpu/rv64_word16_ls_native_fill_test_root.zig", 6 },
         .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 18 },
         .{ "multiplication-degree3", "src/integrations/riscv_cpu/delegations/multiplication/degree3_test_root.zig", 10 },

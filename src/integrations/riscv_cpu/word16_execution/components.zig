@@ -28,12 +28,15 @@ pub const Components = struct {
     range16: W.component.Component,
     range8: W.component.Component,
     ls: A.memory.load_store_v2.component.Component,
+    ls_tail: A.memory.load_store_v2.component.Component,
     initial: A.memory.load_store_v2.component.Component,
     terminal: A.memory.load_store_v2.component.Component,
     selection: A.memory.load_store_v2.component.Component,
 
     pub fn init(materials: *const Mat.Materials, request: P.Request, ch: P.Draw, claims: P.Claims) !Components {
         try P.validateDivisionClass(materials.geometry, request.division_requests, claims.division);
+        try P.validateLsTailClass(materials.geometry, request.memory.ls_count, claims.ls_tail);
+        const ls_counts = try materials.geometry.lsCounts(request.memory.ls_count);
         if (!claims.initial.owner.eql(Q.zero()) or !claims.initial.selection.eql(Q.zero()) or !claims.terminal.owner.eql(Q.zero()) or !claims.terminal.selection.eql(Q.zero())) return error.UnconstrainedMemoryClaim;
         if (!ch.cpu.range8.coefficient.eql(Q.one())) return error.InvalidArithmeticByteChallenge;
         var result: Components = undefined;
@@ -73,21 +76,23 @@ pub const Components = struct {
                 .division => result.division = .{ .base = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function), .claim = claims.division } },
                 .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset },
                 .shift_table => result.shift_table = .{ .offsets = shape.offsets, .prepared = B.shift_word_packed_experiment.table.Prepared.init(ch.shift_), .claim = claims.shift_table },
-                .ls, .initial, .terminal, .selection => {
+                .ls, .ls_tail, .initial, .terminal, .selection => {
                     const component = A.memory.load_store_v2.component.Component{ .kind = switch (shape.role) {
-                        .ls => .ls,
+                        .ls, .ls_tail => .ls,
                         .initial => .initial,
                         .terminal => .terminal,
                         .selection => .selection,
                         else => unreachable,
                     }, .log_size = shape.log, .offsets = shape.offsets, .rows = switch (shape.role) {
-                        .ls => request.memory.ls_count,
+                        .ls => ls_counts.head,
+                        .ls_tail => ls_counts.tail,
                         .initial => @intCast(request.memory.initial.len),
                         .terminal => @intCast(request.memory.terminal.len),
                         .selection => 0,
                         else => unreachable,
                     }, .claims = switch (shape.role) {
                         .ls => claims.ls,
+                        .ls_tail => claims.ls_tail,
                         .initial => claims.initial,
                         .terminal => claims.terminal,
                         .selection => .{ .ram = Q.zero(), .owner = Q.zero(), .range16 = Q.zero(), .range8 = Q.zero(), .selection = claims.selectiontable },
@@ -95,6 +100,7 @@ pub const Components = struct {
                     }, .challenges = ch.memory };
                     switch (shape.role) {
                         .ls => result.ls = component,
+                        .ls_tail => result.ls_tail = component,
                         .initial => result.initial = component,
                         .terminal => result.terminal = component,
                         .selection => result.selection = component,

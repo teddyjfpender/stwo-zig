@@ -20,10 +20,10 @@ pub const Request = struct { base: P.Old.Request, calls: u32 };
 pub const Claims = struct {
     base: P.Old.Claims,
     keccak: R.Claims,
-    pub fn values(self: @This()) [41]Q {
-        var out: [41]Q = undefined;
-        out[0..33].* = self.base.values();
-        out[33..].* = self.keccak.values();
+    pub fn values(self: @This()) [P.Old.CLAIM_COUNT + 8]Q {
+        var out: [P.Old.CLAIM_COUNT + 8]Q = undefined;
+        out[0..P.Old.CLAIM_COUNT].* = self.base.values();
+        out[P.Old.CLAIM_COUNT..].* = self.keccak.values();
         return out;
     }
     pub fn validateCanonical(self: @This()) !void {
@@ -34,7 +34,7 @@ pub const Claims = struct {
         try self.validateCanonical();
         var local = Q.zero();
         for (self.values()) |q| local = local.add(q);
-        local = local.sub(self.base.ls.ram).sub(self.base.initial.ram).sub(self.base.terminal.ram).sub(self.keccak.bridge.ram);
+        local = local.sub(P.Old.ramClaim(self.base)).sub(self.keccak.bridge.ram);
         if (!local.isZero()) return error.UnclosedLocalKeccakRelations;
     }
 };
@@ -59,7 +59,7 @@ pub const Bundle = struct {
 };
 fn begin(ch: *P.T.P.Channel, setup: *const R.Setup, request: Request, expected: P.Expected, ordinal: usize, first: u64) !void {
     try P.beginMaterials(ch, &setup.materials, request.base, expected, ordinal, first);
-    ch.mixU32s(&.{ 0x57474b45, 1, 19, 14, 11, 41, 25, request.calls, setup.geo.klog, setup.geo.blog });
+    ch.mixU32s(&.{ 0x57474b45, 1, 19, 14, 11, P.Old.CLAIM_COUNT + 8, 25, request.calls, setup.geo.klog, setup.geo.blog });
 }
 fn draw(ch: *P.T.P.Channel, manifest: *const P.Manifest, ordinal: usize) !struct { base: P.Old.Draw, keccak: K.equations.Challenges } {
     const base = try P.draw(ch, manifest, ordinal);
@@ -145,7 +145,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.Setup, prepared: [
             a.free(initial);
             return err;
         };
-        const mem = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
+        const mem = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.ls_tail_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
         var source = try OldSource.Source.fromPreparedWithOwnedMemory(a, &s.materials, n, mem);
         errdefer source.deinit();
         var k = try R.Source.init(a, advice.calls[index], s.geo);

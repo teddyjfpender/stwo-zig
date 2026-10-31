@@ -112,7 +112,7 @@ pub fn produceWithAdviceStorage(a: std.mem.Allocator, setups: []const *const P.S
             a.free(initial);
             return err;
         };
-        const memory = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, @intCast(index + 1), setup.materials.geometry.ls_log, setup.materials.geometry.initialLog(), setup.materials.geometry.terminalLog());
+        const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[index], initial, terminal, @intCast(index + 1), setup.materials.geometry.ls_log, setup.materials.geometry.ls_tail_log, setup.materials.geometry.initialLog(), setup.materials.geometry.terminalLog());
         const source = try S.Source.fromPreparedWithOwnedMemory(a, &setup.materials, native, memory);
         var worker = try Stage1Worker.init(a, setup, source, expected, index, first);
         errdefer worker.deinit();

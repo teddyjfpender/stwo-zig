@@ -37,6 +37,7 @@ fn matrix(s: *Source, role: Role) *[]M {
         .range16 => &s.range16.main,
         .range8 => &s.range8.main,
         .ls => &s.memory.ls.main,
+        .ls_tail => &s.memory.ls_tail.?.main,
         .initial => &s.memory.initial.main,
         .terminal => &s.memory.terminal.main,
         .selection => &s.memory.selection.main,
@@ -59,6 +60,10 @@ pub fn take(s: *Source) !Commit {
     if (!s.alu.owns_main or !s.binary.owns_main or !s.shift.owns_main or
         !s.division.owns_main or !s.multiplication.owns_main or !s.memory.ls.owns_main or
         !s.memory.initial.owns_main or !s.memory.terminal.owns_main) return error.BorrowedExecutionMain;
+    if (s.memory.ls_tail) |tail| {
+        if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
+        if (!tail.owns_main) return error.BorrowedExecutionMain;
+    }
     const columns = try s.columns(a, 1);
     errdefer a.free(columns);
     const shapes = s.materials.shapes();
@@ -105,6 +110,9 @@ pub fn take(s: *Source) !Commit {
     if (s.materials.shape(.division).widths[1] != 0) s.division.owns_main = false;
     s.multiplication.owns_main = false;
     s.memory.ls.owns_main = false;
+    if (s.materials.shape(.ls_tail).widths[1] != 0) {
+        if (s.memory.ls_tail) |*tail| tail.owns_main = false;
+    }
     s.memory.initial.owns_main = false;
     s.memory.terminal.owns_main = false;
     return .{ .columns = columns, .backings = backings };

@@ -18,7 +18,8 @@ pub const Spec = struct { ordinal: u32, role: Role, coverage: Coverage, schema: 
 pub const Receipt = struct { ordinal: u32, spec_digest: Digest, fixed: Stage1Root, main: Stage1Root };
 pub const Expected = struct { context: Context, specs: []const Spec };
 pub const Shared = struct { ram: A.memory.closed_ram.types.RamChallenges, owner: A.memory.load_store_v2.types.OwnerChallenges, function: A.word16_v1.function_bus.Challenges };
-pub const PhysicalClaims = [33]Q;
+const CoreProtocol = @import("../protocol.zig");
+pub const PhysicalClaims = [CoreProtocol.CLAIM_COUNT]Q;
 const MAX_WORKERS = 4096;
 const MAX_COLUMNS = 65536;
 
@@ -28,7 +29,7 @@ pub fn mixDigest(ch: *P.Channel, digest: Digest) void {
     ch.mixU32s(&words);
 }
 fn mixContext(ch: *P.Channel, ctx: Context) void {
-    ch.mixU32s(&.{ 0x474d5631, 1, @intFromEnum(ctx.scope), 14, 19, 13, 33 });
+    ch.mixU32s(&.{ 0x474d5631, 1, @intFromEnum(ctx.scope), 14, 19, 13, CoreProtocol.CLAIM_COUNT });
     P.config().mixInto(ch);
     for ([_]Digest{ ctx.execution, ctx.program, ctx.image, ctx.policy, ctx.opcode_map }) |d| mixDigest(ch, d);
     ch.mixU64(ctx.total_steps);
@@ -195,12 +196,14 @@ fn seal(expected: Expected, receipts: []const Receipt) Digest {
     return ch.digestBytes();
 }
 pub fn validateClaims(claims: PhysicalClaims) !void {
+    // Diagnostic scope has no physical tail LS component.
+    for (claims[CoreProtocol.CLAIM_LS_TAIL..]) |q| if (!q.isZero()) return error.NonzeroOmittedGlobalClaim;
     for (claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalClaim;
     for ([_]usize{ 23, 26, 28, 31 }) |i| if (!claims[i].isZero()) return error.NonzeroOmittedGlobalClaim;
 }
 pub fn mixClaims(ch: *P.Channel, claims: PhysicalClaims) !void {
     try validateClaims(claims);
-    ch.mixU32s(&.{ 0x474d434c, 1, 33 });
+    ch.mixU32s(&.{ 0x474d434c, 1, CoreProtocol.CLAIM_COUNT });
     ch.mixFelts(&claims);
 }
 /// Must be called ONLY after EVERY physical verifier has succeeded. This sum

@@ -28,9 +28,10 @@ pub const Admission = struct {
     }
     pub fn validateCounts(geometry: Mat.Geometry, steps: u32, ls_count: u32, words: usize) !void {
         try geometry.validate();
+        _ = geometry.lsCounts(ls_count) catch return error.InvalidExecutionMemoryCount;
         // This admitted path has one word event per ordinary memory opcode,
         // no services, and exactly the touched set from those events.
-        if (ls_count > steps or words > ls_count or ls_count >= @as(u64, 1) << @intCast(geometry.ls_log) or words >= @as(u64, 1) << @intCast(geometry.initialLog()) or words >= @as(u64, 1) << @intCast(geometry.terminalLog())) return error.InvalidExecutionMemoryCount;
+        if (ls_count > steps or words > ls_count or words >= @as(u64, 1) << @intCast(geometry.initialLog()) or words >= @as(u64, 1) << @intCast(geometry.terminalLog())) return error.InvalidExecutionMemoryCount;
     }
     pub fn validate(self: Admission, setup: *const Mat.Setup, request: P.Request) !void {
         try self.validateGeometry(setup.materials.geometry, request);

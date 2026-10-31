@@ -58,7 +58,7 @@ pub fn begin(ch: *T.P.Channel, setup: *const Setup, request: Old.Request, expect
     return beginMaterials(ch, &setup.materials, request, expected, ordinal, first_step);
 }
 pub fn beginMaterials(ch: *T.P.Channel, materials: *const Materials, request: Old.Request, expected: Expected, ordinal: usize, first_step: u64) !void {
-    ch.mixU32s(&.{ 0x52563634, 0x57474558, 1, 14, 33 });
+    ch.mixU32s(&.{ 0x52563634, 0x57474558, 1, 14, Old.CLAIM_COUNT });
     Old.digest(ch, expected.program_identity);
     ch.mixU64(expected.total_steps);
     ch.mixU64(expected.max_total_steps);
@@ -115,7 +115,8 @@ fn validateInventory(inventory: Inventory, requests: []const Old.Request, expect
         if (r.memory.ls_count > r.cpu.steps) return error.InvalidExecutionMemoryCount;
         if (r.epoch != index + 1 or r.memory.epoch != r.epoch) return error.InvalidGlobalExecutionEpoch;
         if (!std.mem.eql(u8, &materials.program.identity, &expected.program_identity)) return error.GlobalExecutionProgramMismatch;
-        if (r.memory.ls_count >= @as(u32, 1) << @intCast(materials.geometry.ls_log) or r.memory.initial.len >= @as(usize, 1) << @intCast(materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
+        _ = materials.geometry.lsCounts(r.memory.ls_count) catch return error.GlobalMemoryCapacity;
+        if (r.memory.initial.len >= @as(usize, 1) << @intCast(materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
         if (r.division_requests > @as(u32, 1) << @intCast(materials.geometry.division_log) or r.multiplication_requests > @as(u32, 1) << @intCast(materials.geometry.multiplication_log)) return error.GlobalArithmeticCapacity;
         if (index == 0) {
             if (r.cpu.initial_pc != expected.admission.initial_pc or !std.mem.eql(u64, &r.cpu.initial_registers, &expected.admission.initial_registers)) return error.UntrustedGlobalGenesis;

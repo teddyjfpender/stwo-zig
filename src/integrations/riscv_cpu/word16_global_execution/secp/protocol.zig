@@ -8,7 +8,7 @@ const G = @import("../protocol.zig");
 const R = @import("roster.zig");
 pub const Expected = G.Expected;
 pub const Manifest = G.Manifest;
-pub const CORE_CLAIM_COUNT = if (@hasDecl(G.Old, "CLAIM_COUNT")) G.Old.CLAIM_COUNT else @typeInfo(@typeInfo(@TypeOf(G.Old.Claims.values)).@"fn".return_type.?).array.len;
+pub const CORE_CLAIM_COUNT = G.Old.CLAIM_COUNT;
 pub const CPU_CLAIM_COUNT = CORE_CLAIM_COUNT + 10;
 pub const Request = struct { base: G.Old.Request, calls: [2]u32 };
 pub fn firstCall(requests: []const Request, index: usize, family: usize) !u32 {

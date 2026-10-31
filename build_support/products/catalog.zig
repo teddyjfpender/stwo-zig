@@ -83,6 +83,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-shift-weighted", .description = "Qualify exact SHIFT grouping and weighted physical closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-shift-native-fill", .description = "Check joined native SHIFT witness construction and custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-binary-native-fill", .description = "Check joined native BINARY witness construction and custody", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-ls-ladder", .description = "One PCS optional LS tail with physical closure and custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-ls-native-fill", .description = "Qualify joined physical LS construction and transactional borrowed buffers", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-coordinator", .description = "Qualify full64 immutable execution program authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-alu", .description = "Check experimental D3 Word16 ALU equations", .scope = .riscv_cpu },

@@ -25,6 +25,7 @@ pub fn main() !void {
     const args = raw_args[0..allocator_options.argument_count];
     const omit_division = allocator_options.omit_empty_division;
     const deduplicate_shift = allocator_options.deduplicate_shift;
+    const ls_ladder = allocator_options.ls_ladder;
     var recycler = Recycler.init(std.heap.smp_allocator, allocator_options.cap_bytes);
     defer recycler.deinit();
     const a = if (allocator_options.cap_bytes == 0) std.heap.smp_allocator else recycler.allocator();
@@ -48,6 +49,7 @@ pub fn main() !void {
     if (verifying) {
         if (omit_division) return error.OmissionFlagIsProducerOnly;
         if (deduplicate_shift) return error.GroupingFlagIsProducerOnly;
+        if (ls_ladder != null) return error.LadderFlagIsProducerOnly;
         try Driver.verifyDirectory(a, &image, args[3]);
         try stdout(a, .{ .scope = "fresh independent genesis-prefix receiver", .physical_proof_verified = true, .global_chain_accepted = false, .receiver_ns = timer.read(), .image_ns = image_ns });
         return;
@@ -70,6 +72,11 @@ pub fn main() !void {
             if (counts.division != 0) return error.OmittedDivisionRequests;
             geometry.omit_empty_division = true;
         }
+        if (ls_ladder) |ladder| {
+            geometry.ls_log = ladder.head;
+            geometry.ls_tail_log = ladder.tail;
+        }
+        _ = try geometry.lsCounts(counts.memory);
         try geometry.validate();
         const shapes = G.shapes(&program, geometry);
         const planning = .{ .scope = "planning only; boundary capacity uses exact unique touched words", .physical_proof_verified = false, .global_chain_accepted = false, .packet_index = packet.metadata.index, .steps = packet.tape.len, .packet_bytes = try file.getEndPos(), .tape_retained_bytes = packet.tape.retainedBytes(), .image_ns = image_ns, .packet_read_ns = packet_ns, .total_ns = timer.read(), .counts = counts, .unique_memory_words = unique_words, .geometry = geometry, .shapes = shapes, .evaluation_domains = G.domains(shapes), .composition_log_split = @import("word16_execution/components.zig").COMPOSITION_LOG_SPLIT, .source_cells = try G.cells(&shapes) };
@@ -92,8 +99,13 @@ pub fn main() !void {
     defer prepared.deinit();
     native_scope.end();
     const native_prepare_ns = timer.read() - prove_start;
-    const proof_geometry = if (omit_division) try prepared.geometryOmittingEmptyDivision() else try prepared.geometry();
+    var proof_geometry = if (omit_division) try prepared.geometryOmittingEmptyDivision() else try prepared.geometry();
     if (omit_division and !proof_geometry.omit_empty_division) return error.OmittedDivisionRequests;
+    if (ls_ladder) |ladder| {
+        proof_geometry.ls_log = ladder.head;
+        proof_geometry.ls_tail_log = ladder.tail;
+    }
+    try Execution.Admission.validateCounts(proof_geometry, @intCast(packet.tape.len), prepared.raw_counts.memory, prepared.unique_memory_words);
     const proof_shapes = G.shapes(&program, proof_geometry);
     try Driver.writeJson(a, dir, "planning.json", .{ .scope = "actual grouped native advice; not a proof", .raw_counts = prepared.raw_counts, .alu_unique_facts = prepared.alu.facts.len, .binary_unique_facts = prepared.binary.facts.len, .shift_unique_facts = prepared.shift.len, .shift_grouping = deduplicate_shift, .geometry = proof_geometry, .shapes = proof_shapes, .evaluation_domains = G.domains(proof_shapes), .source_cells = try G.cells(&proof_shapes) });
     const setup_start = timer.read();
@@ -137,8 +149,10 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
 }
 
 /// Final operational options preserve existing positional invocations.
-/// Neither cache retention nor streaming batches change the proof statement.
-fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool } {
+/// Allocation flags preserve the proof. LS ladder selects explicit fixed geometry
+/// with the SAME independently admitted CPU/memory statement.
+const LsLadder = struct { head: u32, tail: u32 };
+fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool, ls_ladder: ?LsLadder } {
     var count = args.len;
     var cap_bytes: usize = 0;
     var batch_columns: u32 = 8;
@@ -146,6 +160,7 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
     var saw_batch = false;
     var omit_empty_division = false;
     var deduplicate_shift = false;
+    var ls_ladder: ?LsLadder = null;
     while (count > 1) {
         const option = args[count - 1];
         const cache_prefix = "--recycler-cap-mib=";
@@ -156,6 +171,13 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         } else if (std.mem.eql(u8, option, "--deduplicate-shift")) {
             if (deduplicate_shift) return error.DuplicateOperationalOption;
             deduplicate_shift = true;
+        } else if (std.mem.startsWith(u8, option, "--ls-ladder=")) {
+            if (ls_ladder != null) return error.DuplicateOperationalOption;
+            var logs = std.mem.splitScalar(u8, option["--ls-ladder=".len..], ',');
+            const head = try std.fmt.parseUnsigned(u32, logs.next() orelse return error.InvalidLsLadderFlag, 10);
+            const tail = try std.fmt.parseUnsigned(u32, logs.next() orelse return error.InvalidLsLadderFlag, 10);
+            if (logs.next() != null or head < 5 or head > 22 or tail < 5 or tail > 22) return error.InvalidLsLadderFlag;
+            ls_ladder = .{ .head = head, .tail = tail };
         } else if (std.mem.startsWith(u8, option, cache_prefix)) {
             if (saw_cap) return error.DuplicateOperationalOption;
             saw_cap = true;
@@ -169,5 +191,5 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         } else break;
         count -= 1;
     }
-    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift };
+    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift, .ls_ladder = ls_ladder };
 }

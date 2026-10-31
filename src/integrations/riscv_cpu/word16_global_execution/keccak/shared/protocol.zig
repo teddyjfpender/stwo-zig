@@ -74,7 +74,7 @@ pub fn admitBounded(a: std.mem.Allocator, setups: []const *const R.CpuSetup, tru
 }
 pub fn beginCpu(ch: *P.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: Expected, index: usize, first_step: u64, first_id: u32) !void {
     try P.beginMaterials(ch, &s.materials, r.base, expected, index, first_step);
-    ch.mixU32s(&.{ 0x574b5452, 2, 0, 38, r.calls, first_id, s.bridge_log, B.layout.FIXED, B.layout.MAIN, B.layout.INTERACTION, 3, 19, 14, 11 });
+    ch.mixU32s(&.{ 0x574b5452, 2, 0, @import("../../protocol.zig").Old.CLAIM_COUNT + 5, r.calls, first_id, s.bridge_log, B.layout.FIXED, B.layout.MAIN, B.layout.INTERACTION, 3, 19, 14, 11 });
 }
 pub fn beginTruth(ch: *P.T.P.Channel, s: *const R.TruthSetup, calls: u32, expected: Expected) void {
     P.T.P.config().mixInto(ch);

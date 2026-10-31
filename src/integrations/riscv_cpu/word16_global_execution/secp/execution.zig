@@ -37,7 +37,7 @@ pub const CpuClaims = struct {
         for (self.bridges) |b| for (b.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
     }
     pub fn ram(self: @This()) Q {
-        const base = if (@hasDecl(G.Old, "ramClaim")) G.Old.ramClaim(self.base) else self.base.ls.ram.add(self.base.initial.ram).add(self.base.terminal.ram);
+        const base = G.Old.ramClaim(self.base);
         return base.add(self.bridges[0].ram).add(self.bridges[1].ram);
     }
     pub fn local(self: @This()) !void {
@@ -122,19 +122,22 @@ fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *c
     for (bridges, 0..) |*b, k| out[old.len + k] = b.asVerifierComponent();
     return out;
 }
-const TruthComponents = struct {
+pub const TruthComponents = struct {
     arithmetic: [2]S.component.Component,
     bytes: A.providers.byte.Component,
-    fn init(setup: *const R.TruthSetup, calls: u32, ch: S.equations.Challenges, claims: [3]Q) TruthComponents {
-        return .{ .arithmetic = .{ .{ .kind = .product, .program = S.program.get(setup.kind), .log_size = setup.logs[0], .public = .{ .calls = calls }, .challenges = ch, .claim = claims[0] }, .{ .kind = .linear, .program = S.program.get(setup.kind), .log_size = setup.logs[1], .public = .{ .calls = calls }, .offsets = .{ .fixed = S.layout.FIXED, .main = S.layout.main(.product), .interaction = S.layout.interaction(.product) }, .challenges = ch, .claim = claims[1] } }, .bytes = .{ .fixed_offset = 2 * S.layout.FIXED, .main_offset = S.layout.main(.product) + S.layout.main(.linear), .interaction_offset = S.layout.interaction(.product) + S.layout.interaction(.linear), .alpha = ch.bytes, .claim = claims[2] } };
+    pub fn init(setup: *const R.TruthSetup, calls: u32, ch: S.equations.Challenges, claims: [3]Q) TruthComponents {
+        return initSpan(setup, 1, calls, ch, claims);
     }
-    fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
+    pub fn initSpan(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: S.equations.Challenges, claims: [3]Q) TruthComponents {
+        return .{ .arithmetic = .{ .{ .kind = .product, .program = S.program.get(setup.kind), .log_size = setup.logs[0], .public = .{ .calls = calls, .first_id = first_id }, .challenges = ch, .claim = claims[0] }, .{ .kind = .linear, .program = S.program.get(setup.kind), .log_size = setup.logs[1], .public = .{ .calls = calls, .first_id = first_id }, .offsets = .{ .fixed = S.layout.FIXED, .main = S.layout.main(.product), .interaction = S.layout.interaction(.product) }, .challenges = ch, .claim = claims[1] } }, .bytes = .{ .fixed_offset = 2 * S.layout.FIXED, .main_offset = S.layout.main(.product) + S.layout.main(.linear), .interaction_offset = S.layout.interaction(.product) + S.layout.interaction(.linear), .alpha = ch.bytes, .claim = claims[2] } };
+    }
+    pub fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
         var out = [3]engine.air.component_prover.ComponentProver{ self.arithmetic[0].asProverComponent(), self.arithmetic[1].asProverComponent(), self.bytes.asProverComponent() };
         out[0].pool_exclusive_domain = true;
         out[1].pool_exclusive_domain = true;
         return out;
     }
-    fn verifiers(self: *const TruthComponents) [3]core.air.components.Component {
+    pub fn verifiers(self: *const TruthComponents) [3]core.air.components.Component {
         return .{ self.arithmetic[0].asVerifierComponent(), self.arithmetic[1].asVerifierComponent(), self.bytes.asVerifierComponent() };
     }
 };
@@ -167,7 +170,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
             a.free(initial);
             return err;
         };
-        const mem = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
+        const mem = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.ls_tail_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
         var source = block: {
             var base = try Source.Source.fromPreparedWithOwnedMemory(a, &s.materials, n, mem);
             errdefer base.deinit();

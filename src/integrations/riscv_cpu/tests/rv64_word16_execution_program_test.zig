@@ -80,7 +80,9 @@ test "full execution immutable material roster matches all physical fixed column
     var material = try Setup.Materials.init(a, .{ .base = 1024, .words = &.{AND} }, .{ .cpu_log = 5 });
     defer material.deinit();
     const actual = material.shapes();
-    try std.testing.expectEqual(@as(usize, 17), actual.len);
+    try std.testing.expectEqual(Setup.G.ROLE_COUNT, actual.len);
+    try std.testing.expectEqual(@as(usize, 17), @intFromEnum(Setup.Role.ls_tail));
+    try std.testing.expect(!actual[@intFromEnum(Setup.Role.ls_tail)].present());
     const columns = try material.fixedColumns(a);
     defer a.free(columns);
     const logs = try material.logs(a, 0);
@@ -129,7 +131,13 @@ test "full execution concrete component roster matches every immutable physical 
     defer a.free(provers);
     const verifiers = try components.verifiers(a);
     defer a.free(verifiers);
-    for (provers, verifiers, materials.shapes()) |prover, verifier, shape| {
+    var present: [Setup.G.ROLE_COUNT]Setup.Shape = undefined;
+    var count: usize = 0;
+    for (materials.shapes()) |shape| if (shape.present()) {
+        present[count] = shape;
+        count += 1;
+    };
+    for (provers, verifiers, present[0..count]) |prover, verifier, shape| {
         var plogs = try prover.traceLogDegreeBounds(a);
         defer {
             for (plogs.items) |columns| a.free(columns);
@@ -145,6 +153,7 @@ test "full execution concrete component roster matches every immutable physical 
     }
     const measured = try @import("../word16_execution/measurement.zig").inspect(a, &components);
     for (measured.components) |component| {
+        if (!component.present) continue;
         try std.testing.expectEqual(@as(u32, 1), component.composition_log_split);
         const extra: u32 = 1;
         try std.testing.expectEqual(component.source_log + extra, component.native_evaluation_log);
@@ -154,7 +163,7 @@ test "full execution concrete component roster matches every immutable physical 
     defer a.free(joined_p);
     const joined_v = try components.verifiersForDegree4Join(a);
     defer a.free(joined_v);
-    for (provers, verifiers, joined_p, joined_v, materials.shapes()) |native_p, native_v, jp, jv, shape| {
+    for (provers, verifiers, joined_p, joined_v, present[0..count]) |native_p, native_v, jp, jv, shape| {
         try std.testing.expectEqual(shape.log + 1, native_p.maxConstraintLogDegreeBound());
         try std.testing.expectEqual(shape.log + 1, native_v.maxConstraintLogDegreeBound());
         try std.testing.expectEqual(@as(u32, 1), native_p.compositionLogSplit());

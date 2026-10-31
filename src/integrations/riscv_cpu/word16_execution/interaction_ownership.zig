@@ -1,4 +1,4 @@
-//! Success-only transfer of the existing seventeen INTER allocations to PCS.
+//! Success-only transfer of the existing present INTER allocations to PCS.
 //! Every generator has finished and published its claims before this handoff;
 //! no generator needs an interaction input copy and no values are rebuilt.
 const std = @import("std");
@@ -26,6 +26,7 @@ fn matrix(s: *Source, role: Role) *[]M {
         .range16 => &s.range16.interaction,
         .range8 => &s.range8.interaction,
         .ls => &s.memory.ls.interaction,
+        .ls_tail => &s.memory.ls_tail.?.interaction,
         .initial => &s.memory.initial.interaction,
         .terminal => &s.memory.terminal.interaction,
         .selection => &s.memory.selection.interaction,
@@ -40,6 +41,9 @@ pub fn take(s: *Source) !Commit {
     }
     inline for (.{ "ls", "initial", "terminal", "selection" }) |name| {
         if (!sameAllocator(a, @field(s.memory, name).allocator)) return error.ExecutionInteractionAllocatorMismatch;
+    }
+    if (s.memory.ls_tail) |tail| {
+        if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
     }
     const columns = try s.columns(a, 2);
     errdefer a.free(columns);

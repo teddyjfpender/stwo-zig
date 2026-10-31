@@ -25,10 +25,10 @@ const Cell = A.memory.closed_ram.types.Cell;
 pub const CpuClaims = struct {
     base: G.Old.Claims,
     bridge: B.types.Claims,
-    pub fn values(self: @This()) [38]Q {
-        var out: [38]Q = undefined;
-        out[0..33].* = self.base.values();
-        out[33..].* = self.bridge.values();
+    pub fn values(self: @This()) [G.Old.CLAIM_COUNT + 5]Q {
+        var out: [G.Old.CLAIM_COUNT + 5]Q = undefined;
+        out[0..G.Old.CLAIM_COUNT].* = self.base.values();
+        out[G.Old.CLAIM_COUNT..].* = self.bridge.values();
         return out;
     }
     pub fn canonical(self: @This()) !void {
@@ -36,7 +36,7 @@ pub const CpuClaims = struct {
         for (self.bridge.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSharedTruthClaim;
     }
     pub fn ram(self: @This()) Q {
-        return self.base.ls.ram.add(self.base.initial.ram).add(self.base.terminal.ram).add(self.bridge.ram);
+        return G.Old.ramClaim(self.base).add(self.bridge.ram);
     }
     pub fn local(self: @This()) !void {
         var sum = Q.zero();
@@ -130,7 +130,7 @@ fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridge: *co
     out[old.len] = try bridge.asVerifierComponent().withCompositionGeometryOverrideV1(.{ .composition_log_split = CoreComponents.COMPOSITION_LOG_SPLIT, .max_constraint_log_degree_bound_delta = CoreComponents.COMPOSITION_LOG_SPLIT - 1 });
     return out;
 }
-fn truthComponents(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: K.equations.Challenges, claims: [3]Q) [3]K.component.Component {
+pub fn truthComponents(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: K.equations.Challenges, claims: [3]Q) [3]K.component.Component {
     return .{ .{ .kind = .permutation, .log_size = setup.log, .calls = calls, .first_call_id = first_id, .challenges = ch, .claim = claims[0] }, .{ .kind = .chi, .log_size = 13, .offsets = .{ .fixed = K.layout.FIXED, .main = K.layout.MAIN, .interaction = K.layout.INTERACTION }, .challenges = ch, .claim = claims[1] }, .{ .kind = .xor5, .log_size = 10, .offsets = .{ .fixed = K.layout.FIXED + 7, .main = K.layout.MAIN + 1, .interaction = K.layout.INTERACTION + 4 }, .challenges = ch, .claim = claims[2] } };
 }
 /// Bounded qualification harness: coordinator retains several PCS owners here.
@@ -171,7 +171,7 @@ fn produceInternal(a: std.mem.Allocator, setups: []const *const R.CpuSetup, trut
             a.free(initial);
             return err;
         };
-        const mem = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
+        const mem = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.ls_tail_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
         var source = block: {
             var base = try Source.Source.fromPreparedWithOwnedMemory(a, &s.materials, n, mem);
             errdefer base.deinit();

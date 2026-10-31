@@ -72,6 +72,11 @@ pub const Source = struct {
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
+        const ls_counts = try g.lsCounts(prepared.raw_counts.memory);
+        if (pending_memory) |*value| {
+            if (value.statement.ls_count != prepared.raw_counts.memory or value.ls.rows != ls_counts.head or value.ls.log_size != g.ls_log or (value.ls_tail != null) != (g.ls_tail_log != null)) return error.PreparedMemoryGeometryMismatch;
+            if (value.ls_tail) |tail| if (tail.rows != ls_counts.tail or tail.log_size != g.ls_tail_log.?) return error.PreparedMemoryGeometryMismatch;
+        }
         if (g.omit_empty_division and prepared.division.len != 0) return error.OmittedDivisionRequests;
         // A captured CPU materializes exactly once at the final Program owner;
         // projection failure preserves Prepared's narrow CPU/family advice.
@@ -129,7 +134,7 @@ pub const Source = struct {
                 pending_memory = null;
                 break :blk value;
             }
-            break :blk try Memory.Prepared.initIndependentProfiled(a, image.?, cpu.memory.items, epoch, g.ls_log, g.initialLog(), g.terminalLog(), recorder);
+            break :blk try Memory.Prepared.initIndependentLadderProfiled(a, image.?, cpu.memory.items, epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog(), recorder);
         };
         errdefer memory.deinit();
         var rom = blk: {
@@ -302,7 +307,8 @@ pub const Source = struct {
             defer stage.end();
             break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
         };
-        const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection };
+        const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection, .ls_tail = memory[4] };
+        try P.validateLsTailClass(self.materials.geometry, self.memory.statement.ls_count, claims.ls_tail);
         switch (closure) {
             .closed => try claims.validate(),
             .global_ram => try validateOpenForGlobalRam(claims),
@@ -336,6 +342,7 @@ pub const Source = struct {
                 .and_table => if (tree == 1) self.and_table.main else self.and_table.interaction,
                 .shift_table => if (tree == 1) self.shift_table.main else self.shift_table.interaction,
                 .ls => if (tree == 1) self.memory.ls.main else self.memory.ls.interaction,
+                .ls_tail => if (self.memory.ls_tail) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingLsTail,
                 .initial => if (tree == 1) self.memory.initial.main else self.memory.initial.interaction,
                 .terminal => if (tree == 1) self.memory.terminal.main else self.memory.terminal.interaction,
                 .selection => if (tree == 1) self.memory.selection.main else self.memory.selection.interaction,
@@ -352,6 +359,7 @@ pub const Source = struct {
         std.debug.assert(self.claims != null);
         inline for (.{ "cpu", "rom", "alu", "binary", "shift", "jalr", "division", "multiplication", "range16", "range8", "and_table", "shift_table" }) |name| release(self.allocator, &@field(self, name).interaction);
         inline for (.{ "ls", "initial", "terminal", "selection" }) |name| release(self.allocator, &@field(self.memory, name).interaction);
+        if (self.memory.ls_tail) |*tail| release(self.allocator, &tail.interaction);
         release(self.allocator, &self.boundary);
     }
     pub fn deinit(self: *Source) void {
@@ -397,10 +405,8 @@ pub fn validateCanonicalClaims(claims: P.Claims) !void {
 /// Existing RAM-only scope: all local debts must still close exactly.
 pub fn validateOpenForGlobalRam(claims: P.Claims) !void {
     try validateCanonicalClaims(claims);
-    const values = claims.values();
     var local = Q.zero();
-    for (values, 0..) |q, index| if (index != 17 and index != 22 and index != 27) {
-        local = local.add(q);
-    };
+    for (claims.values()) |q| local = local.add(q);
+    local = local.sub(P.ramClaim(claims));
     if (!local.isZero()) return error.UnclosedLocalExecutionRelations;
 }

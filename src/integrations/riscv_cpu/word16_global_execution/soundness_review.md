@@ -28,10 +28,10 @@ to the manifest. Resumed stage-two workers recheck their retained stage-one
 roots. Native value roots and transport hashes never substitute for PCS roots.
 
 Every local challenge channel binds its own public request, ordinal, first
-step, expected context, and complete manifest. All 33 physical claims enter the
+step, expected context, and complete manifest. All core physical claims (including optional LS tail) enter the
 local transcript before interaction commitment and constraint coefficients.
 `Source.validateOpenForGlobalRam` checks a zero sum EXCLUDING only LS/INIT/TERM
-RAM claims at indices17/22/27. Thus non-RAM debts cannot cancel across shards.
+RAM claims from head LS, optional tail LS, INIT and TERM through the canonical core ramClaim helper. Thus non-RAM debts cannot cancel across shards.
 Within a shard this is a joint typed rational identity, not an independently
 closed certificate for each individual family. The receiver repeats that check,
 fresh-verifies every physical proof, and closes the remaining shared RAM debt.

@@ -63,46 +63,62 @@ pub const Captured = struct {
     native: [2]Native,
     advice: C.Advice,
     pub fn init(a: std.mem.Allocator) !Captured {
+        return initLsRepeats(a, 1);
+    }
+    pub fn initLsRepeats(a: std.mem.Allocator, repeats: u32) !Captured {
+        if (repeats == 0 or repeats > 1024) return error.InvalidSecpFixtureRepeats;
+        const steps = repeats + 1;
+        const base1: u64 = 4096 + 4 * @as(u64, steps);
+        const words = try a.alloc(u32, repeats + 3);
+        defer a.free(words);
+        @memset(words[0..repeats], WORDS[0]);
+        @memcpy(words[repeats..], WORDS[1..]);
+        const cpu_log = try @import("../../word16_execution/coverage.zig").minimalPrefixLog(steps);
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        program.* = try Program.init(a, .{ .base = 4096, .words = words });
         errdefer program.deinit();
-        var t0 = try front.rv64.compact_tape.Tape.init(a, 2, 4096, 0, .ethereum_services_v2);
+        var t0 = try front.rv64.compact_tape.Tape.init(a, steps, 4096, 0, .ethereum_services_v2);
         errdefer t0.deinit();
-        var t1 = try front.rv64.compact_tape.Tape.init(a, 2, 4104, 2, .ethereum_services_v2);
+        var t1 = try front.rv64.compact_tape.Tape.init(a, 2, base1, steps, .ethereum_services_v2);
         errdefer t1.deinit();
         var before = initialWords();
         before[0] = 0;
         const after = try execute(.add, before);
         const final = try execute(.double, after);
-        t0.len = 1;
-        t0.storage[0] = .{ .next_pc = 4100, .lhs = ADDRESS, .rhs = 0, .previous_rd = 0, .result = 0, .memory_index = 0, .flags = 0 };
-        try t0.memory_before.append(a, initialWords()[0]);
-        try t0.appendSecp(.{ .kind = .add, .packet_format = .little_endian_words_v2, .call_id = 1, .clock = 2, .pc = 4100, .pointer = ADDRESS, .before = before, .after = after });
+        t0.len = repeats;
+        for (0..repeats) |i| {
+            t0.storage[i] = .{ .next_pc = 4096 + 4 * (i + 1), .lhs = ADDRESS, .rhs = 0, .previous_rd = 0, .result = 0, .memory_index = @intCast(i), .flags = 0 };
+            try t0.memory_before.append(a, if (i == 0) initialWords()[0] else 0);
+        }
+        try t0.appendSecp(.{ .kind = .add, .packet_format = .little_endian_words_v2, .call_id = 1, .clock = steps, .pc = 4096 + 4 * @as(u64, repeats), .pointer = ADDRESS, .before = before, .after = after });
         t1.len = 1;
-        t1.storage[0] = .{ .next_pc = 4108, .lhs = 0x20011, .rhs = 0, .previous_rd = 0x20011, .result = 0x20012, .memory_index = front.rv64.compact_tape.NO_MEMORY, .flags = 0 };
-        try t1.appendSecp(.{ .kind = .double, .packet_format = .little_endian_words_v2, .call_id = 1, .clock = 4, .pc = 4108, .pointer = ADDRESS, .before = after, .after = final });
+        t1.storage[0] = .{ .next_pc = base1 + 4, .lhs = 0x20011, .rhs = 0, .previous_rd = 0x20011, .result = 0x20012, .memory_index = front.rv64.compact_tape.NO_MEMORY, .flags = 0 };
+        try t1.appendSecp(.{ .kind = .double, .packet_format = .little_endian_words_v2, .call_id = 1, .clock = @as(u64, steps) + 2, .pc = base1 + 4, .pointer = ADDRESS, .before = after, .after = final });
         // Native ABI zeros unused DOUBLE tail words; bridge ledger ignores them.
         @memset(t1.secp_calls.items[0].before[12..], 0);
         @memset(t1.secp_calls.items[0].after[12..], 0);
-        var p0: X.types.Boundary = .{ .steps = 2, .initial_pc = 4096, .final_pc = 4104, .initial_registers = regs(0x20011), .final_registers = regs(0x20011), .register_clocks = @splat(0) };
-        p0.register_clocks[10] = 5;
-        p0.register_clocks[17] = 6;
+        var p0: X.types.Boundary = .{ .steps = steps, .initial_pc = 4096, .final_pc = base1, .initial_registers = regs(0x20011), .final_registers = regs(0x20011), .register_clocks = @splat(0) };
+        p0.register_clocks[10] = 4 * repeats + 1;
+        p0.register_clocks[17] = 4 * repeats + 2;
         var p1 = p0;
-        p1.initial_pc = 4104;
-        p1.final_pc = 4112;
+        p1.steps = 2;
+        p1.initial_pc = base1;
+        p1.final_pc = base1 + 8;
+        p1.register_clocks[10] = 5;
+        p1.register_clocks[17] = 6;
         p1.final_registers = regs(0x20012);
-        if (Native.init(a, program, p0, 1, 5, &t0, .{})) |bad| {
+        if (Native.init(a, program, p0, 1, cpu_log, &t0, .{})) |bad| {
             var owned = bad;
             owned.deinit();
             return error.PlainAdmittedSecp;
         } else |err| if (err != error.UnqualifiedWord16ServiceOwners) return err;
-        if (Native.initForKeccak(a, program, p0, 1, 5, &t0, .{})) |bad| {
+        if (Native.initForKeccak(a, program, p0, 1, cpu_log, &t0, .{})) |bad| {
             var owned = bad;
             owned.deinit();
             return error.KeccakAdmittedSecp;
         } else |err| if (err != error.UnqualifiedWord16ServiceOwners) return err;
-        var n0 = try Native.initForSecp(a, program, p0, 1, 5, &t0, .{});
+        var n0 = try Native.initForSecp(a, program, p0, 1, cpu_log, &t0, .{});
         errdefer n0.deinit();
         var n1 = try Native.initForSecp(a, program, p1, 2, 5, &t1, .{});
         errdefer n1.deinit();

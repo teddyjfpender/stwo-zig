@@ -82,13 +82,28 @@ pub const Captured = struct {
     native: [2]Native,
     advice: C.Advice,
     pub fn init(a: std.mem.Allocator) !Captured {
+        return initLsRepeats(a, 1);
+    }
+    /// Same typed service fixture with enough ordinary events to exercise a
+    /// second LS instance. Repetition changes code, not the captured ROM trust.
+    pub fn initLsRepeats(a: std.mem.Allocator, repeats: u32) !Captured {
+        if (repeats == 0 or repeats > 1024) return error.InvalidServiceFixtureRepeats;
+        const steps = repeats + 1;
+        const base1: u64 = 4096 + 4 * @as(u64, steps);
+        const words = try a.alloc(u32, 2 * steps);
+        defer a.free(words);
+        @memset(words[0..repeats], WORDS[0]);
+        words[repeats] = WORDS[1];
+        @memset(words[steps..][0..repeats], WORDS[2]);
+        words[2 * steps - 1] = WORDS[3];
+        const cpu_log = try @import("../../word16_execution/coverage.zig").minimalPrefixLog(steps);
         const program = try a.create(Program);
         errdefer a.destroy(program);
-        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        program.* = try Program.init(a, .{ .base = 4096, .words = words });
         errdefer program.deinit();
-        var t0 = try front.rv64.compact_tape.Tape.init(a, 2, 4096, 0, .ethereum_services_v2);
+        var t0 = try front.rv64.compact_tape.Tape.init(a, steps, 4096, 0, .ethereum_services_v2);
         errdefer t0.deinit();
-        var t1 = try front.rv64.compact_tape.Tape.init(a, 2, 4104, 2, .ethereum_services_v2);
+        var t1 = try front.rv64.compact_tape.Tape.init(a, steps, base1, steps, .ethereum_services_v2);
         errdefer t1.deinit();
         var before: [25]u64 = @splat(0);
         before[0] = 7;
@@ -97,28 +112,30 @@ pub const Captured = struct {
         const after1 = perm.st;
         perm.permute();
         const after2 = perm.st;
-        t0.len = 1;
-        t0.storage[0] = .{ .next_pc = 4100, .lhs = ADDRESS, .rhs = 7, .previous_rd = 0, .result = 0, .memory_index = 0, .flags = 0 };
-        try t0.memory_before.append(a, 0);
-        try t0.appendService(.{ .call_id = 1, .clock = 2, .pc = 4100, .pointer = ADDRESS, .before = before, .after = after1 });
-        t1.len = 1;
-        t1.storage[0] = .{ .next_pc = 4108, .lhs = ADDRESS, .rhs = 0, .previous_rd = 0, .result = after1[0], .memory_index = 0, .flags = 0 };
-        try t1.memory_before.append(a, after1[0]);
-        try t1.appendService(.{ .call_id = 2, .clock = 4, .pc = 4108, .pointer = ADDRESS, .before = after1, .after = after2 });
-        var p0: X.types.Boundary = .{ .steps = 2, .initial_pc = 4096, .final_pc = 4104, .initial_registers = registers(), .final_registers = registers(), .register_clocks = @splat(0) };
-        p0.register_clocks[1] = 2;
-        p0.register_clocks[2] = 1;
-        p0.register_clocks[10] = 5;
-        p0.register_clocks[17] = 6;
+        t0.len = repeats;
+        t1.len = repeats;
+        for (0..repeats) |i| {
+            t0.storage[i] = .{ .next_pc = 4096 + 4 * (i + 1), .lhs = ADDRESS, .rhs = 7, .previous_rd = 0, .result = 0, .memory_index = @intCast(i), .flags = 0 };
+            try t0.memory_before.append(a, if (i == 0) 0 else 7);
+            t1.storage[i] = .{ .next_pc = base1 + 4 * (i + 1), .lhs = ADDRESS, .rhs = 0, .previous_rd = 0, .result = after1[0], .memory_index = @intCast(i), .flags = 0 };
+            try t1.memory_before.append(a, after1[0]);
+        }
+        try t0.appendService(.{ .call_id = 1, .clock = steps, .pc = 4096 + 4 * @as(u64, repeats), .pointer = ADDRESS, .before = before, .after = after1 });
+        try t1.appendService(.{ .call_id = 2, .clock = 2 * @as(u64, steps), .pc = base1 + 4 * @as(u64, repeats), .pointer = ADDRESS, .before = after1, .after = after2 });
+        var p0: X.types.Boundary = .{ .steps = steps, .initial_pc = 4096, .final_pc = base1, .initial_registers = registers(), .final_registers = registers(), .register_clocks = @splat(0) };
+        p0.register_clocks[1] = 4 * repeats - 2;
+        p0.register_clocks[2] = 4 * repeats - 3;
+        p0.register_clocks[10] = 4 * repeats + 1;
+        p0.register_clocks[17] = 4 * repeats + 2;
         var p1 = p0;
-        p1.initial_pc = 4104;
-        p1.final_pc = 4112;
+        p1.initial_pc = base1;
+        p1.final_pc = base1 + 4 * @as(u64, steps);
         p1.register_clocks[1] = 0;
         p1.register_clocks[2] = 0;
-        try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Native.init(a, program, p0, 1, 5, &t0, .{}));
-        var n0 = try Native.initForKeccak(a, program, p0, 1, 5, &t0, .{});
+        try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Native.init(a, program, p0, 1, cpu_log, &t0, .{}));
+        var n0 = try Native.initForKeccak(a, program, p0, 1, cpu_log, &t0, .{});
         errdefer n0.deinit();
-        var n1 = try Native.initForKeccak(a, program, p1, 2, 5, &t1, .{});
+        var n1 = try Native.initForKeccak(a, program, p1, 2, cpu_log, &t1, .{});
         errdefer n1.deinit();
         var advice = try C.collect(a, &.{ &n0, &n1 }, &.{ &t0, &t1 }, image());
         errdefer advice.deinit();
