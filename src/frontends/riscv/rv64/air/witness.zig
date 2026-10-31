@@ -106,6 +106,10 @@ pub fn fromRetirement(record: execution.Retirement, instruction: isa.Instruction
 /// Constructs operand and arithmetic advice once, without imposing a clock profile.
 /// The caller must encode and constrain predecessor clocks for its own profile.
 pub fn fromRetirementValues(record: execution.Retirement, instruction: isa.Instruction, rights: memory_mod.Permissions) !R.Main {
+    return fromRetirementValuesWithMultiplicationService(record, instruction, rights, false);
+}
+/// Native recipe optimization only. CPU+typed-MUL AIR supplies the authority.
+pub fn fromRetirementValuesWithMultiplicationService(record: execution.Retirement, instruction: isa.Instruction, rights: memory_mod.Permissions, multiplication_service: bool) !R.Main {
     var row: R.Main = @splat(M.zero());
     R.putWord(&row, .a, record.lhs.toInt());
     R.putWord(&row, .b, record.rhs.toInt());
@@ -119,7 +123,7 @@ pub fn fromRetirementValues(record: execution.Retirement, instruction: isa.Instr
         row[L.readable] = R.scalar(@intFromBool(rights.read));
         row[L.writable] = R.scalar(@intFromBool(rights.write));
     }
-    hints.fill(&row, instruction.opcode, @bitCast(instruction.imm));
+    if (!multiplication_service or !@import("operations.zig").mul(instruction.opcode)) hints.fill(&row, instruction.opcode, @bitCast(instruction.imm));
     return row;
 }
 

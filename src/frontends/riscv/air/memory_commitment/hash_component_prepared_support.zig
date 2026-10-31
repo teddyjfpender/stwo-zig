@@ -82,7 +82,9 @@ pub fn sourceNeedsExtension(
     eval_log_size: u32,
 ) !bool {
     try poly.validate();
-    if (poly.log_size == eval_log_size) return false;
+    // Compact PCS retains the committed LDE height after releasing its values.
+    // Such a source still needs recovery from its retained coefficients.
+    if (poly.log_size == eval_log_size and poly.values.len != 0) return false;
     const coefficients = poly.coefficients orelse return error.InvalidProofShape;
     if (coefficients.logSize() != trace_log_size) return error.InvalidProofShape;
     return true;
@@ -96,7 +98,7 @@ pub fn evaluationValues(
     owned_buffers: [][]M31,
     owned_initialized: *usize,
 ) ![]const M31 {
-    if (poly.log_size == eval_log_size) return poly.values;
+    if (poly.log_size == eval_log_size and poly.values.len != 0) return poly.values;
     if (owned_initialized.* >= owned_buffers.len) return error.InvalidProofShape;
     const source = poly.coefficients.?.coefficients();
     if (source.len > eval_size) return error.InvalidProofShape;

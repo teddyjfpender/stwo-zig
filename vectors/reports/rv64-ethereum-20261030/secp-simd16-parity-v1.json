@@ -1,0 +1,1510 @@
+{
+  "schema": "rv64-secp-simd16-parity-v1",
+  "scope": "Secp product, linear and both-format RAM bridge domain evaluation only; no full-block performance/proof claim.",
+  "arithmetic": "16 logical row lanes assembled from unchanged core native packs; local field equations remain PackedM31; polynomial/BYTE/wire/RAM/call challenge terms and prefixes remain PackedQM31. Scalar arbitrary-Q wrappers retain the same equations and order of emissions.",
+  "shared_structural_trait": "Only optional SecureField/toSecure/fromBaseScalar hooks in shared secp256k1_mul_direct; no RV64 import, no new machine/type factory, scalarM31/Q/legacyDSL paths unchanged.",
+  "memory": "One bounded heap Scratch per admitted worker and coset; no per-row allocations or scalar-Q copies; predecessor gather and output positions remain exact for partial worker tails. Existing barrier drains before coset reuse.",
+  "gates": {
+    "fields_and_secp_lanes_release_safe": true,
+    "fields_and_secp_lanes_release_fast": true,
+    "independent_signed_i128_secure_product_oracle_and_p_minus_1_edges": true,
+    "secp_native_release_safe_29_tests": true,
+    "historical_five_complete_proof_sha_exact": true,
+    "historical_gate_mode": "ReleaseSafe,3workers",
+    "fresh_old_receiver_total_cases": 148,
+    "valid_acceptances": 5,
+    "expected_rejections": 143,
+    "scalar_arbitrary_q_secp_degree_mutation_tests": "Existing29-test Secp suite passed, including dense arbitrary-Q and degree tests."
+  },
+  "gate_commands": [
+    "zig build test-riscv64-simd-fields -Doptimize=ReleaseSafe",
+    "zig build test-riscv64-simd-fields -Doptimize=ReleaseFast",
+    "zig build test-riscv64-secp -Doptimize=ReleaseSafe",
+    "STWO_RV64_KECCAK_CPU_WORKERS=3 [five artifact directory variables] zig build test-riscv64-keccak-cpu -Doptimize=ReleaseSafe"
+  ],
+  "artifact_archive": "vectors/reports/interop_artifacts/rv64-simd16-secp-legacy",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/rv64/air/packed_fields.zig",
+      "bytes": 7002,
+      "sha256": "2427432be22fad2c7d0fa39a839623e0446e5f612183a27b7afcef3a5ad97546"
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/secp256k1_mul_direct.zig",
+      "bytes": 7568,
+      "sha256": "4bca8639315928d86aa125a2e81ada281f673e5c627e6312f77fc560ff0a8e39"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/equations.zig",
+      "bytes": 7412,
+      "sha256": "98213b37f9a8ba35ef1fee691ff2971975b6333e596163a94dc5e3ac0e4e7c94"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/component.zig",
+      "bytes": 10784,
+      "sha256": "751aa7b597afc30dfaa11e5a76b4a949dbaebd46b6eed7d2bde8359fe68c97c7"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/parallel.zig",
+      "bytes": 2407,
+      "sha256": "03f83b2a12996cc2c361705e30e01858c22486c19c45216a5f10465f17bd414e"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/packed_domain.zig",
+      "bytes": 2207,
+      "sha256": "aeb2d133fe66b534bd16b9b4a2f27937aca5fa744cfc71fb2fd29cd3ec72fd6e"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/equations.zig",
+      "bytes": 9344,
+      "sha256": "d45641e3fd95322c080ca1c571e6d43e9fa08ff62e18ac5baae12704ba668753"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/component.zig",
+      "bytes": 10042,
+      "sha256": "d24df1bd0cae08a11d6fc03342fb679de841229572aa8f470ebf394d1e11dff7"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/crypto/secp256k1/bridge/parallel.zig",
+      "bytes": 4090,
+      "sha256": "306333386d4350bc8fdbc6f9c440b93b501cfbaaf454c7239f66d1e3388b6a00"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/tests/packed_fields_test.zig",
+      "bytes": 7444,
+      "sha256": "4745b555bba91e6a564a1f795a1a3d0aeae9ec7d45c3dd79fc7deaf2c7a3eb18"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/tests/secp_lane_test.zig",
+      "bytes": 6633,
+      "sha256": "7260e0853281c59ece3e00ce8516baf54fc5f0996b53c9757a80448bccdab22e"
+    },
+    {
+      "path": "src/frontends/riscv/rv64_simd_fields_test_root.zig",
+      "bytes": 121,
+      "sha256": "64ae26a9e5f9efc5a9257addd7e4854070f670a02f12cfdbdaadf12059ceee4e"
+    }
+  ],
+  "cases": {
+    "keccak": {
+      "schema": "rv64-keccak-cpu-qualification-v1",
+      "execution_profile": "keccak_service_v1",
+      "arithmetic_policy": "division_service_v2",
+      "multiplication_requests": 0,
+      "roster": "paired",
+      "state_policy": "inverse_v1",
+      "state_interaction_columns": 36,
+      "compact_tape_global_clock": 1099511627776,
+      "journal_compact_complete_proof_bytes_equal": true,
+      "constructor_allocation_failures_tested": true,
+      "components": {
+        "cpu_log": 5,
+        "rom_log": 5,
+        "byte_log": 8,
+        "and_log": 16,
+        "shift_log": 11,
+        "division_log": 5,
+        "keccak_log": 5,
+        "bridge_log": 6
+      },
+      "one_pcs_cpu_rom_range_division_keccak_ram_bridge_verified": true,
+      "ethereum_block_proof": false,
+      "ram_hash_roots": false,
+      "public_cells_control_profile": true,
+      "steps": 8,
+      "keccak_calls": 2,
+      "division_requests": 1,
+      "queries": 70,
+      "pow_bits": 26,
+      "execution": "DIVW, SD, ECALL, LD, ECALL, LD, AND, SRA; repeated high-u64 cross-page pointer and 25 merged RAM words",
+      "receiver_cost_single_sample": {
+        "verified": true,
+        "one_pcs_execution": true,
+        "execution_profile": "keccak_service_v1",
+        "division_provider_present": true,
+        "multiplication_provider_present": false,
+        "keccak_provider_present": true,
+        "secp_add_provider_present": false,
+        "secp_double_provider_present": false,
+        "public_cell_boundary_control": true,
+        "ethereum_block_proof": false,
+        "independent_setup_ns": 8404875,
+        "verify_with_decode_ns": 13908208,
+        "proof_bytes": 2269408,
+        "setup_identity": [
+          65,
+          114,
+          251,
+          145,
+          88,
+          66,
+          91,
+          199,
+          128,
+          129,
+          200,
+          227,
+          106,
+          236,
+          64,
+          124,
+          190,
+          78,
+          212,
+          18,
+          156,
+          152,
+          213,
+          86,
+          195,
+          69,
+          18,
+          169,
+          241,
+          223,
+          163,
+          182
+        ]
+      },
+      "receiver_cost_scope": "cold process and independently derived preprocessing; diagnostic, not benchmark",
+      "source_ownership": "bounded streaming main commitment, CPU/D source freed after commit; crypto main retained through interaction generation",
+      "artifacts": [
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/keccak/public.json",
+          "bytes": 4796,
+          "sha256": "5a052356265e90f7c4003b802b19419534c1461e2554c6057d5aa9359d9f561c"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/keccak/claims.json",
+          "bytes": 2006,
+          "sha256": "52c0dd4d53385c1fb28cf5dcdf5e4f51aedce9df3b342b17cde26445ab12f410"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/keccak/proof.bin",
+          "bytes": 2269408,
+          "sha256": "45229b60449f1a1a1c4830302d33e74c601eb982dcfb870511f818ccfecec490"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/keccak/bad-count-prefix.bin",
+          "bytes": 2269408,
+          "sha256": "8202a51627ddc4fb08441d0c3ccd90903e0d1ccf826db17b797517de3a05209d"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/keccak/bad-state-prefix.bin",
+          "bytes": 2269408,
+          "sha256": "5127a521be16bcece7a460dc714b4ac4bee938b4162735cd00361b5931aa15d9"
+        },
+        {
+          "path": "/tmp/stwo-rv64-packed-control-legacy/rv64-keccak-cpu-verify",
+          "bytes": 1549656,
+          "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f"
+        }
+      ],
+      "cases": [
+        {
+          "case": "valid",
+          "expected_accept": true,
+          "passed": true,
+          "receiver_exit": 0,
+          "error": null
+        },
+        {
+          "case": "provider-roster",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceRoster"
+        },
+        {
+          "case": "state-policy",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "call-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "first-call-id",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "immutable-program",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "terminal-register",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-pc",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "initial-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-clock",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-write-permission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "opcode-omission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "header",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "permutation",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "truth-table",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "byte-provider",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "balanced-header-bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "noncanonical-claim",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceClaim"
+        },
+        {
+          "case": "previous-state-prefix",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "previous-call-counter",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        }
+      ]
+    },
+    "cyclic": {
+      "schema": "rv64-keccak-cpu-qualification-v1",
+      "execution_profile": "keccak_service_v1",
+      "arithmetic_policy": "division_service_v2",
+      "multiplication_requests": 0,
+      "roster": "paired",
+      "state_policy": "cyclic_v2",
+      "state_interaction_columns": 12,
+      "compact_tape_global_clock": 1099511627776,
+      "journal_compact_complete_proof_bytes_equal": true,
+      "constructor_allocation_failures_tested": true,
+      "components": {
+        "cpu_log": 5,
+        "rom_log": 5,
+        "byte_log": 8,
+        "and_log": 16,
+        "shift_log": 11,
+        "division_log": 5,
+        "keccak_log": 5,
+        "bridge_log": 6
+      },
+      "one_pcs_cpu_rom_range_division_keccak_ram_bridge_verified": true,
+      "ethereum_block_proof": false,
+      "ram_hash_roots": false,
+      "public_cells_control_profile": true,
+      "steps": 8,
+      "keccak_calls": 2,
+      "division_requests": 1,
+      "queries": 70,
+      "pow_bits": 26,
+      "execution": "DIVW, SD, ECALL, LD, ECALL, LD, AND, SRA; repeated high-u64 cross-page pointer and 25 merged RAM words",
+      "receiver_cost_single_sample": {
+        "verified": true,
+        "one_pcs_execution": true,
+        "execution_profile": "keccak_service_v1",
+        "division_provider_present": true,
+        "multiplication_provider_present": false,
+        "keccak_provider_present": true,
+        "secp_add_provider_present": false,
+        "secp_double_provider_present": false,
+        "public_cell_boundary_control": true,
+        "ethereum_block_proof": false,
+        "independent_setup_ns": 8443167,
+        "verify_with_decode_ns": 13881291,
+        "proof_bytes": 2266976,
+        "setup_identity": [
+          230,
+          103,
+          224,
+          150,
+          90,
+          122,
+          189,
+          171,
+          43,
+          191,
+          27,
+          22,
+          125,
+          108,
+          186,
+          127,
+          119,
+          220,
+          185,
+          154,
+          255,
+          196,
+          170,
+          39,
+          214,
+          98,
+          119,
+          56,
+          108,
+          69,
+          226,
+          218
+        ]
+      },
+      "receiver_cost_scope": "cold process and independently derived preprocessing; diagnostic, not benchmark",
+      "source_ownership": "bounded streaming main commitment, CPU/D source freed after commit; crypto main retained through interaction generation",
+      "artifacts": [
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/cyclic/public.json",
+          "bytes": 4795,
+          "sha256": "c4751aefcb90c63dfb5b91d3b5383c131c9df996e9f0a3ba6b5f934ae6e80832"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/cyclic/claims.json",
+          "bytes": 2011,
+          "sha256": "96b351b5fb25e6ddb323d7fff431d6d6f53f86f08f45a2fb89eb6ec438964f09"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/cyclic/proof.bin",
+          "bytes": 2266976,
+          "sha256": "49d867b2405a734a2581257115ba5d61f91e6b6356aad3a8652d00bdb99b56eb"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/cyclic/bad-count-prefix.bin",
+          "bytes": 2266976,
+          "sha256": "62408f9a2b6ae0cf7db13b79ff5293131c3a065de61ea358f6c2903aaa91622a"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/cyclic/bad-state-prefix.bin",
+          "bytes": 2266976,
+          "sha256": "2ff481e72976b5195c09c292ddfe6a6ad1fe9fa853051e785717d757f605a14c"
+        },
+        {
+          "path": "/tmp/stwo-rv64-packed-control-legacy/rv64-keccak-cpu-verify",
+          "bytes": 1549656,
+          "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f"
+        }
+      ],
+      "cases": [
+        {
+          "case": "valid",
+          "expected_accept": true,
+          "passed": true,
+          "receiver_exit": 0,
+          "error": null
+        },
+        {
+          "case": "provider-roster",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceRoster"
+        },
+        {
+          "case": "state-policy",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "call-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "first-call-id",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "immutable-program",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "terminal-register",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-pc",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "initial-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-clock",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-write-permission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "opcode-omission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "header",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "permutation",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "truth-table",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "byte-provider",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "balanced-header-bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "noncanonical-claim",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceClaim"
+        },
+        {
+          "case": "previous-state-prefix",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "previous-call-counter",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        }
+      ]
+    },
+    "mul": {
+      "schema": "rv64-keccak-cpu-qualification-v1",
+      "execution_profile": "keccak_service_v1",
+      "arithmetic_policy": "division_multiplication_services_v3",
+      "multiplication_requests": 5,
+      "roster": "paired",
+      "state_policy": "cyclic_v2",
+      "state_interaction_columns": 12,
+      "compact_tape_global_clock": 1099511627776,
+      "journal_compact_complete_proof_bytes_equal": true,
+      "constructor_allocation_failures_tested": true,
+      "components": {
+        "cpu_log": 5,
+        "rom_log": 5,
+        "byte_log": 8,
+        "and_log": 16,
+        "shift_log": 11,
+        "division_log": 5,
+        "keccak_log": 5,
+        "bridge_log": 6
+      },
+      "one_pcs_cpu_rom_range_division_keccak_ram_bridge_verified": true,
+      "ethereum_block_proof": false,
+      "ram_hash_roots": false,
+      "public_cells_control_profile": true,
+      "steps": 13,
+      "keccak_calls": 2,
+      "division_requests": 1,
+      "queries": 70,
+      "pow_bits": 26,
+      "execution": "DIVW and all5 MUL family, SD, ECALL, LD, ECALL, LD, AND, SRA; repeated high-u64 cross-page pointer and 25 merged RAM words",
+      "receiver_cost_single_sample": {
+        "verified": true,
+        "one_pcs_execution": true,
+        "execution_profile": "keccak_service_v1",
+        "division_provider_present": true,
+        "multiplication_provider_present": true,
+        "keccak_provider_present": true,
+        "secp_add_provider_present": false,
+        "secp_double_provider_present": false,
+        "public_cell_boundary_control": true,
+        "ethereum_block_proof": false,
+        "independent_setup_ns": 6372042,
+        "verify_with_decode_ns": 14234208,
+        "proof_bytes": 2341472,
+        "setup_identity": [
+          176,
+          86,
+          51,
+          83,
+          107,
+          144,
+          179,
+          186,
+          161,
+          33,
+          19,
+          123,
+          131,
+          243,
+          158,
+          169,
+          33,
+          70,
+          31,
+          15,
+          103,
+          254,
+          166,
+          44,
+          135,
+          181,
+          173,
+          48,
+          245,
+          231,
+          169,
+          239
+        ]
+      },
+      "receiver_cost_scope": "cold process and independently derived preprocessing; diagnostic, not benchmark",
+      "source_ownership": "bounded streaming main commitment, CPU/D source freed after commit; crypto main retained through interaction generation",
+      "artifacts": [
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/mul/public.json",
+          "bytes": 4960,
+          "sha256": "8eb0dac6a587b2919a5766e523a765c3adee2d1070dba131a8f309493b073a7b"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/mul/claims.json",
+          "bytes": 2080,
+          "sha256": "4c84b0ca292762f761109254661576b88ac6db76ecdb9be4570f3de8c9f7476e"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/mul/proof.bin",
+          "bytes": 2341472,
+          "sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/mul/bad-count-prefix.bin",
+          "bytes": 2341472,
+          "sha256": "78bdb89ddad8c1956e52dcd187138a3855e9042f1f8ba0149de9d76fed2d0195"
+        },
+        {
+          "path": "/tmp/stwo-rv64-secp-simd-legacy/mul/bad-state-prefix.bin",
+          "bytes": 2341472,
+          "sha256": "a0bcda56b0d81d58c6aedd7be5a1b018897c3151819b5245c612a5faf3466b5a"
+        },
+        {
+          "path": "/tmp/stwo-rv64-packed-control-legacy/rv64-keccak-cpu-verify",
+          "bytes": 1549656,
+          "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f"
+        }
+      ],
+      "cases": [
+        {
+          "case": "valid",
+          "expected_accept": true,
+          "passed": true,
+          "receiver_exit": 0,
+          "error": null
+        },
+        {
+          "case": "provider-roster",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceRoster"
+        },
+        {
+          "case": "state-policy",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "call-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "first-call-id",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "immutable-program",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "terminal-register",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-pc",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "initial-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "terminal-ram",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-clock",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "ram-write-permission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "opcode-omission",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceOpcodePolicy"
+        },
+        {
+          "case": "multiplication-count",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "arithmetic-policy",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceArithmetic"
+        },
+        {
+          "case": "initial-register-full64",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "header",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "permutation",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "truth-table",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "byte-provider",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "division",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "multiplication",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "multiplication_provider",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: Rv64ServiceGlobalClosure"
+        },
+        {
+          "case": "balanced-mul",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "previous-cpu-mul-prefix",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "previous-mul-provider-prefix",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "balanced-header-bridge",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "noncanonical-claim",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: InvalidRv64ServiceClaim"
+        },
+        {
+          "case": "previous-state-prefix",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        },
+        {
+          "case": "previous-call-counter",
+          "expected_accept": false,
+          "passed": true,
+          "receiver_exit": 1,
+          "error": "error: OodsNotMatching"
+        }
+      ]
+    },
+    "eth-v1": {
+      "execution_profile": "ethereum_services_v1",
+      "one_pcs_cpu_rom_state_keccak_secp_mul_div": true,
+      "public_ram_boundary_control": true,
+      "ethereum_block_proof": false,
+      "proof_bytes": 3015640,
+      "proof_sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e",
+      "suite": {
+        "fri_queries": 70,
+        "pow_bits": 26
+      },
+      "artifacts": {
+        "public.json": {
+          "bytes": 7939,
+          "sha256": "2b159aa7757a1fa93a75724768d4ea2c8e893676a20ac2674fa5cf1e302904ad"
+        },
+        "claims.json": {
+          "bytes": 2244,
+          "sha256": "b6507b35c4b7fb11241d9e60292d42cdea2941512661ca8ed05849d4bdfd2c7c"
+        },
+        "proof.bin": {
+          "bytes": 3015640,
+          "sha256": "d2e890e174671e05af3e5b6abd47afb441eca6d1d0601c361cd385508fe9b99e"
+        }
+      },
+      "verifier": {
+        "path": "/tmp/stwo-rv64-packed-control-legacy/rv64-keccak-cpu-verify",
+        "bytes": 1549656,
+        "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f"
+      },
+      "receiver": {
+        "verified": true,
+        "one_pcs_execution": true,
+        "execution_profile": "ethereum_services_v1",
+        "division_provider_present": true,
+        "multiplication_provider_present": true,
+        "keccak_provider_present": true,
+        "secp_add_provider_present": true,
+        "secp_double_provider_present": true,
+        "public_cell_boundary_control": true,
+        "ethereum_block_proof": false,
+        "independent_setup_ns": 3451833,
+        "verify_with_decode_ns": 16840542,
+        "proof_bytes": 3015640,
+        "setup_identity": [
+          136,
+          7,
+          163,
+          211,
+          116,
+          181,
+          177,
+          78,
+          83,
+          138,
+          169,
+          194,
+          172,
+          150,
+          115,
+          12,
+          141,
+          183,
+          200,
+          71,
+          118,
+          49,
+          47,
+          124,
+          178,
+          174,
+          14,
+          196,
+          10,
+          182,
+          146,
+          195
+        ]
+      },
+      "fresh_receiver_cases": [
+        {
+          "case": "valid",
+          "rejected": false,
+          "exit_code": 0
+        },
+        {
+          "case": "execution-profile",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "arithmetic-policy",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "state-policy",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "terminal-pc",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "terminal-register",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "rom-high-pc",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "immutable-instruction",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "initial-ram",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "final-ram",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "ram-clock",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "ram-permission",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-count",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-first-id",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-roster",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-geometry",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-count",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-first-id",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-roster",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-geometry",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_header",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-product",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-linear",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-bridge",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-product",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-linear",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-bridge",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-bytes",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "balanced-header-add",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "balanced-header-double",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-add-counter",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-double-counter",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-secp-prefix",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "truncated",
+          "rejected": true,
+          "exit_code": 1
+        }
+      ]
+    },
+    "eth-v2": {
+      "execution_profile": "ethereum_services_v2",
+      "one_pcs_cpu_rom_state_keccak_secp_mul_div": true,
+      "public_ram_boundary_control": true,
+      "ethereum_block_proof": false,
+      "proof_bytes": 3017800,
+      "proof_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4",
+      "suite": {
+        "fri_queries": 70,
+        "pow_bits": 26
+      },
+      "artifacts": {
+        "public.json": {
+          "bytes": 7880,
+          "sha256": "990bfbc777485b85a144d7154c53c79f9322e2b04156fb9b9d94f55fe5c3ad3a"
+        },
+        "claims.json": {
+          "bytes": 2255,
+          "sha256": "e4a3e82b71f8e87b16f98fc53b6a622b677ee73e4c03ef478e1ff70a88ef5bf7"
+        },
+        "proof.bin": {
+          "bytes": 3017800,
+          "sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4"
+        }
+      },
+      "verifier": {
+        "path": "/tmp/stwo-rv64-packed-control-legacy/rv64-keccak-cpu-verify",
+        "bytes": 1549656,
+        "sha256": "85de3bb163c2241bb6dfe4535430de50c02b91cf9ce0439282a5ba8fbdb65c4f"
+      },
+      "receiver": {
+        "verified": true,
+        "one_pcs_execution": true,
+        "execution_profile": "ethereum_services_v2",
+        "division_provider_present": true,
+        "multiplication_provider_present": true,
+        "keccak_provider_present": true,
+        "secp_add_provider_present": true,
+        "secp_double_provider_present": true,
+        "public_cell_boundary_control": true,
+        "ethereum_block_proof": false,
+        "independent_setup_ns": 3159875,
+        "verify_with_decode_ns": 17554000,
+        "proof_bytes": 3017800,
+        "setup_identity": [
+          226,
+          234,
+          188,
+          151,
+          207,
+          165,
+          133,
+          189,
+          63,
+          182,
+          56,
+          238,
+          19,
+          87,
+          187,
+          53,
+          30,
+          229,
+          207,
+          191,
+          141,
+          71,
+          110,
+          212,
+          221,
+          200,
+          171,
+          49,
+          69,
+          131,
+          103,
+          53
+        ]
+      },
+      "fresh_receiver_cases": [
+        {
+          "case": "valid",
+          "rejected": false,
+          "exit_code": 0
+        },
+        {
+          "case": "execution-profile",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "arithmetic-policy",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "state-policy",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "terminal-pc",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "terminal-register",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "rom-high-pc",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "immutable-instruction",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "initial-ram",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "final-ram",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "ram-clock",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "ram-permission",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-count",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-first-id",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-roster",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "add-geometry",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-count",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-first-id",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-roster",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "double-geometry",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_header",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-product",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-linear",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_add-bridge",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-product",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-linear",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-secp_double-bridge",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "claim-bytes",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "balanced-header-add",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "balanced-header-double",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-add-counter",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-double-counter",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "previous-secp-prefix",
+          "rejected": true,
+          "exit_code": 1
+        },
+        {
+          "case": "truncated",
+          "rejected": true,
+          "exit_code": 1
+        }
+      ]
+    }
+  },
+  "limits": [
+    "This report does not assert full-block SIMD proof qualification or speedup.",
+    "K SIMD source may have been present during compilation; its independent lane gates and source handoff are tracked separately.",
+    "No changes to curve modulus, Fiat-Shamir challenges, transcript schema, provider fixed keys, claim types, clocks, permissions, degree, constraint count or lookup cardinality."
+  ]
+}

@@ -1,6 +1,7 @@
 //! Stable hierarchical prover-stage telemetry schema and recorder.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const task_profile = @import("task_profile.zig");
 const work_profile = @import("work_profile.zig");
 
@@ -76,6 +77,12 @@ const MutableNode = struct {
     }
 };
 
+/// A Recorder has one serial owner and is NOT thread-safe. Never share one
+/// mutable stage stack between concurrent callbacks, even with a thread-safe
+/// allocator. Give each concurrent component a private recorder; after joining
+/// every writer, its coordinator adopts completed trees with adoptJoinedStages
+/// (or adoptJoined when completed task graphs must move too). Locking a shared
+/// stack would not make overlapping callbacks a valid nested hierarchy.
 pub const Recorder = struct {
     allocator: std.mem.Allocator,
     runtime: []const u8,
@@ -130,8 +137,7 @@ pub const Recorder = struct {
     /// happen before ownership moves; the child remains independently reusable.
     /// Exact-work capture uses the serial coordinator instead of this seam.
     pub fn adoptJoined(self: *Recorder, child: *Recorder) !void {
-        if (self == child or self.allocator.ptr != child.allocator.ptr or
-            self.allocator.vtable != child.allocator.vtable or
+        if (self == child or !sameAllocator(self.allocator, child.allocator) or
             self.capture_tasks != child.capture_tasks or self.capture_work or child.capture_work)
             return error.IncompatibleJoinedRecorder;
         if (child.stack.items.len != 0 or self.task_recorder.active_reservation != null or
@@ -147,6 +153,29 @@ pub const Recorder = struct {
         self.task_recorder.graphs.appendSliceAssumeCapacity(child.task_recorder.graphs.items);
         child.roots.clearRetainingCapacity();
         child.task_recorder.graphs.clearRetainingCapacity();
+    }
+
+    /// Moves only completed hierarchical stage trees from a private, joined
+    /// recorder. The coordinator calls this after every child writer returns.
+    /// Parent task reservations and exact-work capture remain untouched; child
+    /// task graphs, reservations and exact-work capture cannot cross this seam.
+    /// Matching allocators let the parent reclaim the moved nodes directly.
+    pub fn adoptJoinedStages(self: *Recorder, child: *Recorder) !void {
+        if (self == child or !sameAllocator(self.allocator, child.allocator) or child.capture_work or
+            child.task_recorder.graphs.items.len != 0)
+            return error.IncompatibleJoinedRecorder;
+        if (child.stack.items.len != 0 or child.task_recorder.active_reservation != null)
+            return error.JoinedRecorderStillActive;
+        const destination = if (self.stack.items.len == 0)
+            &self.roots
+        else
+            &self.stack.items[self.stack.items.len - 1].children;
+        // Reserve before moving any ownership. Failure leaves both logical
+        // trees unchanged, and a partially adopted set of siblings remains
+        // independently reclaimable by its two original recorder owners.
+        try destination.ensureUnusedCapacity(self.allocator, child.roots.items.len);
+        destination.appendSliceAssumeCapacity(child.roots.items);
+        child.roots.clearRetainingCapacity();
     }
 
     pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !StageProfile {
@@ -244,6 +273,19 @@ pub const Recorder = struct {
         node.seconds = @as(f64, @floatFromInt(elapsed_ns)) / std.time.ns_per_s;
     }
 };
+
+// Stateless std allocators intentionally carry an undefined context pointer.
+// Recognize their concrete implementations before reading ptr. Do not compare
+// page_allocator's alias: a root.os.heap override may instead be stateful.
+fn sameAllocator(a: std.mem.Allocator, b: std.mem.Allocator) bool {
+    if (a.vtable != b.vtable) return false;
+    if (comptime !builtin.single_threaded) if (a.vtable == &std.heap.SmpAllocator.vtable) return true;
+    if (comptime !builtin.cpu.arch.isWasm() and builtin.os.tag != .plan9) if (a.vtable == &std.heap.PageAllocator.vtable) return true;
+    if (comptime builtin.link_libc) if (a.vtable == std.heap.c_allocator.vtable or a.vtable == std.heap.raw_c_allocator.vtable) return true;
+    if (comptime builtin.cpu.arch.isWasm() and builtin.single_threaded) if (a.vtable == std.heap.wasm_allocator.vtable) return true;
+    if (comptime builtin.os.tag == .plan9) if (a.vtable == &std.heap.SbrkAllocator(std.os.plan9.sbrk).vtable) return true;
+    return a.ptr == b.ptr;
+}
 
 pub const StageScope = struct {
     recorder: ?*Recorder = null,
@@ -466,4 +508,158 @@ fn exerciseJoinedAllocationFailure(allocator: std.mem.Allocator) !void {
 
 test "joined recorder allocation failures leave every owner reclaimable" {
     try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseJoinedAllocationFailure, .{});
+}
+
+const JoinedStagesThread = struct {
+    recorder: *Recorder,
+    gate: *std.Thread.ResetEvent,
+    entered: *std.atomic.Value(usize),
+    id: []const u8,
+    failure: ?anyerror = null,
+    fn run(self: *JoinedStagesThread) void {
+        self.capture() catch |err| {
+            self.failure = err;
+            self.gate.set();
+        };
+    }
+    fn capture(self: *JoinedStagesThread) !void {
+        var outer = try StageScope.begin(self.recorder, self.id, self.id);
+        defer outer.end();
+        var inner = try StageScope.begin(self.recorder, "inner", "Inner");
+        defer inner.end();
+        if (self.entered.fetchAdd(1, .acq_rel) + 1 == 2) self.gate.set();
+        self.gate.wait();
+    }
+};
+test "joined stages privately record concurrent children and attach in coordinator order" {
+    if (comptime builtin.single_threaded) return error.SkipZigTest;
+    const allocator = std.testing.allocator;
+    var parent = Recorder.initWithOptions(allocator, "rv64", "parent", .{ .capture_tasks = true, .capture_work = true });
+    defer parent.deinit();
+    var children: [2]Recorder = undefined;
+    for (&children) |*child| child.* = Recorder.initWithOptions(allocator, "rv64", "component", .{ .capture_tasks = false });
+    defer for (&children) |*child| child.deinit();
+    var gate: std.Thread.ResetEvent = .{};
+    var entered: std.atomic.Value(usize) = .init(0);
+    var jobs = [_]JoinedStagesThread{
+        .{ .recorder = &children[0], .gate = &gate, .entered = &entered, .id = "left" },
+        .{ .recorder = &children[1], .gate = &gate, .entered = &entered, .id = "right" },
+    };
+    {
+        const first = try std.Thread.spawn(.{}, JoinedStagesThread.run, .{&jobs[0]});
+        errdefer {
+            gate.set();
+            first.join();
+        }
+        const second = try std.Thread.spawn(.{}, JoinedStagesThread.run, .{&jobs[1]});
+        second.join();
+        first.join();
+    }
+    for (jobs) |job| if (job.failure) |err| return err;
+    var pending = try parent.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    const reservation = parent.task_recorder.active_reservation;
+    const work = parent.workCaptureRecorder().?;
+    try work.record(.{ .producer = .column_preparation_fft, .source_mask = work_profile.SourceMask.one(.fft_butterflies), .counters = .{ .fft_butterflies = 19 } });
+    const work_before = (try parent.workSnapshot()).counters;
+    var outer = try StageScope.begin(&parent, "components", "Joined components");
+    defer outer.end();
+    for (&children) |*child| try parent.adoptJoinedStages(child);
+    try std.testing.expect(parent.capture_tasks and parent.capture_work);
+    try std.testing.expectEqualDeep(reservation, parent.task_recorder.active_reservation);
+    try std.testing.expectEqualDeep(work_before, (try parent.workSnapshot()).counters);
+    try std.testing.expectEqual(@as(usize, 0), parent.task_recorder.graphs.items.len);
+    for (&children) |*child| try std.testing.expectEqual(@as(usize, 0), child.roots.items.len);
+    outer.end();
+    var profile = try parent.snapshot(allocator);
+    defer profile.deinit(allocator);
+    const nodes = profile.stages[0].children.?;
+    try std.testing.expectEqual(@as(usize, 2), nodes.len);
+    try std.testing.expectEqualStrings("left", nodes[0].id);
+    try std.testing.expectEqualStrings("right", nodes[1].id);
+    for (nodes) |node| try std.testing.expectEqualStrings("inner", node.children.?[0].id);
+    try pending.abort();
+}
+
+test "joined stages reject live or incompatible child ownership without moving roots" {
+    const allocator = std.testing.allocator;
+    var parent = Recorder.initWithOptions(allocator, "rv64", "parent", .{ .capture_tasks = false });
+    defer parent.deinit();
+    var child = Recorder.initWithOptions(allocator, "rv64", "child", .{ .capture_tasks = false });
+    defer child.deinit();
+    var stage = try StageScope.begin(&child, "child", "Child");
+    defer stage.end();
+    try std.testing.expectError(error.JoinedRecorderStillActive, parent.adoptJoinedStages(&child));
+    stage.end();
+    var pending = try child.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try std.testing.expectError(error.JoinedRecorderStillActive, parent.adoptJoinedStages(&child));
+    try pending.abort();
+    try std.testing.expectEqual(@as(usize, 1), child.roots.items.len);
+    var other_arena = std.heap.ArenaAllocator.init(allocator);
+    defer other_arena.deinit();
+    var other_parent = Recorder.init(other_arena.allocator(), "rv64", "other");
+    defer other_parent.deinit();
+    try std.testing.expectError(error.IncompatibleJoinedRecorder, other_parent.adoptJoinedStages(&child));
+    try std.testing.expectError(error.IncompatibleJoinedRecorder, child.adoptJoinedStages(&child));
+    try std.testing.expectEqual(@as(usize, 1), child.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 0), parent.roots.items.len);
+    var graph = try child.reserveTaskGraph(0, 0);
+    defer graph.deinit();
+    try child.publishTaskGraphAfterJoin(&graph, .{ .graph_id = "child-task" }, .{});
+    try std.testing.expectError(error.IncompatibleJoinedRecorder, parent.adoptJoinedStages(&child));
+    try std.testing.expectEqual(@as(usize, 1), child.roots.items.len);
+    var work_child = Recorder.initWithOptions(allocator, "rv64", "work", .{ .capture_work = true });
+    defer work_child.deinit();
+    try std.testing.expectError(error.IncompatibleJoinedRecorder, parent.adoptJoinedStages(&work_child));
+}
+
+fn exerciseJoinedStagesAllocationFailure(allocator: std.mem.Allocator) !void {
+    var parent = Recorder.initWithOptions(allocator, "rv64", "parent", .{ .capture_tasks = true, .capture_work = true });
+    defer parent.deinit();
+    var child = Recorder.initWithOptions(allocator, "rv64", "child", .{ .capture_tasks = false });
+    defer child.deinit();
+    var parent_scope = try StageScope.begin(&parent, "outer", "Outer");
+    defer parent_scope.end();
+    var child_scope = try StageScope.begin(&child, "child", "Child");
+    child_scope.end();
+    parent.adoptJoinedStages(&child) catch |err| {
+        try std.testing.expectEqual(@as(usize, 1), child.roots.items.len);
+        try std.testing.expectEqual(@as(usize, 0), parent_scope.node.?.children.items.len);
+        return err;
+    };
+    try std.testing.expectEqual(@as(usize, 0), child.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 1), parent_scope.node.?.children.items.len);
+    // The emptied child remains reusable without invalidating the moved tree.
+    var again = try StageScope.begin(&child, "again", "Again");
+    again.end();
+    try parent.adoptJoinedStages(&child);
+}
+test "joined stages allocation failures preserve child ownership and parent cleanup" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseJoinedStagesAllocationFailure, .{});
+}
+
+fn exerciseStatelessStageAdoption(allocator: std.mem.Allocator) !void {
+    var parent = Recorder.initWithOptions(allocator, "rv64", "parent", .{ .capture_tasks = false });
+    defer parent.deinit();
+    var child = Recorder.initWithOptions(allocator, "rv64", "child", .{ .capture_tasks = false });
+    defer child.deinit();
+    var first = try StageScope.begin(&child, "first", "First");
+    first.end();
+    try parent.adoptJoinedStages(&child);
+    var second = try StageScope.begin(&child, "second", "Second");
+    second.end();
+    try parent.adoptJoined(&child);
+    try std.testing.expectEqual(@as(usize, 2), parent.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 0), child.roots.items.len);
+}
+test "joined adoption recognizes stateless allocator identities without reading undefined context" {
+    try exerciseStatelessStageAdoption(std.heap.page_allocator);
+    if (comptime !builtin.single_threaded) try exerciseStatelessStageAdoption(std.heap.smp_allocator);
+    if (comptime builtin.link_libc) {
+        try exerciseStatelessStageAdoption(std.heap.c_allocator);
+        // raw_c_allocator cannot allocate MutableNode when its required
+        // alignment exceeds max_align_t; identity itself is still stateless.
+        try std.testing.expect(sameAllocator(std.heap.raw_c_allocator, std.heap.raw_c_allocator));
+    }
 }

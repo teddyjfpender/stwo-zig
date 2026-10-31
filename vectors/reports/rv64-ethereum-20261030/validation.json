@@ -1,0 +1,33 @@
+{
+  "schema": "rv64-ethereum-milestone-validation-v1",
+  "block": 24628607,
+  "transactions": 66,
+  "execution_verified": true,
+  "exact_instructions": 835695366,
+  "independent_oracle": "Unicorn2.1.4",
+  "all_final_registers_and_pc_match": true,
+  "full_ram_equality_verified": false,
+  "full_block_proof_verified": false,
+  "new_standalone_safe_tests_passed": 34,
+  "runner_source_identities": {
+    "src/frontends/riscv/rv64/ethereum_execution.zig": "ba61dfbd85a14a6c73d64c88238fef35b6d683c9bd8cac1db680373c9ec08f23",
+    "src/frontends/riscv/rv64/ethereum_contract.zig": "85c4e66dd6de06bd332339cb269538578cc7c1b6247ebbbcad1c2e056334a32b",
+    "scripts/riscv64_ethereum_profile.py": "c707c70448ae7194f0344ed534a84dae3fa435bcfdf46e57708276001c7ca4a3",
+    "scripts/riscv64_ethereum_oracle.py": "7827f3bd4b74228a6a9c88f805bb1b506e8474a77ce85a74455441a15c18586d"
+  },
+  "runner_binary_sha256": "2216cf4162e7d9b514d709bf73ff3d15a74ea24d45083c13df8b733b65fbd45a",
+  "caveats": [
+    "Execution census and oracle are not STARK acceptance",
+    "6.58 seconds measures execution only; excludes proving and compilation",
+    "4398 backing pages includes ELF/input/stack/heap, not host peak RSS",
+    "PC profiling attributes symbols, not a source-level call graph"
+  ],
+  "repository_release_safe_execution_gate_passed": true,
+  "profile_and_pinned_oracle_tests_passed": 7,
+  "foundation_commit": "81309aebf",
+  "ethereum_changes_committed": false,
+  "source_conformance": {
+    "pre_existing_errors": 96,
+    "changed_path_errors": 0
+  }
+}

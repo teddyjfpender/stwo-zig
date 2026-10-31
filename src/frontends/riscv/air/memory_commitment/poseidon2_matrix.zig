@@ -50,6 +50,8 @@ pub fn internalMatrixSecure(comptime S: type, state: *[WIDTH]S, diagonal: [WIDTH
     for (state, diagonal) |*value, coefficient| {
         value.* = if (S == QM31)
             value.mulM31(M31.fromCanonical(coefficient)).add(sum)
+        else if (@hasDecl(S, "fromBaseScalar"))
+            value.mul(S.fromBaseScalar(M31.fromCanonical(coefficient))).add(sum)
         else
             value.mul(S.fromBase(M31.fromCanonical(coefficient))).add(sum);
     }

@@ -39,12 +39,28 @@ pub const descriptor = product_policy.Descriptor{
 pub fn addProduct(context: Context) void {
     inline for (.{
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
+        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
         .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 3 },
         .{ "full-capture", "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig", 9 },
         .{ "full-proof", "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig", 3 },
+        .{ "multiplication", "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig", 5 },
+        .{ "keccak-cpu", "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig", 10 },
+        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 7 },
+        .{ "verifier-cache", "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig", 3 },
+        .{ "cpu-degree-diagnostic", "src/integrations/riscv_cpu/rv64_cpu_degree_diagnostic_test_root.zig", 2 },
+        .{ "borrowed-services", "src/integrations/riscv_cpu/rv64_borrowed_services_test_root.zig", 3 },
+        .{ "lean-proof", "src/integrations/riscv_cpu/rv64_lean_test_root.zig", 3 },
+        .{ "division", "src/integrations/riscv_cpu/rv64_division_test_root.zig", 9 },
+        .{ "authenticated-execution", "src/integrations/riscv_cpu/rv64_authenticated_test_root.zig", 1 },
+        .{ "ram", "src/integrations/riscv_cpu/rv64_ram_test_root.zig", 1 },
         .{ "program-proof", "src/integrations/riscv_cpu/rv64_program_proof_test_root.zig", 3 },
         .{ "providers", "src/integrations/riscv_cpu/rv64_providers_test_root.zig", 8 },
+        .{ "main-arena", "src/integrations/riscv_cpu/rv64_main_arena_test_root.zig", 12 },
+        .{ "secp", "src/integrations/riscv_cpu/rv64_secp_test_root.zig", 29 },
+        .{ "keccak", "src/integrations/riscv_cpu/rv64_keccak_test_root.zig", 32 },
+        .{ "keccak-quartet", "src/integrations/riscv_cpu/rv64_keccak_quartet_test_root.zig", 5 },
+        .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 3 },
     }) |suite| {
@@ -64,11 +80,11 @@ pub fn addProduct(context: Context) void {
     const rv64_execution = context.b.step("test-riscv64-execution", "Test experimental RV64IM execution without proof admission");
     rv64_execution.dependOn(test_filter.addSuites(context.b, &.{.{
         .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), "src/frontends/riscv/rv64_execution_test_root.zig", &.{}),
-        .minimum = 49,
+        .minimum = 67,
     }}));
     // Compile standalone tools without injected proof modules: execution must
     // stay usable independently of the frontend AIR/prover dependency graph.
-    for ([_][]const u8{ "diagnostic", "csp_benchmark", "benchmark" }) |tool| {
+    for ([_][]const u8{ "diagnostic", "csp_benchmark", "benchmark", "ethereum_execution" }) |tool| {
         const executable = context.b.addExecutable(.{
             .name = context.b.fmt("rv64-{s}-compile-check", .{tool}),
             .root_module = graph.create(context.b, .{
@@ -81,10 +97,20 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_secp_fixture_main.zig" },
+        .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_keccak_fixture_main.zig" },
         .{ .name = "rv64-qualification", .source = "src/integrations/riscv_cpu/rv64_qualification_main.zig" },
         .{ .name = "rv64-csp-windows", .source = "src/integrations/riscv_cpu/rv64_csp_windows_main.zig" },
         .{ .name = "rv64-window-verify", .source = "src/integrations/riscv_cpu/rv64_window_verify_main.zig" },
         .{ .name = "rv64-csp-full", .source = "src/integrations/riscv_cpu/rv64_csp_full_main.zig" },
+        .{ .name = "rv64-multiplication-verify", .source = "src/integrations/riscv_cpu/rv64_multiplication_verify_main.zig" },
+        .{ .name = "rv64-keccak-cpu-verify", .source = "src/integrations/riscv_cpu/rv64_keccak_cpu_verify_main.zig" },
+        .{ .name = "rv64-lean-verify", .source = "src/integrations/riscv_cpu/rv64_lean_verify_main.zig" },
+        .{ .name = "rv64-division-verify", .source = "src/integrations/riscv_cpu/rv64_division_verify_main.zig" },
+        .{ .name = "rv64-ethereum-reprove", .source = "src/integrations/riscv_cpu/rv64_ethereum_reprove_main.zig" },
+        .{ .name = "rv64-ethereum-proof", .source = "src/integrations/riscv_cpu/rv64_ethereum_proof_main.zig" },
+        .{ .name = "rv64-ram-cost", .source = "src/integrations/riscv_cpu/rv64_ram_cost_main.zig" },
+        .{ .name = "rv64-ram-receipt", .source = "src/integrations/riscv_cpu/rv64_ram_receipt_main.zig" },
         .{ .name = "rv64-full-verify", .source = "src/integrations/riscv_cpu/rv64_full_verify_main.zig" },
         .{ .name = "rv64-quotient-benchmark", .source = "src/frontends/riscv/rv64_quotient_benchmark_main.zig" },
         .{ .name = "pcs-commit-profile", .source = "src/integrations/riscv_cpu/pcs_commit_profile_main.zig" },

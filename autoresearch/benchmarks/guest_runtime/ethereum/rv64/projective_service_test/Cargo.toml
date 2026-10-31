@@ -1,0 +1,14 @@
+[package]
+name = "stwo-rv64-projective-service-qualification"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[features]
+word-packets = ["k256-service/stwo-projective-word-service"]
+
+[dependencies]
+k256-control = { package = "k256", version = "=0.13.4", default-features = false, features = ["arithmetic", "expose-field"] }
+k256-service = { package = "k256", path = "../vendor/k256", default-features = false, features = ["arithmetic", "expose-field", "stwo-projective-service"] }

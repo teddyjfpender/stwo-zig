@@ -1,0 +1,131 @@
+{
+  "schema": "rv64-ethereum-accelerator-plan-v1",
+  "status": "costed design only; no accelerator implemented or hybrid proof verified",
+  "block": 24628607,
+  "evidence": {
+    "function_profile_sha256": "1d2a320ebd5363c16b877fa35f837a15419678a3d3862c7de8eec849f812f821",
+    "execution_profile_sha256": "8dbf72b71560ad4953dfd3fb52ce8206ad064a9e0684a0c57096dd39feba450e",
+    "elf_sha256": "9f0bd99274eafa7bddf2886ff331f02fd18ec78ebdf7aba287064ba736f43a6f",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "software_instructions": 835695366,
+    "software_output_verified": true,
+    "software_proof_verified": false,
+    "output_bytes": 43
+  },
+  "hotspot": {
+    "symbol": "_RINvNtNtCsjqLBfS3nTDa_6keccak8backends4soft8keccak_pyKj18_ECsp3MSslu5UI_16alloy_primitives",
+    "pc_start": 216224,
+    "pc_end_exclusive": 217752,
+    "exclusive_instructions": 511996155,
+    "instruction_share": 0.6126588417626813,
+    "leaf_entry_pc_hits": 32835,
+    "instructions_per_entry": 15593,
+    "entry_count_caveat": "Entry-PC hits are measured; ABI replacement must establish exactly one permutation per entry rather than infer semantics from symbol names.",
+    "k256_name_matched_instructions": 192672319,
+    "ranking": "Keccak permutation first; k256 next. Symbol-token totals are not inclusive call-graph attribution.",
+    "remaining_instructions_if_leaf_removed_idealized": 323699211,
+    "idealized_caveat": "Excludes replacement wrapper/ECALL work and is not a feasible proof-size or speed prediction; residual CPU clock/domain hard bounds still require a plan."
+  },
+  "existing_compact_keccak": {
+    "authority": "src/frontends/riscv/air/guest_precompile/keccakf_row.zig",
+    "reuse": "Consume existing direct evaluator, lookup plan, witness authority and fixed-table schemas; do not copy the RV32 orchestration stack.",
+    "rows_per_paired_slot": 29,
+    "calls_per_slot": 2,
+    "columns": {
+      "fixed": 31,
+      "main": 2204,
+      "interaction": 4164,
+      "total": 6399
+    },
+    "maximum_direct_degree": 3,
+    "adapter_constraint_log_degree_bound": "component log_size + 1",
+    "admitted_component_logs": {
+      "legacy_maximum": 16,
+      "ethereum_maximum": 18
+    },
+    "tables": [
+      {
+        "kind": "chi",
+        "log_size": 13,
+        "fixed": 7,
+        "main": 1,
+        "interaction": 4
+      },
+      {
+        "kind": "xor5",
+        "log_size": 10,
+        "fixed": 7,
+        "main": 1,
+        "interaction": 4
+      }
+    ],
+    "flat_all_calls_counterfactual": {
+      "calls": 32835,
+      "live_rows": 476122,
+      "padded_log_size": 19,
+      "padded_rows": 524288,
+      "source_fixed_bytes": 65011712,
+      "source_main_bytes": 4622123008,
+      "source_interaction_bytes": 8732540928,
+      "source_total_bytes": 13419675648,
+      "source_total_gib": 12.498046875,
+      "shared_table_source_bytes": 442368,
+      "excluded": "PCS coefficients, LDEs, Merkle trees, quotient FFT scratch, opening buffers, CPU/ROM/RAM providers, caller changes, witness tapes and allocator overhead.",
+      "admission": "log19 exceeds existing log18 admission. Splitting into two admitted log18 components gives the same aggregate base-domain cell count here; neither option is qualified RV64 acceleration."
+    },
+    "decision": "Do not flatten all calls into the existing width or extrapolate isolated provider timing. Model complete simultaneous lifetimes per proof batch before selecting the call ABI and provider layout."
+  },
+  "first_accelerator_plan": {
+    "candidate": "One versioned in-place Keccak-f[1600] permutation service using standard ECALL in a rebuilt, identity-bound RV64 guest.",
+    "scope": "Keep absorb, padding and squeeze in software first; replace only the audited permutation leaf after complete cost modeling.",
+    "forbidden_shortcuts": [
+      "No custom opcode or host-oracle result authority.",
+      "No hot-PC software-body skipping without an admitted equivalence contract.",
+      "No automatic activation of an unqualified Word16/narrow-layout candidate.",
+      "No wide per-call CPU witness or duplicated input/output bit decomposition.",
+      "No thousands of wrapped caller/provider proofs."
+    ],
+    "dynamic_call_binding": "Authenticate service/version, call ID, CPU retirement clock, PC and 64-bit register pointer through a typed call relation. Exact call multiplicity closes with the provider caller; software logs alone are not authority.",
+    "ram_binding": "Provider-side caller consumes 25 aligned eight-byte cells for the 200-byte in-place state, reusing provider state bits as bytes. Bind every address, prior clock, before value and after value to the shared RV64 RAM relation; prove alignment, span/no-wrap, access permission and clock ranges. Distinct cells may share the admitted ECALL memory phase. Specify partial-overlap behavior before generalizing the ABI.",
+    "execution_binding": "Prove ECALL decode, next PC, allowed register writes and all untouched register/state transitions. This requires new RV64 AIR/caller integration; existing full software proofs do not provide it.",
+    "proof_shape": "CPU, ROM, crypto and tables retain independently sized domains. One global PCS/FRI transaction per selected proof batch, with shared typed relation closure and correctly lifted component domains/masks/quotient denominators.",
+    "transcript": "Bind program and ABI identity, admitted component roster/degrees/domains and counts; seal all fixed/main roots including table multiplicities before lookup challenges; bind claims before interaction commitment; independently derive fixed roots and close all typed/RAM/register claims against public boundaries.",
+    "cost_model_required": [
+      "Residual CPU retirements and clock/domain limits after wrapper lowering.",
+      "Per-family live/padded rows, columns, lookup batches, degree and table counts.",
+      "Peak simultaneous trace/coefficient/LDE/Merkle/quotient/opening storage and shared scratch reuse.",
+      "RAM caller bytes/clocks and ABI adapter overhead, without counting duplicated buffers as free.",
+      "Measured end-to-end witness, commitments, interaction, quotient and fresh verification costs on representative proof batches.",
+      "If multiple execution batches are necessary, authenticated state continuity and whole-block composition must be designed explicitly; no full-block proof claim follows from batch execution."
+    ]
+  },
+  "other_providers": {
+    "secp256k1": "Reuse existing independently sized product, linear, point, split, scalar, signed-table, ECDSA, recovery and byte families through their shared polynomial authority. Existing recovery is successful-only: invalid scalar/recovery cases must remain software or receive separately proved failure semantics. RV32 custom0 runner, pointers and RAM caller are not reusable unchanged.",
+    "sha256": "Packed source/schedule/round/feed-forward geometry exists (88/48/64/8 rows per compression), but packed arithmetic/call sources explicitly mark production_active=false. Requires caller/RAM closure and receiver/adversarial qualification before activation; no priority over measured Keccak hotspot."
+  },
+  "qualification_gates": [
+    "Preserve the current software receipt as control; identical block input must retain all 43 output bytes after guest lowering.",
+    "Establish permutation entry/call semantics and compare complete input/output states, including empty messages, sponge boundaries and multi-permutation messages.",
+    "Small one-call, repeated-call and unequal-domain proofs: serialize, destroy producer state, and independently reconstruct setup/verify.",
+    "Reject service/version, call-ID, PC, pointer, input/output byte, prior-clock and terminal-clock mutations.",
+    "Reject missing, duplicated, reordered or cross-call-swapped calls and altered multiplicities/claims.",
+    "Reject address truncation, alignment/span overflow, readonly writes and illegal overlap; verify shared RAM boundary continuity.",
+    "Reject altered program/ABI identities, component geometry/degrees/table roots and transcript order.",
+    "Exercise arbitrary QM31 OODS values and previous-row masks, not only honest witness rows; retain shared evaluator authority.",
+    "Measure complete proof-batch peak memory and end-to-end verified throughput before promoting any layout or ABI; full-block hybrid proof remains unimplemented."
+  ],
+  "source_facts": [
+    "src/frontends/riscv/air/guest_precompile/keccakf_authority.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_trace.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_component.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_interaction_plan.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_tables.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_table_component.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_caller.zig",
+    "src/frontends/riscv/air/guest_precompile/secp256k1_recovery_direct.zig",
+    "src/frontends/riscv/air/guest_precompile/sha256_component_profile.zig",
+    "src/frontends/riscv/air/guest_precompile/sha256_packed_call.zig",
+    "src/frontends/riscv/air/guest_precompile/sha256_packed_arithmetic.zig",
+    "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig"
+  ]
+}

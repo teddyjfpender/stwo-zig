@@ -1,0 +1,25 @@
+{
+  "schema": "rv64-shared-main-arena-v1",
+  "status": "functional qualification PASS; matched performance pending",
+  "at_utc": "2026-10-30T23:57:41.250726+00:00",
+  "gates": {
+    "all27": "zig build test-riscv64-authenticated-execution -Doptimize=ReleaseSafe PASS; owned/shared exact serialized bytes for both service profiles; fresh receivers",
+    "barrier": "ReleaseSafe test-riscv64-main-arena PASS; both descriptor-allocation failures after alias release preserve backing and reconstruct identical interactions",
+    "real_ethereum_prefix": {
+      "instructions": 65536,
+      "shared_main_arena_adopted": true,
+      "owned_control_proof_equal": true,
+      "proof_sha256": "16b3aa887e8a5f66d342d4d91c074acd5898d7658e6d84663e7cc44a7f7995b9",
+      "proof_bytes": 1312656,
+      "separate_verify_prefix": "PASS; full_block_proof_verified=false"
+    }
+  },
+  "architecture": {
+    "wide_witness": "all27 families write exact admitted slices in one raw backing; no wide copy fallback",
+    "setup": "full geometry admitted before wide constructors; immutable program authority shared; roots bound as request data",
+    "handoff": "release borrowed views before consuming PCS handoff; PCS consumes backing on success and error",
+    "narrow_copy": "only ROM/BYTE/AND/SHIFT/policy multiplicities copied once"
+  },
+  "performance": "Real prefix run overlapped retained full-block proving; do not compare its timing as an isolated speed result. No claimed RSS or speed win yet.",
+  "scope": "L1 Ethereum execution chain, not OP derivation or recursion."
+}

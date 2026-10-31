@@ -41,7 +41,7 @@ pub const Component = struct {
     }
     pub fn constraintDegreeBound(_: *const Component, index: usize) !u8 {
         if (index >= provider.N_CONSTRAINTS) return error.InvalidConstraintIndex;
-        return 2;
+        return if (index == 2) 3 else 2;
     }
     pub fn traceLogDegreeBounds(self: *const Component, a: std.mem.Allocator) !air.TraceLogDegreeBounds {
         const fixed = try points.emptyOrFilledLogs(a, provider.N_FIXED, self.log_size);

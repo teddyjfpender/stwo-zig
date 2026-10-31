@@ -82,11 +82,15 @@ pub const Request = struct {
 /// The combined receiver requires execution_claim + provider_claim == zero.
 /// Fixed first/last are receiver-derived for this provider's own domain.
 pub fn evaluate(first: Q, last: Q, entry: *const rom.Tuple, multiplicity: Q, current: *const [INTERACTION]Q, previous: *const [INTERACTION]Q, challenges: Challenges, claim: Q, sink: *E.Sink) void {
+    evaluateDenominator(first, last, challenges.denominator(entry), multiplicity, current, previous, claim, sink);
+}
+/// One four-residual authority shared by full-byte and packed ROM encodings.
+pub fn evaluateDenominator(first: Q, last: Q, denominator: Q, multiplicity: Q, current: *const [INTERACTION]Q, previous: *const [INTERACTION]Q, claim: Q, sink: *E.Sink) void {
     const inverse = secure(current, 0);
     const sum = secure(current, 4);
     const prior = secure(previous, 4);
     const contribution = multiplicity.mul(inverse);
-    sink.emit(challenges.denominator(entry).mul(inverse).sub(Q.one()));
+    sink.emit(denominator.mul(inverse).sub(Q.one()));
     sink.emit(sum.sub(Q.one().sub(first).mul(prior)).add(contribution));
     sink.emit(first.mul(sum.add(contribution)));
     sink.emit(last.mul(sum.sub(claim)));

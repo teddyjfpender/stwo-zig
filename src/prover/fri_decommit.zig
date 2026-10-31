@@ -241,9 +241,13 @@ pub fn computeDecommitmentPositionsAndWitnessEvals(
         subset_start_idx = subset_end_idx;
     }
 
+    const positions_owned = try decommitment_positions.toOwnedSlice(allocator);
+    errdefer allocator.free(positions_owned);
+    const witness_owned = try witness_evals.toOwnedSlice(allocator);
+    errdefer allocator.free(witness_owned);
     return .{
-        .decommitment_positions = try decommitment_positions.toOwnedSlice(allocator),
-        .witness_evals = try witness_evals.toOwnedSlice(allocator),
+        .decommitment_positions = positions_owned,
+        .witness_evals = witness_owned,
         .value_map = try value_map.toOwnedSlice(allocator),
     };
 }
@@ -291,9 +295,13 @@ fn computeDecommitmentPositionsAndWitnessEvalsFromCoords(
         subset_start_idx = subset_end_idx;
     }
 
+    const positions_owned = try decommitment_positions.toOwnedSlice(allocator);
+    errdefer allocator.free(positions_owned);
+    const witness_owned = try witness_evals.toOwnedSlice(allocator);
+    errdefer allocator.free(witness_owned);
     return .{
-        .decommitment_positions = try decommitment_positions.toOwnedSlice(allocator),
-        .witness_evals = try witness_evals.toOwnedSlice(allocator),
+        .decommitment_positions = positions_owned,
+        .witness_evals = witness_owned,
         .value_map = try value_map.toOwnedSlice(allocator),
     };
 }

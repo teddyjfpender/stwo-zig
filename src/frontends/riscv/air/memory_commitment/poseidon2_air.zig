@@ -484,7 +484,7 @@ fn validateIoOutputs(
     }
 }
 
-fn ioRowPairsFromOutput(
+pub fn ioRowPairsFromOutput(
     call: Call,
     output_value: [WIDTH]u32,
     relations: *const relations_mod.Relations,

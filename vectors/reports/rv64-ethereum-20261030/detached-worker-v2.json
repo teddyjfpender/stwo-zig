@@ -1,0 +1,77 @@
+{
+  "schema": "rv64-detached-worker-v2",
+  "status": "Functional private-RAM worker seam qualified; detached CLI/parallel scheduling is not implemented by this change.",
+  "api": {
+    "context": "PreparedContext{authority,policy,frontier:union{cache:*Cache,detached:{before:Digest,graph:?*Native.Prepared}}}",
+    "worker": "provePrepared(a,context,config,Tape*,Finished*,expectedCursor*,dir,timing)",
+    "closure": "One shared canonical setup/RAM/CPU/prove/receive/durable-publication body. Detached mode snapshots canonical endpoints before consuming graph/openings and never calls Cache; collector owns its separate native frontier. Expected cursor continuation is caller-owned, not accepted from packet; final fresh chain receiver establishes endpoint authority.",
+    "ownership": "Native graph and opening/preparation move only on constructor success; constructors share one wide filler. Early graph/framing/absorption/count validation precedes setup/arena wide allocation. Graph inputs/outputs remain narrow; saved I/O feeds canonical Poseidon ProviderWriter with full output checks, no cache/hash graph replay. Tape clears only after builders copy advice.",
+    "lifetime_test": "NativeMemory/CPU/Capture are destroyed before all test proofs. For detached tests Cache is also destroyed before entering worker."
+  },
+  "gates": {
+    "release_safe_chain_7_tests": true,
+    "release_fast_chain_7_tests": true,
+    "actual_private_ram_SD17_LD17": true,
+    "encoded_proof_equality": [
+      "cache_owned",
+      "cache_arena",
+      "detached_owned",
+      "detached_arena"
+    ],
+    "independent_receiver_rebuilt_for_each_path": true,
+    "detached_graph_consumed_phase": true,
+    "preallocation_rejects": [
+      "program",
+      "control",
+      "tape_seed",
+      "PC_adjacency",
+      "wrong_graph_before_root",
+      "durable_unpublished_phase",
+      "missing_graph_for_RAM"
+    ],
+    "corrupt_recorded_IO_rejects_without_transfer": true,
+    "first_allocation_failure_keeps_owners_deinitializable_no_receipt": true
+  },
+  "serial_pilot": {
+    "steps": 65536,
+    "runtime_RAM_Poseidon_and_K_bridge_SIMD_enabled": true,
+    "worker_mode": "Existing serial/cache adapter; detached branch proven by unit fixtures, not this CLI pilot.",
+    "proof_bytes": 962896,
+    "proof_sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba",
+    "entire_proof_and_receipt_equal_preseam_frozen_reference": true,
+    "fresh_receiver_scope": "Byte-identical artifact to pre-seam reference and prepared-worker-v1 already accepted by frozen verify-prefix. A second final-pilot process was not launched after parent freeze.",
+    "performance": "No timing improvement inferred from one ordered functional run."
+  },
+  "test_logs": [
+    "/tmp/stwo-rv64-delivery/detached-worker-chain-safe.log",
+    "/tmp/stwo-rv64-delivery/detached-worker-chain-fast.log"
+  ],
+  "archive": "vectors/reports/interop_artifacts/rv64-detached-worker-v2",
+  "pins": [
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-detached-worker-v2/rv64_ethereum_prove_batch.zig",
+      "bytes": 15922,
+      "sha256": "e6b0d14c7e9c3f6d5305311026c15ca5ed8f6f18a92f4b72db9cb00d99069998"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-detached-worker-v2/rv64_ethereum_prepared_test.zig",
+      "bytes": 11135,
+      "sha256": "18e87b4318d1d8b2f49e8a8b66b5382c61f4a98ee59613d785ed8eb63f2a187c"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-detached-worker-v2/rv64-ethereum-proof",
+      "bytes": 5561216,
+      "sha256": "631c0f0a3e91ef5ffea3d4ddea47202c65c1a881b2f7f2ee0ee8e5314cb6f79d"
+    },
+    {
+      "path": "vectors/reports/interop_artifacts/rv64-detached-worker-v2/serial-pilot/batch-000000.proof",
+      "bytes": 962896,
+      "sha256": "7fa69a687e73382c429fbb196333239c6387454744a510a9b9223f4b5cc8ceba"
+    }
+  ],
+  "limitations": [
+    "A native graph is witness advice, not proof or receiver authority.",
+    "No distributed queue, durable graph codec or recursive aggregation claim here.",
+    "No existing proof schema or default protocol changed."
+  ]
+}

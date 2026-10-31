@@ -1,0 +1,130 @@
+{
+  "schema": "rv64-keccak-next-architecture-review-v1",
+  "status": "read-only cost/design review; separately qualified native prefix prototype now exists",
+  "source_authorities": [
+    "src/frontends/riscv/rv64/air/crypto/keccak/{layout,equations,interaction,component}.zig",
+    "src/frontends/riscv/air/guest_precompile/keccakf_lookup_tuples.zig"
+  ],
+  "baseline": {
+    "batch": 26,
+    "calls": 9845,
+    "active_pairs": 4923,
+    "active_pair_rows": 142767,
+    "native_rows": 262144,
+    "fixed": 32,
+    "main": 1923,
+    "secure_prefixes": 649,
+    "interaction_M31_columns": 2596,
+    "total_source_columns": 4551,
+    "native_cells": 1193017344,
+    "native_bytes": 4772069376,
+    "interaction_native_cells": 680525824,
+    "interaction_native_bytes": 2722103296,
+    "previous_columns": 1607,
+    "bounded_coset_scratch_bytes": 6457131008,
+    "one_OODS_mask_set_QM31_values": 10958,
+    "uncompressed_query_value_model_bytes_at70_queries": 1274280,
+    "explanation": "640 triple round-lookup prefixes plus9 triple lane-IO prefixes. Each secure prefix requires4 independent M31 limb columns. Cross-column stitching already uses only the final secure predecessor mask and one transcript-bound claim.",
+    "exclusive_stage_seconds": {
+      "all_shared_interactions": 10.5873,
+      "K_rows": 11.2717,
+      "K_FFT": 1.4998,
+      "CPU_rows": 18.1915,
+      "CPU_FFT": 3.9925,
+      "prove": 62.31753575
+    },
+    "attribution_limit": "Shared interaction stage has no per-family attribution in this frozen run; do not assign all10.5873s to K."
+  },
+  "protocol_preserving_ranked": [
+    {
+      "rank": 1,
+      "candidate": "Joined chunk-relative native interaction prefixes and column-oriented offset correction",
+      "status": "Implemented separately; Safe oracle/failure gates PASS; whole-job performance pending.",
+      "committed_cells_delta": 0,
+      "mask_degree_transcript_delta": 0,
+      "inversions": "Unchanged9216-entry shared dictionary plus active25-lane IO batches; no tuple/inverse/permutation replay.",
+      "FFT_work_delta": 0,
+      "native_cost": "One existing pool lease across two joined waves. O(workers) Q offsets and4KiB stack correction tile perworker; adds one full read+write pass over2.536GiB K interaction data atlog18.",
+      "acceptance": "Same all-row bytes/claim and retained real proof bytes, including partial submissions/poles/OOM/unpublished retry. Measure family stages and whole batch before retention."
+    },
+    {
+      "rank": 2,
+      "candidate": "Prepare repeated tuple affine structure / scalar constants once per component, factor numerator products without changing E.emit polynomial",
+      "committed_cells_delta": 0,
+      "mask_degree_transcript_delta": 0,
+      "FFT_work_delta": 0,
+      "inversions": "Unchanged dictionary/IO recipe.",
+      "caveat": "QM31.mul already specializes base operands. No assumed win from rediscovering mulM31. Any expansion must preserve arbitrary-QM31 OODS polynomial and per-residual order; measure native kernel and complete retained proof."
+    }
+  ],
+  "geometry_changing_ranked": [
+    {
+      "rank": 1,
+      "candidate": "Two independently sized permutation components in the SAME PCS, with shared chi/xor tables and one bridge roster",
+      "batch26_partition": {
+        "calls": [
+          9038,
+          807
+        ],
+        "logs": [
+          17,
+          14
+        ],
+        "rows_sum": 147456,
+        "native_cells_reduction_percent": 43.75,
+        "K_native_bytes_saved": 2087780352,
+        "K_FFT_nlogn_reduction_percent": 47.916666666666664
+      },
+      "degree": "Unchanged4 and existing equations; roster and proof geometry change, so old serialized proof hashes change.",
+      "opening_tradeoff": "One extra source-column set increases raw70-query M31 payload model by1,274,280B plus one10958-QM31 OODS mask set175,328B; Merkle authentication/FRI/dedup and full receiver cost require measurement. Native-cell saving is not a complete proof-cost win by itself.",
+      "soundness": [
+        "Seal all main/multiplicity roots and exact component roster before shared lookup challenges.",
+        "Bind each claim and public ID/count span; exact independent fixed geometry roots, including corrected partial tails.",
+        "Share typed challenges and close combined claims against bridge/truth tables.",
+        "Admit combined characteristic masses across ALL components; odd splits may add dummy paired-round slots.",
+        "No per-call proof wrappers or separate proof transactions."
+      ]
+    },
+    {
+      "rank": 2,
+      "candidate": "Four-query rational batches",
+      "native_column_model": {
+        "round_batches": 480,
+        "IO_batches": 7,
+        "secure_prefixes": 487,
+        "interaction_M31": 1948,
+        "source_columns": 3903,
+        "source_column_reduction_percent": 14.238628872775216
+      },
+      "degree": "Delta times four affine denominators is quintic; active degree2 times cubic numerator is also degree5. This violates current declared degree4 authority.",
+      "FFT_and_security": "Do not assume a free saving. Must derive and qualify the exact pinned-circle quotient degree, local eval domain and split policy; conservatively budget a larger local domain until proved otherwise. Global CPU degree headroom alone does not validate local interpolation.",
+      "priority": "Behind same-degree heterogeneous roster because it changes arithmetic/degree and may lose FFT work despite fewer committed columns."
+    },
+    {
+      "rank": 3,
+      "candidate": "Remove four boundary bit rows through a new packed-nibble/RAM byte binding protocol",
+      "row_model": "Current paired slot29=24 round rows +one packed output row +four bit boundary rows. Reducing to25 rows offers~13.79% unpadded row saving, sometimes a power-of-two domain transition.",
+      "obligations": "Need exact packing/unpacking and byte/RAM/call-position binding with no second1600-bit decomposition. A small nibble-spreading table plus a typed boundary bus is a candidate, not a qualified design. Count added bridge nibble columns, lookup prefixes, tuple challenges, masks and receiver payload before selection.",
+      "priority": "Research only; no activation under current service/circuit identity."
+    }
+  ],
+  "reject_or_defer": [
+    "Dropping3 of4 prefix limbs changes the extension-field relation; one M31 compression is not an equivalent sound protocol.",
+    "A single row sum without intermediate rational prefixes requires clearing1920 denominators or a new argument; it is not a degree4 column reduction.",
+    "Shorten interaction height alone by deleting boundary/padding rows: round samples are non-power-of-two period29 restrictions and require an additional binding argument.",
+    "Unpaired bit state with unchanged width approximately doubles permutation rows; smaller truth tables do not recover that whole native-cell cost.",
+    "Four-call base8 packing explodes explicit chi to2^25 entries and xor to2^20; chi height overtakes the4m-row CPU, raises common PCS/quotient geometry, and adds count/inter/dictionary/FFT/opening costs. Native-prefix reuse does not remove common-leaf/hasher-state expansion. No width-only win.",
+    "Blindly reuse legacy Word16/bit circuits without full domain/degree/IO/receiver qualification."
+  ],
+  "soundness_budget": [
+    "Preserve one polynomial authority for native/OODS evaluation; no host-only validity substitutions.",
+    "All crypto/IO/RAM bytes and service IDs/ticks/pointers remain constrained through typed buses.",
+    "Total each shared lookup-family request mass must be strictly below M31 characteristic, across all consumers.",
+    "Carry public roster/challenges/claims through transcript in fixed order; independently derive immutable geometry roots.",
+    "Current q70/P26 has96 nominal core-config bits before lookup/OODS/roster/proof-union accounting; do not claim128-bit whole-system security."
+  ],
+  "telemetry_validity": {
+    "status": "Previous component-family stage timing is invalidated by a shared hierarchical Recorder data race found in Safe StageScope.end/popStage.",
+    "scope": "Private per-component recorders with joined adoption are being qualified. Committed cells, degree/mask models and independently accepted proof artifacts remain valid. Original whole-job clocks retained as preliminary observations, requiring a clean matched rerun before a final speed claim."
+  }
+}

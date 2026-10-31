@@ -8,6 +8,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const logup = @import("../logup.zig");
 const authority = @import("keccakf_authority.zig");
+const tuples = @import("keccakf_lookup_tuples.zig");
 const caller = @import("keccakf_caller.zig");
 const local_zero = @import("keccakf_caller_local_zero_v1.zig");
 const relations_mod = @import("keccakf_relations.zig");
@@ -78,60 +79,12 @@ pub fn rowPairsGenericForRecipe(
     var events: [permutation_event_count]logup.RowPairFor(InteractionScalar(S)) = undefined;
 
     for (0..chi_event_count) |event| {
-        const x = event % 5;
-        const position = event / 5;
-        const y = position / authority.lane_bits;
-        const z = position % authority.lane_bits;
-        var tuple: relations_mod.ChiTupleFor(S) = undefined;
-        for (0..authority.geometry.compact.chi_input_count) |offset| {
-            const output_x = (x + offset) % 5;
-            const source_x = (output_x + 3 * y) % 5;
-            const source_y = output_x;
-            const rotation = authority.rho_offsets[source_x][source_y];
-            const source_z = (z + authority.lane_bits - rotation) %
-                authority.lane_bits;
-            tuple[offset] = main[
-                trace.Layout.state + stateCell(
-                    source_x,
-                    source_y,
-                    source_z,
-                )
-            ].add(main[
-                trace.Layout.parity +
-                    ((source_x + 4) % 5) * authority.lane_bits + source_z
-            ])
-                .add(main[
-                trace.Layout.parity +
-                    ((source_x + 1) % 5) * authority.lane_bits +
-                    (source_z + 63) % 64
-            ]);
-        }
-        var iota = S.zero();
-        if (x == 0 and y == 0) for (0..authority.round_count) |round| {
-            if (((authority.round_constants[round] >> @intCast(z)) & 1) != 0) {
-                iota = iota.add(selectors[2 + round]);
-            }
-        };
-        tuple[3] = iota;
-        tuple[4] = next_state[stateCell(x, y, z)];
-        tuple[5] = S.zero();
-        events[event] = logup.RowPairFor(InteractionScalar(S)).single(
-            request,
-            denominator(S, tuple, relations.chi),
-        );
+        const tuple = tuples.chi(S, main[trace.Layout.state..][0..witness.state_cell_count], main[trace.Layout.parity..][0..witness.parity_cell_count], next_state, selectors[2..26], event);
+        events[event] = logup.RowPairFor(InteractionScalar(S)).single(request, denominator(S, tuple, relations.chi));
     }
-
     for (0..xor5_event_count) |event| {
-        var tuple: relations_mod.Xor5TupleFor(S) = undefined;
-        const x = event / authority.lane_bits;
-        const z = event % authority.lane_bits;
-        for (0..5) |y| tuple[y] =
-            main[trace.Layout.state + stateCell(x, y, z)];
-        tuple[5] = main[trace.Layout.parity + event];
-        events[chi_event_count + event] = logup.RowPairFor(InteractionScalar(S)).single(
-            request,
-            denominator(S, tuple, relations.xor5),
-        );
+        const tuple = tuples.xor5(S, main[trace.Layout.state..][0..witness.state_cell_count], main[trace.Layout.parity..][0..witness.parity_cell_count], event);
+        events[chi_event_count + event] = logup.RowPairFor(InteractionScalar(S)).single(request, denominator(S, tuple, relations.xor5));
     }
 
     var io_a_tuple: relations_mod.IoTupleFor(S) = undefined;

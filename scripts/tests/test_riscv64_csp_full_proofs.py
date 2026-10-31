@@ -84,6 +84,35 @@ class FullProofDriverTests(unittest.TestCase):
         self.assertTrue(result['cases'][0]['independent_statement_binding'])
         self.assertEqual(result, json.loads(self.report_path.read_text()))
 
+    def test_packed_policy_is_explicit_in_prover_config_and_trusted_receiver_argument(self):
+        def selected(command, timeout, label):
+            if label == 'Fresh verifier':
+                self.assertEqual(command[-1], 'limbs24_v2')
+                result, elapsed = self.process(command[:-1], timeout, label)
+            else:
+                config = json.loads(Path(command[1]).read_text())
+                self.assertEqual(config['control_policy'], 'limbs24_v2')
+                result, elapsed = self.process(command, timeout, label)
+            result['control_policy'] = 'limbs24_v2'
+            return result, elapsed
+        with patch.object(driver, 'run_json', side_effect=selected):
+            report = driver.main(self.args + ['--control-policy', 'limbs24_v2'])
+        self.assertTrue(report['complete'])
+        self.assertEqual(report['control_policy'], 'limbs24_v2')
+
+    def test_unbound_packed_producer_or_receiver_policy_cannot_complete(self):
+        for missing in ('Full prover', 'Fresh verifier'):
+            with self.subTest(missing=missing):
+                def selected(command, timeout, label):
+                    result, elapsed = self.process(command[:-1] if label == 'Fresh verifier' else command, timeout, label)
+                    if label != missing:
+                        result['control_policy'] = 'limbs24_v2'
+                    return result, elapsed
+                with patch.object(driver, 'run_json', side_effect=selected):
+                    with self.assertRaisesRegex(ValueError, 'control policy'):
+                        driver.main(self.args + ['--control-policy', 'limbs24_v2'])
+                self.assertFalse(json.loads(self.report_path.read_text())['complete'])
+
     def test_requested_stage_profile_is_required(self):
         with patch.object(driver, 'run_json', side_effect=self.process):
             with self.assertRaisesRegex(ValueError, 'stage profile is missing'):

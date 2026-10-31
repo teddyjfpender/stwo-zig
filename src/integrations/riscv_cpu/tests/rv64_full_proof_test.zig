@@ -22,7 +22,7 @@ test "full native proof closes private-path execution and rejects substituted cl
     statement.register_clocks[1] = 3;
     var setup = try native.PreparedSetup.init(a, statement);
     defer setup.deinit();
-    var trace = try native.Trace.init(a, &records, statement, &setup.program, &setup.plan);
+    var trace = try native.Trace.init(a, &records, statement, &setup.materials.program, &setup.materials.plan);
     defer trace.deinit();
     var other_allocator = std.heap.ArenaAllocator.init(a);
     defer other_allocator.deinit();
@@ -40,8 +40,18 @@ test "full native proof closes private-path execution and rejects substituted cl
     const Stage = @import("stwo_prover_api").stage_profile;
     var recorder = Stage.Recorder.initWithOptions(a, "cpu", "rv64-full-test", .{ .capture_tasks = false });
     defer recorder.deinit();
-    var profiled_trace = try native.Trace.init(a, &records, statement, &setup.program, &setup.plan);
+    var tape = try rv.compact_tape.Tape.init(a, 1, statement.initial_pc, 1 << 40, .rv64im);
+    defer tape.deinit();
+    for (records) |record| {
+        var global = record;
+        global.clock += tape.initial_clock;
+        try tape.append(global);
+    }
+    var profiled_trace = try native.Trace.initWithCompactTape(a, &tape, 1, statement, &setup.materials.program, &setup.materials.plan);
     defer profiled_trace.deinit();
+    // The tape is no longer borrowed after projection. Clearing it cannot drop
+    // authenticated obligations retained in the narrow state/lookup metadata.
+    tape.clearRetainingCapacity();
     var profiled = try native.proveTraceProfiled(a, &setup, statement, &profiled_trace, &recorder);
     defer profiled.deinit(a);
     const profiled_bytes = try wire.encodeProofBytesBinary(a, profiled.proof);
@@ -65,7 +75,7 @@ test "full native proof closes private-path execution and rejects substituted cl
     wrong.rom = wrong.rom.add(Q.one());
     try std.testing.expectError(error.OodsNotMatching, receiver.verifyOwned(a, statement, wrong, try wire.decodeProofBytesBinary(a, encoded)));
     var corrupted = try wire.decodeProofBytesBinary(a, encoded);
-    const sample = &corrupted.commitment_scheme_proof.sampled_values.items[1][setup.plan.main_count + air.full.frame.NEXT_PC][1];
+    const sample = &corrupted.commitment_scheme_proof.sampled_values.items[1][setup.materials.plan.main_count + air.full.frame.NEXT_PC][1];
     sample.* = sample.add(Q.one());
     try std.testing.expectError(error.OodsNotMatching, receiver.verifyOwned(a, statement, bundle.claims, corrupted));
     var substituted = statement;
@@ -80,6 +90,12 @@ fn setupAndRelease(a: std.mem.Allocator) !void {
     var statement = native.Statement{ .program = .{ .base = 0x1000, .words = &program }, .steps = 1, .initial_pc = 0x1000, .final_pc = 0x1004, .initial_registers = @splat(0), .final_registers = final, .cells = &.{}, .register_clocks = @splat(0), .memory_clocks = &.{}, .opcodes = @splat(false) };
     statement.register_clocks[1] = 3;
     statement.opcodes[@intFromEnum(rv.decode.Opcode.ADDI)] = true;
+    // Rootless ownership is a separate concrete type; composing a larger fixed
+    // roster must never manufacture a standalone root or a sentinel root.
+    try std.testing.expect(!@hasField(native.PreparedMaterials, "root"));
+    var materials = try native.PreparedMaterials.init(a, statement);
+    defer materials.deinit();
+    try native.Support.validateSetup(&materials, statement);
     var setup = try native.PreparedSetup.init(a, statement);
     defer setup.deinit();
 }
@@ -120,7 +136,7 @@ test "full native immutable setup is reused across fresh execution boundaries" {
     try fresh.validate();
     try std.testing.expectEqual(original.logSize(), fresh.logSize());
 
-    var trace = try native.Trace.init(a, &records, fresh, &setup.program, &setup.plan);
+    var trace = try native.Trace.init(a, &records, fresh, &setup.materials.program, &setup.materials.plan);
     defer trace.deinit();
     var bundle = try native.proveTrace(a, &setup, fresh, &trace);
     defer bundle.deinit(a);

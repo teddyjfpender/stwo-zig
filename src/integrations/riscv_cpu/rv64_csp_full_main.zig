@@ -16,6 +16,7 @@ const Config = struct {
     memory_limit_bytes: usize = 48 * 1024 * 1024 * 1024,
     profile_only: bool = false,
     profile_stages: bool = false,
+    control_policy: air.control_policy.Policy = .bytes_v1,
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(base);
@@ -36,23 +37,23 @@ pub fn main() !void {
     defer capture.deinit();
     const capture_ns = timer.lap();
     const public = capture.statement();
-    const plan = try native.planForStatement(public);
+    const plan = try native.planForStatementWithControl(public, .inline_v4, .rv64im, config.control_policy);
     const rows = @as(usize, 1) << @intCast(public.logSize());
-    const main_columns = plan.main_count + air.full.frame.WIDTH;
+    const main_columns = plan.main_count + air.full.frame.widthWithControl(.rv64im, config.control_policy);
     const interaction_columns = 44 + air.range.cpu.interactionCount(&plan) + air.range.table_cpu.interactionCount(&plan, .byte_and) + air.range.table_cpu.interactionCount(&plan, .byte_shift);
     const cpu_base_bytes = rows * (3 + main_columns + interaction_columns) * 4;
     if (config.profile_only) {
-        try print(scratch, .{ .profile_only = true, .whole_guest_proof = false, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .journal_bytes = capture.records.len * @sizeOf(rv.machine.Retirement), .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .opcode_histogram = capture.histogram });
+        try print(scratch, .{ .control_policy = config.control_policy, .profile_only = true, .whole_guest_proof = false, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .journal_bytes = capture.records.len * @sizeOf(rv.machine.Retirement), .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .opcode_histogram = capture.histogram });
         return;
     }
     try std.fs.cwd().makePath(config.artifact_dir);
     var artifacts = try std.fs.cwd().openDir(config.artifact_dir, .{});
     defer artifacts.close();
     try writeJson(a, artifacts, "statement.json", public);
-    var setup = try native.PreparedSetup.init(a, public);
+    var setup = try native.PreparedSetup.initWithControl(a, public, config.control_policy);
     defer setup.deinit();
     const setup_ns = timer.lap();
-    var trace = try Trace.init(a, capture.records, public, &setup.program, &setup.plan);
+    var trace = try Trace.init(a, capture.records, public, &setup.materials.program, &setup.materials.plan);
     defer trace.deinit();
     const witness_ns = timer.lap();
     // The narrow capture journal has served its purpose. Keep public boundaries
@@ -88,7 +89,7 @@ pub fn main() !void {
     for (bundle.proof.commitment_scheme_proof.decommitments.items) |tree| {
         authenticated_hashes += tree.hash_witness.len;
     }
-    try print(scratch, .{ .stage_profile = stages, .verified = true, .whole_guest_proof = true, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .setup_ns = setup_ns, .witness_ns = witness_ns, .prove_ns = prove_ns, .encode_decode_ns = encode_decode_ns, .verify_ns = verify_ns, .proof_bytes = encoded.len, .oods_samples = oods_samples, .queried_base_values = queried_values, .authenticated_hashes = authenticated_hashes, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .pow_bits = air.protocol.config().pow_bits, .fri_queries = air.protocol.config().fri_config.n_queries, .workers = if (engine.work_pool.getGlobalPool()) |pool| pool.n_workers else @as(usize, 1), .build_mode = @tagName(@import("builtin").mode) });
+    try print(scratch, .{ .control_policy = config.control_policy, .stage_profile = stages, .verified = true, .whole_guest_proof = true, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .setup_ns = setup_ns, .witness_ns = witness_ns, .prove_ns = prove_ns, .encode_decode_ns = encode_decode_ns, .verify_ns = verify_ns, .proof_bytes = encoded.len, .oods_samples = oods_samples, .queried_base_values = queried_values, .authenticated_hashes = authenticated_hashes, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .pow_bits = air.protocol.config().pow_bits, .fri_queries = air.protocol.config().fri_config.n_queries, .workers = if (engine.work_pool.getGlobalPool()) |pool| pool.n_workers else @as(usize, 1), .build_mode = @tagName(@import("builtin").mode) });
 }
 fn writeJson(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const bytes = try std.json.Stringify.valueAlloc(a, value, .{});

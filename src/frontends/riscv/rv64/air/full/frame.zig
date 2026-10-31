@@ -14,6 +14,16 @@ pub const ENTRY = SELECTORS + L.fixed.OPCODES;
 pub const NEXT_PC = ENTRY + compact.COUNT;
 pub const WIDTH = NEXT_PC + 8;
 pub const FIXED = 3;
+pub const KECCAK_COUNT = WIDTH;
+pub const SERVICE_FLAGS = WIDTH + 1;
+pub const SECP_COUNTERS = WIDTH + 4;
+pub fn width(profile: @import("../../execution_profile.zig").Profile) usize {
+    return switch (profile) {
+        .rv64im => WIDTH,
+        .keccak_service_v1 => WIDTH + 1,
+        .ethereum_services_v1, .ethereum_services_v2 => WIDTH + 6,
+    };
+}
 pub const Advice = [WIDTH]Q;
 pub const Geometry = [FIXED]Q; // index, first, last
 pub const Public = struct {
@@ -28,37 +38,46 @@ pub fn needsPrevious(column: usize) bool {
     return column == ACTIVE or (column >= NEXT_PC and column < NEXT_PC + 8);
 }
 pub fn entry(advice: *const Advice) compact.Tuple {
+    return entryFor(Q, advice);
+}
+pub fn entryFor(comptime F: type, advice: *const [WIDTH]F) [compact.COUNT]F {
     return advice[ENTRY..][0..compact.COUNT].*;
 }
 pub fn inflate(advice: *const Advice, geometry: Geometry) E.Fixed {
-    const tuple = entry(advice);
+    return inflateFor(Q, advice, geometry);
+}
+pub fn inflateFor(comptime F: type, advice: *const [WIDTH]F, geometry: [FIXED]F) E.FixedFor(F) {
+    const tuple = entryFor(F, advice);
     const selectors = advice[SELECTORS..][0..L.fixed.OPCODES].*;
-    var fixed = compact.inflateFixed(&tuple, &selectors);
+    var fixed = compact.inflateFixedFor(F, &tuple, &selectors);
     fixed[L.fixed.active] = advice[ACTIVE];
     fixed[L.fixed.first] = geometry[1];
     fixed[L.fixed.last] = geometry[2];
     @memcpy(fixed[L.fixed.next_pc..][0..8], advice[NEXT_PC..][0..8]);
-    for (0..4) |slot| fixed[L.fixed.tick_start + slot] = geometry[0].mul(E.q(4)).add(E.q(@intCast(slot + 1))).mul(fixed[L.fixed.slot_start + slot]);
+    for (0..4) |slot| fixed[L.fixed.tick_start + slot] = geometry[0].mul(E.qFor(F, 4)).add(E.qFor(F, @intCast(slot + 1))).mul(fixed[L.fixed.slot_start + slot]);
     return fixed;
 }
 pub fn evaluate(advice: *const Advice, previous: *const Advice, geometry: Geometry, public: Public, log_size: u32, out: *E.Sink) void {
-    const one = Q.one();
+    return evaluateFor(Q, advice, previous, geometry, public, log_size, out);
+}
+pub fn evaluateFor(comptime F: type, advice: *const [WIDTH]F, previous: *const [WIDTH]F, geometry: [FIXED]F, public: Public, log_size: u32, out: *E.SinkFor(F)) void {
+    const one = F.one();
     const active = advice[ACTIVE];
     const prior = previous[ACTIVE];
     const index = geometry[0];
     const first = geometry[1];
     const last = geometry[2];
     const nonfirst = one.sub(first);
-    E.boolean(out, active);
+    E.booleanFor(F, out, active);
     out.emit(first.mul(active.sub(one)));
     out.emit(nonfirst.mul(one.sub(prior)).mul(active));
-    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(E.q(public.steps))));
-    out.emit(last.mul(active).mul(E.q(public.steps).sub(E.q(@as(u32, 1) << @intCast(log_size)))));
-    const tuple = entry(advice);
-    const expanded = compact.expand(&tuple);
+    out.emit(nonfirst.mul(prior.sub(active)).mul(index.sub(E.qFor(F, public.steps))));
+    out.emit(last.mul(active).mul(E.qFor(F, public.steps).sub(E.qFor(F, @as(u32, 1) << @intCast(log_size)))));
+    const tuple = entryFor(F, advice);
+    const expanded = compact.expandFor(F, &tuple);
     out.emit(expanded[rom.field.valid].sub(active));
     const selectors = advice[SELECTORS..][0..L.fixed.OPCODES].*;
-    compact.evaluateSelectors(&tuple, &selectors, out);
+    compact.evaluateSelectorsFor(F, &tuple, &selectors, out);
     // No disabled decode advice can create state events or arithmetic enables.
     for (compact.fields, 0..) |source, c| {
         if (source >= rom.field.pc and source < rom.field.pc + 8) continue;
@@ -68,8 +87,8 @@ pub fn evaluate(advice: *const Advice, previous: *const Advice, geometry: Geomet
         const pc = expanded[rom.field.pc + i];
         const next = advice[NEXT_PC + i];
         const shift: u6 = @intCast(i * 8);
-        const initial_byte = E.q(@intCast((public.initial_pc >> shift) & 255));
-        const final_byte = E.q(@intCast((public.final_pc >> shift) & 255));
+        const initial_byte = E.qFor(F, @intCast((public.initial_pc >> shift) & 255));
+        const final_byte = E.qFor(F, @intCast((public.final_pc >> shift) & 255));
         out.emit(first.mul(pc.sub(initial_byte)));
         out.emit(nonfirst.mul(pc.sub(previous[NEXT_PC + i])));
         out.emit(one.sub(active).mul(next.sub(pc)));
@@ -148,4 +167,53 @@ test "full control frame proves exact active prefix and PC adjacency" {
     var rejected = false;
     for (output[0..sink.count]) |residual| rejected = rejected or !residual.isZero();
     try std.testing.expect(rejected);
+}
+
+// Versioned compact control wrappers; legacy entry points above stay byte-exact.
+const Control = @import("../control_policy.zig").Policy;
+const packed_frame = @import("packed_frame.zig");
+pub fn bodyWidth(control: Control) usize {
+    return if (control == .bytes_v1) WIDTH else packed_frame.WIDTH;
+}
+pub fn widthWithControl(profile: @import("../../execution_profile.zig").Profile, control: Control) usize {
+    return bodyWidth(control) + width(profile) - WIDTH;
+}
+pub fn nextPcStart(control: Control) usize {
+    return if (control == .bytes_v1) NEXT_PC else packed_frame.NEXT_PC;
+}
+pub fn nextPcLen(control: Control) usize {
+    return if (control == .bytes_v1) 8 else 3;
+}
+pub fn keccakCount(control: Control) usize {
+    return bodyWidth(control);
+}
+pub fn serviceFlags(control: Control) usize {
+    return bodyWidth(control) + 1;
+}
+pub fn secpCounters(control: Control) usize {
+    return bodyWidth(control) + 4;
+}
+pub fn needsPreviousWithControl(column: usize, control: Control) bool {
+    return column == ACTIVE or (column >= nextPcStart(control) and column < nextPcStart(control) + nextPcLen(control));
+}
+pub fn inflateWithControl(advice: []const Q, geometry: Geometry, control: Control) E.Fixed {
+    return inflateWithControlFor(Q, advice, geometry, control);
+}
+pub fn inflateWithControlFor(comptime F: type, advice: []const F, geometry: [FIXED]F, control: Control) E.FixedFor(F) {
+    return if (control == .bytes_v1) inflateFor(F, advice[0..WIDTH], geometry) else packed_frame.inflateFor(F, advice, geometry);
+}
+pub fn evaluateWithControl(advice: []const Q, previous: []const Q, geometry: Geometry, public: Public, log_size: u32, control: Control, out: *E.Sink) void {
+    return evaluateWithControlFor(Q, advice, previous, geometry, public, log_size, control, out);
+}
+pub fn evaluateWithControlFor(comptime F: type, advice: []const F, previous: []const F, geometry: [FIXED]F, public: Public, log_size: u32, control: Control, out: *E.SinkFor(F)) void {
+    if (control == .bytes_v1) evaluateFor(F, advice[0..WIDTH], previous[0..WIDTH], geometry, public, log_size, out) else packed_frame.evaluateFor(F, advice, previous, geometry, public, log_size, out);
+}
+pub fn executionDenominatorWithControl(ch: @import("../program/provider.zig").Challenges, advice: []const Q, control: Control) Q {
+    return executionDenominatorWithControlFor(Q, ch, advice, control);
+}
+pub fn executionDenominatorWithControlFor(comptime F: type, ch: @import("../program/provider.zig").Challenges, advice: []const F, control: Control) E.SecureFor(F) {
+    return if (control == .bytes_v1) compact.executionDenominatorFor(F, ch, &entryFor(F, advice[0..WIDTH])) else @import("../program/packed_control.zig").executionDenominatorFor(F, ch, packed_frame.entryViewFor(F, advice));
+}
+pub fn fillFromRowBaseWithControl(out: []M, row: *const rom.Row, next_pc: u64, active: bool, control: Control) void {
+    if (control == .bytes_v1) @memcpy(out[0..WIDTH], &fromRowBase(row, next_pc, active)) else packed_frame.fillFromRowBase(out, row, next_pc, active);
 }

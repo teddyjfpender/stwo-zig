@@ -13,6 +13,10 @@ const ops = @import("operations.zig");
 pub const omitted = std.math.maxInt(u16);
 pub const derived = omitted - 1;
 pub const Plan = struct {
+    control_policy: @import("control_policy.zig").Policy = .bytes_v1,
+    state_policy: @import("state_policy.zig").Policy = .inverse_v1,
+    execution_profile: @import("../execution_profile.zig").Profile = .rv64im,
+    arithmetic_policy: @import("arithmetic/division/policy.zig").Policy = .inline_v4,
     allowed_opcodes: [L.fixed.OPCODES]bool = @splat(true),
     byte_bits: [L.WORDS][8]bool = @splat(@splat(false)),
     support: L.Support,
@@ -33,6 +37,33 @@ pub const Plan = struct {
     /// Path-independent full-execution profile. Derive every omission from the
     /// admitted public opcode set; the full component constrains all forbidden
     /// selectors to zero. Register-zero enables remain conservatively live.
+    pub fn stateInteractionCount(self: *const Plan) usize {
+        return @import("state_policy.zig").interactionCount(self.state_policy);
+    }
+    /// Select only after the complete byte representation has been built.
+    /// V3 carries an explicit global-state closure obligation: canonical initial
+    /// sources and writes plus bounded strict clocks authenticate read bytes.
+    /// Rebuilding also restores the original queries when returning to v1/v2.
+    pub fn setStatePolicy(self: *Plan, policy: @import("state_policy.zig").Policy) void {
+        std.debug.assert(self.byte_operations and self.wide_clocks);
+        self.state_policy = policy;
+        self.range_count = 0;
+        for (0..L.WORDS) |w| {
+            if (!self.support.words[w]) continue;
+            const word: L.Word = @enumFromInt(w);
+            if ((word == .a and self.support.shifts) or (self.byte_bitwise and (word == .a or word == .rhs))) continue;
+            if (@import("state_policy.zig").derivesStateBytes(policy) and (word == .b or word == .previous_rd or word == .memory_after)) continue;
+            for (0..8) |i| if (!self.byte_bits[w][i]) {
+                self.range_sources[self.range_count] = self.main_map[L.byte(word, i)];
+                self.range_count += 1;
+            };
+        }
+        if (self.compact_product_carries) for (0..16) |i| {
+            self.range_sources[self.range_count] = self.main_map[L.productCarry(i) + 1];
+            self.range_count += 1;
+        };
+        self.appendClockRanges();
+    }
     pub fn fromOpcodes(opcodes: []const E.O) Plan {
         var legacy: P.Projection = undefined;
         legacy.support = .{ .words = @splat(false), .carries = @splat(false), .slots = @splat(false), .shifts = false, .product = false };
@@ -68,6 +99,27 @@ pub const Plan = struct {
         plan.compactProductCarries();
         plan.byteOperations(opcodes);
         return plan;
+    }
+
+    /// Explicit public arithmetic-provider policy; legacy callers remain inline.
+    /// The service plan requires a CPU typed bus closed against its provider.
+    pub fn fromOpcodesWithPolicy(opcodes: []const E.O, policy: @import("arithmetic/division/policy.zig").Policy) Plan {
+        return switch (policy) {
+            .inline_v4 => fromOpcodes(opcodes),
+            .division_service_v2 => @import("arithmetic/division/cpu.zig").plan(opcodes),
+            .division_multiplication_services_v3 => @import("arithmetic/division/cpu.zig").planWithMultiplication(opcodes, .rv64im),
+        };
+    }
+
+    /// Concrete service ABI builder; it cannot imply an unclosed inline CPU.
+    pub fn fromOpcodesWithProfiles(opcodes: []const E.O, arithmetic: @import("arithmetic/division/policy.zig").Policy, execution: @import("../execution_profile.zig").Profile) !Plan {
+        if (execution == .rv64im) return fromOpcodesWithPolicy(opcodes, arithmetic);
+        if (execution != .keccak_service_v1 and execution != .ethereum_services_v1 and execution != .ethereum_services_v2) return error.UnsupportedRv64ServiceExecutionProfile;
+        return switch (arithmetic) {
+            .division_service_v2 => @import("arithmetic/division/cpu.zig").planWithProfile(opcodes, execution),
+            .division_multiplication_services_v3 => @import("arithmetic/division/cpu.zig").planWithMultiplication(opcodes, execution),
+            else => error.UnsupportedRv64ServiceArithmetic,
+        };
     }
 
     /// Borrows the existing public projection only during construction.
@@ -265,23 +317,9 @@ pub const Plan = struct {
         if (self.support.shifts) for (0..8) |i| self.appendHelper(44 + i);
         self.shift_amount = self.main_count;
         if (self.support.shifts) self.appendHelper(52);
-        self.range_count = 0;
-        for (0..L.WORDS) |w| {
-            if (!self.support.words[w]) continue;
-            const word: L.Word = @enumFromInt(w);
-            // These provider tuples themselves authenticate operand bytes.
-            if ((word == .a and self.support.shifts) or (self.byte_bitwise and (word == .a or word == .rhs))) continue;
-            for (0..8) |i| if (!self.byte_bits[w][i]) {
-                self.range_sources[self.range_count] = self.main_map[L.byte(word, i)];
-                self.range_count += 1;
-            };
-        }
-        if (self.compact_product_carries) for (0..16) |i| {
-            self.range_sources[self.range_count] = self.main_map[L.productCarry(i) + 1];
-            self.range_count += 1;
-        };
-        self.appendClockRanges();
+        self.setStatePolicy(self.state_policy);
     }
+
     fn appendHelper(self: *Plan, helper: usize) void {
         self.main_sources[self.main_count] = @intCast(L.MAIN + helper);
         self.main_count += 1;
@@ -376,15 +414,29 @@ pub const Plan = struct {
         return result;
     }
 };
-fn reconstruct(values: *const E.Main, start: usize, count: usize) Q {
-    var result = Q.zero();
-    for (0..count) |i| result = result.add(values[start + i].mul(E.q(@as(u32, 1) << @as(u5, @intCast(i)))));
+fn reconstructGeneric(comptime F: type, values: *const E.MainFor(F), start: usize, count: usize) F {
+    var result = F.zero();
+    for (0..count) |i| result = result.add(values[start + i].mul(E.qFor(F, @as(u32, 1) << @as(u5, @intCast(i)))));
     return result;
 }
 
 /// Concrete projection execution metadata, derived only from the public plan.
 /// It removes row-time support scans and does not own or cache witness values.
 pub const Inflation = struct {
+    /// Certifies the logical substitution performed by applyPrepared. General
+    /// View evaluators must not accept this contract for independently supplied
+    /// logical coordinates: only these substituted reconstruction slots are zero.
+    pub fn ResultFor(comptime F: type) type {
+        return struct { main: *const E.MainFor(F) };
+    }
+    pub const Result = ResultFor(Q);
+    pub fn applyPrepared(self: *const Inflation, physical: []const Q, logical: *E.Main) Result {
+        return self.applyPreparedGeneric(Q, physical, logical);
+    }
+    pub fn applyPreparedGeneric(self: *const Inflation, comptime F: type, physical: []const F, logical: *E.MainFor(F)) ResultFor(F) {
+        self.applyGeneric(F, physical, logical);
+        return .{ .main = logical };
+    }
     const Source = struct { logical: u16, physical: u16 };
     const Byte = struct { logical: u16, first_bit: u16 };
     physical_count: usize,
@@ -397,23 +449,26 @@ pub const Inflation = struct {
     clock_slots: [4]bool,
     wide_clocks: bool,
     pub fn apply(self: *const Inflation, physical: []const Q, logical: *E.Main) void {
+        return self.applyGeneric(Q, physical, logical);
+    }
+    pub fn applyGeneric(self: *const Inflation, comptime F: type, physical: []const F, logical: *E.MainFor(F)) void {
         std.debug.assert(physical.len == self.physical_count);
         for (self.sources[0..self.source_count]) |source| logical[source.logical] = physical[source.physical];
-        for (self.bytes[0..self.byte_count]) |byte| logical[byte.logical] = reconstruct(logical, byte.first_bit, 8);
+        for (self.bytes[0..self.byte_count]) |byte| logical[byte.logical] = reconstructGeneric(F, logical, byte.first_bit, 8);
         if (self.product) for (0..16) |i| {
             const start = L.productCarry(i);
             logical[start] = if (self.compact_product)
-                logical[start + 1].add(reconstruct(logical, start + 9, 3).mul(E.q(256)))
+                logical[start + 1].add(reconstructGeneric(F, logical, start + 9, 3).mul(E.qFor(F, 256)))
             else
-                reconstruct(logical, start + 1, 11);
+                reconstructGeneric(F, logical, start + 1, 11);
         };
         for (self.clock_slots, 0..) |enabled, slot| {
             if (!enabled) continue;
             for ([_]usize{ L.previousClock(slot), L.gap(slot) }) |start| {
                 logical[start] = if (self.wide_clocks)
-                    logical[start + 1].add(logical[start + 2].mul(E.q(256))).add(logical[start + 3].mul(E.q(65536)))
+                    logical[start + 1].add(logical[start + 2].mul(E.qFor(F, 256))).add(logical[start + 3].mul(E.qFor(F, 65536)))
                 else
-                    reconstruct(logical, start + 1, L.CLOCK_BITS);
+                    reconstructGeneric(F, logical, start + 1, L.CLOCK_BITS);
             }
         }
     }

@@ -1,0 +1,44 @@
+{
+  "schema": "rv64-exclusive-domain-phase-v1",
+  "status": "independent scheduling review and Safe functional gates PASS; matched retained-batch benchmark pending",
+  "production_change": [
+    "FullCPU.asProverComponent opts into existing pool_exclusive_domain.",
+    "Keccak permutation Component.asProverComponent opts in; chi/xor components retain ordinary leaves."
+  ],
+  "core_scheduler_changed": false,
+  "semantics": [
+    "Existing computeLegacy dispatches to computePoolExclusive when an opted-in component exists.",
+    "First dominant exclusive component runs on the coordinator and may overlap ordinary leaf jobs. Its callback owns and joins its internal pool lease.",
+    "Ordinary leaf jobs are joined before any subsequent exclusive component or error return. Subsequent exclusive callbacks run sequentially and release their own leases before returning.",
+    "Independent accumulators retain original coefficient ranges and merge in protocol order.",
+    "Fully prepared task-graph scheduling and unprepared computeRequested sequential fallback are unchanged; markers affect the legacy mixed route."
+  ],
+  "gates": {
+    "generic_command": "zig build --build-file src/prover/build.zig test-air -Doptimize=ReleaseSafe",
+    "generic": "PASS",
+    "test_source": "src/prover/air/component_pool_exclusive_test.zig",
+    "coverage": [
+      "Full-pool lease admission and independent coefficient/output parity at1/3/8 workers.",
+      "No overlap between exclusive callbacks; ordinary leaf complete before later exclusive callback.",
+      "First-exclusive, ordinary-leaf and later-exclusive errors drain all submissions and permit immediate full lease reacquisition.",
+      "Exhaustive serial composition allocation-failure custody across partial component outputs."
+    ],
+    "native_command": "zig build test-riscv64-keccak -Doptimize=ReleaseSafe",
+    "native": "PASS with flags active, including tiled/untiled exact serialized proof hashes and point verifier at1/3/8/16 workers, arbitrary-polynomial quotient equality, halo/full4n equality, OOM/lease guard cases.",
+    "native_unit_security_profile": "q12/P0; historical production-profile controls are qualified separately."
+  },
+  "performance": null,
+  "frozen_tools": {
+    "rv64-ethereum-reprove": {
+      "path": "/tmp/stwo-rv64-delivery/proof-tools-exclusive-v1/rv64-ethereum-reprove",
+      "sha256": "eabf1d3f1ae78d9fa396595fcd83fce2172aecfe2d814e5f494c04289d5afec6"
+    },
+    "rv64-ethereum-proof": {
+      "path": "/tmp/stwo-rv64-delivery/proof-tools-exclusive-v1/rv64-ethereum-proof",
+      "sha256": "ef1ce4c92a714f82af223981b8b13767d89c68514ee2a7b0083e614bb2b23567"
+    }
+  },
+  "source_manifest_changed_during_build": [
+    "src/integrations/riscv_cpu/rv64_trace_main.zig"
+  ]
+}

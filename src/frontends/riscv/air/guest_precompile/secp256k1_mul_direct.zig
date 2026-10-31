@@ -191,16 +191,20 @@ fn constant(comptime S: type, value: u64) S {
 fn lift(comptime S: type, value: S) relationsScalar(S) {
     if (S == M31) return QM31.fromBase(value);
     if (S == QM31) return value;
+    if (@hasDecl(S, "SecureField")) return value.toSecure();
     return value;
 }
 
 fn liftBase(comptime S: type, value: M31) relationsScalar(S) {
     if (S == M31 or S == QM31) return QM31.fromBase(value);
+    if (@hasDecl(S, "SecureField")) return S.SecureField.fromBaseScalar(value);
     return S.fromBase(value);
 }
 
 fn relationsScalar(comptime S: type) type {
-    return if (S == M31) QM31 else S;
+    if (S == M31) return QM31;
+    if (@hasDecl(S, "SecureField")) return S.SecureField;
+    return S;
 }
 
 fn requireSupportedField(comptime S: type) void {

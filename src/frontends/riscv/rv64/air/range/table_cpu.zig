@@ -22,32 +22,39 @@ pub fn interactionCount(plan: *const Plan, kind: Kind) usize {
     return if (count == 0) 0 else ((count + 2) / 3 + 1) * 4;
 }
 pub fn tuple(plan: *const Plan, kind: Kind, logical: *const E.Main, physical: []const Q, request: usize) [6]Q {
+    return tupleFor(Q, plan, kind, logical, physical, request);
+}
+pub fn tupleFor(comptime F: type, plan: *const Plan, kind: Kind, logical: *const E.MainFor(F), physical: []const F, request: usize) [6]F {
     return switch (kind) {
-        .byte_and => .{ logical[L.byte(.a, request)], logical[L.byte(.rhs, request)], physical[plan.and_start + request], Q.zero(), Q.zero(), Q.zero() },
-        .byte_shift => .{ if (request == 8) E.q(255) else logical[L.byte(.a, request)], physical[plan.shift_amount], physical[plan.shift_outputs + request * 4], physical[plan.shift_outputs + request * 4 + 1], physical[plan.shift_outputs + request * 4 + 2], physical[plan.shift_outputs + request * 4 + 3] },
+        .byte_and => .{ logical[L.byte(.a, request)], logical[L.byte(.rhs, request)], physical[plan.and_start + request], F.zero(), F.zero(), F.zero() },
+        .byte_shift => .{ if (request == 8) E.qFor(F, 255) else logical[L.byte(.a, request)], physical[plan.shift_amount], physical[plan.shift_outputs + request * 4], physical[plan.shift_outputs + request * 4 + 1], physical[plan.shift_outputs + request * 4 + 2], physical[plan.shift_outputs + request * 4 + 3] },
     };
 }
 pub fn evaluate(plan: *const Plan, kind: Kind, logical: *const E.Main, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, challenges: Tables.Challenges, claim: Q, out: *E.Sink) void {
+    return evaluateFor(Q, plan, kind, logical, physical, current, previous, first, last, challenges, claim, out);
+}
+pub fn evaluateFor(comptime F: type, plan: *const Plan, kind: Kind, logical: *const E.MainFor(F), physical: []const F, current: []const F, previous: []const F, first: F, last: F, challenges: Tables.Challenges, claim: Q, out: *E.SinkFor(F)) void {
     const count = requests(plan, kind);
     if (count == 0) return;
+    const S = E.SecureFor(F);
     const batches = (count + 2) / 3;
-    var contribution = Q.zero();
+    var contribution = S.zero();
     for (0..batches) |batch| {
-        var numerator = Q.zero();
-        var denominator = Q.one();
+        var numerator = S.zero();
+        var denominator = S.one();
         for (batch * 3..@min(count, batch * 3 + 3)) |request| {
-            const values = tuple(plan, kind, logical, physical, request);
-            const d = challenges.denominator(values[0..kind.arity()]);
+            const values = tupleFor(F, plan, kind, logical, physical, request);
+            const d = E.denominatorFor(F, challenges.offset, challenges.coefficients[0..kind.arity()], values[0..kind.arity()], true);
             numerator = numerator.mul(d).add(denominator);
             denominator = denominator.mul(d);
         }
-        const inverse = Cpu.secure(current, batch * 4);
-        out.emit(denominator.mul(inverse).sub(Q.one()));
+        const inverse = Cpu.secureFor(F, current, batch * 4);
+        out.emit(denominator.mul(inverse).sub(S.one()));
         contribution = contribution.add(numerator.mul(inverse));
     }
-    const sum = Cpu.secure(current, batches * 4);
-    out.emit(sum.sub(Q.one().sub(first).mul(Cpu.secure(previous, batches * 4))).sub(contribution));
-    out.emit(last.mul(sum.sub(claim)));
+    const sum = Cpu.secureFor(F, current, batches * 4);
+    out.emit(sum.sub(E.mulBaseFor(F, Cpu.secureFor(F, previous, batches * 4), F.one().sub(first))).sub(contribution));
+    out.emit(E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last));
 }
 
 /// Validates witness tuples while counting; the verifier uses only authenticated

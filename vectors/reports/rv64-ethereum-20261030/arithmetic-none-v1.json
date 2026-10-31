@@ -1,0 +1,191 @@
+{
+  "suite": {
+    "fri_queries": 70,
+    "pow_bits": 26
+  },
+  "provider_omission": "explicit-count-zero-only",
+  "cpu_div_mul_request_buses_retained": true,
+  "ethereum_block_proof": false,
+  "metrics": {
+    "present_bytes": 521580,
+    "omitted_bytes": 149932,
+    "main_columns_removed": 1222,
+    "interaction_columns_removed": 140,
+    "cpu_main_columns": 200,
+    "cpu_buses_retained": true
+  },
+  "artifacts": {
+    "public.json": {
+      "bytes": 1398,
+      "sha256": "e646343f99f74c8d41ba158ed6f96e4bdb43d3b741659c4f9435299d09dccb24"
+    },
+    "claims.json": {
+      "bytes": 1735,
+      "sha256": "292ec0a6c4a56d7cdf49ce95b6bb9bd10390787d9db308c587f516f19008aa61"
+    },
+    "proof.bin": {
+      "bytes": 149932,
+      "sha256": "ec4969ff104f50c66c48fb7fbb4809473c0eea70d96d2584f193af37bfeba2f4"
+    }
+  },
+  "verifier": {
+    "bytes": 1828440,
+    "sha256": "636cbec939e0865596d863675af16376fae3ece86b0f0103a712717e28874af7"
+  },
+  "receiver": {
+    "verified": true,
+    "one_pcs_execution": true,
+    "execution_profile": "ethereum_services_v2",
+    "division_provider_present": false,
+    "multiplication_provider_present": false,
+    "keccak_provider_present": false,
+    "secp_add_provider_present": false,
+    "secp_double_provider_present": false,
+    "public_cell_boundary_control": true,
+    "ethereum_block_proof": false,
+    "independent_setup_ns": 817167,
+    "verify_with_decode_ns": 2017458,
+    "proof_bytes": 149932,
+    "setup_identity": [
+      172,
+      112,
+      61,
+      48,
+      18,
+      194,
+      214,
+      20,
+      247,
+      18,
+      68,
+      217,
+      55,
+      39,
+      141,
+      23,
+      91,
+      38,
+      238,
+      203,
+      218,
+      250,
+      212,
+      247,
+      17,
+      114,
+      54,
+      64,
+      120,
+      16,
+      10,
+      159
+    ]
+  },
+  "fresh_receiver_cases": [
+    {
+      "case": "valid",
+      "rejected": false,
+      "exit_code": 0
+    },
+    {
+      "case": "division-count",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "division-domain",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "division-roster",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "multiplication-count",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "multiplication-domain",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "multiplication-roster",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "arithmetic-policy",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "state-policy",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "initial-pc",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "final-pc",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "terminal-register",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "immutable-program",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "division-omitted-claim",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "multiplication-omitted-claim",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "multiplication_provider-omitted-claim",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "balanced-omitted-mul",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "balanced-omitted-div",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "retained-cpu-div-prefix",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "retained-cpu-mul-prefix",
+      "rejected": true,
+      "exit_code": 1
+    },
+    {
+      "case": "truncated",
+      "rejected": true,
+      "exit_code": 1
+    }
+  ]
+}

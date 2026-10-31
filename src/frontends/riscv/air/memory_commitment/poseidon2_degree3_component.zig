@@ -5,6 +5,9 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const M31 = core.fields.m31.M31;
+const lanes = @import("../packed_fields16.zig");
+const PackedBase = lanes.PackedBase;
+const PackedSecure = lanes.PackedSecure;
 const QM31 = core.fields.qm31.QM31;
 const Point = core.circle.CirclePointQM31;
 const canonic = core.poly.circle.canonic;
@@ -41,9 +44,16 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
             relations: @FieldType(VerifierState, "relations"),
             claims: @FieldType(VerifierState, "claims"),
 
+            /// Native optimization only. Existing shared/RV32 callers retain
+            /// the scalar path unless their concrete owner explicitly opts in.
+            enable_simd_domain: bool = false,
+
             const Adapter = core.air.derive.ComponentAdapter(@This(), component_prover.ComponentProver, component_prover.Trace, accumulation.DomainEvaluationAccumulator);
 
-            pub const validate = SharedVerifier.validate;
+            pub fn validate(self: *const Component) !void {
+                try SharedVerifier.validate(self);
+                if (self.simdEnabled() and !@hasDecl(air, "interactionConstraintsMixed")) return error.UnsupportedPoseidonSimdDomain;
+            }
 
             pub fn asProverComponent(self: *const Component) component_prover.ComponentProver {
                 var result = Adapter.asProverComponent(self);
@@ -105,6 +115,49 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
                 return value.add(sampling.combineConstraints(powers[0..air.N_SUMS], &interaction));
             }
 
+            fn evaluatePreparedPacket(self: *const Component, main: [air.N_MAIN_COLUMNS]PackedBase, active: PackedBase, first: PackedBase, sums: [air.N_SUMS]PackedSecure, previous: [air.N_SUMS]PackedSecure, powers: []const QM31) PackedSecure {
+                if (comptime !@hasDecl(air, "interactionConstraintsMixed")) @panic("UnsupportedPoseidonSimdDomain") else {
+                    std.debug.assert(powers.len == N_CONSTRAINTS);
+                    const direct = if (ACTIVE) air.evaluateGeneric(PackedBase, main, active) else air.evaluateGeneric(PackedBase, main);
+                    var value = PackedSecure.zero();
+                    for (direct, 0..) |residual, index| value = value.add(PackedSecure.splat(powers[N_CONSTRAINTS - 1 - index]).mulBase(residual));
+                    var claims: [air.N_SUMS]PackedSecure = undefined;
+                    for (&claims, self.claims) |*claim, source| claim.* = PackedSecure.splat(source);
+                    const interaction = air.interactionConstraintsMixed(PackedBase, main, first, sums, previous, claims, self.relations);
+                    for (interaction, 0..) |residual, index| value = value.add(PackedSecure.splat(powers[air.N_SUMS - 1 - index]).mul(residual));
+                    return value;
+                }
+            }
+
+            fn simdEnabled(self: *const Component) bool {
+                if (comptime @import("builtin").is_test) if (testing.override) |value| return value;
+                return self.enable_simd_domain;
+            }
+            pub const testing = if (@import("builtin").is_test) struct {
+                threadlocal var override: ?bool = null;
+                pub const evaluateScalar = evaluatePreparedRow;
+                pub const evaluatePacket = evaluatePreparedPacket;
+                pub const Binding = struct {
+                    previous: ?bool,
+                    pub fn init(enabled: bool) Binding {
+                        const old = override;
+                        override = enabled;
+                        return .{ .previous = old };
+                    }
+                    pub fn deinit(self: *Binding) void {
+                        override = self.previous;
+                    }
+                };
+                /// Borrowed domain oracle seam: no preparation/ownership code
+                /// is duplicated and this helper never destroys the borrowed rows.
+                pub fn evaluateRows(self: *const Component, allocator: std.mem.Allocator, values: [][]const M31, inverse: [2]M31, output: *accumulation.ColumnAccumulator, start: usize, end: usize) !void {
+                    var state = State{ .allocator = allocator, .component = self, .values = values, .owned = &.{}, .inverse = inverse, .accumulator = output.*, .direct_store = false, .simd_domain = self.simdEnabled() };
+                    var cancellation = task_graph.CancellationToken{};
+                    try state.evaluateRange(&cancellation, start, end);
+                    output.next_fresh_index = null;
+                }
+            } else struct {};
+
             pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const component_prover.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
                 var value = try self.prepareDomain(accumulator.allocator, trace, accumulator);
                 defer value.deinit();
@@ -155,7 +208,7 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
                 errdefer allocator.destroy(state);
                 const columns = try accumulator.columns(allocator, &.{.{ .log_size = eval_log, .n_cols = N_CONSTRAINTS }});
                 defer allocator.free(columns);
-                state.* = .{ .allocator = allocator, .component = self, .values = values, .owned = owned, .inverse = inverse, .accumulator = columns[0], .direct_store = columns[0].next_fresh_index == 0 };
+                state.* = .{ .allocator = allocator, .component = self, .values = values, .owned = owned, .inverse = inverse, .accumulator = columns[0], .direct_store = columns[0].next_fresh_index == 0, .simd_domain = self.simdEnabled() };
                 return .{ .context = state, .vtable = &State.vtable, .task_class = if (eval_log >= 18) .pool_exclusive else .leaf, .resources = resources };
             }
         };
@@ -168,11 +221,13 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
             inverse: [2]M31,
             accumulator: accumulation.ColumnAccumulator,
             direct_store: bool,
+            simd_domain: bool,
             workers: [work_pool.MAX_WORKERS]Worker = undefined,
             const vtable = prepared.VTable{ .run = run, .deinit = deinit };
 
             fn evaluateRange(self: *State, cancellation: *const task_graph.CancellationToken, start: usize, end: usize) !void {
                 const component = self.component;
+                if (self.simd_domain) return self.evaluatePackedRange(cancellation, start, end);
                 for (start..end) |row| {
                     if (row % 4096 == 0 and cancellation.isCancelled()) return error.TaskCancelled;
                     const previous_row = core.utils.previousBitReversedCircleDomainIndex(row, component.log_size, component.log_size + 1);
@@ -184,6 +239,47 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
                     const value = component.evaluatePreparedRow(base_main, if (ACTIVE) self.values[1][row] else M31.zero(), self.values[0][row], sums, previous, self.accumulator.random_coeff_powers).mulM31(self.inverse[row >> @intCast(component.log_size)]);
                     const out = self.accumulator.col;
                     out.set(row, if (self.direct_store) value else out.at(row).add(value));
+                }
+            }
+
+            fn evaluatePackedRange(self: *State, cancellation: *const task_graph.CancellationToken, start: usize, end: usize) !void {
+                if (comptime !@hasDecl(air, "interactionConstraintsMixed")) return error.UnsupportedPoseidonSimdDomain else {
+                    const component = self.component;
+                    const inter = PP + air.N_MAIN_COLUMNS;
+                    var row = start;
+                    while (row < end) : (row += lanes.LANES) {
+                        if (row % 4096 == 0 and cancellation.isCancelled()) return error.TaskCancelled;
+                        const count = @min(lanes.LANES, end - row);
+                        var indices: [lanes.LANES]usize = undefined;
+                        var inverse: [lanes.LANES]M31 = @splat(M31.zero());
+                        for (0..count) |lane| {
+                            indices[lane] = core.utils.previousBitReversedCircleDomainIndex(row + lane, component.log_size, component.log_size + 1);
+                            inverse[lane] = self.inverse[(row + lane) >> @intCast(component.log_size)];
+                        }
+                        var main: [air.N_MAIN_COLUMNS]PackedBase = undefined;
+                        for (&main, self.values[PP..][0..air.N_MAIN_COLUMNS]) |*value, column| value.* = packetLoad(column, row, count);
+                        var sums: [air.N_SUMS]PackedSecure = undefined;
+                        var previous: [air.N_SUMS]PackedSecure = undefined;
+                        for (&sums, &previous, 0..) |*sum, *prior, index| {
+                            var current_coordinates: [4]PackedBase = undefined;
+                            var previous_coordinates: [4]PackedBase = undefined;
+                            for (&current_coordinates, &previous_coordinates, self.values[inter + 4 * index ..][0..4]) |*current_coordinate, *previous_coordinate, column| {
+                                current_coordinate.* = packetLoad(column, row, count);
+                                previous_coordinate.* = packetGather(column, indices[0..count]);
+                            }
+                            sum.* = PackedSecure.fromCoordinates(current_coordinates);
+                            prior.* = PackedSecure.fromCoordinates(previous_coordinates);
+                        }
+                        const value = component.evaluatePreparedPacket(main, if (ACTIVE) packetLoad(self.values[1], row, count) else PackedBase.zero(), packetLoad(self.values[0], row, count), sums, previous, self.accumulator.random_coeff_powers).mulBase(PackedBase.fromLanes(inverse));
+                        for (self.accumulator.col.columns, value.coordinates()) |column, coordinate| {
+                            if (count == lanes.LANES) {
+                                const result = if (self.direct_store) coordinate else PackedBase.load(column.ptr + row).add(coordinate);
+                                result.store(column.ptr + row);
+                            } else {
+                                for (0..count) |lane| column[row + lane] = if (self.direct_store) coordinate.lane(lane) else column[row + lane].add(coordinate.lane(lane));
+                            }
+                        }
+                    }
                 }
             }
 
@@ -283,4 +379,16 @@ test "degree3 Poseidon prepared rows match full secure evaluation off-domain" {
             try std.testing.expectEqualDeep(expected, component.evaluatePreparedRow(main, active, first, sums, previous, &powers));
         }
     }
+}
+
+fn packetLoad(column: []const M31, start: usize, count: usize) PackedBase {
+    if (count == lanes.LANES) return PackedBase.load(column.ptr + start);
+    var values: [lanes.LANES]M31 = @splat(M31.zero());
+    @memcpy(values[0..count], column[start..][0..count]);
+    return PackedBase.fromLanes(values);
+}
+fn packetGather(column: []const M31, indices: []const usize) PackedBase {
+    var values: [lanes.LANES]M31 = @splat(M31.zero());
+    for (indices, 0..) |index, lane| values[lane] = column[index];
+    return PackedBase.fromLanes(values);
 }

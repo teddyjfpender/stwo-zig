@@ -53,6 +53,16 @@ pub const Memory = struct {
         _ = try self.storeObserved(address, width, value);
     }
 
+    /// Atomic bulk publication. Source words must not alias backing pages.
+    /// Failed permission, range or allocation checks preserve bytes and pages.
+    pub fn storeWords(self: *Memory, address: u64, words: []const u64) Error!void {
+        try types.aligned(address, 8);
+        const bytes = std.math.mul(usize, words.len, 8) catch return error.AddressOverflow;
+        if (bytes == 0) return error.InvalidRegion;
+        try self.mappings.check(address, bytes, .write);
+        try self.backing.storeWords(address, words);
+    }
+
     pub fn storeObserved(self: *Memory, address: u64, width: u4, value: u64) Error!Observed {
         try types.aligned(address, width);
         try self.mappings.check(address, width, .write);

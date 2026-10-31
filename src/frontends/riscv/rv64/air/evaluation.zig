@@ -1,4 +1,4 @@
-//! One concrete QM31 constraint authority for domain and OODS evaluation.
+//! Shared equations for packed base-field domain lanes and secure OODS values.
 const std = @import("std");
 const core = @import("stwo_core");
 pub const Q = core.fields.qm31.QM31;
@@ -7,6 +7,126 @@ pub const L = @import("layout.zig");
 pub const O = @import("../decode.zig").Opcode;
 pub const Fixed = [L.fixed.COUNT]Q;
 pub const Main = [L.MAIN]Q;
+pub const PackedFields = @import("packed_fields.zig");
+pub const PackedBase = PackedFields.PackedBase;
+pub const PackedSecure = PackedFields.PackedSecure;
+pub const LANES = PackedFields.LANES;
+
+pub fn FixedFor(comptime F: type) type {
+    return if (F == Q) Fixed else [L.fixed.COUNT]F;
+}
+pub fn MainFor(comptime F: type) type {
+    return if (F == Q) Main else [L.MAIN]F;
+}
+pub fn ViewFor(comptime F: type) type {
+    if (F == Q) return View;
+    return struct {
+        const Self = @This();
+        f: *const FixedFor(F),
+        m: *const MainFor(F),
+        pub inline fn op(self: Self, opcode: O) F {
+            return self.f[L.fixed.opcode_start + @intFromEnum(opcode)];
+        }
+        pub inline fn sum(self: Self, opcodes: []const O) F {
+            var result = F.zero();
+            for (opcodes) |opcode| result = result.add(self.op(opcode));
+            return result;
+        }
+        pub inline fn byte(self: Self, word: L.Word, index: usize) F {
+            return self.m[L.byte(word, index)];
+        }
+        pub inline fn bit(self: Self, word: L.Word, index: usize) F {
+            return self.m[L.bit(word, index)];
+        }
+        pub inline fn carry(self: Self, kind: L.Carry, index: usize) F {
+            return self.m[L.carry(kind, index)];
+        }
+    };
+}
+pub fn SecureFor(comptime F: type) type {
+    if (F == Q) return Q;
+    if (F == PackedBase or F == PackedSecure) return PackedSecure;
+    @compileError("unsupported RV64 arithmetic lane");
+}
+pub const secureTypeFor = SecureFor;
+pub inline fn qFor(comptime F: type, value: u32) F {
+    if (F == Q) return q(value);
+    if (F == PackedBase) return PackedBase.fromCanonical(value);
+    if (F == PackedSecure) return PackedSecure.splat(q(value));
+    @compileError("unsupported RV64 arithmetic lane");
+}
+pub inline fn liftFor(comptime F: type, value: F) SecureFor(F) {
+    if (F == Q or F == PackedSecure) return value;
+    return PackedSecure.fromBase(value);
+}
+pub inline fn splatFor(comptime F: type, value: Q) SecureFor(F) {
+    if (F == Q) return value;
+    return PackedSecure.splat(value);
+}
+pub inline fn mulBaseFor(comptime F: type, secure: SecureFor(F), base: F) SecureFor(F) {
+    if (F == PackedBase) return secure.mulBase(base);
+    return secure.mul(base);
+}
+pub inline fn secureFromCoordinatesFor(comptime F: type, values: [4]F) SecureFor(F) {
+    if (F == Q) return Q.fromPartialEvals(values);
+    if (F == PackedBase) return PackedSecure.fromCoordinates(values);
+    return PackedSecure.fromPartialEvals(values);
+}
+pub inline fn secureFor(comptime F: type, coordinates: []const F, index: usize) SecureFor(F) {
+    return secureFromCoordinatesFor(F, coordinates[index..][0..4].*);
+}
+pub inline fn denominatorFor(comptime F: type, offset: Q, coefficients: []const Q, tuple: []const F, comptime subtract: bool) SecureFor(F) {
+    std.debug.assert(coefficients.len == tuple.len);
+    var result = splatFor(F, offset);
+    for (coefficients, tuple) |coefficient, value| {
+        const term = mulBaseFor(F, splatFor(F, coefficient), value);
+        result = if (subtract) result.sub(term) else result.add(term);
+    }
+    return result;
+}
+pub fn SinkFor(comptime F: type) type {
+    if (F == Q) return Sink;
+    if (F == PackedBase or F == PackedSecure) return PackedSink;
+    @compileError("unsupported RV64 arithmetic lane");
+}
+pub fn WeightedAccumulatorFor(comptime F: type) type {
+    if (F == Q) return WeightedAccumulator;
+    if (F == PackedBase or F == PackedSecure) return PackedWeightedAccumulator;
+    @compileError("unsupported RV64 arithmetic lane");
+}
+pub const PackedWeightedAccumulator = struct {
+    powers: []const Q,
+    accumulation: PackedSecure = PackedSecure.zero(),
+};
+pub const PackedSink = struct {
+    values: ?[]PackedSecure = null,
+    count: usize = 0,
+    weighted_accumulator: ?*PackedWeightedAccumulator = null,
+    scale: ?PackedSecure = null,
+    pub inline fn zeros(self: *PackedSink, count: usize) void {
+        if (self.values) |values| @memset(values[self.count..][0..count], PackedSecure.zero());
+        self.count += count;
+    }
+    /// Mixed base/secure equations share one emission counter and one reverse
+    /// random-power sequence. Base residuals never perform a secure product.
+    pub inline fn emit(self: *PackedSink, value: anytype) void {
+        @setEvalBranchQuota(1_000_000);
+        const F = @TypeOf(value);
+        if (F != PackedBase and F != PackedSecure) @compileError("packed sink requires a packed base or secure residual");
+        if (self.values) |values| values[self.count] = liftFor(F, value);
+        if (self.weighted_accumulator) |accumulator| {
+            std.debug.assert(self.count < accumulator.powers.len);
+            const power = PackedSecure.splat(accumulator.powers[accumulator.powers.len - 1 - self.count]);
+            const weighted = if (self.scale) |scale| power.mul(mulBaseFor(F, scale, value)) else mulBaseFor(F, power, value);
+            accumulator.accumulation = accumulator.accumulation.add(weighted);
+        }
+        self.count += 1;
+    }
+};
+pub inline fn booleanFor(comptime F: type, out: *SinkFor(F), value: F) void {
+    out.emit(value.mul(value.sub(F.one())));
+}
+
 /// A domain component borrows its already assigned ascending random powers.
 /// Emission consumes them in reverse order, exactly matching Horner weights.
 pub const WeightedAccumulator = struct {

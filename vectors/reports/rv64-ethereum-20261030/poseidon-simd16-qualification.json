@@ -1,0 +1,46 @@
+{
+  "schema": "rv64-poseidon-simd16-v1",
+  "status": "Focused ReleaseSafe and ReleaseFast PASS; shared/RV32 default scalar unchanged; RV64 production activation and whole-job proof/performance pending",
+  "layering": "Concrete16lane math moved to neutral frontend air/packed_fields16.zig; RV64aliases denote identical types. Existing native core packwidth and field kernels untouched.",
+  "dispatch": "Shared degree3 adapter enable_simd_domain defaultsFALSE. RV64RAM.Components not opted in until focused Safe/Fast and wholeproof parity gates. Existing shared/RV32 scalar dispatch remains default.",
+  "authority": "Unchanged universal evaluateGeneric and entriesGeneric feed directBase constraints and mixed secure LogUp; GenericQ wrapper delegates same mixed authority. Shared entry/relation optional SecureField/toSecure/fromBaseScalar trait handles tuple coefficients without dense303QM31 main inflation.",
+  "geometry": {
+    "universal_main": 303,
+    "fixed": 1,
+    "interaction": 8,
+    "direct_constraints": 288,
+    "logup_constraints": 2,
+    "quotient_eval_size": "2n",
+    "maximum_degree": 3,
+    "protocol": "Unchanged source/fixed roots, semantic identity, degree, masks, statement, challenges, claims, residual order and proof format. Build-source provenance changes and is distinct from semantic identity."
+  },
+  "ownership": "Reuse existing prepared source buffers, State, resource stack certificate1MiB, static bounded worker ranges, taskpool, cancellation, failure drain and deinit; no new domain-wide allocation. Packet-local main/direct arrays are bounded stack storage under existing1MiB admission.",
+  "source": [
+    "src/frontends/riscv/air/packed_fields16.zig",
+    "src/frontends/riscv/rv64/air/packed_fields.zig",
+    "src/frontends/riscv/air/logup_equations.zig",
+    "src/frontends/riscv/air/relation_challenges.zig",
+    "src/frontends/riscv/air/lookups/entry.zig",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_degree3_schedule.zig",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_matrix.zig",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_equations_v1.zig",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_degree3_v1.zig",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_degree3_component.zig"
+  ],
+  "performance": {
+    "measured": false,
+    "claim": "None"
+  },
+  "gates_passed": [
+    "All288direct+2LogUp residuals and weighted preparedpacket equal16scalar arbitraryBase rows",
+    "Arbitrary extension/OODS polynomial residual parity and all12relation arities",
+    "Borrowed domain additive masks/halos/partial3worker ranges and actual1/3/8/16joined workers; both inverse halves checked",
+    "Native complete scalar/SIMD proof exact bytes with fresh scalar receiver; claim mutation rejection. Unitq3/P0 profile, no security-strength claim."
+  ],
+  "gate_commands": [
+    "zig build test-riscv64-poseidon-simd -Doptimize=ReleaseSafe",
+    "zig build test-riscv64-poseidon-simd -Doptimize=ReleaseFast"
+  ],
+  "test_harness_correction": "Initial worker test incorrectly waited twice on a single-use std.WaitGroup; fixed with joined guard. Production drain unchanged; clean full Safe and Fast gates passed afterward.",
+  "default_guard": "Shared enable_simd_domain=false verified; unsupported narrow layout explicit SIMD request rejects UnsupportedPoseidonSimdDomain."
+}

@@ -1,0 +1,2423 @@
+{
+  "schema": "rv64-ethereum-isolated-handoff-simd-v1",
+  "status": "complete_native_chain_fresh_receiver_pass",
+  "block": 24628607,
+  "scope": "Pinned stateless execution guest, not OP derivation/consensus; 51 native batch proofs plus terminal, not recursive aggregation.",
+  "benchmark": {
+    "isolated_single_producer_invocation": true,
+    "resumed": false,
+    "workers": 16,
+    "host": "Mac17,7, 64GiB, macOS",
+    "producer_wall_seconds": 1234.76,
+    "producer_max_rss_bytes": 36591828992,
+    "producer_peak_footprint_bytes": 36629246696,
+    "receiver_wall_seconds": 13.66,
+    "receiver_max_rss_bytes": 3472146432,
+    "receiver_setup_seconds": 12.180917545,
+    "receiver_physical_verify_seconds": 0.87537912,
+    "comparison_caveat": "Sequential isolated candidate observations; no material whole-job improvement vs1225.28s baseline despite5.09x Kbridgekernel improvement. Difference+.774% is not statisticallyqualifiedregression orspeedup."
+  },
+  "producer": {
+    "schema": "rv64-ethereum-authenticated-execution-v1",
+    "completed": true,
+    "full_block_proof_verified": false,
+    "fresh_process_receiver_required": true,
+    "verified_batches": 51,
+    "instructions": 213659488,
+    "calls": [
+      32835,
+      24960,
+      19968
+    ],
+    "initial_root": [
+      391236901,
+      1055370411,
+      355274644,
+      1791797222,
+      1697945852,
+      710763478,
+      599491582,
+      195548550,
+      1155893941
+    ],
+    "final_root": [
+      75517393,
+      238413876,
+      1295184721,
+      1967043464,
+      1889038314,
+      328984544,
+      1874489616,
+      684278147,
+      1702762391
+    ],
+    "initial_pc": 1024,
+    "final_pc": 17308,
+    "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "proof_bytes": 150876796,
+    "immutable_setup_ns": 533293583,
+    "terminal_ns": 118868666,
+    "total_ns": 1234412772958,
+    "recursive_aggregation": false,
+    "resumed": false,
+    "resume_ns": 0,
+    "workers": 16
+  },
+  "fresh_receiver": {
+    "status": "ethereum_execution_proof_verified",
+    "full_block_proof_verified": true,
+    "batches": 51,
+    "instructions": 213659488,
+    "calls": [
+      32835,
+      24960,
+      19968
+    ],
+    "final_root": [
+      75517393,
+      238413876,
+      1295184721,
+      1967043464,
+      1889038314,
+      328984544,
+      1874489616,
+      684278147,
+      1702762391
+    ],
+    "final_pc": 17308,
+    "final_registers": [
+      0,
+      17292,
+      33547472,
+      33556480,
+      0,
+      2533359616,
+      2192356,
+      23552,
+      1,
+      43,
+      12583820,
+      12583824,
+      0,
+      12582963,
+      20,
+      40,
+      35233488,
+      257,
+      36575136,
+      33554016,
+      24,
+      33647488,
+      33553992,
+      6,
+      24,
+      33549560,
+      20,
+      33551672,
+      7274496,
+      2181038080,
+      2952790016,
+      0
+    ],
+    "setup_ns": 12180917545,
+    "verify_ns": 875379120,
+    "proof_bytes": 150876796,
+    "verifier_cache": {
+      "hits": 15,
+      "misses": 36,
+      "entries": 8,
+      "retained_bytes": 345960,
+      "peak_retained_bytes": 391296,
+      "cold_setup_ns": 12180917545
+    }
+  },
+  "batch_timer_totals_seconds": {
+    "native_ns": 7.096355461,
+    "openings_ns": 0.430256125,
+    "ram_witness_ns": 29.806915749,
+    "setup_ns": 18.460431292,
+    "cpu_witness_ns": 99.453168542,
+    "prove_ns": 1075.984685665,
+    "receiver_setup_ns": 0.0,
+    "encode_ns": 0.154703129,
+    "verify_ns": 1.563145125,
+    "write_ns": 0.144435456,
+    "cache_publish_ns": 0.006575667,
+    "total_after_native_ns": 1226.004539999
+  },
+  "stage_intervals_seconds": {
+    "composition_evaluation": 381.138501,
+    "cpu_coset_fft": 196.1333760000001,
+    "authenticated_interaction": 158.01221099999998,
+    "cpu_constraint_rows": 143.859429,
+    "fri_quotient_build_and_commit": 119.692092,
+    "trace_decommit": 99.56313800000002,
+    "cpu_interaction": 53.77874300000001,
+    "sampled_value_evaluation": 44.259887000000006,
+    "arithmetic_interaction": 32.756397,
+    "secp_interaction": 32.703365999999995,
+    "secp_constraint_rows": 20.469476000000004,
+    "range_rom_interaction": 14.048295,
+    "ram_interaction": 13.253353,
+    "keccak_interaction": 11.451722000000004,
+    "secp_coset_fft": 9.829226000000002,
+    "merkle_commit": 9.795710000000001,
+    "keccak_constraint_rows": 8.454026999999988,
+    "keccak_interaction_prefix": 7.343140999999999,
+    "composition_commit": 6.645275,
+    "proof_of_work": 6.040644000000001,
+    "keccak_coset_fft": 4.032445000000002,
+    "composition_interpolate_and_split": 2.846695,
+    "keccak_bridge_rows": 2.350292999999999,
+    "keccak_bridge_fft": 1.4228879999999997,
+    "secp_bridge_rows": 0.8947269999999996,
+    "secp_bridge_fft": 0.46068699999999996,
+    "fri_decommit": 0.29203300000000004,
+    "keccak_interaction_correction": 0.07588400000000001,
+    "constraint_check_and_assembly": 0.031513,
+    "sampled_value_channel_mix": 0.030437999999999993,
+    "oods_point_and_mask_points": 0.030376000000000004,
+    "keccak_interaction_dictionary": 0.008038999999999998,
+    "composition_trace_extract": 0.0016879999999999998,
+    "division_provider_interaction": 0.0009310000000000002,
+    "draw_random_coeff": 2.8000000000000006e-05
+  },
+  "stage_caveat": "Nested and parallel component intervals overlap; never add to derive elapsed time. Private component recorders adopted after joins.",
+  "source_cells_sum": {
+    "fixed": 2376147808,
+    "main": 88235897216,
+    "interaction": 36169680448
+  },
+  "source_cell_caveat": "Physical committed source cells summed across sequential proofs; not peak expanded evaluations, FFT/tree/intermediate memory.",
+  "frozen_tool_manifest": {
+    "schema": "rv64-handoff-simd-tool-freeze-v1",
+    "source_changes_during_build": [],
+    "tools": {
+      "rv64-ethereum-proof": {
+        "sha256": "631c0f0a3e91ef5ffea3d4ddea47202c65c1a881b2f7f2ee0ee8e5314cb6f79d",
+        "bytes": 5561216
+      },
+      "rv64-ethereum-reprove": {
+        "sha256": "2f28d160efa797f365835066433d5be46dab169782c6221357824f290460ba80",
+        "bytes": 5505640
+      },
+      "rv64-csp-full": {
+        "sha256": "4798ef3217acf938140ac0e5f759189b42a72575f1ba6fd5af56cf1955dba9dc",
+        "bytes": 2951440
+      },
+      "rv64-full-verify": {
+        "sha256": "2895c88c003639968d33ed39e0ed167c43f23f60159972c880abdb5695007664",
+        "bytes": 1103920
+      }
+    }
+  },
+  "protocol": {
+    "queries": 70,
+    "pow_bits": 26,
+    "nominal_per_proof_bits": 96,
+    "nominal_52_proof_union_bound_bits": 90.3,
+    "foreign_product_union_bound_bits": 98.7,
+    "security_audit_complete": false,
+    "security_caveat": "Nominal accounting only, not a demonstrated128bit system or independent cryptographic audit."
+  },
+  "features": {
+    "cpu_simd16": true,
+    "keccak_permutation_simd16": true,
+    "secp_product_linear_bridge_simd16": true,
+    "keccak_ram_bridge_simd16": true,
+    "ram_poseidon_simd16": true,
+    "control": "limbs24_v2",
+    "state": "cyclic_canonical_v3",
+    "shared_main_arena": true,
+    "private_component_profiles": true,
+    "diagnostic_constraint_replay": false,
+    "clock_bits": 24,
+    "batch_step_cap": 4194303,
+    "native_worker_seam": true,
+    "detached_worker_cli_used": false,
+    "native_sparse_frontier_cli_used": false,
+    "native_lookup_tuple_gather": false,
+    "experimental_quartet_policy": false
+  },
+  "artifacts_directory": "interop_artifacts/rv64-ethereum-block-24628607-handoff-simd-v1",
+  "request_sha256": "e51ec20be5c32ec709697f66cfc4c4430821e8d46e2c255285041861683f9092",
+  "summary_sha256": "ca3c08724d240e412c199b11a84b5512ce8a62b1d676d50dce814c5de12e9971",
+  "batch_metrics_sha256": "6b16f3cb823b920efcaeb55ea73209c23d2cb7c7ac7052481f7d72ea411b5445",
+  "terminal_proof": {
+    "bytes": 335820,
+    "sha256": "429ef7f161917759bda7107389529174761e4cd5e209f9537afd2f37f834c3a7"
+  },
+  "batches": [
+    {
+      "index": 0,
+      "first_step": 0,
+      "instructions": 4194303,
+      "proof_bytes": 1025904,
+      "proof_sha256": "f7a52b5cd249aaf726c4af193cc77407e900b2447782d32d6d92703c5d4fedfa",
+      "receipt_sha256": "2c55f7298ea4c5b0b8e91a89b12b1dc393e6cfda671fa081bcbd8442a57bae7f",
+      "stages_sha256": "40f320fa87eaf9ce031ab86508f8a902bf9c427629b3e29ad5a1e5d5935c43d6",
+      "source_cells": {
+        "fixed": 59287632,
+        "main": 2001833168,
+        "interaction": 712894592
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 13,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 16843,
+        "common_chunks": 11085,
+        "edge_chunks": 1,
+        "nodes": 17021,
+        "sides": 85,
+        "edge_permits": 58
+      },
+      "seconds": {
+        "native_ns": 0.128949042,
+        "openings_ns": 0.061526167,
+        "ram_witness_ns": 3.800116875,
+        "setup_ns": 0.400065042,
+        "cpu_witness_ns": 1.4050745,
+        "prove_ns": 22.783368917,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000834291,
+        "verify_ns": 0.019039834,
+        "write_ns": 0.001068041,
+        "cache_publish_ns": 0.000723709,
+        "total_after_native_ns": 28.471821667
+      }
+    },
+    {
+      "index": 1,
+      "first_step": 4194303,
+      "instructions": 4194303,
+      "proof_bytes": 1031152,
+      "proof_sha256": "0aa2fe2113f1ea696b5c005c4bbd2e025e429460b7e2584a0e994aea3ce54e23",
+      "receipt_sha256": "5941c2f2c1e8e4e86bb76670b4a6ea7bd3dae95151b409045ea7ac553da3a512",
+      "stages_sha256": "c90c2bff06e3e2278acbeff33e3280fb5eaae55373d360f2c3291b86f1e7548e",
+      "source_cells": {
+        "fixed": 42435136,
+        "main": 1619327088,
+        "interaction": 630888000
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 12,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 169,
+        "common_chunks": 104,
+        "edge_chunks": 1,
+        "nodes": 437,
+        "sides": 159,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.10264325,
+        "openings_ns": 0.003002166,
+        "ram_witness_ns": 0.019554833,
+        "setup_ns": 0.307042083,
+        "cpu_witness_ns": 1.371798709,
+        "prove_ns": 17.515837333,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000914792,
+        "verify_ns": 0.019406875,
+        "write_ns": 0.001390875,
+        "cache_publish_ns": 1.8333e-05,
+        "total_after_native_ns": 19.238970083
+      }
+    },
+    {
+      "index": 2,
+      "first_step": 8388606,
+      "instructions": 4194303,
+      "proof_bytes": 1024464,
+      "proof_sha256": "89fe250ba88e2ce1a7b239f71bb0823ded7ec6b9ee4d5ae7ca56f0ff510f454e",
+      "receipt_sha256": "2ce6d70ca4b324e8eb37c956ac9b2f769d69657cd1fa436f65afe74ab950edb7",
+      "stages_sha256": "3c69047769dffdec21b4b6f59c96e5a38db3d117847eb2d6c2c73f08cc686da3",
+      "source_cells": {
+        "fixed": 42560832,
+        "main": 1622129776,
+        "interaction": 631249984
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 11,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 232,
+        "common_chunks": 137,
+        "edge_chunks": 1,
+        "nodes": 509,
+        "sides": 168,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.108055084,
+        "openings_ns": 0.003280917,
+        "ram_witness_ns": 0.034879625,
+        "setup_ns": 0.322040167,
+        "cpu_witness_ns": 1.379165041,
+        "prove_ns": 17.912643417,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000887,
+        "verify_ns": 0.0196645,
+        "write_ns": 0.003859,
+        "cache_publish_ns": 2.1958e-05,
+        "total_after_native_ns": 19.676445875
+      }
+    },
+    {
+      "index": 3,
+      "first_step": 12582909,
+      "instructions": 4194303,
+      "proof_bytes": 2906656,
+      "proof_sha256": "0c23d33c1beab795898be8b7aeb8842e9e8538697d3be70a7a31e5c4eee80353",
+      "receipt_sha256": "5b7fc2aee296357bcd23a2c3c95d9366943bc4d9c815692e1a4de6955a91025e",
+      "stages_sha256": "7cefc0933c65823f704dff5b457019b6fc8163328dcd3ca0cdfa739f0cfaa8e1",
+      "source_cells": {
+        "fixed": 43068832,
+        "main": 1636715600,
+        "interaction": 643965248
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 12,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 518,
+        "common_chunks": 313,
+        "edge_chunks": 1,
+        "nodes": 840,
+        "sides": 175,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.110962292,
+        "openings_ns": 0.003965625,
+        "ram_witness_ns": 0.084062792,
+        "setup_ns": 0.362187583,
+        "cpu_witness_ns": 1.494538625,
+        "prove_ns": 19.123340875,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003133458,
+        "verify_ns": 0.03191775,
+        "write_ns": 0.002411,
+        "cache_publish_ns": 3.6208e-05,
+        "total_after_native_ns": 21.105598458
+      }
+    },
+    {
+      "index": 4,
+      "first_step": 16777212,
+      "instructions": 4194303,
+      "proof_bytes": 3359072,
+      "proof_sha256": "f01200be229176615d784953944d6cf58388befa0e53c6c8122eaafe6e90049f",
+      "receipt_sha256": "24fb7dd469ca031d4e22b9178046144f1bc2781f9e67f221afb6612f13cc7445",
+      "stages_sha256": "aa2d817a216ad6c8db0dd009cba24540f9f07787cf3f2bc3257e5e779b310316",
+      "source_cells": {
+        "fixed": 45790528,
+        "main": 1696377456,
+        "interaction": 707315776
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 12,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 1448,
+        "common_chunks": 856,
+        "edge_chunks": 1,
+        "nodes": 1821,
+        "sides": 197,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.156065042,
+        "openings_ns": 0.0072445,
+        "ram_witness_ns": 0.21502475,
+        "setup_ns": 0.363554208,
+        "cpu_witness_ns": 1.95789025,
+        "prove_ns": 22.226234958,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003730792,
+        "verify_ns": 0.034649292,
+        "write_ns": 0.002811458,
+        "cache_publish_ns": 7.1708e-05,
+        "total_after_native_ns": 24.811216416
+      }
+    },
+    {
+      "index": 5,
+      "first_step": 20971515,
+      "instructions": 4194303,
+      "proof_bytes": 3358976,
+      "proof_sha256": "656854ed24b391b7af29fd89812e4215a1ccaa4c64ff60aa47764adb51df104e",
+      "receipt_sha256": "199cc92b65c359e6bd8fdd03db43075754ced0977ed737c7369a4a7241e60de8",
+      "stages_sha256": "676dfec6730e7fcbe55a7c26cc2624909c59c4048386b90fb3875511c92fc443",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 122,
+        "common_chunks": 74,
+        "edge_chunks": 0,
+        "nodes": 379,
+        "sides": 146,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.1620265,
+        "openings_ns": 0.003238833,
+        "ram_witness_ns": 0.018743375,
+        "setup_ns": 0.342690833,
+        "cpu_witness_ns": 1.954908,
+        "prove_ns": 22.093358167,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003763875,
+        "verify_ns": 0.03401625,
+        "write_ns": 0.002616916,
+        "cache_publish_ns": 1.4667e-05,
+        "total_after_native_ns": 24.453355458
+      }
+    },
+    {
+      "index": 6,
+      "first_step": 25165818,
+      "instructions": 4194303,
+      "proof_bytes": 3368976,
+      "proof_sha256": "9e1aef4d1204748d367cfe2a013722fb47f6ba457262135a44ffe2e26d3614d1",
+      "receipt_sha256": "7545d31358723bf002f94e2366d2f36297e8f40d5c57a73e33c413cffe237ee1",
+      "stages_sha256": "9f321087217763997db9074675b4f590f5ca2ef27306e82b6454d3659e4d9a84",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 127,
+        "common_chunks": 81,
+        "edge_chunks": 0,
+        "nodes": 404,
+        "sides": 153,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.160444917,
+        "openings_ns": 0.003240458,
+        "ram_witness_ns": 0.020458958,
+        "setup_ns": 0.362837833,
+        "cpu_witness_ns": 1.925725334,
+        "prove_ns": 22.391619708,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.0034965,
+        "verify_ns": 0.034269375,
+        "write_ns": 0.002520208,
+        "cache_publish_ns": 1.6709e-05,
+        "total_after_native_ns": 24.744189499
+      }
+    },
+    {
+      "index": 7,
+      "first_step": 29360121,
+      "instructions": 4194303,
+      "proof_bytes": 3356928,
+      "proof_sha256": "ef23011cfbce9c9628048a305f9ee0d531b9c55554b37609ac99206fb9ba05f8",
+      "receipt_sha256": "c45990e94513b88cb33c0a90a44c35b510f93857b1bf14f9434d1127d991ee70",
+      "stages_sha256": "4d32b2557fbe2bf365a2a09405f26eab986d9bc19d9816175b1c01a1208a28d1",
+      "source_cells": {
+        "fixed": 44732656,
+        "main": 1668272096,
+        "interaction": 693343360
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 126,
+        "common_chunks": 81,
+        "edge_chunks": 0,
+        "nodes": 407,
+        "sides": 153,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.160496,
+        "openings_ns": 0.003285208,
+        "ram_witness_ns": 0.019731209,
+        "setup_ns": 0.350196416,
+        "cpu_witness_ns": 1.967483,
+        "prove_ns": 22.0445585,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003488875,
+        "verify_ns": 0.034207958,
+        "write_ns": 0.002738375,
+        "cache_publish_ns": 1.7542e-05,
+        "total_after_native_ns": 24.425711624
+      }
+    },
+    {
+      "index": 8,
+      "first_step": 33554424,
+      "instructions": 4194303,
+      "proof_bytes": 3356096,
+      "proof_sha256": "26aded2e8b3693332bbdec3061f6dda825efcaa7d50719088f1949849ba6d939",
+      "receipt_sha256": "6a362283b49d3ca38b24e563b8796712ebda03d71e398de57402d1726827d931",
+      "stages_sha256": "b6c4f739801c9defba232e4aa0546b3e8e7d7d2b1b4a83e9406d1e1994ff0a4a",
+      "source_cells": {
+        "fixed": 44732656,
+        "main": 1668272096,
+        "interaction": 693343360
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 143,
+        "common_chunks": 87,
+        "edge_chunks": 0,
+        "nodes": 437,
+        "sides": 169,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.159891958,
+        "openings_ns": 0.003189416,
+        "ram_witness_ns": 0.020802708,
+        "setup_ns": 0.359308167,
+        "cpu_witness_ns": 1.9489235,
+        "prove_ns": 22.007028625,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003543958,
+        "verify_ns": 0.034582417,
+        "write_ns": 0.002813333,
+        "cache_publish_ns": 3.8959e-05,
+        "total_after_native_ns": 24.380235541
+      }
+    },
+    {
+      "index": 9,
+      "first_step": 37748727,
+      "instructions": 4194303,
+      "proof_bytes": 3370000,
+      "proof_sha256": "f257e9d7e9734d7259f029f38024d8b78c9e9d150da35652f18df1826f11d1f4",
+      "receipt_sha256": "995dc4c2a21a07fe74bb09efd38b751b646333507b39b422469b033e050a79da",
+      "stages_sha256": "a3ae335bf1fab821b6550b5563b095ba625c914987863f8fe3000b137c781f84",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 117,
+        "common_chunks": 72,
+        "edge_chunks": 0,
+        "nodes": 367,
+        "sides": 139,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.159966583,
+        "openings_ns": 0.003218083,
+        "ram_witness_ns": 0.019226,
+        "setup_ns": 0.353438542,
+        "cpu_witness_ns": 1.936500667,
+        "prove_ns": 21.832221458,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003506458,
+        "verify_ns": 0.034489417,
+        "write_ns": 0.002753292,
+        "cache_publish_ns": 1.5041e-05,
+        "total_after_native_ns": 24.185373375
+      }
+    },
+    {
+      "index": 10,
+      "first_step": 41943030,
+      "instructions": 4194303,
+      "proof_bytes": 3361616,
+      "proof_sha256": "411792fc503f228188508661db1d704e48738fd80ee5006e7be66851442a8561",
+      "receipt_sha256": "bb0f3e29470fc0e8a911461b2d82ab952138504cc87107290c12f8a404bfeb57",
+      "stages_sha256": "7a05a2c95de8a983d10cc41caae79e7e3db055187149e59f402abf5a712d4633",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 122,
+        "common_chunks": 76,
+        "edge_chunks": 0,
+        "nodes": 386,
+        "sides": 148,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.159595416,
+        "openings_ns": 0.003171792,
+        "ram_witness_ns": 0.019568709,
+        "setup_ns": 0.3678665,
+        "cpu_witness_ns": 1.92753525,
+        "prove_ns": 21.735307625,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003866458,
+        "verify_ns": 0.034021625,
+        "write_ns": 0.002802583,
+        "cache_publish_ns": 1.5292e-05,
+        "total_after_native_ns": 24.094160251
+      }
+    },
+    {
+      "index": 11,
+      "first_step": 46137333,
+      "instructions": 4194303,
+      "proof_bytes": 3363232,
+      "proof_sha256": "ad0047043d0d65bf7feaee7867c050e04bdd33c548141a4f4fa29aefc71ea78e",
+      "receipt_sha256": "fb01b9059e08c5e5eb6ede6045bbf306786bc853242148dbe6e3d724d207bce8",
+      "stages_sha256": "83a516b17e4297f4307249ebe4aeaad9c9e6fb0f8efdbf6fc457e562b3d25f51",
+      "source_cells": {
+        "fixed": 44732656,
+        "main": 1668272096,
+        "interaction": 693343360
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 127,
+        "common_chunks": 83,
+        "edge_chunks": 0,
+        "nodes": 382,
+        "sides": 143,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.160758,
+        "openings_ns": 0.003213208,
+        "ram_witness_ns": 0.019859791,
+        "setup_ns": 0.3478705,
+        "cpu_witness_ns": 1.9165635,
+        "prove_ns": 21.7603485,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003498125,
+        "verify_ns": 0.03401725,
+        "write_ns": 0.002544792,
+        "cache_publish_ns": 1.6583e-05,
+        "total_after_native_ns": 24.087936625
+      }
+    },
+    {
+      "index": 12,
+      "first_step": 50331636,
+      "instructions": 4194303,
+      "proof_bytes": 3360112,
+      "proof_sha256": "c8a1b50542b8722d583b4b6b1397da01d99c85936da55c6386a0b25eafbe2587",
+      "receipt_sha256": "080f06e34e86e9a309203b8c13300ad8fe0c6c67552472688ba4fab6ce75dcd4",
+      "stages_sha256": "339c333a5c04549ac7a123b5016dffde6de4cea967baa83debcae0a805ad23e8",
+      "source_cells": {
+        "fixed": 44754160,
+        "main": 1669315040,
+        "interaction": 694733952
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 10,
+        "bridge_log": 11
+      },
+      "ram": {
+        "hashes": 168,
+        "common_chunks": 109,
+        "edge_chunks": 0,
+        "nodes": 443,
+        "sides": 156,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.159776417,
+        "openings_ns": 0.003541834,
+        "ram_witness_ns": 0.021951,
+        "setup_ns": 0.357280291,
+        "cpu_witness_ns": 1.955832375,
+        "prove_ns": 21.759281042,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003595667,
+        "verify_ns": 0.033753291,
+        "write_ns": 0.002439834,
+        "cache_publish_ns": 1.8708e-05,
+        "total_after_native_ns": 24.137698709
+      }
+    },
+    {
+      "index": 13,
+      "first_step": 54525939,
+      "instructions": 4194303,
+      "proof_bytes": 3361776,
+      "proof_sha256": "5cb10840470b5ae6b425ab7d6123df3c11e5712077f0233ceec2abec0c77d464",
+      "receipt_sha256": "315730f6a12dfb62b3dd3ea133e0ab2413d202b7911216cbabf41bcf4b8a013c",
+      "stages_sha256": "8470ebdfd49781be88ce9984cdc8ed2ba177f680e31da85f1cbe9ee7977ff32b",
+      "source_cells": {
+        "fixed": 44732656,
+        "main": 1668272096,
+        "interaction": 693343360
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 125,
+        "common_chunks": 76,
+        "edge_chunks": 0,
+        "nodes": 371,
+        "sides": 140,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.158820875,
+        "openings_ns": 0.003129333,
+        "ram_witness_ns": 0.019547666,
+        "setup_ns": 0.35512425,
+        "cpu_witness_ns": 1.972343417,
+        "prove_ns": 22.080946708,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003560459,
+        "verify_ns": 0.034521791,
+        "write_ns": 0.002404417,
+        "cache_publish_ns": 1.7042e-05,
+        "total_after_native_ns": 24.471599458
+      }
+    },
+    {
+      "index": 14,
+      "first_step": 58720242,
+      "instructions": 4194303,
+      "proof_bytes": 3361968,
+      "proof_sha256": "045cf7dfa560ce35b50cd516465784de69ea691b7b656b521658eb59a2392a1d",
+      "receipt_sha256": "96d81754242604e1e3e894a96fdbe485ef0b1c0d2c669815dd14c6f8b3cb9eda",
+      "stages_sha256": "68b83a7723d6de8b5a124c421141becd7a1bb964febb234b0ec0360c33f9bbdb",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 115,
+        "common_chunks": 73,
+        "edge_chunks": 0,
+        "nodes": 339,
+        "sides": 138,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.161432625,
+        "openings_ns": 0.003159917,
+        "ram_witness_ns": 0.019243042,
+        "setup_ns": 0.361665667,
+        "cpu_witness_ns": 2.031113916,
+        "prove_ns": 21.91776975,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003659792,
+        "verify_ns": 0.033557875,
+        "write_ns": 0.002468875,
+        "cache_publish_ns": 1.3375e-05,
+        "total_after_native_ns": 24.372656667
+      }
+    },
+    {
+      "index": 15,
+      "first_step": 62914545,
+      "instructions": 4194303,
+      "proof_bytes": 3355312,
+      "proof_sha256": "0610834b5d7d868f313bd53ee5900716f3e209d8f97350580531d4428875401f",
+      "receipt_sha256": "73fc44f4e01d2ef6b37c653e49c5901f95a0b3df082442bb621c472365df99c2",
+      "stages_sha256": "b44f7877792da079cf63015c7bcd2e9defab42d8fb55e27fda1e32b764339237",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 121,
+        "common_chunks": 73,
+        "edge_chunks": 0,
+        "nodes": 377,
+        "sides": 152,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.158849667,
+        "openings_ns": 0.003122667,
+        "ram_witness_ns": 0.019297917,
+        "setup_ns": 0.345212,
+        "cpu_witness_ns": 1.916033542,
+        "prove_ns": 21.6506765,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003940333,
+        "verify_ns": 0.033660125,
+        "write_ns": 0.002535417,
+        "cache_publish_ns": 1.5166e-05,
+        "total_after_native_ns": 23.974498084
+      }
+    },
+    {
+      "index": 16,
+      "first_step": 67108848,
+      "instructions": 4194303,
+      "proof_bytes": 3368512,
+      "proof_sha256": "548ff127f5ed0685f67a114dcd6f8a800b79cb3340daef8bcbf72b4c412ef2dd",
+      "receipt_sha256": "5afa8987eb270057e1bad9aa4f93ce8deeb6f97fe61893f64b810051979ebd91",
+      "stages_sha256": "7cbaf2b50226560db49ca42d8d4e437469af8e4a8b38d589116b133dcbf73a22",
+      "source_cells": {
+        "fixed": 44720624,
+        "main": 1667736032,
+        "interaction": 692632704
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 8
+      },
+      "ram": {
+        "hashes": 110,
+        "common_chunks": 71,
+        "edge_chunks": 0,
+        "nodes": 356,
+        "sides": 137,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.157016083,
+        "openings_ns": 0.003140375,
+        "ram_witness_ns": 0.018146875,
+        "setup_ns": 0.342965959,
+        "cpu_witness_ns": 1.915440083,
+        "prove_ns": 21.665081625,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003609917,
+        "verify_ns": 0.034615208,
+        "write_ns": 0.00278725,
+        "cache_publish_ns": 1.4333e-05,
+        "total_after_native_ns": 23.985806292
+      }
+    },
+    {
+      "index": 17,
+      "first_step": 71303151,
+      "instructions": 4194303,
+      "proof_bytes": 3356576,
+      "proof_sha256": "508cb641f7370fa53acd5b664c8e2ce5f96017b7598012aca343cb8c0906da60",
+      "receipt_sha256": "524afcb3a33011d24a4af97a8057a4dad0d0382c7a35f7f53006fb8941d03e6e",
+      "stages_sha256": "83a41953a01300560759eed1674d221d5132ffb29263f92be622a378fca83996",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 113,
+        "common_chunks": 71,
+        "edge_chunks": 0,
+        "nodes": 347,
+        "sides": 144,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.163505667,
+        "openings_ns": 0.003226708,
+        "ram_witness_ns": 0.018259375,
+        "setup_ns": 0.34337725,
+        "cpu_witness_ns": 1.932804042,
+        "prove_ns": 21.743608916,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003612667,
+        "verify_ns": 0.033688542,
+        "write_ns": 0.002448791,
+        "cache_publish_ns": 1.3584e-05,
+        "total_after_native_ns": 24.081044458
+      }
+    },
+    {
+      "index": 18,
+      "first_step": 75497454,
+      "instructions": 4194303,
+      "proof_bytes": 3360672,
+      "proof_sha256": "9090ece077d80145f60ae05cd021f250abcad1b48b4e91f5b8859f6d2859bca3",
+      "receipt_sha256": "d9913149db4ca3465d62ff0bab4f6dcacb37324eeaacb07ce22e15c86fcdbdfc",
+      "stages_sha256": "4b319494d21848f194af7724d7ffa2094f7276b84674d9cc24dad944f579e41f",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 115,
+        "common_chunks": 73,
+        "edge_chunks": 0,
+        "nodes": 362,
+        "sides": 147,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.158284417,
+        "openings_ns": 0.003124666,
+        "ram_witness_ns": 0.018362042,
+        "setup_ns": 0.343665875,
+        "cpu_witness_ns": 1.962285916,
+        "prove_ns": 21.439411042,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003376333,
+        "verify_ns": 0.033262334,
+        "write_ns": 0.002308541,
+        "cache_publish_ns": 1.4209e-05,
+        "total_after_native_ns": 23.805815458
+      }
+    },
+    {
+      "index": 19,
+      "first_step": 79691757,
+      "instructions": 4194303,
+      "proof_bytes": 3361616,
+      "proof_sha256": "6e20f40723dda96dfa1c6bf132dd742a8dd4f01d9c16cabdb7fe9c224438b219",
+      "receipt_sha256": "851e1f824e9556521298992a5fbcd52d253c7d0dbf0b3cd6788d107f18b81570",
+      "stages_sha256": "beadec4874127f4aede54c0a57ef1ae6157afee1bf46d0392278ffb9216c7d6b",
+      "source_cells": {
+        "fixed": 44749040,
+        "main": 1669256672,
+        "interaction": 694672512
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 10,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 135,
+        "common_chunks": 85,
+        "edge_chunks": 0,
+        "nodes": 377,
+        "sides": 142,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.150825959,
+        "openings_ns": 0.0031105,
+        "ram_witness_ns": 0.01933175,
+        "setup_ns": 0.345001916,
+        "cpu_witness_ns": 1.95281475,
+        "prove_ns": 21.31729775,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003587625,
+        "verify_ns": 0.033288584,
+        "write_ns": 0.002635708,
+        "cache_publish_ns": 1.6042e-05,
+        "total_after_native_ns": 23.677088874
+      }
+    },
+    {
+      "index": 20,
+      "first_step": 83886060,
+      "instructions": 4194303,
+      "proof_bytes": 3357824,
+      "proof_sha256": "b9c433626f03932df2b0f437a98a5944af62d6f57590de8c28d51d37610e47a2",
+      "receipt_sha256": "582b14d561fdc2208d631097cd37533d4f024244bcea242030ba5a8492fbb6cc",
+      "stages_sha256": "1454a223e25678e8a833dce82c71cdd40eae39a002bdcec546671eabfb95ca2c",
+      "source_cells": {
+        "fixed": 44721904,
+        "main": 1667750624,
+        "interaction": 692648064
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 18,
+        "keccak_log": 8,
+        "bridge_log": 9
+      },
+      "ram": {
+        "hashes": 114,
+        "common_chunks": 70,
+        "edge_chunks": 0,
+        "nodes": 351,
+        "sides": 138,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.157723666,
+        "openings_ns": 0.003094375,
+        "ram_witness_ns": 0.018273583,
+        "setup_ns": 0.349626375,
+        "cpu_witness_ns": 1.912270167,
+        "prove_ns": 21.4087105,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003538958,
+        "verify_ns": 0.032684333,
+        "write_ns": 0.002380792,
+        "cache_publish_ns": 1.3833e-05,
+        "total_after_native_ns": 23.730597417
+      }
+    },
+    {
+      "index": 21,
+      "first_step": 88080363,
+      "instructions": 4194303,
+      "proof_bytes": 3707200,
+      "proof_sha256": "ce892fc10dcbf8ecaa270de9a0a6f854f9202c7a06b752a778d010efd8e31bff",
+      "receipt_sha256": "b0ec77cea73ed1b85b031a9c7f15b9b68f4ce88f2a0dee9e712aadba85733df1",
+      "stages_sha256": "917bbf9a5db5e48dfd0192e31679b0c9427d35501de38e8aeffaaea3c8380f06",
+      "source_cells": {
+        "fixed": 48733360,
+        "main": 1833187232,
+        "interaction": 866078848
+      },
+      "geometry": {
+        "division_log": 6,
+        "multiplication_log": 18,
+        "keccak_log": 16,
+        "bridge_log": 17
+      },
+      "ram": {
+        "hashes": 1796,
+        "common_chunks": 1403,
+        "edge_chunks": 0,
+        "nodes": 2189,
+        "sides": 229,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.144207958,
+        "openings_ns": 0.008657375,
+        "ram_witness_ns": 0.387789041,
+        "setup_ns": 0.35315725,
+        "cpu_witness_ns": 3.345132375,
+        "prove_ns": 24.599314334,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003776625,
+        "verify_ns": 0.034556666,
+        "write_ns": 0.002726042,
+        "cache_publish_ns": 5.3083e-05,
+        "total_after_native_ns": 28.735167208
+      }
+    },
+    {
+      "index": 22,
+      "first_step": 92274666,
+      "instructions": 4194303,
+      "proof_bytes": 2564272,
+      "proof_sha256": "e71d73c35aaa084ce02596dbb09126ba7b65812408b17857a976d615f1bce272",
+      "receipt_sha256": "bce79a0dd5161a6a2db6572f359991d6145ce7c2a247a60d9e5e6516ea2dce45",
+      "stages_sha256": "4114026d1a4eab840a986c827408c4dca64d5236949adaa8e43517b5a9a016c7",
+      "source_cells": {
+        "fixed": 52188912,
+        "main": 1981633760,
+        "interaction": 1010433664
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 17,
+        "bridge_log": 18
+      },
+      "ram": {
+        "hashes": 3549,
+        "common_chunks": 2849,
+        "edge_chunks": 0,
+        "nodes": 3933,
+        "sides": 265,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.131362459,
+        "openings_ns": 0.016685667,
+        "ram_witness_ns": 0.819415958,
+        "setup_ns": 0.365688917,
+        "cpu_witness_ns": 5.697705542,
+        "prove_ns": 26.482000666,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002399709,
+        "verify_ns": 0.028083833,
+        "write_ns": 0.0019675,
+        "cache_publish_ns": 7.6958e-05,
+        "total_after_native_ns": 33.41402925
+      }
+    },
+    {
+      "index": 23,
+      "first_step": 96468969,
+      "instructions": 4194303,
+      "proof_bytes": 1032656,
+      "proof_sha256": "0c29344f80cad8450af47eff4ef0409a2c2a947b7df2dbd58d08fc04c1453095",
+      "receipt_sha256": "c98db3d0ccabdde453406a586f5a20c832ffbf05252f16ad2c4848cafac5a059",
+      "stages_sha256": "f195dc1ff7591aea764ebe5a24b9c23b94e51b88d8a71a1c96535750a4ad09e7",
+      "source_cells": {
+        "fixed": 46636272,
+        "main": 1715123936,
+        "interaction": 654577280
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 4188,
+        "common_chunks": 2655,
+        "edge_chunks": 0,
+        "nodes": 5341,
+        "sides": 1036,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.119763875,
+        "openings_ns": 0.01251425,
+        "ram_witness_ns": 0.86825975,
+        "setup_ns": 0.351752708,
+        "cpu_witness_ns": 1.40095025,
+        "prove_ns": 19.061178084,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000846958,
+        "verify_ns": 0.020257792,
+        "write_ns": 0.001414333,
+        "cache_publish_ns": 0.000147917,
+        "total_after_native_ns": 21.717326458
+      }
+    },
+    {
+      "index": 24,
+      "first_step": 100663272,
+      "instructions": 4194303,
+      "proof_bytes": 1030912,
+      "proof_sha256": "ec370153292b55f68d1e33aa8ad834a589d196ed73deb6634e3fc3182488f017",
+      "receipt_sha256": "1e68718e4d608862582677d1fe5ce78d1aa5ae0f4fc771584f062e9ecb852126",
+      "stages_sha256": "142fcd866d7817126a87f23fd25fed9f3c727155fe732cd05d8b85d05e4e92de",
+      "source_cells": {
+        "fixed": 46636272,
+        "main": 1715123936,
+        "interaction": 654577280
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 4213,
+        "common_chunks": 2682,
+        "edge_chunks": 0,
+        "nodes": 5407,
+        "sides": 1067,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.123120625,
+        "openings_ns": 0.012733542,
+        "ram_witness_ns": 0.849680041,
+        "setup_ns": 0.361643542,
+        "cpu_witness_ns": 1.414753167,
+        "prove_ns": 19.084958583,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000875709,
+        "verify_ns": 0.020025083,
+        "write_ns": 0.003754208,
+        "cache_publish_ns": 0.000149875,
+        "total_after_native_ns": 21.748578208
+      }
+    },
+    {
+      "index": 25,
+      "first_step": 104857575,
+      "instructions": 4194303,
+      "proof_bytes": 1026656,
+      "proof_sha256": "3defdddc4b7f4f1ab7ef496305294340a3669945f9b6547c88fb09be15c3e3cb",
+      "receipt_sha256": "43a2ffdee0632fff224af30ab68697056d39d985fe434bd7cb256faa06bc5f58",
+      "stages_sha256": "b6b4f2b34ae1f5903cc73cd458c49577e4b7fb541cb4b977b95f83ff1fe9ceae",
+      "source_cells": {
+        "fixed": 46636272,
+        "main": 1715123936,
+        "interaction": 654577280
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 5,
+        "bridge_log": 5
+      },
+      "ram": {
+        "hashes": 4194,
+        "common_chunks": 2654,
+        "edge_chunks": 0,
+        "nodes": 5367,
+        "sides": 1044,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.12109175,
+        "openings_ns": 0.012853959,
+        "ram_witness_ns": 0.886990833,
+        "setup_ns": 0.347099292,
+        "cpu_witness_ns": 1.427155959,
+        "prove_ns": 19.013432666,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.000849125,
+        "verify_ns": 0.019243417,
+        "write_ns": 0.001360333,
+        "cache_publish_ns": 0.000157125,
+        "total_after_native_ns": 21.709147292
+      }
+    },
+    {
+      "index": 26,
+      "first_step": 109051878,
+      "instructions": 4194303,
+      "proof_bytes": 2906080,
+      "proof_sha256": "5c052b8bd1302aae9238b5141ccce5acdd5310592b1d391c6eed97b051dbbe33",
+      "receipt_sha256": "0e0c1180769f8f0bc7af0ebc3940f4e1add21c8a8f49bb88b86dd6ed4e77e8dd",
+      "stages_sha256": "c82c9b9509fe06edd6c6dfac4c2463eb687d015066b3fae4f3e1e23e063e59c9",
+      "source_cells": {
+        "fixed": 58522560,
+        "main": 2323421424,
+        "interaction": 1366912064
+      },
+      "geometry": {
+        "division_log": 7,
+        "multiplication_log": 15,
+        "keccak_log": 18,
+        "bridge_log": 18
+      },
+      "ram": {
+        "hashes": 6207,
+        "common_chunks": 4874,
+        "edge_chunks": 1,
+        "nodes": 7764,
+        "sides": 1261,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.134224375,
+        "openings_ns": 0.025351542,
+        "ram_witness_ns": 1.641245416,
+        "setup_ns": 0.438800834,
+        "cpu_witness_ns": 6.855818375,
+        "prove_ns": 33.692451834,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002903041,
+        "verify_ns": 0.029280792,
+        "write_ns": 0.013453542,
+        "cache_publish_ns": 0.000179625,
+        "total_after_native_ns": 42.699489292
+      }
+    },
+    {
+      "index": 27,
+      "first_step": 113246181,
+      "instructions": 4194303,
+      "proof_bytes": 2908496,
+      "proof_sha256": "ae0ae916f96f518099044a809c7a104a7178e5e1fcfe8b8d2bc786da6ea46c18",
+      "receipt_sha256": "39feb9aa486a7cb0a8cf62dbec7deb1dd27134053b4790db9d8d189612a1fbab",
+      "stages_sha256": "7c29620c6238d4c510830db25b5eecdb2e617668e02de792f3dc3873ea42b822",
+      "source_cells": {
+        "fixed": 46722720,
+        "main": 1716214096,
+        "interaction": 656007488
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 4344,
+        "common_chunks": 2772,
+        "edge_chunks": 1,
+        "nodes": 5841,
+        "sides": 1249,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.116894875,
+        "openings_ns": 0.011903792,
+        "ram_witness_ns": 0.884416292,
+        "setup_ns": 0.392022833,
+        "cpu_witness_ns": 1.397684708,
+        "prove_ns": 19.332496375,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002905334,
+        "verify_ns": 0.02991275,
+        "write_ns": 0.002099333,
+        "cache_publish_ns": 0.000182083,
+        "total_after_native_ns": 22.053627625
+      }
+    },
+    {
+      "index": 28,
+      "first_step": 117440484,
+      "instructions": 4194303,
+      "proof_bytes": 2908400,
+      "proof_sha256": "487c0ddc3718a6d7c02f6aa4fa7968c2c009bdb10e794bec0532894d31f347ca",
+      "receipt_sha256": "59b7770e394e617e00db0e2e4388b48049148ad9d0c71e4f95ae6b30e1a8537f",
+      "stages_sha256": "1451dd05249bc669042152537c8a4a7f98671faa634cae7e9f6e8bfdcefd790a",
+      "source_cells": {
+        "fixed": 46722384,
+        "main": 1716212416,
+        "interaction": 656004992
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 15,
+        "keccak_log": 9,
+        "bridge_log": 10
+      },
+      "ram": {
+        "hashes": 4299,
+        "common_chunks": 2753,
+        "edge_chunks": 0,
+        "nodes": 5810,
+        "sides": 1283,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.121703542,
+        "openings_ns": 0.0124425,
+        "ram_witness_ns": 0.886892542,
+        "setup_ns": 0.39754,
+        "cpu_witness_ns": 1.420978791,
+        "prove_ns": 19.32521375,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003093292,
+        "verify_ns": 0.029869792,
+        "write_ns": 0.0021245,
+        "cache_publish_ns": 0.000194291,
+        "total_after_native_ns": 22.078353833
+      }
+    },
+    {
+      "index": 29,
+      "first_step": 121634787,
+      "instructions": 4194303,
+      "proof_bytes": 3707888,
+      "proof_sha256": "b239b00c85a839d157a63668ccedf09ce7c4fa4d2fcac6a935f1dbf0a6e952a3",
+      "receipt_sha256": "0196d1fe72ab34f3982c26f50d80c5265ff7d8c73159a139b9ea155ef2068476",
+      "stages_sha256": "67c0f029f12bdc1e79bf2eb8ca65f36fae21d4215f8794fcd2e82745101605ef",
+      "source_cells": {
+        "fixed": 45668976,
+        "main": 1692459616,
+        "interaction": 676250240
+      },
+      "geometry": {
+        "division_log": 7,
+        "multiplication_log": 17,
+        "keccak_log": 11,
+        "bridge_log": 11
+      },
+      "ram": {
+        "hashes": 1909,
+        "common_chunks": 1307,
+        "edge_chunks": 0,
+        "nodes": 3369,
+        "sides": 1205,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.141099125,
+        "openings_ns": 0.007056792,
+        "ram_witness_ns": 0.396026209,
+        "setup_ns": 0.327998083,
+        "cpu_witness_ns": 1.595358833,
+        "prove_ns": 19.866227333,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003741,
+        "verify_ns": 0.034071209,
+        "write_ns": 0.002501666,
+        "cache_publish_ns": 0.000189667,
+        "total_after_native_ns": 22.233175208
+      }
+    },
+    {
+      "index": 30,
+      "first_step": 125829090,
+      "instructions": 4194303,
+      "proof_bytes": 3715168,
+      "proof_sha256": "0ac9dd24122a006c5ac75ef080685e1b5a34eacbd215f8f166c60399afe14b24",
+      "receipt_sha256": "805726fa995753d1a8ab356ab5308c416c8559d26e021f4058fd104a3f6b7346",
+      "stages_sha256": "70bf4443ae2023f68c0fe8777537ec605d62a86cee3085c067468f40b9a14668",
+      "source_cells": {
+        "fixed": 44851696,
+        "main": 1676306656,
+        "interaction": 655681152
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 16,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2798,
+        "common_chunks": 1915,
+        "edge_chunks": 0,
+        "nodes": 4555,
+        "sides": 1442,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.132382167,
+        "openings_ns": 0.008682459,
+        "ram_witness_ns": 0.469504958,
+        "setup_ns": 0.347578792,
+        "cpu_witness_ns": 1.494817292,
+        "prove_ns": 19.094728542,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003805666,
+        "verify_ns": 0.034728042,
+        "write_ns": 0.002829917,
+        "cache_publish_ns": 0.00072575,
+        "total_after_native_ns": 21.457405834
+      }
+    },
+    {
+      "index": 31,
+      "first_step": 130023393,
+      "instructions": 4194303,
+      "proof_bytes": 2905760,
+      "proof_sha256": "4f25411230ec29f501adb649164d3bb6b3eabc63c83c8659c5d25a3906d9fbc2",
+      "receipt_sha256": "689bc43341610a29753820ce1f021c4c842651ccb0b946a4447c4395406771ea",
+      "stages_sha256": "f3929c23034bc29ec16adb1f821aa3c924498586d853f8302db443e8f1de3c3b",
+      "source_cells": {
+        "fixed": 44764912,
+        "main": 1676364000,
+        "interaction": 655625856
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 2805,
+        "common_chunks": 1937,
+        "edge_chunks": 0,
+        "nodes": 4701,
+        "sides": 1562,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.132178875,
+        "openings_ns": 0.00847925,
+        "ram_witness_ns": 0.470779708,
+        "setup_ns": 0.377471667,
+        "cpu_witness_ns": 1.485113167,
+        "prove_ns": 18.748013958,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003035458,
+        "verify_ns": 0.030645292,
+        "write_ns": 0.002427042,
+        "cache_publish_ns": 9.9541e-05,
+        "total_after_native_ns": 21.1260695
+      }
+    },
+    {
+      "index": 32,
+      "first_step": 134217696,
+      "instructions": 4194303,
+      "proof_bytes": 2902976,
+      "proof_sha256": "42e86526d7d8302d7740411ef4ebd4b32dcecb520322ead5f9fd2c6552687748",
+      "receipt_sha256": "2b38c0878531e7cb83e4d3e80929cbb1d30a462c93df36d5ded4e92872d6a501",
+      "stages_sha256": "ae2f397746144cd528a96ff2162089fa9fff2a94022aefcb4c03d61ded62137b",
+      "source_cells": {
+        "fixed": 44765248,
+        "main": 1676365680,
+        "interaction": 655628352
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 2431,
+        "common_chunks": 1693,
+        "edge_chunks": 1,
+        "nodes": 4371,
+        "sides": 1555,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.134694542,
+        "openings_ns": 0.008199375,
+        "ram_witness_ns": 0.439178667,
+        "setup_ns": 0.381354125,
+        "cpu_witness_ns": 1.506914792,
+        "prove_ns": 18.799535333,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003006792,
+        "verify_ns": 0.02996775,
+        "write_ns": 0.002098333,
+        "cache_publish_ns": 9.025e-05,
+        "total_after_native_ns": 21.170349876
+      }
+    },
+    {
+      "index": 33,
+      "first_step": 138411999,
+      "instructions": 4194303,
+      "proof_bytes": 2906592,
+      "proof_sha256": "fb68316df8ac0e687b2b5e5705b87cc1508a92a41aedc778b207d1ae93526c2d",
+      "receipt_sha256": "06400db835c96cb70b90c11d155bb5312aa2266cabb2bab426e87f449d2efcb3",
+      "stages_sha256": "710ef614a91af5905ef74b7837319df8ddabc29d8d74077130fdc67aa1296eae",
+      "source_cells": {
+        "fixed": 44678464,
+        "main": 1671903344,
+        "interaction": 650063936
+      },
+      "geometry": {
+        "division_log": 8,
+        "multiplication_log": 15,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2716,
+        "common_chunks": 1869,
+        "edge_chunks": 1,
+        "nodes": 4758,
+        "sides": 1625,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.129881333,
+        "openings_ns": 0.008655,
+        "ram_witness_ns": 0.461235042,
+        "setup_ns": 0.362233625,
+        "cpu_witness_ns": 1.473503166,
+        "prove_ns": 19.094775375,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002920084,
+        "verify_ns": 0.02984125,
+        "write_ns": 0.002327041,
+        "cache_publish_ns": 0.000103667,
+        "total_after_native_ns": 21.43559875
+      }
+    },
+    {
+      "index": 34,
+      "first_step": 142606302,
+      "instructions": 4194303,
+      "proof_bytes": 2910656,
+      "proof_sha256": "cb28f8ab3de4641ed7df930d5b262211c8d08b1e1572c804ec817271220df40b",
+      "receipt_sha256": "445e1a85518b32fa9489d6924bcdf49f61f6ef88917a8f57673df67050ee5599",
+      "stages_sha256": "d71b529a31ae70f254119838c8aec84553d80c81f204b8882f493cbb2f1d4d6c",
+      "source_cells": {
+        "fixed": 44744768,
+        "main": 1676132208,
+        "interaction": 655382592
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2785,
+        "common_chunks": 1876,
+        "edge_chunks": 1,
+        "nodes": 4588,
+        "sides": 1458,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.129564167,
+        "openings_ns": 0.008934,
+        "ram_witness_ns": 0.466061917,
+        "setup_ns": 0.361888125,
+        "cpu_witness_ns": 1.477060417,
+        "prove_ns": 18.812194541,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002943417,
+        "verify_ns": 0.029863708,
+        "write_ns": 0.002124625,
+        "cache_publish_ns": 0.000106959,
+        "total_after_native_ns": 21.161182084
+      }
+    },
+    {
+      "index": 35,
+      "first_step": 146800605,
+      "instructions": 4194303,
+      "proof_bytes": 3714848,
+      "proof_sha256": "4b0256b0181bddcd9806f72c0eaccaee5b46499d9bc293b3c9ec982c7c5594b6",
+      "receipt_sha256": "f0c4b9799f508595714c5f49d7350df4d10cfa3576199ed2cca4b0d32dd69783",
+      "stages_sha256": "4ff74f08f1a32f6de55bed92c9462fd0af6809c148c7e73452fe7acbaad66931",
+      "source_cells": {
+        "fixed": 45386480,
+        "main": 1690589408,
+        "interaction": 674950784
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 17,
+        "keccak_log": 12,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2025,
+        "common_chunks": 1394,
+        "edge_chunks": 0,
+        "nodes": 4035,
+        "sides": 1485,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.141226792,
+        "openings_ns": 0.007016459,
+        "ram_witness_ns": 0.408692917,
+        "setup_ns": 0.328531125,
+        "cpu_witness_ns": 1.597974375,
+        "prove_ns": 19.817017375,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003847791,
+        "verify_ns": 0.034556959,
+        "write_ns": 0.002788708,
+        "cache_publish_ns": 0.000100875,
+        "total_after_native_ns": 22.200530917
+      }
+    },
+    {
+      "index": 36,
+      "first_step": 150994908,
+      "instructions": 4194303,
+      "proof_bytes": 2910272,
+      "proof_sha256": "2e271224fc161d86a57e1ca8648499151f75509c707904d8bd7c360a886d4e65",
+      "receipt_sha256": "1f74da08ccc3ffc8e03c13e736ca8fe330ab57845630a1fdc2b87042a6cec25e",
+      "stages_sha256": "60252c56c0098d4176594f1702a04d97c3163f3ab2169cbf999188455bb497b7",
+      "source_cells": {
+        "fixed": 45825776,
+        "main": 1720912096,
+        "interaction": 663645824
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 3076,
+        "common_chunks": 2095,
+        "edge_chunks": 0,
+        "nodes": 5411,
+        "sides": 1859,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.1307325,
+        "openings_ns": 0.009009584,
+        "ram_witness_ns": 0.787227375,
+        "setup_ns": 0.391110791,
+        "cpu_witness_ns": 1.497978084,
+        "prove_ns": 19.099502166,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003015959,
+        "verify_ns": 0.031027458,
+        "write_ns": 0.002161333,
+        "cache_publish_ns": 0.000129084,
+        "total_after_native_ns": 21.821166292
+      }
+    },
+    {
+      "index": 37,
+      "first_step": 155189211,
+      "instructions": 4194303,
+      "proof_bytes": 2912576,
+      "proof_sha256": "741c29ecbd8884ad8130666180dbace3a90b605606d37d2caa95f5a8406a9a85",
+      "receipt_sha256": "047238dbc5bc273585abd25516ff3f9e3db46307955a3c76d15d8bbfbf12e1d5",
+      "stages_sha256": "7fce34efec4bd9f4b8c599d795f265ce4133dc618164ee5b0bc5e78b4e855d09",
+      "source_cells": {
+        "fixed": 44764912,
+        "main": 1676364000,
+        "interaction": 655625856
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 2528,
+        "common_chunks": 1755,
+        "edge_chunks": 0,
+        "nodes": 4838,
+        "sides": 1805,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.136314083,
+        "openings_ns": 0.008046833,
+        "ram_witness_ns": 0.450964958,
+        "setup_ns": 0.389652334,
+        "cpu_witness_ns": 1.539073875,
+        "prove_ns": 18.991255708,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002932209,
+        "verify_ns": 0.030123041,
+        "write_ns": 0.002890584,
+        "cache_publish_ns": 0.000101875,
+        "total_after_native_ns": 21.41504575
+      }
+    },
+    {
+      "index": 38,
+      "first_step": 159383514,
+      "instructions": 4194303,
+      "proof_bytes": 2902256,
+      "proof_sha256": "f406e0c796293bdeeb25a7c9c5dc63755efbf67842b0731634498d09eeeed638",
+      "receipt_sha256": "f0cabf0758451401a76939782fa66e2214d30bfb24e7ebb6c810e59566f82996",
+      "stages_sha256": "803b724e93939d9c32cd83d169df4e0fdc6048804d1b22fb87f2806f318450f9",
+      "source_cells": {
+        "fixed": 44680432,
+        "main": 1672773344,
+        "interaction": 650067584
+      },
+      "geometry": {
+        "division_log": 10,
+        "multiplication_log": 15,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2039,
+        "common_chunks": 1408,
+        "edge_chunks": 0,
+        "nodes": 4154,
+        "sides": 1576,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.131643375,
+        "openings_ns": 0.006902625,
+        "ram_witness_ns": 0.409065625,
+        "setup_ns": 0.379354917,
+        "cpu_witness_ns": 1.478035833,
+        "prove_ns": 18.45508125,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002953167,
+        "verify_ns": 0.029432416,
+        "write_ns": 0.004579042,
+        "cache_publish_ns": 9.4417e-05,
+        "total_after_native_ns": 20.765503708
+      }
+    },
+    {
+      "index": 39,
+      "first_step": 163577817,
+      "instructions": 4194303,
+      "proof_bytes": 2904368,
+      "proof_sha256": "335fc7c62a987bb353dd6aead680bea37ea4ef23783ed7df39571a0a1e937841",
+      "receipt_sha256": "de385ceb12cfc9b25f9e2faab0c346105568d9f0354d69fe3f654aa540346647",
+      "stages_sha256": "8fc839f3450bb588300873d25d8ea02631abeab7798d83aae566657078abe5b7",
+      "source_cells": {
+        "fixed": 44765248,
+        "main": 1676365680,
+        "interaction": 655628352
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 2498,
+        "common_chunks": 1701,
+        "edge_chunks": 1,
+        "nodes": 4864,
+        "sides": 1788,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.129353125,
+        "openings_ns": 0.007323083,
+        "ram_witness_ns": 0.447721459,
+        "setup_ns": 0.367113166,
+        "cpu_witness_ns": 1.484973291,
+        "prove_ns": 18.678137167,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002872583,
+        "verify_ns": 0.029646792,
+        "write_ns": 0.002383667,
+        "cache_publish_ns": 0.000109666,
+        "total_after_native_ns": 21.020284958
+      }
+    },
+    {
+      "index": 40,
+      "first_step": 167772120,
+      "instructions": 4194303,
+      "proof_bytes": 3710608,
+      "proof_sha256": "1fb0137027b4313d3c6a104c485beb550205ea9629c0374fc3095d65d524c392",
+      "receipt_sha256": "684fa3bf8335dab424f783d537cd599297bf43043054eb1b03ca7d2cdf870eff",
+      "stages_sha256": "abd413940aa0a306a4737e9bad2ef5fe181f47e5fa4ecbccecf1fdbff8a90c49",
+      "source_cells": {
+        "fixed": 44625648,
+        "main": 1669165280,
+        "interaction": 671317632
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 17,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 1278,
+        "common_chunks": 893,
+        "edge_chunks": 0,
+        "nodes": 2769,
+        "sides": 1084,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.142158333,
+        "openings_ns": 0.005307875,
+        "ram_witness_ns": 0.205781625,
+        "setup_ns": 0.328830541,
+        "cpu_witness_ns": 1.632338625,
+        "prove_ns": 19.676732,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003676459,
+        "verify_ns": 0.034213208,
+        "write_ns": 0.003189542,
+        "cache_publish_ns": 6.4916e-05,
+        "total_after_native_ns": 21.890138833
+      }
+    },
+    {
+      "index": 41,
+      "first_step": 171966423,
+      "instructions": 4194303,
+      "proof_bytes": 3702352,
+      "proof_sha256": "39684ebe9d1e6b041249b14de6d8b6bab923be77bf60b5a13c688ac8ad2fc8bd",
+      "receipt_sha256": "f21bd9f091a053e5f4c833e41f1b7c0563d935351fa0c3f6879d3c8424f60d01",
+      "stages_sha256": "91ce0f90e72b20f23a3500ae7e4871373eb231c1144b7a0272040ffb6c23be81",
+      "source_cells": {
+        "fixed": 44568640,
+        "main": 1686411120,
+        "interaction": 668698688
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 17,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 1449,
+        "common_chunks": 1016,
+        "edge_chunks": 1,
+        "nodes": 3062,
+        "sides": 1180,
+        "edge_permits": 2
+      },
+      "seconds": {
+        "native_ns": 0.14266625,
+        "openings_ns": 0.006192166,
+        "ram_witness_ns": 0.366187625,
+        "setup_ns": 0.318367041,
+        "cpu_witness_ns": 1.594674709,
+        "prove_ns": 19.310419083,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003597333,
+        "verify_ns": 0.033980125,
+        "write_ns": 0.006068125,
+        "cache_publish_ns": 7.4209e-05,
+        "total_after_native_ns": 21.639564791
+      }
+    },
+    {
+      "index": 42,
+      "first_step": 176160726,
+      "instructions": 4194303,
+      "proof_bytes": 3703040,
+      "proof_sha256": "c33b4c7038e88b956f754a4906206954550c2714ce66284a9af2222fd7f782e5",
+      "receipt_sha256": "3fe27490630ab60ecf50c7186d23597555137f18ef6d54a2993ac564e961714c",
+      "stages_sha256": "42f7cd28b0c728ebfadfd6647e744b4500e6d6fcbdd144ef3636333ff23d0c4a",
+      "source_cells": {
+        "fixed": 45407296,
+        "main": 1686731632,
+        "interaction": 694855744
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 18,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 865,
+        "common_chunks": 595,
+        "edge_chunks": 1,
+        "nodes": 2038,
+        "sides": 769,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.147094417,
+        "openings_ns": 0.004463917,
+        "ram_witness_ns": 0.176134916,
+        "setup_ns": 0.334137459,
+        "cpu_witness_ns": 1.751797875,
+        "prove_ns": 20.5903455,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003820834,
+        "verify_ns": 0.033878791,
+        "write_ns": 0.003357959,
+        "cache_publish_ns": 6.8041e-05,
+        "total_after_native_ns": 22.898009375
+      }
+    },
+    {
+      "index": 43,
+      "first_step": 180355029,
+      "instructions": 4194303,
+      "proof_bytes": 2903872,
+      "proof_sha256": "aa5571d8468972557ce4aca09f4f2c8eadb7fb35d3bef81319bc29f6ebf0c02f",
+      "receipt_sha256": "16763bc017e3c28d16a1663559de497149180ac3d93313b4e2f937789015e695",
+      "stages_sha256": "ba6ef8aa787f7a7479d2f0d33563d66f552e12200b1752114fbf21b679f6b30c",
+      "source_cells": {
+        "fixed": 45826112,
+        "main": 1720913776,
+        "interaction": 663648320
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 13
+      },
+      "ram": {
+        "hashes": 3066,
+        "common_chunks": 2103,
+        "edge_chunks": 1,
+        "nodes": 5688,
+        "sides": 1945,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.129512417,
+        "openings_ns": 0.008619875,
+        "ram_witness_ns": 0.786065875,
+        "setup_ns": 0.4108505,
+        "cpu_witness_ns": 1.495828875,
+        "prove_ns": 19.066775542,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002973875,
+        "verify_ns": 0.029293667,
+        "write_ns": 0.002375416,
+        "cache_publish_ns": 0.000128959,
+        "total_after_native_ns": 21.80291675
+      }
+    },
+    {
+      "index": 44,
+      "first_step": 184549332,
+      "instructions": 4194303,
+      "proof_bytes": 3712352,
+      "proof_sha256": "15c19d1f8399c75af53804896bbbf2076437acccc38676597d91135c651f04ff",
+      "receipt_sha256": "e6b3869fcc0502d0f28866a453bdc7acf333ff6efb47a793d9e64c33441520ca",
+      "stages_sha256": "192b48d4a7cee5bf50d7f13186052d189f072b32f5681913eba98a8f4df8a45d",
+      "source_cells": {
+        "fixed": 45531888,
+        "main": 1690312928,
+        "interaction": 672943744
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 17,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2256,
+        "common_chunks": 1598,
+        "edge_chunks": 0,
+        "nodes": 4781,
+        "sides": 1953,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.134836667,
+        "openings_ns": 0.006872583,
+        "ram_witness_ns": 0.42447775,
+        "setup_ns": 0.343904667,
+        "cpu_witness_ns": 1.5923735,
+        "prove_ns": 19.351772458,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003695584,
+        "verify_ns": 0.033980375,
+        "write_ns": 0.005469083,
+        "cache_publish_ns": 0.000103667,
+        "total_after_native_ns": 21.762653834
+      }
+    },
+    {
+      "index": 45,
+      "first_step": 188743635,
+      "instructions": 4194303,
+      "proof_bytes": 3710224,
+      "proof_sha256": "9dac41da45881cadef51b79d1df931f1b4a449e12cb6803eb7d90ffcf21e2a0f",
+      "receipt_sha256": "0173e69bac0ebefea01f9b4429be637b064fe19e10b032a320a9e1fad0dac45a",
+      "stages_sha256": "439f48287b44491b1a42a1bbe9c8ea68ed65c38b1fb2eb1add427a7dec8d115e",
+      "source_cells": {
+        "fixed": 45679936,
+        "main": 1692723312,
+        "interaction": 676376640
+      },
+      "geometry": {
+        "division_log": 8,
+        "multiplication_log": 17,
+        "keccak_log": 11,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 1861,
+        "common_chunks": 1289,
+        "edge_chunks": 1,
+        "nodes": 3903,
+        "sides": 1441,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.14371175,
+        "openings_ns": 0.0067755,
+        "ram_witness_ns": 0.399630125,
+        "setup_ns": 0.339068292,
+        "cpu_witness_ns": 1.606824416,
+        "prove_ns": 19.531249625,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003903,
+        "verify_ns": 0.033382709,
+        "write_ns": 0.002784708,
+        "cache_publish_ns": 9.5333e-05,
+        "total_after_native_ns": 21.923718084
+      }
+    },
+    {
+      "index": 46,
+      "first_step": 192937938,
+      "instructions": 4194303,
+      "proof_bytes": 2902848,
+      "proof_sha256": "6114d854bc9251ec7bb835dc6ce6d96e10e2a0d4f5d0545c693f47054f30e8b4",
+      "receipt_sha256": "1768780a7d755d52ade62cf37765fbedc012e24a1092f2a1ec6cdc79ced26931",
+      "stages_sha256": "92ec65d5c8270631d178ae525db994e7c28c1c90df1c479cbd45a52a4e0456ef",
+      "source_cells": {
+        "fixed": 44744768,
+        "main": 1676132208,
+        "interaction": 655382592
+      },
+      "geometry": {
+        "division_log": 9,
+        "multiplication_log": 15,
+        "keccak_log": 12,
+        "bridge_log": 12
+      },
+      "ram": {
+        "hashes": 2636,
+        "common_chunks": 1797,
+        "edge_chunks": 1,
+        "nodes": 4844,
+        "sides": 1687,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.127206041,
+        "openings_ns": 0.00761275,
+        "ram_witness_ns": 0.461338667,
+        "setup_ns": 0.369144083,
+        "cpu_witness_ns": 1.48969025,
+        "prove_ns": 18.755373708,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.003075417,
+        "verify_ns": 0.029808583,
+        "write_ns": 0.002085,
+        "cache_publish_ns": 0.000116375,
+        "total_after_native_ns": 21.118249083
+      }
+    },
+    {
+      "index": 47,
+      "first_step": 197132241,
+      "instructions": 4194303,
+      "proof_bytes": 2911424,
+      "proof_sha256": "5194c01c824c05e7c076749659094e1f52996b4064a8ee9b03e6af7738536cb8",
+      "receipt_sha256": "b4a763de5ddb921ba156f6d08d91977fa9fd952be3f36e91579e45b2bdeee401",
+      "stages_sha256": "4f48ffcf619728dd60dc389dfa00a7e277ceb22d89b156d04fe56588b5afd595",
+      "source_cells": {
+        "fixed": 47035712,
+        "main": 1779079280,
+        "interaction": 741552192
+      },
+      "geometry": {
+        "division_log": 8,
+        "multiplication_log": 15,
+        "keccak_log": 15,
+        "bridge_log": 16
+      },
+      "ram": {
+        "hashes": 3276,
+        "common_chunks": 2132,
+        "edge_chunks": 1,
+        "nodes": 6281,
+        "sides": 2095,
+        "edge_permits": 1
+      },
+      "seconds": {
+        "native_ns": 0.132469625,
+        "openings_ns": 0.008614833,
+        "ram_witness_ns": 0.806184458,
+        "setup_ns": 0.389901375,
+        "cpu_witness_ns": 2.208493708,
+        "prove_ns": 20.477195667,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002880708,
+        "verify_ns": 0.0298855,
+        "write_ns": 0.002132084,
+        "cache_publish_ns": 0.000158458,
+        "total_after_native_ns": 23.925451208
+      }
+    },
+    {
+      "index": 48,
+      "first_step": 201326544,
+      "instructions": 4194303,
+      "proof_bytes": 2570000,
+      "proof_sha256": "b78694f55b623a4fefb8637e8bf7617c04b4531a0f041989e4c898f8f5fe9491",
+      "receipt_sha256": "f3312d88839aa03384915140ce127c652124c772523b51d9adb4fc3915bca334",
+      "stages_sha256": "61ae8a18a3b18b5689242327d285c0265cb467d3365c76bc5a5494b0f99dc637",
+      "source_cells": {
+        "fixed": 49428720,
+        "main": 1848113888,
+        "interaction": 830742144
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 14,
+        "keccak_log": 16,
+        "bridge_log": 17
+      },
+      "ram": {
+        "hashes": 5748,
+        "common_chunks": 4085,
+        "edge_chunks": 0,
+        "nodes": 10676,
+        "sides": 1969,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.126509375,
+        "openings_ns": 0.009427292,
+        "ram_witness_ns": 0.993423083,
+        "setup_ns": 0.350542667,
+        "cpu_witness_ns": 2.800607042,
+        "prove_ns": 22.411182542,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002328125,
+        "verify_ns": 0.027994333,
+        "write_ns": 0.002234292,
+        "cache_publish_ns": 0.000286875,
+        "total_after_native_ns": 26.598030584
+      }
+    },
+    {
+      "index": 49,
+      "first_step": 205520847,
+      "instructions": 4194303,
+      "proof_bytes": 2552080,
+      "proof_sha256": "f5f92260a9b7ace24be13c8139328254a8d2864e179e5113857f83f33edaee3c",
+      "receipt_sha256": "4cf4a3ff3f86d284e8885a9460abcddbfb1cd384dd5537c72518d3beb900298e",
+      "stages_sha256": "45ce0222f3cb0bc5c93dd6a4bebf8aed23ef68b1607527819c629fb684cfd47c",
+      "source_cells": {
+        "fixed": 49076464,
+        "main": 1843665632,
+        "interaction": 825728640
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 13,
+        "keccak_log": 16,
+        "bridge_log": 16
+      },
+      "ram": {
+        "hashes": 5125,
+        "common_chunks": 3779,
+        "edge_chunks": 0,
+        "nodes": 8966,
+        "sides": 1355,
+        "edge_permits": 0
+      },
+      "seconds": {
+        "native_ns": 0.119790625,
+        "openings_ns": 0.008628708,
+        "ram_witness_ns": 0.956966375,
+        "setup_ns": 0.324195667,
+        "cpu_witness_ns": 2.739594,
+        "prove_ns": 22.525012167,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002523375,
+        "verify_ns": 0.02743175,
+        "write_ns": 0.002161208,
+        "cache_publish_ns": 0.000231667,
+        "total_after_native_ns": 26.586749208
+      }
+    },
+    {
+      "index": 50,
+      "first_step": 209715150,
+      "instructions": 3944338,
+      "proof_bytes": 2556704,
+      "proof_sha256": "91152b7e3fb398558d2b59ac71d36a8948b9cd54e7b5063dabbee529b0ce3c8f",
+      "receipt_sha256": "7952f4afc11f8d544c65ea6d2348e525b322f43108289ff73488d517d20cb940",
+      "stages_sha256": "d530578d548e7a00d8dc89d1a14d7262fdfd731f891f77aa9468d6090f090d5c",
+      "source_cells": {
+        "fixed": 77732416,
+        "main": 2454536560,
+        "interaction": 885155904
+      },
+      "geometry": {
+        "division_log": 5,
+        "multiplication_log": 14,
+        "keccak_log": 15,
+        "bridge_log": 16
+      },
+      "ram": {
+        "hashes": 33975,
+        "common_chunks": 17454,
+        "edge_chunks": 1,
+        "nodes": 37244,
+        "sides": 1638,
+        "edge_permits": 9
+      },
+      "seconds": {
+        "native_ns": 0.112870958,
+        "openings_ns": 0.026065791,
+        "ram_witness_ns": 7.335133667,
+        "setup_ns": 0.546479417,
+        "cpu_witness_ns": 2.212918666,
+        "prove_ns": 35.832460417,
+        "receiver_setup_ns": 0.0,
+        "encode_ns": 0.002358167,
+        "verify_ns": 0.026847416,
+        "write_ns": 0.001826792,
+        "cache_publish_ns": 0.001111458,
+        "total_after_native_ns": 45.985205917
+      }
+    }
+  ],
+  "cpu_source_attribution": {
+    "padded_rows": 213909504,
+    "actual_instructions": 213659488,
+    "instruction_padding_rows": 250016,
+    "cpu_main_columns": 385,
+    "cpu_interaction_columns": 148,
+    "cpu_main_cells": 82355159040,
+    "cpu_interaction_cells": 31658606592,
+    "fraction_main": 0.9333520895514436,
+    "fraction_interaction": 0.87528024024195,
+    "fraction_main_plus_interaction": 0.9164682787771248,
+    "scope": "Exact current D3+ETH2+packed/v3CPU geometry. Excludes ROM/provider/fixed cells and expanded memory. This isolates width reduction opportunity, not timing speedup."
+  },
+  "prior_control": "complete-block-isolated-simd-v1.json",
+  "all51_proofs_and_terminal_byte_identical": true,
+  "all51_receipts_equal": true,
+  "kernel_comparison": {
+    "retained_batch": 26,
+    "keccak_bridge_constraint_seconds": {
+      "prior": 2.86491,
+      "candidate": 0.5631760000000001
+    },
+    "composition_seconds": {
+      "prior": 11.776734,
+      "candidate": 11.754977
+    },
+    "lesson": "The bridge is concurrent leaf work, not the composition critical path. Kernel speedup does not predict whole prover gain."
+  }
+}

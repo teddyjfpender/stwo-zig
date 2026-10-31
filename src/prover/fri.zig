@@ -631,6 +631,11 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             allocator: std.mem.Allocator,
             channel: anytype,
         ) (std.mem.Allocator.Error || FriDecommitError || FriProverError)!FriDecommitResult(H) {
+            // decommit consumes the committed prover even if query preparation
+            // fails before decommitOnQueries takes ownership of its layers.
+            var owned = self;
+            var owns_layers = true;
+            errdefer if (owns_layers) owned.deinit(allocator);
             const first_layer_log_size = self.first_layer.domain.logSize();
             const unsorted_query_locations = try queries_mod.drawQueries(
                 channel,
@@ -647,6 +652,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             );
             defer queries.deinit(allocator);
 
+            owns_layers = false;
             var fri_proof = try decommitOnQueries(self, allocator, queries);
             errdefer fri_proof.deinit(allocator);
 
@@ -706,8 +712,10 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
                     layer.fold_step,
                     if (layer.retained_packing) |*packing| packing else null,
                 );
-                errdefer inner_proof.deinit(allocator);
-                try inner_layer_proofs.append(allocator, inner_proof);
+                inner_layer_proofs.append(allocator, inner_proof) catch |err| {
+                    inner_proof.deinit(allocator);
+                    return err;
+                };
 
                 const next_queries = try layer_queries.fold(allocator, layer.fold_step);
                 layer_queries.deinit(allocator);
@@ -716,6 +724,7 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
 
             const inner_extended = try inner_layer_proofs.toOwnedSlice(allocator);
             defer allocator.free(inner_extended);
+            errdefer for (inner_extended) |*proof| proof.deinit(allocator);
 
             const inner_proofs = try allocator.alloc(core_fri.FriLayerProof(H), inner_extended.len);
             errdefer allocator.free(inner_proofs);

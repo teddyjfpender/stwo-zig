@@ -7,6 +7,7 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
+const logup_fields = @import("logup_equations.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 pub const RELATION_COUNT: usize = 12;
@@ -54,6 +55,23 @@ pub fn RelationElements(comptime arity: usize) type {
                 result = result.add(power.mulM31(value));
             }
             return result.sub(self.z);
+        }
+
+        /// Same challenge polynomial over a base row packet. No tuple values
+        /// are promoted into a dense secure witness array.
+        pub fn combineFor(self: Self, comptime S: type, values: [arity]S) logup_fields.SecureFor(S) {
+            if (comptime @hasDecl(S, "SecureField")) {
+                const Secure = S.SecureField;
+                var result = Secure.zero();
+                for (values, self.alpha_powers) |value, power| result = result.add(Secure.splat(power).mulBase(value));
+                return result.sub(Secure.splat(self.z));
+            }
+            if (comptime @hasDecl(S, "fromBaseScalar")) {
+                var result = S.zero();
+                for (values, self.alpha_powers) |value, power| result = result.add(S.splat(power).mul(value));
+                return result.sub(S.splat(self.z));
+            }
+            return self.combine(values);
         }
 
         pub fn combineSecure(self: Self, values: [arity]QM31) QM31 {

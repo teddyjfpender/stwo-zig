@@ -1,0 +1,10 @@
+[package]
+name = "stwo-rv64-keccak-sponge-test"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[workspace]
+[dev-dependencies]
+# Same pinned versions already present in the Ethereum guest's lockfile.
+keccak = "=0.2.2"
+sha3 = "=0.11.0"

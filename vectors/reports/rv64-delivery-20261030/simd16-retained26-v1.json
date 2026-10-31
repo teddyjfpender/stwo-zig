@@ -1,0 +1,113 @@
+{
+  "schema": "rv64-simd16-retained26-v1",
+  "qualified": true,
+  "full_block_reproved": false,
+  "instructions": 4194303,
+  "workers": 16,
+  "scope": "One sequential matched clean-private-recorder pair, same pinned guest/native advice, byte control/cyclicv2, arena, independently sized components, q70/P26; only CPU domain lane implementation changes.",
+  "cases": {
+    "scalar": {
+      "metrics": {
+        "index": 26,
+        "first_step": 109051878,
+        "instructions": 4194303,
+        "ram_cells": 263515,
+        "keccak_calls": 9845,
+        "secp_add_calls": 0,
+        "secp_double_calls": 0,
+        "source_cells": {
+          "fixed": 74251200,
+          "main": 2407307504,
+          "interaction": 1501129792
+        },
+        "proof_bytes": 2938992,
+        "native_ns": 140494583,
+        "openings_ns": 21791792,
+        "ram_witness_ns": 1526202250,
+        "setup_ns": 410290042,
+        "cpu_witness_ns": 6652711833,
+        "prove_ns": 54844718500,
+        "receiver_setup_ns": 0,
+        "encode_ns": 3050625,
+        "verify_ns": 30065417,
+        "write_ns": 2411375,
+        "cache_publish_ns": 153458,
+        "total_after_native_ns": 63491395417,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "stages_seconds": {
+        "composition_evaluation": 31.924033,
+        "cpu_constraint_rows": 14.871955,
+        "cpu_coset_fft": 3.991553,
+        "keccak_constraint_rows": 11.033335,
+        "authenticated_interaction": 6.255328,
+        "keccak_interaction": 3.606413,
+        "ram_interaction": 0.622352
+      },
+      "maximum_rss_bytes": 37027856384,
+      "wall_seconds": 80.4,
+      "proof_sha256": "ca47925f00e63f731c6d6000b5a78c7a0622bf72ad0cf51ccc9456bd24a9a36e",
+      "proof_bytes_equal": true,
+      "baseline_receiver_ns": 13808234375,
+      "native_prefix_replay_ns": 2918758041
+    },
+    "simd16": {
+      "metrics": {
+        "index": 26,
+        "first_step": 109051878,
+        "instructions": 4194303,
+        "ram_cells": 263515,
+        "keccak_calls": 9845,
+        "secp_add_calls": 0,
+        "secp_double_calls": 0,
+        "source_cells": {
+          "fixed": 74251200,
+          "main": 2407307504,
+          "interaction": 1501129792
+        },
+        "proof_bytes": 2938992,
+        "native_ns": 146363208,
+        "openings_ns": 22887208,
+        "ram_witness_ns": 1565998542,
+        "setup_ns": 449685875,
+        "cpu_witness_ns": 6757468958,
+        "prove_ns": 43188519042,
+        "receiver_setup_ns": 0,
+        "encode_ns": 3098625,
+        "verify_ns": 30432417,
+        "write_ns": 1965208,
+        "cache_publish_ns": 157458,
+        "total_after_native_ns": 52020213417,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "stages_seconds": {
+        "composition_evaluation": 20.259826,
+        "cpu_constraint_rows": 3.100929,
+        "cpu_coset_fft": 4.346136,
+        "keccak_constraint_rows": 10.903043,
+        "authenticated_interaction": 6.3601,
+        "keccak_interaction": 3.624663,
+        "ram_interaction": 0.650353
+      },
+      "maximum_rss_bytes": 37030428672,
+      "wall_seconds": 70.44,
+      "proof_sha256": "ca47925f00e63f731c6d6000b5a78c7a0622bf72ad0cf51ccc9456bd24a9a36e",
+      "proof_bytes_equal": true,
+      "baseline_receiver_ns": 15188318667,
+      "native_prefix_replay_ns": 3042836500
+    }
+  },
+  "cpu_constraint_speedup": 4.795967595517344,
+  "composition_speedup": 1.5757308577082547,
+  "prove_speedup": 1.269891158959736,
+  "prove_reduction_fraction": 0.21253093783314791,
+  "limitations": [
+    "One pair; no statistical distribution.",
+    "Process wall includes independently verifying originalcomplete51proofchain and nativeprefixreplay.",
+    "No claimed whole-block throughput or peak-memory reduction; Keccak/secp providers remain scalar in these frozen binaries."
+  ]
+}

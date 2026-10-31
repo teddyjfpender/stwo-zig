@@ -2,7 +2,7 @@
 //! ELF metadata does not establish instruction coverage, a proof or a guest ABI.
 const std = @import("std");
 const mem = @import("memory.zig");
-pub const Error = mem.Error || error{ InvalidElf, UnsupportedElf, InvalidSegment, InvalidEntry, TooManySegments };
+pub const Error = mem.Error || error{ InvalidElf, UnsupportedElf, InvalidSegment, InvalidEntry, TooManySegments, MutableExecutable };
 pub const Image = struct { entry: u64, load_segments: usize, mapped_bytes: u64, file_bytes: usize, initial_pages: u64 = 0 };
 pub const Segment = struct { offset: u64, address: u64, file_size: u64, memory_size: u64, flags: u32 };
 const PageRange = struct { first: u64, last: u64 };
@@ -80,6 +80,21 @@ pub fn load(allocator: std.mem.Allocator, bytes: []const u8, limits: mem.Limits)
 
 pub fn loadImage(allocator: std.mem.Allocator, bytes: []const u8, limits: mem.Limits) Error!LoadedImage {
     const info = try inspect(bytes, limits);
+    return loadInspected(allocator, bytes, limits, info);
+}
+
+/// Immutable instruction ROM does not observe guest writes. The corresponding
+/// proof profile must reject writable executable regions before allocation.
+pub fn loadImmutableImage(allocator: std.mem.Allocator, bytes: []const u8, limits: mem.Limits) Error!LoadedImage {
+    const info = try inspect(bytes, limits);
+    const table = read64(bytes, 32);
+    for (0..read16(bytes, 56)) |i| {
+        const at: usize = @intCast(table + 56 * i);
+        if (read32(bytes, at) == 1 and read64(bytes, at + 40) != 0 and read32(bytes, at + 4) & 3 == 3) return error.MutableExecutable;
+    }
+    return loadInspected(allocator, bytes, limits, info);
+}
+fn loadInspected(allocator: std.mem.Allocator, bytes: []const u8, limits: mem.Limits, info: Image) Error!LoadedImage {
     var memory = mem.Memory.init(allocator, limits);
     errdefer memory.deinit();
     const table = read64(bytes, 32);

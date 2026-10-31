@@ -67,29 +67,38 @@ pub fn buildInteraction(a: std.mem.Allocator, plan: *const Plan, main: []const [
 /// Same extension-field authority for prover-domain and verifier OODS values.
 /// Product denominators have degree three, inverse identity degree four.
 pub fn evaluate(plan: *const Plan, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, alpha: Q, claim: Q, out: *E.Sink) void {
+    return evaluateFor(Q, plan, physical, current, previous, first, last, alpha, claim, out);
+}
+pub fn evaluateFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, alpha: Q, claim: Q, out: *E.SinkFor(F)) void {
     const prepared = PreparedAlpha.init(alpha);
-    evaluatePrepared(plan, physical, current, previous, first, last, &prepared, claim, out);
+    evaluatePreparedFor(F, plan, physical, current, previous, first, last, &prepared, claim, out);
 }
 pub fn evaluatePrepared(plan: *const Plan, physical: []const Q, current: []const Q, previous: []const Q, first: Q, last: Q, prepared: *const PreparedAlpha, claim: Q, out: *E.Sink) void {
+    return evaluatePreparedFor(Q, plan, physical, current, previous, first, last, prepared, claim, out);
+}
+pub fn evaluatePreparedFor(comptime F: type, plan: *const Plan, physical: []const F, current: []const F, previous: []const F, first: F, last: F, prepared: *const PreparedAlpha, claim: Q, out: *E.SinkFor(F)) void {
     std.debug.assert(physical.len == plan.main_count);
     std.debug.assert(current.len == interactionCount(plan) and previous.len == current.len);
-    var contribution = Q.zero();
+    var contribution = E.SecureFor(F).zero();
     for (0..batches(plan)) |batch| {
-        var values: [3]Q = undefined;
+        var values: [3]F = undefined;
         const count = @min(3, plan.range_count - batch * 3);
         for (0..count) |i| values[i] = physical[plan.range_sources[batch * 3 + i]];
-        const terms = prepared.terms(values[0..count]);
-        const inverse = secure(current, batch * 4);
-        out.emit(terms.denominator.mul(inverse).sub(Q.one()));
+        const terms = prepared.termsFor(F, values[0..count]);
+        const inverse = secureFor(F, current, batch * 4);
+        out.emit(terms.denominator.mul(inverse).sub(E.SecureFor(F).one()));
         contribution = contribution.add(terms.numerator.mul(inverse));
     }
-    const sum = secure(current, batches(plan) * 4);
-    const prior = secure(previous, batches(plan) * 4);
-    out.emit(sum.sub(Q.one().sub(first).mul(prior)).sub(contribution));
-    out.emit(last.mul(sum.sub(claim)));
+    const sum = secureFor(F, current, batches(plan) * 4);
+    const prior = secureFor(F, previous, batches(plan) * 4);
+    out.emit(sum.sub(E.mulBaseFor(F, prior, F.one().sub(first))).sub(contribution));
+    out.emit(E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last));
 }
 
-pub const Terms = struct { numerator: Q, denominator: Q };
+pub const Terms = TermsFor(Q);
+pub fn TermsFor(comptime F: type) type {
+    return struct { numerator: E.SecureFor(F), denominator: E.SecureFor(F) };
+}
 /// Challenge-only powers are prepared once per component. The same symmetric
 /// polynomial is evaluated over both base-valued domains and arbitrary OODS
 /// coordinates; no field-type-specific constraint branch is introduced.
@@ -104,14 +113,18 @@ pub const PreparedAlpha = struct {
         return .{ .alpha = alpha, .square = square, .cube = square.mul(alpha), .twice_alpha = alpha.add(alpha), .thrice_square = square.add(square).add(square) };
     }
     pub fn terms(self: *const PreparedAlpha, values: []const Q) Terms {
+        return self.termsFor(Q, values);
+    }
+    pub fn termsFor(self: *const PreparedAlpha, comptime F: type, values: []const F) TermsFor(F) {
         std.debug.assert(values.len <= 3);
+        const S = E.SecureFor(F);
         return switch (values.len) {
-            0 => .{ .numerator = Q.zero(), .denominator = Q.one() },
-            1 => .{ .numerator = Q.one(), .denominator = self.alpha.sub(values[0]) },
+            0 => .{ .numerator = S.zero(), .denominator = S.one() },
+            1 => .{ .numerator = S.one(), .denominator = E.splatFor(F, self.alpha).sub(E.liftFor(F, values[0])) },
             2 => blk: {
                 const s1 = values[0].add(values[1]);
                 const s2 = values[0].mul(values[1]);
-                break :blk .{ .numerator = self.twice_alpha.sub(s1), .denominator = self.square.sub(self.alpha.mul(s1)).add(s2) };
+                break :blk .{ .numerator = E.splatFor(F, self.twice_alpha).sub(E.liftFor(F, s1)), .denominator = E.splatFor(F, self.square).sub(E.mulBaseFor(F, E.splatFor(F, self.alpha), s1)).add(E.liftFor(F, s2)) };
             },
             3 => blk: {
                 const pair_sum = values[0].add(values[1]);
@@ -119,14 +132,17 @@ pub const PreparedAlpha = struct {
                 const s1 = pair_sum.add(values[2]);
                 const s2 = pair_product.add(pair_sum.mul(values[2]));
                 const s3 = pair_product.mul(values[2]);
-                break :blk .{ .numerator = self.thrice_square.sub(self.twice_alpha.mul(s1)).add(s2), .denominator = self.cube.sub(self.square.mul(s1)).add(self.alpha.mul(s2)).sub(s3) };
+                break :blk .{ .numerator = E.splatFor(F, self.thrice_square).sub(E.mulBaseFor(F, E.splatFor(F, self.twice_alpha), s1)).add(E.liftFor(F, s2)), .denominator = E.splatFor(F, self.cube).sub(E.mulBaseFor(F, E.splatFor(F, self.square), s1)).add(E.mulBaseFor(F, E.splatFor(F, self.alpha), s2)).sub(E.liftFor(F, s3)) };
             },
             else => unreachable,
         };
     }
 };
 pub fn secure(columns: []const Q, offset: usize) Q {
-    return Q.fromPartialEvals(columns[offset..][0..4].*);
+    return secureFor(Q, columns, offset);
+}
+pub fn secureFor(comptime F: type, columns: []const F, offset: usize) E.SecureFor(F) {
+    return E.secureFor(F, columns, offset);
 }
 fn store(storage: []M, size: usize, row: usize, column: usize, value: Q) void {
     for (value.toM31Array(), 0..) |coordinate, i| storage[(column + i) * size + row] = coordinate;

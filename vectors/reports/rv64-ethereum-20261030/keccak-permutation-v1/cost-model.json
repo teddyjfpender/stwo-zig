@@ -1,0 +1,64 @@
+{
+  "schema": "rv64-keccak-triple-lane-io-cost-v1",
+  "scope": "Permutation primitive only; CPU service/RAM bridge remains required. No full-block proof or end-to-end speedup claimed.",
+  "source_authority": "src/frontends/riscv/rv64/air/crypto/keccak",
+  "shared_tuple_authority": "src/frontends/riscv/air/guest_precompile/keccakf_lookup_tuples.zig",
+  "new": {
+    "fixed_columns": 32,
+    "main_columns": 1920,
+    "interaction_columns": 2596,
+    "total": 4548,
+    "rows_per_two_calls": 29,
+    "constraints": 6089,
+    "maximum_degree": 4,
+    "mask_values_per_component": 10952,
+    "claims": 1,
+    "previous_interaction_coordinates": 4,
+    "io_tuple": "call_id,direction,lane_index,eight bytes",
+    "io_arity": 11
+  },
+  "old_qualified_embedded_caller_control": {
+    "fixed": 31,
+    "main": 2204,
+    "interaction": 4164,
+    "total": 6399,
+    "maximum_degree": 3,
+    "scope": "Includes old RV32 embedded RAM caller, which the new primitive excludes."
+  },
+  "old_permutation_without_embedded_caller_model": {
+    "fixed": 31,
+    "main": 2140,
+    "interaction": 3844,
+    "total": 6015,
+    "scope": "Analytical removal of64caller main and320caller interaction columns, not a separately benchmarked circuit."
+  },
+  "comparisons": {
+    "source_column_reduction_vs_embedded_control": 0.2892639474917956,
+    "source_column_reduction_vs_permutation_model": 0.2438902743142145,
+    "warning": "Degree4 instead of3 may enlarge isolated quotient evaluation. Mixed CPU profile already uses degree4, but complete bridge/PCS lifetime and openings must be measured."
+  },
+  "all_32835_calls_counterfactual": {
+    "live_rows": 476122,
+    "padded_rows": 524288,
+    "primitive_source_bytes": 9537847296,
+    "old_embedded_control_source_bytes": 13419675648,
+    "shared_table_source_bytes": 442368,
+    "excluded": [
+      "CPU",
+      "RAM bridge",
+      "byte-range provider",
+      "coefficients",
+      "LDE",
+      "Merkle",
+      "quotient scratch",
+      "openings",
+      "witness ownership overhead"
+    ],
+    "current_domain_evaluator": "Materializes full4n sources; this prototype is not a whole-block memory-qualified route."
+  },
+  "qualification": [
+    "Nine focused ReleaseSafe tests including serialized producer destruction/fresh verification, one and three calls, incomplete pair, stitched-loop/transition corruption, previous sample corruption, invalid counts/inverse publication, arbitrary-QM31 degree4 and legacy1041pair reference parity.",
+    "Existing legacy typed native Keccak proof independently passes after pure tuple extraction. No retained legacy whole-proof SHA comparison is claimed.",
+    "Durable three-call q70/PoW26 proof independently verified in a fresh process."
+  ]
+}

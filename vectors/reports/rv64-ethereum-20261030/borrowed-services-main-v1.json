@@ -1,0 +1,34 @@
+{
+  "gate": "zig build test-riscv64-borrowed-services -Doptimize=ReleaseSafe",
+  "exit_code": 0,
+  "tests": 3,
+  "one_ragged_main_backing": true,
+  "canonical_wide_row_filler_shared": true,
+  "full_proof_binary_comparison": "assertEqualSlices(encoded_owned,encoded_borrowed)",
+  "independent_expected_setup_receiver_passed": true,
+  "proof_sha256": null,
+  "reference_fixture": {
+    "name": "ethereum_services_v2 generator ADD then DOUBLE + K + DIV + MUL + RAM",
+    "control_artifact": "vectors/reports/interop_artifacts/rv64-ethereum-cpu-v2/proof.bin",
+    "control_sha256": "e66d192450a35c8ea4eea969bfaca8abcb53a4596b55adf3b2132068dae143e4"
+  },
+  "ownership_checks": [
+    "caller CPU ownership retained on role shape/overlap rejection",
+    "DIV/MUL main destroyed before challenge interaction generation",
+    "DIV/MUL constructor and interaction allocation failures",
+    "borrowed provider release clears views without freeing",
+    "canonical header/log/pointer validation before one-backing PCS adoption",
+    "owned PCS consumes descriptors/backing on success and failure"
+  ],
+  "scope_limits": [
+    "no separate borrowed binary artifact emitted by this gate",
+    "no whole-job memory/time gain asserted",
+    "this gate uses public-cell boundaries; parent qualifies private RAM joins"
+  ],
+  "post_gate_guards_pending_next_compile": [],
+  "latest_gate": "zig build test-riscv64-keccak-cpu test-riscv64-borrowed-services -Doptimize=ReleaseSafe",
+  "preflight_guards_qualified": [
+    "CPU log-size mismatch rejects before domain calculation",
+    "borrowed provider ranges exclude whole CPU owned backing including reserved tail"
+  ]
+}

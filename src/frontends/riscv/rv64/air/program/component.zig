@@ -14,6 +14,7 @@ const geometry = @import("../geometry.zig");
 const provider = @import("provider.zig");
 const rom = @import("setup.zig");
 const compact = @import("compact.zig");
+const packed_control = @import("packed_control.zig");
 const E = @import("../evaluation.zig");
 const support = @import("../../../air/memory_commitment/hash_component_prepared_support.zig");
 const points = @import("../../../air/component_point_support.zig");
@@ -22,7 +23,7 @@ const TOTAL = FIXED + 1 + provider.INTERACTION;
 
 pub const Component = struct {
     log_size: u32,
-    encoding: enum { full155, compact41 } = .full155,
+    encoding: enum { full155, compact41, packed26 } = .full155,
     fixed_offset: usize,
     main_offset: usize,
     interaction_offset: usize,
@@ -80,10 +81,15 @@ pub const Component = struct {
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidRv64RomShape;
         try self.checkShape(mask.items[0].len, mask.items[1].len, mask.items[2].len);
-        var entry: rom.Tuple = @splat(Q.zero());
-        for (0..self.tupleCount()) |i| {
-            entry[if (self.encoding == .compact41) compact.fields[i] else i] = try sample(mask.items[0][self.fixed_offset + i], 0, 1);
-        }
+        const denominator = if (self.encoding == .packed26) blk: {
+            var entry: packed_control.Tuple = undefined;
+            for (&entry, 0..) |*value, i| value.* = try sample(mask.items[0][self.fixed_offset + i], 0, 1);
+            break :blk packed_control.denominator(self.challenges, &entry);
+        } else blk: {
+            var entry: rom.Tuple = @splat(Q.zero());
+            for (0..self.tupleCount()) |i| entry[self.sourceIndex(i)] = try sample(mask.items[0][self.fixed_offset + i], 0, 1);
+            break :blk self.challenges.denominator(&entry);
+        };
         var current: [provider.INTERACTION]Q = undefined;
         var previous: [provider.INTERACTION]Q = @splat(Q.zero());
         for (&current, mask.items[2][self.interaction_offset..][0..provider.INTERACTION], 0..) |*value, column, i| {
@@ -91,7 +97,7 @@ pub const Component = struct {
             if (i >= 4) previous[i] = try sample(column, 1, 2);
         }
         var sink = E.Sink{ .values = null, .accumulator = accumulator, .scale = try geometry.denominatorInverse(point, global_log, self.log_size) };
-        provider.evaluate(try sample(mask.items[0][self.fixed_offset + self.tupleCount()], 0, 1), try sample(mask.items[0][self.fixed_offset + self.tupleCount() + 1], 0, 1), &entry, try sample(mask.items[1][self.main_offset], 0, 1), &current, &previous, self.challenges, self.claim, &sink);
+        provider.evaluateDenominator(try sample(mask.items[0][self.fixed_offset + self.tupleCount()], 0, 1), try sample(mask.items[0][self.fixed_offset + self.tupleCount() + 1], 0, 1), denominator, try sample(mask.items[1][self.main_offset], 0, 1), &current, &previous, self.claim, &sink);
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
         if (trace.polys.items.len != 3) return error.InvalidRv64RomShape;
@@ -130,10 +136,15 @@ pub const Component = struct {
         var output = columns[0];
         for (0..size) |row| {
             const prior = core.utils.previousBitReversedCircleDomainIndex(row, self.log_size, eval_log);
-            var entry: rom.Tuple = @splat(Q.zero());
-            for (0..self.tupleCount()) |i| {
-                entry[if (self.encoding == .compact41) compact.fields[i] else i] = Q.fromBase(evaluations[i][row]);
-            }
+            const denominator = if (self.encoding == .packed26) blk: {
+                var entry: packed_control.Tuple = undefined;
+                for (&entry, 0..) |*value, i| value.* = Q.fromBase(evaluations[i][row]);
+                break :blk packed_control.denominator(self.challenges, &entry);
+            } else blk: {
+                var entry: rom.Tuple = @splat(Q.zero());
+                for (0..self.tupleCount()) |i| entry[self.sourceIndex(i)] = Q.fromBase(evaluations[i][row]);
+                break :blk self.challenges.denominator(&entry);
+            };
             var current: [provider.INTERACTION]Q = undefined;
             var previous: [provider.INTERACTION]Q = @splat(Q.zero());
             for (&current, evaluations[n_fixed + 1 ..], 0..) |*value, column, i| {
@@ -142,14 +153,25 @@ pub const Component = struct {
             }
             var residuals: [provider.CONSTRAINTS]Q = undefined;
             var sink = E.Sink{ .values = &residuals };
-            provider.evaluate(Q.fromBase(evaluations[self.tupleCount()][row]), Q.fromBase(evaluations[self.tupleCount() + 1][row]), &entry, Q.fromBase(evaluations[n_fixed][row]), &current, &previous, self.challenges, self.claim, &sink);
+            provider.evaluateDenominator(Q.fromBase(evaluations[self.tupleCount()][row]), Q.fromBase(evaluations[self.tupleCount() + 1][row]), denominator, Q.fromBase(evaluations[n_fixed][row]), &current, &previous, self.claim, &sink);
             var folded = Q.zero();
             for (residuals, 0..) |value, i| folded = folded.add(output.random_coeff_powers[provider.CONSTRAINTS - 1 - i].mul(value));
             output.accumulate(row, folded.mulM31(inverses[row >> @as(std.math.Log2Int(usize), @intCast(self.log_size))]));
         }
     }
     pub fn tupleCount(self: *const Component) usize {
-        return if (self.encoding == .compact41) compact.COUNT else rom.field.COUNT;
+        return switch (self.encoding) {
+            .full155 => rom.field.COUNT,
+            .compact41 => compact.COUNT,
+            .packed26 => packed_control.COUNT,
+        };
+    }
+    fn sourceIndex(self: *const Component, i: usize) usize {
+        return switch (self.encoding) {
+            .full155 => i,
+            .compact41 => compact.fields[i],
+            .packed26 => packed_control.sources[i].start,
+        };
     }
     pub fn fixedCount(self: *const Component) usize {
         return self.tupleCount() + 2;

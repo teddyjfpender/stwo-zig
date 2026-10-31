@@ -27,7 +27,7 @@ const tables = rv.providers.tables;
 const Column = engine.pcs.ColumnEvaluation;
 const Scheme = engine.pcs.CommitmentSchemeProver(B, P.Hasher, P.MerkleChannel);
 const Verifier = core.pcs.verifier.CommitmentSchemeVerifier(P.Hasher, P.MerkleChannel);
-const CPU_LOG: u32 = 7;
+const CPU_LOG: u32 = 10;
 const CPU_SIZE: usize = 1 << CPU_LOG;
 fn appendColumns(output: []Column, storage: []const M, log: u32) void {
     const size = @as(usize, 1) << @intCast(log);
@@ -49,12 +49,8 @@ test "full CPU private control frame closes ROM and bytes in one native proof" {
     const public = S.Statement{ .program_base = 0x1000, .program = &program, .initial_pc = 0x1000, .final_pc = 0x1004, .initial_registers = @splat(0), .final_registers = final, .memory = &.{}, .steps = 1 };
     var witness = try W.Witness.build(a, public);
     defer witness.deinit();
-    const projection = try rv.projection.Projection.init(a, public, witness.metadata, CPU_SIZE);
     const opcodes = [_]E.O{.ADDI};
-    var plan = Plan.init(&projection, &opcodes);
-    plan.wideClocks();
-    plan.compactProductCarries();
-    plan.byteOperations(&opcodes);
+    const plan = Plan.fromOpcodes(&opcodes);
     var setup = try rom.Setup.init(a, .{ .base = 0x1000, .words = &program });
     defer setup.deinit();
     var rom_request = try rom_provider.Request.init(a, &setup, witness.metadata.path);
@@ -180,21 +176,53 @@ test "full CPU private control frame closes ROM and bytes in one native proof" {
     owns_reference = false;
     var reference_proof = try engine.prove.prove(B, P.Hasher, P.MerkleChannel, a, &reference_components, &reference_channel, reference_scheme);
     defer reference_proof.deinit(a);
+    const wire = @import("stwo_proof_wire");
+    const reference_bytes = try wire.encodeProofBytesBinary(a, reference_proof);
+    defer a.free(reference_bytes);
+    var tile_binding = try rv.full.parallel.testing.TileRowsBinding.init(64);
+    defer tile_binding.deinit();
+    for ([_]usize{ 1, 8, 16 }) |workers| {
+        var variant_pool: engine.work_pool.WorkPool = undefined;
+        try variant_pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = 2 * 1024 * 1024, .backing_allocator = a });
+        defer variant_pool.deinit();
+        var variant_binding = try engine.work_pool.ScopedPoolBinding.init(&variant_pool);
+        defer variant_binding.deinit();
+        var variant_scheme = try Scheme.init(a, config);
+        var owns_variant = true;
+        errdefer if (owns_variant) variant_scheme.deinit(a);
+        variant_scheme.setCompactPolynomialStorage(5);
+        var variant_channel = P.Channel{};
+        mix(&variant_channel, config);
+        try variant_scheme.commit(a, fixed_columns, &variant_channel);
+        try variant_scheme.commit(a, main_columns, &variant_channel);
+        _ = relations.Challenges.draw(&variant_channel);
+        _ = compact.draw(&variant_channel);
+        _ = variant_channel.drawSecureFelt();
+        variant_channel.mixFelts(&.{ rom_sum, rom_claim, byte_interaction.claim, byte_claim });
+        try variant_scheme.commit(a, interaction_columns, &variant_channel);
+        const before_waves = rv.full.parallel.testing.dynamicWaveCount();
+        owns_variant = false;
+        var variant = try engine.prove.prove(B, P.Hasher, P.MerkleChannel, a, &components, &variant_channel, variant_scheme);
+        defer variant.deinit(a);
+        const variant_bytes = try wire.encodeProofBytesBinary(a, variant);
+        defer a.free(variant_bytes);
+        try std.testing.expectEqualSlices(u8, reference_bytes, variant_bytes);
+        if (workers != 1) try std.testing.expect(rv.full.parallel.testing.dynamicWaveCount() >= before_waves + 4);
+    }
     var pool: engine.work_pool.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 2 * 1024 * 1024 });
     defer pool.deinit();
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
+    const before_three = rv.full.parallel.testing.dynamicWaveCount();
     owns_scheme = false;
     var proof = try engine.prove.prove(B, P.Hasher, P.MerkleChannel, a, &components, &channel, scheme);
     var owns_proof = true;
     defer if (owns_proof) proof.deinit(a);
-    const wire = @import("stwo_proof_wire");
-    const reference_bytes = try wire.encodeProofBytesBinary(a, reference_proof);
-    defer a.free(reference_bytes);
     const optimized_bytes = try wire.encodeProofBytesBinary(a, proof);
     defer a.free(optimized_bytes);
     try std.testing.expectEqualSlices(u8, reference_bytes, optimized_bytes);
+    try std.testing.expect(rv.full.parallel.testing.dynamicWaveCount() >= before_three + 4);
 
     // Receiver-owned geometry and canonical ROM/byte roots are rebuilt before
     // sampled-value verification. No private PC path is mixed into replay.

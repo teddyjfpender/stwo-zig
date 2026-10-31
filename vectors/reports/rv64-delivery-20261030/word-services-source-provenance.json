@@ -1,0 +1,114 @@
+{
+  "schema": "rv64-word-services-source-provenance-v1",
+  "all_sources_match_build": true,
+  "sources": [
+    {
+      "original": "/private/tmp/stwo-rv64-ethereum-services-v2/ethereum-rv64-services-v2.elf",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/00-ethereum-rv64-services-v2.elf",
+      "sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/main.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/01-main.rs",
+      "sha256": "ddf53803ee4b0d4e29db4fcd1603d190411dcbc8789b874d5410c7441420b849",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.py",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/02-build.py",
+      "sha256": "849078de1cbc1c4fd140890fffd3ed4fbda7ffdb2c116bd78108997907285c22",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/single_thread_atomics.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/03-single_thread_atomics.rs",
+      "sha256": "4f078b5ddebdc992c1dd5653d4333dcabff2ec239a38ce80ac1a3832d72f4749",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.toml",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/04-Cargo.toml",
+      "sha256": "9011f6a745f5285f0f426c4013df1d1f1c192a5238c2031e5ddd9dc9b21c419e",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/linker.ld",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/05-linker.ld",
+      "sha256": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/06-build.rs",
+      "sha256": "732085bb626aebe3dd4a9a9d14b80ec1e6eaee0be42a3d6bfd4f3caa76880ff8",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/07-exact_layout_allocator_v2.rs",
+      "sha256": "1c3b7f05be7ae5c0c1a682c78d0b3e6fe3ca293e91e5c611d57b0fca62272551",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/riscv64i-stwo.json",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/08-riscv64i-stwo.json",
+      "sha256": "2416b0a8b7a9ae4d614d0c5f848e478488fc6f41d49624fa36ca4de0f2f8adfb",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.lock",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/09-Cargo.lock",
+      "sha256": "bf39a7f57946b93475b733f1adf1099f04dfb24e39ab4d45d42705628edc9289",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/keccak_service.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/10-keccak_service.rs",
+      "sha256": "726f571cbdbf3cd14527b712007dc3ea27eae344ac6223056b341675ce352933",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/Cargo.toml",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/11-Cargo.toml",
+      "sha256": "90eb2ec807fb8a94e781f3241042a178eb454dc696c1255f220cf826ad927713",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/12-projective.rs",
+      "sha256": "ad2f394f69c07aec6e4bd7b8d710f2d898148113ed7afacd6fd2cfb49354adae",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/projective/stwo_service.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/13-stwo_service.rs",
+      "sha256": "e6a98485fcc9be5268946fa40d61a935f7aa48e1681a8303a121ecfe59267986",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256/src/arithmetic/field.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/14-field.rs",
+      "sha256": "49fce60be683cc9ba76398b32c0af1e961db13b8aed5b2bd4033621434f42e26",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/k256-source.json",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/15-k256-source.json",
+      "sha256": "cd6c25a5fceaff4421bd6dc468e861f10aad2f447fd2473e7e78ec52dcf52d90",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/service_abi/Cargo.toml",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/16-Cargo.toml",
+      "sha256": "86978c6d2019f11f5da3970644da1a472afd6de66f17e46fa9c56fb9e61c1efa",
+      "matches_build": true
+    },
+    {
+      "original": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/service_abi/src/lib.rs",
+      "archived": "interop_artifacts/rv64-ethereum-word-services-v2/source/17-lib.rs",
+      "sha256": "c19c6c609e45b3c55de152694fc0bd4bc98824ddd8c74fb9fbc5d42d55608a19",
+      "matches_build": true
+    }
+  ]
+}

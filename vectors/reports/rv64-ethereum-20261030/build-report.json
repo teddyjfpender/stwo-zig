@@ -1,0 +1,97 @@
+{
+  "schema": "stwo.rv64.ethereum-software-build.v1",
+  "toolchain": "nightly-2026-08-08",
+  "isa": "RV64IM",
+  "abi": "lp64",
+  "guest": {
+    "path": "/private/tmp/stwo-rv64-ethereum/ethereum-rv64-software.elf",
+    "bytes": 3052696,
+    "sha256": "9f0bd99274eafa7bddf2886ff331f02fd18ec78ebdf7aba287064ba736f43a6f"
+  },
+  "guest_source": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/main.rs",
+    "bytes": 2385,
+    "sha256": "5f37795f4f90e2b055c141a946b3b5ba7c4067c6517f1c0035df1494077060a1"
+  },
+  "build_script": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.py",
+    "bytes": 7898,
+    "sha256": "f53dc8a3b8dd30b4950dd80447ac87b44fb7f983bdd5a8697c58e27b3b831415"
+  },
+  "runtime_sources": [
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/single_thread_atomics.rs",
+      "bytes": 2681,
+      "sha256": "4f078b5ddebdc992c1dd5653d4333dcabff2ec239a38ce80ac1a3832d72f4749"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/Cargo.toml",
+      "bytes": 844,
+      "sha256": "4960247fe9b23a1a59762ed1e035a97ad03891f07e3ee3c07d64e7220d9549b1"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/linker.ld",
+      "bytes": 1356,
+      "sha256": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07"
+    },
+    {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.rs",
+      "bytes": 64,
+      "sha256": "732085bb626aebe3dd4a9a9d14b80ec1e6eaee0be42a3d6bfd4f3caa76880ff8"
+    }
+  ],
+  "allocator_source": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs",
+    "bytes": 4895,
+    "sha256": "1c3b7f05be7ae5c0c1a682c78d0b3e6fe3ca293e91e5c611d57b0fca62272551"
+  },
+  "target": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/riscv64i-stwo.json",
+    "bytes": 542,
+    "sha256": "2416b0a8b7a9ae4d614d0c5f848e478488fc6f41d49624fa36ca4de0f2f8adfb"
+  },
+  "lockfile": {
+    "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/autoresearch/benchmarks/guest_runtime/ethereum/rv64/Cargo.lock",
+    "bytes": 83774,
+    "sha256": "79967d1274c61be1c695521e65dc9f42d752d5939c08d34391868cfad6f4375c"
+  },
+  "host_validation_verified": true,
+  "rv64_execution_verified": true,
+  "full_block_proof_verified": false,
+  "canonical_input": {
+    "path": "/private/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+    "bytes": 2700688,
+    "sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c"
+  },
+  "input": {
+    "path": "/private/tmp/stwo-rv64-ethereum/fixture/stwo-runner-input.bin",
+    "bytes": 2700692,
+    "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+  },
+  "expected_output": {
+    "path": "/private/tmp/stwo-rv64-ethereum/fixture/expected-output.bin",
+    "bytes": 43,
+    "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "source_fixture": {
+    "path": "/private/tmp/stwo-rv64-ethereum/zisk-input.bin",
+    "bytes": 2718960,
+    "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376"
+  },
+  "source_git_blob": "77ce1b475784fd6c008f2ca0a834f9afc7948d2b",
+  "fixture_repository": "https://github.com/0xPolygonHermez/zisk-eth-client.git",
+  "fixture_commit": "0887d43621931faba8cdf8da70402091bbe620ff",
+  "native_execution": {
+    "path": "/tmp/stwo-rv64-ethereum/execution-profile.json",
+    "bytes": 1276285,
+    "sha256": "8dbf72b71560ad4953dfd3fb52ce8206ad064a9e0684a0c57096dd39feba450e"
+  },
+  "independent_execution": {
+    "path": "/tmp/stwo-rv64-ethereum/unicorn-full.json",
+    "bytes": 3087,
+    "sha256": "63a1e9b1f64656640b529f0610e3243c77f1c27ff80841f11db6b3ed2c70d55f"
+  },
+  "instructions": 835695366,
+  "final_registers_pc_output_count_match": true,
+  "ram_state_comparison": false
+}

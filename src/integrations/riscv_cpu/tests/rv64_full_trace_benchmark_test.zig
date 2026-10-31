@@ -38,7 +38,7 @@ test "full physical trace benchmark actual CSP witness bytes" {
         try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024, .backing_allocator = base });
         pool_ready = true;
     }
-    var trace = try native.Trace.initWithPool(base, capture.records, public, &setup.program, &setup.plan, if (pool_ready) &pool else null);
+    var trace = try native.Trace.initWithPool(base, capture.records, public, &setup.materials.program, &setup.materials.plan, if (pool_ready) &pool else null);
     defer trace.deinit();
     const init_ns = timer.lap();
     var channel = air.protocol.Channel{};

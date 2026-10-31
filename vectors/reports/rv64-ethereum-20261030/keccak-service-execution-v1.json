@@ -1,0 +1,27 @@
+{
+  "schema": "rv64-keccak-service-execution-v1",
+  "block": 24628607,
+  "transactions": 66,
+  "execution_verified_output": true,
+  "full_block_proof_verified": false,
+  "software_instructions": 835695366,
+  "service_profile_instructions": 317796238,
+  "instructions_removed": 517899128,
+  "instruction_ratio": 2.629657831254755,
+  "keccak_calls": 32835,
+  "service_ram_word_transitions": 820875,
+  "normal_loads": 43793235,
+  "normal_stores": 29957295,
+  "output_matches_software": true,
+  "output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "elf_sha256": "bb99665c9b0322fb68eebac0439ef04fa72d60e525c17caf1f940d9fd79ca8e0",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "raw_execution_sha256": "685271967cf3bbfcb2603a90b43f7aa39513b40e10b49b103092ddd0b0a1b419",
+  "scope": [
+    "Versioned standard ECALL runtime; ordinary Session ECALL traps",
+    "Host permutation computes witness values and is not proof authority",
+    "Output agreement does not close CPU/crypto/RAM proof relations",
+    "No proving speedup inferred from retired instruction ratio"
+  ],
+  "artifacts": "vectors/reports/interop_artifacts/rv64-keccak-service-v1"
+}

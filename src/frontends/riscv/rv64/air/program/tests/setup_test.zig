@@ -17,10 +17,19 @@ test "rv64 program ROM: identity owns canonical program only and preserves upper
     var sparse = try rom.Setup.init(a, .{ .base = 0x100001000, .words = &words, .addresses = &.{ 0x100001000, 0x100001004, 0x100001008 } });
     defer sparse.deinit();
     try std.testing.expectEqualSlices(u8, &setup.identity, &sparse.identity);
+    try std.testing.expect(setup.contiguous and sparse.contiguous);
     mutable[0] = 0;
+    try std.testing.expectEqual(words[0], setup.decoded[0].raw);
+    for (setup.rows, setup.decoded, 0..) |row, entry, i| {
+        try std.testing.expectEqualDeep(rom.deriveRow(0x100001000 + 4 * i, words[i]), row);
+        if (row[rom.field.valid].isZero()) continue;
+        try std.testing.expectEqualDeep(try @import("../../../decode.zig").Instruction.decode(words[i]), entry.instruction);
+        for (entry.enabled, 0..) |enabled, slot| try std.testing.expectEqual(!row[rom.field.slots + slot].isZero(), enabled);
+    }
     try std.testing.expectEqual(@as(usize, 0), try setup.lookup(0x100001000));
     try std.testing.expectError(error.InvalidRv64RomExecution, setup.lookup(0x1000));
     try std.testing.expectError(error.InvalidRv64RomExecution, setup.lookup(0x100001008));
+    try std.testing.expectError(error.InvalidRv64RomExecution, setup.lookup(0x100001001));
     var low = try rom.Setup.init(a, .{ .base = 0x1000, .words = &words });
     defer low.deinit();
     try std.testing.expect(!std.mem.eql(u8, &setup.identity, &low.identity));
@@ -36,6 +45,13 @@ test "rv64 program ROM: canonical address admission and wraparound decode" {
     defer top.deinit();
     const row = top.row(0);
     for (row[rom.field.increment..][0..8]) |byte| try std.testing.expect(byte.isZero());
+    try std.testing.expectEqual(@as(usize, 0), try top.lookup(0xfffffffffffffffc));
+    try std.testing.expectError(error.InvalidRv64RomExecution, top.lookup(0));
+    var sparse = try rom.Setup.init(a, .{ .base = 0x1000, .words = words[0..2], .addresses = &.{ 0x1000, 0xfffffffffffffffc } });
+    defer sparse.deinit();
+    try std.testing.expect(!sparse.contiguous);
+    try std.testing.expectEqual(@as(usize, 1), try sparse.lookup(0xfffffffffffffffc));
+    try std.testing.expectError(error.InvalidRv64RomExecution, sparse.lookup(0x1004));
 }
 
 test "rv64 program provider: fresh multiplicities and exact execution closure with adversarial mutations" {

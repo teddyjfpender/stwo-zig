@@ -76,6 +76,20 @@ pub const Pages = struct {
         }
     }
 
+    /// The caller validates alignment/permissions and supplies disjoint words.
+    /// Reserve the entire span before publishing any byte change.
+    pub fn storeWords(self: *Pages, address: u64, words: []const u64) types.Error!void {
+        const bytes = std.math.mul(u64, words.len, 8) catch return error.AddressOverflow;
+        const last = try types.endAddress(address, bytes);
+        try self.reserve(address / types.PAGE_SIZE, last / types.PAGE_SIZE);
+        for (words, 0..) |word, i| {
+            const current = address + i * 8;
+            const page = self.lookup(current / types.PAGE_SIZE).?;
+            const offset: usize = @intCast(current % types.PAGE_SIZE);
+            std.mem.writeInt(u64, page[offset..][0..8], word, .little);
+        }
+    }
+
     /// Allocate unpublished pages first; publish all pages only when every
     /// allocation and hash-table reservation has succeeded. Failure changes
     /// neither table membership nor architectural bytes.

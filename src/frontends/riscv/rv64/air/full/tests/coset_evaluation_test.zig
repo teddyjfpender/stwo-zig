@@ -71,6 +71,7 @@ test "RV64 coset scratch: arbitrary degree-bounded polynomials and predecessor s
                 try std.testing.expect(partitioned.eql(full));
             }
         }
+        try std.testing.expectEqual(@as(usize, 4 * sources.len), evaluation.test_transformed_columns);
         try std.testing.expectError(error.InvalidCosetPartition, evaluation.evaluatePart(4));
     }
 }
@@ -121,4 +122,79 @@ test "RV64 coset column FFT waves equal serial values and drain before reuse" {
     var competing = try pool.acquire(try engine.work_pool.WorkerBudget.init(3));
     defer competing.deinit();
     try std.testing.expectError(error.WorkerBudgetUnavailable, pooled.evaluatePartWithPool(0, &pool));
+}
+
+test "paired cosets swap exact predecessor buffers and tolerate arbitrary requests with every mask pattern" {
+    const log = 6;
+    const size = 1 << log;
+    var coefficients: [3][size]M = undefined;
+    var sources: [3]Poly = undefined;
+    for (&coefficients, &sources, 0..) |*column, *source, c| {
+        for (column, 0..) |*v, i| v.* = M.fromCanonical(@intCast(11 + 29 * c + 7 * i + i * i));
+        source.* = .{ .log_size = log + 1, .values = &.{}, .coefficients = try Polynomial.initBorrowed(column) };
+    }
+    const domain = core.poly.circle.canonic.CanonicCoset.new(log + 2).circleDomain();
+    var reference: [3][]const M = undefined;
+    var filled: usize = 0;
+    defer for (reference[0..filled]) |column| a.free(column);
+    for (sources, &reference) |source, *column| {
+        column.* = (try source.coefficients.?.evaluate(a, domain)).values;
+        filled += 1;
+    }
+    for ([_][3]bool{ .{ false, false, false }, .{ true, true, true }, .{ true, false, true } }) |mask| {
+        var evaluation = try cosets.Evaluation.init(a, &sources, log, &mask);
+        defer evaluation.deinit();
+        const original_scratch = evaluation.scratch.ptr;
+        try evaluation.evaluatePart(0);
+        const before = evaluation.test_transformed_columns;
+        const current: [3][]const M = evaluation.current_values[0..3].*;
+        const previous: [3][]const M = evaluation.previous_values[0..3].*;
+        try evaluation.evaluatePart(1);
+        for (mask, 0..) |marked, c| {
+            if (marked) {
+                try std.testing.expect(evaluation.current_values[c].ptr == previous[c].ptr);
+                try std.testing.expect(evaluation.previous_values[c].ptr == current[c].ptr);
+            } else try std.testing.expect(evaluation.current_values[c].ptr == current[c].ptr);
+        }
+        var expected_new: usize = 0;
+        for (mask) |marked| expected_new += @intFromBool(!marked);
+        try std.testing.expectEqual(before + expected_new, evaluation.test_transformed_columns);
+        for ([_]usize{ 2, 3, 3, 2, 0, 3, 1, 0 }) |part| {
+            try evaluation.evaluatePart(part);
+            try std.testing.expect(evaluation.scratch.ptr == original_scratch);
+            for (0..size) |row| {
+                const global = evaluation.globalRow(part, row);
+                const prior = core.utils.previousBitReversedCircleDomainIndex(global, log, log + 2);
+                for (mask, reference, 0..) |marked, want, c| {
+                    try std.testing.expect(evaluation.current_values[c][row].eql(want[global]));
+                    if (marked) try std.testing.expect(evaluation.previous_values[c][evaluation.previousRow(part, row)].eql(want[prior]));
+                }
+            }
+        }
+    }
+}
+
+test "failed unshifted FFT after partner swap invalidates cache and retry reinitializes every view" {
+    var coefficients: [2][8]M = undefined;
+    var sources: [2]Poly = undefined;
+    for (&coefficients, &sources, 0..) |*column, *source, c| {
+        for (column, 0..) |*v, i| v.* = M.fromCanonical(@intCast(13 + c * 23 + i * i));
+        source.* = .{ .log_size = 4, .values = &.{}, .coefficients = try Polynomial.initBorrowed(column) };
+    }
+    var fail = std.testing.FailingAllocator.init(a, .{});
+    var evaluation = try cosets.Evaluation.init(fail.allocator(), &sources, 3, &.{ true, false });
+    defer evaluation.deinit();
+    try evaluation.evaluatePart(0);
+    fail.fail_index = fail.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, evaluation.evaluatePart(1));
+    try std.testing.expect(evaluation.cached_part == null);
+    fail.fail_index = std.math.maxInt(usize);
+    try evaluation.evaluatePart(1);
+    var independent = try cosets.Evaluation.init(a, &sources, 3, &.{ true, false });
+    defer independent.deinit();
+    try independent.evaluatePart(1);
+    for (evaluation.current_values, independent.current_values, evaluation.previous_values, independent.previous_values) |actual, want, previous, prior_want| {
+        try std.testing.expectEqualSlices(M, want, actual);
+        try std.testing.expectEqualSlices(M, prior_want, previous);
+    }
 }

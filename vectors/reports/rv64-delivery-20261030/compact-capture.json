@@ -1,0 +1,78 @@
+{
+  "schema": "rv64-compact-capture-qualification-v1",
+  "full_block_proof_verified": false,
+  "whole_block_output_matched": true,
+  "all_retiring_opcodes_roundtrip": 63,
+  "service_profile_roundtrip": true,
+  "allocation_failure_and_adjacent_clock_tests": "ReleaseSafe passed",
+  "instructions": 317796238,
+  "ram_before_words": 73750530,
+  "keccak_calls": 32835,
+  "step_bytes": 48,
+  "legacy_retirement_bytes": 112,
+  "runs": [
+    {
+      "batch_policy": "control",
+      "execution_ns": 4889509125,
+      "maximum_rss_bytes": 25755648,
+      "compact_capture": null
+    },
+    {
+      "batch_policy": "18",
+      "execution_ns": 5918970708,
+      "maximum_rss_bytes": 41254912,
+      "compact_capture": {
+        "batches": 1213,
+        "instructions": 317796238,
+        "ram_words": 73750530,
+        "service_calls": 32835,
+        "peak_retained_bytes": 16047368,
+        "step_bytes": 48,
+        "legacy_retirement_bytes": 112,
+        "authenticated_continuation": false
+      }
+    },
+    {
+      "batch_policy": "20",
+      "execution_ns": 5929955834,
+      "maximum_rss_bytes": 83116032,
+      "compact_capture": {
+        "batches": 304,
+        "instructions": 317796238,
+        "ram_words": 73750530,
+        "service_calls": 32835,
+        "peak_retained_bytes": 58127528,
+        "step_bytes": 48,
+        "legacy_retirement_bytes": 112,
+        "authenticated_continuation": false
+      }
+    },
+    {
+      "batch_policy": "22safe",
+      "execution_ns": 6055699125,
+      "maximum_rss_bytes": 245530624,
+      "compact_capture": {
+        "batches": 76,
+        "instructions": 317796238,
+        "ram_words": 73750530,
+        "service_calls": 32835,
+        "peak_retained_bytes": 221085760,
+        "step_bytes": 48,
+        "legacy_retirement_bytes": 112,
+        "authenticated_continuation": false
+      }
+    }
+  ],
+  "artifacts": "vectors/reports/interop_artifacts/rv64-compact-capture",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/compact_tape.zig": "2cd2fd170acb2b62d73a085a3e5abfcca09ba47488d23016ce5a53c16571eb12",
+    "src/frontends/riscv/rv64/tests/compact_tape_test.zig": "6b8d9296b77610fd2fbc140dce91955aa544e92ed41b1d19b396f42ae873ccec"
+  },
+  "scope": [
+    "Native advice capture only; no authenticated continuation or full-block proof.",
+    "Capture is bounded; no per-step file output or whole-execution journal retention.",
+    "Restore is projection through immutable decoded ROM, never instruction execution or mutable RAM replay.",
+    "Parallel compilation/qualification activity was present; timings are single-run observations, not a controlled proving speedup.",
+    "2^18/2^20 runs used identical tape implementation before tightening the maximum capacity admission to2^22-1; final2^22-1 run uses the tightened bound."
+  ]
+}

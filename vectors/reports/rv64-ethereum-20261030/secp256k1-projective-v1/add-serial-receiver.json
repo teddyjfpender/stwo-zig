@@ -1,0 +1,15 @@
+{
+  "command": [
+    "zig-out/bin/rv64-secp-fixture",
+    "verify",
+    "/tmp/stwo-rv64-secp-add-serial-v1",
+    "add",
+    "5",
+    "1"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 11811500,
+  "fresh_process": true,
+  "independent_fixed_root": true,
+  "public_fixture_only": true
+}

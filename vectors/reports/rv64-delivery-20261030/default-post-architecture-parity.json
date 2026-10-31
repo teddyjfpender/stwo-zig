@@ -1,0 +1,13 @@
+{
+  "schema": "rv64-default-post-architecture-parity-v1",
+  "complete_execution_cases": 17,
+  "fresh_receivers_verified": 17,
+  "all_statement_claim_proof_bytes_identical": true,
+  "changes": [
+    "Rootless immutable materials in composed setups; standalone authority wrapper",
+    "Compact advice input projection without execution replay",
+    "Immutable native ROM decode cache and checked contiguous-PC direct lookup",
+    "Explicit state policy/optional provider roster, with legacy defaults preserved"
+  ],
+  "scope": "Functional byte-parity qualification; concurrent work makes these timings unsuitable as a performance comparison."
+}

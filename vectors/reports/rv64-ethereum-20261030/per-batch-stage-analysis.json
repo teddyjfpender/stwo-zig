@@ -1,0 +1,329 @@
+{
+  "schema": "rv64-real-block-stage-analysis-v1",
+  "scope": "read-only snapshot of completed batches0..31 of retained16-worker real block proof; later batches deliberately excluded",
+  "source_directory": "interop_artifacts/rv64-ethereum-block-24628607/",
+  "request": {
+    "workers": 16,
+    "batch_steps": 4194303,
+    "profile_stages": true,
+    "omit_unused_arithmetic": true
+  },
+  "snapshot_total": {
+    "batches": 32,
+    "stage_seconds": 1418.699469,
+    "composition_seconds": 1027.905435,
+    "CPU_rows_seconds": 681.63413,
+    "CPU_fft_seconds": 147.690044,
+    "interaction_seconds": 193.268586
+  },
+  "comparisons": {
+    "21": {
+      "prove_s": 72.733787083,
+      "root_stage_s": 66.19327,
+      "interaction_s": 15.697804,
+      "composition_s": 44.11385,
+      "cpu_rows_s": 30.707053,
+      "cpu_fft_s": 5.5689329999999995,
+      "other_composition_s": 7.8378640000000015,
+      "sampled_evaluation_s": 1.019469,
+      "FRI_s": 2.69124,
+      "trace_decommit_s": 2.136366,
+      "CPU_steps": 4194303,
+      "K_calls": 3194,
+      "K_log": 16,
+      "bridge_log": 17,
+      "MUL_requests": 133220,
+      "MUL_log": 18,
+      "secp_calls": [
+        640,
+        512
+      ],
+      "RAM": {
+        "hashes": 1796,
+        "common_chunks": 1403,
+        "edge_chunks": 0,
+        "nodes": 2189,
+        "sides": 229,
+        "edge_permits": 0
+      },
+      "K_active_rows": 46313,
+      "K_padded_rows": 65536,
+      "K_old_inverse_calls": 127467520,
+      "unattributed_prove_s": 6.5405170829999975,
+      "source_cells": {
+        "fixed": 64462000,
+        "main": 1917073312,
+        "interaction": 1000296576
+      },
+      "proof_bytes": 3722944,
+      "CPU_witness_s": 3.406035084,
+      "shared_main_arena_adopted": false
+    },
+    "22": {
+      "prove_s": 125.18377175,
+      "root_stage_s": 118.22936,
+      "interaction_s": 26.552852,
+      "composition_s": 84.688614,
+      "cpu_rows_s": 30.266258999999998,
+      "cpu_fft_s": 5.540782,
+      "other_composition_s": 48.881573,
+      "sampled_evaluation_s": 1.211951,
+      "FRI_s": 3.00088,
+      "trace_decommit_s": 2.369558,
+      "CPU_steps": 4194303,
+      "K_calls": 7967,
+      "K_log": 17,
+      "bridge_log": 18,
+      "MUL_requests": 21778,
+      "MUL_log": 15,
+      "secp_calls": [
+        0,
+        0
+      ],
+      "RAM": {
+        "hashes": 3549,
+        "common_chunks": 2849,
+        "edge_chunks": 0,
+        "nodes": 3933,
+        "sides": 265,
+        "edge_permits": 0
+      },
+      "K_active_rows": 115536,
+      "K_padded_rows": 131072,
+      "K_old_inverse_calls": 254935040,
+      "unattributed_prove_s": 6.9544117500000056,
+      "source_cells": {
+        "fixed": 67917552,
+        "main": 2065519840,
+        "interaction": 1144651392
+      },
+      "proof_bytes": 2583600,
+      "CPU_witness_s": 5.702950166,
+      "shared_main_arena_adopted": false
+    },
+    "23": {
+      "prove_s": 37.159242167,
+      "root_stage_s": 31.487163000000002,
+      "interaction_s": 2.551339,
+      "composition_s": 23.14091,
+      "cpu_rows_s": 18.462537,
+      "cpu_fft_s": 4.314101,
+      "other_composition_s": 0.3642720000000006,
+      "sampled_evaluation_s": 0.852313,
+      "FRI_s": 2.365717,
+      "trace_decommit_s": 2.065114,
+      "CPU_steps": 4194303,
+      "K_calls": 0,
+      "K_log": 5,
+      "bridge_log": 5,
+      "MUL_requests": 28954,
+      "MUL_log": 15,
+      "secp_calls": [
+        0,
+        0
+      ],
+      "RAM": {
+        "hashes": 4188,
+        "common_chunks": 2655,
+        "edge_chunks": 0,
+        "nodes": 5341,
+        "sides": 1036,
+        "edge_permits": 0
+      },
+      "K_active_rows": 0,
+      "K_padded_rows": 0,
+      "K_old_inverse_calls": 0,
+      "unattributed_prove_s": 5.672079167,
+      "source_cells": {
+        "fixed": 62364912,
+        "main": 1799010016,
+        "interaction": 788795008
+      },
+      "proof_bytes": 1058192,
+      "CPU_witness_s": 1.430351625,
+      "shared_main_arena_adopted": false
+    },
+    "25": {
+      "prove_s": 38.3342645,
+      "root_stage_s": 32.344784,
+      "interaction_s": 2.505276,
+      "composition_s": 24.036832,
+      "cpu_rows_s": 18.967011,
+      "cpu_fft_s": 4.672827,
+      "other_composition_s": 0.3969940000000012,
+      "sampled_evaluation_s": 0.891104,
+      "FRI_s": 2.435813,
+      "trace_decommit_s": 2.04412,
+      "CPU_steps": 4194303,
+      "K_calls": 0,
+      "K_log": 5,
+      "bridge_log": 5,
+      "MUL_requests": 28702,
+      "MUL_log": 15,
+      "secp_calls": [
+        0,
+        0
+      ],
+      "RAM": {
+        "hashes": 4194,
+        "common_chunks": 2654,
+        "edge_chunks": 0,
+        "nodes": 5367,
+        "sides": 1044,
+        "edge_permits": 0
+      },
+      "K_active_rows": 0,
+      "K_padded_rows": 0,
+      "K_old_inverse_calls": 0,
+      "unattributed_prove_s": 5.989480500000006,
+      "source_cells": {
+        "fixed": 62364912,
+        "main": 1799010016,
+        "interaction": 788795008
+      },
+      "proof_bytes": 1044944,
+      "CPU_witness_s": 1.517775417,
+      "shared_main_arena_adopted": false
+    },
+    "26": {
+      "prove_s": 235.833379709,
+      "root_stage_s": 227.210116,
+      "interaction_s": 49.804846,
+      "composition_s": 168.769872,
+      "cpu_rows_s": 31.820296999999997,
+      "cpu_fft_s": 7.472709,
+      "other_composition_s": 129.47686599999997,
+      "sampled_evaluation_s": 1.739992,
+      "FRI_s": 3.891772,
+      "trace_decommit_s": 2.402648,
+      "CPU_steps": 4194303,
+      "K_calls": 9845,
+      "K_log": 18,
+      "bridge_log": 18,
+      "MUL_requests": 25630,
+      "MUL_log": 15,
+      "secp_calls": [
+        0,
+        0
+      ],
+      "RAM": {
+        "hashes": 6207,
+        "common_chunks": 4874,
+        "edge_chunks": 1,
+        "nodes": 7764,
+        "sides": 1261,
+        "edge_permits": 2
+      },
+      "K_active_rows": 142767,
+      "K_padded_rows": 262144,
+      "K_old_inverse_calls": 509870080,
+      "unattributed_prove_s": 8.623263709000014,
+      "source_cells": {
+        "fixed": 74251200,
+        "main": 2407307504,
+        "interaction": 1501129792
+      },
+      "proof_bytes": 2938992,
+      "CPU_witness_s": 6.895729,
+      "shared_main_arena_adopted": false
+    },
+    "27": {
+      "prove_s": 37.01138375,
+      "root_stage_s": 31.589871,
+      "interaction_s": 2.464102,
+      "composition_s": 23.333412,
+      "cpu_rows_s": 18.717731,
+      "cpu_fft_s": 4.188046,
+      "other_composition_s": 0.42763499999999866,
+      "sampled_evaluation_s": 0.881015,
+      "FRI_s": 2.385456,
+      "trace_decommit_s": 2.122924,
+      "CPU_steps": 4194303,
+      "K_calls": 24,
+      "K_log": 9,
+      "bridge_log": 10,
+      "MUL_requests": 27845,
+      "MUL_log": 15,
+      "secp_calls": [
+        0,
+        0
+      ],
+      "RAM": {
+        "hashes": 4344,
+        "common_chunks": 2772,
+        "edge_chunks": 1,
+        "nodes": 5841,
+        "sides": 1249,
+        "edge_permits": 2
+      },
+      "K_active_rows": 348,
+      "K_padded_rows": 512,
+      "K_old_inverse_calls": 995840,
+      "unattributed_prove_s": 5.4215127500000015,
+      "source_cells": {
+        "fixed": 62451360,
+        "main": 1800100176,
+        "interaction": 790225216
+      },
+      "proof_bytes": 2929504,
+      "CPU_witness_s": 1.398277417,
+      "shared_main_arena_adopted": false
+    }
+  },
+  "batch26_minus25": {
+    "prove_s": 197.49911520900002,
+    "interaction_s": 47.299569999999996,
+    "composition_s": 144.73304,
+    "cpu_rows_s": 12.853285999999997,
+    "cpu_fft_s": 2.799882,
+    "other_composition_s": 129.07987199999997,
+    "unattributed_prove_s": 2.6337832090000077
+  },
+  "findings": [
+    "Batch26 is primarily the Keccak native-height cliff. It has9,845 K calls and no secp, versus K-absent neighboring25. CPU instruction count and admitted opcode mask are identical.",
+    "Batch26 composition168.77s includes only39.29s of recorded CPU FFT/row work;129.48s belongs to uninstrumented components. K is strongly implicated by native-height scaling, but present data cannot separately measure its FFT and row kernel.",
+    "Batch22 has7,967 K calls atlog17 and48.88s other composition; batch26 grows K height tolog18 and129.48s other composition. The24% call increase crosses a2x padded domain boundary.",
+    "The old K interaction recipe performs1,945 secure inversions for every padded row, including rows with zero round/IO weights:509,870,080 calls atlog18. Only118,152 of262,144 rows have active rounds.",
+    "Merkle stage entries measure only their recorded scope; the8.62s difference between batch26 prove235.83s and summed root stages227.21s is unattributed and must not be assigned to a specific PCS phase without added instrumentation."
+  ],
+  "instrumentation_gap": {
+    "site": "src/integrations/riscv_cpu/rv64_authenticated_prover.zig:88 in frozen binary",
+    "description": "Only CPU component receives stage recorder; Keccak component already exposes FFT/row stages but recorder was null. No task-level capture is present in these artifacts. Parent has now wired recorder propagation for future binaries."
+  },
+  "priority": [
+    [
+      "native_interactions",
+      "Implement shared qualified9,216 truth-table inverse dictionary and active25-lane IO batch inversions, preserving all prefix slots and unchanged AIR. Approved implementation underway; no timing claim yet."
+    ],
+    [
+      "composition_attribution",
+      "Measure K FFT and row stages with newly propagated recorder before choosing next bottleneck."
+    ],
+    [
+      "generic_partner_FFT_reuse",
+      "Adjacent coset parts share predecessor domains. Reuse/swap marked buffers instead of re-FFTing them. K4,551 current+1,607 marked columns imply24,632\u219218,204 transforms,26.1% fewer; memory unchanged apart from O(columns) headers. Prototype must preserve all masks and exact proof bytes."
+    ],
+    [
+      "bounded_native_roster_geometry",
+      "A future TWO-K-component same-PCS roster can replacelog18 withlog17+log14 for9,845calls:9,038+807 call spans,147,456 rather than262,144 native rows. Model43.75% fewer native cells and47.9% less n*logn work, but additional OODS/opening metadata must be included; no automatic layout activation."
+    ]
+  ],
+  "geometry_models": {
+    "K_columns": {
+      "fixed": 32,
+      "main": 1923,
+      "interaction": 2596,
+      "total": 4551,
+      "extra_predecessor_buffers": 1607
+    },
+    "batch26_K_native_GiB": 4.4443359375,
+    "batch26_K_coset_scratch_GiB": 6.013671875,
+    "two_part_opening_caveat": "One additional K component adds its fixed/main/interaction and4state-mask sampled coordinates; exact serialized proof cost must be measured with shared PCS native-prefix reuse preserved."
+  },
+  "limits": [
+    "No heavy profile or benchmark was run during retained proof execution.",
+    "Native inverse-call counts and proposed FFT/cell reductions are source-derived models, not measured speedups.",
+    "Other-composition time is not an exclusive measured Keccak timer.",
+    "No full-block completion or final protocol-security claim is made by this snapshot."
+  ]
+}

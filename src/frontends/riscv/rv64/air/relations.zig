@@ -19,14 +19,18 @@ pub const Challenges = struct {
     }
 
     pub fn denominator(self: Challenges, entry: Tuple) Q {
-        var value = self.offset;
-        for (entry, self.coefficients) |field, coefficient| value = value.add(field.mul(coefficient));
-        return value;
+        return self.denominatorFor(Q, entry);
+    }
+    pub fn denominatorFor(self: Challenges, comptime F: type, entry: [ARITY]F) E.SecureFor(F) {
+        return E.denominatorFor(F, self.offset, &self.coefficients, &entry, false);
     }
 };
 
 pub fn tuple(v: E.View, slot: usize, before: bool) Tuple {
-    var result: Tuple = @splat(Q.zero());
+    return tupleFor(Q, v, slot, before);
+}
+pub fn tupleFor(comptime F: type, v: E.ViewFor(F), slot: usize, before: bool) [ARITY]F {
+    var result: [ARITY]F = @splat(F.zero());
     if (slot < 3) {
         result[1] = v.f[
             switch (slot) {
@@ -41,12 +45,12 @@ pub fn tuple(v: E.View, slot: usize, before: bool) Tuple {
             else => if (before) .previous_rd else .result,
         };
         for (0..8) |i| result[10 + i] = v.byte(word, i);
-        result[18] = Q.one();
-        result[19] = Q.one();
+        result[18] = F.one();
+        result[19] = F.one();
     } else {
-        result[0] = Q.one();
+        result[0] = F.one();
         for (0..8) |i| result[1 + i] = v.byte(.address, i);
-        result[1] = result[1].sub(v.bit(.address, 0)).sub(v.bit(.address, 1).mul(E.q(2))).sub(v.bit(.address, 2).mul(E.q(4)));
+        result[1] = result[1].sub(v.bit(.address, 0)).sub(v.bit(.address, 1).mul(E.qFor(F, 2))).sub(v.bit(.address, 2).mul(E.qFor(F, 4)));
         for (0..8) |i| result[10 + i] = v.byte(if (before) .memory_before else .memory_after, i);
         result[18] = v.m[L.readable];
         result[19] = v.m[L.writable];
@@ -85,27 +89,29 @@ pub fn expected(public: S.Statement, metadata: S.Metadata, challenges: Challenge
 }
 
 pub fn secure(columns: *const [L.INTERACTION]Q, offset: usize) Q {
-    // Coordinate columns are base-field polynomials; reconstruct over QM31
-    // at both trace and OODS points using the same extension basis.
-    return columns[offset].add(columns[offset + 1].mul(Q.fromU32Unchecked(0, 1, 0, 0)))
-        .add(columns[offset + 2].mul(Q.fromU32Unchecked(0, 0, 1, 0)))
-        .add(columns[offset + 3].mul(Q.fromU32Unchecked(0, 0, 0, 1)));
+    return secureFor(Q, columns, offset);
+}
+pub fn secureFor(comptime F: type, columns: *const [L.INTERACTION]F, offset: usize) E.SecureFor(F) {
+    return E.secureFor(F, columns, offset);
 }
 
 pub fn evaluate(v: E.View, current: *const [L.INTERACTION]Q, previous: *const [L.INTERACTION]Q, challenges: Challenges, target: Q, out: *E.Sink) void {
-    var contribution = Q.zero();
+    return evaluateFor(Q, v, current, previous, challenges, target, out);
+}
+pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), current: *const [L.INTERACTION]F, previous: *const [L.INTERACTION]F, challenges: Challenges, target: Q, out: *E.SinkFor(F)) void {
+    var contribution = E.SecureFor(F).zero();
     for (0..4) |slot| {
         const active = v.f[L.fixed.slot_start + slot];
-        const before = secure(current, slot * 8);
-        const after = secure(current, slot * 8 + 4);
-        out.emit(challenges.denominator(tuple(v, slot, true)).mul(before).sub(active));
-        out.emit(challenges.denominator(tuple(v, slot, false)).mul(after).sub(active));
-        out.emit(Q.one().sub(active).mul(before));
-        out.emit(Q.one().sub(active).mul(after));
+        const before = secureFor(F, current, slot * 8);
+        const after = secureFor(F, current, slot * 8 + 4);
+        out.emit(challenges.denominatorFor(F, tupleFor(F, v, slot, true)).mul(before).sub(E.liftFor(F, active)));
+        out.emit(challenges.denominatorFor(F, tupleFor(F, v, slot, false)).mul(after).sub(E.liftFor(F, active)));
+        out.emit(E.mulBaseFor(F, before, F.one().sub(active)));
+        out.emit(E.mulBaseFor(F, after, F.one().sub(active)));
         contribution = contribution.add(before).sub(after);
     }
-    const sum = secure(current, 32);
-    const prior = secure(previous, 32);
-    out.emit(sum.sub(Q.one().sub(v.f[L.fixed.first]).mul(prior)).sub(contribution));
-    out.emit(v.f[L.fixed.last].mul(sum.sub(target)));
+    const sum = secureFor(F, current, 32);
+    const prior = secureFor(F, previous, 32);
+    out.emit(sum.sub(E.mulBaseFor(F, prior, F.one().sub(v.f[L.fixed.first]))).sub(contribution));
+    out.emit(E.mulBaseFor(F, sum.sub(E.splatFor(F, target)), v.f[L.fixed.last]));
 }

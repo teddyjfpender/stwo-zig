@@ -1,0 +1,110 @@
+{
+  "schema": "rv64-simd16-retained5-v1",
+  "qualified": true,
+  "full_block_reproved": false,
+  "target_batch": 5,
+  "instructions": 4194303,
+  "workers": 16,
+  "scope": "One sequential matched clean-private-recorder pair; same pinned guest/native advice, geometry, byte control/cyclicv2, shared arena and security. Candidate changes CPU domain evaluation to16-row base/secure SIMD; scalarQM31 OODS unchanged.",
+  "cases": {
+    "scalar": {
+      "metrics": {
+        "index": 5,
+        "first_step": 20971515,
+        "instructions": 4194303,
+        "ram_cells": 3034,
+        "keccak_calls": 16,
+        "secp_add_calls": 1188,
+        "secp_double_calls": 960,
+        "source_cells": {
+          "fixed": 60450544,
+          "main": 1751636704,
+          "interaction": 826865792
+        },
+        "proof_bytes": 3382416,
+        "native_ns": 152173292,
+        "openings_ns": 2357250,
+        "ram_witness_ns": 17039084,
+        "setup_ns": 318254541,
+        "cpu_witness_ns": 1925644625,
+        "prove_ns": 33263553208,
+        "receiver_setup_ns": 0,
+        "encode_ns": 3391458,
+        "verify_ns": 32386334,
+        "write_ns": 2668000,
+        "cache_publish_ns": 14458,
+        "total_after_native_ns": 35565309000,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "stages_seconds": {
+        "composition_evaluation": 18.995422,
+        "cpu_constraint_rows": 14.713239,
+        "cpu_coset_fft": 3.846827,
+        "authenticated_interaction": 3.613773,
+        "secp_constraint_rows": 4.002917
+      },
+      "maximum_rss_bytes": 27289649152,
+      "wall_seconds": 52.2,
+      "baseline_receiver_ns": 14608929417,
+      "native_prefix_replay_ns": 1258280500,
+      "proof_sha256": "aada89555528c13fe8896507b0bdb53b3c8122b0c387b5da1da035beba9e175b",
+      "proof_bytes_equal": true
+    },
+    "simd16": {
+      "metrics": {
+        "index": 5,
+        "first_step": 20971515,
+        "instructions": 4194303,
+        "ram_cells": 3034,
+        "keccak_calls": 16,
+        "secp_add_calls": 1188,
+        "secp_double_calls": 960,
+        "source_cells": {
+          "fixed": 60450544,
+          "main": 1751636704,
+          "interaction": 826865792
+        },
+        "proof_bytes": 3382416,
+        "native_ns": 149885250,
+        "openings_ns": 2413917,
+        "ram_witness_ns": 16242000,
+        "setup_ns": 319540791,
+        "cpu_witness_ns": 1906111750,
+        "prove_ns": 21545040917,
+        "receiver_setup_ns": 0,
+        "encode_ns": 3209792,
+        "verify_ns": 31016666,
+        "write_ns": 2159625,
+        "cache_publish_ns": 13709,
+        "total_after_native_ns": 23825749250,
+        "reused_expected_setup": true,
+        "shared_main_arena_adopted": true,
+        "constraint_diagnostics_enabled": false
+      },
+      "stages_seconds": {
+        "composition_evaluation": 7.480274,
+        "cpu_constraint_rows": 2.947499,
+        "cpu_coset_fft": 4.114202,
+        "authenticated_interaction": 3.612375,
+        "secp_constraint_rows": 4.0474760000000005
+      },
+      "maximum_rss_bytes": 27294138368,
+      "wall_seconds": 39.88,
+      "baseline_receiver_ns": 14081903625,
+      "native_prefix_replay_ns": 1227539250,
+      "proof_sha256": "aada89555528c13fe8896507b0bdb53b3c8122b0c387b5da1da035beba9e175b",
+      "proof_bytes_equal": true
+    }
+  },
+  "cpu_constraint_speedup": 4.9917706503038675,
+  "composition_speedup": 2.5394018989143983,
+  "prove_speedup": 1.5439076368499058,
+  "prove_reduction_fraction": 0.3522928599275936,
+  "limitations": [
+    "One pair, not a statistical distribution.",
+    "Process wall includes independent complete51-batch baseline verification and nativeprefix replay; proving stage reported separately.",
+    "No claimed peak-memory reduction or whole-block throughput extrapolation."
+  ]
+}

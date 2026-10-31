@@ -15,4 +15,9 @@ pub fn build(b: *std.Build) void {
     const csp_run = b.addRunArtifact(csp);
     if (b.args) |args| csp_run.addArgs(args);
     b.step("csp-run", "Execute a software CSP case with an explicit I/O contract").dependOn(&csp_run.step);
+    const ethereum = b.addExecutable(.{ .name = "rv64-ethereum-execution", .root_module = b.createModule(.{ .root_source_file = b.path("ethereum_execution.zig"), .target = target, .optimize = optimize }) });
+    b.installArtifact(ethereum);
+    const ethereum_run = b.addRunArtifact(ethereum);
+    if (b.args) |args| ethereum_run.addArgs(args);
+    b.step("ethereum-run", "Census a pinned software Ethereum guest (execution only)").dependOn(&ethereum_run.step);
 }

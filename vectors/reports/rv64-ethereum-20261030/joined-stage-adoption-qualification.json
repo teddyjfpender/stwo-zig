@@ -1,0 +1,28 @@
+{
+  "schema": "stage-only-joined-adoption-v1",
+  "status": "Full prover_api ReleaseSafe suite PASS",
+  "source": "src/prover_api/stage_profile.zig",
+  "API": "Recorder.adoptJoinedStages(child)",
+  "ownership": [
+    "Coordinator-only call after all child writers join; no shared mutable Recorder and no global lock.",
+    "Same allocator identity required; reject self, active child stack/reservation, child taskgraphs or enabled child exact-work capture.",
+    "Only completed stage roots move. Destination capacity reserved before ownership move, then child roots cleared while retaining reusable list capacity.",
+    "Parent active stage selects attachment; parent task reservations, taskgraphs, capture flags and exact-work counters remain untouched."
+  ],
+  "tests": [
+    "Concurrent private child writers with both scopes active simultaneously; stable coordinator-defined sibling order after join.",
+    "Active child stages/reservations, wrong allocator, self, child taskgraphs and exact-work rejection without ownership moves.",
+    "Parent active task reservation and enabled exact-work capture unchanged.",
+    "Exhaustive allocation failures and emptied-child reuse leave every owner reclaimable."
+  ],
+  "command": "zig build --build-file src/prover_api/build.zig test -Doptimize=ReleaseSafe",
+  "scope": "General stage-only adoption seam only. App-private component binding/restoration, after-prover adoption and proof/error cleanup are qualified separately by root/byteagent.",
+  "allocator_identity": "Both adoptJoined and adoptJoinedStages now use one private concrete-std identity helper. Recognized stateless allocators are identified by vtable without reading their undefined context; stateful allocator contexts still must match. No frontend dependency.",
+  "documentation": "Recorder explicitly documents one serial owner, no thread safety, private recorder per concurrent callback, and coordinator-only adoption after all writers join.",
+  "additional_gates": {
+    "native_full_package_safe": "PASS",
+    "native_lc_stage_and_task_suite": "PASS all27tests; Page/SMP/fullC adoption plus rawC identity. rawC cannot itself allocate16B-alignedMutableNode onDarwin max_align_t8, so that allocator gets identity-only coverage.",
+    "wasm32_wasi_focused_typecheck": "PASS with --test-filter joined adoption recognizes and -fno-emit-bin",
+    "full_wasm_suite": "Not qualified: existing task_profile u64atomic load fails target typecheck even with requestedatomics; no unrelated atomic changes."
+  }
+}

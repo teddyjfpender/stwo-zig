@@ -600,6 +600,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 errdefer result.deinit(allocator);
                 break :blk result;
             };
+            var owns_fri_prover = true;
+            errdefer if (owns_fri_prover) fri_prover.deinit(allocator);
             if (shell_audit) |*audit| {
                 const fri_layer_count = std.math.add(
                     usize,
@@ -645,6 +647,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "FRI decommit",
                 );
                 defer fri_decommit_stage.end();
+                // decommit consumes all layers on success and error.
+                owns_fri_prover = false;
                 break :blk try fri_prover.decommit(allocator, channel);
             };
             errdefer fri_decommit.deinit(allocator);

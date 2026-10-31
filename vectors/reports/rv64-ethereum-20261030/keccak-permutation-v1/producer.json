@@ -1,0 +1,29 @@
+{
+  "schema": "rv64-keccak-primitive-fixture-v1",
+  "cpu_ram_bridge": false,
+  "calls": 3,
+  "first_call_id": 1,
+  "pow_bits": 26,
+  "queries": 70,
+  "proof_bytes": 1619368,
+  "proof_sha256": "f4e47f58ddec1fc571b1e1edf3f585a8f09159e7e8632cde8076dead727953ac",
+  "prove_pipeline_ns": 119155791,
+  "permutation_log": 6,
+  "permutation_columns": 4548,
+  "permutation_mask_values": 10952,
+  "permutation_constraints": 6089,
+  "maximum_degree": 4,
+  "source_bytes": 1606656,
+  "process_usage": {
+    "source": "darwin_proc_pid_rusage_v6",
+    "lifetime_peak_physical_footprint_bytes": 29016664,
+    "current_physical_footprint_bytes": 22970968,
+    "process_cpu_ns": 802126958,
+    "energy_nj": 2698892015,
+    "instructions": 10531772240,
+    "cycles": 3067547838,
+    "unavailable_reason": null
+  },
+  "artifact_directory": "vectors/reports/interop_artifacts/rv64-keccak-permutation-v1",
+  "regenerate": "zig build rv64-keccak-fixture -Doptimize=ReleaseFast && zig-out/bin/rv64-keccak-fixture produce vectors/reports/interop_artifacts/rv64-keccak-permutation-v1"
+}

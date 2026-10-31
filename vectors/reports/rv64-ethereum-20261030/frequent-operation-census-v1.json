@@ -1,0 +1,2351 @@
+{
+  "schema": "rv64-native-frequent-operation-census-v1",
+  "status": "complete_same_block_same_output_native_diagnostic",
+  "elf_sha256": "31c55e23d722b251168ba225edfdcfd0f15e5d44ee805aa16e05eb7f1b87a8dc",
+  "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "instructions": 213659488,
+  "output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+  "verified_output": true,
+  "census": {
+    "eligible_operations": 123538404,
+    "retained_unique": 1048576,
+    "tracked_occurrences": 15529237,
+    "untracked_occurrences": 108009167,
+    "repeated_retained_operations": 14480661,
+    "top": [
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 0,
+          "result": 0
+        },
+        "occurrences": 1632290
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 0,
+          "result": 0
+        },
+        "occurrences": 1367543
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 860751
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 18446744073709551615,
+          "result": 18446744073709551615
+        },
+        "occurrences": 449026
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 16,
+          "result": 16
+        },
+        "occurrences": 426875
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 342049
+      },
+      {
+        "tuple": {
+          "opcode": "SLTU",
+          "lhs": 0,
+          "rhs": 0,
+          "result": 0
+        },
+        "occurrences": 304111
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 298126
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 8,
+          "result": 8
+        },
+        "occurrences": 255899
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 1,
+          "rhs": 18446744073709551615,
+          "result": 0
+        },
+        "occurrences": 244816
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 24,
+          "result": 0
+        },
+        "occurrences": 207564
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 0
+        },
+        "occurrences": 179266
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 8,
+          "result": 0
+        },
+        "occurrences": 176297
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 2,
+          "rhs": 18446744073709551615,
+          "result": 1
+        },
+        "occurrences": 160636
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 3,
+          "rhs": 18446744073709551615,
+          "result": 2
+        },
+        "occurrences": 153578
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 16,
+          "result": 0
+        },
+        "occurrences": 152985
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 32
+        },
+        "occurrences": 137449
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4,
+          "rhs": 18446744073709551615,
+          "result": 3
+        },
+        "occurrences": 133989
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 96,
+          "rhs": 0,
+          "result": 96
+        },
+        "occurrences": 119582
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 255,
+          "rhs": 8,
+          "result": 65280
+        },
+        "occurrences": 117026
+      },
+      {
+        "tuple": {
+          "opcode": "SLTIU",
+          "lhs": 0,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 116655
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 18446744073709551584
+        },
+        "occurrences": 108530
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551584,
+          "rhs": 56,
+          "result": 32
+        },
+        "occurrences": 108486
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 4,
+          "rhs": 3,
+          "result": 32
+        },
+        "occurrences": 104473
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 3,
+          "result": 3
+        },
+        "occurrences": 82760
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 18446744073709551615,
+          "rhs": 63,
+          "result": 9223372036854775808
+        },
+        "occurrences": 74585
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 56,
+          "result": 0
+        },
+        "occurrences": 69276
+      },
+      {
+        "tuple": {
+          "opcode": "SLL",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 0
+        },
+        "occurrences": 68771
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 5,
+          "rhs": 18446744073709551615,
+          "result": 4
+        },
+        "occurrences": 68551
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 97,
+          "rhs": 0,
+          "result": 97
+        },
+        "occurrences": 68501
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4,
+          "rhs": 0,
+          "result": 4
+        },
+        "occurrences": 67215
+      },
+      {
+        "tuple": {
+          "opcode": "SRL",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 0
+        },
+        "occurrences": 61372
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 1,
+          "rhs": 0,
+          "result": 1
+        },
+        "occurrences": 61288
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 60374
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 4,
+          "rhs": 1,
+          "result": 0
+        },
+        "occurrences": 56978
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 32,
+          "rhs": 18446744073709551608,
+          "result": 32
+        },
+        "occurrences": 56484
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 32,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 56437
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 4,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 55819
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 4,
+          "rhs": 2,
+          "result": 0
+        },
+        "occurrences": 54595
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 32,
+          "rhs": 0,
+          "result": 32
+        },
+        "occurrences": 54431
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 54300
+      },
+      {
+        "tuple": {
+          "opcode": "LUI",
+          "lhs": 0,
+          "rhs": 4096,
+          "result": 4096
+        },
+        "occurrences": 54288
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 6,
+          "rhs": 18446744073709551615,
+          "result": 5
+        },
+        "occurrences": 53327
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 1,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 50684
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 32,
+          "rhs": 0,
+          "result": 32
+        },
+        "occurrences": 46825
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 44,
+          "result": 44
+        },
+        "occurrences": 46014
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 40,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 45644
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 40,
+          "rhs": 18446744073709551608,
+          "result": 40
+        },
+        "occurrences": 45632
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 7,
+          "rhs": 18446744073709551615,
+          "result": 6
+        },
+        "occurrences": 45491
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 2,
+          "rhs": 1,
+          "result": 3
+        },
+        "occurrences": 44852
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 18446744073709551608,
+          "result": 18446744073709551608
+        },
+        "occurrences": 44370
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 33,
+          "rhs": 18446744073709551615,
+          "result": 32
+        },
+        "occurrences": 42691
+      },
+      {
+        "tuple": {
+          "opcode": "ADDIW",
+          "lhs": 0,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 42377
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 3,
+          "rhs": 3,
+          "result": 24
+        },
+        "occurrences": 41094
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 91,
+          "rhs": 0,
+          "result": 91
+        },
+        "occurrences": 41042
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 144,
+          "rhs": 0,
+          "result": 144
+        },
+        "occurrences": 40837
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 1,
+          "rhs": 1,
+          "result": 2
+        },
+        "occurrences": 40458
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 24,
+          "result": 24
+        },
+        "occurrences": 39489
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4096,
+          "rhs": 18446744073709550001,
+          "result": 2481
+        },
+        "occurrences": 39174
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 128,
+          "rhs": 0,
+          "result": 128
+        },
+        "occurrences": 39147
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 80,
+          "rhs": 0,
+          "result": 80
+        },
+        "occurrences": 36692
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 3,
+          "rhs": 1,
+          "result": 4
+        },
+        "occurrences": 35849
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 18446744073709551614,
+          "result": 18446744073709551614
+        },
+        "occurrences": 35220
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 255,
+          "result": 255
+        },
+        "occurrences": 35110
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 1,
+          "rhs": 3,
+          "result": 8
+        },
+        "occurrences": 34956
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4,
+          "rhs": 1,
+          "result": 5
+        },
+        "occurrences": 34636
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 56,
+          "result": 18446744073709551560
+        },
+        "occurrences": 34175
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551560,
+          "rhs": 56,
+          "result": 8
+        },
+        "occurrences": 34158
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 5,
+          "rhs": 1,
+          "result": 6
+        },
+        "occurrences": 33425
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 6,
+          "rhs": 1,
+          "result": 7
+        },
+        "occurrences": 33399
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 129,
+          "rhs": 0,
+          "result": 129
+        },
+        "occurrences": 32985
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 7,
+          "rhs": 1,
+          "result": 8
+        },
+        "occurrences": 32943
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 8,
+          "rhs": 1,
+          "result": 9
+        },
+        "occurrences": 32399
+      },
+      {
+        "tuple": {
+          "opcode": "ADDIW",
+          "lhs": 2481,
+          "rhs": 1614,
+          "result": 4095
+        },
+        "occurrences": 31771
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 8,
+          "rhs": 18446744073709551615,
+          "result": 7
+        },
+        "occurrences": 30252
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 3,
+          "rhs": 0,
+          "result": 3
+        },
+        "occurrences": 29373
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 82,
+          "rhs": 0,
+          "result": 82
+        },
+        "occurrences": 28592
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 24,
+          "result": 18446744073709551592
+        },
+        "occurrences": 27495
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551592,
+          "rhs": 56,
+          "result": 40
+        },
+        "occurrences": 27411
+      },
+      {
+        "tuple": {
+          "opcode": "ADDIW",
+          "lhs": 4,
+          "rhs": 2,
+          "result": 6
+        },
+        "occurrences": 27224
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 86,
+          "rhs": 0,
+          "result": 86
+        },
+        "occurrences": 26067
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 192,
+          "rhs": 0,
+          "result": 192
+        },
+        "occurrences": 25031
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 192,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 24989
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 192,
+          "rhs": 18446744073709551608,
+          "result": 192
+        },
+        "occurrences": 24988
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 8,
+          "rhs": 0,
+          "result": 8
+        },
+        "occurrences": 24870
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 18446744069414584320,
+          "rhs": 4294967295,
+          "result": 18446744073709551615
+        },
+        "occurrences": 24443
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 87,
+          "rhs": 0,
+          "result": 87
+        },
+        "occurrences": 23834
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4311810048,
+          "rhs": 256,
+          "result": 4311810304
+        },
+        "occurrences": 23640
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 269488128,
+          "rhs": 4,
+          "result": 4311810048
+        },
+        "occurrences": 23640
+      },
+      {
+        "tuple": {
+          "opcode": "LUI",
+          "lhs": 0,
+          "rhs": 269488128,
+          "result": 269488128
+        },
+        "occurrences": 23640
+      },
+      {
+        "tuple": {
+          "opcode": "MULHU",
+          "lhs": 0,
+          "rhs": 4311810304,
+          "result": 0
+        },
+        "occurrences": 23169
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 130,
+          "rhs": 0,
+          "result": 130
+        },
+        "occurrences": 22637
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 40,
+          "result": 18446744073709551576
+        },
+        "occurrences": 21535
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551576,
+          "rhs": 56,
+          "result": 24
+        },
+        "occurrences": 21521
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 7,
+          "rhs": 3,
+          "result": 56
+        },
+        "occurrences": 21187
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 22,
+          "rhs": 0,
+          "result": 22
+        },
+        "occurrences": 21107
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 81,
+          "rhs": 0,
+          "result": 81
+        },
+        "occurrences": 21009
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 7,
+          "rhs": 0,
+          "result": 7
+        },
+        "occurrences": 19983
+      },
+      {
+        "tuple": {
+          "opcode": "ADDIW",
+          "lhs": 1,
+          "rhs": 2,
+          "result": 3
+        },
+        "occurrences": 19884
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 120,
+          "rhs": 0,
+          "result": 120
+        },
+        "occurrences": 19765
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 8,
+          "result": 18446744073709551608
+        },
+        "occurrences": 19752
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 120,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 19672
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 120,
+          "rhs": 18446744073709551608,
+          "result": 120
+        },
+        "occurrences": 19666
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 7,
+          "result": 1
+        },
+        "occurrences": 19433
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 48,
+          "result": 18446744073709551568
+        },
+        "occurrences": 18658
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551568,
+          "rhs": 56,
+          "result": 16
+        },
+        "occurrences": 18632
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 145,
+          "rhs": 0,
+          "result": 145
+        },
+        "occurrences": 18385
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 12,
+          "rhs": 18446744073709551615,
+          "result": 11
+        },
+        "occurrences": 18320
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 9,
+          "rhs": 18446744073709551615,
+          "result": 8
+        },
+        "occurrences": 18285
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 11,
+          "rhs": 18446744073709551615,
+          "result": 10
+        },
+        "occurrences": 18198
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551608,
+          "rhs": 56,
+          "result": 56
+        },
+        "occurrences": 18168
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 15,
+          "rhs": 18446744073709551615,
+          "result": 14
+        },
+        "occurrences": 18145
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 10,
+          "rhs": 18446744073709551615,
+          "result": 9
+        },
+        "occurrences": 17940
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 1,
+          "result": 0
+        },
+        "occurrences": 17900
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 0,
+          "rhs": 16,
+          "result": 18446744073709551600
+        },
+        "occurrences": 17882
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 1,
+          "rhs": 2,
+          "result": 0
+        },
+        "occurrences": 17858
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 1,
+          "rhs": 4,
+          "result": 0
+        },
+        "occurrences": 17858
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 18446744073709551600,
+          "rhs": 56,
+          "result": 48
+        },
+        "occurrences": 17816
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 2,
+          "rhs": 3,
+          "result": 16
+        },
+        "occurrences": 17556
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 128,
+          "rhs": 1,
+          "result": 256
+        },
+        "occurrences": 17535
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 13,
+          "rhs": 18446744073709551615,
+          "result": 12
+        },
+        "occurrences": 17516
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 14,
+          "rhs": 18446744073709551615,
+          "result": 13
+        },
+        "occurrences": 17462
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 17,
+          "rhs": 18446744073709551615,
+          "result": 16
+        },
+        "occurrences": 17304
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 18,
+          "rhs": 18446744073709551615,
+          "result": 17
+        },
+        "occurrences": 17283
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 19,
+          "rhs": 18446744073709551615,
+          "result": 18
+        },
+        "occurrences": 17262
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 16,
+          "rhs": 18446744073709551615,
+          "result": 15
+        },
+        "occurrences": 17096
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 20,
+          "rhs": 18446744073709551615,
+          "result": 19
+        },
+        "occurrences": 16879
+      },
+      {
+        "tuple": {
+          "opcode": "LUI",
+          "lhs": 0,
+          "rhs": 32768,
+          "result": 32768
+        },
+        "occurrences": 16828
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 27,
+          "rhs": 0,
+          "result": 27
+        },
+        "occurrences": 16177
+      },
+      {
+        "tuple": {
+          "opcode": "ADD",
+          "lhs": 33614384,
+          "rhs": 32768,
+          "result": 33647152
+        },
+        "occurrences": 16011
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 2,
+          "rhs": 8,
+          "result": 512
+        },
+        "occurrences": 15904
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 2,
+          "rhs": 0,
+          "result": 2
+        },
+        "occurrences": 15879
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 2,
+          "rhs": 16,
+          "result": 131072
+        },
+        "occurrences": 15566
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 1,
+          "rhs": 8,
+          "result": 256
+        },
+        "occurrences": 15455
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 5,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 15177
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 21,
+          "rhs": 0,
+          "result": 21
+        },
+        "occurrences": 15125
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 3,
+          "rhs": 8,
+          "result": 768
+        },
+        "occurrences": 14731
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 20,
+          "result": 20
+        },
+        "occurrences": 14600
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 3,
+          "result": 5
+        },
+        "occurrences": 14577
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 5,
+          "rhs": 2,
+          "result": 0
+        },
+        "occurrences": 14569
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 5,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 14569
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 32,
+          "rhs": 18446744073709551615,
+          "result": 31
+        },
+        "occurrences": 14253
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 5,
+          "rhs": 3,
+          "result": 40
+        },
+        "occurrences": 14076
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 64,
+          "rhs": 0,
+          "result": 64
+        },
+        "occurrences": 13991
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 6,
+          "rhs": 24,
+          "result": 100663296
+        },
+        "occurrences": 13797
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 9223372036854775808,
+          "rhs": 8,
+          "result": 9223372036854775800
+        },
+        "occurrences": 13590
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 1,
+          "rhs": 24,
+          "result": 16777216
+        },
+        "occurrences": 13285
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 14,
+          "rhs": 1,
+          "result": 15
+        },
+        "occurrences": 12933
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 131,
+          "rhs": 0,
+          "result": 131
+        },
+        "occurrences": 12788
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 3,
+          "rhs": 16,
+          "result": 196608
+        },
+        "occurrences": 12769
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 6,
+          "rhs": 3,
+          "result": 48
+        },
+        "occurrences": 12660
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 16,
+          "rhs": 5,
+          "result": 512
+        },
+        "occurrences": 12613
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 4,
+          "rhs": 16,
+          "result": 262144
+        },
+        "occurrences": 12586
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 532,
+          "rhs": 0,
+          "result": 532
+        },
+        "occurrences": 12569
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 6,
+          "rhs": 16,
+          "result": 393216
+        },
+        "occurrences": 12529
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 4,
+          "rhs": 8,
+          "result": 1024
+        },
+        "occurrences": 12517
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 15,
+          "rhs": 1,
+          "result": 16
+        },
+        "occurrences": 12479
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 3,
+          "rhs": 24,
+          "result": 50331648
+        },
+        "occurrences": 12448
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 16,
+          "rhs": 1,
+          "result": 17
+        },
+        "occurrences": 12404
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 0,
+          "rhs": 1024,
+          "result": 1024
+        },
+        "occurrences": 12325
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 11,
+          "rhs": 1,
+          "result": 12
+        },
+        "occurrences": 12184
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 7,
+          "rhs": 8,
+          "result": 1792
+        },
+        "occurrences": 12049
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 1,
+          "rhs": 16,
+          "result": 65536
+        },
+        "occurrences": 12000
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 12,
+          "rhs": 1,
+          "result": 13
+        },
+        "occurrences": 11960
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 13,
+          "rhs": 1,
+          "result": 14
+        },
+        "occurrences": 11960
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 251,
+          "rhs": 8,
+          "result": 64256
+        },
+        "occurrences": 11917
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 254,
+          "rhs": 8,
+          "result": 65024
+        },
+        "occurrences": 11870
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 248,
+          "rhs": 8,
+          "result": 63488
+        },
+        "occurrences": 11805
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 5,
+          "rhs": 8,
+          "result": 1280
+        },
+        "occurrences": 11774
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 250,
+          "rhs": 8,
+          "result": 64000
+        },
+        "occurrences": 11717
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 6,
+          "rhs": 8,
+          "result": 1536
+        },
+        "occurrences": 11630
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 7,
+          "rhs": 24,
+          "result": 117440512
+        },
+        "occurrences": 11545
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 5,
+          "rhs": 16,
+          "result": 327680
+        },
+        "occurrences": 11529
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 6,
+          "result": 2
+        },
+        "occurrences": 11515
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 10,
+          "rhs": 1,
+          "result": 11
+        },
+        "occurrences": 11460
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 9,
+          "rhs": 1,
+          "result": 10
+        },
+        "occurrences": 11428
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 22,
+          "rhs": 18446744073709551615,
+          "result": 21
+        },
+        "occurrences": 11245
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 7,
+          "rhs": 16,
+          "result": 458752
+        },
+        "occurrences": 11229
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 21,
+          "rhs": 18446744073709551615,
+          "result": 20
+        },
+        "occurrences": 11227
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 250,
+          "rhs": 16,
+          "result": 16384000
+        },
+        "occurrences": 11221
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 5,
+          "result": 3
+        },
+        "occurrences": 11073
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 3,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 11016
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 249,
+          "rhs": 16,
+          "result": 16318464
+        },
+        "occurrences": 10812
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 3,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 10803
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 3,
+          "rhs": 4,
+          "result": 0
+        },
+        "occurrences": 10803
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 253,
+          "rhs": 8,
+          "result": 64768
+        },
+        "occurrences": 10792
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 30,
+          "rhs": 18446744073709551615,
+          "result": 29
+        },
+        "occurrences": 10568
+      },
+      {
+        "tuple": {
+          "opcode": "AND",
+          "lhs": 1,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 10374
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 249,
+          "rhs": 8,
+          "result": 63744
+        },
+        "occurrences": 10340
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 29,
+          "rhs": 18446744073709551615,
+          "result": 28
+        },
+        "occurrences": 10327
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 25,
+          "rhs": 18446744073709551615,
+          "result": 24
+        },
+        "occurrences": 10317
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 252,
+          "rhs": 8,
+          "result": 64512
+        },
+        "occurrences": 10299
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 253,
+          "rhs": 24,
+          "result": 4244635648
+        },
+        "occurrences": 10217
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 2481,
+          "rhs": 1614,
+          "result": 4095
+        },
+        "occurrences": 10184
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 23,
+          "rhs": 18446744073709551615,
+          "result": 22
+        },
+        "occurrences": 10156
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 24,
+          "rhs": 18446744073709551615,
+          "result": 23
+        },
+        "occurrences": 10139
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 31,
+          "rhs": 18446744073709551615,
+          "result": 30
+        },
+        "occurrences": 10089
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 26,
+          "rhs": 18446744073709551615,
+          "result": 25
+        },
+        "occurrences": 10085
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 28,
+          "rhs": 18446744073709551615,
+          "result": 27
+        },
+        "occurrences": 10055
+      },
+      {
+        "tuple": {
+          "opcode": "LUI",
+          "lhs": 0,
+          "rhs": 8192,
+          "result": 8192
+        },
+        "occurrences": 10040
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 27,
+          "rhs": 18446744073709551615,
+          "result": 26
+        },
+        "occurrences": 9993
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 2,
+          "rhs": 1,
+          "result": 0
+        },
+        "occurrences": 9922
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 6,
+          "rhs": 255,
+          "result": 6
+        },
+        "occurrences": 9722
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 256,
+          "rhs": 0,
+          "result": 256
+        },
+        "occurrences": 9594
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 146,
+          "rhs": 0,
+          "result": 146
+        },
+        "occurrences": 9482
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 9414
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 2,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 9366
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 2,
+          "rhs": 4,
+          "result": 0
+        },
+        "occurrences": 9366
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 1,
+          "result": 7
+        },
+        "occurrences": 9354
+      },
+      {
+        "tuple": {
+          "opcode": "AND",
+          "lhs": 8,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 9343
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 7,
+          "rhs": 1,
+          "result": 1
+        },
+        "occurrences": 9234
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 7,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 9084
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 7,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 9084
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 6,
+          "rhs": 1,
+          "result": 0
+        },
+        "occurrences": 8951
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 8,
+          "rhs": 2,
+          "result": 6
+        },
+        "occurrences": 8935
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 6,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 8909
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 6,
+          "rhs": 4,
+          "result": 4
+        },
+        "occurrences": 8909
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 95,
+          "rhs": 0,
+          "result": 95
+        },
+        "occurrences": 8651
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 133,
+          "rhs": 0,
+          "result": 133
+        },
+        "occurrences": 8618
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 132,
+          "rhs": 0,
+          "result": 132
+        },
+        "occurrences": 8599
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 32,
+          "result": 32
+        },
+        "occurrences": 8393
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 5,
+          "rhs": 0,
+          "result": 5
+        },
+        "occurrences": 8297
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 64,
+          "result": 64
+        },
+        "occurrences": 8282
+      },
+      {
+        "tuple": {
+          "opcode": "ADD",
+          "lhs": 33614384,
+          "rhs": 25088,
+          "result": 33639472
+        },
+        "occurrences": 8180
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 3136,
+          "rhs": 3,
+          "result": 25088
+        },
+        "occurrences": 8168
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 16,
+          "rhs": 0,
+          "result": 16
+        },
+        "occurrences": 8079
+      },
+      {
+        "tuple": {
+          "opcode": "MUL",
+          "lhs": 64,
+          "rhs": 2481,
+          "result": 158784
+        },
+        "occurrences": 8049
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 2,
+          "result": 2
+        },
+        "occurrences": 7946
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 20,
+          "rhs": 3,
+          "result": 160
+        },
+        "occurrences": 7901
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 128,
+          "result": 128
+        },
+        "occurrences": 7643
+      },
+      {
+        "tuple": {
+          "opcode": "SLL",
+          "lhs": 0,
+          "rhs": 56,
+          "result": 0
+        },
+        "occurrences": 7580
+      },
+      {
+        "tuple": {
+          "opcode": "SRL",
+          "lhs": 0,
+          "rhs": 8,
+          "result": 0
+        },
+        "occurrences": 7463
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 6,
+          "rhs": 0,
+          "result": 6
+        },
+        "occurrences": 7264
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 33546640,
+          "rhs": 8,
+          "result": 33546648
+        },
+        "occurrences": 7242
+      },
+      {
+        "tuple": {
+          "opcode": "AND",
+          "lhs": 158784,
+          "rhs": 4095,
+          "result": 3136
+        },
+        "occurrences": 7165
+      },
+      {
+        "tuple": {
+          "opcode": "SUB",
+          "lhs": 104,
+          "rhs": 0,
+          "result": 104
+        },
+        "occurrences": 7015
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 104,
+          "rhs": 7,
+          "result": 0
+        },
+        "occurrences": 6957
+      },
+      {
+        "tuple": {
+          "opcode": "ANDI",
+          "lhs": 104,
+          "rhs": 18446744073709551608,
+          "result": 104
+        },
+        "occurrences": 6948
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 16,
+          "rhs": 1,
+          "result": 32
+        },
+        "occurrences": 6908
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 4294967296,
+          "rhs": 0,
+          "result": 4294967296
+        },
+        "occurrences": 6649
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 253,
+          "rhs": 0,
+          "result": 253
+        },
+        "occurrences": 6502
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 99,
+          "rhs": 0,
+          "result": 99
+        },
+        "occurrences": 6498
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 0,
+          "rhs": 3,
+          "result": 0
+        },
+        "occurrences": 6434
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 18446744073709551615,
+          "rhs": 0,
+          "result": 18446744073709551615
+        },
+        "occurrences": 6366
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 17,
+          "rhs": 1,
+          "result": 18
+        },
+        "occurrences": 6119
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 147,
+          "rhs": 0,
+          "result": 147
+        },
+        "occurrences": 6110
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 31,
+          "rhs": 0,
+          "result": 31
+        },
+        "occurrences": 6044
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 34,
+          "rhs": 18446744073709551615,
+          "result": 33
+        },
+        "occurrences": 6039
+      },
+      {
+        "tuple": {
+          "opcode": "SLLI",
+          "lhs": 980,
+          "rhs": 3,
+          "result": 7840
+        },
+        "occurrences": 5967
+      },
+      {
+        "tuple": {
+          "opcode": "ADD",
+          "lhs": 33614384,
+          "rhs": 7840,
+          "result": 33622224
+        },
+        "occurrences": 5962
+      },
+      {
+        "tuple": {
+          "opcode": "AND",
+          "lhs": 1319892,
+          "rhs": 4095,
+          "result": 980
+        },
+        "occurrences": 5962
+      },
+      {
+        "tuple": {
+          "opcode": "MUL",
+          "lhs": 532,
+          "rhs": 2481,
+          "result": 1319892
+        },
+        "occurrences": 5962
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 20,
+          "rhs": 0,
+          "result": 20
+        },
+        "occurrences": 5876
+      },
+      {
+        "tuple": {
+          "opcode": "ADDI",
+          "lhs": 84,
+          "rhs": 0,
+          "result": 84
+        },
+        "occurrences": 5727
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 96,
+          "result": 96
+        },
+        "occurrences": 5716
+      },
+      {
+        "tuple": {
+          "opcode": "OR",
+          "lhs": 0,
+          "rhs": 16,
+          "result": 16
+        },
+        "occurrences": 5712
+      }
+    ]
+  },
+  "bounded_sampling": "First1048576distinctorderedtuples retained; fullwidth opcode/lhs/rhs/result; exactcountsforretainedtuples, all untracked occurrences explicitly counted. Saturatedsampleisnotanestimateofunseenrepeats.",
+  "top256_coverage": {
+    "operations": 13003829,
+    "fraction_all_instructions": 0.06086239895885176,
+    "fraction_eligible_operations": 0.10526142947419007,
+    "candidate_rows_saved_before_padding": 13003573
+  },
+  "scope_limitations": [
+    "Native profiling only, not a new circuit/provider or a proving speedup.",
+    "A frequent tuple can replace delegated arithmetic rows only after a narrow chip operation bus exists; CPU instruction/register/control work remains.",
+    "New immutable table facts must be derived or independently checked by receiver expected setup, never trusted from observed guest results.",
+    "Compare physical tuple limbs, multiplicities, lookup prefixes, degree/domain, padding and opening/receiver cost.",
+    "Candidate set selection is trace-specific research. A production fixed dictionary must have a versioned immutable identity independent of request witness.",
+    "Immediate operands normalized from decoded immediate; W/sign/opcode retained; operands not commutatively sorted, no shift-bit normalization; memory/branch/AUIPC/services excluded.",
+    "Census timing occurred during qualification builds; not an isolated emulator benchmark."
+  ],
+  "qualification": {
+    "safe_execution_tests": 67,
+    "fast_execution_tests": 67,
+    "new_focused_tests": 3,
+    "allocation_failures": "all construction/summarypoints and failed insertion accounting",
+    "full_execution_same_as_pinned_control": true
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/frequent_operations.zig": "76c887eee417bb38cf32e1dd4c03ea9ca27d31a6ad9393bce6d8a425bfb8c9b7",
+    "src/frontends/riscv/rv64/tests/frequent_operations_test.zig": "5f73fea1d300fcf69b912903b72fadd22e5b23c3979d0518d23861382f6c2b41",
+    "src/frontends/riscv/rv64/ethereum_execution.zig": "cac90b7adbc87764c371c927a435a9e7cb4812a57e005501a61b6955a7516af6"
+  },
+  "binary_sha256": "0bc2234769810bcfe9ae0826a872995af71cf2b3abb74717856781d492044fa4"
+}

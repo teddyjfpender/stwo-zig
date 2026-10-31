@@ -40,62 +40,106 @@ pub fn draw(channel: *@import("../protocol.zig").Channel) provider.Challenges {
     return result;
 }
 pub fn expand(entry: *const Tuple) rom.Tuple {
-    var result: rom.Tuple = @splat(Q.zero());
+    return expandFor(Q, entry);
+}
+pub fn expandFor(comptime F: type, entry: *const [COUNT]F) [rom.field.COUNT]F {
+    var result: [rom.field.COUNT]F = @splat(F.zero());
     for (entry, fields) |value, destination| result[destination] = value;
     return result;
 }
 /// Same polynomial as denominator(expand(entry)), including arbitrary OODS
 /// values and challenge coefficients. Omitted tuple coordinates are zero.
 pub fn denominator(challenges: provider.Challenges, entry: *const Tuple) Q {
-    var result = challenges.offset;
-    for (entry, fields) |value, source| result = result.add(value.mul(challenges.coefficients[source]));
+    return denominatorFor(Q, challenges, entry);
+}
+pub fn denominatorFor(comptime F: type, challenges: provider.Challenges, entry: *const [COUNT]F) E.SecureFor(F) {
+    var result = E.splatFor(F, challenges.offset);
+    for (entry, fields) |value, source| result = result.add(E.mulBaseFor(F, E.splatFor(F, challenges.coefficients[source]), value));
     return result;
 }
 /// The CPU requests valid ROM membership even on disabled rows; its inverse is
 /// separately zero-gated. This preserves the original constant-validity term.
 pub fn executionDenominator(challenges: provider.Challenges, entry: *const Tuple) Q {
-    var result = challenges.offset.add(challenges.coefficients[rom.field.valid]);
-    for (entry[1..], fields[1..]) |value, source| result = result.add(value.mul(challenges.coefficients[source]));
+    return executionDenominatorFor(Q, challenges, entry);
+}
+pub fn executionDenominatorFor(comptime F: type, challenges: provider.Challenges, entry: *const [COUNT]F) E.SecureFor(F) {
+    var result = E.splatFor(F, challenges.offset.add(challenges.coefficients[rom.field.valid]));
+    for (entry[1..], fields[1..]) |value, source| result = result.add(E.mulBaseFor(F, E.splatFor(F, challenges.coefficients[source]), value));
     return result;
 }
 /// Padding must use valid=0 and all selectors=0. Exactly one Boolean selector
 /// is enabled on active rows; weighted opcode equality links it to the ROM.
 pub fn evaluateSelectors(entry: *const Tuple, selectors: *const [L.fixed.OPCODES]Q, sink: *E.Sink) void {
-    const full = expand(entry);
-    var sum = Q.zero();
-    var opcode = Q.zero();
+    return evaluateSelectorsFor(Q, entry, selectors, sink);
+}
+pub fn evaluateSelectorsFor(comptime F: type, entry: *const [COUNT]F, selectors: *const [L.fixed.OPCODES]F, sink: *E.SinkFor(F)) void {
+    const full = expandFor(F, entry);
+    var sum = F.zero();
+    var opcode = F.zero();
     for (selectors, 0..) |selector, i| {
-        E.boolean(sink, selector);
+        E.booleanFor(F, sink, selector);
         sum = sum.add(selector);
-        opcode = opcode.add(selector.mul(E.q(@intCast(i))));
+        opcode = opcode.add(selector.mul(E.qFor(F, @intCast(i))));
     }
     sink.emit(sum.sub(full[rom.field.valid]));
     sink.emit(opcode.sub(full[rom.field.opcode]));
 }
 /// first/last, ticks and next-PC are request geometry/state, filled by caller.
 /// All fields derived here cost expressions, not committed CPU columns.
+pub const DecodedView = DecodedViewFor(Q);
+pub fn DecodedViewFor(comptime F: type) type {
+    return struct {
+        valid: F,
+        rs1: F,
+        rs2: F,
+        rd: F,
+        immediate: *const [8]F,
+        slots: *const [4]F,
+        pc: *const [8]F,
+        increment: *const [8]F,
+        target: *const [8]F,
+    };
+}
+fn fieldIndex(comptime full: usize) usize {
+    inline for (fields, 0..) |source, i| if (source == full) return i;
+    @compileError("field omitted from compact ROM");
+}
+pub fn decodedView(entry: *const Tuple) DecodedView {
+    return decodedViewFor(Q, entry);
+}
+pub fn decodedViewFor(comptime F: type, entry: *const [COUNT]F) DecodedViewFor(F) {
+    return .{ .valid = entry[0], .rs1 = entry[fieldIndex(rom.field.rs1)], .rs2 = entry[fieldIndex(rom.field.rs2)], .rd = entry[fieldIndex(rom.field.rd)], .immediate = entry[fieldIndex(rom.field.immediate)..][0..8], .slots = entry[fieldIndex(rom.field.slots)..][0..4], .pc = entry[fieldIndex(rom.field.pc)..][0..8], .increment = entry[fieldIndex(rom.field.increment)..][0..8], .target = entry[fieldIndex(rom.field.target)..][0..8] };
+}
 pub fn inflateFixed(entry: *const Tuple, selectors: *const [L.fixed.OPCODES]Q) E.Fixed {
+    return inflateFixedFor(Q, entry, selectors);
+}
+pub fn inflateFixedFor(comptime F: type, entry: *const [COUNT]F, selectors: *const [L.fixed.OPCODES]F) E.FixedFor(F) {
+    return inflateDecodedFor(F, decodedViewFor(F, entry), selectors);
+}
+pub fn inflateDecoded(decoded: DecodedView, selectors: *const [L.fixed.OPCODES]Q) E.Fixed {
+    return inflateDecodedFor(Q, decoded, selectors);
+}
+pub fn inflateDecodedFor(comptime F: type, decoded: DecodedViewFor(F), selectors: *const [L.fixed.OPCODES]F) E.FixedFor(F) {
     @setEvalBranchQuota(100_000);
-    const full = expand(entry);
-    var result: E.Fixed = @splat(Q.zero());
-    result[L.fixed.active] = full[rom.field.valid];
+    var result: E.FixedFor(F) = @splat(F.zero());
+    result[L.fixed.active] = decoded.valid;
     @memcpy(result[L.fixed.opcode_start..][0..L.fixed.OPCODES], selectors);
-    result[L.fixed.rs1] = full[rom.field.rs1];
-    result[L.fixed.rs2] = full[rom.field.rs2];
-    result[L.fixed.rd] = full[rom.field.rd];
-    @memcpy(result[L.fixed.slot_start..][0..4], full[rom.field.slots..][0..4]);
-    @memcpy(result[L.fixed.immediate..][0..8], full[rom.field.immediate..][0..8]);
-    @memcpy(result[L.fixed.pc..][0..8], full[rom.field.pc..][0..8]);
-    @memcpy(result[L.fixed.increment..][0..8], full[rom.field.increment..][0..8]);
-    @memcpy(result[L.fixed.target..][0..8], full[rom.field.target..][0..8]);
-    var sums: [enable_plan.count]Q = @splat(Q.zero());
+    result[L.fixed.rs1] = decoded.rs1;
+    result[L.fixed.rs2] = decoded.rs2;
+    result[L.fixed.rd] = decoded.rd;
+    @memcpy(result[L.fixed.slot_start..][0..4], decoded.slots);
+    @memcpy(result[L.fixed.immediate..][0..8], decoded.immediate);
+    @memcpy(result[L.fixed.pc..][0..8], decoded.pc);
+    @memcpy(result[L.fixed.increment..][0..8], decoded.increment);
+    @memcpy(result[L.fixed.target..][0..8], decoded.target);
+    var sums: [enable_plan.count]F = @splat(F.zero());
     inline for (enable_plan.masks[0..enable_plan.count], 0..) |mask, i| {
         inline for (0..L.fixed.OPCODES) |opcode| {
             if (comptime mask & (@as(u128, 1) << opcode) != 0) sums[i] = sums[i].add(selectors[opcode]);
         }
     }
     for (enable_plan.sources, 0..) |source, i| {
-        const value = if (source >= 128) full[rom.field.slots + source - 128] else sums[source];
+        const value = if (source >= 128) decoded.slots[source - 128] else sums[source];
         result[if (i < L.WORDS) L.fixed.word_start + i else L.fixed.carry_start + i - L.WORDS] = value;
     }
     return result;

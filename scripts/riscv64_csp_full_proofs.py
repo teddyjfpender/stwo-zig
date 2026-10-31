@@ -226,6 +226,7 @@ def main(argv=None):
                         choices=('all', 'true', 'false'))
     parser.add_argument('--profile-only', action='store_true')
     parser.add_argument('--profile-stages', action='store_true')
+    parser.add_argument('--control-policy', choices=('bytes_v1', 'limbs24_v2'), default='bytes_v1')
     parser.add_argument('--prover', type=Path, default=ROOT / 'zig-out/bin/rv64-csp-full')
     parser.add_argument('--verifier', type=Path, default=ROOT / 'zig-out/bin/rv64-full-verify')
     parser.add_argument('--timeout', type=int, default=7200)
@@ -245,7 +246,7 @@ def main(argv=None):
     report = {
         'schema': 'rv64-csp-full-single-shot-proofs-v1', 'complete': False,
         'whole_guest_proof': False, 'profile_only': args.profile_only,
-        'profile_stages': args.profile_stages,
+        'profile_stages': args.profile_stages, 'control_policy': args.control_policy,
         'all_selected_profiled': False, 'selected_cases': len(rows),
         'execution_report_sha256': digest(args.execution_report),
         'manifest_sha256': digest(manifest_path), 'driver_sha256': digest(Path(__file__)),
@@ -269,6 +270,8 @@ def main(argv=None):
         try:
             config = case_config(row, manifest, args.work_dir, args.profile_only,
                                  args.memory_limit_bytes)
+            if args.control_policy != 'bytes_v1':
+                config['control_policy'] = args.control_policy
             if args.profile_stages:
                 config['profile_stages'] = True
             artifacts = Path(config['artifact_dir'])
@@ -290,6 +293,8 @@ def main(argv=None):
                   f"{row['target']}/{row['size']} negative={row['negative']} "
                   f"instructions={row['rv64_instructions']}", flush=True)
             measured, elapsed = run_json([executable, config_path], args.timeout, 'Full prover')
+            if args.control_policy != 'bytes_v1' and measured.get('control_policy') != args.control_policy:
+                raise ValueError('Prover did not bind the requested control policy')
             case_report['prover'] = measured
             case_report['prover_process_ns'] = elapsed
             check_identities()
@@ -310,7 +315,10 @@ def main(argv=None):
                 validate_expected_statement(json.loads(paths[0].read_text()), config)
                 case_report['independent_statement_binding'] = True
                 case_report['artifact_sha256'] = {path.name: digest(path) for path in paths}
-                fresh, verify_elapsed = run_json([verifier, *paths], args.verify_timeout, 'Fresh verifier')
+                trusted_control = [] if args.control_policy == 'bytes_v1' else [args.control_policy]
+                fresh, verify_elapsed = run_json([verifier, *paths, *trusted_control], args.verify_timeout, 'Fresh verifier')
+                if args.control_policy != 'bytes_v1' and fresh.get('control_policy') != args.control_policy:
+                    raise ValueError('Fresh verifier did not bind the requested control policy')
                 if fresh.get('verified') is not True or fresh.get('whole_guest_proof') is not True:
                     raise ValueError('Fresh verifier did not accept a whole guest proof')
                 check_identities()

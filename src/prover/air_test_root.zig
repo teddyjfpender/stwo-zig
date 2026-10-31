@@ -1,4 +1,5 @@
 test {
+    _ = @import("air/component_pool_exclusive_test.zig");
     _ = @import("air/accumulation.zig");
     _ = @import("air/composition_work.zig");
     _ = @import("air/oods_work.zig");

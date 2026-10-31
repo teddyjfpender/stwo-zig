@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const rv = @import("stwo_riscv_frontend").rv64_air;
 const Q = core.fields.qm31.QM31;
+const execution_profile = @import("stwo_riscv_frontend").rv64.execution_profile;
 pub const Cell = rv.statement.Cell;
 pub const Statement = struct {
     program: rv.program.setup.Program,
@@ -21,6 +22,9 @@ pub const Statement = struct {
         return @max(5, std.math.log2_int_ceil(u32, self.steps));
     }
     pub fn validate(self: Statement) !void {
+        return self.validateWithProfile(.rv64im);
+    }
+    pub fn validateWithProfile(self: Statement, profile: execution_profile.Profile) !void {
         try self.program.validate();
         if (self.steps == 0 or self.steps >= 1 << 22 or self.initial_pc & 3 != 0 or self.final_pc & 3 != 0 or
             self.initial_registers[0] != 0 or self.final_registers[0] != 0 or self.register_clocks[0] != 0 or
@@ -30,7 +34,7 @@ pub const Statement = struct {
             if (!enabled) continue;
             // ECALL/EBREAK are terminal traps, not authenticated retirements.
             const decoded: @import("stwo_riscv_frontend").rv64.decode.Opcode = @enumFromInt(op);
-            if (decoded == .ECALL or decoded == .EBREAK) return error.InvalidRv64FullStatement;
+            if (!execution_profile.admitted(profile, decoded)) return error.InvalidRv64FullStatement;
             any = true;
         }
         if (!any) return error.InvalidRv64FullStatement;
@@ -66,7 +70,11 @@ pub const Statement = struct {
     /// Bind the request before any commitment/challenge. The caller's expected
     /// ELF/input/terminal output determines these fields independently.
     pub fn mix(self: Statement, channel: *rv.protocol.Channel, program_identity: [32]u8) !void {
-        try self.validate();
+        return self.mixWithProfile(channel, program_identity, .rv64im);
+    }
+    pub fn mixWithProfile(self: Statement, channel: *rv.protocol.Channel, program_identity: [32]u8, profile: execution_profile.Profile) !void {
+        try self.validateWithProfile(profile);
+        if (profile != .rv64im) channel.mixU32s(&.{ 0x52565052, 1, @intFromEnum(profile) });
         channel.mixU32s(&.{ 0x52563634, 0x46554c4c, 1, self.steps, self.logSize() });
         rv.protocol.config().mixInto(channel);
         for (program_identity) |byte| channel.mixU32s(&.{byte});
@@ -85,7 +93,10 @@ pub const Statement = struct {
         }
     }
     pub fn expectedState(self: Statement, challenges: rv.relations.Challenges) !Q {
-        try self.validate();
+        return self.expectedStateWithProfile(challenges, .rv64im);
+    }
+    pub fn expectedStateWithProfile(self: Statement, challenges: rv.relations.Challenges, profile: execution_profile.Profile) !Q {
+        try self.validateWithProfile(profile);
         var target = Q.zero();
         for (1..32) |reg| {
             target = target.add(try challenges.denominator(rv.relations.boundaryTuple(0, reg, 0, self.initial_registers[reg], true, true)).inv());
@@ -98,3 +109,15 @@ pub const Statement = struct {
         return target;
     }
 };
+
+/// Canonical full-width RAM word lookup shared by ordinary and service journals.
+pub fn cellIndex(cells: []const Cell, address: u64) !usize {
+    var low: usize = 0;
+    var high = cells.len;
+    while (low < high) {
+        const mid = low + (high - low) / 2;
+        if (cells[mid].address < address) low = mid + 1 else high = mid;
+    }
+    if (low == cells.len or cells[low].address != address) return error.InvalidRv64FullMemoryCell;
+    return low;
+}

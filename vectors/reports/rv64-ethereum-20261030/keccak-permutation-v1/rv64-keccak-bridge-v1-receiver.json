@@ -1,0 +1,12 @@
+{
+  "schema": "rv64-keccak-fresh-process-v1",
+  "artifact_directory": "vectors/reports/interop_artifacts/rv64-keccak-bridge-v1",
+  "verified": true,
+  "cpu_component": false,
+  "ram_hash_boundary": false,
+  "lane_ram_bridge": true,
+  "calls": 2,
+  "proof_sha256": "fecaa44d7b243d4730dc0c060c4135ee9ec1873697d26620de6a94f413cf5da8",
+  "fresh_process_wall_ns": 20366750,
+  "historical_setup": "v1 request-dependent geometry control; no immutable-cache claim."
+}

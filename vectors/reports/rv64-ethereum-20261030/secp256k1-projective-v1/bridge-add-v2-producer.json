@@ -1,0 +1,196 @@
+{
+  "schema": "rv64-projective-secp256k1-bridge-fixture-v2",
+  "packet_format": "little_endian_words_v2",
+  "kind": "add",
+  "calls": 3,
+  "cpu_present": false,
+  "authenticated_ram_hash_boundary": false,
+  "known_public_ram_and_call_control": true,
+  "pow_bits": 26,
+  "queries": 70,
+  "proof_bytes": 381216,
+  "proof_sha256": "3c9f7b719435a011eeb8cb3ef691093afe07c675ef1e028b5072b92457c6fce6",
+  "pipeline_ns": 94851250,
+  "phase_ns": {
+    "witness": 282542,
+    "fixed_commit": 344708,
+    "main_commit": 1638167,
+    "interactions": 4050916,
+    "interaction_commit": 1614500,
+    "prove": 86143084,
+    "serialize_release": 294125
+  },
+  "stages": {
+    "schema_version": 1,
+    "runtime": "cpu",
+    "example": "rv64-projective-secp256k1-bridge",
+    "stages": [
+      {
+        "id": "secp_coset_fft",
+        "label": "Projective modular quotient coset FFT",
+        "seconds": 0.000184,
+        "children": [
+          {
+            "id": "secp_bridge_fft",
+            "label": "Secp bridge quotient coset FFT",
+            "seconds": 0.000016,
+            "children": null
+          },
+          {
+            "id": "secp_bridge_rows",
+            "label": "Secp bridge quotient constraint rows",
+            "seconds": 0.000176,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000946,
+            "children": [
+              {
+                "id": "secp_coset_fft",
+                "label": "Projective modular quotient coset FFT",
+                "seconds": 0.000071,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.00001,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.000153,
+                "children": null
+              },
+              {
+                "id": "secp_constraint_rows",
+                "label": "Projective modular quotient rows",
+                "seconds": 0.000986,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.000009,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.000152,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_fft",
+                "label": "Secp bridge quotient coset FFT",
+                "seconds": 0.000009,
+                "children": null
+              },
+              {
+                "id": "secp_bridge_rows",
+                "label": "Secp bridge quotient constraint rows",
+                "seconds": 0.000149,
+                "children": null
+              }
+            ]
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.00006,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000436,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000053,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000976,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000059,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000435,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000058,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000436,
+            "children": null
+          },
+          {
+            "id": "secp_coset_fft",
+            "label": "Projective modular quotient coset FFT",
+            "seconds": 0.000052,
+            "children": null
+          },
+          {
+            "id": "secp_constraint_rows",
+            "label": "Projective modular quotient rows",
+            "seconds": 0.000975,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "secp_coset_fft",
+        "label": "Projective modular quotient coset FFT",
+        "seconds": 0.000052,
+        "children": null
+      },
+      {
+        "id": "secp_constraint_rows",
+        "label": "Projective modular quotient rows",
+        "seconds": 0.000976,
+        "children": null
+      }
+    ]
+  },
+  "product_log": 6,
+  "linear_log": 7,
+  "bridge_log": 5,
+  "bridge_columns": 207,
+  "bridge_constraints": 230,
+  "bridge_metadata_byte_queries_per_row": 42,
+  "bridge_coordinate_byte_queries_per_row": 0,
+  "maximum_degree": 4,
+  "source_bytes": 422784,
+  "mask_values": 1359,
+  "process_usage": {
+    "source": "darwin_proc_pid_rusage_v6",
+    "lifetime_peak_physical_footprint_bytes": 7176552,
+    "current_physical_footprint_bytes": 5996904,
+    "process_cpu_ns": 262666833,
+    "energy_nj": 1282271662,
+    "instructions": 4414232375,
+    "cycles": 1023927447,
+    "unavailable_reason": null
+  }
+}

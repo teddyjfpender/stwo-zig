@@ -8,10 +8,7 @@
 //! listed to make coverage explicit.
 
 test {
-    _ = @import("rv64/mod.zig");
-    _ = @import("rv64/tests/execution_test.zig");
-    _ = @import("rv64/tests/foundations_test.zig");
-    _ = @import("rv64_execution_test_root.zig");
+    _ = @import("rv64_test_inventory.zig");
     _ = @import("prover/tests/compact_range_set_test.zig");
     _ = @import("recursion/air/tests/compact_range_provider_test.zig");
     _ = @import("compact_poseidon_authority_test_root.zig");
@@ -674,6 +671,7 @@ test {
     _ = @import("air/guest_precompile/tests/keccakf_authority_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_component_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_interaction_test.zig");
+    _ = @import("air/guest_precompile/tests/keccakf_lookup_tuple_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_multiplicities_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_relations_test.zig");
     _ = @import("air/guest_precompile/tests/keccakf_table_component_test.zig");
@@ -814,19 +812,4 @@ test {
     _ = @import("vm_air_profile_v2_test_root.zig");
     _ = @import("vm_air_profile_authority_v2_test_root.zig");
     _ = @import("vm_leaf_context_v2_test_root.zig");
-}
-
-test {
-    _ = @import("rv64/air/tests/local_test.zig");
-    _ = @import("rv64/air/tests/admission_test.zig");
-    _ = @import("rv64/air/tests/degree_test.zig");
-    _ = @import("rv64/air/tests/weighted_sink_test.zig");
-    _ = @import("rv64/air/tests/inflation_reuse_test.zig");
-    _ = @import("rv64/air/tests/byte_terms_test.zig");
-    _ = @import("rv64/air/tests/memory_factoring_test.zig");
-    _ = @import("rv64/air/tests/representation_model_test.zig");
-    _ = @import("rv64/air/tests/relations_test.zig");
-    _ = @import("rv64_air_test_root.zig");
-    _ = @import("rv64_program_test_root.zig");
-    _ = @import("rv64_parallel_test_root.zig");
 }

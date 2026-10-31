@@ -1,0 +1,22 @@
+{
+  "schema": "rv64-ethereum-architecture-review-v1",
+  "implemented": false,
+  "cpu_mapping": "one retiring instruction per CPU row, then power-of-two padding; providers additional",
+  "measured_retirements": 835695366,
+  "counterfactual_padded_cpu_rows": 1073741824,
+  "current_cpu_quotient_points": 4294967296,
+  "measured_divu": 6264,
+  "measured_remu": 6,
+  "measured_mul": 17492721,
+  "measured_mulhu": 16173005,
+  "keccak_leaf_retirements": 511996155,
+  "keccak_leaf_entry_hits": 32835,
+  "keccak_instructions_per_entry": 15593,
+  "existing_paired_keccak_amortized_rows_per_call": 14.5,
+  "row_ratio_is_not_speedup": true,
+  "existing_keccak_interaction_columns": 4164,
+  "existing_keccak_main_columns": 2204,
+  "preferred_continuation_candidate": "large budgeted batches, authenticated architectural RAM/CPU boundary, batch-local clocks, batched page/cell openings and net updates",
+  "remaining_qualification": "RAM hashing/provider cost, complete initialization/terminal authority, crypto service constraints, whole-system geometry and aggregation receiver",
+  "design": "design/riscv-proving-stack/rv64-ethereum.md"
+}

@@ -32,7 +32,7 @@ pub const N_LINK_CONSTRAINTS: usize = 1 + 5 + CALLS * permutation.WIDTH + DIGEST
 pub const N_CONSTRAINTS: usize = 1 + N_LINK_CONSTRAINTS + N_SUMS;
 pub const Digest = [DIGEST_WORDS]u32;
 pub const Kind = enum(u1) { memory = 0, program = 1 };
-const DOMAIN: u32 = 0x4554_4e30; // "ETN0", with a separate program domain.
+pub const DOMAIN: u32 = 0x4554_4e30; // "ETN0", with a separate program domain.
 
 comptime {
     std.debug.assert(RATE + CAPACITY == permutation.WIDTH);
@@ -268,7 +268,7 @@ pub fn evaluateGeneric(comptime F: type, row: Row(F)) [N_LINK_CONSTRAINTS]F {
     return constraints;
 }
 
-fn absorptionWords(comptime F: type, row: Row(F)) [3 * RATE]F {
+pub fn absorptionWords(comptime F: type, row: Row(F)) [3 * RATE]F {
     var words: [3 * RATE]F = undefined;
     words[0] = constant(F, SCHEMA_VERSION);
     words[1] = F.zero();

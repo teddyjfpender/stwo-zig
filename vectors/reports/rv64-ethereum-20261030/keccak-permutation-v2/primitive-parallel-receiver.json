@@ -1,0 +1,14 @@
+{
+  "command": [
+    "zig-out/bin/rv64-keccak-fixture",
+    "verify",
+    "/tmp/stwo-rv64-keccak-v2-parallel",
+    "5",
+    "3"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 19674042,
+  "fresh_process": true,
+  "independently_derived_fixed_root": true,
+  "expected_public_fixture": true
+}
