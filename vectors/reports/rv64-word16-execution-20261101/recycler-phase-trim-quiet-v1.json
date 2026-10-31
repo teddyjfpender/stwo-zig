@@ -1,0 +1,375 @@
+{
+  "status": "QUALIFIED repeated same-binary packet0 operational comparison",
+  "base_commit": "e63c9fb80299c144574de47093d56dc9d659d891",
+  "dependencies": [
+    "c4a2749bc",
+    "e63c9fb80"
+  ],
+  "scope": "Single closed genesis packet, not complete Ethereum block timing. No geometry/protocol/acceptance change. Same CPU16workers and cap8 commits; default4GiB recycler both modes.",
+  "schedule": "ABBA ABBA, A=keep captured free bins, B=releaseCached before immutable setup; four fresh producer processes each mode. Team compilers/provers paused. Parent observed modest external Chrome/Terminal/WindowServer load.",
+  "comparison": {
+    "wall_mean_s": [
+      8.17,
+      8.035
+    ],
+    "wall_change_percent": -1.6523867809057458,
+    "system_cpu_mean_s": [
+      2.7825,
+      2.3925
+    ],
+    "system_cpu_change_percent": -14.016172506738545,
+    "minor_fault_mean": [
+      1468556.75,
+      1202516.75
+    ],
+    "minor_fault_change_percent": -18.115745271675742,
+    "peak_rss_mean_bytes": [
+      12507631616,
+      12522569728
+    ],
+    "interpretation": "System time/page reclaim reduction is consistent across repetitions. Wall ranges overlap and drift upward during the sequence; wall change is modest. Peak RSS did not decrease. No large speed/memory claim, no full-block extrapolation."
+  },
+  "qualification": {
+    "all8_proof_cells_statement_byte_identical": true,
+    "fresh_independent_receivers": "PASS both modes",
+    "proof_sha256": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+    "source_changes_after_tool_freeze": false
+  },
+  "raw_summary_sha256": "1f8ac6f11a3ac45ebcd7c15ba64b7d14e0407c458dd931331b50343d5f121dfc",
+  "raw_summary_path": "/tmp/rv64-recycler-quiet-v1/summary.json",
+  "measurement": {
+    "binary": "/tmp/rv64-recycler-trim-tools/rv64-word16-execution-benchmark",
+    "binary_sha256": "6ecdf082b361220f04fd8ed4c8c756366678aabab1f29e11598edfa3da20c607",
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "config_sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "flags": [
+      "--omit-empty-division",
+      "--deduplicate-shift",
+      "--ls-ladder=20,18",
+      "--alu-ladder=19,16",
+      "--binary-ladder=19,18",
+      "--shift-ladder=19,18"
+    ],
+    "order": "ABBA ABBA, A=keep/B=trim",
+    "workers": 16,
+    "fresh_receivers": "PASS both modes",
+    "all_proof_cells_statement_hashes_equal": true,
+    "observations": [
+      {
+        "index": 0,
+        "mode": "keep",
+        "start_utc": "2026-10-31T23:43:00.193043+00:00",
+        "wall_s": 7.97,
+        "user_s": 41.72,
+        "sys_s": 2.85,
+        "rss_bytes": 12507430912,
+        "minor_faults": 1468620,
+        "major_faults": 0,
+        "pipeline_s": 7.923418875,
+        "prove_s": 6.964233124,
+        "capture_cache_released_bytes": 0,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 1758,
+            "mapped_blocks": 1624,
+            "cached_bytes": 4294836224
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 1,
+        "mode": "trim",
+        "start_utc": "2026-10-31T23:43:08.186458+00:00",
+        "wall_s": 7.89,
+        "user_s": 41.96,
+        "sys_s": 2.44,
+        "rss_bytes": 12522307584,
+        "minor_faults": 1203029,
+        "major_faults": 0,
+        "pipeline_s": 7.839744792,
+        "prove_s": 6.877283459,
+        "capture_cache_released_bytes": 751566848,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 2222,
+            "mapped_blocks": 1160,
+            "cached_bytes": 4294967296
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 2,
+        "mode": "trim",
+        "start_utc": "2026-10-31T23:43:16.105546+00:00",
+        "wall_s": 7.92,
+        "user_s": 42.14,
+        "sys_s": 2.39,
+        "rss_bytes": 12522323968,
+        "minor_faults": 1203702,
+        "major_faults": 0,
+        "pipeline_s": 7.874206417,
+        "prove_s": 6.907750583,
+        "capture_cache_released_bytes": 751566848,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 2222,
+            "mapped_blocks": 1160,
+            "cached_bytes": 4294967296
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 3,
+        "mode": "keep",
+        "start_utc": "2026-10-31T23:43:24.052663+00:00",
+        "wall_s": 8.14,
+        "user_s": 42.42,
+        "sys_s": 2.74,
+        "rss_bytes": 12507971584,
+        "minor_faults": 1468782,
+        "major_faults": 0,
+        "pipeline_s": 8.08081375,
+        "prove_s": 7.111656459,
+        "capture_cache_released_bytes": 0,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 1756,
+            "mapped_blocks": 1626,
+            "cached_bytes": 4294836224
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 4,
+        "mode": "keep",
+        "start_utc": "2026-10-31T23:43:32.215715+00:00",
+        "wall_s": 8.16,
+        "user_s": 42.71,
+        "sys_s": 2.77,
+        "rss_bytes": 12507693056,
+        "minor_faults": 1469431,
+        "major_faults": 0,
+        "pipeline_s": 8.118065334,
+        "prove_s": 7.13281775,
+        "capture_cache_released_bytes": 0,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 1757,
+            "mapped_blocks": 1625,
+            "cached_bytes": 4294836224
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 5,
+        "mode": "trim",
+        "start_utc": "2026-10-31T23:43:40.397053+00:00",
+        "wall_s": 8.13,
+        "user_s": 43.04,
+        "sys_s": 2.37,
+        "rss_bytes": 12522799104,
+        "minor_faults": 1202928,
+        "major_faults": 0,
+        "pipeline_s": 8.081746,
+        "prove_s": 7.087019208,
+        "capture_cache_released_bytes": 751566848,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 2220,
+            "mapped_blocks": 1162,
+            "cached_bytes": 4294967296
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 6,
+        "mode": "trim",
+        "start_utc": "2026-10-31T23:43:48.553312+00:00",
+        "wall_s": 8.2,
+        "user_s": 43.41,
+        "sys_s": 2.37,
+        "rss_bytes": 12522848256,
+        "minor_faults": 1200408,
+        "major_faults": 0,
+        "pipeline_s": 8.149818333,
+        "prove_s": 7.133056458,
+        "capture_cache_released_bytes": 751566848,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 2220,
+            "mapped_blocks": 1162,
+            "cached_bytes": 4294967296
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      },
+      {
+        "index": 7,
+        "mode": "keep",
+        "start_utc": "2026-10-31T23:43:56.787225+00:00",
+        "wall_s": 8.41,
+        "user_s": 43.72,
+        "sys_s": 2.77,
+        "rss_bytes": 12507430912,
+        "minor_faults": 1467394,
+        "major_faults": 0,
+        "pipeline_s": 8.36646825,
+        "prove_s": 7.356591583,
+        "capture_cache_released_bytes": 0,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 1758,
+            "mapped_blocks": 1624,
+            "cached_bytes": 4294836224
+          }
+        },
+        "hashes": {
+          "proof.bin": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0",
+          "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+          "statement.json": "806510748e26c0db1698f9af8c110c56f3bdede126e29900b1733d10e0ff7ec6"
+        }
+      }
+    ],
+    "summary": {
+      "keep": {
+        "wall_s": {
+          "mean": 8.17,
+          "median": 8.15,
+          "min": 7.97,
+          "max": 8.41
+        },
+        "pipeline_s": {
+          "mean": 8.122191552250001,
+          "median": 8.099439542,
+          "min": 7.923418875,
+          "max": 8.36646825
+        },
+        "prove_s": {
+          "mean": 7.141324729,
+          "median": 7.1222371045,
+          "min": 6.964233124,
+          "max": 7.356591583
+        },
+        "user_s": {
+          "mean": 42.6425,
+          "median": 42.565,
+          "min": 41.72,
+          "max": 43.72
+        },
+        "sys_s": {
+          "mean": 2.7825,
+          "median": 2.77,
+          "min": 2.74,
+          "max": 2.85
+        },
+        "rss_bytes": {
+          "mean": 12507631616,
+          "median": 12507561984.0,
+          "min": 12507430912,
+          "max": 12507971584
+        },
+        "minor_faults": {
+          "mean": 1468556.75,
+          "median": 1468701.0,
+          "min": 1467394,
+          "max": 1469431
+        }
+      },
+      "trim": {
+        "wall_s": {
+          "mean": 8.035,
+          "median": 8.025,
+          "min": 7.89,
+          "max": 8.2
+        },
+        "pipeline_s": {
+          "mean": 7.986378885500001,
+          "median": 7.9779762085,
+          "min": 7.839744792,
+          "max": 8.149818333
+        },
+        "prove_s": {
+          "mean": 7.001277427,
+          "median": 6.9973848955,
+          "min": 6.877283459,
+          "max": 7.133056458
+        },
+        "user_s": {
+          "mean": 42.6375,
+          "median": 42.59,
+          "min": 41.96,
+          "max": 43.41
+        },
+        "sys_s": {
+          "mean": 2.3925,
+          "median": 2.38,
+          "min": 2.37,
+          "max": 2.44
+        },
+        "rss_bytes": {
+          "mean": 12522569728,
+          "median": 12522561536.0,
+          "min": 12522307584,
+          "max": 12522848256
+        },
+        "minor_faults": {
+          "mean": 1202516.75,
+          "median": 1202978.5,
+          "min": 1200408,
+          "max": 1203702
+        }
+      }
+    }
+  }
+}
