@@ -102,7 +102,7 @@ pub fn take(s: *Source) !Commit {
     s.alu.owns_main = false;
     s.binary.owns_main = false;
     s.shift.owns_main = false;
-    s.division.owns_main = false;
+    if (s.materials.shape(.division).widths[1] != 0) s.division.owns_main = false;
     s.multiplication.owns_main = false;
     s.memory.ls.owns_main = false;
     s.memory.initial.owns_main = false;

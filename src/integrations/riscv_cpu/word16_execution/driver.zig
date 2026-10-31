@@ -45,6 +45,7 @@ pub fn verifyDirectory(a: std.mem.Allocator, image: *const Image.Owner, path: []
     if (b.schema != 2) return error.InvalidExecutionBundle;
     try admission(image).validateCpu(b.geometry, b.cpu);
     try E.Admission.validateCounts(b.geometry, b.cpu.steps, b.ls_count, b.memory_words);
+    try P.validateDivisionClass(b.geometry, b.division_requests, b.claims.division);
     try b.claims.validate();
     if (b.epoch != 1 or b.cpu.initial_pc != image.initial_pc or !std.mem.eql(u64, &b.cpu.initial_registers, &image.initial_registers)) return error.UntrustedWord16InitialCpu;
     const cells = try Cells.read(a, dir, b.memory_words);

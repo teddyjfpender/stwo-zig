@@ -5,6 +5,7 @@ const G = @import("geometry.zig");
 const Components = @import("components.zig").Components;
 pub const RoleEvaluation = struct {
     role: G.Role,
+    present: bool = true,
     source_log: u32,
     native_evaluation_log: u32,
     composition_contribution_bound_log: u32,
@@ -22,7 +23,14 @@ pub fn inspect(a: std.mem.Allocator, components: *const Components) !Geometry {
     const handles = try components.provers(a);
     defer a.free(handles);
     var result = Geometry{ .source_cells = try G.cells(&shapes), .declared_component_evaluation_points = 0, .components = undefined };
-    for (shapes, handles, &result.components) |shape, handle, *value| {
+    var at: usize = 0;
+    for (shapes, &result.components) |shape, *value| {
+        if (!shape.present()) {
+            value.* = .{ .role = shape.role, .present = false, .source_log = shape.log, .native_evaluation_log = 0, .composition_contribution_bound_log = 0, .evaluation_points = 0, .composition_log_split = 0 };
+            continue;
+        }
+        const handle = handles[at];
+        at += 1;
         const log = shape.log + @as(u32, if (shape.role == .division or shape.role == .multiplication) 2 else 1);
         if (log > 30) return error.InvalidExecutionEvaluationGeometry;
         const n = @as(u64, 1) << @intCast(log);

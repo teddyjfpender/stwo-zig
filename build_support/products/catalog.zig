@@ -121,6 +121,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-execution-circuit", .description = "Qualify external circuit-lane full64 CPU point authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution", .description = "Qualify concrete full64 CPU bus emitter and degree-three lanes", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-source", .description = "Qualify full64 compact source lifecycle and joined native claim parity", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-optional-division", .description = "Qualify optional empty DIV physical roster and FUNCTION closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-coordinator", .description = "Qualify full64 immutable execution program authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-alu", .description = "Check experimental D3 Word16 ALU equations", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-alu-proof", .description = "Prove experimental Word16 ALU and U16 closures", .scope = .riscv_cpu },

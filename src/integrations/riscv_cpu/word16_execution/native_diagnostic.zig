@@ -18,6 +18,7 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
     const inter = try source.columns(a, 2);
     defer a.free(inter);
     for (source.materials.shapes()) |shape| {
+        if (!shape.present()) continue;
         const n = @as(usize, 1) << @intCast(shape.log);
         for (0..n) |logical| {
             const pos = A.word16_execution.layout.physical(logical, shape.log);

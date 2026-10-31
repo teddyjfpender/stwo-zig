@@ -72,7 +72,18 @@ pub fn mix(channel: *T.P.Channel, setup: *const @import("setup.zig").Setup, requ
 }
 /// Rootless immutable materials use the SAME transcript authority. Fixed roots
 /// are committed by the complete caller roster, not by this helper.
+/// An absent physical provider cannot contribute an arbitrary cancelling claim.
+/// Count0 is receiver admission; actual query absence follows from CPU FUNCTION
+/// closure with globally disjoint operation IDs, not from native census alone.
+pub fn validateDivisionClass(geometry: @import("geometry.zig").Geometry, requests: u32, claim: Q) !void {
+    if (geometry.omit_empty_division) {
+        if (requests != 0) return error.OmittedDivisionRequests;
+        if (!claim.isZero()) return error.OmittedDivisionClaim;
+    }
+}
+
 pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
+    try validateDivisionClass(materials.geometry, request.division_requests, Q.zero());
     T.P.config().mixInto(channel);
     channel.mixU32s(&.{ 0x52563634, 0x57463137, 1, 53, 40, 30, 19, 33, 2, 1 });
     digest(channel, X.features.identity());

@@ -38,6 +38,7 @@ pub const Admission = struct {
     /// Cheap public admission precedes statement-specific fixed-key allocation.
     pub fn validateGeometry(self: Admission, geometry: Mat.Geometry, request: P.Request) !void {
         try self.validateCpu(geometry, request.cpu);
+        try P.validateDivisionClass(geometry, request.division_requests, core.fields.qm31.QM31.zero());
         try validateCounts(geometry, request.cpu.steps, request.memory.ls_count, request.memory.initial.len);
         if (request.epoch != 1 or request.memory.epoch != request.epoch) return error.UnqualifiedCrossBatchMemoryScope;
         if (request.cpu.initial_pc != self.initial_pc or !std.mem.eql(u64, &request.cpu.initial_registers, &self.initial_registers)) return error.UntrustedWord16InitialCpu;
@@ -132,7 +133,7 @@ fn provePreparedWithOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, adm
     }
     main_stage.end();
     const draw = P.draw(&channel);
-    var generation_stage = try Recorder.StageScope.begin(recorder, "interaction_generation", "Close all seventeen component obligations");
+    var generation_stage = try Recorder.StageScope.begin(recorder, "interaction_generation", if (setup.materials.geometry.omit_empty_division) "Close sixteen admitted component obligations" else "Close all seventeen component obligations");
     defer generation_stage.end();
     const claims = try source.generateProfiled(draw, recorder);
     generation_stage.end();
@@ -174,6 +175,7 @@ pub fn verifyProfiled(a: std.mem.Allocator, setup: *const Mat.Setup, admission: 
         defer stage.end();
         try admission.validate(setup, encoded.request);
     }
+    try P.validateDivisionClass(setup.materials.geometry, encoded.request.division_requests, encoded.claims.division);
     try encoded.claims.validate();
     if (encoded.bytes.len > 64 * 1024 * 1024) return error.Word16ExecutionProofResourceLimit;
     var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);

@@ -14,6 +14,9 @@ pub const Geometry = struct {
     shift_log: u32 = 5,
     jalr_log: u32 = 5,
     division_log: u32 = 5,
+    /// Explicit count-zero physical class. Default preserves historical keys,
+    /// transcript and proof bytes. Omission never changes the CPU FUNCTION bus.
+    omit_empty_division: bool = false,
     multiplication_log: u32 = 5,
     ls_log: u32 = 5,
     boundary_log: u32 = 5,
@@ -28,6 +31,7 @@ pub const Geometry = struct {
         return self.terminal_log orelse self.boundary_log;
     }
     pub fn validate(self: Geometry) !void {
+        if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         _ = try B.function_bus.admitPositiveMass(&.{try self.range16Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
@@ -55,7 +59,22 @@ pub fn rows(log: u32) u64 {
 }
 /// Structural roster tags, not runtime semantic/CPU policy alternatives.
 pub const Role = enum { cpu, rom, boundary, alu, binary, shift, jalr, division, multiplication, shift_table, and_table, range16, range8, ls, initial, terminal, selection };
-pub const Shape = struct { role: Role, log: u32, widths: [3]usize, offsets: [3]usize };
+pub const Shape = struct {
+    role: Role,
+    log: u32,
+    widths: [3]usize,
+    offsets: [3]usize,
+    pub fn present(self: Shape) bool {
+        return self.widths[0] != 0 or self.widths[1] != 0 or self.widths[2] != 0;
+    }
+};
+pub fn componentCount(actual: []const Shape) usize {
+    var count: usize = 0;
+    for (actual) |shape| if (shape.present()) {
+        count += 1;
+    };
+    return count;
+}
 pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
     var result: [ROLE_COUNT]Shape = undefined;
     var offsets: [3]usize = @splat(0);
@@ -68,7 +87,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .binary => .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION },
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },
             .jalr => .{ 2, 18, 12 },
-            .division => .{ A.division.layout.FIXED, A.division.layout.MAIN, A.division.layout.INTERACTION },
+            .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.layout.FIXED, A.division.layout.MAIN, A.division.layout.INTERACTION },
             .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, 1, 8 },
@@ -111,10 +130,14 @@ pub fn cells(actual: []const Shape) !Cells {
 
 /// Native constraint kernels keep their independently sized evaluation domains.
 /// Only the weighted quotient is extended to the shared split-two format.
-pub const Domain = struct { role: Role, native_evaluation_log: u32, composition_contribution_bound_log: u32, weighted_quotient_extension_logs: u8 };
+pub const Domain = struct { role: Role, present: bool = true, native_evaluation_log: u32, composition_contribution_bound_log: u32, weighted_quotient_extension_logs: u8 };
 pub fn domains(actual: [ROLE_COUNT]Shape) [ROLE_COUNT]Domain {
     var out: [ROLE_COUNT]Domain = undefined;
     for (actual, &out) |shape, *domain| {
+        if (!shape.present()) {
+            domain.* = .{ .role = shape.role, .present = false, .native_evaluation_log = 0, .composition_contribution_bound_log = 0, .weighted_quotient_extension_logs = 0 };
+            continue;
+        }
         const arithmetic = shape.role == .division or shape.role == .multiplication;
         domain.* = .{ .role = shape.role, .native_evaluation_log = shape.log + @as(u32, if (arithmetic) 2 else 1), .composition_contribution_bound_log = shape.log + 2, .weighted_quotient_extension_logs = if (arithmetic) 0 else 1 };
     }

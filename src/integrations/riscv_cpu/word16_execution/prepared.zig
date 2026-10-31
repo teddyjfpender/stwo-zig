@@ -104,6 +104,13 @@ pub const Prepared = struct {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
         return .{ .cpu_log = cpu.log_size, .alu_log = try Coverage.minimalLog(@intCast(self.alu.facts.len)), .binary_log = try Coverage.minimalLog(@intCast(self.binary.facts.len)), .shift_log = try Coverage.minimalLog(@intCast(self.shift.len)), .jalr_log = (self.jalr orelse return error.PreparedExecutionConsumed).log_size, .division_log = try Coverage.minimalLog(@intCast(self.division.len)), .multiplication_log = try Coverage.minimalLog(@intCast(self.multiplication.len)), .ls_log = try Coverage.minimalPrefixLog(self.raw_counts.memory), .boundary_log = try Coverage.minimalPrefixLog(self.unique_memory_words) };
     }
+    /// Explicit optional physical class. Ordinary geometry() keeps the legacy
+    /// present provider and exact historical proof bytes by default.
+    pub fn geometryOmittingEmptyDivision(self: *const Prepared) !G.Geometry {
+        var result = try self.geometry();
+        result.omit_empty_division = self.division.len == 0;
+        return result;
+    }
     /// Validate/rebind before projection. A projection failure leaves the CPU
     /// and grouped facts here for retry; no ownership moves on this barrier.
     pub fn ensureCpuMain(self: *Prepared, program: *const Program, expected_cpu_log: u32) !void {

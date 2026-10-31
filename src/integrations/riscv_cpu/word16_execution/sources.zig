@@ -72,6 +72,7 @@ pub const Source = struct {
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
+        if (g.omit_empty_division and prepared.division.len != 0) return error.OmittedDivisionRequests;
         // A captured CPU materializes exactly once at the final Program owner;
         // projection failure preserves Prepared's narrow CPU/family advice.
         {
@@ -275,7 +276,10 @@ pub const Source = struct {
             defer stage.end();
             break :block try self.jalr.generate(ch.cpu.function);
         };
-        const division = block: {
+        const division = if (self.materials.geometry.omit_empty_division) block: {
+            try P.validateDivisionClass(self.materials.geometry, @intCast(self.division.count), Q.zero());
+            break :block Q.zero();
+        } else block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_division", "DIV REM interactions");
             defer stage.end();
             break :block try self.division.generateInteraction(AB.division(ch.cpu.function));
@@ -308,6 +312,7 @@ pub const Source = struct {
         const out = try a.alloc(Column, count);
         errdefer a.free(out);
         for (shapes) |s| {
+            if (s.widths[tree] == 0) continue;
             const data: []const M = switch (s.role) {
                 .cpu => if (tree == 1) self.cpu.main else self.cpu.interaction,
                 .rom => if (tree == 1) self.rom.main else self.rom.interaction,

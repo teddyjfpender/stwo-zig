@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "scope": "Opt-in empty DIV physical class for the concrete Word16 fullCPU+LS genesis-prefix protocol; no MUL omission, no default Ethereum route change",
+  "base_commit": "348981aa8b2dab644ae2ede1ae30f243a9c16cdf",
+  "geometry": {
+    "field": "omit_empty_division",
+    "default": false,
+    "omitted_log": 5,
+    "omitted_widths": [
+      0,
+      0,
+      0
+    ],
+    "physical_components_present": 16,
+    "claim_ledger_fields": 33,
+    "division_placeholder": "canonical QM31 zero, explicitly required by receiver"
+  },
+  "admission_and_soundness": [
+    "Receiver requires division_requests==0 and claims.division==0 in omitted class, independent of native census. Common component factory guards closed/global/Keccak callers.",
+    "CPU still emits every eligible FUNCTION request. Globally disjoint raw DIV operation IDs cannot be supplied by other truth providers. CPU positive query mass remains bounded below M31 characteristic.",
+    "Absence is bound by complete fixed root and existing per-role transcript shape tuple; legacy present-shape mix unchanged.",
+    "An empty native DIV trace remains allocated privately for minimal code changes, but supplies no columns/component/claim. Its unused MAIN allocation keeps its owner until deinit."
+  ],
+  "qualification": {
+    "optional_division_safe_fast_runtime6": "PASS",
+    "legacy_coordinator_fast_runtime20": "PASS",
+    "legacy_prepared_fast_runtime14": "PASS",
+    "tests": [
+      "All three DIV widths zero; actual handle roster16, zero evaluation points and fixed material",
+      "Optimized actual proof/fresh independent setup receiver; exact CPU statement and RAM semantics versus present class",
+      "Nonzero omitted request rejected; balanced nonzero placeholder claim rejected",
+      "Every allocation failure across setup/source/owned MAIN handoff preserves custody; unused DIV stays owned",
+      "Hostile test Tape asserts7/2=4; native DIV queue deliberately erased after capture. Real16-component proof passes independent low-level physical verifier, but complete receiver rejects unserved FUNCTION debt. Balancing through absent DIV claim also rejected.",
+      "Actual decoded sample counts per tree, not a logical-width estimate"
+    ]
+  },
+  "real_packet": {
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "steps": 4194303,
+    "legacy_retained_reference": "/tmp/rv64-word16-pages-paired-20261031/1-on/proof.bin",
+    "legacy_exact_bytes": "PASS",
+    "semantic_fields_and_ram_sidecar_exact_bytes": "PASS",
+    "observations": "Concurrent functional observations; external work/builds were active. These timings show no speedup and are not uncontended benchmarks.",
+    "artifacts": {
+      "legacy": {
+        "directory": "/tmp/rv64-optional-division-real0-legacy-v1",
+        "proof_sha256": "7b9f5ffa28e601599e4d69644c6d174683b4960876196b6671de381e0d16acc8",
+        "proof_bytes": 1152816,
+        "statement_sha256": "d0c296eee740bb14748193cc90a03d59ece00a056a2ddaa3b9c43396dade4c5e",
+        "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "ram_sidecar_bytes": 32612038,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 655329792
+        },
+        "fresh_receiver": {
+          "scope": "fresh independent genesis-prefix receiver",
+          "physical_proof_verified": true,
+          "global_chain_accepted": false,
+          "receiver_ns": 878731250,
+          "image_ns": 303128166
+        },
+        "prove_ns": 12908360625,
+        "pipeline_total_ns": 13920145875,
+        "process_time_line": "       14.33 real        62.89 user         5.60 sys",
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857014272,
+          "last_rss_bytes": 1330790400,
+          "sampled_peak_rss_bytes": 11551801344,
+          "process_lifetime_peak_rss_bytes": 11551801344,
+          "samples": 926,
+          "failed_samples": 0
+        },
+        "proof_and_public_statement_bytes": 33776807,
+        "sampled_qm31_by_tree": [
+          127,
+          1605,
+          724,
+          16
+        ]
+      },
+      "omitted": {
+        "directory": "/tmp/rv64-optional-division-real0-omitted-v1",
+        "proof_sha256": "2666b1b4e812388323a7d837321c8a3a54b61793520736045ff01bacbc7c1981",
+        "proof_bytes": 793184,
+        "statement_sha256": "62369ae321c70777d3cf00f4e79200ecfc6e48fc8e71bdc95ce191ab3d64af7f",
+        "ram_sidecar_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+        "ram_sidecar_bytes": 32612038,
+        "source_cells": {
+          "fixed": 67168064,
+          "main": 593715456,
+          "interaction": 655329536
+        },
+        "fresh_receiver": {
+          "scope": "fresh independent genesis-prefix receiver",
+          "physical_proof_verified": true,
+          "global_chain_accepted": false,
+          "receiver_ns": 858157375,
+          "image_ns": 302028792
+        },
+        "prove_ns": 13144550834,
+        "pipeline_total_ns": 14186948792,
+        "process_time_line": "       14.21 real        64.37 user         5.83 sys",
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 857014272,
+          "last_rss_bytes": 1328168960,
+          "sampled_peak_rss_bytes": 11551195136,
+          "process_lifetime_peak_rss_bytes": 11551195136,
+          "samples": 944,
+          "failed_samples": 0
+        },
+        "proof_and_public_statement_bytes": 33417166,
+        "sampled_qm31_by_tree": [
+          124,
+          469,
+          712,
+          16
+        ]
+      }
+    }
+  },
+  "accounting": {
+    "committed_cells_removed": {
+      "fixed": 96,
+      "main": 36320,
+      "interaction": 256
+    },
+    "trace_samples_before_after": [
+      2456,
+      1305
+    ],
+    "composition_samples_before_after": [
+      16,
+      16
+    ],
+    "all_samples_before_after": [
+      2472,
+      1321
+    ],
+    "samples_removed": 1151,
+    "proof_bytes_removed": 359632,
+    "public_ram_bytes_removed": 0,
+    "retained_unused_div_main_cells": 36320,
+    "scope": "STARK bytes exclude the unchanged32.6MB public RAM sidecar. Native 2n/4n domains and common weighted-quotient split are unchanged; no uniform2n claim."
+  },
+  "cli": "Producer/planner suffix --omit-empty-division; old default unchanged. Receiver reads geometry and enforces physical class constraints independently; the suffix is rejected for verify mode. Root will merge suffix centrally with its newer operational parser.",
+  "source_sha256": {
+    "build_support/products/catalog.zig": "85c5893a0a24930836abb8a7f0fa82c48889d608786b08543870d96e046f7e58",
+    "build_support/products/riscv_cpu.zig": "c1a3a4192fe9751d03e950f0df8f166d2cc4d6c7344102bed34df4e0a19d2ebf",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "e36fc756acd5d8dc1e44e12adff95ae9ba6af2825b7dba5c1f19b6f83a1a9c82",
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "34105b7ba54d6906bafa7f459ffadb69c32699b9156c8c46858043d783d007e2",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "ea9f2aac63c716d7580e54f0d50c07c03d2d149e234d79480dc2f154daf00cbf",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "9c5396414862541dc703083bf9333c701a3bee631d0d45c714abf39f33f9a643",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "7c26f647e8c26b652ce66afdcb9c34e81ef7474d563c2253aff638a58b36499b",
+    "src/integrations/riscv_cpu/word16_execution/main_ownership.zig": "292c148cae28d820cee53a2776ae6a9361675dfce0901996a1d3ba72fea01d98",
+    "src/integrations/riscv_cpu/word16_execution/measurement.zig": "81cf94ad4204f17381ab04ce370cfa8e6a2c6cccee62f23110f962525d8af25b",
+    "src/integrations/riscv_cpu/word16_execution/native_diagnostic.zig": "2b07f834501402908a4b311d7d79cbc3ba1f95fc66246cc56c43b5b1bf2a5afe",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "df9e985afef15a68083f99bab68252cd293b690bb876a0512968e025aa97b547",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "40374e122dc6b783bbf8af0b80df410278b8ee64317cfa960d0aeffe9c822f98",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "35a10117dc970e6acbb2430d69bf773287cdf32eee908b76b7de20ddf6f48dd8",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "cf25ea8714faf11fa93a9e69a79733549d15806a87ad69bd91660aa0bebbe1bc",
+    "src/integrations/riscv_cpu/rv64_word16_optional_arithmetic_test_root.zig": "6f950d9160fe99c611a6e2415abb015e56a728bb052e5cfbc521c403a47ecc39",
+    "src/integrations/riscv_cpu/word16_execution/optional_division_test.zig": "b82c9feba30898aa8c80bcd9407a567d39389b9fb5ab37f34fcfa6bbf07366c5"
+  },
+  "logs": [
+    "/tmp/rv64-optional-division-final-safe.log",
+    "/tmp/rv64-optional-division-final-fast.log",
+    "/tmp/rv64-optional-division-fast.log",
+    "/tmp/rv64-optional-division-cli-build.log",
+    "/tmp/rv64-optional-division-real-samples.log"
+  ]
+}
