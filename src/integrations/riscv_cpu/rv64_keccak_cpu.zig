@@ -694,6 +694,7 @@ pub fn proveTrace(a: std.mem.Allocator, owner: *const PreparedSetup, public: Pub
     defer a.free(columns);
     mixClaims(&channel, claims, public);
     try scheme.commitBorrowedStreaming(a, columns, 8, &channel);
+    try sources.releaseCommittedInteractions();
     var handles: [MAX_COMPONENTS]engine.air.component_prover.ComponentProver = undefined;
     const n = components.provers(&handles);
     owns_scheme = false;

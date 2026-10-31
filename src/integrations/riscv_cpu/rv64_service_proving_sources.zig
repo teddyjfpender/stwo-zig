@@ -31,6 +31,7 @@ pub const ProvingSources = struct {
     secp_header: ?Secp.cpu_bus.Columns = null,
     claims: ?C.Claims = null,
     main_released: bool = false,
+    interaction_released: bool = false,
     stage_recorder: ?*engine.stage_profile.Recorder = null,
     pub fn init(a: std.mem.Allocator, materials: *const C.PreparedMaterials, public: C.Public, trace: *C.Trace, extra_bytes: ?*const [256]u64) !ProvingSources {
         try C.Support.physical(a, materials, public, trace);
@@ -149,7 +150,7 @@ pub const ProvingSources = struct {
         return result;
     }
     pub fn interactionColumns(self: *const ProvingSources) ![]Column {
-        if (self.claims == null) return error.InvalidRv64ServiceSourcePhase;
+        if (self.claims == null or self.interaction_released) return error.InvalidRv64ServiceSourcePhase;
         const trace = self.trace;
         const setup = self.materials;
         const np = setup.base.providerCount();
@@ -173,4 +174,43 @@ pub const ProvingSources = struct {
         std.debug.assert(at == columns.len);
         return columns;
     }
+
+    /// The coordinator calls only after successful interaction commitment.
+    /// PCS storage and transcript-bound claims survive; the source matrices
+    /// are redundant during composition/FRI. No relation obligation is erased.
+    pub fn releaseCommittedInteractions(self: *ProvingSources) !void {
+        if (self.claims == null or self.interaction_released) return error.InvalidRv64ServiceSourcePhase;
+        self.trace.cpu.releaseCommittedInteraction();
+        if (self.divbus) |*value| value.deinit();
+        self.divbus = null;
+        if (self.header) |*value| value.deinit();
+        self.header = null;
+        if (self.mulbus) |*value| value.deinit();
+        self.mulbus = null;
+        if (self.secp_header) |*value| value.deinit();
+        self.secp_header = null;
+        retire(self.rom.allocator, &self.rom.interaction);
+        retire(self.bytes.allocator, &self.bytes.interaction);
+        if (self.bitwise) |*value| retire(value.allocator, &value.interaction);
+        if (self.shifts) |*value| retire(value.allocator, &value.interaction);
+        if (self.trace.division) |*value| retire(value.allocator, &value.interaction);
+        if (self.trace.multiplication) |*value| retire(value.allocator, &value.interaction);
+        if (self.trace.crypto) |*value| {
+            retire(value.permutation.allocator, &value.permutation.interaction);
+            retire(value.chi.allocator, &value.chi.interaction);
+            retire(value.xor5.allocator, &value.xor5.interaction);
+            retire(value.bridge.allocator, &value.bridge.interaction);
+        }
+        for (&self.trace.secp.groups) |*group| if (group.*) |*value| {
+            retire(value.product.allocator, &value.product.interaction);
+            retire(value.linear.allocator, &value.linear.interaction);
+            retire(value.bridge.allocator, &value.bridge.interaction);
+        };
+        self.interaction_released = true;
+    }
 };
+
+fn retire(a: std.mem.Allocator, values: *[]core.fields.m31.M31) void {
+    a.free(values.*);
+    values.* = &.{};
+}

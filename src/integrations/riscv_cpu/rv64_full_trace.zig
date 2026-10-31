@@ -308,6 +308,15 @@ pub const Trace = struct {
         self.main_backing = &.{};
     }
 
+    /// Retire source evaluations only AFTER the PCS has sealed/copied them.
+    /// The coordinator keeps the transcript-bound claims and authenticated PCS
+    /// owner through proving; releasing this redundant buffer closes no debt.
+    /// Idempotent so ordinary Trace teardown remains safe on every later error.
+    pub fn releaseCommittedInteraction(self: *Trace) void {
+        self.allocator.free(self.interaction);
+        self.interaction = &.{};
+    }
+
     pub fn deinit(self: *Trace) void {
         self.allocator.free(self.main_backing);
         self.allocator.free(self.service_calls);

@@ -60,33 +60,41 @@ fn prove(a: std.mem.Allocator, owner: *const A.Prepared, public: A.Public, trace
     if (compact) scheme.setCompactPolynomialStorage(5);
     var owns_scheme = true;
     errdefer if (owns_scheme) scheme.deinit(a);
-    const fixed = try owner.fixedColumns(a);
-    defer a.free(fixed);
-    try scheme.commitBorrowedStreamingWithRecorder(a, fixed, 8, recorder, &channel);
-    const cpu_main = try sources.mainColumns();
-    defer a.free(cpu_main);
-    var ram_main: ?RAM.MainCommit = if (source != null and arena == null) try source.?.takeMainForCommit(a, &policy.?) else null;
-    defer if (ram_main) |*value| value.deinit(a);
-    const ram_borrowed: ?[]Column = if (source != null and arena != null) try RAM.mainColumnsWithoutByte(a, source.?, &policy.?) else null;
-    defer if (ram_borrowed) |value| a.free(value);
-    const main = try A.join(a, cpu_main, if (ram_main) |value| value.columns else ram_borrowed orelse &.{});
-    defer a.free(main);
-    if (arena) |value| {
-        try value.sealFromColumns(main);
-        // Drop borrowed aliases while the outer arena still owns its storage.
-        // A failed consuming PCS call must leave no dangling source views.
-        try sources.releaseMain();
-        if (source) |*ram_source| try ram_source.releaseBorrowedMain();
-        const owned = try value.takeForCommit(a);
-        // PCS consumes the original one-arena backing and headers on ALL paths.
-        try scheme.commitOwnedWithRecorderAndBacking(a, owned.columns, owned.backing, recorder, &channel);
-    } else {
-        try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
-        try sources.releaseMain();
+    {
+        var commit_stage = try Stage.StageScope.begin(recorder, "fixed_commit", "Prepare and commit fixed columns");
+        defer commit_stage.end();
+        const fixed = try owner.fixedColumns(a);
+        defer a.free(fixed);
+        try scheme.commitBorrowedStreamingWithRecorder(a, fixed, 8, recorder, &channel);
     }
-    if (ram_main) |*value| {
-        value.deinit(a);
-        ram_main = null;
+    {
+        var commit_stage = try Stage.StageScope.begin(recorder, "main_commit", "Prepare and commit shared main columns");
+        defer commit_stage.end();
+        const cpu_main = try sources.mainColumns();
+        defer a.free(cpu_main);
+        var ram_main: ?RAM.MainCommit = if (source != null and arena == null) try source.?.takeMainForCommit(a, &policy.?) else null;
+        defer if (ram_main) |*value| value.deinit(a);
+        const ram_borrowed: ?[]Column = if (source != null and arena != null) try RAM.mainColumnsWithoutByte(a, source.?, &policy.?) else null;
+        defer if (ram_borrowed) |value| a.free(value);
+        const main = try A.join(a, cpu_main, if (ram_main) |value| value.columns else ram_borrowed orelse &.{});
+        defer a.free(main);
+        if (arena) |value| {
+            try value.sealFromColumns(main);
+            // Drop borrowed aliases while the outer arena still owns its storage.
+            // A failed consuming PCS call must leave no dangling source views.
+            try sources.releaseMain();
+            if (source) |*ram_source| try ram_source.releaseBorrowedMain();
+            const owned = try value.takeForCommit(a);
+            // PCS consumes the original one-arena backing and headers on ALL paths.
+            try scheme.commitOwnedWithRecorderAndBacking(a, owned.columns, owned.backing, recorder, &channel);
+        } else {
+            try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
+            try sources.releaseMain();
+        }
+        if (ram_main) |*value| {
+            value.deinit(a);
+            ram_main = null;
+        }
     }
     // Every consumer/provider main tree is sealed before shared challenges.
     var interaction_stage = try Stage.StageScope.begin(recorder, "authenticated_interaction", "Generate all shared physical interactions");
@@ -170,14 +178,29 @@ fn prove(a: std.mem.Allocator, owner: *const A.Prepared, public: A.Public, trace
     interaction_stage.end();
     interaction_stage_open = false;
     var ram: ?RAM.Components = if (public.ram) |counts| try RAM.Components.initAt(try counts.shapes(public.geometry), owner.policy, &ch.ram.?, &claims.ram.?, try owner.offsets(a, public)) else null;
-    const cpu_inter = try sources.interactionColumns();
-    defer a.free(cpu_inter);
-    const ram_columns: ?[]Column = if (ram_inter) |*value| try RAM.interactionColumnsWithoutByte(a, owner.shapes.?, value, &policy.?) else null;
-    defer if (ram_columns) |value| a.free(value);
-    const inter = try A.join(a, cpu_inter, ram_columns orelse &.{});
-    defer a.free(inter);
-    A.mixClaims(&channel, public, claims);
-    try scheme.commitBorrowedStreamingWithRecorder(a, inter, 8, recorder, &channel);
+    {
+        var commit_stage = try Stage.StageScope.begin(recorder, "interaction_commit", "Prepare and commit shared interaction columns");
+        defer commit_stage.end();
+        const cpu_inter = try sources.interactionColumns();
+        defer a.free(cpu_inter);
+        const ram_columns: ?[]Column = if (ram_inter) |*value| try RAM.interactionColumnsWithoutByte(a, owner.shapes.?, value, &policy.?) else null;
+        defer if (ram_columns) |value| a.free(value);
+        const inter = try A.join(a, cpu_inter, ram_columns orelse &.{});
+        defer a.free(inter);
+        A.mixClaims(&channel, public, claims);
+        try scheme.commitBorrowedStreamingWithRecorder(a, inter, 8, recorder, &channel);
+    }
+    // The PCS now owns independent commitment/evaluation storage. Match the
+    // standalone full/lean lifecycle: retain claims, retire duplicate source rows.
+    try sources.releaseCommittedInteractions();
+    if (ram_inter) |*value| {
+        value.deinit();
+        ram_inter = null;
+    }
+    if (policy) |*value| {
+        value.allocator.free(value.interaction);
+        value.interaction = &.{};
+    }
     var cpu_handles: [CPU.MAX_COMPONENTS]engine.air.component_prover.ComponentProver = undefined;
     const n = cpu.provers(&cpu_handles);
     var handles: [CPU.MAX_COMPONENTS + 10]engine.air.component_prover.ComponentProver = undefined;
