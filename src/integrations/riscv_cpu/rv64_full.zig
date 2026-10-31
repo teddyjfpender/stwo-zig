@@ -384,8 +384,7 @@ pub fn proveTraceProfiled(a: std.mem.Allocator, setup: *const PreparedSetup, pub
     mixClaims(&channel, claims);
     try commitProfiled(&scheme, a, interaction_columns, &channel, recorder, "interaction_commit");
     // Source descriptors are no longer dereferenced once commitments finish.
-    trace.allocator.free(trace.interaction);
-    trace.interaction = &.{};
+    trace.releaseCommittedInteraction();
     var handles: [5]engine.air.component_prover.ComponentProver = undefined;
     const count = components.proverHandles(&handles);
     owns_scheme = false;

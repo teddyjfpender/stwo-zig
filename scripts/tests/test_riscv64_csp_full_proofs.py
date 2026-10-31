@@ -82,7 +82,34 @@ class FullProofDriverTests(unittest.TestCase):
         self.assertEqual(process.call_count, 2)
         self.assertEqual(len(result['cases'][0]['artifact_sha256']), 3)
         self.assertTrue(result['cases'][0]['independent_statement_binding'])
+        self.assertTrue(result['cases'][0]['fresh_claim_verification'])
+        self.assertEqual(driver.semantic_statement_digest(self.statement()),
+                         result['cases'][0]['semantic_statement_sha256'])
         self.assertEqual(result, json.loads(self.report_path.read_text()))
+
+    def test_statement_fingerprint_ignores_json_order_but_preserves_every_field(self):
+        statement = self.statement()
+        digest = driver.semantic_statement_digest(statement)
+        reordered = dict(reversed(list(statement.items())))
+        self.assertEqual(digest, driver.semantic_statement_digest(reordered))
+        changed = copy.deepcopy(statement)
+        changed['final_registers'][5] = (1 << 63) + 17
+        self.assertNotEqual(digest, driver.semantic_statement_digest(changed))
+        changed = copy.deepcopy(statement)
+        changed['register_clocks'][5] = 7
+        self.assertNotEqual(digest, driver.semantic_statement_digest(changed))
+
+    def test_security_metadata_must_match_the_independent_receiver(self):
+        def mismatch(command, timeout, label):
+            result, elapsed = self.process(command, timeout, label)
+            result['pcs_config'] = {'pow_bits': 26 if label == 'Fresh verifier' else 0}
+            return result, elapsed
+        with patch.object(driver, 'run_json', side_effect=mismatch):
+            with self.assertRaisesRegex(ValueError, 'security configurations differ'):
+                driver.main(self.args)
+        report = json.loads(self.report_path.read_text())
+        self.assertFalse(report['complete'])
+        self.assertEqual('failed', report['cases'][0]['status'])
 
     def test_packed_policy_is_explicit_in_prover_config_and_trusted_receiver_argument(self):
         def selected(command, timeout, label):

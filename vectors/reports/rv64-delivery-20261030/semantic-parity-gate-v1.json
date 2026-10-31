@@ -1,0 +1,46 @@
+{
+  "schema": "rv64-semantic-parity-gate-qualification-v1",
+  "unit_tests": {
+    "count": 25,
+    "passed": 25,
+    "command": "python -m unittest scripts.tests.test_riscv64_csp_full_proofs scripts.tests.test_riscv64_prover_profile_compare",
+    "log_sha256": "99cc570bb48a8df6a4d705f40794af73c4453d82dd0d093aafb0fe74f6aa126c"
+  },
+  "full_CSP_cases": 17,
+  "all17_fresh_receivers_pass": true,
+  "all17_exact_old_statement_claim_proof_parity": true,
+  "real_representation_change": {
+    "case": "keccak128",
+    "policies": [
+      "limbs24_v2",
+      "bytes_v1"
+    ],
+    "semantic_statement_digest_equal": true,
+    "fresh_claim_verification_both": true,
+    "complete_PCS_config_equal": true,
+    "byte_gate_rejects": true,
+    "semantic_gate_accepts": true,
+    "packed_main_columns": 464,
+    "byte_main_columns": 484,
+    "scope": "Functional qualification, concurrent compilation; no speedup claim."
+  },
+  "reports_sha256": {
+    "vectors/reports/rv64-delivery-20261030/csp-semantic-qualified-v1.json": "cd2a377a4927db0ea2c88b50eac8046b37ce1e091def0f6dcbecbabae52df1cd",
+    "vectors/reports/rv64-delivery-20261030/csp-semantic-byte-fixture-v1.json": "c1352d453d1e36b41a54c9f8c34efbbb144167656b87fa48169949e37c9f084c"
+  },
+  "scope": "Evidence comparison only, not a new cryptographic verifier. Geometry/transcript changes require identical full public statement, actual fresh verification of pinned claims and exact PCS settings. Guest lowering with different ELF/statement remains outside this gate.",
+  "source_sha256": {
+    "scripts/riscv64_csp_full_proofs.py": "c3c945f7ace736c2956455aa0c4d219a29785629c2d1c9e3ed6818e16398f904",
+    "scripts/riscv64_prover_profile_compare.py": "e56458cff66b4d2f99533512dd9c580945d882a8a97a5faaa120c8d6f02ed516",
+    "scripts/tests/test_riscv64_csp_full_proofs.py": "f533862bd39a4df9047fbbe83ab51d1e04817178281cadff5342593462c9e6e9",
+    "scripts/tests/test_riscv64_prover_profile_compare.py": "06162f09ce9d00287d133028499e6579d51acc40fabc3a62ed470b9f33068105",
+    "src/integrations/riscv_cpu/rv64_csp_full_main.zig": "8976569a5af8fa372887cf24677b808a2b939435c6c2eca6457348d2a523384a",
+    "src/integrations/riscv_cpu/rv64_full_verify_main.zig": "4999bb0b352cde7967c35e606b1ff291bcf0399e8e3ae0ba92a9738251d7c91d"
+  },
+  "binary_sha256": {
+    "rv64-full-verify": "aee381497b9f7a5ee6af642dba772e2b051b1847b326c92ddc18c6039ffc278f",
+    "rv64-csp-full": "47ccac6589a9b68dbe68258488d213ed4a3121d4b78b23bb9c36f45b7a1073e2"
+  },
+  "timing_qualified": false,
+  "timing_policy": "Total speedup is omitted if host, memory limit or profiler settings differ/missing; matching metadata alone does not certify isolation."
+}

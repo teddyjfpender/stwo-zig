@@ -1,0 +1,90 @@
+{
+  "schema": "rv64-commit-preparation-profile-v1",
+  "scope": "Retained round-one lean guest batches; no new full-block timing or kernel speedup claim. Child stages are excluded from top-level accounting.",
+  "timer_only_binary_sha256": "4d71fe7a4d752772d9d0cb61863e7a2b1ae8313364545616ba55287bb0efb636",
+  "batches": [
+    {
+      "batch": 1,
+      "prove_seconds": 17.608047916,
+      "accounted_seconds": 17.451575,
+      "unattributed_seconds": 0.15647291600000202,
+      "stages_seconds": {
+        "fixed_commit": 0.217651,
+        "main_commit": 2.816892,
+        "authenticated_interaction": 1.817248,
+        "interaction_commit": 1.344958,
+        "draw_random_coeff": 0,
+        "composition_trace_extract": 1.7e-05,
+        "composition_evaluation": 6.398616,
+        "composition_interpolate_and_split": 0.053743,
+        "composition_commit": 0.124753,
+        "oods_point_and_mask_points": 0.000108,
+        "sampled_value_evaluation": 0.733011,
+        "sampled_value_channel_mix": 0.000112,
+        "fri_quotient_build_and_commit": 2.00409,
+        "proof_of_work": 0.147225,
+        "fri_decommit": 0.005218,
+        "trace_decommit": 1.787933
+      },
+      "proof_sha256": "8093d25fdf3ed169a758205d546a3c9de01c89e29398c7009d7b05f60495115d",
+      "receipt_sha256": "5ac3a63a29484ccfe42e26fef041767582b9d23cc102f488e94c3e4bdf272835",
+      "exact_control_proof_and_receipt": true,
+      "memory": {
+        "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 693977088,
+        "last_rss_bytes": 2793766912,
+        "sampled_peak_rss_bytes": 22775578624,
+        "process_lifetime_peak_rss_bytes": 22782214144,
+        "samples": 1576,
+        "failed_samples": 0
+      },
+      "raw_result": "/tmp/stwo-rv64-delivery/commit-timers-lean1-v1.json",
+      "stage_file": "/tmp/stwo-rv64-ethereum-lean-native-jobs-v1/batch-000001.stages.json"
+    },
+    {
+      "batch": 35,
+      "prove_seconds": 38.18184325,
+      "accounted_seconds": 37.987001,
+      "unattributed_seconds": 0.19484225000000066,
+      "stages_seconds": {
+        "fixed_commit": 0.33041,
+        "main_commit": 4.35973,
+        "authenticated_interaction": 5.555215,
+        "interaction_commit": 1.955052,
+        "draw_random_coeff": 1e-06,
+        "composition_trace_extract": 3e-05,
+        "composition_evaluation": 17.961146,
+        "composition_interpolate_and_split": 0.060493,
+        "composition_commit": 0.137183,
+        "oods_point_and_mask_points": 0.000484,
+        "sampled_value_evaluation": 1.267501,
+        "sampled_value_channel_mix": 0.000625,
+        "fri_quotient_build_and_commit": 3.455743,
+        "proof_of_work": 0.256153,
+        "fri_decommit": 0.005837,
+        "trace_decommit": 2.641398
+      },
+      "proof_sha256": "d77bf2794a97b884708fc8e7a9d8027e3cbdf184136805019b7bd97e00cacd01",
+      "receipt_sha256": "34c44417b1f452e46a9fecab5dee0219c2413de4a830f94e9da882d301851af3",
+      "exact_control_proof_and_receipt": true,
+      "memory": {
+        "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+        "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+        "target_bytes": 16000000000,
+        "interval_ns": 10000000,
+        "baseline_rss_bytes": 848953344,
+        "last_rss_bytes": 3068493824,
+        "sampled_peak_rss_bytes": 35473358848,
+        "process_lifetime_peak_rss_bytes": 35473358848,
+        "samples": 3875,
+        "failed_samples": 0
+      },
+      "raw_result": "/tmp/stwo-rv64-delivery/commit-timers-lean35-v1.json",
+      "stage_file": "/tmp/stwo-rv64-ethereum-lean-native-jobs-v1/batch-000035.stages.json"
+    }
+  ],
+  "interpretation": "Preparation and commitment together include interpolation, LDE, leaf preparation and tree commitment. Merkle child timers cover only part of that work; the entire phase must not be attributed to hashing."
+}

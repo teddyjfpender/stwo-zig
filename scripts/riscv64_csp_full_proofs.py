@@ -31,6 +31,17 @@ def digest(path):
     return hasher.hexdigest()
 
 
+def semantic_statement_digest(statement):
+    """Hash every public field, independent of JSON whitespace/key ordering.
+
+    No fields are omitted: a changed statement schema needs an explicit adapter,
+    rather than silently losing an execution or boundary obligation.
+    """
+    canonical = json.dumps(statement, sort_keys=True, separators=(',', ':'),
+                           ensure_ascii=True, allow_nan=False).encode('ascii')
+    return hashlib.sha256(b'RV64-CSP-SEMANTIC-STATEMENT-V1\0' + canonical).hexdigest()
+
+
 def atomic_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -312,19 +323,29 @@ def main(argv=None):
                 if measured.get('whole_guest_proof') is not True or measured.get('verified') is not True:
                     raise ValueError('Full prover did not establish complete verified execution')
                 paths = [artifacts / name for name in ('statement.json', 'claims.json', 'proof.bin')]
-                validate_expected_statement(json.loads(paths[0].read_text()), config)
+                statement_bytes = paths[0].read_bytes()
+                statement = json.loads(statement_bytes)
+                validate_expected_statement(statement, config)
                 case_report['independent_statement_binding'] = True
+                case_report['semantic_statement_sha256'] = semantic_statement_digest(statement)
                 case_report['artifact_sha256'] = {path.name: digest(path) for path in paths}
+                if case_report['artifact_sha256']['statement.json'] != hashlib.sha256(statement_bytes).hexdigest():
+                    raise ValueError('Statement changed after independent semantic binding')
                 trusted_control = [] if args.control_policy == 'bytes_v1' else [args.control_policy]
                 fresh, verify_elapsed = run_json([verifier, *paths, *trusted_control], args.verify_timeout, 'Fresh verifier')
                 if args.control_policy != 'bytes_v1' and fresh.get('control_policy') != args.control_policy:
                     raise ValueError('Fresh verifier did not bind the requested control policy')
                 if fresh.get('verified') is not True or fresh.get('whole_guest_proof') is not True:
                     raise ValueError('Fresh verifier did not accept a whole guest proof')
+                if 'pcs_config' in measured or 'pcs_config' in fresh:
+                    if measured.get('pcs_config') is None or measured.get('pcs_config') != fresh.get('pcs_config'):
+                        raise ValueError('Producer and fresh receiver proof security configurations differ')
+                    case_report['pcs_config'] = fresh['pcs_config']
                 check_identities()
                 if any(digest(path) != case_report['artifact_sha256'][path.name] for path in paths):
                     raise ValueError('Proof artifacts changed during fresh verification')
                 case_report['fresh_process'] = fresh
+                case_report['fresh_claim_verification'] = True
                 case_report['verify_process_ns'] = verify_elapsed
                 case_report['status'] = 'verified_full_execution'
                 case_report['whole_guest_proof'] = True

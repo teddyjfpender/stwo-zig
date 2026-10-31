@@ -1,5 +1,44 @@
 # RV64 Ethereum milestone and next proof boundary
 
+## Current qualification state — 2026-10-31
+
+The historical design and acceptance gates below describe the initial software
+milestone. The production control path now has constrained Keccak and secp256k1
+ADD/DOUBLE services, independently sized arithmetic providers, and authenticated
+RAM continuation. A fresh process verified the complete 149,306,899-instruction
+round-one guest for mainnet block 24,628,607: 36 batch proofs plus a terminal
+certificate, with the expected 43-byte output and final PC/registers. The producer
+took 910.62 seconds and peaked at 36.06 GB RSS; the fresh receiver took 12.97
+seconds and peaked at 3.44 GB. These are single isolated observations, with no
+recursive aggregation. [Pinned full-block evidence](../../vectors/reports/rv64-guest-lean-20261031/complete-block-isolated-v1.json).
+
+Guest rounds two through five are integrated. The pinned round-five ELF executes
+104,253,913 instructions, and its regenerated ABI configuration produced 25 native
+jobs and a fresh verified 65,536-step pilot. A complete round-five block proof and
+its timing remain outstanding. The round-one timing must not be attributed to
+this newer ELF. [Round-five integration](../../vectors/reports/rv64-guest-lean-20261031/round5/proving-integration-v1.json)
+and [host qualification](../../vectors/reports/rv64-guest-lean-20261031/round5/mainline-integration-tests-v1.json).
+
+The principal production cost is still the dense CPU representation: 385 main
+and 148 interaction columns in the measured guest. CPU accounts for 89.67% of
+main-plus-interaction cells across the round-one block. Composition, interaction
+generation and commitment preparation all scale with that representation;
+reducing instructions helps but does not finish the architecture work.
+[Per-batch costs](../../vectors/reports/rv64-guest-lean-20261031/batch-bottlenecks-v1.json).
+
+Two-phase shared challenges and a physically verified functional aggregate are
+qualified experimental foundations, not the production Ethereum memory protocol.
+They do not establish RAM closure or recursive verification. The thin Word16 CPU,
+full opcode delegation, global RAM, fixed chip packing, and specialized recursion
+still require their own closed proofs, adversarial tests and measured complete
+costs before replacing the control path. [Functional aggregate evidence](../../vectors/reports/rv64-ethereum-20261030/distributed-functional-v1.json).
+
+The OP/Kona port remains separate: no complete OP range proof is claimed by these
+L1 block results. The production peak is still above the 16 GB target, and a
+small final proof has not yet replaced the complete batch receiver.
+
+## Initial milestone design (historical)
+
 ## Completed control execution
 
 The software-only RV64IM/LP64 stateless-validator guest validates mainnet block

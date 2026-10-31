@@ -127,6 +127,22 @@ test "CPU DIV MUL Keccak secp one ragged backing commits identical real proof an
     defer borrowed_bundle.deinit(a);
     var control_bundle = try C.proveTrace(a, &setup, fixture.public, &control_trace);
     defer control_bundle.deinit(a);
+    // The reference helper retains interaction sources through FRI. Production
+    // retires them after commitment; both must retain the same physical debts.
+    try std.testing.expect(std.meta.eql(borrowed_bundle.claims, control_bundle.claims));
+    try std.testing.expectEqual(@as(usize, 0), control_trace.cpu.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), control_trace.division.?.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), control_trace.multiplication.?.interaction.len);
+    const crypto = &control_trace.crypto.?;
+    try std.testing.expectEqual(@as(usize, 0), crypto.permutation.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), crypto.chi.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), crypto.xor5.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), crypto.bridge.interaction.len);
+    for (control_trace.secp.groups) |group| if (group) |value| {
+        try std.testing.expectEqual(@as(usize, 0), value.product.interaction.len);
+        try std.testing.expectEqual(@as(usize, 0), value.linear.interaction.len);
+        try std.testing.expectEqual(@as(usize, 0), value.bridge.interaction.len);
+    };
     const borrowed_bytes = try wire.encodeProofBytesBinary(a, borrowed_bundle.proof);
     defer a.free(borrowed_bytes);
     const control_bytes = try wire.encodeProofBytesBinary(a, control_bundle.proof);
@@ -144,6 +160,7 @@ fn proveOwnedArena(owner: *const C.PreparedSetup, public: C.Public, trace: *C.Tr
     const S = C.Support;
     var sources = try S.ProvingSources.init(a, setup, public, trace, null);
     defer sources.deinit();
+    try std.testing.expectError(error.InvalidRv64ServiceSourcePhase, sources.releaseCommittedInteractions());
     var channel = P.Channel{};
     try S.mixPublic(&channel, setup, public);
     var scheme = try A.Scheme.init(a, P.config());

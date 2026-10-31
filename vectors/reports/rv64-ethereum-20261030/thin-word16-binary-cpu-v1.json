@@ -1,0 +1,225 @@
+{
+  "schema": "rv64-word16-thin-binary-cpu-v1",
+  "status": "experimental-qualified-limited-profile",
+  "legacy_profile_selected": false,
+  "scope": {
+    "opcodes": [
+      "AND",
+      "OR",
+      "XOR"
+    ],
+    "registers": 32,
+    "word_bits": 64,
+    "limb_bits": 16,
+    "ram": false,
+    "eth": false,
+    "alu_shift": false,
+    "cpu_log_range": [
+      5,
+      22
+    ],
+    "clock_policy": "reset-zero-per-shard, three local slots at 4*index+1..3",
+    "pc": "four u16 limbs; immutable ROM authenticates full u64 wrapping PC+4"
+  },
+  "geometry": {
+    "cpu_fixed": 3,
+    "cpu_main": 44,
+    "cpu_interaction": 56,
+    "cpu_constraints": 61,
+    "maximum_degree": 3,
+    "composition_expansion": 2,
+    "closed_roster": [
+      "cpu",
+      "rom",
+      "boundary",
+      "binary",
+      "and_table",
+      "range16",
+      "range8"
+    ],
+    "closed_column_widths": {
+      "fixed": 68,
+      "main": 90,
+      "interaction": 124
+    },
+    "open_function_roster": [
+      "cpu",
+      "rom",
+      "boundary",
+      "range16",
+      "range8"
+    ],
+    "open_column_widths": {
+      "fixed": 61,
+      "main": 47,
+      "interaction": 88
+    }
+  },
+  "authority": {
+    "immutable": "program bytes, full PCs and physical geometry only; never request steps or endpoints",
+    "public": "steps, initial/final PC, all initial/final registers, final local register clocks",
+    "canonical_read_lemma_requires": [
+      "physical REG closure",
+      "ROM closure",
+      "FUNCTION truth closure",
+      "canonical public register endpoints",
+      "strict gap16+gap8 inequalities and bounded after clocks",
+      "total positive family mass below M31 characteristic"
+    ],
+    "open_function_fragment_is_execution_acceptance": false
+  },
+  "qualification": {
+    "release_safe": {
+      "command": "zig build test-riscv64-word16-thin-cpu -Doptimize=ReleaseSafe",
+      "session": 54527,
+      "exit": 0,
+      "named_tests": 8,
+      "runtime_tests_including_root": 9
+    },
+    "release_fast": {
+      "command": "zig build test-riscv64-word16-thin-cpu -Doptimize=ReleaseFast",
+      "session": 22296,
+      "exit": 0,
+      "named_tests": 8,
+      "runtime_tests_including_root": 9
+    },
+    "checks": [
+      "every CPU residual degree <=3 along dense QM31 lines",
+      "native aliasing/x0 and full64 registers",
+      "real native highest executable word wraps PC to zero",
+      "unsupported opcode admission rejects",
+      "independently reconstructed verifier materials accept actual closed7 proof",
+      "scalar and SIMD full encoded proof bytes identical",
+      "same immutable fixed key serves 4-step and 3-step requests",
+      "balanced REG and FUNCTION claim mutations reject",
+      "actual engine proving rejects forged previous clock p-1, unbounded previous RD, result, global opcode and high PC",
+      "leased-fixed production proof bytes equal independently rehashed fixed-reference proof",
+      "fixed append allocation failure preserves owner; repeated append rejects; owner release leaves lease live"
+    ],
+    "receiver_process": "same-process test with independently rebuilt immutable authority; separate distributed aggregate fresh-process qualification is owned by its own receipt",
+    "standalone_proof_sha256": null
+  },
+  "fixed_reuse": {
+    "implementation": "existing PCS compact shared CommittedTree, retainShared leases appended to fresh schemes/channels",
+    "generic_pcs_changes": false,
+    "single_physical_roster_authority": "Materials.shapes() drives columns, logs and prover/verifier handle order",
+    "fixture_logs": {
+      "cpu": 5,
+      "rom": 5,
+      "binary": 5,
+      "boundary": 5,
+      "and_table": 16,
+      "range16": 16,
+      "range8": 8
+    },
+    "fixture_fixed_source_cells": 526880,
+    "per_request_repeated_fixed_fft_hash_removed": true,
+    "distinct_geometry_materials_share_program_owner": false,
+    "timing_gain_measured": false,
+    "same_geometry_aggregate_owner_sharing": "separate distributed aggregate implementation; see its qualification"
+  },
+  "limits": [
+    "Only register AND/OR/XOR execute; no RAM, Ethereum, ALU or SHIFT admission",
+    "Open FUNCTION debt requires aggregate physical closure before execution acceptance",
+    "Fixed tree coefficient/commitment storage is retained once per Materials owner; original fixed source arrays remain retained",
+    "No full-workload performance or 16GB claim follows from these small proof tests"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/boundary.zig",
+      "sha256": "8dc73bbddfdf94a9ca1b9967ef01b8902dceb60e224a5e518bc3fac446efc79c"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/boundary_trace.zig",
+      "sha256": "c06d83a308666d7c94b5e85932668d28b56a7f5aa108798fb689fd0a3ff07898"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/component.zig",
+      "sha256": "6d5050a291d683eb66e85814b715af894f2da0192c390ac88e15b42191762b81"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/equations.zig",
+      "sha256": "f472f7507dab43d990b1ed2a4e7c7c706c398519896292556db7bf043bad13a0"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/fixed.zig",
+      "sha256": "44995cd686317ad995cec05dd114be6187ceaccf6f045ca7bd37fa6b61451dfe"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/interaction.zig",
+      "sha256": "3b581c889ea16c308c4908fde7c3bd98228849d2b3ea124d4e92d575bca5ea5c"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/layout.zig",
+      "sha256": "54ba7dda85ec4825abe7c3f624247ced7f171b0db979fabdf52ea0acbe6ae98a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig",
+      "sha256": "8aa97c415066489c674781d2750e75e255bd3e4dda39c4e5a806afb2b0db1272"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/packed_rows.zig",
+      "sha256": "0e66e01d75d75b02d2a79896bd256317f5c6b846ad4df3e0be3f1ce52ba2e7bc"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/public.zig",
+      "sha256": "9341e2f2cffe9e56ed0e35d0f4bb3968f65bc51089297b03ee4a14646f9bf15a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/rom.zig",
+      "sha256": "899e89c8c5cc178527c31e3ebc6ec3b4fc667070f1c94a852f1938dc641e7213"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/table.zig",
+      "sha256": "0da888a389e5098c84b41db1ecfadfa44989fc02f2abd587ffb6e5d4d0c24b13"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/table_trace.zig",
+      "sha256": "6a6443ea70a944ab73d5ed6147f2c1d1bc32169091bce5cb0f72a0fa1129d042"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/trace.zig",
+      "sha256": "582d012bb93c399d4fde63d924333c0d9ebc49f953809bad04577c06318b5f9e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu.zig",
+      "sha256": "9ba16d06a62b09a64fab2756810dcd7d083013809889fc12ac2c976a82616f80"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_components.zig",
+      "sha256": "46d7b636e511197ee81f97c4ddaaeee05b1baa68277adddf494652a50a83263b"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_materials.zig",
+      "sha256": "544e3f45f6de06e39f44cc94781a023010b4da30bd8171d01cdb274dab9c9c5e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_protocol.zig",
+      "sha256": "3ddb9d054a14ebf5be12e1fc7749ded65e100ee0d4023bc010da46ca612a2932"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_sources.zig",
+      "sha256": "fff36dfbf475ba1f249f4a6d59901f02ec7ccf78d8b4b3404a6269eb701f72cf"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_stage.zig",
+      "sha256": "b565250bcddbe9d9baffa5ed4412dfa439fa31b89eaa8e288a5d1a122eff7bc4"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_verify.zig",
+      "sha256": "2a4276406211b8658188ceda727530d3ac075e9aebcf24432cb6a43059d8bc4d"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig",
+      "sha256": "57146e2a943a4880bfa048b695d5aa3dc4b4dae8660b6e9e9ad8c620af072204"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_thin_cpu_test.zig",
+      "sha256": "e6b1f21efa918e3258617cdfaa6631168f159ec996e0abb0697d90c9256caea7"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_thin_proof_test.zig",
+      "sha256": "0d73335bdd90bff6da49a45534a31877d8eee4ffb1a9f88b91d120de59be14dd"
+    }
+  ]
+}

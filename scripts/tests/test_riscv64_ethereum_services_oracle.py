@@ -78,6 +78,32 @@ class ServicesOracleTests(unittest.TestCase):
         self.assertEqual(result["service_ram_word_transitions"], 25)
         self.assertEqual(result["pc"], 0x400 + 4 * 10)
 
+    @unittest.skipUnless(importlib.util.find_spec("unicorn"), "requires pinned Unicorn2.1.4 environment")
+    def test_memory_profile_distinguishes_bucket_ranges_exact_sizes_and_bytes(self):
+        for size in (65, 128, 129, 8192):
+            with self.subTest(size=size):
+                entry, symbols, segments, payload, expected = fixture()
+                # Register values at a synthetic profiling entry; the following
+                # genuine Keccak fixture overwrites a0 before accessing memory.
+                set_size = (size << 20) | 0x613 if size < 2048 else 0x00002637
+                prefix = struct.pack('<3I', 0x00100513, 0x00200593, set_size)
+                code = prefix + segments[0][2]
+                loaded = entry, symbols, [(entry, len(code), code, 5)], payload, expected
+                config = {"symbols": SYMBOLS, "max_steps": 100, "elf_sha256": "fixture", "input_sha256": "fixture",
+                          "execution_profile": "ethereum_services_v2", "elf": __file__}
+                with mock.patch.object(oracle, 'checked_inputs', return_value=loaded), \
+                        mock.patch.object(oracle, 'function_entries', return_value={entry + len(prefix): 'memcpy'}):
+                    result = oracle.execute(config, timeout_seconds=10)
+                self.assertTrue(result['verified_output'])
+                profile = result['mem_function_histogram']['memcpy']
+                bucket = '64' if size == 65 else '128' if size < 256 else '4096'
+                self.assertEqual({bucket: 1}, profile['sizes'])
+                self.assertEqual(size, profile['requested_bytes'])
+                self.assertEqual(size, profile['requested_bytes_by_size_bucket'][bucket])
+                self.assertEqual(size, profile['maximum_size'])
+                self.assertEqual({str(size): 1} if size <= 128 else {}, profile['exact_sizes_through128'])
+                self.assertEqual(1, profile['size_alignment'][bucket]['different'])
+
 
 if __name__ == "__main__":
     unittest.main()

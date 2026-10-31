@@ -1,0 +1,112 @@
+{
+  "schema": "rv64-csp-full-single-shot-proofs-v1",
+  "complete": true,
+  "whole_guest_proof": true,
+  "profile_only": false,
+  "profile_stages": false,
+  "control_policy": "bytes_v1",
+  "all_selected_profiled": false,
+  "selected_cases": 1,
+  "execution_report_sha256": "cc90cc1276bbe91a93a4d792018b9d9f91f407d035485a2dea236c2b830c5b3b",
+  "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "driver_sha256": "c3c945f7ace736c2956455aa0c4d219a29785629c2d1c9e3ed6818e16398f904",
+  "binary_sha256": "47ccac6589a9b68dbe68258488d213ed4a3121d4b78b23bb9c36f45b7a1073e2",
+  "verifier_binary_sha256": "aee381497b9f7a5ee6af642dba772e2b051b1847b326c92ddc18c6039ffc278f",
+  "host": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+  "memory_limit_bytes": 51539607552,
+  "timeout_seconds": 7200,
+  "verify_timeout_seconds": 1800,
+  "scope": "One guest capture and one STARK per selected complete execution; separate fresh-process receiver verification. Profile-only never establishes a proof.",
+  "cases": [
+    {
+      "target": "keccak",
+      "size": 128,
+      "negative": false,
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "expected_instructions": 8721,
+      "elf_sha256": "597dd54396e080996d861f4c3aa95cd6c10afb20ded63b78924162bbe3de7a7f",
+      "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+      "status": "verified_full_execution",
+      "whole_guest_proof": true,
+      "config_sha256": "e90c6d7638c992a2c7fcfa307d47b9b388d442acf309283a88e2ce6fef062124",
+      "prover": {
+        "control_policy": "bytes_v1",
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "stage_profile": null,
+        "verified": true,
+        "whole_guest_proof": true,
+        "instructions": 8721,
+        "rows": 16384,
+        "main_columns": 484,
+        "interaction_columns": 264,
+        "cpu_base_bytes": 49217536,
+        "rom_words": 1930,
+        "ram_cells": 259,
+        "capture_ns": 268583,
+        "setup_ns": 6474500,
+        "witness_ns": 15468292,
+        "prove_ns": 169407917,
+        "encode_decode_ns": 812166,
+        "verify_ns": 4460750,
+        "proof_bytes": 472112,
+        "oods_samples": 907,
+        "queried_base_values": 60340,
+        "authenticated_hashes": 2832,
+        "peak_caller_bytes": 169369367,
+        "pow_bits": 26,
+        "fri_queries": 70,
+        "workers": 18,
+        "build_mode": "ReleaseFast"
+      },
+      "prover_process_ns": 205098500,
+      "independent_statement_binding": true,
+      "semantic_statement_sha256": "0f25cbe5bb434d9db78c6a668031b246f1be52857f21640c37f2b52392d47198",
+      "artifact_sha256": {
+        "statement.json": "b6d6083fc41d58c4e9659dbabbbab86e757d7e39bb8fcf18be49c9825daa8adb",
+        "claims.json": "b8e00b922af5f810e5c632cc8bf1762d36f6b7e1c4f71c91c2d121bd0684ef4b",
+        "proof.bin": "1633e561bdba5250c68cb1ae15cbbb1579b2132346d05beee89d30ad1738347f"
+      },
+      "pcs_config": {
+        "pow_bits": 26,
+        "fri_config": {
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 70,
+          "fold_step": 1
+        },
+        "lifting_log_size": null
+      },
+      "fresh_process": {
+        "pcs_config": {
+          "pow_bits": 26,
+          "fri_config": {
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70,
+            "fold_step": 1
+          },
+          "lifting_log_size": null
+        },
+        "control_policy": "bytes_v1",
+        "verified": true,
+        "whole_guest_proof": true,
+        "execution_witness_available": false,
+        "decode_ns": 357083,
+        "independent_setup_ns": 6001333,
+        "verify_ns": 4466000,
+        "proof_bytes": 472112
+      },
+      "fresh_claim_verification": true,
+      "verify_process_ns": 20300125
+    }
+  ]
+}

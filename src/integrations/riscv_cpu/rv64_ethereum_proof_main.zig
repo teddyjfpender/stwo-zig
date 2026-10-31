@@ -14,6 +14,7 @@ const Recycler = @import("rv64_large_block_recycler.zig").LargeBlockRecycler;
 var recycler = Recycler.init(std.heap.smp_allocator, 16 * 1024 * 1024 * 1024);
 const base: std.mem.Allocator = .{ .ptr = &recycler, .vtable = &Recycler.vtable };
 pub fn main() !void {
+    defer recycler.deinit();
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
     const worker_mode = args.len >= 2 and std.mem.eql(u8, args[1], "worker");

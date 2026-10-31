@@ -172,6 +172,7 @@ pub fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
 /// domain. Circuit recursion uses plain Blake2s; the historical exchange
 /// format uses prefixed Blake2s. Hash bytes are identical in representation.
 pub fn wireToProofFor(comptime H: type, allocator: std.mem.Allocator, wire: ProofWire) !proof_mod.StarkProof(H) {
+    if (!validLastPolyLength(wire.fri_proof.last_layer_poly.len)) return CodecError.ValueOutOfRange;
     if (wire.config.fri_config.n_queries > std.math.maxInt(usize)) return CodecError.ValueOutOfRange;
 
     var fri_config = try fri.FriConfig.init(
@@ -494,6 +495,10 @@ fn qm31ToWire(value: QM31) Qm31Wire {
     };
 }
 
+fn validLastPolyLength(len: usize) bool {
+    return len != 0 and (len & (len - 1)) == 0;
+}
+
 const BinaryCursor = struct {
     bytes: []const u8,
     at: usize = 0,
@@ -524,9 +529,13 @@ const BinaryCursor = struct {
         return std.mem.readInt(u64, raw[0..@sizeOf(u64)], .little);
     }
 
-    fn readCount(self: *BinaryCursor) CodecError!usize {
-        const n = try self.readU32();
-        return @intCast(n);
+    /// Check the wire's minimum bytes per item BEFORE allocating a vector.
+    /// Division avoids count*size overflow, including on 32-bit receivers.
+    fn readCount(self: *BinaryCursor, comptime min_item_bytes: usize) CodecError!usize {
+        comptime std.debug.assert(min_item_bytes > 0);
+        const n: usize = @intCast(try self.readU32());
+        if (n > (self.bytes.len - self.at) / min_item_bytes) return CodecError.InvalidBinaryProof;
+        return n;
     }
 };
 
@@ -571,7 +580,7 @@ fn readMerkleDecommitmentWire(
     allocator: std.mem.Allocator,
     cursor: *BinaryCursor,
 ) !MerkleDecommitmentWire {
-    const witness_len = try cursor.readCount();
+    const witness_len = try cursor.readCount(32);
     const witness = try allocator.alloc(HashWire, witness_len);
     for (witness) |*hash| hash.* = try readHashWire(cursor);
     return .{ .hash_witness = witness };
@@ -588,7 +597,7 @@ fn readFriLayerWire(
     allocator: std.mem.Allocator,
     cursor: *BinaryCursor,
 ) !FriLayerWire {
-    const witness_len = try cursor.readCount();
+    const witness_len = try cursor.readCount(16);
     const fri_witness = try allocator.alloc(Qm31Wire, witness_len);
     for (fri_witness) |*value| value.* = try readQm31Wire(cursor);
 
@@ -659,35 +668,35 @@ fn readProofWireBinary(
     const lifting_raw = try cursor.readU32();
     const lifting_log_size: ?u32 = if (lifting_raw == std.math.maxInt(u32)) null else lifting_raw;
 
-    const commitments_len = try cursor.readCount();
+    const commitments_len = try cursor.readCount(32);
     const commitments = try allocator.alloc(HashWire, commitments_len);
     for (commitments) |*hash| hash.* = try readHashWire(cursor);
 
-    const sampled_tree_len = try cursor.readCount();
+    const sampled_tree_len = try cursor.readCount(4);
     const sampled_values = try allocator.alloc([][]Qm31Wire, sampled_tree_len);
     for (sampled_values) |*tree| {
-        const cols_len = try cursor.readCount();
+        const cols_len = try cursor.readCount(4);
         tree.* = try allocator.alloc([]Qm31Wire, cols_len);
         for (tree.*) |*column| {
-            const values_len = try cursor.readCount();
+            const values_len = try cursor.readCount(16);
             column.* = try allocator.alloc(Qm31Wire, values_len);
             for (column.*) |*value| value.* = try readQm31Wire(cursor);
         }
     }
 
-    const decommitments_len = try cursor.readCount();
+    const decommitments_len = try cursor.readCount(4);
     const decommitments = try allocator.alloc(MerkleDecommitmentWire, decommitments_len);
     for (decommitments) |*decommitment| {
         decommitment.* = try readMerkleDecommitmentWire(allocator, cursor);
     }
 
-    const queried_tree_len = try cursor.readCount();
+    const queried_tree_len = try cursor.readCount(4);
     const queried_values = try allocator.alloc([][]u32, queried_tree_len);
     for (queried_values) |*tree| {
-        const cols_len = try cursor.readCount();
+        const cols_len = try cursor.readCount(4);
         tree.* = try allocator.alloc([]u32, cols_len);
         for (tree.*) |*column| {
-            const values_len = try cursor.readCount();
+            const values_len = try cursor.readCount(4);
             column.* = try allocator.alloc(u32, values_len);
             for (column.*) |*value| value.* = try cursor.readU32();
         }
@@ -695,11 +704,12 @@ fn readProofWireBinary(
 
     const proof_of_work = try cursor.readU64();
     const first_layer = try readFriLayerWire(allocator, cursor);
-    const inner_len = try cursor.readCount();
+    const inner_len = try cursor.readCount(40);
     const inner_layers = try allocator.alloc(FriLayerWire, inner_len);
     for (inner_layers) |*layer| layer.* = try readFriLayerWire(allocator, cursor);
 
-    const last_poly_len = try cursor.readCount();
+    const last_poly_len = try cursor.readCount(16);
+    if (!validLastPolyLength(last_poly_len)) return CodecError.InvalidBinaryProof;
     const last_layer_poly = try allocator.alloc(Qm31Wire, last_poly_len);
     for (last_layer_poly) |*value| value.* = try readQm31Wire(cursor);
 
@@ -754,4 +764,8 @@ test "proof wire binary decoder rejects truncation and wrong versions" {
         CodecError.UnsupportedBinaryVersion,
         decodeProofBytesBinary(std.testing.allocator, "NOTSTWO!"),
     );
+}
+
+test {
+    _ = @import("bounded_count_test.zig");
 }

@@ -96,4 +96,21 @@ pub const word16_v1 = struct {
     pub const binary = @import("word16_v1/binary.zig");
     pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
     pub const binary_component = @import("word16_v1/binary_component.zig");
+    pub const binary_source = @import("word16_v1/binary_source.zig");
+};
+
+/// Concrete register-only BINARY CPU; legacy profiles retain their encoding.
+pub const word16_cpu = struct {
+    pub const layout = @import("word16_cpu/layout.zig");
+    pub const public = @import("word16_cpu/public.zig");
+    pub const lookup = @import("word16_cpu/lookup.zig");
+    pub const equations = @import("word16_cpu/equations.zig");
+    pub const rom = @import("word16_cpu/rom.zig");
+    pub const boundary = @import("word16_cpu/boundary.zig");
+    pub const fixed = @import("word16_cpu/fixed.zig");
+    pub const table = @import("word16_cpu/table.zig");
+    pub const trace = @import("word16_cpu/trace.zig");
+    pub const component = @import("word16_cpu/component.zig");
+    pub const table_trace = @import("word16_cpu/table_trace.zig");
+    pub const boundary_trace = @import("word16_cpu/boundary_trace.zig");
 };

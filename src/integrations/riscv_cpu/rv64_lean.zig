@@ -266,8 +266,7 @@ pub fn proveTrace(a: std.mem.Allocator, setup: *const PreparedSetup, public: Pub
     S.append(columns[cursor..][0..8], trace.division.interaction, setup.division_log);
     mixClaims(&channel, claims);
     try scheme.commitBorrowedStreaming(a, columns, 8, &channel);
-    trace.cpu.allocator.free(trace.cpu.interaction);
-    trace.cpu.interaction = &.{};
+    trace.cpu.releaseCommittedInteraction();
     var handles: [6]engine.air.component_prover.ComponentProver = undefined;
     const count = components.proverHandles(handles[0..5]);
     handles[count] = division.asProverComponent();
