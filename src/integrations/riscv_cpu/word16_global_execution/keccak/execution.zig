@@ -58,7 +58,7 @@ pub const Bundle = struct {
     }
 };
 fn begin(ch: *P.T.P.Channel, setup: *const R.Setup, request: Request, expected: P.Expected, ordinal: usize, first: u64) !void {
-    try P.begin(ch, &setup.base, request.base, expected, ordinal, first);
+    try P.beginMaterials(ch, &setup.materials, request.base, expected, ordinal, first);
     ch.mixU32s(&.{ 0x57474b45, 1, 19, 14, 11, 41, 25, request.calls, setup.geo.klog, setup.geo.blog });
 }
 fn draw(ch: *P.T.P.Channel, manifest: *const P.Manifest, ordinal: usize) !struct { base: P.Old.Draw, keccak: K.equations.Challenges } {
@@ -68,23 +68,23 @@ fn draw(ch: *P.T.P.Channel, manifest: *const P.Manifest, ordinal: usize) !struct
 }
 fn validate(a: std.mem.Allocator, setups: []const *const R.Setup, requests: []const Request, expected: P.Expected) !void {
     if (setups.len == 0 or setups.len != requests.len) return error.InvalidServiceExecutionRoster;
-    const bases = try a.alloc(*const P.Setup, setups.len);
+    const bases = try a.alloc(*const @import("../../word16_execution/setup.zig").Materials, setups.len);
     defer a.free(bases);
     const rr = try a.alloc(P.Old.Request, setups.len);
     defer a.free(rr);
     var mass: u64 = 0;
     for (setups, requests, bases, rr) |s, r, *b, *old| {
-        b.* = &s.base;
+        b.* = &s.materials;
         old.* = r.base;
         try K.layout.validateGeometry(r.calls, 1, s.geo.klog);
         _ = try K.word16_bridge.types.validateGeometry(r.calls, 1, s.geo.blog);
         if (r.calls > r.base.cpu.steps or @as(u64, r.calls) + r.base.memory.ls_count > r.base.cpu.steps) return error.InvalidServiceCount;
-        const mass16 = try std.math.add(u64, try s.base.materials.geometry.range16Mass(), 22 * (@as(u64, 1) << @intCast(s.geo.blog)));
-        const mass8 = try std.math.add(u64, try s.base.materials.geometry.range8Mass(), 19 * (@as(u64, 1) << @intCast(s.geo.blog)));
+        const mass16 = try std.math.add(u64, try s.materials.geometry.range16Mass(), 22 * (@as(u64, 1) << @intCast(s.geo.blog)));
+        const mass8 = try std.math.add(u64, try s.materials.geometry.range8Mass(), 19 * (@as(u64, 1) << @intCast(s.geo.blog)));
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.ServiceRangeMassBound;
         mass = try std.math.add(u64, mass, 50 * @as(u64, r.calls) + 2 * @as(u64, r.base.memory.ls_count));
     }
-    try P.validateRequests(bases, rr, expected);
+    try P.validateMaterials(bases, rr, expected);
     mass = try std.math.add(u64, mass, rr[0].memory.initial.len + rr[rr.len - 1].memory.terminal.len);
     if (mass >= core.fields.m31.Modulus) return error.GlobalRamCharacteristicBound;
 }
@@ -105,6 +105,7 @@ const Worker = struct {
     }
 };
 fn actual(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const R.Setup) !P.Receipt {
+    if (!std.meta.eql(scheme.config, P.T.P.config()) or scheme.revision_config != null) return error.GlobalPcsSuiteMismatch;
     var roots = try scheme.roots(a);
     defer roots.deinit(a);
     if (roots.items.len != 2 or !std.mem.eql(u8, &roots.items[0], &setup.fixed_root)) return error.ServiceStage1RootMismatch;
@@ -142,8 +143,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.Setup, prepared: [
             a.free(initial);
             return err;
         };
-        const mem = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.base.materials.geometry.ls_log, s.base.materials.geometry.initialLog(), s.base.materials.geometry.terminalLog());
-        var source = try OldSource.Source.fromPreparedWithOwnedMemory(a, &s.base.materials, n, mem);
+        const mem = try Memory.initOwnedForGlobalRamIndependent(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry.ls_log, s.materials.geometry.initialLog(), s.materials.geometry.terminalLog());
+        var source = try OldSource.Source.fromPreparedWithOwnedMemory(a, &s.materials, n, mem);
         errdefer source.deinit();
         var k = try R.Source.init(a, advice.calls[index], s.geo);
         errdefer k.deinit();
@@ -179,7 +180,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.Setup, prepared: [
         const inter = try w.k.columns(a, &w.source, 2);
         defer a.free(inter);
         try w.scheme.commitBorrowedStreaming(a, inter, 8, &w.ch);
-        var bc = try CoreComponents.init(&w.setup.base.materials, w.request.base, ch.base, claims.base);
+        var bc = try CoreComponents.init(&w.setup.materials, w.request.base, ch.base, claims.base);
         const bh = try bc.provers(a);
         defer a.free(bh);
         var kc = R.Components.init(w.setup, w.request.calls, ch.keccak, ch.base, claims.keccak);
@@ -246,7 +247,7 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.Setup, expected: P.
         const logs = try s.columnLogs(a, 2);
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
-        var bc = try CoreComponents.init(&s.base.materials, encoded.request.base, ch.base, encoded.claims.base);
+        var bc = try CoreComponents.init(&s.materials, encoded.request.base, ch.base, encoded.claims.base);
         const bh = try bc.verifiers(a);
         defer a.free(bh);
         var kc = R.Components.init(s, encoded.request.calls, ch.keccak, ch.base, encoded.claims.keccak);

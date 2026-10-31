@@ -22,7 +22,7 @@ pub fn append(out: []Col, at: *usize, data: []const M, log: u32) void {
     }
 }
 pub const Setup = struct {
-    base: Old.Setup,
+    materials: Old.Materials,
     geo: Geo,
     kfixed: []M,
     bfixed: []M,
@@ -33,18 +33,18 @@ pub const Setup = struct {
     pub fn init(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Old.Geometry, geo: Geo) !Setup {
         try K.layout.validateGeometry(0, 1, geo.klog);
         _ = try B.types.validateGeometry(0, 1, geo.blog);
-        var base = try Old.Setup.initWithAuthority(a, authority, g);
-        errdefer base.deinit();
-        return seal(a, base, geo);
+        var materials = try Old.Materials.initWithAuthority(a, authority, g);
+        errdefer materials.deinit();
+        return seal(a, materials, geo);
     }
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Old.Geometry, geo: Geo) !Setup {
         try K.layout.validateGeometry(0, 1, geo.klog);
         _ = try B.types.validateGeometry(0, 1, geo.blog);
-        var base = try Old.Setup.init(a, program, g);
-        errdefer base.deinit();
-        return seal(a, base, geo);
+        var materials = try Old.Materials.init(a, program, g);
+        errdefer materials.deinit();
+        return seal(a, materials, geo);
     }
-    fn seal(a: std.mem.Allocator, base: Old.Setup, geo: Geo) !Setup {
+    fn seal(a: std.mem.Allocator, materials: Old.Materials, geo: Geo) !Setup {
         const kf = try K.trace.fixedColumnsForLog(a, geo.klog);
         errdefer a.free(kf);
         const bf = try B.source.fixed(a, geo.blog);
@@ -53,7 +53,7 @@ pub const Setup = struct {
         errdefer chi.deinit();
         var xor = try K.tables.Trace.init(a, .xor5, &(@as([1024]u64, @splat(0))));
         errdefer xor.deinit();
-        var self: Setup = .{ .base = base, .geo = geo, .kfixed = kf, .bfixed = bf, .chi = chi, .xor5 = xor, .fixed_root = undefined, .fixed_tree = undefined };
+        var self: Setup = .{ .materials = materials, .geo = geo, .kfixed = kf, .bfixed = bf, .chi = chi, .xor5 = xor, .fixed_root = undefined, .fixed_tree = undefined };
         const cols = try self.fixedColumns(a);
         defer a.free(cols);
         var scheme = try P.T.Scheme.init(a, P.T.P.config());
@@ -69,23 +69,23 @@ pub const Setup = struct {
         return self;
     }
     pub fn deinit(self: *Setup) void {
-        const a = self.base.materials.allocator;
+        const a = self.materials.allocator;
         self.fixed_tree.deinit(a);
         a.free(self.kfixed);
         a.free(self.bfixed);
         self.chi.deinit();
         self.xor5.deinit();
-        self.base.deinit();
+        self.materials.deinit();
         self.* = undefined;
     }
     pub fn totals(self: *const Setup, tree: usize) usize {
-        const shapes = self.base.materials.shapes();
+        const shapes = self.materials.shapes();
         var n: usize = 0;
         for (shapes) |s| n += s.widths[tree];
         return n;
     }
     pub fn fixedColumns(self: *const Setup, a: std.mem.Allocator) ![]Col {
-        const old = try self.base.materials.fixedColumns(a);
+        const old = try self.materials.fixedColumns(a);
         defer a.free(old);
         const out = try a.alloc(Col, old.len + WIDTHS[0]);
         @memcpy(out[0..old.len], old);
@@ -97,7 +97,7 @@ pub const Setup = struct {
         return out;
     }
     pub fn columnLogs(self: *const Setup, a: std.mem.Allocator, tree: usize) ![]u32 {
-        const old = try self.base.materials.logs(a, tree);
+        const old = try self.materials.logs(a, tree);
         defer a.free(old);
         const out = try a.alloc(u32, old.len + WIDTHS[tree]);
         @memcpy(out[0..old.len], old);
@@ -110,9 +110,9 @@ pub const Setup = struct {
         return out;
     }
     pub fn appendFixed(self: *const Setup, a: std.mem.Allocator, s: *P.T.Scheme, ch: *P.T.P.Channel) !void {
-        if (s.trees.items.len != 0) return error.InvalidServiceFixedPhase;
+        if (s.trees.items.len != 0 or s.pending_commit != null or !std.meta.eql(s.config, P.T.P.config()) or s.revision_config != null) return error.InvalidServiceFixedPhase;
         var tree = self.fixed_tree.retainShared();
-        errdefer tree.deinit(self.base.materials.allocator);
+        errdefer tree.deinit(self.materials.allocator);
         try s.appendCommittedTree(a, tree, ch);
     }
 };

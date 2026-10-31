@@ -63,6 +63,6 @@ pub fn main() !void {
         defer s0.deinit();
         var s1 = try R.Setup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, geometry, .{ .klog = 5, .blog = 5 });
         defer s1.deinit();
-        try E.verify(a, &.{ &s0, &s1 }, F.Case.expectedFor(s0.base.materials.program.identity), &bundle);
+        try E.verify(a, &.{ &s0, &s1 }, F.Case.expectedFor(s0.materials.program.identity), &bundle);
     } else return error.ExpectedProduceOrVerifyDirectoryWorkers;
 }

@@ -55,6 +55,9 @@ fn seal(specs: []const [32]u8, roots: []const Receipt) [32]u8 {
     return ch.digestBytes();
 }
 pub fn begin(ch: *T.P.Channel, setup: *const Setup, request: Old.Request, expected: Expected, ordinal: usize, first_step: u64) !void {
+    return beginMaterials(ch, &setup.materials, request, expected, ordinal, first_step);
+}
+pub fn beginMaterials(ch: *T.P.Channel, materials: *const Materials, request: Old.Request, expected: Expected, ordinal: usize, first_step: u64) !void {
     ch.mixU32s(&.{ 0x52563634, 0x57474558, 1, 14, 33 });
     Old.digest(ch, expected.program_identity);
     ch.mixU64(expected.total_steps);
@@ -63,8 +66,9 @@ pub fn begin(ch: *T.P.Channel, setup: *const Setup, request: Old.Request, expect
     for (expected.final_registers) |v| ch.mixU64(v);
     ch.mixU64(ordinal);
     ch.mixU64(first_step);
-    try Old.mix(ch, setup, request, expected.admission.image_identity);
+    try Old.mixMaterials(ch, materials, request, expected.admission.image_identity);
 }
+
 pub fn draw(ch: *T.P.Channel, manifest: *const Manifest, ordinal: usize) !Old.Draw {
     ch.mixU32s(&.{ 0x57475332, 1, @intCast(ordinal) });
     Old.digest(ch, manifest.digest);
@@ -72,21 +76,47 @@ pub fn draw(ch: *T.P.Channel, manifest: *const Manifest, ordinal: usize) !Old.Dr
     out.memory.ram = try manifest.ram();
     return out;
 }
+const Materials = @FieldType(Setup, "materials");
+const Inventory = union(enum) {
+    setups: []const *const Setup,
+    materials: []const *const Materials,
+    fn len(self: Inventory) usize {
+        return switch (self) {
+            .setups => |x| x.len,
+            .materials => |x| x.len,
+        };
+    }
+    fn at(self: Inventory, index: usize) *const Materials {
+        return switch (self) {
+            .setups => |x| &x[index].materials,
+            .materials => |x| x[index],
+        };
+    }
+};
+/// Existing setup-based admission retains its exact checks, with no allocation.
 pub fn validateRequests(setups: []const *const Setup, requests: []const Old.Request, expected: Expected) !void {
-    if (setups.len == 0 or setups.len > 65535 or setups.len != requests.len or expected.total_steps == 0) return error.InvalidGlobalExecutionRoster;
+    return validateInventory(.{ .setups = setups }, requests, expected);
+}
+/// Concrete rootless caller supplies independently expected immutable owners.
+pub fn validateMaterials(materials: []const *const Materials, requests: []const Old.Request, expected: Expected) !void {
+    return validateInventory(.{ .materials = materials }, requests, expected);
+}
+fn validateInventory(inventory: Inventory, requests: []const Old.Request, expected: Expected) !void {
+    if (inventory.len() == 0 or inventory.len() > 65535 or inventory.len() != requests.len or expected.total_steps == 0) return error.InvalidGlobalExecutionRoster;
     if (expected.max_total_steps == 0 or expected.total_steps > expected.max_total_steps) return error.GlobalExecutionBudgetExceeded;
     if (expected.admission.max_prefix_steps == 0 or expected.admission.max_prefix_steps >= 1 << 22) return error.InvalidExecutionBudget;
     var first: u64 = 0;
     var mass: u64 = 0;
-    for (setups, requests, 0..) |setup, r, index| {
-        try setup.materials.geometry.validate();
-        try r.cpu.validate(setup.materials.geometry.cpu_log);
+    for (requests, 0..) |r, index| {
+        const materials = inventory.at(index);
+        try materials.geometry.validate();
+        try r.cpu.validate(materials.geometry.cpu_log);
         if (r.cpu.steps > expected.admission.max_prefix_steps) return error.ExecutionPrefixBudgetExceeded;
         if (r.memory.ls_count > r.cpu.steps) return error.InvalidExecutionMemoryCount;
         if (r.epoch != index + 1 or r.memory.epoch != r.epoch) return error.InvalidGlobalExecutionEpoch;
-        if (!std.mem.eql(u8, &setup.materials.program.identity, &expected.program_identity)) return error.GlobalExecutionProgramMismatch;
-        if (r.memory.ls_count >= @as(u32, 1) << @intCast(setup.materials.geometry.ls_log) or r.memory.initial.len >= @as(usize, 1) << @intCast(setup.materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(setup.materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
-        if (r.division_requests > @as(u32, 1) << @intCast(setup.materials.geometry.division_log) or r.multiplication_requests > @as(u32, 1) << @intCast(setup.materials.geometry.multiplication_log)) return error.GlobalArithmeticCapacity;
+        if (!std.mem.eql(u8, &materials.program.identity, &expected.program_identity)) return error.GlobalExecutionProgramMismatch;
+        if (r.memory.ls_count >= @as(u32, 1) << @intCast(materials.geometry.ls_log) or r.memory.initial.len >= @as(usize, 1) << @intCast(materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
+        if (r.division_requests > @as(u32, 1) << @intCast(materials.geometry.division_log) or r.multiplication_requests > @as(u32, 1) << @intCast(materials.geometry.multiplication_log)) return error.GlobalArithmeticCapacity;
         if (index == 0) {
             if (r.cpu.initial_pc != expected.admission.initial_pc or !std.mem.eql(u64, &r.cpu.initial_registers, &expected.admission.initial_registers)) return error.UntrustedGlobalGenesis;
         } else {

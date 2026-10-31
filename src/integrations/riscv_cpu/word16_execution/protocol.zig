@@ -68,19 +68,25 @@ pub fn digest(channel: *T.P.Channel, d: [32]u8) void {
     channel.mixU32s(&words);
 }
 pub fn mix(channel: *T.P.Channel, setup: *const @import("setup.zig").Setup, request: Request, image_identity: [32]u8) !void {
+    return mixMaterials(channel, &setup.materials, request, image_identity);
+}
+/// Rootless immutable materials use the SAME transcript authority. Fixed roots
+/// are committed by the complete caller roster, not by this helper.
+pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
     T.P.config().mixInto(channel);
     channel.mixU32s(&.{ 0x52563634, 0x57463137, 1, 53, 40, 30, 19, 33, 2, 1 });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
-    digest(channel, setup.materials.program.identity);
+    digest(channel, materials.program.identity);
     digest(channel, image_identity);
-    for (setup.materials.shapes()) |shape| {
+    for (materials.shapes()) |shape| {
         channel.mixU32s(&.{ @intFromEnum(shape.role), shape.log, @intCast(shape.widths[0]), @intCast(shape.widths[1]), @intCast(shape.widths[2]) });
     }
-    digest(channel, try A.word16_cpu.public.digest(request.cpu, setup.materials.geometry.cpu_log));
+    digest(channel, try A.word16_cpu.public.digest(request.cpu, materials.geometry.cpu_log));
     channel.mixU32s(&.{ request.epoch, request.division_requests, request.multiplication_requests });
     digest(channel, request.memory.digest());
 }
+
 pub fn draw(channel: *T.P.Channel) Draw {
     channel.mixU32s(&.{ 0x57465247, 6 });
     const register = relation(@FieldType(X.types.Challenges, "register"), channel);

@@ -8,9 +8,9 @@ test "Actual two CPU shards Keccak IO and global RAM join through one first INIT
     defer c.deinit();
     const keys = c.keys();
     try E.verify(a, &keys, c.expected(), &c.bundle);
-    var s0 = try R.Setup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, c.setups[0].base.materials.geometry, c.setups[0].geo);
+    var s0 = try R.Setup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, c.setups[0].materials.geometry, c.setups[0].geo);
     defer s0.deinit();
-    var s1 = try R.Setup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, c.setups[1].base.materials.geometry, c.setups[1].geo);
+    var s1 = try R.Setup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, c.setups[1].materials.geometry, c.setups[1].geo);
     defer s1.deinit();
     try E.verify(a, &.{ &s0, &s1 }, c.expected(), &c.bundle);
     try std.testing.expectEqual(@as(usize, 25), c.bundle.proofs[0].request.base.memory.initial.len);
@@ -47,4 +47,23 @@ test "Service inventory fixed roots claims and pristine genesis remain receiver 
     c.bundle.proofs[0].request.calls -= 1;
     @constCast(c.bundle.proofs[0].request.base.memory.initial)[0].state.value = 1;
     try std.testing.expectError(error.UntrustedGlobalMemoryInitialization, E.verify(a, &keys, c.expected(), &c.bundle));
+}
+
+test "Rootless material transcript authority preserves existing setup wrappers exactly" {
+    const P = @import("../protocol.zig");
+    const Old = @import("../../word16_execution/setup.zig");
+    var old = try Old.Setup.init(a, .{ .base = 4096, .words = &F.WORDS }, .{ .cpu_log = 5 });
+    defer old.deinit();
+    const expected = F.Case.expectedFor(old.materials.program.identity);
+    const request = P.Old.Request{ .cpu = .{ .steps = 2, .initial_pc = 4096, .final_pc = 4104, .initial_registers = expected.admission.initial_registers, .final_registers = expected.admission.initial_registers, .register_clocks = @splat(0) }, .epoch = 1, .division_requests = 0, .multiplication_requests = 0, .memory = .{ .epoch = 1, .ls_count = 0, .initial = &.{}, .terminal = &.{} } };
+    var c0 = P.T.P.Channel{};
+    var c1 = P.T.P.Channel{};
+    try P.Old.mix(&c0, &old, request, expected.admission.image_identity);
+    try P.Old.mixMaterials(&c1, &old.materials, request, expected.admission.image_identity);
+    try std.testing.expectEqualSlices(u8, &c0.digestBytes(), &c1.digestBytes());
+    c0 = .{};
+    c1 = .{};
+    try P.begin(&c0, &old, request, expected, 0, 0);
+    try P.beginMaterials(&c1, &old.materials, request, expected, 0, 0);
+    try std.testing.expectEqualSlices(u8, &c0.digestBytes(), &c1.digestBytes());
 }

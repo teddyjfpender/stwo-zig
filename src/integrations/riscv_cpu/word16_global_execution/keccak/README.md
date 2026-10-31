@@ -9,6 +9,9 @@ Each shard commits the existing seventeen-role CPU/RAM roster, the existing
 triple-batched Keccak permutation, its exact chi/xor providers, and the new
 Word16 lane bridge in one PCS. Its fixed key depends on the independently
 expected program and native geometries, never call counts or call inputs.
+Setup owns rootless CPU material and one combined committed fixed tree; it does
+not construct or retain a redundant legacy fixed tree. Existing setup-based
+transcript/admission APIs delegate to the same material-based authority.
 All shard fixed and MAIN roots, request digests, ordinals, coverage and geometries
 enter the complete ordered manifest before RAM randomness. Per-shard CPU OWNER
 and Keccak IO randomness are then derived from that shard's retained transcript

@@ -37,7 +37,7 @@ pub const Case = struct {
     setups: [2]*R.Setup,
     bundle: E.Bundle,
     pub fn expected(self: *const Case) P.Expected {
-        return expectedFor(self.setups[0].base.materials.program.identity);
+        return expectedFor(self.setups[0].materials.program.identity);
     }
     pub fn expectedFor(identity: [32]u8) P.Expected {
         return .{ .admission = .{ .image = image(), .image_identity = @splat(0x6b), .initial_pc = 4096, .initial_registers = registers(), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = 4, .max_total_steps = 4, .final_pc = 4112, .final_registers = registers() };
