@@ -1,5 +1,5 @@
 //! Versioned operation authority for the experimental Word16 family bus.
-//! IDs are family-local; the transcript/tuple namespace separates families.
+//! Local selectors are family-local; busId maps them to disjoint function IDs.
 const Opcode = @import("../../decode.zig").Opcode;
 const std = @import("std");
 
@@ -9,6 +9,8 @@ pub const Alu = enum(u8) { add = 0, sub = 1, addw = 2, subw = 3, slt = 4, sltu =
 pub const AluFact = struct { op: Alu, a: u64, b: u64, c: u64 };
 pub const Binary = enum(u8) { and_ = 0, or_ = 1, xor = 2 };
 pub const Shift = enum(u8) { sll = 0, srl = 1, sra = 2, sllw = 3, srlw = 4, sraw = 5 };
+/// Canonical native request ABI shared by capture projection and SHIFT source.
+pub const ShiftFact = struct { op: Shift, a: u64, b: u64, c: u64 };
 pub const Operation = struct {
     family: Family,
     op_id: u8,

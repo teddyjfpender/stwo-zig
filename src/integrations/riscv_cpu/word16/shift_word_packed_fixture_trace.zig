@@ -11,6 +11,7 @@ const C = rv.word16_v1.binary_component;
 const U = rv.word16_v1.alu_experiment.range_source;
 const Tables = rv.providers.tables;
 const WordTable = X.table;
+const Native = X.source;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const N = 32;
@@ -36,6 +37,8 @@ fn row(i: usize) S.RowFor(Q) {
 }
 pub const Fixture = struct {
     allocator: std.mem.Allocator,
+    native_source: ?Native.Source = null,
+    borrowed_main: []M = &.{},
     fixed: []M,
     main: []M,
     interaction: []M = &.{},
@@ -130,11 +133,62 @@ pub const Fixture = struct {
         };
         return .{ .allocator = a, .fixed = fixed, .main = main, .roster = roster, .known_fixed = known_fixed, .known_main = known_main, .counts = counts, .setup = setup, .range = range, .shift_setup = shift_setup, .shift = shift };
     }
+    pub fn initNative(a: std.mem.Allocator, recorder: ?*Profile.Recorder, borrowed: bool) !Fixture {
+        const requests = [_]Native.Fact{
+            .{ .op = .sll, .a = 1, .b = 1, .c = 2 },
+            .{ .op = .srl, .a = 0x8000000000000000, .b = 63, .c = 1 },
+            .{ .op = .sra, .a = 0x8000000000000000, .b = 32, .c = 0xffffffff80000000 },
+            .{ .op = .sllw, .a = 0, .b = 0, .c = 0 },
+            .{ .op = .srlw, .a = 0xffffffff80000000, .b = 31, .c = 1 },
+            .{ .op = .sraw, .a = 0x80000000, .b = 63, .c = 0xffffffffffffffff },
+            .{ .op = .sll, .a = 1, .b = 0, .c = 1 },
+        };
+        const borrowed_main: []M = if (borrowed) try a.alloc(M, P.MAIN * N) else &.{};
+        errdefer a.free(borrowed_main);
+        var source = if (borrowed) try Native.Source.initWithMainBuffers(a, &requests, 5, .{ .main = borrowed_main }) else try Native.Source.init(a, &requests, 5);
+        errdefer source.deinit();
+        var roster: C.ExpectedRoster = @splat(@splat(M.zero()));
+        for (source.metadata, 0..) |meta, i| {
+            for (meta.payload, 0..) |value, c| roster[i][c] = M.fromCanonical(value);
+            roster[i][13] = M.fromCanonical(@intFromBool(i < requests.len));
+        }
+        const known_fixed = try C.expectedMainFixed(a);
+        errdefer a.free(known_fixed);
+        const known_main = try C.expectedMainValues(a, &roster);
+        errdefer a.free(known_main);
+        var setup = try U.Setup.init(a);
+        errdefer setup.deinit();
+        var range = try U.Source.init(a, &setup, source.range16_counts);
+        errdefer range.deinit();
+        var shift_setup = blk: {
+            var scope = try Profile.Scope.begin(recorder, "table.setup", "Build immutable shift table");
+            defer scope.end();
+            break :blk try WordTable.Setup.init(a);
+        };
+        errdefer shift_setup.deinit();
+        const shift = blk: {
+            var scope = try Profile.Scope.begin(recorder, "table.main", "Build precommitted shift multiplicities");
+            defer scope.end();
+            break :blk try WordTable.Request.init(a, &shift_setup, source.shift_counts);
+        };
+        return .{ .allocator = a, .native_source = source, .borrowed_main = borrowed_main, .fixed = source.fixed, .main = source.main, .roster = roster, .known_fixed = known_fixed, .known_main = known_main, .counts = source.range16_counts, .setup = setup, .range = range, .shift_setup = shift_setup, .shift = shift };
+    }
+    pub fn releaseCommittedMain(self: *Fixture) void {
+        if (self.native_source) |*source| {
+            source.releaseMain();
+            self.main = &.{};
+            self.allocator.free(self.borrowed_main);
+            self.borrowed_main = &.{};
+        }
+    }
     pub fn deinit(self: *Fixture) void {
         const a = self.allocator;
-        a.free(self.fixed);
-        a.free(self.main);
-        a.free(self.interaction);
+        if (self.native_source == null) {
+            a.free(self.fixed);
+            a.free(self.main);
+            a.free(self.interaction);
+            a.free(self.counts);
+        }
         a.free(self.known_fixed);
         a.free(self.known_main);
         a.free(self.known_interaction);
@@ -142,7 +196,8 @@ pub const Fixture = struct {
         self.shift_setup.deinit();
         self.range.deinit();
         self.setup.deinit();
-        a.free(self.counts);
+        if (self.native_source) |*source| source.deinit();
+        a.free(self.borrowed_main);
         self.* = undefined;
     }
     pub fn columns(self: *const Fixture, tree: u2) ![]engine.pcs.ColumnEvaluation {
@@ -170,6 +225,7 @@ pub const Fixture = struct {
         return self.generateWithRecorder(ch, null);
     }
     pub fn generateWithRecorder(self: *Fixture, ch: P.Challenges, recorder: ?*Profile.Recorder) ![6]Q {
+        if (self.native_source != null) return self.generateNative(ch, recorder);
         const a = self.allocator;
         const output = try a.alloc(M, P.INTERACTION * N);
         errdefer a.free(output);
@@ -250,6 +306,41 @@ pub const Fixture = struct {
         self.interaction = output;
         self.known_interaction = known;
         return .{ shift_sum, range_sum, function_sum, known_sum, shift_claim, range_claim };
+    }
+    fn generateNative(self: *Fixture, ch: P.Challenges, recorder: ?*Profile.Recorder) ![6]Q {
+        const shift_claim = blk: {
+            var scope = try Profile.Scope.begin(recorder, "table.interaction", "Build shift denominators inverses and prefix");
+            defer scope.end();
+            break :blk try self.shift.generateInteraction(ch.shift);
+        };
+        const range_claim = blk: {
+            var scope = try Profile.Scope.begin(recorder, "range.interaction", "Build U16 dictionary and prefix");
+            defer scope.end();
+            break :blk try self.range.generate(ch.range16);
+        };
+        const claims = blk: {
+            var scope = try Profile.Scope.begin(recorder, "consumer.interaction", "Build narrow metadata SHIFT witnesses");
+            defer scope.end();
+            break :blk try self.native_source.?.generate(ch, self.shift.dictionary, self.range.dictionary);
+        };
+        self.interaction = self.native_source.?.interaction;
+        const known = try self.allocator.alloc(M, 8 * N);
+        errdefer self.allocator.free(known);
+        var known_sum = Q.zero();
+        for (0..N) |i| {
+            const p = rv.witness.physical(i, 5);
+            var tuple: [13]Q = undefined;
+            for (&tuple, 0..) |*v, c| v.* = Q.fromBase(self.known_main[c * N + p]);
+            const inverse = try ch.function.denominatorFor(Q, tuple).inv();
+            known_sum = known_sum.add(inverse.mulM31(self.known_main[13 * N + p]));
+            store(known, p, 0, inverse);
+            store(known, p, 4, known_sum);
+        }
+        for (known_sum.toM31Array(), 0..) |v, c| for (0..N) |p| {
+            known[(4 + c) * N + p] = known[(4 + c) * N + p].sub(v);
+        };
+        self.known_interaction = known;
+        return .{ claims.shift, claims.range16, claims.function, known_sum, shift_claim, range_claim };
     }
 };
 fn store(data: []M, row_: usize, start: usize, value: Q) void {

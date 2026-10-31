@@ -1,0 +1,204 @@
+{
+  "status": "qualified reusable native Source; acceptingWord16SHIFT circuit remains inactive in productionCPU",
+  "interface": {
+    "fact": "operations.ShiftFact{op:Shift,a:u64,b:u64,c:u64}; one canonical native ABI, no perrequest array clone required",
+    "source": "word16_v1.shift_word_packed_experiment.source.Source",
+    "constructors": [
+      "init(a,facts,independent_log)",
+      "initWithMainBuffers(a,facts,independent_log,{main:[]M})"
+    ],
+    "generated_claims": [
+      "shift positive",
+      "range16 positive",
+      "function negative"
+    ],
+    "generate": "generate(challenges,word16_dictionary[1048576],u16_dictionary[65536])",
+    "geometry": "log5..26; actualcomponentwidth2fixed/53main/48inter; fixedkey count/order independent",
+    "mass": "5*N Word16 microqueries,9*N U16queries INCLUDINGeverypaddingrow; aggregate same-challenge consumers must be admitted together before allocation",
+    "ownership": [
+      "all validation and allocations before first borrowed write",
+      "owned main can be taken forPCS; borrowed take rejects",
+      "releaseMain frees owned or detaches borrowed; facts are never retained byreference",
+      "after main commitment and release, generate reads ONLY independent owned payloadmetadata/counts and publiclookupdictionaries",
+      "no wide logical/main row construction, no shift-result recomputation or execution replay after main seal",
+      "metadataretired only after output completed/terminalledgers zero; errors leave outputunpublished and metadataretained forretry"
+    ]
+  },
+  "retained_witness": {
+    "payload_bytes_per_row": 26,
+    "content": "13u16 canonicalfunctionpayload, logicalorder",
+    "main_bytes_per_row": 212,
+    "metadata_saving_vs_retained_main_per_row": 186,
+    "counts_bytes": 8912896,
+    "counts_shape": "1048576u64Word16histogram plus65536u64U16histogram",
+    "external_shared_dictionary_bytes": 17825792,
+    "function_inverse_batch_max_bytes": 131072,
+    "constant_validation": "nativegenerate checks full1m semanticWord16 dictionary and65536U16 inverses againstthe internally suppliedFSchallenge before outputallocation; these are extra denominator checks, not hidden freework. Uses no dynamic witness rowreconstruction.",
+    "at_log21": {
+      "payload_bytes": 54525952,
+      "raw_main_bytes": 444596224,
+      "raw_interaction_bytes": 402653184
+    }
+  },
+  "gates": {
+    "source_safe_runtime": 6,
+    "source_fast_runtime": 6,
+    "complete_packed_proof_safe_runtime": 2,
+    "complete_packed_proof_fast_runtime": 2,
+    "logs": [
+      "/tmp/rv64-shift-native-source-safe.log",
+      "/tmp/rv64-shift-native-source-fast.log"
+    ],
+    "scope": [
+      "all6op nativeM31 rows match scalarQ witness in everyphysicalcolumn",
+      "both lookup histograms exactlymatch independentQquery extraction, allpaddingcharged",
+      "fixedcolumns same empty/nonempty; empty nativeinteraction matches scalaroracle",
+      "ownedtake/destroy andborroweddetach/overwrite pluscallerFactsoverwrite beforegeneration",
+      "all48interactions/all3physicalclaims bit-identical to old scalar direct-inverse oracle",
+      "exhaustiveownedallocationfailures constructor+generation; borrowedall4failurepoints leavecallerbytes unchanged",
+      "wrongC inclhigh64bits, wrongshape, rawoverlap rejectedbeforeborrowwrites",
+      "wrongtable/rangedictionary andrawnoncanonicalinverse rejected; functionpole leavesprivateoutputunpublished and supportsretry",
+      "balancedtotal butwrong histogram rejectedatfinalledger; retry afterrestore passes",
+      "actualonePCS proof usesnativeowned andnativeborrowed main, releasesmain BEFOREchallengedraw, verifies independently, bytesidenticalto scalaroracle"
+    ]
+  },
+  "artifacts": {
+    "owned": {
+      "directory": "vectors/reports/interop_artifacts/rv64-shift-native-owned-v1",
+      "producer": {
+        "scope": "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+        "witness_source": "native-owned",
+        "main_released_before_challenge": true,
+        "retained_payload_bytes_per_row": 26,
+        "proof_bytes": 277888,
+        "proof_sha256": "efbb06c017d57f3aa9e77a11e95aa10ba58ad2e7f554c1b996e1ac200de13c73",
+        "queries": 70,
+        "pow_bits": 26,
+        "log_blowup": 1,
+        "nominal_config_bits": 96,
+        "source_cells": 5379040,
+        "source_bytes": 21516160,
+        "trace_oods_masks": 265,
+        "shift": {
+          "log": 5,
+          "fixed": 2,
+          "main": 53,
+          "interaction": 48
+        },
+        "shift_table": {
+          "log": 16,
+          "fixed": 18,
+          "main": 16,
+          "interaction": 36
+        },
+        "public_consumer": {
+          "log": 5,
+          "fixed": 34,
+          "main": 14,
+          "interaction": 8
+        },
+        "u16": {
+          "log": 16,
+          "fixed": 3,
+          "main": 1,
+          "interaction": 8
+        },
+        "positive_function_mass": 7,
+        "shift_mass_including_padding": 160,
+        "range_mass_including_padding": 288,
+        "max_degree": 3,
+        "quotient_factor": 2,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "receiver": {
+        "accepted": true,
+        "independently_expected_roster_and_fixed_root": true,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "cmp_equals_original_277888B_efbb": true
+    },
+    "borrowed": {
+      "directory": "vectors/reports/interop_artifacts/rv64-shift-native-borrowed-v1",
+      "producer": {
+        "scope": "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+        "witness_source": "native-borrowed",
+        "main_released_before_challenge": true,
+        "retained_payload_bytes_per_row": 26,
+        "proof_bytes": 277888,
+        "proof_sha256": "efbb06c017d57f3aa9e77a11e95aa10ba58ad2e7f554c1b996e1ac200de13c73",
+        "queries": 70,
+        "pow_bits": 26,
+        "log_blowup": 1,
+        "nominal_config_bits": 96,
+        "source_cells": 5379040,
+        "source_bytes": 21516160,
+        "trace_oods_masks": 265,
+        "shift": {
+          "log": 5,
+          "fixed": 2,
+          "main": 53,
+          "interaction": 48
+        },
+        "shift_table": {
+          "log": 16,
+          "fixed": 18,
+          "main": 16,
+          "interaction": 36
+        },
+        "public_consumer": {
+          "log": 5,
+          "fixed": 34,
+          "main": 14,
+          "interaction": 8
+        },
+        "u16": {
+          "log": 16,
+          "fixed": 3,
+          "main": 1,
+          "interaction": 8
+        },
+        "positive_function_mass": 7,
+        "shift_mass_including_padding": 160,
+        "range_mass_including_padding": 288,
+        "max_degree": 3,
+        "quotient_factor": 2,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "receiver": {
+        "accepted": true,
+        "independently_expected_roster_and_fixed_root": true,
+        "cpu_bound": false,
+        "ram_bound": false
+      },
+      "cmp_equals_original_277888B_efbb": true
+    }
+  },
+  "limitations": [
+    "puretruth sourcehasnoCPUrow/owner/factprefix acceptanceauthority; CPUpositiveFUNCTIONqueries+actualaggregateclosure establishcoverage",
+    "unitnativefactsinitially; no observedfrequency/dedup speedclaim",
+    "one physical proof may share one packedWord16 table across sources using combinedprecommittedcounts; acrossproof sharingrequires additionaltyped aggregateprotocol",
+    "currentpublicdictionaryvalidation traverses1mWord16facts perSourceinstance plus65kU16; futurepreparedvalidatedview optimization mustpreservephase/errorcontract",
+    "no large actualSHIFT Source/proof benchmark yet",
+    "CPU SHIFT dispatch/integration notactivated; Sourceproof remains publicknownfacts diagnostic",
+    "q70/P26/blowup1 nominal96configbits, notwholeprotocol128claim"
+  ],
+  "owned_source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source.zig": "d3828b4383958c6c64e7db4c9a250e6f5f73ce618aeb6ac1b165d2983d5a4d95",
+    "src/frontends/riscv/rv64/air/word16_v1/shift_word_source_test.zig": "ab568ddce277df5e9d4af989edbc3c2997cd09059d2f904f865051cd4d544681",
+    "src/frontends/riscv/rv64_word16_shift_source_test_root.zig": "3998f1a4583e609e5fa8cb5eb24ffa97da1c7cb298aea8135a52af726026b8e0",
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "c63e5c73569dd23b6c9f2fb7e28bd0b9ca90fb64ed5b167257e0520003386b15",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture_trace.zig": "75867091ac27eec9e47f25cbc9422c905e90e41c78d0e891d48000d583c4a54a",
+    "src/integrations/riscv_cpu/word16/shift_word_packed_fixture.zig": "5a419fdc4288933de1f29decd765bb1a98bb598078f14bf9cf7e4bfebb1b884b",
+    "src/integrations/riscv_cpu/tests/rv64_word16_shift_word_packed_proof_test.zig": "465148f54cfb008a7f620d98e878a5d13b032256d50b8c76eca2be7adc5087d9",
+    "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig": "f87c610c2b279d690bd5d90f441333c151e7f7bfae92ff38d22ceda504a428ce"
+  },
+  "registration": {
+    "test-riscv64-word16-shift-source": 6,
+    "existing_packed_proof_runtime": 2,
+    "one_export": "shift_word_packed_experiment.source",
+    "ops": "appendShiftFact only; AluFact and mappingsunchanged"
+  }
+}

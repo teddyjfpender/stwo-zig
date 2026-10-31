@@ -121,6 +121,7 @@ pub const word16_v1 = struct {
         pub const lookup = @import("word16_v1/shift_word_lookup.zig");
         pub const table = @import("word16_v1/shift_word_packed_table.zig");
         pub const component = @import("word16_v1/shift_word_component.zig");
+        pub const source = @import("word16_v1/shift_word_source.zig");
         pub const table_component = @import("word16_v1/shift_word_packed_table_component.zig");
     };
     /// Qualified ALU diagnostic; not the production full-ISA protocol.

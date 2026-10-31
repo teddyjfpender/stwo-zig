@@ -54,10 +54,19 @@ pub fn produce(a: std.mem.Allocator, attack: Trace.Attack) !Encoded {
     return produceWithRecorder(a, attack, null);
 }
 pub fn produceWithRecorder(a: std.mem.Allocator, attack: Trace.Attack, recorder: ?*Profile.Recorder) !Encoded {
+    return produceInternal(a, attack, recorder, false, false);
+}
+pub fn produceNative(a: std.mem.Allocator, recorder: ?*Profile.Recorder) !Encoded {
+    return produceInternal(a, .none, recorder, true, false);
+}
+pub fn produceBorrowedNative(a: std.mem.Allocator, recorder: ?*Profile.Recorder) !Encoded {
+    return produceInternal(a, .none, recorder, true, true);
+}
+fn produceInternal(a: std.mem.Allocator, attack: Trace.Attack, recorder: ?*Profile.Recorder, native: bool, borrowed: bool) !Encoded {
     var f = blk: {
         var scope = try Profile.Scope.begin(recorder, "witness.prepare", "Prepare complete diagnostic witnesses");
         defer scope.end();
-        break :blk try Trace.Fixture.initWithRecorder(a, attack, recorder);
+        break :blk if (native) try Trace.Fixture.initNative(a, recorder, borrowed) else try Trace.Fixture.initWithRecorder(a, attack, recorder);
     };
     defer f.deinit();
     var scheme = try Scheme.init(a, CONFIG);
@@ -72,6 +81,7 @@ pub fn produceWithRecorder(a: std.mem.Allocator, attack: Trace.Attack, recorder:
         defer scope.end();
         try scheme.commit(a, columns, &channel);
     }
+    f.releaseCommittedMain();
     const ch = draw(&channel);
     const actual = blk: {
         var scope = try Profile.Scope.begin(recorder, "interaction.prepare", "Generate all interaction witnesses");

@@ -87,6 +87,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-shift-word", .description = "Check inactive Word16 microshift candidate and fixed table", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-shift-word-proof", .description = "Prove inactive Word16 SHIFT candidate with complete table", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-shift-packed-table", .description = "Check packed Word16 table semantics strict pairs and ownership", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-shift-source", .description = "Check Word16 SHIFT source ownership release and inverse retries", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-shift-packed-proof", .description = "Prove packed-table Word16 SHIFT with strict D3 closure", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-shift-fixture", .description = "Build durable diagnostic D3 SHIFT proof control", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-shift-word-fixture", .description = "Build durable diagnostic Word16 SHIFT candidate", .scope = .riscv_cpu },

@@ -12,10 +12,13 @@ pub fn main() !void {
     try std.fs.cwd().makePath(args[2]);
     var dir = try std.fs.cwd().openDir(args[2], .{});
     defer dir.close();
-    if (std.mem.eql(u8, args[1], "produce")) {
+    const produce_native = std.mem.eql(u8, args[1], "produce");
+    const produce_borrowed = std.mem.eql(u8, args[1], "produce-borrowed");
+    const produce_oracle = std.mem.eql(u8, args[1], "produce-oracle");
+    if (produce_native or produce_borrowed or produce_oracle) {
         var recorder = Profile.Recorder.initWithOptions(a, "cpu-simd16", "rv64_word16_shift_packed_fixture_main", .{ .capture_tasks = false, .capture_work = false });
         defer recorder.deinit();
-        const encoded = try F.produceWithRecorder(a, .none, &recorder);
+        const encoded = if (produce_native) try F.produceNative(a, &recorder) else if (produce_borrowed) try F.produceBorrowedNative(a, &recorder) else try F.produceWithRecorder(a, .none, &recorder);
         defer a.free(encoded.bytes);
         try dir.writeFile(.{ .sub_path = "proof.bin", .data = encoded.bytes });
         const claims = try std.json.Stringify.valueAlloc(a, encoded.claims, .{});
@@ -25,6 +28,9 @@ pub fn main() !void {
         std.crypto.hash.sha2.Sha256.hash(encoded.bytes, &digest, .{});
         const receipt = .{
             .scope = "diagnostic-public-io-packed-word16-shift-table-u16-one-pcs",
+            .witness_source = if (produce_native) "native-owned" else if (produce_borrowed) "native-borrowed" else "scalar-oracle",
+            .main_released_before_challenge = produce_native or produce_borrowed,
+            .retained_payload_bytes_per_row = if (produce_native or produce_borrowed) @as(u32, 26) else 0,
             .proof_bytes = encoded.bytes.len,
             .proof_sha256 = std.fmt.bytesToHex(digest, .lower),
             .queries = 70,

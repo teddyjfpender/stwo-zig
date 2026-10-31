@@ -11,6 +11,14 @@ test "inactive packed-table Word16 SHIFT D3 proves strict table U16 and FUNCTION
     defer a.free(recorded.bytes);
     try std.testing.expectEqualSlices(u8, encoded.bytes, recorded.bytes);
     try std.testing.expectEqual(@as(usize, 0), recorder.stack.items.len);
+    const native = try F.produceNative(a, &recorder);
+    defer a.free(native.bytes);
+    try std.testing.expectEqualSlices(u8, encoded.bytes, native.bytes);
+    try F.verify(a, native, false);
+    const borrowed = try F.produceBorrowedNative(a, null);
+    defer a.free(borrowed.bytes);
+    try std.testing.expectEqualSlices(u8, encoded.bytes, borrowed.bytes);
+    try F.verify(a, borrowed, false);
     if (F.verify(a, encoded, true)) |_| return error.ExpectedShiftPrefixRejection else |_| {}
     try std.testing.expectError(error.OodsNotMatching, F.verifyTablePrefixMutation(a, encoded));
     var balanced = encoded;
