@@ -1,0 +1,121 @@
+{
+  "status": "qualified independently sized INIT/TERM geometry; all default shapes/roots preserved",
+  "base_worker_commit": "d35f4b6be",
+  "qualification": {
+    "global": "Safe/Fast15 PASS including wire dependencies; owned geometry suite minimum9 without wire-only tests",
+    "normal_closed_coordinator": "Safe/Fast20 PASS",
+    "default_retained_proof": "fresh receiver accepted unchanged V4 proof46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+    "explicit_same_shape_override": "fixed root exactly matches historical shared-boundary geometry",
+    "unequal_domain_fixture": "actual two CPU shard proof INIT6/TERM5 thenINIT5/TERM6 with fresh reconstructed keys",
+    "mass_and_guard": "resolved geometry range16/range8 ledger deltas and invalidlog4 rejection"
+  },
+  "architecture": [
+    "Geometry.initial_log and terminal_log are optional; null resolves old boundary_log",
+    "all shape, nativefixedowner, scalar-range mass, Source native constructor, admission and global role-capacity checks use resolved per-role logs",
+    "same-log fixed source still shares old geometry-only buffer; unequal terminal owns separately freed buffer",
+    "no main/inter widths, polynomial equations, degrees, range queries or root-derived challenge policy changed",
+    "global first activeINIT useslog20 whileinactiveTERM5; lastinactiveINIT5 whileactiveTERM20"
+  ],
+  "real": {
+    "scope": "two real CPU shards; global RAM; no services/full-block/recursion claim",
+    "steps": 8388606,
+    "words": 712789,
+    "physical_proofs": 2,
+    "global_ram_prefix_accepted": true,
+    "produce_after_setup_ns": 28414587042,
+    "same_process_verify_ns": 102010708,
+    "proof_bytes": [
+      1148304,
+      1153520
+    ]
+  },
+  "observed_resources": {
+    "whole_producer_wall_seconds": 31.62,
+    "peak_RSS_bytes": 15510814720,
+    "fresh_receiver_wall_seconds": 1.7,
+    "fresh_receiver_peak_RSS_bytes": 3134193664,
+    "scope": "single central two-shard observation; includes separately qualified worker lifecycle and thin wire; no isolated boundary speedup or general16GB guarantee"
+  },
+  "actual_geometry": [
+    {
+      "cpu_log": 22,
+      "alu_log": 20,
+      "binary_log": 20,
+      "shift_log": 20,
+      "jalr_log": 14,
+      "division_log": 5,
+      "multiplication_log": 13,
+      "ls_log": 21,
+      "boundary_log": 20,
+      "initial_log": 20,
+      "terminal_log": 5
+    },
+    {
+      "cpu_log": 22,
+      "alu_log": 20,
+      "binary_log": 21,
+      "shift_log": 21,
+      "jalr_log": 13,
+      "division_log": 5,
+      "multiplication_log": 11,
+      "ls_log": 20,
+      "boundary_log": 20,
+      "initial_log": 5,
+      "terminal_log": 20
+    }
+  ],
+  "source_cell_reduction_vs_shared_boundary20": {
+    "fixed": 6291264,
+    "main": 48233024,
+    "interaction": 100660224,
+    "raw_source_bytes": 620738048,
+    "note": "source-cell arithmetic only; retained PCS/native scratch/leaf caches still part of whole RSS"
+  },
+  "semantics": {
+    "global_words": 712789,
+    "cells_bin_exactly_equal_previously_qualified_global01": true,
+    "all_initial_terminal_values_rights_epoch_ticks": "exact; inherits independent all-word legacy0/1 comparison pinned in global-execution-real01-v1.json",
+    "normalized_global_RAM_sha256": "7b00386a96e3298ba271f9259e13404b470f945e63deef85e8d734cbb26c884e",
+    "CPU_PC_registers_clocks": "same externally supplied packets0/1, both physical proofs and fresh receiver pass"
+  },
+  "proofs": [
+    {
+      "bytes": 1148304,
+      "sha256": "c05c338ad6c43c63c4466c1093bf18a87af5b0faa569cb4192eda91a45dd5cdb"
+    },
+    {
+      "bytes": 1153520,
+      "sha256": "a6273980d1ad7984f913dba309708053ac521bb6f63250936039958827520ed0"
+    }
+  ],
+  "proof_size_improvement_claim": false,
+  "limits": [
+    "central qualification harness; per-worker PCS/narrow metadata still retained across global barrier",
+    "empty boundary roles nowminimumlog5, not entirely omitted",
+    "no services/wholeblock/halt-output/recursion certificate",
+    "q70/P26 config nominal96 only; whole protocol bound separately accounts lookup degree/mass/unions"
+  ],
+  "artifacts": {
+    "/tmp/rv64-word16-global-execution-real01-v2-independent/bundle.json": "44af2572f650c211697270d11a20e1671d6ea84424d4d4e08f4837665e5ae722",
+    "/tmp/rv64-word16-global-execution-real01-v2-independent/cells.bin": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+    "/tmp/rv64-word16-global-execution-real01-v2-independent/report.json": "4a353f6502a2771a04e18aea27a7937ba030fe849968f7d07775a3552db1607b",
+    "/tmp/rv64-word16-global-execution-real01-v2-independent.time": "d279361bbf1f141c9f87c9e6dbbce7b0ce0e1dd347a07197cfb13d8a08a5c7ce",
+    "/tmp/rv64-word16-global-execution-real01-v2-independent.fresh.time": "2ec33df2c33dc32ef6f23deba17419d3d99da16116fe2b49e7a53b4457924c61"
+  },
+  "frozen_tool": {
+    "path": "/tmp/rv64-global-wire-final-tools/bin/rv64-word16-global-execution",
+    "sha256": "864d3776a61c136b746f77db0935783990eeb6421506e707b750b7d86bd9c511"
+  },
+  "owned_source": {
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "d09e2606bce3459e4ccf9851b1854687fb00a95f7e132eff33a20e118ea422bc",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "478aead140acd0ddd50c062cef437ab823812de0c663aa24312e24437ef06c15",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "e90a1beac1a88043c1772ea7d3e04ce434525d2f4e6f4b17b80d7c45c19c52fd",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "348438789a2e8c2fdb3bcf92e25fc7a0497a9d843ff4a8fa494368ed1eac2678",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "f626efb85fea5fb58e0d35f0a10e7133786c66e034a7111c22e575f56b335edf",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "784f4320a8c54cb73096a7401ef8ec770b4681c7d773d470830572fdc9c676f4",
+    "src/integrations/riscv_cpu/word16_global_execution/execution.zig": "0d9fc2534ebf9c12676f4384d8d27d8c13cfc3c60b7d8e1b869905b0e43280c2",
+    "src/integrations/riscv_cpu/word16_global_execution/fixture.zig": "95fc6f07d510a50de73ba85cd95831a4fbcb4be62235633a41251eca8e758a42",
+    "src/integrations/riscv_cpu/word16_global_execution/execution_test.zig": "02a879ca56eca1e0317ba845b77518716d485c595f1838841565d1d5da74c612"
+  },
+  "qualified_wire_dependency": "Byte agent separate wire2/main commit; source hashes in word16-global-wire-v2 report. No production activation."
+}

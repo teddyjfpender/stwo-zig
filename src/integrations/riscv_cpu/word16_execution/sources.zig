@@ -78,7 +78,7 @@ pub const Source = struct {
         var memory = if (pending_memory) |value| block: {
             pending_memory = null;
             break :block value;
-        } else try Memory.Prepared.init(a, image.?, cpu.memory.items, epoch, g.ls_log, g.boundary_log);
+        } else try Memory.Prepared.initIndependent(a, image.?, cpu.memory.items, epoch, g.ls_log, g.initialLog(), g.terminalLog());
         errdefer memory.deinit();
         var rom = try ROM.Source.init(a, &materials.program, cpu.rom_counts);
         errdefer rom.deinit();

@@ -17,8 +17,18 @@ pub const Geometry = struct {
     multiplication_log: u32 = 5,
     ls_log: u32 = 5,
     boundary_log: u32 = 5,
+    /// Optional independently sized RAM boundary roles. Null preserves the
+    /// historical shared geometry, immutable roots and transcript exactly.
+    initial_log: ?u32 = null,
+    terminal_log: ?u32 = null,
+    pub fn initialLog(self: Geometry) u32 {
+        return self.initial_log orelse self.boundary_log;
+    }
+    pub fn terminalLog(self: Geometry) u32 {
+        return self.terminal_log orelse self.boundary_log;
+    }
     pub fn validate(self: Geometry) !void {
-        for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         _ = try B.function_bus.admitPositiveMass(&.{try self.range16Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
@@ -32,12 +42,12 @@ pub const Geometry = struct {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * rows(self.alu_log));
         total = try std.math.add(u64, total, 9 * rows(self.shift_log));
         total = try std.math.add(u64, total, LS.U16.len * rows(self.ls_log));
-        return std.math.add(u64, total, 2 * Ram.B_U16.len * rows(self.boundary_log));
+        return std.math.add(u64, total, Ram.B_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }
     pub fn range8Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
         total = try std.math.add(u64, total, LS.U8.len * rows(self.ls_log));
-        return std.math.add(u64, total, 2 * Ram.B_U8.len * rows(self.boundary_log));
+        return std.math.add(u64, total, Ram.B_U8.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }
 };
 pub fn rows(log: u32) u64 {
@@ -80,7 +90,8 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .range8 => 8,
             .boundary => 5,
             .ls => geometry.ls_log,
-            .initial, .terminal => geometry.boundary_log,
+            .initial => geometry.initialLog(),
+            .terminal => geometry.terminalLog(),
             .selection => 16,
         };
         shape.* = .{ .role = role, .log = log, .widths = widths, .offsets = offsets };

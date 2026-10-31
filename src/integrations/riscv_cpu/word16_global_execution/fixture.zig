@@ -27,6 +27,12 @@ pub const Case = struct {
         self.fixture.deinit();
     }
     pub fn init(a: std.mem.Allocator) !Case {
+        return initConfigured(a, false);
+    }
+    pub fn initWithIndependentBoundaries(a: std.mem.Allocator) !Case {
+        return initConfigured(a, true);
+    }
+    fn initConfigured(a: std.mem.Allocator, independent: bool) !Case {
         var fixture = try Full.init(a);
         errdefer fixture.deinit();
         var program = try Program.initWithAuthority(a, &fixture.image.authority);
@@ -72,6 +78,12 @@ pub const Case = struct {
         var g1 = try native1.geometry();
         g0.boundary_log = try @import("../word16_execution/coverage.zig").minimalPrefixLog(@intCast(advice.initial.len));
         g1.boundary_log = g0.boundary_log;
+        if (independent) {
+            g0.initial_log = g0.boundary_log + 1;
+            g0.terminal_log = 5;
+            g1.initial_log = 5;
+            g1.terminal_log = g1.boundary_log + 1;
+        }
         var setup0 = try Setup.initWithAuthority(a, &fixture.image.authority, g0);
         errdefer setup0.deinit();
         var setup1 = try Setup.initWithAuthority(a, &fixture.image.authority, g1);

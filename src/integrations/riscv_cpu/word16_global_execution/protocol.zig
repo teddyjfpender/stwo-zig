@@ -85,7 +85,7 @@ pub fn validateRequests(setups: []const *const Setup, requests: []const Old.Requ
         if (r.memory.ls_count > r.cpu.steps) return error.InvalidExecutionMemoryCount;
         if (r.epoch != index + 1 or r.memory.epoch != r.epoch) return error.InvalidGlobalExecutionEpoch;
         if (!std.mem.eql(u8, &setup.materials.program.identity, &expected.program_identity)) return error.GlobalExecutionProgramMismatch;
-        if (r.memory.ls_count >= @as(u32, 1) << @intCast(setup.materials.geometry.ls_log) or r.memory.initial.len >= @as(usize, 1) << @intCast(setup.materials.geometry.boundary_log) or r.memory.terminal.len >= @as(usize, 1) << @intCast(setup.materials.geometry.boundary_log)) return error.GlobalMemoryCapacity;
+        if (r.memory.ls_count >= @as(u32, 1) << @intCast(setup.materials.geometry.ls_log) or r.memory.initial.len >= @as(usize, 1) << @intCast(setup.materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(setup.materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
         if (r.division_requests > @as(u32, 1) << @intCast(setup.materials.geometry.division_log) or r.multiplication_requests > @as(u32, 1) << @intCast(setup.materials.geometry.multiplication_log)) return error.GlobalArithmeticCapacity;
         if (index == 0) {
             if (r.cpu.initial_pc != expected.admission.initial_pc or !std.mem.eql(u64, &r.cpu.initial_registers, &expected.admission.initial_registers)) return error.UntrustedGlobalGenesis;

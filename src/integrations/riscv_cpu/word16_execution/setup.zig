@@ -30,6 +30,7 @@ pub const Materials = struct {
     range8_fixed: []M,
     ls_fixed: []M,
     memory_boundary_fixed: []M,
+    memory_terminal_fixed: ?[]M = null,
     selection_fixed: []M,
     shift_table: B.shift_word_packed_experiment.table.Setup,
     and_table: air.providers.tables.Setup,
@@ -68,17 +69,20 @@ pub const Materials = struct {
         errdefer a.free(range8);
         const ls = try air.memory.load_store_v2.source.fixed(a, geometry.ls_log);
         errdefer a.free(ls);
-        const memory_boundary = try air.memory.load_store_v2.source.fixed(a, geometry.boundary_log);
+        const memory_boundary = try air.memory.load_store_v2.source.fixed(a, geometry.initialLog());
         errdefer a.free(memory_boundary);
+        const memory_terminal = if (geometry.initialLog() != geometry.terminalLog()) try air.memory.load_store_v2.source.fixed(a, geometry.terminalLog()) else null;
+        errdefer if (memory_terminal) |data| a.free(data);
         const selection = try selectionFixed(a);
         errdefer a.free(selection);
         var shifts = try B.shift_word_packed_experiment.table.Setup.init(a);
         errdefer shifts.deinit();
         var and_ = try air.providers.tables.Setup.init(a, .byte_and);
         errdefer and_.deinit();
-        return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .binary_fixed = binary, .shift_fixed = shift, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .memory_boundary_fixed = memory_boundary, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
+        return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .binary_fixed = binary, .shift_fixed = shift, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
     }
     pub fn deinit(self: *Materials) void {
+        if (self.memory_terminal_fixed) |data| self.allocator.free(data);
         self.and_table.deinit();
         self.shift_table.deinit();
         for ([_][]M{ self.cpu_fixed, self.boundary_fixed, self.alu_fixed, self.binary_fixed, self.shift_fixed, self.jalr_fixed, self.division_fixed, self.multiplication_fixed, self.range16_fixed, self.range8_fixed, self.ls_fixed, self.memory_boundary_fixed, self.selection_fixed }) |fixed| self.allocator.free(fixed);
@@ -122,7 +126,8 @@ pub const Materials = struct {
                 .range16 => self.range16_fixed,
                 .range8 => self.range8_fixed,
                 .ls => self.ls_fixed,
-                .initial, .terminal => self.memory_boundary_fixed,
+                .initial => self.memory_boundary_fixed,
+                .terminal => self.memory_terminal_fixed orelse self.memory_boundary_fixed,
                 .selection => self.selection_fixed,
             };
             try @import("../word16/cpu_materials.zig").fillColumns(out[s.offsets[0]..][0..s.widths[0]], data, s.log);
