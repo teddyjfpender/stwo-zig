@@ -302,6 +302,88 @@ pub const TruthSource = union(enum) {
             },
         };
     }
+    /// Transfers the three original wide allocations, preserving only the
+    /// secp BYTE provider's 256 multiplicities as narrow generator input.
+    /// Every validation/allocation precedes mutation; PCS consumes Commit.
+    pub fn takeMain(self: *TruthSource) !Commit {
+        return self.take(1);
+    }
+    pub fn takeInteraction(self: *TruthSource) !Commit {
+        return self.take(2);
+    }
+    fn take(self: *TruthSource, tree: usize) !Commit {
+        const a = switch (self.*) {
+            .keccak => |s| s.permutation.allocator,
+            .secp => |s| s.batch.product.allocator,
+        };
+        var matrices: [3]*[]M = undefined;
+        var expected: [3]usize = undefined;
+        var protected: [6][]const M = undefined;
+        switch (self.*) {
+            .keccak => |*s| {
+                if (s.chi.kind != .chi or s.xor5.kind != .xor5) return error.InvalidTruthBufferPhase;
+                try s.permutation.validateMetadata();
+                try s.chi.validateMetadata();
+                try s.xor5.validateMetadata();
+                inline for (.{ "permutation", "chi", "xor5" }, 0..) |name, i| {
+                    const part = &@field(s, name);
+                    if (!A.memory.ownership.same(a, part.allocator) or (tree == 1 and (!part.owns_main or !A.memory.ownership.same(a, part.main_allocator orelse part.allocator) or part.interaction.len != 0))) return error.InvalidTruthBufferOwner;
+                    protected[i] = part.fixed;
+                    protected[3 + i] = if (tree == 1) part.interaction else part.main;
+                    matrices[i] = if (tree == 1) &part.main else &part.interaction;
+                    const width: usize = if (i == 0) (if (tree == 1) A.crypto.keccak.layout.MAIN else A.crypto.keccak.layout.INTERACTION) else (if (tree == 1) 1 else 4);
+                    expected[i] = try std.math.mul(usize, width, part.size());
+                }
+            },
+            .secp => |*s| {
+                if (s.batch.product.kind != .product or s.batch.linear.kind != .linear) return error.InvalidTruthBufferPhase;
+                try s.batch.product.validateMetadata();
+                try s.batch.linear.validateMetadata();
+                inline for (.{ "product", "linear" }, 0..) |name, i| {
+                    const part = &@field(s.batch, name);
+                    if (!A.memory.ownership.same(a, part.allocator) or (tree == 1 and (!part.owns_main or !A.memory.ownership.same(a, part.main_allocator orelse part.allocator) or part.interaction.len != 0))) return error.InvalidTruthBufferOwner;
+                    protected[i] = part.fixed;
+                    protected[3 + i] = if (tree == 1) part.interaction else part.main;
+                    matrices[i] = if (tree == 1) &part.main else &part.interaction;
+                    expected[i] = try std.math.mul(usize, if (tree == 1) A.crypto.secp256k1.layout.main(part.kind) else A.crypto.secp256k1.layout.interaction(part.kind), part.size());
+                }
+                if (!A.memory.ownership.same(a, s.bytes.allocator) or (tree == 1 and s.bytes.interaction.len != 0)) return error.InvalidTruthBufferOwner;
+                protected[2] = s.bytes.fixed;
+                protected[5] = if (tree == 1) s.bytes.interaction else s.bytes.main;
+                matrices[2] = if (tree == 1) &s.bytes.main else &s.bytes.interaction;
+                expected[2] = (if (tree == 1) @as(usize, 1) else 8) * 256;
+            },
+        }
+        for (matrices, expected, 0..) |matrix, size, i| {
+            if (matrix.len != size) return error.InvalidTruthBufferPhase;
+            const end = try spanEnd(matrix.*);
+            for (protected) |other| if (overlap(matrix.*, try spanEnd(other), other, end)) return error.AliasedTruthBuffers;
+            for (matrices[0..i]) |previous| if (overlap(matrix.*, try spanEnd(previous.*), previous.*, end)) return error.AliasedTruthBuffers;
+        }
+        const headers = try self.columns(a, tree);
+        errdefer a.free(headers);
+        const backings = try a.alloc([]M, 3);
+        errdefer a.free(backings);
+        const byte_counts = if (tree == 1 and self.* == .secp) try a.dupe(M, self.secp.bytes.main) else null;
+        // No fallible operation may follow this point.
+        for (matrices, backings) |matrix, *backing| {
+            backing.* = matrix.*;
+            matrix.* = &.{};
+        }
+        if (tree == 1) switch (self.*) {
+            .keccak => |*s| {
+                s.permutation.owns_main = false;
+                s.chi.owns_main = false;
+                s.xor5.owns_main = false;
+            },
+            .secp => |*s| {
+                s.batch.product.owns_main = false;
+                s.batch.linear.owns_main = false;
+                s.bytes.main = byte_counts.?;
+            },
+        };
+        return .{ .columns = headers, .backings = backings };
+    }
     pub fn deinit(self: *TruthSource) void {
         switch (self.*) {
             inline else => |*s| s.deinit(),
