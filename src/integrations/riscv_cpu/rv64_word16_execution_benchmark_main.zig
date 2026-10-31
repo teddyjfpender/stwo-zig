@@ -114,6 +114,9 @@ pub fn main() !void {
     try Execution.Admission.validateCounts(proof_geometry, @intCast(packet.tape.len), prepared.raw_counts.memory, prepared.unique_memory_words);
     const proof_shapes = G.shapes(&program, proof_geometry);
     try Driver.writeJson(a, dir, "planning.json", .{ .scope = "actual grouped native advice; not a proof", .raw_counts = prepared.raw_counts, .alu_unique_facts = prepared.alu.facts.len, .binary_unique_facts = prepared.binary.facts.len, .shift_unique_facts = prepared.shift.len, .shift_grouping = deduplicate_shift, .geometry = proof_geometry, .shapes = proof_shapes, .evaluation_domains = G.domains(proof_shapes), .source_cells = try G.cells(&proof_shapes) });
+    // Capture/grouping scratch sizes differ from FFT buffers. Retire only
+    // free cache blocks; Prepared, Tape, image and all live owners survive.
+    const capture_cache_released_bytes = if (allocator_options.keep_capture_cache) 0 else recycler.releaseCached();
     const setup_start = timer.read();
     var setup_scope = try Profile.StageScope.begin(&recorder, "immutable_setup", "Program and selected geometry fixed commitment");
     defer setup_scope.end();
@@ -143,7 +146,7 @@ pub fn main() !void {
     try Driver.writeJson(a, dir, "stages.json", stages);
     const cell_bytes = (try dir.statFile("cells.bin")).size;
     const statement_bytes = (try dir.statFile("statement.json")).size;
-    const report = .{ .commit_batch_columns = allocator_options.commit_batch_columns, .interaction_page_preparation = !std.process.hasEnvVarConstant("STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION"), .allocator = .{ .policy = if (allocator_options.cap_bytes == 0) "smp" else "large_block_recycler", .cache_cap_bytes = allocator_options.cap_bytes, .stats = recycler.stats() }, .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
+    const report = .{ .commit_batch_columns = allocator_options.commit_batch_columns, .interaction_page_preparation = !std.process.hasEnvVarConstant("STWO_RV64_DISABLE_INTERACTION_PAGE_PREPARATION"), .allocator = .{ .policy = if (allocator_options.cap_bytes == 0) "smp" else "large_block_recycler", .cache_cap_bytes = allocator_options.cap_bytes, .stats = recycler.stats() }, .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .capture_cache_released_bytes = capture_cache_released_bytes, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
     try Driver.writeJson(a, dir, "report.json", report);
     try stdout(a, report);
 }
@@ -158,10 +161,11 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
 /// Allocation flags preserve the proof. LS ladder selects explicit fixed geometry
 /// with the SAME independently admitted CPU/memory statement.
 const LsLadder = struct { head: u32, tail: u32 };
-fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool, ls_ladder: ?LsLadder, alu_ladder: ?LsLadder, binary_ladder: ?LsLadder, shift_ladder: ?LsLadder } {
+fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, keep_capture_cache: bool, omit_empty_division: bool, deduplicate_shift: bool, ls_ladder: ?LsLadder, alu_ladder: ?LsLadder, binary_ladder: ?LsLadder, shift_ladder: ?LsLadder } {
     var count = args.len;
-    var cap_bytes: usize = 0;
+    var cap_bytes: usize = 4 * 1024 * 1024 * 1024;
     var batch_columns: u32 = 8;
+    var keep_capture_cache = false;
     var saw_cap = false;
     var saw_batch = false;
     var omit_empty_division = false;
@@ -174,7 +178,10 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         const option = args[count - 1];
         const cache_prefix = "--recycler-cap-mib=";
         const batch_prefix = "--commit-batch-columns=";
-        if (std.mem.eql(u8, option, "--omit-empty-division")) {
+        if (std.mem.eql(u8, option, "--keep-capture-cache")) {
+            if (keep_capture_cache) return error.DuplicateOperationalOption;
+            keep_capture_cache = true;
+        } else if (std.mem.eql(u8, option, "--omit-empty-division")) {
             if (omit_empty_division) return error.DuplicateOperationalOption;
             omit_empty_division = true;
         } else if (std.mem.eql(u8, option, "--deduplicate-shift")) {
@@ -209,7 +216,7 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         } else break;
         count -= 1;
     }
-    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift, .ls_ladder = ls_ladder, .alu_ladder = alu_ladder, .binary_ladder = binary_ladder, .shift_ladder = shift_ladder };
+    return .{ .argument_count = count, .cap_bytes = cap_bytes, .keep_capture_cache = keep_capture_cache, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift, .ls_ladder = ls_ladder, .alu_ladder = alu_ladder, .binary_ladder = binary_ladder, .shift_ladder = shift_ladder };
 }
 
 fn parseFamilyLadder(value: []const u8) !LsLadder {

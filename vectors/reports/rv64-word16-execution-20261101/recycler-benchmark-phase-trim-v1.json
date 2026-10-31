@@ -1,0 +1,189 @@
+{
+  "status": "QUALIFIED same-proof operational allocator change; performance observations concurrent/uncontrolled",
+  "base_commit": "c4a2749bc56d7ba160af8cd7988b5c4daef423a2",
+  "api_dependency": "c4a2749bc",
+  "changes": [
+    "Benchmark default allocator4GiB LargeBlockRecycler, existing --recycler-cap-mib=0 preserves explicit uncached control.",
+    "After native capture/grouping and before Setup, trim free bins; live Prepared/Tape/image/Program owners stay valid.",
+    "--keep-capture-cache retains original bins for same-binary resource comparison; no transcript, geometry, AIR or acceptance change.",
+    "Report detached byte count."
+  ],
+  "qualification": {
+    "complete_proof_bytes_equal": true,
+    "cells_bin_equal": true,
+    "statement_json_equal": true,
+    "fresh_independent_receivers": "PASS both",
+    "functional_build": "zig build rv64-word16-execution-benchmark -Doptimize=ReleaseFast",
+    "build_log": "/tmp/recycler-trim-benchmark-final-build.log",
+    "binary": "/tmp/rv64-recycler-trim-tools/rv64-word16-execution-benchmark",
+    "binary_sha256": "6ecdf082b361220f04fd8ed4c8c756366678aabab1f29e11598edfa3da20c607",
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packet": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+    "flags": [
+      "--omit-empty-division",
+      "--deduplicate-shift",
+      "--ls-ladder=20,18",
+      "--alu-ladder=19,16",
+      "--binary-ladder=19,18",
+      "--shift-ladder=19,18"
+    ]
+  },
+  "interpretation": "Actual map/reuse counters establish different allocator behavior. Other agent compilation/proof work overlapped these two runs. No controlled speed, RSS or full-block extrapolation claim. Quiet repeated measurement pending.",
+  "observations": [
+    {
+      "mode": "keep",
+      "directory": "/tmp/rv64-recycler-functional-keep-v1",
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 923333875,
+        "image_ns": 309903875
+      },
+      "report": {
+        "commit_batch_columns": 8,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 1756,
+            "mapped_blocks": 1626,
+            "cached_bytes": 4294836224
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 15783,
+        "proof_and_public_statement_bytes": 33528525,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 62842688,
+          "main": 482828544,
+          "interaction": 362285312
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 19,
+          "alu_tail_log": 16,
+          "binary_log": 19,
+          "binary_tail_log": 18,
+          "shift_log": 19,
+          "shift_tail_log": 18,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": true,
+          "multiplication_log": 13,
+          "ls_log": 20,
+          "ls_tail_log": 18,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 366876250,
+        "capture_cache_released_bytes": 0,
+        "provider_source_ns": 570298375,
+        "setup_ns": 348306000,
+        "prove_ns": 8125123125,
+        "same_process_verify_ns": 88443708,
+        "proof_bytes": 900704,
+        "total_ns": 9195676000,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 872939520,
+          "last_rss_bytes": 5523636224,
+          "sampled_peak_rss_bytes": 12507987968,
+          "process_lifetime_peak_rss_bytes": 12507987968,
+          "samples": 588,
+          "failed_samples": 0
+        }
+      },
+      "time_raw": "        9.65 real        45.07 user         3.09 sys\n         12507987968  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n             1467499  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  23  voluntary context switches\n               27017  involuntary context switches\n        532105989967  instructions retired\n        194027016076  cycles elapsed\n         12511716976  peak memory footprint\n",
+      "proof_sha256": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0"
+    },
+    {
+      "mode": "trim",
+      "directory": "/tmp/rv64-recycler-functional-trim-v1",
+      "fresh_receiver": {
+        "scope": "fresh independent genesis-prefix receiver",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "receiver_ns": 883846125,
+        "image_ns": 314971709
+      },
+      "report": {
+        "commit_batch_columns": 8,
+        "interaction_page_preparation": true,
+        "allocator": {
+          "policy": "large_block_recycler",
+          "cache_cap_bytes": 4294967296,
+          "stats": {
+            "reused_blocks": 2203,
+            "mapped_blocks": 1179,
+            "cached_bytes": 4294967296
+          }
+        },
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 15783,
+        "proof_and_public_statement_bytes": 33528525,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 62842688,
+          "main": 482828544,
+          "interaction": 362285312
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 19,
+          "alu_tail_log": 16,
+          "binary_log": 19,
+          "binary_tail_log": 18,
+          "shift_log": 19,
+          "shift_tail_log": 18,
+          "jalr_log": 14,
+          "division_log": 5,
+          "omit_empty_division": true,
+          "multiplication_log": 13,
+          "ls_log": 20,
+          "ls_tail_log": 18,
+          "boundary_log": 20,
+          "initial_log": null,
+          "terminal_log": null
+        },
+        "native_prepare_ns": 337416417,
+        "capture_cache_released_bytes": 751566848,
+        "provider_source_ns": 519673291,
+        "setup_ns": 335971917,
+        "prove_ns": 7793755458,
+        "same_process_verify_ns": 89153042,
+        "proof_bytes": 900704,
+        "total_ns": 8840489791,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 872955904,
+          "last_rss_bytes": 5540020224,
+          "sampled_peak_rss_bytes": 12524666880,
+          "process_lifetime_peak_rss_bytes": 12524666880,
+          "samples": 561,
+          "failed_samples": 0
+        }
+      },
+      "time_raw": "        8.88 real        45.26 user         2.66 sys\n         12524666880  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n             1206496  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                  15  voluntary context switches\n               26366  involuntary context switches\n        528356248773  instructions retired\n        192931603717  cycles elapsed\n         12528559968  peak memory footprint\n",
+      "proof_sha256": "e76fc29b469ec4f3c6dccf8b29a7a4fb5e45b19e2de787ad300bc01d9939e7b0"
+    }
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "d6885b4e96ffe404dcd847af52347c553e1379dd211052a7d88a85818c85012b"
+  }
+}
