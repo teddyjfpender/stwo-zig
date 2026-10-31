@@ -1,4 +1,4 @@
-//! Actual independently sized secp-truth protocol. Acceptance requires every
+//! Actual independently sized mixed-service protocol. Acceptance requires every
 //! physical CPU/bridge and truth STARK plus complete manifest/typed debt closure.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -23,6 +23,9 @@ comptime {
     if (CoreComponents.COMPOSITION_LOG_SPLIT != 1 and CoreComponents.COMPOSITION_LOG_SPLIT != 2) @compileError("unsupported shared CPU composition geometry");
 }
 const Advice = @import("collector.zig").Advice;
+const Profiling = @import("profiling.zig");
+const Profile = @import("stwo_prover_api").stage_profile;
+pub const ProduceOptions = Profiling.Options;
 const Q = G.Q;
 const Cell = A.memory.closed_ram.types.Cell;
 pub const CpuClaims = struct {
@@ -125,81 +128,11 @@ fn actual(a: std.mem.Allocator, scheme: *G.T.Scheme, key: [32]u8, logs0: []const
     }
     return .{ .fixed = .{ .bytes = roots.items[0] }, .main = .{ .bytes = roots.items[1] } };
 }
-const Bridges = struct {
-    keccak: ?KB.component.Component = null,
-    add: ?B.component.Component = null,
-    double: ?B.component.Component = null,
-    fn init(setup: *const R.CpuSetup, calls: [3]u32, first: [3]u32, ch: G.Old.Draw, common: P.Shared, claims: [3]T.ExtraClaims) Bridges {
-        var out = Bridges{};
-        for (0..3) |k| {
-            const family: T.Family = @enumFromInt(k);
-            const log = setup.bridges.at(family) orelse continue;
-            const offsets = [3]usize{ setup.offset(family, 0), setup.offset(family, 1), setup.offset(family, 2) };
-            if (k == 0) {
-                out.keccak = .{ .kind = .bridge, .log_size = log, .rows = calls[0], .first_id = first[0], .offsets = offsets, .claims = claims[0].toK(), .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .range16 = ch.memory.range16, .range8 = ch.memory.range8 } };
-            } else {
-                const component = B.component.Component{ .kind = @enumFromInt(k), .log_size = log, .rows = calls[k], .first_id = first[k], .offsets = offsets, .claims = claims[k].toSecp(), .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 } };
-                if (k == 1) out.add = component else out.double = component;
-            }
-        }
-        return out;
-    }
-    fn count(self: *const Bridges) usize {
-        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null);
-    }
-};
-fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]engine.air.component_prover.ComponentProver {
-    const old = try base.provers(a);
-    defer a.free(old);
-    const out = try a.alloc(engine.air.component_prover.ComponentProver, old.len + bridges.count());
-    @memcpy(out[0..old.len], old);
-    var at = old.len;
-    inline for (.{ "keccak", "add", "double" }) |name| if (@field(bridges, name)) |*c| {
-        out[at] = c.asProverComponent();
-        at += 1;
-    };
-    return out;
-}
-fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]core.air.components.Component {
-    const old = try base.verifiers(a);
-    defer a.free(old);
-    const out = try a.alloc(core.air.components.Component, old.len + bridges.count());
-    @memcpy(out[0..old.len], old);
-    var at = old.len;
-    inline for (.{ "keccak", "add", "double" }) |name| if (@field(bridges, name)) |*c| {
-        out[at] = c.asVerifierComponent();
-        at += 1;
-    };
-    return out;
-}
-const TruthComponents = union(enum) {
-    keccak: [3]K.component.Component,
-    secp: @import("../secp/execution.zig").TruthComponents,
-    fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
-        return switch (truth) {
-            .keccak => |t| switch (ch) {
-                .keccak => |kc| .{ .keccak = @import("../keccak/shared/execution.zig").truthComponents(t.setup, t.first_id, t.calls, kc, claims) },
-                else => error.InvalidCombinedTruthChallenge,
-            },
-            .secp => |t| switch (ch) {
-                .secp => |sc| .{ .secp = @import("../secp/execution.zig").TruthComponents.initSpan(t.setup, t.first_id, t.calls, sc, claims) },
-                else => error.InvalidCombinedTruthChallenge,
-            },
-        };
-    }
-    fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
-        return switch (self.*) {
-            .keccak => |*c| .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
-            .secp => |*c| c.provers(),
-        };
-    }
-    fn verifiers(self: *const TruthComponents) [3]core.air.components.Component {
-        return switch (self.*) {
-            .keccak => |*c| .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
-            .secp => |*c| c.verifiers(),
-        };
-    }
-};
+const Adapters = @import("air_components.zig");
+const Bridges = Adapters.Bridges;
+const TruthComponents = Adapters.TruthComponents;
+const cpuHandles = Adapters.cpuHandles;
+const cpuVerifierHandles = Adapters.cpuVerifierHandles;
 fn generateTruth(source: *R.TruthSource, ch: P.TruthDraw) ![3]Q {
     return switch (source.*) {
         .keccak => |*s| switch (ch) {
@@ -223,6 +156,10 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 /// Store must outlive this call. Only sealed compact MAIN coefficients move;
 /// roots, transcript and proof bytes are identical. Every failure drains owners.
 pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected, retained: ?*@import("../retained_main_store.zig").Store) !Bundle {
+    return produceWithOptions(a, setups, truths, prepared, advice, expected, .{ .retained_main = retained });
+}
+pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected, options: ProduceOptions) !Bundle {
+    try options.validate(setups.len + truths.len);
     if (setups.len != prepared.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
@@ -241,6 +178,9 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
     defer for (workers[0..done]) |*w| w.deinit(a);
     var first_step: u64 = 0;
     for (setups, prepared, requests, 0..) |s, n, r, index| {
+        const recorder = options.recorder(index);
+        var source_stage = try Profile.StageScope.begin(recorder, "source_construction", "CPU and service witness construction");
+        defer source_stage.end();
         const initial = try a.dupe(Cell, r.base.memory.initial);
         const terminal = a.dupe(Cell, r.base.memory.terminal) catch |err| {
             a.free(initial);
@@ -248,7 +188,7 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         };
         const mem = try memory(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry);
         var source = block: {
-            var base = try Source.Source.fromPreparedWithOwnedMemory(a, &s.materials, n, mem);
+            var base = try Source.Source.fromPreparedWithOwnedMemoryProfiled(a, &s.materials, n, mem, recorder);
             errdefer base.deinit();
             var kk: ?KB.source.Source = null;
             errdefer if (kk) |*b| b.deinit();
@@ -264,6 +204,7 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         };
         errdefer source.deinit();
         try source.mergeRanges();
+        source_stage.end();
         var scheme = try G.T.Scheme.init(a, G.T.P.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
@@ -272,14 +213,21 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         first_step += r.base.cpu.steps;
         specs[index] = channel.digestBytes();
         try s.key.append(a, &scheme, &channel);
+        var main_stage = try Profile.StageScope.begin(recorder, "main_commit", "Owned MAIN streaming commitment");
+        defer main_stage.end();
         const owned = try source.takeMain(s);
-        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, owned.columns, owned.backings, 8, null, &channel);
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, owned.columns, owned.backings, 8, recorder, &channel);
+        main_stage.end();
         const l0 = try s.logs(a, 0);
         defer a.free(l0);
         const l1 = try s.logs(a, 1);
         defer a.free(l1);
         receipts[index] = try actual(a, &scheme, s.key.root, l0, l1);
-        if (retained) |store| _ = try store.spill(a, &scheme.trees.items[1]);
+        if (options.retained_main) |store| {
+            var stage = try Profile.StageScope.begin(recorder, "retained_main_spill", "Retain sealed native coefficients in mapped storage");
+            defer stage.end();
+            _ = try store.spill(a, &scheme.trees.items[1]);
+        }
         workers[index] = .{ .source = source, .scheme = scheme, .channel = channel };
         done += 1;
     }
@@ -288,8 +236,12 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
     var truth_done: usize = 0;
     defer for (truth_workers[0..truth_done]) |*w| w.deinit(a);
     for (truths, truth_workers, 0..) |truth, *w, k| {
+        const recorder = options.recorder(setups.len + k);
+        var source_stage = try Profile.StageScope.begin(recorder, "source_construction", "Independent crypto truth witness");
+        defer source_stage.end();
         var ts = try R.TruthSource.init(a, truth, advice);
         errdefer ts.deinit();
+        source_stage.end();
         var scheme = try G.T.Scheme.init(a, G.T.P.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
@@ -297,16 +249,23 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         P.beginTruth(&channel, truth, expected, k);
         specs[setups.len + k] = channel.digestBytes();
         try truth.key().append(a, &scheme, &channel);
+        var main_stage = try Profile.StageScope.begin(recorder, "main_commit", "Crypto truth MAIN streaming commitment");
+        defer main_stage.end();
         const main = try ts.columns(a, 1);
         defer a.free(main);
-        try scheme.commitBorrowedStreaming(a, main, 8, &channel);
+        try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
         try ts.releaseMain();
+        main_stage.end();
         const l0 = try truth.logs(a, 0);
         defer a.free(l0);
         const l1 = try truth.logs(a, 1);
         defer a.free(l1);
         receipts[setups.len + k] = try actual(a, &scheme, truth.key().root, l0, l1);
-        if (retained) |store| _ = try store.spill(a, &scheme.trees.items[1]);
+        if (options.retained_main) |store| {
+            var stage = try Profile.StageScope.begin(recorder, "retained_main_spill", "Retain sealed native coefficients in mapped storage");
+            defer stage.end();
+            _ = try store.spill(a, &scheme.trees.items[1]);
+        }
         w.* = .{ .source = ts, .scheme = scheme, .channel = channel };
         truth_done += 1;
     }
@@ -318,13 +277,16 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
     var finished: usize = 0;
     errdefer for (cpus[0..finished]) |*p| p.deinit(a);
     for (workers, setups, requests, cpus, 0..) |*w, s, r, *encoded, index| {
+        const recorder = options.recorder(index);
         const l0 = try s.logs(a, 0);
         defer a.free(l0);
         const l1 = try s.logs(a, 1);
         defer a.free(l1);
         if (!std.meta.eql(try actual(a, &w.scheme, s.key.root, l0, l1), manifest.roots[index])) return error.CombinedStage1Mismatch;
         const ch = try P.drawCpu(&w.channel, &manifest, index);
-        const base = (try w.source.core.generateForDelegationJoin(ch)).physical;
+        var generation_stage = try Profile.StageScope.begin(recorder, "interaction_generation", "CPU and service interactions");
+        defer generation_stage.end();
+        const base = (try w.source.core.generateForDelegationJoinProfiled(ch, recorder)).physical;
         var extras: [3]T.ExtraClaims = @splat(T.ExtraClaims.zero());
         if (w.source.keccak) |*b| extras[0] = T.ExtraClaims.fromK(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, w.source.core.range16.dictionary, w.source.core.range8.dictionary));
         inline for (.{ "add", "double" }, 1..) |name, k| if (@field(w.source, name)) |*b| {
@@ -332,15 +294,19 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         };
         const claims = CpuClaims{ .base = base, .extras = extras };
         try claims.presence(s);
+        generation_stage.end();
         w.channel.mixFelts(&claims.values());
+        var inter_stage = try Profile.StageScope.begin(recorder, "interaction_commit", "Owned CPU and service interaction commitment");
+        defer inter_stage.end();
         const inter = try w.source.takeInteraction(s);
-        try w.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 8, null, &w.channel);
+        try w.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 8, recorder, &w.channel);
+        inter_stage.end();
         var bc = try Components.init(&s.materials, r.base, ch, base);
         var bb = Bridges.init(s, r.calls, try P.firstIds(requests, index), ch, common, extras);
         const handles = try cpuHandles(a, &bc, &bb);
         defer a.free(handles);
         w.owns = false;
-        var proof = try engine.prove.prove(Backend, G.T.P.Hasher, G.T.P.MerkleChannel, a, handles, &w.channel, w.scheme);
+        var proof = try Profiling.prove(a, handles, &w.channel, w.scheme, recorder);
         defer proof.deinit(a);
         const bytes = try wire.encodeProofBytesBinary(a, proof);
         errdefer a.free(bytes);
@@ -353,31 +319,40 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
         // Encoded claims/boundaries now own every receiver obligation. Neither
         // this source nor its consumed scheme is needed by later truth proofs.
         w.retireSource();
+        try options.finish(a, index);
     }
     const encoded_truths = try a.alloc(TruthEncoded, truths.len);
     errdefer a.free(encoded_truths);
     var finished_truths: usize = 0;
     errdefer for (encoded_truths[0..finished_truths]) |t| a.free(t.bytes);
     for (truth_workers, truths, 0..) |*tw, truth, k| {
+        const recorder = options.recorder(setups.len + k);
         const l0 = try truth.logs(a, 0);
         defer a.free(l0);
         const l1 = try truth.logs(a, 1);
         defer a.free(l1);
         if (!std.meta.eql(try actual(a, &tw.scheme, truth.key().root, l0, l1), manifest.roots[setups.len + k])) return error.CombinedStage1Mismatch;
         const ch = try P.drawTruth(&tw.channel, &manifest, truth, k);
+        var generation_stage = try Profile.StageScope.begin(recorder, "interaction_generation", "Crypto truth interactions");
+        defer generation_stage.end();
         const claims = try generateTruth(&tw.source, ch);
+        generation_stage.end();
         tw.channel.mixFelts(&claims);
+        var inter_stage = try Profile.StageScope.begin(recorder, "interaction_commit", "Crypto truth interaction commitment");
+        defer inter_stage.end();
         const inter = try tw.source.columns(a, 2);
         defer a.free(inter);
-        try tw.scheme.commitBorrowedStreaming(a, inter, 8, &tw.channel);
+        try tw.scheme.commitBorrowedStreamingWithRecorder(a, inter, 8, recorder, &tw.channel);
+        inter_stage.end();
         var components = try TruthComponents.init(truth, ch, claims);
         const handles = components.provers();
         tw.owns = false;
-        var proof = try engine.prove.prove(Backend, G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &tw.channel, tw.scheme);
+        var proof = try Profiling.prove(a, &handles, &tw.channel, tw.scheme, recorder);
         defer proof.deinit(a);
         encoded_truths[k] = .{ .bytes = try wire.encodeProofBytesBinary(a, proof), .claims = claims };
         finished_truths += 1;
         tw.retireSource();
+        try options.finish(a, setups.len + k);
     }
     return .{ .manifest = manifest, .cpus = cpus, .truths = encoded_truths };
 }

@@ -66,6 +66,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-alu-parallel-interaction", .description = "Check two-wave native ALU interactions and strict failure ownership", .scope = .riscv_cpu },
     .{ .name = "rv64-function-census", .description = "Build bounded exact retained-packet function census", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-weighted-alu", .description = "Build closed weighted ALU native BEQ diagnostic", .scope = .riscv_cpu },
+    .{ .name = "rv64-word16-ethereum", .description = "Word16 mixed-service Ethereum block prover and independent terminal receiver", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-combined-services-fixture", .description = "Actual one CPU per shard with all LE services and shared RAM", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-csp", .description = "Qualify CSP32 and Sail independent image output and compact capture authority", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-sail", .description = "Prove a continuous pinned Sail RV64IM workload using joined Word16 AIR", .scope = .riscv_cpu },

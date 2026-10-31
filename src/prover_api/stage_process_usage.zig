@@ -12,6 +12,9 @@ pub const ProcessUsage = struct {
     major_faults: u64,
     voluntary_switches: u64,
     involuntary_switches: u64,
+    /// Process-lifetime high-water mark at interval end, not a stage-local peak
+    /// or a delta. Darwin reports bytes; Linux reports KiB, normalized below.
+    process_peak_resident_bytes_at_end: u64 = 0,
 };
 pub const Snapshot = struct {
     user_us: u64,
@@ -20,6 +23,7 @@ pub const Snapshot = struct {
     major_faults: u64,
     voluntary_switches: u64,
     involuntary_switches: u64,
+    peak_resident_bytes: u64 = 0,
 };
 
 /// Unsupported hosts return unavailable. Callers must avoid this call entirely
@@ -28,7 +32,7 @@ pub fn read() ?Snapshot {
     if (comptime builtin.os.tag == .macos or builtin.os.tag == .linux) {
         const r = std.posix.getrusage(std.posix.rusage.SELF);
         if (r.utime.sec < 0 or r.utime.usec < 0 or r.stime.sec < 0 or r.stime.usec < 0 or
-            r.minflt < 0 or r.majflt < 0 or r.nvcsw < 0 or r.nivcsw < 0) return null;
+            r.maxrss < 0 or r.minflt < 0 or r.majflt < 0 or r.nvcsw < 0 or r.nivcsw < 0) return null;
         const user_us = std.math.mul(u64, @intCast(r.utime.sec), 1_000_000) catch return null;
         const system_us = std.math.mul(u64, @intCast(r.stime.sec), 1_000_000) catch return null;
         return .{
@@ -38,6 +42,7 @@ pub fn read() ?Snapshot {
             .major_faults = @intCast(r.majflt),
             .voluntary_switches = @intCast(r.nvcsw),
             .involuntary_switches = @intCast(r.nivcsw),
+            .peak_resident_bytes = std.math.mul(u64, @intCast(r.maxrss), if (builtin.os.tag == .linux) 1024 else 1) catch return null,
         };
     }
     return null;
@@ -55,12 +60,13 @@ pub fn delta(start: Snapshot, end: Snapshot) ?ProcessUsage {
         .major_faults = end.major_faults - start.major_faults,
         .voluntary_switches = end.voluntary_switches - start.voluntary_switches,
         .involuntary_switches = end.involuntary_switches - start.involuntary_switches,
+        .process_peak_resident_bytes_at_end = end.peak_resident_bytes,
     };
 }
 
 test "stage process usage: deterministic deltas, zero and regressions" {
-    const a: Snapshot = .{ .user_us = 10, .system_us = 20, .minor_faults = 30, .major_faults = 40, .voluntary_switches = 50, .involuntary_switches = 60 };
-    const b: Snapshot = .{ .user_us = 1_500_010, .system_us = 250_020, .minor_faults = 33, .major_faults = 42, .voluntary_switches = 57, .involuntary_switches = 69 };
+    const a: Snapshot = .{ .user_us = 10, .system_us = 20, .minor_faults = 30, .major_faults = 40, .voluntary_switches = 50, .involuntary_switches = 60, .peak_resident_bytes = 70 };
+    const b: Snapshot = .{ .user_us = 1_500_010, .system_us = 250_020, .minor_faults = 33, .major_faults = 42, .voluntary_switches = 57, .involuntary_switches = 69, .peak_resident_bytes = 80 };
     const d = delta(a, b).?;
     try std.testing.expectEqual(@as(f64, 1.5), d.user_seconds);
     try std.testing.expectEqual(@as(f64, 0.25), d.system_seconds);
@@ -68,6 +74,8 @@ test "stage process usage: deterministic deltas, zero and regressions" {
     try std.testing.expectEqual(@as(u64, 2), d.major_faults);
     try std.testing.expectEqual(@as(u64, 7), d.voluntary_switches);
     try std.testing.expectEqual(@as(u64, 9), d.involuntary_switches);
+    try std.testing.expectEqual(@as(u64, 80), d.process_peak_resident_bytes_at_end);
+    try std.testing.expectEqual(@as(u64, 70), delta(a, a).?.process_peak_resident_bytes_at_end);
     try std.testing.expectEqual(@as(f64, 0), delta(a, a).?.user_seconds);
     inline for (std.meta.fields(Snapshot)) |field| {
         var bad = b;
@@ -80,4 +88,5 @@ test "stage process usage: host counters are monotonic without sleeping" {
     const a = read() orelse return error.SkipZigTest;
     const b = read() orelse return error.SkipZigTest;
     try std.testing.expect(delta(a, b) != null);
+    try std.testing.expect(b.peak_resident_bytes != 0);
 }

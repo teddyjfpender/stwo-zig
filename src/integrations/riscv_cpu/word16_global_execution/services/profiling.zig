@@ -1,0 +1,34 @@
+//! Optional observations only. Recorder identity never enters proof authority.
+const std = @import("std");
+const engine = @import("stwo_prover_engine");
+const core = @import("stwo_core");
+const Profile = @import("stwo_prover_api").stage_profile;
+const G = @import("../protocol.zig");
+pub const Options = struct {
+    retained_main: ?*@import("../retained_main_store.zig").Store = null,
+    recorders: []const ?*Profile.Recorder = &.{},
+    directory: ?std.fs.Dir = null,
+    pub fn validate(self: Options, count: usize) !void {
+        if (self.recorders.len != 0 and self.recorders.len != count) return error.InvalidServiceRecorderRoster;
+        if (self.directory != null and self.recorders.len == 0) return error.MissingServiceRecorders;
+    }
+    pub fn recorder(self: Options, index: usize) ?*Profile.Recorder {
+        return if (self.recorders.len == 0) null else self.recorders[index];
+    }
+    pub fn finish(self: Options, a: std.mem.Allocator, index: usize) !void {
+        const dir = self.directory orelse return;
+        const active = self.recorder(index) orelse return;
+        var snapshot = try active.snapshot(a);
+        defer snapshot.deinit(a);
+        const bytes = try std.json.Stringify.valueAlloc(a, snapshot, .{ .whitespace = .indent_2 });
+        defer a.free(bytes);
+        var name: [40]u8 = undefined;
+        const path = try std.fmt.bufPrint(&name, "physical-{d:0>4}.stages.json", .{index});
+        try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, path, bytes);
+    }
+};
+pub fn prove(a: std.mem.Allocator, handles: []const engine.air.component_prover.ComponentProver, channel: *G.T.P.Channel, scheme: G.T.Scheme, recorder: ?*Profile.Recorder) !core.proof.StarkProof(G.T.P.Hasher) {
+    var extended = try engine.prove.proveExWithRecorder(@import("stwo_cpu_backend").CpuBackend, G.T.P.Hasher, G.T.P.MerkleChannel, a, handles, channel, scheme, false, recorder);
+    extended.aux.deinit(a);
+    return extended.proof;
+}

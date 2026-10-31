@@ -52,12 +52,12 @@ pub fn addProduct(context: Context) void {
         .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
         .{ "word16-optional-division", "src/integrations/riscv_cpu/rv64_word16_optional_arithmetic_test_root.zig", 6 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
-        .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 9 },
+        .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 11 },
         .{ "word16-secp-bridge", "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig", 10 },
         .{ "word16-keccak-shared", "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig", 9 },
         .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
         .{ "word16-retained-storage", "src/integrations/riscv_cpu/rv64_word16_retained_storage_test_root.zig", 6 },
-        .{ "word16-ethereum-terminal", "src/integrations/riscv_cpu/rv64_word16_ethereum_terminal_test_root.zig", 3 },
+        .{ "word16-ethereum-terminal", "src/integrations/riscv_cpu/rv64_word16_ethereum_terminal_test_root.zig", 5 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 15 },
         .{ "word16-shift-weighted", "src/integrations/riscv_cpu/rv64_word16_shift_weighted_test_root.zig", 6 },
         .{ "word16-shift-native-fill", "src/integrations/riscv_cpu/rv64_word16_shift_native_fill_test_root.zig", 5 },
@@ -151,6 +151,7 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
         .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
         .{ .name = "rv64-word16-csp", .source = "src/integrations/riscv_cpu/rv64_word16_csp_main.zig" },

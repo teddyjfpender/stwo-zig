@@ -243,6 +243,9 @@ pub const Source = struct {
     pub fn generateForDelegationJoin(self: *Source, ch: P.Draw) !OpenKeccakClaims {
         return .{ .physical = try self.generateInternal(ch, null, .keccak_join) };
     }
+    pub fn generateForDelegationJoinProfiled(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder) !OpenKeccakClaims {
+        return .{ .physical = try self.generateInternal(ch, recorder, .keccak_join) };
+    }
     const Closure = enum { closed, global_ram, keccak_join };
     fn generateInternal(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder, closure: Closure) !P.Claims {
         if (self.claims != null) return error.InvalidWord16ExecutionPhase;

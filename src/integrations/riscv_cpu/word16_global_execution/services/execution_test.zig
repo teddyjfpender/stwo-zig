@@ -144,3 +144,43 @@ test "Combined mapped CPU and all truth MAIN preserve every proof manifest and w
         try std.testing.expectEqual(if (cap == 1) @as(usize, 0) else cpu_bytes, refused.stats().total_bytes);
     }
 }
+test "All physical stage recorders preserve proof authority and retain process usage" {
+    const Profile = @import("stwo_prover_api").stage_profile;
+    var c = try F.Case.init(a);
+    defer c.deinit();
+    var captured = try F.Captured.init(a);
+    defer captured.deinit();
+    var recorders: [5]Profile.Recorder = undefined;
+    var pointers: [5]?*Profile.Recorder = undefined;
+    for (&recorders, &pointers) |*r, *p| {
+        r.* = Profile.Recorder.initWithOptions(a, "rv64", "combined_services", .{ .capture_tasks = false, .capture_process_usage = true });
+        p.* = r;
+    }
+    defer for (&recorders) |*r| r.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var profiled = try E.produceWithOptions(a, &c.keys(), &c.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, c.expected(), .{ .recorders = &pointers, .directory = tmp.dir });
+    defer profiled.deinit(a);
+    try E.verify(a, &c.keys(), &c.truths(), c.expected(), &profiled);
+    try std.testing.expectEqualDeep(c.bundle.manifest.digest, profiled.manifest.digest);
+    for (c.bundle.cpus, profiled.cpus) |x, y| try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+    for (c.bundle.truths, profiled.truths) |x, y| try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+    for (&recorders, 0..) |*r, index| {
+        var snapshot = try r.snapshot(a);
+        defer snapshot.deinit(a);
+        var main_seen = false;
+        var inter_seen = false;
+        for (snapshot.stages) |stage| {
+            if (std.mem.eql(u8, stage.id, "main_commit")) main_seen = true;
+            if (std.mem.eql(u8, stage.id, "interaction_generation")) inter_seen = true;
+            if (@import("builtin").os.tag == .macos or @import("builtin").os.tag == .linux) try std.testing.expect(stage.process_usage != null);
+        }
+        try std.testing.expect(main_seen and inter_seen);
+        var name: [40]u8 = undefined;
+        const path = try std.fmt.bufPrint(&name, "physical-{d:0>4}.stages.json", .{index});
+        const bytes = try tmp.dir.readFileAlloc(a, path, 8 << 20);
+        defer a.free(bytes);
+        try std.testing.expect(std.mem.indexOf(u8, bytes, "process_usage") != null);
+    }
+    try std.testing.expectError(error.InvalidServiceRecorderRoster, (E.ProduceOptions{ .recorders = pointers[0..1] }).validate(5));
+}
