@@ -219,6 +219,11 @@ pub const Source = struct {
     pub fn generateForKeccakJoin(self: *Source, ch: P.Draw) !OpenKeccakClaims {
         return .{ .physical = try self.generateInternal(ch, null, .keccak_join) };
     }
+    /// Same canonical physical debt authority; only a complete typed
+    /// delegation receiver may accept the additional OWNER/range debts.
+    pub fn generateForDelegationJoin(self: *Source, ch: P.Draw) !OpenKeccakClaims {
+        return .{ .physical = try self.generateInternal(ch, null, .keccak_join) };
+    }
     const Closure = enum { closed, global_ram, keccak_join };
     fn generateInternal(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder, closure: Closure) !P.Claims {
         if (self.claims != null) return error.InvalidWord16ExecutionPhase;

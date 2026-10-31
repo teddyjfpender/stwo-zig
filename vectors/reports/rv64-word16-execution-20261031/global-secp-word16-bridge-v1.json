@@ -1,0 +1,200 @@
+{
+  "status": "qualified bounded four-proof CPU / global RAM / secp ADD+DOUBLE RCB prefix",
+  "base_commit": "4fcdb0669b8a392f90e236baad5d7e0bd5a7db45",
+  "protocol": "explicit LE-word secp execution v1; no old/plain/Keccak/BE route activation; every actual CPU/bridge/truth fixed+MAIN root sealed before shared RAM14/Wire35; independent receiver expected context required",
+  "geometry": {
+    "cpu": "canonical nativeS1 core plusADDbridge andDOUBLEbridge; oneCPUproof/shard",
+    "bridge": {
+      "fixed": 8,
+      "main": 134,
+      "interaction": 244,
+      "constraints": 439,
+      "degree": 3,
+      "composition": "native2n/split1",
+      "rows_per_call": {
+        "add": 6,
+        "double": 3
+      },
+      "range16_queries_per_physical_row": 26,
+      "range8_queries_per_physical_row": 73,
+      "inter_breakdown": {
+        "ram4_strictpairs_oneprefix": 20,
+        "owner": 8,
+        "wire_strictpair_clearedprefix": 8,
+        "range16": 56,
+        "range8": 152
+      }
+    },
+    "truth": "independent RCB product andlinear geometries, sharednativeBYTE provider locally; native4n/split2 existingequations unchanged",
+    "truth_widths_fixed_main_inter": {
+      "product": [
+        15,
+        319,
+        384
+      ],
+      "linear": [
+        15,
+        200,
+        176
+      ],
+      "byte": [
+        3,
+        1,
+        8
+      ]
+    },
+    "fixture": "eachtruth plog5/llog5/byte8; bothCPUlog5, bothbridgegeometrieslog5"
+  },
+  "physical_bindings": [
+    "OWNER19 rawECALL63, fulla0PTR,IMM0, exacta7tag20011/20012,C0,epoch16,actualRAMphase4*localinstructiontime24",
+    "oneunitnegativeOWNER percallfirstcoordinate; publicperkind firstID/count spans sumCPUcounts; hostu64callIDs not acceptanceauthority",
+    "32bytealignment, allfourPTR/addresslimbs canonical;4boolcarries bindPTR+32coordinate withoutu64wrap; base32alignment makesbase+8lane canonical/nonwrapping",
+    "4virtual affineRAM28 states reuse strict epoch/tick chronology andRW; allwordsreadable, threeoutputcoords writable; ADDsecondpointreadonly butclockadvances",
+    "32LEbytecoordinate Wire35 unchanged(tagkind,callID,wireID,32bytes); no new field/group formula or oncurve assumption",
+    "strictWiredenominatorpair plusclearedprefix delta*d*e-active*e+active*out*d keepsD3; naivemultiplyinverse intoquadraticweightprefix wouldD4",
+    "separateRAMphysicalclaims anchoredto independentlyvalidated publicINIT/TERM expectedClaim; solefirstINIT/lastTERM; honestledger supplieshintsonly"
+  ],
+  "claims": {
+    "base": "derivedfromcanonicalcoreCLAIM_COUNT whenpresent; fallbackderivesvaluesreturntype forbase4fc (33)",
+    "cpu_extra": 10,
+    "cpu_fixture": 43,
+    "truth_each": 3,
+    "closure": "allCPUphysicalfields transcript-bound beforeintercommit; localCPUclosure removesONLYbaseRAM+bridgeRAM+bridgeWire; aggregateallRAM=0 andallbridgeWire+alltruth3claims=0 afterallSTARKs verify",
+    "future_core": "canonicalP.ramClaim usedwhenpresent soLStailRAM isnotmisclassified aslocaldebt"
+  },
+  "fixture": {
+    "program": [
+      "SDx0,0(a0)",
+      "ECALLADD",
+      "ADDIa7,a7,1",
+      "ECALLDOUBLE"
+    ],
+    "cpu_shards": 2,
+    "instructions": 4,
+    "calls": {
+      "add": 1,
+      "double": 1
+    },
+    "pointer_hex": "0x8000000000000fe0",
+    "touched_words": 24,
+    "actual_ram_updates": 37,
+    "initial": "independentlyknown generator-coordinatepacket, uniformRW3; storechangesthefirstcoordinate, thereforeoncurvevalidity isnotassumed",
+    "terminal": "authenticatedpublicprefixboundary, notexternalhalt/outputcertificate",
+    "capture": "manuallycaptured CompactTapeadvice; noVMreexecution orsoftwareGuestthroughputclaim"
+  },
+  "gates": {
+    "safe": "final10runtimePASS",
+    "fast": "final10runtimePASS",
+    "source": "owned/borrowedMAIN identical, mainreleased beforeinteractions identical; empty/one/two/padding; allSource allocationfailures balanced, strictWirepole retry preservesmetadata",
+    "polynomial": "allnative439residuals zero, everyPackedBase16lane equals scalarQresidual order; densearbitraryQMsamples havezero4thdifference/nonzero3rd; source-degreeaudit andactualnative2n quotient/OODS proof",
+    "actual_fourproofs": "honestfresh independentsetups PASS; falseoutput andfalseepoch0predecessor withrecomputedvalidDOUBLE yieldvalidlocalproofs butrejectWire/RAM aggregate",
+    "owner_attacks": "actualvalidphysicalproofs withsubstitutedPTR orservicekind rejectlocalOWNERdebt",
+    "manifest_attacks": "coherentlyresealedwrongtruthMAINroot, missinginventory, swappedtypedtruth, globallybalancedclaimchanges reject",
+    "process": "produceinternallyverifies thennewprocessreconstructs expectedprogram/image/regs/allkeys andverifies; worker1and16 bothPASS andallcompleteartifacts EXACT",
+    "old_route": "plainandKeccakNativeconstructorsexplicitlyrejectSecp; existingKshared9Fast andcurrentfreshKreceiverPASS",
+    "old_k_byteparity": "no claim againstobsolete516artifacts: parentd1e LSencoding intentionallychangedbetween516andbase4fc. CurrentKcontrolretainedseparately; secpslice changesnooldAIR/formula/layout/FSauthority"
+  },
+  "artifacts": {
+    "add.bin": {
+      "bytes": 360180,
+      "sha256": "f899d800a527cfc78f97e4c77cedd1f9fc55dfe0d2ea900bce6cb992dd0f43b0"
+    },
+    "cpu0.bin": {
+      "bytes": 1166864,
+      "sha256": "62aebfb1ae87f7461aa6efcbddfb3f70a32c023c6747e0a57383669dba41dee2"
+    },
+    "cpu1.bin": {
+      "bytes": 1163552,
+      "sha256": "5ea570b5ff51919c5999691ab65f3775bf3b3386e49f06db09af1caed65f2211"
+    },
+    "double.bin": {
+      "bytes": 355168,
+      "sha256": "d34bb522ce0a98ec44d5431e8501423feab4b8e6d650c541a87276a2fac76722"
+    },
+    "metadata.json": {
+      "bytes": 54999,
+      "sha256": "cc5fddeaffebbeea450fb8017c15dc57f38e11b76cb5591d70423f266c6f82e4"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-global-secp-v1",
+  "total_proof_bytes": 3045764,
+  "tool": {
+    "bytes": 4319376,
+    "sha256": "45f37690274439e085c5d7aa5424a5ee115e558016e6e6135af4da274272cf6b"
+  },
+  "cost": {
+    "fixture_physical_bridge_rows": 128,
+    "fixture_active_coordinate_rows": 9,
+    "bridge_native_cells_fixed_main_inter": [
+      1024,
+      17152,
+      31232
+    ],
+    "two_truth_native_cells_fixed_main_inter": [
+      3456,
+      33728,
+      39936
+    ],
+    "bridge_oods_samples_each": 416,
+    "truth_oods_samples_each": 1137,
+    "oods_basis": "actualcomponentmask shapes: bridge8+134+10prev+244+20prev; RCBproduct15+319+2prev+384+4prev,linear15+200+2prev+176+4prev,BYTE3+1+8+4prev",
+    "cell_basis": "widthtimesnativeheight; botharithmeticroleslog5 andBYTElog8; excludes reusedCPUcore. No commonheight replay/compressiontax assumed.",
+    "setup": "immutablefixedtree cached perprogram+declaredgeometry, requestcount/IO remainMAIN/publicFS; truthsource currentlytemporarily builds itsown15colfixedmatrices thenaliasesexpectedsetup, notanadditionalretainedfixedtree",
+    "memory": "narrowcopyofpackets+predecessors survivesMAINrelease; RCBlookupbytes metadata surviveswithoutgroupreexecution; centralharness stillretainsmultiplePCSowners",
+    "performance": "None. Tinyheavilypadded fixture isnot realpacket/block/RSS/devicefit evidence."
+  },
+  "admission": {
+    "global_ram": "2*LS +48*ADD+24*DOUBLE +bothboundarycounts <M31; actualfixture122terms",
+    "wire": "allRCBweightedwireevents plus(inputs+3)*calls acrossbothkind truthsandbridges <M31",
+    "range": "allpadded localCPU+bridgeU16/U8 masses <M31; localtruthBYTEtotal boundedwithS.layout.admitRoster",
+    "security": "q70/P26/blowup1 nominalconfiguration96; wholeprotocolbits unestablished afterforeignpolynomial/rationaldegree/mass/union accounting; no parameterlowering"
+  },
+  "limits": [
+    "newexplicitacceptingprefix only, not fullEthereum/halt/output/recursion certification",
+    "onlyLEwordtags20011/12; oldBEcontrolunchanged",
+    "RCBformula truthnot an ECDSAvalidity acceptbit; no addedcurve/infinity claim",
+    "oneADDtruth+oneDOUBLEtruth; boundedpluralSecptruth andcombinedK+Secp serviceexecution remainfuturequalifiedwork",
+    "no scalablemultiworkerprocess/spill/devicebudget fromboundedcentralharness"
+  ],
+  "independent_review": "Byte agent read-only equations/protocol review found no concrete blocker inRAMclock/permission/address/OWNER/Wiredegree/manifest/claim/mass paths. Manual review, not formal proof.",
+  "source_sha256": {
+    "build_support/products/catalog.zig": "d37a7730e544789492207434d09536d7bbce87a9c26bc8454d6ac8db15b0cb00",
+    "build_support/products/riscv_cpu.zig": "a290c2cf3cb3ef477e6ea9c0969c7a2e15fb9e0aca9df7b8c243754ed13ae28c",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/mod.zig": "7048441d46a711390610a71cfd9de3ac871459f8c36c5b69e95c45aa96265d79",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/component.zig": "e8415b132101336f6d64820c3eeb9773b488c816ff5cb54271961c7a2f206286",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/equations.zig": "696e78ecd4f4afb0821849a0c7825c6bf82c6da776c97679f44de3e23f49086b",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/interaction.zig": "fc06dc662e8b718cbeabcd60dcdff724bb0054ff488fe612b0e7f64c40eee8d2",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/layout.zig": "5fc03f24caa306b24fc7875b4e2af595f4c850e92bf1e597da93ddbda1441072",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/packed_rows.zig": "757f212cb01cfc5708bd84de52cbd1d8bbf585d4fbd10ad0833e87f41478d7e6",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/source.zig": "aa64b585d63af0ee5df7c422d61d3b7fa78b5701b072b34602cabd7a8109825c",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/types.zig": "c9ae1f3ec58b9fbc68ea376813fa44ac4bdd5b00206bc889023f2c6cc7727e33",
+    "src/integrations/riscv_cpu/rv64_word16_global_secp_fixture_main.zig": "671dc0646f00ee75c8e5dd3e95c83fe0099cb0ce41582a30da602a7b8f500622",
+    "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig": "69d401f7763ce3f5fc7093cc706755156bd6f9f2021cf18debf7a99b7ed96206",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "1a2279a354042230a0d03a7531acb0d5b08a3d182d2b78f72ec6f7e77ab5be0f",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "b19444ddb17670354456c9f9fc3b3b0eb3cc94c79981cd0b1e69443c8821a446",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/README.md": "50b0ff95020b653c1ee23ef83e59844b5478cb51c87cd59cc805b42e53beb72d",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/bridge_test.zig": "c8d9334577e847bbe92310a6d07820cb3ba555bfe2f1f92d3df84755e67c0b49",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/collector.zig": "b68aa46fe711af13588a62dba3239abf17401717257513738b3a82275ef0355a",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/execution.zig": "b54dd339ca8214325a37e1835ba47a1ad7ef2db426a851477bff3cdf2e0ea624",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/execution_test.zig": "4613d504cd91c98dfd0975dcb809d34ac076918ed51dd77bb5b2f841de95f86b",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/fixture.zig": "74d70e9f6fdc78f1c9c66ee17de94fa71c00107326b52782fa8dc4a209fb77b5",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/fixture_main.zig": "7869a3c2a1db969758340663d37d14ae78bc032e181f7f9f13684f9ee53a7288",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/protocol.zig": "1a0f88ab2a48fa59434ae35f248ca86f048c63c4205d8accb3d1c30a0f01eef7",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/roster.zig": "23d5ff7ac20c4a1ff099a575166e03773b158e696aad17b7bed6e3ed2a6f64d8"
+  },
+  "unchanged_arithmetic_sha256": {
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/program.zig": "7b17273c23b647d66d3fc5afd07f77ce35b1a50c0eafdfa9d9c44eafb63c9b4d",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/layout.zig": "a26931d3420dec68e2b2b9bb49d9a74d19dbc8ac1b248a45e1e114e60541af22",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/equations.zig": "17217b6f0630c48186f70af69e16047bafecdf74ee8ebd5aeb9f37d005128f3a",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/batch.zig": "f580e4f5e24ec8a1d3a7d4cf6993268eb280c0db0ce28daa5ea67daf62e2b148",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/trace.zig": "72461ead9834eafbd8347d5e154e6520f38ebf1700028d436cdeb17cb7d8bc95",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/component.zig": "1aa65bee32cab15b64f7154960c373b5cd9dfce4ba05cfea5ceb5beac1e0e07d",
+    "src/frontends/riscv/rv64/ethereum_services/secp256k1.zig": "86fc8f2809092a3fea400b0178479d0f61d8ff79eb3685df2ce5e1a03e3fe4d7"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-word16-secp-joined-final-safe.log",
+    "fast": "/tmp/rv64-word16-secp-joined-final-fast.log",
+    "tools": "/tmp/rv64-word16-secp-joined-tools.log",
+    "legacy_k": "/tmp/rv64-word16-secp-bridge-fast.log"
+  }
+}

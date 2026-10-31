@@ -46,19 +46,37 @@ pub const Prepared = struct {
         try result.ensureCpuMain(program, cpu_log);
         return result;
     }
+    /// Explicit LE-word secp witness route; acceptance belongs only to the
+    /// complete OWNER/RAM/Wire35 service coordinator, never the old receiver.
+    pub fn initForSecp(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        var result = try captureForSecp(a, program, public, epoch, cpu_log, tape, options);
+        errdefer result.deinit();
+        try result.ensureCpuMain(program, cpu_log);
+        return result;
+    }
     /// Geometry/grouping ready without CPU MAIN. JALR retains its existing
     /// independently sized witness; this does not claim all providers narrow.
     pub fn capture(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        return captureInternal(a, program, public, epoch, cpu_log, tape, options, false);
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .none);
     }
     pub fn captureForKeccak(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
-        return captureInternal(a, program, public, epoch, cpu_log, tape, options, true);
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .keccak);
     }
-    fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, allow_keccak: bool) !Prepared {
+    pub fn captureForSecp(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .secp_words);
+    }
+    const Service = enum { none, keccak, secp_words };
+    fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, service: Service) !Prepared {
         var cpu = try CPU.Source.capture(a, program, public, epoch, cpu_log, tape);
         errdefer cpu.deinit();
-        if (!allow_keccak and cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
-        for (cpu.services.items) |call| if (call.tag != 0x10001) return error.UnqualifiedWord16ServiceOwners;
+        for (cpu.services.items) |call| {
+            const valid = switch (service) {
+                .none => false,
+                .keccak => call.tag == 0x10001,
+                .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
+            };
+            if (!valid) return error.UnqualifiedWord16ServiceOwners;
+        }
         var af: std.ArrayList(B.operations.AluFact) = .empty;
         defer af.deinit(a);
         var bf: std.ArrayList(Binary.Fact) = .empty;
