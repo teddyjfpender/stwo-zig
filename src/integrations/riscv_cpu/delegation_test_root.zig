@@ -1,6 +1,7 @@
 //! Package-root ownership for a registered nested delegation test suite.
 test {
     switch (@import("delegation_entry").id) {
+        .keccak_pair2n_test => _ = @import("delegations/keccak/pair2n_test_root.zig"),
         .keccak_test => _ = @import("delegations/keccak/test_root.zig"),
         .keccak_cpu_test => _ = @import("delegations/keccak/cpu_test_root.zig"),
         .keccak_quartet_test => _ = @import("delegations/keccak/quartet_test_root.zig"),

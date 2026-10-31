@@ -18,3 +18,6 @@ pub const cpu_bus = @import("cpu_bus.zig");
 pub const quartet_component = @import("quartet_component.zig");
 
 pub const word16_bridge = @import("word16_bridge/mod.zig");
+
+/// Explicit standalone prototype; no default or shared-services activation.
+pub const pair2n = @import("pair2n/mod.zig");

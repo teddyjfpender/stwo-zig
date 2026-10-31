@@ -3,11 +3,13 @@
 //! only already-registered source files and never accepts a caller-supplied path.
 const std = @import("std");
 pub const Kind = enum { test_root, cli };
-pub const Id = enum { keccak_test, keccak_cpu_test, keccak_quartet_test, secp_test, division_test, division_degree3_test, division_degree3_fixture, multiplication_test, multiplication_degree3_test, multiplication_degree3_fixture, borrowed_test, keccak_fixture, keccak_verify, secp_fixture, division_verify, multiplication_verify };
+pub const Id = enum { keccak_test, keccak_cpu_test, keccak_quartet_test, keccak_pair2n_test, secp_test, division_test, division_degree3_test, division_degree3_fixture, multiplication_test, multiplication_degree3_test, multiplication_degree3_fixture, borrowed_test, keccak_fixture, keccak_verify, secp_fixture, division_verify, multiplication_verify, keccak_pair2n_fixture };
 pub const Selection = struct { root: []const u8, id: Id };
 const PREFIX = "src/integrations/riscv_cpu/";
 const Entry = struct { path: []const u8, kind: Kind, id: Id };
 const entries = [_]Entry{
+    .{ .path = "delegations/keccak/pair2n_main.zig", .kind = .cli, .id = .keccak_pair2n_fixture },
+    .{ .path = "delegations/keccak/pair2n_test_root.zig", .kind = .test_root, .id = .keccak_pair2n_test },
     .{ .path = "delegations/keccak/test_root.zig", .kind = .test_root, .id = .keccak_test },
     .{ .path = "delegations/keccak/cpu_test_root.zig", .kind = .test_root, .id = .keccak_cpu_test },
     .{ .path = "delegations/keccak/quartet_test_root.zig", .kind = .test_root, .id = .keccak_quartet_test },

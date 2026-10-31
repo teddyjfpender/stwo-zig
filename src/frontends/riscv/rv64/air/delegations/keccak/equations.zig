@@ -68,10 +68,10 @@ pub fn ioTupleFor(comptime F: type, row: RowFor(F), lane: usize) [L.IO_ARITY]F {
     var tuple: [L.IO_ARITY]F = undefined;
     tuple[0] = row.main[L.BASE_ID].add(row.fixed[1]).add(row.fixed[28]);
     tuple[1] = row.fixed[27].add(row.fixed[28]);
-    tuple[2] = V.qFor(F, @intCast(lane));
+    tuple[2] = if (F == M) M.fromCanonical(@intCast(lane)) else V.qFor(F, @intCast(lane));
     for (0..8) |byte| {
         var value = F.zero();
-        for (0..8) |bit| value = value.add(row.main[64 * lane + 8 * byte + bit].mul(V.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
+        for (0..8) |bit| value = value.add(row.main[64 * lane + 8 * byte + bit].mul(if (F == M) M.fromCanonical(@as(u32, 1) << @as(u5, @intCast(bit))) else V.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
         tuple[3 + byte] = value;
     }
     return tuple;
@@ -105,41 +105,7 @@ pub fn emitForPolicy(comptime F: type, policy: BatchPolicy, row: RowFor(F), inte
     }
 }
 pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), interaction: []const V.SecureFor(F), previous_final: V.SecureFor(F), claim: V.ConstFor(F), ch: ChallengesFor(V.ConstFor(F)), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype) void {
-    const active = row.main[L.ACTIVE_A];
-    const second = row.main[L.ACTIVE_B];
-    const id = row.main[L.BASE_ID];
-    const previous_active = row.previous_header[0];
-    const previous_second = row.previous_header[1];
-    const previous_id = row.previous_header[2];
-    const phase_first = row.fixed[0];
-    const continuation = F.one().sub(phase_first);
-    const first_id = V.firstIdFor(F, public);
-    const last_id = V.lastIdFor(F, public);
-    sink.emit(active.mul(active.sub(F.one())));
-    sink.emit(second.mul(second.sub(F.one())));
-    sink.emit(second.mul(F.one().sub(active)));
-    sink.emit(F.one().sub(row.fixed[L.COMPLETE_SLOT]).mul(active));
-    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.nonemptyFor(F, public))));
-    sink.emit(continuation.mul(active.sub(previous_active)));
-    sink.emit(continuation.mul(second.sub(previous_second)));
-    sink.emit(continuation.mul(id.sub(previous_id)));
-    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(F.one().sub(previous_active)).mul(active));
-    sink.emit(phase_first.mul(active).mul(previous_active.sub(previous_second)));
-    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(previous_active.sub(active)).mul(previous_id.add(previous_second).sub(last_id)));
-    sink.emit(active.mul(id.sub(first_id).sub(row.fixed[L.SLOT_INDEX].mul(V.qFor(F, 2)))));
-    sink.emit(F.one().sub(active).mul(id));
-    const boundary = row.fixed[0].add(row.fixed[1]).add(row.fixed[27]).add(row.fixed[28]);
-    for (0..L.STATE) |i| {
-        const v = row.main[i];
-        sink.emit(boundary.mul(active).mul(v.mul(F.one().sub(v))));
-        const input = v.sub(row.state_minus_two[i]).sub(row.state_minus_one[i].mul(V.qFor(F, 8)));
-        const output = v.sub(row.state_plus_one[i]).sub(row.state_plus_two[i].mul(V.qFor(F, 8)));
-        sink.emit(row.fixed[2].mul(input).add(row.fixed[26].mul(output)));
-    }
-    const parity_zero = boundary.add(row.fixed[26]);
-    for (row.main[L.STATE..L.ACTIVE_A]) |v| sink.emit(parity_zero.mul(v));
-    const padding = F.one().sub(active);
-    for (row.main[0..L.ACTIVE_A]) |v| sink.emit(padding.mul(v));
+    emitDirectFor(F, row, public, sink, true);
     if (comptime width == 3) {
         const coefficient = roundActiveFor(F, row).neg();
         for (0..L.LOOKUPS / 3) |batch| {
@@ -182,6 +148,47 @@ pub fn emitForBatch(comptime F: type, comptime width: usize, row: RowFor(F), int
             sink.emit(clearQuartetFor(F, false, d, c, interaction[batch].sub(interaction[batch - 1])));
         }
     }
+}
+
+/// Shared direct permutation authority. Legacy retains its exact degree-four
+/// active boundary bit gate. The explicit pair2n authority removes that factor:
+/// inactive state bits are already zero by the unchanged padding equations.
+pub fn emitDirectFor(comptime F: type, row: RowFor(F), public: V.CallSpanFor(V.ConstFor(F)), sink: anytype, comptime active_bit_gate: bool) void {
+    const active = row.main[L.ACTIVE_A];
+    const second = row.main[L.ACTIVE_B];
+    const id = row.main[L.BASE_ID];
+    const previous_active = row.previous_header[0];
+    const previous_second = row.previous_header[1];
+    const previous_id = row.previous_header[2];
+    const phase_first = row.fixed[0];
+    const continuation = F.one().sub(phase_first);
+    const first_id = V.firstIdFor(F, public);
+    const last_id = V.lastIdFor(F, public);
+    sink.emit(active.mul(active.sub(F.one())));
+    sink.emit(second.mul(second.sub(F.one())));
+    sink.emit(second.mul(F.one().sub(active)));
+    sink.emit(F.one().sub(row.fixed[L.COMPLETE_SLOT]).mul(active));
+    sink.emit(row.fixed[L.FIRST].mul(active.sub(V.nonemptyFor(F, public))));
+    sink.emit(continuation.mul(active.sub(previous_active)));
+    sink.emit(continuation.mul(second.sub(previous_second)));
+    sink.emit(continuation.mul(id.sub(previous_id)));
+    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(F.one().sub(previous_active)).mul(active));
+    sink.emit(phase_first.mul(active).mul(previous_active.sub(previous_second)));
+    sink.emit(phase_first.sub(row.fixed[L.FIRST]).mul(previous_active.sub(active)).mul(previous_id.add(previous_second).sub(last_id)));
+    sink.emit(active.mul(id.sub(first_id).sub(row.fixed[L.SLOT_INDEX].mul(V.qFor(F, 2)))));
+    sink.emit(F.one().sub(active).mul(id));
+    const boundary = row.fixed[0].add(row.fixed[1]).add(row.fixed[27]).add(row.fixed[28]);
+    for (0..L.STATE) |i| {
+        const v = row.main[i];
+        sink.emit((if (active_bit_gate) boundary.mul(active) else boundary).mul(v.mul(F.one().sub(v))));
+        const input = v.sub(row.state_minus_two[i]).sub(row.state_minus_one[i].mul(V.qFor(F, 8)));
+        const output = v.sub(row.state_plus_one[i]).sub(row.state_plus_two[i].mul(V.qFor(F, 8)));
+        sink.emit(row.fixed[2].mul(input).add(row.fixed[26].mul(output)));
+    }
+    const parity_zero = boundary.add(row.fixed[26]);
+    for (row.main[L.STATE..L.ACTIVE_A]) |v| sink.emit(parity_zero.mul(v));
+    const padding = F.one().sub(active);
+    for (row.main[0..L.ACTIVE_A]) |v| sink.emit(padding.mul(v));
 }
 
 /// One quartet polynomial, including distinct IO weights and dummy entries.

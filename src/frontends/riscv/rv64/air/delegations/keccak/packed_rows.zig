@@ -65,24 +65,24 @@ pub fn evaluate(component: *const C.Parameters, evaluation: *const Eval, part: u
         accumulate(output, evaluation.globalRow(part, begin), count, accumulator.accumulation.mulBase(F.splat(inverse)));
     }
 }
-fn load(column: []const M, start: usize, count: usize) F {
+pub fn load(column: []const M, start: usize, count: usize) F {
     if (count == LANES) return F.load(column.ptr + start);
     var values: [LANES]M = @splat(M.zero());
     @memcpy(values[0..count], column[start..][0..count]);
     return F.fromLanes(values);
 }
-fn gather(column: []const M, indices: []const usize) F {
+pub fn gather(column: []const M, indices: []const usize) F {
     var values: [LANES]M = @splat(M.zero());
     for (indices, 0..) |index, i| values[i] = column[index];
     return F.fromLanes(values);
 }
-fn loadSecure(columns: []const []const M, start: usize, count: usize) S {
+pub fn loadSecure(columns: []const []const M, start: usize, count: usize) S {
     return S.fromCoordinates(.{ load(columns[0], start, count), load(columns[1], start, count), load(columns[2], start, count), load(columns[3], start, count) });
 }
-fn gatherSecure(columns: []const []const M, indices: []const usize) S {
+pub fn gatherSecure(columns: []const []const M, indices: []const usize) S {
     return S.fromCoordinates(.{ gather(columns[0], indices), gather(columns[1], indices), gather(columns[2], indices), gather(columns[3], indices) });
 }
-fn accumulate(output: *Column, start: usize, count: usize, value: S) void {
+pub fn accumulate(output: *Column, start: usize, count: usize, value: S) void {
     const coordinates = value.coordinates();
     if (output.next_fresh_index) |next| {
         if (next == start) {
