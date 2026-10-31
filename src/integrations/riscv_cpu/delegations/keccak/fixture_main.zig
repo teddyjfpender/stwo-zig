@@ -1,8 +1,8 @@
 //! Durable primitive proof qualification; not a CPU/RAM execution proof.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const fixture = @import("tests/rv64_keccak_proof_test.zig");
-const bridge = @import("tests/rv64_keccak_bridge_proof_test.zig");
+const fixture = @import("../../tests/rv64_keccak_proof_test.zig");
+const bridge = @import("../../tests/rv64_keccak_bridge_proof_test.zig");
 pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);

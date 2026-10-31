@@ -8,7 +8,7 @@ const P = S.program;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const physical = rv.witness.physical;
-const F = @import("../crypto/secp_fixture.zig");
+const F = @import("../delegations/secp256k1/fixture.zig");
 fn challenges() S.equations.Challenges {
     var channel = core.channel.blake2s.Blake2sChannel{};
     channel.mixU32s(&.{ 0x53544553, 23 });

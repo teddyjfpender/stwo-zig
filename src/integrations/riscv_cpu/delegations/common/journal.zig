@@ -4,7 +4,7 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const rv = frontend.rv64_air;
 const execution = frontend.rv64;
-const S = @import("rv64_full_statement.zig");
+const S = @import("../../rv64_full_statement.zig");
 const BridgeCall = rv.crypto.keccak.bridge.trace.Call;
 const Q = @import("stwo_core").fields.qm31.QM31;
 pub fn merge(call: execution.services.Call, record: execution.machine.Retirement, first_id: u32, ordinal: usize, statement: S.Statement, values: []u64, clocks: []u32) !BridgeCall {

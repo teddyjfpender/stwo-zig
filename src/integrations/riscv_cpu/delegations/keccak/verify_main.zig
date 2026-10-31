@@ -1,6 +1,6 @@
 //! Fresh receiver for the versioned CPU+Keccak+DIV service profile.
 const std = @import("std");
-const lean = @import("rv64_keccak_cpu.zig");
+const lean = @import("../../rv64_keccak_cpu.zig");
 const wire = @import("stwo_proof_wire");
 pub fn main() !void {
     const a = std.heap.smp_allocator;

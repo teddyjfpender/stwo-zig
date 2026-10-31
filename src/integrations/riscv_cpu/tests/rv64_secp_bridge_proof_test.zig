@@ -8,8 +8,8 @@ const L = Bridge.layout;
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 const physical = rv.witness.physical;
-const F = @import("../crypto/secp_fixture.zig");
-const fixture = @import("../crypto/secp_bridge_fixture.zig");
+const F = @import("../delegations/secp256k1/fixture.zig");
+const fixture = @import("../delegations/secp256k1/bridge_fixture.zig");
 const makeCalls = fixture.makeCalls;
 fn challenges() Bridge.equations.Challenges {
     var channel = core.channel.blake2s.Blake2sChannel{};

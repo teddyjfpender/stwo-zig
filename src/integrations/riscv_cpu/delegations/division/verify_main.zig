@@ -1,7 +1,7 @@
 //! Fresh standalone arithmetic receiver; never executes native DIV/REM.
 const std = @import("std");
 const D = @import("stwo_riscv_frontend").rv64_air.arithmetic.division;
-const native = @import("rv64_division_native.zig");
+const native = @import("native.zig");
 const wire = @import("stwo_proof_wire");
 pub fn main() !void {
     const a = std.heap.smp_allocator;

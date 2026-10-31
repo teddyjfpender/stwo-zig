@@ -4,10 +4,10 @@ const core = @import("stwo_core");
 const rv = @import("stwo_riscv_frontend").rv64_air;
 const M = core.fields.m31.M31;
 const Arena = @import("../rv64_main_arena.zig");
-const K = @import("../rv64_keccak_sources.zig");
-const S = @import("../rv64_secp_sources.zig");
+const K = @import("../delegations/keccak/sources.zig");
+const S = @import("../delegations/secp256k1/sources.zig");
 const KF = @import("rv64_keccak_proof_test.zig");
-const SF = @import("../crypto/secp_bridge_fixture.zig");
+const SF = @import("../delegations/secp256k1/bridge_fixture.zig");
 const a = std.testing.allocator;
 fn kCalls() [3]rv.crypto.keccak.bridge.trace.Call {
     var result: [3]rv.crypto.keccak.bridge.trace.Call = undefined;
@@ -166,7 +166,7 @@ test "borrowed crypto rejects wrong lengths overlapping roles or fixed input bef
 }
 
 test "secp two-kind context rejects cross-kind aliases before writes and preserves global counts and claims" {
-    const Context = @import("../rv64_ethereum_secp_context.zig");
+    const Context = @import("../delegations/secp256k1/context.zig");
     const meta = Context.Metadata{ .add = .{ .roster = .present, .calls = 1, .geometry = sg }, .double = .{ .roster = .present, .calls = 1, .geometry = sg } };
     var material = try Context.Materials.init(a, meta);
     defer material.deinit();

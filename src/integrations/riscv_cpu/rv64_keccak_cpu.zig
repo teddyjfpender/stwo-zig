@@ -14,14 +14,14 @@ const D = rv.arithmetic.division;
 const Mul = rv.arithmetic.multiplication;
 const K = rv.crypto.keccak;
 const Bridge = K.bridge;
-const Sources = @import("rv64_keccak_sources.zig");
-const SecpCtx = @import("rv64_ethereum_secp_context.zig");
+const Sources = @import("delegations/keccak/sources.zig");
+const SecpCtx = @import("delegations/secp256k1/context.zig");
 const Secp = rv.crypto.secp256k1;
 pub const MAX_COMPONENTS = 17;
 pub const Roster = Sources.Roster;
 pub const ArithmeticRoster = enum(u32) { none = 0, present = 1 };
-pub const BorrowedArithmetic = @import("rv64_borrowed_services.zig").Arithmetic;
-pub const BorrowedMain = @import("rv64_borrowed_services.zig").Main;
+pub const BorrowedArithmetic = @import("delegations/common/borrowed.zig").Arithmetic;
+pub const BorrowedMain = @import("delegations/common/borrowed.zig").Main;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Column = engine.pcs.ColumnEvaluation;
@@ -720,7 +720,7 @@ fn mainColumns(a: std.mem.Allocator, trace: *const Trace, providers: []const Col
 /// Concrete plumbing for the authenticated-RAM caller. No aggregate closure is
 /// hidden here: the outer caller adds typed RAM effects and checks registers.
 pub const Support = struct {
-    pub const ProvingSources = @import("rv64_service_proving_sources.zig").ProvingSources;
+    pub const ProvingSources = @import("delegations/common/proving_sources.zig").ProvingSources;
     pub const MAX_COMPONENTS = This.MAX_COMPONENTS;
     pub const SecpContext = SecpCtx;
     pub const Challenges = This.Challenges;

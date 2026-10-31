@@ -49,7 +49,7 @@ fn prove(a: std.mem.Allocator, owner: *const A.Prepared, public: A.Public, trace
     defer a.free(original_div_main);
     var original_mul_main = if (diagnostics.arithmetic and trace.multiplication != null) try a.dupe(A.core.fields.m31.M31, trace.multiplication.?.main) else &.{};
     defer a.free(original_mul_main);
-    const KDiagnostic = @import("rv64_keccak_native_diagnostic.zig");
+    const KDiagnostic = @import("delegations/keccak/native.zig");
     var kdiag: ?KDiagnostic.Snapshot = if (diagnostics.crypto and trace.crypto != null) try KDiagnostic.Snapshot.init(a, &trace.crypto.?) else null;
     defer if (kdiag) |*value| value.deinit();
     var original_ram_provider = if (diagnostics.ram and source != null) try a.dupe(A.core.fields.m31.M31, source.?.provider_main) else &.{};
@@ -153,7 +153,7 @@ fn prove(a: std.mem.Allocator, owner: *const A.Prepared, public: A.Public, trace
         original_ram_provider = &.{};
     };
     if (diagnostics.arithmetic) {
-        const Diag = @import("rv64_arithmetic_diagnostic.zig");
+        const Diag = @import("delegations/common/arithmetic_diagnostic.zig");
         const div_failure = if (trace.division) |*value| try Diag.division(value, original_div_main, ch.cpu.division, claims.cpu.division.neg()) else null;
         const mul_failure = if (trace.multiplication) |*value| try Diag.multiplication(value, original_mul_main, ch.cpu.multiplication.?, ch.cpu.cpu.bytes, claims.cpu.multiplication_provider) else null;
         const json = try std.json.Stringify.valueAlloc(a, .{ .division = div_failure, .multiplication = mul_failure }, .{});

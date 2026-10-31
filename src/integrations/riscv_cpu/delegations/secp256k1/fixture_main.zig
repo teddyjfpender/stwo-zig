@@ -1,8 +1,8 @@
 //! Durable projective arithmetic control, not a CPU/RAM service proof.
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
-const fixture = @import("crypto/secp_fixture.zig");
-const bridge = @import("crypto/secp_bridge_fixture.zig");
+const fixture = @import("fixture.zig");
+const bridge = @import("bridge_fixture.zig");
 const Kind = @import("stwo_riscv_frontend").rv64_air.crypto.secp256k1.program.Kind;
 pub fn main() !void {
     const a = std.heap.smp_allocator;

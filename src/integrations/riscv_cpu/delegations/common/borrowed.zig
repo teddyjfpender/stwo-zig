@@ -3,10 +3,10 @@
 const std = @import("std");
 const M = @import("stwo_core").fields.m31.M31;
 const air = @import("stwo_riscv_frontend").rv64_air;
-const C = @import("rv64_keccak_cpu.zig");
-const Full = @import("rv64_full.zig");
-const K = @import("rv64_keccak_sources.zig");
-const S = @import("rv64_ethereum_secp_context.zig");
+const C = @import("../../rv64_keccak_cpu.zig");
+const Full = @import("../../rv64_full.zig");
+const K = @import("../keccak/sources.zig");
+const S = @import("../secp256k1/context.zig");
 const Storage = air.crypto.main_storage;
 pub const Arithmetic = struct { division: ?[]M = null, multiplication: ?[]M = null };
 pub const Main = struct {

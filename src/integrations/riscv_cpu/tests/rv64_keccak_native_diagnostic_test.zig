@@ -2,8 +2,8 @@ const std = @import("std");
 const core = @import("stwo_core");
 const rv = @import("stwo_riscv_frontend").rv64_air;
 const K = rv.crypto.keccak;
-const S = @import("../rv64_keccak_sources.zig");
-const D = @import("../rv64_keccak_native_diagnostic.zig");
+const S = @import("../delegations/keccak/sources.zig");
+const D = @import("../delegations/keccak/native.zig");
 const F = @import("rv64_keccak_proof_test.zig");
 const M = core.fields.m31.M31;
 fn call() K.bridge.trace.Call {

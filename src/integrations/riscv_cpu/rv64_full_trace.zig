@@ -21,7 +21,7 @@ const ByteCpu = rv.range.cpu;
 const TableCpu = rv.range.table_cpu;
 const S = @import("rv64_full_statement.zig");
 const work = engine.work_pool;
-const service_journal = @import("rv64_service_journal.zig");
+const service_journal = @import("delegations/common/journal.zig");
 const Retirements = @import("rv64_retirements.zig").Source;
 const MIN_PROJECTION_STACK = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 const MIN_ROWS_PER_WORKER = if (@import("builtin").is_test) 64 else 8192;

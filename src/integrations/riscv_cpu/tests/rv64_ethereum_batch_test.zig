@@ -124,7 +124,7 @@ test "Ethereum batch omits empty RAM and crypto rosters without synthetic openin
     try std.testing.expectEqual(@import("../rv64_keccak_cpu.zig").Roster.none, result.public.roster);
     try std.testing.expectEqual(@import("../rv64_keccak_cpu.zig").ArithmeticRoster.none, result.public.division_roster);
     try std.testing.expectEqual(@import("../rv64_keccak_cpu.zig").ArithmeticRoster.none, result.public.multiplication_roster);
-    try std.testing.expectEqual(@import("../rv64_ethereum_secp_context.zig").Roster.none, result.public.secp.add.roster);
+    try std.testing.expectEqual(@import("../delegations/secp256k1/context.zig").Roster.none, result.public.secp.add.roster);
     tape.initial_clock += 1;
     try std.testing.expectError(error.InvalidEthereumBatchSeed, batch.finish(a, &cpu, &memory, &policy, .chunk512));
     try std.testing.expectError(error.InvalidEthereumBatchSeed, batch.observe(record));

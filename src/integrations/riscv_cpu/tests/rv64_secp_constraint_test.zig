@@ -6,7 +6,7 @@ const L = S.layout;
 const P = S.program;
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
-const F = @import("../crypto/secp_fixture.zig");
+const F = @import("../delegations/secp256k1/fixture.zig");
 const physical = rv.witness.physical;
 const Snapshot = struct {
     fixed: [L.FIXED]Q,

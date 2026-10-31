@@ -1,6 +1,6 @@
 //! Fresh receiver for the standalone typed MUL/BYTE provider profile.
 const std = @import("std");
-const native = @import("rv64_multiplication_native.zig");
+const native = @import("native.zig");
 const wire = @import("stwo_proof_wire");
 pub fn main() !void {
     const a = std.heap.smp_allocator;

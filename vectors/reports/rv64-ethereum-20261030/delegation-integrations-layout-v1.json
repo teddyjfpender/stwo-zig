@@ -1,0 +1,441 @@
+{
+  "schema": "rv64-delegation-integrations-layout-v1",
+  "base_commit": "80bbbb578a2adacd45cee69fe0349cf777fb22aa",
+  "qualified_family_slice": true,
+  "scope": "24 existing integration files physically relocated; existing proof/runtime protocols unchanged",
+  "air_slice_commit": "80bbbb578a2adacd45cee69fe0349cf777fb22aa",
+  "mechanical_audit": {
+    "files": [
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_sources.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/sources.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_native_diagnostic.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/native.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_fixture_main.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/fixture_main.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_cpu_verify_main.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/verify_main.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/cpu_test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_keccak_quartet_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_secp_sources.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/sources.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_ethereum_secp_context.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/context.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_secp_fixture_main.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/fixture_main.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_secp_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/crypto/secp_fixture.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/fixture.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/crypto/secp_bridge_fixture.zig",
+        "after": "src/integrations/riscv_cpu/delegations/secp256k1/bridge_fixture.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_division_native.zig",
+        "after": "src/integrations/riscv_cpu/delegations/division/native.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_division_verify_main.zig",
+        "after": "src/integrations/riscv_cpu/delegations/division/verify_main.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_division_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/division/test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_multiplication_native.zig",
+        "after": "src/integrations/riscv_cpu/delegations/multiplication/native.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_multiplication_verify_main.zig",
+        "after": "src/integrations/riscv_cpu/delegations/multiplication/verify_main.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/multiplication/test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_service_journal.zig",
+        "after": "src/integrations/riscv_cpu/delegations/common/journal.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_service_proving_sources.zig",
+        "after": "src/integrations/riscv_cpu/delegations/common/proving_sources.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_borrowed_services.zig",
+        "after": "src/integrations/riscv_cpu/delegations/common/borrowed.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_borrowed_services_test_root.zig",
+        "after": "src/integrations/riscv_cpu/delegations/common/borrowed_test_root.zig",
+        "only_import_paths_changed": true
+      },
+      {
+        "before": "src/integrations/riscv_cpu/rv64_arithmetic_diagnostic.zig",
+        "after": "src/integrations/riscv_cpu/delegations/common/arithmetic_diagnostic.zig",
+        "only_import_paths_changed": true
+      }
+    ],
+    "all_body_bytes_unchanged_after_import_normalization": true
+  },
+  "entry_ownership": {
+    "test_root": "src/integrations/riscv_cpu/delegation_test_root.zig",
+    "cli_root": "src/integrations/riscv_cpu/delegation_main.zig",
+    "selection": "typed static ID whitelist, literal imports; unregistered paths or wrong kinds rejected",
+    "registered_test_roots": 7,
+    "registered_cli_roots": 5,
+    "guard_floor_change": "+1 for each moved suite to account for the additional unnamed shim test; no floor reduced",
+    "no_production_test_namespace": true,
+    "probe_results": [
+      {
+        "name": "registered",
+        "path": "src/integrations/riscv_cpu/delegations/keccak/test_root.zig",
+        "kind": "test_root",
+        "expected_success": true,
+        "exit_code": 0,
+        "stdout": "keccak_test"
+      },
+      {
+        "name": "unregistered",
+        "path": "src/integrations/riscv_cpu/delegations/missing/test_root.zig",
+        "kind": "test_root",
+        "expected_success": false,
+        "exit_code": -6,
+        "stdout": ""
+      },
+      {
+        "name": "wrong-kind",
+        "path": "src/integrations/riscv_cpu/delegations/keccak/test_root.zig",
+        "kind": "cli",
+        "expected_success": false,
+        "exit_code": -6,
+        "stdout": ""
+      },
+      {
+        "name": "traversal",
+        "path": "src/integrations/riscv_cpu/delegations/../rv64_keccak_cpu.zig",
+        "kind": "cli",
+        "expected_success": false,
+        "exit_code": -6,
+        "stdout": ""
+      }
+    ]
+  },
+  "qualification": {
+    "profiles": [
+      "ReleaseSafe",
+      "ReleaseFast"
+    ],
+    "targets": [
+      "test-riscv64-air",
+      "test-riscv64-execution",
+      "test-riscv64-division",
+      "test-riscv64-multiplication",
+      "test-riscv64-keccak",
+      "test-riscv64-secp",
+      "test-riscv64-keccak-quartet",
+      "test-riscv64-keccak-cpu",
+      "test-riscv64-borrowed-services"
+    ],
+    "all_nine_targets_pass": true,
+    "cli_builds": [
+      "rv64-keccak-fixture",
+      "rv64-secp-fixture",
+      "rv64-division-verify",
+      "rv64-multiplication-verify",
+      "rv64-keccak-cpu-verify"
+    ],
+    "retained_proof_fresh_receivers": [
+      {
+        "name": "division-retained",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-division-verify",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/requests.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/claim.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/proof.bin"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verified\":true,\"standalone_division_service\":true,\"cpu_ingress_verified\":false}\n"
+      },
+      {
+        "name": "multiplication-retained",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-multiplication-verify",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/public.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/claims.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/proof.bin"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verified\":true,\"standalone_mul_byte_provider\":true,\"cpu_ingress\":false,\"ethereum_block_proof\":false,\"fresh_receiver_ns\":3325250,\"proof_bytes\":99864}\n"
+      },
+      {
+        "name": "rv64-mul-cpu-v3",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-keccak-cpu-verify",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/public.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/claims.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/proof.bin"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verified\":true,\"one_pcs_execution\":true,\"execution_profile\":\"keccak_service_v1\",\"division_provider_present\":true,\"multiplication_provider_present\":true,\"keccak_provider_present\":true,\"secp_add_provider_present\":false,\"secp_double_provider_present\":false,\"public_cell_boundary_control\":true,\"ethereum_block_proof\":false,\"independent_setup_ns\":6519375,\"verify_with_decode_ns\":14488584,\"proof_bytes\":2341472,\"setup_identity\":[176,86,51,83,107,144,179,186,161,33,19,123,131,243,158,169,33,70,31,15,103,254,166,44,135,181,173,48,245,231,169,239]}\n"
+      }
+    ],
+    "new_fixture_fresh_processes": [
+      {
+        "name": "keccak-produce",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-keccak-fixture",
+          "produce",
+          "/tmp/rv64-delegation-integrations-artifacts/keccak",
+          "1"
+        ],
+        "exit_code": 0,
+        "stdout": ""
+      },
+      {
+        "name": "keccak-fresh-verify",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-keccak-fixture",
+          "verify",
+          "/tmp/rv64-delegation-integrations-artifacts/keccak",
+          "1"
+        ],
+        "exit_code": 0,
+        "stdout": ""
+      },
+      {
+        "name": "secp-produce",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-secp-fixture",
+          "produce",
+          "/tmp/rv64-delegation-integrations-artifacts/secp",
+          "add",
+          "1"
+        ],
+        "exit_code": 0,
+        "stdout": ""
+      },
+      {
+        "name": "secp-fresh-verify",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-secp-fixture",
+          "verify",
+          "/tmp/rv64-delegation-integrations-artifacts/secp",
+          "add",
+          "1"
+        ],
+        "exit_code": 0,
+        "stdout": ""
+      }
+    ],
+    "unsupported_old_json_probe": [
+      {
+        "name": "joined-keccak-retained",
+        "argv": [
+          "/tmp/rv64-delegation-integrations-tools/bin/rv64-keccak-cpu-verify",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/public.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/claims.json",
+          "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-lean-v1/proof.bin"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "error: MissingField\n"
+      }
+    ],
+    "source_conformance": {
+      "status": "blocked by existing findings in unchanged owners",
+      "errors": 96,
+      "changed_owner_errors": 0
+    },
+    "global_registry_parity": {
+      "status": "blocked",
+      "owner": "src/tools/prove/app.zig:87",
+      "reason": "aggregate stwo-zig catches AdapterNotReleaseGated absent from inferred error set",
+      "owner_changed_in_slice": false,
+      "baseline_independently_rebuilt": false,
+      "no_out_of_scope_fix": true
+    },
+    "proof_byte_parity": "retained proofs freshly accepted; separate before/after encoded-byte production comparison not run",
+    "performance": "unmeasured; reported build/test durations are qualification only",
+    "commit_hook": "Existing user-authorized scoped exception for inherited hook failures; explicit focused Safe/Fast gates passed."
+  },
+  "protected_unchanged_sha256": {
+    "src/integrations/riscv_cpu/rv64_ethereum_request.zig": "2ecf4e039bb75f66b4b93fff6ac8e2e767a5828a7c16f05b22bd79fd7c2ac69c",
+    "src/integrations/riscv_cpu/rv64_ethereum_batch_receipt.zig": "1487dcf32cc8021f6e044ec8c235afdbf5f3e0b45faa897d67f755b5e15b1308",
+    "src/integrations/riscv_cpu/rv64_distributed_v1/manifest.zig": "b4a683a15eafe432cddc25c21c0706474356a9a37d9e0568ec3dd7f899c46f67",
+    "src/integrations/riscv_cpu/mod.zig": "4404d8e4bebeb5b2b0ea2c2823b7602edcf272ca8a4f471d5e2a586fac2d0313"
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "d15ef912beb6ba3ce4a22ea1a77a1d81222100a5b079d2e89de2b13862f4ce9a",
+    "build_support/products/riscv_cpu_tests.zig": "0b5079fe9d76ee198e79276f33bcef46bbe5acac86b285131e2f1421bbd70656",
+    "build_support/products/riscv_delegation_entry.zig": "95038fb42fc53917f9ae64b5ed994ca7892398d2ba750ad548352a54a3cfd511",
+    "design/riscv-proving-stack/rv64-delegations-layout.md": "b0266827091435df41c46a0a65cdb2f6177bfdf94fd71ff30a8d1261df8435b3",
+    "src/integrations/riscv_cpu/delegation_main.zig": "3889bcec1db89ffb5b0e2cb322ae7222296a7e062a88ce4235d9bc29d9910da8",
+    "src/integrations/riscv_cpu/delegation_test_root.zig": "97edb644aae7ee63d59678c7b1bba7a3e95a313fa282f2f6f2563b572a7985a0",
+    "src/integrations/riscv_cpu/delegations/README.md": "9c0c339ee060e2e3788680dd6d91ddeada597ccd3787e925ec8936abfb6f032c",
+    "src/integrations/riscv_cpu/delegations/common/arithmetic_diagnostic.zig": "88aa0cf461b3dccd872a6c0783e658b9bfbcbcd8aa7cb6f9632b09e116e3f9b8",
+    "src/integrations/riscv_cpu/delegations/common/borrowed.zig": "ac4ad92b35f79647adfb5fac1530f5e317aa3579aa70bccdb9a76f581c927567",
+    "src/integrations/riscv_cpu/delegations/common/borrowed_test_root.zig": "0e857b0fe0413f77d5f11f7ecd4a1d808d5309fe5b09219f05144d3c9bc8d5c7",
+    "src/integrations/riscv_cpu/delegations/common/journal.zig": "8fe4cb285d3f89e150cb697bb37f92a4b1ab09b89ac00e662e497d59bffd44f6",
+    "src/integrations/riscv_cpu/delegations/common/proving_sources.zig": "8e945d675dec1b4f303685a3ee9b317a679fbb6de74f8ece298f2b6e8ea78574",
+    "src/integrations/riscv_cpu/delegations/division/native.zig": "c279933df55354123dc84ba329ff349e005ff6dd2fb563445cde2c0ed50c4e2d",
+    "src/integrations/riscv_cpu/delegations/division/test_root.zig": "528f89326296a533cf44496888723c6939a0a15c5114599b25f3339d846cb6b0",
+    "src/integrations/riscv_cpu/delegations/division/verify_main.zig": "44335fff74eb7c11efc4004137e6eb72097bb6fe999dbac6217ef39f58b226a7",
+    "src/integrations/riscv_cpu/delegations/keccak/cpu_test_root.zig": "850122f1b8cd9fef34b57aed3a4f6cfc216794f55009eba2806555da839abb15",
+    "src/integrations/riscv_cpu/delegations/keccak/fixture_main.zig": "34f734cb7b5256f71504ee124a2210a11f889fe1fa31d659f3acee912d69eb52",
+    "src/integrations/riscv_cpu/delegations/keccak/native.zig": "ede006ce483cc29e60bb0677f4d5dc893c802050527441cd4195a2603be935c7",
+    "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig": "24180cd0f40e0838d88f0c1945c5c7f599a303eee5e6fa37e1e587737b15a4c1",
+    "src/integrations/riscv_cpu/delegations/keccak/sources.zig": "56415db3e6a478f3c2d7eeea2dddd4f9df0e0a758f2b490c352b722fba185913",
+    "src/integrations/riscv_cpu/delegations/keccak/test_root.zig": "12b6a4737d61d74be8b04b1874853bd16b228133399584903d3e7d509e18de71",
+    "src/integrations/riscv_cpu/delegations/keccak/verify_main.zig": "a76ec00a112e5dbf50c726399407fce44bcf75b8c7bab2a92500c9563c88b1b4",
+    "src/integrations/riscv_cpu/delegations/multiplication/native.zig": "efda2fb2a10de3e489424e7fc4c63096cd7cbd41ee58bf85d505fbf12f5b1f83",
+    "src/integrations/riscv_cpu/delegations/multiplication/test_root.zig": "6710dbe95bdb32d896957f408f48481a270d309f81ad24ceb62384144af518c4",
+    "src/integrations/riscv_cpu/delegations/multiplication/verify_main.zig": "93cfeae413352a24225aa84036c35f7dbaa79f311c26ab640e55f832cd0bf880",
+    "src/integrations/riscv_cpu/delegations/secp256k1/bridge_fixture.zig": "1bafe2569804f66f2aad5354746dce06a18940ff13d208b8848d82659efc0401",
+    "src/integrations/riscv_cpu/delegations/secp256k1/context.zig": "2c37eb501c64dabb9b0a5cdcf669a3ed3076e8726eb2edc255f9600d23aec941",
+    "src/integrations/riscv_cpu/delegations/secp256k1/fixture.zig": "915b6310244eb8cd245eaf5bc2a9bac6e35f401d4045fd1700188ef9fba7ca6c",
+    "src/integrations/riscv_cpu/delegations/secp256k1/fixture_main.zig": "13a90848af57c68ee6f55b212f51791fdd63e786e7b8c6f737f2644ecd3546ac",
+    "src/integrations/riscv_cpu/delegations/secp256k1/sources.zig": "a7f077a80377c8802c2f2f6a31f13d63faecbcff4641dd6684fe7be83845d0df",
+    "src/integrations/riscv_cpu/delegations/secp256k1/test_root.zig": "9a571d6d201c314d5cdcddc76bbda6293441e778fda4427f730d2e8d0a5e4daf",
+    "src/integrations/riscv_cpu/rv64_authenticated_prover.zig": "e607e958b0573233ea4469cbade62eb42c556443822dee4c2762156a45b1ce58",
+    "src/integrations/riscv_cpu/rv64_ethereum_batch.zig": "f04d3eb6c4deddb7524afbfbfe5bada06ffcb0ba6b2754c45b29347d5567636d",
+    "src/integrations/riscv_cpu/rv64_full_trace.zig": "678a3dc5ca2036c2af10f29f6e4500a13d102e3eefc0e59dbe171dd939af3700",
+    "src/integrations/riscv_cpu/rv64_keccak_cpu.zig": "a71bafedb58b2ab49c767f1933b3077071761e7d9c39038df048d96dea972095",
+    "src/integrations/riscv_cpu/rv64_work_packet_admission.zig": "7d022a7c53f10a566e157eef07969560fdfd2dbae14d3c1cba43e6cef5775134",
+    "src/integrations/riscv_cpu/tests/rv64_crypto_main_buffers_test.zig": "02425e91c68b13f84f9e5ee87cc0b78cb64e20b6ed5aa433be64585950aac316",
+    "src/integrations/riscv_cpu/tests/rv64_ethereum_batch_test.zig": "65228662b4847e8a0517e2e75aba7b288a45a87add6f73e9c0357c89d2bc0125",
+    "src/integrations/riscv_cpu/tests/rv64_ethereum_cpu_proof_test.zig": "e1820a4564feb78f9ad585a68192d302121cca82d2870cd8097b135931c970b3",
+    "src/integrations/riscv_cpu/tests/rv64_ethereum_fixture.zig": "b734cc8aa8ad698d1d96ee0e1a5583cfafa6c1729dcdab10af2b6195e6762e3a",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_metadata_test.zig": "a793c3e4c1fcd60f529106a62579f7d6623527547fe6bc60ab4a10b50da4a812",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_native_diagnostic_test.zig": "88c463bded7625e86d0e046bd7f209d1d7e41329d13b4c26c9a747e947f3feb5",
+    "src/integrations/riscv_cpu/tests/rv64_multiplication_proof_test.zig": "5d0850ce9da5294054c6de93ab4993e1e53126e8d34f498c71891a9cbee84b4e",
+    "src/integrations/riscv_cpu/tests/rv64_secp_bridge_proof_test.zig": "cf9944c12ad0b1daabb7b88cc39e695db412d05d1ed7309b89e34c06819f0471",
+    "src/integrations/riscv_cpu/tests/rv64_secp_constraint_test.zig": "8f78ba8b99ad6d3dbc7e5f919acddca7799694819202beba4ba8a4e07dfbc251",
+    "src/integrations/riscv_cpu/tests/rv64_secp_proof_test.zig": "3340e1a791b6e17ea56eeede6845cc5c3410c44e20cfd429d97406277387cee4",
+    "src/integrations/riscv_cpu/tests/rv64_secp_sources_test.zig": "39954cd1930189e350d3fb176f1b49bf17ed6d2aea7a7443c3d0f0961bee63c1"
+  },
+  "artifacts": {
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/requests.json": {
+      "bytes": 4876,
+      "sha256": "9bbb9eb28851461cdaaa33643790916ad9da90301b2c68ef2445541ba3e1127f"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/claim.json": {
+      "bytes": 43,
+      "sha256": "4387439a2d09ccfcb9630a37f83415357076be6001d62b31e6ddf7d1b78f2d55"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-division-service-v2/proof.bin": {
+      "bytes": 305888,
+      "sha256": "f63f6818f90d9b12ddfb5f188e1d7983a3ec889f3ce304a29ee07316eea3c25b"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/public.json": {
+      "bytes": 6156,
+      "sha256": "f4c8f0c66274fd831d72fb1fe78ef51c2c8199ed0a64ddfd4e3e7c68bd102aeb"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/claims.json": {
+      "bytes": 223,
+      "sha256": "de1d8f84b9aabc185b41c08de6388224d3182d2e2f96f6fd48f0ecde76e9175c"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-multiplication-v1/proof.bin": {
+      "bytes": 99864,
+      "sha256": "a96a11d7b7b03e479ef9eac007910b474474a571c9c6bfa0962079c37ec2c9b3"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/public.json": {
+      "bytes": 4932,
+      "sha256": "ebc29ccbee79949840851180cf041b65e0cf86b9ea0f8501f3614f71b3222070"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/claims.json": {
+      "bytes": 2080,
+      "sha256": "4c84b0ca292762f761109254661576b88ac6db76ecdb9be4570f3de8c9f7476e"
+    },
+    "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/interop_artifacts/rv64-mul-cpu-v3/proof.bin": {
+      "bytes": 2341472,
+      "sha256": "71b035a81f3a69bdd7bb9bed9251255379ccea4bd803c711fb4ac7f4120531e0"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/keccak/producer.json": {
+      "bytes": 4989,
+      "sha256": "a7a91a21bd60942d09f9b74295597d4c0ebc5be8510f250b80cbd4fe6c188382"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/keccak/claims.json": {
+      "bytes": 708,
+      "sha256": "190457cba9de95dd9cc8fb2a03fa935485378a5d94968e8d51a90029531e4612"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/keccak/proof.bin": {
+      "bytes": 1612664,
+      "sha256": "91c801ac11b94acf74374011052a4d238b51331031b5c783ae598821f073b6eb"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/secp/producer.json": {
+      "bytes": 4268,
+      "sha256": "783ae47b187a000cfc6c799691036baa35f558ca6b60f20099fe5fa54f3ba04a"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/secp/claims.json": {
+      "bytes": 711,
+      "sha256": "70563918044a94263f06359550e0e641909583b5bee35b9a6b2651d4b73c02d5"
+    },
+    "/tmp/rv64-delegation-integrations-artifacts/secp/proof.bin": {
+      "bytes": 331052,
+      "sha256": "c2453df63ba70cee11ea462b5040b75c28d34a60f956bdebdbae898a56d762d3"
+    }
+  },
+  "logs_sha256": {
+    "/tmp/rv64-delegation-integrations-safe.log": "9111e70f799aca0cbdade98c0f9be3b0ea4903523162de6cd60cb7e6154f17c9",
+    "/tmp/rv64-delegation-integrations-fast.log": "da034a6e9181ba829f122814cd04524b27d176600d68c63215ee76b0d3f5af95",
+    "/tmp/rv64-delegation-integrations-tools.log": "d3a5db350a20047baa8428885cd3d47c60f7cf9655f27d2646a9810b408ac75c",
+    "/tmp/rv64-delegation-integrations-conformance.log": "2526d50f9b1e9366747749dbed929c60fbd038b85e6d6c08fa9d30b0d3dbdb78",
+    "/tmp/rv64-delegation-integrations-registry.log": "fe84d38f02880d6da45c2448f2f4dd3987a723e27a73e481bb314e5ab8295fb4",
+    "/tmp/rv64-delegation-integrations-retained-results.json": "d3ac3aad4ca982dabb2789ac7023b246f4ce5ac3ac8ea1fdab4dfef35a02d989",
+    "/tmp/rv64-delegation-integrations-fresh-results.json": "bf02a788799f41a7a065599fb3338170d3b91ce118d09a206c5741ec628c5839",
+    "/tmp/rv64-delegation-entry-probe-results.json": "fd56d63454d8a78679674545a598f35f0ee8f813c31a23d38cd1d8997d9b37ae",
+    "/tmp/rv64-delegation-integrations-current-joined-results.json": "f929e2a42a18b8a7c8f68d5d480e16b0d1f9330e8899f3e4aa774e6baaecfd22"
+  }
+}
