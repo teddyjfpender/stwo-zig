@@ -1,0 +1,49 @@
+{
+  "schema": "rv64-lean-guest-frontend-integration-tests-v1",
+  "source_commit": "fedeb92223f9913efd0e4120588d77dd14e5fb85",
+  "applied_commit": "b14f9ee776a95ea9b71b2b0bc81f1e23220d11ff",
+  "branch": "codex/rv64im-frontend",
+  "pushed": true,
+  "original_changed_file_blobs_identical": 37,
+  "gates": {
+    "host_debug": {
+      "tests": 5,
+      "passed": 5,
+      "log": "/tmp/stwo-rv64-lean-integrated-host-debug.log"
+    },
+    "host_release": {
+      "tests": 5,
+      "passed": 5,
+      "log": "/tmp/stwo-rv64-lean-integrated-host-release.log"
+    },
+    "oracle_unittest": {
+      "command": "/tmp/stwo-rv64-oracle-venv/bin/python -m unittest scripts.tests.test_riscv64_ethereum_services_oracle",
+      "tests": 4,
+      "passed": 4,
+      "skipped": 0
+    }
+  },
+  "log_sha256": {
+    "/tmp/stwo-rv64-lean-integrated-host-debug.log": "c7765c835422a8119d943d0e06c2ff4e825f96edae69333669ab80e33431cd3c",
+    "/tmp/stwo-rv64-lean-integrated-host-release.log": "b1df587c5917ad0601a7d7602fb1df32afc4092672b618c7198bc07cff6d977d"
+  },
+  "pinned_guest_for_proving": {
+    "sha256": "691ff478a11991942b42399bc93c6e0d22fbe516f0f9e334c1f4c46decc9e2bb",
+    "heap_start": 33647264,
+    "vm_profile": "ethereum_services_v2",
+    "new_request_symbols": "parsed from exact pinned ELF; not inherited from old configuration"
+  },
+  "local_offline_rebuild": {
+    "command": "python3 autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.py --artifacts /tmp/stwo-rv64-ethereum-services-v2-lean-integration --offline --guest-profile ethereum-services-v2-lean",
+    "status": "PASS",
+    "elf_sha256": "c350800febf272034b2fc9eaaafe282349e24cafdb95abb82b6780c3ee51f4ee",
+    "bytes": 3028024,
+    "byte_identical_to_pinned_guest": false,
+    "scope": "Build succeeds from integrated source; this distinct artifact is not substituted into the pinned proving qualification. Its own symbols/execution require separate qualification."
+  },
+  "hook_exception": {
+    "source_conformance": "known inherited failures; original commit and mainline integration use scoped hook exception",
+    "pre_push": "previous clean attempt failed required unrelated authenticated Metal AOT bundle; CPU gates qualified separately"
+  },
+  "full_lean_block_proof_verified": false
+}

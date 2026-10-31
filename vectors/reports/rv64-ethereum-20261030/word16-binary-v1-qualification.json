@@ -1,0 +1,159 @@
+{
+  "schema": "rv64-word16-binary-v1-qualification",
+  "scope": "Diagnostic public expected tuples -> BINARY truth provider -> canonical AND; one native PCS/FRI. No CPU, register, RAM or global aggregate activation.",
+  "status": "qualified diagnostic; production inactive",
+  "protocol": {
+    "operation_id": "globally disjoint BINARY16..18, ALU0..9, SHIFT32..37",
+    "configuration": {
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "last_layer_log": 0,
+      "fold_step": 1,
+      "nominal_config_bits": 96
+    },
+    "transcript": "Version/ordered roles/native logs/payload arity/positive masses; actual fixed and main PCS roots; independently typed AND/function challenges; all four canonical physical claims; interaction root; ordinary STARK transcript.",
+    "closures": [
+      "binary_AND + canonical_table = 0",
+      "binary_function + public_consumer = 0"
+    ],
+    "range": "Eight AND tuples separately authenticate both input byte coordinates and output AND byte. No packed-sum range assumption or duplicate BYTE queries.",
+    "pole_and_prefix": "Four strict pair-product inverses + one cyclic AND prefix, function strict inverse + cyclic prefix. Row-zero claim correction and terminal zero constrain each prefix.",
+    "mass": {
+      "public_positive_function": 3,
+      "AND_positive_including_padding": 256,
+      "characteristic": 2147483647
+    }
+  },
+  "geometry": {
+    "rows": {
+      "scope": "diagnostic-public-io-binary-and-one-pcs",
+      "proof_bytes": 240632,
+      "proof_sha256": "c1de65fc530fa639fb1fd32737c1ee8785133bb654e3c9ea71204c7e24a2b498",
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "explicit_scoped_worker_pool": false,
+      "source_cells": 920576,
+      "source_bytes": 3682304,
+      "trace_oods_masks": 126,
+      "binary": {
+        "log": 5,
+        "fixed": 2,
+        "main": 42,
+        "interaction": 28
+      },
+      "public_consumer": {
+        "log": 5,
+        "fixed": 16,
+        "main": 0,
+        "interaction": 8
+      },
+      "and_provider": {
+        "log": 16,
+        "fixed": 5,
+        "main": 1,
+        "interaction": 8
+      },
+      "positive_function_mass": 3,
+      "and_mass_including_padding": 256,
+      "quotient_factor": 2,
+      "cpu_bound": false,
+      "ram_bound": false
+    },
+    "raw_constraints": {
+      "binary": 52,
+      "public_consumer": 3,
+      "AND": 4
+    },
+    "max_degree": 3,
+    "quotient_domain_factor": 2,
+    "composition_split": 1,
+    "main_cells": 66880,
+    "interaction_cells": 525440,
+    "fixed_cells": 328256,
+    "source_cells": 920576,
+    "source_bytes": 3682304,
+    "trace_OODS_masks": 126,
+    "composition_masks": "additional engine-owned masks, excluded from trace mask count",
+    "pair_vs_triple": "Pair preserves strict poles at 20 AND interaction columns versus unqualified triple estimate16; pair D3 fits2n. No measured pair-versus-triple speed comparison claimed."
+  },
+  "setup": {
+    "binary": "fixed first/last depend on geometry only",
+    "AND": "fixed independently enumerated byte truth table, geometry16",
+    "public_consumer": "Diagnostic request-dependent expected-IO fixed columns, independently reconstructed. This is not a reusable production CPU setup."
+  },
+  "artifacts": {
+    "directory": "vectors/reports/interop_artifacts/rv64-word16-binary-v1",
+    "proof_bytes": 240632,
+    "proof_sha256": "c1de65fc530fa639fb1fd32737c1ee8785133bb654e3c9ea71204c7e24a2b498",
+    "receiver": "Fresh standalone process accepted with independently expected fixed root and roster; does not read producer receipt.",
+    "SIMD_tool": "/tmp/stwo-rv64-word16-binary-v1/simd-tool/bin/rv64-word16-binary-fixture"
+  },
+  "tests": {
+    "local": "test-riscv64-word16-chips, registered minimum7; ReleaseSafe and ReleaseFast PASS",
+    "proof": "test-riscv64-word16-binary-proof, registered minimum2; ReleaseSafe and ReleaseFast PASS",
+    "coverage": [
+      "native AND/OR/XOR edge words and output/selector mutations",
+      "global-ID cross-family collision mutant",
+      "all local52 residuals scalar versus16 packed-base and arbitrary packed-secure lanes",
+      "allocation-failure constructor/generator ownership, unpublished pole failure, retry and phase guard",
+      "q70/P26 proof plus independently expected receiver",
+      "forged output, false AND with all local arithmetic and function closure valid, cross-family identity substitution, M31 packed-byte alias: ConstraintsNotSatisfied",
+      "previous-prefix sample corruption and noncanonical external claim rejected",
+      "All three concrete roles: sixteen-row contiguous PackedBase gathers, arbitrary previous-prefix halos, nonaligned tails, repeated additive output, malformed-shape rejection before writes.",
+      "Shared canonical table Q wrapper equals historical equations at arbitrary secure values for arities3/6.",
+      "SIMD q70/P26 full encoded proof byte-identical to retained scalar control."
+    ],
+    "legacy": "test-riscv64-providers ReleaseSafe PASS; generic table arbitrary-Q old-expression oracle PASS"
+  },
+  "measurements": {
+    "scope": "One tiny diagnostic run; no CPU or architecture speedup claim",
+    "producer_wall_seconds": 0.54,
+    "producer_max_RSS_bytes": 76152832,
+    "fresh_receiver_wall_seconds": 0.01,
+    "fresh_receiver_max_RSS_bytes": 19939328,
+    "explicit_scoped_worker_pool": false,
+    "worker_count": "not instrumented; no fixed-worker throughput claim"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/operations.zig": "9222cd66618d88aae66d7d649a83aa0a6a46411a67431729d142912e3237406a",
+    "src/frontends/riscv/rv64/air/word16_v1/binary.zig": "78b69c822b99316921a97cc76dbbd302f9e3c3c31663df42e860de9b37c7e61c",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_lookup.zig": "684e5e443ca7b0c4302d619c960ff3e14437ceaa6d08c019740cc000b7b71116",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_component.zig": "3e50b910c51417c1974191d6d7c9a5eb1a4aa9ce1d283715b52cecfa6abe52ea",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_test.zig": "26b478cbb86d6cfd62145bcf224744f16204f7fe4860b1cb763dcab0cc8b61d7",
+    "src/frontends/riscv/rv64_word16_chips_test_root.zig": "ebccf3a9625a952637459d60b0bb0968051b737f296868c53b15ef677078fbae",
+    "src/integrations/riscv_cpu/word16/binary_fixture.zig": "7180a12aa66b51dd65064f2734e288a8319d1491cbe35a454dd5b3b11d412e14",
+    "src/integrations/riscv_cpu/tests/rv64_word16_binary_proof_test.zig": "6c23f019e98df8fa722d21c86e625beca51c2228019df84e71f460648f2c9a2b",
+    "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig": "0840a921b9ce14497ae52e157eaf04946bcc68320c7b3f5163d68008ad083a10",
+    "src/integrations/riscv_cpu/rv64_word16_binary_fixture_main.zig": "a02fd787d2c3488203ce14ebfc2188a6cd3cafa38665d21d561536c85f38dabf",
+    "src/frontends/riscv/rv64/air/word16_v1/function_bus.zig": "be69a6e6152260de042fffb9b7ec39c3a5dde17e814029e2b93a7412213ab4b2",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_packed_rows.zig": "a5b735798de3f1e83e1aa834f32f8a861e6cf0da7a37228fc95716155fb11745",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_packed_rows_test.zig": "1ae97ec595b7aa8df03c489d1c7d8548fbac2870529d893b24fedf5cd539e25a"
+  },
+  "shared_authority_sha256": {
+    "src/frontends/riscv/rv64/air/providers/tables.zig": "d25b3b9487dd22fb81325d2812d93fa65c29909e77f12298427fb480ad4e4c28",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700",
+    "src/frontends/riscv/air/component_point_support.zig": "764824b6b730abca72728ffb0900d225ca601bf99d52638f2823996cd7a5e388",
+    "src/frontends/riscv/air/memory_commitment/hash_component_prepared_support.zig": "65204b77af0c44ab9b828da19473eeb8853816217c3bf8875999b24905ad53b8",
+    "src/core/air/derive.zig": "a39c1e482ec2608a4cf2ffe40c51cc8916d52e5c3dcdba1a2ce3346d86019cdb"
+  },
+  "tool_sha256": "3452f48fccc2b8bf77d867ebccc89a5e3f0dd20f218496adc0f5d31dd23799bc",
+  "compiler": "Zig0.15.2 native aarch64-macos",
+  "limitations": [
+    "No accepting legacy profile or production driver chooses these chips.",
+    "ALU and SHIFT are not included in this qualified slice.",
+    "No generic machine factory or copied AND arithmetic authority.",
+    "A production protocol must derive common challenges from its complete ordered actual-PCS-root manifest and enforce aggregate positive query masses below the characteristic before allocation/challenges.",
+    "Native provider cells are not a complete wrapper/recursive verifier cost. No recursive aggregation implemented."
+  ],
+  "domain_evaluation": {
+    "representation": "PackedBase16 local column loads, PackedSecure16 only FS mixed arithmetic; Q OODS same emitFor authority",
+    "scratch": "Bounded stack:72 PackedBase source fields +28 prior-coordinate slots, no per-row heap allocation or dense secure view. Only declared prior-prefix fields gather previous rows.",
+    "scalar_control_proof_sha256": "c1de65fc530fa639fb1fd32737c1ee8785133bb654e3c9ea71204c7e24a2b498",
+    "SIMD_proof_exactly_equal": true,
+    "standalone_speedup_claim": false
+  }
+}

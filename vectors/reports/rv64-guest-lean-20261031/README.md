@@ -19,6 +19,37 @@ about half the secp256k1 service calls.
 Every proven batch is CPU rows plus service providers, so this removes about
 30% of CPU rows and about half of the secp provider rows from a block proof
 before any prover work. Nothing here is a proof; see the reproduction below.
+before any prover work. The original guest-branch evidence is execution-only;
+the mainline proof qualification below is separate.
+
+## Mainline full-block proof qualification
+
+The pinned `691ff478…e2bb` guest now has a complete native proof chain and an
+independent fresh-process receiver acceptance on block24,628,607. Both runs below
+use16workers on the same M5Max64GiB host. These are single isolated observations
+of different guest workloads, not a statistically qualified kernel speedup.
+
+| Measure | Previous v2 guest | Lean guest |
+| --- | ---: | ---: |
+| Complete producer invocation | 1234.76s | 910.62s |
+| Fresh receiver invocation | 13.66s | 12.97s |
+| Producer maximum RSS | 36,591,828,992B | 36,058,120,192B |
+| Receiver maximum RSS | 3,472,146,432B | 3,441,426,432B |
+| Batch proofs, plus one terminal proof | 51 | 36 |
+| Total encoded proof bytes | 150,876,796 | 100,582,942 |
+
+This is26.25% less observed producer time and33.33% fewer proof bytes. There is
+**no recursive aggregation**. The16GB batch-memory target is not met. Receiver
+setup still takes11.66s of12.97s, with32 cache misses and4 hits. Configuration is
+q70/P26; this is not an audited128-bit security claim.
+
+`complete-block-isolated-v1.json` pins the tool, configuration, source manifest,
+all36 proof/receipt/profile triples and terminal proof. It checks final PC/all32
+registers and the expected43-byte output against the independent oracle.
+`batch-bottlenecks-v1.{json,csv}` records every batch's phases and memory. CPU
+columns remain89.7% of main+interaction source cells. Another178.92s of proving
+falls outside the existing named timers; further instrumentation is required.
+Experimental Word16 and distributed-aggregate code was inactive in this run.
 
 ## What changed
 
@@ -94,6 +125,26 @@ calls, 3.7% are at most 16 bytes, 29.7% are 17–32, 35.4% are 33–64, 28.6% ar
 mismatched alignment, which takes the shift-and-merge word path. That profile
 is the input for a cheaper aligned small-copy path and for a DMA-style memcpy
 service; SHA-256 and the field inversion and square root are the next
+gives 313,045 real memcpy calls at 118 instructions each on average). The stored
+histogram uses exact sizes below 64, then **floor** power-of-two buckets:
+
+| Size range established by the archived histogram | Entry events |
+| --- | ---: |
+| 0–16 | 3.7% |
+| 17–32 | 29.7% |
+| 33–63 | 17.4% |
+| 64–127 | 18.0% |
+| 128–255 | 28.6% |
+| 256 and above | 2.6% |
+
+Thus 93.6% are in 17–255; the archive does not establish the share at most128.
+The capped4096 bucket includes larger sizes as well. About54% have both pointers
+8-byte aligned and43% have mismatched alignment, which takes the shift-and-merge
+word path. Those are marginal counts: the size/alignment correlation and share
+of copied bytes are not available in this archive. New oracle runs record exact
+sizes through128, requested-byte totals and size/alignment cross counts; missing
+fields in old reports remain unknown. These measurements should guide a small
+copy path or DMA service. SHA-256 and field inversion/square root remain further
 candidates for host hints or services.
 
 ## Reproduction

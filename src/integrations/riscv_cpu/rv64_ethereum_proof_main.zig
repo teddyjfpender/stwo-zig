@@ -12,7 +12,9 @@ const base = std.heap.smp_allocator;
 pub fn main() !void {
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
-    if (args.len != 3) return error.ExpectedModeAndEthereumProofConfig;
+    const worker_mode = args.len >= 2 and std.mem.eql(u8, args[1], "worker");
+    const inspect_mode = args.len >= 2 and std.mem.eql(u8, args[1], "inspect-job");
+    if (args.len != (if (worker_mode or inspect_mode) @as(usize, 4) else 3)) return error.ExpectedModeAndEthereumProofConfig;
     const raw = try std.fs.cwd().readFileAlloc(base, args[2], 16384);
     defer base.free(raw);
     const parsed = try std.json.parseFromSlice(Request.Config, base, raw, .{});
@@ -28,6 +30,10 @@ pub fn main() !void {
     var binding = try work.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     if (std.mem.eql(u8, args[1], "verify") or std.mem.eql(u8, args[1], "verify-prefix")) return emit(a, try @import("rv64_ethereum_verify_chain.zig").verify(a, config, std.mem.eql(u8, args[1], "verify")));
+    if (std.mem.eql(u8, args[1], "nativeprepare")) return emit(a, try @import("rv64_ethereum_native_prepare.zig").run(a, config));
+    if (inspect_mode) return emit(a, try @import("rv64_ethereum_packet_inspect.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
+    if (worker_mode) return emit(a, try @import("rv64_ethereum_packet_worker.zig").run(a, config, try std.fmt.parseInt(u32, args[3], 10)));
+    if (std.mem.eql(u8, args[1], "finalize")) return emit(a, try @import("rv64_ethereum_finalize.zig").run(a, config));
     const is_resume = std.mem.eql(u8, args[1], "resume");
     if (!is_resume and !std.mem.eql(u8, args[1], "prove")) return error.InvalidEthereumProofMode;
     return prove(a, config, is_resume);
@@ -102,7 +108,7 @@ fn prove(a: std.mem.Allocator, config: Request.Config, is_resume: bool) !void {
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
 }
-fn emit(a: std.mem.Allocator, value: @import("rv64_ethereum_verify_chain.zig").Result) !void {
+fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
     defer a.free(json);
     try std.fs.File.stdout().writeAll(json);
