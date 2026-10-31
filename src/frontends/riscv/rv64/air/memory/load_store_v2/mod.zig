@@ -1,4 +1,5 @@
 //! CPU-owned LS19/RAM14 join. No public owner-stub acceptance route.
+pub const boundary_encoding = @import("boundary_encoding.zig");
 pub const encoding = @import("encoding.zig");
 pub const types = @import("types.zig");
 pub const layout = @import("layout.zig");

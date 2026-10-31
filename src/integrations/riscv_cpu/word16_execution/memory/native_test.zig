@@ -349,3 +349,13 @@ test "LS and boundary packed base lanes match every arbitrary scalar residual" {
         }
     }
 }
+
+test "omitted public boundary U8 claims cannot cancel across the complete ledger" {
+    const P = @import("../protocol.zig");
+    const Sources = @import("../sources.zig");
+    var c = std.mem.zeroes(P.Claims);
+    c.initial.range8 = Q.one();
+    c.terminal.range8 = Q.one().neg();
+    try std.testing.expectError(error.NonzeroOmittedBoundaryRangeClaim, c.validate());
+    try std.testing.expectError(error.NonzeroOmittedBoundaryRangeClaim, Sources.validateCanonicalClaims(c));
+}

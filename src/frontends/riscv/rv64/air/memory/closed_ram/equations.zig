@@ -91,6 +91,14 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
 /// by the caller: legacy fixed selectors or the scalable sealed-public claims.
 /// nonempty is a verifier-bound PUBLIC constant, never a free trace witness.
 pub fn boundaryAfterBindFor(comptime F: type, kind: L.Kind, m: []const F, pm: []const F, i: []const F, pi: []const F, first: F, last: F, nonempty: F, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    boundaryLocalFor(F, m, pm, first, nonempty, out);
+    const active = m[0];
+    S.single(F, ch.ram.denominatorFor(F, ramTuple(F, kind, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
+    rangesFor(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
+    rangesFor(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
+}
+/// Shared strict sorted-address arithmetic, before independently owned lookups.
+pub fn boundaryLocalFor(comptime F: type, m: []const F, pm: []const F, first: F, nonempty: F, out: *E.SinkFor(F)) void {
     const active = m[0];
     const one = F.one();
     for ([_]usize{ 0, 12, 13 }) |c| E.booleanFor(F, out, m[c]);
@@ -104,9 +112,6 @@ pub fn boundaryAfterBindFor(comptime F: type, kind: L.Kind, m: []const F, pm: []
     out.emit(sorted.mul(m[21]));
     out.emit(sorted.mul(delta.mul(m[22]).sub(one)));
     for (m[14..23]) |v| out.emit(one.sub(sorted).mul(v));
-    S.single(F, ch.ram.denominatorFor(F, ramTuple(F, kind, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
-    rangesFor(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
-    rangesFor(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
 }
 
 /// Shared bounded-integer clock, permission and unit-activity authority.

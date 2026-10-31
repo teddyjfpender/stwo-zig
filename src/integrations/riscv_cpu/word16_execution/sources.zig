@@ -384,6 +384,7 @@ fn addCounts(out: []u64, input: []const u64) !void {
 /// Canonical physical values only; this helper deliberately certifies no debt
 /// closure. Accepting receivers must additionally enforce their complete roster.
 pub fn validateCanonicalClaims(claims: P.Claims) !void {
+    if (!claims.initial.range8.isZero() or !claims.terminal.range8.isZero()) return error.NonzeroOmittedBoundaryRangeClaim;
     const values = claims.values();
     for (values) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalExecutionClaim;
     for ([_]usize{ 23, 26, 28, 31 }) |index| if (!values[index].isZero()) return error.NonzeroOmittedMemoryClaim;

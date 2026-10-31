@@ -58,6 +58,7 @@ pub const Claims = struct {
     pub fn validate(self: Claims) !void {
         for (self.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalExecutionClaim;
         // These fields have no physical columns in boundary components.
+        if (!self.initial.range8.isZero() or !self.terminal.range8.isZero()) return error.NonzeroOmittedBoundaryRangeClaim;
         if (!self.initial.owner.isZero() or !self.initial.selection.isZero() or !self.terminal.owner.isZero() or !self.terminal.selection.isZero()) return error.NonzeroOmittedMemoryClaim;
         var total = Q.zero();
         for (self.values()) |q| total = total.add(q);
@@ -92,6 +93,7 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
     @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.encoding.mix(channel);
+    @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2.boundary_encoding.mix(channel);
     digest(channel, materials.program.identity);
     digest(channel, image_identity);
     for (materials.shapes()) |shape| {

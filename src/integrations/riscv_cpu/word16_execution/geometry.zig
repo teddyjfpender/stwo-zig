@@ -46,12 +46,12 @@ pub const Geometry = struct {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * rows(self.alu_log));
         total = try std.math.add(u64, total, 9 * rows(self.shift_log));
         total = try std.math.add(u64, total, LS.U16.len * rows(self.ls_log));
-        return std.math.add(u64, total, Ram.B_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
+        return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }
     pub fn range8Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
         total = try std.math.add(u64, total, LS.U8.len * rows(self.ls_log));
-        return std.math.add(u64, total, Ram.B_U8.len * (rows(self.initialLog()) + rows(self.terminalLog())));
+        return total;
     }
 };
 pub fn rows(log: u32) u64 {
@@ -93,7 +93,8 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .and_table => .{ 5, 1, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
             .ls => LS.widths(.ls),
-            .initial, .terminal => .{ 3, 23, 48 },
+            .initial => LS.widths(.initial),
+            .terminal => LS.widths(.terminal),
             .selection => .{ 6, 2, 8 },
         };
         const log = switch (role) {

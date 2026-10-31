@@ -1,4 +1,7 @@
-//! Scalable public-boundary witness, domain-only fixed key; no onehot image.
+//! Scalable public-boundary witness with domain-only fixed key. Canonical RAM14
+//! tuple ranges come from receiver-validated typed public lists sealed into FS.
+//! Acceptance REQUIRES exact expectedClaim comparison for each physical RAM
+//! debt, independently of global closure; only four address-gap ranges remain.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -84,10 +87,11 @@ pub const Source = struct {
             for (row, 0..) |v, c| main[c * n + pos] = v;
             for (R.layout.B_U16, 0..) |c, i| {
                 meta[logical].range16[i] = @intCast(row[c].v);
-                c16[row[c].v] += 1;
+                if (i >= 10) c16[row[c].v] += 1;
             }
             meta[logical].high = @intCast(row[11].v);
-            c8[row[11].v] += 1;
+            // All public tuple ranges are anchored by expectedClaim.
+
             meta[logical].flags = @intCast(row[0].v | (row[12].v << 1) | (row[13].v << 2));
         }
         return .{ .allocator = a, .kind = kind, .log_size = log, .rows = @intCast(cells.len), .fixed = f, .main = main, .owns_main = buffers == null, .metadata = meta, .counts16 = c16, .counts8 = c8 };
@@ -133,7 +137,8 @@ pub const Source = struct {
         var claims = T.Claims.zero();
         claims.range16 = try I.countDot(self.counts16, dict16);
         claims.range8 = try I.countDot(self.counts8, dict8);
-        const output = try a.alloc(M, 48 * n);
+        if (!claims.range8.isZero()) return error.InvalidBoundaryCounts;
+        const output = try a.alloc(M, L.BOUND_INTERACTION * n);
         errdefer a.free(output);
         const denominator = try a.alloc(Q, n);
         defer a.free(denominator);
@@ -208,6 +213,7 @@ fn fillChunkImpl(source: *const Source, ch: T.Challenges, dict16: []const Q, dic
     writeRows(source, dict16, dict8, output, inverse, start, prefix);
 }
 fn writeRows(source: *const Source, dict16: []const Q, dict8: []const Q, output: []M, inverse: []const Q, start: usize, prefix: *[3]Q) void {
+    _ = dict8; // Boundary tuple high limbs are public-authority anchored.
     const n = source.size();
     for (source.metadata[start..][0..inverse.len], inverse, 0..) |meta, inv, offset| {
         const logical = start + offset;
@@ -217,17 +223,13 @@ fn writeRows(source: *const Source, dict16: []const Q, dict8: []const Q, output:
         const value = inv.mulM31(meta.active());
         prefix[0] = if (source.kind == .initial) prefix[0].sub(value) else prefix[0].add(value);
         R.trace.store(output, n, pos, 4, prefix[0]);
-        for (0..7) |batch| {
-            const x = dict16[meta.range16[2 * batch]];
-            const y = dict16[meta.range16[2 * batch + 1]];
+        for (0..2) |batch| {
+            const x = dict16[meta.range16[10 + 2 * batch]];
+            const y = dict16[meta.range16[11 + 2 * batch]];
             R.trace.store(output, n, pos, 8 + 4 * batch, x.mul(y));
             prefix[1] = prefix[1].add(x).add(y);
         }
-        R.trace.store(output, n, pos, 36, prefix[1]);
-        const x = dict8[meta.high];
-        R.trace.store(output, n, pos, 40, x);
-        prefix[2] = prefix[2].add(x);
-        R.trace.store(output, n, pos, 44, prefix[2]);
+        R.trace.store(output, n, pos, 16, prefix[1]);
     }
 }
 pub const ParallelSupport = struct {

@@ -14,7 +14,7 @@ const Col = engine.pcs.ColumnEvaluation;
 const Backend = @import("stwo_cpu_backend").CpuBackend;
 const FL = [_]u32{5} ** 3 ++ [_]u32{16} ** 3 ++ [_]u32{8} ** 3;
 const ML = [_]u32{5} ** 23 ++ [_]u32{16} ++ [_]u32{8};
-const IL = [_]u32{5} ** 48 ++ [_]u32{16} ** 8 ++ [_]u32{8} ** 8;
+const IL = [_]u32{5} ** X.layout.BOUND_INTERACTION ++ [_]u32{16} ** 8 ++ [_]u32{8} ** 8;
 pub const Encoded = struct {
     bytes: []u8,
     claims: G.PhysicalClaims,
@@ -101,7 +101,7 @@ fn specs(a: std.mem.Allocator, expected: Expected) ![2]G.Spec {
     defer a.free(fixed);
     const root = try fixedRoot(a, fixed);
     var out: [2]G.Spec = undefined;
-    for (&out, 0..) |*s, index| s.* = .{ .ordinal = @intCast(index), .role = if (index == 0) .initial else .terminal, .coverage = .{ .first_step = 0, .steps = 0, .epoch = @intCast(index + 1), .initial_pc = 0, .final_pc = 0, .initial_registers = @splat(0), .final_registers = @splat(0) }, .schema = @splat(19), .statement = statement(expected.cells), .fixed = root, .fixed_logs = &FL, .main_logs = &ML, .positive_mass = .{ @intCast(expected.cells.len), 0, 0 } };
+    for (&out, 0..) |*s, index| s.* = .{ .ordinal = @intCast(index), .role = if (index == 0) .initial else .terminal, .coverage = .{ .first_step = 0, .steps = 0, .epoch = @intCast(index + 1), .initial_pc = 0, .final_pc = 0, .initial_registers = @splat(0), .final_registers = @splat(0) }, .schema = X.boundary_encoding.identity(), .statement = statement(expected.cells), .fixed = root, .fixed_logs = &FL, .main_logs = &ML, .positive_mass = .{ @intCast(expected.cells.len), 0, 0 } };
     return out;
 }
 const Worker = struct {
@@ -151,7 +151,7 @@ fn components(initial: bool, rows: u32, ch: X.types.Challenges, claims: G.Physic
     c16.range16 = claims[3];
     var c8 = z;
     c8.range8 = claims[4];
-    return .{ .{ .kind = if (initial) .initial else .terminal, .log_size = 5, .rows = rows, .offsets = .{ 0, 0, 0 }, .claims = bc, .challenges = ch }, .{ .kind = .range16, .log_size = 16, .rows = 0, .offsets = .{ 3, 23, 48 }, .claims = c16, .challenges = ch }, .{ .kind = .range8, .log_size = 8, .rows = 0, .offsets = .{ 6, 24, 56 }, .claims = c8, .challenges = ch } };
+    return .{ .{ .kind = if (initial) .initial else .terminal, .log_size = 5, .rows = rows, .offsets = .{ 0, 0, 0 }, .claims = bc, .challenges = ch }, .{ .kind = .range16, .log_size = 16, .rows = 0, .offsets = .{ 3, 23, X.layout.BOUND_INTERACTION }, .claims = c16, .challenges = ch }, .{ .kind = .range8, .log_size = 8, .rows = 0, .offsets = .{ 6, 24, X.layout.BOUND_INTERACTION + 8 }, .claims = c8, .challenges = ch } };
 }
 fn finish(w: *Worker, n: *Native, manifest: *const G.Manifest, index: usize) !Encoded {
     const shared = try manifest.resumeWorker(w.a, index, &w.scheme, &w.ch);

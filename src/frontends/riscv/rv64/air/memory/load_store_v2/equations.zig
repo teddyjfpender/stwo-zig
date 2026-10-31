@@ -31,7 +31,13 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
         out.emit(F.one().sub(first).mul(active).mul(F.one().sub(pm[0])));
         out.emit(F.one().sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));
         for (m[1..14]) |value| out.emit(F.one().sub(active).mul(value));
-        R.equations.boundaryAfterBindFor(F, if (kind == .initial) .initial else .terminal, m, pm, i, pi, first, f[2], nonempty, baseClaims(claims), baseChallenges(ch), out);
+        R.equations.boundaryLocalFor(F, m, pm, first, nonempty, out);
+        const scalar = @import("../../providers/scalar_range.zig");
+        scalar.single(F, ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, f[2], claims.ram, out);
+        R.equations.rangesFor(F, m, i, pi, &L.BOUND_U16, 8, first, f[2], claims.range16, ch.range16, out);
+        // Canonical tuple coordinates come from the independently anchored
+        // RAM14 public multiset. There is no boundary U8 lookup debt.
+        out.emit(E.splatFor(F, claims.range8));
     }
 }
 pub fn baseChallenges(ch: T.Challenges) R.types.Challenges {

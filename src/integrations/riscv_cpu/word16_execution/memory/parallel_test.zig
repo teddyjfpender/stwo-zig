@@ -177,7 +177,7 @@ fn cells(count: usize, terminal: bool) ![]R.types.Cell {
     for (output, 0..) |*cell, i| cell.* = .{ .address = 0xfedcba9800000000 + 8 * @as(u64, @intCast(i)), .state = .{ .value = 0x8000000000000000 + @as(u64, @intCast(i)), .epoch = if (terminal) 1 else 0, .tick = if (terminal) @intCast(4 * (i + 1)) else 0, .rights = 3 } };
     return output;
 }
-test "INIT TERM pooled3prefix48columns match serial at1 4 16workers after MAIN retirement" {
+test "INIT TERM pooled2prefix20columns match serial at1 4 16workers after MAIN retirement" {
     const data = try Data.init();
     defer data.deinit();
     for ([_]X.layout.Kind{ .initial, .terminal }) |kind| {
