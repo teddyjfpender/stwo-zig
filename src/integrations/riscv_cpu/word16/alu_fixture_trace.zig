@@ -176,11 +176,10 @@ pub const Fixture = struct {
                 store(output, physical, 4 * batch, inverse);
                 range_sum = range_sum.add(dx.add(dy).mul(inverse));
             }
-            store(output, physical, 40, range_sum);
             const inverse = try ch.function.denominatorFor(Q, r.payload).inv();
-            store(output, physical, 44, inverse);
+            store(output, physical, P.FUNCTION_INVERSE, inverse);
             function_sum = function_sum.sub(inverse.mul(main[A.LOCAL_MAIN]));
-            store(output, physical, 48, function_sum);
+            store(output, physical, P.PREFIX, range_sum.add(function_sum));
             var tuple: [13]Q = undefined;
             for (&tuple, 0..) |*v, c| v.* = Q.fromBase(self.known_main[c * N + physical]);
             const known_inverse = try ch.function.denominatorFor(Q, tuple).inv();
@@ -188,12 +187,10 @@ pub const Fixture = struct {
             known_sum = known_sum.add(known_inverse.mulM31(self.known_main[13 * N + physical]));
             store(known, physical, 4, known_sum);
         }
-        for ([_]usize{ 40, 48 }, [_]Q{ range_sum, function_sum }) |start, claim| {
-            const correction = claim.toM31Array();
-            for (correction, 0..) |v, c| for (0..N) |r| {
-                output[(start + c) * N + r] = output[(start + c) * N + r].sub(v);
-            };
-        }
+        const total = range_sum.add(function_sum);
+        for (total.toM31Array(), 0..) |v, c| for (0..N) |r| {
+            output[(P.PREFIX + c) * N + r] = output[(P.PREFIX + c) * N + r].sub(v);
+        };
         const correction = known_sum.toM31Array();
         for (correction, 0..) |v, c| for (0..N) |r| {
             known[(4 + c) * N + r] = known[(4 + c) * N + r].sub(v);

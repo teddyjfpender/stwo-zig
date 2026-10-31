@@ -252,17 +252,16 @@ pub const Source = struct {
                     storeInternal(output, n, p, 4 * batch, x.mul(y));
                     prefix = prefix.add(x).add(y);
                 }
-                storeInternal(output, n, p, 40, prefix);
                 const inverse = scratch[CHUNK + i];
-                storeInternal(output, n, p, 44, inverse);
+                storeInternal(output, n, p, P.FUNCTION_INVERSE, inverse);
                 function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
-                storeInternal(output, n, p, 48, function_sum);
+                storeInternal(output, n, p, P.PREFIX, prefix.add(function_sum));
             }
         }
         if (!prefix.isZero()) return error.InvalidAluMetadata;
         const correction = function_sum.toM31Array();
         for (correction, 0..) |v, c| for (0..n) |r| {
-            output[(48 + c) * n + r] = output[(48 + c) * n + r].sub(v);
+            output[(P.PREFIX + c) * n + r] = output[(P.PREFIX + c) * n + r].sub(v);
         };
         self.interaction = output;
         a.free(self.metadata);

@@ -14,7 +14,7 @@ pub fn mixLocal(channel: *P.Channel, materials: *const Mat.Materials, public: W.
     if (materials.geometry.profile == .binary_v1) {
         channel.mixU32s(&.{ 0x57313643, 1, @intFromEnum(materials.geometry.mode), materials.geometry.cpu_log, materials.geometry.binary_log, 44, 56, 16, 6, 13, 24 });
     } else {
-        channel.mixU32s(&.{ 0x57313643, 3, @intFromEnum(materials.geometry.mode), materials.geometry.cpu_log, materials.geometry.binary_log, materials.geometry.alu_log, 46, 56, 23, 6, 13, 24, air.word16_v1.alu_experiment.lookup.MAIN, 52, 20 });
+        channel.mixU32s(&.{ 0x57313643, 3, @intFromEnum(materials.geometry.mode), materials.geometry.cpu_log, materials.geometry.binary_log, materials.geometry.alu_log, 46, 56, 23, 6, 13, 24, air.word16_v1.alu_experiment.lookup.MAIN, air.word16_v1.alu_experiment.lookup.INTERACTION, 20 });
         air.word16_v1.alu_experiment.equations.encoding.mix(channel);
     }
     mixDigest(channel, materials.program.identity);

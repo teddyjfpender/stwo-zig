@@ -5,3 +5,6 @@ test {
     _ = @import("rv64/air/word16_v1/alu_packed_rows_test.zig");
     _ = @import("rv64/air/word16_v1/alu_source_test.zig");
 }
+test {
+    _ = @import("rv64/air/word16_v1/alu_merged_prefix_test.zig");
+}

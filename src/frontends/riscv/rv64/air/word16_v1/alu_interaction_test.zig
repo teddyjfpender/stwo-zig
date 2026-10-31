@@ -60,7 +60,7 @@ fn clear(source: *S.Source) void {
 fn poolInit(pool: *engine.work_pool.WorkPool, workers: usize) !void {
     try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = I.MIN_STACK_BYTES });
 }
-test "ALU two prefixes all52 columns and claims equal serial at1 4 16workers aftermainrelease" {
+test "ALU joint prefix all48 columns and claims equal serial at1 4 16workers aftermainrelease" {
     var data = try Data.init();
     defer data.deinit();
     var serial = try copy(a, data.source);
@@ -124,7 +124,7 @@ test "ALU interaction poles ledger andbothwave failure drain preservemetadata an
     try std.testing.expectError(error.InvalidAluSourcePhase, I.generate(&source, data.ch, data.dictionary, &pool));
 }
 
-test "ALU weighted prefixes all52 columns and claims equal serial at1 4 16workers afterinputrelease" {
+test "ALU weighted joint prefix all48 columns and claims equal serial at1 4 16workers afterinputrelease" {
     var data = try Data.initMode(true);
     defer data.deinit();
     var serial = try copy(a, data.source);

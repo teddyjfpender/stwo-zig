@@ -87,7 +87,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-execution", "src/integrations/riscv_cpu/rv64_word16_execution_test_root.zig", 16 },
         .{ "word16-execution-source", "src/integrations/riscv_cpu/rv64_word16_execution_source_test_root.zig", 7 },
         .{ "word16-execution-coordinator", "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig", 20 },
-        .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 21 },
+        .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 24 },
         .{ "word16-alu-proof", "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig", 2 },
         .{ "word16-thin-cpu", "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig", 14 },
         .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 10 },

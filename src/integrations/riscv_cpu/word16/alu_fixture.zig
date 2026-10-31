@@ -18,7 +18,7 @@ pub const CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_blo
 pub const Encoded = struct { bytes: []u8, claims: [4]Q };
 fn mix(channel: *Channel, roster: *const C.ExpectedRoster) !void {
     CONFIG.mixInto(channel);
-    channel.mixU32s(&.{ 0x57313641, 2, 5, 5, 16, X.lookup.MAIN, 52, 13, 10, 640, 3 });
+    channel.mixU32s(&.{ 0x57313641, 2, 5, 5, 16, X.lookup.MAIN, X.lookup.INTERACTION, 13, 10, 640, 3 });
     X.equations.encoding.mix(channel);
     const digest = try C.expectedRosterDigest(roster);
     var words: [8]u32 = undefined;
@@ -110,7 +110,7 @@ pub fn verify(a: std.mem.Allocator, encoded: Encoded, tamper: bool) !void {
     @memset(logs[0 .. P.INTERACTION + 8], 5);
     @memset(logs[P.INTERACTION + 8 ..], 16);
     try verifier.commit(a, commitments[2], &logs, &channel);
-    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][48][1] = proof.commitment_scheme_proof.sampled_values.items[2][48][1].add(Q.one());
+    if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][X.lookup.PREFIX][1] = proof.commitment_scheme_proof.sampled_values.items[2][X.lookup.PREFIX][1].add(Q.one());
     const c = Components.init(ch, encoded.claims, &f.roster);
     const handles = [_]core.air.components.Component{ c.alu.asVerifierComponent(), c.known.asVerifierComponent(), c.range.asVerifierComponent() };
     owns = false;

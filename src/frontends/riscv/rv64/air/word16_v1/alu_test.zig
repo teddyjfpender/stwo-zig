@@ -93,7 +93,7 @@ fn packedFields(comptime F: type, comptime n: usize, scalar: *[16][n]E.Q, counte
     }
     return output;
 }
-test "Word16 complete ALU authority preserves all69 residuals across base and arbitrary secure lanes" {
+test "Word16 complete ALU authority preserves all67 residuals across base and arbitrary secure lanes" {
     var ch = P.Challenges{ .range16 = .{ .offset = secure(3), .coefficient = secure(7) }, .function = .{ .offset = secure(11), .coefficients = undefined } };
     for (&ch.function.coefficients, 0..) |*v, i| v.* = secure(@intCast(17 + 4 * i));
     const claims = P.Claims{ .range16 = secure(71), .function = secure(79) };

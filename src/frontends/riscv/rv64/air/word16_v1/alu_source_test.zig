@@ -87,17 +87,14 @@ fn reference(main: []const M, challenge: P.Challenges) !struct { data: []M, clai
             store(data, pos, 4 * j, x.mul(y));
             sum = sum.add(x).add(y);
         }
-        store(data, pos, 40, sum);
         const inverse = try challenge.function.denominatorFor(Q, row.payload).inv();
-        store(data, pos, 44, inverse);
+        store(data, pos, P.FUNCTION_INVERSE, inverse);
         function = function.sub(inverse.mul(values[A.LOCAL_MAIN]));
-        store(data, pos, 48, function);
+        store(data, pos, P.PREFIX, sum.add(function));
     }
-    for ([_]usize{ 40, 48 }, [_]Q{ sum, function }) |offset, value| {
-        for (value.toM31Array(), 0..) |v, c| for (0..N) |i| {
-            data[(offset + c) * N + i] = data[(offset + c) * N + i].sub(v);
-        };
-    }
+    for (sum.add(function).toM31Array(), 0..) |v, c| for (0..N) |i| {
+        data[(P.PREFIX + c) * N + i] = data[(P.PREFIX + c) * N + i].sub(v);
+    };
     return .{ .data = data, .claims = .{ .range16 = sum, .function = function } };
 }
 test "ALUSource canonical native row cache equals Q authority all10 operations and count-independent geometry" {
@@ -124,7 +121,7 @@ test "ALUSource canonical native row cache equals Q authority all10 operations a
     try std.testing.expectEqual(@as(u64, 20 * N), total);
     try std.testing.expectError(error.InvalidAluGeometry, S.massForLog(27));
 }
-test "ALUSource shared U16 dictionary and released owned borrowed main preserve all52 columns and80 residuals" {
+test "ALUSource shared U16 dictionary and released owned borrowed main preserve all48 columns and67 residuals" {
     const values = facts();
     var source = try S.Source.init(a, &values, 5);
     defer source.deinit();

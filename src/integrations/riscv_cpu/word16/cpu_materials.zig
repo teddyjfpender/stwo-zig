@@ -125,7 +125,7 @@ pub const Materials = struct {
                 .rom => .{ self.program.fixedCount(), 1, 8 },
                 .boundary => .{ 34, 0, 8 },
                 .alu => .{ 2, Binary.alu_experiment.lookup.MAIN, Binary.alu_experiment.lookup.INTERACTION },
-                .binary => .{ 2, 42, 28 },
+                .binary => .{ 2, Binary.binary_lookup.MAIN, Binary.binary_lookup.INTERACTION },
                 .and_table => .{ 5, 1, 8 },
                 .range16, .range8 => .{ 3, 1, 8 },
             };

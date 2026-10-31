@@ -105,21 +105,21 @@ const Job = struct {
                         Support.store(self.ctx.output, n, position, 4 * batch, x.mul(y));
                         sums[0] = sums[0].add(x).add(y);
                     }
-                    Support.store(self.ctx.output, n, position, 40, sums[0]);
                     const inverse = self.scratch[CHUNK + i];
-                    Support.store(self.ctx.output, n, position, 44, inverse);
+                    Support.store(self.ctx.output, n, position, P.FUNCTION_INVERSE, inverse);
                     sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(metadata.multiplicity())));
-                    Support.store(self.ctx.output, n, position, 48, sums[1]);
+                    Support.store(self.ctx.output, n, position, P.PREFIX, sums[0].add(sums[1]));
                 }
                 self.summaries[chunk] = sums;
             }
         } else {
             for (self.start..self.end) |position| {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, self.ctx.log), self.ctx.log);
-                for ([_]usize{ 40, 48 }, self.summaries[logical / CHUNK]) |column, offset| for (offset.toM31Array(), 0..) |coordinate, i| {
-                    const at = (column + i) * n + position;
+                const offsets = self.summaries[logical / CHUNK];
+                for (offsets[0].add(offsets[1]).toM31Array(), 0..) |coordinate, i| {
+                    const at = (P.PREFIX + i) * n + position;
                     self.ctx.output[at] = self.ctx.output[at].add(coordinate);
-                };
+                }
             }
         }
     }

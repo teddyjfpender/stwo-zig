@@ -6,9 +6,14 @@ pub const Challenges = struct {
     offset: E.Q,
     coefficient: E.Q,
     pub fn denominatorFor(self: @This(), comptime F: type, value: F) E.SecureFor(F) {
-        return E.splatFor(F, self.offset).sub(E.mulBaseFor(F, E.splatFor(F, self.coefficient), value));
+        return affineDenominatorFor(F, self.offset, self.coefficient, value);
     }
 };
+
+/// One denominator authority, including external arithmetic constant lanes.
+pub fn affineDenominatorFor(comptime F: type, offset: E.ConstFor(F), coefficient: E.ConstFor(F), value: F) E.SecureFor(F) {
+    return E.splatFor(F, offset).sub(E.mulBaseFor(F, E.splatFor(F, coefficient), value));
+}
 
 pub fn prefix(comptime F: type, contribution: E.SecureFor(F), current: E.SecureFor(F), previous: E.SecureFor(F), first: F, last: F, claim: E.Q, sink: *E.SinkFor(F)) void {
     sink.emit(current.sub(previous).add(E.mulBaseFor(F, E.splatFor(F, claim), first)).sub(contribution));
