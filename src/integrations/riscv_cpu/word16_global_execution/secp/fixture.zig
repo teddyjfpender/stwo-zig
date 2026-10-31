@@ -13,7 +13,7 @@ const C = @import("collector.zig");
 const E = @import("execution.zig");
 pub const ADDRESS: u64 = 0x8000000000000fe0;
 pub const WORDS = [_]u32{ 0x00053023, 0x73, 0x00188893, 0x73 };
-fn initialWords() [24]u64 {
+pub fn initialWords() [24]u64 {
     const x: u256 = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798;
     const y: u256 = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8;
     var out: [24]u64 = undefined;
@@ -43,7 +43,7 @@ fn regs(tag: u64) [32]u64 {
 pub fn expectedFor(identity: [32]u8) P.Expected {
     return .{ .admission = .{ .image = image(), .image_identity = @splat(0x73), .initial_pc = 4096, .initial_registers = regs(0x20011), .max_prefix_steps = 31 }, .program_identity = identity, .total_steps = 4, .max_total_steps = 4, .final_pc = 4112, .final_registers = regs(0x20012) };
 }
-fn execute(kind: S.program.Kind, before: [24]u64) ![24]u64 {
+pub fn execute(kind: S.program.Kind, before: [24]u64) ![24]u64 {
     const p = S.program.get(kind);
     var input: [6]u256 = @splat(0);
     for (0..p.inputs) |coord| {

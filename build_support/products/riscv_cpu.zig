@@ -51,6 +51,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
         .{ "word16-optional-division", "src/integrations/riscv_cpu/rv64_word16_optional_arithmetic_test_root.zig", 6 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
+        .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 9 },
         .{ "word16-secp-bridge", "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig", 10 },
         .{ "word16-keccak-shared", "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig", 9 },
         .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
@@ -148,6 +149,7 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
         .{ .name = "rv64-word16-global-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_secp_fixture_main.zig" },
         .{ .name = "rv64-word16-shared-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shared_keccak_fixture_main.zig" },
         .{ .name = "rv64-word16-global-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_global_keccak_fixture_main.zig" },

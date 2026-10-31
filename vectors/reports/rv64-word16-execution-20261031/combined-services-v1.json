@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "status": "qualified_bounded_combined_prefix",
+  "base": "e230e9545",
+  "scope": "two CPU shards plus independently sized Keccak/ADD/DOUBLE truths; prefix only",
+  "fixture": {
+    "instructions": 7,
+    "cpu_shards": 2,
+    "truths": 3,
+    "service_counts": [
+      1,
+      1,
+      1
+    ],
+    "boundary_words": 25,
+    "cross_page_same_buffer": true,
+    "proof_count": 5
+  },
+  "architecture": {
+    "cpu_native_domain": "2n",
+    "truth_native_domain": "4n",
+    "core_claims": 38,
+    "cpu_claims": 53,
+    "count_source": "mandatory core CLAIM_COUNT plus 15 service fields",
+    "absent_bridge_columns": "omitted",
+    "absent_bridge_claims": "forced zero",
+    "cpu_main_inter": "owned original backing handoff",
+    "truth_main": "borrowed qualified path",
+    "coordinator": "bounded central harness; no arbitrary-fanout memory claim"
+  },
+  "security": {
+    "queries": 70,
+    "pow_bits": 26,
+    "blowup_log": 1,
+    "nominal_configuration_bits": 96,
+    "whole_protocol_bits_established": false,
+    "ram_absolute_mass": 174,
+    "keccak_io_absolute_mass": 50,
+    "mass_admission": "all typed relation budgets strictly below M31 characteristic; local chi/XOR per independently challenged truth"
+  },
+  "qualification": {
+    "actual_physical_false_proofs": [
+      "cross-family false RAM predecessor reset",
+      "wrong Keccak output coherently propagated to later secp calls",
+      "wrong secp output",
+      "wrong service pointer"
+    ],
+    "receiver_mutants": [
+      "absent debt balancing",
+      "missing roots",
+      "wrong typed spans",
+      "swapped families",
+      "changed MAIN root",
+      "balanced physical claim mutation"
+    ],
+    "fresh_process_workers": [
+      1,
+      16
+    ],
+    "all_artifacts_worker_equal": true,
+    "owned_inter_vs_borrowed_inter_all_proofs_equal": true,
+    "no_performance_claim": true,
+    "safe": {
+      "status": "PASS",
+      "minimum_runtime_tests": 9,
+      "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe"
+    },
+    "proof_bytes": 4466508,
+    "fast": {
+      "status": "PASS",
+      "minimum_runtime_tests": 9,
+      "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseFast"
+    },
+    "transport": [
+      "roundtrip preserves every encoded physical proof",
+      "independent actual verifier accepts decoded bundle",
+      "all read allocation failures clean",
+      "CPU inventory/step/proof budgets reject",
+      "corrupt proof hash rejects"
+    ]
+  },
+  "artifacts": {
+    "bundle.json": {
+      "bytes": 61480,
+      "sha256": "b93c5fca3252162cf4a09799c11fd5be942964511a225528c6c2a33e86adb0d9"
+    },
+    "cells.bin": {
+      "bytes": 1166,
+      "sha256": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556"
+    },
+    "cpu-0.bin": {
+      "bytes": 974320,
+      "sha256": "d46a499a340ba98086b8f14ab512dc44f1c17782512e9ec6fa8137afb95f6d29"
+    },
+    "cpu-1.bin": {
+      "bytes": 1139648,
+      "sha256": "f9bd06ea8c6fd4b16e1ffc73c148998adcf171a294e8ce7d5624d70b714979f7"
+    },
+    "truth-0.bin": {
+      "bytes": 1618344,
+      "sha256": "548eba3c3b4de4b1dac5c3e7fcf74a0f764ea0a1c1e67a6d452d47800e25c0ee"
+    },
+    "truth-1.bin": {
+      "bytes": 370364,
+      "sha256": "6e32f28351af3292b98cdfbe7eacb0a047974607025e87eff3b8b9d0ba8b05d3"
+    },
+    "truth-2.bin": {
+      "bytes": 363832,
+      "sha256": "6fb28e0695964ae5437279c54a5ffa140748314bc241be49c0077c714d7d6d57"
+    }
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/wire_test.zig": "d6bf6374da924bb114074091cf1fc80fbbe57744fcb66e620f678169f7e1c8ab",
+    "src/integrations/riscv_cpu/word16_global_execution/services/collector.zig": "8ae25adf6f6894913aba4492b6eda74b3d3d3ead14f6b6b5c3f8e46ee0bc7a07",
+    "src/integrations/riscv_cpu/word16_global_execution/services/execution.zig": "fc3e6b22e449fc464541066e969af1593adbfcbe0157e976a5894c2cd001140d",
+    "src/integrations/riscv_cpu/word16_global_execution/services/protocol.zig": "17e0d72279331cddf85056872fa9b5e7088c167287b005d740901de6356df676",
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "0b7638aa195dea2ab324f7d298afba291e3c88360f34c46a2509099e753b623a",
+    "src/integrations/riscv_cpu/word16_global_execution/services/execution_test.zig": "3b59e41d9940e8ba6c0d848bc1c71ee6af443d733690a581a31ec0d8d4d52ba8",
+    "src/integrations/riscv_cpu/word16_global_execution/services/wire.zig": "34725d0b5cbb2978517cbd0ba4bdc2f50be259b96b8691f8bbd383aeef3d8cc0",
+    "src/integrations/riscv_cpu/word16_global_execution/services/types.zig": "7924e7f19f813764bd339d0233ca503ac8facc8af82f5b9754c23e2054d322f2",
+    "src/integrations/riscv_cpu/word16_global_execution/services/fixture.zig": "19447f2564d76afecb4a8246b23267cf8b10c21058308ab85c4ac1a4787d8f66",
+    "src/integrations/riscv_cpu/word16_global_execution/services/fixture_main.zig": "06e9d8d815ae473675e3971f213714827afbca55efe9bec1acab83018c8b6d6b",
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "4476e9228da1d34f8763c14ef1de1ef092622326894e0f9041ef08a1b316c105",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/fixture.zig": "ce86fd34f13976b59e7e5b799eff07edcb79da81d57abaab6e1a6ca2a5d39d8f",
+    "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig": "f5941c2ae1ac32a7bd0127f3db663b71bf36514b590e99d8670dc29c66799e74",
+    "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig": "8cb0e910a069b14311cfed9ea1d4921ef3273d97cf64dc38474bb2562797fca7",
+    "build_support/products/catalog.zig": "c38958d4b0d628610318b2c1beb0d3202cce5c97b623d99bee77c7d0da8b30db",
+    "build_support/products/riscv_cpu.zig": "56be3d04003da913b55aafa71159ca8981ba2c8cd85ea7985e9b2a26b2e6bc6a"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-word16-combined-services-wire-safe.log",
+    "fast": "/tmp/rv64-word16-combined-services-wire-fast.log"
+  },
+  "limitations": [
+    "prefix authority only; no terminal output certificate",
+    "bounded central stage1 owner retention",
+    "no whole Ethereum timing extrapolation",
+    "no production CLI route default activation"
+  ],
+  "artifacts_directory": "interop_artifacts/rv64-word16-combined-services-v1",
+  "fixture_tool_sha256": "16bdf32e45f47bd43499a4b17d9ac6273f640acbc737fda97a0d77fd09eb47dd"
+}
