@@ -190,9 +190,10 @@ pub fn schema() T.Digest {
     return schemaForProfile(.binary_v1);
 }
 pub fn schemaForProfile(profile: Profile.Profile) T.Digest {
-    var result: T.Digest = undefined;
-    std.crypto.hash.sha2.Sha256.hash(if (profile == .binary_v1) "rv64.word16.thin-binary-register-cpu.v1.main44.inter56.ROM16.REG6.FUNCTION13.clocks24-reset0.D3" else "rv64.word16.thin-alu-binary-cpu.v2.main46.inter56.ROM23-edge.REG6.FUNCTION13-unified.ALU60-52.clocks24-reset0.D3", &result, .{});
-    return result;
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(if (profile == .binary_v1) "rv64.word16.thin-binary-register-cpu.v1.main44.inter56.ROM16.REG6.FUNCTION13.clocks24-reset0.D3" else "rv64.word16.thin-alu-binary-cpu.v3.main46.inter56.ROM23-edge.REG6.FUNCTION13-unified.ALU-encoding-bound.clocks24-reset0.D3");
+    if (profile == .alu_binary_v2) hash.update(&air.word16_v1.alu_experiment.equations.encoding.identity());
+    return hash.finalResult();
 }
 pub fn validateSpec(materials: *const Materials, public: W.public.Public, spec: T.Spec) !void {
     const expected = try materials.descriptor(spec.ordinal, spec.first_request, public, spec.job_witness);

@@ -1,0 +1,60 @@
+{
+  "schema": "rv64-word16-sumzero-weighted-composed-v1",
+  "status": "qualified experimental ALU/BINARY/branch CPU only; no RAM/services/fullISA/Ethereum activation",
+  "inputs": {
+    "weighted_source_commit": "e74aff3b7",
+    "isolated_sumzero_commit": "806d5131061953d56e3ef0d315eae3ef70edc784"
+  },
+  "physical": {
+    "alu_main": 52,
+    "alu_interaction": 52,
+    "alu_constraints": 69,
+    "range16_per_physical_row": 20,
+    "retained_metadata_bytes_per_row": 70,
+    "max_degree": 3,
+    "quotient_factor": 2
+  },
+  "qualification": {
+    "safe_and_fast_passed": true,
+    "runtime_minima": {
+      "word16-alu": 21,
+      "word16-alu-proof": 2,
+      "word16-weighted-alu": 4,
+      "word16-alu-parallel-interaction": 4,
+      "word16-thin-cpu": 14,
+      "word16-index-control": 9,
+      "distributed-execution": 10,
+      "distributed-functional": 16
+    },
+    "safe_log": "/tmp/stwo-rv64-sumzero-weighted-clean-safe.log",
+    "fast_log": "/tmp/stwo-rv64-sumzero-weighted-clean-fast.log",
+    "merges": "Preserved weighted constructors,70-byte metadata,function mass validation and all weighted tests; native SUM hint/cache authority changed, no machine factory or new profile variant."
+  },
+  "fresh_artifacts": {
+    "standalone_alu": {
+      "directory": "/tmp/stwo-rv64-clean-sumzero-weighted-alu-v1",
+      "proof_sha256": "c04aac24d7e9d00b362341628cc2476f7a4cffd59f1dc8854f063fdf438b6f3e",
+      "proof_bytes": 264288,
+      "fresh_receiver_accepted": true
+    },
+    "million_weighted_cpu": {
+      "directory": "/tmp/stwo-rv64-clean-sumzero-weighted-million-v1",
+      "proof_sha256": "b80a1f788922e7ebd9d46c0a1de1caa8a8cf7278c956761b2b25a618ec5f71a7",
+      "proof_bytes": 468720,
+      "fresh_receiver_accepted": true,
+      "instructions": 1048575,
+      "pure_ALU_truth_facts": 1,
+      "multiplicity": 1048575,
+      "receiver_expected_statement_independent": true
+    }
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/alu.zig": "9cdd475cd00c47d9a9d3b3e3032b4db6d8294f72b20bce67881af702a75aadb5",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_encoding.zig": "7ee3a6dd43995dbdc145542dd02f07d9027082008f8190deb28c0e7bdfc4211b",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_lookup.zig": "18fe052c55972505152fbb3599bb96d71d38a2d721f86c8aa24c3a6e19936462",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "d38b0c5de439c4b525bc05b466275b67a42ba3f38e612f91667a96bdc3b10804",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_dedup.zig": "0cb23cdb762f06bb7cbd4817381b4c23c5c0b6db81c75b9bf813ac4994a68024",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction.zig": "d877c93c5b2417e0ba2756c692052fe204b7f85f34287a78705e868678e861c8"
+  },
+  "benchmark_caveat": "Separate paired-loop report measures isolated SUM encoding against3a execution foundation, before weighted metadata merge; source cell/RSS savings are observations, no whole-prover speedup observed, no combined or Ethereum speedup claim."
+}

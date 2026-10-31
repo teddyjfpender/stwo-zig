@@ -15,10 +15,11 @@ pub const MAX_ROM = 23;
 /// Program bytes and concrete geometry have their own authority identities.
 pub fn identity(profile: Profile) [32]u8 {
     const std = @import("std");
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(switch (profile) {
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(switch (profile) {
         .binary_v1 => "stwo-rv64/word16-cpu/binary-v1/REG6-reset0-clocks24/FUNCTION13-global-ids",
         .alu_binary_v2 => "stwo-rv64/word16-cpu/alu-binary-v2/REG6-reset0-clocks24/ROM23-two-branch-edges/FUNCTION13-global-ids/U16-canonical",
-    }, &digest, .{});
-    return digest;
+    });
+    if (profile == .alu_binary_v2) hash.update(&@import("../word16_v1/alu_encoding.zig").identity());
+    return hash.finalResult();
 }

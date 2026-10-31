@@ -2,10 +2,11 @@
 //! not host checks: all twenty rangeTuple values must close against U16.
 const E = @import("../evaluation.zig");
 const WordAdd = @import("word_add.zig");
-pub const LOCAL_MAIN = 59;
+pub const encoding = @import("alu_encoding.zig");
+pub const LOCAL_MAIN = encoding.LOCAL_MAIN;
 pub const MAIN = LOCAL_MAIN;
-pub const CONSTRAINTS = 64;
-pub const RANGE_QUERIES = 20;
+pub const CONSTRAINTS = encoding.LOCAL_CONSTRAINTS;
+pub const RANGE_QUERIES = encoding.RANGE_QUERIES;
 pub fn RowFor(comptime F: type) type {
     return struct {
         payload: [13]F,
@@ -15,12 +16,11 @@ pub fn RowFor(comptime F: type) type {
         difference: [4]F,
         carry: [4]F,
         borrow: [4]F,
-        zero: [4]F,
-        inverse: [4]F,
+        zero: F,
+        inverse: F,
         // Sign of A[3], B[3], sum[1], difference[1].
         sign: [4]F,
         low: [4]F,
-        zero_pair: [2]F,
         signed_less: F,
     };
 }
@@ -55,14 +55,14 @@ pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
         sink.emit(WordAdd.limbResidualFor(F, r.payload[1 + i], r.payload[5 + i], previous_carry, r.sum[i], r.carry[i]));
         sink.emit(r.payload[1 + i].sub(r.payload[5 + i]).sub(previous_borrow).sub(r.difference[i]).add(radix.mul(r.borrow[i])));
     }
-    for (0..4) |i| {
-        sink.emit(r.zero[i].mul(r.zero[i].sub(one)));
-        sink.emit(r.zero[i].mul(r.difference[i]));
-        sink.emit(r.difference[i].mul(r.inverse[i]).add(r.zero[i]).sub(one));
-    }
-    sink.emit(r.zero_pair[0].sub(r.zero[0].mul(r.zero[1])));
-    sink.emit(r.zero_pair[1].sub(r.zero[2].mul(r.zero[3])));
-    const equal = r.zero_pair[0].mul(r.zero_pair[1]);
+    // Mandatory external U16 membership bounds this integer sum by262140<p.
+    // This is not a zero-test equivalence for arbitrary unconstrained limbs.
+    var difference_sum = F.zero();
+    for (r.difference) |value| difference_sum = difference_sum.add(value);
+    sink.emit(r.zero.mul(r.zero.sub(one)));
+    sink.emit(r.zero.mul(difference_sum));
+    sink.emit(difference_sum.mul(r.inverse).add(r.zero).sub(one));
+    const equal = r.zero;
     const same_sign = one.sub(r.sign[0]).sub(r.sign[1]).add(two.mul(r.sign[0]).mul(r.sign[1]));
     sink.emit(r.signed_less.sub(r.sign[0].mul(one.sub(r.sign[1])).add(same_sign.mul(r.borrow[3]))));
     const predicates = [6]F{ r.signed_less, r.borrow[3], equal, one.sub(equal), one.sub(r.signed_less), one.sub(r.borrow[3]) };
@@ -123,8 +123,6 @@ pub fn witness(op: @import("operations.zig").Alu, a: u64, b: u64) !RowFor(E.Q) {
         r.difference[i] = E.q(difference & 65535);
         r.carry[i] = E.q(carry);
         r.borrow[i] = E.q(borrow);
-        r.zero[i] = E.q(@intFromBool((difference & 65535) == 0));
-        r.inverse[i] = if ((difference & 65535) == 0) E.Q.zero() else try r.difference[i].inv();
     }
     const signed_limbs = [4]E.Q{ r.payload[4], r.payload[8], r.sum[1], r.difference[1] };
     for (signed_limbs, 0..) |value, i| {
@@ -132,7 +130,10 @@ pub fn witness(op: @import("operations.zig").Alu, a: u64, b: u64) !RowFor(E.Q) {
         r.sign[i] = E.q(limb >> 15);
         r.low[i] = E.q(limb & 32767);
     }
-    r.zero_pair = .{ r.zero[0].mul(r.zero[1]), r.zero[2].mul(r.zero[3]) };
+    var difference_sum = E.Q.zero();
+    for (r.difference) |value| difference_sum = difference_sum.add(value);
+    r.zero = E.q(@intFromBool(difference_sum.isZero()));
+    r.inverse = if (difference_sum.isZero()) E.Q.zero() else try difference_sum.inv();
     r.signed_less = E.q(@intCast(nativeResult(.slt, a, b)));
     return r;
 }
