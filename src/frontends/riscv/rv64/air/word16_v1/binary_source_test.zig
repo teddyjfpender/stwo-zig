@@ -93,7 +93,7 @@ test "BinarySource native matrices match qualified Q witness with geometry-only 
     var empty = try S.Source.init(a, &.{}, 5);
     defer empty.deinit();
     try std.testing.expectEqualSlices(M, source.fixed, empty.fixed);
-    try std.testing.expectEqual(@as(usize, 42), @sizeOf(S.Metadata));
+    try std.testing.expectEqual(@as(usize, 46), @sizeOf(S.Metadata));
     const n = source.size();
     for (0..n) |i| {
         var row = if (i < inputs.len) B.witness(inputs[i].op, inputs[i].a, inputs[i].b) else B.witness(.and_, 0, 0);
@@ -186,5 +186,78 @@ test "BinarySource allocation invalid fact pole and late ledger failures preserv
     try std.testing.expectError(error.InvalidBinaryMetadata, source.generate(challenges()));
     try std.testing.expectEqual(@as(usize, 0), source.interaction.len);
     source.and_counts[0] -= 1;
+    _ = try source.generate(challenges());
+}
+
+test "weighted BinarySource owns full u32 weights and keeps eight AND queries per physical row" {
+    var inputs = facts();
+    var weights: [3]u32 = .{ 70000, 0, 13 };
+    var source = try S.Source.initWeighted(a, &inputs, &weights, 5);
+    defer source.deinit();
+    var buffer: [S.MAIN * 32]M = undefined;
+    var borrowed = try S.Source.initWeightedWithMainBuffers(a, &inputs, &weights, 5, .{ .main = &buffer });
+    defer borrowed.deinit();
+    const main = try a.dupe(M, source.main);
+    defer a.free(main);
+    try std.testing.expectEqualSlices(M, main, borrowed.main);
+    try std.testing.expectEqual(@as(u32, 70000), source.metadata[0].multiplicity());
+    var mass: u64 = 0;
+    for (source.and_counts) |count| mass += count;
+    try std.testing.expectEqual(@as(u64, 256), mass);
+    const ch = challenges();
+    const expected = try oracle(main, 5, ch);
+    defer a.free(expected.data);
+    @memset(&weights, 0);
+    @memset(&inputs, .{ .op = .and_, .a = 0, .b = 0, .c = 0 });
+    const transferred = try source.takeMainForCommit();
+    a.free(transferred);
+    borrowed.releaseMain();
+    @memset(&buffer, M.fromCanonical(17));
+    const actual = try source.generate(ch);
+    const other = try borrowed.generate(ch);
+    try std.testing.expectEqualDeep(expected.claims, actual);
+    try std.testing.expectEqualDeep(actual, other);
+    try std.testing.expectEqualSlices(M, expected.data, source.interaction);
+    try std.testing.expectEqualSlices(M, source.interaction, borrowed.interaction);
+    try nativeRows(main, &source, actual, ch);
+}
+
+test "weighted BinarySource canonical mass alias shape and allocator failures preserve borrowed main" {
+    const inputs = facts();
+    var buffer: [S.MAIN * 32]M = @splat(M.fromCanonical(23));
+    try std.testing.expectError(error.InvalidBinaryWeights, S.Source.initWeightedWithMainBuffers(a, &inputs, &.{1}, 5, .{ .main = &buffer }));
+    try std.testing.expectError(error.InvalidBinaryWeights, S.Source.initWeightedWithMainBuffers(a, &inputs, &.{ core.fields.m31.Modulus, 1, 1 }, 5, .{ .main = &buffer }));
+    try std.testing.expectError(error.BinaryMultiplicityMassExceeded, S.Source.initWeightedWithMainBuffers(a, &inputs, &.{ core.fields.m31.Modulus - 1, 1, 0 }, 5, .{ .main = &buffer }));
+    const alias: [*]const u32 = @ptrCast(&buffer);
+    try std.testing.expectError(error.OverlappingBinaryInputs, S.Source.initWeightedWithMainBuffers(a, &inputs, alias[0..3], 5, .{ .main = &buffer }));
+    for (0..3) |index| {
+        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = index });
+        try std.testing.expectError(error.OutOfMemory, S.Source.initWeightedWithMainBuffers(failing.allocator(), &inputs, &.{ 7, 11, 13 }, 5, .{ .main = &buffer }));
+    }
+    for (buffer) |v| try std.testing.expectEqual(@as(u32, 23), v.v);
+    const Runner = struct {
+        fn run(allocator: std.mem.Allocator, values: []const S.Fact) !void {
+            var source = try S.Source.initWeighted(allocator, values, &.{ 7, 11, 13 }, 5);
+            defer source.deinit();
+            source.releaseMain();
+            _ = try source.generate(challenges());
+        }
+    };
+    try std.testing.checkAllAllocationFailures(a, Runner.run, .{&inputs});
+}
+
+test "weighted BinarySource corrupt weight ledger and strict padding pole publish nothing and retry" {
+    const inputs = facts();
+    var source = try S.Source.initWeighted(a, &inputs, &.{ 7, 11, 13 }, 5);
+    defer source.deinit();
+    source.releaseMain();
+    source.metadata[0].multiplicity_words[0] += 1;
+    try std.testing.expectError(error.InvalidBinaryMetadata, source.generate(challenges()));
+    source.metadata[0].multiplicity_words[0] -= 1;
+    var ch = challenges();
+    ch.function.offset = Q.zero();
+    ch.function.coefficients = @splat(Q.zero());
+    try std.testing.expectError(error.DivisionByZero, source.generate(ch));
+    try std.testing.expectEqual(@as(usize, 0), source.interaction.len);
     _ = try source.generate(challenges());
 }

@@ -13,6 +13,7 @@ const wire = @import("stwo_circuit_recursion_wire");
 const core = @import("stwo_core");
 const A = @import("../rv64_authenticated_execution.zig");
 const walk = @import("transcript_walk.zig");
+pub const admission = @import("root_admission.zig");
 
 const Q = core.fields.qm31.QM31;
 const recursion = circuit_cpu.recursion;
@@ -29,6 +30,8 @@ pub const LeafFile = struct {
     schema: []const u8 = "rv64-recursion-leaf-v1",
     batch_index: u32,
     circuit_hash: [8]u32,
+    /// Diagnostic producer hint only; receiver recomputes and checks trusted pins.
+    layout_digest: ?[32]u8 = null,
     preprocessed_root: [8]u32,
     output_digest: [8]u32,
     /// The free transcript words in mix order (the digest preimage).
@@ -106,6 +109,8 @@ pub const Root = struct {
 /// Folds the leaves (in order) to one internal-profile root proof with up
 /// to `jobs` sibling reductions in flight.
 pub fn fold(gpa: std.mem.Allocator, assets: *Assets, leaves: []const LeafFile, proofs: []const []const u8, jobs: usize) !Root {
+    try admission.validateCount(leaves.len);
+    if (proofs.len != leaves.len) return error.LeafCountMismatch;
     var cache = recursion.canonical.Cache.init(gpa, .{ .max_entries = 1, .max_bytes = 64 << 30 });
     defer cache.deinit();
     const canonical = try recursion.canonical.acquire(gpa, &cache, &assets.table, assets.registry.registry, recursion.fold.default_options);
@@ -196,10 +201,13 @@ pub const RootCheck = struct {
 
 /// Verifies the root circuit proof against the canonical multiverifier
 /// shape and recomputes the root digest from the packed tree, requiring
-/// leaf `i` to carry `expected_leaf_hashes[i]` (the admitted leaf topology
+/// leaf `i` to carry the independently trusted topology and expected statement
+/// digest in `expected_leaves[i]` (the admitted leaf topology
 /// of that batch's layout) and a digest equal to the Blake2s of its
 /// revealed statement words.
-pub fn verifyRoot(gpa: std.mem.Allocator, assets: *Assets, root: Root, expected_leaf_hashes: []const [8]u32) !RootCheck {
+pub fn verifyRoot(gpa: std.mem.Allocator, assets: *Assets, root: Root, expected_leaves: []const admission.Leaf) !RootCheck {
+    try admission.validateCount(expected_leaves.len);
+    if (root.n_leaves != expected_leaves.len) return error.LeafCountMismatch;
     var cache = recursion.canonical.Cache.init(gpa, .{ .max_entries = 1, .max_bytes = 64 << 30 });
     defer cache.deinit();
     // The receiver needs only the shape and identity; no preprocessed commit.
@@ -221,41 +229,55 @@ pub fn verifyRoot(gpa: std.mem.Allocator, assets: *Assets, root: Root, expected_
     };
     const verdict = try circuit_cpu.verify.verifyProofBytes(gpa, &assets.table, &request, root.proof_bytes);
     if (!verdict.isAccepted()) return error.RootProofRejected;
-    var packed_tree = try wire.packed_node.parsePackedNode(gpa, root.packed_json);
-    defer packed_tree.deinit();
-    var leaves: usize = 0;
-    const digest = try recompute(packed_tree.node, expected_leaf_hashes, &leaves);
-    if (leaves != expected_leaf_hashes.len) return error.LeafCountMismatch;
-    if (!std.mem.eql(u32, &digest, &root.output_digest)) return error.RootDigestMismatch;
-    return .{ .accepted = true, .leaf_hash_checked = leaves, .digest_recomputed = true };
+    try verifyPackedStatements(gpa, root.packed_json, expected_leaves, root.circuit_hash, root.output_digest);
+    return .{ .accepted = true, .leaf_hash_checked = expected_leaves.len, .digest_recomputed = true };
 }
 
-fn recompute(node: wire.packed_node.PackedNode, expected_leaf_hashes: []const [8]u32, leaves: *usize) ![8]u32 {
+/// Binding check only; the caller must separately verify the physical root.
+pub fn verifyPackedStatements(gpa: std.mem.Allocator, json: []const u8, expected_leaves: []const admission.Leaf, expected_fold_hash: [8]u32, expected_digest: [8]u32) !void {
+    try admission.validateCount(expected_leaves.len);
+    if (json.len > admission.MAX_PACKED_JSON_BYTES) return error.PackedTreeResourceLimit;
+    var packed_tree = try wire.packed_node.parsePackedNode(gpa, json);
+    defer packed_tree.deinit();
+    var leaves: usize = 0;
+    var nodes: usize = 0;
+    const digest = try recompute(packed_tree.node, expected_leaves, expected_fold_hash, &leaves, &nodes, 0);
+    if (leaves != expected_leaves.len) return error.LeafCountMismatch;
+    if (!std.mem.eql(u32, &digest, &expected_digest)) return error.RootDigestMismatch;
+}
+
+fn recompute(node: wire.packed_node.PackedNode, expected_leaves: []const admission.Leaf, expected_fold_hash: [8]u32, leaves: *usize, nodes: *usize, depth: usize) ![8]u32 {
+    if (depth >= admission.MAX_DEPTH or nodes.* >= admission.MAX_NODES) return error.PackedTreeResourceLimit;
+    nodes.* += 1;
     switch (node) {
         .plain => return error.PlainNodeAtRoot,
         .composite => |composite| {
             if (composite.subtasks.len == 1 and composite.subtasks[0] == .plain) {
                 // A leaf: its circuit hash must be the RV64 leaf's, and its
                 // digest is the Blake2s of its revealed statement words.
-                if (leaves.* >= expected_leaf_hashes.len or !std.mem.eql(u32, &composite.circuit_hash, &expected_leaf_hashes[leaves.*])) return error.LeafCircuitHashMismatch;
+                if (leaves.* >= expected_leaves.len) return error.LeafCountMismatch;
                 const preimage = composite.subtasks[0].plain;
                 if (preimage.len != 1 or preimage[0].len % 8 != 0) return error.LeafPreimageShape;
-                leaves.* += 1;
+                if (preimage[0].len / 8 > admission.MAX_STATEMENT_WORDS) return error.LeafPreimageShape;
                 var hasher = blake2_hash.Blake2sHasher.init();
                 var at: usize = 0;
                 while (at < preimage[0].len) : (at += 8) {
                     const word = std.fmt.parseInt(u32, preimage[0][at..][0..8], 16) catch return error.LeafPreimageShape;
                     hasher.update(&leBytes(word));
                 }
-                return blake2_hash.digestToU32s(hasher.finalize());
+                const digest = blake2_hash.digestToU32s(hasher.finalize());
+                try admission.checkLeaf(expected_leaves[leaves.*], composite.circuit_hash, digest);
+                leaves.* += 1;
+                return digest;
             }
+            if (!std.mem.eql(u32, &composite.circuit_hash, &expected_fold_hash)) return error.FoldCircuitHashMismatch;
             if (composite.subtasks.len != 2 and composite.subtasks.len != 1) return error.UnexpectedArity;
             var children: [2]Child = undefined;
             for (composite.subtasks, 0..) |child, i| {
                 children[i] = .{ .circuit_hash = switch (child) {
                     .composite => |c| c.circuit_hash,
                     .plain => return error.PlainNodeAtRoot,
-                }, .digest = try recompute(child, expected_leaf_hashes, leaves) };
+                }, .digest = try recompute(child, expected_leaves, expected_fold_hash, leaves, nodes, depth + 1) };
             }
             if (composite.subtasks.len == 1) {
                 // A single-leaf tree folds the leaf with itself.
@@ -274,4 +296,9 @@ pub fn checkStatementWords(a: std.mem.Allocator, view: A.VerificationView, publi
     defer replay.deinit();
     try walk.walkPublic(&replay, view, public);
     if (!std.mem.eql(u32, replay.free.items, words)) return error.LeafStatementWordsMismatch;
+}
+
+test {
+    _ = @import("root_admission_test.zig");
+    _ = @import("native_fixed_root.zig");
 }

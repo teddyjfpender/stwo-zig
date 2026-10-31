@@ -34,8 +34,8 @@ pub fn main() !void {
         return foldCommand(a, args[2], try std.fmt.parseInt(usize, args[3], 10), args[4..]);
     }
     if (std.mem.eql(u8, command, "verify-root")) {
-        if (args.len != 4) return usage();
-        return verifyRootCommand(a, args[2], args[3]);
+        if (args.len != 5) return usage();
+        return verifyRootCommand(a, args[2], args[3], args[4]);
     }
     return usage();
 }
@@ -81,6 +81,7 @@ fn wrapCommand(a: std.mem.Allocator, config_path: []const u8, out_dir: []const u
 /// `fold <out-dir> <jobs> <leaf.json>...`: folds the leaves in the given
 /// order to one root under the production registry's shared target.
 fn foldCommand(a: std.mem.Allocator, out_dir: []const u8, jobs: usize, leaf_paths: []const []const u8) !void {
+    try fold_root.admission.validateCount(leaf_paths.len);
     var timer = try std.time.Timer.start();
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
@@ -126,11 +127,11 @@ fn foldCommand(a: std.mem.Allocator, out_dir: []const u8, jobs: usize, leaf_path
 
 const RootSummary = struct { output_digest: [8]u32, preprocessed_root: [8]u32, circuit_hash: [8]u32, n_leaves: usize };
 
-/// `verify-root <root-dir> <ethereum-config.json>`: verifies the root proof,
+/// `verify-root <root-dir> <ethereum-config.json> <trusted-topologies.json>`: verifies the root proof,
 /// recomputes its digest from the packed tree, rebinds every revealed leaf
 /// statement to its public values, and checks the batch chain adjacency
 /// from the independently derived initial state.
-fn verifyRootCommand(a: std.mem.Allocator, root_dir: []const u8, config_path: []const u8) !void {
+fn verifyRootCommand(a: std.mem.Allocator, root_dir: []const u8, config_path: []const u8, trusted_topologies_path: []const u8) !void {
     var timer = try std.time.Timer.start();
     var arena_state = std.heap.ArenaAllocator.init(a);
     defer arena_state.deinit();
@@ -138,25 +139,33 @@ fn verifyRootCommand(a: std.mem.Allocator, root_dir: []const u8, config_path: []
     var directory = try std.fs.cwd().openDir(root_dir, .{});
     defer directory.close();
     const summary = try std.json.parseFromSliceLeaky(RootSummary, arena, try directory.readFileAlloc(arena, "root.json", 1 << 20), .{ .ignore_unknown_fields = true });
+    // This file is an independently trusted receiver input, like the ELF
+    // configuration. Producer leaf metadata never authorizes its own circuit.
+    const trusted = try std.json.parseFromSliceLeaky(fold_root.admission.TrustedTopologies, arena, try std.fs.cwd().readFileAlloc(arena, trusted_topologies_path, fold_root.admission.MAX_MANIFEST_BYTES), .{});
+    try trusted.validate(summary.n_leaves);
     const root = fold_root.Root{
         .proof_bytes = try directory.readFileAlloc(arena, "root.proof", 256 << 20),
         .output_digest = summary.output_digest,
         .preprocessed_root = summary.preprocessed_root,
         .circuit_hash = summary.circuit_hash,
-        .packed_json = try directory.readFileAlloc(arena, "root_packed.json", 256 << 20),
+        .packed_json = try directory.readFileAlloc(arena, "root_packed.json", fold_root.admission.MAX_PACKED_JSON_BYTES),
         .n_leaves = summary.n_leaves,
         .n_layers = 0,
         .n_reductions = 0,
     };
-    // The leaf files, in batch order: their circuit hashes are the admitted
-    // leaf topologies the packed tree must carry, position by position.
+    // The untrusted leaf files supply public statements, not admission hashes.
     const leaves = try arena.alloc(fold_root.LeafFile, summary.n_leaves);
-    const admitted = try arena.alloc([8]u32, summary.n_leaves);
+    const admitted = try arena.alloc(fold_root.admission.Leaf, summary.n_leaves);
     for (leaves, admitted, 0..) |*leaf, *hash, i| {
         const name = try std.fmt.allocPrint(arena, "leaf-{d:0>6}.json", .{i});
-        leaf.* = try std.json.parseFromSliceLeaky(fold_root.LeafFile, arena, try directory.readFileAlloc(arena, name, 64 << 20), .{ .ignore_unknown_fields = true });
+        leaf.* = try std.json.parseFromSliceLeaky(fold_root.LeafFile, arena, try directory.readFileAlloc(arena, name, fold_root.admission.MAX_LEAF_JSON_BYTES), .{ .ignore_unknown_fields = true });
         if (leaf.batch_index != i) return error.LeafOrderMismatch;
-        hash.* = leaf.circuit_hash;
+        try trusted.leaves[i].checkLayout(try fold_root.admission.layoutDigest(leaf.public));
+        if (leaf.statement_words.len > fold_root.admission.MAX_STATEMENT_WORDS) return error.LeafPreimageShape;
+        if (!std.mem.eql(u32, &leaf.circuit_hash, &trusted.leaves[i].circuit_hash)) return error.LeafCircuitHashMismatch;
+        const digest = walk.statementDigest(leaf.statement_words);
+        if (!std.mem.eql(u32, &digest, &leaf.output_digest)) return error.LeafDigestMismatch;
+        hash.* = .{ .circuit_hash = trusted.leaves[i].circuit_hash, .statement_digest = digest };
     }
     const assets = try fold_root.Assets.init(a);
     defer assets.deinit();
@@ -171,6 +180,9 @@ fn verifyRootCommand(a: std.mem.Allocator, root_dir: []const u8, config_path: []
         const index: u32 = @intCast(i);
         var public = leaf.public;
         public.cpu.statement.program = loaded.request.authority.expectedProgram();
+        // Match the native receiver admission, including canonical roots and
+        // unchanged RAM when the RAM roster is absent (not Layout checks).
+        try public.validateWithAdmittedOpcodes(&loaded.request.policy, &loaded.request.authority.opcodes);
         var prepared = try A.Prepared.initForLayout(a, public.layout(), &loaded.request.policy, &loaded.request.authority);
         defer prepared.deinit();
         try fold_root.checkStatementWords(a, prepared.verificationView(), public, leaf.statement_words);
@@ -187,7 +199,7 @@ fn usage() error{Usage} {
         \\  rv64-recursion check-transcript <ethereum-config.json> <batch-index>
         \\  rv64-recursion wrap <ethereum-config.json> <out-dir> <batch-index>...
         \\  rv64-recursion fold <out-dir> <jobs> <leaf.json>...
-        \\  rv64-recursion verify-root <root-dir> <ethereum-config.json>
+        \\  rv64-recursion verify-root <root-dir> <ethereum-config.json> <trusted-topologies.json>
         \\
     , .{});
     return error.Usage;

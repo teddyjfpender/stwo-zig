@@ -90,6 +90,9 @@ pub fn wrap(gpa: std.mem.Allocator, arena: std.mem.Allocator, assets: *fold_root
     var ctx_owned = true;
     defer if (ctx_owned) ctx.deinit();
     const proof_wires = try nv.proof.guess(Q, &ctx, &proof_values);
+    // Host capture validates the honest constructor, but malicious circuit
+    // witnesses must ALSO be unable to replace the ROM/policy/fixed columns.
+    try @import("native_fixed_root.zig").enforce(&ctx, proof_wires.commitments[0], key.root);
     var statement = try leaf_statement.Statement.init(arena, key.view(), public, claims, &roster);
     const outcome = nv.verify.verify(Q, &ctx, &shape, &proof_wires, &statement) catch |err| return stage("native_verifier.verify", err);
     if (std.process.hasEnvVarConstant("RV64_RECURSION_DIAGNOSE")) {
@@ -152,6 +155,7 @@ pub fn wrap(gpa: std.mem.Allocator, arena: std.mem.Allocator, assets: *fold_root
         .leaf = .{
             .batch_index = index,
             .circuit_hash = circuit_hash,
+            .layout_digest = try fold_root.admission.layoutDigest(public),
             .preprocessed_root = preprocessed_root,
             .output_digest = walk.statementDigest(statement_words),
             .statement_words = statement_words,

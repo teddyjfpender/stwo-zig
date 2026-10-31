@@ -42,6 +42,12 @@ const F = Kind.free;
 /// `Statement.mixWithProfile`. `identity` is the immutable ROM identity the
 /// receiver supplies (`view.cpu.base.program.identity`).
 pub fn walkPublic(sink: anytype, view: A.VerificationView, public: A.Public) !void {
+    return walkPublicWithProgramIdentity(sink, view.cpu.base.program.identity, public);
+}
+
+/// Same public framing, with explicit immutable program identity for consumers
+/// which do not need a complete verification view (e.g. layout-only hashing).
+pub fn walkPublicWithProgramIdentity(sink: anytype, program_identity: [32]u8, public: A.Public) !void {
     if (public.cpu.statement.cells.len != 0 or public.cpu.statement.memory_clocks.len != 0) return error.UnsupportedRv64RecursionStatement;
     try sink.words(&.{ L, L, L, L }, &.{ 0x52414558, 1, @intFromBool(public.ram != null), public.geometry.logBytes() });
     try sink.digestFree(public.before);
@@ -63,7 +69,7 @@ pub fn walkPublic(sink: anytype, view: A.VerificationView, public: A.Public) !vo
     if (cpu.execution_profile != .rv64im) try sink.words(&.{ L, L, L }, &.{ 0x52565052, 1, @intFromEnum(cpu.execution_profile) });
     try sink.words(&.{ L, L, L, .steps, L }, &.{ 0x52563634, 0x46554c4c, 1, statement.steps, statement.logSize() });
     try sink.configFelt();
-    for (view.cpu.base.program.identity) |byte| try sink.words(&.{F}, &.{byte});
+    for (program_identity) |byte| try sink.words(&.{F}, &.{byte});
     try sink.u64Free(statement.initial_pc);
     try sink.u64Free(statement.final_pc);
     for (statement.initial_registers) |value| try sink.u64Free(value);

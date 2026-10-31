@@ -1,0 +1,93 @@
+[
+  {
+    "target": "word16-alu",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-alu",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 15.590049028396606,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-alu.log"
+  },
+  {
+    "target": "word16-weighted-alu",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-weighted-alu",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 39.32314395904541,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-weighted-alu.log"
+  },
+  {
+    "target": "word16-weighted-binary",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-weighted-binary",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 22.756376028060913,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-weighted-binary.log"
+  },
+  {
+    "target": "word16-binary-source",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-binary-source",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 6.495131015777588,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-binary-source.log"
+  },
+  {
+    "target": "word16-thin-cpu",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-thin-cpu",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 62.09424686431885,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-thin-cpu.log"
+  },
+  {
+    "target": "word16-index-control",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-word16-index-control",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 52.06693124771118,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/word16-index-control.log"
+  },
+  {
+    "target": "closed-load-store",
+    "command": [
+      "/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig",
+      "build",
+      "test-riscv64-closed-load-store",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 81.55860185623169,
+    "log": "/tmp/stwo-rv64-final-composed-qualification-v1/closed-load-store.log"
+  }
+]
