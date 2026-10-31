@@ -1,0 +1,1423 @@
+{
+  "schema_version": 1,
+  "scope": "one real plain batch, qualified routes with different physical layouts; no whole-block projection",
+  "basis": [
+    {
+      "path": "/tmp/rv64-word16-execution-real-packet0-v7-process/report.json",
+      "sha256": "a358a5d80a387beec66bd340bf101a467d98a9dbf133af1f3978f823fcddcf34"
+    },
+    {
+      "path": "/tmp/rv64-word16-execution-real-packet0-v7-process/stages.json",
+      "sha256": "48b4f15d6d5be38cd448c7b869da863c01f329fb68184fea4d09fc74cb577595"
+    },
+    {
+      "path": "/tmp/rv64-word16-paired-legacy-process-v2.stdout.json",
+      "sha256": "9531106c0fa743f88030f0694120ca9201ff2dbabd5d5d7f625cf888e9dc6add"
+    },
+    {
+      "path": "/tmp/rv64-word16-paired-legacy-process-v2/batch-000000.stages.json",
+      "sha256": "666853e995563fe839ea3bc2ac16ac2fa8f536575181e655fb1d2e9225e85fe9"
+    },
+    {
+      "path": "vectors/reports/rv64-word16-execution-20261031/stage-accounting/per-chip-v6.json",
+      "sha256": "37acc1eb7331e9f726bd1d018ce1b571da7d0f284c5e2c45b2cd1c74241d2c81"
+    },
+    {
+      "path": "/tmp/rv64-word16-execution-real-packet0-v7-process.time",
+      "sha256": "fb377be69d82368280ff234717c6c4b85b2cc0e3f1d0bf447a03c6d5b41b81a2"
+    },
+    {
+      "path": "/tmp/rv64-word16-paired-legacy-process-v2.time",
+      "sha256": "338ae886ac29955adf525f9bad2fca341440e3201b600c2f190df700d9307405"
+    }
+  ],
+  "word16_whole_process": {
+    "wall_seconds": 15.54,
+    "user_seconds": 61.04,
+    "system_seconds": 21.74,
+    "peak_rss_bytes": 11602247680,
+    "minor_faults": 5086296,
+    "major_faults": 0
+  },
+  "legacy_whole_process": {
+    "wall_seconds": 29.28,
+    "user_seconds": 189.66,
+    "system_seconds": 6.21,
+    "peak_rss_bytes": 33781874688,
+    "minor_faults": 2374117,
+    "major_faults": 0
+  },
+  "ratios": {
+    "main_interaction_source_reduction": 2.166102896138736,
+    "main_source_reduction": 3.3714952829042146,
+    "interaction_source_reduction": 1.0809206036954258,
+    "wall_seconds_old_over_new": 1.8841698841698844,
+    "user_seconds_old_over_new": 3.107142857142857,
+    "system_seconds_old_over_new": 0.28564857405703775,
+    "total_cpu_old_over_new": 2.366151244261899,
+    "system_cpu_per_source_cell_new_over_old": 7.583104180685366
+  },
+  "stages": [
+    {
+      "stage": "native advice",
+      "word16": {
+        "wall_seconds": 0.293698,
+        "intervals": 1,
+        "user_seconds": 1.320027,
+        "system_seconds": 0.109411,
+        "minor_faults": 151589,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": null,
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "narrow metadata and facts; source traffic not inferred"
+    },
+    {
+      "stage": "provider witnesses",
+      "word16": {
+        "wall_seconds": 1.981121,
+        "intervals": 1,
+        "user_seconds": 2.164313,
+        "system_seconds": 0.767472,
+        "minor_faults": 186567,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": null,
+      "word16_source_cells": 593751776,
+      "legacy_source_cells": 2001831312,
+      "cell_scope": "MAIN output cells; CPU MAIN is already constructed in native advice; not a traffic count"
+    },
+    {
+      "stage": "immutable setup",
+      "word16": {
+        "wall_seconds": 0.309628,
+        "intervals": 1,
+        "user_seconds": 1.747575,
+        "system_seconds": 0.274655,
+        "minor_faults": 121658,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 0.226513,
+        "intervals": 1,
+        "user_seconds": 1.730694,
+        "system_seconds": 0.186932,
+        "minor_faults": 41049,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": 67168160,
+      "legacy_source_cells": 59287536,
+      "cell_scope": "fixed source cells; scopes differ: Word16 setup vs legacy fixed commit only"
+    },
+    {
+      "stage": "MAIN commit",
+      "word16": {
+        "wall_seconds": 1.584791,
+        "intervals": 1,
+        "user_seconds": 10.631497,
+        "system_seconds": 0.760567,
+        "minor_faults": 595124,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 2.57153,
+        "intervals": 1,
+        "user_seconds": 32.880237,
+        "system_seconds": 1.680314,
+        "minor_faults": 172936,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": 593751776,
+      "legacy_source_cells": 2001831312,
+      "cell_scope": "native source cells; LDE outputs separately modeled below"
+    },
+    {
+      "stage": "interaction generation",
+      "word16": {
+        "wall_seconds": 2.35414,
+        "intervals": 1,
+        "user_seconds": 7.990115,
+        "system_seconds": 17.220906,
+        "minor_faults": 1680728,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 3.731775,
+        "intervals": 1,
+        "user_seconds": 8.956748,
+        "system_seconds": 0.186369,
+        "minor_faults": 170806,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": 659524096,
+      "legacy_source_cells": 712893184,
+      "cell_scope": "interaction output cells, excluding scratch/inversion work"
+    },
+    {
+      "stage": "INTER commit",
+      "word16": {
+        "wall_seconds": 1.598617,
+        "intervals": 1,
+        "user_seconds": 11.173643,
+        "system_seconds": 0.806452,
+        "minor_faults": 639403,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 1.218567,
+        "intervals": 1,
+        "user_seconds": 12.890295,
+        "system_seconds": 1.009653,
+        "minor_faults": 232412,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": 659524096,
+      "legacy_source_cells": 712893184,
+      "cell_scope": "native source cells; LDE outputs separately modeled below"
+    },
+    {
+      "stage": "composition",
+      "word16": {
+        "wall_seconds": 2.910135,
+        "intervals": 3,
+        "user_seconds": 18.084909,
+        "system_seconds": 0.553194,
+        "minor_faults": 814414,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 8.785712,
+        "intervals": 3,
+        "user_seconds": 90.481865,
+        "system_seconds": 1.6549340000000001,
+        "minor_faults": 963961,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "mixed native domains and weighted quotient extension; no source-cell traffic approximation"
+    },
+    {
+      "stage": "sampled values",
+      "word16": {
+        "wall_seconds": 0.332867,
+        "intervals": 2,
+        "user_seconds": 0.6466839999999999,
+        "system_seconds": 0.0022530000000000002,
+        "minor_faults": 234,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 0.874575,
+        "intervals": 2,
+        "user_seconds": 1.3229529999999998,
+        "system_seconds": 0.003694,
+        "minor_faults": 274,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "polynomial evaluation and openings; source cells do not measure work"
+    },
+    {
+      "stage": "FRI",
+      "word16": {
+        "wall_seconds": 1.603357,
+        "intervals": 1,
+        "user_seconds": 3.420323,
+        "system_seconds": 0.163049,
+        "minor_faults": 133526,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 2.263393,
+        "intervals": 1,
+        "user_seconds": 4.394485,
+        "system_seconds": 0.166135,
+        "minor_faults": 66567,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "FRI geometry and coefficient reuse matter; not source cells"
+    },
+    {
+      "stage": "decommit",
+      "word16": {
+        "wall_seconds": 0.860737,
+        "intervals": 2,
+        "user_seconds": 3.05386,
+        "system_seconds": 0.925612,
+        "minor_faults": 686101,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 1.519681,
+        "intervals": 2,
+        "user_seconds": 6.033295,
+        "system_seconds": 0.03876,
+        "minor_faults": 2932,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "query count, openings and authentication paths; not source cells"
+    },
+    {
+      "stage": "proof of work",
+      "word16": {
+        "wall_seconds": 0.007,
+        "intervals": 1,
+        "user_seconds": 0.105244,
+        "system_seconds": 0.000552,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "legacy": {
+        "wall_seconds": 0.697154,
+        "intervals": 1,
+        "user_seconds": 11.039342,
+        "system_seconds": 0.017634,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "process_scope": "whole process, all threads; not additive with children or overlapping adopted intervals"
+      },
+      "word16_source_cells": null,
+      "legacy_source_cells": null,
+      "cell_scope": "transcript-dependent variance; report separately"
+    }
+  ],
+  "legacy_witness_outside_stages_seconds": {
+    "ram": 3.644770917,
+    "cpu": 1.483092916
+  },
+  "word16_per_chip": [
+    {
+      "role": "cpu",
+      "trace_log": 22,
+      "physical_rows": 4194304,
+      "widths_fixed_main_inter": [
+        3,
+        53,
+        40
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        12582912,
+        222298112,
+        167772160
+      ],
+      "active_truth_or_event_rows": 4194303,
+      "padding_rows": 1,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "REG_enabled_capacity": 12582912,
+        "REG_enabled_actual": null,
+        "FUNCTION_positive_actual": 2992269,
+        "OWNER_positive_actual": 1202034,
+        "ROM_positive_actual": 4194303,
+        "U16_unconditional": 12582912,
+        "U8_unconditional": 12582912
+      },
+      "native_evaluation_log": 23,
+      "native_evaluation_rows": 8388608,
+      "nominal_dense_column_point_values": 805306368,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 24,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 96,
+      "extra_previous_samples_main_inter": [
+        5,
+        4
+      ],
+      "total_OODS_Q_samples": 105
+    },
+    {
+      "role": "rom",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        32,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        33554432,
+        1048576,
+        8388608
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "ROM canonical/valid row count not measured",
+      "semantic_fixed_facts": null,
+      "queries": {},
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 85983232,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 41,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 45
+    },
+    {
+      "role": "boundary",
+      "trace_log": 5,
+      "physical_rows": 32,
+      "widths_fixed_main_inter": [
+        34,
+        0,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        1088,
+        0,
+        256
+      ],
+      "active_truth_or_event_rows": 32,
+      "padding_rows": 0,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {},
+      "native_evaluation_log": 6,
+      "native_evaluation_rows": 64,
+      "nominal_dense_column_point_values": 2688,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 7,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 42,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 46
+    },
+    {
+      "role": "alu",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        52,
+        52
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        54525952,
+        54525952
+      ],
+      "active_truth_or_event_rows": 574440,
+      "padding_rows": 474136,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 1135463,
+        "U16_unconditional": 20971520
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 222298112,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 106,
+      "extra_previous_samples_main_inter": [
+        0,
+        8
+      ],
+      "total_OODS_Q_samples": 114
+    },
+    {
+      "role": "binary",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        42,
+        28
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        44040192,
+        29360128
+      ],
+      "active_truth_or_event_rows": 673582,
+      "padding_rows": 374994,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 866612,
+        "AND_unconditional": 8388608
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 150994944,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 72,
+      "extra_previous_samples_main_inter": [
+        0,
+        8
+      ],
+      "total_OODS_Q_samples": 80
+    },
+    {
+      "role": "shift",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        2,
+        53,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        2097152,
+        55574528,
+        50331648
+      ],
+      "active_truth_or_event_rows": 995056,
+      "padding_rows": 53520,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_weight_sum": 995056,
+        "SHIFT_unconditional": 5242880,
+        "U16_unconditional": 9437184
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 216006656,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 103,
+      "extra_previous_samples_main_inter": [
+        0,
+        12
+      ],
+      "total_OODS_Q_samples": 115
+    },
+    {
+      "role": "jalr",
+      "trace_log": 14,
+      "physical_rows": 16384,
+      "widths_fixed_main_inter": [
+        2,
+        18,
+        12
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        32768,
+        294912,
+        196608
+      ],
+      "active_truth_or_event_rows": 9913,
+      "padding_rows": 6471,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_requests": 9913,
+        "FUNCTION_positive_ADD_AND": 19826
+      },
+      "native_evaluation_log": 15,
+      "native_evaluation_rows": 32768,
+      "nominal_dense_column_point_values": 1048576,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 16,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 32,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 36
+    },
+    {
+      "role": "division",
+      "trace_log": 5,
+      "physical_rows": 32,
+      "widths_fixed_main_inter": [
+        3,
+        1135,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        96,
+        36320,
+        256
+      ],
+      "active_truth_or_event_rows": 0,
+      "padding_rows": 32,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_actual": 0
+      },
+      "native_evaluation_log": 7,
+      "native_evaluation_rows": 128,
+      "nominal_dense_column_point_values": 146688,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 7,
+      "weighted_secure_polynomial_extension_logs": 0,
+      "current_scalar_column_samples": 1146,
+      "extra_previous_samples_main_inter": [
+        1,
+        4
+      ],
+      "total_OODS_Q_samples": 1151
+    },
+    {
+      "role": "multiplication",
+      "trace_log": 13,
+      "physical_rows": 8192,
+      "widths_fixed_main_inter": [
+        3,
+        87,
+        132
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        24576,
+        712704,
+        1081344
+      ],
+      "active_truth_or_event_rows": 5051,
+      "padding_rows": 3141,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "FUNCTION_negative_actual": 5051,
+        "BYTE_unconditional": 786432
+      },
+      "native_evaluation_log": 15,
+      "native_evaluation_rows": 32768,
+      "nominal_dense_column_point_values": 7274496,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 15,
+      "weighted_secure_polynomial_extension_logs": 0,
+      "current_scalar_column_samples": 222,
+      "extra_previous_samples_main_inter": [
+        1,
+        4
+      ],
+      "total_OODS_Q_samples": 227
+    },
+    {
+      "role": "shift_table",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        18,
+        16,
+        36
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        1179648,
+        1048576,
+        2359296
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 1048576,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 9175040,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 70,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 74
+    },
+    {
+      "role": "and_table",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        5,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        327680,
+        65536,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 65536,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 1835008,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 14,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 18
+    },
+    {
+      "role": "range16",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        3,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        196608,
+        65536,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 65536,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 1572864,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 12,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 16
+    },
+    {
+      "role": "range8",
+      "trace_log": 8,
+      "physical_rows": 256,
+      "widths_fixed_main_inter": [
+        3,
+        1,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        768,
+        256,
+        2048
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 256,
+      "queries": {},
+      "native_evaluation_log": 9,
+      "native_evaluation_rows": 512,
+      "nominal_dense_column_point_values": 6144,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 10,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 12,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 16
+    },
+    {
+      "role": "ls",
+      "trace_log": 21,
+      "physical_rows": 2097152,
+      "widths_fixed_main_inter": [
+        3,
+        79,
+        116
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        6291456,
+        165675008,
+        243269632
+      ],
+      "active_truth_or_event_rows": 1202034,
+      "padding_rows": 895118,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_signed_absolute": 2404068,
+        "OWNER_negative": 1202034,
+        "U16_unconditional": 73400320,
+        "U8_unconditional": 10485760,
+        "SELECTION_unconditional": 2097152
+      },
+      "native_evaluation_log": 22,
+      "native_evaluation_rows": 4194304,
+      "nominal_dense_column_point_values": 830472192,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 23,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 198,
+      "extra_previous_samples_main_inter": [
+        1,
+        20
+      ],
+      "total_OODS_Q_samples": 219
+    },
+    {
+      "role": "initial",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        3,
+        23,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        3145728,
+        24117248,
+        50331648
+      ],
+      "active_truth_or_event_rows": 708957,
+      "padding_rows": 339619,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_negative": 708957,
+        "U16_unconditional": 14680064,
+        "U8_unconditional": 1048576
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 155189248,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 74,
+      "extra_previous_samples_main_inter": [
+        5,
+        12
+      ],
+      "total_OODS_Q_samples": 91
+    },
+    {
+      "role": "terminal",
+      "trace_log": 20,
+      "physical_rows": 1048576,
+      "widths_fixed_main_inter": [
+        3,
+        23,
+        48
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        3145728,
+        24117248,
+        50331648
+      ],
+      "active_truth_or_event_rows": 708957,
+      "padding_rows": 339619,
+      "active_definition": "physical event/fact rows; ALU/BINARY multiplicity is separate",
+      "semantic_fixed_facts": null,
+      "queries": {
+        "RAM_positive": 708957,
+        "U16_unconditional": 14680064,
+        "U8_unconditional": 1048576
+      },
+      "native_evaluation_log": 21,
+      "native_evaluation_rows": 2097152,
+      "nominal_dense_column_point_values": 155189248,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 22,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 74,
+      "extra_previous_samples_main_inter": [
+        5,
+        12
+      ],
+      "total_OODS_Q_samples": 91
+    },
+    {
+      "role": "selection",
+      "trace_log": 16,
+      "physical_rows": 65536,
+      "widths_fixed_main_inter": [
+        6,
+        2,
+        8
+      ],
+      "committed_source_cells_fixed_main_inter": [
+        393216,
+        131072,
+        524288
+      ],
+      "active_truth_or_event_rows": null,
+      "padding_rows": null,
+      "active_definition": "immutable full-domain table; nonzero multiplicity bins not measured",
+      "semantic_fixed_facts": 131072,
+      "queries": {},
+      "native_evaluation_log": 17,
+      "native_evaluation_rows": 131072,
+      "nominal_dense_column_point_values": 2097152,
+      "matrix_scope": "logical per-role evaluation matrix, not simultaneously live RSS or measured FFT operations",
+      "composition_contribution_bound_log": 18,
+      "weighted_secure_polynomial_extension_logs": 1,
+      "current_scalar_column_samples": 16,
+      "extra_previous_samples_main_inter": [
+        0,
+        4
+      ],
+      "total_OODS_Q_samples": 20
+    }
+  ],
+  "hash_trees_model": [
+    {
+      "tree": "fixed",
+      "columns": 127,
+      "native_LDE_payload_M31_words": 134336320,
+      "native_LDE_payload_bytes": 537345280,
+      "conceptual_all_columns_at_max_leaf_words": 1065353216,
+      "conceptual_all_columns_at_max_leaf_bytes": 4261412864,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 6553792,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 37,
+          "cumulative_columns": 37,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 192
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 3,
+          "cumulative_columns": 40,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 3,
+          "cumulative_columns": 43,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 2,
+          "cumulative_columns": 45,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 32,
+          "cumulative_columns": 77,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 262144
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 44,
+          "cumulative_columns": 121,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 6291456
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 3,
+          "cumulative_columns": 124,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 3,
+          "cumulative_columns": 127,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        }
+      ],
+      "per_request_status": "retained immutable key tree; appendFixed clones/shared owner rather than rehashing"
+    },
+    {
+      "tree": "main",
+      "columns": 1587,
+      "native_LDE_payload_M31_words": 1187503552,
+      "native_LDE_payload_bytes": 4750014208,
+      "conceptual_all_columns_at_max_leaf_words": 13312720896,
+      "conceptual_all_columns_at_max_leaf_bytes": 53250883584,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 79958464,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 1135,
+          "cumulative_columns": 1135,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 4544
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 1,
+          "cumulative_columns": 1136,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 0
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 87,
+          "cumulative_columns": 1223,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 98304
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 18,
+          "cumulative_columns": 1241,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 32768
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 20,
+          "cumulative_columns": 1261,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 131072
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 194,
+          "cumulative_columns": 1455,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 25165824
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 79,
+          "cumulative_columns": 1534,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 20971520
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 53,
+          "cumulative_columns": 1587,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 33554432
+        }
+      ],
+      "per_request_status": "request-dependent MAIN weights/values or FS interactions; rebuild required"
+    },
+    {
+      "tree": "interaction",
+      "columns": 616,
+      "native_LDE_payload_M31_words": 1319048192,
+      "native_LDE_payload_bytes": 5276192768,
+      "conceptual_all_columns_at_max_leaf_words": 5167382528,
+      "conceptual_all_columns_at_max_leaf_bytes": 20669530112,
+      "max_leaf_log": 23,
+      "leaf_finalizations_if_built": 8388608,
+      "parent_hashes_if_built": 8388607,
+      "nonfinal_BLAKE2s_lane_blocks_shape_model": 84574784,
+      "groups": [
+        {
+          "native_LDE_log": 6,
+          "columns": 16,
+          "cumulative_columns": 16,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 64
+        },
+        {
+          "native_LDE_log": 9,
+          "columns": 8,
+          "cumulative_columns": 24,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 512
+        },
+        {
+          "native_LDE_log": 14,
+          "columns": 132,
+          "cumulative_columns": 156,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 131072
+        },
+        {
+          "native_LDE_log": 15,
+          "columns": 12,
+          "cumulative_columns": 168,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 32768
+        },
+        {
+          "native_LDE_log": 17,
+          "columns": 60,
+          "cumulative_columns": 228,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 524288
+        },
+        {
+          "native_LDE_log": 21,
+          "columns": 232,
+          "cumulative_columns": 460,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 29360128
+        },
+        {
+          "native_LDE_log": 22,
+          "columns": 116,
+          "cumulative_columns": 576,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 29360128
+        },
+        {
+          "native_LDE_log": 23,
+          "columns": 40,
+          "cumulative_columns": 616,
+          "nonfinal_BLAKE2s_lane_blocks_shape_model": 25165824
+        }
+      ],
+      "per_request_status": "request-dependent MAIN weights/values or FS interactions; rebuild required"
+    }
+  ],
+  "hash_implementation": {
+    "actual_suite": "Blake2sPrefixedMerkleHasher(domain_prefixed64), output32B",
+    "hasher_state_bytes": 136,
+    "sizeof_basis": "native zigtest queried prefixed andplain @sizeOf, both136",
+    "maximum_hasher_state_layer_bytes": 1140850688,
+    "leaf_hash_layer_bytes": 268435456,
+    "all_parent_hash_layers_bytes_ideal": 268435424,
+    "payload_loop": "StreamingCommitter.addColumns groupsascendinglog, LeafOps.updateHashers atnativeheight; ExpandOps.expandHashers purestatecopies, nohashing",
+    "sparse_tail": "V6fixed compactprefix canstopafter121cols atLDElog21; LSfixed3(log22)+CPUfixed3(log23) tailvaluesreadatmaxlog23. Thisreplays12582912M31wordreads (~50MB) but0extra nonfinalblocks:6wordsfitremaining7wordsterminalblock. MAIN53 andINTER40 highestgroups exceedtail15, sonotthatpath.",
+    "compression_model": "Shape-derived scalar-lane BLAKE2block count, NOT measured runtime/hardware calls. Forprefixed incrementalstate F(k)=ceil(k/16) nonfinalblocks afterkcolumns, chargegroup2^L*(F(k_after)-F(k_before)); finaloneblock/maxleaf; seededparentonepayloadblock/parent. SIMD4/8 changeshardwarecall count; backendcaches/tail policy mustbeverified.",
+    "plain_vs_prefixed": "Plainhasno64Bdomainprefix; sameascendingnativeprefixreuse. Genericboundedprefix variants mayreplaytail; reusedboundedprefix andBLAKE2sparse tail differ. Do nottransfer theprefixed count toplain/Poseidon.",
+    "source_files": [
+      "src/prover/pcs/tree_builders.zig",
+      "src/prover/vcs_lifted/streaming_committer.zig",
+      "src/prover/vcs_lifted/expand.zig",
+      "src/prover/vcs_lifted/leaves.zig",
+      "src/prover/vcs_lifted/layers.zig",
+      "src/core/vcs_lifted/blake2_merkle.zig"
+    ]
+  },
+  "composition_model": {
+    "global_bound_log": 24,
+    "global_weighted_domain_points": 16777216,
+    "split": 2,
+    "composition_trace_base_log": 22,
+    "composition_commitment_LDE_log": 23,
+    "composition_base_columns": 16,
+    "composition_leaf_payload_words": 134217728,
+    "behavior": "D3 native2n weighted secure quotient buckets groupbyheight; one polynomialextension log beforecanonical lift tocommon4n. DIV/MUL retainnative4n. Notcolumnwise fullCPU4n scans.",
+    "note": "Nominal dense matrices are cumulative logical work, not live allocation or actualtransform counters; retained LDE reuse can avoidrecovery. Sourcecell reductions do not directlypredict proofsize/openingcost or peakRSS."
+  },
+  "word16_interaction_children": [
+    {
+      "id": "inter_r16_table",
+      "label": "U16 table interactions",
+      "seconds": 0.002293,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.002149,
+        "system_seconds": 0.000141,
+        "minor_faults": 258,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_r8_table",
+      "label": "U8 table interactions",
+      "seconds": 6e-06,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 5e-06,
+        "system_seconds": 0,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_rom",
+      "label": "Immutable ROM interactions",
+      "seconds": 0.094016,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.091985,
+        "system_seconds": 0.002024,
+        "minor_faults": 3076,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 18
+      }
+    },
+    {
+      "id": "inter_and_table",
+      "label": "AND table interactions",
+      "seconds": 0.006131,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.006041,
+        "system_seconds": 8.8e-05,
+        "minor_faults": 128,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_shift_table",
+      "label": "Packed SHIFT table interactions",
+      "seconds": 0.021422,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.020428,
+        "system_seconds": 0.000992,
+        "minor_faults": 1619,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 4
+      }
+    },
+    {
+      "id": "inter_register_boundary",
+      "label": "Public register boundary interactions",
+      "seconds": 1e-05,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 9e-06,
+        "system_seconds": 0,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_cpu",
+      "label": "CPU register function ROM and range interactions",
+      "seconds": 0.382502,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 2.383282,
+        "system_seconds": 1.761349,
+        "minor_faults": 277714,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1206
+      }
+    },
+    {
+      "id": "inter_alu",
+      "label": "ALU interactions",
+      "seconds": 0.175803,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.563302,
+        "system_seconds": 2.187896,
+        "minor_faults": 196683,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 772
+      }
+    },
+    {
+      "id": "inter_binary",
+      "label": "BINARY interactions",
+      "seconds": 0.184232,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.180342,
+        "system_seconds": 0.003869,
+        "minor_faults": 7240,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 35
+      }
+    },
+    {
+      "id": "inter_shift",
+      "label": "SHIFT interactions",
+      "seconds": 0.304898,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.298462,
+        "system_seconds": 0.006412,
+        "minor_faults": 12296,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 55
+      }
+    },
+    {
+      "id": "inter_jalr",
+      "label": "Composite JALR interactions",
+      "seconds": 0.002217,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.002136,
+        "system_seconds": 7.1e-05,
+        "minor_faults": 59,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 1
+      }
+    },
+    {
+      "id": "inter_division",
+      "label": "DIV REM interactions",
+      "seconds": 1e-06,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 1e-06,
+        "system_seconds": 1e-06,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_multiplication",
+      "label": "MUL interactions",
+      "seconds": 0.005185,
+      "children": null,
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 0.005045,
+        "system_seconds": 0.000139,
+        "minor_faults": 264,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 0
+      }
+    },
+    {
+      "id": "inter_memory",
+      "label": "LS INIT TEARDOWN and selection interactions",
+      "seconds": 1.175402,
+      "children": [
+        {
+          "id": "inter_ls",
+          "label": "Load store interactions",
+          "seconds": 0.79807,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 3.253129,
+            "system_seconds": 9.209058,
+            "minor_faults": 821858,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 4582
+          }
+        },
+        {
+          "id": "inter_initial",
+          "label": "INIT interactions",
+          "seconds": 0.166633,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.569221,
+            "system_seconds": 2.015569,
+            "minor_faults": 178731,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 886
+          }
+        },
+        {
+          "id": "inter_terminal",
+          "label": "TEARDOWN interactions",
+          "seconds": 0.167009,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.571136,
+            "system_seconds": 2.032959,
+            "minor_faults": 180540,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 768
+          }
+        },
+        {
+          "id": "inter_selection",
+          "label": "Selection table interactions",
+          "seconds": 0.004958,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.004811,
+            "system_seconds": 0.000156,
+            "minor_faults": 256,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 1
+          }
+        },
+        {
+          "id": "inter_boundary_authority",
+          "label": "Independent public memory boundary claims",
+          "seconds": 0.038729,
+          "children": null,
+          "process_usage": {
+            "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+            "user_seconds": 0.038614,
+            "system_seconds": 0.000105,
+            "minor_faults": 4,
+            "major_faults": 0,
+            "voluntary_switches": 0,
+            "involuntary_switches": 6
+          }
+        }
+      ],
+      "process_usage": {
+        "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+        "user_seconds": 4.436917,
+        "system_seconds": 13.257878,
+        "minor_faults": 1181389,
+        "major_faults": 0,
+        "voluntary_switches": 0,
+        "involuntary_switches": 6243
+      }
+    }
+  ],
+  "streaming_batches": {
+    "word16_main": 203,
+    "legacy_main": 54,
+    "word16_inter": 80,
+    "legacy_inter": 78
+  },
+  "limitations": [
+    "Whole-process counters include all threads active during each interval, not thread-local CPU attribution.",
+    "Nested/adopted/overlapping intervals are not summed. Legacy CPU coset roots overlap composition.",
+    "Source cells and native LDE words are logical geometry, not observed memory traffic or hardware operations.",
+    "Exact source roles and hash model are applicable only to the supplied paired chip accounting layout.",
+    "A single run is diagnostic, not a distribution or a throughput claim."
+  ]
+}

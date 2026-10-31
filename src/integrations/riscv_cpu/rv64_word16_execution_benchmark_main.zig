@@ -15,10 +15,17 @@ const Coordinator = @import("word16_execution/coordinator.zig");
 const Driver = @import("word16_execution/driver.zig");
 const Profile = @import("stwo_prover_api").stage_profile;
 const Memory = @import("rv64_batch_memory.zig");
+const Recycler = @import("rv64_large_block_recycler.zig").LargeBlockRecycler;
 pub fn main() !void {
-    const a = std.heap.smp_allocator;
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
+    // Operational allocation policy is independent of statement and transcript.
+    // Keep the uncached path available for paired, fresh-process measurements.
+    const raw_args = try std.process.argsAlloc(std.heap.smp_allocator);
+    defer std.process.argsFree(std.heap.smp_allocator, raw_args);
+    const allocator_options = try allocatorOptions(raw_args);
+    const args = raw_args[0..allocator_options.argument_count];
+    var recycler = Recycler.init(std.heap.smp_allocator, allocator_options.cap_bytes);
+    defer recycler.deinit();
+    const a = if (allocator_options.cap_bytes == 0) std.heap.smp_allocator else recycler.allocator();
     const verifying = args.len == 4 and std.mem.eql(u8, args[1], "--verify");
     const proving = args.len == 5 and std.mem.eql(u8, args[3], "--prove");
     if (!verifying and !proving and args.len != 3) return error.ExpectedConfigPacketOrVerifyConfigDirectory;
@@ -108,7 +115,7 @@ pub fn main() !void {
     try Driver.writeJson(a, dir, "stages.json", stages);
     const cell_bytes = (try dir.statFile("cells.bin")).size;
     const statement_bytes = (try dir.statFile("statement.json")).size;
-    const report = .{ .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
+    const report = .{ .allocator = .{ .policy = if (allocator_options.cap_bytes == 0) "smp" else "large_block_recycler", .cache_cap_bytes = allocator_options.cap_bytes, .stats = recycler.stats() }, .public_ram_sidecar_bytes = cell_bytes, .public_statement_json_bytes = statement_bytes, .proof_and_public_statement_bytes = cell_bytes + statement_bytes + encoded.bytes.len, .scope = "closed genesis execution prefix; no service or cross-batch acceptance", .physical_proof_verified = true, .global_chain_accepted = false, .steps = packet.tape.len, .source_cells = try G.cells(&proof_shapes), .geometry = proof_geometry, .native_prepare_ns = native_prepare_ns, .provider_source_ns = provider_source_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read(), .memory = sampler.finish() };
     try Driver.writeJson(a, dir, "report.json", report);
     try stdout(a, report);
 }
@@ -117,4 +124,15 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
     defer a.free(json);
     try std.fs.File.stdout().writeAll(json);
     try std.fs.File.stdout().writeAll("\n");
+}
+
+/// A final operational option preserves all existing positional invocations.
+/// Zero bypasses the wrapper entirely; the cap bounds free cached blocks only.
+fn allocatorOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize } {
+    const prefix = "--recycler-cap-mib=";
+    if (args.len > 1 and std.mem.startsWith(u8, args[args.len - 1], prefix)) {
+        const mib = try std.fmt.parseUnsigned(usize, args[args.len - 1][prefix.len..], 10);
+        return .{ .argument_count = args.len - 1, .cap_bytes = try std.math.mul(usize, mib, 1024 * 1024) };
+    }
+    return .{ .argument_count = args.len, .cap_bytes = 0 };
 }
