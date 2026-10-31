@@ -1,0 +1,55 @@
+{
+  "schema": "proof-wire-bounded-count-qualification-v1",
+  "scope": "shared binary proof decoder resource boundary; malformed FRI last polynomial guard also covers JSON/typed wire",
+  "source_sha256": {
+    "src/interop/proof_wire/mod.zig": "c53db2687638fab29885206c12e006309153186f43e3591eab3fab6d9f58889e",
+    "src/interop/proof_wire/bounded_count_test.zig": "09109b00aea6e0c8bf8c09aa462a49caf024f86e3a8db92ac8cd703d9d738d94"
+  },
+  "public_api_signatures_unchanged": true,
+  "binary_magic_and_wire_encoding_unchanged": true,
+  "serializer_untouched": true,
+  "air_or_transcript_changed": false,
+  "guards": {
+    "all_binary_vector_lengths": "count <= remaining_bytes / minimum_wire_bytes_per_item before that vector allocation",
+    "multiplication_overflow_avoided": true,
+    "guarded_readCount_call_sites": 12,
+    "minimum_wire_bytes": {
+      "nested_vector_or_merkle_decommitment": 4,
+      "u32": 4,
+      "qm31": 16,
+      "hash": 32,
+      "fri_layer": 40
+    },
+    "FRI_last_polynomial": "nonzero power-of-two, before binary coefficient allocation and before public wireToProofFor owned cloning",
+    "JSON_and_typed_shape_error": "ValueOutOfRange",
+    "binary_shape_error": "InvalidBinaryProof",
+    "scope_limit": "Per-vector guards bound allocations to available encoding. This is not a new global memory-budget API or a full proof-verification result."
+  },
+  "gates": {
+    "ReleaseSafe": {
+      "passed": true,
+      "tests": 8,
+      "log": "/tmp/proof-wire-bounds-safe.log"
+    },
+    "ReleaseFast": {
+      "passed": true,
+      "tests": 8,
+      "log": "/tmp/proof-wire-bounds-fast.log"
+    },
+    "adversarial_nested_count_contexts": 15,
+    "max_u32_lengths_rejected_without_giant_allocation": true,
+    "one_hash_31_byte_payload_rejects_before_first_allocation": true,
+    "nested_canonical_binary_roundtrip": true,
+    "all_decode_allocation_failures_balanced": true,
+    "every_truncated_prefix_rejected": true,
+    "trailing_byte_rejected": true,
+    "zero_and_nonpow2_FRI_binary_preallocation_rejected": true,
+    "zero_and_nonpow2_FRI_JSON_and_typed_rejected_without_assertion": true
+  },
+  "commands": [
+    "zig test -OReleaseSafe --dep stwo_core -Mroot=src/interop/proof_wire/mod.zig -OReleaseSafe -Mstwo_core=src/core/mod.zig --cache-dir .zig-cache/proof-wire-bounds",
+    "zig test -OReleaseFast --dep stwo_core -Mroot=src/interop/proof_wire/mod.zig -OReleaseFast -Mstwo_core=src/core/mod.zig --cache-dir .zig-cache/proof-wire-bounds"
+  ],
+  "registration": "bounded_count_test.zig is imported once by existing proof_wire/mod.zig test block; no additional package factory/build dependency",
+  "integration_replay": "Retained real-proof decode/re-encode and receiver smoke deferred until root isolated full-job measurement ends; no claim it has run with this decoder yet."
+}
