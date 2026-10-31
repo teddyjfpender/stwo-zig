@@ -1,0 +1,215 @@
+//! One joined ownership transaction. MAIN is sealed before challenges; narrow
+//! advice survives until every physical provider has produced its interaction.
+const std = @import("std");
+const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
+const front = @import("stwo_riscv_frontend");
+const A = front.rv64_air;
+const W = A.word16_cpu;
+const B = A.word16_v1;
+const Mat = @import("setup.zig");
+const P = @import("protocol.zig");
+const CPU = @import("cpu_source.zig");
+const ROM = @import("rom_source.zig");
+const J = @import("jalr_source.zig");
+const Memory = @import("memory/prepared.zig");
+const AB = @import("arithmetic_bus.zig");
+const M = core.fields.m31.M31;
+const Q = core.fields.qm31.QM31;
+const Column = engine.pcs.ColumnEvaluation;
+pub const Source = struct {
+    allocator: std.mem.Allocator,
+    materials: *const Mat.Materials,
+    cpu: CPU.Source,
+    rom: ROM.Source,
+    alu: B.alu_experiment.source.Source,
+    binary: B.binary_source.Source,
+    shift: B.shift_word_packed_experiment.source.Source,
+    jalr: J.Source,
+    division: A.arithmetic.division.trace.Trace,
+    multiplication: A.arithmetic.multiplication.trace.Trace,
+    memory: Memory.Prepared,
+    and_table: A.providers.tables.Request,
+    shift_table: B.shift_word_packed_experiment.table.Request,
+    range16: W.table_trace.Source,
+    range8: W.table_trace.Source,
+    counts16: []u64,
+    counts8: []u64,
+    boundary: []M = &.{},
+    claims: ?P.Claims = null,
+    pub fn init(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, public: A.word16_execution.types.Boundary, epoch: u16, tape: *const front.rv64.compact_tape.Tape) !Source {
+        const g = materials.geometry;
+        var cpu = try CPU.Source.init(a, &materials.program, public, epoch, g.cpu_log, tape);
+        errdefer cpu.deinit();
+        if (cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
+        var af: std.ArrayList(B.operations.AluFact) = .empty;
+        defer af.deinit(a);
+        var bf: std.ArrayList(B.binary_source.Fact) = .empty;
+        defer bf.deinit(a);
+        var sf: std.ArrayList(B.operations.ShiftFact) = .empty;
+        defer sf.deinit(a);
+        var jf: std.ArrayList(J.Fact) = .empty;
+        defer jf.deinit(a);
+        var df: std.ArrayList(A.arithmetic.division.trace.Request) = .empty;
+        defer df.deinit(a);
+        var mf: std.ArrayList(A.arithmetic.multiplication.trace.Request) = .empty;
+        defer mf.deinit(a);
+        for (cpu.functions.items) |f| switch (f.operation) {
+            0...9 => try af.append(a, .{ .op = @enumFromInt(f.operation), .a = f.a, .b = f.b, .c = f.c }),
+            10 => try jf.append(a, .{ .a = f.a, .b = f.b, .c = f.c }),
+            16...18 => try bf.append(a, .{ .op = @enumFromInt(f.operation - 16), .a = f.a, .b = f.b, .c = f.c }),
+            32...37 => try sf.append(a, .{ .op = @enumFromInt(f.operation - 32), .a = f.a, .b = f.b, .c = f.c }),
+            49...52, 57 => try mf.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
+            53...56, 58...61 => try df.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
+            else => return error.UnroutedWord16Function,
+        };
+        var jalr = try J.Source.init(a, jf.items, g.jalr_log);
+        errdefer jalr.deinit();
+        const extra_alu = try jalr.aluFacts(a);
+        defer a.free(extra_alu);
+        try af.appendSlice(a, extra_alu);
+        const extra_binary = try jalr.binaryFacts(a);
+        defer a.free(extra_binary);
+        try bf.appendSlice(a, extra_binary);
+        var alu = try B.alu_experiment.source.Source.initDeduplicated(a, af.items, g.alu_log);
+        errdefer alu.deinit();
+        var binary = try B.binary_source.Source.init(a, bf.items, g.binary_log);
+        errdefer binary.deinit();
+        var shift = try B.shift_word_packed_experiment.source.Source.init(a, sf.items, g.shift_log);
+        errdefer shift.deinit();
+        var division = try A.arithmetic.division.trace.Trace.initWithLog(a, df.items, g.division_log);
+        errdefer division.deinit();
+        var multiplication = try A.arithmetic.multiplication.trace.Trace.initWithLog(a, mf.items, g.multiplication_log);
+        errdefer multiplication.deinit();
+        var memory = try Memory.Prepared.init(a, image, cpu.memory.items, epoch, g.ls_log, g.boundary_log);
+        errdefer memory.deinit();
+        var rom = try ROM.Source.init(a, &materials.program, cpu.rom_counts);
+        errdefer rom.deinit();
+        const c16 = try a.dupe(u64, cpu.counts16);
+        errdefer a.free(c16);
+        const c8 = try a.dupe(u64, cpu.counts8);
+        errdefer a.free(c8);
+        try addCounts(c16, alu.range16_counts);
+        try addCounts(c16, shift.range16_counts);
+        try addCounts(c16, memory.counts16);
+        try addCounts(c8, &multiplication.byte_counts);
+        try addCounts(c8, memory.counts8);
+        var range16 = try W.table_trace.Source.initRange16(a, materials.range16_fixed, c16);
+        errdefer range16.deinit();
+        var range8 = try W.table_trace.Source.initRange8(a, materials.range8_fixed, c8);
+        errdefer range8.deinit();
+        var and_table = try A.providers.tables.Request.init(a, &materials.and_table, binary.and_counts);
+        errdefer and_table.deinit();
+        var shift_table = try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift.shift_counts);
+        errdefer shift_table.deinit();
+        return .{ .allocator = a, .materials = materials, .cpu = cpu, .rom = rom, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .memory = memory, .and_table = and_table, .shift_table = shift_table, .range16 = range16, .range8 = range8, .counts16 = c16, .counts8 = c8 };
+    }
+    pub fn request(self: *const Source) P.Request {
+        return .{ .cpu = self.cpu.public, .epoch = self.cpu.epoch, .division_requests = @intCast(self.division.count), .multiplication_requests = self.multiplication.count, .memory = self.memory.statement };
+    }
+    pub fn releaseMain(self: *Source) !void {
+        self.cpu.releaseMain();
+        self.rom.releaseMain();
+        self.alu.releaseMain();
+        self.binary.releaseMain();
+        self.shift.releaseMain();
+        self.jalr.releaseMain();
+        try self.division.releaseMain();
+        try self.multiplication.releaseMain();
+        self.memory.releaseMain();
+        self.range16.releaseMain();
+        self.range8.releaseMain();
+        // Tiny table multiplicity columns supply their existing generators.
+    }
+    pub fn generate(self: *Source, ch: P.Draw) !P.Claims {
+        if (self.claims != null) return error.InvalidWord16ExecutionPhase;
+        const old = P.legacy(ch.cpu);
+        const r16 = try self.range16.generate(old);
+        const r8 = try self.range8.generate(old);
+        const rom = try self.rom.generate(ch.cpu.rom);
+        const and_ = try self.and_table.generateInteraction(ch.and_);
+        const shifts = try self.shift_table.generateInteraction(ch.shift_);
+        const boundary = try W.boundary_trace.generate(self.allocator, self.materials.boundary_fixed, self.cpu.public, self.materials.geometry.cpu_log, old.register);
+        self.boundary = boundary.values;
+        const cpu = try self.cpu.generate(ch.cpu, .{ .rom = self.rom.dictionary, .range16 = self.range16.dictionary, .range8 = self.range8.dictionary });
+        const alu = try self.alu.generate(.{ .function = old.function, .range16 = old.range16 }, self.range16.dictionary);
+        const binary = try self.binary.generate(.{ .function = old.function, .and_ = ch.and_ });
+        const shift = try self.shift.generate(.{ .function = old.function, .range16 = old.range16, .shift = ch.shift_ }, self.shift_table.dictionary, self.range16.dictionary);
+        const jalr = try self.jalr.generate(ch.cpu.function);
+        const division = try self.division.generateInteraction(AB.division(ch.cpu.function));
+        const multiplication = try self.multiplication.generateInteraction(AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
+        const memory = try self.memory.generate(ch.memory, self.range16.dictionary, self.range8.dictionary);
+        const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection };
+        try claims.validate();
+        self.claims = claims;
+        return claims;
+    }
+    pub fn columns(self: *const Source, a: std.mem.Allocator, tree: usize) ![]Column {
+        if (tree == 0) return self.materials.fixedColumns(a);
+        if (tree > 2 or (tree == 2 and self.claims == null)) return error.InvalidWord16ExecutionPhase;
+        const shapes = self.materials.shapes();
+        var count: usize = 0;
+        for (shapes) |s| count += s.widths[tree];
+        const out = try a.alloc(Column, count);
+        errdefer a.free(out);
+        for (shapes) |s| {
+            const data: []const M = switch (s.role) {
+                .cpu => if (tree == 1) self.cpu.main else self.cpu.interaction,
+                .rom => if (tree == 1) self.rom.main else self.rom.interaction,
+                .boundary => if (tree == 1) &.{} else self.boundary,
+                .alu => if (tree == 1) self.alu.main else self.alu.interaction,
+                .binary => if (tree == 1) self.binary.main else self.binary.interaction,
+                .shift => if (tree == 1) self.shift.main else self.shift.interaction,
+                .jalr => if (tree == 1) self.jalr.main else self.jalr.interaction,
+                .division => if (tree == 1) self.division.main else self.division.interaction,
+                .multiplication => if (tree == 1) self.multiplication.main else self.multiplication.interaction,
+                .range16 => if (tree == 1) self.range16.main else self.range16.interaction,
+                .range8 => if (tree == 1) self.range8.main else self.range8.interaction,
+                .and_table => if (tree == 1) self.and_table.main else self.and_table.interaction,
+                .shift_table => if (tree == 1) self.shift_table.main else self.shift_table.interaction,
+                .ls => if (tree == 1) self.memory.ls.main else self.memory.ls.interaction,
+                .initial => if (tree == 1) self.memory.initial.main else self.memory.initial.interaction,
+                .terminal => if (tree == 1) self.memory.terminal.main else self.memory.terminal.interaction,
+                .selection => if (tree == 1) self.memory.selection.main else self.memory.selection.interaction,
+            };
+            try @import("../word16/cpu_materials.zig").fillColumns(out[s.offsets[tree]..][0..s.widths[tree]], data, s.log);
+        }
+        return out;
+    }
+    pub fn releaseCommittedInteraction(self: *Source) void {
+        std.debug.assert(self.claims != null);
+        inline for (.{ "cpu", "rom", "alu", "binary", "shift", "jalr", "division", "multiplication", "range16", "range8", "and_table", "shift_table" }) |name| release(self.allocator, &@field(self, name).interaction);
+        inline for (.{ "ls", "initial", "terminal", "selection" }) |name| release(self.allocator, &@field(self.memory, name).interaction);
+        release(self.allocator, &self.boundary);
+    }
+    pub fn deinit(self: *Source) void {
+        self.range8.deinit();
+        self.range16.deinit();
+        self.allocator.free(self.counts16);
+        self.allocator.free(self.counts8);
+        self.shift_table.deinit();
+        self.and_table.deinit();
+        self.memory.deinit();
+        self.multiplication.deinit();
+        self.division.deinit();
+        self.jalr.deinit();
+        self.shift.deinit();
+        self.binary.deinit();
+        self.alu.deinit();
+        self.rom.deinit();
+        self.cpu.deinit();
+        self.allocator.free(self.boundary);
+        self.* = undefined;
+    }
+};
+fn release(a: std.mem.Allocator, values: *[]M) void {
+    a.free(values.*);
+    values.* = &.{};
+}
+fn addCounts(out: []u64, input: []const u64) !void {
+    if (out.len != input.len) return error.LookupCountShapeMismatch;
+    for (out, input) |*o, v| {
+        o.* = try std.math.add(u64, o.*, v);
+        if (o.* >= core.fields.m31.Modulus) return error.Word16ExecutionMassExceeded;
+    }
+}

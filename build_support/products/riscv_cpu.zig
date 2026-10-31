@@ -48,6 +48,8 @@ pub fn addProduct(context: Context) void {
         .{ "keccak-cpu", "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig", 10 },
         .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 12 },
         .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
+        .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
+        .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 8 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
         .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },
@@ -58,7 +60,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-shift-word", "src/frontends/riscv/rv64_word16_shift_word_test_root.zig", 9 },
         .{ "word16-shift-word-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_proof_test_root.zig", 2 },
         .{ "word16-shift-packed-table", "src/frontends/riscv/rv64_word16_shift_packed_table_test_root.zig", 6 },
-        .{ "word16-shift-source", "src/frontends/riscv/rv64_word16_shift_source_test_root.zig", 6 },
+        .{ "word16-shift-source", "src/frontends/riscv/rv64_word16_shift_source_test_root.zig", 7 },
         .{ "word16-shift-packed-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_packed_proof_test_root.zig", 2 },
         .{ "word16-index-authority", "src/frontends/riscv/rv64_index_control_test_root.zig", 7 },
         .{ "word16-parallel-interaction", "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig", 4 },
@@ -71,6 +73,9 @@ pub fn addProduct(context: Context) void {
         .{ "word16-weighted-binary", "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig", 4 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 9 },
         .{ "word16-weighted-alu", "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig", 4 },
+        .{ "word16-execution", "src/integrations/riscv_cpu/rv64_word16_execution_test_root.zig", 16 },
+        .{ "word16-execution-source", "src/integrations/riscv_cpu/rv64_word16_execution_source_test_root.zig", 5 },
+        .{ "word16-execution-coordinator", "src/integrations/riscv_cpu/rv64_word16_execution_coordinator_test_root.zig", 17 },
         .{ "word16-alu", "src/frontends/riscv/rv64_word16_alu_test_root.zig", 21 },
         .{ "word16-alu-proof", "src/integrations/riscv_cpu/rv64_word16_alu_proof_test_root.zig", 2 },
         .{ "word16-thin-cpu", "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig", 14 },
@@ -128,6 +133,7 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-word16-execution-benchmark", .source = "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig" },
         .{ .name = "rv64-load-store-fixture", .source = "src/integrations/riscv_cpu/rv64_load_store_fixture_main.zig" },
         .{ .name = "rv64-closed-ram-fixture", .source = "src/integrations/riscv_cpu/rv64_closed_ram_fixture_main.zig" },
         .{ .name = "rv64-word16-shift-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig" },

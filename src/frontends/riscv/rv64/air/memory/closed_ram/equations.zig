@@ -69,7 +69,6 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
     const first = f[if (kind == .transition) 1 else 32];
     const last = f[if (kind == .transition) 2 else 33];
     const active = m[0];
-    const one = F.one();
     if (kind == .owner) {
         bind(F, f, m, pubrows.?, out);
         E.booleanFor(F, out, m[13]);
@@ -84,21 +83,30 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
         rangesFor(F, m, i, pi, &L.T_U8, L.T_RANGE8, first, last, claims.range8, ch.range8, out);
     } else {
         bind(F, f, m, pubrows.?, out);
-        for ([_]usize{ 0, 12, 13 }) |c| E.booleanFor(F, out, m[c]);
-        for (m[18..22]) |v| E.booleanFor(F, out, v);
-        const sorted = active.sub(first);
-        var delta = F.zero();
-        for (0..4) |c| {
-            out.emit(sorted.mul(pm[1 + c].add(m[14 + c]).add(if (c == 0) F.zero() else m[18 + c - 1]).sub(m[1 + c]).sub(m[18 + c].mul(E.qFor(F, 65536)))));
-            delta = delta.add(m[14 + c]);
-        }
-        out.emit(sorted.mul(m[21]));
-        out.emit(sorted.mul(delta.mul(m[22]).sub(one)));
-        for (m[14..23]) |v| out.emit(one.sub(sorted).mul(v));
-        S.single(F, ch.ram.denominatorFor(F, ramTuple(F, kind, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
-        rangesFor(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
-        rangesFor(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
+        boundaryAfterBindFor(F, kind, m, pm, i, pi, first, last, F.one(), claims, ch, out);
     }
+}
+
+/// Checked sorted boundary, RAM and range authority. Public binding is owned
+/// by the caller: legacy fixed selectors or the scalable sealed-public claims.
+/// nonempty is a verifier-bound PUBLIC constant, never a free trace witness.
+pub fn boundaryAfterBindFor(comptime F: type, kind: L.Kind, m: []const F, pm: []const F, i: []const F, pi: []const F, first: F, last: F, nonempty: F, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    const active = m[0];
+    const one = F.one();
+    for ([_]usize{ 0, 12, 13 }) |c| E.booleanFor(F, out, m[c]);
+    for (m[18..22]) |v| E.booleanFor(F, out, v);
+    const sorted = active.sub(first.mul(nonempty));
+    var delta = F.zero();
+    for (0..4) |c| {
+        out.emit(sorted.mul(pm[1 + c].add(m[14 + c]).add(if (c == 0) F.zero() else m[18 + c - 1]).sub(m[1 + c]).sub(m[18 + c].mul(E.qFor(F, 65536)))));
+        delta = delta.add(m[14 + c]);
+    }
+    out.emit(sorted.mul(m[21]));
+    out.emit(sorted.mul(delta.mul(m[22]).sub(one)));
+    for (m[14..23]) |v| out.emit(one.sub(sorted).mul(v));
+    S.single(F, ch.ram.denominatorFor(F, ramTuple(F, kind, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
+    rangesFor(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
+    rangesFor(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
 }
 
 /// Shared bounded-integer clock, permission and unit-activity authority.
@@ -110,7 +118,7 @@ pub fn transitionLocalFor(comptime F: type, f: []const F, m: []const F, pm: []co
     const one = F.one();
     for ([_]usize{ 0, 1, 2, 22, 23, 27 }) |c| E.booleanFor(F, out, m[c]);
     for (m[1..]) |v| out.emit(one.sub(active).mul(v));
-    out.emit(first.mul(active.sub(one)));
+    out.emit(first.mul(active.sub(E.qFor(F, @intFromBool(rows != 0)))));
     out.emit(last.mul(active));
     out.emit(one.sub(first).mul(active).mul(one.sub(pm[0])));
     out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));

@@ -1,0 +1,55 @@
+{
+  "status": "qualified diagnostic prototype; full global execution activation rejected",
+  "runtime_tests": 4,
+  "release_safe": "pass",
+  "release_fast": "pass",
+  "proofs": {
+    "count": 2,
+    "security_config": {
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96
+    },
+    "physical_components_per_proof": [
+      "scalable boundary log5 fixed3/main23/inter48 D3",
+      "U16 log16 fixed3/main1/inter8",
+      "U8 log8 fixed3/main1/inter8"
+    ],
+    "artifacts_saved": false,
+    "proof_sha256": null
+  },
+  "authority": [
+    "independently expected context, ordered schema, role and coverage inventory",
+    "actual fixed/main PCS roots with native column-log check",
+    "complete ordered stage1 manifest before shared RAM14/OWNER19/FUNCTION13 draws",
+    "worker actual-root and stage1-transcript recheck",
+    "receiver pristine-image values, all-eight-byte uniform rights and genesis-clock validation",
+    "all33 canonical physical claims transcript-bound before interaction commitment",
+    "each real AIR/FRI proof verified before global debt closure",
+    "local range claims closed inside each proof scope"
+  ],
+  "adversarial_gates": [
+    "balanced false RAM claims still sum0 but receiver rejects",
+    "sampled-value forgery rejected by physical verifier",
+    "changed image identity or sealed root",
+    "missing receipt, duplicate ordinal, gap/overlap, epoch alias, endpoint adjacency",
+    "aggregate characteristic bound before allocations",
+    "all allocation failures for manifest copying leave balanced ownership",
+    "noncanonical claims and nonzero absent physical slots"
+  ],
+  "limitations": [
+    "diagnostic INIT/TERM proofs only, no CPU event coverage proved",
+    "expected coverage descriptors are transcript-bound metadata, not a proof of execution",
+    "production/global CPU execution explicitly rejected",
+    "no cross-batch pristine-image reinitialization permission",
+    "native collector cross-batch state capture and actual shared CPU/LS/K/secp roots remain next integration work",
+    "no proof-size/timing claim measured"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/memory/global_manifest.zig": "802f6af6ef57b4fda72094cea0fa10acd6d7836b2225a2f5d36cc63f774d41f9",
+    "src/integrations/riscv_cpu/word16_execution/memory/global_boundary_proof.zig": "c2db5af0063d3a30a8f4ffd17175e20acecbaf61ec67d9ade0a664104dea860c",
+    "src/integrations/riscv_cpu/word16_execution/memory/global_manifest_test.zig": "b26092b1a090a9a45064051570c090586697d523a65cbb322a26ff9ed15938cc",
+    "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig": "3906d9acf65b67fd30edda08f6d05ed3d90a6819dd7c9cef20ac02a2703b16c8"
+  }
+}

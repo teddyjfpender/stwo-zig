@@ -1,0 +1,322 @@
+{
+  "schema": "rv64.word16-execution.image-program-packet.v1",
+  "qualification_scope": "immutable program, complete fixed-material/key lease and retained pristine-image/direct compact-tape transport admission only",
+  "physical_execution_proof_verified": false,
+  "global_chain_accepted": false,
+  "legacy_protocol_changed": false,
+  "tests": {
+    "ReleaseSafe": {
+      "runtime_count": 10,
+      "result": "PASS",
+      "log": "/tmp/rv64-word16-execution-packet-safe.log"
+    },
+    "ReleaseFast": {
+      "runtime_count": 10,
+      "result": "PASS",
+      "log": "/tmp/rv64-word16-execution-packet-fast.log"
+    }
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/program.zig": "97cb205d5b12e1feadd50335d8d4869ee18fd5788cc3859f2089a7f569233716",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "703324da3cf271c396685d15ce32a1e17b3569ffdfa2a57c700475bb9f5af9b5",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "bc717b41483031554c45525c791a7b1316c7a6b94ac76f44de674c5457aa1ecc",
+    "src/integrations/riscv_cpu/word16_execution/expected_image.zig": "f7720b3a47e72c912ad17aa1f64da3b36f26947e7baaba7ab9c207fd3ecdd154",
+    "src/integrations/riscv_cpu/word16_execution/packet.zig": "98adcdb993ae93dfaf42383e66a890adf33a032404e699d2ba962bac17b3b6c1",
+    "src/integrations/riscv_cpu/word16_execution/coverage.zig": "4d3d3fc659ebde0a91aa147ec28f06078c2e686018fc6d832466fabd9f8ad5ea",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "b5bf48b1f2af0a2f35dd8bb3eec52a8fde357e3def026f123b78cb28765c28e4",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_program_test.zig": "bd525b60d155cd34db0e77e4925d7ae1d08a49202c9d493e2391e324524bd9ab",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig": "3bb26e23ec91c585de79e842dbf197eab045a6c069ab3fb49874e8de004f3f4e"
+  },
+  "actual_packet0": {
+    "scope": "planning only; memory boundary capacity is conservative event count, not deduplicated cells",
+    "physical_proof_verified": false,
+    "global_chain_accepted": false,
+    "packet_index": 0,
+    "steps": 4194303,
+    "packet_bytes": 343445435,
+    "tape_retained_bytes": 211004104,
+    "image_ns": 350815917,
+    "packet_read_ns": 193796708,
+    "total_ns": 668870125,
+    "counts": {
+      "alu": 1135463,
+      "binary": 866612,
+      "shift": 995056,
+      "jalr": 9913,
+      "division": 0,
+      "multiplication": 5051,
+      "memory": 1202034,
+      "service": 0
+    },
+    "geometry": {
+      "cpu_log": 22,
+      "alu_log": 21,
+      "binary_log": 20,
+      "shift_log": 20,
+      "jalr_log": 14,
+      "division_log": 5,
+      "multiplication_log": 13,
+      "ls_log": 21,
+      "boundary_log": 21
+    },
+    "shapes": [
+      {
+        "role": "cpu",
+        "log": 22,
+        "widths": [
+          3,
+          53,
+          40
+        ],
+        "offsets": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "role": "rom",
+        "log": 20,
+        "widths": [
+          32,
+          1,
+          8
+        ],
+        "offsets": [
+          3,
+          53,
+          40
+        ]
+      },
+      {
+        "role": "boundary",
+        "log": 5,
+        "widths": [
+          34,
+          0,
+          8
+        ],
+        "offsets": [
+          35,
+          54,
+          48
+        ]
+      },
+      {
+        "role": "alu",
+        "log": 21,
+        "widths": [
+          2,
+          52,
+          52
+        ],
+        "offsets": [
+          69,
+          54,
+          56
+        ]
+      },
+      {
+        "role": "binary",
+        "log": 20,
+        "widths": [
+          2,
+          42,
+          28
+        ],
+        "offsets": [
+          71,
+          106,
+          108
+        ]
+      },
+      {
+        "role": "shift",
+        "log": 20,
+        "widths": [
+          2,
+          53,
+          48
+        ],
+        "offsets": [
+          73,
+          148,
+          136
+        ]
+      },
+      {
+        "role": "jalr",
+        "log": 14,
+        "widths": [
+          2,
+          18,
+          12
+        ],
+        "offsets": [
+          75,
+          201,
+          184
+        ]
+      },
+      {
+        "role": "division",
+        "log": 5,
+        "widths": [
+          3,
+          1135,
+          8
+        ],
+        "offsets": [
+          77,
+          219,
+          196
+        ]
+      },
+      {
+        "role": "multiplication",
+        "log": 13,
+        "widths": [
+          3,
+          87,
+          132
+        ],
+        "offsets": [
+          80,
+          1354,
+          204
+        ]
+      },
+      {
+        "role": "shift_table",
+        "log": 16,
+        "widths": [
+          18,
+          16,
+          36
+        ],
+        "offsets": [
+          83,
+          1441,
+          336
+        ]
+      },
+      {
+        "role": "and_table",
+        "log": 16,
+        "widths": [
+          5,
+          1,
+          8
+        ],
+        "offsets": [
+          101,
+          1457,
+          372
+        ]
+      },
+      {
+        "role": "range16",
+        "log": 16,
+        "widths": [
+          3,
+          1,
+          8
+        ],
+        "offsets": [
+          106,
+          1458,
+          380
+        ]
+      },
+      {
+        "role": "range8",
+        "log": 8,
+        "widths": [
+          3,
+          1,
+          8
+        ],
+        "offsets": [
+          109,
+          1459,
+          388
+        ]
+      },
+      {
+        "role": "ls",
+        "log": 21,
+        "widths": [
+          3,
+          79,
+          116
+        ],
+        "offsets": [
+          112,
+          1460,
+          396
+        ]
+      },
+      {
+        "role": "initial",
+        "log": 21,
+        "widths": [
+          3,
+          23,
+          48
+        ],
+        "offsets": [
+          115,
+          1539,
+          512
+        ]
+      },
+      {
+        "role": "terminal",
+        "log": 21,
+        "widths": [
+          3,
+          23,
+          48
+        ],
+        "offsets": [
+          118,
+          1562,
+          560
+        ]
+      },
+      {
+        "role": "selection",
+        "log": 16,
+        "widths": [
+          6,
+          2,
+          8
+        ],
+        "offsets": [
+          121,
+          1585,
+          608
+        ]
+      }
+    ],
+    "source_cells": {
+      "fixed": 75556768,
+      "main": 696512224,
+      "interaction": 814713344
+    }
+  },
+  "packet0_execution": {
+    "wall_seconds": 1.07,
+    "maximum_resident_set_bytes": 856604672,
+    "timing_scope": "functional concurrent/nonisolated observation; not a speedup claim",
+    "command": "/tmp/rv64-word16-execution-benchmark /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work"
+  },
+  "limits": [
+    "Packet uses existing 512MiB SHA/admission budget and direct Tape decode; old cells/graph are not materialized or accepted as memory authority.",
+    "Program uses expected raw identity and cached admitted decode, with invalid instructions retained as nonfetchable immutable rows.",
+    "Complete fixed key depends on program plus all seventeen independent role geometries; no request count, endpoint, epoch or touched-cell value is preprocessed.",
+    "Real packet geometry here uses conservative memory-event count for boundary capacity; actual collector must use touched-cell cardinality.",
+    "MUL and DIV retain their existing 4n quotient bounds; other listed D3/D2 authorities use 2n.",
+    "CPU53+ROM30+new memory/arithmetic/service physical proof assembly is separate work and is not qualified by this receipt."
+  ]
+}

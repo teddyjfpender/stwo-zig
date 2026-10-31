@@ -10,7 +10,7 @@ const work = engine.work_pool;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const MIN_STACK_BYTES = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
-const CHUNK = Support.CHUNK_ROWS;
+const CHUNK: usize = Support.CHUNK_ROWS;
 pub fn generate(source: *S.Source, challenges: P.Challenges, dictionary: []const Q, pool: ?*work.WorkPool) !P.Claims {
     return generateImpl(source, challenges, dictionary, pool, null, null);
 }
@@ -19,7 +19,7 @@ fn generateImpl(source: *S.Source, challenges: P.Challenges, dictionary: []const
     if (pool) |active| if (active.stackSize() < MIN_STACK_BYTES) return error.InvalidAluInteractionStack;
     const n = source.size();
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
-    const workers = if (pool) |active| @min(active.workerCount(), chunks) else 1;
+    const workers: usize = if (pool) |active| @min(active.workerCount(), chunks) else 1;
     if (workers <= 1) return source.generateSerial(challenges, dictionary);
     if (source.interaction.len != 0 or source.metadata.len != n) return error.InvalidAluSourcePhase;
     if (dictionary.len != 65536 or source.range16_counts.len != 65536 or source.fact_count > n) return error.InvalidAluDictionary;
@@ -90,7 +90,7 @@ const Job = struct {
         if (!self.correct) {
             for (self.start..self.end) |chunk| {
                 const start = chunk * CHUNK;
-                const count = @min(CHUNK, n - start);
+                const count: usize = @min(CHUNK, n - start);
                 Support.functionDenominators(self.ctx.metadata[start..][0..count], self.scratch[0..count], self.ctx.challenges.function);
                 try core.fields.batchInverseInPlace(Q, self.scratch[0..count], self.scratch[CHUNK..][0..count]);
                 var sums: [2]Q = @splat(Q.zero());

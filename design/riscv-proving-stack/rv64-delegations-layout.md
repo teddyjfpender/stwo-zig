@@ -44,8 +44,7 @@ lives in `src/integrations/riscv_cpu/delegations/common/`.
 ## 3. Registry
 
 `air/delegations/registry.zig` is the single list of delegations with:
-family id range on the FUNCTION bus (ALU 0..15, BINARY 16..31, SHIFT
-32..47, MUL 48..63, DIV 64..79), SERVICE ids (Keccak 0x10001, secp ADD
+actual operation IDs on the FUNCTION bus (ALU 0..9, composite JALR10, BINARY16..18, SHIFT32..37, MUL49..52/57, DIV53..56/58..61), SERVICE ids (Keccak 0x10001, secp ADD
 0x20011, DOUBLE 0x20012, SHA-256 and others reserved), the bus kind each
 consumes, provider shape (fixed/main/interaction, rows per request, fixed
 log per protocol version), and the lookup-mass contribution formula. The

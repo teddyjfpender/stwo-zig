@@ -13,7 +13,7 @@ const Geometry = @import("binary_source.zig");
 const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;
 const Q = E.Q;
-const CHUNK = 4096;
+const CHUNK: usize = 4096;
 pub const Fact = Ops.AluFact;
 pub const MainBuffers = struct { main: []M };
 pub const WeightedFacts = @import("alu_dedup.zig").WeightedFacts;
@@ -239,7 +239,7 @@ pub const Source = struct {
         var function_sum = Q.zero();
         var start: usize = 0;
         while (start < n) : (start += CHUNK) {
-            const count = @min(CHUNK, n - start);
+            const count: usize = @min(CHUNK, n - start);
             functionDenominatorsInternal(self.metadata[start..][0..count], scratch[0..count], ch.function);
             try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
             for (0..count) |i| {
@@ -347,7 +347,7 @@ const NativeFill = struct {
         }
     }
     fn run(self: *const NativeFill, a: std.mem.Allocator, counts: []u64, pool: ?*engine.work_pool.WorkPool) !void {
-        const workers = if (pool) |active| @min(active.workerCount(), @max(1, self.size / 4096)) else 1;
+        const workers: usize = if (pool) |active| @min(active.workerCount(), @max(1, self.size / 4096)) else 1;
         if (pool) |active| if (active.stackSize() < @import("../providers/parallel_rows.zig").MIN_STACK) return error.InvalidAluWorkerStack;
         if (workers == 1) {
             @memset(counts, 0);

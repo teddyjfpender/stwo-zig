@@ -21,10 +21,15 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         const install = context.b.addInstallArtifact(executable, .{});
         context.b.step(spec.step, spec.description).dependOn(&install.step);
     }
-    const tests = context.b.addTest(.{ .root_module = createRoot(context, product, "src/integrations/riscv_cpu/rv64_recursion_circuit_test_root.zig") });
-    const run = context.b.addRunArtifact(tests);
-    run.setCwd(context.b.path("."));
-    context.b.step("test-riscv64-recursion-circuit", "Test the RV64 recursion leaf statement against the circuit builder").dependOn(&run.step);
+    for ([_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "test-riscv64-recursion-circuit", .source = "src/integrations/riscv_cpu/rv64_recursion_circuit_test_root.zig" },
+        .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
+    }) |spec| {
+        const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source) });
+        const run = context.b.addRunArtifact(tests);
+        run.setCwd(context.b.path("."));
+        context.b.step(spec.name, "Qualify native and circuit-lane execution authorities").dependOn(&run.step);
+    }
 }
 
 fn createRoot(context: circuit_product.Context, product: graph.Product, source: []const u8) *std.Build.Module {

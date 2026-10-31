@@ -80,10 +80,10 @@ pub fn sha(raw: []const u8) [32]u8 {
     std.crypto.hash.sha2.Sha256.hash(raw, &result, .{});
     return result;
 }
-const Program = struct {
+pub const Program = struct {
     words: []u32,
     addresses: []u64,
-    fn init(a: std.mem.Allocator, memory: *rv.memory.Memory) !Program {
+    pub fn init(a: std.mem.Allocator, memory: *rv.memory.Memory) !Program {
         var count: usize = 0;
         for (memory.mappings.entries.items) |region| if (region.permissions.execute) {
             if (region.permissions.write or region.first & 3 != 0 or region.last & 3 != 3) return error.InvalidEthereumInstructionMapping;
@@ -106,10 +106,10 @@ const Program = struct {
         };
         return .{ .words = words, .addresses = addresses };
     }
-    fn value(self: Program) frontend.rv64_air.program.setup.Program {
+    pub fn value(self: Program) frontend.rv64_air.program.setup.Program {
         return .{ .base = self.addresses[0], .words = self.words, .addresses = self.addresses };
     }
-    fn deinit(self: *Program, a: std.mem.Allocator) void {
+    pub fn deinit(self: *Program, a: std.mem.Allocator) void {
         a.free(self.addresses);
         a.free(self.words);
         self.* = undefined;

@@ -54,6 +54,7 @@ pub const crypto = struct {
 
 pub const memory = struct {
     pub const load_store_v1 = @import("memory/load_store_v1/mod.zig");
+    pub const load_store_v2 = @import("memory/load_store_v2/mod.zig");
     pub const closed_ram = @import("memory/closed_ram/mod.zig");
     pub const terminal_air = @import("memory/terminal_air.zig");
     pub const terminal_component = @import("memory/terminal_component.zig");
@@ -166,3 +167,4 @@ pub const word16_index_control = struct {
     pub const rom_trace = @import("word16_index_control/rom_trace.zig");
     pub const component = @import("word16_index_control/component.zig");
 };
+pub const word16_execution = @import("word16_execution/mod.zig");

@@ -1,0 +1,77 @@
+//! Concrete LS/INIT/TEARDOWN/selection owners for one shared PCS transaction.
+const std = @import("std");
+const front = @import("stwo_riscv_frontend");
+const X = front.rv64_air.memory.load_store_v2;
+const V1 = front.rv64_air.memory.load_store_v1;
+const CPU = @import("../cpu_source.zig");
+pub const public = @import("statement.zig");
+const Collector = @import("collector.zig");
+pub const Prepared = struct {
+    allocator: std.mem.Allocator,
+    statement: public.Statement,
+    ls: X.source.Source,
+    initial: X.boundary_source.Source,
+    terminal: X.boundary_source.Source,
+    selection: X.selection_source.Source,
+    counts16: []u64,
+    counts8: []u64,
+    pub fn init(a: std.mem.Allocator, image: public.Image, records: []const CPU.MemoryRecord, epoch: u16, ls_log: u32, boundary_log: u32) !Prepared {
+        const collected = try Collector.collect(a, image, records, epoch);
+        defer a.free(collected.events);
+        errdefer {
+            a.free(collected.initial);
+            a.free(collected.terminal);
+        }
+        const statement = public.Statement{ .initial = collected.initial, .terminal = collected.terminal, .epoch = epoch, .ls_count = @intCast(records.len) };
+        try statement.validate(image);
+        var ls = try X.source.Source.init(a, collected.events, ls_log);
+        errdefer ls.deinit();
+        var initial = try X.boundary_source.Source.init(a, .initial, collected.initial, boundary_log);
+        errdefer initial.deinit();
+        var terminal = try X.boundary_source.Source.init(a, .terminal, collected.terminal, boundary_log);
+        errdefer terminal.deinit();
+        var selection = try X.selection_source.Source.init(a, ls.selection_counts);
+        errdefer selection.deinit();
+        const counts16 = try a.dupe(u64, ls.counts16);
+        errdefer a.free(counts16);
+        const counts8 = try a.dupe(u64, ls.counts8);
+        errdefer a.free(counts8);
+        for ([_][]const u64{ initial.counts16, terminal.counts16 }) |input| for (counts16, input) |*out, v| {
+            out.* = try std.math.add(u64, out.*, v);
+            if (out.* >= @import("stwo_core").fields.m31.Modulus) return error.MemoryLookupMassExceeded;
+        };
+        for ([_][]const u64{ initial.counts8, terminal.counts8 }) |input| for (counts8, input) |*out, v| {
+            out.* = try std.math.add(u64, out.*, v);
+            if (out.* >= @import("stwo_core").fields.m31.Modulus) return error.MemoryLookupMassExceeded;
+        };
+        return .{ .allocator = a, .statement = statement, .ls = ls, .initial = initial, .terminal = terminal, .selection = selection, .counts16 = counts16, .counts8 = counts8 };
+    }
+    pub fn deinit(self: *Prepared) void {
+        self.ls.deinit();
+        self.initial.deinit();
+        self.terminal.deinit();
+        self.selection.deinit();
+        self.allocator.free(self.counts16);
+        self.allocator.free(self.counts8);
+        self.allocator.free(self.statement.initial);
+        self.allocator.free(self.statement.terminal);
+        self.* = undefined;
+    }
+    pub fn releaseMain(self: *Prepared) void {
+        self.ls.releaseMain();
+        self.initial.releaseMain();
+        self.terminal.releaseMain();
+        self.selection.releaseMain();
+    }
+    pub fn validateStatement(image: public.Image, statement: public.Statement) !void {
+        try statement.validate(image);
+    }
+    pub fn generate(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, dict8: []const X.types.Q) ![4]X.types.Claims {
+        const ls = try self.ls.generate(ch, dict16, dict8);
+        const initial = try self.initial.generate(ch, dict16, dict8);
+        const terminal = try self.terminal.generate(ch, dict16, dict8);
+        const selection = try self.selection.generate(ch);
+        if (!initial.ram.eql(try X.boundary_source.expectedClaim(self.statement.initial, true, ch.ram)) or !terminal.ram.eql(try X.boundary_source.expectedClaim(self.statement.terminal, false, ch.ram))) return error.MemoryBoundaryClaimMismatch;
+        return .{ ls, initial, terminal, selection };
+    }
+};

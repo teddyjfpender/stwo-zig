@@ -233,3 +233,32 @@ test "Word16 SHIFT allocation validation dictionary poles and late ledgers publi
     source.shift_counts[16] -= 1;
     _ = try source.generate(ch(), dictionaries.table.dictionary, dictionaries.range.dictionary);
 }
+
+test "Word16 SHIFT full4096 interaction windows preserve all physical residuals" {
+    const a = std.testing.allocator;
+    const requests = facts();
+    const log: u32 = 13;
+    const n: usize = 1 << log;
+    var source = try S.Source.init(a, &requests, log);
+    defer source.deinit();
+    var dictionaries = try Dictionaries.init(a, &source);
+    defer dictionaries.deinit();
+    const claims = try source.generate(ch(), dictionaries.table.dictionary, dictionaries.range.dictionary);
+    for (0..n) |logical| {
+        const pos = physical(logical, log);
+        const previous = physical((logical + n - 1) % n, log);
+        var main: [P.MAIN]Q = undefined;
+        var inter: [P.INTERACTION]Q = undefined;
+        var prior: [P.INTERACTION]Q = undefined;
+        for (&main, 0..) |*value, c| value.* = Q.fromBase(source.main[c * n + pos]);
+        for (&inter, &prior, 0..) |*value, *pv, c| {
+            value.* = Q.fromBase(source.interaction[c * n + pos]);
+            pv.* = Q.fromBase(source.interaction[c * n + previous]);
+        }
+        var residuals: [P.CONSTRAINTS]Q = undefined;
+        var sink = E.Sink{ .values = &residuals };
+        P.emitFor(Q, &main, &inter, &prior, E.q(@intFromBool(logical == 0)), E.q(@intFromBool(logical + 1 == n)), claims, ch(), &sink);
+        try std.testing.expectEqual(@as(usize, P.CONSTRAINTS), sink.count);
+        for (residuals) |value| try std.testing.expect(value.isZero());
+    }
+}

@@ -15,7 +15,7 @@ const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;
 const Q = E.Q;
 const Column = engine.pcs.ColumnEvaluation;
-const CHUNK = 4096;
+const CHUNK: usize = 4096;
 pub const MAIN = P.MAIN;
 pub const INTERACTION = P.INTERACTION;
 pub const Fact = struct { op: Operations.Binary, a: u64, b: u64, c: u64 };
@@ -235,7 +235,7 @@ pub const Source = struct {
         var function_sum = Q.zero();
         var start: usize = 0;
         while (start < n) : (start += CHUNK) {
-            const count = @min(CHUNK, n - start);
+            const count: usize = @min(CHUNK, n - start);
             functionDenominators(self.metadata[start..][0..count], scratch[0..count], ch.function);
             try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
             for (0..count) |i| {
@@ -273,7 +273,7 @@ fn store(data: []M, n: usize, row: usize, start: usize, value: Q) void {
 fn dictionaryInverses(dictionary: []Q, scratch: []Q, ch: P.Challenges) !void {
     var start: usize = 0;
     while (start < dictionary.len) : (start += CHUNK) {
-        const count = @min(CHUNK, dictionary.len - start);
+        const count: usize = @min(CHUNK, dictionary.len - start);
         var i: usize = 0;
         while (i < count) : (i += E.LANES) {
             var tuple: [3]E.PackedBase = undefined;

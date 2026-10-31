@@ -1,0 +1,71 @@
+{
+  "scope": "Genesis-only CPU-bound LS19 to RAM14 source qualification; integrated CPU proof is separately qualified by parent. No cross-batch activation.",
+  "runtime_tests": 8,
+  "release_safe": "pass",
+  "release_fast": "pass",
+  "widths": {
+    "ls": [
+      3,
+      79,
+      116
+    ],
+    "initial": [
+      3,
+      23,
+      48
+    ],
+    "terminal": [
+      3,
+      23,
+      48
+    ],
+    "selection": [
+      6,
+      2,
+      8
+    ]
+  },
+  "degree": 3,
+  "evaluation_expansion": 2,
+  "native_metadata_bytes": {
+    "ls": 82,
+    "boundary": 30
+  },
+  "checks": [
+    "arbitrary-Q affine negative OWNER19 projection",
+    "all281/all54 native residuals",
+    "all residuals cubic under arbitrary secure affine interpolation",
+    "4096 sorted boundary cells",
+    "empty samegeometry sources",
+    "MAIN retirement before interactions including selection",
+    "exhaustive constructor/generation allocation failures",
+    "borrowed storage alias rejection before writes",
+    "strict OWNER poles, late count/selection failure retain retry metadata",
+    "trusted pristine image initial value and uniform eight-byte permissions"
+  ],
+  "legacy_fresh_proof_controls": {
+    "closed_ram": "1141f98a46c1e281a3d4cb0060d5e51d37862722bb81e4f37e8aa8b64b937583",
+    "load_store_v1": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664"
+  },
+  "shared_extraction": "closed_ram boundaryAfterBindFor preserves old wrapper; transition empty count enables first active0",
+  "files": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_source.zig": "97d3c10bc3d5a8b45d58cb32b2ea7da5868736e8d7adeb83cd2222ac77b162b1",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/component.zig": "7273aff10f2f91f4ed1901bef0d118202561fbbc4d0a107c5a0bf365fea85947",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/equations.zig": "87aea8dfd0bc1ec593f09852779507d63937f3288d40d6f1c5161e3abcd3c3a2",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/interaction.zig": "f7c8390d4f821c6a9ad6d8339d186bd1e99ee40d03bdf5520e265c12106141a7",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/layout.zig": "fe7a356cca4d836a63a7958453fa5c22fd2d9041e7800e96547bb24e2b3caed3",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/mod.zig": "34739eabe481de8079472612958db157fce212bb7180e4b2a2b2816fd1a60215",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/native.zig": "9ffbee1406c22d19ae7c5bc109bb3b357e4446959a1083e2488ffaef05ac7281",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/packed_rows.zig": "e859491079173947d5b7f6ad230c09007d1a6517fe966a544a8f05ab1f50e24d",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/selection_source.zig": "4e28e1b0e82b4696c2706487fb48d42511bb61990dda89249e273ff77f9d9131",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/source.zig": "910776d45acf3bae7496751eb6ac7267ceb8753963b84da822b62938b7ae4a2f",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/types.zig": "8d0265cf2d154b0432bfb48eaef779e4db441fbdf4702faf47606c2eb19463c1",
+    "src/integrations/riscv_cpu/word16_execution/memory/collector.zig": "ff5b987a774d25eec24d67c5e8310c2ad2d99e36b7dea1159fa0f6efdf7358d5",
+    "src/integrations/riscv_cpu/word16_execution/memory/mod.zig": "f18c64cda7143bd68fb2fdd9c9a4aad43243d6b22955b0f10128950bfcdc016c",
+    "src/integrations/riscv_cpu/word16_execution/memory/native_test.zig": "36b959a9c2db51e7a37be93c583931e53ae3267d8d0f858216406e31e45228f5",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "15fc5c7d0106dcf4136e7b7f084ab75bb08c12b9d422c62c3ab8ab62b4d61aef",
+    "src/integrations/riscv_cpu/word16_execution/memory/statement.zig": "6f2670498033f44604c3395bc112c79c4e2ae922990f15d9706148f04d2bf55a",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/equations.zig": "321e52612e0b6bde2b625ee4a6d4a7b65c77a000295e16ca114c394c4d992de4",
+    "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig": "c2ab9e6a4b996faec3817e18cadd78d29c1d3bcc1025074146f8669e5b217ce2"
+  }
+}

@@ -16,7 +16,7 @@ const Geometry = @import("binary_source.zig");
 const physical = @import("../witness.zig").physical;
 const M = core.fields.m31.M31;
 const Q = E.Q;
-const CHUNK = 4096;
+const CHUNK: usize = 4096;
 pub const Fact = Ops.ShiftFact;
 pub const MainBuffers = struct { main: []M };
 pub const Metadata = struct { payload: [13]u16 };
@@ -190,7 +190,7 @@ pub const Source = struct {
         const a = self.allocator;
         const output = try a.alloc(M, P.INTERACTION * n);
         errdefer a.free(output);
-        const window = @min(CHUNK, n);
+        const window: usize = @min(CHUNK, n);
         const scratch = try a.alloc(Q, 2 * window);
         defer a.free(scratch);
         var shift_prefix = shift_claim.neg();
@@ -198,7 +198,7 @@ pub const Source = struct {
         var function_sum = Q.zero();
         var start: usize = 0;
         while (start < n) : (start += window) {
-            const count = @min(window, n - start);
+            const count: usize = @min(window, n - start);
             functionDenominators(self.metadata[start..][0..count], scratch[0..count], ch.function);
             try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[window..][0..count]);
             for (0..count) |i| {
