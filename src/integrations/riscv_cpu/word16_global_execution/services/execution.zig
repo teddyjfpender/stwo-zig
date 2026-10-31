@@ -85,9 +85,16 @@ const CpuWorker = struct {
     scheme: G.T.Scheme,
     channel: G.T.P.Channel,
     owns: bool = true,
+    owns_source: bool = true,
+    fn retireSource(self: *@This()) void {
+        if (self.owns_source) {
+            self.source.deinit();
+            self.owns_source = false;
+        }
+    }
     fn deinit(self: *@This(), a: std.mem.Allocator) void {
         if (self.owns) self.scheme.deinit(a);
-        self.source.deinit();
+        self.retireSource();
     }
 };
 const TruthWorker = struct {
@@ -95,9 +102,16 @@ const TruthWorker = struct {
     scheme: G.T.Scheme,
     channel: G.T.P.Channel,
     owns: bool = true,
+    owns_source: bool = true,
+    fn retireSource(self: *@This()) void {
+        if (self.owns_source) {
+            self.source.deinit();
+            self.owns_source = false;
+        }
+    }
     fn deinit(self: *@This(), a: std.mem.Allocator) void {
         if (self.owns) self.scheme.deinit(a);
-        self.source.deinit();
+        self.retireSource();
     }
 };
 fn actual(a: std.mem.Allocator, scheme: *G.T.Scheme, key: [32]u8, logs0: []const u32, logs1: []const u32) !G.Receipt {
@@ -204,6 +218,11 @@ fn memory(a: std.mem.Allocator, events: []const A.memory.load_store_v2.native.Ev
 /// Bounded qualification harness: coordinator retains several PCS owners here.
 /// No claim of fitting arbitrary execution fanout in one process is made.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
+    return produceWithStorage(a, setups, truths, prepared, advice, expected, null);
+}
+/// Store must outlive this call. Only sealed compact MAIN coefficients move;
+/// roots, transcript and proof bytes are identical. Every failure drains owners.
+pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected, retained: ?*@import("../retained_main_store.zig").Store) !Bundle {
     if (setups.len != prepared.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
@@ -260,6 +279,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const l1 = try s.logs(a, 1);
         defer a.free(l1);
         receipts[index] = try actual(a, &scheme, s.key.root, l0, l1);
+        if (retained) |store| _ = try store.spill(a, &scheme.trees.items[1]);
         workers[index] = .{ .source = source, .scheme = scheme, .channel = channel };
         done += 1;
     }
@@ -286,6 +306,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const l1 = try truth.logs(a, 1);
         defer a.free(l1);
         receipts[setups.len + k] = try actual(a, &scheme, truth.key().root, l0, l1);
+        if (retained) |store| _ = try store.spill(a, &scheme.trees.items[1]);
         w.* = .{ .source = ts, .scheme = scheme, .channel = channel };
         truth_done += 1;
     }
@@ -329,6 +350,9 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         req.base.memory.terminal = try a.dupe(Cell, r.base.memory.terminal);
         encoded.* = .{ .bytes = bytes, .request = req, .claims = claims };
         finished += 1;
+        // Encoded claims/boundaries now own every receiver obligation. Neither
+        // this source nor its consumed scheme is needed by later truth proofs.
+        w.retireSource();
     }
     const encoded_truths = try a.alloc(TruthEncoded, truths.len);
     errdefer a.free(encoded_truths);
@@ -353,6 +377,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         defer proof.deinit(a);
         encoded_truths[k] = .{ .bytes = try wire.encodeProofBytesBinary(a, proof), .claims = claims };
         finished_truths += 1;
+        tw.retireSource();
     }
     return .{ .manifest = manifest, .cpus = cpus, .truths = encoded_truths };
 }

@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "status": "qualified",
+  "base": "d25286de0",
+  "scope": "optional mapped sealed MAIN for all combined CPU and truth proofs; no equation/layout/transcript change",
+  "api": "execution.produceWithStorage(..., retained:?*retained_main_store.Store); produce delegates null",
+  "ownership": [
+    "each MAIN spilled only after sealed roots measured and before common challenge barrier",
+    "existing compact PCS teardown owns mapping release",
+    "store must outlive produceWithStorage",
+    "source retires idempotently after final proof and all receiver obligations encoded",
+    "scheme consumed by existing engine prove ownership path"
+  ],
+  "qualification": {
+    "target": "test-riscv64-word16-combined-services",
+    "minimum_registered_before_slice": 9,
+    "actual_runtime_after_slice": 10,
+    "safe_log": "/tmp/rv64-word16-combined-services-mapped-safe.log",
+    "fast_log": "/tmp/rv64-word16-combined-services-mapped-fast.log",
+    "checks": [
+      "all CPU and all truth native coefficient byte totals spill",
+      "every proof byte/complete manifest/entire compact wire matches resident run",
+      "independent receiver accepts mapped result",
+      "first spill cap refusal cleanup",
+      "truth-phase cap refusal cleans previously spilled CPU owners"
+    ],
+    "allocator": "std.testing.allocator leak checking; underlying Store separately qualified foundation",
+    "performance_claim": null,
+    "safe": "PASS",
+    "fast": "PASS"
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/services/execution.zig": "cfff329f8461b75f876e8d2a0e5362fee42c6955f31b74d2df876dd0e47ee331",
+    "src/integrations/riscv_cpu/word16_global_execution/services/execution_test.zig": "9aa88f5e21341b51680993bd4c0b937a4360436021ec2e3838a002f0fce705b3",
+    "src/integrations/riscv_cpu/word16_global_execution/retained_main_store.zig": "c21e7140b43171acd38e2a4dbab46ed249077b38aea38842ebffba1204fc6f59"
+  }
+}

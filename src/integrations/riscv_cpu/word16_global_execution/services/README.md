@@ -35,3 +35,13 @@ This is an accepting prefix mechanism, not a terminal Ethereum block proof,
 recursion result or whole-block performance measurement. q70/P26/blowup1 has
 nominal configuration 96; whole-protocol security bits including rational lookup
 mass and union bounds are not established by that number.
+
+`execution.produceWithStorage(..., ?*retained_main_store.Store)` optionally moves
+sealed compact MAIN coefficients for both CPU and truth workers into unlinked
+file mappings before the manifest barrier. The default `produce` passes null.
+The Store must outlive the call; mappings release through the existing PCS
+teardown owner on success and failure. This preserves the complete manifest,
+physical claims, proofs and wire bytes. Each source retires immediately after
+its final proof and receiver obligations have been encoded, so CPU narrow advice
+is not retained through later truth composition. These ownership changes carry
+no standalone RSS or whole-block timing claim.

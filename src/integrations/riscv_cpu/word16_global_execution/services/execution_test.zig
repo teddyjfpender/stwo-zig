@@ -76,3 +76,71 @@ test "Combined receiver rejects free absent debts missing roots and wrong typed 
     c.bundle.truths[1].claims[0] = c.bundle.truths[1].claims[0].sub(G.Q.one());
     if (E.verify(a, &keys, &truths, c.expected(), &c.bundle)) |_| return error.AcceptedMixedBalancedClaims else |_| {}
 }
+
+fn produceStored(a2: std.mem.Allocator, c: *const F.Case, store: *@import("../retained_main_store.zig").Store) !E.Bundle {
+    var captured = try F.Captured.init(a2);
+    defer captured.deinit();
+    return E.produceWithStorage(a2, &c.keys(), &c.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, c.expected(), store);
+}
+fn mainBytes(logs: []const u32) usize {
+    var bytes: usize = 0;
+    for (logs) |log| bytes += (@as(usize, 1) << @intCast(log)) * 4;
+    return std.mem.alignForward(usize, bytes, std.heap.pageSize());
+}
+test "Combined mapped CPU and all truth MAIN preserve every proof manifest and wire with refusal cleanup" {
+    const Store = @import("../retained_main_store.zig").Store;
+    const W = @import("wire.zig");
+    var c = try F.Case.init(a);
+    defer c.deinit();
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try tmp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var expected_bytes: usize = 0;
+    var cpu_bytes: usize = 0;
+    for (c.keys()) |key| {
+        const logs = try key.logs(a, 1);
+        defer a.free(logs);
+        cpu_bytes += mainBytes(logs);
+    }
+    expected_bytes = cpu_bytes;
+    for (c.truths()) |truth| {
+        const logs = try truth.logs(a, 1);
+        defer a.free(logs);
+        expected_bytes += mainBytes(logs);
+    }
+    var store = try Store.init(path, expected_bytes);
+    defer store.deinit();
+    var mapped = try produceStored(a, &c, &store);
+    defer mapped.deinit(a);
+    try std.testing.expectEqual(expected_bytes, store.stats().total_bytes);
+    try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
+    try E.verify(a, &c.keys(), &c.truths(), c.expected(), &mapped);
+    try std.testing.expectEqualDeep(c.bundle.manifest.roots, mapped.manifest.roots);
+    try std.testing.expectEqualDeep(c.bundle.manifest.specs, mapped.manifest.specs);
+    try std.testing.expectEqualDeep(c.bundle.manifest.digest, mapped.manifest.digest);
+    for (c.bundle.cpus, mapped.cpus) |x, y| try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+    for (c.bundle.truths, mapped.truths) |x, y| try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+    var resident_dir = try tmp.dir.makeOpenPath("resident", .{});
+    defer resident_dir.close();
+    var mapped_dir = try tmp.dir.makeOpenPath("mapped", .{});
+    defer mapped_dir.close();
+    try W.write(a, resident_dir, &c.keys(), &c.truths(), &c.bundle);
+    try W.write(a, mapped_dir, &c.keys(), &c.truths(), &mapped);
+    for ([_][]const u8{ "bundle.json", "cells.bin", "cpu-0.bin", "cpu-1.bin", "truth-0.bin", "truth-1.bin", "truth-2.bin" }) |name| {
+        const x = try resident_dir.readFileAlloc(a, name, 16 << 20);
+        defer a.free(x);
+        const y = try mapped_dir.readFileAlloc(a, name, 16 << 20);
+        defer a.free(y);
+        try std.testing.expectEqualSlices(u8, x, y);
+    }
+    // First-spill refusal and truth-phase refusal after both CPU spills must
+    // drain all earlier mapped owners without requiring a successful proof.
+    for ([_]usize{ 1, cpu_bytes }) |cap| {
+        var refused = try Store.init(path, cap);
+        defer refused.deinit();
+        try std.testing.expectError(error.RetainedMainBudgetExceeded, produceStored(a, &c, &refused));
+        try std.testing.expectEqual(@as(usize, 0), refused.stats().live_bytes);
+        try std.testing.expectEqual(if (cap == 1) @as(usize, 0) else cpu_bytes, refused.stats().total_bytes);
+    }
+}
