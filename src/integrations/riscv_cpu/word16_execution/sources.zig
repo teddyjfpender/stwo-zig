@@ -48,6 +48,16 @@ pub const Source = struct {
     /// The caller always deinitializes Prepared to release remaining fact groups.
     /// On failure, transferred witnesses are destroyed here; never reconstructed.
     pub fn fromPrepared(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, prepared: *Prepared) !Source {
+        return fromPreparedInternal(a, materials, image, prepared, null);
+    }
+    /// Witness-only, consumes owned memory on success AND failure. Accepting
+    /// global proofs requires the separate complete-manifest receiver.
+    pub fn fromPreparedWithOwnedMemory(a: std.mem.Allocator, materials: *const Mat.Materials, prepared: *Prepared, owned_memory: Memory.Prepared) !Source {
+        return fromPreparedInternal(a, materials, null, prepared, owned_memory);
+    }
+    fn fromPreparedInternal(a: std.mem.Allocator, materials: *const Mat.Materials, image: ?Memory.public.Image, prepared: *Prepared, owned_memory: ?Memory.Prepared) !Source {
+        var pending_memory = owned_memory;
+        errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
@@ -65,7 +75,10 @@ pub const Source = struct {
         var multiplication = try A.arithmetic.multiplication.trace.Trace.initWithLog(a, prepared.multiplication, g.multiplication_log);
         errdefer multiplication.deinit();
         const epoch = cpu.epoch;
-        var memory = try Memory.Prepared.init(a, image, cpu.memory.items, epoch, g.ls_log, g.boundary_log);
+        var memory = if (pending_memory) |value| block: {
+            pending_memory = null;
+            break :block value;
+        } else try Memory.Prepared.init(a, image.?, cpu.memory.items, epoch, g.ls_log, g.boundary_log);
         errdefer memory.deinit();
         var rom = try ROM.Source.init(a, &materials.program, cpu.rom_counts);
         errdefer rom.deinit();
@@ -111,6 +124,13 @@ pub const Source = struct {
         return self.generateProfiled(ch, null);
     }
     pub fn generateProfiled(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder) !P.Claims {
+        return self.generateInternal(ch, recorder, false);
+    }
+    pub const OpenGlobalRamClaims = struct { physical: P.Claims };
+    pub fn generateOpenForGlobalRam(self: *Source, ch: P.Draw) !OpenGlobalRamClaims {
+        return .{ .physical = try self.generateInternal(ch, null, true) };
+    }
+    fn generateInternal(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder, open_ram: bool) !P.Claims {
         if (self.claims != null) return error.InvalidWord16ExecutionPhase;
         const old = P.legacy(ch.cpu);
         const r16 = block: {
@@ -185,7 +205,7 @@ pub const Source = struct {
             break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
         };
         const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection };
-        try claims.validate();
+        if (open_ram) try validateOpenForGlobalRam(claims) else try claims.validate();
         self.claims = claims;
         return claims;
     }
@@ -257,4 +277,17 @@ fn addCounts(out: []u64, input: []const u64) !void {
         o.* = try std.math.add(u64, o.*, v);
         if (o.* >= core.fields.m31.Modulus) return error.Word16ExecutionMassExceeded;
     }
+}
+
+/// All per-shard relations except RAM must close BEFORE aggregate publication.
+/// Shared RAM is the only permitted open debt; this is not STARK verification.
+pub fn validateOpenForGlobalRam(claims: P.Claims) !void {
+    const values = claims.values();
+    for (values) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalExecutionClaim;
+    for ([_]usize{ 23, 26, 28, 31 }) |index| if (!values[index].isZero()) return error.NonzeroOmittedMemoryClaim;
+    var local = Q.zero();
+    for (values, 0..) |q, index| if (index != 17 and index != 22 and index != 27) {
+        local = local.add(q);
+    };
+    if (!local.isZero()) return error.UnclosedLocalExecutionRelations;
 }

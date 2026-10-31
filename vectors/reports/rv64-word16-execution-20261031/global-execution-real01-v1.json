@@ -1,0 +1,173 @@
+{
+  "status": "qualified explicit no-services global RAM execution PREFIX prototype; not activated in legacy/main driver",
+  "base_commit": "4f18e67de",
+  "tests": {
+    "target": "test-riscv64-word16-global-execution",
+    "actual_runtime_minimum": 6,
+    "ReleaseSafe": "pass",
+    "ReleaseFast": "pass",
+    "logs": [
+      "/tmp/rv64-word16-global-execution-adversarial-safe.log",
+      "/tmp/rv64-word16-global-execution-adversarial-fast.log"
+    ],
+    "adversaries": [
+      "actual globally false-reset LDx0 fork has two locally valid physical proofs but aggregate RAM closure rejects",
+      "balanced physical RAM claim mutations and omitted tails reject",
+      "local CPU debt cannot cancel across shards",
+      "re-sealed wrong/swapped root, missing inventory, PC/REG/epoch/coverage mutations reject",
+      "independent program/image/genesis/rights and both local/global budget guards",
+      "old closed/genesis verifier and old boundary-diagnostic scopes remain fail-closed"
+    ]
+  },
+  "real_prefix": {
+    "scope": "two real CPU shards; global RAM; no services/full-block/recursion claim",
+    "steps": 8388606,
+    "words": 712789,
+    "physical_proofs": 2,
+    "global_ram_prefix_accepted": true,
+    "produce_after_setup_ns": 29933182916,
+    "same_process_verify_ns": 100940084,
+    "proof_bytes": [
+      1141376,
+      1152576
+    ]
+  },
+  "security": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup_factor": 1,
+    "nominal_config_bits": 96,
+    "whole_protocol_128_bit_claim": false,
+    "shared_RAM_absolute_mass": 4974878,
+    "characteristic": 2147483647,
+    "new_transcript_tags": {
+      "scope": "0x57474558/version1",
+      "ordered_manifest": "0x57474d46/version1",
+      "shared_ram14": "0x57474d52/version1/arity14",
+      "stage2": "0x57475332/version1/ordinal"
+    },
+    "binding": "Expected program/image pin, global total/max-step budget and prefixend, per-shard public statement, ordinal, cumulative first step, exact immutable geometry, every ACTUAL fixed/MAIN PCS root before shared RAM challenges. Every physical33-claim vector enters local FS before interaction/constraint coefficients."
+  },
+  "geometry": [
+    {
+      "cpu_log": 22,
+      "alu_log": 20,
+      "binary_log": 20,
+      "shift_log": 20,
+      "jalr_log": 14,
+      "division_log": 5,
+      "multiplication_log": 13,
+      "ls_log": 21,
+      "boundary_log": 20
+    },
+    {
+      "cpu_log": 22,
+      "alu_log": 20,
+      "binary_log": 21,
+      "shift_log": 21,
+      "jalr_log": 13,
+      "division_log": 5,
+      "multiplication_log": 11,
+      "ls_log": 20,
+      "boundary_log": 20
+    }
+  ],
+  "authority": [
+    "one nonempty globalINIT from pristine independently pinned image/policy; sorted unique globalunion",
+    "one nonempty finalTEARDOWN sameaddresses, publicuntrusted values authenticated by physicalRAM closure",
+    "epochs ordinal+1, bounded localticks; strict cross-shard predecessor hints checked by RAM14",
+    "each CPU shard physically proves immutableROM/function/REG/OWNER/LS; PC and all32REGvalues adjacent with localREGclocks reset",
+    "fresh independent receiver reconstructs immutable keys from expected pristine authority, verifies every real AIR/FRI proof then global sum33; no host RAM target"
+  ],
+  "semantic_parity": {
+    "cpu_fields_exact_per_shard": [
+      {
+        "steps": true,
+        "initial_pc": true,
+        "final_pc": true,
+        "initial_registers": true,
+        "final_registers": true,
+        "register_clocks": true
+      },
+      {
+        "steps": true,
+        "initial_pc": true,
+        "final_pc": true,
+        "initial_registers": true,
+        "final_registers": true,
+        "register_clocks": true
+      }
+    ],
+    "all_global_initial_and_final_word_values_exact": true,
+    "all_global_terminal_epoch_local_clocks_and_rights_exact": true,
+    "global_touched_words": 712789,
+    "legacy_per_batch_touched_words": [
+      708957,
+      6874
+    ],
+    "native_packet_content_digests": [
+      "b2a20fcafe3124b0ca7ff1bc57e0efcb7c5d5865b5df82145060a55ad35bed46",
+      "f093501438fa3b825e12ce8efe06ceabece0fc7b455cb67786af7844d7fd1242"
+    ],
+    "normalized_global_ram_sha256": "7b00386a96e3298ba271f9259e13404b470f945e63deef85e8d734cbb26c884e",
+    "accepted_legacy_baseline_receipts": [
+      {
+        "receipt": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000000.json",
+        "proof": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000000.proof",
+        "proof_sha256": "e9a6fb843802c6dd7b1fed8551059da86776e6616f6fc9dc2a5435fda493f54c"
+      },
+      {
+        "receipt": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000001.json",
+        "proof": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000001.proof",
+        "proof_sha256": "845f1457428e04f306c69e7249d9e6f4ec1a89a2fb89c276a37a97b8887c3134"
+      }
+    ],
+    "comparison_scope": "Streams every32B legacy cell record from both accepted packet bodies; checks cross-batch initial=previous-final, then compares all712789 globalword values/rights and epoch+localtick terminal states with new proved public arrays. No VM/Poseidon execution; different protocols/proof bytes."
+  },
+  "observed_resources": {
+    "producer_invocation_wall_seconds": 32.95,
+    "producer_peak_RSS_bytes": 15986655232,
+    "fresh_receiver_exit_code": 0,
+    "fresh_receiver_wall_seconds": 2.02,
+    "fresh_receiver_peak_RSS_bytes": 3479273472,
+    "performance_scope": "single diagnostic run; functional compile ran concurrently; no isolated speedup or general16GB guarantee"
+  },
+  "limitations": [
+    "central two-shard qualification harness retains multiple Prepared/Sources/Schemes, not scalable25batch distributed driver",
+    "manifest itself is root/spec-only; public owned Stage1Worker lifecycle is subsequent work",
+    "only INIT/TERM activefacts once; empty counterpart components remain in fixed17-role physical roster and retain padding costs",
+    "verbose public boundary JSON304297459B is diagnostic transport, not lean production wire",
+    "no service/full-block/halt-output certificate, recursion or GPU qualification",
+    "global CPUend is a proved public prefix output and independently supplied expected endpoint, not Ethereum terminal certification",
+    "no VM or Poseidon replay, no duplicated RAM tuple advice at everyCPU row; narrow predecessor ledger derives captured effects"
+  ],
+  "baseline_and_artifacts": {
+    "/tmp/rv64-word16-global-execution-real01-v1/bundle.json": "50f1d97ff9643c05a483d9d2a54627914b163eece7790682f644bb855104d73c",
+    "/tmp/rv64-word16-global-execution-real01-v1/proof0.bin": "c879616441f7616289037d517c4063eeec5c017bb133e3684205db16cc92b491",
+    "/tmp/rv64-word16-global-execution-real01-v1/proof1.bin": "7931d2958b7363e721e737879173b1305442841d32fd48d8c6c27eb65f163755",
+    "/tmp/rv64-word16-global-execution-real01-v1/report.json": "119272761bbf224392f285167eb27762186d8ecc5e22ae393c9b62abb31ac0e7",
+    "/tmp/rv64-word16-global-execution-real01-v1.time": "27df15f5dbf4fc32e7a61189b630ddb72ac6e01bdc5091b97d29851a6bc15bc4",
+    "/tmp/rv64-word16-global-execution-real01-v1.fresh.time": "7b84059a812d0977ea2f8dd0a0b8eb0bd7ca7f87a28348df6b1cd7fa59515ba4",
+    "/tmp/rv64-word16-global-execution-real01-v1.semantic-parity.json": "12ddb9bcb2e243e67f7e2da090c3bb1a5e8062841f9c1cb46a773687ec108c9a"
+  },
+  "frozen_executable": {
+    "path": "/tmp/rv64-word16-global-execution-tools-v1/rv64-word16-global-execution",
+    "sha256": "ee50b9eeda299ba14ecd81d34cce1862566cb9c9741795b94a19f671ae5c83ff"
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_word16_global_execution_main.zig": "083d761b5cb4005a771be404441f56a50584bdd211cf743ababda09ffd74e1f7",
+    "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig": "1b0532a7b5658cc76f0e5e0512b9312af34bf8382cd6027f7ccec7ed0bfc37ee",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "23768889384bb314e4b1aa90dba1e6996dbd537966aa350fbecf27fed3bf5aba",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "9b4d5a55259b396005c73ada0dda0e5c0b7d48609d33ff77c2a4302df5350891",
+    "src/integrations/riscv_cpu/word16_global_execution/adversarial_fixture.zig": "b061b96205149343cd4258167e7d7ad2dd11b10daa1972e15b1e6135372a8392",
+    "src/integrations/riscv_cpu/word16_global_execution/adversarial_test.zig": "1913effec63bda7a2f99aeb4326cf08cbeef3fa734f8fff7d9b24345bd4db7b9",
+    "src/integrations/riscv_cpu/word16_global_execution/collector.zig": "280d18b8f5c30a46a1411f602658900dd48d3bd5eb8d429f98fcab18c13da7a0",
+    "src/integrations/riscv_cpu/word16_global_execution/execution.zig": "d20f6da8f2b01d6d4ee2c2bb8cdadf0e247bca63377da9729f5a4f2321519884",
+    "src/integrations/riscv_cpu/word16_global_execution/execution_test.zig": "76777a3934fbcab7821e1f1e4e1b058b89d4886c5ee7dcc6a11d4572917dee97",
+    "src/integrations/riscv_cpu/word16_global_execution/fixture.zig": "1a8c1bea0b05eb66604558d0571548e8ae83a0ecfb18b2ba5a87618caacd454c",
+    "src/integrations/riscv_cpu/word16_global_execution/main.zig": "d70d8529993a8b753084834e14fce0b9821629e537b917be1e2b4b8b3def590d",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "48056bbfffeb4cb0d823408b8d056c4e49be621d353ac7b0a2c0e58c6194e484",
+    "src/integrations/riscv_cpu/word16_global_execution/soundness_review.md": "00ca0435828282153b897715ce63dfb73a4c5bd1a3bb6688f25a91bb342b2321"
+  },
+  "commit_policy": "Local isolated qualified slice; parent explicitly authorized inherited hook exception for existing baseline conformance failures; no main worktree staging."
+}

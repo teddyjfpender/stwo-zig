@@ -25,11 +25,24 @@ pub const Prepared = struct {
         }
         const statement = public.Statement{ .initial = collected.initial, .terminal = collected.terminal, .epoch = epoch, .ls_count = @intCast(records.len) };
         try statement.validate(image);
-        var ls = try X.source.Source.init(a, collected.events, ls_log);
+        return fromRows(a, collected.events, statement, ls_log, boundary_log);
+    }
+    /// Witness-only global path: consumes both boundary arrays on success/error.
+    /// Genesis authority and aggregate closure belong to the NEW global receiver.
+    pub fn initOwnedForGlobalRam(a: std.mem.Allocator, events: []const X.native.Event, initial: []const public.Cell, terminal: []const public.Cell, epoch: u16, ls_log: u32, boundary_log: u32) !Prepared {
+        errdefer {
+            a.free(initial);
+            a.free(terminal);
+        }
+        const statement = public.Statement{ .initial = initial, .terminal = terminal, .epoch = epoch, .ls_count = @intCast(events.len) };
+        return fromRows(a, events, statement, ls_log, boundary_log);
+    }
+    fn fromRows(a: std.mem.Allocator, events: []const X.native.Event, statement: public.Statement, ls_log: u32, boundary_log: u32) !Prepared {
+        var ls = try X.source.Source.init(a, events, ls_log);
         errdefer ls.deinit();
-        var initial = try X.boundary_source.Source.init(a, .initial, collected.initial, boundary_log);
+        var initial = try X.boundary_source.Source.init(a, .initial, statement.initial, boundary_log);
         errdefer initial.deinit();
-        var terminal = try X.boundary_source.Source.init(a, .terminal, collected.terminal, boundary_log);
+        var terminal = try X.boundary_source.Source.init(a, .terminal, statement.terminal, boundary_log);
         errdefer terminal.deinit();
         var selection = try X.selection_source.Source.init(a, ls.selection_counts);
         errdefer selection.deinit();

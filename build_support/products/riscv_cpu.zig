@@ -50,6 +50,7 @@ pub fn addProduct(context: Context) void {
         .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
         .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 7 },
+        .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 6 },
         .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 12 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
@@ -134,6 +135,7 @@ pub fn addProduct(context: Context) void {
         rv64_execution.dependOn(&executable.step);
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
+        .{ .name = "rv64-word16-global-execution", .source = "src/integrations/riscv_cpu/rv64_word16_global_execution_main.zig" },
         .{ .name = "rv64-word16-execution-benchmark", .source = "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig" },
         .{ .name = "rv64-load-store-fixture", .source = "src/integrations/riscv_cpu/rv64_load_store_fixture_main.zig" },
         .{ .name = "rv64-closed-ram-fixture", .source = "src/integrations/riscv_cpu/rv64_closed_ram_fixture_main.zig" },
