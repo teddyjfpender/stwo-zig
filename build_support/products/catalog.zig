@@ -80,6 +80,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-binary-proof", .description = "Prove diagnostic closed Word16 binary chip", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-packet-control", .description = "Prove detached packet jobs out of order and verify complete root chain", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-work-packet", .description = "Test portable bounded native prepared work packets", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-binary-source", .description = "Qualify Word16 binary witness ownership and interactions", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-cpu", .description = "Check inactive WORD16 CPU request projection and affine payload", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-chip-plan", .description = "Check diagnostic fixed chip capacity packing and lookup mass admission", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-cpu-degree-diagnostic", .description = "Audit full D3 cyclic service CPU polynomial degree", .scope = .riscv_cpu },

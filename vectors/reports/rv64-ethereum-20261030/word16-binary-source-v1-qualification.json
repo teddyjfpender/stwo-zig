@@ -1,0 +1,73 @@
+{
+  "schema": "rv64-word16-binary-source-v1",
+  "scope": "Native witness source for qualified BINARY equations; no new accepting CPU/profile/coverage authority.",
+  "status": "ReleaseSafe and ReleaseFast native qualification PASS",
+  "api": {
+    "fact": "{op:Operations.Binary,a:u64,b:u64,c:u64}; c is the logical result even when RD=x0",
+    "constructors": [
+      "Source.init(a,facts,log)",
+      "Source.initWithMainBuffers(a,facts,log,.{main})"
+    ],
+    "views": [
+      "fixedForLog(a,log)",
+      "massForLog(log)",
+      "Source.columns(a,tree)",
+      "Source.and_counts (ordinary a*256+b index)"
+    ],
+    "lifetime": [
+      "takeMainForCommit transfers the original owned allocation; rejects borrowed",
+      "releaseMain detaches borrowed views without freeing",
+      "generate(challenges) works after main adoption/release, publishes interaction only on complete success",
+      "deinit frees only owned allocations"
+    ]
+  },
+  "geometry": {
+    "fixed_columns": 2,
+    "main_columns": 42,
+    "interaction_columns": 28,
+    "metadata_bytes_per_physical_row": 42,
+    "wide_main_bytes_per_physical_row": 168,
+    "extra_retained_input_saving_bytes_per_row": 126,
+    "dictionary_bytes": 1048576,
+    "batch_scratch_bytes": 131072,
+    "counts_bytes": 524288,
+    "prefix_correction": "One 16-byte/physical-row pass for the function prefix; AND correction is initialized from the count/dictionary dot product.",
+    "positive_AND_mass": "8*2^log including padding; admitted below M31 before allocations. Aggregate caller must combine all contributors sharing alpha.",
+    "function_fact_count": "Native metadata only; not a CPU count/ordering/owner claim. Pure valid facts may repeat and the qualified AIR permits multiplicity.",
+    "fixed_key": "First/last depend only on geometry; empty and nonempty sources have identical fixed columns."
+  },
+  "implementation": {
+    "main_fill": "Base M31 only; no secure witness inflation. Owned and borrowed use exactly one filler.",
+    "interactions": "16-lane PackedBase metadata gathers into the shared affine denominator authority; existing core QM31 batch inverse in bounded4096 chunks. No main reads or operation replay after sealing.",
+    "constraints": "Unchanged qualified BINARY/function/AND authorities; no duplicated accepting equations."
+  },
+  "tests": {
+    "step": "test-riscv64-word16-binary-source",
+    "registered_minimum": 3,
+    "modes": [
+      "ReleaseSafe PASS",
+      "ReleaseFast PASS"
+    ],
+    "coverage": [
+      "All physical main fields byte-identical to the frozen Q witness helper, including padding/high64-bit operands",
+      "Canonical asymmetric AND table indexing and total padded mass",
+      "Owned/borrowed same main; owned backing destroyed and borrowed main overwritten before generating",
+      "All28 interaction columns and both claims equal independent scalar all-row oracle",
+      "All52 native constraints clean; empty source and count-independent fixed geometry",
+      "Exhaustive allocation failures; invalid fact and borrowed allocation failures leave input buffer unchanged",
+      "Late function pole and late ledger mismatch leave output unpublished; repair/retry and duplicate-generation phase guard"
+    ]
+  },
+  "unchanged_math_control": {
+    "q70_P26_proof_bytes": 240632,
+    "sha256": "c1de65fc530fa639fb1fd32737c1ee8785133bb654e3c9ea71204c7e24a2b498",
+    "scope": "Existing diagnostic C1 producer rebuilt after additive expected_main; exact retained encoded bytes and fresh standalone receiver PASS. This control does not itself instantiate the new Source.",
+    "actual_Source_joined_proof": "Pending thin-CPU/shared-provider integration; native source matrices and interactions are already compared against the qualified authority."
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source.zig": "28983f5ec84743d8807bf47f819806b773bdd3b53a5c188ed288c366136a5de4",
+    "src/frontends/riscv/rv64/air/word16_v1/binary_source_test.zig": "7a20bb80d94ad54c1e716738979b1fb39ff884bfe99f60f19615190deafbcada",
+    "src/frontends/riscv/rv64_word16_binary_source_test_root.zig": "8a52551e2bef95b42c2e29c2235d03e87aaba885b3d1b03627a5f7dc6e73809c"
+  },
+  "performance_claim": "None. Retained witness size is an arithmetic layout fact, not a complete PCS/FFT/recursive or wall-time speedup."
+}

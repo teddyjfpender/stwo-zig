@@ -96,4 +96,5 @@ pub const word16_v1 = struct {
     pub const binary = @import("word16_v1/binary.zig");
     pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
     pub const binary_component = @import("word16_v1/binary_component.zig");
+    pub const binary_source = @import("word16_v1/binary_source.zig");
 };
