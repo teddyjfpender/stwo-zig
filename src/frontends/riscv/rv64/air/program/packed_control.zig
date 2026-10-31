@@ -112,7 +112,7 @@ pub fn draw(channel: *@import("../protocol.zig").Channel) provider.Challenges {
 pub fn denominator(challenges: provider.Challenges, entry: *const Tuple) Q {
     return denominatorFor(Q, challenges, entry);
 }
-pub fn denominatorFor(comptime F: type, challenges: provider.Challenges, entry: *const [COUNT]F) E.SecureFor(F) {
+pub fn denominatorFor(comptime F: type, challenges: provider.ChallengesFor(E.ConstFor(F)), entry: *const [COUNT]F) E.SecureFor(F) {
     var result = E.splatFor(F, challenges.offset);
     for (entry, sources) |value, source| result = result.add(E.mulBaseFor(F, E.splatFor(F, challenges.coefficients[source.start]), value));
     return result;
@@ -120,7 +120,7 @@ pub fn denominatorFor(comptime F: type, challenges: provider.Challenges, entry: 
 pub fn executionDenominator(challenges: provider.Challenges, entry: *const Tuple) Q {
     return executionDenominatorFor(Q, challenges, entry);
 }
-pub fn executionDenominatorFor(comptime F: type, challenges: provider.Challenges, entry: *const [COUNT]F) E.SecureFor(F) {
+pub fn executionDenominatorFor(comptime F: type, challenges: provider.ChallengesFor(E.ConstFor(F)), entry: *const [COUNT]F) E.SecureFor(F) {
     var result = E.splatFor(F, challenges.offset.add(challenges.coefficients[rom.field.valid]));
     for (entry[1..], sources[1..]) |value, source| result = result.add(E.mulBaseFor(F, E.splatFor(F, challenges.coefficients[source.start]), value));
     return result;

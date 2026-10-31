@@ -6,25 +6,31 @@ const core = @import("stwo_core");
 const S = @import("statement.zig");
 pub const ARITY = 20;
 pub const Tuple = [ARITY]Q;
-pub const Challenges = struct {
-    offset: Q,
-    coefficients: [ARITY]Q,
+/// Challenge storage over constant lane C (QM31 natively, an external lane's
+/// wires otherwise); the relation polynomial is identical for both.
+pub fn ChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [ARITY]C,
 
-    pub fn draw(channel: *@import("protocol.zig").Channel) Challenges {
-        channel.mixU32s(&.{ 0x52563634, 0x53544154, 1 });
-        var result: Challenges = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
-        return result;
-    }
+        pub fn draw(channel: *@import("protocol.zig").Channel) @This() {
+            channel.mixU32s(&.{ 0x52563634, 0x53544154, 1 });
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
+            return result;
+        }
 
-    pub fn denominator(self: Challenges, entry: Tuple) Q {
-        return self.denominatorFor(Q, entry);
-    }
-    pub fn denominatorFor(self: Challenges, comptime F: type, entry: [ARITY]F) E.SecureFor(F) {
-        return E.denominatorFor(F, self.offset, &self.coefficients, &entry, false);
-    }
-};
+        pub fn denominator(self: @This(), entry: Tuple) Q {
+            return self.denominatorFor(Q, entry);
+        }
+        pub fn denominatorFor(self: @This(), comptime F: type, entry: [ARITY]F) E.SecureFor(F) {
+            comptime if (E.ConstFor(F) != C) @compileError("state relation challenges do not match the trace lane");
+            return E.denominatorFor(F, self.offset, &self.coefficients, &entry, false);
+        }
+    };
+}
+pub const Challenges = ChallengesFor(Q);
 
 pub fn tuple(v: E.View, slot: usize, before: bool) Tuple {
     return tupleFor(Q, v, slot, before);
@@ -98,7 +104,7 @@ pub fn secureFor(comptime F: type, columns: *const [L.INTERACTION]F, offset: usi
 pub fn evaluate(v: E.View, current: *const [L.INTERACTION]Q, previous: *const [L.INTERACTION]Q, challenges: Challenges, target: Q, out: *E.Sink) void {
     return evaluateFor(Q, v, current, previous, challenges, target, out);
 }
-pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), current: *const [L.INTERACTION]F, previous: *const [L.INTERACTION]F, challenges: Challenges, target: Q, out: *E.SinkFor(F)) void {
+pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), current: *const [L.INTERACTION]F, previous: *const [L.INTERACTION]F, challenges: ChallengesFor(E.ConstFor(F)), target: E.ConstFor(F), out: *E.SinkFor(F)) void {
     var contribution = E.SecureFor(F).zero();
     for (0..4) |slot| {
         const active = v.f[L.fixed.slot_start + slot];

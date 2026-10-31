@@ -30,6 +30,8 @@ test {
 }
 test {
     _ = @import("rv64/air/geometry.zig");
+    _ = @import("rv64/air/lane.zig");
+    _ = @import("rv64/air/memory/permutation_point.zig");
     _ = @import("rv64/air/range/provider.zig");
 }
 test {

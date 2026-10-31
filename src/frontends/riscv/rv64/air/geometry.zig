@@ -5,6 +5,7 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Point = core.circle.CirclePointQM31;
 const canonic = core.poly.circle.canonic;
+const lane = @import("lane.zig");
 
 /// PCS samples each smaller polynomial after doubling the global point.
 pub fn localPoint(point: Point, global_log: u32, local_log: u32) !Point {
@@ -20,6 +21,32 @@ pub fn previousPoint(point: Point, global_log: u32) Point {
 
 pub fn denominatorInverse(point: Point, global_log: u32, local_log: u32) !Q {
     return (try core.constraints.cosetVanishing(Q, canonic.CanonicCoset.new(local_log).coset(), try localPoint(point, global_log, local_log)).inv());
+}
+
+/// A circle point with coordinates in an arbitrary evaluation lane.
+pub fn PointFor(comptime F: type) type {
+    return core.circle.CirclePoint(F);
+}
+
+/// Same vanishing inverse over an external lane: the global point is doubled
+/// down to the component domain, shifted by the canonic coset, and the x
+/// coordinate doubled `local_log - 1` times. QM31 keeps the native path.
+pub fn denominatorInverseFor(comptime F: type, point: PointFor(F), global_log: u32, local_log: u32) !F {
+    if (F == Q) return denominatorInverse(point, global_log, local_log);
+    comptime lane.assertExternalLane(F);
+    if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
+    const coset = canonic.CanonicCoset.new(local_log).coset();
+    const local = point.repeatedDouble(global_log - local_log);
+    const shifted = local.sub(liftPoint(F, coset.initial)).add(liftPoint(F, coset.half_step));
+    var x = shifted.x;
+    for (1..local_log) |_| {
+        const square = x.square();
+        x = square.add(square).sub(F.one());
+    }
+    return x.inv();
+}
+fn liftPoint(comptime F: type, point: core.circle.CirclePointM31) PointFor(F) {
+    return .{ .x = F.fromBase(point.x), .y = F.fromBase(point.y) };
 }
 
 /// Denominators are constant on blocks in committed bit-reversed order.

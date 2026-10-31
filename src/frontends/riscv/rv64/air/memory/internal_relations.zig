@@ -7,53 +7,61 @@ const policy_air = @import("policy_air.zig");
 pub const Q = core.fields.qm31.QM31;
 pub const ARITY = 24;
 pub const Kind = enum(u32) { node = 0, payload = 1, digest = 2, header = 3, permit = 4, init_word = 5 };
-pub const Challenge = struct {
-    offset: Q,
-    coefficients: [ARITY]Q,
-    pub fn draw(channel: *@import("../protocol.zig").Channel) Challenge {
-        channel.mixU32s(&.{ 0x52414d32, 0x494e544c, ARITY });
-        var result = Challenge{ .offset = channel.drawSecureFelt(), .coefficients = undefined };
-        for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn prepare(self: Challenge) Prepared {
-        var result = Prepared{ .coefficients = self.coefficients, .offsets = undefined };
-        for (&result.offsets, 0..) |*offset, i| offset.* = self.offset.sub(self.coefficients[0].mul(E.q(@intCast(i))));
-        return result;
-    }
-};
-pub const Prepared = struct {
-    coefficients: [ARITY]Q,
-    offsets: [6]Q,
-    pub fn combine(self: *const Prepared, kind: Kind, fields: []const Q) Q {
-        std.debug.assert(fields.len < ARITY);
-        var result = self.offsets[@intFromEnum(kind)];
-        for (fields, self.coefficients[1..][0..fields.len]) |field, coefficient| result = result.sub(field.mul(coefficient));
-        return result;
-    }
-    pub fn payload(self: *const Prepared, id: Q, position: Q, value: Q) Q {
-        return self.combine(.payload, &.{ id, position, value });
-    }
-    pub fn digest(self: *const Prepared, id: Q, value: [9]Q) Q {
-        var fields: [10]Q = undefined;
-        fields[0] = id;
-        @memcpy(fields[1..10], &value);
-        return self.combine(.digest, &fields);
-    }
-    pub fn node(self: *const Prepared, epoch: Q, height: Q, index: [7]Q, value: [9]Q) Q {
-        var fields: [18]Q = undefined;
-        fields[0] = epoch;
-        fields[1] = height;
-        @memcpy(fields[2..9], &index);
-        @memcpy(fields[9..18], &value);
-        return self.combine(.node, &fields);
-    }
-    pub fn permitChallenge(self: *const Prepared) policy_air.PermitChallenge {
-        var result = policy_air.PermitChallenge{ .offset = self.offsets[@intFromEnum(Kind.permit)], .coefficients = undefined };
-        @memcpy(&result.coefficients, self.coefficients[1..12]);
-        return result;
-    }
-};
+/// Tagged relation draw over constant lane C (QM31 natively, external wires otherwise).
+pub fn ChallengeFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [ARITY]C,
+        pub fn draw(channel: *@import("../protocol.zig").Channel) @This() {
+            channel.mixU32s(&.{ 0x52414d32, 0x494e544c, ARITY });
+            var result = @This(){ .offset = channel.drawSecureFelt(), .coefficients = undefined };
+            for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
+            return result;
+        }
+        /// The six tag offsets are derived from the draw with lane arithmetic.
+        pub fn prepare(self: @This()) PreparedFor(C) {
+            var result = PreparedFor(C){ .coefficients = self.coefficients, .offsets = undefined };
+            for (&result.offsets, 0..) |*offset, i| offset.* = self.offset.sub(self.coefficients[0].mul(E.qFor(C, @intCast(i))));
+            return result;
+        }
+    };
+}
+pub const Challenge = ChallengeFor(Q);
+pub fn PreparedFor(comptime C: type) type {
+    return struct {
+        coefficients: [ARITY]C,
+        offsets: [6]C,
+        pub fn combine(self: *const @This(), kind: Kind, fields: []const C) C {
+            std.debug.assert(fields.len < ARITY);
+            var result = self.offsets[@intFromEnum(kind)];
+            for (fields, self.coefficients[1..][0..fields.len]) |field, coefficient| result = result.sub(field.mul(coefficient));
+            return result;
+        }
+        pub fn payload(self: *const @This(), id: C, position: C, value: C) C {
+            return self.combine(.payload, &.{ id, position, value });
+        }
+        pub fn digest(self: *const @This(), id: C, value: [9]C) C {
+            var fields: [10]C = undefined;
+            fields[0] = id;
+            @memcpy(fields[1..10], &value);
+            return self.combine(.digest, &fields);
+        }
+        pub fn node(self: *const @This(), epoch: C, height: C, index: [7]C, value: [9]C) C {
+            var fields: [18]C = undefined;
+            fields[0] = epoch;
+            fields[1] = height;
+            @memcpy(fields[2..9], &index);
+            @memcpy(fields[9..18], &value);
+            return self.combine(.node, &fields);
+        }
+        pub fn permitChallenge(self: *const @This()) policy_air.PermitChallengeFor(C) {
+            var result = policy_air.PermitChallengeFor(C){ .offset = self.offsets[@intFromEnum(Kind.permit)], .coefficients = undefined };
+            @memcpy(&result.coefficients, self.coefficients[1..12]);
+            return result;
+        }
+    };
+}
+pub const Prepared = PreparedFor(Q);
 const std = @import("std");
 
 test "private RAM tagged relation: sparse methods preserve every full-extension coordinate" {

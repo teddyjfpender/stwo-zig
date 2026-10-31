@@ -9,7 +9,10 @@ const D = @import("layout.zig");
 const P = @import("provider.zig");
 const T = @import("trace.zig");
 const rom = @import("../../program/provider.zig");
-pub const Bus = struct { challenges: P.Challenges, claim: E.Q };
+pub fn BusFor(comptime C: type) type {
+    return struct { challenges: P.ChallengesFor(C), claim: C };
+}
+pub const Bus = BusFor(E.Q);
 pub const IndexedRequest = struct { row: u32, request: T.Request };
 pub const Columns = struct {
     allocator: std.mem.Allocator,
@@ -48,7 +51,7 @@ pub fn build(a: std.mem.Allocator, steps: u32, log_size: u32, requests: []const 
 pub fn evaluate(view: E.View, current: *const [D.INTERACTION]E.Q, previous: *const [D.INTERACTION]E.Q, first: E.Q, last: E.Q, bus: Bus, out: *E.Sink) void {
     return evaluateGeneric(E.Q, view, current, previous, first, last, bus, out);
 }
-pub fn evaluateGeneric(comptime F: type, view: E.ViewFor(F), current: *const [D.INTERACTION]F, previous: *const [D.INTERACTION]F, first: F, last: F, bus: Bus, out: *E.SinkFor(F)) void {
+pub fn evaluateGeneric(comptime F: type, view: E.ViewFor(F), current: *const [D.INTERACTION]F, previous: *const [D.INTERACTION]F, first: F, last: F, bus: BusFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const enabled = view.sum(&D.OPCODES);
     const tuple = D.tupleGeneric(F, view.f, view.m);
     const inverse = E.secureFor(F, current, 0);

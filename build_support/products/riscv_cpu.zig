@@ -10,7 +10,7 @@ const riscv_refinement = @import("riscv_refinement.zig");
 const riscv_poseidon2_pair = @import("riscv_poseidon2_pair.zig");
 const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
-const executables = @import("riscv_cpu_executables.zig");
+pub const executables = @import("riscv_cpu_executables.zig");
 const product = executables.product;
 const source_closure = riscv_cpu_policy.source_closure;
 pub const Context = executables.Context;
@@ -77,6 +77,7 @@ pub fn addProduct(context: Context) void {
         .{ "distributed-execution", "src/integrations/riscv_cpu/rv64_distributed_execution_test_root.zig", 10 },
         .{ "ethereum-chip-plan", "src/integrations/riscv_cpu/rv64_ethereum_chip_plan_test_root.zig", 8 },
         .{ "verifier-cache", "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig", 3 },
+        .{ "point-evaluation", "src/integrations/riscv_cpu/rv64_point_evaluation_test_root.zig", 3 },
         .{ "cpu-degree-diagnostic", "src/integrations/riscv_cpu/rv64_cpu_degree_diagnostic_test_root.zig", 2 },
         .{ "borrowed-services", "src/integrations/riscv_cpu/rv64_borrowed_services_test_root.zig", 3 },
         .{ "lean-proof", "src/integrations/riscv_cpu/rv64_lean_test_root.zig", 3 },
@@ -92,6 +93,7 @@ pub fn addProduct(context: Context) void {
         .{ "poseidon-simd", "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig", 4 },
         .{ "pcs-commit", "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig", 2 },
         .{ "pcs-owned", "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig", 4 },
+        .{ "recursion", "src/integrations/riscv_cpu/rv64_recursion_test_root.zig", 1 },
     }) |suite| {
         context.b.step("test-riscv64-" ++ suite[0], "Test RV64 independent provider architecture").dependOn(test_filter.addSuites(context.b, &.{.{
             .tests = riscv_cpu_tests.addFocusedTestRoot(testContext(context), suite[1], &.{}),

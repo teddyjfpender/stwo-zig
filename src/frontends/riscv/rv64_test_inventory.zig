@@ -12,6 +12,8 @@ test {
     _ = @import("rv64/air/full/tests/coset_evaluation_test.zig");
     _ = @import("rv64/air/full/tests/parallel_test.zig");
     _ = @import("rv64/air/geometry.zig");
+    _ = @import("rv64/air/lane.zig");
+    _ = @import("rv64/air/memory/permutation_point.zig");
     _ = @import("rv64/air/memory/graph_model.zig");
     _ = @import("rv64/air/memory/policy_air_test.zig");
     _ = @import("rv64/air/memory/policy_test.zig");

@@ -18,6 +18,7 @@ about half the secp256k1 service calls.
 
 Every proven batch is CPU rows plus service providers, so this removes about
 30% of CPU rows and about half of the secp provider rows from a block proof
+before any prover work. Nothing here is a proof; see the reproduction below.
 before any prover work. The original guest-branch evidence is execution-only;
 the mainline proof qualification below is separate.
 
@@ -118,6 +119,12 @@ From `function-profile.json`, top of the 149.3M residual:
 The oracle report carries a size and alignment histogram of `memcpy`,
 `memset`, `memcmp` and `memmove` entries (the alias symbol tail-jumps into the
 `compiler_builtins` implementation, so entry counts are doubled; the PC census
+gives 313,045 real memcpy calls at 118 instructions each). Of the memcpy
+calls, 3.7% are at most 16 bytes, 29.7% are 17–32, 35.4% are 33–64, 28.6% are
+65–128 and 2.6% are larger; 54% have both pointers 8-byte aligned and 43% have
+mismatched alignment, which takes the shift-and-merge word path. That profile
+is the input for a cheaper aligned small-copy path and for a DMA-style memcpy
+service; SHA-256 and the field inversion and square root are the next
 gives 313,045 real memcpy calls at 118 instructions each on average). The stored
 histogram uses exact sizes below 64, then **floor** power-of-two buckets:
 

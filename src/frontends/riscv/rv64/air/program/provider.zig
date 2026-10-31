@@ -11,25 +11,29 @@ pub const INTERACTION = 8;
 pub const CONSTRAINTS = 4;
 pub const MAX_REQUESTS = 1 << 28; // exact integer multiplicity, below M31 prime
 
-pub const Challenges = struct {
-    offset: Q,
-    coefficients: [rom.field.COUNT]Q,
-    pub fn draw(channel: *@import("../protocol.zig").Channel) Challenges {
-        channel.mixU32s(&.{ 0x52563634, 0x524f4d31, 1, rom.field.COUNT });
-        var result: Challenges = undefined;
-        result.offset = channel.drawSecureFelt();
-        for (&result.coefficients) |*value| value.* = channel.drawSecureFelt();
-        return result;
-    }
-    pub fn denominator(self: Challenges, entry: *const rom.Tuple) Q {
-        var result = self.offset;
-        for (entry, self.coefficients) |value, coefficient| {
-            // Compact41 has structurally zero coefficients for omitted fields.
-            if (!coefficient.isZero()) result = result.add(value.mul(coefficient));
+/// ROM relation challenges over constant lane C (QM31 natively).
+pub fn ChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [rom.field.COUNT]C,
+        pub fn draw(channel: *@import("../protocol.zig").Channel) @This() {
+            channel.mixU32s(&.{ 0x52563634, 0x524f4d31, 1, rom.field.COUNT });
+            var result: @This() = undefined;
+            result.offset = channel.drawSecureFelt();
+            for (&result.coefficients) |*value| value.* = channel.drawSecureFelt();
+            return result;
         }
-        return result;
-    }
-};
+        pub fn denominator(self: @This(), entry: *const rom.Tuple) Q {
+            var result = self.offset;
+            for (entry, self.coefficients) |value, coefficient| {
+                // Compact41 has structurally zero coefficients for omitted fields.
+                if (!coefficient.isZero()) result = result.add(value.mul(coefficient));
+            }
+            return result;
+        }
+    };
+}
+pub const Challenges = ChallengesFor(Q);
 
 pub const Request = struct {
     allocator: std.mem.Allocator,
@@ -86,14 +90,17 @@ pub fn evaluate(first: Q, last: Q, entry: *const rom.Tuple, multiplicity: Q, cur
 }
 /// One four-residual authority shared by full-byte and packed ROM encodings.
 pub fn evaluateDenominator(first: Q, last: Q, denominator: Q, multiplicity: Q, current: *const [INTERACTION]Q, previous: *const [INTERACTION]Q, claim: Q, sink: *E.Sink) void {
-    const inverse = secure(current, 0);
-    const sum = secure(current, 4);
-    const prior = secure(previous, 4);
-    const contribution = multiplicity.mul(inverse);
-    sink.emit(denominator.mul(inverse).sub(Q.one()));
-    sink.emit(sum.sub(Q.one().sub(first).mul(prior)).add(contribution));
-    sink.emit(first.mul(sum.add(contribution)));
-    sink.emit(last.mul(sum.sub(claim)));
+    return evaluateDenominatorFor(Q, first, last, denominator, multiplicity, current, previous, claim, sink);
+}
+pub fn evaluateDenominatorFor(comptime F: type, first: F, last: F, denominator: E.SecureFor(F), multiplicity: F, current: *const [INTERACTION]F, previous: *const [INTERACTION]F, claim: E.ConstFor(F), sink: *E.SinkFor(F)) void {
+    const inverse = E.secureFor(F, current, 0);
+    const sum = E.secureFor(F, current, 4);
+    const prior = E.secureFor(F, previous, 4);
+    const contribution = E.mulBaseFor(F, inverse, multiplicity);
+    sink.emit(denominator.mul(inverse).sub(E.SecureFor(F).one()));
+    sink.emit(sum.sub(E.mulBaseFor(F, prior, F.one().sub(first))).add(contribution));
+    sink.emit(E.mulBaseFor(F, sum.add(contribution), first));
+    sink.emit(E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last));
 }
 
 pub fn physical(logical: usize, log_size: u32) usize {

@@ -18,8 +18,15 @@ pub const CONSTRAINTS = 5;
 pub const Row = [MAIN]M;
 pub const SecureRow = [MAIN]Q;
 pub const Fixed = [FIXED]Q;
-pub const Claims = [SUMS]Q;
-pub const Challenges = struct { policy: authority.PolicyChallenge };
+pub fn ClaimsFor(comptime C: type) type {
+    return [SUMS]C;
+}
+pub const Claims = ClaimsFor(Q);
+/// Policy ROM challenges over constant lane C (QM31 natively, external wires otherwise).
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { policy: authority.PolicyChallengeFor(C) };
+}
+pub const Challenges = ChallengesFor(Q);
 pub const Shape = struct {
     grants: []const policy.Grant,
     log_size: u32,
@@ -46,16 +53,20 @@ pub const Shape = struct {
         return result;
     }
 };
-pub fn evaluate(_: Shape, fixed: *const Fixed, main: *const SecureRow, _: *const SecureRow, interaction: []const Q, previous_interaction: []const Q, claims: Claims, challenges: *const Challenges, out: *E.Sink) void {
-    const inverse = authority.secure(interaction, 0);
-    const sum = authority.secure(interaction, 1);
-    const previous = authority.secure(previous_interaction, 1);
+pub fn evaluate(shape: Shape, fixed: *const Fixed, main: *const SecureRow, previous_main: *const SecureRow, interaction: []const Q, previous_interaction: []const Q, claims: Claims, challenges: *const Challenges, out: *E.Sink) void {
+    return evaluateFor(Q, shape, fixed, main, previous_main, interaction, previous_interaction, claims, challenges, out);
+}
+/// Same residuals over any secure lane (QM31 or an external lane).
+pub fn evaluateFor(comptime F: type, _: Shape, fixed: *const [FIXED]F, main: *const [MAIN]F, _: *const [MAIN]F, interaction: []const F, previous_interaction: []const F, claims: ClaimsFor(F), challenges: *const ChallengesFor(F), out: *E.SinkFor(F)) void {
+    const inverse = authority.secureFor(F, interaction, 0);
+    const sum = authority.secureFor(F, interaction, 1);
+    const previous = authority.secureFor(F, previous_interaction, 1);
     const term = main[0].mul(inverse);
-    out.emit(inverse.mul(challenges.policy.denominator(fixed[0..18].*)).sub(Q.one()));
+    out.emit(inverse.mul(challenges.policy.denominator(fixed[0..18].*)).sub(F.one()));
     out.emit(sum.sub(previous).add(fixed[FIRST].mul(previous)).add(term));
     out.emit(fixed[FIRST].mul(sum.add(term)));
     out.emit(fixed[LAST].mul(sum.sub(claims[0])));
-    out.emit(Q.one().sub(fixed[VALID]).mul(main[0]));
+    out.emit(F.one().sub(fixed[VALID]).mul(main[0]));
 }
 pub const Trace = struct {
     allocator: std.mem.Allocator,

@@ -15,6 +15,10 @@ pub const builder = @import("builder/mod.zig");
 pub const common = @import("common/mod.zig");
 /// `crates/stark_verifier`: the in-circuit STARK verifier.
 pub const stark_verifier = @import("stark_verifier/mod.zig");
+/// The in-circuit verifier of this repository's native protocol
+/// (`stwo_7b211ed`: `Blake2sChannel`, prefixed lifted Blake2s Merkle trees,
+/// `core.proof.StarkProof`), built with the same builder.
+pub const native_verifier = @import("native_verifier/mod.zig");
 /// `crates/circuit_verifier`, `crates/circuit_multiverifier` and
 /// `crates/cairo_verifier` statements.
 pub const statements = @import("statements/mod.zig");

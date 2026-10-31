@@ -7,7 +7,7 @@ const Q = E.Q;
 pub fn evaluate(v: E.View, index: Q, challenges: R.Challenges) [8]Q {
     return evaluateFor(Q, v, index, challenges);
 }
-pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), index: F, challenges: R.Challenges) [8]E.SecureFor(F) {
+pub fn evaluateFor(comptime F: type, v: E.ViewFor(F), index: F, challenges: R.ChallengesFor(E.ConstFor(F))) [8]E.SecureFor(F) {
     const c = &challenges.coefficients;
     const register_base = E.splatFor(F, challenges.offset.add(c[18]).add(c[19]));
     const tick_base = index.mul(E.qFor(F, 4));

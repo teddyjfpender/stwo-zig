@@ -40,13 +40,16 @@ pub fn encode(logical: *const @import("../../rows.zig").Main, op: E.O, output: [
     for (SCALARS, 0..) |source, i| output[SCALAR_START + i] = logical[source];
 }
 pub fn inflate(physical: *const Physical, fixed: *E.Fixed, logical: *E.Main) void {
-    fixed.* = @splat(E.Q.zero());
-    logical.* = @splat(E.Q.zero());
+    return inflateGeneric(E.Q, physical, fixed, logical);
+}
+pub fn inflateGeneric(comptime F: type, physical: *const [MAIN]F, fixed: *E.FixedFor(F), logical: *E.MainFor(F)) void {
+    fixed.* = @splat(F.zero());
+    logical.* = @splat(F.zero());
     for (OPCODES, 0..) |op, i| fixed[L.fixed.opcode_start + @intFromEnum(op)] = physical[i];
     for (WORDS, 0..) |word, w| for (0..64) |bit| {
         const value = physical[WORD_START + w * 64 + bit];
         logical[L.bit(word, bit)] = value;
-        logical[L.byte(word, bit / 8)] = logical[L.byte(word, bit / 8)].add(value.mul(E.q(@as(u32, 1) << @as(u5, @intCast(bit % 8)))));
+        logical[L.byte(word, bit / 8)] = logical[L.byte(word, bit / 8)].add(value.mul(E.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit % 8)))));
     };
     for (CARRIES, 0..) |kind, c| for (0..8) |i| {
         logical[L.carry(kind, i)] = physical[CARRY_START + c * 8 + i];
@@ -54,7 +57,7 @@ pub fn inflate(physical: *const Physical, fixed: *E.Fixed, logical: *E.Main) voi
     for (0..16) |i| for (0..11) |bit| {
         const value = physical[PRODUCT_START + i * 11 + bit];
         logical[L.productCarry(i) + 1 + bit] = value;
-        logical[L.productCarry(i)] = logical[L.productCarry(i)].add(value.mul(E.q(@as(u32, 1) << @as(u5, @intCast(bit)))));
+        logical[L.productCarry(i)] = logical[L.productCarry(i)].add(value.mul(E.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
     };
     for (SCALARS, 0..) |destination, i| logical[destination] = physical[SCALAR_START + i];
 }

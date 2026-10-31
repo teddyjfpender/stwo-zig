@@ -89,7 +89,7 @@ requires independently trusted per-position circuit and layout pins; checks
 every internal fold topology; binds each packed leaf digest to the revealed
 statement; and applies the native public admission rules before chain use.
 The trusted admission JSON is an explicit receiver input, not an authority
-inferred from the proof directory. See [the recursion admission review](rv64-recursion-root-admission-review.md) and the merge qualification report.
+inferred from the proof directory. See [the recursion admission review](rv64-recursion-root-admission-review.md) and [the merge qualification report](../../vectors/reports/rv64-ethereum-20261030/recursion-merged-v1-qualification.json).
 
 ## Gates before replacing the Ethereum CPU
 

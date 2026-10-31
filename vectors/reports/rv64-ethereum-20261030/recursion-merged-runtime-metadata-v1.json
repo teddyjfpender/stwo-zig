@@ -1,0 +1,406 @@
+[
+  {
+    "target": "test-riscv64-point-evaluation",
+    "root": "src/integrations/riscv_cpu/rv64_point_evaluation_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/e4b13d61519c7506bf45706b20b31dc2/test",
+        "runtime_count": 4,
+        "root_name": "rv64_point_evaluation_test_root"
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/51734596db3f2fac0e8ba96945fc2fb2/test",
+        "runtime_count": 4,
+        "root_name": "rv64_point_evaluation_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-simd-fields",
+    "root": "src/frontends/riscv/rv64_simd_fields_test_root.zig",
+    "minimum": 6,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/4c89487b3fb591ab18ea36625a7aef62/test",
+        "runtime_count": 7,
+        "root_name": "rv64_simd_fields_test_root"
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/2eef86a71aa21360727ddd42a61dd03d/test",
+        "runtime_count": 7,
+        "root_name": "rv64_simd_fields_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-full-proof",
+    "root": "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/40d1649816f5451bc606de8c8491458d/test",
+        "runtime_count": 5,
+        "root_name": "rv64_full_proof_test_root"
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/0297065bacd3757912da0803aa3bc4b3/test",
+        "runtime_count": 5,
+        "root_name": "rv64_full_proof_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-program-proof",
+    "root": "src/integrations/riscv_cpu/rv64_program_proof_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/55e35acbeaf279b7694d39684e572ad0/test",
+        "runtime_count": 4,
+        "root_name": "rv64_program_proof_test_root"
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/f1299e3033bb20ed1abc6960449da037/test",
+        "runtime_count": 4,
+        "root_name": "rv64_program_proof_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-air",
+    "root": "src/frontends/riscv/rv64_air_test_root.zig",
+    "minimum": 35,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/50b919bcf7005dab4939368998db058f/test",
+        "runtime_count": 253,
+        "root_name": "rv64_air_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-execution",
+    "root": "src/frontends/riscv/rv64_execution_test_root.zig",
+    "minimum": 67,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/10b56cf0b0e8758c4818631a042e094a/test",
+        "runtime_count": 80,
+        "root_name": "rv64_execution_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-program",
+    "root": "src/frontends/riscv/rv64_program_test_root.zig",
+    "minimum": 9,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/0a715ba5304abe0f5ce9fa766265d97c/test",
+        "runtime_count": 11,
+        "root_name": "rv64_program_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-parallel",
+    "root": "src/frontends/riscv/rv64_parallel_test_root.zig",
+    "minimum": 8,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/f477c5c731a36799990859d25a979c0a/test",
+        "runtime_count": 15,
+        "root_name": "rv64_parallel_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-coset",
+    "root": "src/frontends/riscv/rv64_coset_evaluation_test_root.zig",
+    "minimum": 6,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/6bc6b8f91040061283b06bc9981ccfad/test",
+        "runtime_count": 6,
+        "root_name": "rv64_coset_evaluation_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-full-capture",
+    "root": "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig",
+    "minimum": 9,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/81327b439ef6be6bc05792ce6bf28dba/test",
+        "runtime_count": 12,
+        "root_name": "rv64_full_capture_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-multiplication",
+    "root": "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig",
+    "minimum": 5,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/8b5fb8ccd6ed6112263ba6e3c47395ea/test",
+        "runtime_count": 6,
+        "root_name": "rv64_multiplication_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-keccak-cpu",
+    "root": "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig",
+    "minimum": 10,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/dcafbd6c56eb94a9798ec14bb5c6b088/test",
+        "runtime_count": 12,
+        "root_name": "rv64_keccak_cpu_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-ethereum-chain",
+    "root": "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig",
+    "minimum": 12,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/b1664ed6b4b30d0c8607c1fcd7ab5320/test",
+        "runtime_count": 12,
+        "root_name": "rv64_ethereum_chain_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-division",
+    "root": "src/integrations/riscv_cpu/rv64_division_test_root.zig",
+    "minimum": 9,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/094db7c64da75bcf4994247c4083b8aa/test",
+        "runtime_count": 10,
+        "root_name": "rv64_division_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-authenticated-execution",
+    "root": "src/integrations/riscv_cpu/rv64_authenticated_test_root.zig",
+    "minimum": 1,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/82487498d65b388eeb9ce5ed34c63f89/test",
+        "runtime_count": 10,
+        "root_name": "rv64_authenticated_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-ram",
+    "root": "src/integrations/riscv_cpu/rv64_ram_test_root.zig",
+    "minimum": 1,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/237a6d8126a775199fa549d030afb904/test",
+        "runtime_count": 22,
+        "root_name": "rv64_ram_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-providers",
+    "root": "src/integrations/riscv_cpu/rv64_providers_test_root.zig",
+    "minimum": 8,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/ae89e54032f6de2b857f956c70d54cba/test",
+        "runtime_count": 9,
+        "root_name": "rv64_providers_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-main-arena",
+    "root": "src/integrations/riscv_cpu/rv64_main_arena_test_root.zig",
+    "minimum": 12,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/8cce3413c0da3c0ef8e400ddb7d0adcf/test",
+        "runtime_count": 29,
+        "root_name": "rv64_main_arena_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-secp",
+    "root": "src/integrations/riscv_cpu/rv64_secp_test_root.zig",
+    "minimum": 29,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/f61acbe44315bd88e610875784dff459/test",
+        "runtime_count": 30,
+        "root_name": "rv64_secp_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-keccak",
+    "root": "src/integrations/riscv_cpu/rv64_keccak_test_root.zig",
+    "minimum": 32,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/ab2eeabfe2b9febf7bc43c99a75ee06f/test",
+        "runtime_count": 47,
+        "root_name": "rv64_keccak_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-keccak-quartet",
+    "root": "src/integrations/riscv_cpu/rv64_keccak_quartet_test_root.zig",
+    "minimum": 5,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/eb4efe4e80139da043a18a5ddb77fc21/test",
+        "runtime_count": 20,
+        "root_name": "rv64_keccak_quartet_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-poseidon-simd",
+    "root": "src/integrations/riscv_cpu/rv64_poseidon_simd_test_root.zig",
+    "minimum": 4,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/888a507965ebde7a8256bed1a5c64370/test",
+        "runtime_count": 5,
+        "root_name": "rv64_poseidon_simd_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-borrowed-services",
+    "root": "src/integrations/riscv_cpu/rv64_borrowed_services_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/536d3fc17139f6d7dd65fc1902c02ad7/test",
+        "runtime_count": 4,
+        "root_name": "rv64_borrowed_services_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-lean-proof",
+    "root": "src/integrations/riscv_cpu/rv64_lean_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/f57ce0613180765d707c800960f2979c/test",
+        "runtime_count": 4,
+        "root_name": "rv64_lean_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-verifier-cache",
+    "root": "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig",
+    "minimum": 3,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/e1f6d6ff18c0afda5c00626a997ec8f6/test",
+        "runtime_count": 3,
+        "root_name": "rv64_verifier_cache_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-cpu-degree-diagnostic",
+    "root": "src/integrations/riscv_cpu/rv64_cpu_degree_diagnostic_test_root.zig",
+    "minimum": 2,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/8b18a00f08016f46e0894a682e9a86ab/test",
+        "runtime_count": 3,
+        "root_name": "rv64_cpu_degree_diagnostic_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-pcs-commit",
+    "root": "src/integrations/riscv_cpu/pcs_commit_profile_test_root.zig",
+    "minimum": 2,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/b5c97e4c33a71f29c6f98b27c9adaea4/test",
+        "runtime_count": 2,
+        "root_name": "pcs_commit_profile_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-pcs-owned",
+    "root": "src/integrations/riscv_cpu/pcs_owned_profile_test_root.zig",
+    "minimum": 4,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/efbf605d97da2176e13fdbbcdc8540e1/test",
+        "runtime_count": 4,
+        "root_name": "pcs_owned_profile_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-work-packet",
+    "root": "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig",
+    "minimum": 8,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/d0d9d54bc67fc0918dbe062baab9f14b/test",
+        "runtime_count": 9,
+        "root_name": "rv64_work_packet_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-ethereum-packet-control",
+    "root": "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig",
+    "minimum": 2,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/118cbe1def7ccc95e4ab49b0dc968dfd/test",
+        "runtime_count": 2,
+        "root_name": "rv64_ethereum_packet_control_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-closed-ram",
+    "root": "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig",
+    "minimum": 11,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/06a55339b39163371b4192ce18102bbd/test",
+        "runtime_count": 11,
+        "root_name": "rv64_closed_ram_test_root"
+      }
+    ]
+  },
+  {
+    "target": "test-riscv64-closed-load-store",
+    "root": "src/integrations/riscv_cpu/rv64_load_store_test_root.zig",
+    "minimum": 15,
+    "runtime_metadata": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/81e49a3203ba3ae398714e7bd512b0a4/test",
+        "runtime_count": 15,
+        "root_name": "rv64_load_store_test_root"
+      }
+    ]
+  }
+]

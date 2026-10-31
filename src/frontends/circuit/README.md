@@ -65,6 +65,16 @@ being filled milestone by milestone. Today it holds:
   `core.circuit_proof_shape`, shared with the wire format) and `Proof(T)` for
   values, topology placeholders and wires, with its one `guess` traversal
   and `emptyProof`. `verify` takes a stage observer (`NoStages` ignores it).
+- `native_verifier`: the in-circuit verifier of this repository's native
+  protocol (`stwo_7b211ed`: `Blake2sChannel`, domain-prefixed lifted Blake2s
+  Merkle trees, `core.proof.StarkProof`), built with the same builder and
+  the `stark_verifier` circle/FRI arithmetic: `blake_chain` (Blake2s from a
+  constant chaining state), `channel`, `merkle`, `fri`, `deep` (the native
+  DEEP quotient), `shape`, `proof` (fixed-width witness, `fromNative` from a
+  verified proof capture) and `verify`, whose statement-specific parts come
+  from a duck-typed `statement`. Its focused step, including a prover-backed
+  end-to-end test, is `zig build native-verifier-test --build-file
+  src/frontends/circuit/build.zig`.
 - `statements`: `CircuitStatement` (the circuit-verifier statement over the
   11 circuit evaluators), `circuit_verifier_proof_config`, `CircuitConfig`;
   `multiverifier` (`SharedConfig`, the fold shared config of

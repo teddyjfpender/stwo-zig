@@ -47,10 +47,25 @@ pub fn build(b: *std.Build) void {
 
     const fold_topology = addConformanceTest(b, "conformance/fold_topology_test.zig", frontend, core, testing_module, filters, repository_root);
 
+    // The native-protocol in-circuit verifier (`native_verifier/`) and its
+    // prover-backed end-to-end test: `zig build native-verifier-test`.
+    const native_verifier_root = b.createModule(.{
+        .root_source_file = b.path("native_verifier_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    native_verifier_root.addImport("stwo_core", core);
+    native_verifier_root.addImport("stwo_prover_engine", prover);
+    const native_verifier_tests = b.addRunArtifact(b.addTest(.{ .root_module = native_verifier_root, .filters = filters }));
+    native_verifier_tests.setCwd(repository_root);
+    const native_verifier_step = b.step("native-verifier-test", "Test the native-protocol in-circuit verifier (native_verifier/), end to end against the prover");
+    native_verifier_step.dependOn(&native_verifier_tests.step);
+
     const test_step = b.step("test", "Compile and test the stwo_circuit_frontend package");
     test_step.dependOn(&unit_tests.step);
     test_step.dependOn(&fixture_tests.step);
     test_step.dependOn(&fold_topology.step);
+    test_step.dependOn(&native_verifier_tests.step);
 
     const r3_step = b.step("circuit-parity-r3", "Rung R3: all 94 in-circuit evaluators, sample evaluations and statement trace against the oracle");
     r3_step.dependOn(&fixture_tests.step);
