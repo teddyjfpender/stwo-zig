@@ -62,6 +62,17 @@ fn mixClaims(ch: *T.P.Channel, claims: P.Claims) void {
 fn validateBoundary(request: P.Request, claims: P.Claims, draw: P.Draw) !void {
     if (!claims.initial.ram.eql(try Bound.expectedClaim(request.memory.initial, true, draw.memory.ram)) or !claims.terminal.ram.eql(try Bound.expectedClaim(request.memory.terminal, false, draw.memory.ram))) return error.UntrustedWord16MemoryBoundaryClaim;
 }
+/// Operational streaming caps only; never part of the AIR or transcript.
+pub const ProveOptions = struct {
+    main_batch_columns: u32 = 8,
+    interaction_batch_columns: u32 = 8,
+    pub fn validate(self: ProveOptions) !void {
+        // CPU combined preparation admits at most256 columns in one batch.
+        if (self.main_batch_columns == 0 or self.main_batch_columns > 256 or
+            self.interaction_batch_columns == 0 or self.interaction_batch_columns > 256)
+            return error.InvalidExecutionCommitBatch;
+    }
+};
 pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, public: @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary, tape: *const @import("stwo_riscv_frontend").rv64.compact_tape.Tape, recorder: ?*Recorder.Recorder) !Encoded {
     var source_stage = try Recorder.StageScope.begin(recorder, "source_construction", "One CPU and provider witness construction");
     defer source_stage.end();
@@ -72,18 +83,28 @@ pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission
 /// Consumes the prepared Source on success AND failure. Setup must stay at its
 /// final stable address and outlive the entire proof; no CPU/program rebuild.
 pub fn provePrepared(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
-    return provePreparedWithMainOwnership(a, setup, admission, owned_source, recorder, true);
+    return provePreparedWithOptions(a, setup, admission, owned_source, recorder, .{});
+}
+/// Same one-source proof path with explicit operational batch caps. Consumes
+/// Source on success/error, including invalid-option admission failures.
+pub fn provePreparedWithOptions(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder, options: ProveOptions) !Encoded {
+    return provePreparedWithOwnership(a, setup, admission, owned_source, recorder, true, true, options);
 }
 /// Explicit reference path used to qualify ownership changes against borrowed
 /// streaming. Physical sources, transcript and proof authority are identical.
 pub fn provePreparedBorrowedMain(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
-    return provePreparedWithMainOwnership(a, setup, admission, owned_source, recorder, false);
+    return provePreparedWithOwnership(a, setup, admission, owned_source, recorder, false, false, .{});
 }
-fn provePreparedWithMainOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder, owned_main: bool) !Encoded {
+/// MAIN ownership with borrowed INTER is the explicit previous-path control.
+pub fn provePreparedBorrowedInteraction(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
+    return provePreparedWithOwnership(a, setup, admission, owned_source, recorder, true, false, .{});
+}
+fn provePreparedWithOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder, owned_main: bool, owned_interaction: bool, options: ProveOptions) !Encoded {
     var source = owned_source;
     defer source.deinit();
+    try options.validate();
     if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
-    if (owned_main and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
+    if ((owned_main or owned_interaction) and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
     var request = source.request();
     try admission.validate(setup, request);
     var scheme = try T.Scheme.init(a, T.P.config());
@@ -98,11 +119,11 @@ fn provePreparedWithMainOwnership(a: std.mem.Allocator, setup: *const Mat.Setup,
     if (owned_main) {
         const main = try source.takeMainForCommit();
         // PCS consumes headers and all original source backings on every path.
-        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 8, recorder, &channel);
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, options.main_batch_columns, recorder, &channel);
     } else {
         const main = try source.columns(a, 1);
         defer a.free(main);
-        try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
+        try scheme.commitBorrowedStreamingWithRecorder(a, main, options.main_batch_columns, recorder, &channel);
         try source.releaseMain();
     }
     main_stage.end();
@@ -113,11 +134,16 @@ fn provePreparedWithMainOwnership(a: std.mem.Allocator, setup: *const Mat.Setup,
     generation_stage.end();
     // Source.memory.generate already compared both expected boundary claims.
     mixClaims(&channel, claims);
-    const interaction = try source.columns(a, 2);
-    defer a.free(interaction);
     var interaction_stage = try Recorder.StageScope.begin(recorder, "interaction_commit", "Joined interaction streaming commitment");
     defer interaction_stage.end();
-    try scheme.commitBorrowedStreamingWithRecorder(a, interaction, 8, recorder, &channel);
+    if (owned_interaction) {
+        const interaction = try source.takeInteractionForCommit();
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, interaction.columns, interaction.backings, options.interaction_batch_columns, recorder, &channel);
+    } else {
+        const interaction = try source.columns(a, 2);
+        defer a.free(interaction);
+        try scheme.commitBorrowedStreamingWithRecorder(a, interaction, options.interaction_batch_columns, recorder, &channel);
+    }
     interaction_stage.end();
     source.releaseCommittedInteraction();
     var components = try Components.init(&setup.materials, request, draw, claims);

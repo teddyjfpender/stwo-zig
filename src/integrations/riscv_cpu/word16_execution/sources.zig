@@ -245,6 +245,10 @@ pub const Source = struct {
         }
         return out;
     }
+    /// Success-only transfer; all physical claims remain available separately.
+    pub fn takeInteractionForCommit(self: *Source) !@import("interaction_ownership.zig").Commit {
+        return @import("interaction_ownership.zig").take(self);
+    }
     pub fn releaseCommittedInteraction(self: *Source) void {
         std.debug.assert(self.claims != null);
         inline for (.{ "cpu", "rom", "alu", "binary", "shift", "jalr", "division", "multiplication", "range16", "range8", "and_table", "shift_table" }) |name| release(self.allocator, &@field(self, name).interaction);

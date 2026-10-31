@@ -121,6 +121,18 @@ test "Legacy wrappers and caller-prepared unit BINARY retain identical full proo
     defer borrowed.deinit(a);
     try std.testing.expectEqualSlices(u8, explicit.bytes, borrowed.bytes);
     try std.testing.expectEqualDeep(explicit.claims, borrowed.claims);
+    const borrowed_inter_source = try Sources.Source.init(a, &setup.materials, image(), fixture.boundary, 1, &fixture.tape);
+    var borrowed_inter = try Execution.provePreparedBorrowedInteraction(a, &setup, admission(), borrowed_inter_source, null);
+    defer borrowed_inter.deinit(a);
+    try std.testing.expectEqualSlices(u8, explicit.bytes, borrowed_inter.bytes);
+    try std.testing.expectEqualDeep(explicit.claims, borrowed_inter.claims);
+    const batch64_source = try Sources.Source.init(a, &setup.materials, image(), fixture.boundary, 1, &fixture.tape);
+    var batch64 = try Execution.provePreparedWithOptions(a, &setup, admission(), batch64_source, null, .{ .main_batch_columns = 64, .interaction_batch_columns = 64 });
+    defer batch64.deinit(a);
+    try std.testing.expectEqualSlices(u8, explicit.bytes, batch64.bytes);
+    try std.testing.expectEqualDeep(explicit.claims, batch64.claims);
+    try std.testing.expectError(error.InvalidExecutionCommitBatch, (Execution.ProveOptions{ .main_batch_columns = 0 }).validate());
+    try std.testing.expectError(error.InvalidExecutionCommitBatch, (Execution.ProveOptions{ .interaction_batch_columns = 257 }).validate());
     var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, setup.materials.geometry);
     defer fresh.deinit();
     try Execution.verify(a, &fresh, admission(), explicit);
@@ -250,4 +262,50 @@ test "MAIN ownership transfers original wide matrices only after every fallible 
     try std.testing.expect(!source.alu.owns_main and !source.memory.ls.owns_main);
     try std.testing.expectEqual(and_ptr, source.and_table.main.ptr);
     try std.testing.expectEqual(shift_table_ptr, source.shift_table.main.ptr);
+}
+
+test "INTER ownership moves every original allocation after both allocation failures and preserves physical claims" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var setup = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, .{ .cpu_log = 8, .alu_log = 7, .binary_log = 7 });
+    defer setup.deinit();
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    const fa = failing.allocator();
+    var source = try Sources.Source.init(fa, &setup.materials, image(), fixture.boundary, 1, &fixture.tape);
+    defer source.deinit();
+    try std.testing.expectError(error.InvalidExecutionInteractionOwnershipPhase, source.takeInteractionForCommit());
+    try source.releaseMain();
+    const Protocol = @import("protocol.zig");
+    var channel = Protocol.T.P.Channel{};
+    const claims = try source.generate(Protocol.draw(&channel));
+    const before = try source.columns(a, 2);
+    defer a.free(before);
+    for (0..2) |fail_after| {
+        failing.fail_index = failing.alloc_index + fail_after;
+        try std.testing.expectError(error.OutOfMemory, source.takeInteractionForCommit());
+        failing.fail_index = std.math.maxInt(usize);
+        const after = try source.columns(a, 2);
+        defer a.free(after);
+        for (before, after) |expected, actual| {
+            try std.testing.expectEqual(expected.values.ptr, actual.values.ptr);
+            try std.testing.expectEqual(expected.values.len, actual.values.len);
+        }
+        try std.testing.expectEqualDeep(claims, source.claims.?);
+    }
+    const owned = try source.takeInteractionForCommit();
+    defer owned.deinit(fa);
+    try std.testing.expectEqual(@as(usize, 17), owned.backings.len);
+    for (before, owned.columns) |expected, actual| {
+        try std.testing.expectEqual(expected.values.ptr, actual.values.ptr);
+        try std.testing.expectEqual(expected.values.len, actual.values.len);
+    }
+    try std.testing.expectEqualDeep(claims, source.claims.?);
+    try std.testing.expectEqual(@as(usize, 0), source.cpu.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), source.memory.ls.interaction.len);
+    try std.testing.expectEqual(@as(usize, 0), source.boundary.len);
+    source.releaseCommittedInteraction(); // Already transferred, never free twice.
+    if (source.takeInteractionForCommit()) |again| {
+        again.deinit(fa);
+        return error.AcceptedRepeatedInteractionTransfer;
+    } else |_| {}
 }
