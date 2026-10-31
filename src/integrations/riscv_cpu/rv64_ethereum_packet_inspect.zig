@@ -5,6 +5,13 @@ const Request = @import("rv64_ethereum_request.zig");
 const Expected = @import("rv64_ethereum_worker_expected.zig");
 const Packet = @import("rv64_prepared_work_packet.zig");
 const Digest = @import("rv64_authenticated_execution.zig").R.values.Digest;
+const rv = @import("stwo_riscv_frontend").rv64;
+const opcode_fields = @typeInfo(rv.decode.Opcode).@"enum".fields;
+const opcode_names = blk: {
+    var names: [opcode_fields.len][]const u8 = undefined;
+    for (opcode_fields, 0..) |value, i| names[i] = value.name;
+    break :blk names;
+};
 pub const Result = struct {
     index: u32,
     file_bytes: u64,
@@ -12,6 +19,9 @@ pub const Result = struct {
     frontier_owned_bytes: usize,
     cells: usize,
     steps: u32,
+    opcode_counts: [opcode_fields.len]u64,
+    opcode_names: [opcode_fields.len][]const u8 = opcode_names,
+    census_scope: []const u8 = "packet advice decoded through independently derived immutable ROM; no VM replay or proof authority",
     division_requests: u32,
     multiplication_requests: u32,
     calls: [3]u32,
@@ -32,5 +42,5 @@ pub fn run(a: std.mem.Allocator, config: Request.Config, index: u32) !Result {
     defer packet.deinit();
     if (packet.metadata.index != index) return error.InvalidEthereumWorkerIndex;
     const public = packet.finished.public;
-    return .{ .index = index, .file_bytes = try file.getEndPos(), .tape_retained_bytes = packet.tape.retainedBytes(), .frontier_owned_bytes = if (packet.native) |*value| value.ownedBytes() else 0, .cells = packet.finished.cells.len, .steps = public.statement.steps, .division_requests = public.division_requests, .multiplication_requests = public.multiplication_requests, .calls = .{ public.keccak_calls, public.secp.add.calls, public.secp.double.calls }, .before = packet.metadata.before, .after = packet.metadata.after };
+    return .{ .index = index, .file_bytes = try file.getEndPos(), .tape_retained_bytes = packet.tape.retainedBytes(), .frontier_owned_bytes = if (packet.native) |*value| value.ownedBytes() else 0, .cells = packet.finished.cells.len, .steps = public.statement.steps, .opcode_counts = packet.opcode_counts, .division_requests = public.division_requests, .multiplication_requests = public.multiplication_requests, .calls = .{ public.keccak_calls, public.secp.add.calls, public.secp.double.calls }, .before = packet.metadata.before, .after = packet.metadata.after };
 }

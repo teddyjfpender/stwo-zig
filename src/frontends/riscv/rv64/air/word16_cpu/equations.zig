@@ -1,10 +1,12 @@
 //! ONE polynomial authority for the concrete thin CPU's native/SIMD/OODS lanes.
-//! Only register AND/OR/XOR execute. ROM/provider closure is mandatory; this
-//! evaluator alone is not an execution verifier or an opcode-admission API.
+//! Binary control and explicit ALU/binary/branch diagnostics share these
+//! equations. REG/ROM/function/range closure is mandatory; neither diagnostic
+//! is a full-ISA execution verifier or an opcode-admission API.
 const E = @import("../evaluation.zig");
 const L = @import("layout.zig");
 const P = @import("public.zig");
 const Lookup = @import("lookup.zig");
+const Profile = @import("profile.zig");
 const Function = @import("../word16_v1/function_bus.zig");
 pub fn functionTuple(comptime F: type, main: []const F) [13]F {
     var tuple: [13]F = undefined;
@@ -23,6 +25,19 @@ pub fn romTuple(comptime F: type, main: []const F) [16]F {
     @memcpy(tuple[10..13], main[L.main.registers..][0..3]);
     @memcpy(tuple[13..16], main[L.main.zero..][0..3]);
     return tuple;
+}
+pub fn romTupleProfile(comptime F: type, profile: Profile.Profile, main: []const F) [Profile.MAX_ROM]F {
+    var result: [Profile.MAX_ROM]F = @splat(F.zero());
+    @memcpy(result[0..16], &romTuple(F, main));
+    if (profile == .alu_binary_v2) {
+        const immediate = main[Profile.immediate];
+        const branch = main[Profile.branch];
+        result[16] = immediate;
+        result[17] = branch;
+        for (0..4) |limb| result[18 + limb] = immediate.mul(main[L.main.b + limb]);
+        result[22] = branch.mul(main[L.main.c]);
+    }
+    return result;
 }
 pub fn tick(comptime F: type, index: F, slot: usize) F {
     return index.mul(P.literal(F, 4)).add(P.literal(F, @intCast(slot + 1)));
@@ -53,20 +68,15 @@ fn range(comptime F: type, values: []const F, current: []const F, previous: []co
     Lookup.prefix(F, contribution, E.secureFor(F, current, sum_at), E.secureFor(F, previous, sum_at), first, last, claim, sink);
 }
 pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_main: []const F, current: []const F, previous: []const F, public: P.Public, claims: P.Claims, challenges: Lookup.Challenges, sink: *E.SinkFor(F)) void {
+    emitProfileFor(F, .binary_v1, fixed, main, previous_main, current, previous, public, claims, challenges, sink);
+}
+pub fn emitProfileFor(comptime F: type, profile: Profile.Profile, fixed: []const F, main: []const F, previous_main: []const F, current: []const F, previous: []const F, public: P.Public, claims: P.Claims, challenges: Lookup.Challenges, sink: *E.SinkFor(F)) void {
     const first = fixed[L.fixed.first];
     const last = fixed[L.fixed.last];
-    const index = fixed[L.fixed.index];
     const active = main[L.main.active];
     const inactive = F.one().sub(active);
     const not_first = F.one().sub(first);
-    const previous_active = previous_main[L.main.active];
-    E.booleanFor(F, sink, active);
-    sink.emit(first.mul(active.sub(F.one())));
-    sink.emit(last.mul(active));
-    sink.emit(not_first.mul(active).mul(F.one().sub(previous_active)));
-    // Only the publicsteps transition can end the active prefix. Index is a
-    // domain-only fixed column; statementsteps never changes the fixed tree.
-    sink.emit(not_first.mul(active.sub(previous_active)).mul(index.sub(E.qFor(F, public.steps))));
+    emitActivityFor(F, fixed, main, previous_main, public.steps, sink);
     const initial_pc = P.word(F, public.initial_pc);
     const final_pc = P.word(F, public.final_pc);
     for (0..4) |limb| {
@@ -75,6 +85,33 @@ pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_mai
         sink.emit(inactive.mul(main[L.main.next_pc + limb].sub(main[L.main.pc + limb])));
         sink.emit(last.mul(main[L.main.next_pc + limb].sub(final_pc[limb])));
     }
+    emitDataFor(F, profile, fixed, main, sink);
+    emitRegisterFor(F, fixed, main, current, previous, claims.register, challenges.register, sink);
+    emitFunctionFor(F, fixed, main, current, previous, claims.function, challenges.function, sink);
+    Lookup.single(F, challenges.rom.denominatorProfile(F, profile, romTupleProfile(F, profile, main)), active, E.secureFor(F, current, L.inter.rom_inverse), E.secureFor(F, current, L.inter.rom_sum), E.secureFor(F, previous, L.inter.rom_sum), first, last, claims.rom, sink);
+    emitRangesFor(F, fixed, main, current, previous, claims.range16, claims.range8, challenges.range16, challenges.range8, sink);
+}
+
+/// Shared physical activity authority; representation-specific PC equations are
+/// emitted separately. These helpers preserve the legacy residual ordering.
+pub fn emitActivityFor(comptime F: type, fixed: []const F, main: []const F, previous_main: []const F, steps: u32, sink: *E.SinkFor(F)) void {
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const index = fixed[L.fixed.index];
+    const active = main[L.main.active];
+    const previous_active = previous_main[L.main.active];
+    const not_first = F.one().sub(first);
+    E.booleanFor(F, sink, active);
+    sink.emit(first.mul(active.sub(F.one())));
+    sink.emit(last.mul(active));
+    sink.emit(not_first.mul(active).mul(F.one().sub(previous_active)));
+    // Only the publicsteps transition can end the active prefix. Index is a
+    // domain-only fixed column; statementsteps never changes the fixed tree.
+    sink.emit(not_first.mul(active.sub(previous_active)).mul(index.sub(E.qFor(F, steps))));
+}
+pub fn emitDataFor(comptime F: type, profile: Profile.Profile, fixed: []const F, main: []const F, sink: *E.SinkFor(F)) void {
+    const index = fixed[L.fixed.index];
+    const active = main[L.main.active];
     for (0..3) |slot| {
         const enabled = main[L.main.enabled + slot];
         const zero = main[L.main.zero + slot];
@@ -85,21 +122,34 @@ pub fn emitFor(comptime F: type, fixed: []const F, main: []const F, previous_mai
             2 => L.main.previous_rd,
             else => unreachable,
         };
-        for (0..4) |limb| sink.emit(zero.mul(main[value + limb]));
+        const zero_weight = if (profile == .alu_binary_v2 and slot == 1) zero.mul(F.one().sub(main[Profile.immediate])) else zero;
+        for (0..4) |limb| sink.emit(zero_weight.mul(main[value + limb]));
         sink.emit(main[L.main.previous_clock + slot].add(main[L.main.gap16 + slot]).add(E.qFor(F, 65536).mul(main[L.main.gap8 + slot])).sub(tick(F, index, slot).sub(F.one())));
         sink.emit(F.one().sub(enabled).mul(main[L.main.previous_clock + slot]));
     }
+}
+pub fn emitRegisterFor(comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, claim: E.Q, challenges: Lookup.RegisterChallenges, sink: *E.SinkFor(F)) void {
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
     var register_contribution = E.SecureFor(F).zero();
     for (0..3) |slot| {
-        const before = challenges.register.denominatorFor(F, registerTuple(F, fixed, main, slot, false));
-        const after = challenges.register.denominatorFor(F, registerTuple(F, fixed, main, slot, true));
+        const before = challenges.denominatorFor(F, registerTuple(F, fixed, main, slot, false));
+        const after = challenges.denominatorFor(F, registerTuple(F, fixed, main, slot, true));
         const inverse = E.secureFor(F, current, L.inter.register_inverses + 4 * slot);
         sink.emit(before.mul(after).mul(inverse).sub(E.SecureFor(F).one()));
         register_contribution = register_contribution.add(E.mulBaseFor(F, after.sub(before).mul(inverse), main[L.main.enabled + slot]));
     }
-    Lookup.prefix(F, register_contribution, E.secureFor(F, current, L.inter.register_sum), E.secureFor(F, previous, L.inter.register_sum), first, last, claims.register, sink);
-    Function.emitFor(F, functionTuple(F, main), active, first, last, E.secureFor(F, current, L.inter.function_inverse), E.secureFor(F, current, L.inter.function_sum), E.secureFor(F, previous, L.inter.function_sum), claims.function, challenges.function, sink);
-    Lookup.single(F, challenges.rom.denominatorFor(F, romTuple(F, main)), active, E.secureFor(F, current, L.inter.rom_inverse), E.secureFor(F, current, L.inter.rom_sum), E.secureFor(F, previous, L.inter.rom_sum), first, last, claims.rom, sink);
-    range(F, main[L.main.gap16..][0..3], current, previous, L.inter.range16_inverses, L.inter.range16_sum, first, last, claims.range16, challenges.range16, sink);
-    range(F, main[L.main.gap8..][0..3], current, previous, L.inter.range8_inverses, L.inter.range8_sum, first, last, claims.range8, challenges.range8, sink);
+    Lookup.prefix(F, register_contribution, E.secureFor(F, current, L.inter.register_sum), E.secureFor(F, previous, L.inter.register_sum), first, last, claim, sink);
+}
+pub fn emitFunctionFor(comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, claim: E.Q, challenges: Function.Challenges, sink: *E.SinkFor(F)) void {
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const active = main[L.main.active];
+    Function.emitFor(F, functionTuple(F, main), active, first, last, E.secureFor(F, current, L.inter.function_inverse), E.secureFor(F, current, L.inter.function_sum), E.secureFor(F, previous, L.inter.function_sum), claim, challenges, sink);
+}
+pub fn emitRangesFor(comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, claim16: E.Q, claim8: E.Q, challenge16: Lookup.RangeChallenges, challenge8: Lookup.RangeChallenges, sink: *E.SinkFor(F)) void {
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    range(F, main[L.main.gap16..][0..3], current, previous, L.inter.range16_inverses, L.inter.range16_sum, first, last, claim16, challenge16, sink);
+    range(F, main[L.main.gap8..][0..3], current, previous, L.inter.range8_inverses, L.inter.range8_sum, first, last, claim8, challenge8, sink);
 }

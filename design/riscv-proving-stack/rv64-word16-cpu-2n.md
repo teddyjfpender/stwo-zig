@@ -1,11 +1,72 @@
 # Thin Word16 CPU on a 2n quotient domain
 
-Status: complete design for protocol version `cpu_word16_v1`. Supersedes the
+Status: working implementation proposal for `cpu_word16_v1`. Supersedes the
 byte-and-bit CPU row (`limbs24_v2` control, `cyclic_canonical_v3` state,
 `division_multiplication_services_v3` arithmetic) for Ethereum proving. The
 qualified BINARY chip in `src/frontends/riscv/rv64/air/word16_v1/` and the
-cost model in `rv64-family-providers.md` are the inputs; this document fixes
-every open choice so the implementation needs no further design decisions.
+cost model in `rv64-family-providers.md` are the inputs; the schema and budgets below require the reconciliation ledger before they
+are a complete implementation contract.
+
+## Reconciliation ledger before production implementation
+
+The qualified register-only prototype has 44 main / 56 interaction CPU columns;
+the ALU/branch diagnostic extends that foundation. Neither is the full protocol
+below. The proposed 66/56 count and 271-cell total are budgets, not qualified
+layouts. Resolve these obligations against real code and degree tests:
+
+- Define the immutable ROM tuple explicitly. Dynamic `next_pc` and service
+  counters are not instruction-derived ROM fields. PC, opcode, register indices,
+  feature flags, immediate and static-next fields are; the claimed 31-coordinate
+  ROM tuple must not indiscriminately copy the control frame.
+- Bind store data. The proposed 24-coordinate bus contains A, R and C but no B,
+  although section 2.5 names B as a STORE input. Options include C carrying
+  store data with an authenticated store flag and C=B constraint, or LOAD/STORE
+  deriving its immediate through a PC-authenticated ROM lookup while R carries
+  store data. Charge all required staging/lookup columns and preserve affine
+  paired REG denominators. Never leave store data as unbound chip advice.
+- Specify each family's unused bus coordinates. Gating a PC/time coordinate by
+  a committed family flag makes it quadratic, not affine. A single inverse
+  times that denominator has degree three; pair batching it may exceed three.
+- Re-derive the REG interaction authority. Legacy 3/3/2 grouping covers eight
+  events with degree four; it cannot be called a retained degree-three scheme.
+  Six local REG events can use a newly qualified 2/2/2 cyclic scheme, while the
+  current thin proof uses three strict inverse pairs plus one prefix (16 base
+  columns). Charge the chosen construction explicitly.
+- Account for all 16 proposed range requests: four C limbs, six clock u16 limbs,
+  and six clock u8 limbs, before spare/service work. The existing text counts
+  only three u8 limbs. Prefix storage must be counted alongside any separate
+  inverses. Alternatively qualify canonical predecessor clocks through the
+  closed state argument and omit redundant range work explicitly.
+- Current services have three call families (Keccak, ADD, DOUBLE), not two.
+  A separately sized service-argument component can keep counters and extra
+  ABI register reads out of every CPU row, but its REG, call and owner-row
+  relations must close. Two unspecified counters are not sufficient authority.
+- Partition every admitted opcode, including MUL/DIV, fences and static jumps.
+  Existing MUL/DIV internal buses may remain behind adapters, but the CPU's
+  single outgoing bus obligation must still close exactly once where enabled.
+- Reuse provider-proved canonical outputs and static ROM-derived targets when
+  that removes redundant CPU work. The qualified 44-column prototype is the
+  starting evidence; adding fields to meet a hand budget is not a requirement.
+
+Fixed-log accounting also needs reconciliation. With one instance per CPU
+batch at the stated logs, ALU/LOADSTORE shares are exactly 0.5 and
+BINARY/SHIFT/CONTROL shares exactly 0.25, not the varying shares in section 6.
+Using its draft widths gives **296.5**, not 271, cells per CPU row including the
+seven-cell allowance. The qualified ALU is 60 main + 52 interaction rather than
+40 + 32: substituting it gives **316.5** before other corrections. These are
+arithmetic checks, not a new performance forecast.
+
+Confining padding to one partial instance per chip across the entire execution
+requires global chip packing and exact ownership/coverage. It does not follow
+from one full fixed roster inside every CPU batch. Resolve this against the
+aggregation document's single batch-shape requirement: either charge every
+padding instance or qualify separate fixed-key chip proofs and their aggregate
+obligations. Do not choose request-specific keys or silently omit providers to
+make the cost table fit.
+
+The production protocol must have one concrete schema and one physical roster.
+Keep intermediate diagnostics out of its hot path; retire superseded production
+profiles only after full-ISA, RAM, fresh-receiver and semantic-parity gates pass.
 
 ## 1. Principles
 
@@ -84,7 +145,8 @@ epoch coordinate to RAM only (see `rv64-global-memory-argument.md`).
 | range16 / BYTE | 6 Q | 4 C limbs + 6 clock limbs + 2 spare in pairs = 6 batches |
 | service buses | 1 Q | existing Keccak/secp headers |
 
-Total CPU: 66 main + 56 interaction + 3 fixed. Budget in
+Draft CPU subtotal: 66 main + 56 interaction + 3 fixed, subject to the
+reconciliation ledger above. Budget in
 `rv64-family-providers.md` was 80/64; this schema is inside it.
 
 ### 2.5 The single typed bus request
@@ -211,7 +273,7 @@ Tables commit one multiplicity column each; their values are preprocessed.
 | LogUp pair batch `prefix' - prefix) * D1 * D2 - (n1 D2 + n2 D1)` | 3 | numerators are selectors |
 | cyclic state groups (3/3/2) | 3 | unchanged from v3, which already fits |
 | SHIFT limb selection by q one-hot | 2 | |
-| CONTROL equality gadget `(1 - e) * d = 0`, `e * (1 - inv*d) = 0` | 2 | |
+| CONTROL equality gadget `d * inv = 1 - e`, `e * d = 0`, Boolean e | 2 | e=1 iff d=0 |
 
 `MAX_DEGREE = 3`, `EXPANSION = 1`, quotient domain 2n, two coset parts in
 `full/coset_evaluation.zig`. The Keccak and secp providers keep their 4n
@@ -250,7 +312,9 @@ Per original CPU row, family rows charged at their padded shares:
 | tables, ROM growth | | | | 7 |
 | **total** | | | | **271** |
 
-Against 533 today: -49 percent cells, and every cell is evaluated on 2n
+Provisional comparison against 533: about 49 percent fewer cells. This
+requires the corrected layout/lookup ledger and measured padding; it is not an
+implemented reduction. CPU/family cells are intended to be evaluated on 2n
 instead of 4n points for composition. Projected composition 0.25x, commit
 preparation, FRI, decommit and interactions 0.5x.
 

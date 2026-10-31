@@ -1,0 +1,83 @@
+{
+  "schema": "rv64-word16-alu-parallel-interaction-v1",
+  "status": "Safe/Fast functional qualification; no performance measurement",
+  "authority": "Source.generateSerial preserves old native interaction body; InteractionSupport exposes unchanged typed dictionary validation,functionDenominators,store andCHUNK_ROWS; no circuit equations or layouts changed",
+  "algorithm": [
+    "phase1 per4096 logical chunk computes tenpair inverses and local U16/FUNCTIONprefixes",
+    "joined32B/chunk summary scan validates fullrangeTotal against count-derived rangeClaim",
+    "phase2 disjoint contiguousphysical output ranges add prefixBefore minus terminalclaim",
+    "onlyfullsuccess publishes52-column interaction and frees66B/row metadata"
+  ],
+  "resource": {
+    "scratch_per_worker_bytes": 131072,
+    "scratch16_workers_bytes": 2097152,
+    "summary_at_2pow22_rows_bytes": 32768,
+    "workers": "min(explicit existing pool workers,logical chunks)",
+    "stack_optimized_bytes": 262144,
+    "stack_debug_bytes": 1048576,
+    "ownership": "all scratch/output allocated by coordinator beforelease; submission/pole/ledger/allocation errors drain and preserve metadata/main ownership for retry"
+  },
+  "qualification": {
+    "dedicated_ALU_ReleaseSafe": 3,
+    "dedicated_ALU_ReleaseFast": 3,
+    "actual_ALU_testserver_metadata": 3,
+    "combined_CPU_ALU_proof_ReleaseSafe": 4,
+    "combined_CPU_ALU_proof_ReleaseFast": 4,
+    "matrix": "all52 columns and2claims exactserial vs1/4/16workers aftermainrelease,8193all10-family facts acrosschunks/domain65536",
+    "complete_proofs": "rawPC andindexedPC closedCPU proofs exact1/4/16workers withALUlog16; expected receivers pass",
+    "historical_ALU": {
+      "proof_bytes": 257280,
+      "sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+      "fresh_separate_process_receiver": "PASS",
+      "artifact": "/tmp/stwo-rv64-alu-parallel-interaction-v1"
+    },
+    "negative": [
+      "padding-only functionpole",
+      "finalphysicaldomain logical-row functionpole",
+      "latecount/range-ledger mismatch",
+      "bothwave helper submissionfailures before0/after1success",
+      "exhaustive provisionalallocationfailures and retry",
+      "undersized1worker stack",
+      "alreadyconsumed metadata phase"
+    ]
+  },
+  "scope": [
+    "noNativeFill/constructor/nativeWave changes bythis slice",
+    "same60 main/52interaction/80constraints; no newprofile enum",
+    "Source.generate chooses currentScopedPool; generateSerial explicit reference",
+    "noEthereum throughput,wholejobpeak orrecursion claim"
+  ],
+  "logs": [
+    "/tmp/rv64-alu-cpu-parallel-interaction-safe-final.log",
+    "/tmp/rv64-alu-cpu-parallel-interaction-fast-final.log",
+    "/tmp/rv64-alu-parallel-fixture-build.log"
+  ],
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_v1/alu_interaction.zig",
+      "sha256": "aaac61b2ddadfeb0d4973a2d4476b59c5ed23c11546b93f57949b2b788f3d53b"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_v1/alu_interaction_test.zig",
+      "sha256": "ae4c3f905c2befe09a388307ac70c59e3965663181d974ec73c0c0c9e6e06623"
+    },
+    {
+      "path": "src/frontends/riscv/rv64_alu_parallel_interaction_test_root.zig",
+      "sha256": "afed62404def069f661c5542582f41c78b7a5461f8d93ff77c49161e27b89def"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig",
+      "sha256": "028cac4ae0797bfe82cc4bebcf756b996bc16fd5cf68d29b9066f2a21b82fb51"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_parallel_interaction_test.zig",
+      "sha256": "c6e44ad2326bc534db16cbd7e6257522a5794fcbee72b7eed28b79230bb36f04"
+    }
+  ],
+  "selective_hunks": [
+    "alu_source.zig generate wrapper/Serial body/helper names/InteractionSupport ONLY; NativeFill andFact alias belongrootfoundation",
+    "existingCPU parallel test changes ALUlog14\u219216 only",
+    "riscv_cpu.zig newword16-alu-parallel-interaction root minimum3 only",
+    "catalog.zig correspondingnewtarget only"
+  ]
+}

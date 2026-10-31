@@ -1,0 +1,290 @@
+{
+  "schema": "rv64-thin-word16-alu-binary-diagnostic-v2",
+  "status": "qualified-limited-diagnostic-not-production-cpu-word16-v1",
+  "production_ethereum_activation": false,
+  "distributed_open_v2_activation": false,
+  "semantic_scope": {
+    "alu_function_ids": {
+      "add": 0,
+      "sub": 1,
+      "addw": 2,
+      "subw": 3,
+      "slt": 4,
+      "sltu": 5,
+      "eq": 6,
+      "ne": 7,
+      "ge": 8,
+      "geu": 9
+    },
+    "binary_function_ids": {
+      "and": 16,
+      "or": 17,
+      "xor": 18
+    },
+    "immediate_alu": [
+      "ADDI",
+      "ADDIW",
+      "SLTI",
+      "SLTIU"
+    ],
+    "immediate_binary": [
+      "ANDI",
+      "ORI",
+      "XORI"
+    ],
+    "branches": {
+      "BEQ": "eq",
+      "BNE": "ne",
+      "BLT": "slt",
+      "BGE": "ge",
+      "BLTU": "sltu",
+      "BGEU": "geu"
+    },
+    "unsupported": [
+      "SHIFT",
+      "MUL",
+      "DIV",
+      "LOAD",
+      "STORE",
+      "JAL",
+      "JALR",
+      "LUI",
+      "AUIPC",
+      "ECALL"
+    ],
+    "ram": false,
+    "register_clock_policy": "reset0, three strictly ordered slots4*i+1..3, bound24bits",
+    "pc_bits": 64
+  },
+  "layout": {
+    "cpu_main": 46,
+    "cpu_interaction": 56,
+    "cpu_fixed": 3,
+    "cpu_constraints": 61,
+    "max_degree": 3,
+    "composition_expansion": 2,
+    "extra_cpu_advice_relative_binary_control": [
+      "is_immediate",
+      "is_branch"
+    ],
+    "rom_semantic_fields": 23,
+    "rom_fixed_columns": 25,
+    "alu_main": 60,
+    "alu_interaction": 52,
+    "alu_constraints": 80,
+    "alu_u16_queries_per_physical_row": 20,
+    "cpu_gap_u16_queries_per_physical_row": 3,
+    "cpu_gap_u8_queries_per_physical_row": 3,
+    "closed_physical_roster": [
+      "cpu",
+      "rom",
+      "boundary",
+      "alu",
+      "binary",
+      "and_table",
+      "range16",
+      "range8"
+    ],
+    "all_role_column_counts": {
+      "fixed": 77,
+      "main": 152,
+      "interaction": 176
+    }
+  },
+  "bus_closure": {
+    "function": "ONE common13-coordinate challenge; CPU positive+ALU negative+BINARY negative=0",
+    "range16": "ONE shared local alpha/dictionary; CPU3*N+ALU20*N merged before main commitment, then physical claims close",
+    "register": "CPU REG6+immutable32row public-coefficient boundary=0",
+    "rom": "CPU consumer+independently expected ROM multiplicities=0",
+    "and": "BINARY+byteAND table=0",
+    "separate_claim_families": true,
+    "base_claim_transport_unchanged": "original12Q Claims record/JSON retained; new2Q ALU sidecar is mixed only under distinct diagnosticV2 context",
+    "positive_mass_admitted_before_wide_materials": true
+  },
+  "control": {
+    "actual_function_operands": "A4/B4/C4; immediateB binds through ROM; no Breg+effectiveB duplication",
+    "rom_query": "legacy16 +isImm+isBranch+isImm*B4+isBranch*C0",
+    "branch_edges": "receiver derives both legal predicate0/1 edges from rawPC/instruction; invalid misaligned taken edge omitted; untouched misaligned target may fall through",
+    "branch_output": "ALU proves C=[predicate,0,0,0]; no RD write",
+    "degree_argument": "ROM denominator is quadratic, one strict inverse makes degree3; REG pair denominators remain affine with committed enables; B-zero equation is at most cubic",
+    "immutable_key": "full expected program and physical geometry; counts, paths and endpoints are fresh public/witness data",
+    "fixed_commitment_reuse": "compact shared tree owner, fresh per-request retained lease/channel, Materials.shapes is sole physical roster authority"
+  },
+  "qualification": {
+    "safe": {
+      "command": "zig build test-riscv64-word16-thin-cpu -Doptimize=ReleaseSafe",
+      "log": "/tmp/rv64-word16-alu-cpu-safe.log",
+      "session": 11804,
+      "exit": 0,
+      "runtime_tests": 14,
+      "named_tests": 13
+    },
+    "fast": {
+      "command": "zig build test-riscv64-word16-thin-cpu -Doptimize=ReleaseFast",
+      "log": "/tmp/rv64-word16-alu-cpu-fast.log",
+      "session": 15625,
+      "exit": 0,
+      "runtime_tests": 14,
+      "named_tests": 13
+    },
+    "actual_execution_fixture": {
+      "native_steps": 40,
+      "scope": "mixed ALU/binary, every10ALUfunction, every6branch taken/untaken, backwardloop3iterations, W overflow/signextension, negative immediate forms",
+      "receiver": "same-process independent expected Materials reconstruction; no native VM needed by proof verifier",
+      "shorter_same_key_steps": 16,
+      "cpu_scalar_vs_simd_full_encoded_proof_equal": true
+    },
+    "extra_cases": [
+      "real native highest-PC branch wraps to0 and closed proof verifies",
+      "misaligned unused branch target retained; misaligned taken edge unavailable",
+      "open diagnosticV2 rejected before allocation even with failing allocator0",
+      "all61CPUresidual fourth differences vanish along dense arbitraryQM31 lines",
+      "fullengine rejects committed forged operand/result/PC/immediate flag/W-extension/predicate",
+      "balanced CPU+ALU FUNCTION and U16 claim tampering rejects",
+      "all combined Source.init allocation failures unwind CPU/ALU/merged range/BINARY owners"
+    ],
+    "historical_three_proof_sha_regression": {
+      "status": "fresh-process-pass-exact-old-proof-manifest-boundary-and-claims-bytes",
+      "artifacts": "/tmp/stwo-rv64-distributed-execution-post-neutral-v1",
+      "producer_log": "/tmp/rv64-distributed-execution-produce-post-neutral.log",
+      "receiver_log": "/tmp/rv64-distributed-execution-receive-post-neutral.log",
+      "proofs": [
+        {
+          "role": "cpu0",
+          "bytes": 276128,
+          "sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf"
+        },
+        {
+          "role": "cpu1",
+          "bytes": 261632,
+          "sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d"
+        },
+        {
+          "role": "binary",
+          "bytes": 227856,
+          "sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+        }
+      ],
+      "owner": "byte_range; same source after neutral extraction and ManifestV2 addition"
+    }
+  },
+  "cost_scope": {
+    "fixture_cpu_log": 6,
+    "fixture_alu_log": 6,
+    "fixture_binary_log": 5,
+    "fixture_rom_log": 6,
+    "full_ISA_column_ledger": "not yet fixed; new architecture docs contain unresolved store operand, clock/range and service-header requirements",
+    "performance_gain_claimed": false,
+    "fixture_committed_source_cells": {
+      "fixed": 528128,
+      "main": 139520,
+      "interaction": 1059200
+    }
+  },
+  "limits": [
+    "This diagnostic does not implement production cpu_word16_v1 from the new design documents",
+    "No RAM, services, full RV64IM, aggregate execution or Ethereum acceptance",
+    "OpenV2 is fail-closed until trusted common-function Manifest qualification and aggregate closure",
+    "Current limited ROM rejects unsupported/invalid words; full ELF route must retain all raw words and authenticate per-PC validity",
+    "Canonical read/RD-before lemma requires closed REG+ROM+FUNCTION and canonical endpoints plus strict bounded clocks",
+    "No standalone diagnosticV2 fresh-process artifact/receiver tool was added; independently reconstructed same-process receiver only"
+  ],
+  "source_sha256": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/boundary.zig",
+      "sha256": "8dc73bbddfdf94a9ca1b9967ef01b8902dceb60e224a5e518bc3fac446efc79c"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/boundary_trace.zig",
+      "sha256": "c06d83a308666d7c94b5e85932668d28b56a7f5aa108798fb689fd0a3ff07898"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/component.zig",
+      "sha256": "ea6eb2ba294f0e64e64884058b692a6736ee5447e10ab484171957218cf93f86"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/equations.zig",
+      "sha256": "0099d2963971d1378e6629008374bdec8f4a0acb4860085e0baafdc1e8a8095b"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/fixed.zig",
+      "sha256": "44995cd686317ad995cec05dd114be6187ceaccf6f045ca7bd37fa6b61451dfe"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/interaction.zig",
+      "sha256": "587ed67df529a78590332396f14c6b1689f9cfb55b7f56068ff14c12c59d9bf4"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/layout.zig",
+      "sha256": "54ba7dda85ec4825abe7c3f624247ced7f171b0db979fabdf52ea0acbe6ae98a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/lookup.zig",
+      "sha256": "55d83ea911479b1de62991af936e23f2b990c5ef30606967edfd6fec46c918e0"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/packed_rows.zig",
+      "sha256": "44fae37b26d9a8de9d2e24a2d2d1b4ae691751b7541b31847c2fa29a5debfead"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/profile.zig",
+      "sha256": "fb04db37ad79235899a12aa76ab3f5eacda208f8c0e2af58a2c13ad1017ea33f"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/public.zig",
+      "sha256": "9341e2f2cffe9e56ed0e35d0f4bb3968f65bc51089297b03ee4a14646f9bf15a"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/rom.zig",
+      "sha256": "3e28524c8b47f14af3e54be9cb29b4176cfa78f2454328016a1bb3793076d6ac"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/table.zig",
+      "sha256": "290389d1a42c2dc525ba43ac2899acc98368774331c23fb0d09baa86c6f82638"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/table_trace.zig",
+      "sha256": "fef6a367a16fc0e08f842a30864dc7487b445270916e7128798493bd4e6277b7"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/trace.zig",
+      "sha256": "51362a83cf0b5c9f4d7d2baab4f741ba1a5e6f3f6787f084212a879e5fd312bd"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu.zig",
+      "sha256": "ad0eb7f137cb5b3e411c5b32366059f3302f3f9d4ea2c1d8174caab4cc757fde"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_components.zig",
+      "sha256": "ba8251ecf961e70ef639bb9f2da2122659328f35c18fe0771742723c4a0e03ef"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_materials.zig",
+      "sha256": "96a38cbc2e0c8839925d5286bbfd328e7cf6bad5db9fc10dca48358de5deb892"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_protocol.zig",
+      "sha256": "2d613efea05cfc919fac7bbf1b199c3b79e54b5bb1cb4507f8df7c7fcda7e5c0"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_sources.zig",
+      "sha256": "ebb2f20a4bcd8b5e9fb9a6e79ff11efba17cbf1a1f021f641338d08c8e943527"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_stage.zig",
+      "sha256": "bcb7812039a4696ccdbd101eae9241fbfca716b9bd2521bb21bc4684623fcf73"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/word16/cpu_verify.zig",
+      "sha256": "45cafefab02bb0ee37758bc48ad9b877ee2db3fa305e369abc46d9b5965e3ce4"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_alu_cpu_test.zig",
+      "sha256": "4aa8a3b842d26791f5d145d58759fb875d6794554b94e0b4d6e287111aa5f8a2"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_word16_thin_cpu_test_root.zig",
+      "sha256": "c8b6fc66d3c2166c2c0723867222bccf55671c73b01f312451b320d0cf1582c8"
+    }
+  ]
+}

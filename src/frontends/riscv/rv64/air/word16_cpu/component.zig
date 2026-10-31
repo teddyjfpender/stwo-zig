@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const E = @import("../evaluation.zig");
+const Profile = @import("profile.zig");
 const L = @import("layout.zig");
 const P = @import("public.zig");
 const Lookup = @import("lookup.zig");
@@ -17,10 +18,11 @@ const Air = core.air.components;
 const M = core.fields.m31.M31;
 const Q = E.Q;
 const Point = core.circle.CirclePointQM31;
-pub const MAX_COLUMNS = L.fixed.COUNT + L.main.COUNT + L.inter.COUNT;
+pub const MAX_COLUMNS = L.fixed.COUNT + Profile.MAX_MAIN + L.inter.COUNT;
 pub const Kind = enum { cpu, rom, boundary, range16, range8 };
 pub const Component = struct {
     kind: Kind,
+    profile: Profile.Profile = .binary_v1,
     log_size: u32,
     offsets: [3]usize,
     public: P.Public,
@@ -30,15 +32,24 @@ pub const Component = struct {
     scalar_reference: bool = false,
     const Adapter = core.air.derive.ComponentAdapter(Component, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
     pub fn asProverComponent(self: *const Component) cp.ComponentProver {
-        return Adapter.asProverComponent(self);
+        var result = Adapter.asProverComponent(self);
+        if (self.kind == .cpu) {
+            result.domain_parallel_evaluator = evaluateParallel;
+            result.pool_exclusive_domain = true;
+        }
+        return result;
+    }
+    fn evaluateParallel(ctx: *const anyopaque, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: *engine.work_pool.WorkPool) anyerror!void {
+        const self: *const Component = @ptrCast(@alignCast(ctx));
+        return self.evaluateDomain(trace, accumulator, pool);
     }
     pub fn asVerifierComponent(self: *const Component) Air.Component {
         return Adapter.asVerifierComponent(self);
     }
     pub fn widths(self: *const Component) [3]usize {
         return switch (self.kind) {
-            .cpu => .{ 3, 44, 56 },
-            .rom => .{ 18, 1, 8 },
+            .cpu => .{ 3, Profile.mainCount(self.profile), 56 },
+            .rom => .{ Profile.romCount(self.profile) + 2, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .range16, .range8 => .{ 3, 1, 8 },
         };
@@ -103,8 +114,8 @@ pub const Component = struct {
     }
     pub fn emitFor(self: *const Component, comptime F: type, fixed: []const F, main: []const F, current: []const F, previous_main: []const F, previous: []const F, sink: *E.SinkFor(F)) void {
         switch (self.kind) {
-            .cpu => Eq.emitFor(F, fixed, main, previous_main, current, previous, self.public, self.cpu_claims, self.challenges, sink),
-            .rom => @import("table.zig").romFor(F, fixed, main, current, previous, self.claim, self.challenges.rom, sink),
+            .cpu => Eq.emitProfileFor(F, self.profile, fixed, main, previous_main, current, previous, self.public, self.cpu_claims, self.challenges, sink),
+            .rom => @import("table.zig").romProfileFor(F, self.profile, fixed, main, current, previous, self.claim, self.challenges.rom, sink),
             .boundary => @import("boundary.zig").emitFor(F, fixed, current, previous, self.public, self.claim, self.challenges.register, sink),
             .range16 => @import("table.zig").rangeFor(F, fixed, main, current, previous, self.claim, self.challenges.range16, sink),
             .range8 => @import("table.zig").rangeFor(F, fixed, main, current, previous, self.claim, self.challenges.range8, sink),
@@ -113,7 +124,7 @@ pub const Component = struct {
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const Air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidWord16CpuMask;
         var values: [MAX_COLUMNS]Q = undefined;
-        var previous_main: [44]Q = @splat(Q.zero());
+        var previous_main: [Profile.MAX_MAIN]Q = @splat(Q.zero());
         var previous: [56]Q = @splat(Q.zero());
         var cursor: usize = 0;
         const widths_ = self.widths();
@@ -134,6 +145,9 @@ pub const Component = struct {
         std.debug.assert(sink.count == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator) !void {
+        return self.evaluateDomain(trace, accumulator, null);
+    }
+    fn evaluateDomain(self: *const Component, trace: *const cp.Trace, accumulator: *accumulation.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
         try self.validate();
         const a = accumulator.allocator;
         const widths_ = self.widths();
@@ -161,13 +175,23 @@ pub const Component = struct {
         if (owned_count != 0) {
             var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
             defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("../providers/domain_transform.zig").evaluate(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles), pool);
         }
         const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
         defer a.free(inverses);
         const columns = try accumulator.columns(a, &.{.{ .log_size = eval_log, .n_cols = self.nConstraints() }});
         defer a.free(columns);
         var output = columns[0];
-        try @import("packed_rows.zig").evaluate(self, evaluations[0..total], inverses, &output);
+        const rows = Rows{ .component = self, .columns = evaluations[0..total], .inverses = inverses };
+        try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = Rows.run }, n, &output, pool);
+    }
+};
+const Rows = struct {
+    component: *const Component,
+    columns: []const []const M,
+    inverses: []const M,
+    fn run(ctx: *const anyopaque, start: usize, end: usize, output: *accumulation.ColumnAccumulator) anyerror!void {
+        const self: *const Rows = @ptrCast(@alignCast(ctx));
+        return @import("packed_rows.zig").evaluateRange(self.component, self.columns, start, end, self.inverses, output);
     }
 };

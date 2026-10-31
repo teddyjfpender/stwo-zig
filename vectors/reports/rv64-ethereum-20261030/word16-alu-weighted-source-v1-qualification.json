@@ -1,0 +1,186 @@
+{
+  "schema": "word16-alu-native-weighted-source-v1",
+  "status": "qualified optional prover-only native witness choice; default unweighted path unchanged",
+  "circuit_control": "MAIN60/INTER52/local59/maxdegree3/2n before independent SUM-zero revision",
+  "protocol_changes": {
+    "equations": false,
+    "committed_columns": false,
+    "verifier": false,
+    "ISA_or_profile_enum": false,
+    "transcript": false,
+    "automatic_geometry_selection": false
+  },
+  "existing_authority": {
+    "truth": "alu_lookup.emitFor already constrains inactive*multiplicity=0 and FUNCTION weight -multiplicity",
+    "ranges": "20 unweighted U16 queries per physical truth row including padding",
+    "acceptance": "CPU proves eligible consumer queries; valid truth facts and complete physical FUNCTION/U16 claim closure authenticate membership. Native fact_count and function_mass metadata are not verifier authority.",
+    "query_budget": "Existing receiver geometry admits positive CPU/range masses below M31 characteristic; helper constructors additionally bound canonical native weights and their sum<p."
+  },
+  "native_API": {
+    "weighted": "Source.initWeighted / initWeightedWithMainBuffers(facts,weights,log)",
+    "grouped": "Source.initDeduplicated / initDeduplicatedWithMainBuffers; stable first-occurrence full exact Fact equality",
+    "helper": "alu_source.deduplicate -> owned WeightedFacts{facts,weights,deinit}",
+    "CPU": "CPU.produceDeduplicated / produceDeduplicatedProfiled; old produce/Profiled delegate false to same source/finish authority",
+    "geometry": "Caller/receiver explicitly choose existing declared alu_log; no input-derived automatic key/profile",
+    "default": "init / initWithMainBuffers remain unit multiplicity, including original interaction ordering/proof bytes",
+    "metadata": "66->70 bytes/physical row; two u16 words retain full u32 weight without alignment padding; inputs and MAIN can be destroyed before generating interactions",
+    "errors": "Canonical weights including zero, sum<p, shape/capacity/fact result and borrowed alias validation; all borrowed writes deferred until every allocation/helper submission succeeds; weight ledger corruption/poles/errors retain metadata and publish no interaction."
+  },
+  "native_and_physical_gates": {
+    "Safe": {
+      "ALU": 19,
+      "parallel_interaction": 4,
+      "closed_weighted_CPU": 4
+    },
+    "Fast": {
+      "ALU": 19,
+      "parallel_interaction": 4,
+      "closed_weighted_CPU": 4
+    },
+    "runtime_metadata_query": "/tmp/rv64-alu-weighted-runtime-metadata.json",
+    "Source": [
+      "Full-u32 70000 and zero weights equal scalar QM31 all52 interactions/claims",
+      "Owned transfer/free and borrowed detach/overwrite plus destroyed facts/weights preserve output",
+      "Stable exact grouping retains ordered operands/full64-bit values",
+      "Characteristic mass, invalid/aliased weights, invalid result and shape reject before borrowed publication",
+      "Exhaustive allocation-failure grouping/constructor/generation cleanup",
+      "Native partial submission cancellation preserves borrowed matrix/pool lease",
+      "Strict poles and corrupted copied weight ledger publish nothing and allow retry"
+    ],
+    "parallel": [
+      "Weighted1/4/16 workers match serial all52 columns/claims after main/input release",
+      "Existing both-wave partial submission/OOM/padding pole/error drain gates remain qualified"
+    ],
+    "closed_physical": [
+      "127 actual native BEQs served one EQ(0,0)=1 with weight127 in ALUlog5",
+      "Fresh independently rebuilt Materials accepts weighted and unit geometries",
+      "Scalar and SIMD complete encoded weighted proofs identical",
+      "Wrong boundary rejected",
+      "Committed weight127->126 rejected by actual prover constraints despite balanced claimed function debt",
+      "Entire truth row replaced by padding rejected by actual prover",
+      "Balanced CPU +1 / ALU -1 RANGE claims pass algebraic closure but actual prover rejects ConstraintsNotSatisfied",
+      "Wrong copied weight126 with matching native ledger fails global FUNCTION closure"
+    ]
+  },
+  "durable_large_native_fixture": {
+    "producer": {
+      "scope": "closed-register-only-word16-native-BEQ-prefix; no RAM or complete-RV64 claim",
+      "steps": 1048575,
+      "cpu_log": 20,
+      "alu_log": 5,
+      "weighted_witness": true,
+      "proof_sha256": "baf9aade14f0fc78f013748ff76b8eab6ad67c8b2a61a9346cef046cf9028ae1",
+      "proof_bytes": 477248,
+      "source_cells": 111815872,
+      "source_bytes": 447263488,
+      "setup_ns": 61758041,
+      "capture_ns": 13866834,
+      "prove_or_verify_ns": 1337192166,
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "alu_main_columns": 60,
+      "alu_interaction_columns": 52,
+      "metadata_bytes_per_alu_row": 70,
+      "weighted_alu_fact_count": 1,
+      "function_mass": 1048575,
+      "range16_alu_mass": 640
+    },
+    "receiver": {
+      "scope": "closed-register-only-word16-native-BEQ-prefix; no RAM or complete-RV64 claim",
+      "steps": 1048575,
+      "cpu_log": 20,
+      "alu_log": 5,
+      "weighted_witness": null,
+      "proof_sha256": "baf9aade14f0fc78f013748ff76b8eab6ad67c8b2a61a9346cef046cf9028ae1",
+      "proof_bytes": 477248,
+      "source_cells": 111815872,
+      "source_bytes": 447263488,
+      "setup_ns": 68633000,
+      "capture_ns": 0,
+      "prove_or_verify_ns": 6675208,
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96,
+      "alu_main_columns": 60,
+      "alu_interaction_columns": 52,
+      "metadata_bytes_per_alu_row": 70,
+      "weighted_alu_fact_count": null,
+      "function_mass": 1048575,
+      "range16_alu_mass": 640
+    },
+    "proof_path": "vectors/reports/interop_artifacts/rv64-weighted-alu-beq-20-v1/proof.bin",
+    "claims_path": "vectors/reports/interop_artifacts/rv64-weighted-alu-beq-20-v1/claims.json",
+    "profile_path": "vectors/reports/interop_artifacts/rv64-weighted-alu-beq-20-v1/stages.json",
+    "fresh_process_receiver_accepted": true,
+    "expected_authority": "One immutable BEQ x0,x0,0 instruction; CPUlog20,ALUlog5; independently expected1048575steps,constantPC4096,all registers and clocks zero. No native VM replay at receiver.",
+    "scope": "Complete closed limited register-only CPU+ROM+REGboundary+ALU+BINARY/AND+U16/U8 in one PCS/FRI; no RAM or whole-Ethereum claim.",
+    "function_mass": 1048575,
+    "physical_ALU_rows": 32,
+    "native_distinct_ALU_facts": 1,
+    "unweighted_ALU_range_mass": 640,
+    "production_config": {
+      "queries": 70,
+      "pow_bits": 26,
+      "log_blowup": 1,
+      "nominal_config_bits": 96
+    },
+    "functional_run_observation_only": {
+      "wall_seconds": 1.79,
+      "max_RSS_bytes": 1595441152,
+      "concurrent_compile_work": true,
+      "isolated_speedup_claim": false
+    }
+  },
+  "default_compatibility": {
+    "ALU257280B": {
+      "sha256": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+      "expected": "007f91987144872075761df88f2cc86c4a79c6d5f481a0251d11235033b2e726",
+      "fresh_receiver": true
+    },
+    "distributed_BINARY": {
+      "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+      "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+      "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161"
+    },
+    "all_three_prior_BINARY_hashes_exact": true,
+    "fresh_independent_aggregate_receiver": true,
+    "artifacts": [
+      "vectors/reports/interop_artifacts/rv64-weighted-default-alu-compat-v1",
+      "vectors/reports/interop_artifacts/rv64-weighted-default-binary-compat-v1"
+    ]
+  },
+  "complete_geometry_model": {
+    "weighted_total_source_cells": 111815872,
+    "weighted_total_source_bytes": 447263488,
+    "unit_ALUlog20_total_source_cells_at_same_CPU_geometry": 231349888,
+    "unit_ALUlog20_total_source_bytes": 925399552,
+    "includes": "All8 roles fixed/main/inter source cells; CPU still dominates weighted geometry.",
+    "excludes": "PCS coefficients/LDE, composition/FRI scratch, Merkle nodes/openings, retained native records/caches, allocator caching; see measured RSS for observed process high-water.",
+    "metadata_per_ALU_row": 70,
+    "degree_or_domain_penalty": false,
+    "no_automatic_production_activation": true
+  },
+  "merge_notes": [
+    "Weighted source leaves nativeRow/inverse-cache recipe unchanged: independent SUM-zero hunks apply there and change algebra/MAIN separately.",
+    "Final multiplicity column uses A.LOCAL_MAIN, so it follows future MAIN52 layout without hardcoded59.",
+    "Keep this historical MAIN60 artifact/control; requalify combined SUM-zero+weights as a separate physical representation.",
+    "Existing native function_mass validation is a private corruption detector, never a replacement for physical claim closure."
+  ],
+  "source_pins": {
+    "src/frontends/riscv/rv64/air/word16_v1/alu_dedup.zig": "0cb23cdb762f06bb7cbd4817381b4c23c5c0b6db81c75b9bf813ac4994a68024",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source.zig": "2f49c99ffac6f67cf0efd5e01e6ecdb8e6d2056e2a4e6feeebaf90191cc6b44d",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction.zig": "d877c93c5b2417e0ba2756c692052fe204b7f85f34287a78705e868678e861c8",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_source_test.zig": "989efc5e49cc434f588d3585b86cc24fccedb17a23c70a35ffc2a4d058f3e50e",
+    "src/frontends/riscv/rv64/air/word16_v1/alu_interaction_test.zig": "83c9be47b831d892803dade259c910d1b2cffb16fb02b9f29fad9ededa97a894",
+    "src/integrations/riscv_cpu/word16/cpu.zig": "5324bcf5883108aee49ecc63c8dfc6af256f49f84ffbddb32f9491de9d63a548",
+    "src/integrations/riscv_cpu/word16/cpu_sources.zig": "19a423f9442278a4192f4e973508ccb7c2d407d9ae6be75f6ddbeb4941e3cc43",
+    "src/integrations/riscv_cpu/word16/cpu_stage.zig": "712eac2089183d9ec505e23836f3a5e12f549b68f2766e22bc2e4cb240f07f02",
+    "src/integrations/riscv_cpu/word16/weighted_alu_fixture.zig": "a6f6b2d2ea50e8d62489f07846e93480e03ed327a9f9f059c113212186c8eb11",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_alu_main.zig": "2d1520a92fb8c89016114a0f6b40d4e159ed7a604c0b63e5bca72bb78d61f1f7",
+    "src/integrations/riscv_cpu/tests/rv64_word16_weighted_alu_test.zig": "87aeb8bef8d8a9606ee6274fe496e568b279de9353bae196096af8c1b480276b",
+    "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig": "f33bd45bbc1d8b8a442759a90c57e8d02ab5a439ffdd80856e3d184e58e1c6fb"
+  }
+}

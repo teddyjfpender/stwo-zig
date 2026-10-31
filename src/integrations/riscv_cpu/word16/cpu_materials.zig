@@ -1,10 +1,11 @@
-//! Immutable program/geometry materials for the concrete three-opcode CPU.
+//! Immutable program/geometry materials for limited Word16 CPU diagnostics.
 //! Public steps/PCs/registers/clocks never enter these fixed polynomials.
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const air = @import("stwo_riscv_frontend").rv64_air;
 const W = air.word16_cpu;
+const Profile = W.profile;
 const Binary = air.word16_v1;
 const Tables = air.providers.tables;
 const D = @import("../rv64_distributed_v1/manifest.zig");
@@ -16,17 +17,22 @@ pub const Geometry = struct {
     cpu_log: u32,
     binary_log: u32 = 5,
     mode: Mode = .local_binary,
+    profile: Profile.Profile = .binary_v1,
+    alu_log: u32 = 5,
     pub fn validate(self: Geometry) !void {
         if (self.cpu_log < 5 or self.cpu_log > 22 or self.binary_log < 5 or self.binary_log > 22 or (self.mode == .open_function and self.binary_log != 5)) return error.InvalidThinCpuGeometry;
+        if (self.alu_log < 5 or self.alu_log > 22 or (self.profile == .binary_v1 and self.alu_log != 5) or (self.profile == .alu_binary_v2 and self.mode == .open_function)) return error.UnsupportedThinCpuProfile;
+        const range_mass = 3 * (@as(u64, 1) << @intCast(self.cpu_log)) + (if (self.profile == .alu_binary_v2) 20 * (@as(u64, 1) << @intCast(self.alu_log)) else 0);
+        _ = try Binary.function_bus.admitPositiveMass(&.{range_mass});
         _ = try Binary.function_bus.admitPositiveMass(&.{@as(u64, 1) << @intCast(self.cpu_log)});
         _ = try Binary.function_bus.admitPositiveMass(&.{3 * (@as(u64, 1) << @intCast(self.cpu_log)) + 32});
         if (self.mode == .local_binary) _ = try Binary.binary_source.massForLog(self.binary_log);
     }
 };
-pub const Role = enum { cpu, rom, boundary, binary, and_table, range16, range8 };
+pub const Role = enum { cpu, rom, boundary, alu, binary, and_table, range16, range8 };
 pub const Shape = struct { role: Role, log: u32, widths: [3]usize, offsets: [3]usize };
 pub const Shapes = struct {
-    values: [7]Shape = undefined,
+    values: [8]Shape = undefined,
     len: usize = 0,
     pub fn slice(self: *const Shapes) []const Shape {
         return self.values[0..self.len];
@@ -41,6 +47,7 @@ pub const Materials = struct {
     range16_fixed: []M,
     range8_fixed: []M,
     binary_fixed: []M,
+    alu_fixed: []M,
     and_table: ?Tables.Setup,
     main_logs: []u32,
     fixed_root: T.CommitmentRoot,
@@ -52,7 +59,7 @@ pub const Materials = struct {
     }
     pub fn init(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry) !Materials {
         try geometry.validate();
-        var program = try W.rom.Setup.init(a, expected);
+        var program = try W.rom.Setup.initWithProfile(a, expected, geometry.profile);
         errdefer program.deinit();
         const cpu_fixed = try W.fixed.cpu(a, geometry.cpu_log);
         errdefer a.free(cpu_fixed);
@@ -64,9 +71,11 @@ pub const Materials = struct {
         errdefer a.free(range8_fixed);
         const binary_fixed = if (geometry.mode == .local_binary) try Binary.binary_source.fixedForLog(a, geometry.binary_log) else try a.alloc(M, 0);
         errdefer a.free(binary_fixed);
+        const alu_fixed = if (geometry.profile == .alu_binary_v2) try Binary.binary_source.fixedForLog(a, geometry.alu_log) else try a.alloc(M, 0);
+        errdefer a.free(alu_fixed);
         var and_table: ?Tables.Setup = if (geometry.mode == .local_binary) try Tables.Setup.init(a, .byte_and) else null;
         errdefer if (and_table) |*table| table.deinit();
-        var result = Materials{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu_fixed, .boundary_fixed = boundary_fixed, .range16_fixed = range16_fixed, .range8_fixed = range8_fixed, .binary_fixed = binary_fixed, .and_table = and_table, .main_logs = &.{}, .fixed_root = undefined, .fixed_tree = undefined };
+        var result = Materials{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu_fixed, .boundary_fixed = boundary_fixed, .range16_fixed = range16_fixed, .range8_fixed = range8_fixed, .binary_fixed = binary_fixed, .alu_fixed = alu_fixed, .and_table = and_table, .main_logs = &.{}, .fixed_root = undefined, .fixed_tree = undefined };
         result.main_logs = try result.logs(a, 1);
         errdefer a.free(result.main_logs);
         const columns = try result.fixedColumns(a);
@@ -91,6 +100,7 @@ pub const Materials = struct {
         self.allocator.free(self.range16_fixed);
         self.allocator.free(self.range8_fixed);
         self.allocator.free(self.binary_fixed);
+        self.allocator.free(self.alu_fixed);
         self.allocator.free(self.main_logs);
         if (self.and_table) |*table| table.deinit();
         self.* = undefined;
@@ -106,13 +116,15 @@ pub const Materials = struct {
     pub fn shapes(self: *const Materials) Shapes {
         var result = Shapes{};
         var offsets: [3]usize = @splat(0);
-        const roles = [_]Role{ .cpu, .rom, .boundary, .binary, .and_table, .range16, .range8 };
+        const roles = [_]Role{ .cpu, .rom, .boundary, .alu, .binary, .and_table, .range16, .range8 };
         for (roles) |role| {
+            if (role == .alu and self.geometry.profile != .alu_binary_v2) continue;
             if (self.geometry.mode == .open_function and (role == .binary or role == .and_table)) continue;
             const widths: [3]usize = switch (role) {
-                .cpu => .{ 3, 44, 56 },
-                .rom => .{ 18, 1, 8 },
+                .cpu => .{ 3, Profile.mainCount(self.geometry.profile), 56 },
+                .rom => .{ self.program.fixedCount(), 1, 8 },
                 .boundary => .{ 34, 0, 8 },
+                .alu => .{ 2, Binary.alu_experiment.lookup.MAIN, Binary.alu_experiment.lookup.INTERACTION },
                 .binary => .{ 2, 42, 28 },
                 .and_table => .{ 5, 1, 8 },
                 .range16, .range8 => .{ 3, 1, 8 },
@@ -122,6 +134,7 @@ pub const Materials = struct {
                 .rom => self.program.log_size,
                 .boundary => 5,
                 .binary => self.geometry.binary_log,
+                .alu => self.geometry.alu_log,
                 .and_table, .range16 => 16,
                 .range8 => 8,
             };
@@ -157,6 +170,7 @@ pub const Materials = struct {
                 .rom => self.program.fixed,
                 .boundary => self.boundary_fixed,
                 .binary => self.binary_fixed,
+                .alu => self.alu_fixed,
                 .and_table => self.and_table.?.fixed,
                 .range16 => self.range16_fixed,
                 .range8 => self.range8_fixed,
@@ -169,12 +183,15 @@ pub const Materials = struct {
         if (self.geometry.mode != .open_function) return error.ExpectedOpenThinCpuMaterials;
         try public.validate(self.geometry.cpu_log);
         _ = std.math.add(u64, first_step, public.steps) catch return error.InvalidThinCpuSpan;
-        return .{ .ordinal = ordinal, .role = .cpu, .schema = schema(), .job_witness = job, .public_statement = try W.public.digest(public, self.geometry.cpu_log), .instance_epoch = @as(u64, ordinal) + 1, .first_request = first_step, .request_count = public.steps, .expected_fixed = self.fixed_root, .column_logs = self.main_logs };
+        return .{ .ordinal = ordinal, .role = .cpu, .schema = schemaForProfile(self.geometry.profile), .job_witness = job, .public_statement = try W.public.digest(public, self.geometry.cpu_log), .instance_epoch = @as(u64, ordinal) + 1, .first_request = first_step, .request_count = public.steps, .expected_fixed = self.fixed_root, .column_logs = self.main_logs };
     }
 };
 pub fn schema() T.Digest {
+    return schemaForProfile(.binary_v1);
+}
+pub fn schemaForProfile(profile: Profile.Profile) T.Digest {
     var result: T.Digest = undefined;
-    std.crypto.hash.sha2.Sha256.hash("rv64.word16.thin-binary-register-cpu.v1.main44.inter56.ROM16.REG6.FUNCTION13.clocks24-reset0.D3", &result, .{});
+    std.crypto.hash.sha2.Sha256.hash(if (profile == .binary_v1) "rv64.word16.thin-binary-register-cpu.v1.main44.inter56.ROM16.REG6.FUNCTION13.clocks24-reset0.D3" else "rv64.word16.thin-alu-binary-cpu.v2.main46.inter56.ROM23-edge.REG6.FUNCTION13-unified.ALU60-52.clocks24-reset0.D3", &result, .{});
     return result;
 }
 pub fn validateSpec(materials: *const Materials, public: W.public.Public, spec: T.Spec) !void {

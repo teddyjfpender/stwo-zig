@@ -1,5 +1,5 @@
-//! INACTIVE complete-manifest commitment/challenge API. There is deliberately
-//! no accepting aggregate receiver: root matching is not STARK verification.
+//! Complete-manifest commitment/challenge layer. Concrete receivers must still
+//! verify every physical proof and close its claims; root matching is not proof.
 const std = @import("std");
 const air = @import("stwo_riscv_frontend").rv64_air;
 pub const T = @import("types.zig");
@@ -53,26 +53,52 @@ pub const Manifest = struct {
     /// family challenges are independently tagged and derived from this seal.
     pub fn derive(self: *const Manifest) !Challenges {
         try self.validateUnchanged();
+        if (self.context.protocol != .functional13_v1) return error.DistributedFunctionProtocolMismatch;
         var channel = T.P.Channel{};
         channel.mixU32s(&.{ 0x52563634, 0x44534841, 1 });
         T.mixDigest(&channel, self.digest);
         return .{ .alu = drawFamily(&channel, 1), .binary = drawFamily(&channel, 2), .shift = drawFamily(&channel, 3) };
     }
+    /// ONE vector for globally disjoint ALU/BINARY/SHIFT op IDs. The receiver
+    /// independently selects this explicit protocol and canonical V2 policy;
+    /// copying a packet's policy into expected_policy cannot authorize another.
+    /// This returns randomness, not an accepting V2 CPU/RAM proof certificate.
+    pub fn deriveUnifiedFunctionV2(self: *const Manifest, expected_policy: T.Digest) !FunctionChallenges {
+        try self.validateUnifiedFunctionV2(expected_policy);
+        var channel = T.P.Channel{};
+        channel.mixU32s(&.{ 0x52563634, 0x44535532, 2, 13 });
+        T.mixDigest(&channel, self.digest);
+        T.mixDigest(&channel, self.context.opcode_map);
+        T.mixDigest(&channel, expected_policy);
+        channel.mixU32s(&.{ 0x46554e43, 2, 0, 13 });
+        return drawVector(&channel);
+    }
+    fn validateUnifiedFunctionV2(self: *const Manifest, expected_policy: T.Digest) !void {
+        try self.validateUnchanged();
+        if (self.context.protocol != .functional13_unified_v2) return error.DistributedFunctionProtocolMismatch;
+        const canonical = air.word16_cpu.profile.identity(.alu_binary_v2);
+        if (!std.mem.eql(u8, &expected_policy, &canonical) or !std.mem.eql(u8, &self.context.policy, &expected_policy)) return error.DistributedFunctionPolicyMismatch;
+    }
     /// Worker-local transcript resumes after its ACTUAL stage1 commits. This
     /// digest precedes later interaction claims/constraint coefficient draws.
     /// The final verifier must reproduce this order with its observed roots.
-    fn mixStage2(self: *const Manifest, ordinal: usize, channel: *T.P.Channel) !Challenges {
+    fn bindStage2(self: *const Manifest, ordinal: usize, channel: *T.P.Channel, version: u32) !void {
         try self.validateUnchanged();
         if (ordinal >= self.specs.len) return error.DistributedInventoryMismatch;
         const expected_channel = try stage1Channel(self.context, self.specs[ordinal], self.receipts[ordinal]);
         if (channel.n_draws != 0 or !std.mem.eql(u8, &channel.digestBytes(), &expected_channel.digestBytes())) return error.Stage1TranscriptMismatch;
-        channel.mixU32s(&.{ 0x52563634, 0x44535432, 1, @intCast(ordinal) });
+        channel.mixU32s(&.{ 0x52563634, 0x44535432, version, @intCast(ordinal) });
         T.mixDigest(channel, self.digest);
         T.mixDigest(channel, self.receipts[ordinal].shared.value);
+    }
+    fn mixStage2(self: *const Manifest, ordinal: usize, channel: *T.P.Channel) !Challenges {
+        if (self.context.protocol != .functional13_v1) return error.DistributedFunctionProtocolMismatch;
+        try self.bindStage2(ordinal, channel, 1);
         return self.derive();
     }
     pub fn resumeWorker(self: *const Manifest, a: std.mem.Allocator, ordinal: usize, scheme: *T.Scheme, channel: *T.P.Channel) !Challenges {
         try self.validateUnchanged();
+        if (self.context.protocol != .functional13_v1) return error.DistributedFunctionProtocolMismatch;
         if (ordinal >= self.specs.len) return error.DistributedInventoryMismatch;
         const actual = try T.fromCommitted(a, scheme, self.specs[ordinal]);
         if (!std.meta.eql(actual, self.receipts[ordinal])) return error.Stage1ProofRootMismatch;
@@ -81,13 +107,33 @@ pub const Manifest = struct {
     /// Returns transcript inputs only, never an acceptance certificate. The
     /// caller still MUST run the concrete physical proof verifier afterwards.
     pub fn resumeReceiver(self: *const Manifest, ordinal: usize, proof: *const T.P.Proof, channel: *T.P.Channel) !Challenges {
+        if (self.context.protocol != .functional13_v1) return error.DistributedFunctionProtocolMismatch;
         try self.checkObservedRoots(ordinal, proof);
         return self.mixStage2(ordinal, channel);
+    }
+    /// Stage one may commit a schema-defined global-query projection; later
+    /// execution trees are permitted. The physical V2 receiver must authenticate
+    /// their direct column use or fresh local join. No post-alpha tuple is global.
+    pub fn resumeWorkerUnifiedFunctionV2(self: *const Manifest, a: std.mem.Allocator, ordinal: usize, scheme: *T.Scheme, channel: *T.P.Channel, expected_policy: T.Digest) !FunctionChallenges {
+        try self.validateUnifiedFunctionV2(expected_policy);
+        if (ordinal >= self.specs.len) return error.DistributedInventoryMismatch;
+        const actual = try T.fromCommitted(a, scheme, self.specs[ordinal]);
+        if (!std.meta.eql(actual, self.receipts[ordinal])) return error.Stage1ProofRootMismatch;
+        try self.bindStage2(ordinal, channel, 2);
+        return self.deriveUnifiedFunctionV2(expected_policy);
+    }
+    /// Roots are checked against the ACTUAL proof. Caller must subsequently
+    /// verify its physical V2 AIR/FRI and transcript-bind/close ALL claims.
+    pub fn resumeReceiverUnifiedFunctionV2(self: *const Manifest, ordinal: usize, proof: *const T.P.Proof, channel: *T.P.Channel, expected_policy: T.Digest) !FunctionChallenges {
+        try self.validateUnifiedFunctionV2(expected_policy);
+        try self.checkObservedRoots(ordinal, proof);
+        try self.bindStage2(ordinal, channel, 2);
+        return self.deriveUnifiedFunctionV2(expected_policy);
     }
     /// Binding check ONLY. This reads actual proof commitments, rather than a
     /// caller's claimed root. It neither verifies FRI/AIR nor accepts execution.
     /// A future aggregate receiver must additionally fresh-verify each concrete
-    /// component under derive(), transcript-bind all physical claims BEFORE
+    /// component under its selected derivation, bind all physical claims BEFORE
     /// constraint coefficients, and close every typed relation/endpoint.
     pub fn checkObservedRoots(self: *const Manifest, ordinal: usize, proof: *const T.P.Proof) !void {
         try self.validateUnchanged();
@@ -137,7 +183,8 @@ pub fn validateInventory(expected: Expected) !u64 {
     return positive;
 }
 pub fn validateContext(context: T.Context) !void {
-    if (context.protocol != .functional13_v1) return error.UnsupportedDistributedRamProfile;
+    if (context.protocol != .functional13_v1 and context.protocol != .functional13_unified_v2) return error.UnsupportedDistributedRamProfile;
+    if (context.protocol == .functional13_unified_v2 and !std.mem.eql(u8, &context.policy, &air.word16_cpu.profile.identity(.alu_binary_v2))) return error.DistributedFunctionPolicyMismatch;
     if (context.local_register_clock_bits != 24 or context.relation_epoch == 0 or context.positive_limit == 0 or context.positive_limit >= 0x7fff_ffff or !std.mem.eql(u8, &context.opcode_map, &T.opcodeMapIdentity())) return error.InvalidDistributedContext;
 }
 pub fn beginStage1(context: T.Context, spec: T.Spec, channel: *T.P.Channel) !void {
@@ -180,6 +227,9 @@ fn mixContext(channel: *T.P.Channel, c: T.Context) void {
 }
 fn drawFamily(channel: *T.P.Channel, family: u32) FunctionChallenges {
     channel.mixU32s(&.{ 0x46554e43, 1, family, 13 });
+    return drawVector(channel);
+}
+fn drawVector(channel: *T.P.Channel) FunctionChallenges {
     var result: FunctionChallenges = undefined;
     result.offset = channel.drawSecureFelt();
     for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();

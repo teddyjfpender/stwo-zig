@@ -29,6 +29,9 @@ pub const Packet = struct {
     native: ?R.native_frontier.Prepared,
     tape: rv.compact_tape.Tape,
     content_digest: Digest,
+    /// Derived during the existing preallocation ROM walk; diagnostic advice,
+    /// excluded from the wire identity and every proof/receiver statement.
+    opcode_counts: Admission.OpcodeCounts,
     pub fn view(self: *const Packet) View {
         return .{ .metadata = self.metadata, .finished = &self.finished, .native = if (self.native) |*value| value else null, .tape = &self.tape };
     }
@@ -105,7 +108,7 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, expected: Expected, limits:
     const public = try Public.decode(&public_raw, expected.authority);
     if ((public.execution_profile != .ethereum_services_v1 and public.execution_profile != .ethereum_services_v2) or public.arithmetic_policy != .division_multiplication_services_v3 or public.state_policy != expected.state_policy) return error.WorkPacketAuthorityMismatch;
     try Budget.check(file, h, public.statement.steps, limits);
-    try Admission.check(file, h, public, expected.authority);
+    const opcode_counts = try Admission.check(file, h, public, expected.authority);
     try file.seekTo(H.BYTES + Public.BYTES);
     var reader = IO.Reader{ .file = file, .remaining = (try h.bodyBytes()) - Public.BYTES };
     var finished = try Body.read(a, &reader, public, h.cells, h.chunks);
@@ -118,7 +121,7 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, expected: Expected, limits:
     var tape = try rv.compact_tape_wire.readTail(a, file, .{ .bytes = h.tape_bytes, .steps = @min(limits.steps, public.statement.steps) });
     errdefer tape.deinit();
     if (try rv.compact_tape_wire.encodedBytes(&tape) != h.tape_bytes) return error.InvalidWorkPacketSection;
-    const result = Packet{ .allocator = a, .metadata = h.metadata, .finished = finished, .native = native, .tape = tape, .content_digest = h.content_digest };
+    const result = Packet{ .allocator = a, .metadata = h.metadata, .finished = finished, .native = native, .tape = tape, .content_digest = h.content_digest, .opcode_counts = opcode_counts };
     try validate(result.view());
     return result;
 }

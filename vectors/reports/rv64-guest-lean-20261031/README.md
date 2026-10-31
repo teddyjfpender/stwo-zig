@@ -359,3 +359,11 @@ The remaining wide-CPU cost per plain batch is composition 6.5 s (coset FFTs
 3.5 s, constraint rows 2.7 s), commit preparation 3.2 s, FRI 2.0 s,
 interactions 1.8 s, decommit 1.4 s; all of it scales with column count, which
 the Word16 and 2n-domain work on the main branch addresses.
+
+## Round-five complete proof
+
+The complete 104,253,913-instruction round-five block now has 25 proofs plus
+a terminal certificate and fresh-process verification: 716.99 s producer,
+7.16 s receiver, 72.85 MB proof files. Peak RSS was 41.86/6.09 GB respectively.
+[Full evidence and per-batch table](round5/README.md). These are new observations;
+the earlier 910.62 s result belongs to the round-one guest.

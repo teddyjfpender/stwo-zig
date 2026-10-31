@@ -1,0 +1,99 @@
+{
+  "schema": "rv64-word16-native-physical-projection-v1",
+  "status": "Safe/Fast functional qualification; no performance measurement",
+  "authority": "continuity/ROM/clock capture remains unchanged oneforward serial metadata pass; same raw rowValues or indexed dataValues/project formats each physical row directly",
+  "algorithm": [
+    "physical16-row-aligned disjoint ranges use exactinverse circle/bitreverse permutation",
+    "perworker private65536-U16 +256-U8 u64histogram; no sharedincrements",
+    "allallocation/helper submissions precede startgate release; cancellation drains before privateowners free",
+    "joinedcoordinator merge validates eachfamily sum3*N and bins<p before copyinghistograms",
+    "publish main+rows_projected onlyafter successfulformat+merge; no46N matrixforindex40"
+  ],
+  "resource": {
+    "histogram_bytes_per_worker": 526336,
+    "histogram16_workers_bytes": 8421376,
+    "scratch_lifetime": "deallocated via sourceallocator before main publication; allocator retention behavior remains allocator-specific",
+    "workers": "min(explicit existing pool workers,max(1,domainRows/4096))",
+    "stack_optimized_bytes": 262144,
+    "stack_debug_bytes": 1048576
+  },
+  "qualification": {
+    "native_projection_ReleaseSafe": 3,
+    "native_projection_ReleaseFast": 3,
+    "actual_testserver_runtime_metadata": 3,
+    "complete_CPU_parallel_proofs_ReleaseSafe": 4,
+    "complete_CPU_parallel_proofs_ReleaseFast": 4,
+    "index_physical_ReleaseSafe": 9,
+    "index_physical_ReleaseFast": 9,
+    "legacy_raw_V1_V2_ReleaseSafe": 14,
+    "legacy_raw_V1_V2_ReleaseFast": 14,
+    "workers": [
+      1,
+      4,
+      16
+    ],
+    "matrix": "all44/46/40 physicalmatrix cells, U16/U8histograms,ROMhistograms,48Bmetadata andphase match strictlogicalprojectRow/projectDataRow reference",
+    "scope_cases": [
+      "nativehigh64binary aliasedreads/x0/discardedresult",
+      "16388nativeALU/binary/branch loop steps crosschunkboundaries",
+      "sparsehigh64+low48alias address IDs withpadding",
+      "index9 retainsfull64wrap/largeIDs/invalidrawidentity/falseprover/denseD3 gates"
+    ],
+    "failure": [
+      "0/1helpersubmissioncancelled:callbackentrycanaryremains0",
+      "raw/indexSource.mainempty,allhistfamilieszero,metadata+phaseunchanged afterfailures",
+      "allconstructorallocationfailures unwind; source retry succeeds",
+      "insufficientactual1workerstack rejected",
+      "secondprojection phase rejected"
+    ],
+    "proofs": "raw/index completeproofbytes exact1/4/16workers; local expectedreceiverPASS",
+    "historical_freshprocess": {
+      "artifacts": "/tmp/stwo-rv64-native-projection-regression-v1",
+      "receiver": "PASS",
+      "cpu0_sha256": "d768eb0d89c7077ad1657afffb1977c2ca51559dd7d8c70ab9767b548f56dfcf",
+      "cpu1_sha256": "b576ec295d30c02824217aca82a7b2911a738213a4690dd4e1208c42eee0048d",
+      "binary_sha256": "870d9b5b6ac84ce8645d17dc14918ffc8b6a093d2398babfbe28c27505d36161",
+      "manifest": "4b850e396443fcde0d09eb34f73d5798565bbefacbc0322276e65e288197f3b0"
+    }
+  },
+  "scope": [
+    "owned provisionalCPU main only; no generalizedborrowedmain rollbackclaim",
+    "no NativeFillALU/Sourcecoordinator/stage/profiler edits",
+    "no circuit/schema/transcript/immutablekey changes",
+    "no Ethereum/fullISA/RAMactivation ormemory/runtimeimprovementclaim"
+  ],
+  "logs": [
+    "/tmp/rv64-cpu-native-projection-safe-final.log",
+    "/tmp/rv64-cpu-native-projection-fast-final.log",
+    "/tmp/rv64-native-projection-raw14-safe.log",
+    "/tmp/rv64-native-projection-raw14-fast.log",
+    "/tmp/rv64-native-projection-v1-fixture-build.log"
+  ],
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/native_projection.zig",
+      "sha256": "0f9979e2bbb63519bd91a4b5e29cbf17cdba0c16d059e82a13dcd0360121d802"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_cpu/trace.zig",
+      "sha256": "254b7b2d05675dabcbd9899bc35d48001e1945abf192d4ff14e064761b5e3ea8"
+    },
+    {
+      "path": "src/frontends/riscv/rv64/air/word16_index_control/trace.zig",
+      "sha256": "2c168f17046b6b243d50a7a03cba1ed3bb640fb2f0086903fa8dd8a07b22fe5b"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/tests/rv64_word16_native_projection_test.zig",
+      "sha256": "0590e86e5a274fa5af0629240cd0fa631c4d347ba0430edad4042446225c204e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/rv64_word16_native_projection_test_root.zig",
+      "sha256": "06c4b98668e0b728673ed145fcd42bbaf3ec43467a9b6c711c622e34a6d4081e"
+    }
+  ],
+  "selective_metadata_hunks": [
+    "air/mod.zig word16_cpu.native_projection export only",
+    "riscv_cpu.zig newword16-native-projection root minimum3 only",
+    "catalog.zig corresponding newtarget only"
+  ]
+}

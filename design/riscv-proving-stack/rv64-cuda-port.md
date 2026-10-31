@@ -1,6 +1,7 @@
 # RV64 CUDA port
 
-Status: complete design for `rv64_cuda_v1`. Builds on the existing strict-AOT
+Status: implementation proposal for `rv64_cuda_v1`; resource and latency
+qualification remain outstanding. Builds on the existing strict-AOT
 CUDA runtime (`src/backends/cuda`: resident proof session, authenticated
 kernel registry, device ABI, H100/H200 retained qualifications), the Cairo
 resident prover (`src/integrations/cairo_cuda`, 25x on its composition path),
@@ -35,27 +36,45 @@ already consumed by `secure_polynomial_codegen_v1`. Instantiating `emitFor`
 with it at build time yields each component's constraint program; the
 existing codegen emits CUDA, the offline builder compiles it to cubin and
 registers it in the authenticated AOT pack. The CPU and the GPU therefore run
-the same constraint set by construction, and the OODS check on the host
-catches any divergence before a proof is published.
+the same constraint set by construction, and the host OODS check supplies a probabilistic consistency check.
+Complete native proof verification remains the acceptance gate. Shared
+equations do not by themselves qualify kernel scheduling or memory safety;
+register pressure, spills and intermediate lifetimes must also be measured,
+particularly for the wide Keccak/secp components.
 
 ## 3. Memory plan, one 2^22-step batch on a 32 GB 5090
 
-| Buffer | Size | Basis |
-| --- | ---: | --- |
-| CPU main + interaction + fixed at n | 0.5 GB | 125 columns x 4M x 4 B |
-| Family chips at their logs | 0.6 GB | 271 cells per row model minus CPU |
-| Extended evaluations at 2n for all committed columns | 2.2 GB | needed for leaves and the quotient |
-| Coefficients (retained) | 1.1 GB | |
-| Composition at 2n (4 QM31) | 0.13 GB | |
-| Inverse tables, scratch, FRI layers | 0.5 GB | |
-| **total** | **~5 GB** | fits with room for two batches in flight |
+The arithmetic below assumes 271 effective base-field columns at n, including
+125 CPU columns. This is a provisional model, not the final chip geometry.
+One column at n = 2^22 costs **16,777,216 bytes**. GB here means 10^9 bytes.
+The original 5 GB estimate undercounted these buffers by approximately four.
 
-On the current 533-column shape the same plan needs about 19 GB, which is why
-the port follows the Word16 CPU for the column-dependent kernels.
+| Buffer | Decimal GB | Basis |
+| --- | ---: | --- |
+| CPU main + interaction + fixed at n | 2.097 | 125 x 2^22 x 4 B |
+| Remaining family/table columns at equivalent n | 2.449 | (271 - 125) x 2^22 x 4 B |
+| Extended evaluations at 2n | 9.093 | 271 x 2^23 x 4 B |
+| Coefficients retained at n | 4.547 | 271 x 2^22 x 4 B |
+| One composition evaluation at 2n | 0.134 | 2^23 QM31 values, 16 B each |
+| Inverse tables, scratch, FRI layers | >= 0.500 | provisional allowance; measure by lifetime |
+| **Separate-buffer subtotal** | **>= 18.821** | excludes additional service-provider work and device overhead |
+
+Source and coefficient ownership can overlap or transfer, so this subtotal is
+not an irreducible peak. Eliminating the entire 4.547 GB source copy would leave
+about 14.275 GB under these assumptions. Neither figure includes independently
+sized Keccak/secp providers, extra table padding, all commitment-tree buffers,
+AOT/runtime allocations, or simultaneous composition intermediates. Those must
+enter the allocation-lifetime ledger before admitting a batch to a 32 GB GPU.
+Two batches in flight are **not** established by this model.
+
+For comparison, 533 effective columns cost 8.942 GB at n, 17.884 GB at 2n,
+and another 8.942 GB for independent coefficients: 35.769 GB before scratch and
+providers. Ownership reuse can reduce that peak; a claimed 19 GB route requires
+its own measured lifetime plan.
 
 ## 4. Throughput projection
 
-Projection. A 2^22-point circle FFT on a 5090 is ~0.3 ms (memory-bound, 16 MB
+Unqualified throughput hypothesis. A 2^22-point circle FFT on a 5090 is assumed to take ~0.3 ms (memory-bound, 16 MB
 in and out); a batch needs about 400 column transforms for commits plus 400 for
 the two composition cosets: ~0.25 s. Poseidon2 leaf hashing of ~2.5 GB of
 extended columns at ~50 GB/s effective: ~0.05 s. Constraint kernels on 8M
@@ -63,13 +82,23 @@ points x ~700 constraints at a few hundred Gop/s: ~0.1 s. Interactions, FRI,
 decommits: ~0.1 s. Total 0.3 to 0.6 s per batch on one GPU, 36 batches on four
 GPUs in 3 to 6 s with the manifest phase first.
 
+The per-FFT figure and resulting latency are not measurements or lower bounds.
+They must be replaced by receipts for actual circle FFT sizes, memory traffic,
+provider geometry, transfer costs and the complete resident proof. The corrected
+resource plan above invalidates the original 5 GB basis for this projection.
+
 ## 5. Four GPUs
 
 Shard-parallel: each GPU owns a queue of batches. Phase one (memory subtree
 roots) runs for all batches first; roots go to the coordinator; phase two runs
 as batches are assigned. Leaves run on whichever GPU finishes a batch; parents
-run on any GPU as pairs complete. No cross-GPU traffic except roots, claims and
-proof bytes. NCCL is not needed in this version.
+run on any GPU as pairs complete. Inter-GPU communication can be restricted to roots, claims and proof bytes.
+This does not eliminate host/device traffic for queued stage-one state. Before
+the global challenge, the scheduler must bound retained memory advice and PCS
+state across ALL queued batches, not just one resident proof. A durable spill
+or root-checked reconstruction route must be qualified if complete residency
+exceeds the budget; its transfers belong in end-to-end timing. NCCL is not
+required by this proposed schedule.
 
 ## 6. What exists and what is new
 

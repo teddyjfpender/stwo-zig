@@ -71,6 +71,12 @@ test "portable packet workers prove out of order and complete only after canonic
     try std.testing.expect(!try exists(dir, "summary.json"));
     const inspected = try Inspect.run(a, config, 1);
     try std.testing.expectEqual(@as(u32, 2), inspected.steps);
+    const Opcode = @import("stwo_riscv_frontend").rv64.decode.Opcode;
+    try std.testing.expectEqual(@as(u64, 1), inspected.opcode_counts[@intFromEnum(Opcode.ADDI)]);
+    try std.testing.expectEqual(@as(u64, 1), inspected.opcode_counts[@intFromEnum(Opcode.SW)]);
+    var total: u64 = 0;
+    for (inspected.opcode_counts) |count| total += count;
+    try std.testing.expectEqual(@as(u64, inspected.steps), total);
     try std.testing.expect(!inspected.physical_proof_verified and !inspected.global_chain_accepted);
     const second = try Worker.run(a, config, 1);
     try std.testing.expect(second.physical_fragment_verified and !second.global_chain_accepted);

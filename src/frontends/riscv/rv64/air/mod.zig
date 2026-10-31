@@ -53,6 +53,8 @@ pub const crypto = struct {
 };
 
 pub const memory = struct {
+    pub const load_store_v1 = @import("memory/load_store_v1/mod.zig");
+    pub const closed_ram = @import("memory/closed_ram/mod.zig");
     pub const terminal_air = @import("memory/terminal_air.zig");
     pub const terminal_component = @import("memory/terminal_component.zig");
     pub const ownership = @import("memory/ownership.zig");
@@ -95,16 +97,53 @@ pub const state_cyclic = @import("state_cyclic.zig");
 
 /// Inactive Word16 request vocabulary; no production profile selects it.
 pub const word16_v1 = struct {
+    pub const word_add = @import("word16_v1/word_add.zig");
     pub const operations = @import("word16_v1/operations.zig");
     pub const function_bus = @import("word16_v1/function_bus.zig");
     pub const binary = @import("word16_v1/binary.zig");
     pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
     pub const binary_component = @import("word16_v1/binary_component.zig");
     pub const binary_source = @import("word16_v1/binary_source.zig");
+    /// Inactive byte-interface SHIFT prototype; no CPU profile selects it.
+    pub const shift_experiment = struct {
+        pub const equations = @import("word16_v1/shift_byte.zig");
+        pub const lookup = @import("word16_v1/shift_byte_lookup.zig");
+        pub const component = @import("word16_v1/shift_byte_component.zig");
+        pub const table_component = @import("word16_v1/shift_byte_table_component.zig");
+    };
+    /// Separate inactive Word16 candidate, sharing only pure chunk arithmetic.
+    pub const shift_word_experiment = struct {
+        pub const equations = @import("word16_v1/shift_word.zig");
+        pub const lookup = @import("word16_v1/shift_word_lookup.zig");
+        pub const table = @import("word16_v1/shift_word_table.zig");
+        pub const component = @import("word16_v1/shift_word_component.zig");
+        pub const table_component = @import("word16_v1/shift_word_table_component.zig");
+    };
+    /// Same Word16 truth schema, separate immutable packed-table shape.
+    pub const shift_word_packed_experiment = struct {
+        pub const equations = @import("word16_v1/shift_word.zig");
+        pub const lookup = @import("word16_v1/shift_word_lookup.zig");
+        pub const table = @import("word16_v1/shift_word_packed_table.zig");
+        pub const component = @import("word16_v1/shift_word_component.zig");
+        pub const source = @import("word16_v1/shift_word_source.zig");
+        pub const table_component = @import("word16_v1/shift_word_packed_table_component.zig");
+    };
+    /// Qualified ALU diagnostic; not the production full-ISA protocol.
+    pub const alu_experiment = struct {
+        pub const equations = @import("word16_v1/alu.zig");
+        pub const lookup = @import("word16_v1/alu_lookup.zig");
+        pub const component = @import("word16_v1/alu_component.zig");
+        pub const source = @import("word16_v1/alu_source.zig");
+        pub const range_source = @import("word16_v1/u16_source.zig");
+        pub const range_component = @import("word16_v1/u16_component.zig");
+    };
 };
 
 /// Concrete register-only BINARY CPU; legacy profiles retain their encoding.
 pub const word16_cpu = struct {
+    pub const native_projection = @import("word16_cpu/native_projection.zig");
+    pub const interaction = @import("word16_cpu/interaction.zig");
+    pub const profile = @import("word16_cpu/profile.zig");
     pub const layout = @import("word16_cpu/layout.zig");
     pub const public = @import("word16_cpu/public.zig");
     pub const lookup = @import("word16_cpu/lookup.zig");
@@ -117,4 +156,13 @@ pub const word16_cpu = struct {
     pub const component = @import("word16_cpu/component.zig");
     pub const table_trace = @import("word16_cpu/table_trace.zig");
     pub const boundary_trace = @import("word16_cpu/boundary_trace.zig");
+};
+
+/// Concrete indexed-address ALU/binary diagnostic, not a runtime profile flag.
+pub const word16_index_control = struct {
+    pub const authority = @import("word16_index_control/authority.zig");
+    pub const equations = @import("word16_index_control/equations.zig");
+    pub const trace = @import("word16_index_control/trace.zig");
+    pub const rom_trace = @import("word16_index_control/rom_trace.zig");
+    pub const component = @import("word16_index_control/component.zig");
 };

@@ -1,27 +1,31 @@
 # Global memory argument
 
-Status: complete design for protocol version `ram_global_v1`. Builds on the
+Status: proposed protocol `ram_global_v1`; physical AIR, aggregate receiver,
+resource admission and adversarial qualification remain required. Builds on the
 inactive model, collector and relation prototypes in
 `src/frontends/riscv/rv64/air/memory/global_ram_v1/` and the choreography in
 `rv64-global-ram-v1.md`; this document fixes the remaining choices (LogUp over
 the multiplicative variant, tuple schema, epoch ordering, sparse boundaries,
-manifest protocol, receiver algorithm) so the implementation is determined.
+manifest protocol, receiver algorithm) with the implementation obligations and corrections below remaining explicit.
 
 ## 1. What it replaces
 
 Today every batch proves a private RAM transition: a Poseidon2 sparse Merkle
 tree over 512-byte chunks (38 permutations per touched chunk, 4 per node),
-cell/chunk/node/side/policy/terminal components, and a root chain that forces
-batches to be proven in order. Costs in the 36-batch run: RAM witness 28.8 s,
-worst batch 45 s with 2.1M padded Poseidon rows, and no batch-level
-parallelism beyond what the root chain allows.
+cell/chunk/node/side/policy/terminal components, and a native RAM root chain.
+Detached physical proof workers already support out-of-order proving once their
+root-linked work packets exist; the native capture/root computation remains
+sequential. Costs in the 36-batch round-one run: RAM witness 30.41 s,
+worst batch 45 s with 2.1M padded Poseidon rows. The existing serial driver
+is a scheduling choice, not a cryptographic
+requirement that physical proofs finish in order.
 
 After this version: RAM events are LogUp tuples in a relation shared across
 all batches and services of one execution; initialization and teardown are
 two sparse sorted tables; the challenge is drawn once from a sealed manifest
 of every participant's stage-one root; batches prove in any order and in
-parallel; the aggregate receiver closes the relation. No hashing of memory
-contents anywhere.
+parallel; the aggregate receiver closes the relation. No sparse-Merkle RAM update circuit remains; PCS commitments still hash the
+committed memory columns.
 
 ## 2. Relation and tuple
 
@@ -41,6 +45,14 @@ Tuple, 14 coordinates (`global_ram_v1/manifest.zig` ARITY):
   slot clock as u16 + u8, exactly the CPU clock limbs.
 - `value` four u16 limbs; `readable`/`writable` Booleans from the immutable
   policy.
+
+This is a bounded 40-bit logical timestamp, not a full-u64 clock. Epochs must
+be range checked and bound to expected manifest ordinals (at most 65,535).
+Local register clocks retain their own 24-bit cap. Expanding either contract
+requires new integer-order equations and qualification.
+Different arity-14 schemas (for example full-u64 time plus packed rights) must
+have distinct tuple-schema identities. Matching arity does not imply matching
+coordinate meaning. Read-only accesses still advance authenticated time.
 
 Unit-flow equation per execution:
 
@@ -64,9 +76,12 @@ and advice limbs and proves:
   lookup; `t_p` is any canonical time (its limbs range checked).
 
 AFTER times of CPU-owned events are fixed geometry (row, slot); service lanes
-bind their tick to the CPU service row as today. Every producer's AFTER time
-is unique by construction (distinct slot or lane); the receiver additionally
-checks the total event count against the geometry.
+bind their tick to the CPU service row as today. Uniqueness is for **(address, epoch, tick)**, not time alone: Keccak's 25
+distinct words share one service tick. Overlapping service pointers must be
+coalesced to one net transition per word or use separately authenticated strict
+subclocks. A lane number absent from the tuple cannot supply uniqueness. The
+receiver checks event coverage and the AIR establishes origin and strict order;
+a native count alone establishes neither.
 
 Strict descent reaches the unique initialization source for every address, so
 reads are canonical by induction from the expected image, provided every write
@@ -82,8 +97,11 @@ Two components per execution, each a sorted table over touched addresses
 
 - **INIT**: rows `(addr, value, rights)` with time `(0, 0)`, emitted as AFTER.
   `value` is looked up in the receiver-derived nonzero image table (ELF data,
-  BSS zeros, input) or proven inside a zero region of the policy table; the
-  prover never chooses an initial value. Rows are strictly increasing in
+  BSS zeros, input), or through a disjoint zero-default proof. Permission-region
+  membership alone does not prove a zero value: the zero route must prove
+  absence from all expected nonzero ELF/input exceptions. The two routes must
+  not authorize different initial values for the same address. The prover
+  never chooses an initial value. Rows are strictly increasing in
   `addr` (four-limb comparison with borrow advice), so each address appears
   once.
 - **TEARDOWN**: rows `(addr, value, rights, epoch, tick)` emitted as BEFORE
@@ -131,7 +149,18 @@ Phase two, per participant, in parallel:
    compose, FRI, decommit. The proof carries its memory root, `m`, and its
    RAM claim (a QM31 sum).
 
-Nothing about this changes the local soundness argument: the memory advice
+The memory barrier does not seal unrelated global relations. If FUNCTION
+claims are also shared across workers, their query tuples and multiplicities
+must likewise be committed before their global challenge, with independently
+expected roots and a physical join to CPU execution. Keeping FUNCTION local
+is an alternative. A memory-only receipt does not bind later FUNCTION advice.
+
+Workers must also admit the complete retained stage-one footprint. Holding all
+wide PCS owners until the barrier is not a bounded-memory schedule. Projection
+columns physically reused in the execution proof, or qualified durable spill /
+root-checked reconstruction, need explicit ownership and transfer budgets.
+
+The required local soundness argument is: the memory advice
 is committed before `alpha_ram` exists, all other witness columns are committed
 before their own challenges, and `m` is mixed into the local transcript before
 any challenge is drawn.
@@ -159,16 +188,37 @@ Steps 1 to 5 are exactly what the leaf and parent circuits of
 ## 7. Security budget
 
 - LogUp soundness as today, with total RAM mass (all producers plus both
-  boundary tables, counted from fixed geometry, not from `ram_events`) below
+  boundary tables, counted conservatively from fixed geometry) below
   the M31 characteristic: for this block about 2 * 67.3M events plus 2U rows,
   well below 2^31. Admission computes it from the manifest with checked
-  integer arithmetic.
+  integer arithmetic. Using smaller active counts instead requires those counts
+  to be physically proved and pinned before the shared challenge; native
+  `ram_events` metadata cannot replace that authority.
 - Challenges are QM31 (about 124 bits), drawn from a Blake2s channel seeded by
   `m`; the manifest commits to every memory root so a root replacement after
   the draw is detected in step 2.
 - Local BYTE, range16, ROM and family relations remain local and unchanged.
 
 ## 8. Attack tests required before promotion
+
+Shared range providers need a separate mass admission calculation from RAM.
+Using the round-5 opcode census, globally packed fixed instances for the current
+conservative CPU, ALU (including branch predicates), LOAD/STORE and SHIFT
+contracts, without weighted pure-function deduplication, would emit **2,408,579,072 U16 queries including padding**. This already
+exceeds M31's characteristic by 261,095,425, before any additional chips. A
+single global U16 ledger must therefore reject that proposed geometry. Current
+local proof closures remain independent and do not activate this global plan.
+
+One candidate partition assigns CPU/ALU to a 1,111,490,560-query ledger and
+LOAD/STORE/SHIFT to a 1,297,088,512-query ledger, each with a distinct scoped
+challenge and complete provider closure. Admission must include every later
+chip too. Immutable table setup can still be shared; multiplicities, challenge
+scope and physical claims cannot be reused across these ledgers. The
+[reproducible mass model](../../vectors/reports/rv64-guest-lean-20261031/round5/global-u16-mass-review-v1.json)
+records the experimental contracts and assumptions. This is a design requirement,
+not a qualified global range protocol. Weighted fact reuse can lower the selected
+roster; admission must use its actual padded physical rows and cannot assume
+this conservative geometry or its partition is mandatory for every design.
 
 Omitted shard, duplicated shard, reordered shards, memory root replaced after
 the challenge, RAM claim replaced in the wire proof, init omitted or duplicated
@@ -184,7 +234,7 @@ terminal substitution. Each is a fresh-receiver test, not a model test.
 Removed per batch: Poseidon2 chunk/node/side components, the RAM witness
 (28.8 s over the run), the serial root chain. Added per batch: the memory
 subtree commit (the LOAD/STORE and service RAM tuple columns were already
-committed; they move trees, no new columns), two u16 epoch-order advice columns
+committed; they move trees, no new columns), two u16 epoch-order advice columns plus a Boolean same-epoch flag
 per RAM producer row. Added per execution: INIT and TEARDOWN at 2^22 rows
 each (14 and 16 main columns, 3 Q interaction) and the collector's sorted
 boundary pass. Net per the cumulative source model in

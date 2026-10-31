@@ -1,5 +1,6 @@
-//! Concrete register-only AND/OR/XOR CPU v1. This layout is separate from all
-//! existing RV64 proof profiles. Every u64 word/PC has FOUR canonical u16 limbs;
+//! Shared base layout for limited binary and ALU/branch CPU diagnostics.
+//! ALU/binary adds two ROM control flags via profile.zig. Full RV64 profiles
+//! do not select this diagnostic. Every u64 word/PC has FOUR canonical u16 limbs;
 //! no three-u16/48-bit truncation or full-u64 equality in M31 is permitted.
 const core = @import("stwo_core");
 pub const fixed = struct {

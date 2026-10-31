@@ -1,7 +1,10 @@
-//! Independently derived immutable ROM for the exact three-opcode profile.
-//! Unlike the legacy155-field decode table this has only16 semantic fields.
-//! Program bytes/full-u64 PCs authenticate all register IDs/zero flags and the
-//! wrapping increment; no request PC path, step count or final state is fixed.
+//! Independently derived immutable ROM for limited Word16 CPU diagnostics.
+//! Binary control uses16 semantic fields. ALU/binary uses23, including signed
+//! immediates and both legal branch edges. Every full-u64 PC derives from the
+//! complete expected program, never an executed-only instruction selection.
+//! Unsupported program words still reject these LIMITED profiles; production
+//! full-ELF admission needs per-word validity, not a narrowed expected program.
+//! No request PC path, step count or endpoint becomes a fixed column.
 const std = @import("std");
 const core = @import("stwo_core");
 const M = core.fields.m31.M31;
@@ -10,6 +13,7 @@ const Program = @import("../program/setup.zig").Program;
 const Operations = @import("../word16_v1/operations.zig");
 const P = @import("public.zig");
 const L = @import("layout.zig");
+const Profile = @import("profile.zig");
 pub const FIXED = 18;
 pub const Setup = struct {
     allocator: std.mem.Allocator,
@@ -19,74 +23,192 @@ pub const Setup = struct {
     fixed: []M,
     log_size: u32,
     identity: [32]u8,
+    profile: Profile.Profile,
+    word_rows: []u32,
+    row_words: []u32,
+    contiguous: bool = false,
     pub fn init(a: std.mem.Allocator, program: Program) !Setup {
+        return initWithProfile(a, program, .binary_v1);
+    }
+    pub fn initWithProfile(a: std.mem.Allocator, program: Program, profile: Profile.Profile) !Setup {
         try program.validate();
         const decoded = try a.alloc(isa.Instruction, program.words.len);
         errdefer a.free(decoded);
         for (program.words, decoded) |raw, *instruction| {
             instruction.* = try isa.Instruction.decode(raw);
-            switch (instruction.opcode) {
-                .AND, .OR, .XOR => {},
-                else => return error.UnsupportedWord16CpuOpcode,
-            }
+            const operation = Operations.classify(instruction.opcode) orelse return error.UnsupportedWord16CpuOpcode;
+            if (profile == .binary_v1) {
+                switch (instruction.opcode) {
+                    .AND, .OR, .XOR => {},
+                    else => return error.UnsupportedWord16CpuOpcode,
+                }
+            } else if (operation.family != .alu and operation.family != .binary) return error.UnsupportedWord16CpuOpcode;
         }
         const words = try a.dupe(u32, program.words);
         errdefer a.free(words);
         const addresses = try a.alloc(u64, words.len);
         errdefer a.free(addresses);
         for (addresses, 0..) |*address, i| address.* = program.pc(i);
-        const log_size = @max(L.MIN_LOG, std.math.log2_int_ceil(usize, words.len));
+        const word_rows = try a.alloc(u32, words.len);
+        errdefer a.free(word_rows);
+        var rows: usize = 0;
+        for (addresses, decoded, word_rows) |pc, instruction, *first_row| {
+            first_row.* = @intCast(rows);
+            const branch = Operations.classify(instruction.opcode).?.branch_predicate;
+            rows += if (branch and ((pc +% @as(u64, @bitCast(instruction.imm))) & 3 == 0)) @as(usize, 2) else 1;
+        }
+        if (rows > @as(usize, 1) << 22) return error.InvalidWord16RomGeometry;
+        const row_words = try a.alloc(u32, rows);
+        errdefer a.free(row_words);
+        const log_size = @max(L.MIN_LOG, std.math.log2_int_ceil(usize, rows));
         const n = @as(usize, 1) << @intCast(log_size);
-        const fixed = try a.alloc(M, FIXED * n);
+        const tuple_count = Profile.romCount(profile);
+        const fixed = try a.alloc(M, (tuple_count + 2) * n);
         errdefer a.free(fixed);
         @memset(fixed, M.zero());
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-rv64/word16-register-binary-rom/v1\x00");
+        hash.update(if (profile == .binary_v1) "stwo-rv64/word16-register-binary-rom/v1\x00" else "stwo-rv64/word16-alu-binary-edges-rom/v2\x00");
         var framed: [12]u8 = undefined;
         for (addresses, words, decoded, 0..) |pc, raw, instruction, i| {
             std.mem.writeInt(u64, framed[0..8], pc, .little);
             std.mem.writeInt(u32, framed[8..12], raw, .little);
             hash.update(&framed);
-            const row = derive(pc, instruction);
-            const pos = L.physical(i, @intCast(log_size));
-            for (row, 0..) |value, column| fixed[column * n + pos] = value;
+            const first_row = word_rows[i];
+            const end_row = if (i + 1 == words.len) rows else word_rows[i + 1];
+            for (first_row..end_row) |row_index| {
+                row_words[row_index] = @intCast(i);
+                const row = deriveWithProfile(pc, instruction, profile, row_index != first_row);
+                const pos = L.physical(row_index, @intCast(log_size));
+                for (row[0..tuple_count], 0..) |value, column| fixed[column * n + pos] = value;
+            }
         }
-        fixed[16 * n + L.physical(0, @intCast(log_size))] = M.one();
-        fixed[17 * n + L.physical(n - 1, @intCast(log_size))] = M.one();
-        return .{ .allocator = a, .words = words, .addresses = addresses, .decoded = decoded, .fixed = fixed, .log_size = @intCast(log_size), .identity = hash.finalResult() };
+        fixed[tuple_count * n + L.physical(0, @intCast(log_size))] = M.one();
+        fixed[(tuple_count + 1) * n + L.physical(n - 1, @intCast(log_size))] = M.one();
+        return .{ .allocator = a, .words = words, .addresses = addresses, .decoded = decoded, .fixed = fixed, .log_size = @intCast(log_size), .identity = hash.finalResult(), .profile = profile, .word_rows = word_rows, .row_words = row_words, .contiguous = contiguousAddresses(addresses) };
     }
     pub fn deinit(self: *Setup) void {
+        self.allocator.free(self.row_words);
+        self.allocator.free(self.word_rows);
         self.allocator.free(self.fixed);
         self.allocator.free(self.decoded);
         self.allocator.free(self.addresses);
         self.allocator.free(self.words);
         self.* = undefined;
     }
+    /// Borrowed immutable cache. The owner must outlive all sources/views.
+    pub fn metadataView(self: *const Setup) MetadataView {
+        return .{ .words = self.words, .addresses = self.addresses, .decoded = self.decoded, .word_rows = self.word_rows, .row_words = self.row_words, .log_size = self.log_size, .profile = self.profile, .contiguous = self.contiguous };
+    }
     pub fn size(self: *const Setup) usize {
-        return @as(usize, 1) << @intCast(self.log_size);
+        return self.metadataView().size();
+    }
+    pub fn fixedCount(self: *const Setup) usize {
+        return Profile.romCount(self.profile) + 2;
+    }
+    pub fn rowPc(self: *const Setup, index: usize) u64 {
+        return self.metadataView().rowPc(index);
+    }
+    pub fn rowInstruction(self: *const Setup, index: usize) isa.Instruction {
+        return self.metadataView().rowInstruction(index);
+    }
+    pub fn rowNext(self: *const Setup, index: usize) u64 {
+        return self.metadataView().rowNext(index);
+    }
+    pub fn factIndex(self: *const Setup, word: usize, taken: bool) !usize {
+        return self.metadataView().factIndex(word, taken);
     }
     pub fn lookup(self: *const Setup, pc: u64) !usize {
-        var lo: usize = 0;
-        var hi = self.addresses.len;
-        while (lo < hi) {
-            const middle = lo + (hi - lo) / 2;
-            if (self.addresses[middle] < pc) lo = middle + 1 else hi = middle;
-        }
-        if (lo == self.addresses.len or self.addresses[lo] != pc) return error.UnknownWord16CpuPc;
-        return lo;
+        return self.metadataView().lookup(pc);
     }
 };
-fn derive(pc: u64, instruction: isa.Instruction) [16]M {
-    var row: [16]M = undefined;
+/// Native decode metadata only: no fixed tree, wide matrix or fake allocator.
+/// Stored by VALUE; slices borrow one independently derived immutable owner.
+pub const MetadataView = struct {
+    words: []const u32,
+    addresses: []const u64,
+    decoded: []const isa.Instruction,
+    word_rows: []const u32,
+    row_words: []const u32,
+    admitted: []const bool = &.{},
+    contiguous: bool = false,
+    log_size: u32,
+    profile: Profile.Profile,
+    pub fn size(self: *const MetadataView) usize {
+        return @as(usize, 1) << @intCast(self.log_size);
+    }
+    pub fn rowPc(self: *const MetadataView, index: usize) u64 {
+        return self.addresses[self.row_words[index]];
+    }
+    pub fn rowInstruction(self: *const MetadataView, index: usize) isa.Instruction {
+        return self.decoded[self.row_words[index]];
+    }
+    pub fn rowNext(self: *const MetadataView, index: usize) u64 {
+        const word = self.row_words[index];
+        const pc = self.addresses[word];
+        return if (index == self.word_rows[word]) pc +% 4 else pc +% @as(u64, @bitCast(self.decoded[word].imm));
+    }
+    pub fn factIndex(self: *const MetadataView, word: usize, taken: bool) !usize {
+        if (word >= self.words.len or (self.admitted.len != 0 and !self.admitted[word])) return error.InvalidWord16CpuRecords;
+        const first = self.word_rows[word];
+        if (!taken) return first;
+        const next = first + 1;
+        if (next >= self.row_words.len or self.row_words[next] != word) return error.InvalidWord16BranchEdge;
+        return next;
+    }
+    pub fn lookup(self: *const MetadataView, pc: u64) !usize {
+        const index = if (self.contiguous) contiguous: {
+            if (pc & 3 != 0 or self.addresses.len == 0 or pc < self.addresses[0]) return error.UnknownWord16CpuPc;
+            const word = (pc - self.addresses[0]) / 4;
+            if (word >= self.addresses.len) return error.UnknownWord16CpuPc;
+            break :contiguous @as(usize, @intCast(word));
+        } else sparse: {
+            var lo: usize = 0;
+            var hi = self.addresses.len;
+            while (lo < hi) {
+                const middle = lo + (hi - lo) / 2;
+                if (self.addresses[middle] < pc) lo = middle + 1 else hi = middle;
+            }
+            if (lo == self.addresses.len or self.addresses[lo] != pc) return error.UnknownWord16CpuPc;
+            break :sparse lo;
+        };
+        // The immutable admission mask must be checked BEFORE callers access
+        // decoded[index]. Invalid words remain identity-bound, never fetchable.
+        if (self.admitted.len != 0 and !self.admitted[index]) return error.InvalidWord16CpuRecords;
+        return index;
+    }
+};
+fn deriveWithProfile(pc: u64, instruction: isa.Instruction, profile: Profile.Profile, taken: bool) [Profile.MAX_ROM]M {
+    var row: [Profile.MAX_ROM]M = @splat(M.zero());
     row[0] = M.one();
     @memcpy(row[1..5], &P.word(M, pc));
-    @memcpy(row[5..9], &P.word(M, pc +% 4));
     const operation = Operations.classify(instruction.opcode).?;
+    const next = if (taken) pc +% @as(u64, @bitCast(instruction.imm)) else pc +% 4;
+    @memcpy(row[5..9], &P.word(M, next));
     row[9] = M.fromCanonical(operation.busId());
-    const ids = [_]u5{ instruction.rs1, instruction.rs2, instruction.rd };
+    const ids = effectiveIds(instruction, profile);
     for (ids, 0..) |id, i| {
         row[10 + i] = M.fromCanonical(id);
         row[13 + i] = M.fromCanonical(@intFromBool(id == 0));
     }
+    if (profile == .alu_binary_v2) {
+        row[16] = M.fromCanonical(@intFromBool(operation.use_immediate));
+        row[17] = M.fromCanonical(@intFromBool(operation.branch_predicate));
+        if (operation.use_immediate) @memcpy(row[18..22], &P.word(M, @bitCast(instruction.imm)));
+        row[22] = M.fromCanonical(@intFromBool(taken));
+    }
     return row;
+}
+pub fn effectiveIds(instruction: isa.Instruction, profile: Profile.Profile) [3]u5 {
+    if (profile == .binary_v1) return .{ instruction.rs1, instruction.rs2, instruction.rd };
+    const effects = isa.effects(instruction.opcode);
+    return .{ if (effects.reads_rs1) instruction.rs1 else 0, if (effects.reads_rs2) instruction.rs2 else 0, if (effects.writes_rd) instruction.rd else 0 };
+}
+
+/// Independently derived once, never a request/program-identity input.
+pub fn contiguousAddresses(addresses: []const u64) bool {
+    if (addresses.len == 0) return false;
+    for (addresses[0 .. addresses.len - 1], addresses[1..]) |previous, next| {
+        if (previous > std.math.maxInt(u64) - 4 or next != previous + 4) return false;
+    }
+    return true;
 }
