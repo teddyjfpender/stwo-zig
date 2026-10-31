@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
+const E = @import("../evaluation.zig");
 const Column = engine.pcs.ColumnEvaluation;
 const physical = @import("../witness.zig").physical;
 pub const MAX_ARITY = 6;
@@ -80,8 +81,13 @@ pub const Challenges = struct {
 };
 
 pub fn evaluate(tuple: []const Q, first: Q, last: Q, multiplicity: Q, inverse: Q, sum: Q, previous: Q, claim: Q, challenges: Challenges) [N_CONSTRAINTS]Q {
-    const term = multiplicity.mul(inverse);
-    return .{ inverse.mul(challenges.denominator(tuple)).sub(Q.one()), sum.sub(previous).add(first.mul(previous)).add(term), first.mul(sum.add(term)), last.mul(sum.sub(claim)) };
+    return evaluateFor(Q, tuple, first, last, multiplicity, inverse, sum, previous, claim, challenges);
+}
+pub fn evaluateFor(comptime F: type, tuple: []const F, first: F, last: F, multiplicity: F, inverse: E.SecureFor(F), sum: E.SecureFor(F), previous: E.SecureFor(F), claim: Q, challenges: Challenges) [N_CONSTRAINTS]E.SecureFor(F) {
+    const S = E.SecureFor(F);
+    const term = E.mulBaseFor(F, inverse, multiplicity);
+    const d = E.denominatorFor(F, challenges.offset, challenges.coefficients[0..tuple.len], tuple, true);
+    return .{ inverse.mul(d).sub(S.one()), sum.sub(previous).add(E.mulBaseFor(F, previous, first)).add(term), E.mulBaseFor(F, sum.add(term), first), E.mulBaseFor(F, sum.sub(E.splatFor(F, claim)), last) };
 }
 
 pub const Setup = struct {

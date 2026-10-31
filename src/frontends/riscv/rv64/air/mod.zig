@@ -92,4 +92,8 @@ pub const state_cyclic = @import("state_cyclic.zig");
 /// Inactive Word16 request vocabulary; no production profile selects it.
 pub const word16_v1 = struct {
     pub const operations = @import("word16_v1/operations.zig");
+    pub const function_bus = @import("word16_v1/function_bus.zig");
+    pub const binary = @import("word16_v1/binary.zig");
+    pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
+    pub const binary_component = @import("word16_v1/binary_component.zig");
 };
