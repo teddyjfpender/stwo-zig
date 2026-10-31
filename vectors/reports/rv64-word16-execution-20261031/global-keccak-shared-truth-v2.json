@@ -1,0 +1,156 @@
+{
+  "status": "qualified bounded execution-wide Keccak truth v2 prefix mechanism",
+  "base_commit": "d5908bbb7ed1d503ed567e49145b82c221f5f22e",
+  "protocol": "Explicit new shared-truth version2; all N CPU+bridge and truth fixed/MAIN roots sealed in complete expected Manifest before common RAM14/IO11 challenge; no legacy/default activation",
+  "fixture": {
+    "program": [
+      "SD x1,0(x2)",
+      "ECALL Keccak",
+      "LD x0,0(a0)",
+      "ECALL Keccak"
+    ],
+    "native_instructions": 4,
+    "cpu_shards": 2,
+    "truth_proofs": 1,
+    "calls": 2,
+    "words_per_call": 25,
+    "pointer_hex": "0x8000000000000ff8",
+    "input_authority": "independently expected pristine zero image and RW rights; manually captured CompactTape advice, not a host Session performance claim",
+    "memory": "same buffer; full64 cross-page lane addresses; first INIT only, final TERM only; second call observes first call and intervening load"
+  },
+  "geometry": {
+    "cpu": "17 existing core components + bridge fixed6/main66/inter116; composition split derives canonical core",
+    "truth": "permutation fixed32/main1923/inter2596 plus chi/xor fixed14/main2/inter8 at independent native heights; D4/split2 unchanged",
+    "closure": "38 transcript-bound physical CPU claims each; local nonRAM/nonIO closure, separate global RAM closure, bridge IO plus3 truth physical claims joint closure",
+    "call_ids": "receiver-derived disjoint CPU prefix spans exactly cover truth IDs1..totalcalls"
+  },
+  "gates": {
+    "safe": "shared5 plus existing bridge13 PASS",
+    "fast": "shared5 PASS; existing bridge13 PASS after capture factorization",
+    "fresh": "separate-process independently expected receiver PASS at1 and16workers",
+    "workers": "all3 complete proofs, metadata and accounting identical at1/16workers",
+    "physical_attacks": [
+      "locally valid false K output rejects global IO",
+      "locally valid fabricated epoch0 predecessor with recomputed valid K output rejects global RAM",
+      "valid-resealed wrong MAIN root/role rejects",
+      "missing truth inventory rejects",
+      "coherently resealed wrong first-call span rejects",
+      "balanced truth-claim corruption rejects"
+    ],
+    "legacy": "both complete v1 serialized proofs and metadata EXACT prior rootless merged-BINARY24 artifacts; fresh process PASS",
+    "admission": "existing complete program/image/budget/coverage/genesis/REG/PC checks retained; global IO/RAM absolute query masses<p, one-truth local chi/xor admitRoster characteristic bound; receiver must independently trust expected authorities"
+  },
+  "artifacts": {
+    "accounting.json": {
+      "bytes": 962,
+      "sha256": "48415ac544ba722f710b7b53a39311e45cf5d59af2e7e3e1160c028ce1e9549e"
+    },
+    "cpu0.bin": {
+      "bytes": 978400,
+      "sha256": "e03f0d1f2283ead5e991c0662793919408ce79daa5bc394a0adebe851d5abece"
+    },
+    "cpu1.bin": {
+      "bytes": 965312,
+      "sha256": "f399a96948660b4262c47da0c571edbb6dc75306601dc732fa346afec88edd92"
+    },
+    "metadata.json": {
+      "bytes": 48840,
+      "sha256": "2f207ad4619326baac0407209abbf8c8ef101af0c89bb5f2ab7ecc66034f061a"
+    },
+    "truth.bin": {
+      "bytes": 1623144,
+      "sha256": "c64c33aff74d255c8026a2d5b3c670dcbb4028dd22b934ce1e61ead4f2a3bf6b"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-keccak-shared-v2",
+  "tool": {
+    "bytes": 4174864,
+    "sha256": "9271cfc24facb5e73996fcbf2f1726571cce29c0e3aaa8d3385baa70cf74178b"
+  },
+  "accounting": {
+    "scope": "same four-instruction two-call fixture; measured component masks and native shape cells",
+    "shared": {
+      "native_source_cells": [
+        4267648,
+        2797152,
+        8030592
+      ],
+      "component_oods_q_samples": 16336
+    },
+    "local_control_model": {
+      "native_source_cells": [
+        4333184,
+        2867904,
+        8150528
+      ],
+      "component_oods_q_samples": 27326
+    },
+    "truth": {
+      "native_source_cells": [
+        65536,
+        70752,
+        119936
+      ],
+      "component_oods_q_samples": 10990
+    },
+    "native_permutation_rows": 32,
+    "control_permutation_rows": 64,
+    "physical_proofs_shared": 3,
+    "physical_proofs_control": 2,
+    "note": "Only this fixture: two local one-call log5 providers become one two-call log5 provider. General native padding may differ; this is not a real-block throughput or simultaneous-memory model. OODS excludes composition/FRI/Merkle values; prefix hashing scales with native groups, not this mask count."
+  },
+  "proof_bytes": {
+    "shared": 3566856,
+    "same_capture_local_v1": 4941504,
+    "saved": 1374648,
+    "saved_percent": 27.818413179469246
+  },
+  "cost_scope": [
+    "Measured shape-derived native source cells and actual component OODS samples; excludes composition/FRI/Merkle samples",
+    "Two odd one-call log5 providers become one paired two-call log5 provider in this tiny fixture; arbitrary global padding can improve or worsen",
+    "No real-block throughput, peak simultaneous RSS, device fit or generic security-bit claim",
+    "Incremental lifted commitment reuses native-height prefixes; masks are not all-columns-times-CPU-height hash work"
+  ],
+  "limits": [
+    "Bounded central qualification harness retains multiple PCS owners; no scalable distributed25-worker memory claim",
+    "One truth instance only; future ordered bounded truth instances must jointly cover IDs and close global IO, each local chi/xor mass bound",
+    "No secp, terminal halt/output certification, full-block proof or recursion activation"
+  ],
+  "future_cost": {
+    "real_calls": 32835,
+    "one_truth": "476122 active permutation rows -> log19",
+    "two_truths": "two log18 providers have same summed permutation area and half per-worker peak, add one proof/FRI/PoW; needs separate qualification",
+    "security": "q70/P26/blowup1 nominal config96, whole-protocol bits not established after mass/degree/union accounting"
+  },
+  "source_sha256": {
+    "build_support/products/catalog.zig": "b2e96caff271d66170b1ab0b491a13299166b3646426339c4ba35afa7158e525",
+    "build_support/products/riscv_cpu.zig": "c543b5bff4ab6b6a74ea2c6a2dc5870c02dddb1a24953e016026fcfc1de95635",
+    "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig": "1f78871ca4198272d328b510955f3fb19ab991dc49c44fb25f8ee07c20f83ab3",
+    "src/integrations/riscv_cpu/rv64_word16_shared_keccak_fixture_main.zig": "1cc18b6346712280b7ef0291dee3216b44c6bb4021c1b82a52e6363c2ec216d9",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/fixture.zig": "d8712275a3238ad7e553ff79898ff9924c409b4e284f7f5fb04503d5c077d52b",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/README.md": "9c19e6c4a45aab1926175ab5b587ee182ebba037221bdcb66fae3ddda1111d95",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/accounting.zig": "434566aaf6d373041fe4fec578eeb6909a5d42e0c036b2a4ac224264f2c302d8",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/execution.zig": "148799c3195e213832f41c8464acb2c70fca6b4185ef73cc0ef1427cd33b85a9",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/execution_test.zig": "c7f0e765b9b8d3ed22f31dee83f0c38b7910f0c70f427ba161e354153487a6d7",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/fixture.zig": "fc77138ea5fa43314bbe49037dab31fe81ca85de22248bc17379e563998314e2",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/fixture_main.zig": "9a9cf3c56fc55108188bfb5c828b2709a316f76bc451497df1d62b792cebe831",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig": "6fd1be5b57049938b4bedd346db352e9ac3218873eb4ac57aad18ce40489ebaa",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/protocol.zig": "463e37eb1844918d05e1c99260257e734e3db32cd4769ff48910004eb5bc779a",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/roster.zig": "d1d42b328d5f800befa5f4eb54564560b1549eace7469581ea0b50100a25efe5"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-word16-keccak-shared-qualified-safe.log",
+    "fast": "/tmp/rv64-word16-keccak-shared-qualified-fast.log",
+    "tools": "/tmp/rv64-word16-keccak-shared-qualified-tools.log"
+  },
+  "dependency_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/components.zig": "5860f52de51c0477a9e7f7db6f5d0f81ddb9c4d1024527a820461c0382ee30c0",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "499025c2a2c4398efd2ef18c8b8b9a977b63e05fdf0f5fc607145c3042859d07",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "dd575dfaab688ce3f33cb860268b2d5a5f5b59aa79d35e107df02289b9cae1de",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/collector.zig": "bc837116f9f0cab8d46e43061bf667d80ac5d4fd86f24315598594866dcd6e27",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/component.zig": "aa754b27de61fba029c2ec058463c01e1ccf20d1776a4031dac1ba2c677ffa29",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/equations.zig": "68a3a609f4f480a763c6c536f2c0f436afbff404b06895a4840120a212f6e237",
+    "src/frontends/riscv/rv64/air/delegations/keccak/component.zig": "6f889bed8c91f677179c063a80fa6438225ea733672e5d507e437c5b187e9a4c",
+    "src/frontends/riscv/rv64/air/delegations/keccak/layout.zig": "9341ac23a2667290e94f9eaa6480e0c0f0e030d215eac370f78122fc5f91cf48"
+  }
+}

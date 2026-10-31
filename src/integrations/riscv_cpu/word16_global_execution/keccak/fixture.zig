@@ -57,12 +57,39 @@ pub const Case = struct {
         return initMutation(a, .none);
     }
     pub fn initMutation(a: std.mem.Allocator, mutation: Mutation) !Case {
-        var program = try Program.init(a, .{ .base = 4096, .words = &WORDS });
-        defer program.deinit();
+        var captured = try Captured.init(a);
+        defer captured.deinit();
+        captured.mutate(mutation);
+        const s0 = try a.create(R.Setup);
+        errdefer a.destroy(s0);
+        s0.* = try R.Setup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try captured.native[0].geometry(), .{ .klog = 5, .blog = 5 });
+        errdefer s0.deinit();
+        const s1 = try a.create(R.Setup);
+        errdefer a.destroy(s1);
+        s1.* = try R.Setup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try captured.native[1].geometry(), .{ .klog = 5, .blog = 5 });
+        errdefer s1.deinit();
+        const bundle = try E.produce(a, &.{ s0, s1 }, &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expectedFor(captured.program.identity));
+        return .{ .allocator = a, .setups = .{ s0, s1 }, .bundle = bundle };
+    }
+};
+
+/// Shared narrow fixture capture. Program has a stable owned address before
+/// either CPU borrows it; protocol variants consume the same native advice.
+pub const Captured = struct {
+    allocator: std.mem.Allocator,
+    program: *Program,
+    tapes: [2]front.rv64.compact_tape.Tape,
+    native: [2]Native,
+    advice: C.Advice,
+    pub fn init(a: std.mem.Allocator) !Captured {
+        const program = try a.create(Program);
+        errdefer a.destroy(program);
+        program.* = try Program.init(a, .{ .base = 4096, .words = &WORDS });
+        errdefer program.deinit();
         var t0 = try front.rv64.compact_tape.Tape.init(a, 2, 4096, 0, .ethereum_services_v2);
-        defer t0.deinit();
+        errdefer t0.deinit();
         var t1 = try front.rv64.compact_tape.Tape.init(a, 2, 4104, 2, .ethereum_services_v2);
-        defer t1.deinit();
+        errdefer t1.deinit();
         var before: [25]u64 = @splat(0);
         before[0] = 7;
         var perm = std.crypto.core.keccak.KeccakF(1600){ .st = before };
@@ -88,34 +115,34 @@ pub const Case = struct {
         p1.final_pc = 4112;
         p1.register_clocks[1] = 0;
         p1.register_clocks[2] = 0;
-        try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Native.init(a, &program, p0, 1, 5, &t0, .{}));
-        var n0 = try Native.initForKeccak(a, &program, p0, 1, 5, &t0, .{});
-        defer n0.deinit();
-        var n1 = try Native.initForKeccak(a, &program, p1, 2, 5, &t1, .{});
-        defer n1.deinit();
+        try std.testing.expectError(error.UnqualifiedWord16ServiceOwners, Native.init(a, program, p0, 1, 5, &t0, .{}));
+        var n0 = try Native.initForKeccak(a, program, p0, 1, 5, &t0, .{});
+        errdefer n0.deinit();
+        var n1 = try Native.initForKeccak(a, program, p1, 2, 5, &t1, .{});
+        errdefer n1.deinit();
         var advice = try C.collect(a, &.{ &n0, &n1 }, &.{ &t0, &t1 }, image());
-        defer advice.deinit();
+        errdefer advice.deinit();
         if (advice.initial.len != 25 or advice.calls[0][0].predecessors[0].epoch != 1 or advice.calls[1][0].predecessors[0].epoch != 2 or advice.calls[1][0].predecessors[1].epoch != 1) return error.InvalidFixtureChronology;
+        return .{ .allocator = a, .program = program, .tapes = .{ t0, t1 }, .native = .{ n0, n1 }, .advice = advice };
+    }
+    pub fn mutate(self: *Captured, mutation: Case.Mutation) void {
         if (mutation == .wrong_output) {
-            advice.calls[1][0].after[3] ^= 1;
-            advice.terminal[3].state.value ^= 1;
+            self.advice.calls[1][0].after[3] ^= 1;
+            self.advice.terminal[3].state.value ^= 1;
         } else if (mutation == .false_reset) {
-            advice.calls[1][0].before[1] = 0;
-            advice.calls[1][0].predecessors[1] = .{ .value = 0, .rights = 3 };
-            var forged = std.crypto.core.keccak.KeccakF(1600){ .st = advice.calls[1][0].before };
+            self.advice.calls[1][0].before[1] = 0;
+            self.advice.calls[1][0].predecessors[1] = .{ .value = 0, .rights = 3 };
+            var forged = std.crypto.core.keccak.KeccakF(1600){ .st = self.advice.calls[1][0].before };
             forged.permute();
-            advice.calls[1][0].after = forged.st;
-            for (advice.terminal, 0..) |*cell, lane| cell.state.value = forged.st[lane];
+            self.advice.calls[1][0].after = forged.st;
+            for (self.advice.terminal, 0..) |*cell, lane| cell.state.value = forged.st[lane];
         }
-        const s0 = try a.create(R.Setup);
-        errdefer a.destroy(s0);
-        s0.* = try R.Setup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try n0.geometry(), .{ .klog = 5, .blog = 5 });
-        errdefer s0.deinit();
-        const s1 = try a.create(R.Setup);
-        errdefer a.destroy(s1);
-        s1.* = try R.Setup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try n1.geometry(), .{ .klog = 5, .blog = 5 });
-        errdefer s1.deinit();
-        const bundle = try E.produce(a, &.{ s0, s1 }, &.{ &n0, &n1 }, &advice, expectedFor(program.identity));
-        return .{ .allocator = a, .setups = .{ s0, s1 }, .bundle = bundle };
+    }
+    pub fn deinit(self: *Captured) void {
+        self.advice.deinit();
+        for (&self.native) |*n| n.deinit();
+        for (&self.tapes) |*t| t.deinit();
+        self.program.deinit();
+        self.allocator.destroy(self.program);
     }
 };
