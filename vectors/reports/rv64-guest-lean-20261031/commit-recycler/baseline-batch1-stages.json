@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "runtime": "rv64",
+  "example": "ethereum_batch",
+  "stages": [
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.062547,
+      "children": null
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.059392,
+      "children": null
+    },
+    {
+      "id": "authenticated_interaction",
+      "label": "Generate all shared physical interactions",
+      "seconds": 1.822071,
+      "children": [
+        {
+          "id": "cpu_interaction",
+          "label": "Generate CPU physical interactions",
+          "seconds": 1.000664,
+          "children": null
+        },
+        {
+          "id": "arithmetic_interaction",
+          "label": "Generate arithmetic callers and multiplication provider",
+          "seconds": 0.452057,
+          "children": null
+        },
+        {
+          "id": "secp_interaction",
+          "label": "Generate secp callers and providers",
+          "seconds": 0.066297,
+          "children": null
+        },
+        {
+          "id": "division_provider_interaction",
+          "label": "Generate division provider interactions",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "keccak_interaction",
+          "label": "Generate Keccak permutation, tables and RAM bridge",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "range_rom_interaction",
+          "label": "Generate shared BYTE, ROM, AND and SHIFT providers",
+          "seconds": 0.279143,
+          "children": null
+        },
+        {
+          "id": "ram_interaction",
+          "label": "Generate private RAM callers, hash and policy providers",
+          "seconds": 0.023739,
+          "children": null
+        }
+      ]
+    },
+    {
+      "id": "merkle_commit",
+      "label": "Merkle commit",
+      "seconds": 0.061616,
+      "children": null
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 0,
+      "children": null
+    },
+    {
+      "id": "composition_trace_extract",
+      "label": "Composition trace extract",
+      "seconds": 0.000011,
+      "children": null
+    },
+    {
+      "id": "composition_evaluation",
+      "label": "Composition evaluation",
+      "seconds": 6.533978,
+      "children": null
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "label": "Composition interpolate and split",
+      "seconds": 0.053821,
+      "children": null
+    },
+    {
+      "id": "composition_commit",
+      "label": "Composition commit",
+      "seconds": 0.124933,
+      "children": null
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.000177,
+      "children": null
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "label": "Sampled-value evaluation",
+      "seconds": 0.749387,
+      "children": null
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "label": "Sampled-value channel mix",
+      "seconds": 0.000099,
+      "children": null
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "label": "FRI quotient build + commit (lazy)",
+      "seconds": 2.078662,
+      "children": null
+    },
+    {
+      "id": "proof_of_work",
+      "label": "Proof of work",
+      "seconds": 0.044902,
+      "children": null
+    },
+    {
+      "id": "fri_decommit",
+      "label": "FRI decommit",
+      "seconds": 0.005871,
+      "children": null
+    },
+    {
+      "id": "trace_decommit",
+      "label": "Trace decommit",
+      "seconds": 1.737552,
+      "children": null
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.000171,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 1.485568,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.672871,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.616982,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.681519,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.762912,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.691524,
+      "children": null
+    },
+    {
+      "id": "cpu_coset_fft",
+      "label": "CPU quotient coset FFT",
+      "seconds": 0.628821,
+      "children": null
+    },
+    {
+      "id": "cpu_constraint_rows",
+      "label": "CPU quotient constraint rows",
+      "seconds": 0.703771,
+      "children": null
+    }
+  ],
+  "memory": {
+    "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+    "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+    "target_bytes": 16000000000,
+    "interval_ns": 10000000,
+    "baseline_rss_bytes": 766885888,
+    "last_rss_bytes": 2848178176,
+    "sampled_peak_rss_bytes": 22845734912,
+    "process_lifetime_peak_rss_bytes": 28990701568,
+    "samples": 1373,
+    "failed_samples": 0
+  }
+}

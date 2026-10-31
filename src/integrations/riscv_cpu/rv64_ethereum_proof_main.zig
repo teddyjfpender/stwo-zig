@@ -8,7 +8,11 @@ const BatchProof = @import("rv64_ethereum_prove_batch.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
 const Receipt = @import("rv64_ethereum_batch_receipt.zig");
 const Terminal = @import("rv64_ram_terminal.zig");
-const base = std.heap.smp_allocator;
+// Large column buffers are recycled across batch proofs instead of being
+// mapped and page-faulted again for every batch.
+const Recycler = @import("rv64_large_block_recycler.zig").LargeBlockRecycler;
+var recycler = Recycler.init(std.heap.smp_allocator, 16 * 1024 * 1024 * 1024);
+const base: std.mem.Allocator = .{ .ptr = &recycler, .vtable = &Recycler.vtable };
 pub fn main() !void {
     const args = try std.process.argsAlloc(base);
     defer std.process.argsFree(base, args);
