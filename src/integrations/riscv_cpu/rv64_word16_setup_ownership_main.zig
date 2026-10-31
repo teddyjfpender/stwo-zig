@@ -10,7 +10,9 @@ pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len != 3) return error.ExpectedTrustedConfigAndBundle;
+    if (args.len != 3 and args.len != 4) return error.ExpectedTrustedConfigAndBundle;
+    const retire = args.len == 4;
+    if (retire and !std.mem.eql(u8, args[3], "--retire-fixed-witness")) return error.InvalidAuditOption;
     const config_raw = try std.fs.cwd().readFileAlloc(a, args[1], 16384);
     defer a.free(config_raw);
     const config = try std.json.parseFromSlice(R.Config, a, config_raw, .{});
@@ -48,6 +50,7 @@ pub fn main() !void {
     var keys = try Keys.init(a, &image, cpus, truths);
     defer keys.deinit();
     const setup_ns = timer.read();
+    if (retire) for (keys.cpu_owners.items) |setup| try setup.releaseFixedWitness();
     const roots = (parsed.value.object.get("roots") orelse return error.MissingCommitmentRoots).array.items;
     if (roots.len != keys.cpus.len + keys.truths.len) return error.RootInventoryMismatch;
     for (keys.cpus, 0..) |setup, i| try checkRoot(a, roots[i], setup.key.root);
@@ -76,7 +79,7 @@ pub fn main() !void {
     try account.add(&registry, "headers", keys.keccak_owners.items.ptr[0..keys.keccak_owners.capacity]);
     try account.add(&registry, "headers", keys.secp_owners.items.ptr[0..keys.secp_owners.capacity]);
     records[at] = registry;
-    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "live unique setup allocation payloads; excludes allocator rounding, trusted Image, proof data, witnesses, mapped advice and RSS", .no_vm_or_tape_or_main_witness = true, .all_fixed_roots_match_retained_bundle = true, .cpu_setups = keys.cpu_owners.items.len, .keccak_setups = keys.keccak_owners.items.len, .secp_setups = keys.secp_owners.items.len, .feature_entry_size = @sizeOf(Program.Entry), .setup_ns = setup_ns, .owned_payload = account.totals, .owned_payload_total = account.totals.total(), .records = records }, .{ .whitespace = .indent_2 });
+    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "live unique setup allocation payloads; excludes allocator rounding, trusted Image, proof data, witnesses, mapped advice and RSS", .fixed_witness_retired = retire, .no_vm_or_tape_or_main_witness = true, .all_fixed_roots_match_retained_bundle = true, .cpu_setups = keys.cpu_owners.items.len, .keccak_setups = keys.keccak_owners.items.len, .secp_setups = keys.secp_owners.items.len, .feature_entry_size = @sizeOf(Program.Entry), .setup_ns = setup_ns, .owned_payload = account.totals, .owned_payload_total = account.totals.total(), .records = records }, .{ .whitespace = .indent_2 });
     defer a.free(output);
     try std.fs.File.stdout().writeAll(output);
 }

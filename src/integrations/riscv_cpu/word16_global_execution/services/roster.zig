@@ -43,6 +43,14 @@ pub const CpuSetup = struct {
         self.key = try Key.seal(a, columns);
         return self;
     }
+    /// The complete sealed key retains independent coefficient/tree ownership.
+    pub fn releaseFixedWitness(self: *CpuSetup) !void {
+        try self.materials.releaseFixedWitness();
+        for (&self.fixed) |*data| {
+            self.materials.allocator.free(data.*);
+            data.* = &.{};
+        }
+    }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
         for (self.fixed) |f| self.materials.allocator.free(f);

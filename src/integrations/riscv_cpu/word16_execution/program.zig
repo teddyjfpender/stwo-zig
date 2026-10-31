@@ -19,6 +19,7 @@ pub const Program = struct {
     row_to_entry: []u32,
     row_taken: []bool,
     fixed: []M,
+    fixed_retired: bool = false,
     log_size: u32,
     identity: [32]u8,
     opcodes: [65]bool,
@@ -130,6 +131,26 @@ pub const Program = struct {
         if (entry_index >= self.entries.len or !self.entries[entry_index].valid) return error.InvalidExecutionProgramWord;
         if (taken and !self.entries[entry_index].hasTakenEdge()) return error.InvalidExecutionBranchEdge;
         return self.word_rows[entry_index] + @as(usize, @intFromBool(taken));
+    }
+    /// Reconstructs one ROM fact from the immutable decoded entry authority.
+    /// Padding is the same zero tuple used when constructing the fixed matrix.
+    pub fn tupleAt(self: *const Program, logical: usize) ![X.layout.rom.COUNT]M {
+        if (logical >= self.size()) return error.InvalidExecutionRomShape;
+        if (logical >= self.row_to_entry.len) return @splat(M.zero());
+        const entry = self.row_to_entry[logical];
+        if (entry >= self.entries.len or self.row_taken.len != self.row_to_entry.len) return error.InvalidExecutionRomShape;
+        return self.entries[entry].romTuple(self.row_taken[logical]);
+    }
+    pub fn validateFixedWitness(self: *const Program) !void {
+        if (self.fixed_retired) return error.ExecutionFixedWitnessRetired;
+        if (self.fixed.len != X.layout.rom.FIXED * self.size()) return error.InvalidExecutionRomShape;
+    }
+    /// Sealed PCS coefficients own their data independently of this matrix.
+    pub fn releaseFixedWitness(self: *Program) !void {
+        try self.validateFixedWitness();
+        self.allocator.free(self.fixed);
+        self.fixed = &.{};
+        self.fixed_retired = true;
     }
     pub fn deinit(self: *Program) void {
         self.allocator.free(self.fixed);

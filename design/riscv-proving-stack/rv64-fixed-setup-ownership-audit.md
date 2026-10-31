@@ -96,3 +96,29 @@ columns still affect commitment height, leaf hashing/decommitment and possibly
 PCS quotient/FRI geometry. Their opening and preprocessing costs must be
 measured before choosing it. No catalog, weakened geometry admission, arbitrary
 fixed-column offsets, or new accepting proof path is introduced by this audit.
+
+## Explicit original-matrix retirement
+
+`Setup.releaseFixedWitness` and the combined-service `CpuSetup` wrapper are
+opt-in lifecycle operations after sealing. They preserve the complete fixed
+commitment, compact coefficients, Merkle nodes, immutable program identity,
+entry cache, topology and per-request transcript leases. They release original
+CPU/ROM/provider/LS/boundary matrices. Small register-boundary, range, AND,
+SHIFT-table and selection buffers stay live because native generators still
+read them. This changes neither geometry nor the proof format.
+
+After retirement, `fixedColumns` and ROM fixed-column export return
+`ExecutionFixedWitnessRetired`. They cannot be used to reseal a partial key.
+ROM request generation derives each tuple from the same immutable `Entry`
+authority used by the original matrix builder, including invalid entries and
+zero padding; it constructs no replacement wide matrix. Dictionary validation
+uses this authority too. Sealed tree append/log/shape operations remain usable.
+Retirement validates every original fixed-column shape before freeing anything;
+allocation or shape failure leaves the original owners intact for retry.
+Repeated retirement is an explicit phase error. Default construction retains
+all original buffers until the caller requests retirement.
+
+This is not a fixed catalog or coefficient-sharing protocol. The native
+coefficients and Merkle payload measured above remain owned by each key.
+Requested live allocation reduction must be reported separately from allocator
+caches, maximum RSS and Darwin peak memory footprint.

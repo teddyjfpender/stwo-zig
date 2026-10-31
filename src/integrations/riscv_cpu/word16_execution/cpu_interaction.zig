@@ -40,10 +40,19 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries) !
         const d = ch.range8.offset.sub(ch.range8.coefficient.mulM31(M.fromCanonical(@intCast(i))));
         if (!d.mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
     }
-    for (dict.rom, 0..) |inverse, p| {
-        var tuple: [30]M = undefined;
-        for (&tuple, 0..) |*value, c| value.* = source.program.fixed[c * source.program.size() + p];
-        if (!dot(ch.rom, tuple).mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
+    if (source.program.fixed_retired) {
+        for (0..source.program.size()) |logical| {
+            const tuple = try source.program.tupleAt(logical);
+            const p = X.layout.physical(logical, source.program.log_size);
+            if (!dot(ch.rom, tuple).mul(dict.rom[p]).eql(Q.one())) return error.InvalidExecutionDictionary;
+        }
+    } else {
+        try source.program.validateFixedWitness();
+        for (dict.rom, 0..) |inverse, p| {
+            var tuple: [30]M = undefined;
+            for (&tuple, 0..) |*value, c| value.* = source.program.fixed[c * source.program.size() + p];
+            if (!dot(ch.rom, tuple).mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
+        }
     }
     const padding = try X.row.padding(0, source.public.final_pc);
     const padding_denominator = dot(ch.rom, X.tuples.rom(M, &padding));

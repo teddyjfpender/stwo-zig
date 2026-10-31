@@ -17,6 +17,7 @@ const Column = engine.pcs.ColumnEvaluation;
 pub const Materials = struct {
     allocator: std.mem.Allocator,
     geometry: Geometry,
+    fixed_retired: bool = false,
     program: Program,
     cpu_fixed: []M,
     boundary_fixed: []M,
@@ -93,6 +94,22 @@ pub const Materials = struct {
         errdefer and_.deinit();
         return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
     }
+    /// Retire only original matrices not used by native request generators.
+    /// All phase/shape checks precede mutation; the sealed key stays unchanged.
+    pub fn releaseFixedWitness(self: *Materials) !void {
+        if (self.fixed_retired) return error.ExecutionFixedWitnessRetired;
+        try self.program.validateFixedWitness();
+        const columns = try self.fixedColumns(self.allocator);
+        self.allocator.free(columns);
+        try self.program.releaseFixedWitness();
+        inline for (.{ "cpu_fixed", "alu_fixed", "alu_tail_fixed", "binary_fixed", "binary_tail_fixed", "shift_fixed", "shift_tail_fixed", "jalr_fixed", "division_fixed", "multiplication_fixed", "ls_fixed", "ls_tail_fixed", "memory_boundary_fixed" }) |name| {
+            self.allocator.free(@field(self, name));
+            @field(self, name) = &.{};
+        }
+        if (self.memory_terminal_fixed) |data| self.allocator.free(data);
+        self.memory_terminal_fixed = null;
+        self.fixed_retired = true;
+    }
     pub fn deinit(self: *Materials) void {
         if (self.memory_terminal_fixed) |data| self.allocator.free(data);
         self.and_table.deinit();
@@ -117,6 +134,7 @@ pub const Materials = struct {
         return out;
     }
     pub fn fixedColumns(self: *const Materials, a: std.mem.Allocator) ![]Column {
+        if (self.fixed_retired or self.program.fixed_retired) return error.ExecutionFixedWitnessRetired;
         const actual = self.shapes();
         var count: usize = 0;
         for (actual) |s| count += s.widths[0];
@@ -218,6 +236,9 @@ pub const Setup = struct {
         var lease = self.fixed_tree.retainShared();
         errdefer lease.deinit(self.materials.allocator);
         try scheme.appendCommittedTree(a, lease, channel);
+    }
+    pub fn releaseFixedWitness(self: *Setup) !void {
+        try self.materials.releaseFixedWitness();
     }
     pub fn deinit(self: *Setup) void {
         self.fixed_tree.deinit(self.materials.allocator);
