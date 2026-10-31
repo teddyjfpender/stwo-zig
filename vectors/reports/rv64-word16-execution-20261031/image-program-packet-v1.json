@@ -318,5 +318,7 @@
     "Real packet geometry here uses conservative memory-event count for boundary capacity; actual collector must use touched-cell cardinality.",
     "MUL and DIV retain their existing 4n quotient bounds; other listed D3/D2 authorities use 2n.",
     "CPU53+ROM30+new memory/arithmetic/service physical proof assembly is separate work and is not qualified by this receipt."
-  ]
+  ],
+  "historical_scope": "Earlier narrow milestone before joined execution proof assembly. Source pins and conservative memory-boundary capacity describe that earlier snapshot; current full qualification and final source pins are in real-packet0-v1.json.",
+  "superseded_by": "real-packet0-v1.json"
 }

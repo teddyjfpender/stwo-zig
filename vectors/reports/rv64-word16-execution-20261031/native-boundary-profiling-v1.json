@@ -1,0 +1,46 @@
+{
+  "schema": "rv64.word16.native-boundary-and-interaction-profiling.v1",
+  "scope": "post-core protocol-preserving native boundary acceleration, sequential family telemetry and explicit expected admission budgets",
+  "base_milestone": "real-packet0-v1.json",
+  "claim_math_changed": false,
+  "air_or_transcript_changed": false,
+  "heap_allocation_added_by_expectedClaim": false,
+  "expectedClaim_stack_scratch_bytes": 131072,
+  "expectedClaim_algorithm": "reuse canonical Metadata.tuple14 M31 fields; affine mulM31 denominator; two4096Q buffers; batchInverseInPlace; original accumulation order; strictzero poles",
+  "profiling": "14sequential coordinator family scopes;5nested memory scopes; no worker or per-row recorder mutations; existinggenerate delegatesnull recorder",
+  "admission": "expected_image independently retainsmin(max_steps,batch_steps), driver propagatesbeforefixed/sidecarallocation; zero/overcap and excessive CPU/event/touched counts failclosed",
+  "qualification": {
+    "memory": {
+      "runtime_tests": 10,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS",
+      "logs": [
+        "/tmp/rv64-word16-expected-claim-safe.log",
+        "/tmp/rv64-word16-expected-claim-fast.log"
+      ]
+    },
+    "coordinator": {
+      "runtime_tests": 19,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS",
+      "logs": [
+        "/tmp/rv64-word16-execution-admission19-safe.log",
+        "/tmp/rv64-word16-execution-admission19-fast.log"
+      ],
+      "checks": "actualjoined17chipproof; independent key receiver; profiled/unprofiled proofbytes and33claims identical; exact14/5hierarchy;5actualfalseprovers; balancedclaims/PCreject; budget/countpreflight"
+    }
+  },
+  "large_proof_byte_parity": "parent full-scale post-core run pending; small joined proof bytes exact with andwithout recording",
+  "performance": "No claim until independent fullscale observed run; no wall thresholds in tests",
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_source.zig": "267ea940b138df72618afe2dd29cf5ee3684a7e6d56d5b7493d42f1d86e37527",
+    "src/integrations/riscv_cpu/word16_execution/memory/expected_claim_test.zig": "b0dbef7df62abe41a9ab2d3abeab8b1524d3f5a0c8b27e43d21837386459a925",
+    "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig": "0de4f88541ebf752cee1bd4f6eb809726690786dad254280d22cd9a7fd04eff0",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "1291469c68a8d4d7a9d7f91af4088449781bb4b020327f5fa1814156fe14980e",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "7567e93bd10db4ef55c66886cd04e4a4a1d5a255b8e8cc7f227951d87fedcc7a",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "ce0cd0c5733b8e522fbc4a3148e2a8590c4144387200ab49037e0c0c68daa2a9",
+    "src/integrations/riscv_cpu/word16_execution/expected_image.zig": "4c1ba98b965afb508298b6020890218b967f83891da3e051d571f3c9ca5f5feb",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "8441f7bc0015cde8d781c8f325376973ade3824086b25c72c1456c5bbfb741fa",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig": "21e104f6c620f3623c69e209bfbf39fb5cd2e78c5a5dd008c25c6c50ce879ea2"
+  }
+}

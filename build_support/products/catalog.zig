@@ -80,6 +80,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-recursion", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-distributed-functional", .description = "Verify experimental public facts under actual complete PCS root manifest", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-memory", .description = "Diagnostic sealed-root two-phase RAM aggregate with physical verification", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-execution-prepared", .description = "One native CPU witness with grouped weighted provider geometry", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-memory", .description = "Check CPU-owned scalable LS and RAM boundary sources", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-chips", .description = "Check experimental Word16 chip authorities", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-binary-proof", .description = "Prove diagnostic closed Word16 binary chip", .scope = .riscv_cpu },

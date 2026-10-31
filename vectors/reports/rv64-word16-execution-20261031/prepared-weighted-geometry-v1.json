@@ -1,0 +1,72 @@
+{
+  "scope": "Native prover preparation and ownership refactor; unchanged CPU/provider polynomial authorities, layout, verifier and transcript. Genesis prefix only.",
+  "tests": {
+    "target": "test-riscv64-word16-execution-prepared",
+    "actual_runtime_minimum": 7,
+    "ReleaseSafe": "pass",
+    "ReleaseFast": "pass",
+    "logs": [
+      "/tmp/rv64-word16-execution-prepared-safe.log",
+      "/tmp/rv64-word16-execution-prepared-fast.log"
+    ]
+  },
+  "construction": [
+    "Program is decoded once and borrowed by one CPU.Source",
+    "Immutable Source function outputs are routed once; JALR supporting facts come from existing qualified JALR source",
+    "ALU stable exact grouping occurs once; Source.initWeighted consumes grouped facts without regrouping",
+    "BINARY exact op/A/B/C grouping is optional; legacy Source.init wrapper preserves unit BINARY facts",
+    "Geometry selects independent truth capacities from grouped counts before immutable setup",
+    "Setup.initOwnedProgram consumes decoded Program; Source.fromPrepared validates identity and retargets CPU.program to final stable Setup",
+    "Sources own copied narrow metadata; successful publication frees temporary groups and CPU function/memory/service lists",
+    "Execution.provePrepared consumes Source on success and failure; existing prove remains wrapper"
+  ],
+  "closed_fixture": {
+    "instructions": 130,
+    "native_questions": {
+      "alu": 65,
+      "binary": 65
+    },
+    "grouped_truth_facts": {
+      "alu": 1,
+      "binary": 1
+    },
+    "multiplicity_each": 65,
+    "grouped_logs": {
+      "cpu": 8,
+      "alu": 5,
+      "binary": 5
+    },
+    "raw_comparison_logs": {
+      "cpu": 8,
+      "alu": 7,
+      "binary": 7
+    },
+    "actual_PCS_FRI_proof": true,
+    "fresh_independent_Setup_receiver": "pass",
+    "unit_Binary_wrapper_vs_explicit_prepared_same_geometry_encoded_bytes": "exact equality",
+    "old_pre_refactor_artifact_sha256": null,
+    "whole_packet_performance": "not measured in this qualification"
+  },
+  "adversarial_and_ownership": [
+    "Wrong multiplicity64 versus65 rejects closed execution relation",
+    "Noncanonical weight rejects before publication with single-owner cleanup",
+    "Stable exact full-u64 keys distinguish operand high bits and operation IDs",
+    "Prepared cleanup after Setup consumes Program on validation failure does not dereference stale program",
+    "Program identity/log mismatch rejects before CPU transfer",
+    "Exhaustive allocation failures for grouping, native Prepared and joined Source constructors",
+    "Actual mixed RV64 fixture retains LS rows/INIT/TERM and CPU.row reconstruction after CPU fact-list retirement"
+  ],
+  "ownership_contract": {
+    "Prepared.init": "borrows Program; owns CPU/JALR and grouping arrays",
+    "Source.fromPrepared": "transfers CPU/JALR after checks; failures clean transferred resources, caller always deinit Prepared remainder",
+    "Execution.provePrepared": "consumes Source success/error; Setup must remain stable and alive through proof"
+  },
+  "files": {
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "c53cf1a55dad10dced53a8d0d1dcb937271d7800156f375ec6d1e8385794283b",
+    "src/integrations/riscv_cpu/word16_execution/binary_dedup.zig": "cffe80d7a08f42ce699502dfd8b4de2e2b85f529ee75ab9dee586aab8898354f",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "3ba04c9bf0cab0c97c38f4a4eea0ff3ef2ad388be708f7073e29f78bf53c9406",
+    "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig": "40093bda4f51b2e9892727faa59f84ae332e80969c6d0a9c5e80e2d0bc7cda90",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "1291469c68a8d4d7a9d7f91af4088449781bb4b020327f5fa1814156fe14980e",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "1af6e121e26bf892af9515f8b772ed6238ee11463626ca5a11ab3fc7abca040d"
+  }
+}

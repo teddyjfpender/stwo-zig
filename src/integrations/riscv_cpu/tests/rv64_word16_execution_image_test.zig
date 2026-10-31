@@ -186,6 +186,32 @@ test "full execution mixed native program closes seventeen physical chips and ve
     }
     var encoded = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);
     defer encoded.deinit(a);
+    const Profile = @import("stwo_prover_api").stage_profile;
+    var recorder = Profile.Recorder.init(a, "cpu", "word16-component-interactions");
+    defer recorder.deinit();
+    var profiled = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, &recorder);
+    defer profiled.deinit(a);
+    try std.testing.expectEqualSlices(u8, encoded.bytes, profiled.bytes);
+    try std.testing.expectEqualDeep(encoded.claims, profiled.claims);
+    try std.testing.expectEqual(@as(usize, 0), recorder.stack.items.len);
+    var profile = try recorder.snapshot(a);
+    defer profile.deinit(a);
+    var found = false;
+    for (profile.stages) |stage| if (std.mem.eql(u8, stage.id, "interaction_generation")) {
+        const children = stage.children orelse return error.MissingInteractionStages;
+        try std.testing.expectEqual(@as(usize, 14), children.len);
+        var memory_found = false;
+        for (children) |child| {
+            try std.testing.expect(std.math.isFinite(child.seconds) and child.seconds >= 0);
+            if (std.mem.eql(u8, child.id, "inter_memory")) {
+                try std.testing.expectEqual(@as(usize, 5), (child.children orelse return error.MissingMemoryStages).len);
+                memory_found = true;
+            }
+        }
+        try std.testing.expect(memory_found);
+        found = true;
+    };
+    try std.testing.expect(found);
     var receiver = try Setup.Setup.initWithAuthority(a, &fixture.image.authority, geometry);
     defer receiver.deinit();
     try Execution.verify(a, &receiver, admission, encoded);
@@ -204,4 +230,45 @@ test "full execution mixed native program closes seventeen physical chips and ve
     var bad = encoded;
     bad.request.cpu.final_pc +%= 4;
     if (Execution.verify(a, &receiver, admission, bad)) |_| return error.ForgedExecutionAccepted else |_| {}
+}
+
+test "execution receiver binds independently configured prefix budgets before fixed setup" {
+    const Execution = @import("../word16_execution/execution.zig");
+    const Driver = @import("../word16_execution/driver.zig");
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var config = fixture.config();
+    config.max_steps = 1;
+    var image = try Image.Owner.init(a, config);
+    defer image.deinit();
+    try std.testing.expectEqual(@as(u32, 1), image.max_prefix_steps);
+    var admission = Driver.admission(&image);
+    var public = front.rv64_air.word16_execution.types.Boundary{ .steps = 1, .initial_pc = image.initial_pc, .final_pc = image.initial_pc + 4, .initial_registers = image.initial_registers, .final_registers = image.initial_registers, .register_clocks = @splat(0) };
+    const geometry = @import("../word16_execution/setup.zig").Geometry{ .cpu_log = 5 };
+    try admission.validateCpu(geometry, public);
+    public.steps = 2;
+    try std.testing.expectError(error.ExecutionPrefixBudgetExceeded, admission.validateCpu(geometry, public));
+    public.steps = 1;
+    admission.max_prefix_steps = 0;
+    try std.testing.expectError(error.InvalidExecutionBudget, admission.validateCpu(geometry, public));
+    admission.max_prefix_steps = 1 << 22;
+    try std.testing.expectError(error.InvalidExecutionBudget, admission.validateCpu(geometry, public));
+    config.max_steps = 0;
+    try std.testing.expectError(error.InvalidEthereumProofBudget, Image.Owner.init(a, config));
+    config = fixture.config();
+    config.batch_steps = 1 << 22;
+    try std.testing.expectError(error.InvalidEthereumProofBudget, Image.Owner.init(a, config));
+    _ = Execution;
+}
+test "execution memory count preflight rejects overcapacity before sidecar allocation" {
+    const Admission = @import("../word16_execution/execution.zig").Admission;
+    const geometry = @import("../word16_execution/setup.zig").Geometry{ .cpu_log = 6 };
+    try Admission.validateCounts(geometry, 31, 31, 31);
+    try std.testing.expectError(error.InvalidExecutionMemoryCount, Admission.validateCounts(geometry, 31, 32, 31));
+    try std.testing.expectError(error.InvalidExecutionMemoryCount, Admission.validateCounts(geometry, 33, 32, 31));
+    try std.testing.expectError(error.InvalidExecutionMemoryCount, Admission.validateCounts(geometry, 31, 31, 32));
+    try std.testing.expectError(error.InvalidExecutionMemoryCount, Admission.validateCounts(geometry, 1, 0, 1));
+    var bad = geometry;
+    bad.boundary_log = 64;
+    try std.testing.expectError(error.InvalidExecutionGeometry, Admission.validateCounts(bad, 1, 0, 0));
 }

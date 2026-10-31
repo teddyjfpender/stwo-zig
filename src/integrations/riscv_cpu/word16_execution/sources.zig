@@ -12,11 +12,13 @@ const P = @import("protocol.zig");
 const CPU = @import("cpu_source.zig");
 const ROM = @import("rom_source.zig");
 const J = @import("jalr_source.zig");
+pub const Prepared = @import("prepared.zig").Prepared;
 const Memory = @import("memory/prepared.zig");
 const AB = @import("arithmetic_bus.zig");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const Column = engine.pcs.ColumnEvaluation;
+const Profile = @import("stwo_prover_api").stage_profile;
 pub const Source = struct {
     allocator: std.mem.Allocator,
     materials: *const Mat.Materials,
@@ -38,49 +40,31 @@ pub const Source = struct {
     boundary: []M = &.{},
     claims: ?P.Claims = null,
     pub fn init(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, public: A.word16_execution.types.Boundary, epoch: u16, tape: *const front.rv64.compact_tape.Tape) !Source {
+        var prepared = try Prepared.init(a, &materials.program, public, epoch, materials.geometry.cpu_log, tape, .{ .deduplicate_binary = false, .jalr_log = materials.geometry.jalr_log });
+        defer prepared.deinit();
+        return fromPrepared(a, materials, image, &prepared);
+    }
+    /// Transfers CPU/JALR ownership on entry after identity/geometry checks.
+    /// The caller always deinitializes Prepared to release remaining fact groups.
+    /// On failure, transferred witnesses are destroyed here; never reconstructed.
+    pub fn fromPrepared(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, prepared: *Prepared) !Source {
         const g = materials.geometry;
-        var cpu = try CPU.Source.init(a, &materials.program, public, epoch, g.cpu_log, tape);
+        try g.validate();
+        var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
-        if (cpu.services.items.len != 0) return error.UnqualifiedWord16ServiceOwners;
-        var af: std.ArrayList(B.operations.AluFact) = .empty;
-        defer af.deinit(a);
-        var bf: std.ArrayList(B.binary_source.Fact) = .empty;
-        defer bf.deinit(a);
-        var sf: std.ArrayList(B.operations.ShiftFact) = .empty;
-        defer sf.deinit(a);
-        var jf: std.ArrayList(J.Fact) = .empty;
-        defer jf.deinit(a);
-        var df: std.ArrayList(A.arithmetic.division.trace.Request) = .empty;
-        defer df.deinit(a);
-        var mf: std.ArrayList(A.arithmetic.multiplication.trace.Request) = .empty;
-        defer mf.deinit(a);
-        for (cpu.functions.items) |f| switch (f.operation) {
-            0...9 => try af.append(a, .{ .op = @enumFromInt(f.operation), .a = f.a, .b = f.b, .c = f.c }),
-            10 => try jf.append(a, .{ .a = f.a, .b = f.b, .c = f.c }),
-            16...18 => try bf.append(a, .{ .op = @enumFromInt(f.operation - 16), .a = f.a, .b = f.b, .c = f.c }),
-            32...37 => try sf.append(a, .{ .op = @enumFromInt(f.operation - 32), .a = f.a, .b = f.b, .c = f.c }),
-            49...52, 57 => try mf.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
-            53...56, 58...61 => try df.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
-            else => return error.UnroutedWord16Function,
-        };
-        var jalr = try J.Source.init(a, jf.items, g.jalr_log);
+        var jalr = try prepared.takeJalr(g.jalr_log);
         errdefer jalr.deinit();
-        const extra_alu = try jalr.aluFacts(a);
-        defer a.free(extra_alu);
-        try af.appendSlice(a, extra_alu);
-        const extra_binary = try jalr.binaryFacts(a);
-        defer a.free(extra_binary);
-        try bf.appendSlice(a, extra_binary);
-        var alu = try B.alu_experiment.source.Source.initDeduplicated(a, af.items, g.alu_log);
+        var alu = try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts, prepared.alu.weights, g.alu_log);
         errdefer alu.deinit();
-        var binary = try B.binary_source.Source.init(a, bf.items, g.binary_log);
+        var binary = try B.binary_source.Source.initWeighted(a, prepared.binary.facts, prepared.binary.weights, g.binary_log);
         errdefer binary.deinit();
-        var shift = try B.shift_word_packed_experiment.source.Source.init(a, sf.items, g.shift_log);
+        var shift = try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
         errdefer shift.deinit();
-        var division = try A.arithmetic.division.trace.Trace.initWithLog(a, df.items, g.division_log);
+        var division = try A.arithmetic.division.trace.Trace.initWithLog(a, prepared.division, g.division_log);
         errdefer division.deinit();
-        var multiplication = try A.arithmetic.multiplication.trace.Trace.initWithLog(a, mf.items, g.multiplication_log);
+        var multiplication = try A.arithmetic.multiplication.trace.Trace.initWithLog(a, prepared.multiplication, g.multiplication_log);
         errdefer multiplication.deinit();
+        const epoch = cpu.epoch;
         var memory = try Memory.Prepared.init(a, image, cpu.memory.items, epoch, g.ls_log, g.boundary_log);
         errdefer memory.deinit();
         var rom = try ROM.Source.init(a, &materials.program, cpu.rom_counts);
@@ -102,6 +86,8 @@ pub const Source = struct {
         errdefer and_table.deinit();
         var shift_table = try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift.shift_counts);
         errdefer shift_table.deinit();
+        cpu.releaseFacts();
+        prepared.releaseFacts();
         return .{ .allocator = a, .materials = materials, .cpu = cpu, .rom = rom, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .memory = memory, .and_table = and_table, .shift_table = shift_table, .range16 = range16, .range8 = range8, .counts16 = c16, .counts8 = c8 };
     }
     pub fn request(self: *const Source) P.Request {
@@ -122,23 +108,82 @@ pub const Source = struct {
         // Tiny table multiplicity columns supply their existing generators.
     }
     pub fn generate(self: *Source, ch: P.Draw) !P.Claims {
+        return self.generateProfiled(ch, null);
+    }
+    pub fn generateProfiled(self: *Source, ch: P.Draw, recorder: ?*Profile.Recorder) !P.Claims {
         if (self.claims != null) return error.InvalidWord16ExecutionPhase;
         const old = P.legacy(ch.cpu);
-        const r16 = try self.range16.generate(old);
-        const r8 = try self.range8.generate(old);
-        const rom = try self.rom.generate(ch.cpu.rom);
-        const and_ = try self.and_table.generateInteraction(ch.and_);
-        const shifts = try self.shift_table.generateInteraction(ch.shift_);
-        const boundary = try W.boundary_trace.generate(self.allocator, self.materials.boundary_fixed, self.cpu.public, self.materials.geometry.cpu_log, old.register);
+        const r16 = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_r16_table", "U16 table interactions");
+            defer stage.end();
+            break :block try self.range16.generate(old);
+        };
+        const r8 = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_r8_table", "U8 table interactions");
+            defer stage.end();
+            break :block try self.range8.generate(old);
+        };
+        const rom = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_rom", "Immutable ROM interactions");
+            defer stage.end();
+            break :block try self.rom.generate(ch.cpu.rom);
+        };
+        const and_ = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_and_table", "AND table interactions");
+            defer stage.end();
+            break :block try self.and_table.generateInteraction(ch.and_);
+        };
+        const shifts = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_shift_table", "Packed SHIFT table interactions");
+            defer stage.end();
+            break :block try self.shift_table.generateInteraction(ch.shift_);
+        };
+        const boundary = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_register_boundary", "Public register boundary interactions");
+            defer stage.end();
+            break :block try W.boundary_trace.generate(self.allocator, self.materials.boundary_fixed, self.cpu.public, self.materials.geometry.cpu_log, old.register);
+        };
         self.boundary = boundary.values;
-        const cpu = try self.cpu.generate(ch.cpu, .{ .rom = self.rom.dictionary, .range16 = self.range16.dictionary, .range8 = self.range8.dictionary });
-        const alu = try self.alu.generate(.{ .function = old.function, .range16 = old.range16 }, self.range16.dictionary);
-        const binary = try self.binary.generate(.{ .function = old.function, .and_ = ch.and_ });
-        const shift = try self.shift.generate(.{ .function = old.function, .range16 = old.range16, .shift = ch.shift_ }, self.shift_table.dictionary, self.range16.dictionary);
-        const jalr = try self.jalr.generate(ch.cpu.function);
-        const division = try self.division.generateInteraction(AB.division(ch.cpu.function));
-        const multiplication = try self.multiplication.generateInteraction(AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
-        const memory = try self.memory.generate(ch.memory, self.range16.dictionary, self.range8.dictionary);
+        const cpu = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_cpu", "CPU register function ROM and range interactions");
+            defer stage.end();
+            break :block try self.cpu.generate(ch.cpu, .{ .rom = self.rom.dictionary, .range16 = self.range16.dictionary, .range8 = self.range8.dictionary });
+        };
+        const alu = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_alu", "ALU interactions");
+            defer stage.end();
+            break :block try self.alu.generate(.{ .function = old.function, .range16 = old.range16 }, self.range16.dictionary);
+        };
+        const binary = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_binary", "BINARY interactions");
+            defer stage.end();
+            break :block try self.binary.generate(.{ .function = old.function, .and_ = ch.and_ });
+        };
+        const shift = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_shift", "SHIFT interactions");
+            defer stage.end();
+            break :block try self.shift.generate(.{ .function = old.function, .range16 = old.range16, .shift = ch.shift_ }, self.shift_table.dictionary, self.range16.dictionary);
+        };
+        const jalr = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_jalr", "Composite JALR interactions");
+            defer stage.end();
+            break :block try self.jalr.generate(ch.cpu.function);
+        };
+        const division = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_division", "DIV REM interactions");
+            defer stage.end();
+            break :block try self.division.generateInteraction(AB.division(ch.cpu.function));
+        };
+        const multiplication = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_multiplication", "MUL interactions");
+            defer stage.end();
+            break :block try self.multiplication.generateInteraction(AB.multiplication(ch.cpu.function), ch.cpu.range8.offset);
+        };
+        const memory = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_memory", "LS INIT TEARDOWN and selection interactions");
+            defer stage.end();
+            break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
+        };
         const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection };
         try claims.validate();
         self.claims = claims;

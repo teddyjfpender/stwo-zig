@@ -164,3 +164,120 @@ telemetry remains private until workers join; the joined-profile tests check
 all88 component stage leaves remain root siblings and check partial adoption
 allocation failure/retry ownership. Telemetry and gathering do not change the
 AIR or transcript. No speedup is inferred from these functional gates.
+
+## PROPOSED integrated Word16 LS owner-range elision (2026-10-31)
+
+**Status: proposed integrated elision, not qualified or activated.** The current
+Word16 genesis circuit and the standalone LS authority retain all 35 U16
+queries and 116 interaction columns. Their qualification does not qualify the
+elision below. No polynomial-equivalence or old-proof-byte claim applies to
+removing these constraints.
+
+The new full Word16 CPU commits architectural A/B/C and a separate IMM4. LS's
+OWNER19 is `(rawOpcode,A4,IMM4,Bstore4,Cload4,epoch16,tick24)`; its active rows
+have unit weight. In `memory/load_store_v1/layout.zig`, 16 of the 35 U16 queries
+are precisely A4/IMM4/B4/C4. The following conditional lemma could replace only
+those 16 queries in a **closed full-CPU proof**, retaining every RAM value,
+address, clock/gap, quotient, byte-selection, and ownership obligation.
+
+### Conditional canonicality argument
+
+Condition on soundness of the complete typed LogUp relations and physical
+STARK verification. All tuple/weight advice must be committed before challenge
+derivation, and all relevant query masses must stay below the characteristic.
+An equality of one sampled field expression is not a deterministic multiset
+proof: the usual lookup soundness error remains part of the protocol budget.
+
+The full CPU's REG6 closure has the orientation
+
+    CPU BEFORE occurrences + public final sinks
+        = CPU AFTER occurrences + public initial sources.
+
+ROM30 authenticates register IDs, zero flags and read/write enables. The CPU
+constrains each enabled gate to `active*(1-zeroFlag)`; these weights are unit
+Boolean values, not free multiplicities. Public initial register values are
+canonical four-u16 decompositions of independently expected u64 values.
+Register-zero words are separately constrained to zero. Disabled events supply
+no state source and do not inherit a canonicality claim.
+
+Every negative/source occurrence has clock zero (initial) or a fixed AFTER
+clock `4*row+slot+1`, strictly below 2^24 for CPU log at most22. Thus lookup
+matching itself bounds a used BEFORE clock P to that same finite support,
+although the CPU does not directly split P into range limbs. Its gap G is
+U16+U8 checked, so `P+G=T-1` has both sides below 2^25, strictly below M31. This
+field identity is therefore integer equality and P<T. Read-only events copy
+their BEFORE values into AFTER. A bad read value traced through predecessors
+must reach a smaller time at each step; it cannot form an unrooted cycle.
+Unit source capacity and distinct fixed AFTER ticks also forbid duplicating a
+source into two consumption paths. Terminal sinks are on the BEFORE side and
+cannot seed a bad value.
+
+Fresh architectural writes have independent canonical anchors:
+
+| Producer | Canonical output authority retained |
+| --- | --- |
+| ALU | U16 sum/difference limbs, Boolean one-hot operations and signs; comparisons output a Boolean word and W operations use canonical sign extension. |
+| BINARY | Every input/AND byte is authenticated by the complete AND table; the selected AND/OR/XOR byte expression is bounded, then recomposed into four u16 limbs. |
+| SHIFT | Complete immutable word-shift tuples, Boolean operation/offset/sign selectors and disjoint low/carry pieces bound the reconstructed result limbs; all existing range/table debts remain. |
+| DIV/REM | Boolean word bits include the result; W-result sign extension remains constrained. |
+| MUL | Existing BYTE queries include every RESULT byte; all byte/table claims remain physically closed. The byte-to-Word16 affine bus projection alone is not a range proof. |
+| JALR | Architectural C is the immutable ROM link PC+4; dynamic NEXT is separately the JALR composite FUNCTION output bound through ADD and AND. |
+| LUI/AUIPC/JAL/FENCE | Existing normalized ALU truth, with immutable ROM constants/PC semantics. |
+| LS loads | Still-range-checked RAM BEFORE limbs and strict selection5 membership bound each selected byte/sign and every output limb, including signed LB/LH/LW and LD. |
+| LS stores / ECALL | Store C is constrained to zero; ECALL has no architectural register write. This does not qualify a future service that writes registers. |
+
+Consequently every enabled REG read A/B is canonical by the finite predecessor
+argument. IMM4 is canonical by complete ROM30 membership, independently of the
+register argument. A load's C is canonical from the retained local LS/RAM and
+selection authorities; store C is zero. Inactive LS owner words remain explicitly
+zero. The argument is not circular: it never uses the 16 removed queries to
+establish these fresh write anchors. Once A and IMM are canonical, the existing
+Boolean-carry address equations have integer limb magnitudes below 2^18; their
+integer interpretation and natural-alignment proof remain valid.
+
+### Required adversarial gates before implementation acceptance
+
+* Preserve strict REG denominators, ROM ID/zero/enable/IMM binding, bounded gaps,
+  fixed after ticks, per-shard reset scope, all write anchors and complete typed
+  closures. A new unchecked register-writing hint/service invalidates the lemma.
+* Construct an unrooted out-of-range read cycle with coherently forged REG and
+  OWNER tuples. Without gap ranges, field-wrapped gaps can satisfy local clock
+  equations; the complete reduced circuit must reject the bounded-gap version.
+* Test `A0=1, IMM0=p-1` compensation into effective address zero. Reduced LS alone
+  permits this field relation; the full ROM/OWNER join must reject it. Do not
+  use native u16 hint truncation as the reason for rejection.
+* An unchecked writer can seed an out-of-range limb. Verify the anchor for every
+  supported writing opcode, including all W/sign cases and dynamic JALR link.
+* Removing selection membership can make a signed-load sign/output arbitrary.
+  Test each signed width and each naturally aligned offset with physical
+  selection, RAM and OWNER debts forged consistently.
+* Free negative REG weights invalidate source-capacity/clock ancestry. Retain
+  authenticated unit enables and test zero registers, aliased rs1/rs2/rd,
+  disabled reads/writes, padding, final clocks and the maximum CPU domain.
+* A missing closure, a dropped physical claim, or a query mass reaching p can
+  invalidate the multiset premise. Test actual proof mutations after MAIN seal,
+  not only constructor rejection. Services and cross-batch scopes require their
+  own complete admission/receiver qualification before reusing this lemma.
+* Qualify the new query ledger and physical component with dense secure degree,
+  scalar/SIMD equality, strict pole/error ownership, and a fresh full CPU+LS
+  proof. This is a semantic protocol gate, not an expectation of old proof bytes.
+
+### Complete local cost hypothesis
+
+Retaining the other 19 U16 queries changes strict range pairs from18 to10.
+Their eight secure inverses consume32 fewer base interaction columns, giving
+**116 to84**, while MAIN79, five physical claims, five secure prefixes, the
+20 previous-prefix masks, selection/table providers and degree3/2n remain.
+The current-only OODS mask count falls by32; no previous mask is removed.
+The emitted constraint count would fall281 to273. The shared U16 table remains
+65536 rows; its multiplicity mass decreases by `16*LS_domain_rows`, not by any
+native repeated-operation weight. The 16 owner limbs must still survive MAIN
+retirement for OWNER19 denominator generation: no metadata saving is implied.
+
+At packet0's admitted LS log21, this models67,108,864 fewer committed base
+interaction cells (268,435,456 raw bytes) and134,217,728 fewer native2n column
+point values to transform/evaluate. It is not a measured RSS or time saving.
+Relative to the prepared packet0 interaction ledger659,524,096, that is10.18%
+of interaction source cells, or5.35% of MAIN+INTER source cells. Prefix merging
+alone would remove16 columns rather than32 and can be considered separately
+after this integrated canonicality obligation is qualified.

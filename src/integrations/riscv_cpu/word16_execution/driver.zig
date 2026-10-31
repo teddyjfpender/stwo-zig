@@ -20,7 +20,7 @@ pub const Bundle = struct {
     claims: P.Claims,
 };
 pub fn admission(image: *const Image.Owner) E.Admission {
-    return .{ .image = Memory.fromOwner(image), .image_identity = image.identity, .initial_pc = image.initial_pc, .initial_registers = image.initial_registers };
+    return .{ .image = Memory.fromOwner(image), .image_identity = image.identity, .initial_pc = image.initial_pc, .initial_registers = image.initial_registers, .max_prefix_steps = image.max_prefix_steps };
 }
 pub fn writeJson(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const bytes = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
@@ -43,8 +43,8 @@ pub fn verifyDirectory(a: std.mem.Allocator, image: *const Image.Owner, path: []
     defer parsed.deinit();
     const b = parsed.value;
     if (b.schema != 2) return error.InvalidExecutionBundle;
-    try b.geometry.validate();
-    try b.cpu.validate(b.geometry.cpu_log);
+    try admission(image).validateCpu(b.geometry, b.cpu);
+    try E.Admission.validateCounts(b.geometry, b.cpu.steps, b.ls_count, b.memory_words);
     try b.claims.validate();
     if (b.epoch != 1 or b.cpu.initial_pc != image.initial_pc or !std.mem.eql(u64, &b.cpu.initial_registers, &image.initial_registers)) return error.UntrustedWord16InitialCpu;
     const cells = try Cells.read(a, dir, b.memory_words);

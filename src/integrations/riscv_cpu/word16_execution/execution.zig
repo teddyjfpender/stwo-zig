@@ -18,13 +18,27 @@ pub const Admission = struct {
     image_identity: [32]u8,
     initial_pc: u64,
     initial_registers: [32]u64,
+    max_prefix_steps: u32 = (1 << 22) - 1,
+    pub fn validateCpu(self: Admission, geometry: Mat.Geometry, public: @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary) !void {
+        if (self.max_prefix_steps == 0 or self.max_prefix_steps >= 1 << 22) return error.InvalidExecutionBudget;
+        if (public.steps > self.max_prefix_steps) return error.ExecutionPrefixBudgetExceeded;
+        try geometry.validate();
+        try public.validate(geometry.cpu_log);
+        if (public.initial_pc != self.initial_pc or !std.mem.eql(u64, &public.initial_registers, &self.initial_registers)) return error.UntrustedWord16InitialCpu;
+    }
+    pub fn validateCounts(geometry: Mat.Geometry, steps: u32, ls_count: u32, words: usize) !void {
+        try geometry.validate();
+        // This admitted path has one word event per ordinary memory opcode,
+        // no services, and exactly the touched set from those events.
+        if (ls_count > steps or words > ls_count or ls_count >= @as(u64, 1) << @intCast(geometry.ls_log) or words >= @as(u64, 1) << @intCast(geometry.boundary_log)) return error.InvalidExecutionMemoryCount;
+    }
     pub fn validate(self: Admission, setup: *const Mat.Setup, request: P.Request) !void {
         try self.validateGeometry(setup.materials.geometry, request);
     }
     /// Cheap public admission precedes statement-specific fixed-key allocation.
     pub fn validateGeometry(self: Admission, geometry: Mat.Geometry, request: P.Request) !void {
-        try geometry.validate();
-        try request.cpu.validate(geometry.cpu_log);
+        try self.validateCpu(geometry, request.cpu);
+        try validateCounts(geometry, request.cpu.steps, request.memory.ls_count, request.memory.initial.len);
         if (request.epoch != 1 or request.memory.epoch != request.epoch) return error.UnqualifiedCrossBatchMemoryScope;
         if (request.cpu.initial_pc != self.initial_pc or !std.mem.eql(u64, &request.cpu.initial_registers, &self.initial_registers)) return error.UntrustedWord16InitialCpu;
         try request.memory.validate(self.image);
@@ -51,9 +65,16 @@ fn validateBoundary(request: P.Request, claims: P.Claims, draw: P.Draw) !void {
 pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, public: @import("stwo_riscv_frontend").rv64_air.word16_execution.types.Boundary, tape: *const @import("stwo_riscv_frontend").rv64.compact_tape.Tape, recorder: ?*Recorder.Recorder) !Encoded {
     var source_stage = try Recorder.StageScope.begin(recorder, "source_construction", "One CPU and provider witness construction");
     defer source_stage.end();
-    var source = try S.Source.init(a, &setup.materials, admission.image, public, 1, tape);
-    defer source.deinit();
+    const source = try S.Source.init(a, &setup.materials, admission.image, public, 1, tape);
     source_stage.end();
+    return provePrepared(a, setup, admission, source, recorder);
+}
+/// Consumes the prepared Source on success AND failure. Setup must stay at its
+/// final stable address and outlive the entire proof; no CPU/program rebuild.
+pub fn provePrepared(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
+    var source = owned_source;
+    defer source.deinit();
+    if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
     var request = source.request();
     try admission.validate(setup, request);
     var scheme = try T.Scheme.init(a, T.P.config());
@@ -73,9 +94,9 @@ pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission
     const draw = P.draw(&channel);
     var generation_stage = try Recorder.StageScope.begin(recorder, "interaction_generation", "Close all seventeen component obligations");
     defer generation_stage.end();
-    const claims = try source.generate(draw);
+    const claims = try source.generateProfiled(draw, recorder);
     generation_stage.end();
-    try validateBoundary(request, claims, draw);
+    // Source.memory.generate already compared both expected boundary claims.
     mixClaims(&channel, claims);
     const interaction = try source.columns(a, 2);
     defer a.free(interaction);

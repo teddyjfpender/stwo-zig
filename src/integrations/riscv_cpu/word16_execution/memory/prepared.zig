@@ -6,6 +6,7 @@ const V1 = front.rv64_air.memory.load_store_v1;
 const CPU = @import("../cpu_source.zig");
 pub const public = @import("statement.zig");
 const Collector = @import("collector.zig");
+const Profile = @import("stwo_prover_api").stage_profile;
 pub const Prepared = struct {
     allocator: std.mem.Allocator,
     statement: public.Statement,
@@ -67,10 +68,31 @@ pub const Prepared = struct {
         try statement.validate(image);
     }
     pub fn generate(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, dict8: []const X.types.Q) ![4]X.types.Claims {
-        const ls = try self.ls.generate(ch, dict16, dict8);
-        const initial = try self.initial.generate(ch, dict16, dict8);
-        const terminal = try self.terminal.generate(ch, dict16, dict8);
-        const selection = try self.selection.generate(ch);
+        return self.generateProfiled(ch, dict16, dict8, null);
+    }
+    pub fn generateProfiled(self: *Prepared, ch: X.types.Challenges, dict16: []const X.types.Q, dict8: []const X.types.Q, recorder: ?*Profile.Recorder) ![4]X.types.Claims {
+        const ls = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_ls", "Load store interactions");
+            defer stage.end();
+            break :block try self.ls.generate(ch, dict16, dict8);
+        };
+        const initial = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_initial", "INIT interactions");
+            defer stage.end();
+            break :block try self.initial.generate(ch, dict16, dict8);
+        };
+        const terminal = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_terminal", "TEARDOWN interactions");
+            defer stage.end();
+            break :block try self.terminal.generate(ch, dict16, dict8);
+        };
+        const selection = block: {
+            var stage = try Profile.StageScope.begin(recorder, "inter_selection", "Selection table interactions");
+            defer stage.end();
+            break :block try self.selection.generate(ch);
+        };
+        var authority_stage = try Profile.StageScope.begin(recorder, "inter_boundary_authority", "Independent public memory boundary claims");
+        defer authority_stage.end();
         if (!initial.ram.eql(try X.boundary_source.expectedClaim(self.statement.initial, true, ch.ram)) or !terminal.ram.eql(try X.boundary_source.expectedClaim(self.statement.terminal, false, ch.ram))) return error.MemoryBoundaryClaimMismatch;
         return .{ ls, initial, terminal, selection };
     }

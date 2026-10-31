@@ -174,20 +174,32 @@ pub const Source = struct {
 };
 /// Receiver supplies the independently authorized complete tuple list. Digest
 /// must enter FS before roots; expected RAM debt is recomputed after challenges.
+/// Bounded receiver scratch is 2*4096 secure values (128 KiB); no allocator,
+/// cached channel or mutable state is involved. Every zero pole is rejected.
 pub fn expectedClaim(cells: []const Cell, initial: bool, ch: R.types.RamChallenges) !Q {
+    const CHUNK: usize = 4096;
+    var denominators: [CHUNK]Q = undefined;
+    var inverses: [CHUNK]Q = undefined;
     var claim = Q.zero();
-    for (cells) |cell| {
-        var tuple: [14]Q = @splat(Q.zero());
-        tuple[0] = Q.one();
-        @memcpy(tuple[1..5], &R.types.word(Q, cell.address));
-        tuple[5] = @import("../../evaluation.zig").q(cell.state.epoch);
-        tuple[6] = @import("../../evaluation.zig").q(@as(u16, @truncate(cell.state.tick)));
-        tuple[7] = @import("../../evaluation.zig").q(cell.state.tick >> 16);
-        @memcpy(tuple[8..12], &R.types.word(Q, cell.state.value));
-        tuple[12] = @import("../../evaluation.zig").q(cell.state.rights & 1);
-        tuple[13] = @import("../../evaluation.zig").q(cell.state.rights >> 1);
-        const inv = try ch.denominatorFor(Q, tuple).inv();
-        claim = if (initial) claim.sub(inv) else claim.add(inv);
+    var start: usize = 0;
+    while (start < cells.len) : (start += CHUNK) {
+        const count: usize = @min(CHUNK, cells.len - start);
+        for (cells[start..][0..count], denominators[0..count]) |cell, *value| {
+            // Reuse the provider's canonical M31 tuple projection. Gap fields
+            // are not part of RAM14; they remain zero in this native metadata.
+            var meta = Metadata{ .range16 = @splat(0), .high = @intCast(cell.state.tick >> 16), .flags = 1 | (@as(u8, cell.state.rights) << 1) };
+            for (0..4) |i| {
+                const shift: u6 = @intCast(16 * i);
+                meta.range16[i] = @truncate(cell.address >> shift);
+                meta.range16[4 + i] = @truncate(cell.state.value >> shift);
+            }
+            meta.range16[8] = cell.state.epoch;
+            meta.range16[9] = @truncate(cell.state.tick);
+            value.* = ch.offset;
+            for (ch.coefficients, meta.tuple()) |coefficient, base| value.* = value.sub(coefficient.mulM31(base));
+        }
+        try core.fields.batchInverseInPlace(Q, denominators[0..count], inverses[0..count]);
+        for (inverses[0..count]) |inverse| claim = if (initial) claim.sub(inverse) else claim.add(inverse);
     }
     return claim;
 }

@@ -1,0 +1,136 @@
+{
+  "scope": "Measured real accepted round5 packet0 genesis prefix; 4,194,303 native instructions, no service or cross-batch acceptance",
+  "status": "actual q70/P26 joined proof and fresh independent receiver PASS",
+  "security_config": {
+    "queries": 70,
+    "pow_bits": 26,
+    "log_blowup_factor": 1,
+    "nominal_config_bits": 96,
+    "whole_protocol_128_bit_claim": false
+  },
+  "benchmark": {
+    "pipeline_seconds": 15.242450208,
+    "pipeline_definition": "native CPU preparation + grouped provider source construction + actual proof; excludes separately reported immutable setup",
+    "invocation_wall_seconds": 16.73,
+    "peak_rss_bytes": 11602001920,
+    "peak_rss_decimal_GB": 11.60200192,
+    "native_prepare_seconds": 0.301473833,
+    "provider_source_seconds": 2.0152205,
+    "immutable_setup_seconds": 0.3141805,
+    "fresh_receiver": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 835067125,
+      "image_ns": 299941875
+    },
+    "fresh_receiver_wall_seconds": 0.84,
+    "fresh_receiver_peak_rss_bytes": 1966620672,
+    "observation_count": 1,
+    "caveat": "No speed claim derived from toy fixtures, source-cell reductions, or this single observation; actual report and raw time data are pinned."
+  },
+  "grouping": {
+    "raw_counts": {
+      "alu": 1135463,
+      "binary": 866612,
+      "shift": 995056,
+      "jalr": 9913,
+      "division": 0,
+      "multiplication": 5051,
+      "memory": 1202034,
+      "service": 0
+    },
+    "alu_unique_facts": 574440,
+    "binary_unique_facts": 673582,
+    "alu_log": [
+      21,
+      20
+    ],
+    "binary_log": [
+      20,
+      20
+    ],
+    "note": "ALU capacity halves21\u219220; BINARY unique673582 still requireslog20, so its capacity does not halve. Multiplicity already constrained by unchanged function bus/physical claims. CPU witness and program built once."
+  },
+  "source_cells": {
+    "v3": {
+      "fixed": 69265312,
+      "main": 648277728,
+      "interaction": 714050048
+    },
+    "v4": {
+      "fixed": 67168160,
+      "main": 593751776,
+      "interaction": 659524096
+    },
+    "difference_v3_minus_v4": {
+      "fixed": 2097152,
+      "main": 54525952,
+      "interaction": 54525952
+    }
+  },
+  "v3_v4_semantic_comparison": {
+    "public_fields_identical": {
+      "schema": true,
+      "cpu": true,
+      "epoch": true,
+      "division_requests": true,
+      "multiplication_requests": true,
+      "ls_count": true,
+      "memory_words": true
+    },
+    "all_cpu_register_values_and_clocks_identical": true,
+    "cells_bin_byte_identical": true,
+    "cells_bin_sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "memory_words": 708957,
+    "note": "Physical claims/fixed roots/proof bytes differ under changed ALU geometry. Initial and terminal RAM addresses/values/rights/epoch/ticks in canonical sidecar are unchanged."
+  },
+  "actual_proof": {
+    "v4_bytes": 1154928,
+    "v4_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+    "v3_bytes": 1142752,
+    "v3_sha256": "dfe889aac34bd21202e77ca2d8fbbec0a126862572e71e8ff25f059b5c8eebfb",
+    "proof_size_improvement_claim": false
+  },
+  "functional_gates": {
+    "prepared": "Safe/Fast7 PASS",
+    "cpu_and_admission": "parent qualifies floor19",
+    "memory": "parent qualifies floor10",
+    "notes": "Prepared gates include actual130-step XOR/BEQ weighted proof/fresh setup, unit-BINARY same-geometry encoded byte parity, wrong multiplicity, invalid weight, exact grouping, transfer/retirement and exhaustive allocation failures. Current profiling/Admission source included below."
+  },
+  "frozen_executable": {
+    "path": "/private/tmp/stwo-rv64-arith/zig-out/bin/rv64-word16-execution-benchmark",
+    "sha256": "ccef8bb1050cecd41927771016862da7af90c22cefaec3b8c2ee2d07589c9d94",
+    "build_log": "/tmp/rv64-word16-execution-prepared-profile-final-build.log"
+  },
+  "artifact_sha256": {
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/report.json": "e74b0e437857f3c0a23016c53b9705a6bbaead06777cbd67a09e1fb4508673d2",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/planning.json": "2911fe74315515430372d20206aa16d9aaf575bce2b8a55ca27a7952ec86e0ab",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/statement.json": "a8190242423e790403d7b8cc6d9260e2cf5bdb4cd582530ab79317ae8101a428",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/proof.bin": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared/stages.json": "89707bba06235393bd1bb75e793710140f88e33eb4fb261507f6a85294eb8f7d",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared.time": "fdfd4de10cb683dfc2a73ec433df8a655a7c9be5760e54b2a9cae86aeddd4cbb",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared.fresh.json": "52f3faef94882e437bc775545f65ad06aa351a851abd9fdd4fde951db16548c1",
+    "/tmp/rv64-word16-execution-real-packet0-v4-prepared.fresh.time": "f07d1da769dd18ce813b2f6976296b18bc3575b1c95fcfcd0a6fb10819fdd1a2"
+  },
+  "nativePreparedSliceCode": {
+    "src/integrations/riscv_cpu/word16_execution/prepared.zig": "c53cf1a55dad10dced53a8d0d1dcb937271d7800156f375ec6d1e8385794283b",
+    "src/integrations/riscv_cpu/word16_execution/binary_dedup.zig": "cffe80d7a08f42ce699502dfd8b4de2e2b85f529ee75ab9dee586aab8898354f",
+    "src/integrations/riscv_cpu/word16_execution/prepared_test.zig": "3ba04c9bf0cab0c97c38f4a4eea0ff3ef2ad388be708f7073e29f78bf53c9406",
+    "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig": "40093bda4f51b2e9892727faa59f84ae332e80969c6d0a9c5e80e2d0bc7cda90",
+    "src/integrations/riscv_cpu/word16_execution/sources.zig": "1291469c68a8d4d7a9d7f91af4088449781bb4b020327f5fa1814156fe14980e",
+    "src/integrations/riscv_cpu/word16_execution/execution.zig": "ce0cd0c5733b8e522fbc4a3148e2a8590c4144387200ab49037e0c0c68daa2a9",
+    "src/integrations/riscv_cpu/word16_execution/memory/prepared.zig": "7567e93bd10db4ef55c66886cd04e4a4a1d5a255b8e8cc7f227951d87fedcc7a",
+    "src/integrations/riscv_cpu/word16_execution/expected_image.zig": "4c1ba98b965afb508298b6020890218b967f83891da3e051d571f3c9ca5f5feb",
+    "src/integrations/riscv_cpu/word16_execution/driver.zig": "8441f7bc0015cde8d781c8f325376973ade3824086b25c72c1456c5bbfb741fa",
+    "src/integrations/riscv_cpu/word16_execution/geometry.zig": "8e7ca8b02174a64f6b8cbe5bc43fbfd6e552d4520077c2ac598e6a8ee1601777",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "42722d22be6ab9bc0829419c0142ccf9fe9055cd9409c3fff2458eb200f0cdaa",
+    "src/integrations/riscv_cpu/word16_execution/cpu_source.zig": "dca8d146d050182ecb0386e453e786395ed2e2c26e5bfd710077a02ff76deaf7",
+    "src/integrations/riscv_cpu/rv64_word16_execution_benchmark_main.zig": "ddb9ddea7840b18c99c0a79ece97783b51a971b8e4461ea6b0e5ed8e045c911d",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig": "21e104f6c620f3623c69e209bfbf39fb5cd2e78c5a5dd008c25c6c50ce879ea2",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_source.zig": "267ea940b138df72618afe2dd29cf5ee3684a7e6d56d5b7493d42f1d86e37527",
+    "src/integrations/riscv_cpu/word16_execution/memory/expected_claim_test.zig": "b0dbef7df62abe41a9ab2d3abeab8b1524d3f5a0c8b27e43d21837386459a925"
+  },
+  "range_elision_status": "PROPOSED only; LS rangeful MAIN79/INTER116 remains the measured and qualified circuit."
+}

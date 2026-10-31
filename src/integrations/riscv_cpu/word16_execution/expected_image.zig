@@ -12,6 +12,7 @@ pub const Owner = struct {
     policy: R.policy.Policy,
     expected_output: [43]u8,
     identity: [32]u8,
+    max_prefix_steps: u32,
     initial_pc: u64,
     initial_registers: [32]u64,
     pub fn init(a: std.mem.Allocator, config: Request.Config) !Owner {
@@ -42,7 +43,7 @@ pub const Owner = struct {
         _ = try policy.find(.chunk512, terminal.base(), 3);
         const identity = try @import("../rv64_work_packet_header.zig").identityFor(config, &authority, &policy);
         const initial = rv.machine.Cpu.init(loaded.info.entry, config.symbols.stack_top);
-        return .{ .loaded = loaded, .authority = authority, .policy = policy, .expected_output = output, .identity = identity.request, .initial_pc = initial.pc, .initial_registers = initial.regs };
+        return .{ .loaded = loaded, .authority = authority, .policy = policy, .expected_output = output, .identity = identity.request, .max_prefix_steps = @intCast(@min(config.max_steps, config.batch_steps)), .initial_pc = initial.pc, .initial_registers = initial.regs };
     }
     /// Pure raw image read, not a permission grant. Operational access rights
     /// remain a separate immutable-policy relation. Unallocated bytes are zero.
