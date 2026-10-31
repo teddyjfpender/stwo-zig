@@ -160,6 +160,7 @@ pub fn produceWithStorage(a: std.mem.Allocator, setups: []const *const R.CpuSetu
 }
 pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, prepared: []const *Native, advice: *const Advice, expected: P.Expected, options: ProduceOptions) !Bundle {
     try options.validate(setups.len + truths.len);
+    if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
     if (setups.len != prepared.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
@@ -187,6 +188,12 @@ pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetu
             return err;
         };
         const mem = try memory(a, advice.events[index], initial, terminal, r.base.epoch, s.materials.geometry);
+        if (options.consume_memory_events) {
+            // LS source has copied its complete owned relation metadata. The
+            // prebuilt requests retain counts; Keccak/secp advice remains live.
+            a.free(advice.events[index]);
+            advice.events[index] = &.{};
+        }
         var source = block: {
             var base = try Source.Source.fromPreparedWithOwnedMemoryProfiled(a, &s.materials, n, mem, recorder);
             errdefer base.deinit();

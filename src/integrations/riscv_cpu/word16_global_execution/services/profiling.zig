@@ -8,6 +8,9 @@ pub const Options = struct {
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,
+    /// One-way producer mode: event arrays are freed as owned LS metadata is
+    /// constructed. Advice outer headers remain valid and must be deinitialized.
+    consume_memory_events: bool = false,
     pub fn validate(self: Options, count: usize) !void {
         if (self.recorders.len != 0 and self.recorders.len != count) return error.InvalidServiceRecorderRoster;
         if (self.directory != null and self.recorders.len == 0) return error.MissingServiceRecorders;

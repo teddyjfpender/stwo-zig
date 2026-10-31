@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "scope": "actual fresh receiver; bounded changed geometry is not silently rekeyed",
+  "results": [
+    {
+      "case": "valid_changed_cpu_geometry",
+      "exit_code": 1,
+      "rejected_with": "GlobalExecutionInventoryMismatch"
+    },
+    {
+      "case": "valid_changed_truth_geometry",
+      "exit_code": 1,
+      "rejected_with": "GlobalExecutionInventoryMismatch"
+    },
+    {
+      "case": "changed_cpu_epoch",
+      "exit_code": 1,
+      "rejected_with": "InvalidServicesWireRequest"
+    }
+  ],
+  "control": "ethereum-full-global-s4-v1.json",
+  "binary_sha256": "1d9fdfe679252c8832ee7fe02dae0bc6aefd943c7d92fa2a169ab2d1fa8fa2ab",
+  "qualification": "CPU ALU log+1 and K truth log+1 are admissible shapes; declarations rejected by manifest spec binding; epoch mismatch rejected before keys"
+}

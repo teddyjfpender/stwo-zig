@@ -19,11 +19,8 @@ pub const Owner = struct {
     final_registers: [32]u64,
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, program: *const Program, config: Request.Config, jobs: std.fs.Dir, prefix_packets: u32) !Owner {
         if (prefix_packets > 256) return error.TooManyEthereumPackets;
-        var packets: std.ArrayList(Packet.Packet) = .{};
-        defer {
-            for (packets.items) |*p| p.deinit();
-            packets.deinit(a);
-        }
+        var collector = Collector.Builder.init(a, Memory.fromOwner(image));
+        defer collector.deinit();
         var native: std.ArrayList(*Native) = .{};
         errdefer {
             for (native.items) |n| {
@@ -41,11 +38,9 @@ pub const Owner = struct {
             const path = try std.fmt.bufPrint(&name, "job-{d:0>6}.work", .{index});
             var file = try jobs.openFile(path, .{});
             defer file.close();
-            try packets.ensureUnusedCapacity(a, 1);
-            const packet = try Packet.read(a, file, image, config);
-            // From this point packets owns tape on both success and error.
-            packets.appendAssumeCapacity(packet);
-            const p = &packets.items[packets.items.len - 1];
+            var packet = try Packet.read(a, file, image, config);
+            defer packet.deinit();
+            const p = &packet;
             if (index == 0) try C.requireGenesis(image, p);
             if (p.metadata.index != index or p.metadata.first_step != total or p.public.statement.initial_pc != pc or !std.mem.eql(u64, &p.public.statement.initial_registers, &regs)) return error.NonAdjacentEthereumPacket;
             total = try std.math.add(u64, total, p.tape.len);
@@ -60,14 +55,15 @@ pub const Owner = struct {
                 break :capture value;
             };
             native.appendAssumeCapacity(n);
+            try collector.append(n, &p.tape);
+            // The ledger and service advice own all predecessor/call data.
+            // MAIN/INTER generation retains its separate CPU metadata.
+            n.cpu.?.releaseCaptureRecords();
             if ((prefix_packets != 0 and index + 1 == prefix_packets) or (prefix_packets == 0 and pc == image.terminal_pc)) break;
             if (p.tape.len != config.batch_steps) return error.IncompleteEthereumPacketChain;
         }
         if (prefix_packets == 0 and pc != image.terminal_pc) return error.MissingEthereumTerminalPacket;
-        const tapes = try a.alloc(*const @import("stwo_riscv_frontend").rv64.compact_tape.Tape, packets.items.len);
-        defer a.free(tapes);
-        for (packets.items, tapes) |*p, *t| t.* = &p.tape;
-        var advice = try Collector.collect(a, native.items, tapes, Memory.fromOwner(image));
+        var advice = try collector.finish();
         errdefer advice.deinit();
         return .{ .allocator = a, .native = native, .advice = advice, .total_steps = total, .final_pc = pc, .final_registers = regs };
     }

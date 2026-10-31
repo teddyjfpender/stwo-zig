@@ -73,6 +73,7 @@ pub const Source = struct {
         var pending_memory = owned_memory;
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
+        if (owned_memory == null and (prepared.cpu orelse return error.PreparedExecutionConsumed).capture_records_retired) return error.MissingPreparedMemoryRecords;
         try g.validate();
         const splits = try Tail.validate(g, prepared);
         const ls_counts = try g.lsCounts(prepared.raw_counts.memory);

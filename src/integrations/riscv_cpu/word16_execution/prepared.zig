@@ -136,6 +136,9 @@ pub const Prepared = struct {
         const division = try df.toOwnedSlice(a);
         errdefer a.free(division);
         const multiplication = try mf.toOwnedSlice(a);
+        // Every provider fact is now independently owned. Avoid retaining a
+        // second copy until all execution shards have sealed their MAIN.
+        cpu.releaseFunctionFacts();
         return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {

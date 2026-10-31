@@ -87,7 +87,7 @@ pub fn main() !void {
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();
     const prove_start = timer.read();
-    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
+    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const verify_start = timer.read();

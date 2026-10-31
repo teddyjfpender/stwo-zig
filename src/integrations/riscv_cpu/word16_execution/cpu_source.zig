@@ -43,6 +43,7 @@ pub const Source = struct {
     rom_counts: []u64,
     counts16: []u64,
     counts8: []u64,
+    capture_records_retired: bool = false,
     functions: std.ArrayList(FunctionFact) = .empty,
     memory: std.ArrayList(MemoryRecord) = .empty,
     services: std.ArrayList(ServiceRecord) = .empty,
@@ -172,13 +173,24 @@ pub const Source = struct {
         self.main_projection_closed = true;
         return main;
     }
-    pub fn releaseFacts(self: *Source) void {
+    /// Grouped provider facts have copied these values; CPU projection and
+    /// interactions read only metadata and the authenticated ROM entries.
+    pub fn releaseFunctionFacts(self: *Source) void {
         self.functions.deinit(self.allocator);
         self.functions = .empty;
+    }
+    /// Only after chronological RAM/service advice has copied all records.
+    /// A caller must then supply owned prepared memory to build this source.
+    pub fn releaseCaptureRecords(self: *Source) void {
         self.memory.deinit(self.allocator);
         self.memory = .empty;
         self.services.deinit(self.allocator);
         self.services = .empty;
+        self.capture_records_retired = true;
+    }
+    pub fn releaseFacts(self: *Source) void {
+        self.releaseFunctionFacts();
+        self.releaseCaptureRecords();
     }
     pub fn deinit(self: *Source) void {
         self.releaseMain();

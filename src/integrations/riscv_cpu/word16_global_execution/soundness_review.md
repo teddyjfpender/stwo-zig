@@ -1,106 +1,168 @@
-# Independent review: global execution prefix v1
+# Global execution: soundness obligations and qualification ledger
 
-This manual review covers `protocol.zig`, `execution.zig`, `collector.zig`, the
-additive global witness path in `word16_execution/sources.zig` and
-`memory/prepared.zig`, and the reused CPU/LS/boundary authorities. It is not a
-formal proof or a claim of whole-block, service or recursion qualification.
+This source review is an engineering record, not a formal security proof.
+The canonical Ethereum route is `services/{protocol,execution,roster,wire}.zig`
+with `ethereum/{capture,keys,receiver,terminal}.zig`. The base, Keccak-only,
+shared-Keccak and secp routes are retained controls/qualification tools; their
+prefix acceptance does not certify Ethereum completion. The earlier base-only
+review did not cover services. The obligations below now include their joins.
 
-The accepting statement is an execution prefix with independently supplied
-program/image authority, genesis PC/registers, step budget, and public final
-PC/register values. It does not establish the guest halt flag or Ethereum's
-43-byte output certificate. Services remain unsupported by this source path.
-The epoch16/tick24 representation retains its explicit finite bounds.
+The completed block receipt is
+`vectors/reports/rv64-word16-execution-20261031/ethereum-full-global-s4-v1.json`:
+104,253,913 instructions,25 CPU STARKs and five independently sized crypto truth
+STARKs, plus a separate fresh receiver. It pins the precise source/binary and
+layout; it does not qualify every later layout change automatically. LS48 has
+its own smaller-workload/CSP/Sail qualification and canonicality proof note;
+a complete-block rerun remains necessary after activating that layout.
 
-## Authority and transcript obligations checked
+## Independent authority and geometry
 
-`protocol.validateRequests` checks the caller's `Expected.program_identity`,
-not agreement with a producer-chosen first key. Receiver setup owners must be
-reconstructed from the pristine expected program and geometry. Each shard's
-fixed root is checked against that independent key in `execution.verify`.
-The per-shard budget and global total-step budget are enforced before proof
-decoding. Program pin and local-budget checks were added following this review.
+The receiver loads and hashes the independently pinned ELF/input, validates
+symbols, immutable code/policy and absorbing terminal PC, and derives native
+program/materials from that image. No packet, transport hash, producer key or
+native VM result grants proof authority. The fresh Ethereum receiver consumes
+no work packets or execution tape and performs no native replay.
 
-`checkStage1` obtains actual fixed/main PCS roots and checks the exact geometry.
-The ordered manifest seals every statement digest and actual root pair before
-`Manifest.ram` derives shared RAM14 randomness. Receivers reconstruct the
-statement digests, check the complete inventory, and compare actual proof roots
-to the manifest. Resumed stage-two workers recheck their retained stage-one
-roots. Native value roots and transport hashes never substitute for PCS roots.
+Producer geometry is deliberately an untrusted admissible cost parameter.
+Wire admission bounds logs, CPU/truth counts, proof bytes, total steps, rows,
+call spans and lookup masses before large allocations. Ethereum admission then
+checks genesis, batch schedule, epochs, PC/all32-register adjacency, budget and
+completed endpoint before keys are built. Every admitted geometry must describe
+a sound AIR; rebuilding a key alone is not sufficient acceptance.
 
-Every local challenge channel binds its own public request, ordinal, first
-step, expected context, and complete manifest. All core physical claims (including optional LS tail) enter the
-local transcript before interaction commitment and constraint coefficients.
-`Source.validateOpenForGlobalRam` checks a zero sum EXCLUDING only LS/INIT/TERM
-RAM claims from head LS, optional tail LS, INIT and TERM through the canonical core ramClaim helper. Thus non-RAM debts cannot cancel across shards.
-Within a shard this is a joint typed rational identity, not an independently
-closed certificate for each individual family. The receiver repeats that check,
-fresh-verifies every physical proof, and closes the remaining shared RAM debt.
+`beginCpu` binds the compiled core layout/encoding identities and every shape,
+bridge geometry and request into its spec digest. `beginTruth` binds family,
+program, geometry and exact call span. The complete manifest checks reconstructed
+specs and actual fixed/MAIN root pairs. Receivers compare actual proof roots
+against independently reconstructed keys and that manifest, then verify every
+physical proof. Real serialized declaration changes to admissible CPU and truth
+geometries are rejected as `GlobalExecutionInventoryMismatch`; a changed epoch
+is rejected during wire admission. Consistently resealed declaration/root attacks
+must additionally fail the actual-root/physical-verification boundary.
 
-## Continuation and RAM argument checked
+## Two-phase transcript and closure
 
-Epochs equal ordinal+1. PC and all 32 register VALUES are adjacent across shards;
-local register clocks deliberately reset to zero and are checked within each
-CPU proof. Summed physical CPU step counts must equal the expected total, with
-independently admitted genesis and claimed final endpoints.
+All CPU and truth fixed/MAIN roots are sealed before any shared RAM14, KIO11 or
+Wire35 challenge is derived. The ordered inventory binds each worker ordinal,
+expected image/program identity, total/budget and endpoint. A worker must recheck
+its actual retained roots before stage2. An execution cannot start an early
+shard's stage2 while a later shard's stage1 is still uncommitted. Each phase may
+run workers concurrently with the complete-manifest barrier between them.
 
-Only shard0 may contain INIT and only the last shard may contain TEARDOWN.
-Boundary addresses are sorted and unique both in public admission and the
-reused ranged strict-address AIR. INIT values and permissions are read from the
-independent pristine image/policy. The receiver checks actual boundary claims
-against `boundary_source.expectedClaim`, including zero claims for empty
-boundaries; constructor checks or receipt assertions alone are insufficient.
+Every physical core and bridge claim enters the local transcript before INTER
+commitment and constraint coefficients. Local CPU closure excludes precisely
+shared RAM and typed crypto truth debts. Merged local lookup claims are additive
+ledger shares authenticated by their combined physical prefix; they are not
+independent certificates for each subrelation. No local provider debt may escape
+through an omitted role or cancel against an unrelated global relation.
 
-Every RAM event is unit-active, with the same OWNER weight as its CPU request.
-The OWNER19 tuple authenticates after-epoch and after-tick=4*CPUrow+4, so there
-is no independently chosen producer timestamp. Reused LS equations/ranges prove
-strict lexicographic epoch/tick predecessor ordering, canonical words and
-permissions, read preservation and store semantics. Bounded integer limb sums
-are below M31 and cannot hide field wrap. INIT stamp is zero. Sorted unique
-INIT, unique owner-produced address/time states, and the admitted total unit
-mass below the characteristic rule out forked histories and orphan cycles in
-the shared multiset argument. Canonical range checks have not been pruned.
-Unrelated byte/U16/register relations remain locally scoped.
+The receiver verifies every CPU/truth STARK, every absent-role zero-claim guard,
+all local closures, then the complete global RAM/KIO/Wire sums. Shared positive
+or absolute masses are bounded below the characteristic. Per-request R16/R8
+relations remain local, avoiding an unjustified block-wide range-query mass.
 
-## Actual adversarial checks
+Known maintenance debt: existing global draw helpers still draw a local RAM
+relation and overwrite it with the manifest-derived relation. Both sides always
+use the shared value; no worker-supplied RAM challenge is accepted. A shared-only
+draw authority should remove the discarded draw with explicit transcript
+requalification, preserving closed/genesis controls.
 
-The strongest fixture uses SDx1=7 in shard0 followed by LDx0 in shard1. Its
-forged advice makes shard1 read pristine zero instead of the stored7, while
-all public register/PC endpoints stay unchanged because the load discards its
-result. Both actual local CPU/LS STARK proofs can be produced and their local
-non-RAM debts close. After verifying those proofs, the aggregate receiver must
-reject `UnclosedGlobalExecutionRam`. The honest control is accepted. This test
-bypasses the native collector intentionally, so host predecessor checks are not
-the authority.
+## Memory, canonicality and state connection
 
-Additional tests reseal manifests with wrong actual fixed/main roots, swap root
-positions, omit inventory, balance RAM-claim mutations across shards, attempt
-cross-shard local-debt cancellation, set omitted physical claim tails, change
-program/image/permissions, repeat INIT, end RAM early, duplicate addresses, and
-break epoch/PC/register/step adjacency. The old closed/genesis receiver still
-rejects these open fragments, including the epoch2 scope after rebasing its
-claimed local CPU initial endpoint. These tests supplement the existing dense-Q
-degree, SIMD, local clock, permission and range qualifications.
+Epoch is ordinal+1; after-tick is4*CPUrow+4. PC and all32 register values connect
+across shards, while local register clocks reset and close inside each CPU proof.
+OWNER19 has Boolean unit weights on both CPU and memory/service sides. This is
+not a weighted dictionary and cannot authorize duplicate memory transitions.
 
-## Worker ownership seam and security accounting
+Only the first shard supplies INIT and only the last supplies TEARDOWN. Native
+public-list admission enforces sorted unique aligned addresses and canonical
+integer state fields. INIT values/rights come from the pristine expected image.
+EVERY physical boundary RAM claim is compared to `expectedClaim`, including
+empty-side zero claims, before the final RAM sum. A balanced noncanonical tuple
+encoding can pass a bare polynomial proof and total sum yet must fail this
+per-boundary authority check. Native constructor validation is not the verifier.
 
-The concrete `Stage1Worker` consumes one Source and owns its PCS scheme. `seal`
-commits fixed/MAIN, checks actual roots and geometry, retires MAIN, and only then
-returns an ordinal/spec/two-root descriptor. `manifestFromSeals` needs no witness
-or PCS pointer. `complete` remeasures the retained roots and matches its own
-statement before deriving randomness internally from the complete manifest.
-Failed pre-draw context checks preserve the sealed state; post-draw errors move
-to a terminal failed state. Partial seal failures publish no descriptor. Source
-and scheme owners drain on every error, and successful completion retires both.
+Strict bounded lexicographic epoch/tick gaps, canonical after-clocks, unique
+unit owners and INIT stamp0 rule out forked/orphan memory histories. Read
+preservation, store selection and permissions are constrained. Every writer
+produces canonical after-values: ordinary LS retains after-value and load-result
+anchors; Keccak and secp bridge values are ranged and authenticated by the
+corresponding truth program. Pointer alignment, coordinate ordering, bounded
+addition and final carry0 prohibit wraparound accesses.
 
-This is an ownership API, not a proof of bounded aggregate memory: PCS
-coefficients and narrow metadata remain worker-owned across the barrier. The
-central qualification helper still retains all worker owners in one process;
-production fanout needs explicit per-process/spill/resource budgets.
+LS48 removes only ranges implied by independent write anchors, REG/ROM binding
+and the closed RAM DAG. The precise noncircular induction, retained query list,
+caller assumptions and counterexamples are in
+`design/riscv-proving-stack/rv64-ls-canonical-range-induction.md`. All gap ranges,
+after-clock limbs and load-result/write-value anchors remain. A bare LS proof
+without OWNER/RAM closure does not establish those inherited facts.
 
-The unchanged q70/P26/log-blowup1 configuration has nominal PCS config score96.
-This is not a fixed whole-protocol96-bit or128-bit security claim. Lookup degree,
-actual positive/absolute masses, identity checks and unions across relations and
-proofs require separate accounting. The real two-packet RAM absolute mass is
-4,974,878, below M31. The hard characteristic guard prevents multiplicity
-cancellation modulo p; it does not by itself establish a fixed security-bit
-bound for every admitted near-characteristic roster.
+## Services and independently sized truths
+
+The ROM admits exactly the named LE-word service tags. CPU OWNER tuples bind
+pointer, epoch and tick; bridges authenticate each RAM word's predecessor and
+after-state. Keccak covers25 words; ADD covers24 and DOUBLE12. Call IDs are
+contiguous per family across CPU shards and exactly covered by bounded truth
+spans. Wire35 includes the program kind, preventing ADD/DOUBLE substitution.
+KIO11 binds Keccak input/output lanes. Truth claims cannot cancel across an
+unrelated typed bus or missing provider.
+
+Crypto truths have their own PCS and geometry. Their current4n kernels do not
+lift the CPU's native2n composition. Secp truths certify the specified modular
+RCB programs, not standalone ECDSA validity; the complete guest execution proves
+the surrounding recovery/validation and Ethereum behavior.
+
+## Ownership, storage and resource scope
+
+CPU and crypto truth MAIN/INTER buffers transfer into streaming commitments.
+All descriptor/allocator/shape/alias validation precedes ownership changes;
+allocation failures preserve retryable original owners. Narrow relation metadata
+survives MAIN retirement. Completed sources retire only after encoded claims
+and request boundaries own every receiver obligation.
+
+Retained MAIN mappings hold already committed native coefficients, not replayed
+witnesses. Their roots and values do not change. Allocations are bounded, scratch
+files are unlinked, and the PCS owns teardown. The store/allocator outlive every
+lease. Success, first-spill refusal, later-truth refusal and allocation failures
+are qualified for cleanup. This is same-process storage, not a durable restart
+checkpoint or proof of arbitrary concurrent fanout memory bounds.
+
+The streaming collector is producer advice. A partially failed append poisons
+its ledger; it must be discarded. Successful advice copies permit tape and
+capture-record retirement, while owned LS metadata preserves all obligations.
+Explicit event consumption frees copied advice only after that ownership exists.
+Its full-block control preserves all30 proofs, manifest and RAM sidecar exactly.
+
+## Completion, evidence and remaining boundaries
+
+Prefix mode proves a producer-claimed prefix endpoint within the trusted image
+and budget. It returns `accepted:true`, `completed_ethereum_block:false`, and no
+output. Endpoint coverage is intentionally not an independently requested block
+completion statement. Downstream consumers requiring a block certificate must
+require the completed flag and independently expected image/output authority.
+
+Completed mode first verifies ALL physical proofs and global obligations, then
+requires the independently pinned absorbing final PC, halt=1, output length43
+and the expected43 bytes from authenticated terminal RAM. Missing words cannot
+fall back to a VM image. Actual valid prefix proofs with false halt/length/output
+and an early endpoint are rejected as completed blocks.
+
+Tests include locally valid wrong predecessor/service-output proofs rejected by
+full closure; foreign epochs/pointers/kinds; swapped/missing roots; balanced local
+or RAM claims; omitted-role ghosts; permission/image/program substitutions;
+repeated INIT/premature TERM; invalid chronology; strict-inverse poles; and actual
+noncanonical witness proofs accepted by a bare PCS but rejected by the closed
+receiver. Declared-geometry mutation tests invoke the fresh receiver on durable
+real-block artifacts, not just native constructors.
+
+A small recursive root is not yet qualified for this lane. Native verification
+still reconstructs statement-specific fixed keys and consumes the public RAM
+sidecar. Compact recursion needs explicit initializer/image and terminal-output
+authority; hashing that sidecar is not a substitute for proving its meaning.
+GPU qualification and same-AIR Rust verification are also open.
+
+q70/P26/log-blowup1 has a nominal96-bit parameter score, not a formal whole-
+protocol96-bit or128-bit guarantee. Lookup degree, actual masses, adaptive
+statement selection and unions across all relations/proofs require separate
+security analysis. Epoch16/tick24 and the characteristic guard remain explicit
+finite limits, not unbounded-execution claims.
