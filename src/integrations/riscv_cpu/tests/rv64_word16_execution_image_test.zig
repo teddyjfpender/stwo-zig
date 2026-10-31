@@ -281,7 +281,7 @@ test "joined execution proofs are exact with serial and1 4 16worker multichunk L
     const work = @import("stwo_prover_engine").work_pool;
     var fixture = try MixedFixture.init(a);
     defer fixture.deinit();
-    var setup = try Setup.Setup.initWithAuthority(a, &fixture.image.authority, .{ .cpu_log = 14, .ls_log = 14 });
+    var setup = try Setup.Setup.initWithAuthority(a, &fixture.image.authority, .{ .cpu_log = 14, .ls_log = 14, .boundary_log = 14 });
     defer setup.deinit();
     const admission = Driver.admission(&fixture.image);
     var reference = try Execution.prove(a, &setup, admission, fixture.boundary, &fixture.tape, null);

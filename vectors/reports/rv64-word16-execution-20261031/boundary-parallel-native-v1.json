@@ -1,0 +1,232 @@
+{
+  "schema": "rv64.word16.boundary-joined-native-interaction.v1",
+  "scope": "protocol-preserving INIT and TEARDOWN native48-column interaction generation; exact individual RAM claims retained",
+  "air_or_transcript_changed": false,
+  "algorithm": {
+    "reference": "explicit Source.generateSerial retains the full-domain secure-tuple and full-domain batch-inversion allocation path, sharing only the row-writing authority",
+    "first_wave": "4096-row chunks, canonical30-byte native metadata, affine14M31 RAM tuple fast multiplication, bounded batch inversion and three local prefixes",
+    "summary": "joined three-Q-per-chunk prefix scan checks complete U16/U8 ledgers; RAM claim stays independent",
+    "second_wave": "contiguous physical ranges apply prefix corrections to4/36/44",
+    "ownership": "no MAIN read/regeneration; private output publishes only after all tasks join and ledgers agree; failures preserve saved metadata and retry",
+    "task_assignment": "round-robin logical chunks, physical contiguous correction; one retained work-pool lease/two completed waves"
+  },
+  "resources": {
+    "heap_scratch_bytes_per_worker": 131072,
+    "heap_scratch_bytes_16workers": 2097152,
+    "summary_bytes_per_chunk": 48,
+    "replaced_serial_temporary_bytes_per_row": 32,
+    "minimum_release_worker_stack_bytes": 262144,
+    "minimum_debug_worker_stack_bytes": 1048576
+  },
+  "qualification": {
+    "memory": {
+      "runtime_tests": 14,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    "coordinator": {
+      "runtime_tests": 20,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    "logs": [
+      "/tmp/rv64-word16-boundary-parallel-safe.log",
+      "/tmp/rv64-word16-boundary-parallel-fast.log"
+    ],
+    "checks": [
+      "BothINIT/TERM65,536rows/16chunks serial-v1/4/16worker all48physicalcolumns/allclaims exact afterMAINretirement.",
+      "All54native residuals every row and individual RAM expectedClaim match independent complete lists.",
+      "Actual17-role STARK proofs CPU/LS/Boundarylog14 atserial-v1/4/16workers byte-identical with equalclaims and typedreceiver acceptance.",
+      "Bothwave submissions failafter0/1helpers, strictfirst/later/paddingpoles, failingallocator offsets0..4, lateledgers, invalidmetadata and undersizedstack guard leave phase unchanged and allow retry."
+    ]
+  },
+  "large_real_packet": {
+    "steps": 4194303,
+    "proof_sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c",
+    "v4_v5_v6_proofs_exact": true,
+    "fresh_process_receiver": "PASS",
+    "fresh_report": {
+      "scope": "fresh independent genesis-prefix receiver",
+      "physical_proof_verified": true,
+      "global_chain_accepted": false,
+      "receiver_ns": 855488083,
+      "image_ns": 304807208
+    },
+    "wall_seconds": 15.03,
+    "scope": "bounded sequential observation, not a statistically isolated speed estimate; no whole-block extrapolation",
+    "compiled_snapshot": "native callback source pins below; parent compiled normal CLI before additive global-source cherry55f78; those normal callbacks unchanged"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_source.zig": "ddf5dabefbcf97e83db86d074d471cfe3e264ee40da3036232018c64d1d1d835",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/boundary_interaction_parallel.zig": "e98702ef55c907c3e006e0efe26e40b48f52355b3a977383796544a33c910b36",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/mod.zig": "d22a2fab8ac447c52385f10e871c732119e396cd251ed98c33b093e13b575602",
+    "src/integrations/riscv_cpu/word16_execution/memory/parallel_test.zig": "dc383d47c6c6bdc8643f404f742bb9c670880da1421b8b7e1575663a17acebcc",
+    "src/integrations/riscv_cpu/tests/rv64_word16_execution_image_test.zig": "68889cbcfdb6ebdbf54a9bbaa210c965b84f333673e4e2c487dcbe705cfd014f"
+  },
+  "large_real_packet_observations": {
+    "v5-parallel": {
+      "steps": 4194303,
+      "report": {
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11870,
+        "proof_and_public_statement_bytes": 33778836,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 659524096
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20
+        },
+        "native_prepare_ns": 300483791,
+        "provider_source_ns": 1961998125,
+        "setup_ns": 316392250,
+        "prove_ns": 14020658583,
+        "same_process_verify_ns": 76683583,
+        "proof_bytes": 1154928,
+        "total_ns": 15031051000,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 856965120,
+          "last_rss_bytes": 1338474496,
+          "sampled_peak_rss_bytes": 11602083840,
+          "process_lifetime_peak_rss_bytes": 11602083840,
+          "samples": 991,
+          "failed_samples": 0
+        }
+      },
+      "interaction_generation_seconds": 2.654687,
+      "initial_interaction_seconds": 0.32091,
+      "terminal_interaction_seconds": 0.319994,
+      "boundary_authority_seconds": 0.039606
+    },
+    "v6-boundary": {
+      "steps": 4194303,
+      "report": {
+        "public_ram_sidecar_bytes": 32612038,
+        "public_statement_json_bytes": 11870,
+        "proof_and_public_statement_bytes": 33778836,
+        "scope": "closed genesis execution prefix; no service or cross-batch acceptance",
+        "physical_proof_verified": true,
+        "global_chain_accepted": false,
+        "steps": 4194303,
+        "source_cells": {
+          "fixed": 67168160,
+          "main": 593751776,
+          "interaction": 659524096
+        },
+        "geometry": {
+          "cpu_log": 22,
+          "alu_log": 20,
+          "binary_log": 20,
+          "shift_log": 20,
+          "jalr_log": 14,
+          "division_log": 5,
+          "multiplication_log": 13,
+          "ls_log": 21,
+          "boundary_log": 20
+        },
+        "native_prepare_ns": 296418709,
+        "provider_source_ns": 1955054666,
+        "setup_ns": 304802208,
+        "prove_ns": 13622096334,
+        "same_process_verify_ns": 76255208,
+        "proof_bytes": 1154928,
+        "total_ns": 14596740791,
+        "memory": {
+          "scope": "new Word16 native preparation through setup, proof, same-process verification and durable publication; excludes packet decode",
+          "method": "process RSS sampled every 10ms; peak is an observed lower bound",
+          "target_bytes": 16000000000,
+          "interval_ns": 10000000,
+          "baseline_rss_bytes": 856997888,
+          "last_rss_bytes": 1338392576,
+          "sampled_peak_rss_bytes": 11602067456,
+          "process_lifetime_peak_rss_bytes": 11602067456,
+          "samples": 974,
+          "failed_samples": 0
+        }
+      },
+      "interaction_generation_seconds": 2.354944,
+      "initial_interaction_seconds": 0.165698,
+      "terminal_interaction_seconds": 0.165047,
+      "boundary_authority_seconds": 0.039634
+    }
+  },
+  "artifacts": {
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/report.json": {
+      "bytes": 1346,
+      "sha256": "816e6dc4e7d01925ea041bfafb34923f869bbd80be31917b181415fe9509a12e"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/stages.json": {
+      "bytes": 300567,
+      "sha256": "32b86482cf525978844883cce8c03486781128d76b07cc13b46a38095b3a23d8"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/planning.json": {
+      "bytes": 6519,
+      "sha256": "2911fe74315515430372d20206aa16d9aaf575bce2b8a55ca27a7952ec86e0ab"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/statement.json": {
+      "bytes": 11870,
+      "sha256": "a8190242423e790403d7b8cc6d9260e2cf5bdb4cd582530ab79317ae8101a428"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v5-parallel/proof.bin": {
+      "bytes": 1154928,
+      "sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/report.json": {
+      "bytes": 1346,
+      "sha256": "9e96ae578ecc21c1a749ea0f4da16f460da3d59a6534e522f86e181432cadd63"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/cells.bin": {
+      "bytes": 32612038,
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/stages.json": {
+      "bytes": 300575,
+      "sha256": "59e32f458d2f05cdc60ac81304255b4ca77829a1b6c22602fdcdad3a5363cac6"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/planning.json": {
+      "bytes": 6519,
+      "sha256": "2911fe74315515430372d20206aa16d9aaf575bce2b8a55ca27a7952ec86e0ab"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/statement.json": {
+      "bytes": 11870,
+      "sha256": "a8190242423e790403d7b8cc6d9260e2cf5bdb4cd582530ab79317ae8101a428"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary/proof.bin": {
+      "bytes": 1154928,
+      "sha256": "46d18eef8e69bea3839e832b3828d7050fbd0dd8cdc2b26b34af59fa3b8b407c"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary.fresh.time": {
+      "bytes": 777,
+      "sha256": "24fbea4573b6da99826482f5c58f44ae8dbe1723e52a1ccd2e4f706d14e45203"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary.fresh.json": {
+      "bytes": 181,
+      "sha256": "d6ae1d95358d09061a0f5715f1e4a385a19f89d22210aec3398fbb75427cf7e1"
+    },
+    "/tmp/rv64-word16-execution-real-packet0-v6-boundary.time": {
+      "bytes": 777,
+      "sha256": "d9d7abb482990138339e435751f9b101b28d702b693186c307f0505159092b73"
+    }
+  }
+}

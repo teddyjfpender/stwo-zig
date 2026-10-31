@@ -51,7 +51,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 7 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 6 },
-        .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 12 },
+        .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 14 },
         .{ "word16-chips", "src/frontends/riscv/rv64_word16_chips_test_root.zig", 7 },
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
         .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },

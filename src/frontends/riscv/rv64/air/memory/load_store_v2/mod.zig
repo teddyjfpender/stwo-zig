@@ -10,3 +10,5 @@ pub const selection_source = @import("selection_source.zig");
 
 pub const interaction = @import("interaction.zig");
 pub const interaction_parallel = @import("interaction_parallel.zig");
+
+pub const boundary_interaction_parallel = @import("boundary_interaction_parallel.zig");

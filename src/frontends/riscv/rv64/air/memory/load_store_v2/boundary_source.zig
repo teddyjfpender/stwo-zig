@@ -123,9 +123,11 @@ pub const Source = struct {
         return columns_;
     }
     pub fn generate(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
-        const n = self.size();
+        return @import("boundary_interaction_parallel.zig").generate(self, ch, dict16, dict8, engine.work_pool.currentScopedPool());
+    }
+    pub fn generateSerial(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
+        const n = try validateMetadataImpl(self);
         const a = self.allocator;
-        if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidBoundaryPhase;
         try I.validateDictionary(ch.range16, dict16, 65536);
         try I.validateDictionary(ch.range8, dict8, 256);
         var claims = T.Claims.zero();
@@ -143,28 +145,10 @@ pub const Source = struct {
             d.* = ch.ram.denominatorFor(Q, tuple);
         }
         try core.fields.batchInverseInPlace(Q, denominator, inverse);
-        var p16 = claims.range16.neg();
-        var p8 = claims.range8.neg();
-        for (self.metadata, inverse, 0..) |meta, inv, logical| {
-            if (meta.flags & ~@as(u8, 7) != 0 or (meta.flags & 1) != @intFromBool(logical < self.rows)) return error.InvalidBoundaryMetadata;
-            const pos = R.trace.physical(logical, self.log_size);
-            R.trace.store(output, n, pos, 0, inv);
-            const value = inv.mulM31(meta.active());
-            claims.ram = if (self.kind == .initial) claims.ram.sub(value) else claims.ram.add(value);
-            R.trace.store(output, n, pos, 4, claims.ram);
-            for (0..7) |batch| {
-                const x = dict16[meta.range16[2 * batch]];
-                const y = dict16[meta.range16[2 * batch + 1]];
-                R.trace.store(output, n, pos, 8 + 4 * batch, x.mul(y));
-                p16 = p16.add(x).add(y);
-            }
-            R.trace.store(output, n, pos, 36, p16);
-            const x = dict8[meta.high];
-            R.trace.store(output, n, pos, 40, x);
-            p8 = p8.add(x);
-            R.trace.store(output, n, pos, 44, p8);
-        }
-        if (!p16.isZero() or !p8.isZero()) return error.InvalidBoundaryCounts;
+        var prefix: [3]Q = .{ Q.zero(), claims.range16.neg(), claims.range8.neg() };
+        writeRows(self, dict16, dict8, output, inverse, 0, &prefix);
+        claims.ram = prefix[0];
+        if (!prefix[1].isZero() or !prefix[2].isZero()) return error.InvalidBoundaryCounts;
         R.trace.center(output, n, 4, claims.ram);
         self.interaction = output;
         a.free(self.metadata);
@@ -177,7 +161,6 @@ pub const Source = struct {
 /// Bounded receiver scratch is 2*4096 secure values (128 KiB); no allocator,
 /// cached channel or mutable state is involved. Every zero pole is rejected.
 pub fn expectedClaim(cells: []const Cell, initial: bool, ch: R.types.RamChallenges) !Q {
-    const CHUNK: usize = 4096;
     var denominators: [CHUNK]Q = undefined;
     var inverses: [CHUNK]Q = undefined;
     var claim = Q.zero();
@@ -203,3 +186,51 @@ pub fn expectedClaim(cells: []const Cell, initial: bool, ch: R.types.RamChalleng
     }
     return claim;
 }
+
+const CHUNK: usize = 4096;
+fn validateMetadataImpl(source: *const Source) !usize {
+    const n = try SourceSupport.sizeForLog(source.log_size);
+    if (source.interaction.len != 0 or source.metadata.len != n or source.rows >= n or (source.kind != .initial and source.kind != .terminal)) return error.InvalidBoundaryPhase;
+    for (source.metadata, 0..) |meta, i| if (meta.flags & ~@as(u8, 7) != 0 or (meta.flags & 1) != @intFromBool(i < source.rows)) return error.InvalidBoundaryMetadata;
+    return n;
+}
+fn nativeDenominator(meta: Metadata, ch: R.types.RamChallenges) Q {
+    var d = ch.offset;
+    for (ch.coefficients, meta.tuple()) |coefficient, value| d = d.sub(coefficient.mulM31(value));
+    return d;
+}
+fn fillChunkImpl(source: *const Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q, output: []M, scratch: []Q, start: usize, prefix: *[3]Q) !void {
+    const count: usize = @min(CHUNK, source.size() - start);
+    const denominators = scratch[0..count];
+    const inverse = scratch[CHUNK..][0..count];
+    for (source.metadata[start..][0..count], denominators) |meta, *value| value.* = nativeDenominator(meta, ch.ram);
+    try core.fields.batchInverseInPlace(Q, denominators, inverse);
+    writeRows(source, dict16, dict8, output, inverse, start, prefix);
+}
+fn writeRows(source: *const Source, dict16: []const Q, dict8: []const Q, output: []M, inverse: []const Q, start: usize, prefix: *[3]Q) void {
+    const n = source.size();
+    for (source.metadata[start..][0..inverse.len], inverse, 0..) |meta, inv, offset| {
+        const logical = start + offset;
+
+        const pos = R.trace.physical(logical, source.log_size);
+        R.trace.store(output, n, pos, 0, inv);
+        const value = inv.mulM31(meta.active());
+        prefix[0] = if (source.kind == .initial) prefix[0].sub(value) else prefix[0].add(value);
+        R.trace.store(output, n, pos, 4, prefix[0]);
+        for (0..7) |batch| {
+            const x = dict16[meta.range16[2 * batch]];
+            const y = dict16[meta.range16[2 * batch + 1]];
+            R.trace.store(output, n, pos, 8 + 4 * batch, x.mul(y));
+            prefix[1] = prefix[1].add(x).add(y);
+        }
+        R.trace.store(output, n, pos, 36, prefix[1]);
+        const x = dict8[meta.high];
+        R.trace.store(output, n, pos, 40, x);
+        prefix[2] = prefix[2].add(x);
+        R.trace.store(output, n, pos, 44, prefix[2]);
+    }
+}
+pub const ParallelSupport = struct {
+    pub const validateMetadata = validateMetadataImpl;
+    pub const fillChunk = fillChunkImpl;
+};
