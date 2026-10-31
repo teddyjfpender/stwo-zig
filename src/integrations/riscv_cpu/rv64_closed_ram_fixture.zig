@@ -114,7 +114,7 @@ pub const Fixture = struct {
         return claims;
     }
 };
-fn boundary(trace: *R.trace.Trace, cells: []const T.Cell) void {
+pub fn boundary(trace: *R.trace.Trace, cells: []const T.Cell) void {
     var roster: T.PublicRows = @splat(@splat(M.zero()));
     for (cells, 0..) |cell, i| {
         const row = &roster[i];

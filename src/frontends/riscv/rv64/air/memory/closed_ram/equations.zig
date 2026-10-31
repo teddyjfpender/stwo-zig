@@ -43,7 +43,7 @@ fn bind(comptime F: type, f: []const F, m: []const F, p: *const T.PublicRows, ou
         out.emit(m[c].sub(wanted));
     }
 }
-fn ranges(comptime F: type, m: []const F, i: []const F, prev: []const F, comptime indices: []const usize, start: usize, first: F, last: F, claim: T.Q, ch: S.Challenges, out: *E.SinkFor(F)) void {
+pub fn rangesFor(comptime F: type, m: []const F, i: []const F, prev: []const F, comptime indices: []const usize, start: usize, first: F, last: F, claim: T.Q, ch: S.Challenges, out: *E.SinkFor(F)) void {
     const Q = E.SecureFor(F);
     var sum = Q.zero();
     for (0..(indices.len + 1) / 2) |batch| {
@@ -77,31 +77,11 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
         return;
     }
     if (kind == .transition) {
-        for ([_]usize{ 0, 1, 2, 22, 23, 27 }) |c| E.booleanFor(F, out, m[c]);
-        for (m[1..]) |v| out.emit(one.sub(active).mul(v));
-        out.emit(first.mul(active.sub(one)));
-        out.emit(last.mul(active));
-        out.emit(one.sub(first).mul(active).mul(one.sub(pm[0])));
-        out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));
-        const same = m[2];
-        const cross = one.sub(same);
-        out.emit(active.mul(same).mul(m[8].sub(m[9])));
-        out.emit(active.mul(cross).mul(m[8].add(m[24]).add(one).sub(m[9])));
-        out.emit(active.mul(same).mul(m[10].add(m[25]).add(one).sub(m[12]).sub(m[27].mul(E.qFor(F, 65536)))));
-        out.emit(active.mul(same).mul(m[11].add(m[26]).add(m[27]).sub(m[13])));
-        out.emit(same.mul(m[24]));
-        for ([_]usize{ 25, 26, 27 }) |c| out.emit(cross.mul(m[c]));
-        out.emit(active.mul(m[1]).mul(one.sub(m[23])));
-        out.emit(active.mul(one.sub(m[1])).mul(one.sub(m[22])));
-        for (0..4) |c| out.emit(active.mul(one.sub(m[1])).mul(m[18 + c].sub(m[14 + c])));
-        const before = ch.ram.denominatorFor(F, ramTuple(F, kind, m, false));
-        const after = ch.ram.denominatorFor(F, ramTuple(F, kind, m, true));
-        const inverse = E.secureFor(F, i, 0);
-        out.emit(inverse.mul(before).mul(after).sub(E.SecureFor(F).one()));
-        S.prefix(F, E.mulBaseFor(F, after.sub(before).mul(inverse), active), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
+        transitionLocalFor(F, f, m, pm, rows, out);
+        transitionRamFor(F, m, i, pi, first, last, claims.ram, ch.ram, out);
         S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, m)), active, E.secureFor(F, i, 8), E.secureFor(F, i, 12), E.secureFor(F, pi, 12), first, last, claims.owner, out);
-        ranges(F, m, i, pi, &L.T_U16, L.T_RANGE16, first, last, claims.range16, ch.range16, out);
-        ranges(F, m, i, pi, &L.T_U8, L.T_RANGE8, first, last, claims.range8, ch.range8, out);
+        rangesFor(F, m, i, pi, &L.T_U16, L.T_RANGE16, first, last, claims.range16, ch.range16, out);
+        rangesFor(F, m, i, pi, &L.T_U8, L.T_RANGE8, first, last, claims.range8, ch.range8, out);
     } else {
         bind(F, f, m, pubrows.?, out);
         for ([_]usize{ 0, 12, 13 }) |c| E.booleanFor(F, out, m[c]);
@@ -116,7 +96,43 @@ pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: [
         out.emit(sorted.mul(delta.mul(m[22]).sub(one)));
         for (m[14..23]) |v| out.emit(one.sub(sorted).mul(v));
         S.single(F, ch.ram.denominatorFor(F, ramTuple(F, kind, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claims.ram, out);
-        ranges(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
-        ranges(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
+        rangesFor(F, m, i, pi, &L.B_U16, L.B_RANGE16, first, last, claims.range16, ch.range16, out);
+        rangesFor(F, m, i, pi, &L.B_U8, L.B_RANGE8, first, last, claims.range8, ch.range8, out);
     }
+}
+
+/// Shared bounded-integer clock, permission and unit-activity authority.
+/// Caller supplies the unchanged 28-coordinate physical RAM prefix.
+pub fn transitionLocalFor(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+    const first = f[1];
+    const last = f[2];
+    const active = m[0];
+    const one = F.one();
+    for ([_]usize{ 0, 1, 2, 22, 23, 27 }) |c| E.booleanFor(F, out, m[c]);
+    for (m[1..]) |v| out.emit(one.sub(active).mul(v));
+    out.emit(first.mul(active.sub(one)));
+    out.emit(last.mul(active));
+    out.emit(one.sub(first).mul(active).mul(one.sub(pm[0])));
+    out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));
+    const same = m[2];
+    const cross = one.sub(same);
+    out.emit(active.mul(same).mul(m[8].sub(m[9])));
+    out.emit(active.mul(cross).mul(m[8].add(m[24]).add(one).sub(m[9])));
+    out.emit(active.mul(same).mul(m[10].add(m[25]).add(one).sub(m[12]).sub(m[27].mul(E.qFor(F, 65536)))));
+    out.emit(active.mul(same).mul(m[11].add(m[26]).add(m[27]).sub(m[13])));
+    out.emit(same.mul(m[24]));
+    for ([_]usize{ 25, 26, 27 }) |c| out.emit(cross.mul(m[c]));
+    out.emit(active.mul(m[1]).mul(one.sub(m[23])));
+    out.emit(active.mul(one.sub(m[1])).mul(one.sub(m[22])));
+    for (0..4) |c| out.emit(active.mul(one.sub(m[1])).mul(m[18 + c].sub(m[14 + c])));
+}
+
+/// Same strict inverse and before-minus-after prefix used by the closed proof.
+pub fn transitionRamFor(comptime F: type, m: []const F, i: []const F, pi: []const F, first: F, last: F, claim: T.Q, ch: T.RamChallenges, out: *E.SinkFor(F)) void {
+    const active = m[0];
+    const before = ch.denominatorFor(F, ramTuple(F, .transition, m, false));
+    const after = ch.denominatorFor(F, ramTuple(F, .transition, m, true));
+    const inverse = E.secureFor(F, i, 0);
+    out.emit(inverse.mul(before).mul(after).sub(E.SecureFor(F).one()));
+    S.prefix(F, E.mulBaseFor(F, after.sub(before).mul(inverse), active), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, last, claim, out);
 }

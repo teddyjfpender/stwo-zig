@@ -1,0 +1,308 @@
+{
+  "schema": "rv64-closed-word16-load-store-v1",
+  "status": "qualified_experimental_closed_finite_image_only",
+  "scope": {
+    "actual_stark": true,
+    "physical_components": 8,
+    "complete_finite_image_policy_and_terminal": true,
+    "full_base_immediate_store_B_load_C": true,
+    "native_memory_replay_in_receiver": false,
+    "cpu_execution_bound": false,
+    "services_bound": false,
+    "general_sparse_image": false,
+    "distributed_inventory": false,
+    "recursion_bound": false,
+    "ethereum_bound": false,
+    "open_loadstore_accepted": false,
+    "production_route_selected": false
+  },
+  "time_policy": {
+    "expected_after_tick_nonzero_multiple4": true,
+    "high_carry_example_tick": 131076,
+    "future_CPU_origin_required": "after_tick=4*CPU_row+4 physically authenticated, loadRD uses4*CPU_row+3; modulo4 alone is not a CPU origin proof",
+    "closed_RAM_general_timestamp_schema_unchanged": true
+  },
+  "memory_policy": {
+    "natural_alignment_only": true,
+    "crossword_or_misaligned_allowed": false,
+    "little_endian": true,
+    "word_uniform_RW": true,
+    "write_only_stores_valid": true,
+    "read_only_reads_advance_time": true,
+    "no_zero_fallback": true
+  },
+  "configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "max_residual_degree": 3,
+    "quotient_factor": 2,
+    "largest_source_log": 16
+  },
+  "artifact": {
+    "scope": "experimental-closed-load-store-operations-complete-finite-image-policy-terminal",
+    "proof_sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+    "proof_bytes": 433488,
+    "expected_identity": "9289fafce20a836fd383d8808c59cf39d3098af73ff8e84aa9e2d362d2533bc5",
+    "queries": 70,
+    "pow_bits": 26,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "logs": [
+      6,
+      7,
+      5,
+      5,
+      6,
+      16,
+      8,
+      16
+    ],
+    "fixed": [
+      3,
+      3,
+      34,
+      34,
+      66,
+      3,
+      3,
+      6
+    ],
+    "main": [
+      79,
+      79,
+      23,
+      23,
+      22,
+      1,
+      1,
+      2
+    ],
+    "interaction": [
+      116,
+      116,
+      48,
+      48,
+      8,
+      8,
+      8,
+      8
+    ],
+    "source_cells": 1888960,
+    "oods_masks": 832,
+    "naturally_aligned": true,
+    "crossword_allowed": false,
+    "word_uniform_policy": true,
+    "operations": 49,
+    "u16_queries_including_padding": 7616,
+    "u8_queries_including_padding": 1024,
+    "selection_queries_including_padding": 192,
+    "cpu_bound": false,
+    "services_bound": false,
+    "general_sparse_image": false,
+    "open_loadstore_accepted": false
+  },
+  "fresh_process_receiver": {
+    "accepted": true,
+    "independently_expected_image_raw_instructions_operands_policy_and_terminal": true,
+    "native_memory_replay": false,
+    "cpu_bound": false,
+    "open_loadstore_accepted": false
+  },
+  "source_cost": {
+    "fixed_cells": 597568,
+    "main_cells": 214912,
+    "interaction_cells": 1076480,
+    "total_field_cells": 1888960,
+    "raw_source_bytes": 7555840,
+    "oods_masks": 832,
+    "complete_job_timing_claim": false
+  },
+  "paired_provider_control": {
+    "semantic_facts": 131072,
+    "physical_rows": 65536,
+    "fixed": 6,
+    "main": 2,
+    "interaction": 8,
+    "masks": 20,
+    "source_cells": 1048576,
+    "naive_first_q70_proof_passed_before_packing": true,
+    "naive_table_source_cells": 2097152,
+    "naive_complete_fixture_source_cells": 2937536,
+    "raw_source_bytes_removed": 4194304,
+    "reason_for_change": "half full table cells, same masks, largest source log17 to16; not a measured whole-job speedup"
+  },
+  "positive_query_mass_including_padding": {
+    "RAM": 67,
+    "OWNER21": 49,
+    "U16": 7616,
+    "U8": 1024,
+    "SELECTION": 192,
+    "all_less_than_M31": true,
+    "global_sharing_activated": false
+  },
+  "fixture": {
+    "operations": 49,
+    "initial_terminal_words": 18,
+    "LS_active_rows": [
+      24,
+      25
+    ],
+    "all_legal_offsets_all_11_opcodes": true,
+    "signed_load_negative_examples": true,
+    "positive_wrapping_EA_and_negative_immediate": true,
+    "no_op_write": true,
+    "write_only_SD": true,
+    "three_epochs_and_high_tick_carry": true,
+    "instruction_counts": {
+      "LB": 9,
+      "LBU": 9,
+      "LH": 4,
+      "LHU": 4,
+      "LW": 2,
+      "LWU": 2,
+      "LD": 2,
+      "SB": 10,
+      "SH": 4,
+      "SW": 2,
+      "SD": 1
+    }
+  },
+  "gates": {
+    "release_safe_tests": 12,
+    "release_fast_tests": 12,
+    "registered_target": "test-riscv64-closed-load-store",
+    "registered_target_ReleaseFast_passed": true,
+    "every_QM31_residual_degree_at_most3": true,
+    "genuine_cubic_LS_and_weighted_table_residuals": true,
+    "packed_base_secure_lane_parity": true,
+    "all_131072_facts_independent_little_endian_oracle": true,
+    "both_strict_poles_zero_weights_and_retry": true,
+    "all_source_allocation_failures": true,
+    "source_conformance_owned_findings": 0,
+    "source_conformance_workspace_status": "unrelated preexisting source-layout/size findings remain"
+  },
+  "actual_malicious_physical_proof_rejections": [
+    "wrong_store_b",
+    "unused_store_b_high",
+    "preserved_byte",
+    "wrong_signed_load",
+    "misaligned",
+    "bad_add_carry",
+    "effective_alias",
+    "quotient_alias",
+    "wrong_selection",
+    "wrong_parity",
+    "readonly_write",
+    "orphan_write",
+    "future_before",
+    "locally_valid_INIT_fork",
+    "inactive",
+    "owner_weight",
+    "range_count",
+    "selection_count",
+    "opposite_signed_selection_counts"
+  ],
+  "receiver_mutants": [
+    "balanced_owner_claims",
+    "unused_claim_tail",
+    "initial_image",
+    "terminal_output",
+    "raw_opcode",
+    "split_count",
+    "actual_PCS_root"
+  ],
+  "strong_local_validity_gate": "INIT fork passes every local constraint but has nonzero RAM debt; changing unused SB upper B16 also passes every local constraint but has nonzero OWNER21 debt. Other relation debts close. Both actual proof attempts reject.",
+  "range_query_ledger": {
+    "aligned_RAM_address": 4,
+    "before_after_epochs": 2,
+    "before_after_tick_low": 2,
+    "epoch_gap_tick_gap_low": 2,
+    "before_after_RAM_values": 8,
+    "A_base": 4,
+    "decoded_immediate": 4,
+    "B_store": 4,
+    "C_load": 4,
+    "alignment_quotient": 1,
+    "total_u16": 35,
+    "u16_interaction_columns": 76,
+    "u8_before_after_gap_high_and_B0_bytes": 5,
+    "u8_interaction_columns": 16,
+    "selection_queries": 1,
+    "selection_interaction_columns": 8,
+    "RAM_and_owner_interaction_columns": 16,
+    "total_interaction": 116
+  },
+  "future_induction_model": {
+    "implemented": false,
+    "candidate_reusable_value_queries": 24,
+    "hypothetical_remaining_u16": 11,
+    "hypothetical_u16_interaction": 28,
+    "hypothetical_total_interaction": 68,
+    "requires": "shared well-founded REG/RAM chronology with physical CPU/service origins, complete unit flow, canonical genesis/INIT and store/load preservation; never independent local assumptions",
+    "global_mass_review": "vectors/reports/rv64-guest-lean-20261031/round5/global-u16-mass-review-v1.json",
+    "global_padded_query_design_mass": 2408579072,
+    "current_tables_remain_local": true
+  },
+  "retained_control": {
+    "closed_RAM_proof_bytes": 365312,
+    "closed_RAM_proof_sha256": "1141f98a46c1e281a3d4cb0060d5e51d37862722bb81e4f37e8aa8b64b937583",
+    "fresh_receiver_after_helpers_passed": true,
+    "artifacts": "/tmp/stwo-rv64-closed-ram-after-ls-helper",
+    "ALU_shared_add_control_report": "vectors/reports/rv64-ethereum-20261030/word16-add-helper-v1-qualification.json"
+  },
+  "source_sha256": {
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/authority.zig": "ab838dd0d7981dcbdc86299f05e9c29601548d322d5a8be096852f20f9086071",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/component.zig": "bd781d10006c193805ed48ca0c0d58eb9eb8f557a0cc27a000d8dd6b328b269c",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/equations.zig": "c54c18891807044c91e73da398867714615c96eaeb4cfbd62b8d871fda38e59c",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/layout.zig": "5192c39bb5676e9a1b0fe85def35268cb1e696fd32fc00e8595cd288ef9db1b9",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/mod.zig": "966c7035cbe329a2b99093b9211281fa695812d2039c4e44e1ba0293572bae58",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/selection.zig": "97f027620955bfbf8af3c8bb28f23fa987542e884e9b2e135ca4b705ac3cd60d",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/trace.zig": "61bdeffa248fc342b21f6401b4b01b843466228ee872fb9aacce9c9815c07e23",
+    "src/frontends/riscv/rv64/air/memory/load_store_v1/types.zig": "53b4689bec6ac8d7ebc04752e78f3f6f43588136cad51b3d9209bf339d093941",
+    "src/integrations/riscv_cpu/rv64_load_store.zig": "89dc2e0fbd3d5797e7e05c8add4bac08443b6e4df4fef3ef86225e18574a7a8a",
+    "src/integrations/riscv_cpu/rv64_load_store_data.zig": "f39d404a6ff82a099647bd99b9fb4be0334432bc25aa3cedf53d3bf3c859974c",
+    "src/integrations/riscv_cpu/rv64_load_store_fixture.zig": "79b7dd2820d207ce2f7b5500708ce4f7fac3b2960807906cea1c21bbf92c00f5",
+    "src/integrations/riscv_cpu/rv64_load_store_fixture_main.zig": "be757a2256401fd8664e194d567b14dde89cf3f6cdaad4e532c06161a9ade76e",
+    "src/integrations/riscv_cpu/rv64_load_store_public.zig": "1dbf9a2cb9b5ac205b7e1f37c479581ddcf9d94321cc1f4985f851350a0d5a19",
+    "src/integrations/riscv_cpu/rv64_load_store_test_root.zig": "ff41ab94b727ae0ee442b7fde7dd315c0b030ce5e1457dca6ebcd50715b1004a",
+    "src/integrations/riscv_cpu/tests/rv64_load_store_algebra_test.zig": "081625917284950f0dbc2fce2acb4d7d1b7e866eca85c007b2d049694d51de70",
+    "src/integrations/riscv_cpu/tests/rv64_load_store_attacks_test.zig": "0f9ab61835761efe1d5b3124df3bea10c68d3decdf2ed82e2146f0d78c730acf",
+    "src/integrations/riscv_cpu/tests/rv64_load_store_test.zig": "58f29af7cff2da89671ec3166c2aa9c756cbd7610ea77374da595211c0f7f4cf"
+  },
+  "shared_sources_sha256": {
+    "src/frontends/riscv/rv64/air/memory/closed_ram/equations.zig": "881ff0b137d9ff7b038eab3bcde56ce449760991e3c02c0c83531f9c1b74b126",
+    "src/frontends/riscv/rv64/air/memory/closed_ram/trace.zig": "fac9f1fecf001632b7003fd7438989b3f57aea88bba611acc8a6ff0ca0ad7518",
+    "src/integrations/riscv_cpu/rv64_closed_ram_fixture.zig": "fa27c15a693ea7ddcfc92065d3e97e686a5408d9d8cfdc0bbb0f0a4454615f49",
+    "src/frontends/riscv/rv64/air/memory_constraints.zig": "0f7210aed3dbb85cc7888e876fe664baa9b89ed2dfad0562644ffaf514dce2dc"
+  },
+  "dependencies_sha256": {
+    "src/frontends/riscv/rv64/air/word16_v1/word_add.zig": "bb8ed7b9f734b5f4b8be0da074f800c118b9cbeef97e1e84f7ef1b85ccf40053",
+    "src/frontends/riscv/rv64/air/providers/scalar_range.zig": "295e4a8947d08fea482a8514404063b3f67546bccfa01f194db65d8df81ef802",
+    "src/frontends/riscv/rv64/air/evaluation.zig": "74afd689df6d5a8f9294abc3d7f9c0b642a21c4164dc1257b59e3954606e912b",
+    "src/frontends/riscv/rv64/air/geometry.zig": "6b3f9fce835114cb90a2fce9f3afa2dedaa607528662dfa1465091d0b1e3c700"
+  },
+  "artifact_files": {
+    "vectors/reports/interop_artifacts/rv64-closed-load-store-v1/producer.json": "9828b438f2d15ac1c7f558573884c95dbe4d53c743b2635d2cd31e17336be1f5",
+    "vectors/reports/interop_artifacts/rv64-closed-load-store-v1/receiver.json": "8099a41c7629310f12071c49a5c54838e7beb5dce2386e51b6cbc3a7552daba9",
+    "vectors/reports/interop_artifacts/rv64-closed-load-store-v1/claims.json": "e748739f8707d15306da1e00eb5319dc4507aee4c7427dbb79a6ab6bb47dcc42",
+    "vectors/reports/interop_artifacts/rv64-closed-load-store-v1/proof.bin": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664"
+  },
+  "tool": {
+    "path": "/tmp/rv64-load-store-fixture",
+    "sha256": "37e49ef20747ca5ab0653baf9397eec558ea12eefdfac9a93669e9446fa05b58"
+  },
+  "workspace_base_commit": "54debf2ba008c235799251d3f75491c497eb4c81",
+  "logs": {
+    "safe": "/tmp/rv64-load-store-safe.log",
+    "fast": "/tmp/rv64-load-store-fast.log",
+    "target": "/tmp/rv64-load-store-build-target-final.log",
+    "source_conformance": "/tmp/rv64-load-store-source-conformance.log"
+  },
+  "remaining": [
+    "physical CPU/service owner joins and exact after-origin proof",
+    "general initialization/image policy proof",
+    "complete distributed manifest/inventory and shared challenge barriers",
+    "joint REG/RAM canonicality lemma before range pruning",
+    "whole-block proof qualification"
+  ]
+}

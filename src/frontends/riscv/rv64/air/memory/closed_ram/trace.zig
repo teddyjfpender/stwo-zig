@@ -162,15 +162,15 @@ pub const Trace = struct {
         return totals;
     }
 };
-fn store(data: []M, n: usize, row: usize, start: usize, value: Q) void {
+pub fn store(data: []M, n: usize, row: usize, start: usize, value: Q) void {
     for (value.toM31Array(), 0..) |v, c| data[(start + c) * n + row] = v;
 }
-fn center(data: []M, n: usize, start: usize, sum: Q) void {
+pub fn center(data: []M, n: usize, start: usize, sum: Q) void {
     for (sum.toM31Array(), 0..) |v, c| {
         for (0..n) |r| data[(start + c) * n + r] = data[(start + c) * n + r].sub(v);
     }
 }
-fn rangeRow(output: []M, n: usize, pos: usize, m: []const Q, indices: []const usize, start: usize, ch: @import("../../providers/scalar_range.zig").Challenges) !Q {
+pub fn rangeRow(output: []M, n: usize, pos: usize, m: []const Q, indices: []const usize, start: usize, ch: @import("../../providers/scalar_range.zig").Challenges) !Q {
     var sum = Q.zero();
     for (0..(indices.len + 1) / 2) |batch| {
         const d = ch.denominatorFor(Q, m[indices[2 * batch]]);

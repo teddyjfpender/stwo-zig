@@ -50,8 +50,8 @@ pub fn evaluateGeneric(comptime F: type, v: E.ViewFor(F), out: *E.SinkFor(F)) vo
 }
 
 const widths = [_]usize{ 1, 2, 4, 8 };
-const LoadSpec = struct { opcode: O, width: usize, index: usize, signed: bool };
-const load_specs = blk: {
+pub const LoadSpec = struct { opcode: O, width: usize, index: usize, signed: bool };
+pub const load_specs = blk: {
     const opcodes = [_]O{ .LB, .LBU, .LH, .LHU, .LW, .LWU, .LD };
     var specs: [opcodes.len]LoadSpec = undefined;
     for (opcodes, &specs) |opcode, *spec| {
@@ -60,7 +60,7 @@ const load_specs = blk: {
     }
     break :blk specs;
 };
-const store_specs = blk: {
+pub const store_specs = blk: {
     const opcodes = [_]O{ .SB, .SH, .SW, .SD };
     var specs: [opcodes.len]LoadSpec = undefined;
     for (opcodes, &specs) |opcode, *spec| {
