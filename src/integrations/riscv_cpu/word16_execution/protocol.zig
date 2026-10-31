@@ -11,9 +11,12 @@ const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 /// One canonical full-core schema: native degree3/split1, MUL200 interaction.
-pub const SCHEMA: u32 = 3;
+pub const SCHEMA: u32 = 4;
 pub const CLAIM_LS_TAIL: usize = 33;
-pub const CLAIM_COUNT: usize = CLAIM_LS_TAIL + 5;
+pub const CLAIM_ALU_TAIL = CLAIM_LS_TAIL + 5;
+pub const CLAIM_BINARY_TAIL = CLAIM_ALU_TAIL + 2;
+pub const CLAIM_SHIFT_TAIL = CLAIM_BINARY_TAIL + 2;
+pub const CLAIM_COUNT: usize = CLAIM_SHIFT_TAIL + 3;
 pub const T = @import("../rv64_distributed_v1/manifest.zig").T;
 pub const Request = struct {
     cpu: X.types.Boundary,
@@ -47,6 +50,9 @@ pub const Claims = struct {
     terminal: A.memory.load_store_v2.types.Claims,
     selectiontable: Q,
     ls_tail: A.memory.load_store_v2.types.Claims = zeroMemoryClaim(),
+    alu_tail: B.alu_experiment.lookup.Claims = .{ .range16 = Q.zero(), .function = Q.zero() },
+    binary_tail: B.binary_lookup.Claims = .{ .and_ = Q.zero(), .function = Q.zero() },
+    shift_tail: B.shift_word_packed_experiment.lookup.Claims = .{ .shift = Q.zero(), .range16 = Q.zero(), .function = Q.zero() },
     pub fn values(self: Claims) [CLAIM_COUNT]Q {
         var out: [CLAIM_COUNT]Q = undefined;
         out[0..17].* = .{ self.cpu, self.rom, self.regboundary, self.r16, self.r8, self.alu.range16, self.alu.function, self.binary.and_, self.binary.function, self.shift.shift, self.shift.range16, self.shift.function, self.and_table, self.shift_table, self.jalr, self.division, self.multiplication };
@@ -56,7 +62,10 @@ pub const Claims = struct {
             at += 5;
         }
         out[32] = self.selectiontable;
-        out[CLAIM_LS_TAIL..].* = .{ self.ls_tail.ram, self.ls_tail.owner, self.ls_tail.range16, self.ls_tail.range8, self.ls_tail.selection };
+        out[CLAIM_LS_TAIL..][0..5].* = .{ self.ls_tail.ram, self.ls_tail.owner, self.ls_tail.range16, self.ls_tail.range8, self.ls_tail.selection };
+        out[CLAIM_ALU_TAIL..][0..2].* = .{ self.alu_tail.range16, self.alu_tail.function };
+        out[CLAIM_BINARY_TAIL..][0..2].* = .{ self.binary_tail.and_, self.binary_tail.function };
+        out[CLAIM_SHIFT_TAIL..][0..3].* = .{ self.shift_tail.shift, self.shift_tail.range16, self.shift_tail.function };
         return out;
     }
     pub fn validate(self: Claims) !void {
@@ -155,4 +164,12 @@ pub fn validateLsTailClass(geometry: @import("geometry.zig").Geometry, total: u3
         const c = [_]Q{ claim.ram, claim.owner, claim.range16, claim.range8, claim.selection };
         for (c) |q| if (!q.isZero()) return error.NonzeroOmittedLsTailClaim;
     }
+}
+
+/// Absence is physical. Present pure-fact tails need no public fact count:
+/// functional truth membership is supplied by the complete FUNCTION closure.
+pub fn validateProviderTailClaims(geometry: @import("geometry.zig").Geometry, claims: Claims) !void {
+    if (geometry.alu_tail_log == null and (!claims.alu_tail.range16.isZero() or !claims.alu_tail.function.isZero())) return error.NonzeroOmittedAluTailClaim;
+    if (geometry.binary_tail_log == null and (!claims.binary_tail.and_.isZero() or !claims.binary_tail.function.isZero())) return error.NonzeroOmittedBinaryTailClaim;
+    if (geometry.shift_tail_log == null and (!claims.shift_tail.shift.isZero() or !claims.shift_tail.range16.isZero() or !claims.shift_tail.function.isZero())) return error.NonzeroOmittedShiftTailClaim;
 }

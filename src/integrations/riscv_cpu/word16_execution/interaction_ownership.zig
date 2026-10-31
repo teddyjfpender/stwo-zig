@@ -16,8 +16,11 @@ fn matrix(s: *Source, role: Role) *[]M {
         .rom => &s.rom.interaction,
         .boundary => &s.boundary,
         .alu => &s.alu.interaction,
+        .alu_tail => &s.tails.alu.?.interaction,
         .binary => &s.binary.interaction,
+        .binary_tail => &s.tails.binary.?.interaction,
         .shift => &s.shift.interaction,
+        .shift_tail => &s.tails.shift.?.interaction,
         .jalr => &s.jalr.interaction,
         .division => &s.division.interaction,
         .multiplication => &s.multiplication.interaction,
@@ -45,6 +48,9 @@ pub fn take(s: *Source) !Commit {
     if (s.memory.ls_tail) |tail| {
         if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
     }
+    inline for (.{ "alu", "binary", "shift" }) |name| if (@field(s.tails, name)) |tail| {
+        if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
+    };
     const columns = try s.columns(a, 2);
     errdefer a.free(columns);
     const shapes = s.materials.shapes();

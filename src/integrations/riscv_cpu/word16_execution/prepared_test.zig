@@ -189,8 +189,15 @@ test "Wrong grouped multiplicity remains rejected by actual closed CPU debt and 
     try std.testing.expectError(error.UnclosedExecutionRelations, Execution.provePrepared(a, &setup, admission(), source, null));
     var invalid = try Prepared.Prepared.init(a, &setup.materials.program, fixture.boundary, 1, 8, &fixture.tape, .{});
     defer invalid.deinit();
+    const original_weight = invalid.binary.weights[0];
     invalid.binary.weights[0] = core.fields.m31.Modulus;
     try std.testing.expectError(error.InvalidBinaryWeights, Sources.Source.fromPrepared(a, &setup.materials, image(), &invalid));
+    // Whole-family admission now precedes CPU/JALR transfer. The caller still
+    // owns and deinitializes Prepared, or can repair its native witness input.
+    try std.testing.expect(invalid.cpu != null and invalid.jalr != null);
+    invalid.binary.weights[0] = original_weight;
+    var retry = try Sources.Source.fromPrepared(a, &setup.materials, image(), &invalid);
+    defer retry.deinit();
     try std.testing.expect(invalid.cpu == null and invalid.jalr == null);
 }
 

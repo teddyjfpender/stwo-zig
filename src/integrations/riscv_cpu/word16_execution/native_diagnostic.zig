@@ -51,9 +51,12 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
                 .range16 => components.range16.emitFor(Q, fs, ms, is, pms, pis, &sink),
                 .range8 => components.range8.emitFor(Q, fs, ms, is, pms, pis, &sink),
                 .alu => components.alu.emitFor(Q, fs, ms, is, pis, &sink),
+                .alu_tail => components.alu_tail.emitFor(Q, fs, ms, is, pis, &sink),
                 .binary => components.binary.emitFor(Q, fs, ms, is, pis, &sink),
+                .binary_tail => components.binary_tail.emitFor(Q, fs, ms, is, pis, &sink),
                 .and_table => components.and_table.emitFor(Q, fs, ms, is, pis, &sink),
                 .shift => components.shift.emitFor(Q, fs, ms, is, pis, &sink),
+                .shift_tail => components.shift_tail.emitFor(Q, fs, ms, is, pis, &sink),
                 .shift_table => components.shift_table.emitFor(Q, fs, ms, is, pis, &sink),
                 .jalr => components.jalr.emitFor(Q, fs, ms, pms, is, pis, &sink),
                 .division => {

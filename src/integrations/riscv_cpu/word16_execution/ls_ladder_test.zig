@@ -138,7 +138,7 @@ test "One PCS two LS instances native loop closes all claims and retained histog
     try E.verify(a, &fresh, admission(&f), encoded);
     try std.testing.expectEqual(@as(u32, 65), encoded.request.memory.ls_count);
     try encoded.claims.validate();
-    try std.testing.expectEqual(@as(usize, 38), encoded.claims.values().len);
+    try std.testing.expectEqual(@as(usize, P.CLAIM_COUNT), encoded.claims.values().len);
     // Different authenticated counts/endpoints reuse the SAME immutable key.
     var later_fixture = try Fixture.initWithSteps(0, 132);
     defer later_fixture.deinit();

@@ -18,8 +18,11 @@ pub const Components = struct {
     rom: X.rom_component.Component,
     boundary: W.component.Component,
     alu: B.alu_experiment.component.Component,
+    alu_tail: B.alu_experiment.component.Component,
     binary: B.binary_component.Component,
+    binary_tail: B.binary_component.Component,
     shift: B.shift_word_packed_experiment.component.Component,
+    shift_tail: B.shift_word_packed_experiment.component.Component,
     jalr: X.jalr_component.Component,
     division: A.arithmetic.division.degree3_component.Component,
     multiplication: A.arithmetic.multiplication.degree3_component.Component,
@@ -36,6 +39,7 @@ pub const Components = struct {
     pub fn init(materials: *const Mat.Materials, request: P.Request, ch: P.Draw, claims: P.Claims) !Components {
         try P.validateDivisionClass(materials.geometry, request.division_requests, claims.division);
         try P.validateLsTailClass(materials.geometry, request.memory.ls_count, claims.ls_tail);
+        try P.validateProviderTailClaims(materials.geometry, claims);
         const ls_counts = try materials.geometry.lsCounts(request.memory.ls_count);
         if (!claims.initial.owner.eql(Q.zero()) or !claims.initial.selection.eql(Q.zero()) or !claims.terminal.owner.eql(Q.zero()) or !claims.terminal.selection.eql(Q.zero())) return error.UnconstrainedMemoryClaim;
         if (!ch.cpu.range8.coefficient.eql(Q.one())) return error.InvalidArithmeticByteChallenge;
@@ -67,11 +71,13 @@ pub const Components = struct {
                     }
                 },
                 .alu => result.alu = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu },
-                .binary, .and_table => {
-                    const component = B.binary_component.Component{ .kind = if (shape.role == .binary) .binary else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
-                    if (shape.role == .binary) result.binary = component else result.and_table = component;
+                .alu_tail => result.alu_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16 }, .claims = claims.alu_tail },
+                .binary, .binary_tail, .and_table => {
+                    const component = B.binary_component.Component{ .kind = if (shape.role != .and_table) .binary else .and_table, .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .and_ = ch.and_ }, .claims = if (shape.role == .binary_tail) claims.binary_tail else if (shape.role == .binary) claims.binary else .{ .and_ = claims.and_table, .function = Q.zero() } };
+                    if (shape.role == .binary_tail) result.binary_tail = component else if (shape.role == .binary) result.binary = component else result.and_table = component;
                 },
                 .shift => result.shift = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift },
+                .shift_tail => result.shift_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift_tail },
                 .jalr => result.jalr = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.function, .claim = claims.jalr },
                 .division => result.division = .{ .base = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function), .claim = claims.division } },
                 .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset },

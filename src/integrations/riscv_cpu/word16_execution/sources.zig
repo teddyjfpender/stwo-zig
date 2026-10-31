@@ -11,6 +11,7 @@ const Mat = @import("setup.zig");
 const P = @import("protocol.zig");
 const CPU = @import("cpu_source.zig");
 const ROM = @import("rom_source.zig");
+const Tail = @import("provider_tails.zig");
 const J = @import("jalr_source.zig");
 pub const Prepared = @import("prepared.zig").Prepared;
 const Memory = @import("memory/prepared.zig");
@@ -27,6 +28,7 @@ pub const Source = struct {
     alu: B.alu_experiment.source.Source,
     binary: B.binary_source.Source,
     shift: B.shift_word_packed_experiment.source.Source,
+    tails: Tail.Tails = .{},
     jalr: J.Source,
     division: A.arithmetic.division.trace.Trace,
     multiplication: A.arithmetic.multiplication.trace.Trace,
@@ -50,7 +52,7 @@ pub const Source = struct {
         native_stage.end();
         return fromPreparedProfiled(a, materials, image, &prepared, recorder);
     }
-    /// Transfers CPU/JALR ownership on entry after identity/geometry checks.
+    /// Transfers CPU/JALR after identity, geometry and whole-family admission.
     /// The caller always deinitializes Prepared to release remaining fact groups.
     /// On failure, transferred witnesses are destroyed here; never reconstructed.
     pub fn fromPrepared(a: std.mem.Allocator, materials: *const Mat.Materials, image: Memory.public.Image, prepared: *Prepared) !Source {
@@ -72,6 +74,7 @@ pub const Source = struct {
         errdefer if (pending_memory) |*value| value.deinit();
         const g = materials.geometry;
         try g.validate();
+        const splits = try Tail.validate(g, prepared);
         const ls_counts = try g.lsCounts(prepared.raw_counts.memory);
         if (pending_memory) |*value| {
             if (value.statement.ls_count != prepared.raw_counts.memory or value.ls.rows != ls_counts.head or value.ls.log_size != g.ls_log or (value.ls_tail != null) != (g.ls_tail_log != null)) return error.PreparedMemoryGeometryMismatch;
@@ -96,24 +99,26 @@ pub const Source = struct {
         var alu = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_alu", "ALU witness");
             defer stage.end();
-            break :blk try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts, prepared.alu.weights, g.alu_log);
+            break :blk try B.alu_experiment.source.Source.initWeighted(a, prepared.alu.facts[0..splits.alu.head], prepared.alu.weights[0..splits.alu.head], g.alu_log);
         };
         errdefer alu.deinit();
         var binary = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_binary", "BINARY witness");
             defer stage.end();
-            break :blk try B.binary_source.Source.initWeighted(a, prepared.binary.facts, prepared.binary.weights, g.binary_log);
+            break :blk try B.binary_source.Source.initWeighted(a, prepared.binary.facts[0..splits.binary.head], prepared.binary.weights[0..splits.binary.head], g.binary_log);
         };
         errdefer binary.deinit();
         var shift = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_shift", "SHIFT witness");
             defer stage.end();
             break :blk if (prepared.shift_weights.len != 0)
-                try B.shift_word_packed_experiment.source.Source.initWeighted(a, prepared.shift, prepared.shift_weights, g.shift_log)
+                try B.shift_word_packed_experiment.source.Source.initWeighted(a, prepared.shift[0..splits.shift.head], prepared.shift_weights[0..splits.shift.head], g.shift_log)
             else
-                try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift, g.shift_log);
+                try B.shift_word_packed_experiment.source.Source.init(a, prepared.shift[0..splits.shift.head], g.shift_log);
         };
         errdefer shift.deinit();
+        var tails = try Tail.Tails.init(a, g, prepared, splits, recorder);
+        errdefer tails.deinit();
         var division = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_division", "DIV witness");
             defer stage.end();
@@ -151,6 +156,8 @@ pub const Source = struct {
         errdefer a.free(c8);
         try addCounts(c16, alu.range16_counts);
         try addCounts(c16, shift.range16_counts);
+        if (tails.alu) |tail| try addCounts(c16, tail.range16_counts);
+        if (tails.shift) |tail| try addCounts(c16, tail.range16_counts);
         try addCounts(c16, memory.counts16);
         try addCounts(c8, &multiplication.byte_counts);
         try addCounts(c8, memory.counts8);
@@ -167,16 +174,22 @@ pub const Source = struct {
             break :blk try W.table_trace.Source.initRange8(a, materials.range8_fixed, c8);
         };
         errdefer range8.deinit();
+        const and_counts = if (tails.binary != null) try a.dupe(u64, binary.and_counts) else null;
+        defer if (and_counts) |data| a.free(data);
+        if (and_counts) |data| try addCounts(data, tails.binary.?.and_counts);
+        const shift_counts = if (tails.shift != null) try a.dupe(u64, shift.shift_counts) else null;
+        defer if (shift_counts) |data| a.free(data);
+        if (shift_counts) |data| try addCounts(data, tails.shift.?.shift_counts);
         var and_table = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_and_table", "AND multiplicities");
             defer stage.end();
-            break :blk try A.providers.tables.Request.init(a, &materials.and_table, binary.and_counts);
+            break :blk try A.providers.tables.Request.init(a, &materials.and_table, and_counts orelse binary.and_counts);
         };
         errdefer and_table.deinit();
         var shift_table = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_shift_table", "SHIFT table multiplicities");
             defer stage.end();
-            break :blk try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift.shift_counts);
+            break :blk try B.shift_word_packed_experiment.table.Request.init(a, &materials.shift_table, shift_counts orelse shift.shift_counts);
         };
         errdefer shift_table.deinit();
         {
@@ -185,7 +198,7 @@ pub const Source = struct {
             cpu.releaseFacts();
             prepared.releaseFacts();
         }
-        return .{ .allocator = a, .materials = materials, .cpu = cpu, .rom = rom, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .memory = memory, .and_table = and_table, .shift_table = shift_table, .range16 = range16, .range8 = range8, .counts16 = c16, .counts8 = c8 };
+        return .{ .allocator = a, .materials = materials, .cpu = cpu, .rom = rom, .alu = alu, .binary = binary, .shift = shift, .tails = tails, .jalr = jalr, .division = division, .multiplication = multiplication, .memory = memory, .and_table = and_table, .shift_table = shift_table, .range16 = range16, .range8 = range8, .counts16 = c16, .counts8 = c8 };
     }
     pub fn request(self: *const Source) P.Request {
         return .{ .cpu = self.cpu.public, .epoch = self.cpu.epoch, .division_requests = @intCast(self.division.count), .multiplication_requests = self.multiplication.count, .memory = self.memory.statement };
@@ -200,6 +213,7 @@ pub const Source = struct {
         self.alu.releaseMain();
         self.binary.releaseMain();
         self.shift.releaseMain();
+        self.tails.releaseMain();
         self.jalr.releaseMain();
         try self.division.releaseMain();
         try self.multiplication.releaseMain();
@@ -307,8 +321,10 @@ pub const Source = struct {
             defer stage.end();
             break :block try self.memory.generateProfiled(ch.memory, self.range16.dictionary, self.range8.dictionary, recorder);
         };
-        const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection, .ls_tail = memory[4] };
+        const tails = try self.tails.generate(ch, self.range16.dictionary, self.shift_table.dictionary, recorder);
+        const claims = P.Claims{ .cpu = cpu, .rom = rom, .regboundary = boundary.claim, .r16 = r16, .r8 = r8, .alu = alu, .binary = binary, .shift = shift, .jalr = jalr, .division = division, .multiplication = multiplication, .and_table = and_, .shift_table = shifts, .ls = memory[0], .initial = memory[1], .terminal = memory[2], .selectiontable = memory[3].selection, .ls_tail = memory[4], .alu_tail = tails.alu, .binary_tail = tails.binary, .shift_tail = tails.shift };
         try P.validateLsTailClass(self.materials.geometry, self.memory.statement.ls_count, claims.ls_tail);
+        try P.validateProviderTailClaims(self.materials.geometry, claims);
         switch (closure) {
             .closed => try claims.validate(),
             .global_ram => try validateOpenForGlobalRam(claims),
@@ -332,8 +348,11 @@ pub const Source = struct {
                 .rom => if (tree == 1) self.rom.main else self.rom.interaction,
                 .boundary => if (tree == 1) &.{} else self.boundary,
                 .alu => if (tree == 1) self.alu.main else self.alu.interaction,
+                .alu_tail => if (self.tails.alu) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
                 .binary => if (tree == 1) self.binary.main else self.binary.interaction,
+                .binary_tail => if (self.tails.binary) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
                 .shift => if (tree == 1) self.shift.main else self.shift.interaction,
+                .shift_tail => if (self.tails.shift) |tail| (if (tree == 1) tail.main else tail.interaction) else return error.MissingProviderTail,
                 .jalr => if (tree == 1) self.jalr.main else self.jalr.interaction,
                 .division => if (tree == 1) self.division.main else self.division.interaction,
                 .multiplication => if (tree == 1) self.multiplication.main else self.multiplication.interaction,
@@ -360,6 +379,7 @@ pub const Source = struct {
         inline for (.{ "cpu", "rom", "alu", "binary", "shift", "jalr", "division", "multiplication", "range16", "range8", "and_table", "shift_table" }) |name| release(self.allocator, &@field(self, name).interaction);
         inline for (.{ "ls", "initial", "terminal", "selection" }) |name| release(self.allocator, &@field(self.memory, name).interaction);
         if (self.memory.ls_tail) |*tail| release(self.allocator, &tail.interaction);
+        self.tails.releaseInteraction(self.allocator);
         release(self.allocator, &self.boundary);
     }
     pub fn deinit(self: *Source) void {
@@ -372,6 +392,7 @@ pub const Source = struct {
         self.memory.deinit();
         self.multiplication.deinit();
         self.division.deinit();
+        self.tails.deinit();
         self.jalr.deinit();
         self.shift.deinit();
         self.binary.deinit();

@@ -177,6 +177,7 @@ pub fn verifyProfiled(a: std.mem.Allocator, setup: *const Mat.Setup, admission: 
         try admission.validate(setup, encoded.request);
     }
     try P.validateDivisionClass(setup.materials.geometry, encoded.request.division_requests, encoded.claims.division);
+    try P.validateProviderTailClaims(setup.materials.geometry, encoded.claims);
     try encoded.claims.validate();
     if (encoded.bytes.len > 64 * 1024 * 1024) return error.Word16ExecutionProofResourceLimit;
     var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);

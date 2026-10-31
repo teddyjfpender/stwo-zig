@@ -21,8 +21,11 @@ pub const Materials = struct {
     cpu_fixed: []M,
     boundary_fixed: []M,
     alu_fixed: []M,
+    alu_tail_fixed: []M,
     binary_fixed: []M,
+    binary_tail_fixed: []M,
     shift_fixed: []M,
+    shift_tail_fixed: []M,
     jalr_fixed: []M,
     division_fixed: []M,
     multiplication_fixed: []M,
@@ -54,10 +57,16 @@ pub const Materials = struct {
         errdefer a.free(boundary);
         const alu = try B.alu_experiment.source.fixedForLog(a, geometry.alu_log);
         errdefer a.free(alu);
+        const alu_tail = if (geometry.alu_tail_log) |log| try B.alu_experiment.source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(alu_tail);
         const binary = try B.binary_source.fixedForLog(a, geometry.binary_log);
         errdefer a.free(binary);
+        const binary_tail = if (geometry.binary_tail_log) |log| try B.binary_source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(binary_tail);
         const shift = try B.shift_word_packed_experiment.source.fixedForLog(a, geometry.shift_log);
         errdefer a.free(shift);
+        const shift_tail = if (geometry.shift_tail_log) |log| try B.shift_word_packed_experiment.source.fixedForLog(a, log) else try a.alloc(M, 0);
+        errdefer a.free(shift_tail);
         const jalr = try B.binary_source.fixedForLog(a, geometry.jalr_log);
         errdefer a.free(jalr);
         const division: []M = if (geometry.omit_empty_division) &.{} else try air.arithmetic.division.trace.fixedColumns(a, 0, geometry.division_log);
@@ -82,13 +91,13 @@ pub const Materials = struct {
         errdefer shifts.deinit();
         var and_ = try air.providers.tables.Setup.init(a, .byte_and);
         errdefer and_.deinit();
-        return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .binary_fixed = binary, .shift_fixed = shift, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
+        return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
     }
     pub fn deinit(self: *Materials) void {
         if (self.memory_terminal_fixed) |data| self.allocator.free(data);
         self.and_table.deinit();
         self.shift_table.deinit();
-        for ([_][]M{ self.cpu_fixed, self.boundary_fixed, self.alu_fixed, self.binary_fixed, self.shift_fixed, self.jalr_fixed, self.division_fixed, self.multiplication_fixed, self.range16_fixed, self.range8_fixed, self.ls_fixed, self.ls_tail_fixed, self.memory_boundary_fixed, self.selection_fixed }) |fixed| self.allocator.free(fixed);
+        for ([_][]M{ self.cpu_fixed, self.boundary_fixed, self.alu_fixed, self.alu_tail_fixed, self.binary_fixed, self.binary_tail_fixed, self.shift_fixed, self.shift_tail_fixed, self.jalr_fixed, self.division_fixed, self.multiplication_fixed, self.range16_fixed, self.range8_fixed, self.ls_fixed, self.ls_tail_fixed, self.memory_boundary_fixed, self.selection_fixed }) |fixed| self.allocator.free(fixed);
         self.program.deinit();
         self.* = undefined;
     }
@@ -120,8 +129,11 @@ pub const Materials = struct {
                 .rom => self.program.fixed,
                 .boundary => self.boundary_fixed,
                 .alu => self.alu_fixed,
+                .alu_tail => self.alu_tail_fixed,
                 .binary => self.binary_fixed,
+                .binary_tail => self.binary_tail_fixed,
                 .shift => self.shift_fixed,
+                .shift_tail => self.shift_tail_fixed,
                 .jalr => self.jalr_fixed,
                 .division => self.division_fixed,
                 .multiplication => self.multiplication_fixed,

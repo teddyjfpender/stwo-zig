@@ -27,8 +27,11 @@ fn matrix(s: *Source, role: Role) *[]M {
         .cpu => &s.cpu.main,
         .rom => &s.rom.main,
         .alu => &s.alu.main,
+        .alu_tail => &s.tails.alu.?.main,
         .binary => &s.binary.main,
+        .binary_tail => &s.tails.binary.?.main,
         .shift => &s.shift.main,
+        .shift_tail => &s.tails.shift.?.main,
         .jalr => &s.jalr.main,
         .division => &s.division.main,
         .multiplication => &s.multiplication.main,
@@ -64,6 +67,10 @@ pub fn take(s: *Source) !Commit {
         if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
         if (!tail.owns_main) return error.BorrowedExecutionMain;
     }
+    inline for (.{ "alu", "binary", "shift" }) |name| if (@field(s.tails, name)) |tail| {
+        if (!sameAllocator(a, tail.allocator)) return error.ExecutionTailAllocatorMismatch;
+        if (!tail.owns_main) return error.BorrowedExecutionMain;
+    };
     const columns = try s.columns(a, 1);
     errdefer a.free(columns);
     const shapes = s.materials.shapes();
@@ -108,6 +115,11 @@ pub fn take(s: *Source) !Commit {
     s.binary.owns_main = false;
     s.shift.owns_main = false;
     if (s.materials.shape(.division).widths[1] != 0) s.division.owns_main = false;
+    inline for (.{ "alu", "binary", "shift" }) |name| {
+        if (s.materials.shape(@field(Role, name ++ "_tail")).widths[1] != 0) {
+            if (@field(s.tails, name)) |*tail| tail.owns_main = false;
+        }
+    }
     s.multiplication.owns_main = false;
     s.memory.ls.owns_main = false;
     if (s.materials.shape(.ls_tail).widths[1] != 0) {

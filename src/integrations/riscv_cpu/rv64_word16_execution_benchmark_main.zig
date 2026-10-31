@@ -49,7 +49,7 @@ pub fn main() !void {
     if (verifying) {
         if (omit_division) return error.OmissionFlagIsProducerOnly;
         if (deduplicate_shift) return error.GroupingFlagIsProducerOnly;
-        if (ls_ladder != null) return error.LadderFlagIsProducerOnly;
+        if (ls_ladder != null or allocator_options.alu_ladder != null or allocator_options.binary_ladder != null or allocator_options.shift_ladder != null) return error.LadderFlagIsProducerOnly;
         try Driver.verifyDirectory(a, &image, args[3]);
         try stdout(a, .{ .scope = "fresh independent genesis-prefix receiver", .physical_proof_verified = true, .global_chain_accepted = false, .receiver_ns = timer.read(), .image_ns = image_ns });
         return;
@@ -76,6 +76,10 @@ pub fn main() !void {
             geometry.ls_log = ladder.head;
             geometry.ls_tail_log = ladder.tail;
         }
+        applyFamilyLadders(&geometry, allocator_options.alu_ladder, allocator_options.binary_ladder, allocator_options.shift_ladder);
+        _ = try G.factCounts(counts.alu, geometry.alu_log, geometry.alu_tail_log);
+        _ = try G.factCounts(counts.binary, geometry.binary_log, geometry.binary_tail_log);
+        _ = try G.factCounts(counts.shift, geometry.shift_log, geometry.shift_tail_log);
         _ = try geometry.lsCounts(counts.memory);
         try geometry.validate();
         const shapes = G.shapes(&program, geometry);
@@ -105,6 +109,8 @@ pub fn main() !void {
         proof_geometry.ls_log = ladder.head;
         proof_geometry.ls_tail_log = ladder.tail;
     }
+    applyFamilyLadders(&proof_geometry, allocator_options.alu_ladder, allocator_options.binary_ladder, allocator_options.shift_ladder);
+    _ = try @import("word16_execution/provider_tails.zig").validate(proof_geometry, &prepared);
     try Execution.Admission.validateCounts(proof_geometry, @intCast(packet.tape.len), prepared.raw_counts.memory, prepared.unique_memory_words);
     const proof_shapes = G.shapes(&program, proof_geometry);
     try Driver.writeJson(a, dir, "planning.json", .{ .scope = "actual grouped native advice; not a proof", .raw_counts = prepared.raw_counts, .alu_unique_facts = prepared.alu.facts.len, .binary_unique_facts = prepared.binary.facts.len, .shift_unique_facts = prepared.shift.len, .shift_grouping = deduplicate_shift, .geometry = proof_geometry, .shapes = proof_shapes, .evaluation_domains = G.domains(proof_shapes), .source_cells = try G.cells(&proof_shapes) });
@@ -152,7 +158,7 @@ fn stdout(a: std.mem.Allocator, value: anytype) !void {
 /// Allocation flags preserve the proof. LS ladder selects explicit fixed geometry
 /// with the SAME independently admitted CPU/memory statement.
 const LsLadder = struct { head: u32, tail: u32 };
-fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool, ls_ladder: ?LsLadder } {
+fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap_bytes: usize, commit_batch_columns: u32, omit_empty_division: bool, deduplicate_shift: bool, ls_ladder: ?LsLadder, alu_ladder: ?LsLadder, binary_ladder: ?LsLadder, shift_ladder: ?LsLadder } {
     var count = args.len;
     var cap_bytes: usize = 0;
     var batch_columns: u32 = 8;
@@ -161,6 +167,9 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
     var omit_empty_division = false;
     var deduplicate_shift = false;
     var ls_ladder: ?LsLadder = null;
+    var alu_ladder: ?LsLadder = null;
+    var binary_ladder: ?LsLadder = null;
+    var shift_ladder: ?LsLadder = null;
     while (count > 1) {
         const option = args[count - 1];
         const cache_prefix = "--recycler-cap-mib=";
@@ -178,6 +187,15 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
             const tail = try std.fmt.parseUnsigned(u32, logs.next() orelse return error.InvalidLsLadderFlag, 10);
             if (logs.next() != null or head < 5 or head > 22 or tail < 5 or tail > 22) return error.InvalidLsLadderFlag;
             ls_ladder = .{ .head = head, .tail = tail };
+        } else if (std.mem.startsWith(u8, option, "--alu-ladder=")) {
+            if (alu_ladder != null) return error.DuplicateOperationalOption;
+            alu_ladder = try parseFamilyLadder(option["--alu-ladder=".len..]);
+        } else if (std.mem.startsWith(u8, option, "--binary-ladder=")) {
+            if (binary_ladder != null) return error.DuplicateOperationalOption;
+            binary_ladder = try parseFamilyLadder(option["--binary-ladder=".len..]);
+        } else if (std.mem.startsWith(u8, option, "--shift-ladder=")) {
+            if (shift_ladder != null) return error.DuplicateOperationalOption;
+            shift_ladder = try parseFamilyLadder(option["--shift-ladder=".len..]);
         } else if (std.mem.startsWith(u8, option, cache_prefix)) {
             if (saw_cap) return error.DuplicateOperationalOption;
             saw_cap = true;
@@ -191,5 +209,27 @@ fn operationalOptions(args: []const [:0]u8) !struct { argument_count: usize, cap
         } else break;
         count -= 1;
     }
-    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift, .ls_ladder = ls_ladder };
+    return .{ .argument_count = count, .cap_bytes = cap_bytes, .commit_batch_columns = batch_columns, .omit_empty_division = omit_empty_division, .deduplicate_shift = deduplicate_shift, .ls_ladder = ls_ladder, .alu_ladder = alu_ladder, .binary_ladder = binary_ladder, .shift_ladder = shift_ladder };
+}
+
+fn parseFamilyLadder(value: []const u8) !LsLadder {
+    var logs = std.mem.splitScalar(u8, value, ',');
+    const head = try std.fmt.parseUnsigned(u32, logs.next() orelse return error.InvalidProviderLadderFlag, 10);
+    const tail = try std.fmt.parseUnsigned(u32, logs.next() orelse return error.InvalidProviderLadderFlag, 10);
+    if (logs.next() != null or head < 5 or head > 22 or tail < 5 or tail > 22) return error.InvalidProviderLadderFlag;
+    return .{ .head = head, .tail = tail };
+}
+fn applyFamilyLadders(g: *G.Geometry, alu: ?LsLadder, binary: ?LsLadder, shift: ?LsLadder) void {
+    if (alu) |ladder| {
+        g.alu_log = ladder.head;
+        g.alu_tail_log = ladder.tail;
+    }
+    if (binary) |ladder| {
+        g.binary_log = ladder.head;
+        g.binary_tail_log = ladder.tail;
+    }
+    if (shift) |ladder| {
+        g.shift_log = ladder.head;
+        g.shift_tail_log = ladder.tail;
+    }
 }

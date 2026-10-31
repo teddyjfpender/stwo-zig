@@ -9,8 +9,11 @@ const P = @import("program.zig").Program;
 pub const Geometry = struct {
     cpu_log: u32,
     alu_log: u32 = 5,
+    alu_tail_log: ?u32 = null,
     binary_log: u32 = 5,
+    binary_tail_log: ?u32 = null,
     shift_log: u32 = 5,
+    shift_tail_log: ?u32 = null,
     jalr_log: u32 = 5,
     division_log: u32 = 5,
     /// Explicit count-zero physical class. Omission never changes the CPU
@@ -34,13 +37,15 @@ pub const Geometry = struct {
     pub fn validate(self: Geometry) !void {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
         for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
-        if (self.ls_tail_log) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
+            if (optional) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        }
         _ = try B.function_bus.admitPositiveMass(&.{try self.range16Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log)});
-        _ = try B.binary_source.massForLog(self.binary_log);
-        _ = try B.shift_word_packed_experiment.source.massForLog(self.shift_log);
+        _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log)});
+        _ = try B.function_bus.admitPositiveMass(&.{5 * familyRows(self.shift_log, self.shift_tail_log)});
     }
     pub const LsCounts = struct { head: u32, tail: u32 };
     /// Every present LS instance needs a trailing inactive row. Tail is used
@@ -61,8 +66,8 @@ pub const Geometry = struct {
     /// Counts include padding for every always-present physical provider.
     /// Future service rosters must extend this admission BEFORE allocation.
     pub fn range16Mass(self: Geometry) !u64 {
-        var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * rows(self.alu_log));
-        total = try std.math.add(u64, total, 9 * rows(self.shift_log));
+        var total = try std.math.add(u64, 3 * rows(self.cpu_log), 20 * familyRows(self.alu_log, self.alu_tail_log));
+        total = try std.math.add(u64, total, 9 * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
         return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }
@@ -76,7 +81,7 @@ pub fn rows(log: u32) u64 {
     return @as(u64, 1) << @intCast(log);
 }
 /// Structural roster tags, not runtime semantic/CPU policy alternatives.
-pub const Role = enum { cpu, rom, boundary, alu, binary, shift, jalr, division, multiplication, shift_table, and_table, range16, range8, ls, initial, terminal, selection, ls_tail };
+pub const Role = enum { cpu, rom, boundary, alu, binary, shift, jalr, division, multiplication, shift_table, and_table, range16, range8, ls, initial, terminal, selection, ls_tail, alu_tail, binary_tail, shift_tail };
 pub const Shape = struct {
     role: Role,
     log: u32,
@@ -102,8 +107,11 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },
+            .alu_tail => if (geometry.alu_tail_log != null) .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
             .binary => .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION },
+            .binary_tail => if (geometry.binary_tail_log != null) .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION } else .{ 0, 0, 0 },
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },
+            .shift_tail => if (geometry.shift_tail_log != null) .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
             .jalr => .{ 2, 18, 12 },
             .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.layout.FIXED, A.division.layout.MAIN, A.division.layout.INTERACTION },
             .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
@@ -120,8 +128,11 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .cpu => geometry.cpu_log,
             .rom => program.log_size,
             .alu => geometry.alu_log,
+            .alu_tail => geometry.alu_tail_log orelse 5,
             .binary => geometry.binary_log,
+            .binary_tail => geometry.binary_tail_log orelse 5,
             .shift => geometry.shift_log,
+            .shift_tail => geometry.shift_tail_log orelse 5,
             .jalr => geometry.jalr_log,
             .division => geometry.division_log,
             .multiplication => geometry.multiplication_log,
@@ -162,4 +173,21 @@ pub fn domains(actual: [ROLE_COUNT]Shape) [ROLE_COUNT]Domain {
         domain.* = .{ .role = shape.role, .native_evaluation_log = shape.log + 1, .composition_contribution_bound_log = shape.log + 1, .weighted_quotient_extension_logs = 0 };
     }
     return out;
+}
+
+pub fn familyRows(head_log: u32, tail_log: ?u32) u64 {
+    return rows(head_log) + if (tail_log) |log| rows(log) else @as(u64, 0);
+}
+pub const FactCounts = struct { head: usize, tail: usize };
+/// Producer partition of unordered true facts, NOT receiver coverage authority.
+/// Pure truth providers allow all N rows active; no mandatory padding row.
+pub fn factCounts(total: usize, head_log: u32, tail_log: ?u32) !FactCounts {
+    if (head_log < 5 or head_log > 22) return error.InvalidExecutionGeometry;
+    const head: usize = @intCast(@min(total, rows(head_log)));
+    const tail = total - head;
+    if (tail_log) |log| {
+        if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        if (tail == 0 or tail > rows(log)) return error.InvalidProviderTailCapacity;
+    } else if (tail != 0) return error.InvalidProviderTailCapacity;
+    return .{ .head = head, .tail = tail };
 }

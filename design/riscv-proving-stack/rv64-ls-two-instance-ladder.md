@@ -1,5 +1,7 @@
 # Two LS instances inside one CPU commitment
 
+This note records the schema3 LS qualification. The later schema4 [pure-function tails](rv64-pure-function-instance-ladders.md) extend the canonical ledger to45 fields; LS offsets and obligations remain unchanged.
+
 The opt-in `Geometry.ls_tail_log` adds a second ordinary load/store component to the existing CPU PCS. It adds no wrapped proof, CPU execution pass, RAM initialization, epoch or clock namespace. The CLI selects it with `--ls-ladder=20,18`; defaults keep one LS instance.
 
 For total `T`, the canonical split is `head=min(T,2^ls_log-1)`, `tail=T-head`. An enabled tail must have `0<tail<2^tail_log`; an absent tail requires `tail=0`. Both present instances retain one inactive terminal row. Native events are sliced once, without rebasing their absolute CPU ticks, and each existing native formatter writes its own final MAIN directly. No larger LS witness is built and compressed.
