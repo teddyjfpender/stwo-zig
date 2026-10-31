@@ -1,0 +1,28 @@
+{
+  "schema": "rv64-qualified-foundation-landing-v1",
+  "commit": "875861f0d212dd9288f2ec88f185f1d735fc4bd1",
+  "branch": "codex/rv64im-frontend",
+  "pushed": true,
+  "isolated_cpu_proof_gates": {
+    "command": "zig build test-riscv64-ethereum-chain test-riscv64-keccak test-riscv64-keccak-quartet test-riscv64-poseidon-simd -Doptimize=ReleaseFast",
+    "status": "PASS",
+    "log": "/tmp/stwo-rv64-landing-proof-gates.log"
+  },
+  "commit_hook": {
+    "status": "scoped exception",
+    "reason": "96 inherited source-conformance errors outside qualified changes; no new errors reported"
+  },
+  "pre_push_hook": {
+    "status": "scoped exception after attempted clean-worktree run",
+    "reason": "Metal lane required unavailable explicit authenticated STWO_METAL_CORE_AOT_BUNDLE",
+    "log": "/tmp/stwo-rv64-qualified-push.log",
+    "hosted_only_lanes": "deferred by hook; not locally qualified"
+  },
+  "not_claimed": [
+    "whole-repository hook pass",
+    "new global RAM aggregate acceptance",
+    "RV64 recursion",
+    "GPU qualification",
+    "sub16GB batch peak"
+  ]
+}

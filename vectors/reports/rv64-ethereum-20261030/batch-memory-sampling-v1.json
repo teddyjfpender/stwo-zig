@@ -1,0 +1,29 @@
+{
+  "schema": "rv64-batch-memory-sampling-v1",
+  "status": "ReleaseSafe-and-ReleaseFast-PASS",
+  "enabled_by": "profile_stages",
+  "scope": "provePrepared entry through receipt writing and stage snapshot; excludes native capture, packet decode and final publication",
+  "sample_interval_ns": 10000000,
+  "target_bytes": 16000000000,
+  "target_achieved": null,
+  "semantics": [
+    "Process-wide current RSS sampled at 10ms plus entry/exit observations",
+    "Observed peak is a lower bound; short-lived peaks can be missed",
+    "OS process lifetime high-water mark reported separately, never attributed to current batch",
+    "Packet decode, native capture, caller lifetime, GPU residency and allocator ownership are excluded from interval scope",
+    "Baseline includes caller allocations still resident when worker enters",
+    "Memory report in stage JSON and returned batch metrics; profiling-disabled metrics explicitly null",
+    "Sampler joins on success/error; finalization is idempotent"
+  ],
+  "tests": {
+    "ReleaseSafe": "9 PASS including real profiled detached-arena proof versus3unprofiled variants with exact byteparity and freshreceivers",
+    "ReleaseFast": "9 PASS including profiled detached-arena proof versus3unprofiled variants with exact byteparity and freshreceivers",
+    "standalone_memory_tests": 2
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/rv64_batch_memory.zig": "970626c19e04cbb4e9043aaa9d89fe48fa02daf4fe3fe3533f781602fbc7819b",
+    "src/integrations/riscv_cpu/rv64_ethereum_prove_batch.zig": "1bd46e9e3e46585cd4b9ffa7d11a6fc41da5e6fa4740dd0c174a14f6e9da50f7",
+    "src/integrations/riscv_cpu/tests/rv64_batch_memory_test.zig": "14f49cf94b9562e8fc549e20478c8fa0e8c69f93628c407b83a96b28baef3650",
+    "src/integrations/riscv_cpu/tests/rv64_ethereum_prepared_test.zig": "fe6eb2ba9fb3477fc90b1ea1150354941abab53c32d39f59a027cb9e8d7993c3"
+  }
+}

@@ -46,7 +46,7 @@ pub fn addProduct(context: Context) void {
         .{ "full-proof", "src/integrations/riscv_cpu/rv64_full_proof_test_root.zig", 3 },
         .{ "multiplication", "src/integrations/riscv_cpu/rv64_multiplication_test_root.zig", 5 },
         .{ "keccak-cpu", "src/integrations/riscv_cpu/rv64_keccak_cpu_test_root.zig", 10 },
-        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 7 },
+        .{ "ethereum-chain", "src/integrations/riscv_cpu/rv64_ethereum_chain_test_root.zig", 9 },
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "ethereum-chip-plan", "src/integrations/riscv_cpu/rv64_ethereum_chip_plan_test_root.zig", 8 },
         .{ "verifier-cache", "src/integrations/riscv_cpu/rv64_verifier_cache_test_root.zig", 3 },

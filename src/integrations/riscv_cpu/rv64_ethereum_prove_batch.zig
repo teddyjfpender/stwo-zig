@@ -9,8 +9,10 @@ const Native = @import("rv64_ethereum_batch.zig");
 const Request = @import("rv64_ethereum_request.zig");
 const Receipt = @import("rv64_ethereum_batch_receipt.zig");
 const Chain = @import("rv64_ethereum_chain.zig");
+const Memory = @import("rv64_batch_memory.zig");
 const MainArena = @import("rv64_authenticated_main_arena.zig").MainArena;
 pub const Metrics = struct {
+    memory: ?Memory.Report = null,
     index: u32,
     first_step: u64,
     instructions: u32,
@@ -82,8 +84,9 @@ pub const Frontier = union(enum) {
     }
 };
 /// Immutable expected material is borrowed for this invocation. The frontier
-/// and cursor are exclusive mutable request state. Cursor endpoints must come
-/// from the caller's expected continuation, not be accepted from this packet;
+/// and cursor are exclusive mutable request state. A serial caller supplies an
+/// accepted continuation; an out-of-order worker supplies explicitly OPEN
+/// boundary conditions. Neither makes packet metadata execution authority:
 /// the final independent chain receiver establishes global endpoint authority.
 pub const PreparedContext = struct {
     authority: *const A.Full.ProgramAuthority,
@@ -119,6 +122,11 @@ pub fn prove(a: std.mem.Allocator, request: *Request.Request, config: Request.Co
 /// Authority/policy/frontier/cursor must outlive the call; no references escape.
 /// This function performs no execution, replay, guest-memory or Capture reads.
 pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Request.Config, tape: *rv.compact_tape.Tape, finished: *Native.Finished, cursor: *Chain.Cursor, directory: std.fs.Dir, timing: PreparedTiming) !Metrics {
+    var memory = Memory.Sampler{};
+    if (config.profile_stages) try memory.start();
+    defer if (config.profile_stages) {
+        _ = memory.finish();
+    };
     var total = try std.time.Timer.start();
     var timer = try std.time.Timer.start();
     // Request-specific control, endpoints, call IDs, roots and expected program
@@ -200,7 +208,8 @@ pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Req
     if (config.profile_stages) {
         var profile = try recorder.snapshot(a);
         defer profile.deinit(a);
-        const json = try std.json.Stringify.valueAlloc(a, profile, .{ .whitespace = .indent_2 });
+        const measured = Memory.WithMemory(@TypeOf(profile)){ .profile = profile, .memory = memory.finish() };
+        const json = try std.json.Stringify.valueAlloc(a, measured, .{ .whitespace = .indent_2 });
         defer a.free(json);
         const name = try std.fmt.allocPrint(a, "batch-{d:0>6}.stages.json", .{cursor.batches});
         defer a.free(name);
@@ -209,5 +218,5 @@ pub fn provePrepared(a: std.mem.Allocator, context: PreparedContext, config: Req
     const write_ns = timer.lap();
     try context.frontier.publish(roots, public, if (ram) |*value| value else null);
     try cursor.advanceVerified(public);
-    return .{ .index = cursor.batches - 1, .first_step = cursor.steps - public.cpu.statement.steps, .instructions = public.cpu.statement.steps, .ram_cells = finished.cells.len, .keccak_calls = public.cpu.keccak_calls, .secp_add_calls = public.cpu.secp.add.calls, .secp_double_calls = public.cpu.secp.double.calls, .source_cells = cells, .proof_bytes = encoded.len, .native_ns = timing.native_ns, .openings_ns = timing.openings_ns, .ram_witness_ns = ram_witness_ns, .setup_ns = setup_ns, .cpu_witness_ns = cpu_witness_ns, .prove_ns = prove_ns, .receiver_setup_ns = receiver_setup_ns, .encode_ns = encode_ns, .verify_ns = verify_ns, .write_ns = write_ns, .cache_publish_ns = timer.lap(), .total_after_native_ns = total.read() +| (timing.before_worker_ns orelse timing.openings_ns), .reused_expected_setup = true, .shared_main_arena_adopted = config.shared_main_arena, .constraint_diagnostics_enabled = config.diagnose_constraints != .none };
+    return .{ .memory = if (config.profile_stages) memory.report else null, .index = cursor.batches - 1, .first_step = cursor.steps - public.cpu.statement.steps, .instructions = public.cpu.statement.steps, .ram_cells = finished.cells.len, .keccak_calls = public.cpu.keccak_calls, .secp_add_calls = public.cpu.secp.add.calls, .secp_double_calls = public.cpu.secp.double.calls, .source_cells = cells, .proof_bytes = encoded.len, .native_ns = timing.native_ns, .openings_ns = timing.openings_ns, .ram_witness_ns = ram_witness_ns, .setup_ns = setup_ns, .cpu_witness_ns = cpu_witness_ns, .prove_ns = prove_ns, .receiver_setup_ns = receiver_setup_ns, .encode_ns = encode_ns, .verify_ns = verify_ns, .write_ns = write_ns, .cache_publish_ns = timer.lap(), .total_after_native_ns = total.read() +| (timing.before_worker_ns orelse timing.openings_ns), .reused_expected_setup = true, .shared_main_arena_adopted = config.shared_main_arena, .constraint_diagnostics_enabled = config.diagnose_constraints != .none };
 }

@@ -76,7 +76,18 @@ fn provePrepared(authority: *const A.Full.ProgramAuthority, policy: *const R.pol
     defer temporary.cleanup();
     var options = config();
     options.shared_main_arena = arena;
+    options.profile_stages = arena and detached;
     const metrics = try Worker.provePrepared(a, .{ .authority = authority, .policy = policy, .frontier = if (detached) .{ .detached = .{ .before = initial_root, .graph = &native.? } } else .{ .cache = &packet.frontier } }, options, &packet.tape, &packet.finished, &cursor, temporary.dir, .{ .native_ns = 17, .openings_ns = 23, .before_worker_ns = 29 });
+    if (options.profile_stages) {
+        const report = metrics.memory orelse return error.MissingBatchMemoryMetrics;
+        try std.testing.expect(report.sampled_peak_rss_bytes.? >= report.baseline_rss_bytes.?);
+        const stages = try temporary.dir.readFileAlloc(a, "batch-000000.stages.json", 4 * 1024 * 1024);
+        defer a.free(stages);
+        var parsed = try std.json.parseFromSlice(std.json.Value, a, stages, .{});
+        defer parsed.deinit();
+        const memory = parsed.value.object.get("memory").?.object;
+        try std.testing.expectEqual(@as(i64, @intCast(report.sampled_peak_rss_bytes.?)), memory.get("sampled_peak_rss_bytes").?.integer);
+    } else try std.testing.expect(metrics.memory == null);
     try std.testing.expectEqual(@as(u64, 17), metrics.native_ns);
     try std.testing.expectEqual(@as(u64, 23), metrics.openings_ns);
     try std.testing.expect(metrics.total_after_native_ns >= 29);
