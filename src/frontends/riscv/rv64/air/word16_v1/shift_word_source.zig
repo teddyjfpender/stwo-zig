@@ -6,6 +6,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const E = @import("../evaluation.zig");
+const NativeFill = @import("shift_word_native_fill.zig");
 const S = @import("shift_word.zig");
 const P = @import("shift_word_lookup.zig");
 const Table = @import("shift_word_table.zig");
@@ -102,12 +103,12 @@ pub const Source = struct {
     range16_counts: []u64,
     metadata: []Metadata,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
-        return initInternal(a, facts, log, null);
+        return initInternal(a, facts, log, null, engine.work_pool.currentScopedPool(), null);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, facts, log, buffers);
+        return initInternal(a, facts, log, buffers, engine.work_pool.currentScopedPool(), null);
     }
-    fn initInternal(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: ?MainBuffers) !Source {
+    fn initInternal(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: ?MainBuffers, pool: ?*engine.work_pool.WorkPool, fail_after: ?usize) !Source {
         const mass = try massForLog(log);
         const n: usize = @intCast(mass.fact_capacity);
         const length = std.math.mul(usize, P.MAIN, n) catch return error.InvalidShiftGeometry;
@@ -126,21 +127,25 @@ pub const Source = struct {
         const metadata = try a.alloc(Metadata, n);
         errdefer a.free(metadata);
         const main = if (buffers) |b| b.main else try a.alloc(M, length);
-        // No allocation or validation remains after the first borrowed write.
+        errdefer if (buffers == null) a.free(main);
         @memset(range_counts, 0);
         @memset(shift_counts, 0);
-        for (0..n) |p| {
-            const i = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, log), log);
-            const row = nativeRow(if (i < facts.len) facts[i] else null);
-            const values = S.rowToColumnsFor(M, &row);
-            for (values, 0..) |v, c| main[c * n + p] = v;
-            main[S.LOCAL_MAIN * n + p] = row.active;
-            for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
-            for (0..5) |query| shift_counts[tableIndex(metadata[i], query)] += 1;
-            for (0..9) |query| range_counts[rangeIndex(metadata[i], query)] += 1;
-        }
+        const fill = NativeFill.Fill{ .facts = facts, .log = log, .main = main, .metadata = metadata };
+        if (comptime @import("builtin").is_test) {
+            if (fail_after) |after| {
+                try NativeFill.testing.failSubmission(fill, a, range_counts, shift_counts, pool orelse return error.ExpectedShiftNativePool, after);
+            } else try fill.run(a, range_counts, shift_counts, pool);
+        } else try fill.run(a, range_counts, shift_counts, pool);
         return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .fixed = fixed, .main = main, .owns_main = buffers == null, .shift_counts = shift_counts, .range16_counts = range_counts, .metadata = metadata };
     }
+    pub const testing = if (@import("builtin").is_test) struct {
+        pub fn initSerial(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
+            return initInternal(a, facts, log, null, null, null);
+        }
+        pub fn failSubmission(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers, pool: *engine.work_pool.WorkPool, after: usize) !Source {
+            return initInternal(a, facts, log, buffers, pool, after);
+        }
+    } else struct {};
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
     }
@@ -298,3 +303,16 @@ fn functionDenominators(metadata: []const Metadata, output: []Q, ch: Bus.Challen
         for (0..E.LANES) |lane| output[start + lane] = values.lane(lane);
     }
 }
+
+/// One existing native row authority for scalar and joined physical formatters.
+pub const NativeSupport = struct {
+    pub fn write(facts: []const Fact, main: []M, metadata: []Metadata, ranges: []u64, shifts: []u64, n: usize, i: usize, p: usize) void {
+        const row = nativeRow(if (i < facts.len) facts[i] else null);
+        const values = S.rowToColumnsFor(M, &row);
+        for (values, 0..) |v, c| main[c * n + p] = v;
+        main[S.LOCAL_MAIN * n + p] = row.active;
+        for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
+        for (0..5) |query| shifts[tableIndex(metadata[i], query)] += 1;
+        for (0..9) |query| ranges[rangeIndex(metadata[i], query)] += 1;
+    }
+};

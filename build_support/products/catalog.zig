@@ -75,6 +75,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-execution", .description = "Qualify concrete full64 CPU bus emitter and degree-three lanes", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-source", .description = "Qualify full64 compact source lifecycle and joined native claim parity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-optional-division", .description = "Qualify optional empty DIV physical roster and FUNCTION closure", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-shift-native-fill", .description = "Check joined native SHIFT witness construction and custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-binary-native-fill", .description = "Check joined native BINARY witness construction and custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-ls-native-fill", .description = "Qualify joined physical LS construction and transactional borrowed buffers", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-coordinator", .description = "Qualify full64 immutable execution program authority", .scope = .riscv_cpu },
