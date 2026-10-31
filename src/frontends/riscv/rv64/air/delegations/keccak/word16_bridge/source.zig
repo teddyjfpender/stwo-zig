@@ -122,6 +122,11 @@ pub const Source = struct {
         self.* = undefined;
     }
     pub fn generate(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
+        return @import("interaction.zig").generate(self, ch, dict16, dict8);
+    }
+    /// Exact old native recipe retained only as a qualification oracle. This
+    /// entry is never selected by a production component or runtime policy.
+    pub fn generateOracleForQualification(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
         if (self.interaction.len != 0) return error.InvalidWord16KeccakPhase;
         try LS.interaction.validateDictionary(ch.range16, dict16, 65536);
         try LS.interaction.validateDictionary(ch.range8, dict8, 256);

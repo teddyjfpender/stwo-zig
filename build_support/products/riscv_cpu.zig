@@ -50,7 +50,7 @@ pub fn addProduct(context: Context) void {
         .{ "distributed-functional", "src/integrations/riscv_cpu/rv64_distributed_manifest_test_root.zig", 16 },
         .{ "word16-global-memory", "src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig", 4 },
         .{ "word16-execution-prepared", "src/integrations/riscv_cpu/rv64_word16_execution_prepared_test_root.zig", 14 },
-        .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 10 },
+        .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
         .{ "word16-global-execution", "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig", 15 },
         .{ "word16-memory", "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig", 14 },
         .{ "division-degree3", "src/integrations/riscv_cpu/delegations/division/degree3_test_root.zig", 9 },

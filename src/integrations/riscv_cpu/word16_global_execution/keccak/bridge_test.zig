@@ -182,3 +182,70 @@ test "Bridge allocation failures strict pole rollback and main-independent retry
     try std.testing.expectError(error.InvalidWord16KeccakGeometry, K.types.validateGeometry(2, 1, 5));
     try std.testing.expectError(error.InvalidWord16KeccakGeometry, K.types.validateGeometry(1, core.fields.m31.Modulus, 5));
 }
+
+test "Narrow batched bridge generator matches scalar physical interactions across full chunk and high IDs" {
+    const ch = challenges();
+    const d16 = try dict(a, 65536, ch.range16);
+    defer a.free(d16);
+    const d8 = try dict(a, 256, ch.range8);
+    defer a.free(d8);
+    const calls = try a.alloc(K.types.Call, 165);
+    defer a.free(calls);
+    for (calls, 0..) |*c, index| {
+        c.* = call();
+        c.pointer = 0x123456789abcde00 + 256 * index;
+        c.tick = @intCast(8 + 4 * index);
+        for (0..25) |lane| {
+            c.before[lane] = 0x0123456789abcdef ^ (@as(u64, @intCast(lane)) * 0x0101010101010101);
+            c.after[lane] = 0xfedcba9876543210 ^ @as(u64, @intCast(lane));
+            c.predecessors[lane].value = c.before[lane];
+        }
+    }
+    for ([_]usize{ 0, 1, 2, 165 }, [_]u32{ 5, 5, 6, 13 }) |count, log| {
+        const first: u32 = if (count == 2) core.fields.m31.Modulus - 2 else 77;
+        var fast = try K.source.Source.init(a, calls[0..count], first, log);
+        defer fast.deinit();
+        var oracle = try K.source.Source.init(a, calls[0..count], first, log);
+        defer oracle.deinit();
+        fast.releaseMain();
+        oracle.releaseMain();
+        const x = try fast.generate(ch, d16, d8);
+        const y = try oracle.generateOracleForQualification(ch, d16, d8);
+        try std.testing.expectEqualSlices(Q, &x.values(), &y.values());
+        try std.testing.expectEqualSlices(M, oracle.interaction, fast.interaction);
+    }
+}
+
+test "Bridge dictionary covers exactly used padding poles and publishes nothing on failures" {
+    var ch = challenges();
+    const d16 = try dict(a, 65536, ch.range16);
+    defer a.free(d16);
+    const d8 = try dict(a, 256, ch.range8);
+    defer a.free(d8);
+    ch.io.coefficients = @splat(Q.zero());
+    ch.io.coefficients[0] = Q.fromBase(M.fromCanonical(100)).neg();
+    ch.io.coefficients[2] = Q.one();
+    ch.io.offset = Q.fromBase(M.fromCanonical(10));
+    var fast = try K.source.Source.init(a, &.{call()}, 1, 5);
+    defer fast.deinit();
+    var oracle = try K.source.Source.init(a, &.{call()}, 1, 5);
+    defer oracle.deinit();
+    // Padding onlyuses lanes0..6; unused paddinglane10 has a pole. ActiveID1
+    // shifts its denominators by100, so all actually queried facts are safe.
+    const x = try fast.generate(ch, d16, d8);
+    const y = try oracle.generateOracleForQualification(ch, d16, d8);
+    try std.testing.expectEqualSlices(Q, &x.values(), &y.values());
+    try std.testing.expectEqualSlices(M, oracle.interaction, fast.interaction);
+    var broken = try K.source.Source.init(a, &.{call()}, 1, 5);
+    defer broken.deinit();
+    ch.io.offset = Q.fromBase(M.fromCanonical(3));
+    try std.testing.expectError(error.DivisionByZero, broken.generate(ch, d16, d8));
+    try std.testing.expectEqual(@as(usize, 0), broken.interaction.len);
+    try std.testing.expectEqual(@as(usize, 1), broken.calls.len);
+    ch.io.offset = Q.fromBase(M.fromCanonical(10));
+    broken.counts16[0] += 1;
+    try std.testing.expectError(error.InvalidWord16KeccakCounts, broken.generate(ch, d16, d8));
+    try std.testing.expectEqual(@as(usize, 0), broken.interaction.len);
+    broken.counts16[0] -= 1;
+    _ = try broken.generate(ch, d16, d8);
+}

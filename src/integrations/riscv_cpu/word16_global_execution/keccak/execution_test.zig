@@ -42,6 +42,9 @@ test "Service inventory fixed roots claims and pristine genesis remain receiver 
     if (E.verify(a, &keys, c.expected(), &c.bundle)) |_| return error.AcceptedForgedPhysicalClaim else |_| {}
     c.bundle.proofs[0].claims.keccak.bridge.io = saved;
     c.bundle.proofs[0].claims.keccak.bridge.owner = c.bundle.proofs[0].claims.keccak.bridge.owner.add(@import("stwo_core").fields.qm31.QM31.one());
+    c.bundle.proofs[0].request.calls = 111849;
+    try std.testing.expectError(error.KeccakLookupMassExceeded, E.verify(a, &keys, c.expected(), &c.bundle));
+    c.bundle.proofs[0].request.calls = 1;
     c.bundle.proofs[0].request.calls += 1;
     try std.testing.expectError(error.InvalidWord16KeccakGeometry, E.verify(a, &keys, c.expected(), &c.bundle));
     c.bundle.proofs[0].request.calls -= 1;
@@ -66,4 +69,12 @@ test "Rootless material transcript authority preserves existing setup wrappers e
     try P.begin(&c0, &old, request, expected, 0, 0);
     try P.beginMaterials(&c1, &old.materials, request, expected, 0, 0);
     try std.testing.expectEqualSlices(u8, &c0.digestBytes(), &c1.digestBytes());
+}
+
+test "Service receiver geometry characteristic bound is checked without allocating large traces" {
+    const layout = @import("stwo_riscv_frontend").rv64_air.crypto.keccak.layout;
+    const mass = try layout.lookupMass(111848);
+    try std.testing.expectEqual(@as(u64, 2147481600), mass.chi);
+    try layout.validateGeometry(111848, 1, 21);
+    try std.testing.expectError(error.KeccakLookupMassExceeded, layout.validateGeometry(111849, 1, 21));
 }

@@ -1,0 +1,59 @@
+{
+  "status": "qualified native-only bridge interaction optimization",
+  "parent": "c79be7d47",
+  "protocol": "unchanged accepting Keccak service-v1; no layout/degree/mask/transcript/security parameter change",
+  "changes": [
+    "Retained call metadata projects ONLY22 U16 +19 U8 values and RAM14/OWNER19/IO11 lookup facts; no postcommit66-column carry/alignment witness replay",
+    "Six bounded4096-Q scratch lanes for active RAM/IO product inversion; PackedBase16 tuple evaluation through same generic denominator authority",
+    "One OWNER inverse per activecall plus used padding owner; one dummy RAM inverse and only actually queried padding IO inverses",
+    "Private output publication only after all poles/count checks pass; old scalar generation retained as explicit qualification oracle, never runtime-selected"
+  ],
+  "scratch_bytes_upper_bound_excluding_owner_arrays": 393216,
+  "owner_arrays_bytes": "32*(calls+1)",
+  "retained_metadata": "unchanged copied narrow Call/predecessor records; no additional persistent per-row metadata",
+  "inverse_work_model": {
+    "scalar_old": "3*physical_rows QM31 inversions",
+    "batched": "1 owner batch +1 paddingRAM +min(25,paddingrows) paddingIO +2*ceil(activeRows/4096) batch inversions",
+    "example_32835_calls_log20": {
+      "old_inversions": 3145728,
+      "new_inversions": 429
+    },
+    "note": "Structural field-operation count, NOT a measured whole-job speedup."
+  },
+  "gates": {
+    "safe": "13 runtime PASS",
+    "fast": "13 runtime PASS",
+    "oracle": "exact all physical116-column interaction bytes and all5 claims for0/1/2/165calls, log5/6/13, high callIDs endingp-1, odd/full4096-chunk/tail/padding",
+    "poles": "used paddingIO pole rollback, unused padding pole not spuriously evaluated, OWNER pole retry, count corruption no publication",
+    "oom": "checkAllAllocationFailures exercises new allocations and balanced rollback",
+    "physical": "actual two CPU/K/RAM proof +fresh expected setup; wrong output, false predecessor, balanced claim, initial image/call-count mutations all retained",
+    "mass": "receiver path layout.validateGeometry\u2192logSize\u2192admitRoster; no allocation boundary111848 safe/111849 reject plus actual untrusted request reject before proof decode",
+    "whole_proof_parity": "metadata and both complete serialized proofs exactly equal rootless merged-BINARY24 control; fresh process PASS"
+  },
+  "artifacts": {
+    "metadata.json": {
+      "bytes": 49119,
+      "sha256": "16de58a5b4afd514adb4643e374fb942f9409be8f9fa704beb8423ae06b01562"
+    },
+    "proof1.bin": {
+      "bytes": 2471264,
+      "sha256": "ae17d513ed8d5e18fb1e30fbd8f659c5e2a1297eaa429d501c57d6250b22f907"
+    },
+    "proof0.bin": {
+      "bytes": 2470240,
+      "sha256": "23de3f79607f78223719c13936ad7c18873b7007b55e6cf06ba02dbc561382de"
+    }
+  },
+  "artifact_directory": "interop_artifacts/rv64-word16-global-keccak-batched-v1",
+  "tool_sha256": "f8d63077a06cd8065401fea76caa0ece628c2de97c1fb2d157f3cb8fab3a48b3",
+  "performance_claim": "None. Tiny fixture whole-job observation is not evidence of real packet improvement; next milestone is execution-wide K truth to remove per-CPU proof width.",
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "d5f8a977adc3e684574085710dec4ed608a5348dfe3729e94417c75d1cf41faa",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/source.zig": "8ca10ccd2f0ced0f74fe36022f360e11dd6b1abed955e6970be10e7967fd76a4",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/bridge_test.zig": "4096eda047e10f036cf06f451c8a72e49d868b9150cd3fd1c4bfb3b950de9a08",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution.zig": "2df4da7efc1e2e229dbb8dfedbc89fc908cfeb66e660223cac240079f7cafbd9",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution_test.zig": "f446e3f09fad4cd129045bddbbfe740de809a30e76350a836dbbc62e139a11fa",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/interaction.zig": "17bfbe45268a5d8187dac101ee469c4a0d32880d57724acf85a1f1d9d43141d5",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/lookup.zig": "8a6f07a18b8d05794ba4b5969eb1d1cf58fe4c6480d920c58686dd8beb3481a0"
+  }
+}

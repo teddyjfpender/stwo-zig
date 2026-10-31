@@ -76,6 +76,8 @@ fn validate(a: std.mem.Allocator, setups: []const *const R.Setup, requests: []co
     for (setups, requests, bases, rr) |s, r, *b, *old| {
         b.* = &s.materials;
         old.* = r.base;
+        // validateGeometry -> logSize -> admitRoster bounds this shard's
+        // independent chi/xor/IO families before proof decoding/allocation.
         try K.layout.validateGeometry(r.calls, 1, s.geo.klog);
         _ = try K.word16_bridge.types.validateGeometry(r.calls, 1, s.geo.blog);
         if (r.calls > r.base.cpu.steps or @as(u64, r.calls) + r.base.memory.ls_count > r.base.cpu.steps) return error.InvalidServiceCount;
