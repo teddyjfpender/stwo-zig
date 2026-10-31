@@ -1,0 +1,79 @@
+{
+  "schema": "rv64-global-execution-wire-v2-qualification-v1",
+  "scope": "two-shard transport only; native protocol and proof bytes unchanged",
+  "writer_schema": 2,
+  "reader_schemas": [
+    1,
+    2
+  ],
+  "metadata_limit_v2_bytes": 1048576,
+  "private_legacy_limit_bytes": 536870912,
+  "cell_codec": "existing word16_execution/cells_wire.zig RV64RAM1,23B perCell,initial+terminal inonecells.bin",
+  "native_protocol_changed": false,
+  "conversion_reproved": false,
+  "corruption_hash_is_proof_authority": false,
+  "durability": "exclusive files,file fsync,metadata publishedlast,directory fsync; CLI createsnewdirectory andsyncsparent",
+  "qualification": {
+    "safe_runtime_minimum": 15,
+    "fast_runtime_minimum": 15,
+    "safe_pass": true,
+    "fast_pass": true,
+    "tests": [
+      "2051cellfullblock high64 roundtrip",
+      "payload andheader tamper",
+      "sidecar truncation andoverwrite",
+      "allreadallocationfailures",
+      "actualtwoCPUproof roundtrip with exactbytes andfreshphysicalverification",
+      "balancedclaimedRAMmutation rejectedbyphysicalverifier",
+      "privatelegacyv1 actualproof compatibility"
+    ],
+    "performance": "not measured; file sizes are observed transport bytes,notlatency claims"
+  },
+  "real01_conversion": {
+    "proof0.bin": {
+      "bytes": 1141376,
+      "sha256": "c879616441f7616289037d517c4063eeec5c017bb133e3684205db16cc92b491",
+      "byte_identical": true
+    },
+    "proof1.bin": {
+      "bytes": 1152576,
+      "sha256": "7931d2958b7363e721e737879173b1305442841d32fd48d8c6c27eb65f163755",
+      "byte_identical": true
+    },
+    "v1_json_bytes": 304297459,
+    "v2_json_bytes": 31079,
+    "v2_cells_bytes": 32788310
+  },
+  "real01_fresh_receiver": {
+    "config": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "packets": [
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000000.work",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs/job-000001.work"
+    ],
+    "directory": "/tmp/rv64-word16-global-execution-real01-wire-v2",
+    "exit_code": 0
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/word16_global_execution/main.zig": "e8044f2040772ec6ae01324c6ee3267aa6caebd33758258d5d9d5de940223da6",
+    "src/integrations/riscv_cpu/word16_global_execution/wire.zig": "b5be206dea2400fb35772f66e4aa10af4318f6ac459017431a56fea8ace77040",
+    "src/integrations/riscv_cpu/word16_global_execution/wire_test.zig": "32bd1817567597fd3c31ea6a3a8a74ad9f88e0fcf1591d0ba96db1480526c6c0",
+    "src/integrations/riscv_cpu/word16_execution/cells_wire.zig": "514d6b9be837f66d87734cbef3ff507ec0fbe781f2618cc68104b887a7a5a36a",
+    "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig": "37207352c5d53983dd22050d89bdbdc4410cc29febd5531bc156c531749b097d"
+  },
+  "logs_sha256": {
+    "/tmp/rv64-global-wire-final-safe.log": "3483bc08eca26d888ca36b4bc72d942a15badc8a921174e8eb954a418b9b6a98",
+    "/tmp/rv64-global-wire-final-fast.log": "2931861867aec672375a4be24995e15879f473d91924644a7f0dcc63c0b24502",
+    "/tmp/rv64-global-wire-last-tool-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/rv64-global-wire-real-migrate.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/rv64-global-wire-real-fresh-verify.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/rv64-global-wire-final-real-verify.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "tool_sha256": "864d3776a61c136b746f77db0935783990eeb6421506e707b750b7d86bd9c511",
+  "independent_geometry_cells_parity": {
+    "byte_identical": true,
+    "bytes": 32788310,
+    "sha256": "eaeb7c9dcfb8e7bdbf39dce47bded0b9329b9be4f5e354f5d97c30fe407ae41a",
+    "comparison": "migrated old proofs versus new independent INIT/TERM geometry producer; no proof-byte equality claimed for the new geometry"
+  },
+  "geometry_dependency_commit": "b0d9b4363"
+}
