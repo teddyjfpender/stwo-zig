@@ -14,9 +14,11 @@ recursive aggregation. [Pinned full-block evidence](../../vectors/reports/rv64-g
 
 Guest rounds two through five are integrated. The pinned round-five ELF executes
 104,253,913 instructions, and its regenerated ABI configuration produced 25 native
-jobs and a fresh verified 65,536-step pilot. A complete round-five block proof and
-its timing remain outstanding. The round-one timing must not be attributed to
-this newer ELF. [Round-five integration](../../vectors/reports/rv64-guest-lean-20261031/round5/proving-integration-v1.json)
+jobs and a fresh verified 65,536-step pilot. The complete round-five block has now passed a fresh receiver: 25 proofs plus
+terminal, 716.99 s producer, 7.16 s receiver and 72.85 MB of proof files. Peak
+RSS was 41.86 GB producer / 6.09 GB receiver; memory targets are unmet.
+[Complete evidence and table](../../vectors/reports/rv64-guest-lean-20261031/round5/README.md).
+The round-one timing must not be attributed to this newer ELF. [Round-five integration](../../vectors/reports/rv64-guest-lean-20261031/round5/proving-integration-v1.json)
 and [host qualification](../../vectors/reports/rv64-guest-lean-20261031/round5/mainline-integration-tests-v1.json).
 
 The principal production cost is still the dense CPU representation: 385 main

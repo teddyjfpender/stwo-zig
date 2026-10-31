@@ -1,0 +1,778 @@
+{
+  "schema": "rv64-round5-complete-block-isolated-v1",
+  "status": "complete_block_fresh_receiver_pass",
+  "block": 24628607,
+  "scope": "Pinned stateless L1 block validation,25 batch proofs and terminal certificate; no recursion, OP derivation, GPU route or thin-CPU activation.",
+  "producer": {
+    "schema": "rv64-ethereum-authenticated-execution-v1",
+    "completed": true,
+    "full_block_proof_verified": false,
+    "fresh_process_receiver_required": true,
+    "verified_batches": 25,
+    "instructions": 104253913,
+    "calls": [
+      32835,
+      11496,
+      9768
+    ],
+    "initial_root": [
+      1127482683,
+      1330798955,
+      1623093181,
+      76803682,
+      473431463,
+      946988399,
+      184148559,
+      97195479,
+      1403065916
+    ],
+    "final_root": [
+      1597246056,
+      1494197437,
+      1174685431,
+      1286895669,
+      737591051,
+      48324924,
+      2057573505,
+      2108007572,
+      911054800
+    ],
+    "initial_pc": 1024,
+    "final_pc": 17308,
+    "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "proof_bytes": 72851424,
+    "immutable_setup_ns": 489673750,
+    "terminal_ns": 40398125,
+    "total_ns": 716534148542,
+    "recursive_aggregation": false,
+    "resumed": false,
+    "resume_ns": 0,
+    "workers": 16
+  },
+  "fresh_receiver": {
+    "status": "ethereum_execution_proof_verified",
+    "full_block_proof_verified": true,
+    "batches": 25,
+    "instructions": 104253913,
+    "calls": [
+      32835,
+      11496,
+      9768
+    ],
+    "final_root": [
+      1597246056,
+      1494197437,
+      1174685431,
+      1286895669,
+      737591051,
+      48324924,
+      2057573505,
+      2108007572,
+      911054800
+    ],
+    "final_pc": 17308,
+    "final_registers": [
+      0,
+      17292,
+      33547472,
+      33556480,
+      0,
+      3499525697743889699,
+      202,
+      23552,
+      1,
+      43,
+      12583820,
+      12583824,
+      2155912,
+      12582962,
+      33614976,
+      256,
+      3266721893277905514,
+      11339828202021680933,
+      36576416,
+      33554016,
+      24,
+      33648768,
+      33553992,
+      6,
+      24,
+      33549560,
+      20,
+      33551672,
+      7274496,
+      2181038080,
+      805306368,
+      0
+    ],
+    "setup_ns": 6123700082,
+    "verify_ns": 437665709,
+    "proof_bytes": 72851424,
+    "verifier_cache": {
+      "hits": 2,
+      "misses": 23,
+      "entries": 8,
+      "retained_bytes": 361072,
+      "peak_retained_bytes": 380768,
+      "cold_setup_ns": 6123700082
+    }
+  },
+  "benchmark": {
+    "host": "Mac17,7 M5 Max64GiB macOS,16 proof workers",
+    "single_isolated_producer": true,
+    "resumed": false,
+    "producer": {
+      "wall_seconds": 716.99,
+      "user_seconds": 5399.85,
+      "kernel_seconds": 195.77,
+      "peak_rss_bytes": 41862758400,
+      "peak_footprint_bytes": 50258786864,
+      "page_reclaims": 58344257,
+      "swaps": 0
+    },
+    "receiver": {
+      "wall_seconds": 7.16,
+      "user_seconds": 38.92,
+      "kernel_seconds": 4.16,
+      "peak_rss_bytes": 6090129408,
+      "peak_footprint_bytes": 6090429240,
+      "page_reclaims": 1107116,
+      "swaps": 0
+    },
+    "process": {
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/tmp/stwo-rv64-delivery/recycler-mainline-integration-v1/tools/rv64-ethereum-proof",
+        "prove",
+        "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/config.json"
+      ],
+      "started_utc": "2026-10-31T07:48:03.340108+00:00",
+      "exit_code": 0,
+      "wall_ns": 717006373708
+    },
+    "comparison_round1": {
+      "producer_seconds": 910.62,
+      "proof_bytes": 100582942,
+      "producer_time_reduction_percent": 21.26353473457644,
+      "proof_bytes_reduction_percent": 27.570796248930563
+    },
+    "caveat": "One isolated observation per guest. Guest code, instruction count, recycler and witness lifetime changed. This is not an isolated kernel speedup. RSS includes retained allocator cache;16GB host and1GB receiver targets remain unmet."
+  },
+  "configuration": {
+    "input": "/tmp/stwo-rv64-ethereum/fixture/canonical-input.ssz",
+    "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+    "input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "expected_output": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d090300101000000000000000114",
+    "elf": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+    "symbols": {
+      "input_start": 8388608,
+      "input_end": 12582912,
+      "halt_flag": 12582912,
+      "output_len": 12582916,
+      "output_data": 12582920,
+      "output_end": 16777216,
+      "stack_bottom": 16777216,
+      "stack_top": 33554432,
+      "heap_start": 33648672,
+      "heap_end": 268435456
+    },
+    "terminal_pc": 17308,
+    "batch_steps": 4194303,
+    "max_steps": 1000000000,
+    "workers": 16,
+    "control_policy": "limbs24_v2",
+    "state_policy": "cyclic_canonical_v3",
+    "shared_main_arena": true,
+    "omit_unused_arithmetic": true,
+    "profile_stages": true,
+    "output_directory": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1"
+  },
+  "tool": {
+    "path": "/tmp/stwo-rv64-delivery/recycler-mainline-integration-v1/tools/rv64-ethereum-proof",
+    "bytes": 5705712,
+    "sha256": "9eb92f3d8740e14c60684d2a218de72eb82543fc7bf5c5b7914b4294c77407d4"
+  },
+  "native_oracle": {
+    "final_pc_all32registers_instructions_services_output_match": true,
+    "native": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/rv64-guest-lean-20261031/round5/execution-summary.json",
+      "bytes": 2889,
+      "sha256": "4b615def0cdd8f661f2afac53184b0e2ec62e16a39356921a507d793ea94969d"
+    },
+    "oracle": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig-rv64-frontend/vectors/reports/rv64-guest-lean-20261031/round5/services-unicorn-oracle.json",
+      "bytes": 4235,
+      "sha256": "4be682010cb76c0c4364f49ec4d447602b6035068adac797d6d6315d999278a2"
+    }
+  },
+  "source_cells_cumulative": {
+    "fixed": 1244324784,
+    "main": 45449666256,
+    "interaction": 18854766080
+  },
+  "source_bytes_cumulative": 262195028480,
+  "prove_phase_totals_seconds": {
+    "sampled_value_channel_mix": 0.014195,
+    "draw_random_coeff": 1.9000000000000004e-05,
+    "oods_point_and_mask_points": 0.01829,
+    "constraint_check_and_assembly": 0.014460999999999996,
+    "sampled_value_evaluation": 23.684025000000005,
+    "fixed_commit": 5.679514999999999,
+    "fri_quotient_build_and_commit": 59.213038,
+    "authenticated_interaction": 92.292135,
+    "composition_commit": 3.1369439999999993,
+    "proof_of_work": 2.468623,
+    "composition_interpolate_and_split": 1.539159,
+    "interaction_commit": 34.509608,
+    "trace_decommit": 41.869170999999994,
+    "composition_evaluation": 269.471137,
+    "composition_trace_extract": 0.0010469999999999998,
+    "main_commit": 76.86250300000002,
+    "fri_decommit": 0.11505
+  },
+  "all_stage_inclusive_totals_seconds": {
+    "fixed_commit": 5.679514999999999,
+    "streaming_commit_prepare": 111.014408,
+    "streaming_transform": 70.93824600000012,
+    "streaming_leaf_hash": 35.82520399999999,
+    "merkle_commit": 6.0156860000000005,
+    "main_commit": 76.86250300000002,
+    "authenticated_interaction": 92.292135,
+    "cpu_interaction": 33.645450999999994,
+    "arithmetic_interaction": 13.913256999999998,
+    "secp_interaction": 15.283589999999998,
+    "division_provider_interaction": 0.000875,
+    "keccak_interaction": 10.113107,
+    "range_rom_interaction": 6.853667000000001,
+    "ram_interaction": 12.477705,
+    "interaction_commit": 34.509608,
+    "draw_random_coeff": 1.9000000000000004e-05,
+    "composition_trace_extract": 0.0010469999999999998,
+    "composition_evaluation": 269.471137,
+    "composition_interpolate_and_split": 1.539159,
+    "composition_commit": 3.1369439999999993,
+    "oods_point_and_mask_points": 0.01829,
+    "sampled_value_evaluation": 23.684025000000005,
+    "sampled_value_channel_mix": 0.014195,
+    "fri_quotient_build_and_commit": 59.213038,
+    "proof_of_work": 2.468623,
+    "fri_decommit": 0.11505,
+    "trace_decommit": 41.869170999999994,
+    "constraint_check_and_assembly": 0.014460999999999996,
+    "cpu_coset_fft": 134.03071600000004,
+    "cpu_constraint_rows": 97.41776399999999,
+    "keccak_interaction_dictionary": 0.003567,
+    "keccak_interaction_prefix": 5.919525,
+    "keccak_interaction_correction": 0.075196,
+    "keccak_coset_fft": 6.264132000000001,
+    "keccak_constraint_rows": 11.698818999999999,
+    "keccak_bridge_fft": 1.5893369999999998,
+    "keccak_bridge_rows": 2.688662,
+    "secp_coset_fft": 5.110099999999999,
+    "secp_constraint_rows": 9.597654,
+    "secp_bridge_fft": 0.287484,
+    "secp_bridge_rows": 0.5490779999999998
+  },
+  "profile_accounting": "Only listed top-level prove phases may be summed. CPU FFT/row stages and streaming transforms/hash stages are nested or attached component measurements and must not be added to their parent phases. Cumulative source bytes are not peak RAM.",
+  "unattributed_prove_seconds": 5.104224499999994,
+  "artifacts": {
+    "batches": [
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000000.proof",
+        "bytes": 1037248,
+        "sha256": "e9a6fb843802c6dd7b1fed8551059da86776e6616f6fc9dc2a5435fda493f54c",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000000.json",
+          "bytes": 54773,
+          "sha256": "ac6c28b853e97c8ad4aea0f5b208aa3cd3cbb926573c18b9660ff04e1f8d8c1d"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000000.stages.json",
+          "bytes": 94365,
+          "sha256": "a2ec1155d438a20ff9241db1a31f6a1acb1b1dbac197d000e297ecd4b74da24e"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000001.proof",
+        "bytes": 1027552,
+        "sha256": "845f1457428e04f306c69e7249d9e6f4ec1a89a2fb89c276a37a97b8887c3134",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000001.json",
+          "bytes": 55287,
+          "sha256": "fd95c6b3e7b3bd5182284d04441fde0f15504dc26457e38100a1911dd46f45e0"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000001.stages.json",
+          "bytes": 92545,
+          "sha256": "9c8bb4a0a6952a490fa56709dcedb9deafd21dc4e472dd4a70440b36fc498eab"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000002.proof",
+        "bytes": 1035856,
+        "sha256": "247e243cfcb57ded4174a9e13280b7d7a9383cd133e60679b89fcaf49c5d604b",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000002.json",
+          "bytes": 55065,
+          "sha256": "19ace875a1915b60cab4a95a1590063022bc21adc11bd9a9566890c820604040"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000002.stages.json",
+          "bytes": 92569,
+          "sha256": "1a3facc923dcf66a61fd8e4a61bfa2591527ad4cccadfa4c164b59a227a35893"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000003.proof",
+        "bytes": 3701024,
+        "sha256": "21182742a4941c972f5a7e19f4377b85540d27510f2aae1a8ae40db2fa60a9f7",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000003.json",
+          "bytes": 55432,
+          "sha256": "509b84e3e09768998af21cb2061996dcf946c97527b27e90b8f3d910c3b72ff3"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000003.stages.json",
+          "bytes": 454481,
+          "sha256": "0954e4b21c2526d7e38c51457db6b3437799bc13d785212a5a3dce41d6ab08c3"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000004.proof",
+        "bytes": 3353664,
+        "sha256": "712ee1e219bb9f3cbc2b0f0807270df313c69343c61dece0eb47ed0a3cd99190",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000004.json",
+          "bytes": 54749,
+          "sha256": "dbc3dc86c7a1275499de877454c989f342e0d0ee3166e7aa53d6fa8de88804d1"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000004.stages.json",
+          "bytes": 443574,
+          "sha256": "580d381b96316c892c7c20603edf3331b6c7971d242cb088647c3f1ec50dc2e8"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000005.proof",
+        "bytes": 3353760,
+        "sha256": "8b21abbdc6419221b9844be0b2ba0242dfe46d87d62fcd053946f9ee91f5511c",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000005.json",
+          "bytes": 54679,
+          "sha256": "d22613c1b1efbb700745196eaf82f9da727ee3f4806945a78036d8cc526290d6"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000005.stages.json",
+          "bytes": 443515,
+          "sha256": "f8e341e1f9526c18778b5c1d878cf0857c6352f148edf2dbb8716d9803d53eab"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000006.proof",
+        "bytes": 3716544,
+        "sha256": "f5b5ad3ca6c3812b19711272d6eb65dc8a5c1be19fe2262705ee90132d811499",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000006.json",
+          "bytes": 54548,
+          "sha256": "99aa0a362ee7c30198fa07deb0cd50da445fccc653886f158613998a91573a90"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000006.stages.json",
+          "bytes": 454439,
+          "sha256": "9f9cd72a432aacec0df09c8659106f84bbf6a3d5f0f543dbfe43c78387b8a6c2"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000007.proof",
+        "bytes": 2549664,
+        "sha256": "7f8e9949f758ed94de0d4662fb7883f80f5a6ba1af69c4e7e02eddb4388366c7",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000007.json",
+          "bytes": 54972,
+          "sha256": "96ae567f376a1e6defce2375f745dca7cd774afb04423630e39681780d0e41c5"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000007.stages.json",
+          "bytes": 321969,
+          "sha256": "897a5f2d29a8ea399320217db7a0933bac13430a2acd21f992aaef61e55a3928"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000008.proof",
+        "bytes": 2907600,
+        "sha256": "2434c012d20d0143cc60fcd8b51621b4d348254bf6e400f35c3f129f5738132b",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000008.json",
+          "bytes": 54801,
+          "sha256": "7de2f43e4beff70fdb58997c4c828d53ce40aa1991d0070265380d4982ff9640"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000008.stages.json",
+          "bytes": 334084,
+          "sha256": "4d64765b711a5eb565cd89491a4c4fcc473006826031cb98e735a1dc11f9fbad"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000009.proof",
+        "bytes": 2907424,
+        "sha256": "e1819c420c0aecde5797815740582e07ae7f6bd00811bbce5b7b78178b36e64e",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000009.json",
+          "bytes": 54820,
+          "sha256": "2df7dc6adb4973682e366bd206923c93b3329fa5d2960dc09ffe3145b9775d27"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000009.stages.json",
+          "bytes": 334116,
+          "sha256": "690fe78874ec988d4d1d9c802a53e26b9f640143b591de65cece9587c5cb1210"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000010.proof",
+        "bytes": 3711968,
+        "sha256": "27a4f54c6220e1e2c6eaffe59c1a62a03bac3a4400f74c501d0fd4759c240480",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000010.json",
+          "bytes": 55203,
+          "sha256": "fd83d1c0d8d9bf826ec42d85fec4becaf7885c6c576ae2405674615de7ad9edc"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000010.stages.json",
+          "bytes": 454488,
+          "sha256": "4cb6777b4f8eadf61604976ffb3ce637d2492d31a5280849719beb62860508b6"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000011.proof",
+        "bytes": 2894432,
+        "sha256": "568496c82c058254350ae921e2ed658423554b50ff0662c68df207097b847aad",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000011.json",
+          "bytes": 54897,
+          "sha256": "dec9054992d92ec36b448145cb73d2d9d36a42ad0efa6829c3dae003acd5550a"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000011.stages.json",
+          "bytes": 334108,
+          "sha256": "a78975ab883a846bb785f9ad46986e5b3aad6520097f161835424d098a263987"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000012.proof",
+        "bytes": 2911296,
+        "sha256": "18d8574624db25a6c2c8e2352a6cdd9605deb7941b47e7fe57c622ce7b7e6dd4",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000012.json",
+          "bytes": 54893,
+          "sha256": "1bdd59ae6039f27b1e7791777b995ea8db4e01b65b9613231c968eef029a35a4"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000012.stages.json",
+          "bytes": 334099,
+          "sha256": "cad433f511b75d0d0055dd9ca426deb0d4a38daee31442c268b09f2b1ad08d5d"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000013.proof",
+        "bytes": 2907104,
+        "sha256": "ee6b4f0f463a3bbde72caf33db58c07884132d169d7502d183d681a7acd5bae2",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000013.json",
+          "bytes": 54943,
+          "sha256": "075ff82777ddcdeee7847af55945c4c95e459098e44306e45cd0aaddd634d52d"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000013.stages.json",
+          "bytes": 334075,
+          "sha256": "1f29a4dec3c3204901977e5ce070e4cc0f52f80726512d4c81beda5a7dda5b8d"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000014.proof",
+        "bytes": 3722080,
+        "sha256": "bea0dc41cda6ad9b95922546584782e75928badb6a68f918c2b21987e722b982",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000014.json",
+          "bytes": 55198,
+          "sha256": "d4fbfa1fcf875c2126b4dad12fd6502b428cfb4ebf342c28b9f2674942c0994c"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000014.stages.json",
+          "bytes": 454464,
+          "sha256": "521247617afba09bc686430a02227723871657748a2ca180c509d4ef5e55f931"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000015.proof",
+        "bytes": 2913984,
+        "sha256": "60a09f3f7a2cd56f3d5f84bb861df702fe0c41ed6aee16a44c06c2f85b7200e9",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000015.json",
+          "bytes": 54864,
+          "sha256": "6db96e0f6e0bcdf9ce884cc43166c9e65be8a2a2a605b9806e802dc09201be77"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000015.stages.json",
+          "bytes": 334105,
+          "sha256": "35200738dfd04d798e4d8db685b7ac2c394f1185e3d7cdb9fd645772047d1f93"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000016.proof",
+        "bytes": 2907968,
+        "sha256": "d9c2c46dd6a9d54cdb31bc57caaca190baca51962d1a9ebf7307337e51aa0298",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000016.json",
+          "bytes": 54718,
+          "sha256": "97dcf96efa40c0776ad1c93f72fe70234e7aaf1aad272bbf48ba40fe99549a4b"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000016.stages.json",
+          "bytes": 334083,
+          "sha256": "72e15641e186e1aaa182b7e841673a916399c2913e3416105fcf65a2afe18095"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000017.proof",
+        "bytes": 2905952,
+        "sha256": "29a97d5ca867722770fa73f93c4af5a873486fc16a53f58149a2d4bfa3554e54",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000017.json",
+          "bytes": 54772,
+          "sha256": "c0021fc8be3e201bb4dfb60b58f58f19b3d5335c29706882b08e5825f96cb2de"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000017.stages.json",
+          "bytes": 334107,
+          "sha256": "16d17ec256e00ec0c8aac7e3cb74e9d067b46cc37a7d0e18b2b2f4c58dbdbc34"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000018.proof",
+        "bytes": 3706368,
+        "sha256": "390af1937622e40e4daca5d4b7695c7920893b089b26a209598a124e7acca6a6",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000018.json",
+          "bytes": 55057,
+          "sha256": "1d58cf7bd3f704ad0d85bec740c373660ffc3e2fc6996c1b8c6e447783dc049e"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000018.stages.json",
+          "bytes": 454446,
+          "sha256": "320fae701cc63e6744ee0be313111647e98f791af963a8a6b08808f193187d39"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000019.proof",
+        "bytes": 3707856,
+        "sha256": "19e342e38d8e4307424aef159180c1149002401014a1751000e3f74b78cb4584",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000019.json",
+          "bytes": 55096,
+          "sha256": "7f1f46d8a108361a878a8f32aee90713d044d9354d22ac31e1536ce8ed196b5f"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000019.stages.json",
+          "bytes": 454490,
+          "sha256": "e7d1e5a0396e3a570527ef7fcb6d118f78f486fcbbb86292ba774188757df234"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000020.proof",
+        "bytes": 3703056,
+        "sha256": "5fbae74b592a9bb82fa17726312452006c6aad0ddf3bc1f3d53dd566812e0e0f",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000020.json",
+          "bytes": 55124,
+          "sha256": "cd9438dfea59f63aa681af0576d88d5327129b92203db9b64a3882ad1cef167b"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000020.stages.json",
+          "bytes": 454512,
+          "sha256": "36270797a773cda8f37849b9cee0276f24984f0ee138c952da1f0db6c9c4fc57"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000021.proof",
+        "bytes": 2907712,
+        "sha256": "d76c46650852af7865f21924bea8d07fb5aaf059fd90edb4da55f527d7644077",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000021.json",
+          "bytes": 54975,
+          "sha256": "6c6c84daf93dfb1283ba872ca03f6585ca5ef27df78237830355c5777e0fa825"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000021.stages.json",
+          "bytes": 334082,
+          "sha256": "557fd1cad49d2e2385f30f790508659c5ea1ef790a3adc9c97e1a528a9e2d4c1"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000022.proof",
+        "bytes": 2901360,
+        "sha256": "14fcbcdf08d53f6527989a1ba4ed837749909555d8b9b8bbf7826ea2937ca224",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000022.json",
+          "bytes": 55007,
+          "sha256": "6581d225d3ce7c9ec4265300482c5e542f9602d823baff777a9d1112550b2a74"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000022.stages.json",
+          "bytes": 334068,
+          "sha256": "8c34b792e54ccd0d2cf32bfeb8a86be447e922a02d81117ece452b2b792566f4"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000023.proof",
+        "bytes": 2552720,
+        "sha256": "a9a7818fa4e55a0093b4b3805f7b36c960b1ca659dbcafcc7b310166ce3849ab",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000023.json",
+          "bytes": 54223,
+          "sha256": "b000010eb7e76df3656f57399e0ec24f78c4dd89aa1874ef9255c48879627fd7"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000023.stages.json",
+          "bytes": 321936,
+          "sha256": "ddb01e635eea30889d1674495792862ef46d8efafc237d56f0040e6cbe0d181f"
+        }
+      },
+      {
+        "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000024.proof",
+        "bytes": 2558304,
+        "sha256": "e3768813680a00577d59fda3c2d076923f186b188522c4db9f249055cebaae6f",
+        "receipt": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000024.json",
+          "bytes": 54968,
+          "sha256": "83e5955a81cf7be06fa89db4cf756208966ba5c1ad756f5d7b78f28471acc2e2"
+        },
+        "stages": {
+          "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batch-000024.stages.json",
+          "bytes": 329232,
+          "sha256": "5e0240c74f35eb29646976ef3ab86ee8d48153d035df258f840061ae58b097f3"
+        }
+      }
+    ],
+    "terminal": {
+      "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/terminal.proof",
+      "bytes": 348928,
+      "sha256": "e7cd8eff72babdd39f055f5d2b50884ecf2dee891b396b4d22bf0ef22b23ee0a"
+    },
+    "metrics": {
+      "path": "/tmp/stwo-rv64-ethereum-round5-proof-full-v1/batches.jsonl",
+      "bytes": 26835,
+      "sha256": "27e0f0b98943679541a7e9b00c71ae101f692bfd0a8a8c8be20f248a41ae341b"
+    },
+    "raw_logs": [
+      {
+        "path": "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/producer.json",
+        "bytes": 1007,
+        "sha256": "0b1d9eca1da2450c8cec69c1f75f02b48eabb16df465bed07de5b850acf37904"
+      },
+      {
+        "path": "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/producer.time.txt",
+        "bytes": 2992,
+        "sha256": "d62b1bfec1c721bff980a9755c03b9db19ae3fa57192fd99b8b0b0ff1dd9a491"
+      },
+      {
+        "path": "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/producer.process.json",
+        "bytes": 321,
+        "sha256": "d9e15e5ca0a9ddc0534702c0cc88f67fdc95d3c9104759ef16929446074d6c30"
+      },
+      {
+        "path": "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/receiver.json",
+        "bytes": 1056,
+        "sha256": "b4558835f2f2e9c95094e6e5da542f8b7ba52e910ac28f6e343678aeb3cd7068"
+      },
+      {
+        "path": "/tmp/stwo-rv64-delivery/round5-full-isolated-v1/receiver.time.txt",
+        "bytes": 777,
+        "sha256": "e132af52757c4ff5eb202d8178461cd43284016f7147fc2dd698988cb66c323c"
+      }
+    ]
+  },
+  "remaining": [
+    "Production thin full-ISA CPU and chip admission",
+    "Global RAM physical closure",
+    "Recursive aggregation and fixed root receiver",
+    "Qualified resident GPU proving",
+    "Repeated block-range p50/p99 measurements"
+  ],
+  "guarded_decoder_replay": {
+    "source_commit": "935257289",
+    "clean_checkout": true,
+    "binary_sha256": "9a105ac995cbaf25d0381f6801d4caa57a35bf8cd6fe2d7b00ae2a81ce3867c3",
+    "receiver": {
+      "status": "ethereum_execution_proof_verified",
+      "full_block_proof_verified": true,
+      "batches": 25,
+      "instructions": 104253913,
+      "calls": [
+        32835,
+        11496,
+        9768
+      ],
+      "final_root": [
+        1597246056,
+        1494197437,
+        1174685431,
+        1286895669,
+        737591051,
+        48324924,
+        2057573505,
+        2108007572,
+        911054800
+      ],
+      "final_pc": 17308,
+      "final_registers": [
+        0,
+        17292,
+        33547472,
+        33556480,
+        0,
+        3499525697743889699,
+        202,
+        23552,
+        1,
+        43,
+        12583820,
+        12583824,
+        2155912,
+        12582962,
+        33614976,
+        256,
+        3266721893277905514,
+        11339828202021680933,
+        36576416,
+        33554016,
+        24,
+        33648768,
+        33553992,
+        6,
+        24,
+        33549560,
+        20,
+        33551672,
+        7274496,
+        2181038080,
+        805306368,
+        0
+      ],
+      "setup_ns": 6565600792,
+      "verify_ns": 450387164,
+      "proof_bytes": 72851424,
+      "verifier_cache": {
+        "hits": 2,
+        "misses": 23,
+        "entries": 8,
+        "retained_bytes": 361072,
+        "peak_retained_bytes": 380768,
+        "cold_setup_ns": 6565600792
+      }
+    },
+    "logical_result_exact_to_benchmark_receiver": true,
+    "scope": "Functional replay of all25proofs plus terminal with published bounded decoder; concurrent build activity excludes performance claims."
+  }
+}
