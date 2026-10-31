@@ -94,10 +94,12 @@ test "Omitted DIV proves fresh with exact semantics, canonical zero claim and ow
     try std.testing.expect(proof.claims.division.isZero());
     const old_samples = try sampledCounts(old.bytes);
     const omitted_samples = try sampledCounts(proof.bytes);
-    try std.testing.expectEqual([4]usize{ 127, 1605, 784, 8 }, old_samples);
-    try std.testing.expectEqual([4]usize{ 124, 469, 772, 8 }, omitted_samples);
-    try std.testing.expectEqual(@as(usize, 2524), old_samples[0] + old_samples[1] + old_samples[2] + old_samples[3]);
-    try std.testing.expectEqual(@as(usize, 1373), omitted_samples[0] + omitted_samples[1] + omitted_samples[2] + omitted_samples[3]);
+    // Pin the physical DIV withdrawal, independently of unrelated LS/ALU
+    // encoding widths: fixed3, main1135 plus one previous mask, interaction8
+    // plus four previous-prefix coordinates, and no composition change.
+    for (old_samples, omitted_samples, [_]usize{ 3, 1136, 12, 0 }) |normal, absent, removed| {
+        try std.testing.expectEqual(removed, normal - absent);
+    }
     try std.testing.expectEqual(@as(usize, 1151), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
     try std.testing.expect(proof.bytes.len < old.bytes.len);
     try std.testing.expect(!std.mem.eql(u8, proof.bytes, old.bytes));
