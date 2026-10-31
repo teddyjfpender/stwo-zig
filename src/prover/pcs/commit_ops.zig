@@ -441,6 +441,20 @@ pub fn CommitOps(
             return commitStreamingWithBacking(self, allocator, owned_columns, null, false, batch_size_arg, recorder, channel);
         }
 
+        /// Consumes descriptors and every backing on success AND error. The
+        /// CPU compact path retains each allocation without cloning columns.
+        pub fn commitOwnedStreamingWithRecorderAndBacking(
+            self: *Self,
+            allocator: std.mem.Allocator,
+            owned_columns: []ColumnEvaluation,
+            backing_buffers: [][]M31,
+            batch_size: u32,
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+        ) !void {
+            return commitStreamingWithBacking(self, allocator, owned_columns, backing_buffers, false, batch_size, recorder, channel);
+        }
+
         fn commitStreamingWithBacking(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -517,7 +531,13 @@ pub fn CommitOps(
                 self.compact_polynomial_storage and builder.compact_committer != null and
                 self.config.fri_config.log_blowup_factor != 0 and !borrowed_values and backing_buffers != null and
                 backing_buffers.?.len == 1) backing_buffers.?[0] else null;
-            if (source_arena != null) try builder.retained_coefficient_buffers.ensureUnusedCapacity(allocator, 1);
+            // CPU transforms each source slice in place; separate allocations
+            // need no packing. GPU/other backends retain their old paths.
+            const source_backings = (comptime @hasDecl(B, "combined_base_in_place") and B.combined_base_in_place) and
+                self.compact_polynomial_storage and builder.compact_committer != null and
+                self.config.fri_config.log_blowup_factor != 0 and !borrowed_values and backing_buffers != null and
+                backing_buffers.?.len > 1;
+            if (source_arena != null or source_backings) try builder.retained_coefficient_buffers.ensureUnusedCapacity(allocator, backing_buffers.?.len);
             var consumed: usize = 0;
             while (consumed < owned_columns.len) {
                 const end = try boundedBatchEnd(owned_columns, order, consumed, effective_batch_size, self.config.fri_config.log_blowup_factor, byte_budget);
@@ -533,7 +553,7 @@ pub fn CommitOps(
                 var initialized: usize = 0;
                 for (order[consumed..end], 0..) |original_index, batch_index| {
                     const column = owned_columns[original_index];
-                    if (source_arena != null) {
+                    if (source_arena != null or source_backings) {
                         batch[batch_index] = column;
                     } else if (borrowed_values or backing_buffers != null) {
                         const values = allocator.dupe(M31, column.values) catch |err| {
@@ -549,14 +569,16 @@ pub fn CommitOps(
                     initialized += 1;
                 }
                 // This call consumes the batch on both success and error.
-                if (source_arena) |arena|
+                if (source_backings)
+                    try builder.addColumnsBorrowingBackingsIndexed(batch, order[consumed..end], recorder)
+                else if (source_arena) |arena|
                     try builder.addColumnsBorrowingArenaIndexed(batch, order[consumed..end], recorder, arena)
                 else
                     try tree_builders.addColumnsOwnedIndexed(&builder, batch, order[consumed..end], recorder);
                 consumed = end;
             }
-            if (source_arena) |arena| {
-                builder.retained_coefficient_buffers.appendAssumeCapacity(arena);
+            if (source_arena != null or source_backings) {
+                builder.retained_coefficient_buffers.appendSliceAssumeCapacity(backing_buffers.?);
                 allocator.free(backing_buffers.?);
                 allocator.free(owned_columns);
             } else if (borrowed_values)

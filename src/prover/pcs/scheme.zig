@@ -272,6 +272,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         pub const commitBorrowedStreamingWithRecorder = CommitOps.commitBorrowedStreamingWithRecorder;
         pub const commitOwnedStreaming = CommitOps.commitOwnedStreaming;
         pub const commitOwnedStreamingWithRecorder = CommitOps.commitOwnedStreamingWithRecorder;
+        pub const commitOwnedStreamingWithRecorderAndBacking = CommitOps.commitOwnedStreamingWithRecorderAndBacking;
         pub fn roots(self: *Self, allocator: std.mem.Allocator) !TreeVec(H.Hash) {
             try deferred_commit.resolveObserved(self, allocator);
             return scheme_views.roots(H, self.*, allocator);

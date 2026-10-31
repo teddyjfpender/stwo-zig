@@ -116,6 +116,14 @@ test "Legacy wrappers and caller-prepared unit BINARY retain identical full proo
     defer explicit.deinit(a);
     try std.testing.expectEqualSlices(u8, legacy.bytes, explicit.bytes);
     try std.testing.expectEqualDeep(legacy.claims, explicit.claims);
+    const borrowed_source = try Sources.Source.init(a, &setup.materials, image(), fixture.boundary, 1, &fixture.tape);
+    var borrowed = try Execution.provePreparedBorrowedMain(a, &setup, admission(), borrowed_source, null);
+    defer borrowed.deinit(a);
+    try std.testing.expectEqualSlices(u8, explicit.bytes, borrowed.bytes);
+    try std.testing.expectEqualDeep(explicit.claims, borrowed.claims);
+    var fresh = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, setup.materials.geometry);
+    defer fresh.deinit();
+    try Execution.verify(a, &fresh, admission(), explicit);
 }
 test "Prepared transfer rejects mismatched setup before move and all allocation failures preserve single owners" {
     var fixture = try Fixture.init();
@@ -199,4 +207,47 @@ test "Joined sources retire CPU fact lists while LS boundaries and immutable row
     try std.testing.expect(source.request().memory.initial.len > 0);
     try std.testing.expectEqual(source.memory.statement.initial.len, source.memory.statement.terminal.len);
     _ = try source.cpu.row(10);
+}
+
+test "MAIN ownership transfers original wide matrices only after every fallible allocation" {
+    var fixture = try Fixture.init();
+    defer fixture.deinit();
+    var setup = try Setup.init(a, .{ .base = 4096, .words = &WORDS }, .{ .cpu_log = 8, .alu_log = 7, .binary_log = 7 });
+    defer setup.deinit();
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    const fa = failing.allocator();
+    var source = try Sources.Source.init(fa, &setup.materials, image(), fixture.boundary, 1, &fixture.tape);
+    defer source.deinit();
+    const cpu_ptr = source.cpu.main.ptr;
+    const ls_ptr = source.memory.ls.main.ptr;
+    const and_ptr = source.and_table.main.ptr;
+    const shift_table_ptr = source.shift_table.main.ptr;
+    // Headers, backing-list and the two generator multiplicity copies are the
+    // only allocations. Every failure leaves all original owners untouched.
+    for (0..4) |fail_after| {
+        failing.fail_index = failing.alloc_index + fail_after;
+        try std.testing.expectError(error.OutOfMemory, source.takeMainForCommit());
+        failing.fail_index = std.math.maxInt(usize);
+        try std.testing.expectEqual(cpu_ptr, source.cpu.main.ptr);
+        try std.testing.expectEqual(ls_ptr, source.memory.ls.main.ptr);
+        try std.testing.expectEqual(and_ptr, source.and_table.main.ptr);
+        try std.testing.expect(source.alu.owns_main and source.memory.ls.owns_main);
+    }
+    source.binary.owns_main = false;
+    try std.testing.expectError(error.BorrowedExecutionMain, source.takeMainForCommit());
+    source.binary.owns_main = true;
+    const owned = try source.takeMainForCommit();
+    defer owned.deinit(fa);
+    try std.testing.expectEqual(cpu_ptr, owned.columns[0].values.ptr);
+    var found_ls = false;
+    for (owned.backings) |buffer| {
+        if (buffer.ptr == ls_ptr) found_ls = true;
+        try std.testing.expect(buffer.ptr != and_ptr and buffer.ptr != shift_table_ptr);
+    }
+    try std.testing.expect(found_ls);
+    try std.testing.expectEqual(@as(usize, 0), source.cpu.main.len);
+    try std.testing.expectEqual(@as(usize, 0), source.memory.ls.main.len);
+    try std.testing.expect(!source.alu.owns_main and !source.memory.ls.owns_main);
+    try std.testing.expectEqual(and_ptr, source.and_table.main.ptr);
+    try std.testing.expectEqual(shift_table_ptr, source.shift_table.main.ptr);
 }

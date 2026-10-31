@@ -72,9 +72,18 @@ pub fn prove(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission
 /// Consumes the prepared Source on success AND failure. Setup must stay at its
 /// final stable address and outlive the entire proof; no CPU/program rebuild.
 pub fn provePrepared(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
+    return provePreparedWithMainOwnership(a, setup, admission, owned_source, recorder, true);
+}
+/// Explicit reference path used to qualify ownership changes against borrowed
+/// streaming. Physical sources, transcript and proof authority are identical.
+pub fn provePreparedBorrowedMain(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder) !Encoded {
+    return provePreparedWithMainOwnership(a, setup, admission, owned_source, recorder, false);
+}
+fn provePreparedWithMainOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, admission: Admission, owned_source: S.Source, recorder: ?*Recorder.Recorder, owned_main: bool) !Encoded {
     var source = owned_source;
     defer source.deinit();
     if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
+    if (owned_main and !@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
     var request = source.request();
     try admission.validate(setup, request);
     var scheme = try T.Scheme.init(a, T.P.config());
@@ -84,13 +93,19 @@ pub fn provePrepared(a: std.mem.Allocator, setup: *const Mat.Setup, admission: A
     var channel = T.P.Channel{};
     try P.mix(&channel, setup, request, admission.image_identity);
     try setup.appendFixed(a, &scheme, &channel);
-    const main = try source.columns(a, 1);
-    defer a.free(main);
     var main_stage = try Recorder.StageScope.begin(recorder, "main_commit", "Joined main streaming commitment");
     defer main_stage.end();
-    try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
+    if (owned_main) {
+        const main = try source.takeMainForCommit();
+        // PCS consumes headers and all original source backings on every path.
+        try scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 8, recorder, &channel);
+    } else {
+        const main = try source.columns(a, 1);
+        defer a.free(main);
+        try scheme.commitBorrowedStreamingWithRecorder(a, main, 8, recorder, &channel);
+        try source.releaseMain();
+    }
     main_stage.end();
-    try source.releaseMain();
     const draw = P.draw(&channel);
     var generation_stage = try Recorder.StageScope.begin(recorder, "interaction_generation", "Close all seventeen component obligations");
     defer generation_stage.end();

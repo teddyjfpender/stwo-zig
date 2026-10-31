@@ -523,3 +523,77 @@ test "coefficient storage sparse terminal columns spill a full hash block withou
     try checkSpilledTail(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, checkSpilledTail, .{});
 }
+
+fn checkMultiBackingStream(a: std.mem.Allocator) !void {
+    const Blake = core.vcs_lifted.blake2_merkle;
+    const Backend = struct {
+        pub const combined_base_in_place = true;
+        // All bounded batches must use borrowed-backing preparation, including
+        // their final singleton below this ordinary combined-path threshold.
+        pub const combined_commit_min_columns: usize = 65;
+        pub const MerkleTree = @import("owned_source_admission_test.zig").Backend.MerkleTree;
+        pub const commitMerkle = @import("owned_source_admission_test.zig").Backend.commitMerkle;
+        pub const interpolateAndEvaluateCircleBuffers = @import("owned_source_admission_test.zig").Backend.interpolateAndEvaluateCircleBuffers;
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Backend, Blake.Blake2sPlainMerkleHasher, Blake.Blake2sMerkleChannel);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    var baseline = try Scheme.init(a, config);
+    defer baseline.deinit(a);
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    baseline.setCompactPolynomialStorage(4);
+    compact.setCompactPolynomialStorage(4);
+    const count = 17;
+    const columns = try a.alloc(Column, count);
+    var columns_live = true;
+    defer if (columns_live) a.free(columns);
+    const buffers = try a.alloc([]M, 3);
+    var initialized: usize = 0;
+    var buffers_live = true;
+    defer if (buffers_live) {
+        for (buffers[0..initialized]) |buffer| a.free(buffer);
+        a.free(buffers);
+    };
+    var sizes = [_]usize{ 7, 11, 13 };
+    for (0..count) |i| sizes[i % 3] += @as(usize, 1) << @intCast(3 + i % 3);
+    for (&sizes, 0..) |*size, i| {
+        buffers[i] = try a.alloc(M, size.*);
+        initialized += 1;
+    }
+    const original_buffers = buffers[0..3].*;
+    var positions = [_]usize{ 7, 11, 13 };
+    var pointers: [count][*]M = undefined;
+    for (columns, 0..) |*column, i| {
+        const log: u32 = @intCast(3 + i % 3);
+        const n = @as(usize, 1) << @intCast(log);
+        const data = buffers[i % 3][positions[i % 3]..][0..n];
+        positions[i % 3] += n;
+        pointers[i] = data.ptr;
+        for (data, 0..) |*value, row| value.* = M.fromU64(3 + i * 37 + row * row);
+        column.* = .{ .log_size = log, .values = data };
+    }
+    var expected_channel = core.channel.blake2s.Blake2sChannel{};
+    var actual_channel = expected_channel;
+    try baseline.commitBorrowedStreamingWithRecorder(a, columns, 8, null, &expected_channel);
+    columns_live = false;
+    buffers_live = false;
+    try compact.commitOwnedStreamingWithRecorderAndBacking(a, columns, buffers, 8, null, &actual_channel);
+    try std.testing.expectEqualSlices(u8, &expected_channel.digestBytes(), &actual_channel.digestBytes());
+    const tree = &compact.trees.items[0];
+    try std.testing.expectEqual(@as(usize, 3), tree.coefficient_backing_buffers.?.len);
+    for (tree.coefficient_backing_buffers.?, original_buffers) |actual, expected|
+        try std.testing.expectEqual(expected.ptr, actual.ptr);
+    for (tree.coefficients.?, pointers) |coefficient, pointer|
+        try std.testing.expectEqual(pointer, coefficient.coefficients().ptr);
+    const queries = [_]usize{ 0, 61, 7, 16, 7 };
+    var expected = try baseline.trees.items[0].decommit(a, &queries);
+    defer expected.deinit(a);
+    var actual = try tree.decommit(a, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+}
+
+test "coefficient storage multiple source backings retain original allocations and drain all OOM paths" {
+    try checkMultiBackingStream(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkMultiBackingStream, .{});
+}

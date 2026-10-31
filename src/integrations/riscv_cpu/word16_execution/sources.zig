@@ -106,6 +106,10 @@ pub const Source = struct {
     pub fn request(self: *const Source) P.Request {
         return .{ .cpu = self.cpu.public, .epoch = self.cpu.epoch, .division_requests = @intCast(self.division.count), .multiplication_requests = self.multiplication.count, .memory = self.memory.statement };
     }
+    /// Success-only ownership handoff; failure leaves every source unchanged.
+    pub fn takeMainForCommit(self: *Source) !@import("main_ownership.zig").Commit {
+        return @import("main_ownership.zig").take(self);
+    }
     pub fn releaseMain(self: *Source) !void {
         self.cpu.releaseMain();
         self.rom.releaseMain();
