@@ -51,6 +51,7 @@ pub const crypto = struct {
 };
 
 pub const memory = struct {
+    pub const closed_ram = @import("memory/closed_ram/mod.zig");
     pub const terminal_air = @import("memory/terminal_air.zig");
     pub const terminal_component = @import("memory/terminal_component.zig");
     pub const ownership = @import("memory/ownership.zig");
