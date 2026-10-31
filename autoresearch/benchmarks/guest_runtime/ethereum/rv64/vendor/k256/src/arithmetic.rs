@@ -2,6 +2,8 @@
 
 pub(crate) mod affine;
 mod field;
+#[cfg(feature = "stwo-vartime")]
+pub(crate) mod stwo_inverse;
 #[cfg(feature = "hash2curve")]
 mod hash2curve;
 mod mul;

@@ -431,6 +431,15 @@ impl Invert for Scalar {
     /// variable-time operation can potentially leak secrets through
     /// sidechannels.
     #[allow(non_snake_case)]
+    #[cfg(feature = "stwo-vartime")]
+    fn invert_vartime(&self) -> CtOption<Self> {
+        match crate::arithmetic::stwo_inverse::inv_mod_vartime(self.0.to_words(), MODULUS) {
+            Some(words) => CtOption::new(Self::from_uint_unchecked(U256::from_words(words)), Choice::from(1)),
+            None => CtOption::new(Self::ZERO, Choice::from(0)),
+        }
+    }
+
+    #[cfg(not(feature = "stwo-vartime"))]
     fn invert_vartime(&self) -> CtOption<Self> {
         let mut u = *self;
         let mut v = Self::from_uint_unchecked(Secp256k1::ORDER);

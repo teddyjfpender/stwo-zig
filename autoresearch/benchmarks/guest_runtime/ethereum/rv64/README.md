@@ -59,8 +59,10 @@ execution profile, ECALL tags, packet layouts or AIR: ECDSA recovery no longer
 re-verifies the recovered key (the check is algebraically implied; see
 `vendor/ecdsa/src/recovery.rs`), and the GLV scalar multiplication runs on
 service word packets in variable time (`k256` feature `stwo-vartime`; public
-signature data only). On block 24,628,607 this executes 149,306,899 instead of
-213,659,488 instructions with half the secp256k1 service calls. Receipts and the
+signature data only). On block 24,628,607 this executes 126,471,926 instead of
+213,659,488 instructions with half the secp256k1 service calls (rounds 1–3:
+lean recovery, aligned-only memory functions in `mem/`, variable-time
+inversion and word-wise Keccak absorption). Receipts and the
 independent services oracle are in `vectors/reports/rv64-guest-lean-20261031/`.
 The `heap_start` ABI symbol differs between the two ELFs; always derive
 execution and proving request symbols from the ELF being run.

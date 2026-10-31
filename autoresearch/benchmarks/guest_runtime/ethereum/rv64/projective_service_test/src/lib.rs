@@ -214,4 +214,56 @@ mod tests {
         let zero = [0u8; 64];
         assert!(Signature::from_slice(&zero).is_err());
     }
+
+    /// Variable-time limb inversion equals the registry constant-time inverse
+    /// for the field (via `to_affine`-style use) and for the scalar order.
+    #[cfg(feature = "vartime")]
+    #[test]
+    fn vartime_inverse_matches_the_registry_control() {
+        use k256_control::elliptic_curve::ops::Invert as _;
+        use k256_control::FieldElement as ControlField;
+        use k256_service::elliptic_curve::ops::Invert as _;
+        use k256_service::FieldElement as ServiceField;
+        let p0 = 0xffff_fffe_ffff_fc2fu64;
+        let mut state: u64 = 0x5eed_c0de_1234_9876;
+        let mut cases: Vec<[u8; 32]> = Vec::new();
+        for words in [[0u64; 4], [1, 0, 0, 0], [2, 0, 0, 0], [p0 - 1, u64::MAX, u64::MAX, u64::MAX], [0, 0, 0, 1 << 63], [u64::MAX, u64::MAX, u64::MAX, 0]] {
+            let mut bytes = [0u8; 32];
+            for i in 0..4 {
+                bytes[8 * i..8 * i + 8].copy_from_slice(&words[3 - i].to_be_bytes());
+            }
+            cases.push(bytes);
+        }
+        for _ in 0..64 {
+            let mut bytes = [0u8; 32];
+            for byte in &mut bytes {
+                *byte = xorshift(&mut state);
+            }
+            bytes[0] &= 0x7f;
+            cases.push(bytes);
+        }
+        for bytes in cases {
+            let control = ControlField::from_bytes(&bytes.into()).unwrap();
+            let service = ServiceField::from_bytes(&bytes.into()).unwrap();
+            let expected = control.invert();
+            let actual = service.invert();
+            assert_eq!(bool::from(expected.is_some()), bool::from(actual.is_some()));
+            if bool::from(actual.is_some()) {
+                assert_eq!(actual.unwrap().normalize().to_bytes(), expected.unwrap().normalize().to_bytes());
+            }
+            if bytes != [0; 32] && bytes.iter().any(|&b| b != 0) {
+                if let (Some(c), Some(s)) = (ControlScalar::from_repr(bytes.into()).into(), ServiceScalar::from_repr(bytes.into()).into()) {
+                    let c: ControlScalar = c;
+                    let s: ServiceScalar = s;
+                    let expected = c.invert();
+                    let actual = s.invert_vartime();
+                    assert_eq!(bool::from(expected.is_some()), bool::from(actual.is_some()));
+                    if bool::from(actual.is_some()) {
+                        assert_eq!(actual.unwrap().to_bytes(), expected.unwrap().to_bytes());
+                    }
+                }
+            }
+        }
+        assert!(bool::from(ServiceScalar::ZERO.invert_vartime().is_none()));
+    }
 }

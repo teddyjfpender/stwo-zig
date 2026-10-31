@@ -147,3 +147,51 @@ select (removed in round 3); the rest are allocation growth, Keccak input
 copies and EVM memory operations. The struct moves are compiler-generated and
 need an upstream change in zeth-mpt to avoid; the memcpy floor for them is
 the aligned word loop already in place.
+
+## Round 3: variable-time inversion and word-wise Keccak absorption
+
+1. `vendor/k256/src/arithmetic/stwo_inverse.rs`: a limb-level binary extended
+   Euclid (`inv_mod_vartime`) for odd moduli. Under `stwo-vartime` it backs
+   `FieldElement::invert` (used by `to_affine` after each recovery) and
+   `Scalar::invert_vartime` (the inverse of `r`). Both inputs are public. The
+   constant-time addition chains cost about 75k and 67k instructions per call;
+   the shared routine costs about 22k. Host tests compare both inverses with
+   the registry k256 over edge and random inputs.
+2. `src/keccak_service.rs`: unaligned input is absorbed eight bytes at a time
+   from aligned loads with a funnel shift. The last funnel word of a chunk is
+   only assembled when the aligned load ends inside the input buffer; the
+   remainder stays byte-wise, so the sponge never reads past the input. The
+   existing sponge test covers all alignments and block boundaries.
+3. The k256 word table adds positive digits straight from the table entry
+   instead of returning a 96-byte copy.
+
+| Measure | round 2 | round 3 |
+| --- | ---: | ---: |
+| Instructions | 138,707,126 | 126,471,926 (−8.8%) |
+| `FieldElement::square` | 9.0M (39,624 calls) | 4.5M (19,734 calls; square root only) |
+| `Scalar` inversion | 5.2M | part of 3.4M `inv_mod_vartime` (156 calls) |
+| `native_keccak256` glue | 7.1M | 3.6M |
+| ELF SHA-256 | `4a0ef215…` | `5503ce33…` (see `round3/build-report.json`) |
+
+Receipts in `round3/`; the services oracle agrees with the native executor
+on every field. The new `heap_start` is 33,648,416.
+
+## Cumulative
+
+| Guest | Instructions | secp ADD / DOUBLE calls |
+| --- | ---: | ---: |
+| services-v2 (pinned baseline) | 213,659,488 | 24,960 / 19,968 |
+| round 1: lean recovery | 149,306,899 | 11,496 / 9,768 |
+| round 2: memory functions | 138,707,126 | 11,496 / 9,768 |
+| round 3: inversion, Keccak absorb | 126,471,926 | 11,496 / 9,768 |
+
+Total: −40.8% instructions and −53% secp256k1 service calls for the same
+block, same 43-byte output, with no change to the execution profile, ECALL
+tags, packet layouts, AIR, prover or verifier.
+
+Largest remaining items in the round-3 profile: `memcpy` 28.2M (22%, dominated
+by compiler-generated struct moves in zeth-mpt RLP node decode), SHA-256
+compression 11.2M (9%, software), the revm mainnet handler 8.7M, zeth-mpt RLP
+decode 8.5M, revm legacy bytecode analysis 6.8M, and the secp256k1 square root
+in point decompression 4.5M. The square root and SHA-256 are host-hint or
+service candidates; the struct moves need an upstream zeth-mpt change.

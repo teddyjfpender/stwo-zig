@@ -227,7 +227,20 @@ impl FieldElement {
     }
 
     /// Returns the multiplicative inverse of self, if self is non-zero.
+    /// Variable time over public data (`stwo-vartime`): a limb-level binary
+    /// extended Euclid instead of the 255-squaring addition chain.
+    #[cfg(feature = "stwo-vartime")]
+    pub fn invert(&self) -> CtOption<Self> {
+        const MODULUS_WORDS: [u64; 4] = [0xffff_fffe_ffff_fc2f, u64::MAX, u64::MAX, u64::MAX];
+        match crate::arithmetic::stwo_inverse::inv_mod_vartime(self.stwo_to_words(), MODULUS_WORDS) {
+            Some(words) => CtOption::new(Self::stwo_from_words(words).unwrap(), Choice::from(1)),
+            None => CtOption::new(Self::ZERO, Choice::from(0)),
+        }
+    }
+
+    /// Returns the multiplicative inverse of self, if self is non-zero.
     /// The result has magnitude 1, but is not normalized.
+    #[cfg(not(feature = "stwo-vartime"))]
     pub fn invert(&self) -> CtOption<Self> {
         // The binary representation of (p - 2) has 5 blocks of 1s, with lengths in
         // { 1, 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each block:
