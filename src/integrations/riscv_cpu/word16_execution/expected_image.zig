@@ -11,6 +11,8 @@ pub const Owner = struct {
     authority: Full.ProgramAuthority,
     policy: R.policy.Policy,
     expected_output: [43]u8,
+    symbols: rv.ethereum_contract.Symbols,
+    terminal_pc: u64,
     identity: [32]u8,
     max_prefix_steps: u32,
     initial_pc: u64,
@@ -43,7 +45,7 @@ pub const Owner = struct {
         _ = try policy.find(.chunk512, terminal.base(), 3);
         const identity = try @import("../rv64_work_packet_header.zig").identityFor(config, &authority, &policy);
         const initial = rv.machine.Cpu.init(loaded.info.entry, config.symbols.stack_top);
-        return .{ .loaded = loaded, .authority = authority, .policy = policy, .expected_output = output, .identity = identity.request, .max_prefix_steps = @intCast(@min(config.max_steps, config.batch_steps)), .initial_pc = initial.pc, .initial_registers = initial.regs };
+        return .{ .loaded = loaded, .authority = authority, .policy = policy, .expected_output = output, .symbols = config.symbols, .terminal_pc = config.terminal_pc, .identity = identity.request, .max_prefix_steps = @intCast(@min(config.max_steps, config.batch_steps)), .initial_pc = initial.pc, .initial_registers = initial.regs };
     }
     /// Pure raw image read, not a permission grant. Operational access rights
     /// remain a separate immutable-policy relation. Unallocated bytes are zero.

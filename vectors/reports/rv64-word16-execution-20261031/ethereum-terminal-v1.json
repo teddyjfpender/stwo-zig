@@ -1,0 +1,48 @@
+{
+  "scope": "Ethereum terminal predicate over already physically verified execution state; not a standalone proof verifier",
+  "source_base": "e230e9545",
+  "gates": {
+    "ReleaseSafe": 3,
+    "ReleaseFast": 3,
+    "actual_proved_programs": 5,
+    "fresh_independent_keys_and_verification_for_each": true
+  },
+  "cases": [
+    {
+      "program": "honest",
+      "execution_proof_valid": true,
+      "completion_accepted": true
+    },
+    {
+      "program": "halt=2",
+      "execution_proof_valid": true,
+      "completion_error": "EthereumHaltNotSet"
+    },
+    {
+      "program": "output_len=42",
+      "execution_proof_valid": true,
+      "completion_error": "EthereumOutputLengthMismatch"
+    },
+    {
+      "program": "wrong_output_byte",
+      "execution_proof_valid": true,
+      "completion_error": "EthereumOutputMismatch"
+    },
+    {
+      "program": "early_prefix",
+      "execution_proof_valid": true,
+      "completion_error": "EthereumTerminalPcMismatch"
+    }
+  ],
+  "authority": "Receiver-owned Image init pins ELF/input/output/ABI identity and requires immutable absorbing JALx0,0; terminal values must come from the proved sorted terminal Cell list after complete physical verification. No VM replay or producer receipt grants acceptance.",
+  "source_sha256": {
+    "terminal.zig": "9f54faf3691c020c5ec4182ab8adbef7109e2aeb89a1dfb452329a1b3dd2f21d",
+    "terminal_test.zig": "570a6df9fcf0f73480ecfbb81b53e20cc38ebb4c709df86ce0fea36ac790d566",
+    "terminal_fixture.zig": "e12575771aeb35070f401071403c35bc532b38f554cf3978866fb4927d4d8f71"
+  },
+  "limits": [
+    "No full mixed-service block acceptance claim until the receiver wraps complete Services.verify and this predicate.",
+    "No real Ethereum block run in this focused gate.",
+    "No recursion/GPU/whole-protocol128-bit security claim."
+  ]
+}

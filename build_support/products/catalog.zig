@@ -34,6 +34,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-keccak-shared", .description = "Execution-wide K truth joins actual CPU RAM shards", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-bridge", .description = "Word16 Keccak OWNER RAM bridge qualification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-retained-storage", .description = "Qualify file-retained compact polynomials across shared challenges", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-ethereum-terminal", .description = "Require trusted Ethereum halt and output after complete physical verification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-execution", .description = "Actual multi-shard CPU and global RAM prefix", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-memory", .description = "Check CPU-owned scalable LS and RAM boundary sources", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-division-degree3-circuit", .description = "Qualify degree3 DIV external CircuitLane point authority", .scope = .riscv_cpu },
