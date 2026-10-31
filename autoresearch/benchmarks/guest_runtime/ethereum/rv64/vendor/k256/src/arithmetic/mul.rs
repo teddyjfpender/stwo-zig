@@ -58,7 +58,101 @@ use once_cell::sync::Lazy;
 
 /// Lookup table containing precomputed values `[p, 2p, 3p, ..., 8p]`
 #[derive(Copy, Clone, Default)]
+#[cfg_attr(feature = "stwo-vartime", allow(dead_code))]
 struct LookupTable([ProjectivePoint; 8]);
+
+#[cfg(feature = "stwo-vartime")]
+use crate::arithmetic::projective::stwo_words as words;
+
+/// Service-word form of `LookupTable`, built with seven service additions.
+#[cfg(feature = "stwo-vartime")]
+struct WordTable([words::Point; 8]);
+
+#[cfg(feature = "stwo-vartime")]
+impl WordTable {
+    fn new(p: &ProjectivePoint) -> Self {
+        let base = words::from_point(p);
+        let mut points = [base; 8];
+        for j in 0..7 {
+            let mut next = points[j];
+            words::add_assign(&mut next, &base);
+            points[j + 1] = next;
+        }
+        WordTable(points)
+    }
+
+    /// Given -8 <= x <= 8 and x != 0, returns x * p. Variable time: the digit
+    /// is derived from public signature data, never from a secret scalar.
+    fn select_vartime(&self, x: i8) -> words::Point {
+        debug_assert!(x != 0 && (-8..=8).contains(&x));
+        let mut point = self.0[usize::from(x.unsigned_abs()) - 1];
+        if x < 0 {
+            words::negate_assign(&mut point);
+        }
+        point
+    }
+}
+
+/// GLV double-and-add over service word packets. Identical digit schedule to
+/// `lincomb`, but zero digits are skipped and the accumulator stays identity
+/// (no service calls) until the first nonzero digit. Both are exact
+/// equivalences in the group: the result equals `lincomb` as a group element,
+/// while its projective representative may differ. Callers only consume the
+/// affine point.
+#[cfg(feature = "stwo-vartime")]
+fn lincomb_words<const N: usize>(xks: &[(ProjectivePoint, Scalar); N]) -> ProjectivePoint {
+    let mut digits = [(
+        Radix16Decomposition::<33>::default(),
+        Radix16Decomposition::<33>::default(),
+    ); N];
+    let tables: [(WordTable, WordTable); N] = core::array::from_fn(|i| {
+        let (x, k) = &xks[i];
+        let (r1, r2) = decompose_scalar(k);
+        let x_beta = x.endomorphism();
+        let (r1_sign, r2_sign) = (r1.is_high(), r2.is_high());
+        let (r1_c, r2_c) = (
+            Scalar::conditional_select(&r1, &-r1, r1_sign),
+            Scalar::conditional_select(&r2, &-r2, r2_sign),
+        );
+        digits[i] = (
+            Radix16Decomposition::<33>::new(&r1_c),
+            Radix16Decomposition::<33>::new(&r2_c),
+        );
+        (
+            WordTable::new(&ProjectivePoint::conditional_select(x, &-*x, r1_sign)),
+            WordTable::new(&ProjectivePoint::conditional_select(
+                &x_beta, &-x_beta, r2_sign,
+            )),
+        )
+    });
+
+    let mut acc = words::IDENTITY;
+    let mut live = false;
+    for i in (0..33).rev() {
+        if live {
+            for _ in 0..4 {
+                words::double_assign(&mut acc);
+            }
+        }
+        for component in 0..N {
+            let (table1, table2) = &tables[component];
+            let (digit1, digit2) = (digits[component].0 .0[i], digits[component].1 .0[i]);
+            for (table, digit) in [(table1, digit1), (table2, digit2)] {
+                if digit == 0 {
+                    continue;
+                }
+                let entry = table.select_vartime(digit);
+                if live {
+                    words::add_assign(&mut acc, &entry);
+                } else {
+                    acc = entry;
+                    live = true;
+                }
+            }
+        }
+    }
+    words::to_point(&acc)
+}
 
 impl From<&ProjectivePoint> for LookupTable {
     fn from(p: &ProjectivePoint) -> Self {
@@ -282,13 +376,20 @@ impl<const D: usize> Default for Radix16Decomposition<D> {
 
 impl<const N: usize> LinearCombination<[(ProjectivePoint, Scalar); N]> for ProjectivePoint {
     fn lincomb_ext(points_and_scalars: &[(ProjectivePoint, Scalar); N]) -> Self {
-        let mut tables = [(LookupTable::default(), LookupTable::default()); N];
-        let mut digits = [(
-            Radix16Decomposition::<33>::default(),
-            Radix16Decomposition::<33>::default(),
-        ); N];
+        #[cfg(feature = "stwo-vartime")]
+        {
+            return lincomb_words(points_and_scalars);
+        }
+        #[cfg(not(feature = "stwo-vartime"))]
+        {
+            let mut tables = [(LookupTable::default(), LookupTable::default()); N];
+            let mut digits = [(
+                Radix16Decomposition::<33>::default(),
+                Radix16Decomposition::<33>::default(),
+            ); N];
 
-        lincomb(points_and_scalars, &mut tables, &mut digits)
+            lincomb(points_and_scalars, &mut tables, &mut digits)
+        }
     }
 }
 
@@ -309,6 +410,7 @@ impl LinearCombination<[(ProjectivePoint, Scalar)]> for ProjectivePoint {
     }
 }
 
+#[cfg_attr(feature = "stwo-vartime", allow(dead_code))]
 fn lincomb(
     xks: &[(ProjectivePoint, Scalar)],
     tables: &mut [(LookupTable, LookupTable)],

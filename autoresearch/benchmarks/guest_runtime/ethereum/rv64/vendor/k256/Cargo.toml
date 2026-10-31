@@ -158,6 +158,9 @@ optional = true
 [features]
 stwo-projective-service = ["arithmetic", "dep:stwo-rv64-service-abi"]
 stwo-projective-word-service = ["stwo-projective-service"]
+# Variable-time scalar multiplication on service word packets: public ECDSA
+# recovery data only. Never enable this for secret scalars.
+stwo-vartime = ["stwo-projective-word-service"]
 alloc = [
     "ecdsa-core?/alloc",
     "elliptic-curve/alloc",

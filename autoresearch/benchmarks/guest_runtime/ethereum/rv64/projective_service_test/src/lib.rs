@@ -94,4 +94,124 @@ mod tests {
             }
         }
     }
+
+    #[cfg(feature = "vartime")]
+    fn xorshift(state: &mut u64) -> u8 {
+        *state ^= *state << 13;
+        *state ^= *state >> 7;
+        *state ^= *state << 17;
+        *state as u8
+    }
+
+    #[cfg(feature = "vartime")]
+    fn scalar_pair(bytes: [u8; 32]) -> (ServiceScalar, ControlScalar) {
+        (
+            ServiceScalar::from_repr(bytes.into()).unwrap(),
+            ControlScalar::from_repr(bytes.into()).unwrap(),
+        )
+    }
+
+    /// The word-packet GLV chain must equal the registry double-scalar
+    /// multiplication for every digit pattern, including zero digits,
+    /// negative digits, zero scalars and the top digit alone.
+    #[cfg(feature = "vartime")]
+    #[test]
+    fn vartime_word_lincomb_matches_the_registry_control() {
+        use k256_control::elliptic_curve::ops::LinearCombinationExt as _;
+        let mut state: u64 = 0x1f2e_3d4c_5b6a_7988;
+        let mut scalars: Vec<[u8; 32]> = vec![[0; 32], {
+            let mut one = [0; 32];
+            one[31] = 1;
+            one
+        }];
+        for fill in [0x00u8, 0x11, 0x77, 0x88, 0x8f, 0xf8, 0xff] {
+            let mut bytes = [fill; 32];
+            bytes[0] &= 0x7f;
+            scalars.push(bytes);
+        }
+        for _ in 0..24 {
+            let mut bytes = [0u8; 32];
+            for byte in &mut bytes {
+                *byte = xorshift(&mut state);
+            }
+            bytes[0] &= 0x7f;
+            scalars.push(bytes);
+        }
+        let n_minus_one = (-ServiceScalar::ONE).to_bytes();
+        scalars.push(n_minus_one.into());
+        let mut service_point = Service::GENERATOR;
+        let mut control_point = Control::GENERATOR;
+        for (i, a) in scalars.iter().enumerate() {
+            let b = scalars[(i * 7 + 3) % scalars.len()];
+            let (sa, ca) = scalar_pair(*a);
+            let (sb, cb) = scalar_pair(b);
+            let service = Service::lincomb_ext(&[(Service::GENERATOR, sa), (service_point, sb)]);
+            let control = Control::lincomb_ext(&[(Control::GENERATOR, ca), (control_point, cb)]);
+            equal(service, control);
+            equal(Service::lincomb_ext(&[(service_point, sa)]), Control::lincomb_ext(&[(control_point, ca)]));
+            service_point = service + Service::GENERATOR;
+            control_point = control + Control::GENERATOR;
+            equal(service_point, control_point);
+        }
+    }
+
+    /// Recovery without the redundant re-verification returns the signer's
+    /// key, and the omitted check is shown to hold on the recovered key for
+    /// both signature halves (revm normalizes high S and flips the parity).
+    #[cfg(feature = "vartime")]
+    #[test]
+    fn ecdsa_recovery_without_reverification_is_equivalent() {
+        use k256_service::ecdsa::signature::hazmat::PrehashVerifier;
+        use k256_service::ecdsa::{RecoveryId, Signature, SigningKey, VerifyingKey};
+        let mut state: u64 = 0xa5a5_1234_dead_beef;
+        let mut checked = 0;
+        for round in 0..96 {
+            let mut key = [0u8; 32];
+            let mut digest = [0u8; 32];
+            for byte in &mut key {
+                *byte = xorshift(&mut state);
+            }
+            for byte in &mut digest {
+                *byte = xorshift(&mut state);
+            }
+            key[0] &= 0x7f;
+            if round % 5 == 0 {
+                digest = [0xff; 32]; // prehash above the group order exercises reduction
+            }
+            let signing = SigningKey::from_bytes(&key.into()).unwrap();
+            let (mut signature, mut recid) = signing.sign_prehash_recoverable(&digest).unwrap();
+            // Keep both normalized and high-S inputs; revm normalizes before recovery.
+            if round % 2 == 0 {
+                if let Some(normalized) = signature.normalize_s() {
+                    signature = normalized;
+                    recid = RecoveryId::new(!recid.is_y_odd(), recid.is_x_reduced());
+                }
+            } else {
+                signature = Signature::from_scalars(*signature.r(), -*signature.s()).unwrap();
+                recid = RecoveryId::new(!recid.is_y_odd(), recid.is_x_reduced());
+            }
+            let recovered = VerifyingKey::recover_from_prehash(&digest, &signature, recid).unwrap();
+            assert_eq!(recovered, *signing.verifying_key());
+            // The check the patched recovery omits must hold for the recovered key.
+            assert!(
+                k256_service::ecdsa::hazmat::verify_prehashed(&Service::from(*recovered.as_affine()), &digest.into(), &signature).is_ok()
+            );
+            // The upstream API (with its low-S policy) agrees on normalized inputs.
+            if signature.normalize_s().is_none() {
+                assert!(recovered.verify_prehash(&digest, &signature).is_ok());
+            }
+            // A different parity recovers a different key or fails, exactly as upstream.
+            let other = RecoveryId::new(!recid.is_y_odd(), recid.is_x_reduced());
+            if let Ok(wrong) = VerifyingKey::recover_from_prehash(&digest, &signature, other) {
+                assert_ne!(wrong, recovered);
+                // ... and the omitted check would still have passed for it.
+                assert!(k256_service::ecdsa::hazmat::verify_prehashed(&Service::from(*wrong.as_affine()), &digest.into(), &signature).is_ok());
+            }
+            checked += 1;
+        }
+        assert_eq!(checked, 96);
+        // Degenerate signatures are rejected before any curve arithmetic.
+        let zero = [0u8; 64];
+        assert!(Signature::from_slice(&zero).is_err());
+    }
 }

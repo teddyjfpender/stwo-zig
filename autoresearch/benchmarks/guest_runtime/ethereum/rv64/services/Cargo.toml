@@ -16,12 +16,16 @@ default = []
 keccak-service = ["alloy-primitives/native-keccak"]
 secp-service = ["k256/stwo-projective-service"]
 secp-word-service = ["secp-service", "k256/stwo-projective-word-service"]
+# Lean ECDSA recovery: variable-time word-packet scalar multiplication and no
+# redundant re-verification of the recovered key. Same service ABI/tags as v2.
+secp-lean = ["secp-word-service", "k256/stwo-vartime", "dep:ecdsa", "ecdsa/stwo-skip-redundant-recovery-verify"]
 
 [dependencies]
 alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }
 alloy-primitives = { version = "=1.6.1", default-features = false, features = ["map-foldhash"] }
 critical-section = { version = "1.2", features = ["restore-state-bool"] }
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
+ecdsa = { version = "=0.16.9", default-features = false, optional = true }
 revm-precompile = { version = "=42.0.1", default-features = false }
 stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491", default-features = false }
 
@@ -37,3 +41,4 @@ panic = "abort"
 
 [patch.crates-io]
 k256 = { path = "../vendor/k256" }
+ecdsa = { path = "../vendor/ecdsa" }
