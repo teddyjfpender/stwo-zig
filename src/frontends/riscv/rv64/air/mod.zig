@@ -98,6 +98,29 @@ pub const word16_v1 = struct {
     pub const binary_lookup = @import("word16_v1/binary_lookup.zig");
     pub const binary_component = @import("word16_v1/binary_component.zig");
     pub const binary_source = @import("word16_v1/binary_source.zig");
+    /// Inactive byte-interface SHIFT prototype; no CPU profile selects it.
+    pub const shift_experiment = struct {
+        pub const equations = @import("word16_v1/shift_byte.zig");
+        pub const lookup = @import("word16_v1/shift_byte_lookup.zig");
+        pub const component = @import("word16_v1/shift_byte_component.zig");
+        pub const table_component = @import("word16_v1/shift_byte_table_component.zig");
+    };
+    /// Separate inactive Word16 candidate, sharing only pure chunk arithmetic.
+    pub const shift_word_experiment = struct {
+        pub const equations = @import("word16_v1/shift_word.zig");
+        pub const lookup = @import("word16_v1/shift_word_lookup.zig");
+        pub const table = @import("word16_v1/shift_word_table.zig");
+        pub const component = @import("word16_v1/shift_word_component.zig");
+        pub const table_component = @import("word16_v1/shift_word_table_component.zig");
+    };
+    /// Same Word16 truth schema, separate immutable packed-table shape.
+    pub const shift_word_packed_experiment = struct {
+        pub const equations = @import("word16_v1/shift_word.zig");
+        pub const lookup = @import("word16_v1/shift_word_lookup.zig");
+        pub const table = @import("word16_v1/shift_word_packed_table.zig");
+        pub const component = @import("word16_v1/shift_word_component.zig");
+        pub const table_component = @import("word16_v1/shift_word_packed_table_component.zig");
+    };
     /// Qualified ALU diagnostic; not the production full-ISA protocol.
     pub const alu_experiment = struct {
         pub const equations = @import("word16_v1/alu.zig");

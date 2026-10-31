@@ -52,6 +52,12 @@ pub fn addProduct(context: Context) void {
         .{ "word16-binary-proof", "src/integrations/riscv_cpu/rv64_word16_binary_proof_test_root.zig", 2 },
         .{ "ethereum-packet-control", "src/integrations/riscv_cpu/rv64_ethereum_packet_control_test_root.zig", 2 },
         .{ "closed-ram", "src/integrations/riscv_cpu/rv64_closed_ram_test_root.zig", 11 },
+        .{ "word16-shift", "src/frontends/riscv/rv64_word16_shift_test_root.zig", 8 },
+        .{ "word16-shift-proof", "src/integrations/riscv_cpu/rv64_word16_shift_proof_test_root.zig", 2 },
+        .{ "word16-shift-word", "src/frontends/riscv/rv64_word16_shift_word_test_root.zig", 9 },
+        .{ "word16-shift-word-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_proof_test_root.zig", 2 },
+        .{ "word16-shift-packed-table", "src/frontends/riscv/rv64_word16_shift_packed_table_test_root.zig", 6 },
+        .{ "word16-shift-packed-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_packed_proof_test_root.zig", 2 },
         .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 8 },
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 3 },
@@ -111,6 +117,9 @@ pub fn addProduct(context: Context) void {
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "rv64-closed-ram-fixture", .source = "src/integrations/riscv_cpu/rv64_closed_ram_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-word-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_word_fixture_main.zig" },
+        .{ .name = "rv64-word16-shift-packed-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_shift_packed_fixture_main.zig" },
         .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/rv64_secp_fixture_main.zig" },
         .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/rv64_keccak_fixture_main.zig" },
         .{ .name = "rv64-distributed-execution-fixture", .source = "src/integrations/riscv_cpu/rv64_distributed_execution_fixture_main.zig" },
