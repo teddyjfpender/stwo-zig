@@ -22,9 +22,16 @@ pub const Fact = struct { op: Operations.Binary, a: u64, b: u64, c: u64 };
 pub const MainBuffers = struct { main: []M };
 pub const Mass = struct { fact_capacity: u64, and_queries: u64 };
 /// Packed original lookup inputs, not a second wide trace or replayed ALU.
-pub const Metadata = struct { payload: [13]u16, and_indices: [8]u16 };
+pub const Metadata = struct {
+    payload: [13]u16,
+    and_indices: [8]u16,
+    multiplicity_words: [2]u16,
+    pub fn multiplicity(self: Metadata) u32 {
+        return @as(u32, self.multiplicity_words[0]) | (@as(u32, self.multiplicity_words[1]) << 16);
+    }
+};
 comptime {
-    std.debug.assert(@sizeOf(Metadata) == 42);
+    std.debug.assert(@sizeOf(Metadata) == 46);
 }
 
 pub fn massForLog(log: u32) !Mass {
@@ -85,6 +92,7 @@ pub const Source = struct {
     allocator: std.mem.Allocator,
     log_size: u32,
     fact_count: usize,
+    function_mass: u32,
     fixed: []M,
     main: []M,
     owns_main: bool,
@@ -92,19 +100,43 @@ pub const Source = struct {
     and_counts: []u64,
     metadata: []Metadata,
     pub fn init(a: std.mem.Allocator, facts: []const Fact, log: u32) !Source {
-        return initInternal(a, facts, log, null);
+        return initInternal(a, facts, null, log, null);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: MainBuffers) !Source {
-        return initInternal(a, facts, log, buffers);
+        return initInternal(a, facts, null, log, buffers);
     }
-    fn initInternal(a: std.mem.Allocator, facts: []const Fact, log: u32, buffers: ?MainBuffers) !Source {
+    pub fn initWeighted(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32) !Source {
+        return initInternal(a, facts, weights, log, null);
+    }
+    pub fn initWeightedWithMainBuffers(a: std.mem.Allocator, facts: []const Fact, weights: []const u32, log: u32, buffers: MainBuffers) !Source {
+        return initInternal(a, facts, weights, log, buffers);
+    }
+    fn initInternal(a: std.mem.Allocator, facts: []const Fact, weights: ?[]const u32, log: u32, buffers: ?MainBuffers) !Source {
         const mass = try massForLog(log);
         const n: usize = @intCast(mass.fact_capacity);
         const main_len = std.math.mul(usize, MAIN, n) catch return error.InvalidBinaryGeometry;
         if (facts.len > n) return error.BinaryCapacityExceeded;
+        var function_mass: u64 = facts.len;
+        if (weights) |input_weights| {
+            if (input_weights.len != facts.len) return error.InvalidBinaryWeights;
+            function_mass = 0;
+            for (input_weights) |weight| {
+                if (weight >= core.fields.m31.Modulus) return error.InvalidBinaryWeights;
+                function_mass = try std.math.add(u64, function_mass, weight);
+                if (function_mass >= core.fields.m31.Modulus) return error.BinaryMultiplicityMassExceeded;
+            }
+        }
+        if (function_mass >= core.fields.m31.Modulus) return error.BinaryMultiplicityMassExceeded;
         if (buffers) |value| {
             if (value.main.len != main_len) return error.InvalidBinaryMain;
             if (overlaps(value.main, facts)) return error.OverlappingBinaryInputs;
+            if (weights) |input_weights| {
+                const mb = @intFromPtr(value.main.ptr);
+                const me = std.math.add(usize, mb, std.mem.sliceAsBytes(value.main).len) catch return error.OverlappingBinaryInputs;
+                const wb = @intFromPtr(input_weights.ptr);
+                const we = std.math.add(usize, wb, std.mem.sliceAsBytes(input_weights).len) catch return error.OverlappingBinaryInputs;
+                if (input_weights.len != 0 and mb < we and wb < me) return error.OverlappingBinaryInputs;
+            }
         }
         for (facts) |fact| {
             if (@intFromEnum(fact.op) > 2 or fact.c != result(fact)) return error.InvalidBinaryFact;
@@ -123,7 +155,9 @@ pub const Source = struct {
             const values = P.rowToColumnsFor(M, row);
             const p = physical(i, log);
             for (values, 0..) |v, c| main[c * n + p] = v;
-            main[B.LOCAL_MAIN * n + p] = row.active;
+            const weight: u32 = if (i < facts.len) (if (weights) |input_weights| input_weights[i] else 1) else 0;
+            main[B.LOCAL_MAIN * n + p] = M.fromCanonical(weight);
+            metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
             for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
             for (0..8) |j| {
                 const index = Tables.Kind.byte_and.rowIndex(.{ row.a[j].v, row.b[j].v, row.ab[j].v, 0, 0, 0 }) catch unreachable;
@@ -131,7 +165,7 @@ pub const Source = struct {
                 counts[index] += 1;
             }
         }
-        return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .fixed = fixed, .main = main, .owns_main = buffers == null, .and_counts = counts, .metadata = metadata };
+        return .{ .allocator = a, .log_size = log, .fact_count = facts.len, .function_mass = @intCast(function_mass), .fixed = fixed, .main = main, .owns_main = buffers == null, .and_counts = counts, .metadata = metadata };
     }
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
@@ -177,6 +211,14 @@ pub const Source = struct {
         const a = self.allocator;
         if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidBinarySourcePhase;
         if (self.and_counts.len != 65536 or self.fact_count > n) return error.InvalidBinaryMetadata;
+        var function_mass: u64 = 0;
+        for (self.metadata, 0..) |meta, i| {
+            const weight = meta.multiplicity();
+            if (weight >= core.fields.m31.Modulus or (i >= self.fact_count and weight != 0)) return error.InvalidBinaryMetadata;
+            function_mass += weight;
+            if (function_mass >= core.fields.m31.Modulus) return error.InvalidBinaryMetadata;
+        }
+        if (function_mass != self.function_mass) return error.InvalidBinaryMetadata;
         const output = try a.alloc(M, INTERACTION * n);
         errdefer a.free(output);
         const dictionary = try a.alloc(Q, 65536);
@@ -209,7 +251,7 @@ pub const Source = struct {
                 store(output, n, p, 16, and_prefix);
                 const inverse = scratch[CHUNK + i];
                 store(output, n, p, 20, inverse);
-                if (logical < self.fact_count) function_sum = function_sum.sub(inverse);
+                function_sum = function_sum.sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
                 store(output, n, p, 24, function_sum);
             }
         }
