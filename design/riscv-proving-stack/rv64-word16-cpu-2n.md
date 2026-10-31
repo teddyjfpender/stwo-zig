@@ -7,6 +7,12 @@ qualified BINARY chip in `src/frontends/riscv/rv64/air/word16_v1/` and the
 cost model in `rv64-family-providers.md` are the inputs; the schema and budgets below require the reconciliation ledger before they
 are a complete implementation contract.
 
+The [qualified foundation inventory](rv64-word16-foundation-status.md) records
+the newer raw46 and indexed40 register-only CPUs, native source lifetimes,
+closed finite RAM/load-store proofs, SIMD evaluation and exact fact-reuse
+evidence. These are experimental proofs; none is the full Ethereum protocol
+budgeted below.
+
 ## Reconciliation ledger before production implementation
 
 The qualified register-only prototype has 44 main / 56 interaction CPU columns;
