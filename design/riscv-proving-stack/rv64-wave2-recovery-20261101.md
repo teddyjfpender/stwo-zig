@@ -47,3 +47,19 @@ remain authoritative. Existing receipts measured against `87df8e6a5` or
 `eac3b7c07` must not be relabeled as measurements of the combined branch.
 Stage-time sums overlap and are not block wall time. No aggregate multiplier
 or controlled GPU/CPU speed claim follows from this recovery.
+
+## Final combined qualification
+
+The final native route proves all 104,253,913 instructions as 25 CPU and five
+service proofs. A separate fresh receiver accepts the completed block. All 30
+proofs plus the bundle, RAM cells, cost and roster are byte-identical to the
+pre-interaction-recovery schema6 full-block control. The final same-binary
+legacy/queue prefix comparison also preserves all eleven checked artifacts.
+
+The final full-block engineering run measured 131.8 seconds proving and 152.5
+seconds wall, with 20,925,263,680 native cells and 29,701,672 proof bytes.
+This is a functional measurement, not a controlled speedup claim. See
+`recovered-wave2-final-complete-block-v1.json` for exact source/binary identities,
+process RSS versus physical-footprint observations, proof hashes and fresh
+acceptance. GKR remains an experimental tool; the composition queue remains
+opt-in; LS32 remains held for its stated adversarial gates.

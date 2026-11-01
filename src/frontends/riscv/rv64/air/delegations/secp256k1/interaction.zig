@@ -81,11 +81,13 @@ pub const Prepared = struct {
                 const active = sourceValue(self.active_source, active_row, id, bytes);
                 const tuple_id = sourceValue(self.id_source, active_row, id, bytes);
                 inline for (0..3) |event| {
-                    const fixed_id = trace.fixed[(switch (event) {
-                        0 => L.LHS_ID,
-                        1 => L.RHS_ID,
-                        else => L.RESULT_ID,
-                    }) * n + r];
+                    const fixed_id = trace.fixed[
+                        (switch (event) {
+                            0 => L.LHS_ID,
+                            1 => L.RHS_ID,
+                            else => L.RESULT_ID,
+                        }) * n + r
+                    ];
                     var d = self.wire_base.sub(self.wire.coefficients[1].mulM31(tuple_id)).sub(self.wire.coefficients[2].mulM31(fixed_id));
                     for (self.wire_bytes[event], self.wire.coefficients[3..]) |source, c| d = d.sub(c.mulM31(sourceValue(source, active_row, id, bytes)));
                     if (d.isZero()) return error.DivisionByZero;
