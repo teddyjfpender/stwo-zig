@@ -14,6 +14,8 @@ pub const Advice = struct {
     events: [][]LS.native.Event,
     keccak: [][]K.types.Call,
     secp: [][2][]S.types.Call,
+    /// Admitted v3 SHA-256 packets per shard (empty for v2 tapes).
+    sha256: [][]S.types.Call,
     initial: []Cell,
     terminal: []Cell,
     pub fn deinit(self: *Advice) void {
@@ -21,9 +23,11 @@ pub const Advice = struct {
         for (self.events) |e| a.free(e);
         for (self.keccak) |c| a.free(c);
         for (self.secp) |cc| for (cc) |c| a.free(c);
+        for (self.sha256) |c| a.free(c);
         a.free(self.events);
         a.free(self.keccak);
         a.free(self.secp);
+        a.free(self.sha256);
         a.free(self.initial);
         a.free(self.terminal);
     }
@@ -63,14 +67,17 @@ pub const Builder = struct {
         errdefer a.free(keccak);
         const secp = try a.alloc([2][]S.types.Call, self.shards.items.len);
         errdefer a.free(secp);
+        const sha256 = try a.alloc([]S.types.Call, self.shards.items.len);
+        errdefer a.free(sha256);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp) |shard, *e, *k, *s| {
+        for (self.shards.items, events, keccak, secp, sha256) |shard, *e, *k, *s, *h| {
             e.* = shard.events;
             k.* = shard.keccak;
             s.* = shard.secp;
+            h.* = shard.sha256;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -84,16 +91,20 @@ const Shard = struct {
     events: []LS.native.Event,
     keccak: []K.types.Call,
     secp: [2][]S.types.Call,
+    sha256: []S.types.Call,
     fn deinit(self: Shard, a: std.mem.Allocator) void {
         a.free(self.events);
         a.free(self.keccak);
         for (self.secp) |calls| a.free(calls);
+        a.free(self.sha256);
     }
 };
 fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize) !Shard {
     const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
     if (cpu.capture_records_retired) return error.MissingPreparedMemoryRecords;
-    if (tape.execution_profile != .ethereum_services_v2 or cpu.epoch != index + 1 or cpu.services.items.len != tape.service_calls.items.len + tape.secp_calls.items.len) return error.InvalidCombinedServiceRoster;
+    // v3 is v2 plus SHA-256; a v2 tape can never carry a v3 record.
+    const v3 = tape.execution_profile == .ethereum_services_v3;
+    if ((tape.execution_profile != .ethereum_services_v2 and !v3) or cpu.epoch != index + 1 or cpu.services.items.len != tape.serviceCount()) return error.InvalidCombinedServiceRoster;
     var sizes: [2]usize = @splat(0);
     for (tape.secp_calls.items) |call| sizes[@intFromEnum(call.kind) - 1] += 1;
     const ee = try a.alloc(LS.native.Event, cpu.memory.items.len);
@@ -105,6 +116,9 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const dd = try a.alloc(S.types.Call, sizes[1]);
     errdefer a.free(dd);
     const ss = [2][]S.types.Call{ aa, dd };
+    const hh = try a.alloc(S.types.Call, tape.sha256_calls.items.len);
+    errdefer a.free(hh);
+    var hi: usize = 0;
     var next: [2]usize = @splat(0);
     var mi: usize = 0;
     var ci: usize = 0;
@@ -151,18 +165,32 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
                 var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = captured.after, .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 for (0..captured.wordCount()) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
-                try S.source.validate(captured.kind, call);
+                try S.source.validate(S.types.kindOf(captured.kind), call);
                 for (0..captured.wordCount()) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
                 const family = @intFromEnum(captured.kind) - 1;
                 ss[family][next[family]] = call;
                 next[family] += 1;
                 si += 1;
+            } else if (v3 and rec.tag == 0x30010) {
+                if (hi >= hh.len) return error.InvalidCombinedServiceOwner;
+                const captured = tape.sha256_calls.items[hi];
+                const words = @TypeOf(captured).WORDS;
+                if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
+                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
+                call.before[0..words].* = captured.before;
+                call.after[0..words].* = captured.after;
+                for (0..words) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
+                try S.source.validate(.sha256, call);
+                for (0..words) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
+                hh[hi] = call;
+                hi += 1;
             } else return error.UnqualifiedCombinedServiceTag;
             ci += 1;
         }
     }
-    if (ki != kk.len or si != tape.secp_calls.items.len) return error.InvalidCombinedServiceRoster;
-    return .{ .events = ee, .keccak = kk, .secp = ss };
+    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len) return error.InvalidCombinedServiceRoster;
+    return .{ .events = ee, .keccak = kk, .secp = ss, .sha256 = hh };
 }
 fn owner(pointer: u64, tick: u24, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
     if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or 4 * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;
