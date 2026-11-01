@@ -79,7 +79,10 @@ COMMON_CXX = ["-std=c++20", "-fno-exceptions", "-fno-rtti", "-ffunction-sections
               "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wno-deprecated-declarations"]
 GUEST_EXTRA = ["-fno-pic", "-fomit-frame-pointer", "-mcmodel=medlow"]
 DEFINES = ["-DZEG_STWO", "-DZEG_PUBLIC_OUTPUT_BLOCK_HASH", '-DPROJECT_VERSION="0.24.0"',
-           "-DZEG_ANALYSIS_CACHE_SLOTS=1152"]
+           "-DZEG_ANALYSIS_CACHE_SLOTS=1152",
+           # ziskethone's fused jump superinstructions (evmone patch 06 hook,
+           # zisk/evm/fused_dispatch.inl); portable, enabled outside ZisK by this flag.
+           "-DZEG_FUSE_TEST"]
 
 
 def run(cmd, cwd=None, **kw):
@@ -132,7 +135,8 @@ def stage(cache: Path, work: Path) -> dict:
         run(["git", "apply", "-p1", zpatches / p], cwd=src / "evmone")
         applied.append(f"ziskethone/cpp-guest/patches/{p}")
     for p in sorted((HERE / "patches").glob("*.patch")):
-        target = src / ("evmone" if "-evmone-" in p.name else "ziskethone")
+        target = src / ("evmone" if "-evmone-" in p.name else "blst" if "-blst-" in p.name
+                        else "intx" if "-intx-" in p.name else "ziskethone")
         run(["git", "apply", "-p1", p], cwd=target)
         applied.append(f"client_evmone/patches/{p.name}")
     return {"applied_patches": applied}
@@ -171,7 +175,7 @@ def sources(src: Path, host: bool, profile: str, secp: str) -> list[tuple[Path, 
 def includes(src: Path) -> list[str]:
     zg = src / "ziskethone" / "cpp-guest"
     ev = src / "evmone"
-    dirs = [zg / "include", HERE / "glue", ev / "include", ev / "evmc" / "include", ev,
+    dirs = [zg / "include", HERE / "glue", zg / "zisk", ev / "include", ev / "evmc" / "include", ev,
             ev / "lib", ev / "lib" / "evmone_precompiles", src / "intx" / "include", src / "blst" / "bindings"]
     return [f"-I{d}" for d in dirs]
 

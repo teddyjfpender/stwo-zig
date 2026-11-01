@@ -41,6 +41,7 @@
 #include "witness_trie.hpp"
 
 extern "C" [[noreturn]] void stwo_guest_abort(const char* why) noexcept;
+extern "C" size_t stwo_heap_used() noexcept;
 extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be[32], const uint8_t s_be[32],
                                       unsigned recid, const uint8_t pubkey65[65], uint8_t addr_out[20]);
 extern "C" void stwo_secp_verify_pending();
@@ -731,6 +732,9 @@ extern "C" [[noreturn]] void stwo_guest_main() {
     H256 r;
     std::memcpy(r.b, root, 32);
     write_output(r, chain_id, schema_id);
-    for (;;) asm volatile("" ::: "memory");
+    // Diagnostic only: leave the heap high-water mark in t6 (final registers).
+    const size_t heap_used = stwo_heap_used();
+    asm volatile("mv t6, %0\n1: j 1b" : : "r"(heap_used) : "memory");
+    __builtin_unreachable();
 }
 #endif

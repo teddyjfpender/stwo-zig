@@ -13,7 +13,11 @@ namespace stwo {
 H256 keccak(const uint8_t* data, size_t len) noexcept {
     const auto h = ethash_keccak256(data, len);
     H256 out;
-    std::memcpy(out.b, h.bytes, 32);
+    uint64_t* o = reinterpret_cast<uint64_t*>(out.b);
+    o[0] = h.word64s[0];
+    o[1] = h.word64s[1];
+    o[2] = h.word64s[2];
+    o[3] = h.word64s[3];
     return out;
 }
 
@@ -21,29 +25,39 @@ const H256 kEmptyTrieRoot = {{0x56, 0xe8, 0x1f, 0x17, 0x1b, 0xcc, 0x55, 0xa6, 0x
                               0xe6, 0x92, 0xc0, 0xf8, 0x6e, 0x5b, 0x48, 0xe0, 0x1b, 0x99, 0x6c,
                               0xad, 0xc0, 0x01, 0x62, 0x2f, 0xb5, 0xe3, 0x63, 0xb4, 0x21}};
 
-// ---------------------------------------------------------------- RLP ----
 namespace {
 
+inline uint64_t ld8_unaligned(const uint8_t* p) {
+    uint64_t v = 0;
+    for (int i = 7; i >= 0; --i) v = (v << 8) | p[i];
+    return v;
+}
+inline void copy32_from_bytes(H256& dst, const uint8_t* src) {
+    uint64_t* d = reinterpret_cast<uint64_t*>(dst.b);
+    if ((reinterpret_cast<uintptr_t>(src) & 7) == 0) {
+        const uint64_t* s = reinterpret_cast<const uint64_t*>(src);
+        d[0] = s[0]; d[1] = s[1]; d[2] = s[2]; d[3] = s[3];
+    } else {
+        d[0] = ld8_unaligned(src); d[1] = ld8_unaligned(src + 8);
+        d[2] = ld8_unaligned(src + 16); d[3] = ld8_unaligned(src + 24);
+    }
+}
+
+// ---------------------------------------------------------------- RLP ----
 struct Item {
     bool list;
     const uint8_t* payload;
     size_t len;
-    const uint8_t* raw;
     size_t raw_len;
 };
 
-// Decode one item at p (bounded by end). Fatal on malformed input.
-Item decode(const uint8_t* p, const uint8_t* end) {
+inline Item decode(const uint8_t* p, const uint8_t* end) {
     if (p >= end) stwo_fatal("rlp: empty");
     const uint8_t b = p[0];
-    Item it{};
-    it.raw = p;
+    Item it;
     size_t hdr, len;
     if (b < 0x80) {
-        it.list = false;
-        it.payload = p;
-        it.len = 1;
-        it.raw_len = 1;
+        it.list = false; it.payload = p; it.len = 1; it.raw_len = 1;
         return it;
     } else if (b <= 0xb7) {
         it.list = false; hdr = 1; len = b - 0x80;
@@ -71,30 +85,43 @@ Item decode(const uint8_t* p, const uint8_t* end) {
     return it;
 }
 
-// Split a list payload into up to `max` items; returns the count.
-size_t items(const Item& list, Item* out, size_t max) {
-    const uint8_t* p = list.payload;
-    const uint8_t* end = p + list.len;
-    size_t n = 0;
-    while (p < end) {
-        if (n == max) stwo_fatal("rlp: too many list items");
-        out[n] = decode(p, end);
-        p += out[n].raw_len;
-        ++n;
-    }
-    return n;
-}
-
 inline uint8_t nibble(const uint8_t* key, size_t i) {
     return (i & 1) ? (key[i >> 1] & 0x0f) : (key[i >> 1] >> 4);
 }
 
-// Hex-prefix decode: returns is_leaf, writes nibbles.
-bool hp_decode(const Item& it, uint8_t* nib, size_t& n) {
+}  // namespace
+
+// --------------------------------------------------------- decoded node ----
+// A child reference of a witness node: empty, a 32-byte hash (slot resolved
+// lazily) or an embedded node (< 32 bytes, decoded lazily).
+struct CRef {
+    uint8_t type;  // 0 empty, 1 hash, 2 embedded
+    mutable bool missing;  // type 1: lookup failed
+    uint32_t len;
+    const uint8_t* p;
+    // type 1: resolved slot (nullptr until looked up); type 2: decoded node.
+    mutable union {
+        NodeStore::Slot* slot;
+        const DNode* emb;
+    } u;
+};
+
+struct DNode {
+    uint8_t kind;  // 0 leaf, 1 extension, 2 branch
+    uint8_t plen;
+    uint8_t path[64];
+    const uint8_t* value;  // leaf payload
+    uint32_t vlen;
+    CRef child[16];  // ext uses child[0]
+};
+
+namespace {
+
+void hp_decode(const Item& it, uint8_t* nib, size_t& n, bool& leaf) {
     if (it.list || it.len == 0) stwo_fatal("trie: bad path item");
     const uint8_t f = it.payload[0] >> 4;
     if (f > 3) stwo_fatal("trie: bad path flag");
-    const bool leaf = f >= 2;
+    leaf = f >= 2;
     n = 0;
     if (f & 1) nib[n++] = it.payload[0] & 0x0f;
     else if ((it.payload[0] & 0x0f) != 0) stwo_fatal("trie: bad path padding");
@@ -103,7 +130,90 @@ bool hp_decode(const Item& it, uint8_t* nib, size_t& n) {
         nib[n++] = it.payload[i] >> 4;
         nib[n++] = it.payload[i] & 0x0f;
     }
-    return leaf;
+}
+
+CRef make_cref(const Item& it) {
+    CRef r{};
+    if (it.list) {
+        r.type = 2;
+        r.p = it.payload - (it.raw_len - it.len);
+        r.len = static_cast<uint32_t>(it.raw_len);
+    } else if (it.len == 0) {
+        r.type = 0;
+    } else if (it.len == 32) {
+        r.type = 1;
+        r.p = it.payload;
+        r.len = 32;
+    } else {
+        stwo_fatal("trie: bad child reference");
+    }
+    return r;
+}
+
+DNode* decode_dnode(const uint8_t* p, size_t n) {
+    const Item node = decode(p, p + n);
+    if (!node.list || node.raw_len != n) stwo_fatal("trie: node is not a list");
+    DNode* d = static_cast<DNode*>(std::malloc(sizeof(DNode)));
+    const uint8_t* q = node.payload;
+    const uint8_t* end = q + node.len;
+    Item parts[3];
+    size_t count = 0;
+    // Peek: a branch has 17 items, leaf/extension 2.
+    Item first = decode(q, end);
+    Item second = decode(q + first.raw_len, end);
+    const uint8_t* after2 = q + first.raw_len + second.raw_len;
+    if (after2 == end) {
+        parts[0] = first;
+        parts[1] = second;
+        count = 2;
+        size_t pn;
+        bool leaf;
+        hp_decode(parts[0], d->path, pn, leaf);
+        d->plen = static_cast<uint8_t>(pn);
+        if (leaf) {
+            if (parts[1].list) stwo_fatal("trie: leaf value is a list");
+            d->kind = 0;
+            d->value = parts[1].payload;
+            d->vlen = static_cast<uint32_t>(parts[1].len);
+        } else {
+            if (pn == 0) stwo_fatal("trie: empty extension");
+            d->kind = 1;
+            d->child[0] = make_cref(parts[1]);
+        }
+        return d;
+    }
+    d->kind = 2;
+    d->plen = 0;
+    d->child[0] = make_cref(first);
+    d->child[1] = make_cref(second);
+    q = after2;
+    for (int i = 2; i < 16; ++i) {
+        const Item it = decode(q, end);
+        d->child[i] = make_cref(it);
+        q += it.raw_len;
+    }
+    const Item v = decode(q, end);
+    if (v.list || v.len != 0) stwo_fatal("trie: branch with value");
+    if (q + v.raw_len != end) stwo_fatal("trie: bad node arity");
+    (void)count;
+    return d;
+}
+
+// Resolve a child reference to a decoded node; nullptr = empty; *missing set
+// when the hash is not in the witness.
+const DNode* follow(const NodeStore& store, const CRef& c, bool& missing) {
+    missing = false;
+    if (c.type == 0) return nullptr;
+    if (c.type == 2) {
+        if (!c.u.emb) c.u.emb = decode_dnode(c.p, c.len);
+        return c.u.emb;
+    }
+    if (!c.u.slot) {
+        if (c.missing) { missing = true; return nullptr; }
+        c.u.slot = store.find_bytes(c.p);
+        if (!c.u.slot) { c.missing = true; missing = true; return nullptr; }
+    }
+    return store.decoded(c.u.slot);
 }
 
 }  // namespace
@@ -117,105 +227,100 @@ void NodeStore::init(size_t expected) {
     count_ = 0;
 }
 
-static inline size_t slot_hash(const H256& h) {
-    uint64_t v;
-    std::memcpy(&v, h.b, 8);
-    return static_cast<size_t>(v);
-}
+static inline size_t slot_index(uint64_t first_word) { return static_cast<size_t>(first_word); }
 
 void NodeStore::add(const uint8_t* rlp, size_t len) {
     if (count_ * 2 >= mask_) stwo_fatal("node store overflow");
     const H256 h = keccak(rlp, len);
-    size_t i = slot_hash(h) & mask_;
+    size_t i = slot_index(*reinterpret_cast<const uint64_t*>(h.b)) & mask_;
     while (slots_[i].p != nullptr) {
         if (slots_[i].key == h) return;  // duplicate node
         i = (i + 1) & mask_;
     }
-    slots_[i] = Slot{h, rlp, len};
+    slots_[i] = Slot{h, rlp, len, nullptr};
     ++count_;
 }
 
-bool NodeStore::find(const H256& h, ByteView& out) const noexcept {
-    size_t i = slot_hash(h) & mask_;
+NodeStore::Slot* NodeStore::find(const H256& h) const noexcept {
+    size_t i = slot_index(*reinterpret_cast<const uint64_t*>(h.b)) & mask_;
     while (slots_[i].p != nullptr) {
-        if (slots_[i].key == h) {
-            out = ByteView{slots_[i].p, slots_[i].n};
-            return true;
-        }
+        if (slots_[i].key == h) return &slots_[i];
         i = (i + 1) & mask_;
     }
-    return false;
+    return nullptr;
+}
+
+NodeStore::Slot* NodeStore::find_bytes(const uint8_t* h32) const noexcept {
+    H256 h;
+    copy32_from_bytes(h, h32);
+    return find(h);
+}
+
+const DNode* NodeStore::decoded(Slot* s) const {
+    if (!s->dec) s->dec = decode_dnode(s->p, s->n);
+    return s->dec;
 }
 
 // -------------------------------------------------------------- lookup ----
 Lookup trie_get(const NodeStore& store, const H256& root, const uint8_t key[32],
                 ByteView& value) noexcept {
     if (root == kEmptyTrieRoot) return Lookup::Absent;
-    ByteView raw;
-    if (!store.find(root, raw)) return Lookup::Missing;
-    Item node = decode(raw.p, raw.p + raw.n);
+    NodeStore::Slot* rs = store.find(root);
+    if (!rs) return Lookup::Missing;
+    const DNode* d = store.decoded(rs);
     size_t depth = 0;
-    Item parts[17];
-    uint8_t nib[64];
     for (;;) {
-        if (!node.list) stwo_fatal("trie: node is not a list");
-        const size_t n = items(node, parts, 17);
-        Item child;
-        if (n == 17) {
+        const CRef* next;
+        if (d->kind == 2) {
             if (depth >= 64) stwo_fatal("trie: branch below key length");
-            child = parts[nibble(key, depth)];
+            next = &d->child[nibble(key, depth)];
             ++depth;
-        } else if (n == 2) {
-            size_t pn;
-            const bool leaf = hp_decode(parts[0], nib, pn);
+        } else {
+            const size_t pn = d->plen;
             if (depth + pn > 64) return Lookup::Absent;
             for (size_t i = 0; i < pn; ++i) {
-                if (nib[i] != nibble(key, depth + i)) return Lookup::Absent;
+                if (d->path[i] != nibble(key, depth + i)) return Lookup::Absent;
             }
             depth += pn;
-            if (leaf) {
+            if (d->kind == 0) {
                 if (depth != 64) return Lookup::Absent;
-                if (parts[1].list) stwo_fatal("trie: leaf value is a list");
-                value = ByteView{parts[1].payload, parts[1].len};
+                value = ByteView{d->value, d->vlen};
                 return Lookup::Found;
             }
-            child = parts[1];
-        } else {
-            stwo_fatal("trie: bad node arity");
+            next = &d->child[0];
         }
-        // Follow the child reference.
-        if (child.list) {
-            node = child;  // embedded node
-        } else if (child.len == 0) {
-            return Lookup::Absent;
-        } else if (child.len == 32) {
-            H256 h;
-            std::memcpy(h.b, child.payload, 32);
-            if (!store.find(h, raw)) return Lookup::Missing;
-            node = decode(raw.p, raw.p + raw.n);
-        } else {
-            stwo_fatal("trie: bad child reference");
-        }
+        bool missing;
+        d = follow(store, *next, missing);
+        if (missing) return Lookup::Missing;
+        if (!d) return Lookup::Absent;
     }
 }
 
 // --------------------------------------------------------- MutableTrie ----
+// Children are either owned mutable nodes (modified in place; `dirty` marks a
+// cached hash as stale) or tagged pointers to a witness node's raw child
+// reference (low bit set): untouched subtrees cost no allocation and encode as
+// their original RLP reference. The root may be a Clean node (known hash).
 struct MutableTrie::Node {
-    enum Kind : uint8_t { Empty, Leaf, Ext, Branch, HashRef } kind;
-    bool dirty;       // modified since resolution (hash must be recomputed)
-    bool has_hash;    // `hash` is the keccak of this node's encoding
+    enum Kind : uint8_t { Empty, Leaf, Ext, Branch, Clean } kind;
+    bool dirty;
+    bool has_hash;
     uint8_t plen;
-    uint8_t path[64];
+    uint32_t vlen;
     H256 hash;
-    const uint8_t* value;  // Leaf payload
-    size_t vlen;
-    Node* child[16];       // Ext uses child[0]
+    const uint8_t* value;
+    Node* child[16];  // Ext uses child[0]
+    uint8_t path[64];
 };
 
 namespace {
 using Node = MutableTrie::Node;
 
-Node* new_node(Node::Kind k) {
+inline bool is_cref(const Node* n) { return reinterpret_cast<uintptr_t>(n) & 1; }
+inline const CRef* cref_of(const Node* n) { return reinterpret_cast<const CRef*>(reinterpret_cast<uintptr_t>(n) & ~uintptr_t(1)); }
+inline Node* tag(const CRef* c) { return reinterpret_cast<Node*>(reinterpret_cast<uintptr_t>(c) | 1); }
+
+inline Node* alloc_node(Node::Kind k) {
     Node* n = static_cast<Node*>(std::malloc(sizeof(Node)));
     n->kind = k;
     n->dirty = true;
@@ -223,156 +328,133 @@ Node* new_node(Node::Kind k) {
     n->plen = 0;
     n->value = nullptr;
     n->vlen = 0;
-    for (auto& c : n->child) c = nullptr;
     return n;
 }
 
-Node* g_empty = nullptr;
-Node* empty_node() {
-    if (!g_empty) {
-        g_empty = new_node(Node::Empty);
-        g_empty->dirty = false;
-    }
-    return g_empty;
-}
+Node g_empty_node = {Node::Empty, false, false, 0, 0, {}, nullptr, {}, {}};
+inline Node* empty_node() { return &g_empty_node; }
+inline bool is_empty(const Node* n) { return !is_cref(n) && n->kind == Node::Empty; }
 
-Node* from_item(const Item& it, const NodeStore& store);
+inline Node* child_of(const CRef& c) { return c.type == 0 ? empty_node() : tag(&c); }
 
-// Decode a node's RLP list into a Node whose children are HashRef / embedded.
-Node* decode_node(const Item& node, const NodeStore& store) {
-    if (!node.list) stwo_fatal("trie: node is not a list");
-    Item parts[17];
-    const size_t n = items(node, parts, 17);
-    if (n == 17) {
-        Node* b = new_node(Node::Branch);
-        for (int i = 0; i < 16; ++i) b->child[i] = from_item(parts[i], store);
-        if (parts[16].list || parts[16].len != 0) stwo_fatal("trie: branch with value");
-        return b;
-    }
-    if (n != 2) stwo_fatal("trie: bad node arity");
-    size_t pn;
-    uint8_t nib[64];
-    const bool leaf = hp_decode(parts[0], nib, pn);
-    Node* x = new_node(leaf ? Node::Leaf : Node::Ext);
-    x->plen = static_cast<uint8_t>(pn);
-    std::memcpy(x->path, nib, pn);
-    if (leaf) {
-        if (parts[1].list) stwo_fatal("trie: leaf value is a list");
-        x->value = parts[1].payload;
-        x->vlen = parts[1].len;
+// Materialize a decoded witness node into an owned node (children tagged).
+Node* own_dnode(const DNode* d) {
+    Node* m;
+    if (d->kind == 2) {
+        m = alloc_node(Node::Branch);
+        for (int i = 0; i < 16; ++i) m->child[i] = child_of(d->child[i]);
+    } else if (d->kind == 1) {
+        m = alloc_node(Node::Ext);
+        m->plen = d->plen;
+        std::memcpy(m->path, d->path, d->plen);
+        m->child[0] = child_of(d->child[0]);
     } else {
-        if (pn == 0) stwo_fatal("trie: empty extension");
-        x->child[0] = from_item(parts[1], store);
+        m = alloc_node(Node::Leaf);
+        m->plen = d->plen;
+        std::memcpy(m->path, d->path, d->plen);
+        m->value = d->value;
+        m->vlen = d->vlen;
     }
-    return x;
+    return m;
 }
 
-Node* from_item(const Item& it, const NodeStore& store) {
-    if (it.list) {
-        Node* e = decode_node(it, store);
-        e->dirty = false;
-        return e;
+// Owned form of any child (tagged ref, Clean root, or already owned).
+Node* own(Node* n, const NodeStore& store) {
+    if (is_cref(n)) {
+        const CRef* c = cref_of(n);
+        bool missing;
+        const DNode* d = follow(store, *c, missing);
+        if (missing || !d) stwo_fatal("state key not in witness: trie node");
+        Node* m = own_dnode(d);
+        if (c->type == 1) {
+            copy32_from_bytes(m->hash, c->p);
+            m->has_hash = true;
+            m->dirty = false;
+        }
+        return m;
     }
-    if (it.len == 0) return empty_node();
-    if (it.len != 32) stwo_fatal("trie: bad child reference");
-    Node* h = new_node(Node::HashRef);
-    std::memcpy(h->hash.b, it.payload, 32);
-    h->has_hash = true;
-    h->dirty = false;
-    return h;
-}
-
-// Resolve a HashRef in place (keeps the pointer identity of the parent slot).
-Node* resolve(Node* n, const NodeStore& store) {
-    if (n->kind != Node::HashRef) return n;
-    ByteView raw;
-    if (!store.find(n->hash, raw)) stwo_fatal("state key not in witness: trie node");
-    Item it = decode(raw.p, raw.p + raw.n);
-    Node* r = decode_node(it, store);
-    r->dirty = false;
-    r->has_hash = true;
-    r->hash = n->hash;
-    return r;
+    if (n->kind != Node::Clean) return n;
+    NodeStore::Slot* s = store.find(n->hash);
+    if (!s) stwo_fatal("state key not in witness: trie node");
+    Node* m = own_dnode(store.decoded(s));
+    m->hash = n->hash;
+    m->has_hash = true;
+    m->dirty = false;
+    return m;
 }
 
 Node* make_leaf(const uint8_t* nib, size_t n, const uint8_t* value, size_t vlen) {
-    Node* l = new_node(Node::Leaf);
+    Node* l = alloc_node(Node::Leaf);
     l->plen = static_cast<uint8_t>(n);
     std::memcpy(l->path, nib, n);
     l->value = value;
-    l->vlen = vlen;
+    l->vlen = static_cast<uint32_t>(vlen);
     return l;
 }
 
 Node* make_ext(const uint8_t* nib, size_t n, Node* child) {
     if (n == 0) return child;
-    Node* e = new_node(Node::Ext);
+    Node* e = alloc_node(Node::Ext);
     e->plen = static_cast<uint8_t>(n);
     std::memcpy(e->path, nib, n);
     e->child[0] = child;
     return e;
 }
 
-// Shorten a leaf/ext's path by dropping its first `k` nibbles (copy-on-write).
+// Drop the first `k` nibbles of an owned leaf/extension in place.
 Node* drop_prefix(Node* n, size_t k) {
-    Node* c = new_node(n->kind);
-    *c = *n;
-    c->dirty = true;
-    c->has_hash = false;
-    c->plen = static_cast<uint8_t>(n->plen - k);
-    std::memmove(c->path, n->path + k, c->plen);
-    if (c->kind == Node::Ext && c->plen == 0) return c->child[0];
-    return c;
+    n->plen = static_cast<uint8_t>(n->plen - k);
+    std::memmove(n->path, n->path + k, n->plen);
+    n->dirty = true;
+    if (n->kind == Node::Ext && n->plen == 0) return n->child[0];
+    return n;
+}
+
+Node* split_into_branch(Node* n, const uint8_t* rest, size_t rlen, size_t c, const uint8_t* value,
+                        size_t vlen) {
+    Node* b = alloc_node(Node::Branch);
+    for (auto& ch : b->child) ch = empty_node();
+    Node* common = make_ext(rest, c, b);  // copies the common prefix before n is shortened
+    const uint8_t old_nib = n->path[c];
+    b->child[old_nib] = drop_prefix(n, c + 1);
+    b->child[rest[c]] = make_leaf(rest + c + 1, rlen - c - 1, value, vlen);
+    return common;
 }
 
 Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, size_t vlen,
              const NodeStore& store) {
-    n = resolve(n, store);
     const uint8_t* rest = key + depth;
     const size_t rlen = 64 - depth;
+    if (is_empty(n)) return make_leaf(rest, rlen, value, vlen);
+    n = own(n, store);
     switch (n->kind) {
-        case Node::Empty:
-            return make_leaf(rest, rlen, value, vlen);
         case Node::Leaf: {
             size_t c = 0;
             while (c < n->plen && c < rlen && n->path[c] == rest[c]) ++c;
             if (c == n->plen && c == rlen) {
-                Node* l = make_leaf(n->path, n->plen, value, vlen);
-                return l;
+                n->value = value;
+                n->vlen = static_cast<uint32_t>(vlen);
+                n->dirty = true;
+                return n;
             }
             if (c == n->plen || c == rlen) stwo_fatal("trie: key length mismatch");
-            Node* b = new_node(Node::Branch);
-            for (auto& ch : b->child) ch = empty_node();
-            b->child[n->path[c]] = drop_prefix(n, c + 1);
-            b->child[rest[c]] = make_leaf(rest + c + 1, rlen - c - 1, value, vlen);
-            return make_ext(rest, c, b);
+            return split_into_branch(n, rest, rlen, c, value, vlen);
         }
         case Node::Ext: {
             size_t c = 0;
             while (c < n->plen && c < rlen && n->path[c] == rest[c]) ++c;
             if (c == n->plen) {
-                Node* e = new_node(Node::Ext);
-                *e = *n;
-                e->dirty = true;
-                e->has_hash = false;
-                e->child[0] = insert(n->child[0], key, depth + c, value, vlen, store);
-                return e;
+                n->child[0] = insert(n->child[0], key, depth + c, value, vlen, store);
+                n->dirty = true;
+                return n;
             }
             if (c == rlen) stwo_fatal("trie: key length mismatch");
-            Node* b = new_node(Node::Branch);
-            for (auto& ch : b->child) ch = empty_node();
-            b->child[n->path[c]] = drop_prefix(n, c + 1);
-            b->child[rest[c]] = make_leaf(rest + c + 1, rlen - c - 1, value, vlen);
-            return make_ext(rest, c, b);
+            return split_into_branch(n, rest, rlen, c, value, vlen);
         }
-        case Node::Branch: {
-            Node* b = new_node(Node::Branch);
-            *b = *n;
-            b->dirty = true;
-            b->has_hash = false;
-            b->child[rest[0]] = insert(n->child[rest[0]], key, depth + 1, value, vlen, store);
-            return b;
-        }
+        case Node::Branch:
+            n->child[rest[0]] = insert(n->child[rest[0]], key, depth + 1, value, vlen, store);
+            n->dirty = true;
+            return n;
         default:
             stwo_fatal("trie: unreachable");
     }
@@ -380,16 +462,13 @@ Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, si
 
 // Merge a single remaining branch child `c` at nibble `i` into its parent slot.
 Node* collapse_child(uint8_t i, Node* c, const NodeStore& store) {
-    c = resolve(c, store);
+    c = own(c, store);
     if (c->kind == Node::Leaf || c->kind == Node::Ext) {
-        Node* m = new_node(c->kind);
-        *m = *c;
-        m->dirty = true;
-        m->has_hash = false;
-        m->plen = static_cast<uint8_t>(c->plen + 1);
-        m->path[0] = i;
-        std::memcpy(m->path + 1, c->path, c->plen);
-        return m;
+        std::memmove(c->path + 1, c->path, c->plen);
+        c->path[0] = i;
+        c->plen = static_cast<uint8_t>(c->plen + 1);
+        c->dirty = true;
+        return c;
     }
     if (c->kind == Node::Branch) {
         uint8_t p[1] = {i};
@@ -398,54 +477,51 @@ Node* collapse_child(uint8_t i, Node* c, const NodeStore& store) {
     stwo_fatal("trie: collapse of empty child");
 }
 
-Node* remove(Node* n, const uint8_t* key, size_t depth, const NodeStore& store) {
-    if (n->kind == Node::Empty) return n;
-    n = resolve(n, store);
+// Returns the new subtree; `changed` reports whether anything was removed.
+Node* remove(Node* n, const uint8_t* key, size_t depth, const NodeStore& store, bool& changed) {
+    changed = false;
+    if (is_empty(n)) return n;
     const uint8_t* rest = key + depth;
     const size_t rlen = 64 - depth;
-    switch (n->kind) {
+    Node* o = own(n, store);
+    switch (o->kind) {
         case Node::Leaf:
-            if (n->plen == rlen && std::memcmp(n->path, rest, rlen) == 0) return empty_node();
-            return n;  // absent
-        case Node::Ext: {
-            if (n->plen > rlen || std::memcmp(n->path, rest, n->plen) != 0) return n;
-            Node* c = remove(n->child[0], key, depth + n->plen, store);
-            if (c == n->child[0]) return n;
-            if (c->kind == Node::Empty) return c;
-            c = resolve(c, store);
-            if (c->kind == Node::Leaf || c->kind == Node::Ext) {
-                Node* m = new_node(c->kind);
-                *m = *c;
-                m->dirty = true;
-                m->has_hash = false;
-                m->plen = static_cast<uint8_t>(n->plen + c->plen);
-                std::memcpy(m->path, n->path, n->plen);
-                std::memcpy(m->path + n->plen, c->path, c->plen);
-                return m;
+            if (o->plen == rlen && std::memcmp(o->path, rest, rlen) == 0) {
+                changed = true;
+                return empty_node();
             }
-            Node* e = new_node(Node::Ext);
-            *e = *n;
-            e->dirty = true;
-            e->has_hash = false;
-            e->child[0] = c;
-            return e;
+            return n;
+        case Node::Ext: {
+            if (o->plen > rlen || std::memcmp(o->path, rest, o->plen) != 0) return n;
+            Node* c = remove(o->child[0], key, depth + o->plen, store, changed);
+            if (!changed) return n;
+            if (is_empty(c)) return c;
+            c = own(c, store);
+            if (c->kind == Node::Leaf || c->kind == Node::Ext) {
+                // Merge the extension path into the child.
+                std::memmove(c->path + o->plen, c->path, c->plen);
+                std::memcpy(c->path, o->path, o->plen);
+                c->plen = static_cast<uint8_t>(c->plen + o->plen);
+                c->dirty = true;
+                return c;
+            }
+            o->child[0] = c;
+            o->dirty = true;
+            return o;
         }
         case Node::Branch: {
-            Node* old = n->child[rest[0]];
-            Node* c = remove(old, key, depth + 1, store);
-            if (c == old) return n;
-            Node* b = new_node(Node::Branch);
-            *b = *n;
-            b->dirty = true;
-            b->has_hash = false;
-            b->child[rest[0]] = c;
+            const uint8_t nib = rest[0];
+            Node* c = remove(o->child[nib], key, depth + 1, store, changed);
+            if (!changed) return n;
+            o->child[nib] = c;
+            o->dirty = true;
             int count = 0, last = -1;
             for (int i = 0; i < 16; ++i) {
-                if (b->child[i]->kind != Node::Empty) { ++count; last = i; }
+                if (!is_empty(o->child[i])) { ++count; last = i; }
             }
-            if (count >= 2) return b;
+            if (count >= 2) return o;
             if (count == 0) return empty_node();
-            return collapse_child(static_cast<uint8_t>(last), b->child[last], store);
+            return collapse_child(static_cast<uint8_t>(last), o->child[last], store);
         }
         default:
             stwo_fatal("trie: unreachable");
@@ -457,7 +533,11 @@ struct Buf {
     uint8_t* p;
     size_t n;
     void byte(uint8_t b) { p[n++] = b; }
-    void bytes(const uint8_t* s, size_t k) { std::memcpy(p + n, s, k); n += k; }
+    void bytes(const uint8_t* s, size_t k) {
+        if (k > 8) std::memcpy(p + n, s, k);
+        else for (size_t i = 0; i < k; ++i) p[n + i] = s[i];
+        n += k;
+    }
 };
 
 size_t len_of_len(size_t l) { size_t k = 0; while (l) { ++k; l >>= 8; } return k; }
@@ -493,78 +573,82 @@ size_t hp_encode(const uint8_t* nib, size_t n, bool leaf, uint8_t* out) {
     return k;
 }
 
-// A child reference: either a 32-byte hash or an embedded encoding (< 32 B).
-struct Ref {
-    bool embedded;
-    uint8_t len;
-    uint8_t data[32];
-};
+size_t encode(Node* n, uint8_t* out, const NodeStore& store);
 
-Ref ref_of(Node* n, const NodeStore& store);
+// Child reference: returns 0 when the child is referenced by hash (`hash`
+// receives a pointer to the 32 bytes) or the embedded encoding length.
+size_t child_ref(Node* n, uint8_t emb[32], const uint8_t*& hash, const NodeStore& store) {
+    if (is_cref(n)) {
+        const CRef* c = cref_of(n);
+        if (c->type == 1) { hash = c->p; return 0; }
+        for (uint32_t i = 0; i < c->len; ++i) emb[i] = c->p[i];  // embedded: raw RLP
+        return c->len;
+    }
+    if (n->kind == Node::Clean) n = own(n, store);
+    if (!(n->has_hash && !n->dirty)) {
+        uint8_t buf[600];
+        const size_t len = encode(n, buf, store);
+        if (len < 32) {
+            for (size_t i = 0; i < len; ++i) emb[i] = buf[i];
+            return len;
+        }
+        n->hash = keccak(buf, len);
+        n->has_hash = true;
+        n->dirty = false;
+    }
+    hash = n->hash.b;
+    return 0;
+}
 
-// Encode node `n` (not Empty/HashRef) into `out` (>= 1100 bytes).
+inline void put_hash(Buf& b, const uint8_t* h) {
+    uint8_t* d = b.p + b.n;
+    d[0] = 0xa0;
+    std::memcpy(d + 1, h, 32);
+    b.n += 33;
+}
+
+// Encode node `n` (Leaf/Ext/Branch) into `out` (>= 600 bytes).
 size_t encode(Node* n, uint8_t* out, const NodeStore& store) {
     Buf b{out, 0};
     if (n->kind == Node::Branch) {
-        Ref refs[16];
+        uint8_t emb[16][32];
+        uint8_t elen[16];
+        const uint8_t* hp[16];
         size_t payload = 1;  // the empty value slot
         for (int i = 0; i < 16; ++i) {
-            if (n->child[i]->kind == Node::Empty) { refs[i].embedded = true; refs[i].len = 0; payload += 1; continue; }
-            refs[i] = ref_of(n->child[i], store);
-            payload += refs[i].embedded ? refs[i].len : 33;
+            Node* c = n->child[i];
+            if (is_empty(c)) { elen[i] = 255; payload += 1; continue; }
+            const size_t e = child_ref(c, emb[i], hp[i], store);
+            elen[i] = static_cast<uint8_t>(e);
+            payload += e ? e : 33;
         }
         put_header(b, payload, 0xc0, 0xf7);
         for (int i = 0; i < 16; ++i) {
-            if (refs[i].embedded) {
-                if (refs[i].len == 0) b.byte(0x80);
-                else b.bytes(refs[i].data, refs[i].len);
-            } else {
-                b.byte(0xa0);
-                b.bytes(refs[i].data, 32);
-            }
+            if (elen[i] == 255) b.byte(0x80);
+            else if (elen[i]) b.bytes(emb[i], elen[i]);
+            else put_hash(b, hp[i]);
         }
         b.byte(0x80);
         return b.n;
     }
-    uint8_t hp[33];
-    const size_t hpn = hp_encode(n->path, n->plen, n->kind == Node::Leaf, hp);
+    uint8_t hpath[33];
+    const size_t hpn = hp_encode(n->path, n->plen, n->kind == Node::Leaf, hpath);
     if (n->kind == Node::Leaf) {
-        const size_t payload = string_size(hp, hpn) + string_size(n->value, n->vlen);
+        const size_t payload = string_size(hpath, hpn) + string_size(n->value, n->vlen);
         put_header(b, payload, 0xc0, 0xf7);
-        put_string(b, hp, hpn);
+        put_string(b, hpath, hpn);
         put_string(b, n->value, n->vlen);
         return b.n;
     }
-    Ref r = ref_of(n->child[0], store);
-    const size_t payload = string_size(hp, hpn) + (r.embedded ? r.len : 33);
+    uint8_t emb[32];
+    const uint8_t* h = nullptr;
+    const size_t e = child_ref(n->child[0], emb, h, store);
+    const size_t payload = string_size(hpath, hpn) + (e ? e : 33);
     put_header(b, payload, 0xc0, 0xf7);
-    put_string(b, hp, hpn);
-    if (r.embedded) b.bytes(r.data, r.len);
-    else { b.byte(0xa0); b.bytes(r.data, 32); }
+    put_string(b, hpath, hpn);
+    if (e) b.bytes(emb, e);
+    else put_hash(b, h);
     return b.n;
-}
-
-Ref ref_of(Node* n, const NodeStore& store) {
-    Ref r;
-    if (n->has_hash && !n->dirty) {
-        r.embedded = false;
-        std::memcpy(r.data, n->hash.b, 32);
-        return r;
-    }
-    uint8_t buf[1100];
-    const size_t len = encode(n, buf, store);
-    if (len < 32) {
-        r.embedded = true;
-        r.len = static_cast<uint8_t>(len);
-        std::memcpy(r.data, buf, len);
-        return r;
-    }
-    n->hash = keccak(buf, len);
-    n->has_hash = true;
-    n->dirty = false;
-    r.embedded = false;
-    std::memcpy(r.data, n->hash.b, 32);
-    return r;
 }
 
 void unpack(const uint8_t key[32], uint8_t nib[64]) {
@@ -580,7 +664,7 @@ MutableTrie::MutableTrie(const NodeStore& store, const H256& root) noexcept : st
     if (root == kEmptyTrieRoot) {
         root_ = empty_node();
     } else {
-        root_ = new_node(Node::HashRef);
+        root_ = alloc_node(Node::Clean);
         root_->hash = root;
         root_->has_hash = true;
         root_->dirty = false;
@@ -589,7 +673,7 @@ MutableTrie::MutableTrie(const NodeStore& store, const H256& root) noexcept : st
 
 void MutableTrie::put(const uint8_t key[32], const uint8_t* value, size_t len) {
     uint8_t* v = static_cast<uint8_t*>(std::malloc(len ? len : 1));
-    std::memcpy(v, value, len);
+    for (size_t i = 0; i < len; ++i) v[i] = value[i];
     uint8_t nib[64];
     unpack(key, nib);
     root_ = insert(root_, nib, 0, v, len, store_);
@@ -598,14 +682,20 @@ void MutableTrie::put(const uint8_t key[32], const uint8_t* value, size_t len) {
 void MutableTrie::remove(const uint8_t key[32]) {
     uint8_t nib[64];
     unpack(key, nib);
-    root_ = stwo::remove(root_, nib, 0, store_);
+    bool changed;
+    root_ = stwo::remove(root_, nib, 0, store_, changed);
 }
 
 H256 MutableTrie::root_hash() {
-    if (root_->kind == Node::Empty) return kEmptyTrieRoot;
+    if (is_empty(root_)) return kEmptyTrieRoot;
+    if (is_cref(root_)) {
+        // A collapse can leave a witness child as the root.
+        root_ = own(root_, store_);
+    }
     if (root_->has_hash && !root_->dirty) return root_->hash;
-    uint8_t buf[1100];
-    const size_t len = encode(root_, buf, store_);
+    Node* r = own(root_, store_);
+    uint8_t buf[600];
+    const size_t len = encode(r, buf, store_);
     return keccak(buf, len);
 }
 
