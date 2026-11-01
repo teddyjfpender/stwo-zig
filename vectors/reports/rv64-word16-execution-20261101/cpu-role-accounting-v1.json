@@ -1,0 +1,1772 @@
+{
+  "schema": 1,
+  "scope": "Generated per-role CPU/bridge columns, native cells and known active/padding rows; observational metadata only",
+  "driver_sha256": "65da06c2ed4b8e2dbc649991847ac6813505b5dab56bd91b180c020334604d71",
+  "artifact_directory": "/tmp/rv64-roster-prefix4-v1",
+  "control_artifact_directory": "/tmp/rv64-roster-prefix4-control-v1",
+  "fresh_receiver": {
+    "core_schema": 4,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 2395365625,
+    "verify_ns": 271714666
+  },
+  "proof_parity": {
+    "all7proofs": true,
+    "bundle": true,
+    "cells": true,
+    "cost": true
+  },
+  "validation": {
+    "release_fast_terminal7": true,
+    "cpu_role_cell_sums_equal_actual_column_log_costs": true,
+    "absent_roles_have_zero_rows_and_cells": true,
+    "fixed_dictionary_active_counts_are_null": true,
+    "padding_includes_mandatory_inactive_rows": true
+  },
+  "roster": {
+    "schema": 1,
+    "scope": "CPU and service-bridge native component cells; padding includes required inactive guard rows; only known active physical row counts are reported; fixed dictionary occupancy is null; truth proofs remain separately counted in cost.json",
+    "cpu": [
+      [
+        {
+          "role": "cpu",
+          "present": true,
+          "log": 22,
+          "columns": [
+            3,
+            53,
+            40
+          ],
+          "native_rows": 4194304,
+          "active_rows": 4194303,
+          "padding_rows": 1,
+          "native_cells": [
+            12582912,
+            222298112,
+            167772160
+          ]
+        },
+        {
+          "role": "rom",
+          "present": true,
+          "log": 20,
+          "columns": [
+            32,
+            1,
+            8
+          ],
+          "native_rows": 1048576,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            33554432,
+            1048576,
+            8388608
+          ]
+        },
+        {
+          "role": "boundary",
+          "present": true,
+          "log": 5,
+          "columns": [
+            34,
+            0,
+            8
+          ],
+          "native_rows": 32,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1088,
+            0,
+            256
+          ]
+        },
+        {
+          "role": "alu",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            27262976,
+            16777216
+          ]
+        },
+        {
+          "role": "binary",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            22020096,
+            12582912
+          ]
+        },
+        {
+          "role": "shift",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            27787264,
+            18874368
+          ]
+        },
+        {
+          "role": "jalr",
+          "present": true,
+          "log": 14,
+          "columns": [
+            2,
+            18,
+            12
+          ],
+          "native_rows": 16384,
+          "active_rows": 9913,
+          "padding_rows": 6471,
+          "native_cells": [
+            32768,
+            294912,
+            196608
+          ]
+        },
+        {
+          "role": "division",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "multiplication",
+          "present": true,
+          "log": 13,
+          "columns": [
+            3,
+            87,
+            200
+          ],
+          "native_rows": 8192,
+          "active_rows": 5051,
+          "padding_rows": 3141,
+          "native_cells": [
+            24576,
+            712704,
+            1638400
+          ]
+        },
+        {
+          "role": "shift_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            18,
+            16,
+            36
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1179648,
+            1048576,
+            2359296
+          ]
+        },
+        {
+          "role": "and_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            5,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            327680,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range16",
+          "present": true,
+          "log": 16,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            196608,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range8",
+          "present": true,
+          "log": 8,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 256,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            768,
+            256,
+            2048
+          ]
+        },
+        {
+          "role": "ls",
+          "present": true,
+          "log": 20,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 1048576,
+          "active_rows": 1048575,
+          "padding_rows": 1,
+          "native_cells": [
+            3145728,
+            82837504,
+            50331648
+          ]
+        },
+        {
+          "role": "initial",
+          "present": true,
+          "log": 20,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 1048576,
+          "active_rows": 750521,
+          "padding_rows": 298055,
+          "native_cells": [
+            3145728,
+            24117248,
+            20971520
+          ]
+        },
+        {
+          "role": "terminal",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "selection",
+          "present": true,
+          "log": 16,
+          "columns": [
+            6,
+            2,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            393216,
+            131072,
+            524288
+          ]
+        },
+        {
+          "role": "ls_tail",
+          "present": true,
+          "log": 18,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 262144,
+          "active_rows": 153459,
+          "padding_rows": 108685,
+          "native_cells": [
+            786432,
+            20709376,
+            12582912
+          ]
+        },
+        {
+          "role": "alu_tail",
+          "present": true,
+          "log": 16,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 65536,
+          "active_rows": 50152,
+          "padding_rows": 15384,
+          "native_cells": [
+            131072,
+            3407872,
+            2097152
+          ]
+        },
+        {
+          "role": "binary_tail",
+          "present": true,
+          "log": 18,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 262144,
+          "active_rows": 149294,
+          "padding_rows": 112850,
+          "native_cells": [
+            524288,
+            11010048,
+            6291456
+          ]
+        },
+        {
+          "role": "shift_tail",
+          "present": true,
+          "log": 18,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 262144,
+          "active_rows": 219551,
+          "padding_rows": 42593,
+          "native_cells": [
+            524288,
+            13893632,
+            9437184
+          ]
+        },
+        {
+          "role": "keccak_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "add_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "double_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      [
+        {
+          "role": "cpu",
+          "present": true,
+          "log": 22,
+          "columns": [
+            3,
+            53,
+            40
+          ],
+          "native_rows": 4194304,
+          "active_rows": 4194303,
+          "padding_rows": 1,
+          "native_cells": [
+            12582912,
+            222298112,
+            167772160
+          ]
+        },
+        {
+          "role": "rom",
+          "present": true,
+          "log": 20,
+          "columns": [
+            32,
+            1,
+            8
+          ],
+          "native_rows": 1048576,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            33554432,
+            1048576,
+            8388608
+          ]
+        },
+        {
+          "role": "boundary",
+          "present": true,
+          "log": 5,
+          "columns": [
+            34,
+            0,
+            8
+          ],
+          "native_rows": 32,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1088,
+            0,
+            256
+          ]
+        },
+        {
+          "role": "alu",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            27262976,
+            16777216
+          ]
+        },
+        {
+          "role": "binary",
+          "present": true,
+          "log": 20,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 1048576,
+          "active_rows": 1048576,
+          "padding_rows": 0,
+          "native_cells": [
+            2097152,
+            44040192,
+            25165824
+          ]
+        },
+        {
+          "role": "shift",
+          "present": true,
+          "log": 20,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 1048576,
+          "active_rows": 889226,
+          "padding_rows": 159350,
+          "native_cells": [
+            2097152,
+            55574528,
+            37748736
+          ]
+        },
+        {
+          "role": "jalr",
+          "present": true,
+          "log": 13,
+          "columns": [
+            2,
+            18,
+            12
+          ],
+          "native_rows": 8192,
+          "active_rows": 4666,
+          "padding_rows": 3526,
+          "native_cells": [
+            16384,
+            147456,
+            98304
+          ]
+        },
+        {
+          "role": "division",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "multiplication",
+          "present": true,
+          "log": 11,
+          "columns": [
+            3,
+            87,
+            200
+          ],
+          "native_rows": 2048,
+          "active_rows": 1953,
+          "padding_rows": 95,
+          "native_cells": [
+            6144,
+            178176,
+            409600
+          ]
+        },
+        {
+          "role": "shift_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            18,
+            16,
+            36
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1179648,
+            1048576,
+            2359296
+          ]
+        },
+        {
+          "role": "and_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            5,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            327680,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range16",
+          "present": true,
+          "log": 16,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            196608,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range8",
+          "present": true,
+          "log": 8,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 256,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            768,
+            256,
+            2048
+          ]
+        },
+        {
+          "role": "ls",
+          "present": true,
+          "log": 19,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 524288,
+          "active_rows": 524287,
+          "padding_rows": 1,
+          "native_cells": [
+            1572864,
+            41418752,
+            25165824
+          ]
+        },
+        {
+          "role": "initial",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "terminal",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "selection",
+          "present": true,
+          "log": 16,
+          "columns": [
+            6,
+            2,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            393216,
+            131072,
+            524288
+          ]
+        },
+        {
+          "role": "ls_tail",
+          "present": true,
+          "log": 16,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 65536,
+          "active_rows": 48329,
+          "padding_rows": 17207,
+          "native_cells": [
+            196608,
+            5177344,
+            3145728
+          ]
+        },
+        {
+          "role": "alu_tail",
+          "present": true,
+          "log": 14,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 16384,
+          "active_rows": 10829,
+          "padding_rows": 5555,
+          "native_cells": [
+            32768,
+            851968,
+            524288
+          ]
+        },
+        {
+          "role": "binary_tail",
+          "present": true,
+          "log": 17,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 131072,
+          "active_rows": 99077,
+          "padding_rows": 31995,
+          "native_cells": [
+            262144,
+            5505024,
+            3145728
+          ]
+        },
+        {
+          "role": "shift_tail",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "keccak_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "add_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "double_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      [
+        {
+          "role": "cpu",
+          "present": true,
+          "log": 22,
+          "columns": [
+            3,
+            53,
+            40
+          ],
+          "native_rows": 4194304,
+          "active_rows": 4194303,
+          "padding_rows": 1,
+          "native_cells": [
+            12582912,
+            222298112,
+            167772160
+          ]
+        },
+        {
+          "role": "rom",
+          "present": true,
+          "log": 20,
+          "columns": [
+            32,
+            1,
+            8
+          ],
+          "native_rows": 1048576,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            33554432,
+            1048576,
+            8388608
+          ]
+        },
+        {
+          "role": "boundary",
+          "present": true,
+          "log": 5,
+          "columns": [
+            34,
+            0,
+            8
+          ],
+          "native_rows": 32,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1088,
+            0,
+            256
+          ]
+        },
+        {
+          "role": "alu",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 524288,
+          "active_rows": 505550,
+          "padding_rows": 18738,
+          "native_cells": [
+            1048576,
+            27262976,
+            16777216
+          ]
+        },
+        {
+          "role": "binary",
+          "present": true,
+          "log": 20,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 1048576,
+          "active_rows": 1048576,
+          "padding_rows": 0,
+          "native_cells": [
+            2097152,
+            44040192,
+            25165824
+          ]
+        },
+        {
+          "role": "shift",
+          "present": true,
+          "log": 20,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 1048576,
+          "active_rows": 899678,
+          "padding_rows": 148898,
+          "native_cells": [
+            2097152,
+            55574528,
+            37748736
+          ]
+        },
+        {
+          "role": "jalr",
+          "present": true,
+          "log": 13,
+          "columns": [
+            2,
+            18,
+            12
+          ],
+          "native_rows": 8192,
+          "active_rows": 4238,
+          "padding_rows": 3954,
+          "native_cells": [
+            16384,
+            147456,
+            98304
+          ]
+        },
+        {
+          "role": "division",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "multiplication",
+          "present": true,
+          "log": 11,
+          "columns": [
+            3,
+            87,
+            200
+          ],
+          "native_rows": 2048,
+          "active_rows": 2035,
+          "padding_rows": 13,
+          "native_cells": [
+            6144,
+            178176,
+            409600
+          ]
+        },
+        {
+          "role": "shift_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            18,
+            16,
+            36
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1179648,
+            1048576,
+            2359296
+          ]
+        },
+        {
+          "role": "and_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            5,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            327680,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range16",
+          "present": true,
+          "log": 16,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            196608,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range8",
+          "present": true,
+          "log": 8,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 256,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            768,
+            256,
+            2048
+          ]
+        },
+        {
+          "role": "ls",
+          "present": true,
+          "log": 19,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 524288,
+          "active_rows": 524287,
+          "padding_rows": 1,
+          "native_cells": [
+            1572864,
+            41418752,
+            25165824
+          ]
+        },
+        {
+          "role": "initial",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "terminal",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "selection",
+          "present": true,
+          "log": 16,
+          "columns": [
+            6,
+            2,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            393216,
+            131072,
+            524288
+          ]
+        },
+        {
+          "role": "ls_tail",
+          "present": true,
+          "log": 15,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 32768,
+          "active_rows": 24771,
+          "padding_rows": 7997,
+          "native_cells": [
+            98304,
+            2588672,
+            1572864
+          ]
+        },
+        {
+          "role": "alu_tail",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "binary_tail",
+          "present": true,
+          "log": 17,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 131072,
+          "active_rows": 111221,
+          "padding_rows": 19851,
+          "native_cells": [
+            262144,
+            5505024,
+            3145728
+          ]
+        },
+        {
+          "role": "shift_tail",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "keccak_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "add_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "double_bridge",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      [
+        {
+          "role": "cpu",
+          "present": true,
+          "log": 22,
+          "columns": [
+            3,
+            53,
+            40
+          ],
+          "native_rows": 4194304,
+          "active_rows": 4194303,
+          "padding_rows": 1,
+          "native_cells": [
+            12582912,
+            222298112,
+            167772160
+          ]
+        },
+        {
+          "role": "rom",
+          "present": true,
+          "log": 20,
+          "columns": [
+            32,
+            1,
+            8
+          ],
+          "native_rows": 1048576,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            33554432,
+            1048576,
+            8388608
+          ]
+        },
+        {
+          "role": "boundary",
+          "present": true,
+          "log": 5,
+          "columns": [
+            34,
+            0,
+            8
+          ],
+          "native_rows": 32,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1088,
+            0,
+            256
+          ]
+        },
+        {
+          "role": "alu",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            27262976,
+            16777216
+          ]
+        },
+        {
+          "role": "binary",
+          "present": true,
+          "log": 20,
+          "columns": [
+            2,
+            42,
+            24
+          ],
+          "native_rows": 1048576,
+          "active_rows": 871075,
+          "padding_rows": 177501,
+          "native_cells": [
+            2097152,
+            44040192,
+            25165824
+          ]
+        },
+        {
+          "role": "shift",
+          "present": true,
+          "log": 19,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 524288,
+          "active_rows": 524288,
+          "padding_rows": 0,
+          "native_cells": [
+            1048576,
+            27787264,
+            18874368
+          ]
+        },
+        {
+          "role": "jalr",
+          "present": true,
+          "log": 14,
+          "columns": [
+            2,
+            18,
+            12
+          ],
+          "native_rows": 16384,
+          "active_rows": 10120,
+          "padding_rows": 6264,
+          "native_cells": [
+            32768,
+            294912,
+            196608
+          ]
+        },
+        {
+          "role": "division",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            1135,
+            8
+          ],
+          "native_rows": 32,
+          "active_rows": 2,
+          "padding_rows": 30,
+          "native_cells": [
+            96,
+            36320,
+            256
+          ]
+        },
+        {
+          "role": "multiplication",
+          "present": true,
+          "log": 17,
+          "columns": [
+            3,
+            87,
+            200
+          ],
+          "native_rows": 131072,
+          "active_rows": 80471,
+          "padding_rows": 50601,
+          "native_cells": [
+            393216,
+            11403264,
+            26214400
+          ]
+        },
+        {
+          "role": "shift_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            18,
+            16,
+            36
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            1179648,
+            1048576,
+            2359296
+          ]
+        },
+        {
+          "role": "and_table",
+          "present": true,
+          "log": 16,
+          "columns": [
+            5,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            327680,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range16",
+          "present": true,
+          "log": 16,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            196608,
+            65536,
+            524288
+          ]
+        },
+        {
+          "role": "range8",
+          "present": true,
+          "log": 8,
+          "columns": [
+            3,
+            1,
+            8
+          ],
+          "native_rows": 256,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            768,
+            256,
+            2048
+          ]
+        },
+        {
+          "role": "ls",
+          "present": true,
+          "log": 19,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 524288,
+          "active_rows": 524287,
+          "padding_rows": 1,
+          "native_cells": [
+            1572864,
+            41418752,
+            25165824
+          ]
+        },
+        {
+          "role": "initial",
+          "present": true,
+          "log": 5,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 32,
+          "active_rows": 0,
+          "padding_rows": 32,
+          "native_cells": [
+            96,
+            736,
+            640
+          ]
+        },
+        {
+          "role": "terminal",
+          "present": true,
+          "log": 20,
+          "columns": [
+            3,
+            23,
+            20
+          ],
+          "native_rows": 1048576,
+          "active_rows": 750521,
+          "padding_rows": 298055,
+          "native_cells": [
+            3145728,
+            24117248,
+            20971520
+          ]
+        },
+        {
+          "role": "selection",
+          "present": true,
+          "log": 16,
+          "columns": [
+            6,
+            2,
+            8
+          ],
+          "native_rows": 65536,
+          "active_rows": null,
+          "padding_rows": null,
+          "native_cells": [
+            393216,
+            131072,
+            524288
+          ]
+        },
+        {
+          "role": "ls_tail",
+          "present": true,
+          "log": 18,
+          "columns": [
+            3,
+            79,
+            48
+          ],
+          "native_rows": 262144,
+          "active_rows": 253181,
+          "padding_rows": 8963,
+          "native_cells": [
+            786432,
+            20709376,
+            12582912
+          ]
+        },
+        {
+          "role": "alu_tail",
+          "present": true,
+          "log": 16,
+          "columns": [
+            2,
+            52,
+            32
+          ],
+          "native_rows": 65536,
+          "active_rows": 58728,
+          "padding_rows": 6808,
+          "native_cells": [
+            131072,
+            3407872,
+            2097152
+          ]
+        },
+        {
+          "role": "binary_tail",
+          "present": false,
+          "log": 5,
+          "columns": [
+            0,
+            0,
+            0
+          ],
+          "native_rows": 0,
+          "active_rows": 0,
+          "padding_rows": 0,
+          "native_cells": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "role": "shift_tail",
+          "present": true,
+          "log": 18,
+          "columns": [
+            2,
+            53,
+            36
+          ],
+          "native_rows": 262144,
+          "active_rows": 197915,
+          "padding_rows": 64229,
+          "native_cells": [
+            524288,
+            13893632,
+            9437184
+          ]
+        },
+        {
+          "role": "keccak_bridge",
+          "present": true,
+          "log": 14,
+          "columns": [
+            6,
+            66,
+            116
+          ],
+          "native_rows": 16384,
+          "active_rows": 8400,
+          "padding_rows": 7984,
+          "native_cells": [
+            98304,
+            1081344,
+            1900544
+          ]
+        },
+        {
+          "role": "add_bridge",
+          "present": true,
+          "log": 13,
+          "columns": [
+            8,
+            134,
+            244
+          ],
+          "native_rows": 8192,
+          "active_rows": 4902,
+          "padding_rows": 3290,
+          "native_cells": [
+            65536,
+            1097728,
+            1998848
+          ]
+        },
+        {
+          "role": "double_bridge",
+          "present": true,
+          "log": 11,
+          "columns": [
+            8,
+            134,
+            244
+          ],
+          "native_rows": 2048,
+          "active_rows": 2040,
+          "padding_rows": 8,
+          "native_cells": [
+            16384,
+            274432,
+            499712
+          ]
+        }
+      ]
+    ]
+  }
+}

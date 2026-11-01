@@ -143,3 +143,18 @@ The observed candidate wall was240.04s, peak RSS35.87GB and lifetime footprint
 other concurrent engineering distinguish these runs: this is qualification and
 resource observation, not an isolated scheduler speedup. A controlled paired
 run must use the same binary and explicit operational flags.
+
+`roster.json` adds generated per-role CPU and service-bridge accounting. Widths
+come from the admitted physical shapes and bridge layout authorities; their
+native cell sums must equal the column-log inventory in `cost.json`. Active
+counts use the same head/tail capacity functions as source construction. Known
+padding includes mandatory inactive guard rows. ROM and fixed dictionaries
+report unknown active occupancy as null instead of treating their entire table
+as unused execution capacity. Truth proofs remain separately counted by the
+existing physical cost ledger. The profile summarizer checks role uniqueness,
+CPU inventory size and exact cell sums before including this optional ledger.
+
+`cpu-role-accounting-v1.json` pins a four-packet/seven-proof control: all proofs,
+manifest, RAM and existing cost bytes remain exact; a fresh prefix receiver
+accepts with completed=false/output=null. This adds observability, not a new
+acceptance rule or performance claim.

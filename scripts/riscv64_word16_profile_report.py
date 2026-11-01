@@ -16,8 +16,19 @@ def collect(directory: Path) -> dict:
     report = json.loads(report_path.read_text()) if report_path.exists() else {}
     schedule = report.get("coordinator_schedule", {"lanes": 1})
     concurrent = schedule.get("lanes", 1) > 1
+    roster_path = directory / "roster.json"
+    roster = json.loads(roster_path.read_text())["cpu"] if roster_path.exists() else None
     cpu_count = len(cost["cpu"])
     count = cpu_count + len(cost["truth"])
+    if roster is not None:
+        if len(roster) != cpu_count:
+            raise ValueError("CPU roster count differs from physical cost inventory")
+        for roles, shape in zip(roster, cost["cpu"]):
+            if len({r["role"] for r in roles}) != len(roles):
+                raise ValueError("Duplicate component role in CPU roster")
+            cells = [sum(r["native_cells"][j] for r in roles) for j in range(3)]
+            if cells != shape["native_cells"]:
+                raise ValueError("Component cells differ from physical cost inventory")
     paths = sorted(directory.glob("physical-*.stages.json"))
     expected = [f"physical-{i:04}.stages.json" for i in range(count)]
     if [p.name for p in paths] != expected:
@@ -52,6 +63,7 @@ def collect(directory: Path) -> dict:
             peak = max(peak, usage.get("process_peak_resident_bytes_at_end", 0))
         rows.append({"ordinal": i, "kind": kind, "columns": shape["columns"],
                      "native_cells": shape["native_cells"],
+                     "roles": roster[i] if roster is not None and kind == "cpu" else None,
                      "lifted_leaf_exposure_excluding_blowup": shape["lifted_leaf_cells"],
                      "process_lifetime_peak_resident_bytes_at_proof_end": peak or None,
                      "stages": stages})

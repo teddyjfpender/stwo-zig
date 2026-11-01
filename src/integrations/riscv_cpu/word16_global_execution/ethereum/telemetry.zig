@@ -49,4 +49,16 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
     defer a.free(active);
     for (captured.native.items, active, 0..) |n, *out, i| out.* = .{ .retirements = (n.cpu orelse return error.PreparedExecutionConsumed).public.steps, .alu_facts = n.alu.facts.len, .binary_facts = n.binary.facts.len, .shift_facts = n.shift.len, .ram_events = captured.advice.events[i].len, .keccak_calls = captured.advice.keccak[i].len, .add_calls = captured.advice.secp[i][0].len, .double_calls = captured.advice.secp[i][1].len };
     try Driver.writeJson(a, dir, "cost.json", .{ .scope = "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time", .cpu = cpu, .truth = truth, .active = active, .memory_words = captured.advice.initial.len, .unique_cpu_setups = keys.cpu_owners.items.len, .unique_keccak_setups = keys.keccak_owners.items.len, .unique_secp_setups = keys.secp_owners.items.len });
+    const Roles = @import("role_cost.zig");
+    const roles = try a.alloc([Roles.COUNT]Roles.Row, keys.cpus.len);
+    defer a.free(roles);
+    for (keys.cpus, captured.native.items, roles, 0..) |setup, native, *out, i| {
+        out.* = try Roles.build(setup, native, @intCast(captured.advice.events[i].len), if (i == 0) captured.advice.initial.len else 0, if (i + 1 == keys.cpus.len) captured.advice.terminal.len else 0, .{ captured.advice.keccak[i].len, captured.advice.secp[i][0].len, captured.advice.secp[i][1].len });
+        for (0..3) |tree| {
+            var cells: u64 = 0;
+            for (out.*) |role| cells = try std.math.add(u64, cells, role.native_cells[tree]);
+            if (cells != cpu[i].native_cells[tree]) return error.CostRosterMismatch;
+        }
+    }
+    try Driver.writeJson(a, dir, "roster.json", .{ .schema = 1, .scope = "CPU and service-bridge native component cells; padding includes required inactive guard rows; only known active physical row counts are reported; fixed dictionary occupancy is null; truth proofs remain separately counted in cost.json", .cpu = roles });
 }
