@@ -6,6 +6,7 @@ const engine = @import("stwo_prover_engine");
 const P = @import("protocol.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const Tree = P.T.Scheme.CommittedTree;
+const Merkle = @import("retained_main_merkle.zig");
 const Parking = @import("retained_main_parking.zig");
 pub const Prefetch = @import("retained_main_prefetch.zig");
 const ALIGNMENT: std.mem.Alignment = .fromByteUnits(64);
@@ -13,6 +14,8 @@ pub const Store = struct {
     backing: engine.file_backed_allocator.FileBackedAllocator,
     limit: usize,
     park: bool = false,
+    park_merkle: bool = false,
+    parked_merkle_bytes: std.atomic.Value(usize) = .init(0),
     parking: Parking.Registry = .{},
     owner_mutex: std.Thread.Mutex = .{},
     owners: ?*Owner = null,
@@ -35,14 +38,33 @@ pub const Store = struct {
         self.park = true;
         return self;
     }
+    /// Explicit capability: both native coefficients and already committed
+    /// Merkle node values are parked. Existing initParked remains coef-only.
+    pub fn initFullyParked(path: []const u8, limit: usize) !Store {
+        var self = try initParked(path, limit);
+        self.park_merkle = true;
+        return self;
+    }
+    pub const MERKLE_HEADER_BYTES = Merkle.HEADER_BYTES;
+    pub const ParkingPlan = struct { coefficient_bytes: usize, merkle_bytes: usize, header_bytes: usize, resident_root_bytes: usize, rounded_total_bytes: usize };
+    pub fn parkingPlan(self: *const Store, tree: *const Tree) !ParkingPlan {
+        const coefficients = tree.coefficients orelse return error.MissingCompactCoefficients;
+        var words: usize = 0;
+        for (coefficients) |c| words = try std.math.add(usize, words, c.coeffs.len);
+        const coefficient_bytes = try std.math.mul(usize, words, @sizeOf(M));
+        const merkle_bytes = if (self.park_merkle) try Merkle.nodeBytes(tree) else 0;
+        const header_bytes: usize = if (self.park_merkle) Merkle.HEADER_BYTES else 0;
+        const total = try std.math.add(usize, try std.math.add(usize, coefficient_bytes, merkle_bytes), header_bytes);
+        return .{ .coefficient_bytes = coefficient_bytes, .merkle_bytes = merkle_bytes, .header_bytes = header_bytes, .resident_root_bytes = if (self.park_merkle) 32 else 0, .rounded_total_bytes = try engine.file_backed_allocator.ReservedFile.roundedLength(total) };
+    }
     pub fn deinit(self: *Store) void {
-        std.debug.assert(self.reserved.load(.acquire) == 0);
+        std.debug.assert(self.reserved.load(.acquire) == 0 and self.parked_merkle_bytes.load(.acquire) == 0);
         std.debug.assert(self.mapped.load(.acquire) == 0 and self.parking.head == null and self.owners == null);
         self.backing.deinit();
         self.* = undefined;
     }
-    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize, live_mapped_bytes: usize, peak_mapped_bytes: usize, parking_enabled: bool, prefetch_calls: usize, prefetch_requested_bytes: usize, prefetch_advised_bytes: usize, prefetch_failed_calls: usize, prefetch_unsupported_calls: usize } {
-        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit, .live_mapped_bytes = self.mapped.load(.acquire), .peak_mapped_bytes = self.peak_mapped.load(.acquire), .parking_enabled = self.park, .prefetch_calls = self.prefetch_calls.load(.acquire), .prefetch_requested_bytes = self.prefetch_requested.load(.acquire), .prefetch_advised_bytes = self.prefetch_advised.load(.acquire), .prefetch_failed_calls = self.prefetch_failed.load(.acquire), .prefetch_unsupported_calls = self.prefetch_unsupported.load(.acquire) };
+    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize, live_mapped_bytes: usize, peak_mapped_bytes: usize, parking_enabled: bool, merkle_parking_enabled: bool, parked_merkle_bytes: usize, prefetch_calls: usize, prefetch_requested_bytes: usize, prefetch_advised_bytes: usize, prefetch_failed_calls: usize, prefetch_unsupported_calls: usize } {
+        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit, .live_mapped_bytes = self.mapped.load(.acquire), .peak_mapped_bytes = self.peak_mapped.load(.acquire), .parking_enabled = self.park, .merkle_parking_enabled = self.park_merkle, .parked_merkle_bytes = self.parked_merkle_bytes.load(.acquire), .prefetch_calls = self.prefetch_calls.load(.acquire), .prefetch_requested_bytes = self.prefetch_requested.load(.acquire), .prefetch_advised_bytes = self.prefetch_advised.load(.acquire), .prefetch_failed_calls = self.prefetch_failed.load(.acquire), .prefetch_unsupported_calls = self.prefetch_unsupported.load(.acquire) };
     }
     pub fn addMapped(self: *Store, size: usize) void {
         const next = self.mapped.fetchAdd(size, .acq_rel) + size;
