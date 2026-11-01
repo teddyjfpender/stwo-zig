@@ -187,6 +187,18 @@ pub fn ForField(comptime Secure: type) type {
                 };
             }
 
+            /// Same adjacent-pair product/fraction authority applied twice,
+            /// without retaining the intermediate N/2 secure planes.
+            pub fn nextLayerTwice(self: Layer, allocator: std.mem.Allocator) !Layer {
+                if (self.nVariables() < 2) return GkrProverError.InvalidLayerStructure;
+                return switch (self) {
+                    .GrandProduct => |mle| try nextGrandProductTwoLayers(allocator, mle),
+                    .LogUpGeneric => |inner| try nextLogupTwoLayers(allocator, .{ .MleSecure = &inner.numerators }, &inner.denominators),
+                    .LogUpMultiplicities => |inner| try nextLogupTwoLayers(allocator, .{ .MleBase = &inner.numerators }, &inner.denominators),
+                    .LogUpSingles => |inner| try nextLogupTwoLayers(allocator, .{ .Constant = Secure.one() }, &inner.denominators),
+                };
+            }
+
             pub fn outputLayerValues(self: Layer, allocator: std.mem.Allocator) GkrProverError![]Secure {
                 if (!self.isOutputLayer()) return GkrProverError.NotOutputLayer;
 
@@ -616,6 +628,51 @@ pub fn ForField(comptime Secure: type) type {
                 .numerators = try MleSecure.initOwned(next_numerators),
                 .denominators = try MleSecure.initOwned(next_denominators),
             } };
+        }
+
+        fn nextGrandProductTwoLayers(a: std.mem.Allocator, input: MleSecure) !Layer {
+            const output = try a.alloc(Secure, input.evals.len / 4);
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                pub fn fillRange(self: @This(), start: usize, end: usize) void {
+                    for (start..end) |i| {
+                        const k = 4 * i;
+                        self.output[i] = self.input[k].mul(self.input[k + 1]).mul(self.input[k + 2].mul(self.input[k + 3]));
+                    }
+                }
+            };
+            rows.fill(output.len, Context{ .input = input.evals, .output = output });
+            return .{ .GrandProduct = try MleSecure.initOwned(output) };
+        }
+        fn nextLogupTwoLayers(a: std.mem.Allocator, nums: MleExpr, dens: *const MleSecure) !Layer {
+            const numerator = try a.alloc(Secure, dens.evals.len / 4);
+            errdefer a.free(numerator);
+            const denominator = try a.alloc(Secure, dens.evals.len / 4);
+            errdefer a.free(denominator);
+            const Context = struct {
+                nums: MleExpr,
+                dens: []const Secure,
+                n: []Secure,
+                d: []Secure,
+                fn pair(self: @This(), k: usize) fraction.Fraction(Secure, Secure) {
+                    // This is exactly nextLogupLayer's first reduction,
+                    // including its base-valued numerator specialization.
+                    return if (self.nums == .MleBase)
+                        baseFraction(self.nums.MleBase.evals[k], self.dens[k]).add(baseFraction(self.nums.MleBase.evals[k + 1], self.dens[k + 1]))
+                    else
+                        fraction.Fraction(Secure, Secure).new(self.nums.at(k), self.dens[k]).add(fraction.Fraction(Secure, Secure).new(self.nums.at(k + 1), self.dens[k + 1]));
+                }
+                pub fn fillRange(self: @This(), start: usize, end: usize) void {
+                    for (start..end) |i| {
+                        const value = self.pair(4 * i).add(self.pair(4 * i + 2));
+                        self.n[i] = value.numerator;
+                        self.d[i] = value.denominator;
+                    }
+                }
+            };
+            rows.fill(numerator.len, Context{ .nums = nums, .dens = dens.evals, .n = numerator, .d = denominator });
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(numerator), .denominators = try MleSecure.initOwned(denominator) } };
         }
 
         fn evalGrandProductSum(

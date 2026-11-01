@@ -64,6 +64,30 @@ pub fn verifyPending(a: std.mem.Allocator, scope: Receipt.Scope, instances: []co
     const eta = ch.drawSecureFelt();
     return .{ .artifact = artifact, .challenges = challenges, .eta = eta, .digest = digest };
 }
+/// Operational storage only: no transcript/profile/statement input changes.
+pub fn parseTreeCheckpoints(value: ?[]const u8) !bool {
+    const text = value orelse return false;
+    if (text.len == 0) return false;
+    if (std.mem.eql(u8, text, "2")) return true;
+    return error.InvalidGkrTreeCheckpointPolicy;
+}
+fn treeCheckpoints(a: std.mem.Allocator) !bool {
+    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_CHECKPOINTS") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return false,
+        else => return err,
+    };
+    defer a.free(value);
+    return parseTreeCheckpoints(value);
+}
+fn treeMetrics(a: std.mem.Allocator) !bool {
+    const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_METRICS") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return false,
+        else => return err,
+    };
+    defer a.free(value);
+    return std.mem.eql(u8, value, "1");
+}
+
 pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
@@ -78,6 +102,8 @@ pub const Unbound = struct {
         return proveTimed(a, limit, scope, instances, provider, null);
     }
     pub fn proveTimed(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, timing: ?*PhaseTiming) !*Unbound {
+        const checkpointed = try treeCheckpoints(a);
+        const metrics = try treeMetrics(a);
         const plan = try Resource.Plan.forInstances(instances, limit);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
@@ -91,7 +117,8 @@ pub const Unbound = struct {
         var inputs = try Inputs.init(bounded, instances, &challenges, provider);
         defer inputs.deinit();
         if (clock) |*timer| timing.?.inputs_ns = timer.lap();
-        var result = try GP.proveBatch(bounded, &ch, inputs.layers);
+        var result = if (checkpointed) try GP.proveBatchCheckpointed(bounded, &ch, inputs.layers) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
@@ -107,6 +134,7 @@ pub const Unbound = struct {
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
+        if (metrics) std.debug.print("GKR_TREE_POLICY stride={d} numerical_requested_peak={d} including_binding_peak={d} raw_input_bytes={d}\n", .{ @as(u8, if (checkpointed) 2 else 1), numerical_peak_bytes, self.peak_gkr_owned_bytes, plan.input_bytes });
         return self;
     }
     pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
@@ -135,3 +163,10 @@ pub const Unbound = struct {
         a.destroy(self);
     }
 };
+
+test "GKR operational tree policy fails closed without changing default protocol" {
+    try std.testing.expect(!try parseTreeCheckpoints(null));
+    try std.testing.expect(!try parseTreeCheckpoints(""));
+    try std.testing.expect(try parseTreeCheckpoints("2"));
+    for ([_][]const u8{ "1", "3", "false", "2 " }) |value| try std.testing.expectError(error.InvalidGkrTreeCheckpointPolicy, parseTreeCheckpoints(value));
+}
