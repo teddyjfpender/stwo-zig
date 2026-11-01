@@ -1,0 +1,44 @@
+[
+  {
+    "workers": 1,
+    "log": 14,
+    "old_median_us": 299.083,
+    "paired_median_us": 275.834,
+    "ratio": 1.084286201120964
+  },
+  {
+    "workers": 1,
+    "log": 16,
+    "old_median_us": 830.791,
+    "paired_median_us": 827.459,
+    "ratio": 1.0040267856171725
+  },
+  {
+    "workers": 1,
+    "log": 20,
+    "old_median_us": 8786.458,
+    "paired_median_us": 8694.709,
+    "ratio": 1.0105522795530018
+  },
+  {
+    "workers": 8,
+    "log": 14,
+    "old_median_us": 90.917,
+    "paired_median_us": 76.375,
+    "ratio": 1.1904026186579377
+  },
+  {
+    "workers": 8,
+    "log": 16,
+    "old_median_us": 162.583,
+    "paired_median_us": 134.709,
+    "ratio": 1.206920101849171
+  },
+  {
+    "workers": 8,
+    "log": 20,
+    "old_median_us": 1604.083,
+    "paired_median_us": 1577.208,
+    "ratio": 1.0170396041612775
+  }
+]
