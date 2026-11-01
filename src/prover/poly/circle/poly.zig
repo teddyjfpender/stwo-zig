@@ -454,6 +454,7 @@ pub const interpolateBuffersWithTwiddles = transforms.interpolateBuffersWithTwid
 pub const interpolateBuffersWithTwiddlesWithPool = transforms.interpolateBuffersWithTwiddlesWithPool;
 
 pub const evaluateBuffersWithTwiddles = transforms.evaluateBuffersWithTwiddles;
+pub const evaluateSelectedCoefficientsWithTwiddles = transforms.evaluateSelectedCoefficientsWithTwiddles;
 
 pub const evaluateExtensionBuffersWithTwiddles = transforms.evaluateExtensionBuffersWithTwiddles;
 pub const evaluateExtensionBuffersWithTwiddlesWithPool = transforms.evaluateExtensionBuffersWithTwiddlesWithPool;
