@@ -131,7 +131,9 @@ item only with its evidence.
 - [ ] memcmp service
 - [ ] Ethereum driver v3 work-packet route (native prepare, packet admission, authority) so a guest using v3 services can be prefix-proved
 - [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
-- [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp) (branch `codex/rv64-guest-prover-arith256`, in progress)
+- [x] arith256_mod service in the prover: truth AIR (degree 3, own PCS, exact identity over byte limbs, r < m by borrow chain, m = 0 flag), Word16 bridge kind 4, services lane family 4, fresh receiver; >1,000 known answers, adversarial rows, v2 bundles byte-identical (branch `codex/rv64-guest-prover-arith256`). Cost 2,779 cells per call unpadded (~18 instructions' worth; estimate was 6,500). Rust guest MULMOD/ADDMOD on the admitted tag: -0.71% scored, exact on 15 blocks, promotable
+- [ ] Route the evmone client's MULMOD/ADDMOD/modexp to the admitted arith256_mod packet (the candidate measured -9% instructions on the client)
+- [ ] Plain 512-bit arith256 (a*b+c) service, if MUL/EXP measure as worth it on the client
 - [x] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (`fa8a2c7aa`, `683c40b2b`): client 5.653 -> 4.662 instr/gas (-17.5%), 78,849 -> 68,671 bits/gas (-12.9%); BLS/KZG 0.46 -> 0.09, Keccak glue 0.43 -> 0.08, BN254 0.30 -> 0.06 instr/gas
 - [ ] BN254, BLS12-381 and Keccak-sponge services in the prover (proposals: `bn254-g1-fp2.md`, `bls12-381-fp-fp2.md`, `keccak-sponge.md`)
 - [ ] Recursion-circuit support for each new service
