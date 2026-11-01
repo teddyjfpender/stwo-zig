@@ -12,6 +12,7 @@ pub const PROFILE_WORDS = "rv64im-ethereum-services-v2";
 pub const PROFILE_V3 = "rv64im-ethereum-services-v3";
 pub const sha256 = @import("sha256.zig");
 pub const arith256 = @import("arith256.zig");
+pub const curves = @import("curves.zig");
 pub const bulk_memory = @import("bulk_memory.zig");
 pub const keccak_sponge = @import("keccak_sponge.zig");
 pub const SecpCall = struct {

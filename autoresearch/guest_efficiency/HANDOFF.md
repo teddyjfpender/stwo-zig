@@ -169,7 +169,26 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
 | `codex/rv64-guest-client-eest-fixes` | EEST liveness bugs | WIP, merged UNVERIFIED |
 | `codex/rv64-keccak-memory-cost` | Keccak/memory cost design | verified doc |
 
-## Post-merge status
+## Post-merge status (after merging the six UNVERIFIED checkpoints)
 
-- Harness unit tests (`test_bench.py`): pass after the unverified merges.
-- Re-check of the evmone client on all 15 blocks after the merges: pending (next commit).
+- Harness unit tests (`test_bench.py`): pass.
+- **The merged head does not build yet.** Resolving conflicts in favour of the
+  verified side kept the verified versions of shared executor plumbing hunks
+  that the curves and Keccak-sponge checkpoints had changed. Remaining errors
+  from `bench.py build-exec`:
+  - `compact_tape.zig`: no `curve` event in the session `Event` union.
+  - `ethereum_services/curves.zig`: `execution_profile.CURVE_TAGS` missing; a
+    parameter shadows `value`.
+  - `ethereum_services/session.zig`: no `sponge` field on `Session`.
+  Already repaired: the `curves` import in `ethereum_services/session.zig`, the
+  `KECCAK_SPONGE_TAG` constant in `execution_profile.zig`, and the duplicate
+  blst fix (patch `0022-blst-rv64-quot-rem-single-limb.patch` removed: the same
+  quot_rem_64 fix now lives in `0002-blst-rv64-64bit-limbs.patch` from the
+  EEST-fixes track, and both could not apply).
+- TODO (in progress on this branch): port the curves and sponge plumbing hunks
+  from `origin/codex/rv64-guest-prover-curves` and
+  `origin/codex/rv64-guest-prover-keccak-sponge` into the shared files
+  (session, compact tape, execution profile, services roster), rebuild the
+  executor and the evmone `admitted` and `v3` clients, and re-run the 15-block
+  basket. The last verified head of this branch before the unverified merges
+  is `1c821fc9d`.

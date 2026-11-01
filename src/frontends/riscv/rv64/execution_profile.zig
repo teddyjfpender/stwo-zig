@@ -21,6 +21,7 @@ pub const ARITH256_MOD_TAG: u64 = 0x00030021;
 pub const MEMCPY_TAG: u64 = 0x00030001;
 pub const MEMSET_TAG: u64 = 0x00030002;
 pub const MEMCMP_TAG: u64 = 0x00030003;
+pub const KECCAK_SPONGE_TAG: u64 = 0x00030130;
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;
