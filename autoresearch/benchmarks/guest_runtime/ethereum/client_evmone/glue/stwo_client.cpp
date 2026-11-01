@@ -41,6 +41,9 @@
 #include "witness_trie.hpp"
 
 extern "C" [[noreturn]] void stwo_guest_abort(const char* why) noexcept;
+extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be[32], const uint8_t s_be[32],
+                                      unsigned recid, const uint8_t pubkey65[65], uint8_t addr_out[20]);
+extern "C" void stwo_secp_verify_pending();
 extern "C" [[noreturn]] void stwo_fatal(const char* why) noexcept { stwo_guest_abort(why); }
 
 namespace {
@@ -102,6 +105,7 @@ struct Input {
     VarList txs;
     Span withdrawals;
     VarList state_nodes, codes, headers;
+    Span public_keys;  // 65-byte uncompressed keys, one per transaction
     uint64_t chain_id;
 };
 
@@ -120,6 +124,7 @@ Input parse_input(const uint8_t* bytes, size_t len) {
     in.chain_id = le64(body.p + 8);
     const Span pks = var_field(body, 16, 0, true);
     if (pks.n % 65 != 0) fail("ssz: public keys");
+    in.public_keys = pks;
 
     const Span r = in.npr;
     if (r.n < 44 || le32(r.p) != 44) fail("ssz: bad request offsets");
@@ -533,8 +538,18 @@ evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages) {
     return out;
 }
 
+bool stwo_tx_sender(uint64_t index, const evmc::bytes32& hash, const evmc::uint256be& r,
+                    const evmc::uint256be& s, unsigned recid, evmc::address& out) noexcept {
+    const Input& in = *g.in;
+    if (index >= in.public_keys.n / 65) return false;
+    return stwo_secp_hint_sender(hash.bytes, r.bytes, s.bytes, recid, in.public_keys.p + 65 * index, out.bytes);
+}
+
 void stwo_after_block(const Transactions& transactions, const evmc::bytes32& block_hash) {
     const Input& in = *g.in;
+    // Every hinted sender's signature must verify (batch), else no output.
+    stwo_secp_verify_pending();
+    if (in.public_keys.n / 65 != transactions.size()) fail("public key count != transaction count");
     if (std::memcmp(block_hash.bytes, pl_block_hash(in), 32) != 0) fail("block hash mismatch");
     // Versioned hashes: the payload's list must equal the blob txs' hashes in order.
     size_t off = 0;

@@ -25,7 +25,7 @@
 
 #include "services.hpp"
 
-extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept;
+#include <evmone_precompiles/keccak.h>
 
 namespace {
 
@@ -259,17 +259,79 @@ inline void acc_add(const Proj& q) {
     stwo::ecall(stwo::kSecpAddWords, g_acc.w);
 }
 
-// table[i] = (i+1) * P for i in 0..14
-void build_table(Proj table[15], const Proj& p) {
-    table[0] = p;
+struct Table {
+    Proj p[15];  // (i+1) * P
+};
+
+void build_table(Table& t, const Proj& p) {
+    t.p[0] = p;
     acc_set(p);
     acc_double();
-    table[1] = acc_get();
+    t.p[1] = acc_get();
     for (int i = 2; i < 15; ++i) {
-        acc_set(table[i - 1]);
+        acc_set(t.p[i - 1]);
         acc_add(p);
-        table[i] = acc_get();
+        t.p[i] = acc_get();
     }
+}
+
+// GLV endomorphism: lambda * (x, y) = (beta * x, y).
+constexpr U256 LAMBDA = {{0xDF02967C1B23BD72ULL, 0x122E22EA20816678ULL, 0xA5261C028812645AULL, 0x5363AD4CC05C30E0ULL}};
+constexpr U256 BETA = {{0xC1396C28719501EEULL, 0x9CF0497512F58995ULL, 0x6E64479EAC3434E9ULL, 0x7AE96A2B657C0710ULL}};
+constexpr U256 MINUS_B1 = {{0x6F547FA90ABFE4C3ULL, 0xE4437ED6010E8828ULL, 0, 0}};
+constexpr U256 MINUS_B2 = {{0xD765CDA83DB1562CULL, 0x8A280AC50774346DULL, 0xFFFFFFFFFFFFFFFEULL, 0xFFFFFFFFFFFFFFFFULL}};
+constexpr U256 G1 = {{0xE893209A45DBB031ULL, 0x3DAA8A1471E8CA7FULL, 0xE86C90E49284EB15ULL, 0x3086D221A7D46BCDULL}};
+constexpr U256 G2 = {{0x1571B4AE8AC47F71ULL, 0x221208AC9DF506C6ULL, 0x6F547FA90ABFE4C4ULL, 0xE4437ED6010E8828ULL}};
+
+// round(k * g / 2^384)
+U256 mul_shift_384(const U256& k, const U256& g) {
+    u64 t[8];
+    mul_wide(t, k, g);
+    U256 r = {{t[6], t[7], 0, 0}};
+    if (t[5] >> 63) {
+        if (++r.v[0] == 0) ++r.v[1];
+    }
+    return r;
+}
+
+inline U256 sc_add(const U256& a, const U256& b) {
+    U256 r;
+    const u64 c = add_to(r, a, b);
+    if (c || geq(r, N)) sub_to(r, r, N);
+    return r;
+}
+inline U256 sc_neg(const U256& a) {
+    if (is_zero(a)) return a;
+    U256 r;
+    sub_to(r, N, a);
+    return r;
+}
+inline bool fits128(const U256& a) { return (a.v[2] | a.v[3]) == 0; }
+
+// k = k1 + k2 * lambda (mod N) with |k1|, |k2| < 2^128; signs returned separately.
+bool split_lambda(const U256& k, U256& k1, bool& neg1, U256& k2, bool& neg2) {
+    const U256 c1 = sc_mul(mul_shift_384(k, G1), MINUS_B1);
+    const U256 c2 = sc_mul(mul_shift_384(k, G2), MINUS_B2);
+    U256 r2 = sc_add(c1, c2);
+    U256 r1 = sc_add(k, sc_neg(sc_mul(r2, LAMBDA)));
+    neg1 = !fits128(r1);
+    if (neg1) r1 = sc_neg(r1);
+    neg2 = !fits128(r2);
+    if (neg2) r2 = sc_neg(r2);
+    k1 = r1;
+    k2 = r2;
+    return fits128(r1) && fits128(r2);
+}
+
+inline Proj neg_point(const Proj& p) {
+    Proj q = p;
+    if (!is_zero(q.y)) sub_to(q.y, P, p.y);
+    return q;
+}
+inline Proj endo(const Proj& p) {
+    Proj q = p;
+    q.x = fe_mul(p.x, BETA);
+    return q;
 }
 
 const Proj kG = {
@@ -277,38 +339,63 @@ const Proj kG = {
     {{0x9C47D08FFB10D4B8ULL, 0xFD17B448A6855419ULL, 0x5DA4FBFC0E1108A8ULL, 0x483ADA7726A3C465ULL}},
     {{1, 0, 0, 0}},
 };
-Proj g_gtable[15];
-bool g_gtable_ready = false;
+Table g_tg, g_tlg, g_tg_neg, g_tlg_neg;
+bool g_tables_ready = false;
+
+void make_neg(Table& out, const Table& in) {
+    for (int i = 0; i < 15; ++i) out.p[i] = neg_point(in.p[i]);
+}
 
 inline unsigned nibble_at(const U256& k, int i) {  // i-th 4-bit window from the bottom
     return unsigned(k.v[i >> 4] >> ((i & 15) * 4)) & 15;
 }
 
-// Q = u1*G + u2*R; returns false if Q is the point at infinity.
-bool double_mul(const U256& u1, const U256& u2, const Proj& r, U256& qx, U256& qy) {
-    if (!g_gtable_ready) {
-        build_table(g_gtable, kG);
-        g_gtable_ready = true;
-    }
-    Proj rt[15];
-    build_table(rt, r);
-    Proj acc = {{{0, 0, 0, 0}}, {{1, 0, 0, 0}}, {{0, 0, 0, 0}}};  // identity
-    acc_set(acc);
+// Plain 4-bit Straus over 256-bit scalars (fallback if a GLV split fails).
+Proj double_mul_plain(const U256& u1, const U256& u2, const Table& tq) {
+    acc_set(Proj{{{0, 0, 0, 0}}, {{1, 0, 0, 0}}, {{0, 0, 0, 0}}});
     bool started = false;
     for (int i = 63; i >= 0; --i) {
-        if (started) {
-            acc_double(); acc_double(); acc_double(); acc_double();
-        }
+        if (started) { acc_double(); acc_double(); acc_double(); acc_double(); }
         const unsigned a = nibble_at(u1, i), b = nibble_at(u2, i);
-        if (a) { acc_add(g_gtable[a - 1]); started = true; }
-        if (b) { acc_add(rt[b - 1]); started = true; }
+        if (a) { acc_add(g_tg.p[a - 1]); started = true; }
+        if (b) { acc_add(tq.p[b - 1]); started = true; }
     }
-    const Proj q = acc_get();
-    if (is_zero(q.z)) return false;
-    const U256 zi = inv_mod(q.z, P);
-    qx = fe_mul(q.x, zi);
-    qy = fe_mul(q.y, zi);
-    return true;
+    return acc_get();
+}
+
+// Q = u1*G + u2*P in projective coordinates (Z = 0 for infinity).
+Proj double_mul(const U256& u1, const U256& u2, const Proj& p) {
+    if (!g_tables_ready) {
+        build_table(g_tg, kG);
+        for (int i = 0; i < 15; ++i) g_tlg.p[i] = endo(g_tg.p[i]);
+        make_neg(g_tg_neg, g_tg);
+        make_neg(g_tlg_neg, g_tlg);
+        g_tables_ready = true;
+    }
+    Table tp;
+    build_table(tp, p);
+    U256 a1, a2, b1, b2;
+    bool na1, na2, nb1, nb2;
+    if (!split_lambda(u1, a1, na1, a2, na2) || !split_lambda(u2, b1, nb1, b2, nb2)) {
+        return double_mul_plain(u1, u2, tp);
+    }
+    Table tlp;
+    for (int i = 0; i < 15; ++i) tlp.p[i] = endo(tp.p[i]);
+    if (nb1) for (auto& q : tp.p) q = neg_point(q);
+    if (nb2) for (auto& q : tlp.p) q = neg_point(q);
+    const Table& ta = na1 ? g_tg_neg : g_tg;
+    const Table& tla = na2 ? g_tlg_neg : g_tlg;
+    acc_set(Proj{{{0, 0, 0, 0}}, {{1, 0, 0, 0}}, {{0, 0, 0, 0}}});
+    bool started = false;
+    for (int i = 31; i >= 0; --i) {
+        if (started) { acc_double(); acc_double(); acc_double(); acc_double(); }
+        unsigned d;
+        if ((d = nibble_at(a1, i))) { acc_add(ta.p[d - 1]); started = true; }
+        if ((d = nibble_at(a2, i))) { acc_add(tla.p[d - 1]); started = true; }
+        if ((d = nibble_at(b1, i))) { acc_add(tp.p[d - 1]); started = true; }
+        if ((d = nibble_at(b2, i))) { acc_add(tlp.p[d - 1]); started = true; }
+    }
+    return acc_get();
 }
 
 inline U256 from_be(const uint8_t* b) {
@@ -337,17 +424,103 @@ int recover(const U256& z_in, const U256& r, const U256& s, unsigned recid, U256
     U256 y = fe_sqrt_candidate(rhs);
     if (!eq(fe_sqr(y), rhs)) return 1;
     if ((y.v[0] & 1) != recid) sub_to(y, P, y);  // y != 0 since rhs is a nonzero square
-    // z mod N (z is a 256-bit hash).
     U256 z = z_in;
     if (geq(z, N)) sub_to(z, z, N);
     const U256 rinv = inv_mod(r, N);
-    U256 u1 = sc_mul(z, rinv);
-    if (!is_zero(u1)) sub_to(u1, N, u1);  // -z/r
+    const U256 u1 = sc_neg(sc_mul(z, rinv));  // -z/r
     const U256 u2 = sc_mul(s, rinv);
-    const Proj R = {r, y, {{1, 0, 0, 0}}};
-    return double_mul(u1, u2, R, qx, qy) ? 0 : 1;
+    const Proj q = double_mul(u1, u2, Proj{r, y, {{1, 0, 0, 0}}});
+    if (is_zero(q.z)) return 1;
+    const U256 zi = inv_mod(q.z, P);
+    qx = fe_mul(q.x, zi);
+    qy = fe_mul(q.y, zi);
+    return 0;
 }
 
+// ---- deferred verification of hinted signers (transaction senders) ----
+// The canonical input carries each transaction's 65-byte public key. The
+// sender is derived from it immediately and the signature is checked later,
+// in one batch: R' = (z/s) G + (r/s) Q must have x(R') = r and the y parity
+// `recid`. That pins R' to the unique point recovery would use, so Q is
+// exactly the recovered key (and a non-recoverable signature fails).
+struct Pending {
+    U256 z, r, s;
+    Proj q;
+    unsigned recid;
+};
+Pending* g_pending = nullptr;
+size_t g_pending_n = 0, g_pending_cap = 0;
+
+}  // namespace
+
+extern "C" [[noreturn]] void stwo_guest_abort(const char* why) noexcept;
+
+// Returns false if the hint is not a valid curve point (caller then recovers).
+extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be[32], const uint8_t s_be[32],
+                                      unsigned recid, const uint8_t pubkey65[65], uint8_t addr_out[20]) {
+    if (pubkey65[0] != 0x04 || recid > 1) return false;
+    const U256 x = from_be(pubkey65 + 1), y = from_be(pubkey65 + 33);
+    if (geq(x, P) || geq(y, P)) return false;
+    const U256 seven = {{7, 0, 0, 0}};
+    if (!eq(fe_sqr(y), fe_add(fe_mul(fe_sqr(x), x), seven))) return false;
+    const U256 r = from_be(r_be), s = from_be(s_be);
+    if (is_zero(r) || geq(r, N) || is_zero(s) || geq(s, N)) return false;
+    if (g_pending_n == g_pending_cap) {
+        const size_t cap = g_pending_cap ? 2 * g_pending_cap : 256;
+        Pending* np = new Pending[cap];
+        for (size_t i = 0; i < g_pending_n; ++i) np[i] = g_pending[i];
+        delete[] g_pending;
+        g_pending = np;
+        g_pending_cap = cap;
+    }
+    U256 z = from_be(z_be);
+    if (geq(z, N)) sub_to(z, z, N);
+    g_pending[g_pending_n++] = Pending{z, r, s, Proj{x, y, {{1, 0, 0, 0}}}, recid};
+    const auto h = ethash_keccak256(pubkey65 + 1, 64);
+    std::memcpy(addr_out, h.bytes + 12, 20);
+    return true;
+}
+
+// Verifies every deferred signature; aborts the guest on any failure.
+extern "C" void stwo_secp_verify_pending() {
+    const size_t n = g_pending_n;
+    if (n == 0) return;
+    // Batch inverse of every s (mod N).
+    U256* pre = new U256[n];
+    pre[0] = g_pending[0].s;
+    for (size_t i = 1; i < n; ++i) pre[i] = sc_mul(pre[i - 1], g_pending[i].s);
+    U256 inv = inv_mod(pre[n - 1], N);
+    U256* sinv = new U256[n];
+    for (size_t i = n; i-- > 1;) {
+        sinv[i] = sc_mul(inv, pre[i - 1]);
+        inv = sc_mul(inv, g_pending[i].s);
+    }
+    sinv[0] = inv;
+    // R'_i projective; check x = r without inverting.
+    Proj* rp = new Proj[n];
+    for (size_t i = 0; i < n; ++i) {
+        const Pending& p = g_pending[i];
+        rp[i] = double_mul(sc_mul(p.z, sinv[i]), sc_mul(p.r, sinv[i]), p.q);
+        if (is_zero(rp[i].z)) stwo_guest_abort("signature: R is infinity");
+        if (!eq(fe_mul(p.r, rp[i].z), rp[i].x)) stwo_guest_abort("signature: x(R) != r");
+    }
+    // Batch inverse of every Z (mod P) for the y parity.
+    pre[0] = rp[0].z;
+    for (size_t i = 1; i < n; ++i) pre[i] = fe_mul(pre[i - 1], rp[i].z);
+    inv = inv_mod(pre[n - 1], P);
+    for (size_t i = n; i-- > 0;) {
+        const U256 zi = i ? fe_mul(inv, pre[i - 1]) : inv;
+        if (i) inv = fe_mul(inv, rp[i].z);
+        const U256 y = fe_mul(rp[i].y, zi);
+        if ((y.v[0] & 1) != g_pending[i].recid) stwo_guest_abort("signature: y parity");
+    }
+    delete[] pre;
+    delete[] sinv;
+    delete[] rp;
+    g_pending_n = 0;
+}
+
+namespace {
 }  // namespace
 
 extern "C" int secp256k1_ecdsa_recover(const uint64_t* z, const uint64_t* r, const uint64_t* s, unsigned recid,
