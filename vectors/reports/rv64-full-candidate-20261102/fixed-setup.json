@@ -1,0 +1,25 @@
+{
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "config": {
+    "pow_bits": 0,
+    "fri_config": {
+      "log_blowup_factor": 2,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 256,
+      "fold_step": 4
+    },
+    "lifting_log_size": null
+  },
+  "fixed_setup": {
+    "limit_bytes": 12884901888,
+    "live_bytes": 7385542768,
+    "peak_bytes": 9371728160,
+    "keys": 29,
+    "hits": 0,
+    "seals": 29,
+    "refused": false
+  },
+  "source_validations": 29,
+  "source_coefficient_cells": 1416141376
+}
