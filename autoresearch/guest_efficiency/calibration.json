@@ -30,31 +30,31 @@
  ],
  "candidate_services": {},
  "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them.",
-"admitted_services": {
+ "admitted_services": {
   "sha256_compress": {
-   "cells_per_call": 12150.900036088055,
+   "cells_per_call": 12615.434677697345,
    "cells_per_byte": 0.0,
-   "status": "MEASURED on an admitted ethereum_services_v3 Word16 prefix proof (block 24,628,607, 4 CPU shards, 2,771 of the block's 2,772 compressions), freshly verified with verify-prefix",
-   "derivation": "Truth MAIN+INTERACTION = 7,409+8 columns x 4096 rows (log12, padded for 2,771 calls) = 30,380,032 cells (cost.json truth[3]); Wire35 bridge rows (3 per call, MAIN 134 + INTER 244 columns) inside the CPU proofs: shard0 log13 (2,663 calls) 3,096,576 cells + shard1 log9 (108 calls) 193,536 cells (roster.json sha256_bridge); (30,380,032 + 3,096,576 + 193,536) / 2,771 = 12,150.9 (nominal unpadded: 7,417 truth + 1,134 bridge = 8,551). Excludes the ECALL's own CPU row (already costed per instruction) and the shared U16/U8 range-table multiplicities. design/riscv-proving-stack/rv64-sha256-service.md."
+   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "derivation": "Truth log12 (2,901 calls): MAIN 30,347,264 + INTER 32,768 = 30,380,032 cells (cost.json truth); Wire35 bridge rows (3 per call, MAIN 134 + INTER 244) over the 9 CPU proofs: 6,217,344 cells (roster.json sha256_bridge, 8,703 active rows); (30,380,032 + 6,217,344) / 2,901 = 12,615.4. Earlier 4-shard Rust-guest prefix measurement: 12,150.9 (2,771 calls). Nominal unpadded 8,551. Excludes the ECALL's CPU row (costed per instruction) and shared U16/U8 table multiplicities. design/riscv-proving-stack/rv64-sha256-service.md, rv64-services-v3-integration.md."
   },
   "arith256_mod": {
-   "cells_per_call": 4009.3,
+   "cells_per_call": 4460.33855799373,
    "cells_per_byte": 0.0,
-   "status": "LAYOUT (exact unpadded cells times the 1/ln 2 padding convention); no block-scale measurement yet",
-   "derivation": "Measured layouts: truth row (src/frontends/riscv/rv64/air/delegations/arith256/layout.zig) MAIN 401 + INTER 488 = 889 cells per call; Word16 bridge (secp256k1/word16_bridge/layout.zig, kind arith256_mod) 5 rows x (MAIN 134 + INTER 244) = 1,890 cells per call; total 2,779 unpadded (RAM28 transitions are inside the bridge rows). Times 1.4427 = 1/ln 2, the expected power-of-two padding for log-uniform occupancy = 4,009.3. Fixed columns (4 truth + 8 per bridge row) are key material, not counted. The ECALL and the guest packet setup are ordinary instructions already charged per instruction. design/riscv-proving-stack/rv64-arith256-service.md."
+   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "derivation": "Truth log9 (319 calls, padded to 512 rows): MAIN 205,312 + INTER 249,856 = 455,168 cells; Word16 bridge rows (5 per call, MAIN 134 + INTER 244) over the CPU proofs: 967,680 cells (roster.json arith256_mod_bridge, 1,595 active rows); (455,168 + 967,680) / 319 = 4,460.3. Layout tier for comparison: 2,779 unpadded x 1/ln 2 = 4,009.3. design/riscv-proving-stack/rv64-arith256-service.md."
   },
   "memcpy": {
-   "cells_per_call": 161.6,
-   "cells_per_byte": 13.886,
-   "status": "LAYOUT (exact unpadded cells times the 1/ln 2 padding convention); no block-scale measurement yet",
-   "derivation": "Measured layouts (src/frontends/riscv/rv64/air/delegations/bulk_memory/layout.zig): desc row MAIN 48 + INTER 64 = 112 cells per call (3 packet RAM reads, OWNER ECALL + token, 17 U16); copy row MAIN 41 + INTER 36 = 77 cells per 8-byte word (src read + dst write sharing value columns, token on start rows, 6 U16). Times 1.4427 = 1/ln 2, the expected power-of-two padding for log-uniform occupancy. Fixed columns (3 per row) are key material, not counted. The ECALL and the guest wrapper's packet setup are ordinary instructions already charged per instruction. design/riscv-proving-stack/rv64-bulk-memory-service.md."
+   "cells_per_call": 154.28325441239775,
+   "cells_per_byte": 15.152186289181573,
+   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "derivation": "desc rows (one per call, memcpy and memset share the component): 5,734,400 cells / 37,168 calls = 154.3 per call; copy rows: 50,462,720 cells / 3,330,392 copied bytes (416,299 words) = 15.152 per byte. Layout tier for comparison: 161.6 per call, 13.886 per byte (112 and 77/8 cells x 1/ln 2). design/riscv-proving-stack/rv64-bulk-memory-service.md."
   },
   "memset": {
-   "cells_per_call": 161.6,
-   "cells_per_byte": 8.656,
-   "status": "LAYOUT (exact unpadded cells times the 1/ln 2 padding convention); no block-scale measurement yet",
-   "derivation": "desc row 112 cells per call as memcpy; set row MAIN 24 + INTER 24 = 48 cells per 8-byte word (dst write with after = 257*fill per limb, token on start rows, 3 U16); same 1/ln 2 padding factor."
+   "cells_per_call": 154.28325441239775,
+   "cells_per_byte": 8.45650054481849,
+   "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
+   "derivation": "desc rows as memcpy (154.3 per call); set rows: 22,413,312 cells / 2,650,424 filled bytes (331,303 words) = 8.457 per byte. Layout tier: 161.6 per call, 8.656 per byte."
   }
  },
- "admitted_services_note": "Cells per call and per byte for ADMITTED ethereum_services_v3 services, from qualified AIR layouts or measured proofs (never estimates); every entry states its status and derivation. bench.py ADMITTED_REPORT_FIELDS maps each entry to the execution-report fields it is applied to (sha256_calls, arith256_mod_calls, bulk_{memcpy,memset}_{calls,bytes})."
+ "admitted_services_note": "Cells per call and per byte for ADMITTED ethereum_services_v3 services, measured on whole-block proofs (never estimates); every entry states its status and derivation. bench.py ADMITTED_REPORT_FIELDS maps each entry to the execution-report fields it is applied to (sha256_calls, arith256_mod_calls, bulk_{memcpy,memset}_{calls,bytes})."
 }

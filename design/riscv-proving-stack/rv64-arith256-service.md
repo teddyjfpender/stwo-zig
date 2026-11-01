@@ -228,3 +228,34 @@ tape-wire bytes are unchanged (the arith extension exists only on v3 tapes).
   also claims them.
 - The per-call cost is exact layout arithmetic, not a whole-block measured
   `cost.json` from the driver.
+
+## Integration into the shared v3 profile (2026-11-01)
+
+Merged with SHA-256 and bulk memory on `codex/rv64-guest-prover-v3-integration`
+([rv64-services-v3-integration.md](rv64-services-v3-integration.md)). What changed
+for this family:
+
+- **Tape wire.** The arith records no longer sit between the secp and SHA-256
+  records on every v3 tape. Canonical order is now steps, memory, Keccak,
+  secp, SHA-256, then the v3 extension (u32 count, u32 reserved, 352-byte
+  records), announced by bit 31 of the SHA-256 count word and present only
+  when there is at least one arith256_mod record. SHA-only v3 tapes are
+  byte-identical to the pre-arith encoding. Work-packet budget and admission
+  read the extension at its new position.
+- **Transcript.** `CpuClaims.mix` mixed the v2 vector and each present v3
+  family in separate `mixFelts` calls. That changed every SHA-only CPU
+  transcript (the SHA-only fixture's CPU proofs differed and did not
+  cross-verify). It now mixes v2 + present v3 families in one call; bulk
+  claims follow as their own call. Arith-bearing bundles therefore differ
+  from this branch's pre-integration output (none were published).
+- **Ethereum planner.** The arith span count is an explicit u32 (the `@min`
+  narrowing bug the SHA branch fixed for Keccak/SHA).
+- **Harness.** `admitted_services.arith256_mod` lives in the unified table
+  with SHA-256 and bulk memory (status LAYOUT); measured block-scale cells are
+  in the integration note.
+- **evmone client.** `build.py --profile v3` routes MULMOD, ADDMOD, 256-bit
+  `ModArith` (plain form) and 256-bit odd-modulus modexp (patch 0023) to the
+  admitted 32-byte aligned packet. The "evmone client still uses the
+  candidate packet" and "no block-scale prefix proof" gaps are closed there.
+- Family 4 / Wire35 kind 4 stay arith256_mod; bulk memory uses no family
+  ordinal and no Wire35 kind.
