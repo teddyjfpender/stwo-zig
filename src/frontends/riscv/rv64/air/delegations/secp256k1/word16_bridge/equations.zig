@@ -50,24 +50,25 @@ pub fn wireTuple(comptime F: type, kind: P.Kind, f: []const F, m: []const F, aft
     @memcpy(t[3..], m[(if (after) L.AFTER else L.BEFORE)..][0..32]);
     return t;
 }
-pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+/// Per-lane direct transition separated from global RAM inverses, so the
+/// original legacy interleaving can remain byte-for-byte unchanged.
+pub fn emitLaneTransitionMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), lane_index: usize, out: *E.SinkFor(F)) void {
+    const row = ramRow(F, m, lane_index);
+    const prev = ramRow(F, pm, lane_index);
+    if (comptime E.isExternalLane(F)) {
+        R.equations.transitionLocalWithPublicFor(F, f[0..3], &row, &prev, E.callsFor(F, span).mul(E.qFor(F, @intCast(T.coordinates(kind)))), E.nonemptyFor(F, span), out);
+    } else {
+        R.equations.transitionLocalFor(F, f[0..3], &row, &prev, span.calls * @as(u32, @intCast(T.coordinates(kind))), out);
+    }
+}
+pub fn emitReadableMainFor(comptime F: type, m: []const F, lane_index: usize, out: *E.SinkFor(F)) void {
+    out.emit(m[L.ACTIVE].mul(F.one().sub(m[L.READABLE + lane_index])));
+}
+/// Original direct tail, reused without changing legacy residual order.
+pub fn emitTailMainFor(comptime F: type, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const one = F.one();
     const active = m[L.ACTIVE];
     const pad = one.sub(active);
-    const Sec = E.SecureFor(F);
-    var ram_term = Sec.zero();
-    for (0..4) |lane| {
-        const row = ramRow(F, m, lane);
-        const prev = ramRow(F, pm, lane);
-        R.equations.transitionLocalFor(F, f[0..3], &row, &prev, calls * @as(u32, @intCast(T.coordinates(kind))), out);
-        const d = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, false));
-        const e = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, true));
-        const inv = E.secureFor(F, i, L.RAM + 4 * lane);
-        out.emit(inv.mul(d).mul(e).sub(Sec.one()));
-        ram_term = ram_term.add(E.mulBaseFor(F, e.sub(d).mul(inv), active));
-        out.emit(active.mul(one.sub(m[L.READABLE + lane])));
-    }
-    S.prefix(F, ram_term, E.secureFor(F, i, 16), E.secureFor(F, pi, 16), f[1], f[2], claims.ram, out);
     out.emit(m[L.WRITE].sub(active.mul(f[6])));
     out.emit(m[L.TICK].sub(m[L.LOW]).sub(m[L.HIGH].mul(E.qFor(F, 65536))));
     for (m[L.CARRY..L.ALIGN]) |v| E.booleanFor(F, out, v);
@@ -81,8 +82,34 @@ pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: [
     out.emit(m[L.CARRY + 3]);
     const continuation = active.mul(one.sub(f[4]));
     for ([_]usize{ 2, 3, 4, 5, 10, 11, 12, 13, 14 }) |c| out.emit(continuation.mul(m[c].sub(pm[c])));
-    out.emit(active.mul(m[L.CALL_ID].sub(E.qFor(F, first_id)).sub(f[5])));
+    out.emit(active.mul(m[L.CALL_ID].sub(E.firstIdFor(F, span)).sub(f[5])));
     for (m[2..]) |v| out.emit(pad.mul(v));
+}
+/// MAIN-only bridge authority. Local OWNER/range GKR and genuine wide RAM/
+/// Wire arguments must close separately under the same authenticated MAIN.
+pub fn emitMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    for (0..4) |lane_index| {
+        emitLaneTransitionMainFor(F, kind, f, m, pm, span, lane_index, out);
+        emitReadableMainFor(F, m, lane_index, out);
+    }
+    emitTailMainFor(F, f, m, pm, span, out);
+}
+pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    const active = m[L.ACTIVE];
+    const Sec = E.SecureFor(F);
+    var ram_term = Sec.zero();
+    for (0..4) |lane| {
+        const row = ramRow(F, m, lane);
+        emitLaneTransitionMainFor(F, kind, f, m, pm, .{ .calls = calls, .first_id = first_id }, lane, out);
+        const d = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, false));
+        const e = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, true));
+        const inv = E.secureFor(F, i, L.RAM + 4 * lane);
+        out.emit(inv.mul(d).mul(e).sub(Sec.one()));
+        ram_term = ram_term.add(E.mulBaseFor(F, e.sub(d).mul(inv), active));
+        emitReadableMainFor(F, m, lane, out);
+    }
+    S.prefix(F, ram_term, E.secureFor(F, i, 16), E.secureFor(F, pi, 16), f[1], f[2], claims.ram, out);
+    emitTailMainFor(F, f, m, pm, .{ .calls = calls, .first_id = first_id }, out);
     S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, kind, m)), active.mul(f[4]).neg(), E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
     const d = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, false), true);
     const e = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, true), true);

@@ -1,5 +1,7 @@
 //! Experimental actual-wire GKR qualification; no production acceptance.
 test {
+    _ = @import("rv64_recursion/om31_global_classic_test.zig");
+    _ = @import("rv64_recursion/om31_service_main_test.zig");
     _ = @import("rv64_recursion/om31_main_prover_test.zig");
     _ = @import("rv64_recursion/om31_main_only_test.zig");
     _ = @import("rv64_recursion/om31_evaluation_test.zig");
