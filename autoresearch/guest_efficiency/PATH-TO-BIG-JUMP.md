@@ -126,7 +126,10 @@ item only with its evidence.
 - [x] Six candidate services in the execution tool with tests and cost estimates; measured per family on the Rust guest (`bca94c643`, merged `228a6a38a`)
 - [x] Candidate services measured on the evmone client: 5.65 instr/gas, 78,849 bits/gas (`519337489`)
 - [ ] **SHA-256 compression service in the prover**: admitted profile `ethereum_services_v3`, truth AIR, bridge, services lane, receiver, fixture proof (branch `codex/rv64-guest-prover-sha256`; truth AIR committed `6645e7e76`)
-- [ ] **Bulk-memory services in the prover** (aligned memcpy/memset, then memcmp) (branch `codex/rv64-guest-prover-bulk-memory`; bridge AIR committed `49576d8ce`)
+- [x] Aligned memcpy/memset services in the prover: desc/copy/set components (degree <= 3), RAM bridge, services lane, fresh receiver; 17 bulk tests incl. 16 adversarial, v2 bundles byte-identical (branch `codex/rv64-guest-prover-bulk-memory`, `1d2f62e8c`). Measured cost 112 cells per call + 77 per copied word (~10x below the estimate)
+- [ ] Unaligned memcpy body row (byte shift across two source words): admitted aligned-only service saves just -2.15% instr/gas on the Rust guest vs -12% for the candidate, because most copies have mismatched alignment
+- [ ] memcmp service
+- [ ] Ethereum driver v3 work-packet route (native prepare, packet admission, authority) so a guest using v3 services can be prefix-proved
 - [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
 - [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp) (branch `codex/rv64-guest-prover-arith256`, in progress)
 - [x] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (`fa8a2c7aa`, `683c40b2b`): client 5.653 -> 4.662 instr/gas (-17.5%), 78,849 -> 68,671 bits/gas (-12.9%); BLS/KZG 0.46 -> 0.09, Keccak glue 0.43 -> 0.08, BN254 0.30 -> 0.06 instr/gas
