@@ -1,0 +1,341 @@
+{
+  "schema": 1,
+  "kind": "optional_cooperative_composition_recovery",
+  "source_base": "eac3b7c07",
+  "recovered_checkpoint": "0ea417bcc",
+  "recovery_commit": "bc6b04af9",
+  "branch": "codex/rv64-recovered-composition",
+  "protocol": "core_schema5 unchanged; scheduling only",
+  "default": "legacy; explicit queue opt-in required",
+  "binary": {
+    "path": "/tmp/rv64-recovered-composition-tools-safe/bin/rv64-word16-ethereum",
+    "sha256": "98c80c82f18e123c5f3373c749155a27a0f6d4d47dfe05213f1e90e2a1a72e87",
+    "optimize": "ReleaseSafe"
+  },
+  "checks": {
+    "engine_safe": {
+      "path": "/tmp/rv64-recovered-composition-air-safe.log",
+      "sha256": "f5d640ff9a7f650a519319164dd9b135db19deb6efef9180a73f7679234f7313",
+      "summary": "Build Summary: 3/3 steps succeeded; 152/152 tests passed\ntest-air success\n+- run test 152 passed 944ms MaxRSS:19M\n   +- compile test ReleaseSafe native success 34s MaxRSS:1G"
+    },
+    "engine_fast": {
+      "path": "/tmp/rv64-recovered-composition-air-fast.log",
+      "sha256": "c6f50a95963aa2ac59ed477e98448464da575781d72122bb91675159bbcdaea1",
+      "summary": "Build Summary: 3/3 steps succeeded; 152/152 tests passed\ntest-air success\n+- run test 152 passed 806ms MaxRSS:19M\n   +- compile test ReleaseFast native success 33s MaxRSS:907M"
+    },
+    "rv64_safe": {
+      "path": "/tmp/rv64-recovered-composition-build-safe.log",
+      "sha256": "556cb0b6e6f69adf38365ecea9ce2d5a8ed7d2a18348f9ff52f03b002c0f3483",
+      "summary": "test-riscv64-air\n+- riscv test suite guard\n   +- run test stderr\nRV64 all-opcode byte plan: main=1184, requests=141, interaction=192; compact carry main=1072, requests=157, interaction=216\nRV64 byte-operation all-opcode plan: main=536, byte_requests=188, byte_interaction=256, AND_interaction=16, SHIFT_interaction=16\nRV64 retained ECDSA opcode plan: main=404, byte_requests=134, byte_interaction=184, AND_interaction=16, SHIFT_interaction=16\n\nBuild Summary: 6/6 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G\ntest-riscv64-word16-alu success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:1G\ntest-riscv64-air success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G"
+    }
+  },
+  "parity": [
+    {
+      "file": "bundle.json",
+      "sha256": "40018106d80ecc6c6ad0e705e00fa66e68b3a31e018358bc0197c0ffad854a1e",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cells.bin",
+      "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cost.json",
+      "sha256": "9af83627f3d7228cf368a1d6fa1f38f5738514c4a06ce31f9c04654ffb9b0703",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "roster.json",
+      "sha256": "7bbc0bf7fc310eb613f5c539845ed8f6a6d31eb5f04d0b52bee4bc70aae58456",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cpu-0.bin",
+      "sha256": "20db9114b89ec26b7b9e3ffb427520d4ea3e77e5d4be93b44b873037487d1cb0",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cpu-1.bin",
+      "sha256": "b6ad1a37d133914787ed3ad3ec2fa075965b374b3f2bdacd129673b1abe966e4",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cpu-2.bin",
+      "sha256": "18d921a3abbd3dee88888e5c1365596189e9acee4830c32d53a824003a0c73db",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "cpu-3.bin",
+      "sha256": "0929be9ecfd95bd06bd6a91bd7c0183ad9af37c3240dcae11f02f9e65489ae7d",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "truth-0.bin",
+      "sha256": "422215db4d8b326b309fd3443e26650a1b5e00186d75cd12f85ff28596516912",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "truth-1.bin",
+      "sha256": "9155661c51a209ad26f4a08e2692462d83a08e7268997835c10e4b5dd06344a7",
+      "queue_identical": true,
+      "baseline_identical": true
+    },
+    {
+      "file": "truth-2.bin",
+      "sha256": "f9ea23971f3ef95a55943ad7a45edfc043aec8469611db88bf2248b14a68ee85",
+      "queue_identical": true,
+      "baseline_identical": true
+    }
+  ],
+  "all_files_identical": true,
+  "runs": {
+    "legacy": {
+      "output_directory": "/tmp/rv64-recovered-composition-legacy-prefix4-v1",
+      "environment": {
+        "STWO_ZIG_COMPOSITION_SCHEDULER": "legacy"
+      },
+      "wall_seconds": 34.51,
+      "user_seconds": 207.27,
+      "system_seconds": 8.11,
+      "maximum_resident_bytes": 22570172416,
+      "darwin_peak_memory_footprint_bytes": 16344550144,
+      "capture_ns": 2586369458,
+      "setup_ns": 2477800667,
+      "prove_ns": 28180009791,
+      "fresh_receiver": {
+        "core_schema": 5,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 5517301500,
+        "verify_ns": 457190375,
+        "fixed_native_cache": {
+          "limit_bytes": 268435456,
+          "retained_bytes": 181229952,
+          "native_backing_bytes": 181214336,
+          "groups": 121,
+          "hits": 428,
+          "duplicate_native_bytes_released": 738370048,
+          "observed_individual_owners": 549,
+          "observed_backing_owners": 0,
+          "observed_spans": 549,
+          "owner_leases": 5
+        },
+        "program_metadata_cache": {
+          "limit_bytes": 67108864,
+          "retained_bytes": 30951766,
+          "payload_bytes": 30951414,
+          "programs": 1,
+          "hits": 4,
+          "metadata_bytes_not_rebuilt": 123805656,
+          "duplicate_metadata_bytes_released": 0,
+          "owner_leases": 6
+        }
+      },
+      "summed_stage_seconds": {
+        "source_construction": 2.3095640000000004,
+        "source_cpu_materialize": 0.733147,
+        "source_jalr": 5.999999999999999e-06,
+        "source_alu": 0.122283,
+        "source_binary": 0.14990699999999998,
+        "source_shift": 0.22390099999999996,
+        "source_alu_tail": 0.011139,
+        "source_binary_tail": 0.018938,
+        "source_shift_tail": 0.046310000000000004,
+        "source_division": 0.000236,
+        "source_multiplication": 0.090208,
+        "source_memory": 8e-06,
+        "source_rom": 0.020013,
+        "source_range_counts": 0.000728,
+        "source_range16": 0.000926,
+        "source_range8": 4.9999999999999996e-06,
+        "source_and_table": 0.000908,
+        "source_shift_table": 0.019225,
+        "source_fact_retirement": 0.003627,
+        "main_commit": 6.105331,
+        "streaming_commit_prepare": 10.648126000000014,
+        "streaming_transform": 6.564685999999995,
+        "streaming_leaf_hash": 4.081732999999999,
+        "merkle_commit": 1.4033030000000002,
+        "retained_main_spill": 1.7010710000000002,
+        "interaction_generation": 7.696214999999999,
+        "inter_r16_table": 0.01282,
+        "inter_r8_table": 5.1e-05,
+        "inter_rom": 0.526085,
+        "inter_and_table": 0.039348,
+        "inter_shift_table": 0.322168,
+        "inter_register_boundary": 8e-05,
+        "inter_cpu": 2.236267,
+        "inter_alu": 0.11517,
+        "inter_binary": 0.152614,
+        "inter_shift": 1.193084,
+        "inter_jalr": 0.009444000000000001,
+        "inter_multiplication": 0.247627,
+        "inter_memory": 0.497792,
+        "inter_ls": 0.220529,
+        "inter_ls_tail": 0.064367,
+        "inter_initial": 0.028309,
+        "inter_terminal": 0.036951000000000005,
+        "inter_selection": 0.076696,
+        "inter_boundary_authority": 0.07092599999999999,
+        "inter_alu_tail": 0.012492,
+        "inter_binary_tail": 0.024637,
+        "inter_shift_tail": 0.228877,
+        "interaction_commit": 5.947783,
+        "draw_random_coeff": 2e-05,
+        "composition_trace_extract": 0.00015300000000000003,
+        "composition_evaluation": 12.040714999999999,
+        "composition_interpolate_and_split": 0.13420700000000005,
+        "composition_commit": 1.0049839999999999,
+        "oods_point_and_mask_points": 0.001251,
+        "sampled_value_evaluation": 1.570599,
+        "sampled_value_channel_mix": 0.00116,
+        "fri_quotient_build_and_commit": 9.528406,
+        "proof_of_work": 1.9432360000000002,
+        "fri_decommit": 0.057763,
+        "trace_decommit": 4.612272000000001,
+        "constraint_check_and_assembly": 0.00541,
+        "inter_division": 8e-05
+      }
+    },
+    "queue": {
+      "output_directory": "/tmp/rv64-recovered-composition-queue-prefix4-v1",
+      "environment": {
+        "STWO_ZIG_COMPOSITION_SCHEDULER": "queue",
+        "STWO_ZIG_COMPOSITION_QUEUE_BYTES": "1073741824",
+        "STWO_ZIG_COMPOSITION_QUEUE_TIMING": "1"
+      },
+      "wall_seconds": 40.14,
+      "user_seconds": 253.13,
+      "system_seconds": 8.88,
+      "maximum_resident_bytes": 21732179968,
+      "darwin_peak_memory_footprint_bytes": 15505852056,
+      "capture_ns": 3506557333,
+      "setup_ns": 3358674042,
+      "prove_ns": 32811665333,
+      "fresh_receiver": {
+        "core_schema": 5,
+        "accepted": true,
+        "completed_ethereum_block": false,
+        "output": null,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "load_and_setup_ns": 3731365166,
+        "verify_ns": 438074250,
+        "fixed_native_cache": {
+          "limit_bytes": 268435456,
+          "retained_bytes": 181229952,
+          "native_backing_bytes": 181214336,
+          "groups": 121,
+          "hits": 428,
+          "duplicate_native_bytes_released": 738370048,
+          "observed_individual_owners": 549,
+          "observed_backing_owners": 0,
+          "observed_spans": 549,
+          "owner_leases": 5
+        },
+        "program_metadata_cache": {
+          "limit_bytes": 67108864,
+          "retained_bytes": 30951766,
+          "payload_bytes": 30951414,
+          "programs": 1,
+          "hits": 4,
+          "metadata_bytes_not_rebuilt": 123805656,
+          "duplicate_metadata_bytes_released": 0,
+          "owner_leases": 6
+        }
+      },
+      "summed_stage_seconds": {
+        "source_construction": 3.7528790000000005,
+        "source_cpu_materialize": 1.2386270000000001,
+        "source_jalr": 8e-06,
+        "source_alu": 0.17687499999999998,
+        "source_binary": 0.21932500000000002,
+        "source_shift": 0.42234,
+        "source_alu_tail": 0.017398,
+        "source_binary_tail": 0.029408000000000004,
+        "source_shift_tail": 0.077815,
+        "source_division": 0.000284,
+        "source_multiplication": 0.122733,
+        "source_memory": 6.999999999999999e-06,
+        "source_rom": 0.030039000000000003,
+        "source_range_counts": 0.001008,
+        "source_range16": 0.0013260000000000001,
+        "source_range8": 9.999999999999999e-06,
+        "source_and_table": 0.00133,
+        "source_shift_table": 0.037384,
+        "source_fact_retirement": 0.007297,
+        "main_commit": 10.637071,
+        "streaming_commit_prepare": 15.593487000000003,
+        "streaming_transform": 9.681417999999995,
+        "streaming_leaf_hash": 5.910030000000005,
+        "merkle_commit": 1.887863,
+        "retained_main_spill": 2.0354400000000004,
+        "interaction_generation": 8.503416,
+        "inter_r16_table": 0.017826,
+        "inter_r8_table": 7.400000000000001e-05,
+        "inter_rom": 0.5890770000000001,
+        "inter_and_table": 0.049648,
+        "inter_shift_table": 0.41821699999999995,
+        "inter_register_boundary": 0.00010300000000000001,
+        "inter_cpu": 2.645085,
+        "inter_alu": 0.139769,
+        "inter_binary": 0.199545,
+        "inter_shift": 1.4791729999999998,
+        "inter_jalr": 0.012154,
+        "inter_multiplication": 0.273526,
+        "inter_memory": 0.592512,
+        "inter_ls": 0.259146,
+        "inter_ls_tail": 0.078466,
+        "inter_initial": 0.037083000000000005,
+        "inter_terminal": 0.037714,
+        "inter_selection": 0.09370600000000001,
+        "inter_boundary_authority": 0.086377,
+        "inter_alu_tail": 0.015688,
+        "inter_binary_tail": 0.032479,
+        "inter_shift_tail": 0.27481500000000003,
+        "interaction_commit": 6.846527,
+        "draw_random_coeff": 1.8e-05,
+        "composition_trace_extract": 0.000132,
+        "composition_evaluation": 11.752859999999998,
+        "composition_interpolate_and_split": 0.171039,
+        "composition_commit": 1.278195,
+        "oods_point_and_mask_points": 0.0013560000000000002,
+        "sampled_value_evaluation": 1.933391,
+        "sampled_value_channel_mix": 0.0015830000000000002,
+        "fri_quotient_build_and_commit": 10.107823999999999,
+        "proof_of_work": 1.944112,
+        "fri_decommit": 0.072923,
+        "trace_decommit": 4.668699999999999,
+        "constraint_check_and_assembly": 0.004998,
+        "inter_division": 8.4e-05
+      }
+    }
+  },
+  "queue_execution_evidence": [
+    "info: composition queue: components=19 queued=19 exclusive=0 threads=8 admission_bytes=1073741824 peak_active=8 peak_estimated_bytes=3154116608 batches=35 batch_tasks=967 helped=1 queue_ms=2625.5 queue_busy_threads=5.65 exclusive_ms=0.0 merge_ms=13.7 finalize_ms=140.8",
+    "info: composition queue: components=20 queued=20 exclusive=0 threads=8 admission_bytes=1073741824 peak_active=7 peak_estimated_bytes=3154116608 batches=38 batch_tasks=1091 helped=0 queue_ms=3011.2 queue_busy_threads=5.94 exclusive_ms=0.0 merge_ms=18.1 finalize_ms=114.8",
+    "info: composition queue: components=18 queued=18 exclusive=0 threads=8 admission_bytes=1073741824 peak_active=8 peak_estimated_bytes=3154116608 batches=33 batch_tasks=911 helped=0 queue_ms=2441.1 queue_busy_threads=5.77 exclusive_ms=0.0 merge_ms=16.0 finalize_ms=126.1",
+    "info: composition queue: components=23 queued=23 exclusive=0 threads=8 admission_bytes=1073741824 peak_active=8 peak_estimated_bytes=3154116608 batches=44 batch_tasks=1204 helped=0 queue_ms=2614.7 queue_busy_threads=5.92 exclusive_ms=0.0 merge_ms=14.9 finalize_ms=111.6"
+  ],
+  "measurement_scope": "One engineering pair, not a controlled speed comparison. The legacy fresh receiver overlapped the queue producer and other workflow activity was present. Capture/setup also slowed in the queue run. No speedup, whole-block memory gain, or default promotion claim.",
+  "admission_limit": "Soft estimated active working-set cap only. One oversize component runs alone; actual peak estimated bytes3154116608 exceeds the1073741824 cap by design. Completed output accumulators and other proof stages are not bounded by this cap.",
+  "remaining": [
+    "main schema6 integrated-layout requalification",
+    "complete allocation-lifetime/hard-budget accounting beforeGPU use",
+    "controlled full-block performance/memory qualification before default enablement"
+  ],
+  "hook_exception": "Session-authorized hook exception for unrelated baseline repository-wide conformance failures."
+}
