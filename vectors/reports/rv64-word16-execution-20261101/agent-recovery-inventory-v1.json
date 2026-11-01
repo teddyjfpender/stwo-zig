@@ -1,0 +1,562 @@
+{
+  "schema": 1,
+  "kind": "interrupted_agent_work_recovery",
+  "source_session": "41eff230-75ab-4f11-a53b-7db4dcd5a611",
+  "workflow": "wf_335591ee-e99",
+  "local_archive": "/private/tmp/rv64-wave2-recovery-20261101-v1",
+  "raw_trace_files_saved": 52,
+  "source_preservation": "All nine original branches and three explicit unqualified recovery snapshots pushed. Original worktrees and indexes untouched. Local Git bundle includes source history.",
+  "qualification_warning": "Workflow results below are recovered agent reports, not blanket integration acceptance. Production promotion requires current merged tests; incomplete reviews remain incomplete.",
+  "worktrees": [
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-air-boundary",
+      "branch": "codex/rv64-perf2-air-boundary",
+      "head": "4a1e04256cbfacdfc47ade6d32fc58bf2533d876",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-air-div-trims",
+      "branch": "codex/rv64-perf2-air-div-trims",
+      "head": "243ce82428031e87272c355ad2c42e5670cbb3c4",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-air-integration",
+      "branch": "codex/rv64-perf2-air-integration",
+      "head": "eac3b7c076ad876775dc52b09456fb6801c6d741",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-air-ls32",
+      "branch": "codex/rv64-perf2-air-ls32",
+      "head": "d873812af9d424ea99083df82ffe85b9f18e3d3a",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-air-small-trims",
+      "branch": "codex/rv64-perf2-air-small-trims",
+      "head": "b0f4f2bff5118a391345da6d69dd3c3607b43a4d",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-baseline",
+      "branch": null,
+      "head": "eac3b7c076ad876775dc52b09456fb6801c6d741",
+      "status": ""
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-composition-queue",
+      "branch": "codex/rv64-perf2-composition-queue",
+      "head": "eac3b7c076ad876775dc52b09456fb6801c6d741",
+      "status": "M src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/component.zig\n M src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/component.zig\n M src/frontends/riscv/rv64/air/memory/load_store_v1/component.zig\n M src/frontends/riscv/rv64/air/memory/load_store_v2/component.zig\n M src/frontends/riscv/rv64/air/providers/domain_transform.zig\n M src/frontends/riscv/rv64/air/providers/parallel_rows.zig\n M src/frontends/riscv/rv64/air/providers/parallel_rows_test.zig\n M src/frontends/riscv/rv64/air/word16_cpu/component.zig\n M src/frontends/riscv/rv64/air/word16_execution/component.zig\n M src/frontends/riscv/rv64/air/word16_execution/jalr_component.zig\n M src/frontends/riscv/rv64/air/word16_execution/rom_component.zig\n M src/frontends/riscv/rv64/air/word16_index_control/component.zig\n M src/frontends/riscv/rv64/air/word16_v1/alu_component.zig\n M src/frontends/riscv/rv64/air/word16_v1/binary_component.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_component.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table_component.zig\n M src/prover/air/accumulation.zig\n M src/prover/air/component_parallel.zig\n M src/prover/air/component_prover.zig\n M src/prover/air/composition_execution.zig\n M src/prover/air_test_root.zig\n M src/prover/work_pool.zig\n?? src/prover/air/component_queue_test.zig\n?? src/prover/cooperative_queue.zig",
+      "snapshot_commit": "0ea417bcca0908ebf874f699b1c7e37ffc174c24",
+      "snapshot_ref": "refs/heads/recovery/rv64-wave2-20261101/composition-queue"
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-gkr-prototype",
+      "branch": "codex/rv64-perf2-gkr-prototype",
+      "head": "89099a0c5878fc74a76e194f295f4039942191d6",
+      "status": "M build_support/products/riscv_cpu.zig\n M src/integrations/riscv_cpu/rv64_point_evaluation_test_root.zig\n?? src/integrations/riscv_cpu/logup_gkr/\n?? src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig",
+      "snapshot_commit": "e129aa435e5ed0fe32dbe8badfe80defd76f05e7",
+      "snapshot_ref": "refs/heads/recovery/rv64-wave2-20261101/gkr-prototype"
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-interaction-gen",
+      "branch": "codex/rv64-perf2-interaction-gen",
+      "head": "09a48a6e01d142bdaa387c7f7aec37accda96db1",
+      "status": "M src/frontends/riscv/rv64/air/delegations/multiplication/degree3_interaction.zig\n M src/frontends/riscv/rv64/air/memory/load_store_v2/interaction.zig\n M src/frontends/riscv/rv64/air/memory/load_store_v2/interaction_parallel.zig\n M src/frontends/riscv/rv64/air/providers/prefix_waves.zig\n M src/frontends/riscv/rv64/air/word16_v1/binary_interaction.zig\n M src/frontends/riscv/rv64/air/word16_v1/binary_source.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_interaction.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_interaction_test.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table.zig\n M src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table_test.zig\n M src/integrations/riscv_cpu/tests/rv64_multiplication_degree3_parallel_test.zig\n M src/integrations/riscv_cpu/tests/rv64_word16_execution_source_test.zig\n M src/integrations/riscv_cpu/word16_execution/cpu_interaction.zig\n?? src/frontends/riscv/rv64/air/word16_v1/shift_word_packed_table_interaction.zig",
+      "snapshot_commit": "8261bc7c09e77266c11c9b239e3db48677406b08",
+      "snapshot_ref": "refs/heads/recovery/rv64-wave2-20261101/interaction-gen"
+    },
+    {
+      "worktree": "/private/tmp/stwo-rv64-perf2-sched-sweep",
+      "branch": "codex/rv64-perf2-sched-sweep",
+      "head": "c4e6d1e07d8ee6386200c2a9c3ef3ced3b0fa6ad",
+      "status": ""
+    }
+  ],
+  "workflow_agents": [
+    {
+      "agent_id": "a066c7e358ddb418b",
+      "label": "impl:composition-queue",
+      "phase": "Implement",
+      "state": "started"
+    },
+    {
+      "agent_id": "aca45aff5d6ca65db",
+      "label": "impl:air-boundary",
+      "phase": "Implement",
+      "state": "started"
+    },
+    {
+      "agent_id": "affee717f69d4ba0a",
+      "label": "design:air-ls32",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": "STEP 1 is done: the joint REG/RAM induction lemma holds for the current tree, so STEP 2 can go ahead. I found no counterexample. Only the design note was written; no code or proof bytes changed and no tests or prover runs were done.\n\nCommit 567823623 on codex/rv64-perf2-air-ls32 (worktree /private/tmp/stwo-rv64-perf2-air-ls32).\nDesign note: /private/tmp/stwo-rv64-perf2-air-ls32/design/riscv-proving-stack/rv64-ls-joint-write-induction.md\n\n**Invariant.** Every value limb of every produced RAM token and REG token is in [0, 2^16). The proof is strong induction on \u03c4, ordered lexicographically:\n- RAM tokens: \u03c4 = (epoch, tick).\n- REG tokens: \u03c4 = (epoch, clock). Clocks reset per shard but are always paired with that shard's distinct epoch.\n\n**Facts used that do not depend on values (all already in the tree):**\n- **P1, produced ticks.** Every produced RAM tick is 4r'+4 for a CPU row r' of that epoch, or 0 for INIT at epoch 0. LS gets this through OWNER19 slot 18 = after_low + 65536\u00b7after_high. Keccak and secp bridges bind it on lane 0 and copy it on continuation lanes.\n- **P2, RAM predecessors.** Every RAM before token equals a produced token with strictly smaller (epoch, tick). This uses the kept gap ranges and unit weights.\n- **P3, REG predecessors.** The same holds for registers within each shard, using the fixed 4r+s+1 clocks.\n- **P4, OWNER pairing.** Each CPU LS row is matched by exactly one active LS row. The LS OWNER weight is the same Boolean `active` column that weights its RAM transition.\n- **P5, function writers.** ALU, BINARY, SHIFT, MUL, DIV and JALR have independent output anchors.\n- **P6, selection table.** The table is fixed and correct.\n\n**Producer cases:**\n- **Base cases:** INIT (receiver's u64 image words), public register boundaries (`P.word(u64)`), function outputs, ECALL and store C (forced to 0), and Keccak/secp after values (ranged bytes).\n- **The SB target limb** is the original limb with one byte replaced by `b_low`. It is canonical directly, using the selection table and the kept U8 range on `b_low`.\n- **Load C:** each limb is one of:\n  - a before limb, which is a RAM token at (e, \u22644r), earlier than the register write at (e, 4r+3);\n  - `selected_byte + sign\u00b765280`, which is at most 65535;\n  - `sign\u00b765535`, with the sign Boolean from the table.\n- **LS after values:**\n  - loads: after equals before;\n  - SH/SW/SD: the written limbs are the B limbs, read at (e, 4r+2), and the rest are before limbs.\n\n**Strictly decreasing edges:**\n\n| From | To |\n|---|---|\n| REG read | earlier REG token |\n| load's register write at (e, 4r+3) | RAM token at (e, \u22644r) |\n| LS after at (e, 4r+4) | RAM before token |\n| store after at (e, 4r+4) | register B at (e, 4r+2) |\n\n**Two properties become load-bearing.** STEP 2 must guard them:\n1. **OWNER weight coupling.** The LS OWNER weight must stay identical to the Boolean RAM weight. If they were decoupled or allowed to be signed, an LS row could supply C without its before token being consumed, so C could be 65536 with nothing rejecting it.\n2. **Tick residue.** Every RAM producer's tick must be 4r'+4, or 0 for INIT. A producer at tick 4r+1 to 4r+3 would break the load edge in the table above.\n\n**Caveat on P5.** The function writers' output anchors are taken from the existing provider notes (ALU and SHIFT notes, the DIV README, the register review); I did not re-audit them. The lemma only needs the weaker form \"canonical inputs give canonical C\", and the induction supplies canonical inputs anyway. MUL and DIV ranges are untouched.\n\n**Special cases** (covered in the note):\n- partial stores and misaligned offsets;\n- sign-extended loads;\n- padding rows: all zero, no RAM or OWNER weight;\n- the two LS instances (head and tail);\n- cross-shard global RAM and x0.\n\nA bare LS proof no longer guarantees canonical C or after values on its own, but it was never an accepting verifier.\n\n**Planned encoding for STEP 2:**\n- `LOGICAL_U16` becomes {12, 24, 25, 68}; `LOGICAL_U8` is unchanged.\n- Lookup fractions go from 18 to 10 and strict pairs from 9 to 5. Pair 0 stays OWNER plus U16[12].\n- LS interaction width goes from 48 to 32 and residuals from 261 to 257. MAIN stays at 71.\n- The `ls2/encoding.zig` identity must be bumped.\n\n**Shapes this changes:**\n- Word16 LS head and tail components;\n- the LS circuit-lane adapter, `src/integrations/riscv_cpu/tests/rv64_word16_execution_circuit_test.zig`;\n- the diagnostic `src/integrations/riscv_cpu/word16_recursion/shape.zig`.\n\n`rv64_recursion` does not reference Word16 LS."
+    },
+    {
+      "agent_id": "a3460cb9c20d206ec",
+      "label": "impl:interaction-gen",
+      "phase": "Implement",
+      "state": "started"
+    },
+    {
+      "agent_id": "a873b53da421ea002",
+      "label": "impl:sched-sweep",
+      "phase": "Implement",
+      "state": "reported_complete",
+      "reported_result": {
+        "commit": "c4e6d1e07",
+        "summary": "The scheduler now supports up to 4 lanes, per-lane worker counts and an optional memory cap, and the default schedule is still 2 lanes x 8 workers. In services/schedule.zig, Policy gains lane_workers[4] (a zero entry falls back to workers_per_lane; the total stays at or under 32) and memory_cap_bytes. A lane takes the next index and then waits on a mutex/condition until the summed in-flight estimate plus its own fits under the cap. An index whose estimate is over the cap still runs, but only when nothing else is in flight, so the cap can never deadlock. A failure wakes every waiting lane. A new runWithOptions takes per-index estimates and an optional per-index trace (lane, workers, estimate, claimed/started/finished ns, in-flight bytes); run() wraps it, so existing callers are unchanged. Policy now writes lane_workers to JSON as a list of numbers (std.json would print [4]u8 as a string). options.zig accepts --proof-jobs=1..4, --lane-workers=a,b,.. (this sets the lane count; it must match --proof-jobs if both are given; it is checked against the 32 total, not against the request workers) and --proof-memory-cap=BYTES. All three are producer-only. pipeline.zig computes estimates only when a cap is set: 8 bytes per committed base cell, i.e. coefficients plus one evaluation pass, about 6.4 GB per CPU proof. This is a rough admission heuristic, not a measurement. When stage profiling writes a directory, pipeline.zig also writes schedule.json, a lane trace for both phases. In stage_process_usage.zig, every stage's process_usage now also records current resident bytes, current footprint and the process-lifetime footprint peak at stage end. On Darwin it also records lane_threads and lane_user_seconds/lane_system_seconds: the CPU time of only the lane thread and its pool helpers, read with thread_info, which can be attributed per proof even when lanes run concurrently. The monotonic check now covers only the old counters, so falling gauges no longer reject an interval. The existing getrusage user/sys and faults per stage were already there. New script scripts/rv64_word16_schedule_sweep.py (run with python3 -I, standard library only) takes a driver, a request, a jobs dir, a sha256 file, configs given as label=..,request_workers=..,proof_jobs=..,lane_workers=a:b:..,memory_cap=14G or as a JSON list, a run count, and interleaved or grouped order. It writes a request copy for each request_workers value, wraps each produce in lockf on the heavy lock plus /usr/bin/time -l, and hashes every output named in the sha256 file. A fresh receiver runs on the first run of each config by default (verify-prefix, or verify when count is 0). Proof dirs are deleted after hashing unless --keep-outputs is given. The receipt holds wall/user/sys, minor/major faults, max RSS, peak footprint, prove_ns, per-stage seconds and lane CPU (stage depth 2), and per-lane busy and admission-wait time, with medians, minimums and maximums for each config.",
+        "files_changed": [
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/src/integrations/riscv_cpu/word16_global_execution/services/schedule.zig",
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/src/integrations/riscv_cpu/word16_global_execution/services/schedule_test.zig",
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig",
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/src/integrations/riscv_cpu/word16_global_execution/ethereum/options.zig",
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/src/prover_api/stage_process_usage.zig",
+          "/private/tmp/stwo-rv64-perf2-sched-sweep/scripts/rv64_word16_schedule_sweep.py"
+        ],
+        "tests_run": [
+          {
+            "command": "zig test src/prover_api/stage_process_usage.zig (and with -lc)",
+            "result": "4/4 passed, including 2 new tests: lane attribution and gauge non-monotonicity, and a real thread_info CPU read"
+          },
+          {
+            "command": "zig build test-riscv64-word16-ethereum-terminal",
+            "result": "success. Includes the new options test: jobs up to 4, lane lists, cap, and rejection of 5 jobs, a 5-entry list, a sum over 32, a jobs/list mismatch and a zero entry"
+          },
+          {
+            "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe",
+            "result": "success. New tests: 4 lanes with 3/2/2/1 workers run each index exactly once on the right pool size; the memory cap keeps in-flight bytes at or under 13 and admits the 20-byte index alone, and a cap without estimates is rejected; 4 memory-capped lanes and 4 uncapped lanes give byte-identical proofs and manifest and fresh verify passes; Policy JSON. Debug was not run because of the known lane-stack overflow at base"
+          },
+          {
+            "command": "lockf heavy /usr/bin/time -l <driver> produce ... /private/tmp/stwo-rv64-perf-runs/sched-sweep-default-prefix4 4 (default schedule) + shasum -c against perf2-baseline-prefix4.sha256 + verify-prefix",
+            "result": "all 9 files OK (cells.bin, bundle.json, cpu-0..3, truth-0..2); accepted: true; core_schema 5. 30.57 s wall, 210 user, 10.9 sys, 16.33 GB footprint (a compile was running alongside)"
+          },
+          {
+            "command": "python3 -I scripts/rv64_word16_schedule_sweep.py ... --count 4 --runs 1 --config label=l2x8-w16,request_workers=16 --config label=l4x4-cap14G-w18,proof_jobs=4,lane_workers=4:4:4:4,memory_cap=14G,request_workers=18",
+            "result": "all_identical true, all_verified true. l2x8: 32.15 s wall, 224.5 user, 16.31 GB footprint. l4x4+cap: 34.23 s wall, 178.3 user, 15.63 GB footprint; at most 2 CPU proofs in flight (12.2 GB estimate) and two lanes waited about 3 s in stage 1 and about 10 s in stage 2. Receipt: /private/tmp/stwo-rv64-perf-runs/sched-sweep-smoke.receipt.json"
+          }
+        ],
+        "byte_identical_or_verified": "Yes. The default-schedule prefix4 outputs (*.bin, bundle.json, cells.bin) match perf2-baseline-prefix4.sha256 and the fresh verify-prefix accepts. The final driver, which includes the Policy JSON change, was checked again in the smoke sweep: both the default and the 4x4 memory-capped schedules hash identically and are accepted by a fresh receiver.",
+        "open_issues": "Two caveats on the smoke numbers. They are single runs on a shared machine with load average about 7 from other agents, so they are not performance evidence: wall time was 30-34 s against a 26.95 s baseline. The 4x4+cap config used about 46 fewer user seconds, but it was not faster on wall. That needs the quiet sweep.\n\nLimits of the new pieces:\n- The memory estimate is a fixed declared-geometry heuristic (8 bytes per committed base cell), not calibrated to measured footprint. The cap only limits in-flight stage work: workers sealed in stage 1 stay resident until stage 2 whatever the cap.\n- Lane CPU telemetry is Darwin-only (null elsewhere). Resident and footprint gauges are 0 on Linux.\n- An explicit --lane-workers list is checked against the 32 total, not against the request workers.\n- The main-thread pool (request workers) stays idle while multi-lane phases run. I did not change that.\n\nNot run: Debug combined-services (known stack overflow at base) and test-riscv-proof-pool-parity (fails 2 of 6 at base). No full-block run was made, as instructed, so there are no full-block output dirs to delete. The prefix4 scratch outputs are kept at /private/tmp/stwo-rv64-perf-runs/sched-sweep-default-prefix4; the smoke sweep's proof dirs were deleted automatically. No changes to catalog.zig, boundary*, or the riscv_cpu.zig build steps; the new tests are in the existing schedule_test.zig and options.zig roots.",
+        "prefix4_output_dir": "/private/tmp/stwo-rv64-perf-runs/sched-sweep-default-prefix4",
+        "stage_notes": "Each stage now gets lane-scoped CPU, which shows how much of each lane's pool is in use. In the default 2x8 run, proof 0 composition_evaluation took 2.88 s wall for 14.4 s of lane user CPU, about 5 of 8 workers busy. Across the 7 proofs in the smoke run, composition_evaluation summed to 60.3 lane-CPU s with 8 workers per lane and 44.8 s with 4 workers per lane. That suggests idle or spinning helpers in the wider pools, but it is a single noisy run. schedule.json gives per-lane busy time and admission wait for the sweep's overlap analysis.",
+        "stopped_at_gate": false
+      }
+    },
+    {
+      "agent_id": "a243a5a814a8d586e",
+      "label": "design:gkr-prototype",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": "The STEP 1 design note is committed, and the argument holds if seven receiver checks are enforced. Three of them are things today's partial GKR verifier does not do. No code changed and no tests were run, because this step is design only.\n\n- Commit: `89099a0c5` on `codex/rv64-perf2-gkr-prototype`, base `eac3b7c07`.\n- File: `/private/tmp/stwo-rv64-perf2-gkr-prototype/design/riscv-proving-stack/rv64-logup-gkr-prototype.md`\n- Upstream reference: read only, never executed, cloned to `/private/tmp/claude-501/-Users-theodorepender-code-cryptography-stwo-zig-rv64-frontend/41eff230-75ab-4f11-a53b-7db4dcd5a611/scratchpad/upstream-stwo-ref/src` at `826591c6c`.\n\n**Family: the LS U16/U8 range lookups (LS and LS_tail).**\n- **Closed in one proof:** range16 and range8 are per-proof tables, and global mode already requires every non-RAM relation to close inside the proof.\n- **Clean shape:** each row has 16 unconditional singles (12 U16 + 4 U8 = 2^4 lanes). Each denominator is affine in one stored MAIN column.\n- **Cell share:** the 8 range pair columns (32 base) are 103.8M of 1.227G INTER cells over prefix4 (8.5%), and 41.9M in batch 0 (12.9%).\n- **Best case for GKR:** 16 fractions per row amortise the binding columns best. If GKR loses here, it loses on thinner families. LS and LS_tail have different sizes, which also tests the multi-size batch path; it has no test today.\n- **Not chosen:**\n  - **CPU range:** 50.3M cells per proof, larger in absolute terms. But it has only 6 lanes, which needs padding and saves at most 8 of 12 columns. It is the natural second target.\n  - **BINARY AND:** too small to be informative.\n\n**Protocol.** It is a separate variant with its own transcript tag. The schema-5 transcript is unchanged.\n1. Commit FIXED, then MAIN.\n2. Draw all relation challenges as today.\n3. Run the batched GKR on the same channel. This produces the terminal point `r` and the terminal claims.\n4. The receiver checks the GKR scalars.\n5. Generate interaction. LS keeps RAM plus one OWNER/SELECTION pair, and adds an eq column and a weighted-sum prefix column.\n6. Mix claims, with the LS range ledgers forced to zero. Commit INTER, then composition, OODS and FRI as today.\n\n**Binding.** The terminal denominator claim must equal `\u03a3_p eq(r_row,p)\u00b7E(p)`, where E is the row's lane-weighted denominator. A cumulative-sum column proves this inside the AIR. The eq column is committed and pinned by the upstream anchor and carry-quotient constraints. All new constraints are degree 2, so they fit the existing 2n domain. The numerator claim needs no binding because all numerators are 1: the receiver checks it equals 1 directly.\n\n**Commitment before challenge.** The input layer depends only on MAIN and on the lookup challenges, and both are fixed before any GKR challenge. The eq column depends on `r`, so it is committed after `r`. This is the same pattern as classic LogUp. The FRI list-size union bound carries over unchanged.\n\n**Closure.** The sum of the classic claims plus each instance's GKR output (numerator over denominator), minus RAM in global mode, must be zero. The error budget is about 2^-114 for GKR, against the existing nominal level of about 96 bits from 70 queries and 26 PoW bits. So GKR is not the weakest term.\n\n**Checks I found by attacking my own design.** Each would be a real hole if dropped:\n- **Numerator equals 1:** today's verifier does not check it. Without it the prover can forge multiplicities through the last layer's numerators. Fatal.\n- **Shape from geometry:** today's verifier takes the number of variables from the proof. The receiver must fix it from its own geometry.\n- **Nonzero output denominator:** without this check, the sum is undefined.\n- **Independent eq column:** the prover must build it from `gen_eq_evals`, not from the recurrence. Otherwise a wrong carry-quotient port passes the tests while binding the wrong vector.\n- **Same channel, after the challenge draw:** GKR must run there. A separate channel is fatal.\n- **v1 ordering:** the merged-prefix version (saves 4 more columns) is sound only if the merge challenge is drawn after the claims are mixed. Before, the prover can solve for the LS claim.\n- **Wire format:** values must be canonical and round polynomials fixed length.\n\n**Expected outcome, all estimates to be measured in STEP 3:**\n\n| Metric | Expected change |\n|---|---|\n| INTER cells | \u22126.3% with a separate prefix column, \u22127.4% with the merged one; \u221211.3% of INTER in batch 0 |\n| Proof bytes | GKR adds ~20.7 KB, removed columns save 13\u201331 KB; about neutral on 0.8\u20131.2 MB proofs |\n| Native verifier | +0.1\u20130.3 ms per proof |\n| Recursive verifier | about +1.5% of the leaf's cost |\n| Prover CPU | about 5e8 QM31 multiplies for GKR, against ~1.5\u20132 core-s of classic work removed |\n\nOn prover CPU, I expect GKR to be neutral or slightly ahead only once the sumcheck is parallelised and SIMD-packed. The current scalar, allocation-heavy code will probably lose.\n\n**Memory.** The current prover keeps every layer in memory, about 1.2\u20131.4 GiB for LS alone. The bounded plan targets 256 MiB or less per instance, which is comparable to classic. It works by:\n- computing the lowest layer on demand from the retained u16/u8 metadata;\n- recomputing the four within-row lane layers instead of storing them;\n- streaming the first sumcheck round;\n- splitting the eq tables.\n\nThe note also lists the STEP 2 tests (including two-instance GKR, which has no test today) and 11 adversarial cases, each mapped to the check that must reject it."
+    },
+    {
+      "agent_id": "a0dfdc3b136b9301e",
+      "label": "impl:air-small-trims",
+      "phase": "Implement",
+      "state": "started"
+    },
+    {
+      "agent_id": "ac4287904e2ccae4b",
+      "label": "impl:air-div-trims",
+      "phase": "Implement",
+      "state": "reported_complete",
+      "reported_result": {
+        "commit": "243ce8242",
+        "summary": "I made both DIV trims on codex/rv64-perf2-air-div-trims, on top of eac3b7c07. Proof bytes change, as expected. The prefix4 run is accepted by a fresh verify-prefix. It shows no performance gain I can attribute to this change: prefix4 has only one DIV component, 32 rows, in cpu-3.\n\n1. PRODUCT_HIGH is now a constant in the tuple. The MULHU support tuple puts a fixed zero in its result coordinates (equations.zig:26), so the MUL chip's byte-ranged RESULT must be zero. That is the same statement as before. This removes 4 MAIN columns and 8 residuals, not 4: the four `PRODUCT_HIGH=0` checks and four padding checks of the form `(1-active)*v` go with them. The witness now refuses a row whose high product is nonzero.\n\n2. The eight U16 range checks on DIV's A and B operand limbs are removed. The argument is the one used for ALU v4: A and B must equal the CPU's FUNCTION tuple, which holds canonical register reads (REG induction plus ROM). The C range is kept because the REG induction needs it. ABS_A, REMAINDER, GAP, OUT and the three sign queries are also kept.\n\nPer-chip layout changes for DIV (MUL is unchanged at 25-coordinate tuple, 96 byte queries, 48 pairs):\n\n| | before | after |\n|---|---|---|\n| MAIN columns | 82 | 78 |\n| INTERACTION columns | 76 | 60 |\n| U16 queries | 31 | 23 |\n| strict pairs | 16 | 12 |\n| arithmetic residuals | 172 | 164 |\n| total constraints | 192 | 180 |\n| OODS samples per component | 166 | 146 |\n| query metadata per row | 96 B | 88 B |\n\nThe MUL dependency is pinned three ways:\n- **Comments** in layout.zig and equations.zig.\n- **Design note:** `rv64-div-canonical-input-trims.md`.\n- **Test:** fails if any MUL A/B/RESULT column stops being a direct BYTE query, if the MUL tuple stops carrying those columns, or if native MUL admission accepts a 256 byte. It also checks that QUOTIENT, ABS_B, PRODUCT_LOW, A and B have no direct DIV U16 query.\n\nWhen NEG_B=1 the ABS_B negation carries remain fully constrained. A test tries all 16 Boolean carry vectors for signed 64-bit and W divisors: only the honest vector gives a canonical ABS_B, and flipping any carry leaves a nonzero residual.\n\n**Schema:** I did not bump SCHEMA; it stays 5. The transcript already mixes the DIV MAIN and INTERACTION widths (protocol.zig:116), so proofs from the old layout cannot verify under the new one. This follows the ALU v4 precedent (37ea5b553). I did not change the length of the mixed word list, and historical receipts are untouched.\n\n**Gates:**\n- **(1) Soundness argument:** written in the design note, with file:line citations for each producer, consumer and invariant.\n- **(2) Adversarial tests:** three aliases are committed into real proofs: signed A as (p-15, 65536, ...), signed B as (p-1, 65536, ...), and W-upper garbage. All 164 local residuals and all 23 kept U16 values still hold, and the physical fragment verifies. The closed CPU FUNCTION check rejects each one, both in `claims.validate()` and in the fresh `Execution.verify`. A rebalanced claim is also rejected. A local test also confirms an unsigned A with a 65536 limb is still caught by the DIV chip itself.\n- **(3) Test steps:** listed below. Two steps fail on stale expectations that predate this change.\n- **(4) Prefix4:** produce plus fresh verify-prefix accepted, twice. The two runs are byte-identical.\n- **(5) Cells:** reported below.",
+        "files_changed": [
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/layout.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/equations.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/lookup.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/source.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/witness.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/README.md",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/integrations/riscv_cpu/word16_execution/division_product_integration_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/src/integrations/riscv_cpu/word16_execution/optional_division_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-div-trims/design/riscv-proving-stack/rv64-div-canonical-input-trims.md"
+        ],
+        "tests_run": [
+          {
+            "command": "zig build test-riscv64-word16-division-product (Debug and ReleaseSafe)",
+            "result": "PASS 19/19 (16 existing + 3 new: operand aliases, ABS_B carry uniqueness, MUL byte-range dependency)"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution-coordinator -Doptimize=ReleaseSafe",
+            "result": "PASS 36/36, including the new adversarial real-proof test"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution-coordinator -Doptimize=Debug",
+            "result": "36/36 tests pass, then the fold4 q70 pcs_suite test crashes with a bus error (stack overflow). Baseline eac3b7c07 crashes the same way (signal 11) with the same filter, so this predates the change."
+          },
+          {
+            "command": "test-riscv64-division-product-circuit (ReleaseSafe)",
+            "result": "PASS 3/3"
+          },
+          {
+            "command": "test-riscv64-word16-optional-division (ReleaseSafe)",
+            "result": "PASS 6/6 (sample-count pin updated 166->146)"
+          },
+          {
+            "command": "test-riscv64-word16-execution (ReleaseSafe)",
+            "result": "PASS 19/19"
+          },
+          {
+            "command": "test-riscv64-word16-execution-source (ReleaseSafe)",
+            "result": "PASS 7/7"
+          },
+          {
+            "command": "test-riscv64-word16-execution-circuit (ReleaseSafe)",
+            "result": "PASS 6/6"
+          },
+          {
+            "command": "test-riscv64-word16-combined-services (ReleaseSafe)",
+            "result": "PASS 21/21"
+          },
+          {
+            "command": "test-riscv64-word16-global-execution (ReleaseSafe)",
+            "result": "PASS 18/18"
+          },
+          {
+            "command": "test-riscv64-word16-ethereum-terminal (ReleaseSafe)",
+            "result": "PASS 11/11"
+          },
+          {
+            "command": "test-riscv64-word16-setup-audit (ReleaseSafe)",
+            "result": "PASS 10/10"
+          },
+          {
+            "command": "test-riscv64-word16-fixed-native-cache (ReleaseSafe)",
+            "result": "PASS 14/14"
+          },
+          {
+            "command": "test-riscv64-word16-retained-storage (ReleaseSafe)",
+            "result": "PASS 6/6"
+          },
+          {
+            "command": "test-riscv64-multiplication-degree3 (ReleaseSafe)",
+            "result": "PASS 10/10"
+          },
+          {
+            "command": "test-riscv64-word16-parallel-interaction (ReleaseSafe)",
+            "result": "PASS 4/4"
+          },
+          {
+            "command": "test-riscv64-word16-execution-prepared (ReleaseSafe)",
+            "result": "FAIL 13/14, failure predates this change. prepared_test.zig:91 expects ALU range mass 20*32 but ALU v4 (37ea5b553) has 12 queries, so it finds 384. ALU code and this test are untouched by this change."
+          },
+          {
+            "command": "test-riscv64-word16-provider-ladder (ReleaseSafe)",
+            "result": "FAIL 9/10, failure predates this change. provider_ladder_test.zig:97 expected16=2880 leaves out the DIV range term that eac3b7c07 added to geometry.range16Mass. Baseline would get 2880+31*32=3872; this branch gets 2880+23*32=3616."
+          },
+          {
+            "command": "lockf heavy: rv64-word16-ethereum produce prefix4 -> /private/tmp/stwo-rv64-perf-runs/perf2-air-div-trims-prefix4 (+ -r2)",
+            "result": "exit 0. Run 1: 37.66 s wall, 256.6 user, 13.6 sys, 16.31 GB footprint, load about 14. Run 2: 23.46 s wall, 169.6 user, 9.2 sys, 16.30 GB footprint, load about 6. The two runs are byte-identical."
+          },
+          {
+            "command": "rv64-word16-ethereum verify-prefix (fresh receiver) on both runs",
+            "result": "\"accepted\": true for both runs"
+          }
+        ],
+        "byte_identical_or_verified": "Fresh receiver accepted: yes. verify-prefix printed \"accepted\": true for both prefix4 runs. Bytes are intentionally different from baseline: cpu-0..3, truth-0..2 and bundle.json all differ, and cells.bin is identical. The two runs on this branch are byte-identical to each other; hashes are in /private/tmp/stwo-rv64-perf-runs/perf2-air-div-trims-prefix4.sha256. Negative tests: in each of the three aliased-operand proofs (signed A, signed B, W-upper garbage) every local constraint and kept range holds and the physical fragment verifies. The closed CPU FUNCTION relation rejects with UnclosedExecutionRelations, in both claims.validate and the fresh Execution.verify, and a rebalanced claim is also rejected. The existing low- and high-product attacks still reject with the constant-zero MULHU tuple.",
+        "open_issues": "- **Recursion and circuit-lane shapes change; recursion code not updated.** Every Word16 CPU proof that includes a DIV component now has DIV trees 3/78/60 instead of 3/82/76, 180 constraints instead of 192, and 146 OODS samples instead of 166. The circuit-lane point evaluator `ComponentFor(Lane)` is layout-generic and test-riscv64-division-product-circuit passes. Anything pinned to schema5 Word16 CPU proof shapes must be regenerated: the in-circuit verifier, layout digests and verifier keys of the native RV64 recursion on other branches, and the rv64-word16-recursion-shape report.\n- **Two failing test steps, both from stale expectations at base** (ALU v4 range mass, and the DIV range term missing from the ladder test). I left them alone because they are outside this task.\n- **build_support/products/riscv_cpu.zig untouched.** I did not raise the test-count minimums for word16-division-product (14, now 19 tests) or word16-execution-coordinator (35, now 36), to avoid conflicting with the user's edits to that file.\n- **Wrote to the baseline worktree's .zig-cache.** I ran one Debug filtered test from /private/tmp/stwo-rv64-perf2-baseline to confirm the fold4 stack overflow predates this change. That wrote build cache files there; no source was modified.\n- **Not run:** full-block (count 0) produce. The soundness argument is a manual source argument, not a machine-checked proof.",
+        "cells_before_after": "From cost.json, prefix4 against /private/tmp/stwo-rv64-perf-runs/perf2-baseline-prefix4: only cpu-3 contains a DIV component (log 5, 32 rows). cpu-3 columns go from [156, 1017, 1296] to [156, 1013, 1280]. Native cells change by [0, -128, -512], -640 in total. Over all 7 proofs native cells go from 3,057,402,784 to 3,057,402,144, a 0.00002% drop. Lifted leaf cells for cpu-3 drop by [0, 16,777,216, 67,108,864] because the 20 removed columns are lifted to log 22. cpu-0..2 and all three truth proofs are unchanged. Range16 multiplicity mass drops by 8 per padded DIV row. For the full block (17 DIV instances, 8,704 padded rows per the earlier README) I estimate about 8,704 \u00d7 20 = 174,080 fewer native cells; I did not measure this.",
+        "prefix4_output_dir": "/private/tmp/stwo-rv64-perf-runs/perf2-air-div-trims-prefix4 (run 1, measured under load about 14) and /private/tmp/stwo-rv64-perf-runs/perf2-air-div-trims-prefix4-r2 (run 2, load about 6). Each has .report.json, .time.txt and .verify.json siblings, plus perf2-air-div-trims-prefix4.sha256.",
+        "stage_notes": "There is no performance gain I can attribute to this change. Every stage moves by the same proportion in the unchanged proofs cpu-0..2 as in cpu-3. In run 1, under heavy machine load, all stages were about 40% slower. In run 2 they were 10-25% faster than baseline: cpu-0 went from 10.02 to 8.96 s summed, cpu-3 from 10.87 to 9.31 s, and composition_evaluation on cpu-3 from 2.47 to 1.85 s. That swing is load noise, not this change. In prefix4 the DIV component is log 5 (32 rows), so its share of composition time is negligible. The real effect is on opening and recursion: 20 fewer OODS samples and columns per DIV component in the full block.",
+        "stopped_at_gate": false
+      }
+    },
+    {
+      "agent_id": "a129860c4f6452cb8",
+      "label": "critic:air-ls32#0",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": {
+        "sound": true,
+        "proceed": true,
+        "problems": [
+          "Minor (doc accuracy): P5 lists 'JALR/JAL link via ROM', but only dynamic_next rows (JALR) take C from the ROM link (x/tuples.zig:43, :23). JAL is ALU ADD with use_pc and immediate=4 (word16_execution/features.zig:59-64). Its C is still anchored by the ALU, so soundness holds, but the citation should be fixed.",
+          "Minor (task coverage): LUI, AUIPC and FENCE are not named as producers. They are ALU operation 0 with use_immediate/use_pc (features.zig:48-58, :70). They fall under the ALU FUNCTION anchor, but the gate asked for every producer to be listed explicitly.",
+          "Minor: P5 (an independent C anchor for each FUNCTION provider) is inherited, not re-audited. This change does not touch FUNCTION providers, and DIV's README confirms explicit U16 output anchors. The note should still cite the anchor line for ALU, BINARY, SHIFT, MUL, DIV and JALR so that gate (1) is self-contained.",
+          "Minor but newly load-bearing, and not stated: on the SB target limb, the selection-tuple parity (ls1/equations.zig:21-24, the sum of the odd offset flags) must agree with the byte factor k (ls1/equations.zig:116, offset%2). Both come from the same one-hot offset flags, so they agree. If they were decoupled, `L_c + 256*(b_low - low_byte)` could leave [0, 2^16), and after the change no range query would catch it. The note should state this coupling and cite those lines.",
+          "Minor overstatement: 'Tick residue is load-bearing' is only true for producers whose values are not independently anchored (LS). Keccak and secp bridge tokens are anchored by U8 bytes on both before and after, so an off-residue bridge tick would not break the induction.",
+          "Test plan gap (gate 2): add (a) LB/LBU with selected_byte or selected_limb outside the selection table, for example a limb of 65536, which should be rejected by selection debt; (b) LW or LD whose lower C limb is a noncanonical alias of a before limb, which should be rejected by RAM debt; (c) an LS row whose CPU OWNER C differs from its LS C, which should be rejected by OWNER debt. Each case needs a real physical proof accepted by bare verification and rejected by the closed receiver, as in range_induction_proof_test.zig.",
+          "Implementation note: the range16 histogram/mass admission and the geometry query counts must use the reduced LS query count (overcounting is conservative and safe; undercounting is not). Bump the identity in ls2/encoding.zig and the schema. Native RELATION_U16 caches must keep coordinates 18-21 and 40-43 for OWNER/RAM reconstruction (already planned)."
+        ],
+        "notes": "I am an independent critic and edited nothing. I reviewed commit 567823623 on codex/rv64-perf2-air-ls32, design/riscv-proving-stack/rv64-ls-joint-write-induction.md, against the source at eac3b7c07 under /private/tmp/stwo-rv64-perf2-air-ls32. I ran no builds or tests; this was a source review only.\n\nI tried to construct a cheating witness and could not find one. Each attempt was blocked:\n- A noncanonical load C must be a before limb of a consumed RAM token. Full RAM14 tuple equality makes that token equal a produced token with a strictly smaller canonical clock (closed_ram/equations.zig:136-141, gap ranges retained). The token produced at that clock is canonical by the induction hypothesis.\n- LB/LBU/LH/LW sign and byte limbs come from the immutable selection table (ls1/selection.zig:5-29). The table query has unit weight on every row, and each table x is below 2^16.\n- SB's target limb is L_c + k(b_low - byte_p(L_c)). L_c is forced to equal the selected limb, which must be in the table. k and the parity p come from the same one-hot offset flags, and b_low keeps its U8 range, so the result is in range without needing the induction hypothesis.\n- SH/SW/SD after-values use only before limbs and B. B is bound through OWNER to the CPU's slot-1 value at (e, 4r+2) (x/tuples.zig:57), which comes before the RAM write at (e, 4r+4).\n- An OWNER-matched LS row always has active=1, the same column as its RAM weight (local_lookup.zig:25 numerator b*m[0]+a; closed_ram/equations.zig:149-154). So it cannot supply a C without its before token being consumed.\n- CPU OWNER and FUNCTION weights are Boolean and the FUNCTION flag is fixed by the ROM (rom.flags covers use_immediate through function). A load cannot be routed to a FUNCTION provider.\n- Both bridges U8-range their before and after bytes (keccak word16_bridge/equations.zig:44-47 with layout U8 33-48; secp layout U8 BEFORE..AFTER+32). Bridge OWNER C is 0.\n- REG predecessor clocks cannot wrap to a produced clock, because p - k does not equal any value below 2^24.\n- The only producers of RAM and OWNER tokens in the Word16 lane are LS v2, the Keccak and secp word16 bridges, and INIT (checked by grep; closed_ram and load_store_v1 are not wired into word16_execution/components.zig).\n- Relation closure is a total over typed claims with independent challenges (word16_execution/protocol.zig:78), and INIT/TERM claims are compared exactly against the expected values (word16_global_execution/execution.zig:177).\n- Every dependency edge strictly decreases (epoch, clock). The arithmetic matches the plan: LS INTER 48 to 32 and residuals 261 to 257.\n\nThe problems I found are documentation, citation and test-coverage gaps, not counterexamples. Implementation can start once the note is amended for the problems listed."
+      }
+    },
+    {
+      "agent_id": "a1e444ecf7d0f8700",
+      "label": "critic:air-ls32#0",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": {
+        "sound": false,
+        "proceed": true,
+        "problems": [
+          "P5 (FUNCTION register writers) is left as an 'inherited premise, not re-audited', and it cites only design notes, not code. The task requires every producer (ALU, BINARY, SHIFT, MUL, DIV, JALR, JAL, LUI, AUIPC) to be named with file:line citations. LUI and AUIPC are not named at all. My spot-check suggests each producer is anchored independently of its inputs: ALU note 'Noncircular write anchors'; shift note :30-40; DIV word16_product/README.md:18-21 gives explicit U16 anchors on A/B/C; MUL RESULT bytes are in BYTE_QUERIES (multiplication/layout.zig:6,18); JALR's link is ROM-bound at word16_execution/tuples.zig:43. The note itself still has to record and cite this.",
+          "A third load-bearing property is not stated: REG and OWNER close per CPU proof, under challenges drawn per proof. REG tuples carry no epoch (word16_execution/tuples.zig:27-35). If REG closed only globally under shared challenges, a REG edge could jump to a later epoch with a smaller clock, and the (epoch, clock) measure would stop decreasing. The property holds today through word16_execution/sources.zig:433-439 (validateOpenForGlobalRam), word16_global_execution/services/statement.zig:35-41 (local) and the per-ordinal draw (word16_global_execution/protocol.zig:72-77, word16_execution/protocol.zig:145-154). It must be listed and cited next to OWNER coupling and tick residue, and guarded the same way.",
+          "Existing design notes become stale and contradict this lemma, and the plan does not mention them. rv64-ls-canonical-range-induction.md steps 6-7 and lines 78-80 ('no REG/RAM circularity', 'LS load C4 ranges deliberately retained ... without using RAM canonicality') and its last counterexample at :115-116 all say C4 stays ranged. rv64-alu-canonical-input-ranges.md:54-56 and rv64-shift-canonical-input-ranges.md:43-45 list 'LS C4' as an independent REG anchor. STEP 2 must amend or supersede all of these. It must also state that the LS effective-address argument (old step 7, canonical A) now rests on the joint lemma.",
+          "Existing tests assert the opposite of the new design, and the plan only says 'rerun'. word16_execution/memory/range_induction_test.zig:99 asserts !canonicalKept for the LD before/after/C alias; that assertion fails once columns 18 and 40 leave LOGICAL_U16. range_induction_proof_test.zig:155 (read_write_value) names the 'retained canonical write ranges' as the reason it is rejected. Both must be rewritten so the rejection is attributed to RAM, OWNER or REG closure.",
+          "The negative-test plan has gaps. (a) It has no fully balanced noncanonical chain, such as LD of an aliased value, then the REG write, then an SD back to RAM, with every relation balanced except INIT ancestry and chronology. That is exactly the attack the removed ranges used to block. (b) It has no cross-shard (global or services execution) case. (c) Every relation folds into one total (word16_execution/protocol.zig:76-78), so the tests must also show that the forged witness satisfies every retained U16/U8/selection query; otherwise 'rejected' cannot be attributed to the remaining argument. (d) There is no concrete guard, such as a comptime or structural test, that the LS OWNER weight is the same m[0] used by the RAM transition (load_store_v2/local_lookup.zig:25 vs closed_ram/equations.zig:154). There is likewise no guard that every RAM producer's tick is OWNER-bound to 4r+4.",
+          "The list of changed shapes is incomplete. src/integrations/riscv_cpu/tests/rv64_ls_circuit_lanes_test.zig hard-codes [261] residual arrays at lines 73, 83, 99, 114, 194 and 207 and is not listed. Other consumers (interaction.zig, native_test.zig, range_induction_proof_test.zig, geometry.zig:72,79 range mass, encoding.zig identity) read the layout constants and adjust automatically. The recursion claim checks out: int/rv64_recursion goes through rv64_authenticated_execution and does not import the Word16 LS.",
+          "Minor uncited claims: the per-proof OWNER mass < p admission in P4, and the prefix-mode Ethereum receiver as an accepting context. The prefix receiver is fine in substance, since TERM only consumes."
+        ],
+        "notes": "I read the design note (commit 567823623, design/riscv-proving-stack/rv64-ls-joint-write-induction.md) against the code at eac3b7c07 in /private/tmp/stwo-rv64-perf2-air-ls32. I edited nothing and ran no builds or tests.\n\nThe core lemma holds. I checked these directly:\n- The LS load C cases (load_store_v1/equations.zig:92-106): C limbs are before limbs, a table byte plus sign*65280, or sign*65535.\n- Store windows (:109-123) and the SB target limb: selection-table truth plus the U8 range on b_low makes it canonical on its own.\n- Loads keep after = before (closed_ram/equations.zig:144). Same-epoch and cross-epoch gaps are strict (:136-141). LS OWNER weight and RAM weight are the same active bit (local_lookup.zig:25, closed_ram/equations.zig:154).\n- CPU FUNCTION + OWNER weights sum to active, both Boolean (word16_execution/equations.zig:19,84-85).\n- Keccak and secp bridges range their after bytes with U8, OWNER-bind lane 0's tick, and copy it to the continuation lanes.\n- INIT is checked at epoch 0, tick 0 against image words (word16_global_execution/protocol.zig:141).\n- The only OWNER providers are LS v2 and the two bridges. The only RAM transition producers are LS v1/v2, the bridges and the generic closed_ram component, which the Word16 lane does not use.\n- RAM ticks are 0 mod 4 and REG write clocks are 3 mod 4, so the edge from a load's RAM read to its REG write strictly decreases.\n\nI found no counterexample. The remaining gaps are about completeness and integration, and all can be closed in STEP 2: P5 citations, an explicit statement that REG closes per proof, amending the stale notes, rewriting the two contradicting tests, stronger negative tests including a balanced chain and a cross-shard case, and the circuit-lanes test that hard-codes 261.\n\nThe planned arithmetic is consistent: 10 fractions in 5 pairs give INTER 8+20+4 = 32 and 257 residuals. The encoding identity hashes LOGICAL_U16, so it changes automatically. Range mass in geometry.zig is derived from LS.U16.len."
+      }
+    },
+    {
+      "agent_id": "a168ceb4aff65ac40",
+      "label": "critic:gkr-prototype#0",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": {
+        "sound": true,
+        "proceed": true,
+        "problems": [
+          "Wrong integration target. The note anchors the transcript and closure on word16_execution (execution.zig, stage1_worker.zig, sources.zig:validateOpenForGlobalRam). The rv64-word16-ethereum driver and its prefix batches actually run the services lane: word16_global_execution/services/worker.zig (P.drawCpu, then generateForDelegationJoinProfiled, then mixFelts(claims), then INTER commit) and services/statement.zig CpuClaims.local(), which is sum(values) - ram - sum(extras.truth) = 0, checked by ethereum/receiver.zig. R6 and the step-5 placement must be restated for that path: the GKR batch goes after drawCpu and before interaction generation and claim mixing, and sum_i n_i/d_i is added to CpuClaims.local(). The closed, global_ram and keccak_join paths each need the same term or must reject the variant. If the term is left out, honest proofs fail (a completeness bug, not a soundness bug), but as written the note points the implementer at the wrong file.",
+          "The note says validateOpenForGlobalRam 'requires every non-RAM relation to close inside the proof'. That is wrong. The check closes one total sum over all relations, and LS/local_lookup.zig authenticates only the sum of the owner, range16, range8 and selection ledger shares. Folding range16 and range8 into one GKR instance is sound only because the range16 and range8 offsets are drawn independently (protocol.zig drawInternal, with range8.coefficient = 1). The soundness lemma should state this assumption and treat the combined rational identity as multivariate (Schwartz-Zippel over (z16, z8, ...)). It holds today, but the note does not argue it.",
+          "Section 5.2 justifies R5 the wrong way. Uniqueness of c does not need q != 0: C2, read as c(x) = c(x+2s)*q(x), fixes c along each half coset from its C1 anchor whatever q is. R5 is a completeness/abort condition, since eq values and the carry quotients degenerate when some r_k is in {0,1}. Harmless, but the lemma's step 1 should be restated.",
+          "The prover must evaluate q on the 2N evaluation domain from the same succinct formula the verifier uses (upstream eval_carry_quotient_col / step selectors). The note instead says it 'interpolates and extends' q from trace values. If the succinct q is not the size-N interpolant of its trace values, the OODS check fails for honest proofs. The constraint degree budget (log+1) must also be checked against the actual degree of q. This is a completeness risk only.",
+          "The nu == 1 check is applied to the folded terminal value. That is sound (a forged pair of bottom-mask numerators folds to 1 with probability at most 1/|F|), but checking both bottom-layer mask numerator entries == 1 is deterministic and cheaper for a recursive verifier. Suggested hardening.",
+          "partiallyVerifyBatch does not check per-layer round counts. Shape errors are caught only indirectly, through utils.eq's length check and the proof-derived n_variables_by_instance. Sumcheck mixes the trimmed coeffsSlice, which has variable length. R1 must be enforced before calling partiallyVerifyBatch, and the fixed 4-coefficient wire form must decode to the same trimmed polynomial that both sides mix. Otherwise prover and receiver transcripts diverge, and the future recursive verifier needs a fixed-length mix. The note lists this, but the plan should make it an explicit test (a wire round polynomial with a trailing zero coefficient)."
+        ],
+        "notes": "I read only the design note, commit 89099a0c5 on codex/rv64-perf2-gkr-prototype (/private/tmp/stwo-rv64-perf2-gkr-prototype/design/riscv-proving-stack/rv64-logup-gkr-prototype.md), and checked it against the code at that commit: src/prover/lookups/gkr_verifier.zig and sumcheck.zig; load_store_v2/{layout,local_lookup}.zig; providers/scalar_range.zig; word16_execution/{sources,protocol}.zig; word16_global_execution/services/{worker,statement}.zig. I edited no files and ran no tests.\n\nI tried these cheating strategies and none succeeds against the design as specified:\n- Free numerators: blocked by the nu == 1 check (R4).\n- Permuted or wrong leaf index map: the AIR authenticates sum over (p, j) of eq(pi(p,j), r) * D_j(p) for some receiver-fixed bijection pi. That input layer is fixed by MAIN before r, so a bad map only breaks completeness. The note's claim is correct.\n- Adaptive tail-instance output claims: they are mixed at the instance's first layer, as upstream does. The true output is fixed by the committed witness, so this is sound.\n- Grinding MAIN for a degenerate r: rejected by R5, and it is the same grinding model as for z.\n- v1 gamma merge: A, B, S_A and delta are all fixed before gamma, so it is sound with the stated ordering.\n- Zero leaf denominator: d_root = prod D_j is forced nonzero by R2.\n- Unanchored cyclic S prefix: summing around the cycle forces sum c*E = delta.\n\nFacts I confirmed in the code:\n- LS range lanes are unconditional singles with weight 1. Pair 0 is (OWNER weighted by m[0], U16 lane 0); pair 8 is (U8 lane 3, SELECTION). So the claim of removing 8 pairs (32 base columns) holds.\n- range16 is (offset, drawn coefficient) and range8 is (offset, 1), with independent offsets.\n- The cell arithmetic checks out exactly: 41,943,040 / 18,874,368 for batches 0 and 1; v0 net -77.86 M; v1 net -90.8 M.\n- The sumcheck enforces MAX_DEGREE = 3.\n\nThe remaining gaps are integration-target and completeness issues, not soundness breaks, so implementation can start. The most important fix is to retarget STEP 2b and R6 at the services lane (CpuClaims.local plus ethereum/receiver.zig), which the Ethereum driver actually runs.\n\nNot checked: the upstream mle_eval eq/carry-quotient formulas themselves (I did not fetch upstream). Their correctness is completeness-critical and is covered by the planned gen_eq_evals comparison tests. The variant has no recursion-verifier support; the note says so."
+      }
+    },
+    {
+      "agent_id": "a414bd71bde25816d",
+      "label": "critic:gkr-prototype#0",
+      "phase": "Design",
+      "state": "reported_complete",
+      "reported_result": {
+        "sound": false,
+        "proceed": true,
+        "problems": [
+          "Lifted native protocol is not addressed. In the native protocol, masks stay in the global domain: geometry.previousPoint uses the global step and localPoint calls repeatedDouble(global_log - local_log). The design writes C2 as c(x) - c(x + 2*step)*q(x) and says the verifier evaluates q, is_first and is_second 'at the OODS point'. For LS at log 20 or LS_tail at log 18, the +2 mask must be 2*g_global applied to the global point, and q, is_first and is_second must be evaluated at the doubled local point. The note never states this mapping.",
+          "The binding needs plumbing the LS component does not have, and the design does not specify it. LS maskPoints and evaluateQuotientsAtPointFor support only offsets {0, previous} on MAIN and INTER, and offset 0 only on FIXED. Missing: (a) a +2 offset on the eq column; (b) is_second, which is either f[1] (first) at a previous mask on the FIXED tree or a new succinct selector; (c) an uncommitted q column reaching the packed, pool-exclusive evaluateDomain path and the point path. 'The verifier computes is_first/is_second' also departs from the repo convention, where selectors are FIXED columns f[1] (first) and f[2] (last). Adding a FIXED column would change the retained FIXED root. The note should choose explicitly: reuse f[1] with a previous mask, or add succinct evaluation.",
+          "The S and v1 prefix forms do not match the existing gadget. scalar_range.prefix anchors with claim*first and current*last = 0; it is not cyclic with claim/N. In v1 the claim term of the existing LS local prefix (local_lookup.zig emitFor, total = owner+range16+range8+selection) must become (S_A + gamma*delta)*first. The v0 S column should either reuse the same gadget or justify a second prefix style.",
+          "Variant isolation is not tested. There is no adversarial case for a WGKR variant proof sent to the default SCHEMA-5 receiver, or a default proof sent to the variant receiver. Both must reject.",
+          "Adversarial gaps beyond isolation: no case for a nonzero LS or LS_tail range16/range8 ledger in the variant (R6 says forced to zero, but that is not tested); none for LS_tail presence disagreeing with geometry (an extra or missing GKR instance); none for a tampered n_root (only d_root = 0 is listed); none for a non-canonical QM31 in GKR wire values.",
+          "Wire container is unspecified. The note does not say where the GKR batch proof sits in the per-proof bundle or physical-000N files, how the fresh receiver decodes it with fixed bounds, or how the proof-wire-bounds report relates to it. R1 covers shape but not placement.",
+          "Recursion admissibility is not stated. The note should say that variant proofs are not admissible to the native recursion receiver, the fixed-root authority or the fold tree until the GKR gadgets exist. A fixed-shape recursive verifier would also need the instance count (LS_tail present or absent) fixed by geometry class.",
+          "Closure function is unnamed. R6 needs a new receiver-side closure that adds sum n_i/d_i to Claims.values() (and the global-RAM variant of validateOpenForGlobalRam). Claims.validate and validateOpenForGlobalRam currently sum ledgers only. The note should name the new function and require all receiver paths to use it: verify-prefix, complete-block verify, and the 2a mini-AIR receiver."
+        ],
+        "notes": "Independent critique of design/riscv-proving-stack/rv64-logup-gkr-prototype.md (commit 89099a0c5 on codex/rv64-perf2-gkr-prototype). I read the code but edited or ran nothing.\n\nClaims checked against the code at eac3b7c07, all correct:\n- LS layout. INTER = 8 + 4*9 + 4 = 48 columns, with 18 local fractions. Pair 0 is OWNER with U16 lane 0 (numerator b*m0 + a). Pair 8 is the last U8 lane with SELECTION.\n- The U16 and U8 query columns are all physical: none is in projection.REMOVED.\n- Range lanes are unconditional. fillChunkImpl adds range inverses without meta.active(), so padding rows look up too.\n- Denominators are affine: offset - coefficient*value, with range8 coefficient = 1. range16 and range8 are drawn on the per-proof channel after MAIN (drawInternal, also via drawWithSharedRam).\n- Closure is a single sum over Claims.values() (minus the RAM part in global mode). Folding range16 and range8 lanes into one GKR instance with independent challenges is therefore fine.\n- Cell figures match. Batch 0: 32*2^20 + 32*2^18 = 41,943,040. Batch 1: 18,874,368.\n- gkr_verifier.partiallyVerifyBatch returns n_variables_by_instance from the proof's mask count, as the note says, so R1 is needed. sumcheck enforces MAX_DEGREE = 3. The LogUp gate checks mask width.\n- The smaller (tail) instance's output claims are mixed only when that instance joins at layer n_unused. This matches upstream and is sound.\n- Index convention. Using upstream CircleDomain::at, storage N-1 maps to coset index 1 and storage 1 to coset index N-1. This agrees with the note's 'bits(N-1) at coset index 1'.\n\nProtocol core, which I agree with:\n- Transcript order: MAIN, then challenges, then GKR, then r, then the eq column and S in INTER.\n- The nu == 1 check for singles.\n- d != 0 (root product).\n- R5: r_row must avoid {0, 1}.\n- The v1 gamma ordering.\n- The argument that a bad index map can only break completeness (the AIR's map is a bijection, so the multiset is preserved).\n- The error budget: 900/|F| for GKR at n = 24.\n\nThe family choice is closed within one proof, so no cross-shard obligation arises. The proof-size and recursion figures are plausible as estimates.\n\nVerdict: not yet sound (sound=false) under this lens, because the lifted-protocol mapping, the mask and succinct-column plumbing, and variant isolation are unresolved in the note. None of them is a soundness break in the protocol. All can be fixed in the note and handled during STEP 2, so implementation can start (proceed=true). Before or alongside STEP 2a, the note should be amended to:\n- state the global-to-local point mapping for the +2 mask, q and is_second;\n- choose between FIXED f[1] with a previous mask and succinct selectors;\n- restate the S and v1 prefix in the existing claim*first / current*last gadget form;\n- add the missing adversarial cases (variant-isolation and the others listed in problems);\n- name the new closure function and the proof-container placement;\n- state that the variant is excluded from recursion and the fold tree."
+      }
+    },
+    {
+      "agent_id": "aa59b805679a63984",
+      "label": "impl:gkr-prototype",
+      "phase": "Implement",
+      "state": "started"
+    },
+    {
+      "agent_id": "a1127777ada097265",
+      "label": "impl:air-ls32",
+      "phase": "Implement",
+      "state": "reported_complete",
+      "reported_result": {
+        "commit": "d873812af",
+        "summary": "LS v2 trimmed from 48 to 32 interaction columns. I removed the eight U16 range queries on the RAM after-value limbs (logical 18-21) and on the load result C (40-43). LOGICAL_U16 is now {12,24,25,68} and LOGICAL_U8 is unchanged. That gives 10 local fractions, 5 strict pairs, INTER 48->32, and .ls residuals 261->257. MAIN71, the metadata caches, OWNER/RAM reconstruction and the boundary components are unchanged. A comptime guard pins the new ledger. The native fill, histogram mass admission and narrow interaction were already parameterized by the query list, so they needed no edits. Versions bumped: the LS encoding identity v4->v5 (string and mix tag) and the core SCHEMA 5->6. With SCHEMA 6, the stale baseline prefix4 bundle is now rejected explicitly with InvalidServicesWireRoster. The design note design/riscv-proving-stack/rv64-ls-joint-write-induction.md gains section 10. It records the implementation, the deviations (SCHEMA bump; the SB physical case is local-only because the fixture has no SB row), the negative-test tables, the changed shapes and the measured effect. rv64-ls-canonical-range-induction.md gets a one-line pointer saying it is superseded. Adversarial tests: 4 new or rewritten local algebra cases and 3 new physical-proof cases. Each new physical case commits a false MAIN and produces a real PCS proof that the bare physical verifier accepts. It then asserts that the range16/range8 ledger shares are identical to the honest ones, so the removed checks cannot see the forgery, while exactly the expected debts move (RAM+OWNER, RAM+OWNER, or OWNER+selection). The fresh closed receiver rejects every case with UnclosedExecutionRelations. Prefix4: fresh verify-prefix accepted (core_schema 6). Interaction cells fell 4.1% and total native cells 1.7%.",
+        "files_changed": [
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/frontends/riscv/rv64/air/memory/load_store_v2/layout.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/frontends/riscv/rv64/air/memory/load_store_v2/encoding.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/word16_execution/protocol.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/word16_execution/memory/range_induction_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/word16_execution/memory/range_induction_proof_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/word16_execution/memory/native_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/word16_execution/memory/parallel_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/tests/rv64_ls_circuit_lanes_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/src/integrations/riscv_cpu/tests/rv64_word16_execution_circuit_test.zig",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/design/riscv-proving-stack/rv64-ls-joint-write-induction.md",
+          "/private/tmp/stwo-rv64-perf2-air-ls32/design/riscv-proving-stack/rv64-ls-canonical-range-induction.md"
+        ],
+        "tests_run": [
+          {
+            "command": "zig build test-riscv64-word16-memory (Debug)",
+            "result": "40/41 passed. The only failure is the existing 'LS71 packed quotient rows run on four actual256KiB workers' test: it builds a 256 KiB worker pool, but parallel_rows.MIN_STACK is 1 MiB in Debug, so it fails in Debug whatever the change. All new LS32 local and physical-proof tests passed in Debug."
+          },
+          {
+            "command": "zig build test-riscv64-word16-memory -Doptimize=ReleaseSafe (run twice, the second on the final code)",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-ls-circuit-lanes (Debug)",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution-circuit (Debug)",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution -Doptimize=ReleaseSafe (rerun after SCHEMA bump)",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution-source -Doptimize=ReleaseSafe (rerun after SCHEMA bump)",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-execution-prepared -Doptimize=ReleaseSafe",
+            "result": "FAIL 13/14, failure already at base and unrelated to LS: prepared_test.zig:91 expects ALU range16 mass 20*32=640 but gets 384 = 12*32. ALU RANGE_QUERIES dropped to 12 in 37ea5b553, which is an ancestor of eac3b7c07, and the test was never updated."
+          },
+          {
+            "command": "zig build test-riscv64-word16-global-execution -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-keccak-bridge -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-keccak-shared -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-secp-bridge -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-ethereum-terminal -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-csp -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-global-memory -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-retained-storage -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "zig build test-riscv64-word16-setup-audit -Doptimize=ReleaseSafe",
+            "result": "pass"
+          },
+          {
+            "command": "lockf heavy: rv64-word16-ethereum produce ... /private/tmp/stwo-rv64-perf-runs/perf2-air-ls32-prefix4 4",
+            "result": "exit 0; 23.41 s real, 156.91 user, 10.06 sys, 16.31 GB peak footprint"
+          },
+          {
+            "command": "rv64-word16-ethereum verify-prefix request.json perf2-air-ls32-prefix4 (fresh process)",
+            "result": "accepted: true, core_schema 6, cpu_proofs 4, truth_proofs 3"
+          },
+          {
+            "command": "new driver verify-prefix on baseline perf2-baseline-prefix4 (schema 5)",
+            "result": "rejected: InvalidServicesWireRoster (expected)"
+          },
+          {
+            "command": "interleaved controls under the heavy lock: baseline driver x2 (ctl-base-r1/r2) and LS32 driver x2 (prefix4-r2/r3)",
+            "result": "baseline 23.89/24.09 s real, 170.4/170.2 user; LS32 23.69/23.32 s real, 160.2/158.0 user; peak footprint unchanged at 16.31 GB"
+          }
+        ],
+        "byte_identical_or_verified": "Not byte-identical, as intended: this AIR/protocol change alters proof bytes. The fresh receiver accepted the prefix4 outputs (verify-prefix \"accepted\": true, core_schema 6), and the new driver explicitly rejects the old schema-5 bundle. Negative tests: all 3 new physical-proof attacks (load_c_alias on the LW row, store_after_alias on the SD row, lb_false_byte on the LB row) produce real proofs that the bare physical verifier accepts and the fresh closed receiver rejects with UnclosedExecutionRelations. In each, the range16/range8 shares are identical to the honest ones, and only the expected RAM/OWNER/selection shares move. All 4 new or rewritten local cases satisfy every LS local residual and every retained query, and show which closure excludes them. All 6 existing range-induction physical attacks still pass; one was renamed because closure, not the write ranges, now rejects it. Output hashes are in /private/tmp/stwo-rv64-perf-runs/perf2-air-ls32-prefix4.sha256.",
+        "cells_before_after": "From cost.json, prefix4. CPU interaction columns: 640/612/580/1296 -> 608/580/548/1264 (-32 per CPU proof, 16 per LS instance, head + tail). Interaction native cells: 1,267,334,272 -> 1,215,429,760 (-51,904,512, -4.1%). Preprocessed and main cells unchanged (231,268,768 and 1,558,799,744). Total native cells: 3,057,402,784 -> 3,005,498,272 (-1.7%). Truth proofs unchanged. Per-chip layout constants: LS MAIN 71 (unchanged), INTER 48 -> 32, constraints 261 -> 257, U16 queries 8 -> 4, U8 queries 4 (unchanged), fractions 18 -> 10, strict pairs 9 -> 5. Boundary (INIT/TERM) components unchanged at INTER 20 and 47 constraints.",
+        "prefix4_output_dir": "/private/tmp/stwo-rv64-perf-runs/perf2-air-ls32-prefix4 (report: .report.json, time: .time.txt, verify: .verify.json, hashes: .sha256). Control runs with timing JSON only (.bin files deleted): perf2-air-ls32-ctl-base-r1, -ctl-base-r2, -prefix4-r2, -prefix4-r3 under /private/tmp/stwo-rv64-perf-runs/",
+        "stage_notes": "Interleaved means (2 baseline vs 3 LS32 runs), stage seconds summed over the 7 proofs: inter_ls + inter_ls_tail 0.232 -> 0.159 s (a real saving, consistent across runs); interaction_generation 5.00 -> 4.93; interaction_commit 4.31 -> 4.20; composition_evaluation 8.16 -> 8.07 (within noise); fri_quotient 6.25 -> 6.19; main_commit and source unchanged; trace_decommit +0.07 (noise). Wall 23.89/24.09 -> 23.41/23.69/23.32 s and user time 170 -> 157-160 s. Most of that wall/user difference is NOT caused by this change: proof_of_work fell 1.67 -> 0.56 s summed, and grinding cost depends on the transcript, so the new proof bytes just happened to be lucky. The structural gain is the 4.1% interaction-cell cut plus about 0.1-0.2 s of interaction generation/commit spread across the two concurrent proofs. Expect roughly 0-1% on wall.",
+        "stopped_at_gate": false,
+        "open_issues": "1) Recursion/circuit shapes changed, recursion code not updated: the Word16 LS head/tail components go to INTER 32 and 257 residuals (MAIN71 and mask offsets unchanged), and every Word16 CPU proof has 32 fewer interaction columns. The LS CircuitLane qualification tests now size from L.constraints(.ls) and pass. word16_recursion/shape.zig reads shapes dynamically. int/rv64_recursion does not reference Word16 LS. Any recursive Word16 verifier or pinned layout/circuit digest built against LS48 must be regenerated. 2) Two properties are now load-bearing and are documented in the note: LS OWNER weight == Boolean RAM weight, and every RAM producer's tick is 4r'+4. Any future change to LS/CPU OWNER weights, or any new RAM/REG writer, must reopen the lemma. 3) Premise P5 (each FUNCTION provider has an independent C anchor) is inherited from the existing provider notes and was not re-audited. 4) Failures that already exist at base and are not chased: the Debug memory suite's 256 KiB-worker LS71 test (the Debug MIN_STACK is 1 MiB), and the stale ALU range-mass expectation in test-riscv64-word16-execution-prepared (expects 640, gets 384). 5) No complete-block (count 0) run was done; prefix4 only, as the gates require. 6) The core SCHEMA bump to 6 may conflict with other perf2 worktrees that bump it too. 7) The design note is a source-level argument, not machine-checked, and needs human review before it is relied on."
+      }
+    },
+    {
+      "agent_id": "a90f87674f99f943f",
+      "label": "review:sched-sweep#0",
+      "phase": "Review",
+      "state": "reported_complete",
+      "reported_result": {
+        "verdict": "pass",
+        "problems": [
+          {
+            "severity": "minor",
+            "file": "src/integrations/riscv_cpu/word16_global_execution/services/schedule.zig",
+            "line": 170,
+            "description": "All lane threads share one std.time.Timer and call read() with no synchronisation. In Zig 0.15.2, Timer.read() calls sample(), which writes self.previous, so this is a data race. It runs on every multi-lane run, including the default 2x8 path, even when tracing is off. It only affects telemetry: aligned 64-bit stores on aarch64 do not tear in practice, and the timer feeds no proof data. Fix: read std.time.Instant.now() and compute since() against a fixed start, or keep a timer per lane."
+          },
+          {
+            "severity": "minor",
+            "file": "src/integrations/riscv_cpu/word16_global_execution/ethereum/options.zig",
+            "line": 78,
+            "description": "A one-entry --lane-workers=N produces Policy{lanes=1, workers_per_lane=N}. Schedule.run then takes the lanes==1 path, which runs on the caller's existing pool with the request's worker count, so N is silently ignored. report.json coordinator_schedule and schedule.json policy still say lane_workers [N]; only the trace's 'workers' field shows the real count. A sweep config like lane_workers=12 would be mislabelled. Fix: reject a single-entry list, or build a dedicated pool of N."
+          },
+          {
+            "severity": "minor",
+            "file": "scripts/rv64_word16_schedule_sweep.py",
+            "line": 348,
+            "description": "On a hash mismatch the script computes the actual digests but never stores them in the record. Unless --keep-outputs is given, it then deletes the output dir. A non-identical run would leave only the mismatched file names and no bytes or digests to investigate. Fix: store the digests, and keep outputs whenever identical is false or verification fails."
+          },
+          {
+            "severity": "minor",
+            "file": "scripts/rv64_word16_schedule_sweep.py",
+            "line": 324,
+            "description": "subprocess.run(timeout=...) kills only the direct child, lockf. /usr/bin/time and the driver (23-40 GB) can keep running orphaned without the heavy lock, and the next config would then start alongside them. Fix: start the child in a new session and kill its process group on timeout."
+          },
+          {
+            "severity": "minor",
+            "file": "src/integrations/riscv_cpu/word16_global_execution/services/pipeline.zig",
+            "line": 159,
+            "description": "The memory cap only admits in-flight indices within a phase, using an uncalibrated estimate of 8 bytes per committed cell. Workers sealed in stage 1 stay resident into stage 2 and are not counted, so the cap does not bound process footprint. The implementer disclosed this. The sweep should not treat memory_cap as a footprint bound until the estimate is calibrated against process_footprint_bytes_at_end."
+          }
+        ],
+        "notes": "Verdict: pass. I found no blocker or major problem; the five findings above are all minor.\n\nByte identity\n- I re-hashed /private/tmp/stwo-rv64-perf-runs/sched-sweep-default-prefix4 with shasum -c against perf2-baseline-prefix4.sha256. All entries are OK: cells.bin, bundle.json, cpu-0..3 and truth-0..2.\n- That directory came from a build made before the Policy JSON change: its schedule.json prints lane_workers as a NUL string. The final binary is still covered:\n  - The smoke receipt's driver_sha256 (9ad72dd0\u2026) matches zig-out/bin/rv64-word16-ethereum.\n  - I rebuilt under the build lock and the build was a cache hit with the same hash, so that binary is HEAD c4e6d1e07. The worktree is clean.\n  - The smoke receipt shows both the default and the 4x4 capped configs identical and accepted by verify-prefix.\n- I did not re-run verify-prefix myself.\n\nConcurrency review of schedule.zig\n- Admission is correct. The wait loop sits under the mutex and re-checks stop. fail() broadcasts under the lock. release() broadcasts. An oversized index is admitted only when nothing is in flight, so there is no deadlock.\n- A claimed index that is never run, because stop was set, always comes with an error recorded elsewhere.\n- Trace slots are written by index, so writes never overlap, and they are read only after join.\n- The lane binding is threadlocal and restored before its stack storage is freed (defer order is right). The memory-gauge readings are excluded from the monotonic check.\n- The errdefer and spawn-failure paths still join every lane.\n- With the cap at 0 (the default), behaviour matches eac3b7c07 apart from the extra mutex and timer calls.\n- One real issue is the unsynchronised shared Timer (finding 1).\n\nTelemetry claims\n- physical-0000.stages.json has composition_evaluation at 2.883 s wall, 14.44 lane user seconds, lane_threads 8 and footprint_at_end. This matches the claim of about 5 of 8 workers busy.\n- The implementer claimed no wall-time saving, and none was measured: smoke runs took 32-34 s wall against the 26.95 s baseline, on a noisy machine. The 4x4 cap14G config used fewer user seconds (178 vs 224) but was slower on wall. The cap allowed at most 2 CPU proofs in flight at once, and two lanes each spent 3-10 s waiting to be admitted. That is a single run, not evidence.\n\nTests I ran, all on HEAD\n- zig test src/prover_api/stage_process_usage.zig, with and without -lc: 4/4 passed both ways.\n- zig build test-riscv64-word16-ethereum-terminal: passed (4m11s).\n- zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe: passed (5m11s). This root includes schedule_test.zig and execution_test.zig.\n\nNot run: Debug combined-services (known lane-stack overflow at base) and test-riscv-proof-pool-parity (fails 2 of 6 at base). I ran no heavy prefix4 or full-block job. I edited nothing.\n\nThe diff does not touch catalog.zig, boundary* or build_support/products/riscv_cpu.zig."
+      }
+    },
+    {
+      "agent_id": "a3b1de0a7a992cb5b",
+      "label": "review:air-ls32#0",
+      "phase": "Review",
+      "state": "started"
+    },
+    {
+      "agent_id": "aba6a31cd50ee9e08",
+      "label": "review:air-div-trims#0",
+      "phase": "Review",
+      "state": "reported_complete",
+      "reported_result": {
+        "verdict": "pass",
+        "problems": [
+          {
+            "severity": "minor",
+            "description": "The test that pins the MUL dependency calls multiplication/provider.zig byteValuesFor/tupleFor. It does not check that the production degree3 MUL (degree3_provider.zig:11,21) still routes through those functions. Today it does, but a refactor of degree3_provider that inlines its own byte list could drop the A/B/RESULT byte queries without failing this test. Consider also asserting on the degree3 evaluation, for example by checking that a 256 in column c leaves a nonzero residual or imbalance through degree3_provider.evaluateFor.",
+            "file": "src/frontends/riscv/rv64/air/delegations/division/word16_product/test.zig",
+            "line": 279
+          },
+          {
+            "severity": "minor",
+            "description": "The test-count minimums in build_support/products/riscv_cpu.zig were not raised: word16-division-product is still 14 (now 19 tests) and word16-execution-coordinator is still 35 (now 36). The four new soundness tests could therefore be dropped from the roots without the step failing. The ALU v4 precedent (37ea5b553) did raise them. Leaving them was deliberate, to avoid conflicting with the user's edits to that file, but it should be done before merge.",
+            "file": "build_support/products/riscv_cpu.zig"
+          },
+          {
+            "severity": "minor",
+            "description": "The report says every prefix4 run has .report.json, .time.txt and .verify.json siblings. Only run 1 has perf2-air-div-trims-prefix4.verify.json (accepted: true, core_schema 5). The -r2 run has no verify.json on disk, so its claimed fresh-receiver acceptance has no recorded evidence. Run 1 is enough for gate (4).",
+            "file": "/private/tmp/stwo-rv64-perf-runs/perf2-air-div-trims-prefix4-r2.report.json"
+          },
+          {
+            "severity": "minor",
+            "description": "SCHEMA stays 5. Drift is caught for native receivers only because the transcript mixes the DIV MAIN and INTERACTION widths (protocol.zig:116). This follows the ALU v4 precedent. Anything keyed only on schema 5 still holds the stale 3/82/76 DIV trees and 192 constraint coefficients: recursion verifier keys, layout digests and the rv64-word16-recursion-shape report. The implementer flags this. It is not a soundness hole in the native lane, but the recursion and circuit lanes must be regenerated before they consume these proofs.",
+            "file": "src/integrations/riscv_cpu/word16_execution/protocol.zig",
+            "line": 116
+          },
+          {
+            "severity": "minor",
+            "description": "In the adversarial integration test, the rebalanced-claim branch accepts any error from Execution.verify. It proves rejection, but not that the remaining argument is what rejects (prefix boundary, OODS or something else). The primary negative assertions are exact: UnclosedExecutionRelations from claims.validate and from Execution.verify, plus verifyPhysicalFragment accepting the local AIR. They do exercise the removed A/B checks.",
+            "file": "src/integrations/riscv_cpu/word16_execution/division_product_integration_test.zig",
+            "line": 167
+          }
+        ],
+        "notes": "I found no soundness problem, so the verdict is pass. I could not build a cheating witness that the new constraints accept.\n\n**What I checked**\n\nPRODUCT_HIGH trim:\n- tupleFor writes F.zero() into MULHU tuple coordinates 9..12 (equations.zig:26).\n- Before this change the tuple carried PRODUCT_HIGH, with four PRODUCT_HIGH=0 residuals.\n- The MUL provider's RESULT bytes are direct BYTE queries. Its tuple maps through the per-limb (c, 256c) basis change (arithmetic_bus.zig:10-19), so the statement floor(Q*|B|/2^64)=0 is the same as before.\n- Arithmetic residuals drop by 8, not 4: the four PH=0 residuals plus four padding residuals `(1-active)*v` (equations.zig:68). 172 - 8 = 164 is correct.\n- Degree is unchanged or lower.\n- witness.row refuses a nonzero high product. An honest prover cannot produce one: quotient*abs_b <= abs_a < 2^64, and the zero-divisor case gives product 0.\n\nA/B U16 removal:\n- The DIV FUNCTION supply has weight -active, with boolean one-hot selectors over the 8 DIV IDs. Its denominator uses an independent challenge coefficient for each of the 13 coordinates, with no limb packing. LogUp closure therefore forces coordinate-wise equality with a CPU demand tuple.\n- The CPU FUNCTION tuple (word16_execution/tuples.zig:14-26) uses register-read limbs. For R-type DIV, ROM sets use_pc, use_immediate and dynamic_next to 0. Register-read canonicality comes from the REG induction, which is unchanged. The DIV C range is kept, so the induction stays anchored.\n- Other FUNCTION emitters (ALU, BINARY, SHIFT, JALR/index-control, MUL) use ROM- or one-hot-constrained opcode IDs outside the DIV range. This is the same precondition the ALU v4 argument relies on.\n- Multiplicities: DIV supply is at most 2^22 < p, so a non-canonical tuple cannot be cancelled mod p.\n- Remaining arguments that depend on canonical inputs: the selected-top sign queries, the ABS_A/ABS_B negation chains with boolean carries, ZERO detection (sum ABS_B < 2^18), PRODUCT_LOW+R=ABS_A, and the strict gap. All hold given authority-canonical A/B, the ranged ABS_A/R/GAP/OUT, and the MUL-ranged Q/ABS_B/PRODUCT_LOW. The ABS_B carry-uniqueness test supports the NEG_B=1 case.\n\nLayout, lookup, source and metadata:\n- PAIRS=12, INVERSES=14, PREFIX=56, INTERACTION=60, CONSTRAINTS=180, enforced by a comptime check.\n- Linear-query pairing order and padding weights are consistent.\n- Metadata drops to 10 words (88 B), and the integration test now patches index 9.\n\nTests:\n- The adversarial tests do exploit the removed checks. The signed-A alias (p-15, 65536) and signed-B alias (p-1, 65536) would have failed the old A/B U16 queries. They now pass all 164 local residuals and all 23 kept ranges, the physical fragment verifies, and only the closed FUNCTION relation rejects.\n- The MUL-dependency test pins identity BYTE queries on MUL columns 0..23, tuple carriage, and native rejection of a 256 byte.\n\nPre-existing failures: I confirmed both by inspection.\n- provider_ladder_test.zig:97: expected16 has no DIV term, while geometry.zig:74 adds RANGE_QUERIES*rows(division_log).\n- prepared_test.zig:91: expects the old ALU mass of 20*32. ALU v4 has 12 range queries, so the expectation is stale.\n\nWhat I ran and looked at:\n- I re-ran `zig build test-riscv64-word16-division-product -Doptimize=ReleaseSafe`: success (2/2 steps; the output does not show individual test counts).\n- prefix4 run 1: perf2-air-div-trims-prefix4.verify.json shows accepted: true and core_schema 5.\n- Hashes: cpu-*, truth-* and bundle.json differ from baseline, as expected because the transcript mixes the DIV widths. cells.bin is identical.\n- I did not re-run any heavy job.\n\n**Shapes that change**\n- DIV trees go from 3/82/76 to 3/78/60.\n- Constraints go from 192 to 180.\n- OODS samples per DIV component go from 166 to 146.\n- Range16 mass drops by 8 per padded DIV row.\n- Recursion and circuit-lane shapes pinned to schema 5 need regenerating. Recursion code was not touched.\n\n**Performance:** prefix4 has a single 32-row DIV component, so no wall-time gain is expected. The implementer's no-gain conclusion is honest.\n\nFiles reviewed (absolute):\n- /private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/division/word16_product/{layout,equations,lookup,source,witness,test}.zig\n- /private/tmp/stwo-rv64-perf2-air-div-trims/src/integrations/riscv_cpu/word16_execution/{division_product_integration_test,optional_division_test,arithmetic_bus,protocol,geometry,provider_ladder_test,prepared_test}.zig\n- /private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/word16_execution/tuples.zig\n- /private/tmp/stwo-rv64-perf2-air-div-trims/src/frontends/riscv/rv64/air/delegations/multiplication/{provider,degree3_provider,trace}.zig\n- /private/tmp/stwo-rv64-perf2-air-div-trims/design/riscv-proving-stack/rv64-div-canonical-input-trims.md\n\nThe soundness argument in the design note is a manual source argument and has not been machine-checked. It matches the code at the lines I spot-checked."
+      }
+    }
+  ]
+}
