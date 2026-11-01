@@ -80,67 +80,71 @@ pub const LineDomainIterator = struct {
 };
 
 /// Univariate polynomial over line-domain FFT basis.
-pub const LinePoly = struct {
-    coeffs: []QM31,
-    log_size: u32,
+pub const LinePoly = LinePolyFor(QM31);
+pub fn LinePolyFor(comptime F: type) type {
+    return struct {
+        const Self = @This();
+        coeffs: []F,
+        log_size: u32,
 
-    pub fn initOwned(coeffs: []QM31) LinePoly {
-        std.debug.assert(coeffs.len != 0 and (coeffs.len & (coeffs.len - 1)) == 0);
-        return .{
-            .coeffs = coeffs,
-            .log_size = @intCast(std.math.log2_int(usize, coeffs.len)),
-        };
-    }
+        pub fn initOwned(coeffs: []F) Self {
+            std.debug.assert(coeffs.len != 0 and (coeffs.len & (coeffs.len - 1)) == 0);
+            return .{
+                .coeffs = coeffs,
+                .log_size = @intCast(std.math.log2_int(usize, coeffs.len)),
+            };
+        }
 
-    pub fn deinit(self: *LinePoly, allocator: std.mem.Allocator) void {
-        allocator.free(self.coeffs);
-        self.* = undefined;
-    }
+        pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            allocator.free(self.coeffs);
+            self.* = undefined;
+        }
 
-    pub fn evalAtPoint(self: LinePoly, allocator: std.mem.Allocator, x: QM31) !QM31 {
-        if (self.log_size <= circle.M31_CIRCLE_LOG_ORDER) {
-            var doublings_stack: [circle.M31_CIRCLE_LOG_ORDER]QM31 = undefined;
-            var cur = x;
-            var i: u32 = 0;
-            while (i < self.log_size) : (i += 1) {
-                doublings_stack[i] = cur;
-                cur = circle.CirclePoint(QM31).doubleX(cur);
+        pub fn evalAtPoint(self: Self, allocator: std.mem.Allocator, x: F) !F {
+            if (self.log_size <= circle.M31_CIRCLE_LOG_ORDER) {
+                var doublings_stack: [circle.M31_CIRCLE_LOG_ORDER]F = undefined;
+                var cur = x;
+                var i: u32 = 0;
+                while (i < self.log_size) : (i += 1) {
+                    doublings_stack[i] = cur;
+                    cur = circle.CirclePoint(F).doubleX(cur);
+                }
+                return poly_utils.fold(F, self.coeffs, doublings_stack[0..self.log_size]);
             }
-            return poly_utils.fold(QM31, self.coeffs, doublings_stack[0..self.log_size]);
+
+            const doublings = try allocator.alloc(F, self.log_size);
+            defer allocator.free(doublings);
+            var cur = x;
+            for (doublings) |*d| {
+                d.* = cur;
+                cur = circle.CirclePoint(F).doubleX(cur);
+            }
+            return poly_utils.fold(F, self.coeffs, doublings);
         }
 
-        const doublings = try allocator.alloc(QM31, self.log_size);
-        defer allocator.free(doublings);
-        var cur = x;
-        for (doublings) |*d| {
-            d.* = cur;
-            cur = circle.CirclePoint(QM31).doubleX(cur);
+        pub fn len(self: Self) usize {
+            return @as(usize, 1) << @intCast(self.log_size);
         }
-        return poly_utils.fold(QM31, self.coeffs, doublings);
-    }
 
-    pub fn len(self: LinePoly) usize {
-        return @as(usize, 1) << @intCast(self.log_size);
-    }
+        pub fn coefficients(self: Self) []const F {
+            return self.coeffs;
+        }
 
-    pub fn coefficients(self: LinePoly) []const QM31 {
-        return self.coeffs;
-    }
+        pub fn coefficientsMut(self: *Self) []F {
+            return self.coeffs;
+        }
 
-    pub fn coefficientsMut(self: *LinePoly) []QM31 {
-        return self.coeffs;
-    }
+        pub fn intoOrderedCoefficients(self: *Self) []F {
+            core_utils.bitReverse(F, self.coeffs);
+            return self.coeffs;
+        }
 
-    pub fn intoOrderedCoefficients(self: *LinePoly) []QM31 {
-        core_utils.bitReverse(QM31, self.coeffs);
-        return self.coeffs;
-    }
-
-    pub fn fromOrderedCoefficients(coeffs: []QM31) LinePoly {
-        core_utils.bitReverse(QM31, coeffs);
-        return initOwned(coeffs);
-    }
-};
+        pub fn fromOrderedCoefficients(coeffs: []F) Self {
+            core_utils.bitReverse(F, coeffs);
+            return initOwned(coeffs);
+        }
+    };
+}
 
 test "line domain: invalid coset with non-unique x coordinates" {
     const coset = Coset.odds(2);
