@@ -13,6 +13,9 @@ pub const SECP_ADD_WORD_TAG: u64 = 0x00020011;
 pub const SECP_DOUBLE_WORD_TAG: u64 = 0x00020012;
 /// One SHA-256 compression; 32-byte aligned 12-u64 packet, state written.
 pub const SHA256_COMPRESS_TAG: u64 = 0x00030010;
+/// r = (a*b + c) mod m (r = 0 when m = 0); 32-byte aligned 20-u64 packet
+/// a, b, c, m, r (four LE limbs each), only r written.
+pub const ARITH256_MOD_TAG: u64 = 0x00030021;
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;
@@ -48,5 +51,5 @@ pub fn secpWords(profile: Profile) bool {
 }
 /// Admitted v3-only service tags (the ROM-independent service roster).
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and tag == SHA256_COMPRESS_TAG;
+    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG);
 }

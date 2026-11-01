@@ -25,6 +25,7 @@ test "native tape wire preserves full64bit advice and service packets independen
         try std.testing.expectEqualDeep(tape.service_calls.items, loaded.service_calls.items);
         try std.testing.expectEqualDeep(tape.secp_calls.items, loaded.secp_calls.items);
         try std.testing.expectEqualDeep(tape.sha256_calls.items, loaded.sha256_calls.items);
+        try std.testing.expectEqualDeep(tape.arith256_mod_calls.items, loaded.arith256_mod_calls.items);
         const second = try temp.dir.createFile("normalized", .{ .read = true });
         defer second.close();
         try W.write(second, &loaded);
@@ -130,7 +131,7 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
     cpu.retired = clock;
     cpu.regs[2] = 0xfedcba9876543210;
     cpu.regs[3] = pointer;
-    var tape = try T.Tape.init(a, 20, pc, clock, profile);
+    var tape = try T.Tape.init(a, 24, pc, clock, profile);
     errdefer tape.deinit();
     for (words) |_| try tape.append(try cpu.step(&memory));
     if (profile != .rv64im) {
@@ -152,6 +153,14 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
         }
     }
     if (profile == .ethereum_services_v3) {
+        for (0..3) |i| {
+            var call = rv.ethereum_services.Arith256ModCall{ .call_id = 1 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
+            for (&call.before, 0..) |*w, index| w.* = 0x0badc0ffee000000 +% index *% 0x9e3779b97f4a7c15;
+            if (i == 1) @memset(call.before[12..16], 0);
+            call.after = call.before;
+            call.after[16..20].* = rv.ethereum_services.arith256.mulAddModPacket(call.before);
+            try tape.appendArith256Mod(call);
+        }
         for (0..2) |i| {
             var call = rv.ethereum_services.Sha256Call{ .call_id = 7 + i, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = undefined, .after = undefined };
             for (&call.before, 0..) |*w, index| w.* = 0x0123456789abcdef ^ index;
@@ -162,6 +171,8 @@ fn fixture(profile: rv.execution_profile.Profile) !T.Tape {
     } else {
         const sha = rv.ethereum_services.Sha256Call{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
         try std.testing.expectError(error.InvalidTapeService, tape.appendSha256(sha));
+        const arith = rv.ethereum_services.Arith256ModCall{ .call_id = 1, .clock = clock + tape.len + 1, .pc = tape.storage[tape.len - 1].next_pc, .pointer = pointer, .before = @splat(0), .after = @splat(0) };
+        try std.testing.expectError(error.InvalidTapeService, tape.appendArith256Mod(arith));
     }
     return tape;
 }
