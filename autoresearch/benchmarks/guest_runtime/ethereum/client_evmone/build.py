@@ -246,6 +246,9 @@ def main(argv=None):
     ap.add_argument("--tests", action="store_true",
                     help="build and run the host tests (memory fuzz, secp differential vs evmone)")
     ap.add_argument("--no-stage", action="store_true", help="reuse the staged, patched sources")
+    ap.add_argument("--eest", action="store_true",
+                    help="EEST conformance build (never deployed): fork and blob schedule from the "
+                         "input schema id instead of the mainnet timestamp schedule")
     a = ap.parse_args(argv)
     out = Path(a.out).resolve()
     cache = Path(a.cache).resolve() if a.cache else out / "cache"
@@ -270,6 +273,9 @@ def main(argv=None):
 
     variant = "host" if a.host else a.profile if a.profile == "admitted" else "candidate-" + a.candidate_set.replace(",", "-")
     defines = list(DEFINES)
+    if a.eest:
+        variant += "-eest"
+        defines += ["-DZEG_FORK_FROM_INPUT", "-DSTWO_EEST_FORK_FROM_SCHEMA"]
     if a.profile == "candidate":
         defines.append("-DCANDIDATE_SERVICES")
         for svc in a.candidate_set.split(","):
@@ -308,12 +314,12 @@ def main(argv=None):
         raise SystemExit(f"{len(errors)} compile errors")
     objs = [str(j[2]) for j in jobs]
     if a.host:
-        exe = out / "client-evmone-host"
+        exe = out / ("client-evmone-host-eest" if a.eest else "client-evmone-host")
         run(["zig", "c++", a.opt, "-g", *objs, "-o", exe])
     else:
         tag = a.profile if a.profile == "admitted" or a.candidate_set == "mem,sha,arith" else \
             "candidate-" + a.candidate_set.replace(",", "-")
-        exe = out / f"client-evmone-{tag}.elf"
+        exe = out / f"client-evmone-{tag}{'-eest' if a.eest else ''}.elf"
         run(["zig", "c++", "-target", "riscv64-freestanding-none", "-mcpu=generic_rv64+m", "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
     if a.tests:

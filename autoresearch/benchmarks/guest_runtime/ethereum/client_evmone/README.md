@@ -108,10 +108,15 @@ exact output.
 
 ## Known gaps
 
-- **EEST not run.** ziskethone's EEST flow needs per-fixture witnesses from
-  reth (`eest-witness-gen`); generating SSZ inputs for EEST was out of reach
-  here. Evidence so far: 15 exact mainnet blocks on guest and host, the tests
-  above, and the differential against the Rust guest's output on the basket.
+- **EEST.** `autoresearch/guest_efficiency/eest/` runs the `tests@v21.0.2`
+  blockchain tests (Prague, Osaka, BPO1, BPO2 and transitions) on the host and
+  RV64 builds of this client's EEST variant (`build.py --eest`: fork and blob
+  schedule from the schema id; never deployed). Receipt:
+  `vectors/reports/rv64-ethereum-20261101/eest-guests-v1.json`. The run found
+  and fixed two witness-dependence bugs (patch 0005: EIP-7702 delegation code
+  registered at authorization; `glue/stwo_client.cpp`: trie inserts before
+  deletions). Still open: table pre-sizing from the gas limit fails on synthetic
+  near-2^63 gas limits, and a max-depth EIP-7702 call stack exhausts memory.
 - **Forks.** Only the `ElectraFulu` request shape (Prague, Osaka, BPO1, BPO2,
   mainnet schedule, chain id 1). Amsterdam (`Gloas`) inputs are rejected.
 - **Hash-map seed.** ziskethone's seeded table hash uses the payload's block
