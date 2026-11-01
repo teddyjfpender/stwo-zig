@@ -6,6 +6,7 @@ const front = @import("stwo_riscv_frontend");
 const A = front.rv64_air;
 const K = A.crypto.keccak.word16_bridge;
 const S = A.crypto.secp256k1.word16_bridge;
+const BM = A.crypto.bulk_memory;
 const Mat = @import("../../word16_execution/setup.zig");
 const Core = @import("../../word16_execution/sources.zig");
 const Commit = @import("../../word16_execution/main_ownership.zig").Commit;
@@ -20,6 +21,8 @@ pub const CpuSetup = struct {
     materials: Mat.Materials,
     bridges: T.Logs,
     fixed: [T.FAMILIES][]M,
+    /// Bulk-memory fixed columns (desc, copy, set), after every family.
+    bulk_fixed: [3][]M = @splat(&.{}),
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
         return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
@@ -60,6 +63,15 @@ pub const CpuSetup = struct {
             if (bridges.at(family)) |log| self.fixed[k] = if (k == 0) try K.source.fixed(a, log) else try S.source.fixed(a, T.bridgeKind(family), log);
             done += 1;
         }
+        var bulk_done: usize = 0;
+        errdefer for (self.bulk_fixed[0..bulk_done]) |f| a.free(f);
+        for (T.bulk_kinds, 0..) |kind, k| {
+            if (bridges.bulk.at(kind)) |log| {
+                _ = try BM.types.validateGeometry(kind, 0, log);
+                self.bulk_fixed[k] = try BM.source.fixed(a, log);
+            }
+            bulk_done += 1;
+        }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
         self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
@@ -72,10 +84,15 @@ pub const CpuSetup = struct {
             self.materials.allocator.free(data.*);
             data.* = &.{};
         }
+        for (&self.bulk_fixed) |*data| {
+            self.materials.allocator.free(data.*);
+            data.* = &.{};
+        }
     }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
         for (self.fixed) |f| self.materials.allocator.free(f);
+        for (self.bulk_fixed) |f| self.materials.allocator.free(f);
         self.materials.deinit();
     }
     pub fn total(self: *const CpuSetup, tree: usize) usize {
@@ -90,10 +107,26 @@ pub const CpuSetup = struct {
         };
         return n;
     }
-    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+    /// Bulk components follow the three families in kind order.
+    pub fn bulkOffset(self: *const CpuSetup, kind: T.BulkKind, tree: usize) usize {
+        var n = self.familyEnd(tree);
+        for (T.bulk_kinds) |k| {
+            if (k == kind) break;
+            if (self.bridges.bulk.at(k) != null) n += T.bulkWidths(k)[tree];
+        }
+        return n;
+    }
+    fn familyEnd(self: *const CpuSetup, tree: usize) usize {
         var n = self.total(tree);
         for (0..T.FAMILIES) |k| if (self.bridges.at(@enumFromInt(k)) != null) {
             n += T.widths(@enumFromInt(k))[tree];
+        };
+        return n;
+    }
+    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+        var n = self.familyEnd(tree);
+        for (T.bulk_kinds) |k| if (self.bridges.bulk.at(k) != null) {
+            n += T.bulkWidths(k)[tree];
         };
         return n;
     }
@@ -105,6 +138,9 @@ pub const CpuSetup = struct {
         var at = old.len;
         for (0..T.FAMILIES) |k| if (self.bridges.at(@enumFromInt(k))) |log| {
             append(out, &at, self.fixed[k], log);
+        };
+        for (T.bulk_kinds, 0..) |kind, k| if (self.bridges.bulk.at(kind)) |log| {
+            append(out, &at, self.bulk_fixed[k], log);
         };
         return out;
     }
@@ -119,6 +155,11 @@ pub const CpuSetup = struct {
             @memset(out[at..][0..width], log);
             at += width;
         };
+        for (T.bulk_kinds) |kind| if (self.bridges.bulk.at(kind)) |log| {
+            const width = T.bulkWidths(kind)[tree];
+            @memset(out[at..][0..width], log);
+            at += width;
+        };
         return out;
     }
 };
@@ -129,13 +170,18 @@ pub const Sources = struct {
     double: ?S.source.Source = null,
     sha256: ?S.source.Source = null,
     arith256_mod: ?S.source.Source = null,
+    bulk: [3]?BM.source.Source = @splat(null),
     pub fn deinit(self: *Sources) void {
         if (self.keccak) |*s| s.deinit();
         if (self.add) |*s| s.deinit();
         if (self.double) |*s| s.deinit();
         if (self.sha256) |*s| s.deinit();
         if (self.arith256_mod) |*s| s.deinit();
+        for (&self.bulk) |*b| if (b.*) |*s| s.deinit();
         self.core.deinit();
+    }
+    fn bulkMatrix(self: *Sources, k: usize, tree: usize) ?*[]M {
+        return if (self.bulk[k]) |*s| (if (tree == 1) &s.main else &s.interaction) else null;
     }
     pub fn main(self: *Sources, family: T.Family) ?*[]M {
         return self.matrixPtr(family, 1);
@@ -173,6 +219,14 @@ pub const Sources = struct {
                 append(out, &at, data, log);
             } else if (self.matrix(f, tree) != null) return error.UnexpectedCombinedServiceSource;
         }
+        for (T.bulk_kinds, 0..) |kind, k| {
+            if (setup.bridges.bulk.at(kind)) |log| {
+                const s = self.bulk[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.kind != kind or data.len != T.bulkWidths(kind)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                append(out, &at, data, log);
+            } else if (self.bulk[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
         return out;
     }
     pub fn mergeRanges(self: *Sources) !void {
@@ -181,6 +235,7 @@ pub const Sources = struct {
         if (self.double) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.sha256) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.arith256_mod) |*s| try merge(&self.core, s.counts16, s.counts8);
+        for (&self.bulk) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -189,6 +244,7 @@ pub const Sources = struct {
         if (self.double) |*s| s.releaseMain();
         if (self.sha256) |*s| s.releaseMain();
         if (self.arith256_mod) |*s| s.releaseMain();
+        for (&self.bulk) |*b| if (b.*) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -209,9 +265,15 @@ pub const Sources = struct {
         for (0..T.FAMILIES) |k| if (setup.bridges.at(@enumFromInt(k)) != null) {
             count += 1;
         };
+        for (T.bulk_kinds) |kind| if (setup.bridges.bulk.at(kind) != null) {
+            count += 1;
+        };
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
+            if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
+        };
+        for (&self.bulk) |*b| if (b.*) |*s| {
             if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
         };
         for (0..T.FAMILIES) |k| {
@@ -226,6 +288,21 @@ pub const Sources = struct {
                 if (overlap(data, try spanEnd(prior), prior, end)) return error.AliasedCombinedMain;
             }
         }
+        for (0..3) |k| {
+            const data = (self.bulkMatrix(k, tree) orelse continue).*;
+            const end = try spanEnd(data);
+            for (headers[0..setup.total(tree)]) |c| {
+                if (overlap(data, try spanEnd(c.values), c.values, end)) return error.AliasedCombinedMain;
+            }
+            for (0..T.FAMILIES) |j| {
+                const prior = (self.matrixPtr(@enumFromInt(j), tree) orelse continue).*;
+                if (overlap(data, try spanEnd(prior), prior, end)) return error.AliasedCombinedMain;
+            }
+            for (0..k) |j| {
+                const prior = (self.bulkMatrix(j, tree) orelse continue).*;
+                if (overlap(data, try spanEnd(prior), prior, end)) return error.AliasedCombinedMain;
+            }
+        }
         const old = if (tree == 1) try self.core.takeMainForCommit() else try self.core.takeInteractionForCommit();
         @memcpy(headers[0..old.columns.len], old.columns);
         @memcpy(backings[0..old.backings.len], old.backings);
@@ -233,6 +310,17 @@ pub const Sources = struct {
         a.free(old.columns);
         a.free(old.backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
+            if (tree == 1) {
+                backings[at] = s.main;
+                s.main = &.{};
+                s.owns_main = false;
+            } else {
+                backings[at] = s.interaction;
+                s.interaction = &.{};
+            }
+            at += 1;
+        };
+        for (&self.bulk) |*b| if (b.*) |*s| {
             if (tree == 1) {
                 backings[at] = s.main;
                 s.main = &.{};

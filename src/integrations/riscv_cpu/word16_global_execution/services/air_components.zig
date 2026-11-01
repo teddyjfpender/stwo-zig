@@ -7,6 +7,7 @@ const S = A.crypto.secp256k1;
 const B = S.word16_bridge;
 const K = A.crypto.keccak;
 const KB = K.word16_bridge;
+const BM = A.crypto.bulk_memory;
 const T = @import("types.zig");
 const G = @import("../protocol.zig");
 const P = @import("protocol.zig");
@@ -19,6 +20,16 @@ pub const Bridges = struct {
     double: ?B.component.Component = null,
     sha256: ?B.component.Component = null,
     arith256_mod: ?B.component.Component = null,
+    bulk: [3]?BM.component.Component = @splat(null),
+    /// Bulk-memory components share the CPU proof's RAM14, OWNER19 and U16 challenges.
+    pub fn withBulk(self: Bridges, setup: *const R.CpuSetup, counts: T.BulkCounts, ch: G.Old.Draw, claims: [3]T.BulkClaims) Bridges {
+        var out = self;
+        for (T.bulk_kinds, 0..) |kind, k| {
+            const log = setup.bridges.bulk.at(kind) orelse continue;
+            out.bulk[k] = .{ .kind = kind, .log_size = log, .rows = counts.rows(kind), .offsets = .{ setup.bulkOffset(kind, 0), setup.bulkOffset(kind, 1), setup.bulkOffset(kind, 2) }, .claims = claims[k], .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 } };
+        }
+        return out;
+    }
     pub fn init(setup: *const R.CpuSetup, calls: [T.FAMILIES]u32, first: [T.FAMILIES]u32, ch: G.Old.Draw, common: P.Shared, claims: [T.FAMILIES]T.ExtraClaims) Bridges {
         var out = Bridges{};
         for (0..T.FAMILIES) |k| {
@@ -41,7 +52,9 @@ pub const Bridges = struct {
         return out;
     }
     fn count(self: *const Bridges) usize {
-        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null) + @intFromBool(self.arith256_mod != null);
+        var n = @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null) + @intFromBool(self.arith256_mod != null);
+        for (self.bulk) |b| n += @intFromBool(b != null);
+        return n;
     }
 };
 pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]engine.air.component_prover.ComponentProver {
@@ -54,6 +67,10 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
         out[at] = c.asProverComponent();
         at += 1;
     };
+    for (&bridges.bulk) |*b| if (b.*) |*c| {
+        out[at] = c.asProverComponent();
+        at += 1;
+    };
     return out;
 }
 pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]core.air.components.Component {
@@ -63,6 +80,10 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
     @memcpy(out[0..old.len], old);
     var at = old.len;
     inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(bridges, name)) |*c| {
+        out[at] = c.asVerifierComponent();
+        at += 1;
+    };
+    for (&bridges.bulk) |*b| if (b.*) |*c| {
         out[at] = c.asVerifierComponent();
         at += 1;
     };

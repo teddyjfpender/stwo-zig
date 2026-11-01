@@ -26,11 +26,13 @@ pub const CompactRequest = struct {
     sha256_calls: u32 = 0,
     /// v3 arith256_mod calls; omitted from JSON when zero.
     arith256_mod_calls: u32 = 0,
+    /// Bulk-memory rows (v3); omitted from JSON when zero.
+    bulk: T.BulkCounts = .{},
     fn from(r: P.Request) @This() {
-        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4] };
+        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4], .bulk = r.bulk };
     }
     fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
-        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all() };
+        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all(), .bulk = self.bulk };
     }
     pub fn all(self: @This()) [T.FAMILIES]u32 {
         return self.calls ++ [2]u32{ self.sha256_calls, self.arith256_mod_calls };
@@ -38,7 +40,12 @@ pub const CompactRequest = struct {
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(@This())) |field| {
-            if (comptime !std.mem.eql(u8, field.name, "sha256_calls") and !std.mem.eql(u8, field.name, "arith256_mod_calls")) {
+            if (comptime std.mem.eql(u8, field.name, "bulk")) {
+                if (self.bulk.any()) {
+                    try jws.objectField(field.name);
+                    try jws.write(self.bulk);
+                }
+            } else if (comptime !std.mem.eql(u8, field.name, "sha256_calls") and !std.mem.eql(u8, field.name, "arith256_mod_calls")) {
                 try jws.objectField(field.name);
                 try jws.write(@field(self, field.name));
             } else if (@field(self, field.name) != 0) {
@@ -55,11 +62,13 @@ pub const WireClaims = struct {
     extras: [3]T.ExtraClaims,
     sha256: ?T.ExtraClaims = null,
     arith256_mod: ?T.ExtraClaims = null,
+    /// Bulk-memory claims (desc, copy, set); present iff the roster has bulk.
+    bulk: ?[3]T.BulkClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .bulk = if (bridges.bulk.any()) c.bulk else null };
     }
     fn expand(self: @This()) E.CpuClaims {
-        return .{ .base = self.base, .extras = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() } };
+        return .{ .base = self.base, .extras = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() }, .bulk = self.bulk orelse @splat(T.BulkClaims.zero()) };
     }
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
@@ -74,6 +83,10 @@ pub const WireClaims = struct {
         if (self.arith256_mod) |extra| {
             try jws.objectField("arith256_mod");
             try jws.write(extra);
+        }
+        if (self.bulk) |b| {
+            try jws.objectField("bulk");
+            try jws.write(b);
         }
         try jws.endObject();
     }
@@ -155,10 +168,11 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         const g = cpu.declaration.geometry;
         try g.validate();
         try cpu.request.cpu.validate(g.cpu_log);
-        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.sha256_calls + cpu.request.arith256_mod_calls + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
+        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.sha256_calls + cpu.request.arith256_mod_calls + cpu.request.bulk.calls + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
         const calls = cpu.request.all();
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
         _ = try g.lsCounts(cpu.request.ls_count);
         if (g.omit_empty_division and cpu.request.division_requests != 0) return error.InvalidServicesWireRequest;
@@ -183,12 +197,26 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             }
             totals[k] = try std.math.add(u64, totals[k], calls[k]);
         }
+        // Bulk geometry/mass: the same admission the receiver repeats in P.admit.
+        for (T.bulk_kinds) |kind| if (cpu.declaration.bridges.bulk.at(kind)) |l| {
+            if (l > 24) return error.InvalidServicesWireRequest;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(l));
+            mass16 = try std.math.add(u64, mass16, @as(u64, A.crypto.bulk_memory.layout.range16Count(kind)) << @intCast(l));
+        } else if (cpu.request.bulk.rows(kind) != 0) return error.InvalidServicesWireRequest;
+        for (T.bulk_kinds) |kind| if (cpu.declaration.bridges.bulk.at(kind)) |l| {
+            _ = A.crypto.bulk_memory.types.validateGeometry(kind, cpu.request.bulk.rows(kind), l) catch return error.InvalidServicesWireRequest;
+            if (cpu.request.bulk.rows(kind) == 0) return error.InvalidServicesWireRequest;
+        };
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
         ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
+        ram = try std.math.add(u64, ram, 6 * @as(u64, cpu.request.bulk.calls) + 4 * @as(u64, cpu.request.bulk.copy_words) + 2 * @as(u64, cpu.request.bulk.set_words));
         const claims = cpu.claims.expand();
         try claims.canonical();
         for (claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+        for (T.bulk_kinds, claims.bulk) |kind, c| if (cpu.declaration.bridges.bulk.at(kind) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
         if (cpu.proof.bytes == 0 or cpu.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;

@@ -16,6 +16,8 @@ pub const Logs = struct {
     double: ?u32 = null,
     sha256: ?u32 = null,
     arith256_mod: ?u32 = null,
+    /// Admitted bulk-memory bridges (v3), a separate block after the families.
+    bulk: Bulk = .{},
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
@@ -39,6 +41,10 @@ pub const Logs = struct {
         if (self.arith256_mod) |log| {
             try jws.objectField("arith256_mod");
             try jws.write(log);
+        }
+        if (self.bulk.any()) {
+            try jws.objectField("bulk");
+            try jws.write(self.bulk);
         }
         try jws.endObject();
     }
@@ -91,4 +97,44 @@ pub const ExtraClaims = struct {
 };
 pub fn widths(family: Family) [3]usize {
     return if (family == .keccak) A.crypto.keccak.word16_bridge.layout.widths(.bridge) else A.crypto.secp256k1.word16_bridge.layout.widths(.bridge);
+}
+
+/// Bulk-memory bridge logs: descriptor (one row per call), copy and set bodies
+/// (one row per word). Each present kind is one component of the CPU proof.
+pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
+pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set };
+pub const Bulk = struct {
+    desc: ?u32 = null,
+    copy: ?u32 = null,
+    set: ?u32 = null,
+    pub fn at(self: @This(), kind: BulkKind) ?u32 {
+        return switch (kind) {
+            .desc => self.desc,
+            .copy => self.copy,
+            .set => self.set,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.desc != null or self.copy != null or self.set != null;
+    }
+};
+/// Public bulk rows of one CPU proof: calls (descriptor rows) and words.
+pub const BulkCounts = struct {
+    calls: u32 = 0,
+    copy_words: u32 = 0,
+    set_words: u32 = 0,
+    pub fn rows(self: @This(), kind: BulkKind) u32 {
+        return switch (kind) {
+            .desc => self.calls,
+            .copy => self.copy_words,
+            .set => self.set_words,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.calls != 0 or self.copy_words != 0 or self.set_words != 0;
+    }
+};
+pub const BulkClaims = A.crypto.bulk_memory.types.Claims;
+pub fn bulkWidths(kind: BulkKind) [3]usize {
+    return A.crypto.bulk_memory.layout.widths(kind);
 }

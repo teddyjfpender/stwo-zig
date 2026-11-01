@@ -48,6 +48,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-execution-prepared", .description = "One native CPU witness with grouped weighted provider geometry", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-combined-services", .description = "One CPU per shard joins all LE services with shared RAM and bounded truths", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-bulk-services", .description = "ethereum_services_v3 bulk-memory bridges: real CPU proofs, fresh wire receiver, closure rejections", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-bulk-memory", .description = "Admitted aligned memcpy/memset bridge AIR: known-answer and adversarial tests", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-sha256-truth", .description = "SHA-256 compression truth AIR: FIPS vectors, random blocks and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-arith256-services", .description = "v3 arith256_mod services-lane proofs with fresh receivers and adversarial closure", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-arith256-bridge", .description = "arith256_mod Word16 bridge closes Wire35 with the arith256 truth", .scope = .riscv_cpu },

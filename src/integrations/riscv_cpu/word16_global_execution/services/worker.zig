@@ -69,7 +69,7 @@ const Air = union(enum) {
     truth: Adapters.TruthComponents,
     fn init(descriptor: Descriptor, draw: Draw, claims: Claims) !Air {
         return switch (descriptor) {
-            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras) } },
+            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk) } },
             .truth => |t| .{ .truth = try Adapters.TruthComponents.init(t.value, draw.truth, claims.truth) },
         };
     }
@@ -158,7 +158,11 @@ pub const Worker = struct {
                 inline for (.{ "add", "double", "sha256", "arith256_mod" }, 1..) |name, k| if (@field(source, name)) |*b| {
                     extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
                 };
-                const claims = S.CpuClaims{ .base = base, .extras = extras };
+                var bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero());
+                for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
+                };
+                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk };
                 try claims.presence(self.descriptor.cpu.setup);
                 break :block .{ .cpu = claims };
             },

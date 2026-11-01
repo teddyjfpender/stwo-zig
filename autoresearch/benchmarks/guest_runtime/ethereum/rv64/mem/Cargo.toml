@@ -13,5 +13,8 @@ path = "src/lib.rs"
 [features]
 # Execution-only candidate ECALL services; never part of an admitted guest.
 candidate-services = []
+# ADMITTED ethereum_services_v3 bulk memory (aligned word memcpy/memset).
+# Requires an execution profile/prover that admits tags 0x30001/0x30002.
+admitted-bulk = []
 
 [dependencies]

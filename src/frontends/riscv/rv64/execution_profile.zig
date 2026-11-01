@@ -16,6 +16,9 @@ pub const SHA256_COMPRESS_TAG: u64 = 0x00030010;
 /// r = (a*b + c) mod m (r = 0 when m = 0); 32-byte aligned 20-u64 packet
 /// a, b, c, m, r (four LE limbs each), only r written.
 pub const ARITH256_MOD_TAG: u64 = 0x00030021;
+/// Admitted aligned bulk memory (ethereum_services_v3): packet dst, src|byte, len.
+pub const MEMCPY_TAG: u64 = 0x00030001;
+pub const MEMSET_TAG: u64 = 0x00030002;
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;

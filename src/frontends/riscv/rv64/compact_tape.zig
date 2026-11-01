@@ -35,6 +35,8 @@ pub const Entry = struct {
         return .{ .raw = raw, .instruction = instruction };
     }
 };
+/// Admitted v3 bulk-memory ECALL (no payload; the step record is the call).
+pub const BulkCall = ethereum.bulk_memory.BulkCall;
 pub const Tape = struct {
     allocator: std.mem.Allocator,
     storage: []Step,
@@ -117,6 +119,13 @@ pub const Tape = struct {
         self.secp_calls.appendAssumeCapacity(call);
         self.last_secp_ids[family] = call.call_id;
     }
+    /// Bulk memory carries no tape payload: the ECALL step (pointer, tag,
+    /// clock) is the whole call; the prover replays it on its RAM ledger.
+    /// Not counted by serviceCount; the tape wire needs no new section.
+    pub fn appendBulk(self: *Tape, call: BulkCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or (call.tag != profile.MEMCPY_TAG and call.tag != profile.MEMSET_TAG)) return error.InvalidTapeService;
+        try self.appendRecord(call.retirement());
+    }
     pub fn appendSha256(self: *Tape, call: ethereum.Sha256Call) !void {
         if (self.execution_profile != .ethereum_services_v3 or call.call_id == 0) return error.InvalidTapeService;
         if (self.len == self.storage.len) return error.TapeFull;
@@ -143,6 +152,7 @@ pub const Tape = struct {
             .secp => |call| try self.appendSecp(call),
             .sha256 => |call| try self.appendSha256(call),
             .arith256_mod => |call| try self.appendArith256Mod(call),
+            .bulk => |e| try self.appendBulk(e.call),
         }
     }
     /// Every service retirement recorded in this tape (all families).

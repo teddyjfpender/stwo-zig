@@ -97,6 +97,10 @@ const Report = struct {
     secp_double_calls: u64 = 0,
     sha256_calls: u64 = 0,
     arith256_mod_calls: u64 = 0,
+    bulk_memcpy_calls: u64 = 0,
+    bulk_memset_calls: u64 = 0,
+    bulk_memcpy_bytes: u64 = 0,
+    bulk_memset_bytes: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -282,18 +286,44 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.before.len;
                     if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 4);
                 },
+                .bulk => |e| {
+                    const copy = e.call.tag == rv.execution_profile.MEMCPY_TAG;
+                    if (copy) {
+                        report.bulk_memcpy_calls += 1;
+                        report.bulk_memcpy_bytes += e.packet.len;
+                    } else {
+                        report.bulk_memset_calls += 1;
+                        report.bulk_memset_bytes += e.packet.len;
+                    }
+                    report.service_ram_word_transitions += 3 + @as(u64, if (copy) 2 else 1) * e.dst_before.len;
+                    if (census) |*value| {
+                        for (0..3) |k| {
+                            const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
+                            try value.observe(e.call.pointer + 8 * k, w, w, false);
+                        }
+                        for (e.dst_before, 0..) |before, j| {
+                            if (copy) {
+                                const w = memory.backing.load(e.packet.word1 + 8 * j, 8).value;
+                                try value.observe(e.packet.word1 + 8 * j, w, w, false);
+                            }
+                            try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                        }
+                    }
+                },
             }
             report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
             if (report.pc_profile) |*profile| {
                 const pc = retirement.pc.toInt();
                 if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
             }
-            if (census) |*value| try value.retireService(switch (event) {
-                .keccak => .keccak,
-                .secp => |call| if (call.kind == .add) .secp_add else .secp_double,
-                .sha256 => .sha256,
-                .arith256_mod => .arith256_mod,
-            });
+            if (census) |*value| switch (event) {
+                // Bulk memory is counted as a plain ECALL retirement.
+                .bulk => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .keccak => try value.retireService(.keccak),
+                .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
+                .sha256 => try value.retireService(.sha256),
+                .arith256_mod => try value.retireService(.arith256_mod),
+            };
             continue;
         }
         const row = optional_row.?;
