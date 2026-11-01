@@ -39,6 +39,7 @@ fn initInner(profile: Profile) B.Blake2sChannel {
     return inner;
 }
 pub const Qm31Channel = struct {
+    pub const SecureField = Q;
     inner: B.Blake2sChannel,
     pub const profile = qm31_profile;
     pub fn init() Qm31Channel {
@@ -79,6 +80,7 @@ pub const Qm31Channel = struct {
     }
 };
 pub const Om31Channel = struct {
+    pub const SecureField = O;
     inner: B.Blake2sChannel,
     pub const profile = om31_profile;
     pub fn init() Om31Channel {
