@@ -38,6 +38,7 @@ pub const descriptor = product_policy.Descriptor{
 };
 pub fn addProduct(context: Context) void {
     inline for (.{
+        .{ "word16-fixed-native-cache", "src/integrations/riscv_cpu/rv64_word16_fixed_native_cache_test_root.zig", 14 },
         .{ "word16-setup-audit", "src/integrations/riscv_cpu/rv64_word16_setup_audit_test_root.zig", 10 },
         .{ "word16-csp", "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig", 9 },
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },

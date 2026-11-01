@@ -2,6 +2,7 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const P = @import("../../protocol.zig");
+pub const NativeCache = @import("../../../word16_execution/fixed_native_cache.zig");
 const SuiteType = @import("../../../word16_execution/pcs_suite.zig").Suite;
 pub const Key = struct {
     pub const Suite = SuiteType;
@@ -13,6 +14,12 @@ pub const Key = struct {
         return sealWithSuite(a, columns, Suite.production());
     }
     pub fn sealWithSuite(a: std.mem.Allocator, columns: []const engine.pcs.ColumnEvaluation, suite: Suite) !Key {
+        return sealWithSuiteAndCache(a, columns, suite, null);
+    }
+    pub fn sealWithCache(a: std.mem.Allocator, columns: []const engine.pcs.ColumnEvaluation, cache: ?*const NativeCache.Cache) !Key {
+        return sealWithSuiteAndCache(a, columns, Suite.production(), cache);
+    }
+    pub fn sealWithSuiteAndCache(a: std.mem.Allocator, columns: []const engine.pcs.ColumnEvaluation, suite: Suite, cache: ?*const NativeCache.Cache) !Key {
         try suite.validate();
         var scheme = try P.T.Scheme.init(a, suite.config());
         defer scheme.deinit(a);
@@ -21,6 +28,7 @@ pub const Key = struct {
         try scheme.commitBorrowedStreaming(a, columns, 8, &ch);
         var roots = try scheme.roots(a);
         defer roots.deinit(a);
+        if (cache) |owner| _ = try owner.internTree(a, &scheme.trees.items[0]);
         try scheme.trees.items[0].share(a);
         return .{ .allocator = a, .suite = suite, .root = roots.items[0], .tree = scheme.trees.pop().? };
     }
