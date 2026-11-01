@@ -100,12 +100,12 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         }
         const ch = try P.drawCpu(&channel, &bundle.manifest, index);
         if (!encoded.claims.base.initial.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.initial, true, common.ram)) or !encoded.claims.base.terminal.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.terminal, false, common.ram))) return error.GlobalBoundaryPhysicalClaimMismatch;
-        channel.mixFelts(&encoded.claims.values());
+        encoded.claims.mixInto(&channel, s);
         const logs = try s.logs(a, 2);
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var bc = try Components.init(&s.materials, encoded.request.base, ch, encoded.claims.base);
-        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras);
+        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk);
         const handles = try cpuVerifierHandles(a, &bc, &bb);
         defer a.free(handles);
         owns = false;

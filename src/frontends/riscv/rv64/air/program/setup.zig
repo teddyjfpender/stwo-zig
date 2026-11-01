@@ -113,6 +113,7 @@ pub const Setup = struct {
             .keccak_service_v1 => SERVICE_DOMAIN,
             .ethereum_services_v1 => "stwo-zig/rv64/ethereum-services-rom/v1\x00",
             .ethereum_services_v2 => "stwo-zig/rv64/ethereum-services-rom/v2\x00",
+            .ethereum_services_v3 => "stwo-zig/rv64/ethereum-services-rom/v3\x00",
         };
         if (service_domain) |domain| {
             var service_hash = Blake2s.init(.{});

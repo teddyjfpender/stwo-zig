@@ -27,6 +27,10 @@ candidate-mem = ["stwo-rv64-mem/candidate-services"]
 candidate-sha256 = ["dep:sha2", "sha2/stwo-candidate-sha256"]
 candidate-arith = ["dep:revm-interpreter", "revm-interpreter/stwo-candidate-arith"]
 candidate-services = ["candidate-mem", "candidate-sha256", "candidate-arith"]
+# ADMITTED bulk memory (profile ethereum_services_v3): aligned word memcpy and
+# memset through tags 0x30001/0x30002; heads, tails, overlap and mismatched
+# alignment stay in software. See design/riscv-proving-stack/rv64-bulk-memory-service.md.
+admitted-mem = ["stwo-rv64-mem/admitted-bulk"]
 
 [dependencies]
 alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }

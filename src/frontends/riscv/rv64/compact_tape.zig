@@ -35,6 +35,16 @@ pub const Entry = struct {
         return .{ .raw = raw, .instruction = instruction };
     }
 };
+/// One admitted bulk-memory ECALL (ethereum_services_v3, tags 0x30001/0x30002).
+pub const BulkCall = struct {
+    clock: u64,
+    pc: u64,
+    pointer: u64,
+    tag: u64,
+    pub fn retirement(self: BulkCall) machine.Retirement {
+        return .{ .clock = self.clock, .pc = Word.fromInt(self.pc), .next_pc = Word.fromInt(self.pc +% 4), .immediate = Word.fromInt(0), .instruction = 0x73, .opcode = .ECALL, .rs1 = profile.POINTER_REGISTER, .rs2 = profile.TAG_REGISTER, .lhs = Word.fromInt(self.pointer), .rhs = Word.fromInt(self.tag), .rd = 0, .previous_rd = Word.fromInt(0), .result = Word.fromInt(0), .writes_rd = false, .branch_taken = false, .memory = null };
+    }
+};
 pub const Tape = struct {
     allocator: std.mem.Allocator,
     storage: []Step,
@@ -42,6 +52,9 @@ pub const Tape = struct {
     memory_before: std.ArrayList(u64) = .empty,
     service_calls: std.ArrayList(services.Call) = .empty,
     secp_calls: std.ArrayList(ethereum.SecpCall) = .empty,
+    /// ethereum_services_v3 admitted bulk-memory ECALLs. No payload: the prover
+    /// re-derives packet and word values from its chronological RAM ledger.
+    bulk_calls: std.ArrayList(BulkCall) = .empty,
     last_secp_ids: [2]?u64 = @splat(null),
     initial_pc: u64,
     initial_clock: u64,
@@ -56,13 +69,14 @@ pub const Tape = struct {
         self.memory_before.deinit(self.allocator);
         self.service_calls.deinit(self.allocator);
         self.secp_calls.deinit(self.allocator);
+        self.bulk_calls.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn steps(self: *const Tape) []const Step {
         return self.storage[0..self.len];
     }
     pub fn retainedBytes(self: *const Tape) usize {
-        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall);
+        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.bulk_calls.capacity * @sizeOf(BulkCall);
     }
     /// Start the adjacent batch with already allocated buffers. This does not
     /// establish a public continuation relation; the proof coordinator must bind
@@ -74,6 +88,7 @@ pub const Tape = struct {
         self.memory_before.clearRetainingCapacity();
         self.service_calls.clearRetainingCapacity();
         self.secp_calls.clearRetainingCapacity();
+        self.bulk_calls.clearRetainingCapacity();
         self.last_secp_ids = @splat(null);
     }
     /// Allocation and validation precede tape publication. The caller retains
@@ -95,7 +110,7 @@ pub const Tape = struct {
     pub fn appendSecp(self: *Tape, call: ethereum.SecpCall) !void {
         const expected_format: profile.SecpPacketFormat = switch (self.execution_profile) {
             .ethereum_services_v1 => .big_endian_bytes_v1,
-            .ethereum_services_v2 => .little_endian_words_v2,
+            .ethereum_services_v2, .ethereum_services_v3 => .little_endian_words_v2,
             else => return error.InvalidTapeService,
         };
         if (call.packet_format != expected_format or call.call_id == 0) return error.InvalidTapeService;
@@ -108,6 +123,13 @@ pub const Tape = struct {
         try self.appendRecord(call.retirement());
         self.secp_calls.appendAssumeCapacity(call);
         self.last_secp_ids[family] = call.call_id;
+    }
+    pub fn appendBulk(self: *Tape, call: BulkCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or (call.tag != profile.MEMCPY_TAG and call.tag != profile.MEMSET_TAG)) return error.InvalidTapeService;
+        if (self.len == self.storage.len) return error.TapeFull;
+        try self.bulk_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.bulk_calls.appendAssumeCapacity(call);
     }
     pub fn appendEvent(self: *Tape, event: ethereum.Event) !void {
         switch (event) {

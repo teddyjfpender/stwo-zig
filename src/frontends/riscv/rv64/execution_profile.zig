@@ -1,6 +1,10 @@
 //! Concrete execution ABI identities. This does not alter ordinary RV64IM decode.
 const isa = @import("decode.zig");
-pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2 };
+pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3 };
+/// ethereum_services_v3 = v2 plus admitted services. Bulk memory (this file's
+/// minimal hook; the profile's shared plumbing may extend the tag set):
+pub const MEMCPY_TAG: u64 = 0x00030001;
+pub const MEMSET_TAG: u64 = 0x00030002;
 pub const KECCAK_TAG: u64 = 0x00010001;
 pub const SECP_ADD_TAG: u64 = 0x00020001;
 pub const SECP_DOUBLE_TAG: u64 = 0x00020002;
@@ -12,7 +16,7 @@ pub const TAG_REGISTER: u5 = 17;
 pub fn hasServices(profile: Profile) bool {
     return switch (profile) {
         .rv64im => false,
-        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2 => true,
+        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3 => true,
     };
 }
 pub fn decode(profile: Profile, raw: u32) isa.Error!isa.Instruction {

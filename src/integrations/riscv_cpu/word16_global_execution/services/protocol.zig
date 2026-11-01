@@ -12,7 +12,30 @@ pub const Expected = G.Expected;
 pub const Manifest = G.Manifest;
 pub const CORE_CLAIM_COUNT = G.Old.CLAIM_COUNT;
 pub const CPU_CLAIM_COUNT = CORE_CLAIM_COUNT + 15;
-pub const Request = struct { base: G.Old.Request, calls: [3]u32 };
+pub const Request = struct { base: G.Old.Request, calls: [3]u32, bulk: T.BulkCounts = .{} };
+const BM = A.crypto.bulk_memory;
+/// Admitted bulk-memory geometry and masses of one CPU proof. RAM14 gains
+/// 6 fractions per call (three packet reads), 4 per copied and 2 per filled
+/// word; OWNER19 gains 3 per call (ECALL consume + token emit, one weight zero)
+/// and 1 per body start; U16 gains range16Count(kind) per physical row.
+pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range16: u64 } {
+    const logs = setup.bridges.bulk;
+    var range16: u64 = 0;
+    for (T.bulk_kinds) |kind| {
+        const rows = r.bulk.rows(kind);
+        const log = logs.at(kind);
+        if ((log != null) != (rows != 0)) return error.InvalidCombinedBridgePresence;
+        if (log) |l| {
+            _ = try BM.types.validateGeometry(kind, rows, l);
+            range16 = try std.math.add(u64, range16, @as(u64, BM.layout.range16Count(kind)) << @intCast(l));
+        }
+    }
+    // Every body word belongs to one call of at most MAX_WORDS words.
+    if ((r.bulk.copy_words != 0 or r.bulk.set_words != 0) and r.bulk.calls == 0) return error.InvalidCombinedBridgePresence;
+    if (@as(u64, r.bulk.copy_words) + r.bulk.set_words > @as(u64, r.bulk.calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
+    const ram = 6 * @as(u64, r.bulk.calls) + 4 * @as(u64, r.bulk.copy_words) + 2 * @as(u64, r.bulk.set_words);
+    return .{ .ram = ram, .range16 = range16 };
+}
 pub fn firstIds(requests: []const Request, index: usize) ![3]u32 {
     if (index > requests.len) return error.InvalidCombinedOrdinal;
     var first: [3]u64 = @splat(1);
@@ -43,8 +66,9 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
-        var mass16 = try setup.materials.geometry.range16Mass();
+        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.bulk.calls + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
+        const bulk = try admitBulk(setup, req);
+        var mass16 = try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16);
         var mass8 = try setup.materials.geometry.range8Mass();
         for (0..3) |k| {
             const family: T.Family = @enumFromInt(k);
@@ -64,7 +88,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
             totals[k] = try std.math.add(u64, totals[k], req.calls[k]);
         }
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
-        ram = try std.math.add(u64, ram, 2 * @as(u64, req.base.memory.ls_count) + 50 * @as(u64, req.calls[0]) + 48 * @as(u64, req.calls[1]) + 24 * @as(u64, req.calls[2]));
+        ram = try std.math.add(u64, ram, 2 * @as(u64, req.base.memory.ls_count) + 50 * @as(u64, req.calls[0]) + 48 * @as(u64, req.calls[1]) + 24 * @as(u64, req.calls[2]) + bulk.ram);
     }
     try G.validateMaterials(mats, rr, expected);
     ram = try std.math.add(u64, ram, rr[0].memory.initial.len + rr[rr.len - 1].memory.terminal.len);
@@ -102,6 +126,14 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         const f: T.Family = @enumFromInt(k);
         ch.mixU32s(&.{ @intCast(k), r.calls[k], first[k], @intFromBool(s.bridges.at(f) != null), s.bridges.at(f) orelse 0 });
         if (s.bridges.at(f) != null) for (T.widths(f)) |width| ch.mixU32s(&.{@intCast(width)});
+    }
+    // Bulk-memory extension: mixed only when present, so v2 transcripts are unchanged.
+    if (s.bridges.bulk.any() or r.bulk.any()) {
+        ch.mixU32s(&.{ 0x424d454d, 1, 0x30001, 0x30002, BM.types.TOKEN_COPY, BM.types.TOKEN_SET, @intCast(BM.types.MAX_BYTES) });
+        for (T.bulk_kinds, 0..) |kind, k| {
+            ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
+            if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
+        }
     }
 }
 pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordinal: usize) void {

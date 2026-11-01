@@ -6,6 +6,24 @@ const A = front.rv64_air;
 const LS = A.memory.load_store_v2;
 const K = A.crypto.keccak.word16_bridge;
 const S = A.crypto.secp256k1.word16_bridge;
+const BM = A.crypto.bulk_memory;
+/// Admitted bulk-memory calls of one CPU proof (chronological) and the RAM
+/// predecessors of every touched data word, concatenated in call order.
+pub const BulkShard = struct {
+    calls: []BM.types.Call = &.{},
+    words: []BM.types.Word = &.{},
+    pub fn counts(self: BulkShard) @import("types.zig").BulkCounts {
+        var out = @import("types.zig").BulkCounts{ .calls = @intCast(self.calls.len) };
+        for (self.calls) |c| {
+            if (c.op == .copy) out.copy_words += c.count() else out.set_words += c.count();
+        }
+        return out;
+    }
+    fn deinit(self: BulkShard, a: std.mem.Allocator) void {
+        a.free(self.calls);
+        a.free(self.words);
+    }
+};
 const Native = @import("../../word16_execution/prepared.zig").Prepared;
 const Old = @import("../collector.zig");
 const Cell = A.memory.closed_ram.types.Cell;
@@ -14,10 +32,13 @@ pub const Advice = struct {
     events: [][]LS.native.Event,
     keccak: [][]K.types.Call,
     secp: [][2][]S.types.Call,
+    bulk: []BulkShard,
     initial: []Cell,
     terminal: []Cell,
     pub fn deinit(self: *Advice) void {
         const a = self.allocator;
+        for (self.bulk) |b| b.deinit(a);
+        a.free(self.bulk);
         for (self.events) |e| a.free(e);
         for (self.keccak) |c| a.free(c);
         for (self.secp) |cc| for (cc) |c| a.free(c);
@@ -63,14 +84,17 @@ pub const Builder = struct {
         errdefer a.free(keccak);
         const secp = try a.alloc([2][]S.types.Call, self.shards.items.len);
         errdefer a.free(secp);
+        const bulk = try a.alloc(BulkShard, self.shards.items.len);
+        errdefer a.free(bulk);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp) |shard, *e, *k, *s| {
+        for (self.shards.items, events, keccak, secp, bulk) |shard, *e, *k, *s, *b| {
             e.* = shard.events;
             k.* = shard.keccak;
             s.* = shard.secp;
+            b.* = shard.bulk;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .bulk = bulk, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -84,16 +108,24 @@ const Shard = struct {
     events: []LS.native.Event,
     keccak: []K.types.Call,
     secp: [2][]S.types.Call,
+    bulk: BulkShard = .{},
     fn deinit(self: Shard, a: std.mem.Allocator) void {
         a.free(self.events);
         a.free(self.keccak);
         for (self.secp) |calls| a.free(calls);
+        self.bulk.deinit(a);
     }
 };
 fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize) !Shard {
     const cpu = native.cpu orelse return error.PreparedExecutionConsumed;
     if (cpu.capture_records_retired) return error.MissingPreparedMemoryRecords;
-    if (tape.execution_profile != .ethereum_services_v2 or cpu.epoch != index + 1 or cpu.services.items.len != tape.service_calls.items.len + tape.secp_calls.items.len) return error.InvalidCombinedServiceRoster;
+    const v3 = tape.execution_profile == .ethereum_services_v3;
+    if ((tape.execution_profile != .ethereum_services_v2 and !v3) or cpu.epoch != index + 1 or cpu.services.items.len != tape.service_calls.items.len + tape.secp_calls.items.len + tape.bulk_calls.items.len) return error.InvalidCombinedServiceRoster;
+    var bulk_calls: std.ArrayList(BM.types.Call) = .empty;
+    errdefer bulk_calls.deinit(a);
+    var bulk_words: std.ArrayList(BM.types.Word) = .empty;
+    errdefer bulk_words.deinit(a);
+    var bi: usize = 0;
     var sizes: [2]usize = @splat(0);
     for (tape.secp_calls.items) |call| sizes[@intFromEnum(call.kind) - 1] += 1;
     const ee = try a.alloc(LS.native.Event, cpu.memory.items.len);
@@ -157,12 +189,53 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 ss[family][next[family]] = call;
                 next[family] += 1;
                 si += 1;
+            } else if (v3 and (rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG)) {
+                if (bi >= tape.bulk_calls.items.len) return error.InvalidCombinedServiceOwner;
+                const captured = tape.bulk_calls.items[bi];
+                if (captured.tag != rec.tag) return error.InvalidCombinedServiceOwner;
+                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                try bulkCall(a, ledger, rec.pointer, rec.tag, cpu.epoch, rec.tick, &bulk_calls, &bulk_words);
+                bi += 1;
             } else return error.UnqualifiedCombinedServiceTag;
             ci += 1;
         }
     }
-    if (ki != kk.len or si != tape.secp_calls.items.len) return error.InvalidCombinedServiceRoster;
-    return .{ .events = ee, .keccak = kk, .secp = ss };
+    if (ki != kk.len or si != tape.secp_calls.items.len or bi != tape.bulk_calls.items.len) return error.InvalidCombinedServiceRoster;
+    const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = bulk_words.toOwnedSlice(a) catch |err| {
+        a.free(bulk_calls.items);
+        return err;
+    } };
+    return .{ .events = ee, .keccak = kk, .secp = ss, .bulk = bulk };
+}
+/// Replays one admitted bulk call on the ledger: the packet words are read,
+/// then every data word is read (src) and written (dst) at the CPU step's tick.
+/// Values come only from the ledger; BM.types.validateCall rejects aliasing,
+/// misalignment, bad lengths and missing rights before any ledger update.
+fn bulkCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, tag: u64, epoch: u16, tick: u24, calls: *std.ArrayList(BM.types.Call), words: *std.ArrayList(BM.types.Word)) !void {
+    if (pointer & 7 != 0 or pointer > std.math.maxInt(u64) - 23) return error.InvalidCombinedServiceOwner;
+    var call = BM.types.Call{ .op = if (tag == BM.types.MEMCPY_TAG) .copy else .set, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = undefined, .word1 = undefined, .len = undefined, .packet = undefined };
+    for (0..3) |k| call.packet[k] = try get(ledger, pointer + 8 * k);
+    call.dst = call.packet[0].value;
+    call.word1 = call.packet[1].value;
+    call.len = call.packet[2].value;
+    if (call.len == 0 or call.len % 8 != 0 or call.len > BM.types.MAX_BYTES) return error.InvalidBulkMemoryLength;
+    const start = words.items.len;
+    try words.ensureUnusedCapacity(a, call.count());
+    try calls.ensureUnusedCapacity(a, 1);
+    for (0..call.count()) |j| {
+        var w = BM.types.Word{ .dst = try get(ledger, call.dst +% 8 * j) };
+        if (call.op == .copy) w.src = try get(ledger, call.word1 +% 8 * j);
+        words.appendAssumeCapacity(w);
+    }
+    errdefer words.shrinkRetainingCapacity(start);
+    try BM.types.validateCall(call, words.items[start..]);
+    for (0..3) |k| ledger.states.getPtr(pointer + 8 * k).?.* = .{ .value = call.packet[k].value, .epoch = epoch, .tick = tick, .rights = call.packet[k].rights };
+    for (words.items[start..], 0..) |w, j| {
+        const value = if (call.op == .copy) w.src.value else @as(u64, call.fill()) * 0x0101010101010101;
+        if (call.op == .copy) ledger.states.getPtr(call.word1 + 8 * j).?.* = .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights };
+        ledger.states.getPtr(call.dst + 8 * j).?.* = .{ .value = value, .epoch = epoch, .tick = tick, .rights = w.dst.rights };
+    }
+    calls.appendAssumeCapacity(call);
 }
 fn owner(pointer: u64, tick: u24, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
     if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or 4 * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;

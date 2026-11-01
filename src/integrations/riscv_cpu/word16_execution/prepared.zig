@@ -77,7 +77,12 @@ pub const Prepared = struct {
         try result.ensureCpuMain(program, cpu_log);
         return result;
     }
-    const Service = enum { none, keccak, secp_words, combined_words };
+    /// ethereum_services_v3: v2 tags plus admitted bulk memory (0x30001, 0x30002).
+    pub fn captureForCombinedServicesV3(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options) !Prepared {
+        if (tape.execution_profile != .ethereum_services_v3) return error.UnqualifiedWord16ServiceOwners;
+        return captureInternal(a, program, public, epoch, cpu_log, tape, options, .combined_v3);
+    }
+    const Service = enum { none, keccak, secp_words, combined_words, combined_v3 };
     fn captureInternal(a: std.mem.Allocator, program: *const Program, public: A.word16_execution.types.Boundary, epoch: u16, cpu_log: u32, tape: *const front.rv64.compact_tape.Tape, options: Options, service: Service) !Prepared {
         var cpu = try CPU.Source.capture(a, program, public, epoch, cpu_log, tape);
         errdefer cpu.deinit();
@@ -87,6 +92,7 @@ pub const Prepared = struct {
                 .keccak => call.tag == 0x10001,
                 .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
                 .combined_words => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012,
+                .combined_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30001 or call.tag == 0x30002,
             };
             if (!valid) return error.UnqualifiedWord16ServiceOwners;
         }
