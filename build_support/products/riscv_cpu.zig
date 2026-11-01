@@ -67,6 +67,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-secp-bridge", "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig", 11 },
         .{ "word16-arith256-bridge", "src/integrations/riscv_cpu/rv64_word16_arith256_bridge_test_root.zig", 3 },
         .{ "word16-arith256-services", "src/integrations/riscv_cpu/rv64_word16_arith256_services_test_root.zig", 3 },
+        .{ "word16-curves-services", "src/integrations/riscv_cpu/rv64_word16_curves_services_test_root.zig", 3 },
         .{ "word16-keccak-shared", "src/integrations/riscv_cpu/rv64_word16_keccak_shared_test_root.zig", 9 },
         .{ "word16-keccak-bridge", "src/integrations/riscv_cpu/rv64_word16_keccak_bridge_test_root.zig", 13 },
         .{ "word16-retained-parking", "src/integrations/riscv_cpu/rv64_word16_retained_parking_test_root.zig", 27 },
