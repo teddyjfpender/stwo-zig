@@ -94,3 +94,31 @@ selection is deliberately excluded so serial and parallel runs can agree.
 This digest is producer comparison evidence, never an execution acceptance
 claim. A digest match does not replace the full physical-artifact and fresh
 receiver qualification gate.
+
+## Real full-capture measurement
+
+Source `7b45fbbac` was measured with three alternating serial/two-slot pairs on
+the real retained round-5 packet set, using the same explicit 16-worker parent
+pool. A cooperative heavy-work lock excluded other participating prover tasks;
+the host was shared, so this is not a claim of an isolated machine benchmark.
+All six canonical captured-value digests and complete geometry declarations
+matched: 104,253,913 instructions, 25 CPU packets and five truth instances with
+32,835 Keccak, 11,496 ADD and 9,768 DOUBLE calls.
+
+| Measurement | Serial | Two slots |
+| --- | ---: | ---: |
+| Median packet import | 8.543 s | 5.249 s |
+| Median process maximum RSS | 12.263 GB | 13.485 GB |
+
+The import stage improved 1.628×, saving 3.294 s. This is not an end-to-end proof
+speedup. Per-slot decoded-heap caps were 1 GiB, aggregate potential reservation
+2 GiB, and aggregate preflight wire allowance 1 GiB. The largest observed single
+packet decoded heap was 220,336,832 bytes. The RSS increase demonstrates why the
+packet cap must not be presented as a complete Native/process bound.
+
+Canonical diagnostic hashing took about 24 s per run and was timed separately;
+normal proof production does not invoke this diagnostic. Raw outputs,
+`time -l` measurements, resources, reproducer and qualification logs are in
+`vectors/reports/rv64-capture-prefetch-20261102/real-full-capture/`.
+The serial default and full physical-artifact/fresh-receiver promotion gate
+remain unchanged.
