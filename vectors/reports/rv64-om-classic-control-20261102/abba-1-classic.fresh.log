@@ -1,0 +1,28 @@
+{
+  "profile": "benchmark-only-om31-classic-local-cpu0-q70-p26-fold4",
+  "benchmark_only": true,
+  "production_protocol": false,
+  "security_qualified": false,
+  "accepted_ordinary_cpu_prefix": true,
+  "total_steps": 4194303,
+  "load_setup_ns": 933882583,
+  "verify_ns": 343769334
+}
+        1.30 real         2.72 user         0.41 sys
+          2382659584  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              145970  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                1661  involuntary context switches
+         35990317802  instructions retired
+         13533029362  cycles elapsed
+          2382284864  peak memory footprint

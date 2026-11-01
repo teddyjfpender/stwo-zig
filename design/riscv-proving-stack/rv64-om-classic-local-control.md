@@ -43,3 +43,39 @@ canonical eight-coordinate transport. The existing native/packed table-authority
 regression is rerun after the pure stateless helper extraction. Actual first-shard
 measurements and byte/root/statement parity are recorded separately; neither a
 small fragment nor a mixed-field comparison is a whole-execution speed claim.
+
+## Matched ordinary Ethereum CPU0 measurement
+
+Source46dde216e,4,194,303 retirements, same OM31/q70/P26/beta1/fold4,
+16 workers and resident MAIN. Sequence GKR/classic/classic/GKR runs in fresh
+processes under the shared heavy-proof lock. The lock does not control unrelated
+host workloads or thermals. Values below are means of two runs. Both independent
+receivers accepted every run. Declaration, complete compact request, FIXED root,
+MAIN root and public RAM bytes match exactly. Proof bytes across the two protocols
+are not expected to match.
+
+| Measure | OM classic local | OM local GKR |
+|---|---:|---:|
+| Source plus proving |7.954s |8.459s |
+| Source |0.327s |0.325s |
+| MAIN commit |0.909s |0.917s |
+| Classic I generation (local+RAM / RAM only) |0.724s |0.065s |
+| Local GKR input/numerical/binding |— |0.189/1.703/0.299s |
+| Composition (inclusive stage scope) |2.158s |1.844s |
+| PCS quotient build+commit |1.095s |1.227s |
+| Native MAIN+INTER cells |1,013,854,976 |611,595,008 |
+| Physical proof bytes |945,856 |679,424 |
+| Additional stage-one child file |— |88,400B |
+| Peak RSS |11.819GB |18.261GB |
+
+`Control.prove` excludes source generation; coordinator proving includes it.
+The first row corrects that boundary difference. GKR has39.7% fewer native
+MAIN+INTER cells but is6.3% slower in this sample and uses more peak memory.
+Given the prior approximately7.5% host spread, there is no qualified throughput
+win. Classic already uses degree-aware paired inverses, one prefix per component
+and the bounded parallel producer; this is not an intentionally serial baseline.
+GKR's lower native work does not yet outweigh its numerical/binding overhead.
+Smaller proof/cell counts must not be presented as measured CPU acceleration.
+These are ordinary first-shard controls, not a full services block or beta2 test.
+The prior mixed QM31-classic/OM31-GKR comparison additionally changed field width;
+this control establishes the independent representation comparison.
