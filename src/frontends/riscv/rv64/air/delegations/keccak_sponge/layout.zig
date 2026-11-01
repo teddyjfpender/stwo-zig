@@ -125,8 +125,8 @@ pub fn constraints(kind: Kind) usize {
         .perm => PERM_CONSTRAINTS,
     };
 }
-pub const CALL_CONSTRAINTS = 0;
-pub const PERM_CONSTRAINTS = 0;
+pub const CALL_CONSTRAINTS = 325;
+pub const PERM_CONSTRAINTS = 1025;
 pub fn previousMainFor(kind: Kind, c: usize) bool {
     return switch (kind) {
         .call => c == call.active,

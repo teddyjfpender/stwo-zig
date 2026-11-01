@@ -431,8 +431,9 @@ test "keccak sponge adversarial: forged final state is rejected by IO closure" {
     // The call writes a state the truth never produced (and keeps RAM
     // consistent by also forging the environment's terminal word).
     const c = fx.world.calls.items[0];
-    fx.wit.call[0][L.call.new + 3] = mm(fx.wit.call[0][L.call.new + 3].v ^ 0x10);
-    const address = c.p().state;
+    // Lane 24 (call E later reads lanes 0..16 of A's state as its message).
+    fx.wit.call[0][L.call.new + 8 * 24 + 3] = mm(fx.wit.call[0][L.call.new + 8 * 24 + 3].v ^ 0x10);
+    const address = c.p().state + 8 * 24;
     var s = fx.world.states.get(address).?;
     s.value ^= @as(u64, 0x10) << 24;
     try fx.world.states.put(address, s);
@@ -494,7 +495,7 @@ test "keccak sponge adversarial: non-canonical tail byte decomposition is reject
     // the high byte rejects it.
     const r = &fx.wit.perm[2];
     const at = L.perm.window + 8 * 3 + 6;
-    const inv256 = M.fromCanonical(256).inv();
+    const inv256 = M.fromCanonical(256).inv() catch unreachable;
     r[at] = r[at].add(mm(1));
     r[at + 1] = r[at + 1].sub(inv256);
     const t = 3 * 8 + 6 - 3; // msg index of that byte (shift 3)
@@ -510,7 +511,7 @@ test "keccak sponge: degree three on random lines (finite differences)" {
     var prng = std.Random.DefaultPrng.init(7);
     const random = prng.random();
     inline for (.{ L.Kind.call, L.Kind.perm }) |kind| {
-        const W = L.FIXED + 2 * L.main(kind) + 2 * L.interaction(kind);
+        const W = comptime L.FIXED + 2 * L.main(kind) + 2 * L.interaction(kind);
         var base: [W]Q = undefined;
         var dir: [W]Q = undefined;
         for (&base, &dir) |*x, *y| {

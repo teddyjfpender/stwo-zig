@@ -60,7 +60,7 @@ pub fn callRow(call: ?T.Call, id: u32, last_out: [25]u64) [L.call.MAIN]M {
     for (0..3) |k| carries(&out, C.pcarry + 3 * k, c.pointer + 8 * k, 8);
     afterClock(&out, C.epoch, c);
     put(&out, C.state, p.state);
-    out[C.shift + p.shift()] = M.one();
+    out[C.shift + @as(usize, p.shift())] = M.one();
     out[C.in_q0] = m(@as(u16, @truncate(p.input)) >> 3);
     for (0..3) |i| out[C.in_hi + i] = m(@as(u16, @truncate(p.input >> @as(u6, @intCast(16 * (i + 1))))));
     out[C.len0] = m(@as(u16, @truncate(p.len)));
@@ -69,7 +69,7 @@ pub fn callRow(call: ?T.Call, id: u32, last_out: [25]u64) [L.call.MAIN]M {
     out[C.fresh] = m(@intFromBool(p.fresh()));
     out[C.q] = m(p.len / T.RATE);
     out[C.r] = m(p.len % T.RATE);
-    if (p.len == 0) out[C.zero] = M.one() else out[C.zinv] = M.fromCanonical(@intCast(p.len)).inv();
+    if (p.len == 0) out[C.zero] = M.one() else out[C.zinv] = M.fromCanonical(@intCast(p.len)).inv() catch unreachable;
     if (p.len != 0) out[C.e] = m((@as(u64, p.shift()) + p.len - 1) % 8);
     out[C.words] = m(p.words());
     out[C.id] = m(id);
@@ -102,7 +102,7 @@ pub fn permRow(call: ?T.Call, words: []const T.State, k: u32, perms: []const [2]
     out[P.freshfirst] = m(@intFromBool(k == 0 and p.fresh()));
     afterClock(&out, P.epoch, c);
     out[P.fin] = m(@intFromBool(fin));
-    out[P.shift + p.shift()] = M.one();
+    out[P.shift + @as(usize, p.shift())] = M.one();
     const base = p.base() + T.RATE * @as(u64, k);
     put(&out, P.base, base);
     if (k != 0) carries(&out, P.bcarry, base - T.RATE, T.RATE);
