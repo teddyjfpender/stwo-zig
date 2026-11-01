@@ -203,7 +203,8 @@ test "composition queue matches the established scheduler bit for bit on mixed c
                 try expectSame(&expected, &actual);
                 try std.testing.expectEqual(workers, pool.availableWorkers());
             }
-            // Automatic selection takes the queue for these sets.
+            // Automatic selection preserves the production scheduler unless
+            // the explicit experimental environment opt-in is set.
             var automatic = try run(set, &pool, .auto, .{});
             defer automatic.deinit(a);
             try expectSame(&expected, &automatic);
