@@ -49,6 +49,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-combined-services", .description = "One CPU per shard joins all LE services with shared RAM and bounded truths", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-sha256-truth", .description = "SHA-256 compression truth AIR: FIPS vectors, random blocks and adversarial rows", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-arith256-bridge", .description = "arith256_mod Word16 bridge closes Wire35 with the arith256 truth", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-secp-bridge", .description = "Word16 coordinate bridge joins CPU owner RAM14 and RCB Wire35", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-shared", .description = "Execution-wide K truth joins actual CPU RAM shards", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-bridge", .description = "Word16 Keccak OWNER RAM bridge qualification", .scope = .riscv_cpu },
