@@ -67,7 +67,8 @@ const World = struct {
     }
     fn call(self: *World, op: T.Op, pointer: u64, epoch: u16, tick: u24, dst: u64, word1: u64, len: u64) !void {
         const pw: usize = if (op == .cmp) 4 else 3;
-        for ([_]u64{ dst, word1, len, 0x5EED }, 0..) |v, k| if (k < pw and !self.states.contains(pointer + 8 * k)) try self.image(pointer + 8 * k, v);
+        const packet_values = if (op == .jumpdest) [_]u64{ dst, len, word1, 0x5EED } else [_]u64{ dst, word1, len, 0x5EED };
+        for (packet_values, 0..) |v, k| if (k < pw and !self.states.contains(pointer + 8 * k)) try self.image(pointer + 8 * k, v);
         var c = T.Call{ .op = op, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = dst, .word1 = word1, .len = len, .packet = @splat(.{ .value = 0, .rights = 0 }) };
         for (0..pw) |k| c.packet[k] = try self.get(pointer + 8 * k);
         var fresh: std.ArrayList(T.Word) = .{};
@@ -91,6 +92,22 @@ const World = struct {
                 }
                 c.examined = @intCast(fresh.items.len);
             },
+            .jumpdest => {
+                for (0..n) |j| try fresh.append(self.a, .{ .dst = .{ .value = 0, .rights = 0 }, .src = try self.get(dst + 8 * j) });
+                for (0..c.bitmapWords()) |r| try fresh.append(self.a, .{ .dst = try self.get(word1 + 8 * r) });
+            },
+        }
+        // jumpdest: the canonical bitmap of the code words read.
+        var bitmap: []u64 = &.{};
+        defer self.a.free(bitmap);
+        if (op == .jumpdest) {
+            const code = try self.a.alloc(u64, n);
+            defer self.a.free(code);
+            for (fresh.items[0..n], code) |x, *v| v.* = x.src.value;
+            const pending = try self.a.alloc(u8, c.bitmapWords());
+            defer self.a.free(pending);
+            bitmap = try self.a.alloc(u64, c.bitmapWords());
+            T.analyzeWords(code, pending, bitmap);
         }
         // Every access of the call moves to the call's clock.
         for (0..pw) |k| {
@@ -106,6 +123,11 @@ const World = struct {
                 const base = word1 & ~@as(u64, 7);
                 try self.states.put(base + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
                 if (r != 0) try self.states.put(dst + 8 * (r - 1), .{ .value = T.shifted(fresh.items[r - 1].src.value, w.src.value, c.shift()), .epoch = epoch, .tick = tick, .rights = w.dst.rights });
+            },
+            .jumpdest => if (r < n) {
+                try self.states.put(dst + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
+            } else {
+                try self.states.put(word1 + 8 * (r - n), .{ .value = bitmap[r - n], .epoch = epoch, .tick = tick, .rights = w.dst.rights });
             },
             .cmp => {
                 try self.states.put(dst + 8 * r, .{ .value = w.dst.value, .epoch = epoch, .tick = tick, .rights = w.dst.rights });
@@ -234,7 +256,7 @@ fn verdict(a: std.mem.Allocator, w: *World, wit: *Witness) !Verdict {
             if (sink.count != L.constraints(kind)) return error.ConstraintCountDrift;
             for (residuals[0..sink.count]) |v| out.local += @intFromBool(!v.isZero());
             // Every U16 lookup value (computed in the field) must lie in the table.
-            for (Eq.fractions(Q, kind, &m, ch)) |fr| if (fr.relation == Eq.RANGE16) {
+            for (Eq.fractions(Q, kind, &fq, &m, ch)) |fr| if (fr.relation == Eq.RANGE16) {
                 // Recover the looked-up value from the affine denominator.
                 const value = ch.range16.offset.sub(fr.d).div(ch.range16.coefficient) catch unreachable;
                 const base = value.tryIntoM31() catch unreachable;
@@ -812,4 +834,461 @@ test "bulk memory adversarial: memcmp result token without a descriptor or call 
     fx.wit.rows[4] = 2;
     const v = try fx.check();
     try testing.expect(!v.owner and !v.ram);
+}
+
+// ---------------------------------------------------------------------------
+// JUMPDEST analysis (`jdesc` + `jscan` + `jtab`). Scenario J: call A (2 scan
+// rows, PUSH32 data crossing the row boundary), call B (read-only code, one
+// full row, truncated PUSH32 at the end), call C (analyzes A's bitmap words:
+// reads an earlier service write). Row map: jdesc 0..2 = A, B, C; jscan
+// 0..1 = A, 2 = B, 3 = C.
+
+const JLOG: u32 = 6;
+const JN: usize = 1 << JLOG;
+const J = L.jscan;
+
+fn codeWord(bytes: []const u8) u64 {
+    var v: u64 = 0;
+    for (bytes, 0..) |b, i| v |= @as(u64, b) << @intCast(8 * i);
+    return v;
+}
+fn imageCode(w: *World, address: u64, bytes: []const u8) !void {
+    var k: usize = 0;
+    while (k < bytes.len) : (k += 8) try w.image(address + k, codeWord(bytes[k..@min(k + 8, bytes.len)]));
+}
+fn scenarioJ(w: *World) !void {
+    // A: 72 bytes. 0x5b at 0; PUSH1 0x5b at 1..2; 0x5b at 3; PUSH32 at 40
+    // (data 41..72, crossing into row 1); 0x5b at 70 is data.
+    var a: [72]u8 = @splat(0x01);
+    a[0] = 0x5b;
+    a[1] = 0x60;
+    a[2] = 0x5b;
+    a[3] = 0x5b;
+    a[10] = 0x5b;
+    a[40] = 0x7f;
+    a[64] = 0x5b;
+    a[70] = 0x5b;
+    try imageCode(w, 0x8000, &a);
+    // B: 64 bytes of read-only code; JUMPDEST at 63 after a truncated PUSH32 at 60? No:
+    // PUSH2 at 50 (data 51, 52), JUMPDEST at 53, PUSH32 at 60 (data cut off at 64).
+    var b: [64]u8 = @splat(0x5b);
+    b[50] = 0x61;
+    b[60] = 0x7f;
+    try imageCode(w, 0x5000, &b);
+    try w.call(.jumpdest, 0x1000, 1, 8, 0x8000, 0x9000, 72);
+    try w.call(.jumpdest, 0x1018, 1, 12, 0x5000, 0x9100, 64);
+    // C: A's two bitmap words as code.
+    try w.call(.jumpdest, 0x1030, 2, 4, 0x9000, 0x9200, 16);
+}
+
+const JWitness = struct {
+    jdesc: [][L.jdesc.MAIN]M,
+    jscan: [][L.jscan.MAIN]M,
+    jtab: [][L.jtab.MAIN]M,
+    rows: [3]u32,
+    fn deinit(self: *JWitness, a: std.mem.Allocator) void {
+        a.free(self.jdesc);
+        a.free(self.jscan);
+        a.free(self.jtab);
+    }
+};
+fn jlog(comptime kind: L.Kind) u32 {
+    return if (kind == .jtab) T.TABLE_LOG else JLOG;
+}
+fn honestJ(a: std.mem.Allocator, w: *World) !JWitness {
+    var out: JWitness = undefined;
+    inline for (L.jumpdest_kinds, 0..) |kind, k| {
+        var s = try Src.Source.init(a, kind, w.calls.items, w.words.items, jlog(kind));
+        defer s.deinit();
+        out.rows[k] = s.rows;
+        const n = @as(usize, 1) << @intCast(jlog(kind));
+        const rows = try a.alloc([L.main(kind)]M, n);
+        for (rows, 0..) |*r, i| r.* = s.row(kind, i);
+        @field(out, @tagName(kind)) = rows;
+    }
+    return out;
+}
+fn verdictJ(a: std.mem.Allocator, w: *World, wit: *JWitness) !Verdict {
+    const ch = challenges();
+    var out = Verdict{};
+    var ram = try w.ramEnvironment(ch);
+    var owner = try w.cpuOwner(ch);
+    inline for (L.jumpdest_kinds, 0..) |kind, k| {
+        const log = jlog(kind);
+        const n = @as(usize, 1) << @intCast(log);
+        const rows = @field(wit, @tagName(kind));
+        var provider = Rows(kind){ .items = rows };
+        const built = try B.interaction.generateRows(kind, a, log, n, &provider, Rows(kind).get, ch);
+        defer a.free(built.interaction);
+        const fixed = try Src.fixedFor(a, kind, log);
+        defer a.free(fixed);
+        ram = ram.add(built.claims.ram);
+        owner = owner.add(built.claims.owner);
+        const FW = comptime L.fixedWidth(kind);
+        const width = L.interaction(kind);
+        var residuals: [1024]Q = undefined;
+        for (0..n) |r| {
+            const prev = (r + n - 1) % n;
+            var fq: [FW]Q = undefined;
+            var m: [L.main(kind)]Q = undefined;
+            var pm: [L.main(kind)]Q = undefined;
+            var i: [L.interaction(kind)]Q = undefined;
+            var pi: [L.interaction(kind)]Q = undefined;
+            for (&fq, 0..) |*x, c| x.* = Q.fromBase(fixed[c * n + Src.physical(r, log)]);
+            for (&m, rows[r]) |*x, v| x.* = Q.fromBase(v);
+            for (&pm, rows[prev]) |*x, v| x.* = Q.fromBase(v);
+            for (0..width) |c| {
+                i[c] = Q.fromBase(built.interaction[c * n + Src.physical(r, log)]);
+                pi[c] = Q.fromBase(built.interaction[c * n + Src.physical(prev, log)]);
+            }
+            var sink = E.Sink{ .values = &residuals };
+            Eq.emitFor(Q, kind, &fq, &m, &pm, &i, &pi, wit.rows[k], built.claims, ch, &sink);
+            if (sink.count != L.constraints(kind)) {
+                std.debug.print("constraint count {s}: {d} (layout {d})\n", .{ @tagName(kind), sink.count, L.constraints(kind) });
+                return error.ConstraintCountDrift;
+            }
+            for (residuals[0..sink.count]) |v| out.local += @intFromBool(!v.isZero());
+            for (Eq.fractions(Q, kind, &fq, &m, ch)) |fr| if (fr.relation == Eq.RANGE16) {
+                const value = ch.range16.offset.sub(fr.d).div(ch.range16.coefficient) catch unreachable;
+                const base = value.tryIntoM31() catch unreachable;
+                if (base.v >= 65536) out.ranges = false;
+            };
+        }
+    }
+    out.ram = ram.isZero();
+    out.owner = owner.isZero();
+    return out;
+}
+const JFixture = struct {
+    a: std.mem.Allocator,
+    world: World,
+    wit: JWitness,
+    fn init(a: std.mem.Allocator) !JFixture {
+        var w = World.init(a);
+        errdefer w.deinit();
+        try scenarioJ(&w);
+        return .{ .a = a, .world = w, .wit = try honestJ(a, &w) };
+    }
+    fn deinit(self: *JFixture) void {
+        self.wit.deinit(self.a);
+        self.world.deinit();
+    }
+    fn check(self: *JFixture) !Verdict {
+        return verdictJ(self.a, &self.world, &self.wit);
+    }
+    /// Make the environment's TERM of `address` agree with a forged bitmap
+    /// write, so only the forged analysis itself can be what rejects it.
+    fn acceptWrite(self: *JFixture, address: u64, row: []const M) !void {
+        var s = self.world.states.get(address).?;
+        s.value = Src.jscanBitmap(row);
+        try self.world.states.put(address, s);
+    }
+    /// Recompute the jtab multiplicities from the (possibly forged) scan rows.
+    fn retable(self: *JFixture) void {
+        for (self.wit.jtab) |*r| r.* = .{M.zero()};
+        for (self.wit.jscan) |row| {
+            if (row[J.active].isZero()) continue;
+            for (0..64) |k| {
+                const valid = if (k < 8) true else !row[J.valid + k / 8 - 1].isZero();
+                if (!valid) continue;
+                const p = row[J.pending + k].v;
+                const b = row[J.bytes + k].v;
+                if (p > T.MAX_PENDING or b > 255) continue;
+                const e = p * 256 + b;
+                const t = T.tableEntry(e);
+                if (t.next == row[J.pending + k + 1].v and t.jumpdest == row[J.jd + k].v) self.wit.jtab[e][0] = self.wit.jtab[e][0].add(M.one());
+            }
+        }
+    }
+};
+
+test "jumpdest: honest scenario satisfies every constraint and closes every relation" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    try testing.expectEqual([3]u32{ 3, 4, T.TABLE_ENTRIES }, fx.wit.rows);
+    try testing.expectEqual(Verdict{}, try fx.check());
+}
+
+test "jumpdest: known answers match the executor's reference walk" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // A: JUMPDESTs at 0, 3, 10 (2 is PUSH1 data, 64 and 70 are PUSH32 data).
+    try testing.expectEqual(@as(u64, (1 << 0) | (1 << 3) | (1 << 10)), fx.world.states.get(0x9000).?.value);
+    try testing.expectEqual(@as(u64, 0), fx.world.states.get(0x9008).?.value);
+    // B: every 0x5b except PUSH2 data 51, 52 and the bytes 61..63 after the
+    // truncated PUSH32 at 60; the PUSH opcodes at 50 and 60 are not JUMPDESTs.
+    var want: u64 = 0;
+    for (0..64) |i| if (i < 50 or i == 53 or (i > 53 and i < 60)) {
+        want |= @as(u64, 1) << @intCast(i);
+    };
+    try testing.expectEqual(want, fx.world.states.get(0x9100).?.value);
+    // The AIR rows write the same words, and the pending counter crosses the
+    // row boundary of call A (PUSH32 at 40: 9 data bytes left at byte 64).
+    try testing.expectEqual(@as(u64, (1 << 0) | (1 << 3) | (1 << 10)), Src.jscanBitmap(&fx.wit.jscan[0]));
+    try testing.expectEqual(@as(u32, 9), fx.wit.jscan[1][J.pending].v);
+    try testing.expectEqual(want, Src.jscanBitmap(&fx.wit.jscan[2]));
+    try testing.expectEqual(@as(u32, 1), fx.wit.jscan[1][J.remaining].v);
+    // Agreement with the executor's reference on the same bytes.
+    const ref = @import("../../../ethereum_services/candidate_jumpdest.zig");
+    var bytes: [64]u8 = undefined;
+    for (0..8) |k| std.mem.writeInt(u64, bytes[8 * k ..][0..8], fx.world.states.get(0x5000 + 8 * k).?.value, .little);
+    var out: [1]u64 = undefined;
+    ref.bitmap(&bytes, &out);
+    try testing.expectEqual(want, out[0]);
+}
+
+test "jumpdest adversarial: forged JUMPDEST inside PUSH data is rejected by the table" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // Byte 51 of call B is PUSH2 data 0x5b: claim it is a JUMPDEST, with the
+    // environment's final bitmap agreeing and the table multiplicities redone.
+    // (Call B's bitmap is not read later, so RAM closes with the forged word.)
+    fx.wit.jscan[2][J.jd + 51] = M.one();
+    try fx.acceptWrite(0x9100, &fx.wit.jscan[2]);
+    fx.retable();
+    const v = try fx.check();
+    try testing.expect(!accepted(v));
+    try testing.expectEqual(@as(usize, 0), v.local);
+    try testing.expect(v.ram);
+    try testing.expect(!v.owner);
+    // Same with the counter forged to 0 at byte 51 (as if PUSH2 had no data,
+    // so byte 51 legitimately reads as a JUMPDEST): the PUSH2 transition of
+    // byte 50 no longer matches.
+    fx.wit.jscan[2][J.pending + 51] = M.zero();
+    fx.wit.jscan[2][J.pending + 52] = M.zero();
+    fx.wit.jscan[2][J.jd + 52] = M.one();
+    try fx.acceptWrite(0x9100, &fx.wit.jscan[2]);
+    fx.retable();
+    try testing.expect(!(try fx.check()).owner);
+}
+
+test "jumpdest adversarial: missing JUMPDEST is rejected by the table" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    fx.wit.jscan[2][J.jd + 0] = M.zero();
+    try fx.acceptWrite(0x9100, &fx.wit.jscan[2]);
+    fx.retable();
+    const v = try fx.check();
+    try testing.expect(!accepted(v));
+    try testing.expect(v.ram);
+    try testing.expect(!v.owner);
+}
+
+test "jumpdest adversarial: JUMPDEST in push data across rows needs a broken counter chain" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // Byte 64 (row 1, byte 0) is PUSH32 data: reset the carried counter so it
+    // reads as a JUMPDEST. The continuity constraint pending_0 = prev pending_64 fails.
+    const row = &fx.wit.jscan[1];
+    row[J.pending] = M.zero();
+    row[J.jd] = M.one();
+    for (1..8) |k| row[J.pending + k] = M.zero();
+    try fx.acceptWrite(0x9008, row);
+    fx.retable();
+    const v = try fx.check();
+    try testing.expect(!accepted(v));
+    try testing.expect(v.local > 0);
+}
+
+test "jumpdest adversarial: bits past the code length are rejected" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // Call A's last row has one valid word: a JUMPDEST bit in word 1 (byte 72).
+    fx.wit.jscan[1][J.jd + 8] = M.one();
+    try fx.acceptWrite(0x9008, &fx.wit.jscan[1]);
+    const v = try fx.check();
+    try testing.expect(!accepted(v));
+    try testing.expect(v.local > 0);
+}
+
+test "jumpdest adversarial: wrong lengths are rejected" {
+    const a = testing.allocator;
+    {
+        // Run ended after row 0 of call A (9 words): sum(valid) = remaining fails.
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        fx.wit.jscan[0][J.last] = M.one();
+        try testing.expect((try fx.check()).local > 0);
+    }
+    {
+        // Fewer valid words on the last row (word 0 only is honest; claim a
+        // second valid word with remaining 1).
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        fx.wit.jscan[1][J.valid] = M.one();
+        try testing.expect((try fx.check()).local > 0);
+    }
+    {
+        // Packet length forged in the descriptor (16 words): RAM (packet read).
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        fx.wit.jdesc[0][L.jdesc.len_q0] = mm(16);
+        const v = try fx.check();
+        try testing.expect(!v.ram and !v.owner);
+    }
+    {
+        // Remaining relabelled on call A's scan rows (pretend 16 words, 2 full
+        // rows): the token's word count no longer matches the descriptor.
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        fx.wit.jscan[0][J.remaining] = mm(16);
+        fx.wit.jscan[1][J.remaining] = mm(8);
+        for (0..7) |w| fx.wit.jscan[1][J.valid + w] = M.one();
+        const v = try fx.check();
+        try testing.expect(!accepted(v));
+        try testing.expect(!v.owner or !v.ram);
+    }
+}
+
+test "jumpdest adversarial: counter carried into the next call is rejected" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // Call B starts with call A's leftover counter (1 data byte of A's PUSH32
+    // after its last code byte); start rows have pending 0.
+    try testing.expectEqual(@as(u32, 1), fx.wit.jscan[1][J.pending + 8].v);
+    fx.wit.jscan[2][J.pending] = fx.wit.jscan[1][J.pending + 8];
+    try testing.expect((try fx.check()).local > 0);
+}
+
+test "jumpdest adversarial: stale code read and forged code bytes are rejected by RAM" {
+    const a = testing.allocator;
+    {
+        // Call C reads A's bitmap word 0x9000: pretend it still has its image value.
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        const row = &fx.wit.jscan[3];
+        const old: u64 = @as(u64, 0x9000) *% 0x9E3779B97F4A7C15;
+        for (0..8) |i| row[J.bytes + i] = mm(@as(u8, @truncate(old >> @intCast(8 * i))));
+        var p: u8 = 0;
+        for (0..16) |k| {
+            const t = T.transition(p, @intCast(row[J.bytes + k].v));
+            row[J.jd + k] = mm(t.jumpdest);
+            p = t.next;
+            row[J.pending + k + 1] = mm(p);
+        }
+        try fx.acceptWrite(0x9200, row);
+        fx.retable();
+        const v = try fx.check();
+        try testing.expect(!accepted(v));
+        try testing.expectEqual(@as(usize, 0), v.local);
+        try testing.expect(v.owner);
+        try testing.expect(!v.ram);
+    }
+    {
+        // A code byte changed (table-consistent): the code read matches no token.
+        var fx = try JFixture.init(a);
+        defer fx.deinit();
+        fx.wit.jscan[2][J.bytes + 5] = mm(0x02);
+        fx.wit.jscan[2][J.jd + 5] = M.zero();
+        try fx.acceptWrite(0x9100, &fx.wit.jscan[2]);
+        fx.retable();
+        const v = try fx.check();
+        try testing.expectEqual(@as(usize, 0), v.local);
+        try testing.expect(v.owner);
+        try testing.expect(!v.ram);
+    }
+}
+
+test "jumpdest adversarial: misaligned code, read-only bitmap and aliasing are refused natively" {
+    const a = testing.allocator;
+    const bad = [_]struct { code: u64, len: u64, bitmap: u64, e: anyerror }{
+        .{ .code = 0x8008, .len = 64, .bitmap = 0x9000, .e = error.InvalidBulkMemoryRange },
+        .{ .code = 0x8000, .len = 64, .bitmap = 0x9004, .e = error.InvalidBulkMemoryRange },
+        .{ .code = 0x8000, .len = 60, .bitmap = 0x9000, .e = error.InvalidBulkMemoryLength },
+        .{ .code = 0x8000, .len = 64, .bitmap = 0x5000, .e = error.InvalidBulkMemoryPredecessor },
+        .{ .code = 0x8000, .len = 128, .bitmap = 0x8040, .e = error.BulkMemoryOverlap },
+    };
+    for (bad) |c| {
+        var w = World.init(a);
+        defer w.deinit();
+        try w.call(.jumpdest, 0x1000, 1, 8, c.code, c.bitmap, c.len);
+        try testing.expectError(c.e, Src.Source.init(a, .jdesc, w.calls.items, w.words.items, JLOG));
+    }
+    // AIR side of misalignment: code limb 0 = 64 q has no q below 1024.
+    var fx = try JFixture.init(a);
+    defer fx.deinit();
+    const D = L.jdesc;
+    fx.wit.jdesc[0][D.code_q] = M.fromCanonical(0x8008).div(M.fromCanonical(64)) catch unreachable;
+    try testing.expect(!(try fx.check()).ranges);
+}
+
+test "jumpdest adversarial: bitmap write to a read-only word or a forged tick is rejected" {
+    var fx = try JFixture.init(testing.allocator);
+    defer fx.deinit();
+    // Writes carry rights (1, 1): a read-only predecessor token never matches.
+    fx.wit.jscan[0][J.before] = fx.wit.jscan[0][J.before].add(M.one());
+    const v = try fx.check();
+    try testing.expect(!v.ram);
+    // Scan rows moved to a later tick than their descriptor: OWNER (token).
+    var fx2 = try JFixture.init(testing.allocator);
+    defer fx2.deinit();
+    fx2.wit.jscan[2][J.tick_low] = fx2.wit.jscan[2][J.tick_low].add(mm(4));
+    const v2 = try fx2.check();
+    try testing.expect(!accepted(v2));
+}
+
+test "jumpdest: constraint degrees are at most three" {
+    const ch = challenges();
+    inline for (L.jumpdest_kinds) |kind| {
+        const FW = comptime L.fixedWidth(kind);
+        const W = comptime L.main(kind);
+        const I = comptime L.interaction(kind);
+        const total = FW + 2 * W + 2 * I;
+        var samples: [5][1024]Q = undefined;
+        var x: [total]Q = undefined;
+        var y: [total]Q = undefined;
+        for (&x, &y, 0..) |*xi, *yi, i| {
+            xi.* = q(@intCast(1000 + i));
+            yi.* = q(@intCast(5000 + i));
+        }
+        for (0..5) |t| {
+            var z: [total]Q = undefined;
+            for (&z, x, y) |*zi, xi, yi| zi.* = xi.add(yi.mul(E.q(@intCast(t))));
+            var sink = E.Sink{ .values = &samples[t] };
+            Eq.emitFor(Q, kind, z[0..FW], z[FW..][0..W], z[FW + W ..][0..W], z[FW + 2 * W ..][0..I], z[FW + 2 * W + I ..][0..I], 7, .{ .ram = q(1), .owner = q(2), .range16 = q(3) }, ch, &sink);
+            try testing.expectEqual(L.constraints(kind), sink.count);
+        }
+        for (0..L.constraints(kind)) |c| {
+            var d: [5]Q = undefined;
+            for (0..5) |t| d[t] = samples[t][c];
+            var level: usize = 5;
+            while (level > 1) : (level -= 1) for (0..level - 1) |i| {
+                d[i] = d[i + 1].sub(d[i]);
+            };
+            try testing.expect(d[0].isZero());
+        }
+    }
+}
+
+test "jumpdest: random codes of every remainder close and match the reference walk" {
+    const a = testing.allocator;
+    const ref = @import("../../../ethereum_services/candidate_jumpdest.zig");
+    var prng = std.Random.DefaultPrng.init(0x5b60_7f00);
+    const r = prng.random();
+    var w = World.init(a);
+    defer w.deinit();
+    // 17 calls, 1..17 code words each (every last-row remainder 1..8 occurs),
+    // biased towards JUMPDEST and PUSH opcodes.
+    var expected: [17][3]u64 = undefined;
+    for (0..17) |k| {
+        const words = k + 1;
+        const code = 0x10000 + 0x400 * @as(u64, k);
+        var bytes: [17 * 8]u8 = undefined;
+        for (bytes[0 .. 8 * words]) |*b| b.* = switch (r.uintLessThan(u8, 4)) {
+            0 => 0x5b,
+            1 => r.intRangeAtMost(u8, 0x60, 0x7f),
+            else => r.int(u8),
+        };
+        try imageCode(&w, code, bytes[0 .. 8 * words]);
+        var out: [3]u64 = @splat(0);
+        ref.bitmap(bytes[0 .. 8 * words], out[0 .. (words + 7) / 8]);
+        expected[k] = out;
+        try w.call(.jumpdest, 0x1000 + 0x20 * @as(u64, k), 1, @intCast(8 + 4 * k), code, 0x30000 + 0x40 * @as(u64, k), 8 * words);
+    }
+    var wit = try honestJ(a, &w);
+    defer wit.deinit(a);
+    try testing.expectEqual(Verdict{}, try verdictJ(a, &w, &wit));
+    for (0..17) |k| for (0..(k + 8) / 8) |j| {
+        try testing.expectEqual(expected[k][j], w.states.get(0x30000 + 0x40 * @as(u64, k) + 8 * j).?.value);
+    };
 }

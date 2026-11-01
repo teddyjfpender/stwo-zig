@@ -101,8 +101,57 @@ fn afterClock(comptime F: type, m: []const F, kind: L.Kind) [3]F {
         .desc => L.desc.epoch,
         .cdesc => L.cdesc.epoch,
         .copy, .set, .ucopy, .cmp => L.copy.epoch,
+        .jdesc => L.jdesc.epoch,
+        .jscan => L.jscan.epoch,
+        .jtab => return .{ F.zero(), F.zero(), F.zero() },
     };
     return m[base..][0..3].*;
+}
+/// JUMPDEST descriptor packet word k: code, len, bitmap.
+pub fn jdescPacket(comptime F: type, m: []const F, k: usize) [4]F {
+    const D = L.jdesc;
+    return switch (k) {
+        0 => .{ m[D.code_q].mul(E.qFor(F, 64)), m[D.code], m[D.code + 1], m[D.code + 2] },
+        1 => .{ m[D.len_q0].mul(E.qFor(F, 8)), m[D.len_l1], F.zero(), F.zero() },
+        else => limbs(F, m, D.bitmap),
+    };
+}
+pub fn jdescAddress(comptime F: type, m: []const F, k: usize) [4]F {
+    const p = limbs(F, m, L.jdesc.pointer);
+    if (k == 0) return p;
+    const p8 = advance(F, p, m[L.jdesc.carry8..][0..3], 8);
+    return if (k == 1) p8 else advance(F, p8, m[L.jdesc.carry16..][0..3], 8);
+}
+/// Address of code word w (0..7) of a scan row: the row base is 64-aligned,
+/// so `limb0 + 8w` never carries.
+pub fn jscanWordAddress(comptime F: type, m: []const F, w: usize) [4]F {
+    var out = limbs(F, m, L.jscan.code);
+    out[0] = out[0].add(E.qFor(F, @intCast(8 * w)));
+    return out;
+}
+/// Read weight of code word w: word 0 is valid on every active row.
+pub fn jscanValid(comptime F: type, m: []const F, w: usize) F {
+    return if (w == 0) m[L.jscan.active] else m[L.jscan.valid + w - 1];
+}
+/// The written bitmap word: limb l = sum_i jd[16 l + i] 2^i.
+pub fn jscanBitmapLimbs(comptime F: type, m: []const F) [4]F {
+    var out: [4]F = undefined;
+    for (0..4) |l| {
+        var v = F.zero();
+        for (0..16) |i| v = v.add(m[L.jscan.jd + 16 * l + i].mul(E.qFor(F, @as(u32, 1) << @intCast(i))));
+        out[l] = v;
+    }
+    return out;
+}
+/// Transition-table tuple (OWNER19 slot 0 = TOKEN_JD_TABLE).
+pub fn tableTuple(comptime F: type, pending: F, byte: F, next: F, jd: F) [19]F {
+    var out: [19]F = @splat(F.zero());
+    out[0] = E.qFor(F, T.TOKEN_JD_TABLE);
+    out[1] = pending;
+    out[2] = byte;
+    out[3] = next;
+    out[4] = jd;
+    return out;
 }
 /// The limbs of an unaligned source word from its bytes.
 pub fn byteLimbs(comptime F: type, bytes: []const F) [4]F {
@@ -165,7 +214,7 @@ fn clockRanges(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), k: []const 
     const b = byteRanges(F, ch, k[L.clock.gap8]);
     return .{ range(F, ch, k[L.clock.gap16]), b[0], b[1] };
 }
-pub fn fractions(comptime F: type, comptime kind: L.Kind, m: []const F, ch: T.ChallengesFor(E.ConstFor(F))) [L.fractionCount(kind)]Fraction(F) {
+pub fn fractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, ch: T.ChallengesFor(E.ConstFor(F))) [L.fractionCount(kind)]Fraction(F) {
     var out: [L.fractionCount(kind)]Fraction(F) = undefined;
     var at: usize = 0;
     const one = F.one();
@@ -286,7 +335,61 @@ pub fn fractions(comptime F: type, comptime kind: L.Kind, m: []const F, ch: T.Ch
             out[18] = range(F, ch, m[C.gap]);
             at = 19;
         },
+        .jdesc => {
+            const D = L.jdesc;
+            const a = m[D.active];
+            for (0..3) |k| {
+                const value = jdescPacket(F, m, k);
+                out[at..][0..2].* = ramPair(F, ch, jdescAddress(F, m, k), m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, value, value, one, m[D.writable + k], a);
+                at += 2;
+            }
+            const words = m[D.len_q0].add(m[D.len_l1].mul(E.qFor(F, 8192)));
+            out[at] = .{ .d = ch.owner.denominatorFor(F, ecallTuple(F, limbs(F, m, D.pointer), E.qFor(F, @as(u16, @truncate(T.JUMPDEST_TAG))), after[0], after[1], after[2])), .w = a.neg(), .relation = OWNER };
+            out[at + 1] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], jdescPacket(F, m, 0), limbs(F, m, D.bitmap), words)), .w = a, .relation = OWNER };
+            at += 2;
+            out[at] = range(F, ch, m[D.tick_low]);
+            out[at + 1..][0..2].* = byteRanges(F, ch, m[D.tick_high]);
+            out[at + 3] = range(F, ch, m[D.len_q0]);
+            // code limb 0 = 64 q with q < 2^16 and 64 q < 2^16: q < 1024.
+            out[at + 4] = range(F, ch, m[D.code_q]);
+            out[at + 5] = range(F, ch, m[D.code_q].mul(E.qFor(F, 64)));
+            at += 6;
+            for (0..3) |k| {
+                out[at..][0..3].* = clockRanges(F, ch, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK]);
+                at += 3;
+            }
+        },
+        .jscan => {
+            const J = L.jscan;
+            const a = m[J.active];
+            for (0..8) |w| {
+                const value = byteLimbs(F, m[J.bytes + 8 * w ..][0..8]);
+                out[at..][0..2].* = ramPair(F, ch, jscanWordAddress(F, m, w), m[J.clocks + L.CLOCK * w ..][0..L.CLOCK], after, value, value, one, m[J.writable + w], jscanValid(F, m, w));
+                at += 2;
+            }
+            out[at..][0..2].* = ramPair(F, ch, limbs(F, m, J.bitmap), m[J.wclock..][0..L.CLOCK], after, limbs(F, m, J.before), jscanBitmapLimbs(F, m), one, one, a);
+            at += 2;
+            out[at] = .{ .d = ch.owner.denominatorFor(F, tokenTuple(F, T.TOKEN_JD, after[0], after[1], after[2], limbs(F, m, J.code), limbs(F, m, J.bitmap), m[J.remaining])), .w = m[J.start].neg(), .relation = OWNER };
+            at += 1;
+            for (0..64) |k| {
+                const t = tableTuple(F, m[J.pending + k], m[J.bytes + k], m[J.pending + k + 1], m[J.jd + k]);
+                out[at] = .{ .d = ch.owner.denominatorFor(F, t), .w = jscanValid(F, m, k / 8).neg(), .relation = OWNER };
+                at += 1;
+            }
+            for (0..8) |w| {
+                out[at..][0..3].* = clockRanges(F, ch, m[J.clocks + L.CLOCK * w ..][0..L.CLOCK]);
+                at += 3;
+            }
+            out[at..][0..3].* = clockRanges(F, ch, m[J.wclock..][0..L.CLOCK]);
+            at += 3;
+        },
+        .jtab => {
+            const t = tableTuple(F, f[L.jtab.pending], f[L.jtab.byte], f[L.jtab.next], f[L.jtab.jumpdest]);
+            out[0] = .{ .d = ch.owner.denominatorFor(F, t), .w = m[L.jtab.multiplicity], .relation = OWNER };
+            at = 1;
+        },
     }
+    if (kind != .jtab) std.debug.assert(f.len == 0 or f.len >= L.FIXED);
     std.debug.assert(at == out.len);
     return out;
 }
@@ -433,14 +536,54 @@ fn cmpConstraints(comptime F: type, m: []const F, pm: []const F, out: *E.SinkFor
     out.emit(one.sub(diff).mul(hb));
 }
 fn chain(comptime F: type, m: []const F, pm: []const F, address: usize, carries: usize, s: F, c: F, out: *E.SinkFor(F)) void {
+    chainBy(F, m, pm, address, carries, s, c, 8, out);
+}
+fn chainBy(comptime F: type, m: []const F, pm: []const F, address: usize, carries: usize, s: F, c: F, step: u32, out: *E.SinkFor(F)) void {
     for (m[carries..][0..3]) |v| {
         E.booleanFor(F, out, v);
         out.emit(s.mul(v));
     }
-    const next = advance(F, pm[address..][0..4].*, m[carries..][0..3], 8);
+    const next = advance(F, pm[address..][0..4].*, m[carries..][0..3], step);
     for (0..4) |i| out.emit(c.mul(next[i].sub(m[address + i])));
 }
+/// JUMPDEST scan run: the token row (start) then continuation rows, each 64
+/// code bytes further (code +64, bitmap +8, remaining -8 code words), the
+/// pending counter carried across rows (0 on the start row). The run ends
+/// at the row flagged `last`, which has `remaining` (1..8) valid words; every
+/// other row has all eight. Invalid words have no JUMPDEST bit.
+fn jscanConstraints(comptime F: type, m: []const F, pm: []const F, out: *E.SinkFor(F)) void {
+    const J = L.jscan;
+    const one = F.one();
+    const a = m[J.active];
+    const s = m[J.start];
+    const c = a.sub(s);
+    const last = m[J.last];
+    E.booleanFor(F, out, s);
+    E.booleanFor(F, out, last);
+    out.emit(c.mul(one.sub(pm[J.active])));
+    out.emit(c.mul(pm[J.last]));
+    out.emit(pm[J.active].mul(one.sub(pm[J.last])).mul(one.sub(c)));
+    for ([_]usize{ J.epoch, J.tick_low, J.tick_high }) |col| out.emit(c.mul(m[col].sub(pm[col])));
+    out.emit(c.mul(pm[J.remaining].sub(E.qFor(F, 8)).sub(m[J.remaining])));
+    chainBy(F, m, pm, J.code, J.code_carry, s, c, 64, out);
+    chain(F, m, pm, J.bitmap, J.bitmap_carry, s, c, out);
+    out.emit(c.mul(m[J.pending].sub(pm[J.pending + 64])));
+    out.emit(s.mul(m[J.pending]));
+    // Valid words: a prefix of 1 + sum(valid) words, 8 unless last, where it
+    // is `remaining`.
+    var sum = F.zero();
+    for (0..7) |w| {
+        E.booleanFor(F, out, m[J.valid + w]);
+        sum = sum.add(m[J.valid + w]);
+        if (w != 0) out.emit(m[J.valid + w].mul(one.sub(m[J.valid + w - 1])));
+    }
+    out.emit(sum.add(a).sub(a.mul(E.qFor(F, 8))).sub(last.mul(m[J.remaining].sub(E.qFor(F, 8)))));
+    for (1..8) |w| for (0..8) |b| out.emit(m[J.jd + 8 * w + b].mul(one.sub(m[J.valid + w - 1])));
+}
 pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: T.RowsFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    // The transition table has no activity: every row is a (valid) entry
+    // whose multiplicity is free; only its fraction and prefix are checked.
+    if (kind == .jtab) return emitFractions(F, kind, f, m, i, pi, claims, ch, out);
     const one = F.one();
     const a = m[0];
     const width = L.main(kind);
@@ -488,12 +631,25 @@ pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const
             E.booleanFor(F, out, m[L.cmp.a_writable]);
             E.booleanFor(F, out, m[L.cmp.b_writable]);
         },
+        .jdesc => {
+            const D = L.jdesc;
+            for (m[D.carry8..][0..6]) |v| E.booleanFor(F, out, v);
+            for (0..3) |k| clockConstraints(F, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, a, out);
+            for (m[D.writable..][0..3]) |v| E.booleanFor(F, out, v);
+        },
+        .jscan => {
+            jscanConstraints(F, m, pm, out);
+            for (0..8) |w| clockConstraints(F, m[L.jscan.clocks + L.CLOCK * w ..][0..L.CLOCK], after, jscanValid(F, m, w), out);
+            clockConstraints(F, m[L.jscan.wclock..][0..L.CLOCK], after, a, out);
+            for (m[L.jscan.writable..][0..8]) |v| E.booleanFor(F, out, v);
+        },
+        .jtab => unreachable,
     }
     emitFractions(F, kind, f, m, i, pi, claims, ch, out);
 }
 pub fn emitFractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, i: []const F, pi: []const F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const Sec = E.SecureFor(F);
-    const list = fractions(F, kind, m, ch);
+    const list = fractions(F, kind, f, m, ch);
     var sums = [3]Sec{ Sec.zero(), Sec.zero(), Sec.zero() };
     var j: usize = 0;
     while (j < list.len) : (j += 2) {

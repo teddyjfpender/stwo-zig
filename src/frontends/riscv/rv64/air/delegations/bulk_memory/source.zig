@@ -199,6 +199,78 @@ pub fn cmpRow(call: ?T.Call, j: usize, word: T.Word) [L.cmp.MAIN]M {
     }
     return out;
 }
+pub fn jdescRow(call: ?T.Call) [L.jdesc.MAIN]M {
+    var out: [L.jdesc.MAIN]M = @splat(M.zero());
+    const c = call orelse return out;
+    const D = L.jdesc;
+    out[D.active] = M.one();
+    put(&out, D.pointer, c.pointer);
+    carries(&out, D.carry8, c.pointer);
+    carries(&out, D.carry16, c.pointer + 8);
+    afterClock(&out, D.epoch, c);
+    out[D.code_q] = M.fromCanonical(@as(u16, @truncate(c.dst)) / 64);
+    for (0..3) |i| out[D.code + i] = M.fromCanonical(@as(u16, @truncate(c.dst >> @as(u6, @intCast(16 * (i + 1))))));
+    out[D.len_q0] = M.fromCanonical(@as(u16, @truncate(c.len)) / 8);
+    out[D.len_l1] = M.fromCanonical(@as(u16, @truncate(c.len >> 16)));
+    put(&out, D.bitmap, c.word1);
+    for (c.packet[0..3], 0..) |state, k| {
+        clockBlock(&out, D.clocks + L.CLOCK * k, state, c.epoch, c.tick);
+        out[D.writable + k] = M.fromCanonical(state.rights >> 1);
+    }
+    return out;
+}
+/// Scan row j of a JUMPDEST call: `words` are the call's entries (code word
+/// predecessors in `src`, then bitmap word predecessors in `dst`), `pending`
+/// the PUSH-data counter before the row's first byte.
+pub fn jscanRow(call: ?T.Call, j: usize, words: []const T.Word, pending: u8) [L.jscan.MAIN]M {
+    var out: [L.jscan.MAIN]M = @splat(M.zero());
+    const c = call orelse return out;
+    const S = L.jscan;
+    const n: usize = c.count();
+    const remaining = n - 8 * j;
+    const valid = @min(remaining, 8);
+    out[S.active] = M.one();
+    out[S.start] = M.fromCanonical(@intFromBool(j == 0));
+    out[S.last] = M.fromCanonical(@intFromBool(remaining <= 8));
+    afterClock(&out, S.epoch, c);
+    out[S.remaining] = M.fromCanonical(@intCast(remaining));
+    put(&out, S.code, c.dst + 64 * j);
+    put(&out, S.bitmap, c.word1 + 8 * j);
+    if (j != 0) {
+        carriesBy(&out, S.code_carry, c.dst + 64 * (j - 1), 64);
+        carries(&out, S.bitmap_carry, c.word1 + 8 * (j - 1));
+    }
+    for (1..valid) |w| out[S.valid + w - 1] = M.one();
+    var p = pending;
+    out[S.pending] = M.fromCanonical(p);
+    for (0..valid) |w| {
+        const word = words[8 * j + w].src;
+        clockBlock(&out, S.clocks + L.CLOCK * w, word, c.epoch, c.tick);
+        out[S.writable + w] = M.fromCanonical(word.rights >> 1);
+        for (0..8) |i| {
+            const k = 8 * w + i;
+            const b: u8 = @truncate(word.value >> @intCast(8 * i));
+            const t = T.transition(p, b);
+            out[S.bytes + k] = M.fromCanonical(b);
+            out[S.jd + k] = M.fromCanonical(t.jumpdest);
+            p = t.next;
+            out[S.pending + k + 1] = M.fromCanonical(p);
+        }
+    }
+    const target = words[n + j].dst;
+    put(&out, S.before, target.value);
+    clockBlock(&out, S.wclock, target, c.epoch, c.tick);
+    return out;
+}
+/// The bitmap word a scan row writes (the canonical analysis of its bytes).
+pub fn jscanBitmap(row: []const M) u64 {
+    var out: u64 = 0;
+    for (0..64) |k| out |= @as(u64, row[L.jscan.jd + k].v) << @intCast(k);
+    return out;
+}
+pub fn jtabRow(multiplicity: u32) [L.jtab.MAIN]M {
+    return .{M.fromCanonical(multiplicity)};
+}
 /// The U16 lookup values of one row, in fraction order (equations.fractions).
 pub fn rangeValues(comptime kind: L.Kind, m: []const M) [L.range16Count(kind)]u32 {
     var out: [L.range16Count(kind)]u32 = undefined;
@@ -241,6 +313,21 @@ pub fn rangeValues(comptime kind: L.Kind, m: []const M) [L.range16Count(kind)]u3
             limbByteValues(out[9..12], m[C.blo].v, m[C.bhi].v);
             out[12] = m[C.gap].v;
         },
+        .jdesc => {
+            const D = L.jdesc;
+            out[0] = m[D.tick_low].v;
+            out[1] = m[D.tick_high].v;
+            out[2] = 256 * m[D.tick_high].v;
+            out[3] = m[D.len_q0].v;
+            out[4] = m[D.code_q].v;
+            out[5] = 64 * m[D.code_q].v;
+            for (0..3) |k| clockValues(out[6 + 3 * k ..][0..3], m[D.clocks + L.CLOCK * k ..]);
+        },
+        .jscan => {
+            for (0..8) |w| clockValues(out[3 * w ..][0..3], m[L.jscan.clocks + L.CLOCK * w ..]);
+            clockValues(out[24..27], m[L.jscan.wclock..]);
+        },
+        .jtab => {},
     }
     return out;
 }
@@ -256,14 +343,26 @@ fn clockValues(out: *[3]u32, k: []const M) void {
 }
 
 pub fn fixed(a: std.mem.Allocator, log: u32) ![]M {
+    return fixedFor(a, .desc, log);
+}
+/// Fixed columns of one kind: index, first-row and last-row selectors, plus
+/// the transition table for jtab (entry per logical row, see T.tableEntry).
+pub fn fixedFor(a: std.mem.Allocator, kind: L.Kind, log: u32) ![]M {
     const n = @as(usize, 1) << @intCast(log);
-    const out = try a.alloc(M, L.FIXED * n);
+    const out = try a.alloc(M, L.fixedWidth(kind) * n);
     @memset(out, M.zero());
     for (0..n) |row| {
         const p = physical(row, log);
         out[p] = M.fromCanonical(@intCast(row));
         out[n + p] = M.fromCanonical(@intFromBool(row == 0));
         out[2 * n + p] = M.fromCanonical(@intFromBool(row == n - 1));
+        if (kind == .jtab) {
+            const e = T.tableEntry(row);
+            out[L.jtab.pending * n + p] = M.fromCanonical(e.pending);
+            out[L.jtab.byte * n + p] = M.fromCanonical(e.byte);
+            out[L.jtab.next * n + p] = M.fromCanonical(e.next);
+            out[L.jtab.jumpdest * n + p] = M.fromCanonical(e.jumpdest);
+        }
     }
     return out;
 }
@@ -283,6 +382,10 @@ pub const Source = struct {
     /// First row of each call of this kind (unused entries 0).
     call_row: []u32,
     fixed: []M,
+    /// jscan: the PUSH-data counter at each active row's first byte.
+    row_pending: []u8 = &.{},
+    /// jtab: multiplicity of every table entry (all jscan lookups of the proof).
+    multiplicity: []u32 = &.{},
     main: []M,
     interaction: []M = &.{},
     owns_main: bool,
@@ -292,13 +395,17 @@ pub const Source = struct {
     pub fn rowsFor(kind: L.Kind, calls: []const T.Call) u64 {
         var total: u64 = 0;
         for (calls) |c| {
+            if (kind == .jtab) {
+                if (c.op == .jumpdest) return T.TABLE_ENTRIES;
+                continue;
+            }
             if (c.descriptor() == kind) total += 1;
-            if (c.body() == kind) total += c.entries();
+            if (c.body() == kind) total += c.bodyRows();
         }
         return total;
     }
     fn isDescriptor(kind: L.Kind) bool {
-        return kind == .desc or kind == .cdesc;
+        return kind == .desc or kind == .cdesc or kind == .jdesc;
     }
     pub fn init(a: std.mem.Allocator, kind: L.Kind, calls: []const T.Call, words: []const T.Word, log: u32) !Source {
         return create(a, kind, calls, words, log, null);
@@ -344,16 +451,46 @@ pub const Source = struct {
                 }
                 if (c.body() == kind) {
                     call_row[k] = @intCast(at);
-                    for (0..c.entries()) |j| {
+                    for (0..c.bodyRows()) |j| {
                         row_call[at] = @intCast(k);
-                        row_word[at] = @intCast(offset + j);
+                        // jscan rows keep the call's first word (rows read 8 words).
+                        row_word[at] = @intCast(if (kind == .jscan) offset else offset + j);
                         at += 1;
                     }
                 }
                 offset += c.entries();
             }
         }
-        const f = try fixed(a, log);
+        var row_pending: []u8 = &.{};
+        errdefer a.free(row_pending);
+        var multiplicity: []u32 = &.{};
+        errdefer a.free(multiplicity);
+        if (kind == .jscan or kind == .jtab) {
+            if (kind == .jscan) row_pending = try a.alloc(u8, total);
+            if (kind == .jtab) {
+                multiplicity = try a.alloc(u32, T.TABLE_ENTRIES);
+                @memset(multiplicity, 0);
+            }
+            var at: usize = 0;
+            offset = 0;
+            for (calls) |c| {
+                defer offset += c.entries();
+                if (c.op != .jumpdest) continue;
+                var pending: u8 = 0;
+                for (words[offset..][0..c.count()], 0..) |w, k| {
+                    if (kind == .jscan and k % 8 == 0) {
+                        row_pending[at] = pending;
+                        at += 1;
+                    }
+                    for (0..8) |i| {
+                        const b: u8 = @truncate(w.src.value >> @intCast(8 * i));
+                        if (kind == .jtab) multiplicity[@as(usize, pending) * 256 + b] += 1;
+                        pending = T.transition(pending, b).next;
+                    }
+                }
+            }
+        }
+        const f = try fixedFor(a, kind, log);
         errdefer a.free(f);
         const c16 = try a.alloc(u64, 65536);
         errdefer a.free(c16);
@@ -362,7 +499,7 @@ pub const Source = struct {
         errdefer a.free(c8);
         @memset(c8, 0);
         const main = if (buffer) |b| b else try a.alloc(M, width * n);
-        var self = Source{ .allocator = a, .kind = kind, .log_size = log, .rows = @intCast(total), .calls = call_copy, .words = word_copy, .row_call = row_call, .row_word = row_word, .call_row = call_row, .fixed = f, .main = main, .owns_main = buffer == null, .counts16 = c16, .counts8 = c8 };
+        var self = Source{ .allocator = a, .kind = kind, .log_size = log, .rows = @intCast(total), .calls = call_copy, .words = word_copy, .row_call = row_call, .row_word = row_word, .call_row = call_row, .fixed = f, .row_pending = row_pending, .multiplicity = multiplicity, .main = main, .owns_main = buffer == null, .counts16 = c16, .counts8 = c8 };
         switch (kind) {
             inline else => |k| for (0..n) |logical| {
                 const values = self.row(k, logical);
@@ -373,6 +510,7 @@ pub const Source = struct {
         return self;
     }
     pub fn row(self: *const Source, comptime kind: L.Kind, logical: usize) [L.main(kind)]M {
+        if (kind == .jtab) return jtabRow(if (logical < T.TABLE_ENTRIES and self.multiplicity.len != 0) self.multiplicity[logical] else 0);
         const empty = T.Word{ .dst = .{ .value = 0, .rights = 0 } };
         const active = logical < self.rows;
         const k = if (active) self.row_call[logical] else 0;
@@ -387,6 +525,9 @@ pub const Source = struct {
             .set => setRow(call, j, word),
             .ucopy => ucopyRow(call, j, word, if (active and j != 0) self.words[w - 1] else empty),
             .cmp => cmpRow(call, j, word),
+            .jdesc => jdescRow(call),
+            .jscan => if (call) |c| jscanRow(c, j, self.words[w..][0..c.entries()], self.row_pending[logical]) else jscanRow(null, 0, &.{}, 0),
+            .jtab => unreachable,
         };
     }
     pub fn size(self: *const Source) usize {
@@ -408,6 +549,8 @@ pub const Source = struct {
         self.releaseMain();
         const a = self.allocator;
         a.free(self.fixed);
+        a.free(self.row_pending);
+        a.free(self.multiplicity);
         a.free(self.calls);
         a.free(self.words);
         a.free(self.row_call);
