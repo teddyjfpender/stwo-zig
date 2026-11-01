@@ -185,10 +185,23 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
   blst fix (patch `0022-blst-rv64-quot-rem-single-limb.patch` removed: the same
   quot_rem_64 fix now lives in `0002-blst-rv64-64bit-limbs.patch` from the
   EEST-fixes track, and both could not apply).
-- TODO (in progress on this branch): port the curves and sponge plumbing hunks
-  from `origin/codex/rv64-guest-prover-curves` and
-  `origin/codex/rv64-guest-prover-keccak-sponge` into the shared files
-  (session, compact tape, execution profile, services roster), rebuild the
-  executor and the evmone `admitted` and `v3` clients, and re-run the 15-block
-  basket. The last verified head of this branch before the unverified merges
-  is `1c821fc9d`.
+- Post-merge repair log (dropped `-X ours` hunks found by re-running each
+  merge with `git merge-tree`; conflicts only in sponge and curves merges plus
+  client build.py (EEST) and bulk_memory component/equations (recursion-v3)):
+  - Gate 1 (executor): restored in `ethereum_services/session.zig` the sponge
+    `sponge()` executor (dropped in the sponge merge) and the curve event,
+    `CurveServiceDomain` error, per-op `curve_calls`, curve dispatch; in
+    `execution_profile.zig` `CURVE_TAGS`/`isCurveTag` and `admitsV3` now admits
+    SHA-256, arith256_mod, payload-free (bulk + sponge) and curve tags; tape
+    `appendCurve`; boundary-capture `.curve` arm; execution report
+    `curve_calls`; `air.curves` exports; `prepared.zig` combined-v3 tag set
+    includes both 0x30130 and the curve tags. Fixed the curves branch's own
+    `opOfTag(value)` shadow. Tape-wire test updated: the curves track made the
+    v3 extension's reserved word the curve record count, so a nonzero word with
+    no records is now rejected as truncated (still rejected). Tags are
+    distinct: sponge 0x30130, curves 0x30100..0x30121.
+    `bench.py build-exec` OK; `zig build test` in src/frontends/riscv/rv64:
+    100/100 pass.
+- TODO (in progress on this branch): rebuild the evmone `admitted` and `v3`
+  clients, re-run the 15-block basket, and the Word16 services suites. The last
+  verified head of this branch before the unverified merges is `1c821fc9d`.

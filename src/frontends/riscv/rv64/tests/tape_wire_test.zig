@@ -240,9 +240,9 @@ test "v3 tape extension is present exactly when arith256_mod records exist (SHA-
     try replace(file, changed);
     try std.testing.expectError(error.TrailingTapeWireData, W.readTail(a, file, .{}));
     @memcpy(changed, bytes);
-    changed[ext + 4] = 1; // reserved word
+    changed[ext + 4] = 1; // curve record count (formerly reserved) without its record
     try replace(file, changed);
-    try std.testing.expectError(error.InvalidTapeWireGeometry, W.readTail(a, file, .{}));
+    try std.testing.expectError(error.TruncatedTapeWireData, W.readTail(a, file, .{}));
     @memcpy(changed, bytes);
     @memset(changed[ext..][0..4], 0); // announced but empty extension is not canonical
     try replace(file, changed);

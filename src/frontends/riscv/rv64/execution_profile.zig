@@ -21,7 +21,13 @@ pub const ARITH256_MOD_TAG: u64 = 0x00030021;
 pub const MEMCPY_TAG: u64 = 0x00030001;
 pub const MEMSET_TAG: u64 = 0x00030002;
 pub const MEMCMP_TAG: u64 = 0x00030003;
+/// Admitted Keccak-256 sponge (ethereum_services_v3): packet state, in, len,
+/// flags; see ethereum_services/keccak_sponge.zig.
 pub const KECCAK_SPONGE_TAG: u64 = 0x00030130;
+/// Admitted curve/field services (ethereum_services_v3), inline 32-byte
+/// aligned packets: BN254 G1 add/double and Fp2 mul, BLS12-381 Fp2 mul and
+/// G1 add/double (Montgomery), arith384_mont. See ethereum_services/curves.zig.
+pub const CURVE_TAGS = [_]u64{ 0x00030100, 0x00030101, 0x00030102, 0x00030112, 0x00030121, 0x00030110, 0x00030111 };
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;
@@ -58,7 +64,11 @@ pub fn secpWords(profile: Profile) bool {
 /// Admitted v3-only service tags (the ROM-independent service roster):
 /// SHA-256 compression, arith256_mod and bulk memcpy/memset/memcmp.
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isPayloadFreeTag(tag));
+    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isPayloadFreeTag(tag) or isCurveTag(tag));
+}
+pub fn isCurveTag(tag: u64) bool {
+    for (CURVE_TAGS) |t| if (t == tag) return true;
+    return false;
 }
 /// v3 tags whose ECALL step is the whole tape record (no payload section):
 /// bulk memory and the Keccak sponge; provers replay them on the RAM ledger.

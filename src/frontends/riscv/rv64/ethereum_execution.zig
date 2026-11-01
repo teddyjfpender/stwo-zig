@@ -100,6 +100,8 @@ const Report = struct {
     keccak_sponge_calls: u64 = 0,
     keccak_sponge_permutations: u64 = 0,
     keccak_sponge_bytes: u64 = 0,
+    /// Admitted v3 curve/field calls per op (ethereum_services/curves.zig order).
+    curve_calls: [7]u64 = @splat(0),
     bulk_memcpy_calls: u64 = 0,
     bulk_memset_calls: u64 = 0,
     bulk_memcpy_bytes: u64 = 0,
@@ -376,7 +378,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
             }
             if (census) |*value| switch (event) {
                 // Bulk memory is counted as a plain ECALL retirement.
-                .bulk, .sponge => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .bulk, .sponge, .curve => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
                 .keccak => try value.retireService(.keccak),
                 .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
                 .sha256 => try value.retireService(.sha256),

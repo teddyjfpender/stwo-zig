@@ -159,6 +159,18 @@ pub const Tape = struct {
         if (self.execution_profile != .ethereum_services_v3) return error.InvalidTapeService;
         try self.appendRecord(call.retirement());
     }
+    pub fn appendCurve(self: *Tape, call: ethereum.CurveCall) !void {
+        if (self.execution_profile != .ethereum_services_v3 or call.call_id == 0) return error.InvalidTapeService;
+        if (self.len == self.storage.len) return error.TapeFull;
+        const k = ethereum.curves.index(call.op);
+        if (self.last_curve_ids[k]) |previous| {
+            if (previous == std.math.maxInt(u64) or call.call_id != previous + 1) return error.InvalidTapeService;
+        }
+        try self.curve_calls.ensureUnusedCapacity(self.allocator, 1);
+        try self.appendRecord(call.retirement());
+        self.curve_calls.appendAssumeCapacity(call);
+        self.last_curve_ids[k] = call.call_id;
+    }
     pub fn appendEvent(self: *Tape, event: ethereum.Event) !void {
         switch (event) {
             .sponge => |e| try self.appendSponge(e.call),

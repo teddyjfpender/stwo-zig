@@ -47,8 +47,8 @@ comptime {
     const profile = @import("../execution_profile.zig");
     for (ALL, profile.CURVE_TAGS) |op, t| if (tag(op) != t) @compileError("curve tag roster drift");
 }
-pub fn opOfTag(value: u64) ?Op {
-    for (ALL) |op| if (tag(op) == value) return op;
+pub fn opOfTag(raw: u64) ?Op {
+    for (ALL) |op| if (tag(op) == raw) return op;
     return null;
 }
 /// 32-byte packet coordinates (the bridge binds 4 words per coordinate).

@@ -119,6 +119,7 @@ pub const Event = union(enum) {
     arith256_mod: Arith256ModCall,
     bulk: bulk_memory.Event,
     sponge: keccak_sponge.Event,
+    curve: CurveCall,
     pub fn retirement(self: Event) machine.Retirement {
         return switch (self) {
             .sponge => |e| e.call.retirement(),
@@ -131,7 +132,7 @@ pub const Event = union(enum) {
         };
     }
 };
-pub const Error = K.Error || keccak_sponge.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap };
+pub const Error = K.Error || keccak_sponge.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap, CurveServiceDomain };
 pub const Session = struct {
     keccak: K.Session,
     execution_profile: profile.Profile = .ethereum_services_v1,
@@ -141,6 +142,8 @@ pub const Session = struct {
     arith256_mod_calls: u64 = 0,
     bulk_calls: u64 = 0,
     sponge_calls: u64 = 0,
+    /// Admitted v3 curve/field calls per op (curves.index order).
+    curve_calls: [curves.COUNT]u64 = @splat(0),
     allocator: std.mem.Allocator = undefined,
     /// Destination words before the latest bulk call (Event.bulk.dst_before).
     bulk_before: std.ArrayList(u64) = .empty,
@@ -171,6 +174,10 @@ pub const Session = struct {
                 event.* = .{ .sponge = try self.sponge() };
                 return null;
             }
+            if (profile.admitsV3(self.execution_profile, tag)) if (curves.opOfTag(tag)) |op| {
+                event.* = .{ .curve = try self.curve(op) };
+                return null;
+            };
             if (profile.admitsV3(self.execution_profile, tag)) {
                 event.* = if (tag == profile.ARITH256_MOD_TAG) .{ .arith256_mod = try self.mulAddMod() } else if (tag == profile.SHA256_COMPRESS_TAG) .{ .sha256 = try self.compress() } else unreachable;
                 return null;
@@ -180,6 +187,18 @@ pub const Session = struct {
         };
         if (row == null) event.* = .{ .keccak = call };
         return row;
+    }
+    /// Admitted Keccak-256 sponge; every check precedes the state store.
+    fn sponge(self: *Session) Error!keccak_sponge.Event {
+        const cpu = &self.keccak.base.cpu;
+        if (self.sponge_calls == std.math.maxInt(u64)) return error.ServiceCounterOverflow;
+        const pointer = cpu.read(profile.POINTER_REGISTER);
+        const done = try keccak_sponge.execute(self.allocator, self.keccak.base.memory, pointer);
+        const call = keccak_sponge.Call{ .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer };
+        cpu.pc +%= 4;
+        cpu.retired += 1;
+        self.sponge_calls += 1;
+        return .{ .call = call, .packet = done.packet, .state_before = done.state_before };
     }
     /// Admitted memcpy/memset/memcmp; every check precedes the atomic write.
     fn bulk(self: *Session, kind: bulk_memory.Kind) Error!bulk_memory.Event {
