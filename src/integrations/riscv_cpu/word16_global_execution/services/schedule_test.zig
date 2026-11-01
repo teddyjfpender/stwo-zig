@@ -256,3 +256,42 @@ test "invalid task permutation rejects before allocation or callback and ordered
     try std.testing.expectError(error.SyntheticWorkerFailure, Schedule.runWithOptions(Probe, a, &parallel_failure, 8, .{ .lanes = 2, .workers_per_lane = 2 }, .{ .order = &.{ 1, 0, 2, 3, 4, 5, 6, 7 } }, Probe.execute));
     try std.testing.expectEqual(@as(u32, 0), parallel_failure.active.load(.acquire));
 }
+
+fn policyJsonLifecycle(allocator: std.mem.Allocator, bytes: []const u8) !void {
+    const parsed = try std.json.parseFromSlice(Schedule.Policy, allocator, bytes, .{});
+    defer parsed.deinit();
+    try parsed.value.validate();
+}
+test "scheduler policy JSON accepts emitted active lanes and fixed overrides with bounded ownership" {
+    for ([_][]const u8{
+        "{}",
+        "{\"lanes\":1,\"workers_per_lane\":16,\"lane_workers\":[16]}",
+        "{\"lanes\":2,\"workers_per_lane\":8,\"lane_workers\":[4,12]}",
+        "{\"lanes\":2,\"lane_workers\":[4,12,0,0]}",
+    }) |bytes| {
+        var value: Schedule.Policy = undefined;
+        {
+            const parsed = try std.json.parseFromSlice(Schedule.Policy, a, bytes, .{});
+            defer parsed.deinit();
+            value = parsed.value;
+        }
+        // Fixed overrides remain valid after the parsing arena is gone.
+        try value.validate();
+        const rendered = try std.json.Stringify.valueAlloc(a, value, .{});
+        defer a.free(rendered);
+        const reparsed = try std.json.parseFromSlice(Schedule.Policy, a, rendered, .{});
+        defer reparsed.deinit();
+        try std.testing.expectEqual(value.lanes, reparsed.value.lanes);
+        try std.testing.expectEqual(value.memory_cap_bytes, reparsed.value.memory_cap_bytes);
+        for (0..value.lanes) |lane| try std.testing.expectEqual(value.workers(lane), reparsed.value.workers(lane));
+        try std.testing.checkAllAllocationFailures(a, policyJsonLifecycle, .{bytes});
+    }
+    for ([_][]const u8{
+        "{\"lanes\":0}",
+        "{\"lanes\":1,\"lane_workers\":[8,8]}",
+        "{\"lanes\":2,\"lane_workers\":[32,32]}",
+        "{\"workers_per_lane\":0}",
+    }) |bytes| try std.testing.expectError(error.InvalidServiceSchedule, policyJsonLifecycle(a, bytes));
+    try std.testing.expectError(error.LengthMismatch, std.json.parseFromSlice(Schedule.Policy, a, "{\"lane_workers\":[1,2,3,4,5]}", .{}));
+    try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(Schedule.Policy, a, "{\"unexpected\":1}", .{}));
+}

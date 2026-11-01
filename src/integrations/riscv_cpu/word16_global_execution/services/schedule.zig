@@ -19,6 +19,24 @@ pub const Policy = struct {
     /// Zero disables admission. One index is always admitted when nothing
     /// else is in flight, so an oversized estimate degrades to serial order.
     memory_cap_bytes: u64 = 0,
+    /// Accept both fixed override arrays and the resolved active-lane arrays
+    /// emitted by jsonStringify. Parsing copies into the owned fixed array;
+    /// no parsed-slice lifetime escapes the configuration object.
+    pub fn jsonParse(a: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !Policy {
+        const defaults = Policy{};
+        const Input = struct {
+            lanes: u8 = defaults.lanes,
+            workers_per_lane: u8 = defaults.workers_per_lane,
+            lane_workers: []const u8 = &.{},
+            memory_cap_bytes: u64 = defaults.memory_cap_bytes,
+        };
+        const input = try std.json.innerParse(Input, a, source, options);
+        if (input.lane_workers.len > MAX_LANES) return error.LengthMismatch;
+        var result = Policy{ .lanes = input.lanes, .workers_per_lane = input.workers_per_lane, .memory_cap_bytes = input.memory_cap_bytes };
+        @memcpy(result.lane_workers[0..input.lane_workers.len], input.lane_workers);
+        // Semantic admission stays at Policy.validate, as for fixed-array input.
+        return result;
+    }
     pub fn workers(self: Policy, lane: usize) u8 {
         return if (lane < MAX_LANES and self.lane_workers[lane] != 0) self.lane_workers[lane] else self.workers_per_lane;
     }
