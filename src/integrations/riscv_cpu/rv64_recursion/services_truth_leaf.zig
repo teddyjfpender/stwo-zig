@@ -1,7 +1,7 @@
 //! One Word16 services TRUTH proof as a statement of the in-circuit native
-//! verifier. Only the SHA-256 family (`ethereum_services_v3`) is admitted
-//! today; the other families need their own `evaluatePointFor` adapters and
-//! are rejected up front.
+//! verifier. The v3 truth families SHA-256 (family 3) and arith256_mod
+//! (family 4) are admitted; the v2 Keccak and secp truths need their own
+//! lifted rosters and are rejected up front.
 //!
 //! The transcript replays, call for call, the receiver in
 //! `word16_global_execution/services/{protocol,execution}.zig`:
@@ -12,11 +12,12 @@
 //! 2. the fixed and MAIN roots;
 //! 3. `drawTruth`: the shared channel seeded by the manifest digest (RAM14,
 //!    Keccak IO11 and Wire35 draws, in order), then the truth channel's own
-//!    tag and manifest digest; SHA-256 uses only the shared Wire35 challenge;
+//!    tag and manifest digest; SHA-256 uses only the shared Wire35 challenge,
+//!    arith256_mod also draws its local BYTE point;
 //! 4. `mixFelts(claims)` with slots 1 and 2 as the constant zero (the
 //!    receiver's `NonzeroAbsentServiceClaim` rule);
 //! 5. the interaction root, then the generic native verifier; the
-//!    composition value is the SHA-256 component's own `evaluatePointFor`
+//!    composition value is the family component's own `evaluatePointFor`
 //!    over the circuit lane.
 //!
 //! Free (per-proof) words are guessed and hashed into the leaf's output
@@ -30,6 +31,7 @@ const circuit = @import("stwo_circuit_frontend");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const H = A.crypto.sha256;
+const Ar = A.crypto.arith256;
 const S = A.crypto.secp256k1;
 const G = @import("../word16_global_execution/protocol.zig");
 const P = @import("../word16_global_execution/services/protocol.zig");
@@ -86,6 +88,7 @@ pub const Public = struct {
     pub fn fromTruth(truth: R.Truth, ordinal: usize, expected: G.Expected, manifest: *const G.Manifest, claims: [3]Q) !Public {
         const log = switch (truth) {
             .sha256 => |t| t.setup.log,
+            .arith256_mod => |t| t.setup.log,
             else => return error.UnsupportedRecursiveServiceFamily,
         };
         return .{ .family = truth.family(), .log = log, .ordinal = @intCast(ordinal), .first_id = truth.first(), .calls = truth.count(), .expected = expected, .manifest_digest = manifest.digest, .claims = claims };
@@ -146,10 +149,22 @@ pub fn statementDigest(words: []const u32) [8]u32 {
 /// truth log, then the 2n composition tree (8 columns) at the global log.
 /// MAIN ACTIVE and the second interaction batch are also sampled one row back.
 pub fn sha256Shape(arena: std.mem.Allocator, log: u32, config: core.pcs.PcsConfig) !nv.Shape {
-    if (log == 0 or log > @import("../word16_global_execution/sha256/roster.zig").MAX_LOG) return error.InvalidSha256Geometry;
-    const widths = H.layout.widths();
+    return truthShape(arena, .sha256, log, config);
+}
+/// Same receiver derivation for every admitted v3 truth family: three trees
+/// at the truth log, columns sampled one row back exactly where the family's
+/// component declares a previous mask, then the 2n composition tree.
+pub fn truthShape(arena: std.mem.Allocator, family: T.Family, log: u32, config: core.pcs.PcsConfig) !nv.Shape {
+    const max_log: u32 = switch (family) {
+        .sha256 => @import("../word16_global_execution/sha256/roster.zig").MAX_LOG,
+        .arith256_mod => @import("../word16_global_execution/arith256/roster.zig").MAX_LOG,
+        else => return error.UnsupportedRecursiveServiceFamily,
+    };
+    const min_log: u32 = if (family == .sha256) 5 else Ar.layout.MIN_LOG;
+    if (log < min_log or log > max_log) return error.InvalidRecursiveTruthGeometry;
+    const widths = if (family == .sha256) H.layout.widths() else Ar.layout.widths();
     const split: u32 = 1;
-    const composition_columns = core.verifier_types.compositionColumnCount(split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidSha256Geometry;
+    const composition_columns = core.verifier_types.compositionColumnCount(split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidRecursiveTruthGeometry;
     const tree_logs = try arena.alloc([]const u32, 4);
     const offsets = try arena.alloc([]const []const i32, 4);
     const current = [_]i32{0};
@@ -159,7 +174,10 @@ pub fn sha256Shape(arena: std.mem.Allocator, log: u32, config: core.pcs.PcsConfi
         @memset(logs, log);
         tree_logs[tree] = logs;
         const masks = try arena.alloc([]const i32, widths[tree]);
-        for (masks, 0..) |*m, c| m.* = if ((tree == 1 and c == H.layout.ACTIVE) or (tree == 2 and c >= 4)) &with_previous else &current;
+        for (masks, 0..) |*m, c| {
+            const previous = if (family == .sha256) (tree == 1 and c == H.layout.ACTIVE) or (tree == 2 and c >= 4) else Ar.component.Component.previousMask(tree, c);
+            m.* = if (previous) &with_previous else &current;
+        }
         offsets[tree] = masks;
     }
     const composition_logs = try arena.alloc(u32, composition_columns);
@@ -195,22 +213,23 @@ pub const Statement = struct {
     manifest: ?[8]U32 = null,
     claim: ?Var = null,
 
-    pub const Challenges = struct { wire: S.equations.WireFor(Var) };
+    pub const Challenges = struct { wire: S.equations.WireFor(Var), bytes: ?Var = null };
 
     pub fn init(arena: std.mem.Allocator, public: Public, config: core.pcs.PcsConfig) !Statement {
-        if (public.family != .sha256) return error.UnsupportedRecursiveServiceFamily;
+        if (public.family != .sha256 and public.family != .arith256_mod) return error.UnsupportedRecursiveServiceFamily;
         return .{ .arena = arena, .public = public, .config = config };
     }
 
     /// A free u32 as the channel mixes it: two guessed 16-bit limbs.
-    fn guessWord(ctx: *Context, value: u32) Error!struct { word: U32, m31: Var } {
+    const Guessed = struct { word: U32, m31: Var };
+    fn guessWord(ctx: *Context, value: u32) Error!Guessed {
         const lo = try ctx.guessU16(Q.fromU32Unchecked(value & 0xFFFF, 0, 0, 0));
         const hi = try ctx.guessU16(Q.fromU32Unchecked(value >> 16, 0, 0, 0));
         const i = try ctx.constant(Q.fromU32Unchecked(0, 1, 0, 0));
         const shift = try ctx.constant(Q.fromBase(M31.fromCanonical(1 << 16)));
         return .{ .word = .newUnsafe(try ctx.add(lo, try ctx.mul(hi, i))), .m31 = try ctx.add(lo, try ctx.mul(hi, shift)) };
     }
-    fn free1(self: *Statement, ctx: *Context, value: u32) Error!struct { word: U32, m31: Var } {
+    fn free1(self: *Statement, ctx: *Context, value: u32) Error!Guessed {
         const out = try guessWord(ctx, value);
         try self.free.append(self.arena, out.word);
         return out;
@@ -255,7 +274,12 @@ pub const Statement = struct {
         for (p.expected.admission.initial_registers) |x| try self.mixU64(ctx, channel, x);
         try self.mixU64(ctx, channel, p.expected.final_pc);
         for (p.expected.final_registers) |x| try self.mixU64(ctx, channel, x);
-        try channel.mixU32s(Q, ctx, try self.constWords(ctx, &.{ 0x53484132, p.log, H.layout.FIXED, H.layout.MAIN, H.layout.INTERACTION, H.layout.CONSTRAINTS, 35, H.layout.PROGRAM_KIND }));
+        const header: []const u32 = switch (p.family) {
+            .sha256 => &.{ 0x53484132, p.log, H.layout.FIXED, H.layout.MAIN, H.layout.INTERACTION, H.layout.CONSTRAINTS, 35, H.layout.PROGRAM_KIND },
+            .arith256_mod => &.{ 0x41524d34, p.log, Ar.layout.FIXED, Ar.layout.MAIN, Ar.layout.INTERACTION, Ar.layout.CONSTRAINTS, 35, Ar.layout.PROGRAM_KIND, Ar.layout.BYTE_QUERIES },
+            else => unreachable,
+        };
+        try channel.mixU32s(Q, ctx, try self.constWords(ctx, header));
     }
 
     pub fn nTreesBeforeChallenges(_: *Statement) usize {
@@ -286,6 +310,10 @@ pub const Statement = struct {
         const tag = try self.constWords(ctx, &.{ 0x57534332, 1, 1, @intFromEnum(self.public.family) });
         try channel.mixU32s(Q, ctx, &.{ tag[0], tag[1], tag[2], self.ordinal.?, tag[3] });
         try channel.mixU32s(Q, ctx, manifest_words);
+        if (self.public.family == .arith256_mod) {
+            try channel.mixU32s(Q, ctx, try self.constWords(ctx, &.{ 0x41524231, 8 }));
+            return .{ .wire = wire, .bytes = try channel.drawSecureFelt(Q, ctx) };
+        }
         return .{ .wire = wire };
     }
 
@@ -307,14 +335,24 @@ pub const Statement = struct {
     }
 
     pub fn evalComposition(self: *Statement, ctx: *Context, oods: Point(Var), sampled: []const []const []const Var, randomness: Var, challenges: Challenges) VerifyError!Var {
-        const component = H.component.Component{ .log_size = self.public.log, .public = .{ .calls = self.public.calls, .first_id = self.public.first_id }, .claim = self.public.claims[0], .wire = undefined };
         var wire: S.equations.WireFor(Lane) = undefined;
         wire.offset = Lane.wire(challenges.wire.offset);
         for (&wire.coefficients, challenges.wire.coefficients) |*w, v| w.* = Lane.wire(v);
+        const p = self.public;
+        const point = A.geometry.PointFor(Lane){ .x = Lane.wire(oods.x), .y = Lane.wire(oods.y) };
+        const masks = leaf_statement.Masks{ .sampled = sampled };
+        const span = E.CallSpanFor(Lane){ .calls = Lane.wire(self.calls.?), .first_id = Lane.wire(self.first_id.?), .nonempty = Lane.one() };
+        const claim = Lane.wire(self.claim.?);
         lane_mod.begin(ctx);
         var accumulator = A.lane.PointAccumulator(Lane).init(Lane.wire(randomness));
         var sink = E.SinkFor(Lane){ .accumulator = &accumulator };
-        const result = component.evaluatePointFor(Lane, .{ .x = Lane.wire(oods.x), .y = Lane.wire(oods.y) }, self.public.log, leaf_statement.Masks{ .sampled = sampled }, .{ .calls = Lane.wire(self.calls.?), .first_id = Lane.wire(self.first_id.?), .nonempty = Lane.one() }, Lane.wire(self.claim.?), wire, &sink);
+        // Component values other than log/offsets are ignored by the lifted
+        // path: span, claim and challenges are the wires above.
+        const result = switch (p.family) {
+            .sha256 => (H.component.Component{ .log_size = p.log, .public = .{ .calls = p.calls, .first_id = p.first_id }, .claim = p.claims[0], .wire = undefined }).evaluatePointFor(Lane, point, p.log, masks, span, claim, wire, &sink),
+            .arith256_mod => (Ar.component.Component{ .log_size = p.log, .public = .{ .calls = p.calls, .first_id = p.first_id }, .claim = p.claims[0], .challenges = undefined }).evaluatePointFor(Lane, point, p.log, masks, span, claim, .{ .bytes = Lane.wire(challenges.bytes orelse return error.ShapeMismatch), .wire = wire }, &sink),
+            else => error.UnsupportedRecursiveServiceFamily,
+        };
         lane_mod.finish() catch |err| return mapError(err);
         result catch |err| return mapError(err);
         return accumulator.finalize().v;
@@ -395,7 +433,7 @@ pub const Built = struct {
 /// Builds the leaf circuit (value mode) for a natively captured truth proof.
 /// `ctx` must be fresh (`N_RESERVED` outputs). The caller finalizes or pads.
 pub fn build(arena: std.mem.Allocator, ctx: *Context, public: Public, key_root: [32]u8, config: core.pcs.PcsConfig, proof: *const G.T.P.Proof, capture: *const Capture) !Built {
-    const shape = try sha256Shape(arena, public.log, config);
+    const shape = try truthShape(arena, public.family, public.log, config);
     const values = try nv.proof.fromNative(arena, G.T.P.Hasher, proof, capture, &shape);
     const wires = try nv.proof.guess(Q, ctx, &values);
     try @import("native_fixed_root.zig").enforce(ctx, wires.commitments[0], key_root);

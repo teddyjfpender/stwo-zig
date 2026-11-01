@@ -84,23 +84,23 @@ fn afterClock(comptime F: type, m: []const F, kind: L.Kind) [3]F {
     const base: usize = if (kind == .desc) L.desc.epoch else L.copy.epoch;
     return m[base..][0..3].*;
 }
-fn ramPair(comptime F: type, ch: T.Challenges, address: [4]F, k: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F) [2]Fraction(F) {
+fn ramPair(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), address: [4]F, k: []const F, after: [3]F, before_value: [4]F, after_value: [4]F, readable: F, writable: F, active: F) [2]Fraction(F) {
     const b = ch.ram.denominatorFor(F, ramTuple(F, address, k[L.clock.epoch], k[L.clock.low], k[L.clock.high], before_value, readable, writable));
     const a = ch.ram.denominatorFor(F, ramTuple(F, address, after[0], after[1], after[2], after_value, readable, writable));
     return .{ .{ .d = b, .w = active, .relation = RAM }, .{ .d = a, .w = active.neg(), .relation = RAM } };
 }
-fn range(comptime F: type, ch: T.Challenges, value: F) Fraction(F) {
+fn range(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), value: F) Fraction(F) {
     return .{ .d = ch.range16.denominatorFor(F, value), .w = F.one(), .relation = RANGE16 };
 }
 /// U8 facts as two U16 facts: x < 2^16 and 256x < 2^16 imply x < 256.
-fn byteRanges(comptime F: type, ch: T.Challenges, value: F) [2]Fraction(F) {
+fn byteRanges(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), value: F) [2]Fraction(F) {
     return .{ range(F, ch, value), range(F, ch, value.mul(E.qFor(F, 256))) };
 }
-fn clockRanges(comptime F: type, ch: T.Challenges, k: []const F) [3]Fraction(F) {
+fn clockRanges(comptime F: type, ch: T.ChallengesFor(E.ConstFor(F)), k: []const F) [3]Fraction(F) {
     const b = byteRanges(F, ch, k[L.clock.gap8]);
     return .{ range(F, ch, k[L.clock.gap16]), b[0], b[1] };
 }
-pub fn fractions(comptime F: type, comptime kind: L.Kind, m: []const F, ch: T.Challenges) [L.fractionCount(kind)]Fraction(F) {
+pub fn fractions(comptime F: type, comptime kind: L.Kind, m: []const F, ch: T.ChallengesFor(E.ConstFor(F))) [L.fractionCount(kind)]Fraction(F) {
     var out: [L.fractionCount(kind)]Fraction(F) = undefined;
     var at: usize = 0;
     const one = F.one();
@@ -179,13 +179,16 @@ fn clockConstraints(comptime F: type, k: []const F, after: [3]F, active: F, out:
 }
 /// Active rows are exactly the public prefix `[0, rows)` and the last row is
 /// padding, so the wrapped predecessor of row 0 is inactive.
-fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: u32, out: *E.SinkFor(F)) void {
+fn countConstraints(comptime F: type, f: []const F, active: F, previous: F, rows: T.RowsFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const one = F.one();
     const first = f[1];
-    out.emit(first.mul(active.sub(E.qFor(F, @intFromBool(rows != 0)))));
+    const external = comptime E.isExternalLane(F);
+    const nonempty = if (external) rows.nonempty else E.qFor(F, @intFromBool(rows != 0));
+    const count = if (external) rows.rows else E.qFor(F, rows);
+    out.emit(first.mul(active.sub(nonempty)));
     out.emit(f[2].mul(active));
     out.emit(one.sub(first).mul(active).mul(one.sub(previous)));
-    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(E.qFor(F, rows))));
+    out.emit(one.sub(first).mul(previous.sub(active)).mul(f[0].sub(count)));
 }
 /// One call is a maximal run of body rows: start row (token), then
 /// continuation rows with address +8, remaining -1, same after clock and
@@ -212,7 +215,7 @@ fn chain(comptime F: type, m: []const F, pm: []const F, address: usize, carries:
     const next = advance(F, pm[address..][0..4].*, m[carries..][0..3], 8);
     for (0..4) |i| out.emit(c.mul(next[i].sub(m[address + i])));
 }
-pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: T.RowsFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const one = F.one();
     const a = m[0];
     const width = L.main(kind);
@@ -241,7 +244,7 @@ pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const
     }
     emitFractions(F, kind, f, m, i, pi, claims, ch, out);
 }
-pub fn emitFractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, i: []const F, pi: []const F, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+pub fn emitFractions(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const F, i: []const F, pi: []const F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const Sec = E.SecureFor(F);
     const list = fractions(F, kind, m, ch);
     var sums = [3]Sec{ Sec.zero(), Sec.zero(), Sec.zero() };
