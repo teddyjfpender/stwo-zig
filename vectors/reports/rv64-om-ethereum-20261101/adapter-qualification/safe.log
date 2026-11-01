@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded
+test-riscv64-truth-gkr success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:2G
+test-riscv64-word16-ethereum-terminal success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G
+
