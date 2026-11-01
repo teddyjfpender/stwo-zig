@@ -45,4 +45,25 @@ struct alignas(32) SecpDoublePacket { uint64_t w[12]; };
 inline void secp_add(SecpAddPacket& p) noexcept { ecall(kSecpAddWords, p.w); }
 inline void secp_double(SecpDoublePacket& p) noexcept { ecall(kSecpDoubleWords, p.w); }
 
+#if defined(CANDIDATE_SERVICES)
+// Execution-only candidate services (profile ethereum_services_v3_candidate).
+inline void cand_memcpy(void* d, const void* src, size_t n) noexcept {
+    alignas(8) uint64_t p[3] = {reinterpret_cast<uint64_t>(d), reinterpret_cast<uint64_t>(src), n};
+    ecall(kCandMemcpy, p);
+}
+inline void cand_memset(void* d, int c, size_t n) noexcept {
+    alignas(8) uint64_t p[3] = {reinterpret_cast<uint64_t>(d), uint64_t(c & 0xff), n};
+    ecall(kCandMemset, p);
+}
+inline int cand_memcmp(const void* a, const void* b, size_t n) noexcept {
+    alignas(8) uint64_t p[4] = {reinterpret_cast<uint64_t>(a), reinterpret_cast<uint64_t>(b), n, 0};
+    ecall(kCandMemcmp, p);
+    return static_cast<int>(static_cast<int64_t>(p[3]));
+}
+#endif
 }  // namespace stwo
+
+// r = (a*b + c) mod m on 4 little-endian u64 limbs (candidate arith256_mod;
+// m == 0 gives 0). Implemented in glue/arith_stwo.cpp.
+extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
+                                  const uint64_t m[4], uint64_t r[4]) noexcept;

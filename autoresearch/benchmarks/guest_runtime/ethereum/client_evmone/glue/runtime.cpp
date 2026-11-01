@@ -15,6 +15,14 @@
 #include <cstdint>
 #include <new>
 
+#include "services.hpp"
+
+// Candidate profile: bulk copies/fills/compares at or above this size go to the
+// execution-only memory services (CONTEXT.md); smaller ones stay software.
+#if defined(CANDIDATE_SERVICES)
+static constexpr size_t kCandMemMin = 32;
+#endif
+
 extern "C" {
 extern char __heap_start[];
 extern char __heap_end[];
@@ -235,11 +243,17 @@ __attribute__((noinline)) static void copy_forward(uint8_t* d, const uint8_t* s,
 }
 
 void* memcpy(void* dst, const void* src, size_t n) {
+#if defined(CANDIDATE_SERVICES)
+    if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }
+#endif
     copy_forward(static_cast<uint8_t*>(dst), static_cast<const uint8_t*>(src), n);
     return dst;
 }
 
 void* memmove(void* dst, const void* src, size_t n) {
+#if defined(CANDIDATE_SERVICES)
+    if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }  // memmove-safe
+#endif
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t* s = static_cast<const uint8_t*>(src);
     if (reinterpret_cast<uintptr_t>(d) - reinterpret_cast<uintptr_t>(s) >= n) {
@@ -257,6 +271,9 @@ void* memmove(void* dst, const void* src, size_t n) {
 }
 
 void* memset(void* dst, int c, size_t n) {
+#if defined(CANDIDATE_SERVICES)
+    if (n >= kCandMemMin) { stwo::cand_memset(dst, c, n); return dst; }
+#endif
     uint8_t* d = static_cast<uint8_t*>(dst);
     const uint8_t b = static_cast<uint8_t>(c);
     if (n >= 16) {
@@ -272,6 +289,9 @@ void* memset(void* dst, int c, size_t n) {
 }
 
 int memcmp(const void* a, const void* b, size_t n) {
+#if defined(CANDIDATE_SERVICES)
+    if (n >= kCandMemMin) return stwo::cand_memcmp(a, b, n);
+#endif
     const uint8_t* x = static_cast<const uint8_t*>(a);
     const uint8_t* y = static_cast<const uint8_t*>(b);
     if (n >= 16 && ((reinterpret_cast<uintptr_t>(x) | reinterpret_cast<uintptr_t>(y)) & 7) == 0) {

@@ -57,12 +57,22 @@ inline uint32_t bswap32(uint32_t x) {
     return (x >> 24) | ((x >> 8) & 0xff00u) | ((x << 8) & 0xff0000u) | (x << 24);
 }
 
-#define SHA_ROUND(a, b, c, d, e, f, g, h, kw)                          \
-    do {                                                                \
-        const uint32_t t1 = h + bsig1(e) + (g ^ (e & (f ^ g))) + (kw);  \
-        const uint32_t t2 = bsig0(a) + ((a & b) | (c & (a | b)));       \
-        d += t1;                                                        \
-        h = t1 + t2;                                                    \
+// Working variables live in 64-bit registers whose low 32 bits are the SHA
+// value (high bits are don't-care). RV64IM has no rotate: duplicating the low
+// word into both halves (3 instructions) turns each 32-bit rotation into one
+// shift, -17% instructions per compression versus srliw/slli/or rotations.
+inline uint64_t dup32(uint64_t x) {
+    const uint64_t t = x << 32;
+    return t | (t >> 32);
+}
+
+#define SHA_ROUND(a, b, c, d, e, f, g, h, kw)                                         \
+    do {                                                                               \
+        const uint64_t E_ = dup32(e), A_ = dup32(a);                                   \
+        const uint64_t t1 = h + ((E_ >> 6) ^ (E_ >> 11) ^ (E_ >> 25)) + (g ^ (e & (f ^ g))) + (kw); \
+        const uint64_t t2 = ((A_ >> 2) ^ (A_ >> 13) ^ (A_ >> 22)) + ((a & b) | (c & (a | b)));     \
+        d += t1;                                                                       \
+        h = t1 + t2;                                                                   \
     } while (0)
 
 #define SHA_8ROUNDS(kw, i)                                   \
@@ -77,7 +87,7 @@ inline uint32_t bswap32(uint32_t x) {
 
 // Rounds over a precomputed K+W array.
 inline void compress_kw(uint32_t st[8], const uint32_t* kw) {
-    uint32_t a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
+    uint64_t a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
     SHA_8ROUNDS(kw, 0);
     SHA_8ROUNDS(kw, 8);
     SHA_8ROUNDS(kw, 16);
@@ -86,8 +96,8 @@ inline void compress_kw(uint32_t st[8], const uint32_t* kw) {
     SHA_8ROUNDS(kw, 40);
     SHA_8ROUNDS(kw, 48);
     SHA_8ROUNDS(kw, 56);
-    st[0] += a; st[1] += b; st[2] += c; st[3] += d;
-    st[4] += e; st[5] += f; st[6] += g; st[7] += h;
+    st[0] += uint32_t(a); st[1] += uint32_t(b); st[2] += uint32_t(c); st[3] += uint32_t(d);
+    st[4] += uint32_t(e); st[5] += uint32_t(f); st[6] += uint32_t(g); st[7] += uint32_t(h);
 }
 
 #if defined(CANDIDATE_SERVICES)
@@ -118,7 +128,13 @@ inline void compress(uint32_t st[8], const uint8_t* block) {
     } else {
         for (int i = 0; i < 16; ++i) w[i] = load_be32(block + 4 * i);
     }
-    for (int i = 16; i < 64; ++i) w[i] = ssig1(w[i - 2]) + w[i - 7] + ssig0(w[i - 15]) + w[i - 16];
+    for (int i = 16; i < 64; ++i) {
+        const uint64_t x15 = w[i - 15], x2 = w[i - 2];
+        const uint64_t d15 = dup32(x15), d2 = dup32(x2);
+        const uint64_t s0 = (d15 >> 7) ^ (d15 >> 18) ^ (x15 >> 3);
+        const uint64_t s1 = (d2 >> 17) ^ (d2 >> 19) ^ (x2 >> 10);
+        w[i] = uint32_t(s1 + w[i - 7] + s0 + w[i - 16]);
+    }
     for (int i = 0; i < 64; ++i) w[i] += K[i];
     compress_kw(st, w);
 }

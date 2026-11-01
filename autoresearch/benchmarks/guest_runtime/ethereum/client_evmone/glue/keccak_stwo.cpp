@@ -1,9 +1,10 @@
 // Keccak-256 sponge over the admitted Keccak-f[1600] ECALL service (our code).
 // Drop-in for evmone's keccak.c: same public symbol ethash_keccak256, so every
 // Keccak call site in evmone and ziskethone goes through the service.
-// Padding, absorb and squeeze are ordinary RV64IM instructions; the input may
-// be unaligned, so words are assembled with aligned loads (funnel shift) and
-// never read an aligned word that holds no input byte.
+// Padding, absorb and squeeze are ordinary RV64IM instructions. The guest traps
+// on misaligned accesses, so words of an unaligned input are assembled from the
+// aligned words that hold them (never reading a word with no input byte), and
+// the final partial word is one masked word instead of a byte loop.
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -16,26 +17,34 @@ namespace {
 constexpr size_t kRate = 136;
 constexpr size_t kRateWords = kRate / 8;
 
-inline uint64_t load_word_aligned(const uint8_t* p) { return *reinterpret_cast<const uint64_t*>(p); }
+inline uint64_t ldw(const uint8_t* p) { return *reinterpret_cast<const uint64_t*>(p); }
 
-// XOR `words` LE words of `in` into the state; `in` may be unaligned but all
-// words must be fully inside the input.
+// XOR `words` LE words of `in` into the state (all words fully inside the input).
 inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words) {
     const unsigned off = reinterpret_cast<uintptr_t>(in) & 7;
     if (off == 0) {
-        for (size_t i = 0; i < words; ++i) st[i] ^= load_word_aligned(in + 8 * i);
+        for (size_t i = 0; i < words; ++i) st[i] ^= ldw(in + 8 * i);
         return;
     }
     const unsigned sh = off * 8;
     const unsigned rs = 64 - sh;
     const uint8_t* base = in - off;
-    uint64_t cur = load_word_aligned(base);
+    uint64_t cur = ldw(base);
     for (size_t i = 0; i < words; ++i) {
         // Bytes in+8i .. in+8i+7 lie in aligned words base+8i and base+8i+8.
-        const uint64_t nxt = load_word_aligned(base + 8 * i + 8);
+        const uint64_t nxt = ldw(base + 8 * i + 8);
         st[i] ^= (cur >> sh) | (nxt << rs);
         cur = nxt;
     }
+}
+
+// The `n` (1..7) bytes at p as the low bytes of a word (upper bytes zero).
+inline uint64_t tail_word(const uint8_t* p, size_t n) {
+    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
+    const uint8_t* a = p - off;
+    uint64_t w = ldw(a) >> (off * 8);
+    if (off + n > 8) w |= ldw(a + 8) << (64 - off * 8);
+    return w & ((uint64_t(1) << (8 * n)) - 1);
 }
 }  // namespace
 
@@ -47,13 +56,14 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
         data += kRate;
         size -= kRate;
     }
-    // Final block: whole words then the tail bytes, then padding.
+    // Final block: whole words, the partial word with the 0x01 pad byte, 0x80.
     const size_t words = size / 8;
     absorb_words(st, data, words);
-    uint8_t* sb = reinterpret_cast<uint8_t*>(st);
-    for (size_t i = words * 8; i < size; ++i) sb[i] ^= data[i];
-    sb[size] ^= 0x01;
-    sb[kRate - 1] ^= 0x80;
+    const size_t rem = size & 7;
+    uint64_t last = uint64_t(0x01) << (8 * rem);
+    if (rem) last |= tail_word(data + 8 * words, rem);
+    st[words] ^= last;
+    st[kRateWords - 1] ^= uint64_t(0x80) << 56;
     stwo::keccak_f(st);
     union ethash_hash256 out;
     out.word64s[0] = st[0];
@@ -61,8 +71,4 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
     out.word64s[2] = st[2];
     out.word64s[3] = st[3];
     return out;
-}
-
-extern "C" union ethash_hash256 ethash_keccak256_32(const uint8_t data[32]) noexcept {
-    return ethash_keccak256(data, 32);
 }

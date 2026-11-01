@@ -155,7 +155,7 @@ def sources(src: Path, host: bool, profile: str, secp: str) -> list[tuple[Path, 
     files += [ev / "lib" / "evmone_precompiles" / "pairing" / "bn254" / "pairing.cpp"]
     files += [ev / "test" / "state" / "precompiles.cpp"]
     glue = HERE / "glue"
-    files += [glue / n for n in ("keccak_stwo.cpp", "sha256_stwo.cpp", "witness_trie.cpp", "stwo_client.cpp",
+    files += [glue / n for n in ("keccak_stwo.cpp", "sha256_stwo.cpp", "witness_trie.cpp", "stwo_client.cpp", "arith_stwo.cpp",
                                  )]
     files += [src / "blst" / "src" / "server.c"]
     if host:
