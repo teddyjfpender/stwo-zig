@@ -207,3 +207,64 @@ test "wide fixed lease independently matches trusted source coefficient authorit
     defer changed.deinit();
     try std.testing.expectError(error.FixedSetupIdentityMismatch, binding.key.requireSource(&changed));
 }
+
+fn sharedLayoutCase(allocator: std.mem.Allocator) !void {
+    var f = Fixture.init();
+    var changed = f;
+    changed.second[17] = changed.second[17].add(M.one());
+    var source_a = try Key.seal(allocator, &f.columns());
+    var source_a_alive = true;
+    defer if (source_a_alive) source_a.deinit();
+    var source_b = try Key.seal(allocator, &changed.columns());
+    var source_b_alive = true;
+    defer if (source_b_alive) source_b.deinit();
+    var cache = try Fixed.Cache.init(allocator, 1 << 20);
+    var cache_alive = true;
+    defer if (cache_alive) cache.deinit();
+    var left = try cache.acquireFromKey(&source_a, descriptor(2));
+    var left_alive = true;
+    defer if (left_alive) left.deinit();
+    var right = try cache.acquireFromKey(&source_b, descriptor(2));
+    var right_alive = true;
+    defer if (right_alive) right.deinit();
+    try left.key.requireSource(&source_a);
+    try right.key.requireSource(&source_b);
+    try std.testing.expectError(error.FixedSetupIdentityMismatch, right.key.requireSource(&source_a));
+    try std.testing.expect(!std.mem.eql(u8, &left.key.identity, &right.key.identity));
+    try std.testing.expect(!std.mem.eql(u8, &left.key.root, &right.key.root));
+    const left_columns = left.key.tree.coefficients.?;
+    const right_columns = right.key.tree.coefficients.?;
+    try std.testing.expectEqual(left_columns[0].coeffs.ptr, right_columns[0].coeffs.ptr);
+    try std.testing.expect(left_columns[1].coeffs.ptr != right_columns[1].coeffs.ptr);
+    try std.testing.expect(left_columns[0].coeffs.ptr != source_a.tree.coefficients.?[0].coeffs.ptr);
+    try std.testing.expectEqual(@as(usize, 3), cache.snapshot().native_coefficients.groups);
+    try std.testing.expectEqual(@as(u64, 128), cache.snapshot().native_coefficients.duplicate_native_bytes_released);
+    try std.testing.expect(cache.snapshot().live_bytes <= cache.snapshot().limit_bytes);
+    var scheme_a = try OmScheme.init(allocator, cfg(2));
+    defer scheme_a.deinit(allocator);
+    var scheme_b = try OmScheme.init(allocator, cfg(2));
+    defer scheme_b.deinit(allocator);
+    var ca = core.channel.raw_mod_m31.Om31Channel.init();
+    var cb = core.channel.raw_mod_m31.Om31Channel.init();
+    try left.key.append(allocator, &scheme_a, &ca, descriptor(2), left.key.identity, left.key.root, cfg(2));
+    try right.key.append(allocator, &scheme_b, &cb, descriptor(2), right.key.identity, right.key.root, cfg(2));
+    const root_a = left.key.root;
+    const root_b = right.key.root;
+    source_a.deinit();
+    source_a_alive = false;
+    source_b.deinit();
+    source_b_alive = false;
+    cache.deinit();
+    cache_alive = false;
+    left.deinit();
+    left_alive = false;
+    right.deinit();
+    right_alive = false;
+    try std.testing.expectEqualDeep(root_a, scheme_a.trees.items[0].root());
+    try std.testing.expectEqualDeep(root_b, scheme_b.trees.items[0].root());
+    try std.testing.expectEqualSlices(M, scheme_a.trees.items[0].coefficients.?[0].coeffs, scheme_b.trees.items[0].coefficients.?[0].coeffs);
+}
+test "different immutable layouts share exact coefficient payloads and retain custody through all OOM exits" {
+    try sharedLayoutCase(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, sharedLayoutCase, .{});
+}

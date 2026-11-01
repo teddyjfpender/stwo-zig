@@ -16,6 +16,7 @@ const Coefficient = engine.poly.circle.CircleCoefficients;
 const Scheme = engine.pcs.CommitmentSchemeProver(Cpu, H, MC);
 pub const Tree = Scheme.CommittedTree;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
+const Native = @import("fixed_native_cache.zig");
 
 /// Immutable commitment shape only. Hash/schema are pinned by this module;
 /// rate and ordered coefficient geometry affect the tree. Secure field, query
@@ -74,7 +75,7 @@ pub const WideFixedKey = struct {
     root: [32]u8,
     allocator: std.mem.Allocator,
     tree: Tree,
-    fn seal(a: std.mem.Allocator, budget: *Budget, coefficients: []const Coefficient, descriptor: CommitmentDescriptor, id: [32]u8) !WideFixedKey {
+    fn seal(a: std.mem.Allocator, budget: *Budget, native: *const Native.Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor, id: [32]u8) !WideFixedKey {
         var scheme = try Scheme.init(a, try configuration(descriptor));
         defer scheme.deinit(a);
         scheme.setStorePolynomialsCoefficients();
@@ -87,8 +88,15 @@ pub const WideFixedKey = struct {
         var tree = scheme.trees.pop().?;
         errdefer tree.deinit(a);
         if (tree.backing_teardown != null) return error.UnexpectedFixedSetupBackingOwner;
-        tree.backing_teardown = engine.pcs.BackingTeardownToken.init(budget.retain(), 0, releaseBudget);
+        // Reserve the shared owner before the native cache can adopt payloads.
+        // No fallible operation follows successful interning/publication.
         try tree.share(a);
+        _ = try native.internExclusiveSharedTreeBeforePublication(a, &tree);
+        if (tree.backing_teardown == null) {
+            const token = engine.pcs.BackingTeardownToken.init(budget.retain(), 0, releaseBudget);
+            tree.shared_owner.?.tree.backing_teardown = token;
+            tree.backing_teardown = token;
+        }
         return .{ .descriptor = descriptor, .identity = id, .root = tree.root(), .allocator = a, .tree = tree };
     }
     pub fn require(self: *const WideFixedKey, descriptor: CommitmentDescriptor, id: [32]u8, root: [32]u8) !void {
@@ -121,6 +129,7 @@ pub const WideFixedKey = struct {
 const Entry = struct { key: WideFixedKey };
 const State = struct {
     budget: *Budget,
+    native: Native.Cache,
     references: std.atomic.Value(usize) = .init(1),
     mutex: std.Thread.Mutex = .{},
     entries: std.ArrayList(*Entry) = .empty,
@@ -139,6 +148,7 @@ const State = struct {
             a.destroy(entry);
         }
         self.entries.deinit(a);
+        self.native.deinit();
         a.destroy(self);
         budget.destroy();
     }
@@ -155,7 +165,7 @@ pub const Lease = struct {
         self.* = undefined;
     }
 };
-pub const Snapshot = struct { limit_bytes: usize, live_bytes: usize, peak_bytes: usize, keys: usize, hits: u64, seals: u64, refused: bool };
+pub const Snapshot = struct { limit_bytes: usize, live_bytes: usize, peak_bytes: usize, keys: usize, hits: u64, seals: u64, refused: bool, native_coefficients: Native.Snapshot };
 pub const Cache = struct {
     state: *State,
     /// Includes cache/control metadata and sealing scratch, not RSS. No global
@@ -164,8 +174,12 @@ pub const Cache = struct {
         if (maximum_bytes <= @sizeOf(Budget)) return error.InvalidFixedSetupBudget;
         const budget = try Budget.createRetainingParent(a, maximum_bytes - @sizeOf(Budget));
         errdefer budget.destroy();
-        const state = try budget.allocator().create(State);
-        state.* = .{ .budget = budget };
+        const allocator = budget.allocator();
+        const state = try allocator.create(State);
+        errdefer allocator.destroy(state);
+        // Both caches and every payload use the SAME hard owner. This inner
+        // retention limit cannot authorize bytes beyond the outer limit.
+        state.* = .{ .budget = budget, .native = try Native.Cache.init(allocator, maximum_bytes) };
         return .{ .state = state };
     }
     pub fn deinit(self: *Cache) void {
@@ -177,7 +191,7 @@ pub const Cache = struct {
         state.mutex.lock();
         defer state.mutex.unlock();
         const b = state.budget.snapshot();
-        return .{ .limit_bytes = b.limit + @sizeOf(Budget), .live_bytes = b.live_bytes + @sizeOf(Budget), .peak_bytes = b.peak_live_bytes + @sizeOf(Budget), .keys = state.entries.items.len, .hits = state.hits, .seals = state.seals, .refused = b.exceeded };
+        return .{ .limit_bytes = b.limit + @sizeOf(Budget), .live_bytes = b.live_bytes + @sizeOf(Budget), .peak_bytes = b.peak_live_bytes + @sizeOf(Budget), .keys = state.entries.items.len, .hits = state.hits, .seals = state.seals, .refused = b.exceeded, .native_coefficients = state.native.snapshot() };
     }
     pub fn acquireCoefficients(self: *const Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor) !Lease {
         const id = try coefficientIdentity(coefficients, descriptor);
@@ -196,7 +210,7 @@ pub const Cache = struct {
         try state.entries.ensureUnusedCapacity(a, 1);
         const entry = try a.create(Entry);
         errdefer a.destroy(entry);
-        entry.* = .{ .key = try WideFixedKey.seal(a, state.budget, coefficients, descriptor, id) };
+        entry.* = .{ .key = try WideFixedKey.seal(a, state.budget, &state.native, coefficients, descriptor, id) };
         state.entries.appendAssumeCapacity(entry);
         state.seals += 1;
         state.retain();
