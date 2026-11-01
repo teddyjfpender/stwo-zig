@@ -183,3 +183,47 @@ test "conditional algebraic budget uses exact total degree times repetitions, no
     try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireConditionalAlgebraicBudget(0, &terms, 128));
     try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireConditionalAlgebraicBudget(8, &terms, 257));
 }
+
+fn moduloTerms() [P.ARGUMENT_COUNT]P.ConditionalTerm {
+    var terms: [P.ARGUMENT_COUNT]P.ConditionalTerm = undefined;
+    inline for (std.meta.tags(P.Argument), 0..) |argument, i| terms[i] = .{ .argument = argument, .applicable = false, .max_degree = 0, .draws = 0 };
+    return terms;
+}
+
+test "raw modulo budget counts the exact maximum raw preimages" {
+    var terms = moduloTerms();
+    terms[@intFromEnum(P.Argument.local_logup)] = .{ .argument = .local_logup, .max_degree = 1 << 27, .draws = 1 };
+    _ = try P.requireRawModuloConditionalBudget(4, &terms, 94);
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireRawModuloConditionalBudget(4, &terms, 95));
+    const wide = try P.requireRawModuloConditionalBudget(8, &terms, 216);
+    try std.testing.expectEqual(@as(u512, 6561), wide.max_preimages_per_element);
+    try std.testing.expectEqual(@as(u16, 256), wide.raw_bits);
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireRawModuloConditionalBudget(8, &terms, 217));
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireRawModuloConditionalBudget(4, &terms, 128));
+}
+
+test "raw modulo budget includes every declared argument and conditional draw" {
+    var terms = moduloTerms();
+    for (&terms) |*term| {
+        term.applicable = true;
+        term.max_degree = 1 << 27;
+        term.draws = 1;
+    }
+    _ = try P.requireRawModuloConditionalBudget(8, &terms, 212);
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireRawModuloConditionalBudget(8, &terms, 213));
+    try std.testing.expectError(error.MissingAlgebraicArguments, P.requireRawModuloConditionalBudget(8, terms[0 .. terms.len - 1], 128));
+    terms[1].argument = terms[0].argument;
+    try std.testing.expectError(error.DuplicateAlgebraicArgument, P.requireRawModuloConditionalBudget(8, &terms, 128));
+}
+
+test "raw modulo budget fails closed at empty unsupported and maximum inputs" {
+    var terms = moduloTerms();
+    try std.testing.expectError(error.EmptyAlgebraicBudget, P.requireRawModuloConditionalBudget(8, &terms, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireRawModuloConditionalBudget(16, &terms, 128));
+    for (&terms) |*term| {
+        term.applicable = true;
+        term.max_degree = std.math.maxInt(u64);
+        term.draws = std.math.maxInt(u64);
+    }
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireRawModuloConditionalBudget(8, &terms, 256));
+}

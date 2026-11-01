@@ -201,9 +201,7 @@ pub const ConditionalEstimate = struct {
     field_size: u512,
     requested_bits: u16,
 };
-pub fn requireConditionalAlgebraicBudget(extension_degree: u8, terms: []const ConditionalTerm, required_bits: u16) !ConditionalEstimate {
-    if (extension_degree == 0 or extension_degree > 16 or required_bits == 0 or required_bits > 256)
-        return error.InvalidAlgebraicBudget;
+fn conditionalDegreeWeight(terms: []const ConditionalTerm) !u512 {
     if (terms.len != ARGUMENT_COUNT) return error.MissingAlgebraicArguments;
     var seen: [ARGUMENT_COUNT]bool = @splat(false);
     var weighted: u512 = 0;
@@ -218,10 +216,43 @@ pub fn requireConditionalAlgebraicBudget(extension_degree: u8, terms: []const Co
     }
     for (seen) |present| if (!present) return error.MissingAlgebraicArguments;
     if (weighted == 0) return error.EmptyAlgebraicBudget;
+    return weighted;
+}
+
+pub fn requireConditionalAlgebraicBudget(extension_degree: u8, terms: []const ConditionalTerm, required_bits: u16) !ConditionalEstimate {
+    if (extension_degree == 0 or extension_degree > 16 or required_bits == 0 or required_bits > 256)
+        return error.InvalidAlgebraicBudget;
+    const weighted = try conditionalDegreeWeight(terms);
     var field_size: u512 = 1;
     for (0..extension_degree) |_| field_size *= 2147483647;
     if (weighted << @intCast(required_bits) > field_size) return error.ConditionalAlgebraicBudgetInsufficient;
     return .{ .total_degree_weight = weighted, .field_size = field_size, .requested_bits = required_bits };
+}
+
+/// Conditional algebraic budget for the implemented raw-u32 modulo-M31
+/// samplers. A coordinate has at most three raw preimages. A degree-d bad
+/// set therefore has mass at most d*3^k/2^(32k), not d/(p^k).
+/// This arithmetic does not establish the required adaptive-RO assumptions or
+/// grant a whole-protocol certificate. The receiver registry remains separate.
+pub const RawModuloEstimate = struct {
+    total_degree_weight: u512,
+    max_preimages_per_element: u512,
+    raw_bits: u16,
+    requested_bits: u16,
+};
+pub fn requireRawModuloConditionalBudget(extension_degree: u8, terms: []const ConditionalTerm, required_bits: u16) !RawModuloEstimate {
+    if ((extension_degree != 4 and extension_degree != 8) or required_bits == 0 or required_bits > 256)
+        return error.InvalidAlgebraicBudget;
+    const weighted = try conditionalDegreeWeight(terms);
+    var preimages: u512 = 1;
+    for (0..extension_degree) |_| preimages *= 3;
+    const raw_bits: u16 = 32 * @as(u16, extension_degree);
+    // The accepted input bounds keep the largest shift/product below 2^512:
+    // degree_weight <2^132, preimages <=3^8 and requested_bits <=256.
+    const required = (weighted * preimages) << @intCast(required_bits);
+    const available = @as(u512, 1) << @intCast(raw_bits);
+    if (required > available) return error.ConditionalAlgebraicBudgetInsufficient;
+    return .{ .total_degree_weight = weighted, .max_preimages_per_element = preimages, .raw_bits = raw_bits, .requested_bits = required_bits };
 }
 
 /// Certificate IDs are receiver-owned code authority, never inferred from a
