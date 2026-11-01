@@ -1,0 +1,68 @@
+[
+  {
+    "tag": "baseline",
+    "source": "2ef20a0ca",
+    "binary_sha256": "67bd1df0ab7829240a20c9ee098d193ff19aa6aa6a6dcc133ce33780507f2f9b",
+    "command": [
+      "/tmp/rv64-fixed-identity-baseline-cli",
+      "verify-candidate",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+      "12884901888"
+    ],
+    "setup_s": 29.422880083,
+    "verify_s": 1.403220209,
+    "fixed_setup": {
+      "limit_bytes": 12884901888,
+      "live_bytes": 7385542768,
+      "peak_bytes": 9371728160,
+      "keys": 29,
+      "hits": 0,
+      "seals": 29,
+      "refused": false
+    },
+    "receiver_budget": {
+      "live_bytes": 9686952231,
+      "peak_live_bytes": 11673137823,
+      "host_live_bytes": 9686952231,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 11673137823,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    }
+  },
+  {
+    "tag": "bulk",
+    "source": "8c1d64ff2",
+    "binary_sha256": "67dc03a9822d74cd44f56762bf436de20883fddcaf56e6b75045bfc68a57bfb8",
+    "command": [
+      "/tmp/rv64-fixed-identity-bulk-cli",
+      "verify-candidate",
+      "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+      "/tmp/stwo-rv64-om-ethereum-fullblock-candidate-v1",
+      "12884901888"
+    ],
+    "setup_s": 28.803300541,
+    "verify_s": 1.413100417,
+    "fixed_setup": {
+      "limit_bytes": 12884901888,
+      "live_bytes": 7385542768,
+      "peak_bytes": 9371728160,
+      "keys": 29,
+      "hits": 0,
+      "seals": 29,
+      "refused": false
+    },
+    "receiver_budget": {
+      "live_bytes": 9686952231,
+      "peak_live_bytes": 11673137823,
+      "host_live_bytes": 9686952231,
+      "external_live_bytes": 0,
+      "peak_host_bytes": 11673137823,
+      "peak_external_bytes": 0,
+      "limit": 34359738368,
+      "exceeded": false
+    }
+  }
+]
