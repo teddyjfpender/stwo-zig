@@ -28,8 +28,21 @@ test "beta2 candidate two CPU and K ADD DOUBLE execution verifies from independe
     defer a.free(path);
     var store = try C.Store.initFullyParked(path, 256 << 20);
     defer store.deinit();
+    // Fault injection deliberately violates the frozen-source contract. Fast
+    // provenance checks do not detect stale-root body mutation; explicit full
+    // revalidation does. The independently owned candidate key must not change.
+    const source_coefficients = keys.cpus[0].key.tree.coefficients.?;
+    const source_values = @constCast(source_coefficients[0].coeffs);
+    const original_coefficient = source_values[0];
+    const candidate_coefficient = authority.at(0).lease.key.tree.coefficients.?[0].coeffs[0];
+    source_values[0] = original_coefficient.add(@import("stwo_core").fields.m31.M31.one());
+    defer source_values[0] = original_coefficient;
+    try authority.at(0).require(&keys.cpus[0].key, config);
+    try std.testing.expectError(error.FixedSetupIdentityMismatch, authority.at(0).revalidateSource(&keys.cpus[0].key, config));
+    try std.testing.expect(candidate_coefficient.eql(authority.at(0).lease.key.tree.coefficients.?[0].coeffs[0]));
     var bundle = try C.produceWithAuthority(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, config, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 } }, &authority);
     defer bundle.deinit(a);
+    source_values[0] = original_coefficient;
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expect(store.stats().total_bytes > 0);
     const first = try bundle.verifyWithAuthority(a, &keys.pointers(), &keys.truths(), expected, config, &authority);
@@ -41,6 +54,12 @@ test "beta2 candidate two CPU and K ADD DOUBLE execution verifies from independe
     defer fresh.deinit();
     var fresh_cache = try Fixed.Fixed.Cache.init(a, 1 << 30);
     defer fresh_cache.deinit();
+    var equivalent_sources = try FixedSet.init(a, &fresh_cache, &.{ keys.cpus[0], fresh.cpus[0] }, &.{}, config);
+    defer equivalent_sources.deinit();
+    try std.testing.expect(keys.cpus[0] != fresh.cpus[0]);
+    try std.testing.expectEqual(@as(usize, 1), equivalent_sources.source_validations);
+    try std.testing.expectEqual(equivalent_sources.at(0).source_coefficient_cells, equivalent_sources.source_coefficient_cells);
+    try std.testing.expect(equivalent_sources.at(0).lease.key == equivalent_sources.at(1).lease.key);
     var independently_derived = try FixedSet.init(a, &fresh_cache, &fresh.pointers(), &fresh.truths(), config);
     defer independently_derived.deinit();
     try std.testing.expect(authority.at(0).lease.key != independently_derived.at(0).lease.key);

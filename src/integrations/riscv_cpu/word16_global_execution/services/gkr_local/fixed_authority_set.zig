@@ -9,6 +9,8 @@ pub const Set = struct {
     config: W.PcsConfig,
     cpu_count: usize,
     bindings: []F.Binding,
+    source_validations: usize,
+    source_coefficient_cells: usize,
     pub fn init(a: std.mem.Allocator, cache: *const F.Fixed.Cache, setups: []const *const R.CpuSetup, truths: []const R.Truth, config: W.PcsConfig) !Set {
         try W.validateBeta2Config(config);
         const count = try std.math.add(usize, setups.len, truths.len);
@@ -16,16 +18,24 @@ pub const Set = struct {
         const bindings = try a.alloc(F.Binding, count);
         errdefer a.free(bindings);
         var initialized: usize = 0;
+        var validations: usize = 0;
+        var cells: usize = 0;
         errdefer for (bindings[0..initialized]) |*binding| binding.deinit();
         for (setups, 0..) |setup, i| {
-            bindings[i] = try F.Binding.acquire(cache, &setup.key, config);
+            const acquired = try acquireUnique(bindings[0..initialized], cache, &setup.key, config);
+            bindings[i] = acquired.binding;
             initialized += 1;
+            validations += @intFromBool(acquired.validated);
+            if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
         }
         for (truths, 0..) |truth, i| {
-            bindings[setups.len + i] = try F.Binding.acquire(cache, truth.key(), config);
+            const acquired = try acquireUnique(bindings[0..initialized], cache, truth.key(), config);
+            bindings[setups.len + i] = acquired.binding;
             initialized += 1;
+            validations += @intFromBool(acquired.validated);
+            if (acquired.validated) cells = try std.math.add(usize, cells, acquired.binding.source_coefficient_cells);
         }
-        return .{ .allocator = a, .config = config, .cpu_count = setups.len, .bindings = bindings };
+        return .{ .allocator = a, .config = config, .cpu_count = setups.len, .bindings = bindings, .source_validations = validations, .source_coefficient_cells = cells };
     }
     pub fn deinit(self: *Set) void {
         for (self.bindings) |*binding| binding.deinit();
@@ -52,9 +62,21 @@ pub const Set = struct {
         ch.mixU64(self.bindings.len);
         for (self.bindings, 0..) |binding, ordinal| {
             ch.mixU64(ordinal);
-            W.digest(&ch, binding.lease.key.identity);
+            W.digest(&ch, binding.fixed_identity);
             W.digest(&ch, binding.root());
         }
         return ch.digestBytes();
     }
 };
+
+const Acquired = struct { binding: F.Binding, validated: bool };
+fn acquireUnique(existing: []const F.Binding, cache: *const F.Fixed.Cache, source: anytype, config: W.PcsConfig) !Acquired {
+    // A trusted original sealed Merkle root/suite/count is the immutable source
+    // authority, not its pointer. Equivalent independently rebuilt source keys
+    // can reuse the same validated candidate lease within this ordered set.
+    for (existing) |*binding| if (binding.matchesSource(source)) {
+        try binding.require(source, config);
+        return .{ .binding = binding.retain(), .validated = false };
+    };
+    return .{ .binding = try F.Binding.acquire(cache, source, config), .validated = true };
+}
