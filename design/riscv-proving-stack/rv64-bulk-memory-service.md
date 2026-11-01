@@ -191,6 +191,13 @@ strictly smaller `(epoch, clock)`, and every producer tick to be `4r'+4`.
   bridges), so P4 is unaffected. Tokens are disjoint OWNER tuples.
 
 So the lemma extends with one new strictly decreasing edge; no circularity.
+- *JUMPDEST bitmap write* (`jscan`, tag 0x30040, added 2026-11-02):
+  independently anchored like memset: each written limb is
+  `sum_{i<16} j_i 2^i` with every `j_i` a transition-table output in {0, 1}
+  (or forced 0 on words past the code length), so `0 <= limb < 2^16` with no
+  reference to any earlier token; tick `4r+4` from the jdesc row's OWNER-bound
+  token; code reads keep value and rights. No new edge.
+  ([rv64-jumpdest-service.md](rv64-jumpdest-service.md) J6.)
 Removing the shared value columns (e.g. giving the dst write its own unranged
 value columns) would break this — such a change must re-open the lemma.
 

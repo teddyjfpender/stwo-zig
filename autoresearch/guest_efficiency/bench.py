@@ -82,6 +82,7 @@ ADMITTED_REPORT_FIELDS = {
     "arith256_mod": ("arith256_mod_calls", None),
     "memcpy": ("bulk_memcpy_calls", "bulk_memcpy_bytes"),
     "memset": ("bulk_memset_calls", "bulk_memset_bytes"),
+    "jumpdest_bitmap": ("jumpdest_calls", "jumpdest_bytes"),
 }
 
 
@@ -428,7 +429,8 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "admitted_service_calls": admitted_usage(e)}
     if repeat > 1:
         keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "arith256_mod_calls",
-                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes", "verified_output")
+                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes",
+                "jumpdest_calls", "jumpdest_bytes", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row

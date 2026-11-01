@@ -12,9 +12,10 @@ backend). Only the Python standard library is used.
 
 `--profile v3` builds the ADMITTED ethereum_services_v3 guest: SHA-256
 compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
-ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
-head/tail and software fallback for overlap or mismatched alignment
-(`--v3-set` selects a subset of sha, arith, mem for ablations; add `keccak`
+ModArith and 256-bit odd-modulus modexp, aligned memcpy/memset with inline
+head/tail and software fallback for overlap or mismatched alignment, and the
+JUMPDEST analysis service (patches 0028/0029)
+(`--v3-set` selects a subset of sha, arith, mem, jumpdest for ablations; add `keccak`
 for the admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`; add `umem`
 for the UNVERIFIED unaligned-source memcpy and memcmp routing, not yet proved).
 
@@ -319,8 +320,9 @@ def main(argv=None):
     ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
                          "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
-    ap.add_argument("--v3-set", default="sha,arith,mem",
-                    help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge, "
+    ap.add_argument("--v3-set", default="sha,arith,mem,jumpdest",
+                    help="admitted v3 service groups for --profile v3 (sha, arith, mem, jumpdest = JUMPDEST analysis, "
+                         "keccak = Keccak-256 sponge, "
                          "umem = UNVERIFIED unaligned-source memcpy and memcmp routing, needs mem)")
     ap.add_argument("--candidate-jumpdest", action="store_true",
                     help="EXECUTION-ONLY: route JUMPDEST analysis to the candidate jumpdest_bitmap service "
@@ -370,7 +372,7 @@ def main(argv=None):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
-    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "jumpdest", "mem", "sha"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
                else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa

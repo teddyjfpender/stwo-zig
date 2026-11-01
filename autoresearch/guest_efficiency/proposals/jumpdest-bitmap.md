@@ -1,7 +1,10 @@
 # Proposal: JUMPDEST analysis service (`jumpdest_bitmap`, 0x0003_0040)
 
-Status: **candidate measured (execution-only); go for prover work.** Branch
-`codex/rv64-ge-jumpdest`.
+Status: **admitted in `ethereum_services_v3` on branch `codex/rv64-ge-jumpdest`**
+(AIR, executor, collector, services lane, fixture with a fresh receiver;
+design and soundness argument:
+`design/riscv-proving-stack/rv64-jumpdest-service.md`). The candidate
+measurement below motivated it; the admitted result is in "Admitted result".
 
 ## Motivation (measured)
 
