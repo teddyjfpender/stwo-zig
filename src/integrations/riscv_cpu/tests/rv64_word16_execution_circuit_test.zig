@@ -200,7 +200,7 @@ test "merged BINARY circuit authority binds secure challenges claims and inverse
     }
 }
 
-test "LS48 same residual authority binds all typed Circuit challenges claims masks and strict pairs" {
+test "LS32 same residual authority binds all typed Circuit challenges claims masks and strict pairs" {
     const LS = front.rv64_air.memory.load_store_v2;
     var channel = core.channel.blake2s.Blake2sChannel{};
     var ch: LS.types.Challenges = undefined;

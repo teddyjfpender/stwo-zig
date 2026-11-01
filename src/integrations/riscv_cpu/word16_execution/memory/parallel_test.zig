@@ -75,7 +75,7 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
         for (residuals[0..sink.count]) |v| try std.testing.expect(v.isZero());
     }
 }
-test "LS joined1 4 16 worker waves match serial48 columns fiveclaims after MAIN retirement" {
+test "LS joined1 4 16 worker waves match serial32 columns fiveclaims after MAIN retirement" {
     const data = try Data.init();
     defer data.deinit();
     const input = try events(8193);

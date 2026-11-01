@@ -51,7 +51,21 @@ fn repair(main: []const M, inter: []M, ch: X.types.Challenges) !X.types.Claims {
     R.trace.center(inter, n, X.layout.LOCAL_PREFIX, claims.owner.add(claims.range16).add(claims.range8).add(claims.selection));
     return claims;
 }
-const Attack = enum { upper_store_b, read_clock, read_write_value, future_epoch, reversed_tick, ghost_cycle };
+const Attack = enum { upper_store_b, read_clock, read_write_value, future_epoch, reversed_tick, ghost_cycle, load_c_alias, store_after_alias, lb_false_byte };
+/// Which LS ledger shares an LS32 joint-write attack must leave untouched
+/// (the removed U16 checks are blind to it) or move (the debt that rejects).
+const Shares = struct { ram: bool, owner: bool, selection: bool };
+fn jointWriteShares(kind: Attack) ?Shares {
+    return switch (kind) {
+        // LW row: before/after/C limb0 += 65536. RAM before token and OWNER C move.
+        .load_c_alias => .{ .ram = true, .owner = true, .selection = false },
+        // SD row: B limb1 and after limb1 += 65536. RAM after token and OWNER B move.
+        .store_after_alias => .{ .ram = true, .owner = true, .selection = false },
+        // LB row: false selected byte and C limb0 += 65536. Selection and OWNER C move.
+        .lb_false_byte => .{ .ram = false, .owner = true, .selection = true },
+        else => null,
+    };
+}
 fn attack(kind: Attack) !void {
     var fixture = try @import("../../tests/rv64_word16_execution_fixture.zig").Fixture.init(a);
     defer fixture.deinit();
@@ -61,7 +75,15 @@ fn attack(kind: Attack) !void {
     var source = try Sources.Source.init(a, &setup.materials, admission.image, fixture.boundary, 1, &fixture.tape);
     defer source.deinit();
     const request = source.request();
-    const pos = R.trace.physical(if (kind == .upper_store_b) 3 else if (kind == .future_epoch or kind == .ghost_cycle) 0 else 1, 5);
+    const row: usize = switch (kind) {
+        .upper_store_b => 3,
+        .future_epoch, .ghost_cycle, .store_after_alias => 0,
+        .lb_false_byte => 2,
+        else => 1,
+    };
+    const pos = R.trace.physical(row, 5);
+    const honest_main = try a.dupe(M, source.memory.ls.main);
+    defer a.free(honest_main);
     const m = try @import("projection_test_support.zig").expandMatrix(a, source.memory.ls.main, n);
     defer a.free(m);
     switch (kind) {
@@ -100,6 +122,18 @@ fn attack(kind: Attack) !void {
             m[26 * n + pos] = M.zero();
             m[27 * n + pos] = M.zero();
         },
+        .load_c_alias => {
+            try std.testing.expectEqual(@intFromEnum(@import("stwo_riscv_frontend").rv64.decode.Opcode.LW), m[V.layout.opcode * n + pos].v);
+            for ([_]usize{ 14, 18, V.layout.c }) |column| m[column * n + pos] = m[column * n + pos].add(M.fromCanonical(65536));
+        },
+        .store_after_alias => {
+            try std.testing.expectEqual(@intFromEnum(@import("stwo_riscv_frontend").rv64.decode.Opcode.SD), m[V.layout.opcode * n + pos].v);
+            for ([_]usize{ V.layout.b + 1, 19 }) |column| m[column * n + pos] = m[column * n + pos].add(M.fromCanonical(65536));
+        },
+        .lb_false_byte => {
+            try std.testing.expectEqual(@intFromEnum(@import("stwo_riscv_frontend").rv64.decode.Opcode.LB), m[V.layout.opcode * n + pos].v);
+            for ([_]usize{ V.layout.selected_byte, V.layout.c }) |column| m[column * n + pos] = m[column * n + pos].add(M.fromCanonical(65536));
+        },
         .read_write_value => {
             for ([_]usize{ 14, 18, 40 }) |column| {
                 m[column * n + pos] = m[column * n + pos].add(M.fromCanonical(65536));
@@ -124,6 +158,19 @@ fn attack(kind: Attack) !void {
     try source.releaseMain();
     const draw = P.draw(&channel);
     var claims = (try source.generateForDelegationJoin(draw)).physical;
+    if (jointWriteShares(kind)) |moved| {
+        // Every forged coordinate now lies outside every retained LS32 range
+        // query: the range ledger shares equal the honest ones exactly.
+        const scratch = try a.alloc(M, X.layout.INTERACTION * n);
+        defer a.free(scratch);
+        const honest = try repair(honest_main, scratch, draw.memory);
+        const forged = try repair(actual, scratch, draw.memory);
+        try std.testing.expect(honest.range16.eql(forged.range16));
+        try std.testing.expect(honest.range8.eql(forged.range8));
+        try std.testing.expectEqual(moved.ram, !honest.ram.eql(forged.ram));
+        try std.testing.expectEqual(moved.owner, !honest.owner.eql(forged.owner));
+        try std.testing.expectEqual(moved.selection, !honest.selection.eql(forged.selection));
+    }
     claims.ls = try repair(actual, source.memory.ls.interaction, draw.memory);
     try std.testing.expectError(error.UnclosedExecutionRelations, claims.validate());
     channel.mixFelts(&claims.values());
@@ -152,7 +199,7 @@ test "actual valid physical proof with compensated unused store B fails closed O
 test "actual valid physical proof with noncanonical before clock fails closed RAM and gap ledger" {
     try attack(.read_clock);
 }
-test "actual valid physical proof with compensated read and write values fails retained canonical write ranges" {
+test "actual valid physical proof with compensated read and write values fails closed RAM OWNER and selection authority" {
     try attack(.read_write_value);
 }
 
@@ -165,4 +212,14 @@ test "actual valid physical proof with reversed tick predecessor fails retained 
 
 test "actual valid physical proof with orphan RAM history cycle fails retained chronology and complete boundary closure" {
     try attack(.ghost_cycle);
+}
+
+test "LS32 actual valid physical proof with noncanonical LW before after and C limb fails only closed RAM and OWNER debts" {
+    try attack(.load_c_alias);
+}
+test "LS32 actual valid physical proof with noncanonical SD B and after limb fails only closed RAM and OWNER debts" {
+    try attack(.store_after_alias);
+}
+test "LS32 actual valid physical proof with false LB selected byte and noncanonical C fails only selection and OWNER debts" {
+    try attack(.lb_false_byte);
 }
