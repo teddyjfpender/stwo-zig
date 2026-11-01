@@ -151,6 +151,27 @@ class Guards(unittest.TestCase):
         self.assertFalse(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
 
 
+class Candidates(unittest.TestCase):
+    def test_candidate_cost_added(self):
+        cal = copy.deepcopy(CAL)
+        cal["candidate_services"] = {"memcpy": {"cells_per_call": 100.0, "cells_per_byte": 2.0}}
+        base = bench.committed_bits(cal, 1000, 0, 0, 0)
+        more = bench.committed_bits(cal, 1000, 0, 0, 0, {"memcpy": {"calls": 3, "bytes": 50}})
+        c = cal["coefficients"]
+        self.assertAlmostEqual(more - base, c["bits_per_cell_at_lde"] * 400 * (1 + c["composition_fraction"]))
+
+    def test_unknown_candidate_rejected(self):
+        with self.assertRaises(ValueError):
+            bench.committed_bits(CAL, 1, 0, 0, 0, {"teleport": {"calls": 1}})
+
+    def test_candidate_profile_allowed_but_flagged(self):
+        rows = good_rows()
+        for r in rows:
+            r["execution_profile"] = "ethereum_services_v3_candidate"
+        self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+        self.assertNotIn("ethereum_services_v3_candidate", POLICY["allowed_execution_profiles"])
+
+
 class Levels(unittest.TestCase):
     def test_levels(self):
         lv = TARGETS["levels"]
@@ -180,6 +201,14 @@ class Scope(unittest.TestCase):
 
     def test_unlisted_path_rejected(self):
         self.assertFalse(bench.match_scope(["README.md"], SCOPE)["ok"])
+
+    def test_candidate_executor_override(self):
+        r = bench.match_scope(["src/frontends/riscv/rv64/ethereum_services/candidate_services.zig",
+                               "src/frontends/riscv/rv64/ethereum_execution.zig"], SCOPE)
+        self.assertTrue(r["ok"], r)
+        self.assertIn("E_candidate_executor", r["tiers"])
+        self.assertFalse(bench.match_scope(["src/frontends/riscv/rv64/ethereum_services/session.zig"], SCOPE)["ok"])
+        self.assertFalse(bench.match_scope(["src/frontends/riscv/rv64/execution_profile.zig"], SCOPE)["ok"])
 
     def test_dependency_tier(self):
         r = bench.match_scope([self.G + "services/Cargo.lock"], SCOPE)

@@ -34,8 +34,6 @@
   "autoresearch/guest_efficiency/calibration.json",
   "autoresearch/guest_efficiency/targets.json",
   "autoresearch/guest_efficiency/scope.json",
-  "autoresearch/guest_efficiency/README.md",
-  "autoresearch/guest_efficiency/PROGRAM.md",
   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/linker.ld",
   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/linker-wide.ld",
   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/linker.ld",
@@ -53,11 +51,21 @@
   "build_support/*",
   "vectors/*",
   "conformance/*",
-  ".github/*"
+  ".github/*",
+  "autoresearch/guest_efficiency/README.md",
+  "autoresearch/guest_efficiency/PROGRAM.md",
+  "autoresearch/guest_efficiency/CONTEXT.md"
  ],
  "review_required": {
   "B_dependency_change": "Any new or changed crate must be vendored or pinned by hash; no new network fetch at build time without human review.",
   "C_new_client": "Before any third-party client code (evmone, ziskethone, or others) is copied in, its licence must be recorded in the client's README and checked by legal; see PROGRAM.md Part 3.",
-  "service_abi": "New or changed ECALL services (e.g. SHA-256, bulk copy, full ECDSA recovery) change the prover's AIR and statement. Write a proposal under proposals/; the loop must not edit service_abi/ or src/."
+  "service_abi": "New or changed ECALL services (e.g. SHA-256, bulk copy, full ECDSA recovery) change the prover's AIR and statement. Write a proposal under proposals/; the loop must not edit service_abi/ or src/.",
+  "E_candidate_executor": "Execution-only candidate services: implement exactly the CONTEXT.md ABI behind ethereum_services_v3_candidate; must not change admitted profiles, compact tape or anything the prover reads."
+ },
+ "editable_despite_lock": {
+  "E_candidate_executor": [
+   "src/frontends/riscv/rv64/ethereum_services/candidate*.zig",
+   "src/frontends/riscv/rv64/ethereum_execution.zig"
+  ]
  }
 }

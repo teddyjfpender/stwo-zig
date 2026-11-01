@@ -27,5 +27,7 @@
   "Frozen at prover schema 7 so the guest score does not move when the prover changes; recalibrate only by explicit ledger epoch.",
   "Linear in instruction count: ignores instruction mix (loads/stores vs ALU), fact de-duplication and power-of-two padding of truth proofs.",
   "Promotion requires the exact tier (Word16 plan/prove cost.json), not this proxy."
- ]
+ ],
+ "candidate_services": {},
+ "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them."
 }

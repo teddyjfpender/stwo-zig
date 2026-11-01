@@ -57,12 +57,32 @@ def sha256(data: bytes) -> str:
 # Pure functions (unit tested in test_bench.py)
 # --------------------------------------------------------------------------
 
-def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int) -> float:
+def candidate_cells(calibration: dict, candidate_calls: dict | None) -> float:
+    """Estimated cells for execution-only candidate services (calibration.json candidate_services).
+
+    candidate_calls maps service name -> {"calls": n, "bytes": b}. Unknown services
+    are an error: a candidate must declare its estimated cost before it can score.
+    """
+    if not candidate_calls:
+        return 0.0
+    table = calibration.get("candidate_services", {})
+    cells = 0.0
+    for name, use in candidate_calls.items():
+        if name not in table:
+            raise ValueError(f"candidate service {name!r} has no cost estimate in calibration.json")
+        cost = table[name]
+        cells += cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+    return cells
+
+
+def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
+                   candidate_calls: dict | None = None) -> float:
     """Frozen linear proxy for committed witness bits at the LDE (see calibration.json)."""
     c = calibration["coefficients"]
     cells = (c["cpu_cells_per_instruction"] * instructions
              + c["keccak_cells_per_call"] * keccak
-             + c["secp_cells_per_call"] * (secp_add + secp_double))
+             + c["secp_cells_per_call"] * (secp_add + secp_double)
+             + candidate_cells(calibration, candidate_calls))
     return c["bits_per_cell_at_lde"] * cells * (1.0 + c["composition_fraction"])
 
 
@@ -76,7 +96,8 @@ def aggregate(rows: list[dict], calibration: dict) -> dict:
         for k in ("instructions", "keccak_f_calls", "secp_add_calls", "secp_double_calls", "loads", "stores"):
             tot[k] += int(r.get(k) or 0)
     bits = sum(committed_bits(calibration, r["instructions"], r.get("keccak_f_calls", 0),
-                              r.get("secp_add_calls", 0), r.get("secp_double_calls", 0)) for r in rows)
+                              r.get("secp_add_calls", 0), r.get("secp_double_calls", 0),
+                              r.get("candidate_service_calls")) for r in rows)
     return {
         "blocks": len(rows),
         "gas_used": gas,
@@ -133,7 +154,7 @@ def guards(basket: dict, rows: list[dict], which: str, policy: dict) -> list[dic
         out.append({"guard": "G5_holdout_generalises", "ok": which != "all",
                     "detail": "holdout not run" if which != "all" else "missing scored or holdout rows"})
     profiles = {r.get("execution_profile") for r in rows}
-    allowed = set(policy["allowed_execution_profiles"])
+    allowed = set(policy["allowed_execution_profiles"]) | set(policy.get("candidate_execution_profiles", []))
     out.append({"guard": "G6_execution_profile", "ok": profiles <= allowed,
                 "detail": {"seen": sorted(p for p in profiles if p), "allowed": sorted(allowed)}})
     return out
@@ -152,7 +173,12 @@ def match_scope(paths: list[str], scope: dict) -> dict:
     editable = scope["editable"]
     tiers = {}
     violations = []
+    overrides = scope.get("editable_despite_lock", {})
     for p in paths:
+        hit = next((t for t, gs in overrides.items() if any(fnmatch.fnmatch(p, g) for g in gs)), None)
+        if hit is not None:
+            tiers.setdefault(hit, []).append(p)
+            continue
         if any(fnmatch.fnmatch(p, g) for g in scope["locked"]):
             violations.append(p)
             continue
@@ -315,13 +341,15 @@ def cmd_build_exec(a):
 
 
 def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cache: Path, out: Path,
-                  basket: dict, keep_profile: bool, repeat: int) -> dict:
+                  basket: dict, keep_profile: bool, repeat: int, profile: str | None = None) -> dict:
     blk = cache / "blocks" / str(b["block"])
     inp = blk / "canonical-input.ssz"
     expected = (blk / "expected-output.bin").read_bytes()
     data = inp.read_bytes()
     cfg = {"elf": str(elf), "elf_sha256": sha256(raw), "input": str(inp), "input_sha256": sha256(data),
            "expected_output": expected.hex(), "symbols": abi, **basket["execution"]}
+    if profile:
+        cfg["execution_profile"] = profile
     d = out / "blocks" / str(b["block"])
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -339,10 +367,11 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
     row = {"block": b["block"], "set": b["set"], "gas_used": b["gas_used"],
            "status": e.get("status"), "verified_output": e.get("verified_output"),
            "output_matches_expected": e.get("verified_output") is True and cfg["expected_output"] == expected.hex(),
-           "execution_profile": basket["execution"]["execution_profile"],
+           "execution_profile": cfg["execution_profile"],
            "instructions": e.get("instructions"), "keccak_f_calls": e.get("keccak_calls", 0),
            "secp_add_calls": e.get("secp_add_calls", 0), "secp_double_calls": e.get("secp_double_calls", 0),
-           "loads": e.get("loads"), "stores": e.get("stores")}
+           "loads": e.get("loads"), "stores": e.get("stores"),
+           "candidate_service_calls": e.get("candidate_service_calls") or None}
     if repeat > 1:
         keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
@@ -364,7 +393,7 @@ def cmd_run(a):
     det = {basket["blocks"][0]["block"]} if a.determinism else set()
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
         futs = [pool.submit(execute_block, b, elf, raw, abi, Path(a.executor).resolve(), cache, out, basket,
-                            a.keep_profiles, 2 if b["block"] in det else 1) for b in blocks]
+                            a.keep_profiles, 2 if b["block"] in det else 1, a.profile) for b in blocks]
         rows = [f.result() for f in futs]
     rows.sort(key=lambda r: r["block"])
     ok_rows = [r for r in rows if r.get("instructions")]
@@ -376,6 +405,11 @@ def cmd_run(a):
         if rs:
             result.setdefault("metrics", {})[name] = aggregate(rs, cal)
     result["ok"] = all(g["ok"] for g in result["guards"])
+    # Only admitted profiles (services the prover can prove today) are promotable.
+    # Candidate profiles measure the value of a proposed service before prover work.
+    used = {r.get("execution_profile") for r in rows}
+    result["promotable"] = result["ok"] and used <= set(policy["allowed_execution_profiles"])
+    result["client"] = a.client
     (out / "result.json").write_text(json.dumps(result, indent=1))
     summarize(result, basket, cal)
     if not result["ok"]:
@@ -386,6 +420,8 @@ def summarize(result: dict, basket: dict, cal: dict):
     targets = load_json(HERE / "targets.json")
     for g in result["guards"]:
         print(f"{'PASS' if g['ok'] else 'FAIL'} {g['guard']}")
+    if "promotable" in result and not result["promotable"]:
+        print("NOTE result uses a candidate (not yet provable) profile or failed a guard: not promotable")
     for name, m in result.get("metrics", {}).items():
         base = aggregate(baseline_rows(basket, name), cal)
         print(f"[{name}] instructions/gas {m['instructions_per_gas']:.3f} (baseline {base['instructions_per_gas']:.3f}, "
@@ -462,6 +498,9 @@ def main(argv=None):
     s.add_argument("--jobs", type=int, default=4)
     s.add_argument("--keep-profiles", action="store_true")
     s.add_argument("--no-determinism", dest="determinism", action="store_false")
+    s.add_argument("--profile", default=None,
+                   help="execution profile override (admitted: ethereum_services_v2; candidate: see targets.json)")
+    s.add_argument("--client", default="rust-reth", help="free-form client label recorded in the result")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("compare")
