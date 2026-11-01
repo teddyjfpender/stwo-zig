@@ -110,7 +110,9 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.calls[3] + req.calls[4] + req.bulk.calls + req.sponge.calls + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
+        var service_calls: u64 = @as(u64, req.bulk.calls) + req.sponge.calls + req.base.memory.ls_count;
+        for (req.calls) |c| service_calls += c;
+        if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
         const sponge = try admitSponge(setup, req);
         sponge_io = try std.math.add(u64, sponge_io, sponge.io);

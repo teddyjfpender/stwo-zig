@@ -137,6 +137,9 @@ pub const Owner = struct {
                 }
                 out.* = .{ .arith256_mod = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
             },
+            // Curve/field truth families (5..11) are not wired into the
+            // Ethereum work-packet route yet (TODO curves track).
+            else => return error.UnsupportedServicesTruthFamily,
         };
         return self;
     }

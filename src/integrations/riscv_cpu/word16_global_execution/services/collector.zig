@@ -115,7 +115,7 @@ pub const Builder = struct {
         const sponge = try a.alloc(SpongeShard, self.shards.items.len);
         errdefer a.free(sponge);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp, sha256, arith, bulk, sponge) |shard, *e, *k, *s, *h, *r, *b, *z| {
+        for (self.shards.items, events, keccak, secp, sha256, arith, curves, bulk, sponge) |shard, *e, *k, *s, *h, *r, *c, *b, *z| {
             z.* = shard.sponge;
             r.* = shard.arith256_mod;
             c.* = shard.curves;
@@ -126,7 +126,7 @@ pub const Builder = struct {
             b.* = shard.bulk;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -284,6 +284,20 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 ri += 1;
             } else if (v3 and rec.tag == Sponge.TAG) {
                 try sponge.replay(a, ledger, rec.pointer, cpu.epoch, rec.tick, get);
+            } else if (v3 and TT.curveOpOfTag(rec.tag) != null) {
+                if (ui >= tape.curve_calls.items.len) return error.InvalidCombinedServiceOwner;
+                const captured = tape.curve_calls.items[ui];
+                const words = captured.wordCount();
+                if (captured.tag() != rec.tag or rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
+                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = captured.before, .after = captured.after, .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
+                for (0..words) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
+                try S.source.validate(S.types.curveKind(captured.op), call);
+                for (0..words) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
+                const k = TT.curveIndex(captured.op);
+                cc[k][curve_next[k]] = call;
+                curve_next[k] += 1;
+                ui += 1;
             } else if (v3 and (rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG)) {
                 try bulkCall(a, ledger, rec.pointer, rec.tag, cpu.epoch, rec.tick, &bulk_calls, &bulk_words);
             } else return error.UnqualifiedCombinedServiceTag;
@@ -296,7 +310,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = owned_words };
     errdefer bulk.deinit(a);
     const sponge_shard = try sponge.finish(a);
-    return .{ .sponge = sponge_shard,  .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .bulk = bulk };
+    return .{ .sponge = sponge_shard, .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .curves = cc, .bulk = bulk };
 }
 /// Replays one admitted bulk call on the ledger: the packet words are read,
 /// then every data word is read (src) and written (dst) at the CPU step's tick.

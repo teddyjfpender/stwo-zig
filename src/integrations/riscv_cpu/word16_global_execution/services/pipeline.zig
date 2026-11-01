@@ -86,8 +86,8 @@ const Stage1 = struct {
         if (cpu.setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, self.advice.arith256_mod[cpu.ordinal], cpu.first_ids[4], log);
         var curves: [@import("types.zig").CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
         errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
-        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, k| if (cpu.setup.bridges.at(@enumFromInt(k))) |log| {
-            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(k)), self.advice.curves[cpu.ordinal][k - @import("types.zig").FIRST_CURVE], cpu.first_ids[k], log);
+        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, fam| if (cpu.setup.bridges.at(@enumFromInt(fam))) |log| {
+            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(fam)), self.advice.curves[cpu.ordinal][fam - @import("types.zig").FIRST_CURVE], cpu.first_ids[fam], log);
         };
         var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
         errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
@@ -114,7 +114,7 @@ const Stage1 = struct {
                 out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
             };
         }
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
+        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
         // Locals own all fields until this final fallible operation succeeds.
         try source.mergeRanges();
         return source;
@@ -134,7 +134,7 @@ const Stage2 = struct {
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
-    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len or setups.len != advice.bulk.len or setups.len != advice.sponge.len) return error.InvalidCombinedInventory;
+    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len or setups.len != advice.curves.len or setups.len != advice.bulk.len or setups.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
     const first_steps = try a.alloc(u64, setups.len);
@@ -144,7 +144,10 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         first.* = step;
         step = try std.math.add(u64, step, cpu.public.steps);
-        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        var calls: [@import("types.zig").FAMILIES]u32 = undefined;
+        calls[0..5].* = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) };
+        for (calls[5..], advice.curves[i]) |*c, list| c.* = @intCast(list.len);
+        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = calls, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
     }
     // Sponge permutation IDs follow every Keccak-f call of the bundle.
     var next_sponge: u64 = 1;

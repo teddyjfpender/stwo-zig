@@ -155,6 +155,9 @@ pub const Bulk = struct {
             .desc => self.desc,
             .copy => self.copy,
             .set => self.set,
+            // UNVERIFIED bulk-unaligned AIR kinds; the services lane does not
+            // carry them yet (TODO bulk-unaligned track).
+            .ucopy, .cdesc, .cmp => null,
         };
     }
     pub fn any(self: @This()) bool {
@@ -171,6 +174,7 @@ pub const BulkCounts = struct {
             .desc => self.calls,
             .copy => self.copy_words,
             .set => self.set_words,
+            .ucopy, .cdesc, .cmp => 0,
         };
     }
     pub fn any(self: @This()) bool {
