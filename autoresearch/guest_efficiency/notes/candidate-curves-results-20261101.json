@@ -3,7 +3,7 @@
  "date": "2026-11-01",
  "client": "client_evmone (autoresearch/benchmarks/guest_runtime/ethereum/client_evmone), build.py --profile candidate --candidate-set <set>, input adapter on",
  "executor": "bench.py build-exec from branch codex/rv64-guest-candidate-curves (profile ethereum_services_v3_candidate)",
- "executor_sha256": "4285614708feaaa767f4f3769d5984e5b5f54372e0535ac40904ac001421307b",
+ "executor_sha256": "5c04f0faeb7738ed76563abc6a52169b8974af3c3b7bef361b85960707e5a169",
  "cost_files": [
   "autoresearch/guest_efficiency/proposals/candidate-service-costs.json (nominal)",
   "autoresearch/guest_efficiency/proposals/candidate-curve-costs.json (nominal; low/high = its ranges)"

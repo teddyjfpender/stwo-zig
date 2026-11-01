@@ -29,6 +29,9 @@ The granularity follows ZisK's precompile list (`ziskos/entrypoint/src/syscalls`
 - Precondition violations trap **`CandidateDomain`**: the AIR for such a call
   is unsatisfiable, so the guest must handle these cases itself.
 - Reported `bytes` is 0 except for the sponge.
+- The execution report lists these services under `candidate_service_calls`
+  only once called, so runs of guests that do not use them are unchanged and
+  need no cost entry for them (`bench.py` rejects unpriced services).
 
 ## Tags
 
