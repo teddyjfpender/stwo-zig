@@ -140,7 +140,7 @@ index 53d77cf..2937f1b 100644
  
  }  // namespace zeg
 diff --git a/cpp-guest/include/zeg/storages.hpp b/cpp-guest/include/zeg/storages.hpp
-index 2a49846..752aa22 100644
+index 2a49846..698e80e 100644
 --- a/cpp-guest/include/zeg/storages.hpp
 +++ b/cpp-guest/include/zeg/storages.hpp
 @@ -29,6 +29,8 @@
@@ -152,7 +152,25 @@ index 2a49846..752aa22 100644
  
  namespace zeg {
  
-@@ -284,7 +286,7 @@ private:
+@@ -248,8 +250,17 @@ private:
+         uint32_t      pad = 0;
+         evmc::bytes32 position;
+ 
++#if defined(ZEG_STWO)
++        // stwo RV64IM: member-wise copies of the alignment-1 evmc arrays are
++        // byte loops; the members here are 8-byte aligned, so copy words.
++        Key(const evmc::address& a, const evmc::bytes32& p) noexcept {
++            zeg::zisk::zisk_xmemcpy<sizeof(a.bytes)>(address.bytes, a.bytes);
++            zeg::zisk::zisk_xmemcpy<sizeof(p.bytes)>(position.bytes, p.bytes);
++        }
++#else
+         Key(const evmc::address& a, const evmc::bytes32& p) noexcept
+             : address(a), position(p) {}
++#endif
+     };
+     static_assert(alignof(Key) % 8 == 0,            "Key must be 8-byte aligned");
+     static_assert(offsetof(Key, position) % 8 == 0, "Key::position must be aligned");
+@@ -284,7 +295,7 @@ private:
      };
      struct AddressEq {
          bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
@@ -161,7 +179,7 @@ index 2a49846..752aa22 100644
          }
      };
  
-@@ -303,11 +305,15 @@ private:
+@@ -303,11 +314,15 @@ private:
      std::vector<View>      originals_;
      std::vector<Mods>      mods_;
      std::vector<LeafCache> leaf_;
@@ -525,6 +543,28 @@ index 5a753fa..98d562e 100644
      if (it == index_.end()) {
          // Every account the block loads is a row (an empty leaf if it doesn't
          // exist); one without is unproven, so halt.
+diff --git a/cpp-guest/src/bloom.cpp b/cpp-guest/src/bloom.cpp
+index 8b88061..6ae6885 100644
+--- a/cpp-guest/src/bloom.cpp
++++ b/cpp-guest/src/bloom.cpp
+@@ -21,6 +21,17 @@ void bloom_add(std::array<uint8_t, 256>& bloom,
+ 
+ void bloom_or_into(std::array<uint8_t, 256>&       dst,
+                    const std::array<uint8_t, 256>& src) {
++#if defined(ZEG_STWO)
++    // stwo RV64IM: OR whole words when both blooms are 8-byte aligned (the
++    // byte loop is ~5 instructions per byte).
++    if (((reinterpret_cast<uintptr_t>(dst.data()) | reinterpret_cast<uintptr_t>(src.data())) & 7) == 0) {
++        typedef uint64_t __attribute__((may_alias)) u64a;
++        u64a* d = reinterpret_cast<u64a*>(dst.data());
++        const u64a* s = reinterpret_cast<const u64a*>(src.data());
++        for (std::size_t i = 0; i < 32; ++i) d[i] |= s[i];
++        return;
++    }
++#endif
+     for (std::size_t i = 0; i < 256; ++i) {
+         dst[i] |= src[i];
+     }
 diff --git a/cpp-guest/src/run.cpp b/cpp-guest/src/run.cpp
 index b8e670b..54e1305 100644
 --- a/cpp-guest/src/run.cpp
