@@ -32,6 +32,7 @@ pub const Capture = struct {
         } else try self.publish(record.clock, &.{}, memory);
     }
     pub fn appendEvent(self: *Capture, event: Event, memory: *Memory) !void {
+        if (event == .bulk) return self.appendBulk(event.bulk, memory);
         if (event == .sponge) return self.appendSponge(event.sponge, memory);
         var transitions: [25]Transition = undefined;
         var count: usize = 0;
@@ -51,7 +52,17 @@ pub const Capture = struct {
                 }
                 break :blk call.clock;
             },
-            .sponge => unreachable,
+            .arith256_mod => |call| blk: {
+                count = call.before.len;
+                if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
+                for (0..count) |lane| {
+                    const written = lane >= @TypeOf(call).FIRST_WRITTEN;
+                    if (!written and call.before[lane] != call.after[lane]) return error.BoundaryReadMutation;
+                    transitions[lane] = .{ .address = call.pointer + 8 * lane, .before = call.before[lane], .after = call.after[lane], .writable_required = written };
+                }
+                break :blk call.clock;
+            },
+            .bulk, .sponge => unreachable,
             .sha256 => |call| blk: {
                 count = call.before.len;
                 if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
@@ -64,6 +75,33 @@ pub const Capture = struct {
             },
         };
         try self.publish(clock, transitions[0..count], memory);
+    }
+    /// Packet and source words are reads (unchanged by the call); destination
+    /// words go from the session's recorded before-values to current memory.
+    fn appendBulk(self: *Capture, e: @import("ethereum_services/bulk_memory.zig").Event, memory: *Memory) !void {
+        const words: usize = @intCast(e.packet.len / 8);
+        const copy = e.call.tag == @import("execution_profile.zig").MEMCPY_TAG;
+        if (e.dst_before.len != words) return error.InvalidBoundaryService;
+        const transitions = try self.allocator.alloc(Transition, 3 + (if (copy) 2 * words else words));
+        defer self.allocator.free(transitions);
+        for (0..3) |k| {
+            const address = e.call.pointer + 8 * k;
+            const value = memory.backing.load(address, 8).value;
+            transitions[k] = .{ .address = address, .before = value, .after = value, .writable_required = false };
+        }
+        var at: usize = 3;
+        for (0..words) |j| {
+            const d = e.packet.dst + 8 * j;
+            transitions[at] = .{ .address = d, .before = e.dst_before[j], .after = memory.backing.load(d, 8).value, .writable_required = true };
+            at += 1;
+            if (copy) {
+                const s = e.packet.word1 + 8 * j;
+                const value = memory.backing.load(s, 8).value;
+                transitions[at] = .{ .address = s, .before = value, .after = value, .writable_required = false };
+                at += 1;
+            }
+        }
+        try self.publish(e.call.clock, transitions, memory);
     }
     /// Packet and message words are reads; the 25 state words go from the
     /// recorded before-values to current memory (ethereum_services/keccak_sponge).

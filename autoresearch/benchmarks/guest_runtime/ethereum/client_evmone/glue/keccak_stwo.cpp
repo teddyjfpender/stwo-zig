@@ -13,12 +13,47 @@
 #include <evmone_precompiles/keccak.h>
 
 #include "services.hpp"
+#if defined(CANDIDATE_KECCAK)
+#include "candidate_curves.hpp"
+#endif
 
 namespace {
 constexpr size_t kRate = 136;
 constexpr size_t kRateWords = kRate / 8;
 
 inline uint64_t ldw(const uint8_t* p) { return *reinterpret_cast<const uint64_t*>(p); }
+
+// st[from..24] = 0 (from in 1..25) as straight-line stores entered at `from`:
+// a zeroing loop is turned into a memset call by the compiler.
+inline void zero_lanes_from(uint64_t* st, size_t from) {
+    switch (from) {
+        case 1: st[1] = 0; [[fallthrough]];
+        case 2: st[2] = 0; [[fallthrough]];
+        case 3: st[3] = 0; [[fallthrough]];
+        case 4: st[4] = 0; [[fallthrough]];
+        case 5: st[5] = 0; [[fallthrough]];
+        case 6: st[6] = 0; [[fallthrough]];
+        case 7: st[7] = 0; [[fallthrough]];
+        case 8: st[8] = 0; [[fallthrough]];
+        case 9: st[9] = 0; [[fallthrough]];
+        case 10: st[10] = 0; [[fallthrough]];
+        case 11: st[11] = 0; [[fallthrough]];
+        case 12: st[12] = 0; [[fallthrough]];
+        case 13: st[13] = 0; [[fallthrough]];
+        case 14: st[14] = 0; [[fallthrough]];
+        case 15: st[15] = 0; [[fallthrough]];
+        case 16: st[16] = 0; [[fallthrough]];
+        case 17: st[17] = 0; [[fallthrough]];
+        case 18: st[18] = 0; [[fallthrough]];
+        case 19: st[19] = 0; [[fallthrough]];
+        case 20: st[20] = 0; [[fallthrough]];
+        case 21: st[21] = 0; [[fallthrough]];
+        case 22: st[22] = 0; [[fallthrough]];
+        case 23: st[23] = 0; [[fallthrough]];
+        case 24: st[24] = 0; [[fallthrough]];
+        default: break;
+    }
+}
 
 // XOR (or, for the first block, store) `words` LE words of `in` into the
 // state; all words lie fully inside the input.
@@ -68,11 +103,21 @@ MemoEntry* g_memo = nullptr;
 
 extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
     alignas(32) uint64_t st[25];
+#if defined(CANDIDATE_KECCAK)
+    // Candidate keccak_sponge: absorb, pad and permute in one call. Inputs of
+    // at most 64 bytes keep the memoized admitted path below.
+    if (size > 64) {
+        stwo::cand_keccak256(st, data, size);
+        union ethash_hash256 out;
+        for (int i = 0; i < 4; ++i) out.word64s[i] = st[i];
+        return out;
+    }
+#endif
     bool first = true;
     while (size >= kRate) {
         if (first) {
             absorb_words<true>(st, data, kRateWords);
-            for (size_t i = kRateWords; i < 25; ++i) st[i] = 0;
+            zero_lanes_from(st, kRateWords);
             first = false;
         } else {
             absorb_words<false>(st, data, kRateWords);
@@ -89,7 +134,7 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
     if (first) {
         absorb_words<true>(st, data, words);
         st[words] = last;
-        for (size_t i = words + 1; i < 25; ++i) st[i] = 0;
+        zero_lanes_from(st, words + 1);
         if (size <= 64) {
             if (!g_memo) g_memo = static_cast<MemoEntry*>(std::calloc(kMemoSlots, sizeof(MemoEntry)));
             uint64_t h = 0;

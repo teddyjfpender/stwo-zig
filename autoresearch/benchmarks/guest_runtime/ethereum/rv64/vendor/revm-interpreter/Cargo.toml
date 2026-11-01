@@ -50,6 +50,9 @@ hashbrown = ["primitives/hashbrown"]
 memory_limit = []
 # Execution-only candidate arith256/arith256_mod ECALLs (stwo RV64 guest).
 stwo-candidate-arith = []
+# ADMITTED arith256_mod service (ethereum_services_v3): MULMOD/ADDMOD via ECALL
+# 0x0003_0021 on a 32-byte aligned packet; MUL/EXP stay in software.
+stwo-arith256-service = []
 serde = [
     "dep:serde",
     "primitives/serde",

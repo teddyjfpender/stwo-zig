@@ -271,3 +271,17 @@ material and are not counted):
     `W_63` folded away, which would save about 2%.
   - GPU/Metal paths and same-AIR Rust verification are not done.
   - The legacy wide route (`rv64-ethereum-proof prove`) rejects v3 by design.
+
+## Integration into the shared v3 profile (2026-11-01)
+
+Merged with arith256_mod and bulk memory on
+`codex/rv64-guest-prover-v3-integration`
+([rv64-services-v3-integration.md](rv64-services-v3-integration.md)). SHA-256 keeps
+family 3, Wire35 kind 3, its tape section and its transcript block. The
+SHA-only v3 fixture (`rv64-word16-combined-services-fixture produce-v3 sha256`)
+is byte-identical to this branch's output and verifies both ways; the header
+word 28..32 now carries the SHA-256 count in its low 31 bits (bit 31 flags the
+arith256_mod extension). The evmone client sends every compression to the
+service with a 32-byte aligned packet (`build.py --profile v3`), and the
+complete block was proved with that guest, which closes the "Complete block"
+gap for SHA-256 (see the integration note for cells and timing).

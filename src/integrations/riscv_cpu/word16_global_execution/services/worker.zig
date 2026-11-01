@@ -69,7 +69,7 @@ const Air = union(enum) {
     truth: Adapters.TruthComponents,
     fn init(descriptor: Descriptor, draw: Draw, claims: Claims) !Air {
         return switch (descriptor) {
-            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras) } },
+            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk) } },
             .truth => |t| .{ .truth = try Adapters.TruthComponents.init(t.value, draw.truth, claims.truth) },
         };
     }
@@ -155,10 +155,14 @@ pub const Worker = struct {
                 const base = (try source.core.generateForDelegationJoinProfiled(ch, recorder)).physical;
                 var extras: [T.FAMILIES]T.ExtraClaims = @splat(T.ExtraClaims.zero());
                 if (source.keccak) |*b| extras[0] = T.ExtraClaims.fromK(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
-                inline for (.{ "add", "double", "sha256" }, 1..) |name, k| if (@field(source, name)) |*b| {
+                inline for (.{ "add", "double", "sha256", "arith256_mod" }, 1..) |name, k| if (@field(source, name)) |*b| {
                     extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
                 };
-                const claims = S.CpuClaims{ .base = base, .extras = extras };
+                var bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero());
+                for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
+                };
+                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk };
                 try claims.presence(self.descriptor.cpu.setup);
                 break :block .{ .cpu = claims };
             },
@@ -249,6 +253,11 @@ fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
         // One component; the unused claim slots are fixed zero (receiver-checked).
         .sha256 => |*s| switch (draw) {
             .sha256 => |wire_ch| .{ try s.source.generateInteraction(wire_ch), G.Q.zero(), G.Q.zero() },
+            else => error.InvalidCombinedTruthChallenge,
+        },
+        // BYTE chain closes to zero in-AIR; only the Wire35 claim is public.
+        .arith256_mod => |*s| switch (draw) {
+            .arith256_mod => |ch| .{ try s.source.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
             else => error.InvalidCombinedTruthChallenge,
         },
     };

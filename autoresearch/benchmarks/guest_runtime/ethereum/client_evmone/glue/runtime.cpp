@@ -23,6 +23,71 @@
 static constexpr size_t kCandMemMin = 32;
 #endif
 
+// Admitted v3 bulk memory (ethereum_services_v3, ADMITTED_MEM): only the aligned
+// word form is admitted (8-aligned packet, dst and src 8-aligned, len a nonzero
+// multiple of 8 and at most 1 MiB, packet/src/dst words pairwise disjoint). As in
+// the Rust guest's `admitted-mem` feature (ethereum/rv64/mem), the unaligned head
+// and tail are copied inline, bodies are split into 1 MiB chunks, and overlapping
+// moves, mismatched src/dst alignment and calls below the threshold stay in
+// software, so a wrapper call never traps.
+#if defined(ADMITTED_MEM)
+#if !defined(STWO_ADMITTED_COPY_MIN)
+#define STWO_ADMITTED_COPY_MIN 16
+#endif
+#if !defined(STWO_ADMITTED_SET_MIN)
+#define STWO_ADMITTED_SET_MIN 16
+#endif
+namespace {
+constexpr size_t kAdmittedMax = size_t(1) << 20;
+inline void v3_bulk(uint64_t tag, uint64_t d, uint64_t w1, uint64_t n) noexcept {
+    alignas(8) uint64_t p[3] = {d, w1, n};
+    stwo::ecall(tag, p);
+}
+inline void v3_copy_words(uint8_t* d, const uint8_t* s, size_t n) noexcept {
+    while (n > kAdmittedMax) {
+        v3_bulk(stwo::kV3Memcpy, reinterpret_cast<uint64_t>(d), reinterpret_cast<uint64_t>(s), kAdmittedMax);
+        d += kAdmittedMax; s += kAdmittedMax; n -= kAdmittedMax;
+    }
+    v3_bulk(stwo::kV3Memcpy, reinterpret_cast<uint64_t>(d), reinterpret_cast<uint64_t>(s), n);
+}
+inline void v3_fill_words(uint8_t* d, uint8_t byte, size_t n) noexcept {
+    while (n > kAdmittedMax) {
+        v3_bulk(stwo::kV3Memset, reinterpret_cast<uint64_t>(d), byte, kAdmittedMax);
+        d += kAdmittedMax; n -= kAdmittedMax;
+    }
+    v3_bulk(stwo::kV3Memset, reinterpret_cast<uint64_t>(d), byte, n);
+}
+// Returns false (caller copies in software) unless both pointers share their
+// alignment and the ranges are disjoint.
+inline bool v3_copy(void* dst, const void* src, size_t n) noexcept {
+    const uintptr_t d = reinterpret_cast<uintptr_t>(dst), s = reinterpret_cast<uintptr_t>(src);
+    if (n < STWO_ADMITTED_COPY_MIN || ((d ^ s) & 7) != 0 || (d < s + n && s < d + n)) return false;
+    const size_t head = (0 - d) & 7;
+    const size_t body = (n - head) & ~size_t(7);
+    if (body == 0) return false;
+    uint8_t* dp = static_cast<uint8_t*>(dst);
+    const uint8_t* sp = static_cast<const uint8_t*>(src);
+    for (size_t i = 0; i < head; ++i) dp[i] = sp[i];
+    v3_copy_words(dp + head, sp + head, body);
+    for (size_t i = head + body; i < n; ++i) dp[i] = sp[i];
+    return true;
+}
+inline bool v3_set(void* dst, int c, size_t n) noexcept {
+    if (n < STWO_ADMITTED_SET_MIN) return false;
+    const uintptr_t d = reinterpret_cast<uintptr_t>(dst);
+    const size_t head = (0 - d) & 7;
+    const size_t body = (n - head) & ~size_t(7);
+    if (body == 0) return false;
+    uint8_t* dp = static_cast<uint8_t*>(dst);
+    const uint8_t byte = static_cast<uint8_t>(c);
+    for (size_t i = 0; i < head; ++i) dp[i] = byte;
+    v3_fill_words(dp + head, byte, body);
+    for (size_t i = head + body; i < n; ++i) dp[i] = byte;
+    return true;
+}
+}  // namespace
+#endif
+
 extern "C" {
 extern char __heap_start[];
 extern char __heap_end[];
@@ -177,18 +242,27 @@ int posix_memalign(void** out, size_t alignment, size_t size) {
 extern "C" {
 
 void* memcpy(void* dst, const void* src, size_t n) {
+#if defined(ADMITTED_MEM)
+    if (v3_copy(dst, src, n)) return dst;
+#endif
 #if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }
 #endif
     return stwo_memcpy(dst, src, n);
 }
 void* memmove(void* dst, const void* src, size_t n) {
+#if defined(ADMITTED_MEM)
+    if (v3_copy(dst, src, n)) return dst;  // disjoint ranges only; overlap stays in software
+#endif
 #if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }  // memmove-safe
 #endif
     return stwo_memmove(dst, src, n);
 }
 void* memset(void* dst, int c, size_t n) {
+#if defined(ADMITTED_MEM)
+    if (v3_set(dst, c, n)) return dst;
+#endif
 #if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memset(dst, c, n); return dst; }
 #endif

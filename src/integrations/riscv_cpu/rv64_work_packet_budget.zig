@@ -8,6 +8,9 @@ const H = @import("rv64_work_packet_header.zig");
 const IO = @import("rv64_work_packet_io.zig");
 const GraphWire = R.native_frontier_wire;
 const TapeWire = rv.compact_tape_wire;
+const EXTENSION_FLAG: u32 = 1 << 31;
+const EXTENSION_BYTES = 8;
+const ARITH256_RECORD = 32 + 160 + 160;
 pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void {
     if (steps == 0 or steps > limits.steps or steps >= 1 << 22) return error.WorkPacketResourceLimit;
     const graph_start = try std.math.add(usize, H.BYTES, try h.bodyBytes());
@@ -40,20 +43,35 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     try file.seekTo(tape_start);
     var tape: [TapeWire.HEADER_BYTES]u8 = undefined;
     try IO.exact(file, &tape);
-    // The formerly reserved word is the v3 SHA-256 record count (zero below v3).
+    // The formerly reserved word is the v3 SHA-256 record count (zero below
+    // v3); its bit 31 announces the v3 extension (arith256_mod records) that
+    // follows the SHA-256 records (compact_tape_wire.zig).
     const v3 = get32(tape[8..12]) == @intFromEnum(@import("stwo_riscv_frontend").rv64.execution_profile.Profile.ethereum_services_v3);
-    const sha256 = get32(tape[28..32]);
-    if (!std.mem.eql(u8, tape[0..8], TapeWire.MAGIC) or get32(tape[12..16]) != steps or (!v3 and sha256 != 0)) return error.InvalidWorkPacketSection;
+    const sha_word = get32(tape[28..32]);
+    const extended = sha_word & EXTENSION_FLAG != 0;
+    const sha256 = sha_word & ~EXTENSION_FLAG;
+    if (!std.mem.eql(u8, tape[0..8], TapeWire.MAGIC) or get32(tape[12..16]) != steps or (!v3 and sha_word != 0)) return error.InvalidWorkPacketSection;
     const memory = get32(tape[16..20]);
     const keccak = get32(tape[20..24]);
     const secp = get32(tape[24..28]);
     if (memory > steps or keccak > steps or secp > steps - keccak or sha256 > steps - keccak - secp) return error.WorkPacketResourceLimit;
-    const encoded_tape = try std.math.add(usize, TapeWire.HEADER_BYTES, try sumWidths(&.{ steps, memory, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 }));
+    const base_tape = try std.math.add(usize, TapeWire.HEADER_BYTES, try sumWidths(&.{ steps, memory, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 }));
+    var arith: usize = 0;
+    if (extended) {
+        if (h.tape_bytes < base_tape + EXTENSION_BYTES + ARITH256_RECORD or (h.tape_bytes - base_tape - EXTENSION_BYTES) % ARITH256_RECORD != 0) return error.InvalidWorkPacketSection;
+        arith = (h.tape_bytes - base_tape - EXTENSION_BYTES) / ARITH256_RECORD;
+        if (arith > steps - keccak - secp - sha256) return error.WorkPacketResourceLimit;
+        var extension: [EXTENSION_BYTES]u8 = undefined;
+        try file.seekTo(try std.math.add(usize, tape_start, base_tape));
+        try IO.exact(file, &extension);
+        if (get32(extension[0..4]) != arith or get32(extension[4..8]) != 0) return error.InvalidWorkPacketSection;
+    }
+    const encoded_tape = if (extended) try std.math.add(usize, base_tape, EXTENSION_BYTES + arith * ARITH256_RECORD) else base_tape;
     if (encoded_tape != h.tape_bytes) return error.InvalidWorkPacketSection;
     // Tape's sparse ordinary-memory ArrayList uses geometric growth; service
     // arrays use precise capacity. No unused native execution capacity is read.
     const memory_capacity: usize = if (memory == 0) 0 else @max(8, try std.math.mul(usize, memory, 2));
-    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 });
+    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256, arith }, &.{ 48, 8, 432, 424, 224, @sizeOf(rv.ethereum_services.Arith256ModCall) });
     const peak = try std.math.add(usize, try std.math.add(usize, base, graph_bytes), @max(graph_temporary, tape_bytes));
     if (try std.math.add(usize, peak, 512 * 1024) > limits.allocation_bytes) return error.WorkPacketResourceLimit;
 }

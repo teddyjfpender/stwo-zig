@@ -22,24 +22,23 @@ pub fn fixed(a: std.mem.Allocator, kind: T.Kind, log: u32) ![]M {
         out[3 * n + p] = M.fromCanonical(@intCast(coord));
         out[4 * n + p] = M.fromCanonical(@intFromBool(coord == 0));
         out[5 * n + p] = M.fromCanonical(@intCast(row / coords));
-        out[6 * n + p] = M.fromCanonical(@intFromBool(coord < T.written(kind)));
-        out[7 * n + p] = M.fromCanonical(if (coord < T.written(kind)) T.outputWire(kind, coord) else 0);
+        out[6 * n + p] = M.fromCanonical(@intFromBool(T.isWritten(kind, coord)));
+        out[7 * n + p] = M.fromCanonical(if (T.isWritten(kind, coord)) T.outputWire(kind, coord) else 0);
     }
     return out;
 }
 pub fn validate(kind: T.Kind, c: T.Call) !void {
     const words = 4 * T.coordinates(kind);
-    const writes = 4 * T.written(kind);
     if (c.epoch == 0 or c.tick == 0 or c.tick & 3 != 0 or c.pointer & 31 != 0 or c.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidWord16SecpCall;
     for (c.predecessors[0..words], c.before[0..words], c.after[0..words], 0..) |pred, before, after, lane| {
-        if (pred.value != before or pred.rights & 1 == 0 or (lane < writes and pred.rights & 2 == 0) or (lane >= writes and after != before) or pred.epoch > c.epoch or (pred.epoch == c.epoch and pred.tick >= c.tick)) return error.InvalidWord16SecpPredecessor;
+        if (pred.value != before or pred.rights & 1 == 0 or (T.isWritten(kind, lane / 4) and pred.rights & 2 == 0) or (!T.isWritten(kind, lane / 4) and after != before) or pred.epoch > c.epoch or (pred.epoch == c.epoch and pred.tick >= c.tick)) return error.InvalidWord16SecpPredecessor;
     }
 }
 pub fn nativeRow(kind: T.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
     var out: [L.MAIN]M = @splat(M.zero());
     const c = call orelse return out;
     out[L.ACTIVE] = M.one();
-    const writes = coord < T.written(kind);
+    const writes = T.isWritten(kind, coord);
     out[L.WRITE] = M.fromCanonical(@intFromBool(writes));
     out[L.TICK] = M.fromCanonical(c.tick);
     out[L.EPOCH] = M.fromCanonical(c.epoch);

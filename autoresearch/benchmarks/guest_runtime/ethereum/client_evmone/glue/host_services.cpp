@@ -7,6 +7,7 @@
 
 #include <intx/intx.hpp>
 
+#include "candidate_curves.hpp"
 #include "services.hpp"
 
 extern "C" [[noreturn]] void stwo_guest_abort(const char* why) noexcept;
@@ -72,6 +73,151 @@ void emu_secp_double(uint64_t* w) {
     st(w + 4, add(mul(ym, yp), t));
     st(w + 8, sm(mul(mul(yy, y), z), 8));
 }
+
+// Candidate curve, field and sponge services (candidate_curves.hpp).
+using u384 = intx::uint<384>;
+using u768 = intx::uint<768>;
+using u1024 = intx::uint<1024>;
+const uint256 PBN = intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
+const u384 PBLS = intx::from_string<u384>(
+    "0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab");
+u384 ld6(const uint64_t* w) { u384 v; for (int i = 0; i < 6; ++i) v[i] = w[i]; return v; }
+void st6(uint64_t* w, const u384& v) { for (int i = 0; i < 6; ++i) w[i] = v[i]; }
+template <typename U>
+struct Fld {
+    U p;
+    U mul(const U& a, const U& b) const {
+        return static_cast<U>(intx::umul(a, b) % intx::uint<2 * U::num_bits>{p});
+    }
+    U add(const U& a, const U& b) const { return a >= p - b ? a - (p - b) : a + b; }
+    U sub(const U& a, const U& b) const { return a >= b ? a - b : p - (b - a); }
+    U inv(const U& a) const {  // Fermat, p prime
+        U r = 1, x = a, e = p - 2;
+        while (e != 0) {
+            if (e & 1) r = mul(r, x);
+            x = mul(x, x);
+            e >>= 1;
+        }
+        return r;
+    }
+    void aff_add(U* r, const U* p1, const U* p2) const {
+        const U l = mul(sub(p2[1], p1[1]), inv(sub(p2[0], p1[0])));
+        const U x3 = sub(sub(mul(l, l), p1[0]), p2[0]);
+        r[1] = sub(mul(l, sub(p1[0], x3)), p1[1]);
+        r[0] = x3;
+    }
+    void aff_dbl(U* r, const U* p1) const {
+        const U xx = mul(p1[0], p1[0]);
+        const U l = mul(add(add(xx, xx), xx), inv(add(p1[1], p1[1])));
+        const U x3 = sub(mul(l, l), add(p1[0], p1[0]));
+        r[1] = sub(mul(l, sub(p1[0], x3)), p1[1]);
+        r[0] = x3;
+    }
+    void fp2(U* r, const U* a, const U* b) const {
+        const U c0 = sub(mul(a[0], b[0]), mul(a[1], b[1]));
+        r[1] = add(mul(a[0], b[1]), mul(a[1], b[0]));
+        r[0] = c0;
+    }
+};
+// a*b*2^-384 mod odd m via REDC on 1024-bit intermediates.
+u384 mont384(u384 a, u384 b, const u384& m) {
+    if (m == 1) return 0;
+    a %= m;
+    b %= m;
+    u384 ninv = 1;  // m^-1 mod 2^384 by Newton iteration
+    for (int i = 0; i < 9; ++i) ninv *= u384{2} - m * ninv;
+    const u768 t = intx::umul(a, b);
+    const u384 q = static_cast<u384>(t) * (u384{0} - ninv);
+    const u1024 s = u1024{t} + u1024{intx::umul(q, m)};
+    u384 r = static_cast<u384>(s >> 384);
+    if (r >= m) r -= m;
+    return r;
+}
+uint64_t* at(uint64_t v) { return reinterpret_cast<uint64_t*>(v); }
+}  // namespace
+// Calls per candidate curve tag (low byte), so host tests can assert that a hook is live.
+extern "C" { uint64_t stwo_host_curve_calls[256]; }
+namespace {
+void emu_candidate_curve(uint64_t tag, uint64_t* w) {
+    ++stwo_host_curve_calls[tag & 0xff];
+    const Fld<uint256> bn{PBN};
+    const Fld<u384> bls{PBLS};
+    switch (tag) {
+        case stwo::kCandBn254G1Add: {
+            uint256 p[2] = {ld(at(w[1])), ld(at(w[1]) + 4)}, q[2] = {ld(at(w[2])), ld(at(w[2]) + 4)}, r[2];
+            if (p[0] == q[0] || p[0] >= PBN || p[1] >= PBN || q[0] >= PBN || q[1] >= PBN)
+                stwo_guest_abort("bn254_g1_add precondition");
+            bn.aff_add(r, p, q);
+            st(at(w[0]), r[0]);
+            st(at(w[0]) + 4, r[1]);
+            return;
+        }
+        case stwo::kCandBn254G1Double: {
+            uint256 p[2] = {ld(at(w[1])), ld(at(w[1]) + 4)}, r[2];
+            if (p[1] == 0 || p[0] >= PBN || p[1] >= PBN) stwo_guest_abort("bn254_g1_double precondition");
+            bn.aff_dbl(r, p);
+            st(at(w[0]), r[0]);
+            st(at(w[0]) + 4, r[1]);
+            return;
+        }
+        case stwo::kCandBn254Fp2Mul: {
+            uint256 a[2] = {ld(at(w[1])) % PBN, ld(at(w[1]) + 4) % PBN}, b[2] = {ld(at(w[2])) % PBN, ld(at(w[2]) + 4) % PBN}, r[2];
+            bn.fp2(r, a, b);
+            st(at(w[0]), r[0]);
+            st(at(w[0]) + 4, r[1]);
+            return;
+        }
+        case stwo::kCandBls12381Fp2Mul: {
+            u384 a[2] = {ld6(at(w[1])) % PBLS, ld6(at(w[1]) + 6) % PBLS}, b[2] = {ld6(at(w[2])) % PBLS, ld6(at(w[2]) + 6) % PBLS};
+            // Montgomery: (a0 b0 - a1 b1) R^-1, (a0 b1 + a1 b0) R^-1 = REDC of each product combination.
+            const u384 r0 = bls.sub(mont384(a[0], b[0], PBLS), mont384(a[1], b[1], PBLS));
+            const u384 r1 = bls.add(mont384(a[0], b[1], PBLS), mont384(a[1], b[0], PBLS));
+            st6(at(w[0]), r0);
+            st6(at(w[0]) + 6, r1);
+            return;
+        }
+        case stwo::kCandArith384Mont: {
+            const u384 m = ld6(at(w[2]));
+            if ((m[0] & 1) == 0) stwo_guest_abort("arith384_mont even modulus");
+            st6(at(w[3]), mont384(ld6(at(w[0])), ld6(at(w[1])), m));
+            return;
+        }
+        case stwo::kCandArith384Mod: {
+            const u384 m = ld6(at(w[3]));
+            u384 r = 0;
+            if (m != 0) r = static_cast<u384>((intx::umul(ld6(at(w[0])), ld6(at(w[1]))) + u768{ld6(at(w[2]))}) % u768{m});
+            st6(at(w[4]), r);
+            return;
+        }
+        case stwo::kCandKeccakSponge: {
+            uint64_t* s = at(w[0]);
+            const uint8_t* in = reinterpret_cast<const uint8_t*>(w[1]);
+            const uint64_t len = w[2], flags = w[3];
+            const bool fin = flags & stwo::kSpongeFinalize;
+            if ((flags & ~uint64_t(3)) || (!fin && len % 136)) stwo_guest_abort("keccak_sponge flags/length");
+            uint64_t a[25] = {};
+            if (!(flags & stwo::kSpongeFresh)) std::memcpy(a, s, 200);
+            uint64_t off = 0;
+            uint8_t block[136];
+            for (; len - off >= 136; off += 136) {
+                std::memcpy(block, in + off, 136);
+                for (int i = 0; i < 17; ++i) { uint64_t v; std::memcpy(&v, block + 8 * i, 8); a[i] ^= v; }
+                keccakf(a);
+            }
+            if (fin) {
+                std::memset(block, 0, 136);
+                std::memcpy(block, in + off, len - off);
+                block[len - off] ^= 0x01;
+                block[135] ^= 0x80;
+                for (int i = 0; i < 17; ++i) { uint64_t v; std::memcpy(&v, block + 8 * i, 8); a[i] ^= v; }
+                keccakf(a);
+            }
+            std::memcpy(s, a, 200);
+            return;
+        }
+        default: stwo_guest_abort("candidate curve service not emulated on the host");
+    }
+}
 }  // namespace
 
 namespace stwo {
@@ -101,7 +247,9 @@ void host_service(uint64_t tag, void* packet) noexcept {
             st(w + 16, r);
             return;
         }
-        default: stwo_guest_abort("unknown service tag");
+        default:
+            if ((tag & 0xffffff00) == 0x00030100) return emu_candidate_curve(tag, w);
+            stwo_guest_abort("unknown service tag");
     }
 }
 }  // namespace stwo
