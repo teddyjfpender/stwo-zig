@@ -101,6 +101,16 @@ fn publicClaims(request: P.Request, plan: *const Components.Plan, shared: Manife
         else => {},
     };
 }
+fn releaseSlice(a: std.mem.Allocator, values: anytype) void {
+    a.free(values.*);
+    values.* = &.{};
+}
+fn releaseLsLocals(source: anytype) void {
+    inline for (.{ "fixed", "counts16", "counts8", "selection_counts" }) |name| releaseSlice(source.allocator, &@field(source, name));
+}
+fn releaseBridgeLocals(source: anytype) void {
+    inline for (.{ "fixed", "counts16", "counts8" }) |name| releaseSlice(source.allocator, &@field(source, name));
+}
 pub const CpuWorker = struct {
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
@@ -143,6 +153,22 @@ pub const CpuWorker = struct {
         source.allocator.free(source.counts16);
         source.allocator.free(source.counts8);
         source.allocator.free(source.boundary);
+        const memory = &source.memory;
+        releaseLsLocals(&memory.ls);
+        if (memory.ls_tail) |*tail| releaseLsLocals(tail);
+        inline for (.{ "initial", "terminal" }) |name| {
+            const boundary = &@field(memory, name);
+            releaseSlice(boundary.allocator, &boundary.fixed);
+        }
+        inline for (.{ "fixed", "main", "interaction" }) |name| releaseSlice(memory.selection.allocator, &@field(memory.selection, name));
+        memory.selection.counts = &.{};
+        if (memory.selection_counts) |counts| memory.allocator.free(counts);
+        memory.selection_counts = null;
+        releaseSlice(memory.allocator, &memory.counts16);
+        releaseSlice(memory.allocator, &memory.counts8);
+        if (self.source.keccak) |*bridge| releaseBridgeLocals(bridge);
+        if (self.source.add) |*bridge| releaseBridgeLocals(bridge);
+        if (self.source.double) |*bridge| releaseBridgeLocals(bridge);
         self.local_metadata_retired = true;
     }
     /// Stage-one barrier ownership seam. The field-neutral retained store owns

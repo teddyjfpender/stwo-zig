@@ -57,3 +57,23 @@ sweeps remain separate evidence.
 Fixture PCS settings (`pow_bits=0`, blowup log1,12queries) are deliberately small
 functional controls and carry no production128-bit claim. Production policy must
 supply and admit its independently reviewed PCS/security profile.
+
+Further retirement frees RAM/bridge fixed arrays and histograms and the selection
+provider after local closure. Only LS/INIT/TEARDOWN canonical row metadata, public
+boundary arrays and bridge call records survive. `retention_plan.forCpu` derives
+those byte counts from admitted shapes and calls and checks the global witness
+output-plus-chunk-scratch budget. Physical fixtures compare these predictions
+against actual surviving allocations, compact coefficient payloads, binding
+planes and a conservative MAIN Merkle bound.
+
+The plan distinguishes parked and resident coefficients. MAIN Merkle layers
+remain resident under the current coefficient-only Store and are included even
+in `parked_retained_bytes`. The Store separately admits page-rounded file bytes.
+The per-phase task estimates cover represented frontend/GKR/global payloads;
+they deliberately exclude original capture/advice inventories, immutable setup,
+source-construction and PCS FFT/composition/FRI scratch, allocator overhead and
+RSS. Scheduler admission must retain an independently justified transient lease
+(and the previous estimate as a floor), rather than treating these counters as
+a bound on total physical memory. Parked abort and later stage-one OOM tests
+verify that registry owners, mappings and reservations all unwind without a
+restore or stale owner pointer.
