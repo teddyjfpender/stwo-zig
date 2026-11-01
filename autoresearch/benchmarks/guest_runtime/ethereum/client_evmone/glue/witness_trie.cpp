@@ -152,8 +152,8 @@ inline size_t child_item_len(uint8_t b) { return kChildLen.len[b]; }
 
 // --------------------------------------------------------- decoded node ----
 // raw[off[i]] is the RLP item of child i (branch: i < 16, off[16] = the
-// empty value item; extension: off[0]). res[i] caches the resolved child:
-// nullptr = not yet resolved, kMissing = digest not in the witness.
+// empty value item; extension: off[0]). res[i] caches the resolved child
+// when bit i of `resolved` is set (kMissing = digest not in the witness).
 // Leaf/extension paths stay hex-prefix encoded in the witness: `hp` points
 // at the flag byte, nibble i of the path is hp_nibble(hp, i + skip) with
 // skip = 1 for odd lengths and 2 for even ones.
@@ -163,6 +163,7 @@ struct DNode {
     uint8_t kind;  // 0 leaf, 1 extension, 2 branch
     uint8_t plen;
     uint16_t off[17];
+    mutable uint16_t resolved;
     const uint8_t* hp;
     const uint8_t* value;  // leaf payload
     uint32_t vlen;
@@ -188,9 +189,22 @@ inline uint8_t hp_nibble(const uint8_t* hp, size_t j) {
     return (j & 1) ? (hp[j >> 1] & 0x0f) : (hp[j >> 1] >> 4);
 }
 inline size_t hp_skip(size_t plen) { return (plen & 1) ? 1 : 2; }
-void hp_unpack(const DNode* d, uint8_t* nib) {
-    const size_t skip = hp_skip(d->plen);
-    for (size_t i = 0; i < d->plen; ++i) nib[i] = hp_nibble(d->hp, i + skip);
+void hp_unpack(const uint8_t* hp, size_t plen, uint8_t* nib) {
+    const size_t skip = hp_skip(plen);
+    for (size_t i = 0; i < plen; ++i) nib[i] = hp_nibble(hp, i + skip);
+}
+// A leaf path (hex-prefix bytes at `h`, `plen` nibbles, depth + plen = 64)
+// equals key nibbles [depth, 64): the bytes after the flag byte line up with
+// whole key bytes; an odd path adds the flag byte's low nibble.
+inline bool hp_leaf_matches(const uint8_t* h, size_t plen, const uint8_t* key, size_t depth) {
+    size_t kb = depth >> 1;
+    if (plen & 1) {
+        if ((h[0] & 0x0f) != (key[kb] & 0x0f)) return false;
+        ++kb;
+    }
+    unsigned diff = 0;
+    for (size_t i = 1; kb < 32; ++i, ++kb) diff |= h[i] ^ key[kb];
+    return diff == 0;
 }
 
 DNode* decode_dnode(const uint8_t* p, size_t n) {
@@ -217,14 +231,23 @@ DNode* decode_dnode(const uint8_t* p, size_t n) {
         d->raw_len = static_cast<uint32_t>(n);
         d->kind = 2;
         d->plen = 0;
-        for (int i = 0; i < 16; ++i) {
-            if (q >= end) stwo_fatal("trie: bad node arity");
-            const size_t l = child_item_len(*q);
-            if (l == 0) stwo_fatal("trie: bad child reference");
-            d->off[i] = static_cast<uint16_t>(q - p);
-            d->res[i] = nullptr;
-            q += l;
+        d->resolved = 0;
+        // Unrolled scan; `bad` accumulates any truncation or invalid item.
+        bool bad = false;
+#define STWO_SCAN_CHILD(i)                                   \
+        {                                                    \
+            bad |= q >= end;                                 \
+            const size_t l = bad ? 1 : child_item_len(*q);   \
+            bad |= l == 0;                                   \
+            d->off[i] = static_cast<uint16_t>(q - p);        \
+            q += l;                                          \
         }
+        STWO_SCAN_CHILD(0) STWO_SCAN_CHILD(1) STWO_SCAN_CHILD(2) STWO_SCAN_CHILD(3)
+        STWO_SCAN_CHILD(4) STWO_SCAN_CHILD(5) STWO_SCAN_CHILD(6) STWO_SCAN_CHILD(7)
+        STWO_SCAN_CHILD(8) STWO_SCAN_CHILD(9) STWO_SCAN_CHILD(10) STWO_SCAN_CHILD(11)
+        STWO_SCAN_CHILD(12) STWO_SCAN_CHILD(13) STWO_SCAN_CHILD(14) STWO_SCAN_CHILD(15)
+#undef STWO_SCAN_CHILD
+        if (bad) stwo_fatal("trie: bad child reference");
         // The value slot must be the empty string and close the node.
         if (q + 1 != end || *q != 0x80) stwo_fatal("trie: bad branch value");
         d->off[16] = static_cast<uint16_t>(q - p);
@@ -250,7 +273,7 @@ DNode* decode_dnode(const uint8_t* p, size_t n) {
         d = static_cast<DNode*>(arena_alloc(sizeof(DNode)));
         d->kind = 1;
         d->off[0] = static_cast<uint16_t>(c - p);
-        d->res[0] = nullptr;
+        d->resolved = 0;
     }
     d->raw = p;
     d->raw_len = static_cast<uint32_t>(n);
@@ -273,10 +296,10 @@ const DNode* resolve_item(const NodeStore& store, const uint8_t* c) {
 
 // Child `i` of decoded node `d` (cached). nullptr = empty, kMissing = missing.
 inline const DNode* follow(const NodeStore& store, const DNode* d, unsigned i) {
-    const DNode* r = d->res[i];
-    if (r) return r;
-    r = resolve_item(store, d->raw + d->off[i]);
-    if (r) d->res[i] = r;
+    if (d->resolved >> i & 1) return d->res[i];
+    const DNode* r = resolve_item(store, d->raw + d->off[i]);
+    d->res[i] = r;
+    d->resolved = static_cast<uint16_t>(d->resolved | (1u << i));
     return r;
 }
 
@@ -348,17 +371,7 @@ Lookup trie_get(const NodeStore& store, const H256& root, const uint8_t key[32],
             // Leaf: its path must be exactly the rest of the key. With
             // depth + plen = 64 the hex-prefix bytes after the flag byte line
             // up with whole key bytes; an odd path adds the flag's low nibble.
-            const size_t pn = d->plen;
-            if (depth + pn != 64) return Lookup::Absent;
-            const uint8_t* h = d->hp;
-            size_t kb = depth >> 1;
-            if (pn & 1) {
-                if ((h[0] & 0x0f) != (key[kb] & 0x0f)) return Lookup::Absent;
-                ++kb;
-            }
-            unsigned diff = 0;
-            for (size_t i = 1; kb < 32; ++i, ++kb) diff |= h[i] ^ key[kb];
-            if (diff) return Lookup::Absent;
+            if (depth + d->plen != 64 || !hp_leaf_matches(d->hp, d->plen, key, depth)) return Lookup::Absent;
             value = ByteView{d->value, d->vlen};
             return Lookup::Found;
         } else {
@@ -383,8 +396,11 @@ Lookup trie_get(const NodeStore& store, const H256& root, const uint8_t key[32],
 // child's RLP item in the witness bytes (0xa0 digest or an embedded node):
 // untouched subtrees cost no allocation and re-encode as their original item.
 // A branch owned from a witness node keeps `src` and a mask of the positions
-// assigned since (`mod`); every other position still holds the original item.
-// The root may be a Clean node (known hash).
+// assigned since (`mod`): only those `child` entries are set, every other
+// position still holds the original item (read through get_child). Branches
+// built here have no `src` and mod = 0xffff. A leaf owned from the witness
+// keeps its path hex-prefix encoded (`hp`) until a structural change needs
+// the nibbles (ensure_path). The root may be a Clean node (known hash).
 struct MutableTrie::Node {
     enum Kind : uint8_t { Empty, Leaf, Ext, Branch, Clean } kind;
     bool dirty;
@@ -395,6 +411,7 @@ struct MutableTrie::Node {
     H256 hash;
     const uint8_t* value;
     const DNode* src;
+    const uint8_t* hp;
     Node* child[16];  // Ext uses child[0]
     uint8_t path[64];
 };
@@ -417,32 +434,45 @@ inline Node* alloc_node(Node::Kind k) {
     n->vlen = 0;
     n->mod = 0;
     n->src = nullptr;
+    n->hp = nullptr;
     return n;
 }
 
-Node g_empty_node = {Node::Empty, false, false, 0, 0, 0, {}, nullptr, nullptr, {}, {}};
+Node g_empty_node = {Node::Empty, false, false, 0, 0, 0, {}, nullptr, nullptr, nullptr, {}, {}};
 inline Node* empty_node() { return &g_empty_node; }
 inline bool is_empty(const Node* n) { return n == &g_empty_node; }
+
+inline Node* get_child(const Node* n, unsigned i) {
+    if (n->mod >> i & 1) return n->child[i];
+    const uint8_t* c = n->src->raw + n->src->off[i];
+    return *c == 0x80 ? empty_node() : tag(c);
+}
+inline void set_child(Node* n, unsigned i, Node* c) {
+    n->child[i] = c;
+    n->mod = static_cast<uint16_t>(n->mod | (1u << i));
+}
+inline void ensure_path(Node* n) {
+    if (n->hp) {
+        hp_unpack(n->hp, n->plen, n->path);
+        n->hp = nullptr;
+    }
+}
 
 // Materialize a decoded witness node into an owned node (children tagged).
 Node* own_dnode(const DNode* d) {
     Node* m;
     if (d->kind == 2) {
         m = alloc_node(Node::Branch);
-        m->src = d;
-        for (int i = 0; i < 16; ++i) {
-            const uint8_t* c = d->raw + d->off[i];
-            m->child[i] = *c == 0x80 ? empty_node() : tag(c);
-        }
+        m->src = d;  // children read through get_child until assigned
     } else if (d->kind == 1) {
         m = alloc_node(Node::Ext);
         m->plen = d->plen;
-        hp_unpack(d, m->path);
+        hp_unpack(d->hp, d->plen, m->path);
         m->child[0] = tag(d->raw + d->off[0]);
     } else {
         m = alloc_node(Node::Leaf);
         m->plen = d->plen;
-        hp_unpack(d, m->path);
+        m->hp = d->hp;
         m->value = d->value;
         m->vlen = d->vlen;
     }
@@ -505,6 +535,7 @@ Node* split_into_branch(Node* n, const uint8_t* rest, size_t rlen, size_t c, con
                         size_t vlen) {
     Node* b = alloc_node(Node::Branch);
     for (auto& ch : b->child) ch = empty_node();
+    b->mod = 0xffff;
     Node* common = make_ext(rest, c, b);  // copies the common prefix before n is shortened
     const uint8_t old_nib = n->path[c];
     b->child[old_nib] = drop_prefix(n, c + 1);
@@ -512,7 +543,8 @@ Node* split_into_branch(Node* n, const uint8_t* rest, size_t rlen, size_t c, con
     return common;
 }
 
-Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, size_t vlen,
+// `key` = 64 nibbles, `kp` = the same key packed (32 bytes).
+Node* insert(Node* n, const uint8_t* key, const uint8_t* kp, size_t depth, const uint8_t* value, size_t vlen,
              const NodeStore& store) {
     const uint8_t* rest = key + depth;
     const size_t rlen = 64 - depth;
@@ -520,6 +552,15 @@ Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, si
     n = own(n, store);
     switch (n->kind) {
         case Node::Leaf: {
+            if (n->hp) {
+                if (n->plen == rlen && hp_leaf_matches(n->hp, n->plen, kp, depth)) {
+                    n->value = value;
+                    n->vlen = static_cast<uint32_t>(vlen);
+                    n->dirty = true;
+                    return n;
+                }
+                ensure_path(n);
+            }
             size_t c = 0;
             while (c < n->plen && c < rlen && n->path[c] == rest[c]) ++c;
             if (c == n->plen && c == rlen) {
@@ -535,7 +576,7 @@ Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, si
             size_t c = 0;
             while (c < n->plen && c < rlen && n->path[c] == rest[c]) ++c;
             if (c == n->plen) {
-                n->child[0] = insert(n->child[0], key, depth + c, value, vlen, store);
+                n->child[0] = insert(n->child[0], key, kp, depth + c, value, vlen, store);
                 n->dirty = true;
                 return n;
             }
@@ -543,8 +584,7 @@ Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, si
             return split_into_branch(n, rest, rlen, c, value, vlen);
         }
         case Node::Branch:
-            n->child[rest[0]] = insert(n->child[rest[0]], key, depth + 1, value, vlen, store);
-            n->mod = static_cast<uint16_t>(n->mod | (1u << rest[0]));
+            set_child(n, rest[0], insert(get_child(n, rest[0]), key, kp, depth + 1, value, vlen, store));
             n->dirty = true;
             return n;
         default:
@@ -556,6 +596,7 @@ Node* insert(Node* n, const uint8_t* key, size_t depth, const uint8_t* value, si
 Node* collapse_child(uint8_t i, Node* c, const NodeStore& store) {
     c = own(c, store);
     if (c->kind == Node::Leaf || c->kind == Node::Ext) {
+        ensure_path(c);
         std::memmove(c->path + 1, c->path, c->plen);
         c->path[0] = i;
         c->plen = static_cast<uint8_t>(c->plen + 1);
@@ -570,7 +611,8 @@ Node* collapse_child(uint8_t i, Node* c, const NodeStore& store) {
 }
 
 // Returns the new subtree; `changed` reports whether anything was removed.
-Node* remove(Node* n, const uint8_t* key, size_t depth, const NodeStore& store, bool& changed) {
+Node* remove(Node* n, const uint8_t* key, const uint8_t* kp, size_t depth, const NodeStore& store,
+             bool& changed) {
     changed = false;
     if (is_empty(n)) return n;
     const uint8_t* rest = key + depth;
@@ -578,19 +620,21 @@ Node* remove(Node* n, const uint8_t* key, size_t depth, const NodeStore& store, 
     Node* o = own(n, store);
     switch (o->kind) {
         case Node::Leaf:
-            if (o->plen == rlen && std::memcmp(o->path, rest, rlen) == 0) {
+            if (o->plen == rlen && (o->hp ? hp_leaf_matches(o->hp, o->plen, kp, depth)
+                                          : std::memcmp(o->path, rest, rlen) == 0)) {
                 changed = true;
                 return empty_node();
             }
             return n;
         case Node::Ext: {
             if (o->plen > rlen || std::memcmp(o->path, rest, o->plen) != 0) return n;
-            Node* c = remove(o->child[0], key, depth + o->plen, store, changed);
+            Node* c = remove(o->child[0], key, kp, depth + o->plen, store, changed);
             if (!changed) return n;
             if (is_empty(c)) return c;
             c = own(c, store);
             if (c->kind == Node::Leaf || c->kind == Node::Ext) {
                 // Merge the extension path into the child.
+                ensure_path(c);
                 std::memmove(c->path + o->plen, c->path, c->plen);
                 std::memcpy(c->path, o->path, o->plen);
                 c->plen = static_cast<uint8_t>(c->plen + o->plen);
@@ -603,18 +647,17 @@ Node* remove(Node* n, const uint8_t* key, size_t depth, const NodeStore& store, 
         }
         case Node::Branch: {
             const uint8_t nib = rest[0];
-            Node* c = remove(o->child[nib], key, depth + 1, store, changed);
+            Node* c = remove(get_child(o, nib), key, kp, depth + 1, store, changed);
             if (!changed) return n;
-            o->child[nib] = c;
-            o->mod = static_cast<uint16_t>(o->mod | (1u << nib));
+            set_child(o, nib, c);
             o->dirty = true;
             int count = 0, last = -1;
-            for (int i = 0; i < 16; ++i) {
-                if (!is_empty(o->child[i])) { ++count; last = i; }
+            for (unsigned i = 0; i < 16; ++i) {
+                if (!is_empty(get_child(o, i))) { ++count; last = int(i); }
             }
             if (count >= 2) return o;
             if (count == 0) return empty_node();
-            return collapse_child(static_cast<uint8_t>(last), o->child[last], store);
+            return collapse_child(static_cast<uint8_t>(last), get_child(o, unsigned(last)), store);
         }
         default:
             stwo_fatal("trie: unreachable");
@@ -752,8 +795,15 @@ size_t encode(Node* n, uint8_t* out, const NodeStore& store) {
         b.byte(0x80);
         return b.n;
     }
-    uint8_t hpath[33];
-    const size_t hpn = hp_encode(n->path, n->plen, n->kind == Node::Leaf, hpath);
+    uint8_t hbuf[33];
+    const uint8_t* hpath = hbuf;
+    size_t hpn;
+    if (n->hp) {
+        hpath = n->hp;  // witness leaf path, still hex-prefix encoded
+        hpn = n->plen / 2 + 1;
+    } else {
+        hpn = hp_encode(n->path, n->plen, n->kind == Node::Leaf, hbuf);
+    }
     if (n->kind == Node::Leaf) {
         const size_t payload = string_size(hpath, hpn) + string_size(n->value, n->vlen);
         put_header(b, payload, 0xc0, 0xf7);
@@ -795,14 +845,14 @@ void MutableTrie::put(const uint8_t key[32], const uint8_t* value, size_t len) {
     for (size_t i = 0; i < len; ++i) v[i] = value[i];
     uint8_t nib[64];
     unpack(key, nib);
-    root_ = insert(root_, nib, 0, v, len, store_);
+    root_ = insert(root_, nib, key, 0, v, len, store_);
 }
 
 void MutableTrie::remove(const uint8_t key[32]) {
     uint8_t nib[64];
     unpack(key, nib);
     bool changed;
-    root_ = stwo::remove(root_, nib, 0, store_, changed);
+    root_ = stwo::remove(root_, nib, key, 0, store_, changed);
 }
 
 H256 MutableTrie::root_hash() {
