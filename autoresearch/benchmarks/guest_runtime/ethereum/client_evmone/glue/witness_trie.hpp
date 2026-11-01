@@ -52,7 +52,7 @@ public:
     void init(size_t expected_nodes);
     void add(const uint8_t* rlp, size_t len);
     Slot* find(const H256& h) const noexcept;
-    Slot* find_bytes(const uint8_t* h32) const noexcept;  // unaligned 32-byte key
+    Slot* find_bytes(const uint8_t* h32) const noexcept;  // any alignment, 32-byte key
     const DNode* decoded(Slot* s) const;
     size_t size() const noexcept { return count_; }
 

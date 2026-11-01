@@ -32,6 +32,7 @@ B=autoresearch/benchmarks/guest_runtime/ethereum/client_evmone
 python3 -I $B/build.py --out OUT                         # OUT/client-evmone-admitted.elf
 python3 -I $B/build.py --out OUT --profile candidate     # + candidate services (mem,sha,arith)
 python3 -I $B/build.py --out OUT --profile candidate --candidate-set mem,sha   # subsets
+python3 -I $B/build.py --out OUT --profile candidate --candidate-set mem,sha,arith,bn,bls,keccak  # + curve/sponge candidates
 python3 -I $B/build.py --out OUT --host --tests          # native build + host tests
 ```
 
@@ -59,9 +60,11 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 | Output | 43 bytes at `__output_data` (request root, 1, chain id LE, schema id LE), `__output_len = 43`, `__halt_flag = 1`, then spin |
 | Failure | illegal instruction (`.word 0`), no output (the Rust guest panics the same way) |
 | Linker | `linker-wide-cxx.ld` = `rv64/linker-wide.ld` plus `.init_array` inside `.data`; memory map and symbols unchanged |
+| Patches | 0001 ziskethone (SSZ witness state, lazy rows, RV64 word paths), 0002 blst 64-bit limbs, 0003 intx byte-wise big-endian, 0004 candidate arith256_mod, 0005 evmc word compares and copy-free host trampolines |
 | Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
 | secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
 | Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
+| Candidate curves | groups `bn` (needs `arith`): `0x0003_0100/0101` BN254 affine add/double for ecAdd/ecMul, `0x0003_0102` Fq2 product in ecPairing; `bls`: `0x0003_0121` arith384_mont for blst's 384-bit Montgomery products and `0x0003_0112` BLS12-381 Fp2 product (KZG, EIP-2537); `keccak`: `0x0003_0130` Keccak-256 sponge for inputs over 64 bytes. Glue `glue/curves_stwo.cpp`, `glue/candidate_curves.hpp`, patches 0020/0021; ABI `autoresearch/guest_efficiency/notes/candidate-curves-abi.md` |
 
 ## Design
 
@@ -77,10 +80,23 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   versioned hashes with the blob transactions, and the request lists through
   `requests_hash`. The output root is the SSZ `hash_tree_root` of the input
   request (`NewPayloadRequestElectraFulu`, progressive containers and lists).
-- **State root.** A mutable MPT over the decoded witness: clean subtrees are
-  tagged references to witness nodes (no allocation, re-emitted from the
-  original RLP), owned nodes are modified in place, only dirty paths are
-  re-hashed.
+- **Witness trie.** Every witness node is hashed once into an open-addressing
+  table; a node is decoded at most once, keeping the offset of each child item
+  in the witness bytes (branch children scanned lazily, up to the child a
+  lookup follows) and a per-child cache of the resolved node. Child digests
+  are probed in place with funnel-shifted words; leaf paths stay hex-prefix
+  encoded and are compared with the key 8 bytes at a time.
+- **State root.** A mutable MPT over the decoded witness: unmodified children
+  are tagged pointers (bit 63) to their RLP item in the witness bytes (no
+  allocation), owned nodes are modified in place, only dirty paths are
+  re-hashed. A branch owned from the witness records the positions assigned
+  since and re-encodes by copying the runs of unchanged items from its
+  original encoding.
+- **State tables.** ziskethone's account and storage row indexes are
+  open-addressing tables of key words (`zeg/stwo_flat_index.hpp`, patch 0001)
+  with the same seeded hash; the seeded hash, fixed-size compares/copies and
+  the evmc host trampolines and equality operators (patch 0005) use word
+  accesses instead of the byte loops RV64IM gets for alignment-1 arrays.
 - **Senders.** The SSZ public key of each transaction gives the sender at
   once; all signatures are checked in one batch (batched inversions, GLV
   endomorphism, 4-bit Straus over the secp services). Verification with the
@@ -95,13 +111,35 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   rotations; intx big-endian conversions go byte-wise (patch 0003); blst uses
   64-bit limbs with `__int128` products (patch 0002); size-class free-list
   heap (`glue/runtime.cpp`).
+- **Interpreter on RV64IM (patches 0005-0017).** 256-bit big-endian transfers
+  at 8-aligned addresses use aligned words and a 13-instruction mask byte swap
+  (masks in a mutable global so LLVM does not re-expand them); frameless
+  MLOAD/MSTORE fast paths, funnel-shifted CALLDATALOAD, aligned-word context
+  loads; column-wise 256-bit MUL, native DIV/MOD for 64-bit operands; gas
+  tested on the decremented value and a constant on failed requirements (no
+  per-opcode moves); host storage/log calls pass `msg->recipient` in place;
+  sentinel JUMPDEST scan over the padded copy, unrolled by four; LT/GT/SLT/SGT
+  join the fused `PUSH2 JUMPI` set. Measurements: `notes/client-interpreter.md`.
 
 ## Tests
 
-`build.py --host --tests` runs `tests/mem_fuzz.cpp` (400k randomized checks of
-the memory functions) and `tests/secp_differential.cpp` (stwo recovery vs
-evmone's reference on random and edge-case signatures; hinted verification
-accepts true keys and rejects negated keys, wrong recid and wrong hash).
+`build.py --host --tests` runs:
+
+- `tests/mem_fuzz.cpp`: 400k randomized checks of the memory functions.
+- `tests/secp_differential.cpp`: stwo recovery vs evmone's reference on random
+  and edge-case signatures; hinted verification accepts true keys and rejects
+  negated keys, wrong recid and wrong hash.
+- `tests/curves_test.cpp`: the candidate curve/field/sponge glue with every hook
+  live (portable blst, services emulated): ecMul/ecAdd vs a naive intx
+  double-and-add, Fq2 and blst Fp/Fp2 products vs intx, BLS12-381 pairing
+  bilinearity, evmone's KZG vectors, and the sponge vs the admitted Keccak path
+  for every length 0..600 at all alignments.
+- `tests/trie_differential.cpp`: witness trie vs a from-scratch reference MPT
+  encoder (lookups, puts/removes over several root rounds, embedded nodes;
+  partial witnesses report Missing and abort on mutation).
+- `tests/zeg_words_test.cpp`: the patched word paths (seeded hash, non-zero
+  byte count, flat row index, fixed-size compare/copy at every alignment).
+
 `tests/tamper.py HOST BLOCK_DIR` mutates inputs: targeted payload, header and
 transaction mutations must abort, random bit flips must abort or reproduce the
 exact output.

@@ -1,0 +1,135 @@
+diff --git a/lib/evmone/instructions.hpp b/lib/evmone/instructions.hpp
+index 64e74a4..97bbbcb 100644
+--- a/lib/evmone/instructions.hpp
++++ b/lib/evmone/instructions.hpp
+@@ -616,6 +616,40 @@ inline void callvalue(StackTop stack, ExecutionState& state) noexcept
+ #endif
+ }
+ 
++#ifdef INTX_BE_BYTEWISE
++/// stwo RV64IM: the 32 big-endian bytes at `p` as four little-endian limbs written to `out`
++/// (out[0] least significant). All four source words are read before `out` is written.
++/// Aligned: four loads and a mask swap. Unaligned: the five aligned words that hold the
++/// bytes, funnel-shifted (every word read holds at least one of the 32 bytes).
++[[gnu::always_inline]] inline void stwo_load_be256(uint64_t* out, const uint8_t* p) noexcept
++{
++    const auto m = intx::be_bytes::g_swap_masks;
++    const auto addr = reinterpret_cast<uintptr_t>(p);
++    const auto sh = (addr & 7) * 8;
++    const auto* a = static_cast<const uint8_t*>(__builtin_assume_aligned(
++        reinterpret_cast<const uint8_t*>(addr & ~uintptr_t{7}), 8));
++    uint64_t w[5];
++    std::memcpy(&w[0], a, 8);
++    std::memcpy(&w[1], a + 8, 8);
++    std::memcpy(&w[2], a + 16, 8);
++    std::memcpy(&w[3], a + 24, 8);
++    if (sh != 0)
++    {
++        std::memcpy(&w[4], a + 32, 8);
++        for (size_t i = 0; i < 4; ++i)
++            w[i] = (w[i] >> sh) | (w[i + 1] << (64 - sh));
++    }
++    const auto r0 = intx::be_bytes::bswap64(w[3], m);
++    const auto r1 = intx::be_bytes::bswap64(w[2], m);
++    const auto r2 = intx::be_bytes::bswap64(w[1], m);
++    const auto r3 = intx::be_bytes::bswap64(w[0], m);
++    out[0] = r0;
++    out[1] = r1;
++    out[2] = r2;
++    out[3] = r3;
++}
++#endif
++
+ inline void calldataload(StackTop stack, ExecutionState& state) noexcept
+ {
+     auto& index = stack.top();
+@@ -625,6 +659,13 @@ inline void calldataload(StackTop stack, ExecutionState& state) noexcept
+     else
+     {
+         const auto begin = static_cast<size_t>(index);
++#ifdef INTX_BE_BYTEWISE
++        if (state.msg->input_size - begin >= 32)
++        {
++            stwo_load_be256(&index[0], &state.msg->input_data[begin]);
++            return;
++        }
++#endif
+         const auto end = std::min(begin + 32, state.msg->input_size);
+ 
+         uint8_t data[32] = {};
+@@ -926,7 +967,7 @@ inline void selfbalance(StackTop stack, ExecutionState& state) noexcept
+     stack.push(intx::be::load<uint256>(state.self_balance));
+ }
+ 
+-inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++[[gnu::noinline]] inline Result mload_slow(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ {
+     auto& index = stack.top();
+ 
+@@ -937,7 +978,28 @@ inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noe
+     return {EVMC_SUCCESS, gas_left};
+ }
+ 
+-inline Result mstore(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++/// MLOAD fast path for an in-bounds word at an 8-aligned address: no call, so no frame;
++/// everything else (growth, gas, unaligned) goes to mload_slow.
++inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++{
++#ifdef INTX_BE_BYTEWISE
++    auto& index = stack.top();
++    const auto off = index[0];
++    const auto size = state.memory.size();
++    if ((index[3] | index[2] | index[1]) == 0 && off <= size && size - off >= 32)
++    {
++        const auto* p = &state.memory[static_cast<size_t>(off)];
++        if ((reinterpret_cast<uintptr_t>(p) & 7) == 0)
++        {
++            stwo_load_be256(&index[0], p);
++            return {EVMC_SUCCESS, gas_left};
++        }
++    }
++#endif
++    return mload_slow(stack, gas_left, state);
++}
++
++[[gnu::noinline]] inline Result mstore_slow(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ {
+     const auto& index = stack.pop();
+     const auto& value = stack.pop();
+@@ -949,6 +1011,36 @@ inline Result mstore(StackTop stack, int64_t gas_left, ExecutionState& state) no
+     return {EVMC_SUCCESS, gas_left};
+ }
+ 
++/// MSTORE fast path, as mload.
++inline Result mstore(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++{
++#ifdef INTX_BE_BYTEWISE
++    const auto& index = stack[0];
++    const auto& value = stack[1];
++    const auto off = index[0];
++    const auto size = state.memory.size();
++    if ((index[3] | index[2] | index[1]) == 0 && off <= size && size - off >= 32)
++    {
++        auto* p = &state.memory[static_cast<size_t>(off)];
++        if ((reinterpret_cast<uintptr_t>(p) & 7) == 0)
++        {
++            const auto m = intx::be_bytes::g_swap_masks;
++            const uint64_t w0 = intx::be_bytes::bswap64(value[3], m);
++            const uint64_t w1 = intx::be_bytes::bswap64(value[2], m);
++            const uint64_t w2 = intx::be_bytes::bswap64(value[1], m);
++            const uint64_t w3 = intx::be_bytes::bswap64(value[0], m);
++            auto* a = static_cast<uint8_t*>(__builtin_assume_aligned(p, 8));
++            std::memcpy(a, &w0, 8);
++            std::memcpy(a + 8, &w1, 8);
++            std::memcpy(a + 16, &w2, 8);
++            std::memcpy(a + 24, &w3, 8);
++            return {EVMC_SUCCESS, gas_left};
++        }
++    }
++#endif
++    return mstore_slow(stack, gas_left, state);
++}
++
+ inline Result mstore8(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ {
+     const auto& index = stack.pop();
