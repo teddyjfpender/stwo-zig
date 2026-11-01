@@ -49,8 +49,9 @@ that callback may itself use packed M31 evaluation and packed OM31 weighting.
 
 ## Evidence and limits
 
-The combined Safe/Fast gate executes eleven tests, including five new OM31
-cases and five retained QM31 full-prover cases. It covers actual fresh receiver
+The latest combined Safe/Fast gate executes fourteen tests: six full OM31
+STARK cases, two wide constant-accumulator cases, five retained QM31
+full-prover cases and the discovery root. It covers actual fresh receiver
 acceptance, every allocation failure in the tiny full pipeline, an invalid
 Boolean witness, six proof mutations and the full fold-step 4 path. Mutations
 exercise high-coordinate main/composition OODS values, an opening, a main root,
@@ -68,3 +69,24 @@ GPU execution and outer recursive-proof qualification are separate gates. No
 production default changed, no speedup is claimed, and the whole-protocol
 128-bit security policy remains fail closed until its complete requirements
 are established.
+
+
+## Mixed-height correction
+
+The initial wide fallback omitted per-column point folding when sampling
+committed M31 polynomials. Uniform-height proofs did not expose the error.
+An integration test with real ALU roles at logs5/6 failed at FRI with
+`InvalidLastLayerDegree`; an independent two-role Boolean AIR reproduced the
+same failure without the GKR binding adapter.
+
+The sampler now evaluates each polynomial at
+`point.repeatedDouble(lifting_log_size - column.log_size)`, matching the legacy
+sampler, core DEEP preparation and receiver. The independent mixed-role proof
+passes complete fold-step1 and fold-step4 pipelines, with separate fresh
+verification. No column height or core quotient formula was changed. A second
+regression checks that constant-only composition writes every coordinate of
+the selected extension; the former four-coordinate loop now uses `DEGREE`.
+
+Before/after logs and the expanded fourteen-test Safe/Fast gate are pinned in
+`om31-stark-mixed-v1/`. Real mixed ALU+GKR integration has its own physical
+proof gate; the tiny baseline does not substitute for that gate.
