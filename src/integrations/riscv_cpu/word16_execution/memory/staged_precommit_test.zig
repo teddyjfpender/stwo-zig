@@ -68,9 +68,12 @@ test "staged global RAM precommit seals real PCS fixed and main roots before cha
     var plan = try Stage.Plan.init(a, expected, Anchors, &receipts);
     defer plan.deinit();
     try plan.check();
+    try std.testing.expectError(error.IncompleteStagedPhysicalPrecommit, plan.diagnosticChallenges());
+    try plan.verifyStage1(a, 0, &schemes[0]);
+    try std.testing.expectError(error.IncompleteStagedPhysicalPrecommit, plan.diagnosticChallenges());
+    for (&schemes, 0..) |*scheme, i| if (i != 0) try plan.verifyStage1(a, i, scheme);
     const challenges = try plan.diagnosticChallenges();
     try std.testing.expect(!challenges.ram.offset.eql(challenges.owner.offset));
-    for (&schemes, 0..) |*scheme, i| try plan.verifyStage1(a, i, scheme);
 
     // The plan owns a deep snapshot. A caller cannot mutate live commitments
     // after sealing by changing its original borrow.
@@ -88,8 +91,7 @@ test "staged global RAM precommit seals real PCS fixed and main roots before cha
     var candidate = try Stage.Plan.init(a, expected, Anchors, &forged);
     defer candidate.deinit();
     try std.testing.expectError(error.StagedGlobalStage1RootMismatch, candidate.verifyStage1(a, 2, &schemes[2]));
-    const changed = try candidate.diagnosticChallenges();
-    try std.testing.expect(!changed.ram.offset.eql(challenges.ram.offset));
+    try std.testing.expectError(error.IncompleteStagedPhysicalPrecommit, candidate.diagnosticChallenges());
     try std.testing.expectError(error.IncompleteStagedGlobalPrecommit, Stage.Plan.init(a, expected, Anchors, receipts[0..3]));
     var other = Anchors;
     other.terminal_pc ^= 4;
