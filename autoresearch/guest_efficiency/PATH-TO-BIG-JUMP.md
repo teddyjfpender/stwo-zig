@@ -125,7 +125,10 @@ item only with its evidence.
 ### Move B: services
 - [x] Six candidate services in the execution tool with tests and cost estimates; measured per family on the Rust guest (`bca94c643`, merged `228a6a38a`)
 - [x] Candidate services measured on the evmone client: 5.65 instr/gas, 78,849 bits/gas (`519337489`)
-- [ ] **SHA-256 compression service in the prover**: admitted profile `ethereum_services_v3`, truth AIR, bridge, services lane, receiver, fixture proof (branch `codex/rv64-guest-prover-sha256`; truth AIR committed `6645e7e76`)
+- [x] SHA-256 compression service in the prover: admitted profile `ethereum_services_v3`, truth AIR (one compression per row, degree 3, own PCS), secp/Word16 bridge `.sha256` kind, services lane family 3, receiver (v3-only), Ethereum driver (branch `codex/rv64-guest-prover-sha256`, 6 commits). Cost 8,551 cells per compression nominal, 12,151 padded on the real block (software was ~616k). v2 bundles byte-identical. Rust guest -12.4% instr/gas, -10.6% bits/gas, promotable
+- [x] **First provable v3 result:** 4-shard prefix of block 24,628,607 with the SHA-256 guest proved (29.5 s, 22.8 GB) and accepted by a fresh `verify-prefix` (2,771 compressions)
+- [ ] Integrate SHA-256, bulk-memory and arith256_mod prover branches into one v3 profile; re-qualify v2 byte identity and all suites
+- [ ] Recursion-circuit support for v3 services (SHA-256, bulk memory, arith256_mod)
 - [x] Aligned memcpy/memset services in the prover: desc/copy/set components (degree <= 3), RAM bridge, services lane, fresh receiver; 17 bulk tests incl. 16 adversarial, v2 bundles byte-identical (branch `codex/rv64-guest-prover-bulk-memory`, `1d2f62e8c`). Measured cost 112 cells per call + 77 per copied word (~10x below the estimate)
 - [ ] Unaligned memcpy body row (byte shift across two source words): admitted aligned-only service saves just -2.15% instr/gas on the Rust guest vs -12% for the candidate, because most copies have mismatched alignment
 - [ ] memcmp service
@@ -156,5 +159,6 @@ item only with its evidence.
 - [ ] CPU cells per instruction: row width, aligned 8-byte LS row, range trims (target ~91 cells per instruction)
 
 ### Promotion gates
-- [ ] Word16 prefix proof of block 24,628,607 with a guest using the new services, fresh `verify-prefix`
+- [x] Word16 prefix proof of block 24,628,607 with a guest using a new service (SHA-256), fresh `verify-prefix` accepted (branch `codex/rv64-guest-prover-sha256`)
+- [ ] Same for the evmone client with all admitted v3 services
 - [ ] Complete-block proof and fresh `verify` with the new guest; exact committed cells replace the proxy
