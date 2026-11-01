@@ -30,6 +30,13 @@ pub const QM31 = struct {
     c0: CM31,
     c1: CM31,
 
+    /// Fixed field of the quadratic involution used by DEEP line construction.
+    pub const InnerField = CM31;
+
+    pub inline fn quadraticConjugate(self: QM31) QM31 {
+        return self.complexConjugate();
+    }
+
     pub const Error = error{
         DivisionByZero,
         NonBaseField,

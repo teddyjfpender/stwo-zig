@@ -85,6 +85,7 @@ pub const NativeOps = struct {
 pub const OM31 = struct {
     c0: Q,
     c1: Q,
+    pub const InnerField = Q;
     const Self = @This();
     const A = Quadratic(Q, NativeOps);
     inline fn arithmetic(x: Self) A {
@@ -126,6 +127,10 @@ pub const OM31 = struct {
     pub fn conjugate(x: Self) Self {
         return wrap(arithmetic(x).conjugate());
     }
+    /// Frobenius p^4, fixing QM31. This is not QM31's p^2 involution.
+    pub fn quadraticConjugate(x: Self) Self {
+        return x.conjugate();
+    }
     pub fn norm(x: Self) Q {
         return arithmetic(x).norm();
     }
@@ -134,6 +139,9 @@ pub const OM31 = struct {
     }
     pub fn mulBase(x: Self, y: M31) Self {
         return wrap(arithmetic(x).mulBase(y));
+    }
+    pub fn mulM31(x: Self, y: M31) Self {
+        return x.mulBase(y);
     }
     pub fn inv(a: Self) !Self {
         return a.conjugate().mulInner(try NativeOps.inverse(a.norm()));
