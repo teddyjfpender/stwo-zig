@@ -12,7 +12,7 @@ const work = engine.work_pool;
 const Prefix = @import("stwo_riscv_frontend").rv64_air.providers.prefix_waves;
 const CHUNK = 1024;
 const LOG_CHUNK = 10;
-const GROUP_BLOCK = CHUNK / 16;
+const GROUP_BLOCK = CHUNK / Prefix.GROUP_ROWS;
 comptime {
     std.debug.assert(CHUNK == 1 << LOG_CHUNK);
 }
@@ -102,7 +102,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     if (pool) |active| if (active.stackSize() < (if (@import("builtin").mode == .Debug) @as(usize, 1048576) else 262144)) return error.InvalidExecutionInteractionStack;
     const n = source.size();
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
-    const segment_log = if (pool) |active| Prefix.lineSegmentLog(source.log_size, LOG_CHUNK, LOG_CHUNK - 4, active.workerCount()) else null;
+    const segment_log = if (pool) |active| Prefix.lineSegmentLog(source.log_size, LOG_CHUNK, LOG_CHUNK - Prefix.GROUP_LOG_ROWS, active.workerCount()) else null;
     const units = if (segment_log) |log| Prefix.lineGroupCount(source.log_size, log) else chunks;
     const segments = if (segment_log) |log| n >> @intCast(log) else chunks;
     const workers = if (pool) |active| @min(active.workerCount(), units) else 1;
@@ -171,25 +171,20 @@ const Job = struct {
             self.summaries[chunk] = .{sum};
         }
     }
-    /// Line-complete order. The 16 logical rows that share one physical cache
-    /// line differ only in logical bits log-5..log-2, i.e. they sit at the
-    /// same offset of 16 prefix segments spaced 2^(log-5) rows apart (see
-    /// prefix_waves.lineGroupSegments). A group
-    /// owns exactly those 16 segments, keeps one running sum per segment in
-    /// logical order, and emits row r of all 16 segments back to back so every
-    /// column store fills whole lines. Per-row values and per-segment local
-    /// prefixes are identical to the chunked order above.
+    /// Relative-block-owned segment groups, using the shared circle-index
+    /// mapping. Each segment keeps its own logical prefix; the final physical
+    /// correction supplies its preceding segment total and centering constant.
     fn executeGrouped(self: *Job) !void {
         const size = @as(usize, 1) << @intCast(self.segment_log);
         var group = self.start;
         while (group < self.end) : (group += self.stride) {
             const segments = Prefix.lineGroupSegments(self.source.log_size, self.segment_log, group);
-            var sums: [16]Q = @splat(Q.zero());
+            var sums: [Prefix.GROUP_ROWS]Q = @splat(Q.zero());
             var r0: usize = 0;
             while (r0 < size) : (r0 += GROUP_BLOCK) {
-                for (0..GROUP_BLOCK) |r| for (segments, 0..) |segment, t| try self.prepareRow(16 * r + t, segment * size + r0 + r);
+                for (0..GROUP_BLOCK) |r| for (segments, 0..) |segment, t| try self.prepareRow(Prefix.GROUP_ROWS * r + t, segment * size + r0 + r);
                 try core.fields.batchInverseInPlace(Q, self.scratch[0 .. 5 * CHUNK], self.scratch[5 * CHUNK ..][0 .. 5 * CHUNK]);
-                for (0..GROUP_BLOCK) |r| for (segments, 0..) |segment, t| self.emitRow(16 * r + t, segment * size + r0 + r, &sums[t]);
+                for (0..GROUP_BLOCK) |r| for (segments, 0..) |segment, t| self.emitRow(Prefix.GROUP_ROWS * r + t, segment * size + r0 + r, &sums[t]);
             }
             for (segments, sums) |segment, sum| self.summaries[segment] = .{sum};
         }

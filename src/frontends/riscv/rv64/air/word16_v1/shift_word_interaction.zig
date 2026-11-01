@@ -15,8 +15,8 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const CHUNK: usize = Support.CHUNK_ROWS;
 const LOG_CHUNK: u32 = std.math.log2_int(usize, CHUNK);
-const BLOCK: usize = CHUNK / 16;
-const LOG_BLOCK: u32 = LOG_CHUNK - 4;
+const BLOCK: usize = CHUNK / Prefix.GROUP_ROWS;
+const LOG_BLOCK: u32 = LOG_CHUNK - Prefix.GROUP_LOG_ROWS;
 comptime {
     std.debug.assert(CHUNK == @as(usize, 1) << LOG_CHUNK and BLOCK % E.LANES == 0);
 }
@@ -126,14 +126,12 @@ const Job = struct {
         var chunk = self.start;
         while (chunk < self.end) : (chunk += self.stride) self.summaries[chunk] = try self.fill(chunk * CHUNK);
     }
-    /// Line-complete order (see prefix_waves.lineGroupSegments): row r of the
-    /// group's 16 segments is emitted back to back, so each column store
-    /// completes whole physical lines. Each segment keeps its own logical
-    /// running sums, identical to `fill`.
+    /// Relative-block-owned groups (see prefix_waves.lineGroupSegments).
+    /// Each segment keeps its logical running sums, identical to `fill`.
     fn fillGroup(self: *Job, group: usize) !void {
         const segments = Prefix.lineGroupSegments(self.log, self.segment_log, group);
         const size = @as(usize, 1) << @intCast(self.segment_log);
-        var sums: [16][3]Q = @splat(@splat(Q.zero()));
+        var sums: [Prefix.GROUP_ROWS][3]Q = @splat(@splat(Q.zero()));
         const denominators = self.scratch[0..CHUNK];
         const inverses = self.scratch[CHUNK..][0..CHUNK];
         var r0: usize = 0;
