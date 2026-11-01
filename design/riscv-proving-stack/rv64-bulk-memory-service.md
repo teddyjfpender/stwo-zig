@@ -278,8 +278,62 @@ by section 8.
 
 ## 8. Measured cost and qualification
 
-See section 9 for numbers measured on this branch.
+**Cells (MAIN + INTER, per physical row; 3 fixed key columns not counted).**
+
+| | Raw | With 1/ln 2 padding | Sibling estimate |
+|---|---:|---:|---:|
+| per call (desc row) | 112 | 161.6 | 1,500 (memcpy) / 1,300 (memset) |
+| per memcpy byte (copy row / 8) | 9.625 | 13.886 | 40 |
+| per memset byte (set row / 8) | 6.0 | 8.656 | 20 |
+
+So an 88-byte copy costs about 161.6 + 88 × 13.9 ≈ 1,384 cells, against
+1,500 + 3,520 = 5,020 estimated. Plus the ECALL and the guest's packet setup as
+ordinary instructions. Entered as measured tiers in
+`autoresearch/guest_efficiency/calibration.json` `admitted_services`.
+
+**Qualification reached.**
+
+1. AIR: `zig build test-riscv64-word16-bulk-memory` — honest scenario closes
+   every relation; 16 adversarial cases rejected as tabulated; degree ≤ 3;
+   executor admission/trap tests.
+2. Services lane: `zig build test-riscv64-word16-bulk-services
+   -Doptimize=ReleaseSafe` — two real CPU STARKs (memset shard, memcpy shard
+   reading an LS store and memset output across epochs, LD observing the copy),
+   verified in-process and by a fresh receiver over the wire with rebuilt keys;
+   wrong copied word, wrong fill and stale read rejected as
+   `UnclosedCombinedRam`; absent-bulk claims, bulk-less keys and a changed word
+   count rejected. (The Debug build of this suite hits a worker-thread stack
+   overflow inside an existing CPU component, so qualification uses ReleaseSafe.)
+3. v2 byte identity: `rv64-word16-combined-services-fixture produce` at base
+   `4fa25676d` and on this branch give byte-identical `bundle.json`,
+   `cells.bin`, two CPU and three truth proofs; this branch's receiver verifies
+   the base bundle; `test-riscv64-word16-combined-services` (ReleaseSafe) passes.
+4. Guest (`admitted-mem`, threshold 16 bytes) on all 15 basket blocks with exact
+   outputs and every guard passing, against the same-tree reference on v2:
+
+| Set | instr/gas ref → bulk | committed bits/gas ref → bulk |
+|---|---|---|
+| scored | 13.181 → 12.897 (−2.15%) | 151,702 → 150,106 (−1.05%) |
+| holdout | 11.164 → 10.921 (−2.17%) | 128,555 → 127,195 (−1.06%) |
+| all | 12.783 → 12.507 (−2.16%) | 147,132 → 145,583 (−1.05%) |
+
+   Thresholds 8 and 32 bytes are marginally worse
+   (`autoresearch/guest_efficiency/notes/admitted-bulk-memory-results-20261101.json`).
+   Only 3.34M of the candidate's 9.08M memcpy calls (451 of 798 MB) qualify:
+   most remaining copies have mismatched source/destination alignment, which
+   the aligned admitted form cannot take.
 
 ## 9. Gaps
 
-See the end of this file (kept current with the branch).
+- **Unaligned copies** (the bulk of the candidate's measured value) need a
+  DmaUnaligned-style body row (byte shift across two source words, byte
+  ranges); not implemented. memcmp (0x30003) not implemented.
+- **Ethereum driver**: the planner assigns bulk logs and capture dispatches by
+  tape profile, but the v3 work-packet route (native prepare, packet admission,
+  authority) is still v2-only, so the Word16 prefix proof of block 24,628,607
+  with the bulk guest was **not** run.
+- **Recursion** circuits and the `services/gkr_local` lane do not know the bulk
+  components; external-lane evaluation is not provided.
+- Interaction generation is scalar per row (chunked batch inversion); no SIMD or
+  parallel path yet.
+- The design is a source-level argument; no machine-checked proof.

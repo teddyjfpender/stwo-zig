@@ -269,7 +269,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                         report.bulk_memset_calls += 1;
                         report.bulk_memset_bytes += e.packet.len;
                     }
-                    report.service_ram_word_transitions += 3 + (if (copy) 2 else 1) * e.dst_before.len;
+                    report.service_ram_word_transitions += 3 + @as(u64, if (copy) 2 else 1) * e.dst_before.len;
                     if (census) |*value| {
                         for (0..3) |k| {
                             const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
