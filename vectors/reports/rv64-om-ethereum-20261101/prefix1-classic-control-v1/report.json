@@ -1,0 +1,65 @@
+{
+  "core_schema": 7,
+  "completed_ethereum_block": false,
+  "total_steps": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "memory_words": 708957,
+  "output": null,
+  "capture_ns": 1135813167,
+  "capture_cache_trim_ns": 14431875,
+  "capture_cache_released_bytes": 1319763968,
+  "cpu_fixed_witness_retired": true,
+  "coordinator_schedule": {
+    "lanes": 1,
+    "workers_per_lane": 8,
+    "lane_workers": [
+      8
+    ],
+    "memory_cap_bytes": 51539607552
+  },
+  "commit_batch_columns": 64,
+  "setup_ns": 636728125,
+  "prove_ns": 8573166125,
+  "same_process_verify_ns": 270687542,
+  "publish_before_report_ns": 22867416,
+  "total_before_report_ns": 10654169875,
+  "retained_main": {
+    "live_bytes": 0,
+    "peak_reserved_bytes": 1652080640,
+    "total_bytes": 1652080640,
+    "limit_bytes": 137438953472,
+    "live_mapped_bytes": 0,
+    "peak_mapped_bytes": 1652080640,
+    "parking_enabled": true,
+    "merkle_parking_enabled": false,
+    "parked_merkle_bytes": 0,
+    "prefetch_calls": 0,
+    "prefetch_requested_bytes": 0,
+    "prefetch_advised_bytes": 0,
+    "prefetch_failed_calls": 0,
+    "prefetch_unsupported_calls": 0
+  },
+  "fixed_native_cache": {
+    "limit_bytes": 268435456,
+    "retained_bytes": 176671872,
+    "native_backing_bytes": 176659456,
+    "groups": 96,
+    "hits": 37,
+    "duplicate_native_bytes_released": 74711296,
+    "observed_individual_owners": 133,
+    "observed_backing_owners": 0,
+    "observed_spans": 133,
+    "owner_leases": 2
+  },
+  "program_metadata_cache": {
+    "limit_bytes": 67108864,
+    "retained_bytes": 30951766,
+    "payload_bytes": 30951414,
+    "programs": 1,
+    "hits": 1,
+    "metadata_bytes_not_rebuilt": 30951414,
+    "duplicate_metadata_bytes_released": 0,
+    "owner_leases": 3
+  }
+}

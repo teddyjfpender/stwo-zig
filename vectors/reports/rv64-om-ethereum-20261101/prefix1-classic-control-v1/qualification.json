@@ -1,0 +1,25 @@
+{
+  "scope": "Historical QM31 classic LogUp engineering control for same first Ethereum shard",
+  "retirements": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "profile": "historical QM31 q70/P26/fold4",
+  "binary_sha256": "ea940df0ba4a5693b9339fab48bbabfa74d6eda8a1212ae5520ab8d8da06759f",
+  "source_base": "896e92c3e",
+  "schedule": "one lane, 8 workers, memory admission48GiB, batch64, coefficient-only MAIN parking",
+  "recycler_cache_cap_bytes": 4294967296,
+  "prove_seconds": 8.573166125,
+  "wall_seconds": 11.74,
+  "user_seconds": 45.95,
+  "system_seconds": 2.78,
+  "max_rss_bytes": 11136516096,
+  "fresh_process_accepted": true,
+  "field_degree": 4,
+  "comparison_limitations": [
+    "Different field from OM31 GKR, not an equally secure wider-field LogUp construction",
+    "Single shared-host probe, not a quiet repeated baseline",
+    "Classic allocator cache cap4GiB versus experimental GKR1GiB; parking implementations differ",
+    "Neither run certifies whole-protocol128 security"
+  ],
+  "interpretation": "Historical control substantially faster than current experimental GKR. Scalar-to-pooled GKR improvement is not a net win over this control."
+}
