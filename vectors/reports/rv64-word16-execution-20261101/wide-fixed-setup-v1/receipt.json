@@ -1,0 +1,34 @@
+{
+  "base": "de137ccbdc96ccd3b5f895f7566f21fd1d296796",
+  "status": "additive explicit-rate immutable key/cache helper; production worker wiring pending",
+  "tests": {
+    "ReleaseSafe": 5,
+    "ReleaseFast": 5
+  },
+  "native_heights": [
+    5,
+    6
+  ],
+  "coefficient_reconstruction": false,
+  "retained_coefficient_copy": "once per cache seal through existing commitPolys; source\u03b21 key remains independently owned",
+  "cache_key": "receiverprotocol,rate,orderedlogs,canonicalcoefficientbytes; actualcontentcompare onhit",
+  "budget": "hard requested-byte cap including control+retained data+sealing scratch, not RSS",
+  "lifetime": "appended OM PCS tree survives original source/cache/lease release with explicit budget backingtoken",
+  "default_beta1_root_and_transcript_parity": true,
+  "fixture_roots": {
+    "beta1": "c2eb2765ea8e37e118efdc02ec69db837d938cc1c121b335186bf1f76f6b1bcd",
+    "beta2": "96f81de73ee85f8d04b79fbb609a43259679be9f0015d439a3813b24c3244fda"
+  },
+  "claims": {
+    "wholeprotocol128": false,
+    "actual_beta2_fullproof": false,
+    "GPU": false,
+    "speedup": false
+  },
+  "integration_next": [
+    "independent receiver targetkey derivation",
+    "CPU/truth worker key authority and manifest fixedroots",
+    "actualbeta2 proof/freshreceiver",
+    "candidate protocol formal/security/outer gates"
+  ]
+}
