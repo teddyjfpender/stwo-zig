@@ -411,7 +411,7 @@ pub fn ForField(comptime Secure: type) type {
                 else blk: {
                     const constant_out = try SecureColumnByCoords.uninitialized(self.allocator, max_size);
                     const coordinates = constant.toM31Array();
-                    inline for (0..4) |coordinate| {
+                    inline for (0..DEGREE) |coordinate| {
                         @memset(constant_out.columns[coordinate], coordinates[coordinate]);
                     }
                     break :blk constant_out;
