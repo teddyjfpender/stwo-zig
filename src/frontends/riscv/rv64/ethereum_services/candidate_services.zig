@@ -24,6 +24,8 @@ const std = @import("std");
 const machine = @import("../machine.zig");
 const memory = @import("../memory.zig");
 const profile = @import("../execution_profile.zig");
+/// Curve, field and Keccak-sponge candidates (tags 0x0003_01xx).
+const curves = @import("candidate_curves.zig");
 
 pub const MEMCPY_TAG: u64 = 0x0003_0001;
 pub const MEMSET_TAG: u64 = 0x0003_0002;
@@ -34,7 +36,7 @@ pub const ARITH256_MOD_TAG: u64 = 0x0003_0021;
 /// One call may move at most this many bytes (the mapped-memory ceiling).
 pub const MAX_BULK_BYTES: u64 = 256 * 1024 * 1024;
 
-pub const Kind = enum { memcpy, memset, memcmp, sha256_compress, arith256, arith256_mod };
+pub const Kind = enum { memcpy, memset, memcmp, sha256_compress, arith256, arith256_mod, bn254_g1_add, bn254_g1_double, bn254_fp2_mul, bls12_381_g1_add, bls12_381_g1_double, bls12_381_fp2_mul, arith384_mod, arith384_mont, keccak_sponge };
 pub const Use = struct { calls: u64 = 0, bytes: u64 = 0 };
 /// Serialized as `candidate_service_calls: {name: {calls, bytes}}`.
 pub const Counts = struct {
@@ -44,13 +46,39 @@ pub const Counts = struct {
     sha256_compress: Use = .{},
     arith256: Use = .{},
     arith256_mod: Use = .{},
+    bn254_g1_add: Use = .{},
+    bn254_g1_double: Use = .{},
+    bn254_fp2_mul: Use = .{},
+    bls12_381_g1_add: Use = .{},
+    bls12_381_g1_double: Use = .{},
+    bls12_381_fp2_mul: Use = .{},
+    arith384_mod: Use = .{},
+    arith384_mont: Use = .{},
+    keccak_sponge: Use = .{},
     fn of(self: *Counts, kind: Kind) *Use {
         return switch (kind) {
             inline else => |k| &@field(self, @tagName(k)),
         };
     }
+    /// The six original services are always reported; the curve candidates
+    /// only once called, so reports of guests that do not use them (and cost
+    /// files that do not price them) are unchanged.
+    pub fn jsonStringify(self: Counts, jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(Counts)) |field| {
+            const use = @field(self, field.name);
+            if (comptime !@hasField(curves.Kind, field.name)) {
+                try jws.objectField(field.name);
+                try jws.write(use);
+            } else if (use.calls != 0) {
+                try jws.objectField(field.name);
+                try jws.write(use);
+            }
+        }
+        try jws.endObject();
+    }
 };
-pub const Error = memory.Error || error{ UnsupportedService, ServiceCounterOverflow, CandidateLengthLimit };
+pub const Error = memory.Error || curves.Error || error{ UnsupportedService, ServiceCounterOverflow, CandidateLengthLimit };
 
 pub fn kindOf(tag: u64) ?Kind {
     return switch (tag) {
@@ -60,7 +88,9 @@ pub fn kindOf(tag: u64) ?Kind {
         SHA256_COMPRESS_TAG => .sha256_compress,
         ARITH256_TAG => .arith256,
         ARITH256_MOD_TAG => .arith256_mod,
-        else => null,
+        else => if (curves.kindOf(tag)) |k| switch (k) {
+            inline else => |c| @field(Kind, @tagName(c)),
+        } else null,
     };
 }
 
@@ -168,6 +198,7 @@ pub fn execute(a: std.mem.Allocator, kind: Kind, pointer: u64, mem: *memory.Memo
             try mem.storeWords(pointer + 128, &out);
             return 0;
         },
+        inline else => |k| return curves.execute(@field(curves.Kind, @tagName(k)), pointer, mem),
     }
 }
 
@@ -268,6 +299,22 @@ pub fn sha256Compress(state: *[8]u32, block: *const [64]u8) void {
 }
 
 // ---------------------------------------------------------------- tests
+
+test {
+    _ = curves;
+}
+
+test "candidate counts report curve services only once called" {
+    var counts = Counts{};
+    counts.memcpy.calls = 2;
+    const plain = try std.json.Stringify.valueAlloc(testing.allocator, counts, .{});
+    defer testing.allocator.free(plain);
+    try testing.expectEqualStrings("{\"memcpy\":{\"calls\":2,\"bytes\":0},\"memset\":{\"calls\":0,\"bytes\":0},\"memcmp\":{\"calls\":0,\"bytes\":0},\"sha256_compress\":{\"calls\":0,\"bytes\":0},\"arith256\":{\"calls\":0,\"bytes\":0},\"arith256_mod\":{\"calls\":0,\"bytes\":0}}", plain);
+    counts.keccak_sponge = .{ .calls = 1, .bytes = 136 };
+    const with = try std.json.Stringify.valueAlloc(testing.allocator, counts, .{});
+    defer testing.allocator.free(with);
+    try testing.expect(std.mem.endsWith(u8, with, "\"arith256_mod\":{\"calls\":0,\"bytes\":0},\"keccak_sponge\":{\"calls\":1,\"bytes\":136}}"));
+}
 
 const testing = std.testing;
 const BASE: u64 = 0x1000_0000;

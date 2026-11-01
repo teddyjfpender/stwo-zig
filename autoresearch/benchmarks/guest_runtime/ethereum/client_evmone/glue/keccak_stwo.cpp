@@ -13,6 +13,9 @@
 #include <evmone_precompiles/keccak.h>
 
 #include "services.hpp"
+#if defined(CANDIDATE_KECCAK)
+#include "candidate_curves.hpp"
+#endif
 
 namespace {
 constexpr size_t kRate = 136;
@@ -68,6 +71,16 @@ MemoEntry* g_memo = nullptr;
 
 extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
     alignas(32) uint64_t st[25];
+#if defined(CANDIDATE_KECCAK)
+    // Candidate keccak_sponge: absorb, pad and permute in one call. Inputs of
+    // at most 64 bytes keep the memoized admitted path below.
+    if (size > 64) {
+        stwo::cand_keccak256(st, data, size);
+        union ethash_hash256 out;
+        for (int i = 0; i < 4; ++i) out.word64s[i] = st[i];
+        return out;
+    }
+#endif
     bool first = true;
     while (size >= kRate) {
         if (first) {

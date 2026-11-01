@@ -1,0 +1,397 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-results.v1",
+ "date": "2026-11-01",
+ "client": "client_evmone (autoresearch/benchmarks/guest_runtime/ethereum/client_evmone), build.py --profile candidate --candidate-set <set>, input adapter on",
+ "executor": "bench.py build-exec from branch codex/rv64-guest-candidate-curves (profile ethereum_services_v3_candidate)",
+ "executor_sha256": "4285614708feaaa767f4f3769d5984e5b5f54372e0535ac40904ac001421307b",
+ "cost_files": [
+  "autoresearch/guest_efficiency/proposals/candidate-service-costs.json (nominal)",
+  "autoresearch/guest_efficiency/proposals/candidate-curve-costs.json (nominal; low/high = its ranges)"
+ ],
+ "reference": "base = --candidate-set mem,sha,arith from this tree (instruction-identical to the merged 1549143bb client: 2,446,817,006 instructions on all 15 blocks)",
+ "admitted_check": "client-evmone-admitted.elf from this tree on ethereum_services_v2: all guards pass, 8.317 scored instr/gas, 3,583,241,944 instructions (unchanged)",
+ "variants": {
+  "base": {
+   "candidate_set": "mem,sha,arith",
+   "elf_sha256": "204df15445e37dcbd654ac725a05f01db6fc084273ee72965b99019f83c6dc4d",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 5.6532,
+     "committed_bits_per_gas": 78849
+    },
+    "holdout": {
+     "instructions_per_gas": 4.8444,
+     "committed_bits_per_gas": 67064
+    },
+    "all": {
+     "instructions_per_gas": 5.4935,
+     "committed_bits_per_gas": 76522
+    }
+   },
+   "delta_vs_base_scored": {
+    "instructions_pct": 0.0,
+    "bits_pct_low_nominal_high": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "bits_pct_mix_adjusted_nominal": 0.0
+   },
+   "all_bits_per_gas_by_component_nominal": {
+    "cpu": 55109,
+    "keccak_f": 13431,
+    "secp": 3789,
+    "memcpy": 2249,
+    "arith256_mod": 752,
+    "memset": 560,
+    "sha256_compress": 521,
+    "memcmp": 111
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 3232349,
+     "bytes": 265192598
+    },
+    "memset": {
+     "calls": 751127,
+     "bytes": 143805836
+    },
+    "memcmp": {
+     "calls": 250215,
+     "bytes": 5895555
+    },
+    "sha256_compress": {
+     "calls": 198819,
+     "bytes": 12724416
+    },
+    "arith256_mod": {
+     "calls": 794845,
+     "bytes": 0
+    }
+   }
+  },
+  "bn": {
+   "candidate_set": "mem,sha,arith,bn",
+   "elf_sha256": "46f7fe95fe278e6f8d6095e085542e9292bcfc1f08bf84a1a3890461257803f3",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 5.3916,
+     "committed_bits_per_gas": 75692
+    },
+    "holdout": {
+     "instructions_per_gas": 4.7038,
+     "committed_bits_per_gas": 65369
+    },
+    "all": {
+     "instructions_per_gas": 5.2559,
+     "committed_bits_per_gas": 73654
+    }
+   },
+   "delta_vs_base_scored": {
+    "instructions_pct": -4.63,
+    "bits_pct_low_nominal_high": [
+     -4.12,
+     -4.0,
+     -3.81
+    ],
+    "bits_pct_mix_adjusted_nominal": -4.65
+   },
+   "all_bits_per_gas_by_component_nominal": {
+    "cpu": 52725,
+    "keccak_f": 13431,
+    "secp": 3789,
+    "memcpy": 2223,
+    "memset": 560,
+    "sha256_compress": 521,
+    "bn254_fp2_mul": 187,
+    "memcmp": 111,
+    "arith256_mod": 46,
+    "bn254_g1_double": 44,
+    "bn254_g1_add": 16
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 3199552,
+     "bytes": 262044086
+    },
+    "memset": {
+     "calls": 750821,
+     "bytes": 143774012
+    },
+    "memcmp": {
+     "calls": 250215,
+     "bytes": 5895555
+    },
+    "sha256_compress": {
+     "calls": 198819,
+     "bytes": 12724416
+    },
+    "arith256_mod": {
+     "calls": 49058,
+     "bytes": 0
+    },
+    "bn254_g1_add": {
+     "calls": 10752,
+     "bytes": 0
+    },
+    "bn254_g1_double": {
+     "calls": 37005,
+     "bytes": 0
+    },
+    "bn254_fp2_mul": {
+     "calls": 133776,
+     "bytes": 0
+    }
+   }
+  },
+  "bls": {
+   "candidate_set": "mem,sha,arith,bls",
+   "elf_sha256": "08cba1adb654e97dfee2d7a080eeec3daee647ac51ac074f1f71a56686aa490c",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 5.2833,
+     "committed_bits_per_gas": 75252
+    },
+    "holdout": {
+     "instructions_per_gas": 4.4684,
+     "committed_bits_per_gas": 63409
+    },
+    "all": {
+     "instructions_per_gas": 5.1225,
+     "committed_bits_per_gas": 72914
+    }
+   },
+   "delta_vs_base_scored": {
+    "instructions_pct": -6.54,
+    "bits_pct_low_nominal_high": [
+     -4.61,
+     -4.56,
+     -4.48
+    ],
+    "bits_pct_mix_adjusted_nominal": -3.82
+   },
+   "all_bits_per_gas_by_component_nominal": {
+    "cpu": 51387,
+    "keccak_f": 13431,
+    "secp": 3789,
+    "memcpy": 2249,
+    "arith256_mod": 752,
+    "memset": 560,
+    "sha256_compress": 521,
+    "memcmp": 111,
+    "bls12_381_fp2_mul": 69,
+    "arith384_mont": 45
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 3232349,
+     "bytes": 265192598
+    },
+    "memset": {
+     "calls": 751127,
+     "bytes": 143805836
+    },
+    "memcmp": {
+     "calls": 250215,
+     "bytes": 5895555
+    },
+    "sha256_compress": {
+     "calls": 198819,
+     "bytes": 12724416
+    },
+    "arith256_mod": {
+     "calls": 794845,
+     "bytes": 0
+    },
+    "bls12_381_fp2_mul": {
+     "calls": 33835,
+     "bytes": 0
+    },
+    "arith384_mont": {
+     "calls": 36515,
+     "bytes": 0
+    }
+   }
+  },
+  "keccak": {
+   "candidate_set": "mem,sha,arith,keccak",
+   "elf_sha256": "41c9986cc1d1665c9175730065f8ea4e634ac29f50c801c9db64d87cb5d95aaf",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 5.2933,
+     "committed_bits_per_gas": 75425
+    },
+    "holdout": {
+     "instructions_per_gas": 4.54,
+     "committed_bits_per_gas": 64186
+    },
+    "all": {
+     "instructions_per_gas": 5.1446,
+     "committed_bits_per_gas": 73206
+    }
+   },
+   "delta_vs_base_scored": {
+    "instructions_pct": -6.37,
+    "bits_pct_low_nominal_high": [
+     -5.24,
+     -4.34,
+     -2.84
+    ],
+    "bits_pct_mix_adjusted_nominal": -4.54
+   },
+   "all_bits_per_gas_by_component_nominal": {
+    "cpu": 51609,
+    "keccak_sponge": 12572,
+    "secp": 3789,
+    "memcpy": 2214,
+    "keccak_f": 1109,
+    "arith256_mod": 752,
+    "memset": 530,
+    "sha256_compress": 521,
+    "memcmp": 111
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 3271545,
+     "bytes": 257746134
+    },
+    "memset": {
+     "calls": 686062,
+     "bytes": 137469148
+    },
+    "memcmp": {
+     "calls": 250215,
+     "bytes": 5895555
+    },
+    "sha256_compress": {
+     "calls": 198819,
+     "bytes": 12724416
+    },
+    "arith256_mod": {
+     "calls": 794845,
+     "bytes": 0
+    },
+    "keccak_sponge": {
+     "calls": 273562,
+     "bytes": 159635032
+    }
+   }
+  },
+  "all": {
+   "candidate_set": "mem,sha,arith,bn,bls,keccak",
+   "elf_sha256": "ad8e56d792b4b27f4802506661879619b4d89c8819ee670d581ac14651dd16a7",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 4.6619,
+     "committed_bits_per_gas": 68671
+    },
+    "holdout": {
+     "instructions_per_gas": 4.0235,
+     "committed_bits_per_gas": 58836
+    },
+    "all": {
+     "instructions_per_gas": 4.5359,
+     "committed_bits_per_gas": 66730
+    }
+   },
+   "delta_vs_base_scored": {
+    "instructions_pct": -17.54,
+    "bits_pct_low_nominal_high": [
+     -13.96,
+     -12.91,
+     -11.12
+    ],
+    "bits_pct_mix_adjusted_nominal": -13.01
+   },
+   "all_bits_per_gas_by_component_nominal": {
+    "cpu": 45502,
+    "keccak_sponge": 12572,
+    "secp": 3789,
+    "memcpy": 2188,
+    "keccak_f": 1109,
+    "memset": 530,
+    "sha256_compress": 521,
+    "bn254_fp2_mul": 187,
+    "memcmp": 111,
+    "bls12_381_fp2_mul": 69,
+    "arith256_mod": 46,
+    "arith384_mont": 45,
+    "bn254_g1_double": 44,
+    "bn254_g1_add": 16
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 3238748,
+     "bytes": 254597622
+    },
+    "memset": {
+     "calls": 685756,
+     "bytes": 137437324
+    },
+    "memcmp": {
+     "calls": 250215,
+     "bytes": 5895555
+    },
+    "sha256_compress": {
+     "calls": 198819,
+     "bytes": 12724416
+    },
+    "arith256_mod": {
+     "calls": 49058,
+     "bytes": 0
+    },
+    "bn254_g1_add": {
+     "calls": 10752,
+     "bytes": 0
+    },
+    "bn254_g1_double": {
+     "calls": 37005,
+     "bytes": 0
+    },
+    "bn254_fp2_mul": {
+     "calls": 133776,
+     "bytes": 0
+    },
+    "bls12_381_fp2_mul": {
+     "calls": 33835,
+     "bytes": 0
+    },
+    "arith384_mont": {
+     "calls": 36515,
+     "bytes": 0
+    },
+    "keccak_sponge": {
+     "calls": 273562,
+     "bytes": 159635032
+    }
+   }
+  }
+ },
+ "buckets_instructions_per_gas_all_blocks": {
+  "base": {
+   "precompile_bls_kzg": 0.46,
+   "keccak_glue": 0.432,
+   "precompile_bn254": 0.3,
+   "evm_interpreter": 1.862,
+   "witness_trie_mpt": 0.825,
+   "state_tables_host": 0.569,
+   "total": 5.494
+  },
+  "all": {
+   "precompile_bls_kzg": 0.088,
+   "keccak_glue": 0.082,
+   "precompile_bn254": 0.064,
+   "evm_interpreter": 1.861,
+   "witness_trie_mpt": 0.825,
+   "state_tables_host": 0.569,
+   "total": 4.536
+  },
+  "note": "bucket regexes from the client port (precompile_bls_kzg also matches ~0.013/gas of unrelated vec_/ct_ helpers on every block)"
+ },
+ "precompile_calls_in_basket": "BN254: ecAdd, ecMul, ecPairing on 6 of 15 blocks; BLS12-381: only KZG point evaluation (0x0a), 5 calls on 4 blocks, ~40M instructions each before; no EIP-2537 calls"
+}
