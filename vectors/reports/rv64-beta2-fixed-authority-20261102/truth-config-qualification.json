@@ -1,0 +1,24 @@
+{
+  "scope": "canonical truth proof metadata authority, matching CPU receiver",
+  "finding": "receiver mathematics used expected config but truth wrapper did not refuse altered embedded config",
+  "fix": "exact config equality and null revision before physical root/use",
+  "checks": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    }
+  ],
+  "regressions": [
+    "actual encoded truth q+1 mutation rejects with unchanged roots/claims/statement",
+    "structured nonnull revision rejects",
+    "current wide codec has no revision field; no encoded revision attack claimed",
+    "valid control and candidate K/ADD proofs and complete execution fresh verification retained"
+  ],
+  "independent_reviewer": "recover_gkr_wave2 found metadata asymmetry; custody otherwise largely PASS"
+}
