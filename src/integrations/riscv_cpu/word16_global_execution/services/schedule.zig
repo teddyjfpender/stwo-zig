@@ -70,7 +70,8 @@ pub const RunOptions = struct {
     trace: []Trace = &.{},
 };
 /// The context's indexed slots must be disjoint and allocator thread-safe.
-/// Default lane1 keeps the caller's already bound pool and old execution path.
+/// A single lane reuses the caller pool only when its worker budget matches.
+/// Otherwise a lane-local pool enforces the requested budget and is joined.
 pub fn run(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, policy: Policy, comptime execute: fn (*Context, usize) anyerror!void) !void {
     return runWithOptions(Context, a, context, count, policy, .{}, execute);
 }
@@ -93,17 +94,21 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     if (options.trace.len != 0 and options.trace.len != count) return error.InvalidServiceSchedule;
     if (policy.memory_cap_bytes != 0 and options.estimates.len != count) return error.MissingServiceMemoryEstimates;
     if (count == 0) return;
-    var timer = try std.time.Timer.start();
-    if (policy.lanes == 1 or count == 1) {
+    // Share only an immutable origin: Timer.read mutates its previous sample
+    // and must not be called concurrently by independent lanes.
+    const origin = try std.time.Instant.now();
+    const current_pool = Pool.currentScopedPool();
+    const reuse_pool = if (current_pool) |pool| pool.workerCount() == policy.workers(0) else false;
+    if ((policy.lanes == 1 or count == 1) and reuse_pool) {
         var storage: [MAX_TOTAL_WORKERS + 1]std.Thread.Handle = undefined;
         const lane = laneThreads(Pool.currentScopedPool(), &storage);
         const previous = Usage.bindLane(&lane);
         defer _ = Usage.bindLane(previous);
         for (0..count) |index| {
-            const start = timer.read();
+            const start = elapsed(origin);
             const estimate = if (options.estimates.len != 0) options.estimates[index] else 0;
             try execute(context, index);
-            if (options.trace.len != 0) options.trace[index] = .{ .lane = 0, .workers = @intCast(if (Pool.currentScopedPool()) |p| p.workerCount() else 1), .estimate_bytes = estimate, .claimed_ns = start, .started_ns = start, .finished_ns = timer.read(), .in_flight_bytes_at_start = estimate };
+            if (options.trace.len != 0) options.trace[index] = .{ .lane = 0, .workers = @intCast(if (Pool.currentScopedPool()) |p| p.workerCount() else 1), .estimate_bytes = estimate, .claimed_ns = start, .started_ns = start, .finished_ns = elapsed(origin), .in_flight_bytes_at_start = estimate };
         }
         return;
     }
@@ -113,7 +118,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         policy: Policy,
         options: RunOptions,
         allocator: std.mem.Allocator,
-        timer: *std.time.Timer,
+        origin: std.time.Instant,
         next: std.atomic.Value(usize) = .init(0),
         stop: std.atomic.Value(bool) = .init(false),
         errors: []?anyerror,
@@ -167,13 +172,13 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             while (!self.stop.load(.acquire)) {
                 const index = self.next.fetchAdd(1, .monotonic);
                 if (index >= self.count) return;
-                const claimed = self.timer.read();
+                const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
                 const in_flight = self.admit(estimate) orelse return;
-                const started = self.timer.read();
+                const started = elapsed(self.origin);
                 const result = execute(self.context, index);
                 self.release(estimate);
-                if (self.options.trace.len != 0) self.options.trace[index] = .{ .lane = @intCast(ordinal), .workers = self.policy.workers(ordinal), .estimate_bytes = estimate, .claimed_ns = claimed, .started_ns = started, .finished_ns = self.timer.read(), .in_flight_bytes_at_start = in_flight };
+                if (self.options.trace.len != 0) self.options.trace[index] = .{ .lane = @intCast(ordinal), .workers = self.policy.workers(ordinal), .estimate_bytes = estimate, .claimed_ns = claimed, .started_ns = started, .finished_ns = elapsed(self.origin), .in_flight_bytes_at_start = in_flight };
                 result catch |err| {
                     self.errors[index] = err;
                     self.fail();
@@ -185,7 +190,7 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     const errors = try a.alloc(?anyerror, count);
     defer a.free(errors);
     @memset(errors, null);
-    var shared = Shared{ .context = context, .count = count, .policy = policy, .options = options, .allocator = a, .timer = &timer, .errors = errors };
+    var shared = Shared{ .context = context, .count = count, .policy = policy, .options = options, .allocator = a, .origin = origin, .errors = errors };
     var threads: [MAX_LANES]std.Thread = undefined;
     var spawned: usize = 0;
     // Spawn failure also joins every started task before caller cleanup.
@@ -201,4 +206,10 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
     spawned = 0;
     for (shared.lane_errors) |err| if (err) |failure| return failure;
     for (errors) |err| if (err) |failure| return failure;
+}
+
+/// Every reader owns its sample; the shared origin is immutable.
+fn elapsed(origin: std.time.Instant) u64 {
+    const current = std.time.Instant.now() catch unreachable;
+    return current.since(origin);
 }

@@ -8,7 +8,7 @@ Original worktrees are unchanged. No perf2 producer/test processes remained at i
 - `--proof-jobs` up to4, explicit lane budgets total<=32, estimated in-flight memory admission (oversized item runs alone), lane-specific CPU telemetry.
 - Proof bytes unchanged by default and4x4 capped smoke, each fresh accepted: `/private/tmp/stwo-rv64-perf-runs/sched-sweep-smoke.receipt.json` has all_identical/all_verified=true. l2x8 wall32.15s vs capped4x4 34.23s: not a measured speedup. Memory cap uses8bytes/nativecell as heuristic, does not bound total process RSS or all retained state.
 - Safe combined-services output `/private/tmp/claude-501/sched-combined.log` finished exit0,401suser/6m38s elapsed. Terminal/options and toolbuild also completed in agent trace.
-- Review found shared mutableTimer.read race across lanes, and explicit single-lane workers ignored if callerpool larger; fixes being qualified in `/private/tmp/stwo-rv64-recovered-scheduling`, separate branch, original unchanged.
+- Review found shared mutableTimer.read race across lanes, and explicit single-lane workers ignored if callerpool larger; fixes qualified in `/private/tmp/stwo-rv64-recovered-scheduling`, separate branch, original unchanged. The recovered fix shares an immutable Instant origin and reuses a caller pool only when its worker count matches the requested lane budget.
 - Developer trace agent `a873b53da421ea002`; review trace `a90f87674f99f943f` ended without final review verdict. Root trace project41eff230-75ab-4f11-a53b-7db4dcd5a611.
 
 ## Composition queue
