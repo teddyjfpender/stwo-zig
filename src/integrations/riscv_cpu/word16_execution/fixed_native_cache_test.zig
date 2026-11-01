@@ -395,3 +395,25 @@ test "Complete backing groups preserve uncached aliases and retire only transfer
     try std.testing.expectEqual(original.len, partial.coefficient_backing_buffers.?[0].len);
     try std.testing.expectEqual(@as(usize, 0), partial.coefficient_backing_buffers.?[1].len);
 }
+
+test "unpublished shared-tree interning rejects published leases and preserves exact root" {
+    var values: [16][32]M = undefined;
+    fill(&values);
+    var cache = try Cache.init(a, 1 << 20);
+    defer cache.deinit();
+    var tree = try unsharedOwned(a, &values);
+    defer tree.deinit(a);
+    const root = tree.root();
+    try tree.share(a);
+    var alias = tree.retainShared();
+    try std.testing.expectError(error.InvalidFixedNativeCachePhase, cache.internExclusiveSharedTreeBeforePublication(a, &tree));
+    try std.testing.expectEqual(@as(usize, 0), cache.snapshot().groups);
+    alias.deinit(a);
+    const result = try cache.internExclusiveSharedTreeBeforePublication(a, &tree);
+    try std.testing.expect(result.shared_groups > 0);
+    try std.testing.expectEqualDeep(root, tree.root());
+    try std.testing.expect(tree.backing_teardown != null);
+    // A second call sees an already interned backing token and cannot transfer
+    // custody twice, even though no external lease currently remains.
+    try std.testing.expectError(error.InvalidFixedNativeCachePhase, cache.internExclusiveSharedTreeBeforePublication(a, &tree));
+}
