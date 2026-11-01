@@ -514,3 +514,47 @@ test "logup-gkr: engine fast GKR rejects malformed inputs and frees owned ones" 
     try std.testing.expectError(error.InvalidGkrThreads, Fast.proveBatch(a, &ch, &threads, .{ .threads = 0 }, null));
     try std.testing.expectError(error.InvalidBatch, Fast.proveBatch(a, &ch, &.{}, .{}, null));
 }
+
+test "logup-gkr: parallel LogUp columns equal the serial cumulative column in committed order" {
+    const a = std.testing.allocator;
+    const logup = @import("stwo_riscv_frontend").air.logup;
+    const M31 = core.fields.m31.M31;
+    const work = @import("stwo_prover_engine").work_pool;
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x4c4f4755});
+    // 2^13 rows: two 4096-row chunks plus several placement workers.
+    const log: u32 = 13;
+    const n = @as(usize, 1) << log;
+    const values = try draw.drawSecureFelts(a, 4 * n);
+    defer a.free(values);
+    const Ctx = struct {
+        v: []const QM31,
+        n: usize,
+        pub fn rowPairsAt(self: @This(), row: usize) [2]logup.RowPair {
+            return .{
+                .{ .n1 = self.v[row], .d1 = self.v[self.n + row], .n2 = QM31.one(), .d2 = self.v[2 * self.n + row] },
+                logup.RowPair.single(QM31.one().neg(), self.v[3 * self.n + row]),
+            };
+        }
+    };
+    const ctx = Ctx{ .v = values, .n = n };
+    var pool: work.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 5, .stack_size = 1024 * 1024 });
+    defer pool.deinit();
+    var out = try logup.generateParallelColumns(2, a, ctx, log, &pool);
+    defer out.deinit(a);
+    for (0..2) |s| {
+        const pairs = try a.alloc(logup.RowPair, n);
+        defer a.free(pairs);
+        for (pairs, 0..) |*p, row| p.* = ctx.rowPairsAt(row)[s];
+        var serial = try logup.cumulativeColumn(a, pairs);
+        defer serial.deinit(a);
+        try std.testing.expect(serial.claimed.eql(out.claims[s]));
+        for (serial.sums, 0..) |sum, row| {
+            const committed = core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(row, log), log);
+            const limbs = sum.toM31Array();
+            for (0..4) |c| try std.testing.expect(out.columns[4 * s + c][committed].eql(limbs[c]));
+        }
+    }
+    _ = M31;
+}
