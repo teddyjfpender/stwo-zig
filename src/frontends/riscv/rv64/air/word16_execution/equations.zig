@@ -47,7 +47,9 @@ pub fn contributionFor(comptime F: type, ds: DenominatorsFor(F), w: WeightsFor(F
     out = out.add(ds.affine[4].add(ds.affine[5]).mul(inverse[7]));
     return out.add(inverse[8]);
 }
-pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, current: []const F, previous: []const F, public: T.InputsFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+/// Exact original MAIN-only residual prefix; local relation constraints are separate.
+pub const MAIN_CONSTRAINTS = CONSTRAINTS - 11;
+pub fn emitMainFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, public: T.InputsFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
     const first = fixed[L.fixed.first];
     const last = fixed[L.fixed.last];
     const active = row[m.active];
@@ -83,6 +85,13 @@ pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main
     const weights = weightsFor(F, row);
     E.booleanFor(F, sink, weights.function);
     E.booleanFor(F, sink, weights.owner);
+}
+
+pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, current: []const F, previous: []const F, public: T.InputsFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    emitMainFor(F, fixed, row, previous_main, public, sink);
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const weights = weightsFor(F, row);
     const ds = denominatorsFor(F, fixed, row, public, ch);
     var inverse: [9]E.SecureFor(F) = undefined;
     for (&inverse, 0..) |*value, i| value.* = E.secureFor(F, current, 4 * i);

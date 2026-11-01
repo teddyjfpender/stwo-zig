@@ -91,7 +91,7 @@ test "OM31 actual mixed-height GKR accepts and binds all terminal MLE inputs" {
     try exercise(A);
 }
 test "OM31 actual prover and verifier allocation failures release every owned layer" {
-    try std.testing.checkAllAllocationFailures(A, exerciseAllocationFailure, .{});
+    try std.testing.checkAllAllocationFailures(A, exercise, .{});
 }
 test "OM31 actual GKR rejects sumcheck mask output and terminal mutations" {
     var den = values(8, 2);
@@ -122,13 +122,4 @@ fn findCoefficient(proof: *V.GkrBatchProof) *O {
         if (poly.coeffsSlice().len != 0) return &poly.coeffs[0];
     };
     unreachable;
-}
-
-fn exerciseAllocationFailure(a: std.mem.Allocator) !void {
-    // Legacy core maps a few allocator failures to ShapeMismatch/InvalidSumcheck.
-    // Fixed valid input is separately accepted above; preserve its public errors.
-    exercise(a) catch |err| switch (err) {
-        error.ShapeMismatch, error.InvalidSumcheck => return error.OutOfMemory,
-        else => return err,
-    };
 }

@@ -33,6 +33,10 @@ pub const QM31 = struct {
     /// Fixed field of the quadratic involution used by DEEP line construction.
     pub const InnerField = CM31;
 
+    pub inline fn mulInner(self: QM31, value: CM31) QM31 {
+        return self.mulCM31(value);
+    }
+
     pub inline fn quadraticConjugate(self: QM31) QM31 {
         return self.complexConjugate();
     }

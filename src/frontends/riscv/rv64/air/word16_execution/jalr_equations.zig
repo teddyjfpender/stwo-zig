@@ -39,9 +39,13 @@ pub fn denominatorsFor(comptime F: type, row: []const F, ch: T.FunctionChallenge
 pub fn contributionFor(comptime F: type, ds: DenominatorsFor(F), weight: F, inverse_request: E.SecureFor(F), inverse_pair: E.SecureFor(F)) E.SecureFor(F) {
     return E.mulBaseFor(F, ds.add.add(ds.and_).mul(inverse_pair).sub(inverse_request), weight);
 }
-pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, current: []const F, previous: []const F, claim: E.ConstFor(F), ch: T.FunctionChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
-    // Boolean ACTIVE is the only multiplicity: no signed or non-unit weights.
+/// Exact original direct polynomial; ADD/AND truth remains a separate obligation.
+pub const MAIN_CONSTRAINTS = 1;
+pub fn emitMainFor(comptime F: type, row: []const F, sink: *E.SinkFor(F)) void {
     E.booleanFor(F, sink, row[ACTIVE]);
+}
+pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, current: []const F, previous: []const F, claim: E.ConstFor(F), ch: T.FunctionChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    emitMainFor(F, row, sink);
     const ds = denominatorsFor(F, row, ch);
     const inverse_request = E.secureFor(F, current, 0);
     const inverse_pair = E.secureFor(F, current, 4);

@@ -29,6 +29,7 @@ fn mulByBase(comptime F: type, value: F, twid: M31) F {
     if (F == M31) return value.mul(twid);
     if (F == CM31) return value.mulM31(twid);
     if (F == QM31) return value.mulM31(twid);
+    if (F == @import("fields/om31.zig").OM31) return value.mulM31(twid);
     @compileError("unsupported field type for fft butterfly");
 }
 
