@@ -35,10 +35,21 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     defer temp.cleanup();
     const path = try temp.dir.realpathAlloc(a, ".");
     defer a.free(path);
-    var store = try C.Store.initParked(path, 128 << 20);
+    var store = try C.Store.initFullyParked(path, 128 << 20);
     defer store.deinit();
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 1, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 } });
+    var timings: [5]C.WorkerTiming = undefined;
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings });
     defer parked.deinit();
+    for (timings, 0..) |t, i| {
+        try std.testing.expect(t.stage1_completed and t.stage2_completed);
+        try std.testing.expect(t.stage1_ns >= t.source_ns + t.seal_native_and_gkr_ns + t.metadata_retire_ns + t.spill_ns);
+        try std.testing.expect(t.stage2_ns >= t.restore_ns + t.native_complete_ns);
+        try std.testing.expect(t.actual_main_merkle_bytes > 0);
+        if (i < 2) {
+            try std.testing.expect(t.gkr_ns > 0);
+            try std.testing.expect(t.seal_native_and_gkr_ns >= t.main_commit_ns + t.gkr_ns);
+        } else try std.testing.expectEqual(@as(u64, 0), t.gkr_ns);
+    }
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
     try std.testing.expect(store.stats().total_bytes > 0);

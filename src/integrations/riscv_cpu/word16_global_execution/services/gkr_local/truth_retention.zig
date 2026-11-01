@@ -64,7 +64,9 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
     const merkle_log = try std.math.add(u32, max_log, config.fri_config.log_blowup_factor);
     if (merkle_log > 30) return error.InvalidRetentionGeometry;
     const nodes = try std.math.sub(usize, try mul(@as(usize, 1) << @intCast(merkle_log), 2), 1);
-    out.main_merkle_bytes = try add(try mul(nodes, @sizeOf(W.H.Hash)), try mul(merkle_log + 1, @sizeOf([]W.H.Hash)));
+    out.main_merkle_node_bytes = try mul(nodes, @sizeOf(W.H.Hash));
+    out.main_merkle_descriptor_bytes = try mul(merkle_log + 1, @sizeOf([]W.H.Hash));
+    out.main_merkle_bytes = try add(out.main_merkle_node_bytes, out.main_merkle_descriptor_bytes);
     out.owner_header_bytes = try add(@sizeOf(Worker.TruthWorker) + 65536, try mul(all_columns, 256));
     out.parked_retained_bytes = try add(out.global_metadata_bytes, try add(out.main_merkle_bytes, out.owner_header_bytes));
     out.resident_retained_bytes = try add(out.parked_retained_bytes, out.coefficient_bytes);

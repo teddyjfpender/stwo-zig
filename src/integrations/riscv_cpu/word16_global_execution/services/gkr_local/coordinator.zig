@@ -19,6 +19,21 @@ const Execution = @import("execution.zig");
 const Retention = @import("retention_plan.zig");
 const TruthRetention = @import("truth_retention.zig");
 pub const Store = @import("../../retained_main_store.zig").Store;
+pub const WorkerTiming = struct {
+    source_ns: u64 = 0,
+    seal_native_and_gkr_ns: u64 = 0,
+    main_commit_ns: u64 = 0,
+    gkr_ns: u64 = 0,
+    metadata_retire_ns: u64 = 0,
+    spill_ns: u64 = 0,
+    restore_ns: u64 = 0,
+    native_complete_ns: u64 = 0,
+    stage1_ns: u64 = 0,
+    stage2_ns: u64 = 0,
+    actual_main_merkle_bytes: usize = 0,
+    stage1_completed: bool = false,
+    stage2_completed: bool = false,
+};
 pub const Options = struct {
     max_workers: usize = 8,
     /// Frontend MAIN/backing+binding admission, excluding independently owned setup
@@ -27,9 +42,11 @@ pub const Options = struct {
     gkr_budget: usize = 512 << 20,
     global_budget: usize = 1 << 30,
     retained_store: ?*Store = null,
+    worker_timings: ?[]WorkerTiming = null,
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
+        if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
         try self.schedule.validate();
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
@@ -112,29 +129,62 @@ const Run = struct {
     results: []?Result,
     pending: ?*const Manifest.PendingManifest = null,
     fn stageOne(self: *Run, index: usize) !void {
+        const timing = if (self.options.worker_timings) |values| &values[index] else null;
+        var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
+        var total_timer = timer;
+        defer if (total_timer) |*clock| {
+            timing.?.stage1_ns = clock.read();
+        };
         if (index < self.setups.len) {
             var source = try Pipeline.buildCpuSource(self.a, self.setups[index], self.requests[index], self.native[index], self.advice, index, self.inventory.first_ids[index], false, null);
+            if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
             const worker = try CPU.CpuWorker.init(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            var cpu_timing = CPU.SealTiming{};
+            self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
+            defer self.workers[index].?.cpu.seal_timing = null;
             self.stages[index] = try self.workers[index].?.cpu.seal(self.a);
+            if (timer) |*clock| {
+                timing.?.seal_native_and_gkr_ns = clock.lap();
+                timing.?.main_commit_ns = cpu_timing.main_commit_ns;
+                timing.?.gkr_ns = cpu_timing.gkr_ns;
+                timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.cpu.scheme);
+            }
             try self.workers[index].?.cpu.retireLocalMetadata();
+            if (timer) |*clock| timing.?.metadata_retire_ns = clock.lap();
             if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
             const truth = self.truths[index - self.setups.len];
             var source = try R.TruthSource.init(self.a, truth, self.advice);
+            if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
             const worker = try Truth.TruthWorker.init(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget);
             owned = false;
             self.workers[index] = .{ .truth = worker };
             self.stages[index] = try self.workers[index].?.truth.seal(self.a);
+            if (timer) |*clock| {
+                timing.?.seal_native_and_gkr_ns = clock.lap();
+                timing.?.main_commit_ns = timing.?.seal_native_and_gkr_ns;
+                timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.truth.scheme);
+            }
             if (self.options.retained_store) |store| _ = try self.workers[index].?.truth.spillMain(store);
+        }
+        if (timer) |*clock| {
+            timing.?.spill_ns = clock.lap();
+            timing.?.stage1_completed = true;
         }
     }
     fn stageTwo(self: *Run, index: usize) !void {
+        const timing = if (self.options.worker_timings) |values| &values[index] else null;
+        var timer: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
+        var total_timer = timer;
+        defer if (total_timer) |*clock| {
+            timing.?.stage2_ns = clock.read();
+        };
         const worker = if (self.workers[index]) |*v| v else return error.MissingWideCoordinatorWorker;
         const pending = self.pending orelse return error.MissingWideCoordinatorManifest;
         if (self.options.retained_store) |store| switch (worker.*) {
@@ -145,17 +195,28 @@ const Run = struct {
                 _ = try v.restoreMain(store);
             },
         };
+        if (timer) |*clock| timing.?.restore_ns = clock.lap();
         self.results[index] = switch (worker.*) {
             .cpu => |*v| .{ .cpu = try v.complete(self.a, pending, index, self.options.global_budget) },
             .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
+        if (timer) |*clock| {
+            timing.?.native_complete_ns = clock.lap();
+            timing.?.stage2_completed = true;
+        }
     }
 };
+fn mainNodes(scheme: *const W.Scheme) !usize {
+    var bytes: usize = 0;
+    for (scheme.trees.items[1].commitment.layers) |layer| bytes = try std.math.add(usize, bytes, try std.math.mul(usize, layer.len, @sizeOf(W.H.Hash)));
+    return bytes;
+}
 /// Consume prepared CPU traces only through successful original source building;
 /// advice and setup remain borrowed. Returned request cell lists are independent.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options) !Bundle {
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
+    if (options.worker_timings) |timings| @memset(timings, .{});
     if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try requestsFrom(a, native, advice);
     errdefer freeRequests(a, requests);
@@ -196,7 +257,11 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
 fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options) ![]u64 {
     const estimates = try a.alloc(u64, inventory.workers.len);
     errdefer a.free(estimates);
-    var retained: usize = 0;
+    // Requests are coordinator-owned copies, separate from worker source lists.
+    var retained: usize = ManifestWire.MAX_BYTES;
+    retained = try std.math.add(usize, retained, try std.math.mul(usize, requests.len, @sizeOf(P.Request)));
+    for (requests) |request| retained = try std.math.add(usize, retained, try std.math.mul(usize, request.base.memory.initial.len + request.base.memory.terminal.len, @sizeOf(A.memory.closed_ram.types.Cell)));
+    const full_nodes = if (options.retained_store) |store| store.stats().merkle_parking_enabled else false;
     var disk: usize = 0;
     for (estimates, 0..) |*estimate, i| {
         const plan = if (i < setups.len) try Retention.forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
@@ -204,8 +269,8 @@ fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []cons
         // the explicit witness cap; partial counters must never tighten it.
         const legacy = try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), @max(plan.gkr_peak_bytes, options.global_budget));
         estimate.* = @intCast(@max(legacy, @max(plan.stage1_task_bytes, plan.stage2_task_bytes)));
-        retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
-        disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(plan.coefficient_bytes));
+        retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes - (if (full_nodes) plan.main_merkle_node_bytes else 0) else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
+        disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(try std.math.add(usize, plan.coefficient_bytes, if (full_nodes) try std.math.add(usize, plan.main_merkle_node_bytes, Store.MERKLE_HEADER_BYTES) else 0)));
     }
     if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
     if (options.retained_store) |store| {

@@ -80,3 +80,43 @@ A later CPU-source failure releases an earlier parked worker. Truth spill
 allocation failure leaves the sealed owner/root retryable; retry and abort leave
 no mapped/reserved file ownership. These gates permit explicitly budgeted larger
 inventories; they do not qualify a production-size full block or total RSS.
+
+## Full-node parking and measured phase slots
+
+`Store.initFullyParked` additionally parks every retained MAIN Merkle node layer.
+The coordinator discounts only that node-payload bound; descriptors, root cell
+and owner metadata stay reserved. Disk admission includes the versioned header,
+coefficients and node upper bound, rounded once per file. The optional
+`worker_timings` caller-owned array records source, cached-FIXED/MAIN commit,
+local GKR, metadata retirement, spill, restore, native completion and phase totals.
+It also counts actual nonempty MAIN Merkle layers after sealing and before spill.
+Nil metrics cause no clock calls. Timings and storage never enter the transcript.
+The full-node fixture uses two lanes against the one-lane resident control and
+retains exact proof, claim and manifest parity with fresh acceptance.
+
+The cost CLI `rv64-om-retention-plan BUNDLE_JSON ROM_LOG BLOWUP` invokes the same
+source-derived CPU/truth retention authorities without constructing witnesses or
+keys. Inputs are cost declarations, never verification authority. The recorded
+full 25-CPU/five-truth roster uses ROM log 20: the pinned ELF contains 540,147
+executable words and at most 32,607 extra branch rows, bounding ROM rows between
+540,147 and 572,754. The report separates unpruned node bounds from the current
+host streaming branch, which prunes four bottom layers at committed log >=20.
+The latter models 0.891 GiB retained node values across this roster, rather than
+claiming the 12.610 GiB unpruned bound as actual savings; runtime counters and
+`parkingPlan` remain authoritative.
+
+On that roster, native committed cells including per-proof FIXED references go
+from 20,275,416,896 to 18,886,252,608 (6.85147% fewer). MAIN remains
+10,230,620,160 cells; interaction cells go from 8,620,202,240 to 7,231,037,952.
+The latter includes 3,271,442,944 binding cells plus pure globals/classic truths.
+GKR working facts are not committed cells. This does not establish a speedup.
+
+The conservative fully parked frontend reservation is 15.883 GiB, including
+12.187 GiB binding planes, 3.438 GiB compact retained metadata, proof/header
+reserves, coordinator-owned public-cell copies and a maximum manifest reserve.
+The largest local GKR task plans 24.293 GiB; the represented stage-one task bound
+is 26.970 GiB. Combining one such task with retained frontend state gives a
+42.853 GiB conservative envelope before immutable setup, original capture/advice,
+full source-construction/PCS scratch and allocator/kernel overhead. Two worst
+stage-one lanes exceed 64 GiB even before those exclusions. No production-size
+whole-block memory or performance qualification is inferred from this model.

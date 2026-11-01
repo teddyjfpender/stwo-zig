@@ -185,6 +185,7 @@ pub fn addProduct(context: Context) void {
         .{ .name = "rv64-word16-weighted-alu", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_alu_main.zig" },
         .{ .name = "rv64-word16-weighted-binary", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig" },
         .{ .name = "rv64-word16-loop", .source = "src/integrations/riscv_cpu/rv64_word16_loop_main.zig" },
+        .{ .name = "rv64-om-retention-plan", .source = "src/integrations/riscv_cpu/rv64_om_retention_plan_main.zig" },
         .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/delegations/secp256k1/fixture_main.zig" },
         .{ .name = "rv64-keccak-pair2n-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/pair2n_main.zig" },
         .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/fixture_main.zig" },
