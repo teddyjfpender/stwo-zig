@@ -1,0 +1,1068 @@
+--- a/lib/evmone/baseline.hpp
++++ b/lib/evmone/baseline.hpp
+@@ -53,27 +53,69 @@
+ 
+ namespace baseline
+ {
++/// stwo: source of CodeAnalysis::xid(). Every constructed analysis gets a fresh id, so a
++/// translation cache keyed by it never confuses two codes that reuse the same buffer
++/// (the ziskethone analysis-cache slots and the per-frame scratch are reused in place).
++inline uint32_t g_code_analysis_xid = 0;
++
+ class CodeAnalysis
+ {
+ private:
+-    bytes_view m_code;  ///< The executable code.
++    bytes_view m_code;  ///< The executable code (the padded copy).
+ 
+-    /// Padded code for faster legacy code execution.
+-    /// If not nullptr m_code must point to it.
+-    std::unique_ptr<uint8_t[]> m_padded_code;
++    /// stwo: the padded copy is owned (deleted with the analysis) when m_owns is set; this
++    /// replaces the unique_ptr that held the same pointer as m_code, which keeps the object
++    /// at 32 bytes (ziskethone sizes its analysis-cache slots from sizeof) with room for
++    /// the translation id.
++    uint32_t m_owns = 0;
++    uint32_t m_xid = 0;  ///< Unique id for translation caches (see g_code_analysis_xid).
+ 
+     BitsetSpan m_jumpdest_bitset{nullptr};
+ 
+ public:
+     /// Constructor for legacy code.
+     CodeAnalysis(std::unique_ptr<uint8_t[]> padded_code, size_t code_size, BitsetSpan map)
+-      : m_code{padded_code.get(), code_size},
+-        m_padded_code{std::move(padded_code)},
++      : m_code{padded_code.release(), code_size},
++        m_owns{1},
++        m_xid{++g_code_analysis_xid},
+         m_jumpdest_bitset{map}
+     {}
+ 
++    CodeAnalysis(CodeAnalysis&& o) noexcept
++      : m_code{o.m_code}, m_owns{o.m_owns}, m_xid{o.m_xid}, m_jumpdest_bitset{o.m_jumpdest_bitset}
++    {
++        o.m_owns = 0;
++    }
++
++    CodeAnalysis& operator=(CodeAnalysis&& o) noexcept
++    {
++        if (this != &o)
++        {
++            if (m_owns)
++                delete[] m_code.data();
++            m_code = o.m_code;
++            m_owns = o.m_owns;
++            m_xid = o.m_xid;
++            m_jumpdest_bitset = o.m_jumpdest_bitset;
++            o.m_owns = 0;
++        }
++        return *this;
++    }
++
++    CodeAnalysis(const CodeAnalysis&) = delete;
++    CodeAnalysis& operator=(const CodeAnalysis&) = delete;
++
++    ~CodeAnalysis()
++    {
++        if (m_owns)
++            delete[] m_code.data();
++    }
++
+     /// The executable code. This is where the interpreter should start execution.
+     [[nodiscard]] bytes_view code() const noexcept { return m_code; }
++
++    /// stwo: the id of this analysis for translation caches.
++    [[nodiscard]] uint32_t xid() const noexcept { return m_xid; }
+ 
+     /// Check if given position is valid jump destination. Use only for legacy code.
+     [[nodiscard]] bool check_jumpdest(uint64_t position) const noexcept
+--- a/lib/evmone/baseline_execution.cpp
++++ b/lib/evmone/baseline_execution.cpp
+@@ -7,6 +7,10 @@
+ #include "execution_state.hpp"
+ #include "instructions.hpp"
+ #include "vm.hpp"
++#include <algorithm>
++#include <array>
++#include <cstdlib>
++#include <initializer_list>
+ #include <memory>
+ 
+ #ifdef NDEBUG
+@@ -238,8 +242,8 @@
+ #endif
+ 
+ 
+-int64_t dispatch_cgoto(
+-    const CostTable& cost_table, ExecutionState& state, int64_t gas, const uint8_t* code) noexcept
++int64_t dispatch_cgoto(const CostTable& cost_table, ExecutionState& state, int64_t gas,
++    const uint8_t* code, Position start) noexcept
+ {
+ #pragma GCC diagnostic ignored "-Wpedantic"
+ 
+@@ -256,8 +260,9 @@
+ 
+     const auto stack_bottom = state.stack_space.bottom();
+ 
+-    // Code iterator and stack top pointer for interpreter loop.
+-    Position position{code, stack_bottom};
++    // Code iterator and stack top pointer for interpreter loop. stwo: the translated
++    // dispatch (baseline_xlat.inl) resumes here mid-frame, so the start is a parameter.
++    Position position = start;
+ 
+     goto* cgoto_table[*position.code_it];
+ 
+@@ -284,6 +289,8 @@
+     state.status = EVMC_UNDEFINED_INSTRUCTION;
+     return gas;
+ }
++
++#include "baseline_xlat.inl"
+ #endif
+ }  // namespace
+ 
+@@ -311,7 +318,15 @@
+     {
+ #if EVMONE_CGOTO_SUPPORTED
+         if (vm.cgoto)
+-            gas = dispatch_cgoto(cost_table, state, gas, code_begin);
++        {
++            // stwo: translated segments, except for init code (CREATE/CREATE2 frames run
++            // once, so translating them costs more than it saves).
++            if (vm.xlat && msg.kind != EVMC_CREATE && msg.kind != EVMC_CREATE2)
++                gas = dispatch_xlat(cost_table, state, gas, analysis);
++            else
++                gas = dispatch_cgoto(cost_table, state, gas, code_begin,
++                    Position{code_begin, state.stack_space.bottom()});
++        }
+         else
+ #endif
+             gas = dispatch<false>(cost_table, state, gas, code_begin);
+--- a/lib/evmone/baseline_xlat.inl
++++ b/lib/evmone/baseline_xlat.inl
+@@ -0,0 +1,897 @@
++// baseline_xlat.inl -- stwo: lazily translated segments for the baseline interpreter.
++//
++// Included in baseline_execution.cpp's anonymous namespace, after dispatch_cgoto.
++//
++// The cgoto interpreter pays, on every opcode, a byte dispatch (6 RV64 instructions), a gas
++// check (2), stack-bound checks (1-2) and decodes PUSH data from the code bytes. Here a
++// *segment* (straight-line code from a JUMPDEST, from pc 0, after a JUMPI or after a
++// split, up to the next JUMP/JUMPI/terminator/JUMPDEST) is translated the first time it is
++// entered into a stream of 8-byte records: the address of the handler, then immediates.
++// The segment header carries the segment's total base gas, how many stack items it needs
++// and how far it grows the stack; one check of those at entry replaces the per-opcode
++// checks, and each handler ends in `ip += n; goto *ip[0]` (3 instructions).
++//
++// Exactness. The checked interpreter (dispatch_cgoto) stays the reference and the escape
++// hatch: whenever the translated path cannot prove it does exactly what the per-opcode
++// checks would do, it hands the frame over to dispatch_cgoto at the exact pc, stack and
++// gas the reference would have there, and that frame finishes in dispatch_cgoto.
++//  - Entry: if gas < segment base gas, or the stack is too short or too full for the
++//    segment, nothing of the segment has run; hand over at its first pc with the gas
++//    restored. (Every opcode of a segment runs unless one halts it, so the reference
++//    would then halt inside the segment anyway; handing over keeps the halting opcode,
++//    status and everything before it identical.)
++//  - Opcodes whose implementation reads or charges gas (Result/TermResult signatures:
++//    memory growth, SLOAD/SSTORE, GAS, CALL*, CREATE*, LOG*, KECCAK256, EXP, ...) get the
++//    gas the reference would pass them: the base gas of the opcodes after them in the
++//    segment (precharged at entry) is added back for the call and taken off again after.
++//    If what is left after the call cannot cover those later opcodes, hand over at the
++//    next pc with the exact gas.
++//  - Undefined opcodes (per revision), DUPN/SWAPN/EXCHANGE and anything else not handled
++//    here end the segment with a hand-over record at their pc.
++//  - Jump targets: dynamic JUMP/JUMPI targets are validated with the JUMPDEST bitset as
++//    before; static ones (PUSH1/PUSH2 immediately before JUMP/JUMPI) are validated once
++//    and the result (target segment or a bad-jump record) is patched into the record.
++// The fused PUSH2 JUMP / <test> PUSH2 JUMPI / PUSH4 EQ PUSH2 JUMPI sequences of
++// fused_dispatch.inl are chosen here at translation time instead of being re-detected at
++// every execution; their gas and stack effect are part of the segment like any opcode's.
++
++constexpr int kXMaxOps = 96;     ///< Opcodes per segment (longer runs are split).
++constexpr int kXGrowCap = 32;    ///< Max stack growth within a segment (entry fast check).
++constexpr size_t kXBudget = size_t{48} << 20;  ///< Arena + table bytes before giving up.
++constexpr size_t kXChunkWords = (size_t{1} << 17) - 8;  ///< ~1 MiB arena chunks.
++
++using XWord = uint64_t;
++
++enum XKind : uint8_t
++{
++    XK_NONE,
++    XK_PLAIN,    ///< void(StackTop)
++    XK_PLAIN_S,  ///< void(StackTop, ExecutionState&)
++    XK_GAS,      ///< Result(StackTop, int64_t, ExecutionState&)
++    XK_TERM,     ///< TermResult(StackTop, int64_t, ExecutionState&)
++    XK_CODEIT,   ///< code_iterator(StackTop, ExecutionState&, code_iterator)
++};
++
++constexpr XKind xkind_of(void (*)(StackTop) noexcept) noexcept
++{
++    return XK_PLAIN;
++}
++constexpr XKind xkind_of(void (*)(StackTop, ExecutionState&) noexcept) noexcept
++{
++    return XK_PLAIN_S;
++}
++constexpr XKind xkind_of(Result (*)(StackTop, int64_t, ExecutionState&) noexcept) noexcept
++{
++    return XK_GAS;
++}
++constexpr XKind xkind_of(TermResult (*)(StackTop, int64_t, ExecutionState&) noexcept) noexcept
++{
++    return XK_TERM;
++}
++constexpr XKind xkind_of(
++    code_iterator (*)(StackTop, ExecutionState&, code_iterator) noexcept) noexcept
++{
++    return XK_CODEIT;
++}
++
++struct XOpInfo
++{
++    XKind kind;
++    uint8_t req;    ///< stack_height_required
++    int8_t change;  ///< stack_height_change
++};
++
++constexpr std::array<XOpInfo, 256> make_xinfo() noexcept
++{
++    std::array<XOpInfo, 256> t{};
++#define ON_OPCODE(OPCODE)                                                                 \
++    t[OPCODE] = {xkind_of(instr::core::impl<OPCODE>), instr::traits[OPCODE].stack_height_required, \
++        instr::traits[OPCODE].stack_height_change};
++    MAP_OPCODES
++#undef ON_OPCODE
++    return t;
++}
++inline constexpr auto kXInfo = make_xinfo();
++
++/// Special record handlers (indices into the dispatch's xs[] label table).
++enum XSpecial : int
++{
++    XS_ENTER,     ///< [h, gas32|need_bytes16|grow16, pc]  segment header
++    XS_GOTO,      ///< [h, seg, pc]                         continue into the next segment
++    XS_FALLBACK,  ///< [h, pc]                              hand over to dispatch_cgoto
++    XS_PUSH1W,    ///< [h, w0]                              PUSH1..8
++    XS_PUSH2W,    ///< [h, w0, w1]                          PUSH9..16
++    XS_PUSH3W,    ///< [h, w0, w1, w2]                      PUSH17..24
++    XS_PUSH4W,    ///< [h, w0, w1, w2, w3]                  PUSH25..32
++    XS_PC,        ///< [h, pc]
++    XS_JUMP,      ///< [h, cached dst, cached seg]
++    XS_JUMPI,     ///< [h, fall seg, pc next, cached dst, cached seg]
++    XS_SJUMP,     ///< [h, seg, dst]                        PUSH1/2 JUMP
++    XS_BR_NZ,     ///< [h, taken seg, fall seg, dst|pcnext<<32]   PUSH1/2 JUMPI
++    XS_BR_ISZERO,
++    XS_BR_EQ,
++    XS_BR_LT,
++    XS_BR_GT,
++    XS_BR_SLT,
++    XS_BR_SGT,
++    XS_BR_P4EQ,  ///< [h, taken seg, fall seg, dst|pcnext<<32, imm32]  PUSH4 EQ PUSH1/2 JUMPI
++    XS_BADJUMP,  ///< [h]
++    XS_COUNT
++};
++
++struct XState
++{
++    struct Ent
++    {
++        uint64_t key;
++        XWord* seg;
++    };
++    Ent* tab = nullptr;
++    uint64_t mask = 0;
++    unsigned shift = 64;
++    size_t used = 0;
++    XWord* cur = nullptr;
++    XWord* end = nullptr;
++    XWord* chunks = nullptr;  ///< singly linked through word 0
++    XWord* bad = nullptr;     ///< shared bad-jump record
++    size_t bytes = 0;
++    int depth = 0;  ///< live dispatch_xlat frames (the arena is only reset at 0)
++};
++inline XState g_x;
++
++inline void xreset() noexcept
++{
++    for (auto* c = g_x.chunks; c != nullptr;)
++    {
++        auto* next = reinterpret_cast<XWord*>(c[0]);
++        std::free(c);
++        c = next;
++    }
++    std::free(g_x.tab);
++    g_x = XState{};
++}
++
++[[gnu::noinline]] inline bool xreserve(size_t words) noexcept
++{
++    if (static_cast<size_t>(g_x.end - g_x.cur) >= words)
++        return true;
++    const size_t n = std::max(words, kXChunkWords) + 1;
++    if (g_x.bytes + n * sizeof(XWord) > kXBudget)
++        return false;
++    auto* c = static_cast<XWord*>(std::malloc(n * sizeof(XWord)));
++    if (c == nullptr)
++        return false;
++    g_x.bytes += n * sizeof(XWord);
++    c[0] = reinterpret_cast<XWord>(g_x.chunks);
++    g_x.chunks = c;
++    g_x.cur = c + 1;
++    g_x.end = c + n;
++    return true;
++}
++
++[[gnu::always_inline]] inline XWord* xfind(uint64_t key) noexcept
++{
++    if (g_x.tab == nullptr)
++        return nullptr;
++    auto i = (key * 0x9E3779B97F4A7C15ull) >> g_x.shift;
++    while (true)
++    {
++        const auto& e = g_x.tab[i];
++        if (e.key == key)
++            return e.seg;
++        if (e.seg == nullptr)
++            return nullptr;
++        i = (i + 1) & g_x.mask;
++    }
++}
++
++[[gnu::noinline]] inline bool xinsert(uint64_t key, XWord* seg) noexcept
++{
++    if (g_x.tab == nullptr || (g_x.used + 1) * 2 > g_x.mask + 1)
++    {
++        const unsigned bits = g_x.tab == nullptr ? 13 : 64 - g_x.shift + 1;
++        const size_t n = size_t{1} << bits;
++        const size_t old_n = g_x.tab == nullptr ? 0 : g_x.mask + 1;
++        if (g_x.bytes + n * sizeof(XState::Ent) > kXBudget)
++            return false;
++        auto* t = static_cast<XState::Ent*>(std::calloc(n, sizeof(XState::Ent)));
++        if (t == nullptr)
++            return false;
++        const auto mask = n - 1;
++        const auto shift = 64 - bits;
++        for (size_t j = 0; j < old_n; ++j)
++        {
++            const auto& e = g_x.tab[j];
++            if (e.seg == nullptr)
++                continue;
++            auto i = (e.key * 0x9E3779B97F4A7C15ull) >> shift;
++            while (t[i].seg != nullptr)
++                i = (i + 1) & mask;
++            t[i] = e;
++        }
++        std::free(g_x.tab);
++        g_x.bytes = g_x.bytes - old_n * sizeof(XState::Ent) + n * sizeof(XState::Ent);
++        g_x.tab = t;
++        g_x.mask = mask;
++        g_x.shift = shift;
++    }
++    auto i = (key * 0x9E3779B97F4A7C15ull) >> g_x.shift;
++    while (g_x.tab[i].seg != nullptr)
++        i = (i + 1) & g_x.mask;
++    g_x.tab[i] = {key, seg};
++    ++g_x.used;
++    return true;
++}
++
++/// Translate the segment starting at `pc` (an opcode boundary of `a`'s padded code) and
++/// register it under `key`. Returns the segment header, or nullptr when the budget is
++/// exhausted (the caller then hands over to dispatch_cgoto).
++[[gnu::noinline]] XWord* xtranslate(const void* const* xops, const void* const* xs,
++    const CodeAnalysis& a, const CostTable& ct, uint64_t key, uint32_t pc) noexcept
++{
++    constexpr size_t kMaxWords = kXMaxOps * 5 + 16;
++    if (!xreserve(kMaxWords))
++        return nullptr;
++    const uint8_t* const code = a.code().data();
++    XWord* const seg = g_x.cur;
++    XWord* w = seg;
++    const auto H = [xs](int s) noexcept { return reinterpret_cast<XWord>(xs[s]); };
++
++    w[0] = H(XS_ENTER);
++    w[2] = pc;
++    w += 3;
++
++    int64_t gsum = 0;
++    int h = 0;
++    int need = 0;
++    int grow = 0;
++    uint32_t p = pc;
++
++    // Opcodes whose implementation takes gas: where their aux word is and the base gas
++    // charged up to and including them (the rest of the segment's base gas is their
++    // correction).
++    XWord* gas_rec[kXMaxOps];
++    int64_t gas_at[kXMaxOps];
++    int ng = 0;
++
++    if (code[p] == OP_JUMPDEST)
++    {
++        gsum += ct[OP_JUMPDEST];
++        ++p;
++    }
++
++    // Apply the stack effects of `n` opcodes in order; false (nothing changed) if the
++    // segment would then exceed its caps.
++    const auto fits = [&](std::initializer_list<uint8_t> ops) noexcept {
++        int hh = h, nn = need, gg = grow;
++        for (const auto op : ops)
++        {
++            nn = std::max(nn, kXInfo[op].req - hh);
++            hh += kXInfo[op].change;
++            gg = std::max(gg, hh);
++        }
++        if (gg > kXGrowCap || nn > StackSpace::limit)
++            return false;
++        h = hh;
++        need = nn;
++        grow = gg;
++        return true;
++    };
++    const auto push_imm = [code](uint32_t at, int n) noexcept {
++        uint64_t v = 0;
++        for (int i = 0; i < n; ++i)
++            v = (v << 8) | code[at + static_cast<uint32_t>(i)];
++        return v;
++    };
++    const auto is_push12 = [](uint8_t op) noexcept { return op == OP_PUSH1 || op == OP_PUSH2; };
++
++    for (int n = 0;; ++n)
++    {
++        const uint8_t op = code[p];
++        if (n == kXMaxOps || op == OP_JUMPDEST)
++        {
++            w[0] = H(XS_GOTO);
++            w[1] = 0;
++            w[2] = p;
++            w += 3;
++            break;
++        }
++        const int cost = ct[op];
++        const auto& inf = kXInfo[op];
++        if (cost < 0 || inf.kind == XK_NONE)
++        {
++            w[0] = H(XS_FALLBACK);
++            w[1] = p;
++            w += 2;
++            break;
++        }
++
++        // Fused control flow (all opcodes involved exist in every revision).
++        if (is_push12(op))
++        {
++            const int len = op - OP_PUSH1 + 1;
++            const uint8_t nx = code[p + 1 + static_cast<uint32_t>(len)];
++            if (nx == OP_JUMP && fits({op, OP_JUMP}))
++            {
++                gsum += cost + ct[OP_JUMP];
++                w[0] = H(XS_SJUMP);
++                w[1] = 0;
++                w[2] = push_imm(p + 1, len);
++                w += 3;
++                break;
++            }
++            if (nx == OP_JUMPI && fits({op, OP_JUMPI}))
++            {
++                gsum += cost + ct[OP_JUMPI];
++                w[0] = H(XS_BR_NZ);
++                w[1] = 0;
++                w[2] = 0;
++                w[3] = push_imm(p + 1, len) | (uint64_t{p + 2 + static_cast<uint32_t>(len)} << 32);
++                w += 4;
++                break;
++            }
++        }
++        if (op == OP_ISZERO || op == OP_EQ || op == OP_LT || op == OP_GT || op == OP_SLT ||
++            op == OP_SGT)
++        {
++            const uint8_t p2 = code[p + 1];
++            if (is_push12(p2))
++            {
++                const int len = p2 - OP_PUSH1 + 1;
++                if (code[p + 2 + static_cast<uint32_t>(len)] == OP_JUMPI &&
++                    fits({op, p2, OP_JUMPI}))
++                {
++                    gsum += cost + ct[p2] + ct[OP_JUMPI];
++                    const int s = op == OP_ISZERO ? XS_BR_ISZERO :
++                                  op == OP_EQ     ? XS_BR_EQ :
++                                  op == OP_LT     ? XS_BR_LT :
++                                  op == OP_GT     ? XS_BR_GT :
++                                  op == OP_SLT    ? XS_BR_SLT :
++                                                    XS_BR_SGT;
++                    w[0] = H(s);
++                    w[1] = 0;
++                    w[2] = 0;
++                    w[3] = push_imm(p + 2, len) |
++                           (uint64_t{p + 3 + static_cast<uint32_t>(len)} << 32);
++                    w += 4;
++                    break;
++                }
++            }
++        }
++        if (op == OP_PUSH4 && code[p + 5] == OP_EQ && is_push12(code[p + 6]))
++        {
++            const uint8_t p2 = code[p + 6];
++            const int len = p2 - OP_PUSH1 + 1;
++            if (code[p + 7 + static_cast<uint32_t>(len)] == OP_JUMPI &&
++                fits({OP_PUSH4, OP_EQ, p2, OP_JUMPI}))
++            {
++                gsum += cost + ct[OP_EQ] + ct[p2] + ct[OP_JUMPI];
++                w[0] = H(XS_BR_P4EQ);
++                w[1] = 0;
++                w[2] = 0;
++                w[3] = push_imm(p + 7, len) | (uint64_t{p + 8 + static_cast<uint32_t>(len)} << 32);
++                w[4] = push_imm(p + 1, 4);
++                w += 5;
++                break;
++            }
++        }
++
++        if (inf.kind == XK_CODEIT && !(op >= OP_PUSH1 && op <= OP_PUSH32) && op != OP_PC &&
++            op != OP_JUMP && op != OP_JUMPI)
++        {
++            // DUPN, SWAPN, EXCHANGE: not translated; the hand-over runs (and checks) them.
++            w[0] = H(XS_FALLBACK);
++            w[1] = p;
++            w += 2;
++            break;
++        }
++        if (!fits({op}))
++        {
++            w[0] = H(XS_GOTO);
++            w[1] = 0;
++            w[2] = p;
++            w += 3;
++            break;
++        }
++        gsum += cost;
++
++        if (op >= OP_PUSH1 && op <= OP_PUSH32)
++        {
++            const int len = op - OP_PUSH1 + 1;
++            const int words = (len + 7) / 8;
++            w[0] = H(XS_PUSH1W + words - 1);
++            // Limb j (least significant first) holds data bytes [len-8(j+1), len-8j).
++            for (int j = 0; j < words; ++j)
++            {
++                const int hi = len - 8 * j;  // exclusive end of this limb's bytes
++                const int lo = std::max(0, hi - 8);
++                w[1 + j] = push_imm(p + 1 + static_cast<uint32_t>(lo), hi - lo);
++            }
++            w += 1 + words;
++            p += 1 + static_cast<uint32_t>(len);
++            continue;
++        }
++        if (op == OP_PC)
++        {
++            w[0] = H(XS_PC);
++            w[1] = p;
++            w += 2;
++            ++p;
++            continue;
++        }
++        if (op == OP_JUMP)
++        {
++            w[0] = H(XS_JUMP);
++            w[1] = ~uint64_t{0};
++            w[2] = reinterpret_cast<XWord>(g_x.bad);
++            w += 3;
++            break;
++        }
++        if (op == OP_JUMPI)
++        {
++            w[0] = H(XS_JUMPI);
++            w[1] = 0;
++            w[2] = p + 1;
++            w[3] = ~uint64_t{0};
++            w[4] = reinterpret_cast<XWord>(g_x.bad);
++            w += 5;
++            break;
++        }
++        w[0] = reinterpret_cast<XWord>(xops[op]);
++        if (inf.kind == XK_GAS)
++        {
++            gas_rec[ng] = w + 1;
++            gas_at[ng] = gsum;
++            ++ng;
++            w[1] = uint64_t{p + 1} << 32;
++            w += 2;
++            ++p;
++            continue;
++        }
++        w += 1;
++        ++p;
++        if (inf.kind == XK_TERM)
++            break;
++    }
++
++    for (int i = 0; i < ng; ++i)
++        *gas_rec[i] |= static_cast<uint32_t>(gsum - gas_at[i]);
++    seg[1] = static_cast<uint64_t>(static_cast<uint32_t>(gsum)) |
++             (static_cast<uint64_t>(need * 32) << 32) | (static_cast<uint64_t>(grow) << 48);
++    g_x.cur = w;
++    if (!xinsert(key, seg))
++        return nullptr;
++    return seg;
++}
++
++enum XAction : int
++{
++    XA_NEXT,
++    XA_EXIT,      ///< return `ret`
++    XA_HANDOVER,  ///< continue in dispatch_cgoto at `hpc` with gas `ret`
++};
++
++/// One translated generic opcode (no checks: the segment entry did them).
++template <Opcode Op>
++[[gnu::always_inline]] inline XAction xexec(uint256*& sp, XWord*& ip, int64_t& gas,
++    ExecutionState& state, int64_t& ret, uint64_t& hpc) noexcept
++{
++    __builtin_assume(gas >= 0);
++    constexpr auto k = xkind_of(instr::core::impl<Op>);
++    constexpr auto change = instr::traits[Op].stack_height_change;
++    if constexpr (k == XK_PLAIN)
++    {
++        instr::core::impl<Op>(sp);
++        sp += change;
++        ip += 1;
++        return XA_NEXT;
++    }
++    else if constexpr (k == XK_PLAIN_S)
++    {
++        instr::core::impl<Op>(sp, state);
++        sp += change;
++        ip += 1;
++        return XA_NEXT;
++    }
++    else if constexpr (k == XK_GAS)
++    {
++        // The gas the per-opcode interpreter would pass: add back the base gas of the
++        // opcodes after this one, precharged at segment entry (aux low word).
++        const auto aux = ip[1];
++        const int64_t rem = static_cast<uint32_t>(aux);
++        const auto r = instr::core::impl<Op>(sp, gas + rem, state);
++        if (r.status != EVMC_SUCCESS) [[unlikely]]
++        {
++            state.status = r.status;
++            ret = r.gas_left;
++            return XA_EXIT;
++        }
++        sp += change;
++        gas = r.gas_left - rem;
++        if (gas < 0) [[unlikely]]
++        {
++            ret = r.gas_left;
++            hpc = aux >> 32;
++            return XA_HANDOVER;
++        }
++        ip += 2;
++        return XA_NEXT;
++    }
++    else if constexpr (k == XK_TERM)
++    {
++        const auto r = instr::core::impl<Op>(sp, gas, state);
++        state.status = r.status;
++        ret = r.gas_left;
++        return XA_EXIT;
++    }
++    else
++    {
++        __builtin_trap();
++    }
++}
++
++int64_t dispatch_xlat(const CostTable& cost_table, ExecutionState& state, int64_t gas,
++    const CodeAnalysis& analysis) noexcept
++{
++    static constexpr void* xops[] = {
++#define ON_OPCODE(OPCODE) &&XOP_##OPCODE,
++#undef ON_OPCODE_UNDEFINED
++#define ON_OPCODE_UNDEFINED(_) &&X_FALLBACK,
++        MAP_OPCODES
++#undef ON_OPCODE
++#undef ON_OPCODE_UNDEFINED
++#define ON_OPCODE_UNDEFINED ON_OPCODE_UNDEFINED_DEFAULT
++    };
++    static_assert(std::size(xops) == 256);
++    static constexpr void* xs[] = {&&X_ENTER, &&X_GOTO, &&X_FALLBACK, &&X_PUSH1W, &&X_PUSH2W,
++        &&X_PUSH3W, &&X_PUSH4W, &&X_PC, &&X_JUMP, &&X_JUMPI, &&X_SJUMP, &&X_BR_NZ,
++        &&X_BR_ISZERO, &&X_BR_EQ, &&X_BR_LT, &&X_BR_GT, &&X_BR_SLT, &&X_BR_SGT, &&X_BR_P4EQ,
++        &&X_BADJUMP};
++    static_assert(std::size(xs) == XS_COUNT);
++
++    const uint8_t* const code = analysis.code().data();
++    uint256* const bottom = state.stack_space.bottom();
++    const uint256* const lim = bottom + (StackSpace::limit - kXGrowCap);
++    const uint64_t kbase = (uint64_t{analysis.xid()} << 32) |
++                           (uint64_t{static_cast<uint8_t>(state.rev)} << 24);
++
++    if (g_x.depth == 0 && g_x.bytes > kXBudget / 2)
++        xreset();
++    if (g_x.bad == nullptr)
++    {
++        if (!xreserve(1))
++            return dispatch_cgoto(cost_table, state, gas, code, Position{code, bottom});
++        g_x.bad = g_x.cur++;
++        g_x.bad[0] = reinterpret_cast<XWord>(&&X_BADJUMP);
++    }
++
++    XWord* ip = xfind(kbase);
++    if (ip == nullptr)
++        ip = xtranslate(xops, xs, analysis, cost_table, kbase, 0);
++    if (ip == nullptr)
++        return dispatch_cgoto(cost_table, state, gas, code, Position{code, bottom});
++
++    uint256* sp = bottom;
++    XWord* patch = nullptr;  // record word to patch with a resolved segment
++    uint64_t rpc = 0;        // pc to resolve
++    ++g_x.depth;
++
++#define XNEXT() goto* reinterpret_cast<void*>(*ip)
++#define XEXIT(G)          \
++    do                    \
++    {                     \
++        --g_x.depth;      \
++        return (G);       \
++    } while (0)
++#define XHANDOVER(PC, G)                                                                  \
++    do                                                                                    \
++    {                                                                                     \
++        --g_x.depth;                                                                      \
++        return dispatch_cgoto(                                                            \
++            cost_table, state, (G), code, Position{code + static_cast<size_t>(PC), sp}); \
++    } while (0)
++
++    XNEXT();
++
++X_ENTER:
++{
++    ASM_COMMENT(X_ENTER);
++    const int64_t c = reinterpret_cast<const uint32_t*>(ip + 1)[0];
++    const auto need = reinterpret_cast<const uint16_t*>(ip + 1)[2];
++    gas -= c;
++    if (gas < 0 ||
++        reinterpret_cast<uintptr_t>(sp) - need < reinterpret_cast<uintptr_t>(bottom)) [[unlikely]]
++        goto X_ENTER_FAIL;
++    if (sp > lim) [[unlikely]]
++    {
++        const auto grow = reinterpret_cast<const uint16_t*>(ip + 1)[3];
++        if (sp + grow > bottom + StackSpace::limit)
++            goto X_ENTER_FAIL;
++    }
++    ip += 3;
++    XNEXT();
++X_ENTER_FAIL:
++    XHANDOVER(ip[2], gas + c);
++}
++
++X_GOTO:
++{
++    ASM_COMMENT(X_GOTO);
++    auto* s = reinterpret_cast<XWord*>(ip[1]);
++    if (s != nullptr) [[likely]]
++    {
++        ip = s;
++        XNEXT();
++    }
++    patch = ip + 1;
++    rpc = ip[2];
++    goto X_RESOLVE;
++}
++
++X_FALLBACK:
++    ASM_COMMENT(X_FALLBACK);
++    XHANDOVER(ip[1], gas);
++
++X_PUSH1W:
++{
++    ASM_COMMENT(X_PUSH1W);
++    auto& r = *sp;
++    r[0] = ip[1];
++    r[1] = 0;
++    r[2] = 0;
++    r[3] = 0;
++    ++sp;
++    ip += 2;
++    XNEXT();
++}
++X_PUSH2W:
++{
++    auto& r = *sp;
++    r[0] = ip[1];
++    r[1] = ip[2];
++    r[2] = 0;
++    r[3] = 0;
++    ++sp;
++    ip += 3;
++    XNEXT();
++}
++X_PUSH3W:
++{
++    auto& r = *sp;
++    r[0] = ip[1];
++    r[1] = ip[2];
++    r[2] = ip[3];
++    r[3] = 0;
++    ++sp;
++    ip += 4;
++    XNEXT();
++}
++X_PUSH4W:
++{
++    auto& r = *sp;
++    r[0] = ip[1];
++    r[1] = ip[2];
++    r[2] = ip[3];
++    r[3] = ip[4];
++    ++sp;
++    ip += 5;
++    XNEXT();
++}
++X_PC:
++{
++    auto& r = *sp;
++    r[0] = ip[1];
++    r[1] = 0;
++    r[2] = 0;
++    r[3] = 0;
++    ++sp;
++    ip += 2;
++    XNEXT();
++}
++
++X_JUMP:
++{
++    ASM_COMMENT(X_JUMP);
++    const auto& d = sp[-1];
++    --sp;
++    if ((d[3] | d[2] | d[1]) != 0) [[unlikely]]
++        goto X_BADJUMP;
++    rpc = d[0];
++    if (rpc == ip[1]) [[likely]]
++    {
++        ip = reinterpret_cast<XWord*>(ip[2]);
++        XNEXT();
++    }
++    patch = ip + 1;
++    goto X_RESOLVE_DYN;
++}
++
++X_JUMPI:
++{
++    ASM_COMMENT(X_JUMPI);
++    const auto& d = sp[-1];
++    const auto& c = sp[-2];
++    sp -= 2;
++    if ((c[0] | c[1] | c[2] | c[3]) == 0)
++    {
++        auto* s = reinterpret_cast<XWord*>(ip[1]);
++        if (s != nullptr) [[likely]]
++        {
++            ip = s;
++            XNEXT();
++        }
++        patch = ip + 1;
++        rpc = ip[2];
++        goto X_RESOLVE;
++    }
++    if ((d[3] | d[2] | d[1]) != 0) [[unlikely]]
++        goto X_BADJUMP;
++    rpc = d[0];
++    if (rpc == ip[3]) [[likely]]
++    {
++        ip = reinterpret_cast<XWord*>(ip[4]);
++        XNEXT();
++    }
++    patch = ip + 3;
++    goto X_RESOLVE_DYN;
++}
++
++X_SJUMP:
++{
++    ASM_COMMENT(X_SJUMP);
++    auto* s = reinterpret_cast<XWord*>(ip[1]);
++    if (s != nullptr) [[likely]]
++    {
++        ip = s;
++        XNEXT();
++    }
++    patch = ip + 1;
++    rpc = ip[2];
++    goto X_RESOLVE_JD;
++}
++
++#define X_BR_TAIL(TAKEN)                                        \
++    do                                                          \
++    {                                                           \
++        if (TAKEN)                                              \
++        {                                                       \
++            auto* s = reinterpret_cast<XWord*>(ip[1]);          \
++            if (s != nullptr) [[likely]]                        \
++            {                                                   \
++                ip = s;                                         \
++                XNEXT();                                        \
++            }                                                   \
++            patch = ip + 1;                                     \
++            rpc = static_cast<uint32_t>(ip[3]);                 \
++            goto X_RESOLVE_JD;                                  \
++        }                                                       \
++        auto* s = reinterpret_cast<XWord*>(ip[2]);              \
++        if (s != nullptr) [[likely]]                            \
++        {                                                       \
++            ip = s;                                             \
++            XNEXT();                                            \
++        }                                                       \
++        patch = ip + 2;                                         \
++        rpc = ip[3] >> 32;                                      \
++        goto X_RESOLVE;                                         \
++    } while (0)
++
++X_BR_NZ:
++{
++    ASM_COMMENT(X_BR_NZ);
++    const auto& a = sp[-1];
++    const bool t = (a[0] | a[1] | a[2] | a[3]) != 0;
++    sp -= 1;
++    X_BR_TAIL(t);
++}
++X_BR_ISZERO:
++{
++    ASM_COMMENT(X_BR_ISZERO);
++    const auto& a = sp[-1];
++    const bool t = (a[0] | a[1] | a[2] | a[3]) == 0;
++    sp -= 1;
++    X_BR_TAIL(t);
++}
++X_BR_EQ:
++{
++    ASM_COMMENT(X_BR_EQ);
++    const auto& a = sp[-1];
++    const auto& b = sp[-2];
++    const bool t = ((a[0] ^ b[0]) | (a[1] ^ b[1]) | (a[2] ^ b[2]) | (a[3] ^ b[3])) == 0;
++    sp -= 2;
++    X_BR_TAIL(t);
++}
++X_BR_LT:
++{
++    const bool t = sp[-1] < sp[-2];
++    sp -= 2;
++    X_BR_TAIL(t);
++}
++X_BR_GT:
++{
++    const bool t = sp[-2] < sp[-1];
++    sp -= 2;
++    X_BR_TAIL(t);
++}
++X_BR_SLT:
++{
++    const bool t = intx::slt(sp[-1], sp[-2]);
++    sp -= 2;
++    X_BR_TAIL(t);
++}
++X_BR_SGT:
++{
++    const bool t = intx::slt(sp[-2], sp[-1]);
++    sp -= 2;
++    X_BR_TAIL(t);
++}
++X_BR_P4EQ:
++{
++    ASM_COMMENT(X_BR_P4EQ);
++    const auto& a = sp[-1];
++    const bool t = a[0] == ip[4] && (a[1] | a[2] | a[3]) == 0;
++    sp -= 1;
++    X_BR_TAIL(t);
++}
++#undef X_BR_TAIL
++
++X_BADJUMP:
++    state.status = EVMC_BAD_JUMP_DESTINATION;
++    XEXIT(gas);
++
++X_RESOLVE_DYN:
++    // A dynamic target that missed the record's one-entry cache: validate it like
++    // jump_impl, then cache (dst, segment) in the record.
++    if (!analysis.check_jumpdest(rpc)) [[unlikely]]
++        goto X_BADJUMP;
++    {
++        XWord* s = xfind(kbase | rpc);
++        if (s == nullptr)
++            s = xtranslate(xops, xs, analysis, cost_table, kbase | rpc, static_cast<uint32_t>(rpc));
++        if (s == nullptr)
++            XHANDOVER(rpc, gas);
++        patch[0] = rpc;
++        patch[1] = reinterpret_cast<XWord>(s);
++        ip = s;
++        XNEXT();
++    }
++
++X_RESOLVE_JD:
++    // A static target, validated once: the record keeps the segment or the bad-jump record.
++    if (!analysis.check_jumpdest(rpc)) [[unlikely]]
++    {
++        *patch = reinterpret_cast<XWord>(g_x.bad);
++        goto X_BADJUMP;
++    }
++X_RESOLVE:
++{
++    XWord* s = xfind(kbase | rpc);
++    if (s == nullptr)
++        s = xtranslate(xops, xs, analysis, cost_table, kbase | rpc, static_cast<uint32_t>(rpc));
++    if (s == nullptr)
++        XHANDOVER(rpc, gas);
++    *patch = reinterpret_cast<XWord>(s);
++    ip = s;
++    XNEXT();
++}
++
++#define ON_OPCODE(OPCODE)                                                         \
++    XOP_##OPCODE:                                                                 \
++    {                                                                             \
++        ASM_COMMENT(XOP_##OPCODE);                                                \
++        int64_t ret;                                                              \
++        uint64_t hpc;                                                             \
++        const auto act = xexec<OPCODE>(sp, ip, gas, state, ret, hpc);             \
++        if (act == XA_NEXT) [[likely]]                                            \
++            XNEXT();                                                              \
++        if (act == XA_EXIT)                                                       \
++            XEXIT(ret);                                                           \
++        XHANDOVER(hpc, ret);                                                      \
++    }
++
++    MAP_OPCODES
++#undef ON_OPCODE
++#undef XNEXT
++#undef XEXIT
++#undef XHANDOVER
++}
+--- a/lib/evmone/vm.cpp
++++ b/lib/evmone/vm.cpp
+@@ -46,6 +46,15 @@
+         return EVMC_SET_OPTION_INVALID_NAME;
+ #endif
+     }
++    else if (name == "xlat")
++    {
++        if (value == "no")
++        {
++            vm.xlat = false;
++            return EVMC_SET_OPTION_SUCCESS;
++        }
++        return EVMC_SET_OPTION_INVALID_VALUE;
++    }
+     else if (name == "trace")
+     {
+         vm.add_tracer(create_instruction_tracer(std::clog));
+--- a/lib/evmone/vm.hpp
++++ b/lib/evmone/vm.hpp
+@@ -21,6 +21,7 @@
+ {
+ public:
+     bool cgoto = EVMONE_CGOTO_SUPPORTED;
++    bool xlat = EVMONE_CGOTO_SUPPORTED;  ///< stwo: translated-segment dispatch (with cgoto).
+ 
+ private:
+     std::vector<ExecutionState> m_execution_states;
