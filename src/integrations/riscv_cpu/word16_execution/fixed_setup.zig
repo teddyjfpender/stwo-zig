@@ -194,7 +194,10 @@ pub const Cache = struct {
         return .{ .limit_bytes = b.limit + @sizeOf(Budget), .live_bytes = b.live_bytes + @sizeOf(Budget), .peak_bytes = b.peak_live_bytes + @sizeOf(Budget), .keys = state.entries.items.len, .hits = state.hits, .seals = state.seals, .refused = b.exceeded, .native_coefficients = state.native.snapshot() };
     }
     pub fn acquireCoefficients(self: *const Cache, coefficients: []const Coefficient, descriptor: CommitmentDescriptor) !Lease {
+        // Opt-in diagnostics only; no timer starts on the normal path.
+        var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
         const id = try coefficientIdentity(coefficients, descriptor);
+        const identity_ns = if (timing) |*clock| clock.read() else 0;
         const state = self.state;
         state.mutex.lock();
         defer state.mutex.unlock();
@@ -204,13 +207,16 @@ pub const Cache = struct {
             if (!std.meta.eql(descriptor, entry.key.descriptor) or !coefficientsEqual(coefficients, entry.key.tree.coefficients orelse return error.MissingFixedSetupCoefficients)) return error.FixedSetupDigestCollision;
             state.hits += 1;
             state.retain();
+            if (timing) |*clock| std.log.info("immutable fixed acquire: path=hit columns={} blowup={} identity_ns={} equality_and_lookup_ns={} total_ns={}", .{ coefficients.len, descriptor.log_blowup, identity_ns, clock.read() - identity_ns, clock.read() });
             return .{ .state = state, .key = &entry.key };
         };
         const a = state.budget.allocator();
         try state.entries.ensureUnusedCapacity(a, 1);
         const entry = try a.create(Entry);
         errdefer a.destroy(entry);
+        const seal_start_ns = if (timing) |*clock| clock.read() else 0;
         entry.* = .{ .key = try WideFixedKey.seal(a, state.budget, &state.native, coefficients, descriptor, id) };
+        if (timing) |*clock| std.log.info("immutable fixed acquire: path=seal columns={} blowup={} identity_ns={} lookup_and_control_ns={} seal_ns={} total_ns={}", .{ coefficients.len, descriptor.log_blowup, identity_ns, seal_start_ns - identity_ns, clock.read() - seal_start_ns, clock.read() });
         state.entries.appendAssumeCapacity(entry);
         state.seals += 1;
         state.retain();
