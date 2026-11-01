@@ -28,6 +28,9 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
         return err;
     };
     defer worker.deinit(a);
+    var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "truth-worker-stage-scope");
+    defer native_profile.deinit();
+    worker.native_recorder = &native_profile;
     const stage = try worker.seal(a);
     try std.testing.expect(stage.local == null);
     var channel = P.Channel.init();
@@ -40,6 +43,15 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     const pending = Manifest.PendingManifest{ .entries = &entries, .digest = @splat(29), .shared = shared };
     var encoded = try worker.complete(a, &pending, 0, 64 * 1024 * 1024);
     defer encoded.deinit(a);
+    var profile = try native_profile.snapshot(a);
+    defer profile.deinit(a);
+    var found: usize = 0;
+    for (profile.stages) |stage_node| if (std.mem.eql(u8, stage_node.id, "interaction_generation")) {
+        found += 1;
+        try std.testing.expect(stage_node.children == null);
+    };
+    try std.testing.expectEqual(@as(usize, 1), found);
+    try std.testing.expectEqual(@as(usize, 0), native_profile.stack.items.len);
     var rejecting = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
     var bad = config;
     bad.pow_bits = 33;
