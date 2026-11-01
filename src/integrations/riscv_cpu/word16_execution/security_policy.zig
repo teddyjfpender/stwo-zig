@@ -158,6 +158,26 @@ pub fn requireCandidate128Conditions(profile: Profile) !void {
     try profile.budget.requireUnionBound(128);
 }
 
+/// Necessary algebraic field-size gate for a *single uniform challenge*
+/// polynomial-identity argument. Schwartz-Zippel gives at most D / |F| for a
+/// nonzero polynomial of total degree <= D; requiring D*2^bits <= |F| is
+/// sufficient for THAT ONE identity bound under those assumptions.
+///
+/// This does not count adaptive Fiat-Shamir queries, extension-field aliasing,
+/// composition, FRI, many relations, recursive layers, or commitment security.
+/// In particular, two unreviewed repetitions are NOT multiplied here. It
+/// never authorizes a protocol or a 128-bit certificate.
+pub fn requireSingleDrawAlgebraicBudget(extension_degree: u8, max_total_degree: u64, required_bits: u16) !void {
+    if (extension_degree == 0 or extension_degree > 16 or max_total_degree == 0 or
+        required_bits == 0 or required_bits > 256)
+        return error.InvalidAlgebraicBudget;
+    const modulus: u512 = 2147483647; // M31 = 2^31 - 1.
+    var field_size: u512 = 1;
+    for (0..extension_degree) |_| field_size *= modulus;
+    const required: u512 = @as(u512, max_total_degree) << @intCast(required_bits);
+    if (required > field_size) return error.SingleDrawAlgebraicBudgetInsufficient;
+}
+
 /// Certificate IDs are receiver-owned code authority, never inferred from a
 /// bundle's numeric budget. There is intentionally no qualified128 registry
 /// entry. Adding one requires protocol, formal-bound and recursion review.
