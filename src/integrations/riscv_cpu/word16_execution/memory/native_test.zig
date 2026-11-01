@@ -60,8 +60,8 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
         const pos = R.trace.physical(logical, log);
         const previous = R.trace.physical((logical + n - 1) % n, log);
         var f: [6]Q = undefined;
-        var m: [79]Q = @splat(Q.zero());
-        var pm: [79]Q = @splat(Q.zero());
+        var m: [X.layout.MAIN]Q = @splat(Q.zero());
+        var pm: [X.layout.MAIN]Q = @splat(Q.zero());
         var i: [X.layout.INTERACTION]Q = undefined;
         var pi: [X.layout.INTERACTION]Q = @splat(Q.zero());
         for (0..w[0]) |j| f[j] = Q.fromBase(fixed[j * n + pos]);
@@ -82,9 +82,10 @@ fn nativeRows(kind: X.layout.Kind, log: u32, rows: u32, fixed: []const M, main: 
 }
 test "LS19 affine projection preserves arbitrary secure inputs and emitted negative ownership" {
     const c = challenges();
-    var m: [79]Q = undefined;
+    var m: [X.layout.MAIN]Q = undefined;
     for (&m, 0..) |*v, i| v.* = Q.fromU32Unchecked(@intCast(i + 1), @intCast(i + 2), @intCast(i + 3), @intCast(i + 4));
-    const actual = V.equations.ownerTuple(Q, &m);
+    const logical = X.layout.projection.expandFor(Q, &m);
+    const actual = V.equations.ownerTuple(Q, &logical);
     try std.testing.expect(X.types.project(c).owner.denominatorFor(Q, actual).eql(c.owner.denominatorFor(Q, X.equations.ownerTuple(Q, &m)).neg()));
 }
 test "LS source after MAIN retirement preserves checked legacy claims and projected interactions and retained range debt and all local residuals" {
@@ -96,7 +97,7 @@ test "LS source after MAIN retirement preserves checked legacy claims and projec
     try std.testing.expectEqualSlices(M, source.fixed, empty.fixed);
     const main = try a.dupe(M, source.main);
     defer a.free(main);
-    var legacy = V.trace.Trace{ .allocator = a, .kind = .ls, .log_size = 5, .rows = 2, .fixed = try a.dupe(M, source.fixed), .main = try a.dupe(M, source.main) };
+    var legacy = V.trace.Trace{ .allocator = a, .kind = .ls, .log_size = 5, .rows = 2, .fixed = try a.dupe(M, source.fixed), .main = try @import("projection_test_support.zig").expandMatrix(a, source.main, source.size()) };
     defer legacy.deinit();
     const c = challenges();
     const dict = try Dictionaries.init(c);
@@ -203,7 +204,7 @@ test "LS and boundary exhaustive native allocation errors and borrowed publicati
         }
     };
     try std.testing.checkAllAllocationFailures(a, Runner.run, .{ &input, c, dict.q16, dict.q8 });
-    var buffer: [79 * 32]M = @splat(M.fromCanonical(23));
+    var buffer: [X.layout.MAIN * 32]M = @splat(M.fromCanonical(23));
     for (0..5) |index| {
         var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = index });
         try std.testing.expectError(error.OutOfMemory, X.source.Source.initWithMainBuffers(fail.allocator(), &input, 5, .{ .main = &buffer }));
@@ -275,8 +276,8 @@ test "LS and scalable boundary complete arbitrary secure residuals are cubic inc
         for (0..5) |k| {
             const t = E.q(@intCast(k));
             var f: [6]Q = undefined;
-            var m: [79]Q = undefined;
-            var pm: [79]Q = undefined;
+            var m: [X.layout.MAIN]Q = undefined;
+            var pm: [X.layout.MAIN]Q = undefined;
             var inter: [X.layout.INTERACTION]Q = undefined;
             var previous: [X.layout.INTERACTION]Q = undefined;
             affine(&f, t, 10);
@@ -319,7 +320,7 @@ test "LS strict owner poles late histogram and selection errors retain metadata 
     source.metadata[0].selection_words[0] ^= 1;
     _ = try source.generate(c, dict.q16, dict.q8);
     try std.testing.expectError(error.InvalidLsPhase, source.generate(c, dict.q16, dict.q8));
-    var storage: [79 * 32]M align(@alignOf(X.native.Event)) = @splat(M.zero());
+    var storage: [X.layout.MAIN * 32]M align(@alignOf(X.native.Event)) = @splat(M.zero());
     const alias: [*]const X.native.Event = @ptrCast(&storage);
     try std.testing.expectError(error.OverlappingLsInputs, X.source.Source.initWithMainBuffers(a, alias[0..1], 5, .{ .main = &storage }));
 }

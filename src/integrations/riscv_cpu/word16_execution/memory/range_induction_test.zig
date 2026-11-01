@@ -11,7 +11,7 @@ const M = X.types.M;
 const Q = X.types.Q;
 const p = core.fields.m31.Modulus;
 fn row(event: X.native.Event) [79]Q {
-    const m = X.native.row(event);
+    const m = X.native.logicalRow(event);
     var q: [79]Q = undefined;
     for (&q, m) |*v, x| v.* = Q.fromBase(x);
     return q;
@@ -29,10 +29,10 @@ fn local(m: *const [79]Q) !void {
     try std.testing.expect(m[3].sub(m[12]).sub(m[13].mul(E.q(65536))).isZero());
 }
 fn canonicalKept(m: *const [79]Q) bool {
-    for (X.layout.U16) |c| if (m[c].tryIntoM31()) |v| {
+    for (X.layout.LOGICAL_U16) |c| if (m[c].tryIntoM31()) |v| {
         if (v.v >= 65536) return false;
     } else |_| return false;
-    for (X.layout.U8) |c| if (m[c].tryIntoM31()) |v| {
+    for (X.layout.LOGICAL_U8) |c| if (m[c].tryIntoM31()) |v| {
         if (v.v >= 256) return false;
     } else |_| return false;
     return true;
@@ -56,8 +56,8 @@ test "removed upper store B ranges require full OWNER19 binding even when every 
     forged[38] = forged[38].sub(Q.one());
     try local(&forged);
     try std.testing.expect(canonicalKept(&forged));
-    const before = X.equations.ownerTuple(Q, &good);
-    const after = X.equations.ownerTuple(Q, &forged);
+    const before = X.equations.ownerTupleForLogical(Q, &good);
+    const after = X.equations.ownerTupleForLogical(Q, &forged);
     try std.testing.expect(!before[10].eql(after[10]));
     try std.testing.expect(!before[11].eql(after[11]));
 }
@@ -127,7 +127,7 @@ test "removed address ranges require canonical INIT ancestry rather than local e
     try std.testing.expect((try m[4].tryIntoM31()).v >= 65536);
     // OWNER is unchanged: only the independently anchored RAM path excludes it.
     const original = row(event);
-    try std.testing.expectEqualDeep(X.equations.ownerTuple(Q, &original), X.equations.ownerTuple(Q, &m));
+    try std.testing.expectEqualDeep(X.equations.ownerTupleForLogical(Q, &original), X.equations.ownerTupleForLogical(Q, &m));
 }
 
 test "removed base and immediate limb ranges need canonical REG and immutable ROM OWNER anchors" {
@@ -139,8 +139,8 @@ test "removed base and immediate limb ranges need canonical REG and immutable RO
         forged[V.layout.address_carries] = Q.one();
         try local(&forged);
         try std.testing.expect(canonicalKept(&forged));
-        const expected = X.equations.ownerTuple(Q, &good);
-        const actual = X.equations.ownerTuple(Q, &forged);
+        const expected = X.equations.ownerTupleForLogical(Q, &good);
+        const actual = X.equations.ownerTupleForLogical(Q, &forged);
         try std.testing.expect(!expected[1 + start - V.layout.a].eql(actual[1 + start - V.layout.a]));
     }
 }

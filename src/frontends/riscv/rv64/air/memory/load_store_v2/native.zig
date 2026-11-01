@@ -28,7 +28,8 @@ pub fn validate(event: Event) !void {
         if (event.before.rights & 1 == 0 or event.b != 0 or event.c != wanted or event.after.value != event.before.value) return error.InvalidLoadStoreEvent;
     }
 }
-pub fn row(event: ?Event) [79]M {
+/// Bounded row oracle shared by direct projection and legacy-authority tests.
+pub fn logicalRow(event: ?Event) [79]M {
     var values: [79]M = @splat(M.zero());
     const e = event orelse return values;
     const d = describe(e.opcode) catch unreachable;
@@ -81,6 +82,10 @@ pub fn row(event: ?Event) [79]M {
         values[L.address_carries + i] = M.fromCanonical(carry);
     }
     return values;
+}
+pub fn row(event: ?Event) [@import("layout.zig").MAIN]M {
+    const logical = logicalRow(event);
+    return @import("projection.zig").projectFor(M, &logical);
 }
 pub fn boundaryRow(cells: []const R.types.Cell, index: usize) [23]M {
     var values: [23]M = @splat(M.zero());

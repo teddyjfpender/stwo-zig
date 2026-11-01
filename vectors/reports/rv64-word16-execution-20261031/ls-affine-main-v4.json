@@ -1,0 +1,279 @@
+{
+  "schema": "rv64-ls-affine-main-v4-qualification",
+  "base": "c75c679dff8a60aab0afc36e34544a116626dba2",
+  "scope": "Concrete CPU-owned LS MAIN projection; old canonical REG/ROM/OWNER/RAM closure unchanged; no accepting open verifier or recursion qualification",
+  "status": "qualified isolated slice",
+  "layout": {
+    "fixed": 3,
+    "main": 71,
+    "interaction": 48,
+    "constraints": 261,
+    "range16_queries_per_padded_row": 12,
+    "range8_queries_per_padded_row": 4,
+    "selection_queries_per_padded_row": 1,
+    "local_strict_pairs": 9,
+    "separate_ram_columns": 8,
+    "metadata_bytes": 82,
+    "degree": 3,
+    "native_quotient_factor": 2,
+    "composition_log_split": 1
+  },
+  "prior": {
+    "main": 79,
+    "interaction": 48,
+    "constraints": 261,
+    "metadata_bytes": 82
+  },
+  "removed_logical_columns": [
+    1,
+    3,
+    4,
+    44,
+    45,
+    46,
+    47,
+    48
+  ],
+  "affine_reduction": [
+    "write=sum(store flags)",
+    "ownerTick=afterLow+65536*afterHigh",
+    "addressLow=8*quotient",
+    "effectiveLow=addressLow+sum(offset*j)",
+    "effectiveHigh3=addressHigh3",
+    "opcode=sum(rawOpcode*opcodeFlag)"
+  ],
+  "authority": [
+    "Existing immutable load/store specifications supply all opcode constants",
+    "Exact shared V1 local arithmetic, RAM14 and merged local lookup authorities remain; eight equality residuals become identities",
+    "No range, physical claim, statefulness or lookup-mass elision",
+    "Bounded79-coordinate virtual row only; final MAIN is allocated/written71 columns once",
+    "K/secp bridge native callers use explicit logicalRow because they require original RAM28 coordinates"
+  ],
+  "gates": [
+    {
+      "target": "test-riscv64-word16-memory",
+      "runtime_floor": 35,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-ls-native-fill",
+      "runtime_floor": 6,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-ls-ladder",
+      "runtime_floor": 9,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-provider-ladder",
+      "runtime_floor": 10,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-global-execution",
+      "runtime_floor": 15,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-combined-services",
+      "runtime_floor": 21,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-execution-coordinator",
+      "runtime_floor": 23,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    },
+    {
+      "target": "test-riscv64-word16-execution-circuit",
+      "runtime_floor": 5,
+      "ReleaseSafe": "PASS",
+      "ReleaseFast": "PASS"
+    }
+  ],
+  "new_tests": [
+    "All11 LS operations, all legal offsets, high/full64 addresses and wrapped EA reconstruct all79 original native coordinates",
+    "Arbitrary QM31 secure-field expansion is affine and preserves every stored coordinate",
+    "Actual packed quotient evaluation runs on four256KiB workers and equals serial accumulation"
+  ],
+  "existing_attacks": "Six real physical false-LS proofs accepted by fresh physical verifier and rejected by complete CPU receiver: upper storeB, before clock alias, read/write/C alias, future epoch, reversed tick, orphan RAM cycle",
+  "security_configuration": {
+    "queries": 70,
+    "pow_bits": 26,
+    "nominal_config_bits": 96,
+    "whole_protocol_bits_established": false
+  },
+  "cost_model": {
+    "actual_geometry_control": "/tmp/rv64-ethereum-full-ls48-concurrent-v1/bundle.json",
+    "ls_components": 45,
+    "padded_ls_rows": 36798464,
+    "saved_main_cells": 294387712,
+    "saved_summed_source_bytes": 1177550848,
+    "saved_q_opening_samples": 360,
+    "max_per_cpu_ls_source_reduction_bytes": 67108864,
+    "fixed_change": 0,
+    "interaction_change": 0,
+    "metadata_change": 0,
+    "query_mass_change": 0,
+    "runtime_or_peak_rss_claim": false
+  },
+  "manual_review": "design/riscv-proving-stack/rv64-ls-affine-main-projection.md",
+  "limitations": [
+    "No complete Ethereum block was reproved for this isolated slice; exact current retained-roster model only",
+    "No CPU50 qualification in this branch; CPU source/geometry unchanged and parent handles combined landing",
+    "No new independent Rust or recursive receiver acceptance claimed",
+    "Virtual row is bounded arithmetic scratch, not a second wide matrix; legacy wide expansion exists only in tests"
+  ],
+  "independent_workloads": [
+    {
+      "name": "ecdsa",
+      "artifact": "/tmp/rv64-ls71-ecdsa",
+      "steps": 1625938,
+      "proof_bytes": 1109112,
+      "proof_sha256": "03331da4030b2a50518099444e543e393dc34d0557c03a836552be4f35baf54f",
+      "fresh_independently_expected_receiver": "PASS",
+      "complete_cpu_statement_exact_to_shift28_control": true,
+      "complete_ram_cells_exact_to_shift28_control": true,
+      "cells_sha256": "ca8938caa44466bbb7c9b139d40dcec38b32aaabce3bbb7816648154fab7e800"
+    },
+    {
+      "name": "sail",
+      "artifact": "/tmp/rv64-ls71-sail",
+      "steps": 1032240,
+      "proof_bytes": 1033840,
+      "proof_sha256": "ea6f8c06d972e0051f4f91e244918b09212df8526c2d90479539b9cd6d9f6319",
+      "fresh_independently_expected_receiver": "PASS",
+      "complete_cpu_statement_exact_to_shift28_control": true,
+      "complete_ram_cells_exact_to_shift28_control": true,
+      "cells_sha256": "7764053a5352e66f004ba195dbac81fa6b2f997b84466c1906467be70da9755f"
+    }
+  ],
+  "mixed_services": {
+    "artifact": "/tmp/rv64-ls71-combined-final",
+    "proofs": 5,
+    "producer_workers": 1,
+    "fresh_receiver_workers": 16,
+    "fresh_receiver": "PASS",
+    "proof_and_cells_sha256": {
+      "cells.bin": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556",
+      "cpu-0.bin": "f2adff5ee4bc2aee122a8cbab07ac2052fd624ae3c105a670397f5c44d74a03a",
+      "cpu-1.bin": "9c3070ddd02af6b65dcf2d8563612d9e8432a68df593d1e5ec1f6d69d1586291",
+      "truth-0.bin": "9c85f117a5eb0098960a6132a29a46f0c7f54515b3788b6aea576313f222fa56",
+      "truth-1.bin": "83c108dd81af5148bef406feb672b70fe7bb7fe87e330d2c818c6ff0c4ae7a2a",
+      "truth-2.bin": "066abda9a1dddfa2ae9b0a0392cf61ecfced5847c82682084021f421f7b23a48"
+    },
+    "ram_cells_exact_to_prior_control": true
+  },
+  "legacy_v1_control": {
+    "scope": "experimental-closed-load-store-operations-complete-finite-image-policy-terminal",
+    "proof_sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+    "proof_bytes": 433488,
+    "expected_identity": "9289fafce20a836fd383d8808c59cf39d3098af73ff8e84aa9e2d362d2533bc5",
+    "queries": 70,
+    "pow_bits": 26,
+    "max_degree": 3,
+    "quotient_factor": 2,
+    "logs": [
+      6,
+      7,
+      5,
+      5,
+      6,
+      16,
+      8,
+      16
+    ],
+    "fixed": [
+      3,
+      3,
+      34,
+      34,
+      66,
+      3,
+      3,
+      6
+    ],
+    "main": [
+      79,
+      79,
+      23,
+      23,
+      22,
+      1,
+      1,
+      2
+    ],
+    "interaction": [
+      116,
+      116,
+      48,
+      48,
+      8,
+      8,
+      8,
+      8
+    ],
+    "source_cells": 1888960,
+    "oods_masks": 832,
+    "naturally_aligned": true,
+    "crossword_allowed": false,
+    "word_uniform_policy": true,
+    "operations": 49,
+    "u16_queries_including_padding": 7616,
+    "u8_queries_including_padding": 1024,
+    "selection_queries_including_padding": 192,
+    "cpu_bound": false,
+    "services_bound": false,
+    "general_sparse_image": false,
+    "open_loadstore_accepted": false,
+    "artifact": "/tmp/rv64-ls71-v1-control",
+    "fresh_receiver": "PASS",
+    "proof_bytes_exact_to_historical9124_control": true
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "bbef2be8a531176d7bc02203ebbff2b8a86a1e4432f8dfc9f1192ff09f177553",
+    "design/riscv-proving-stack/rv64-ls-affine-main-projection.md": "ce302cedd9cc1948c82f20605183f51e7e6237e21d18df338f7d5370c3c90a2e",
+    "src/frontends/riscv/rv64/air/delegations/keccak/word16_bridge/source.zig": "84c26e062f8838a5d75a2cec1538b3308e4fc3ccc51a948715384485c3d41d8d",
+    "src/frontends/riscv/rv64/air/delegations/secp256k1/word16_bridge/source.zig": "6dd82ba5dfa649605f9d0a66075a5255dca28bfd3bd0326190b0821abd16c8f9",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/component.zig": "daef5b0862854c152311eaace2f89f8b3ba03c9dbe14a51e460e7d6ca0f643cf",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/encoding.zig": "15c0731775814ea769b7db1a7f92e46bf85f30d30992e05abf08aa04fd9611d6",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/equations.zig": "5cdb10ffa5c4a67de0e3c19b4fe49c3a6b5aa7696bce395948ba17ae138249b4",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/layout.zig": "24a37e7e297f5494f9acbb065c54f7d6992907e4f4749d9f6a09350fd6a46a37",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/local_lookup.zig": "1e8fe553f8ba71727076fadb0710949cca070752039c1e2b9a1cbd742e91debe",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/native.zig": "2493e3ba96ddea8d2b1f57a718fa9f56725f07e016c0ed89f4e0cee321652d68",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/native_fill.zig": "b30f403e8e19d11d14d1e7eb05f0e43dd288a794b45271fd962af8ebe3f07af2",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/packed_rows.zig": "ed750911fa34f3f25d0a535f5127c173ee747ec61b6231a18a8d56c5b0325470",
+    "src/frontends/riscv/rv64/air/memory/load_store_v2/projection.zig": "b3561d9c671f86512aed1a3c5edf14bf799887da24fdd2a9f0aadc6e1ab3c260",
+    "src/integrations/riscv_cpu/rv64_word16_memory_test_root.zig": "c1e95e9fab56c85fef00588c1fd72a347fd98c28f4292df87bb3180baa56aad0",
+    "src/integrations/riscv_cpu/word16_execution/memory/affine_projection_test.zig": "1030b193407e5c770ea53094023303b8ca074532dc9562e72b73f024b8f1da2a",
+    "src/integrations/riscv_cpu/word16_execution/memory/native_test.zig": "0b9ca04dc5c74686f7e8a85b4592110357101c501c8ebac9feb5704452604d47",
+    "src/integrations/riscv_cpu/word16_execution/memory/projection_test_support.zig": "0a5c0c5827d5ceeff69cce9f1b2e4047555826a613b2e49a3632f2abffe581a7",
+    "src/integrations/riscv_cpu/word16_execution/memory/range_induction_proof_test.zig": "389d450e6683e6ed8ccf2fb6ebed42ae12ec247c755da3286b6ac4b4a7a47976",
+    "src/integrations/riscv_cpu/word16_execution/memory/range_induction_test.zig": "0a5c5618d3752e7e19d90db1b55eaacaaa5d1eb2ccd52575f9aafc3a1ce2fff6"
+  },
+  "logs": "/tmp/stwo-rv64-delivery/ls-affine-main-v4",
+  "source_conformance": {
+    "new_violations": 0,
+    "baseline_errors": 97,
+    "reported_files_exact_to_base": 96,
+    "only_modified_reported_file": "build_support/products/riscv_cpu.zig",
+    "metadata_lines_before_and_after": 516,
+    "fmt_and_diff_check": "PASS"
+  },
+  "final_gate_logs": [
+    "rv64-ls-affine71-memory-final-safe.log",
+    "rv64-ls-affine71-memory-final-fast.log",
+    "rv64-ls-affine71-integration-safe.log",
+    "rv64-ls-affine71-integration-fast.log",
+    "rv64-ls-affine71-core-circuit-safe.log"
+  ],
+  "compatibility_fix_qualification": "Initial legacy bridge callers indexed physical71 as logical79 and failed the Safe service test; both now call the unchanged logicalRow builder, final Safe/Fast service/ladders and fresh mixed5 proof PASS."
+}

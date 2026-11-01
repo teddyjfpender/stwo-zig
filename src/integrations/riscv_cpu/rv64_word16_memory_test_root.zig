@@ -1,4 +1,5 @@
 test {
+    _ = @import("word16_execution/memory/affine_projection_test.zig");
     _ = @import("word16_execution/memory/range_induction_proof_test.zig");
     _ = @import("word16_execution/memory/range_induction_test.zig");
     _ = @import("word16_execution/memory/boundary_anchor_test.zig");

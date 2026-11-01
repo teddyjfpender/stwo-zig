@@ -34,7 +34,7 @@ pub fn nativeRow(call: ?T.Call, lane: usize, id: u32) [L.MAIN]M {
     var out: [L.MAIN]M = @splat(M.zero());
     const c = call orelse return out;
     const before = c.predecessors[lane];
-    const old = LS.native.row(.{ .opcode = .SD, .a = c.pointer + 8 * lane, .immediate = 0, .b = c.after[lane], .epoch = c.epoch, .tick = c.tick, .before = before, .after = .{ .value = c.after[lane], .epoch = c.epoch, .tick = c.tick, .rights = 3 } });
+    const old = LS.native.logicalRow(.{ .opcode = .SD, .a = c.pointer + 8 * lane, .immediate = 0, .b = c.after[lane], .epoch = c.epoch, .tick = c.tick, .before = before, .after = .{ .value = c.after[lane], .epoch = c.epoch, .tick = c.tick, .rights = 3 } });
     @memcpy(out[0..28], old[0..28]);
     R.trace.word(out[L.POINTER..], c.pointer);
     out[L.CALL_ID] = M.fromCanonical(id);

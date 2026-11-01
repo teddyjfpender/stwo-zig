@@ -23,7 +23,7 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
     while (begin < end) : (begin += LANES) {
         const count = @min(LANES, end - begin);
         var values: [256]F = undefined;
-        var pm: [79]F = @splat(F.zero());
+        var pm: [L.MAIN]F = @splat(F.zero());
         var pi: [L.INTERACTION]F = @splat(F.zero());
         for (columns, 0..) |column, i| values[i] = load(column, begin, count);
         var indices: [LANES]usize = undefined;

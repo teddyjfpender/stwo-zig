@@ -48,7 +48,7 @@ pub fn nativeRow(kind: P.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
     R.trace.word(out[L.ADDRESS..], c.pointer + 32 * coord);
     for (0..4) |lane| {
         const index = 4 * coord + lane;
-        const old = LS.native.row(.{ .opcode = if (coord < 3) .SD else .LD, .a = c.pointer + 8 * index, .immediate = 0, .b = if (coord < 3) c.after[index] else 0, .c = if (coord < 3) 0 else c.before[index], .epoch = c.epoch, .tick = c.tick, .before = c.predecessors[index], .after = .{ .value = c.after[index], .epoch = c.epoch, .tick = c.tick, .rights = c.predecessors[index].rights } });
+        const old = LS.native.logicalRow(.{ .opcode = if (coord < 3) .SD else .LD, .a = c.pointer + 8 * index, .immediate = 0, .b = if (coord < 3) c.after[index] else 0, .c = if (coord < 3) 0 else c.before[index], .epoch = c.epoch, .tick = c.tick, .before = c.predecessors[index], .after = .{ .value = c.after[index], .epoch = c.epoch, .tick = c.tick, .rights = c.predecessors[index].rights } });
         for ([_]usize{ 8, 10, 11, 24, 25, 26, 2, 27, 22, 23 }, [_]usize{ L.PREV_EPOCH, L.PREV_LOW, L.PREV_HIGH, L.GAP_EPOCH, L.GAP_LOW, L.GAP_HIGH, L.SAME, L.BORROW, L.READABLE, L.WRITABLE }) |from, to| out[to + lane] = old[from];
         for (0..8) |byte| {
             out[L.BEFORE + 8 * lane + byte] = M.fromCanonical(@as(u8, @truncate(c.before[index] >> @as(u6, @intCast(8 * byte)))));

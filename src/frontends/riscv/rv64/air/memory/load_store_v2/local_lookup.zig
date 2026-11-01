@@ -12,9 +12,9 @@ pub fn emitFor(comptime F: type, f: []const F, m: []const F, i: []const F, pi: [
     const Q = E.SecureFor(F);
     var denominators: [L.LOCAL_FRACTIONS]Q = undefined;
     // Retain the existing negative OWNER orientation exactly.
-    denominators[0] = ch.owner.denominatorFor(F, Equations.ownerTuple(F, m)).neg();
-    for (L.U16, 0..) |column, j| denominators[1 + j] = ch.range16.denominatorFor(F, m[column]);
-    for (L.U8, 0..) |column, j| denominators[1 + L.U16.len + j] = ch.range8.denominatorFor(F, m[column]);
+    denominators[0] = ch.owner.denominatorFor(F, Equations.ownerTupleForLogical(F, m)).neg();
+    for (L.LOGICAL_U16, 0..) |column, j| denominators[1 + j] = ch.range16.denominatorFor(F, m[column]);
+    for (L.LOGICAL_U8, 0..) |column, j| denominators[1 + L.U16.len + j] = ch.range8.denominatorFor(F, m[column]);
     denominators[L.LOCAL_FRACTIONS - 1] = ch.selection.denominatorFor(F, V1.equations.selectionTuple(F, m));
     var contribution = Q.zero();
     for (0..L.LOCAL_PAIRS) |pair| {

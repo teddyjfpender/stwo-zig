@@ -97,8 +97,8 @@ pub const Fill = struct {
         const n = @as(usize, 1) << @intCast(self.log);
         for (start..end) |position| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(position, self.log), self.log);
-            const values = Native.row(if (logical < self.events.len) self.events[logical] else null);
-            for (values, 0..) |v, c| self.main[c * n + position] = v;
+            const values = Native.logicalRow(if (logical < self.events.len) self.events[logical] else null);
+            for (L.projection.STORED, 0..) |logical_column, c| self.main[c * n + position] = values[logical_column];
             const meta = &self.metadata[logical];
             for (L.RELATION_U16, 0..) |c, i| {
                 meta.range16[i] = @intCast(values[c].v);
@@ -106,8 +106,8 @@ pub const Fill = struct {
             for (L.RELATION_U8, 0..) |c, i| {
                 meta.range8[i] = @intCast(values[c].v);
             }
-            for (L.U16) |c| c16[values[c].v] += 1;
-            for (L.U8) |c| c8[values[c].v] += 1;
+            for (L.LOGICAL_U16) |c| c16[values[c].v] += 1;
+            for (L.LOGICAL_U8) |c| c8[values[c].v] += 1;
             var parity: u32 = 0;
             for ([_]usize{ 1, 3, 5, 7 }) |i| parity += values[V.offsets + i].v;
             const index = 2 * values[V.selected_limb].v + parity;

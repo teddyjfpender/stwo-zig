@@ -4,7 +4,11 @@ const R = @import("../closed_ram/mod.zig");
 const V1 = @import("../load_store_v1/mod.zig");
 const L = @import("layout.zig");
 const T = @import("types.zig");
-pub fn ownerTuple(comptime F: type, m: []const F) [19]F {
+pub fn ownerTuple(comptime F: type, physical: []const F) [19]F {
+    const m = L.projection.expandFor(F, physical);
+    return ownerTupleForLogical(F, &m);
+}
+pub fn ownerTupleForLogical(comptime F: type, m: []const F) [19]F {
     var tuple: [19]F = undefined;
     tuple[0] = m[V1.layout.opcode];
     @memcpy(tuple[1..17], m[V1.layout.a..][0..16]);
@@ -47,8 +51,11 @@ pub fn baseClaims(c: T.Claims) R.types.Claims {
 /// The same LS residual authority over native or external arithmetic lanes.
 /// Typed non-mask inputs are wires for a Circuit lane, Q for native lanes.
 pub fn emitLsFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
-    V1.equations.emitLocalFor(F, f, m, pm, rows, out);
-    R.equations.transitionRamFor(F, m[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
-    @import("local_lookup.zig").emitFor(F, f, m, i, pi, claims, ch, out);
-    out.emit(m[3].sub(m[12]).sub(m[13].mul(E.qFor(F, 65536))));
+    const logical = L.projection.expandFor(F, m);
+    var previous: [L.projection.LOGICAL_MAIN]F = @splat(F.zero());
+    previous[0] = pm[0];
+    V1.equations.emitLocalFor(F, f, &logical, &previous, rows, out);
+    R.equations.transitionRamFor(F, logical[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
+    @import("local_lookup.zig").emitFor(F, f, &logical, i, pi, claims, ch, out);
+    out.emit(logical[3].sub(logical[12]).sub(logical[13].mul(E.qFor(F, 65536))));
 }

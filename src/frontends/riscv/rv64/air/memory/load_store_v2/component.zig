@@ -90,7 +90,7 @@ pub const Component = struct {
         if (mask.items.len < 3) return error.InvalidLoadStoreMask;
         const widths_ = self.widths();
         var data: [256]Q = undefined;
-        var pm: [79]Q = @splat(Q.zero());
+        var pm: [L.MAIN]Q = @splat(Q.zero());
         var pi: [L.INTERACTION]Q = @splat(Q.zero());
         var at: usize = 0;
         for (widths_, 0..) |width, tree| {
