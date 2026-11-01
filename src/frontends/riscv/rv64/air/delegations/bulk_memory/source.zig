@@ -146,6 +146,7 @@ pub fn cdescRow(call: ?T.Call) [L.cdesc.MAIN]M {
     put(&out, D.b, c.word1);
     out[D.len_q0] = M.fromCanonical(@as(u16, @truncate(c.len)) / 8);
     out[D.len_l1] = M.fromCanonical(@as(u16, @truncate(c.len >> 16)));
+    out[D.len_inv] = M.fromCanonical(@intCast(c.len / 8)).inv() catch M.zero();
     for (c.packet, 0..) |state, k| clockBlock(&out, D.clocks + L.CLOCK * k, state, c.epoch, c.tick);
     for (c.packet[0..3], 0..) |state, k| out[D.writable + k] = M.fromCanonical(state.rights >> 1);
     put(&out, D.result_before, c.packet[3].value);

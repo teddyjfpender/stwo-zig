@@ -57,13 +57,17 @@ inline void zero_lanes_from(uint64_t* st, size_t from) {
 
 // XOR (or, for the first block, store) `words` LE words of `in` into the
 // state; all words lie fully inside the input.
-template <bool kStore>
-inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words) {
+// Absorb `words` input words into st (kStore: first block, st[i] = w), and when
+// out != nullptr also store each assembled word to the 8-aligned out[i].
+template <bool kStore, bool kCopy = false>
+inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words, uint64_t* out = nullptr) {
     const unsigned off = reinterpret_cast<uintptr_t>(in) & 7;
     if (off == 0) {
+#pragma clang loop unroll(full)
         for (size_t i = 0; i < words; ++i) {
             const uint64_t w = ldw(in + 8 * i);
             st[i] = kStore ? w : st[i] ^ w;
+            if (kCopy) out[i] = w;
         }
         return;
     }
@@ -71,16 +75,16 @@ inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words) {
     const unsigned rs = 64 - sh;
     const uint8_t* base = in - off;
     uint64_t cur = ldw(base);
+#pragma clang loop unroll(full)
     for (size_t i = 0; i < words; ++i) {
-        // Bytes in+8i .. in+8i+7 lie in aligned words base+8i and base+8i+8.
         const uint64_t nxt = ldw(base + 8 * i + 8);
         const uint64_t w = (cur >> sh) | (nxt << rs);
         st[i] = kStore ? w : st[i] ^ w;
+        if (kCopy) out[i] = w;
         cur = nxt;
     }
 }
 
-// The `n` (1..7) bytes at p as the low bytes of a word (upper bytes zero).
 inline uint64_t tail_word(const uint8_t* p, size_t n) {
     const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
     const uint8_t* a = p - off;
@@ -101,7 +105,10 @@ struct MemoEntry {
 MemoEntry* g_memo = nullptr;
 }  // namespace
 
-extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
+// no_builtin("memcpy"): the aligned first-block absorb (st[i] = word i) would
+// otherwise become a 136-byte memcpy call.
+extern "C" __attribute__((no_builtin("memcpy"))) union ethash_hash256 ethash_keccak256(const uint8_t* data,
+                                                                                        size_t size) noexcept {
     alignas(32) uint64_t st[25];
 #if defined(ADMITTED_KECCAK)
     // Admitted Keccak-256 sponge (ethereum_services_v3, tag 0x0003_0130):
@@ -188,4 +195,59 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
     out.word64s[2] = st[2];
     out.word64s[3] = st[3];
     return out;
+}
+
+// Keccak-256 of src[0..size) that also copies the bytes to the 8-aligned dst,
+// with the bytes after the last one in dst's final word set to zero: one pass
+// over a misaligned source instead of a funnel-shift copy plus a hash of the
+// copy (build_zeg0's contract codes). Same digest as ethash_keccak256(src, size).
+extern "C" __attribute__((no_builtin("memcpy"))) union ethash_hash256 stwo_keccak256_copy(
+    uint8_t* dst, const uint8_t* data, size_t size) noexcept {
+#if defined(ADMITTED_KECCAK) || defined(CANDIDATE_KECCAK)
+    const bool service = size > 64;  // the sponge service hashes the aligned copy
+#else
+    const bool service = false;
+#endif
+    if (service || size <= 64) {
+        std::memcpy(dst, data, size);
+        if (size & 7) std::memset(dst + size, 0, 8 - (size & 7));
+        return ethash_keccak256(dst, size);
+    }
+    uint64_t* out = reinterpret_cast<uint64_t*>(dst);
+    alignas(32) uint64_t st[25];
+    bool first = true;
+    while (size >= kRate) {
+        if (first) {
+            absorb_words<true, true>(st, data, kRateWords, out);
+            zero_lanes_from(st, kRateWords);
+            first = false;
+        } else {
+            absorb_words<false, true>(st, data, kRateWords, out);
+        }
+        stwo::keccak_f(st);
+        data += kRate;
+        out += kRateWords;
+        size -= kRate;
+    }
+    const size_t words = size / 8;
+    const size_t rem = size & 7;
+    uint64_t last = uint64_t(0x01) << (8 * rem);
+    if (rem) {
+        const uint64_t t = tail_word(data + 8 * words, rem);
+        out[words] = t;
+        last |= t;
+    }
+    if (first) {
+        absorb_words<true, true>(st, data, words, out);
+        st[words] = last;
+        zero_lanes_from(st, words + 1);
+    } else {
+        absorb_words<false, true>(st, data, words, out);
+        st[words] ^= last;
+    }
+    st[kRateWords - 1] ^= uint64_t(0x80) << 56;
+    stwo::keccak_f(st);
+    union ethash_hash256 r;
+    for (int i = 0; i < 4; ++i) r.word64s[i] = st[i];
+    return r;
 }

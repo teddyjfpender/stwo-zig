@@ -13,11 +13,13 @@ backend). Only the Python standard library is used.
 
 `--profile v3` builds the ADMITTED ethereum_services_v3 guest: SHA-256
 compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
-ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
-head/tail and software fallback for overlap or mismatched alignment
-(`--v3-set` selects a subset of sha, arith, mem for ablations; add `keccak`
-for the admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`; add `umem`
-for the UNVERIFIED unaligned-source memcpy and memcmp routing, not yet proved).
+ModArith and 256-bit odd-modulus modexp, memcpy (any source alignment) and
+memset with inline destination head/tail and software fallback for overlap,
+and memcmp of 8-aligned disjoint operands (`--v3-set` selects a subset of sha,
+arith, mem, umem for ablations: `mem` = aligned memcpy/memset, `umem` =
+unaligned-source memcpy and memcmp, default on; the aligned-only client is
+`--v3-set sha,arith,mem`, ELF suffix `-v3-sha-arith-mem`; add `keccak` for the
+admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -277,6 +279,18 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         tobjs.append(o)
     run(["zig", "c++", a.opt, *tobjs, "-o", tdir / "trie_differential"])
     run([tdir / "trie_differential", "600"])
+    # Fused copy + Keccak-256 of contract codes (build_zeg0) vs ethash_keccak256.
+    kobjs = []
+    for f in (glue / "keccak_stwo.cpp", glue / "host_services.cpp", HERE / "tests" / "keccak_copy_test.cpp"):
+        o = tdir / ("kcopy-" + f.name + ".o")
+        run(["zig", "c++", *flags, "-c", f, "-o", o])
+        kobjs.append(o)
+    run(["zig", "c++", a.opt, *kobjs, "-o", tdir / "keccak_copy_test"])
+    run([tdir / "keccak_copy_test"])
+    # Guest-only sentinel JUMPDEST scan vs evmone's reference scan.
+    jexe = tdir / "jumpdest_scan_test"
+    run(["zig", "c++", *flags, HERE / "tests" / "jumpdest_scan_test.cpp", "-o", jexe])
+    run([jexe])
     wobj = tdir / "zeg_words_test.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
     run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
@@ -292,8 +306,8 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
     if outs["asm"] != outs["portable"] or outs["asm"].count("\n") < 100:
         raise SystemExit("blst portable-C build disagrees with the assembly build")
     print(f"blst portable == assembly ({outs['asm'].count(chr(10))} results)")
-    # Translated-segment dispatch (patch 0023) vs the fused cgoto and the plain switch
-    # dispatch, linked against the host build's evmone objects.
+    # Fused cgoto dispatch vs the plain switch dispatch (plus the xlat dispatch when the
+    # parked translated-segment patch wip/0024 is applied), linked against the host build.
     hobj = work / "obj-host"
     fobj = tdir / "xlat_difffuzz.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "xlat_difffuzz.cpp", "-o", fobj])
@@ -313,10 +327,10 @@ def main(argv=None):
     ap.add_argument("--cache", default=None, help="pinned source checkouts (default OUT/cache)")
     ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
-                         "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
-    ap.add_argument("--v3-set", default="sha,arith,mem",
+                         "(SHA-256, arith256_mod, bulk memory incl. unaligned memcpy and memcmp); candidate = execution-only")
+    ap.add_argument("--v3-set", default="sha,arith,mem,umem",
                     help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge, "
-                         "umem = UNVERIFIED unaligned-source memcpy and memcmp routing, needs mem)")
+                         "umem = unaligned-source memcpy and memcmp, needs mem)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
@@ -367,7 +381,7 @@ def main(argv=None):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
-    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
                else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa

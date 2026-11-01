@@ -228,6 +228,19 @@ class AdmittedScheme(unittest.TestCase):
                                                         "memcpy": {"calls": 1, "bytes": 64}})
         self.assertIsNone(bench.admitted_usage({"sha256_calls": 0}))
 
+    def test_unaligned_memcpy_and_memcmp_usage_is_charged(self):
+        report = {"bulk_memcpy_unaligned_calls": 2, "bulk_memcpy_unaligned_bytes": 48,
+                  "bulk_memcmp_calls": 3, "bulk_memcmp_bytes": 40}
+        use = bench.admitted_usage(report)
+        self.assertEqual(use, {"memcpy_unaligned": {"calls": 2, "bytes": 48}, "memcmp": {"calls": 3, "bytes": 40}})
+        c = CAL["coefficients"]
+        t = CAL["admitted_services"]
+        cells = (2 * t["memcpy_unaligned"]["cells_per_call"] + 48 * t["memcpy_unaligned"]["cells_per_byte"]
+                 + 3 * t["memcmp"]["cells_per_call"] + 40 * t["memcmp"]["cells_per_byte"])
+        delta = bench.committed_bits(CAL, 0, 0, 0, 0, None, use) - bench.committed_bits(CAL, 0, 0, 0, 0)
+        self.assertGreater(cells, 0)
+        self.assertAlmostEqual(delta, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
+
     def test_all_three_services_cost_additively(self):
         c = CAL["coefficients"]
         t = CAL["admitted_services"]

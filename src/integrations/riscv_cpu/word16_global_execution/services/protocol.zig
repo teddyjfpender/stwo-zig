@@ -22,9 +22,11 @@ pub const CPU_CLAIM_COUNT_V3 = CORE_CLAIM_COUNT + 20;
 pub const Request = struct { base: G.Old.Request, calls: [T.FAMILIES]u32, bulk: T.BulkCounts = .{}, sponge: T.SpongeCounts = .{} };
 const BM = A.crypto.bulk_memory;
 /// Admitted bulk-memory geometry and masses of one CPU proof. RAM14 gains
-/// 6 fractions per call (three packet reads), 4 per copied and 2 per filled
-/// word; OWNER19 gains 3 per call (ECALL consume + token emit, one weight zero)
-/// and 1 per body start; U16 gains range16Count(kind) per physical row.
+/// `T.BulkCounts.ram` (6 per memcpy/memset call, 4 per aligned copy row, 2 per
+/// set row, 4 per unaligned copy row, 8 per memcmp call, 4 per memcmp row);
+/// OWNER19 gains at most 3 per call (ECALL consume + token emit + body start,
+/// memcmp: + result token emit and consume); U16 gains range16Count(kind) per
+/// physical row.
 pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range16: u64 } {
     const logs = setup.bridges.bulk;
     var range16: u64 = 0;
@@ -37,11 +39,17 @@ pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range
             range16 = try std.math.add(u64, range16, @as(u64, BM.layout.range16Count(kind)) << @intCast(l));
         }
     }
-    // Every body word belongs to one call of at most MAX_WORDS words.
-    if ((r.bulk.copy_words != 0 or r.bulk.set_words != 0) and r.bulk.calls == 0) return error.InvalidCombinedBridgePresence;
-    if (@as(u64, r.bulk.copy_words) + r.bulk.set_words > @as(u64, r.bulk.calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
-    const ram = 6 * @as(u64, r.bulk.calls) + 4 * @as(u64, r.bulk.copy_words) + 2 * @as(u64, r.bulk.set_words);
-    return .{ .ram = ram, .range16 = range16 };
+    try bulkCounts(r.bulk);
+    return .{ .ram = r.bulk.ram(), .range16 = range16 };
+}
+/// Body rows belong to calls: every body kind needs its descriptor and at most
+/// MAX_WORDS words (+1 lead row for an unaligned copy) per call.
+pub fn bulkCounts(b: T.BulkCounts) !void {
+    if ((b.copy_words != 0 or b.set_words != 0 or b.ucopy_rows != 0) and b.calls == 0) return error.InvalidCombinedBridgePresence;
+    if (b.cmp_words != 0 and b.cmp_calls == 0) return error.InvalidCombinedBridgePresence;
+    const leads: u64 = if (b.ucopy_rows != 0) b.calls else 0;
+    if (@as(u64, b.copy_words) + b.set_words + b.ucopy_rows > @as(u64, b.calls) * BM.types.MAX_WORDS + leads) return error.InvalidCombinedServiceCount;
+    if (b.cmp_words > @as(u64, b.cmp_calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
 }
 
 const KS = A.crypto.keccak_sponge;
@@ -110,7 +118,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        var service_calls: u64 = @as(u64, req.bulk.calls) + req.sponge.calls + req.base.memory.ls_count;
+        var service_calls: u64 = req.bulk.ecalls() + req.sponge.calls + req.base.memory.ls_count;
         for (req.calls) |c| service_calls += c;
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
@@ -228,9 +236,12 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     // Bulk-memory extension: mixed only when present, so v2 transcripts are unchanged.
     if (s.bridges.bulk.any() or r.bulk.any()) {
         ch.mixU32s(&.{ 0x424d454d, 1, 0x30001, 0x30002, BM.types.TOKEN_COPY, BM.types.TOKEN_SET, @intCast(BM.types.MAX_BYTES) });
-        for (T.bulk_kinds, 0..) |kind, k| {
-            ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
-            if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
+        for (T.bulk_kinds[0..T.BULK_BASE], 0..) |kind, k| mixBulkKind(ch, s, r, kind, k);
+        // Extension (unaligned memcpy, memcmp): its own block, mixed only when
+        // present, so aligned-only transcripts are unchanged.
+        if (s.bridges.bulk.anyExtension() or r.bulk.anyExtension()) {
+            ch.mixU32s(&.{ 0x424d4532, 1, 0x30001, 0x30003, BM.types.TOKEN_CMP, BM.types.TOKEN_CMP_RESULT, @intCast(BM.types.MAX_BYTES) });
+            for (T.bulk_kinds[T.BULK_BASE..], T.BULK_BASE..) |kind, k| mixBulkKind(ch, s, r, kind, k);
         }
     }
     // Keccak-sponge extension: mixed only when present (v2/SHA/arith/bulk
@@ -243,6 +254,10 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
             if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
     }
+}
+fn mixBulkKind(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, kind: T.BulkKind, k: usize) void {
+    ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
+    if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
 }
 pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordinal: usize) void {
     truth.key().suite.config().mixInto(ch);

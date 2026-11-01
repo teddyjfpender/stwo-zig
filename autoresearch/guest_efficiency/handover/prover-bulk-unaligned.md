@@ -1,4 +1,38 @@
-# Handover: admitted bulk memory, unaligned memcpy + memcmp (paused 2026-11-01)
+# Handover: admitted bulk memory, unaligned memcpy + memcmp
+
+## 0. Resumed 2026-11-02 on `codex/rv64-ge-bulk` (worktree `~/Coding/ge-wt/bulk`)
+
+Status at the end of this session (details in the commits; the sections
+below 1-6 are the original paused-state handover, kept for history):
+
+- AIR (`bulk_memory/`): the predecessor's ucopy/cdesc/cmp kinds were already
+  green. Review found two zero-length forgeries (memcmp `len = 0` claiming a
+  difference after reading outside the operands; unaligned memcpy with a
+  lead-only run) and closed both (cdesc length inverse column; `start' (1 - c)
+  = 0`). New adversarial tests: both zero-length forgeries (close every
+  relation, fail exactly the new constraint), forged equal result, body length
+  != descriptor length, forged descriptor length. Constraint counts: ucopy
+  134, cdesc 117 (MAIN 61), cmp 148. `test-riscv64-word16-bulk-memory` passes.
+- Soundness flag (RAM writers): re-established in
+  `design/riscv-proving-stack/rv64-ls-joint-write-induction.md` section 11
+  (generic W1-W5 obligations + a per-roster-field case table: keccak, the
+  shared secp bridge for add/double/sha256/arith256/curves, bulk x6, sponge).
+  Only constraints added: the two zero-length rules. Guard
+  `joint_write_invariants_test.zig` now pins the roster fields, bridge kinds,
+  bulk kinds and sponge kinds by name and references section 11.
+- Services lane: six bulk kinds end to end (types, protocol, statement, wire,
+  roster, air_components, worker, pipeline, collector, Ethereum plan/role
+  cost, prepared whitelist 0x30003). Extension block (`ucopy/cdesc/cmp`) is
+  mixed (`0x424d4532` block), committed and serialized (`bulk_ext` claims,
+  `ucopy_rows/cmp_calls/cmp_words`) only when present.
+  `services/bulk_ext_fixture.zig`: two real CPU STARKs (unaligned memcpy
+  shift 3 in epoch 1; memcmp in epoch 2 reading the copy, stopping at word 1;
+  LD observes the result), fresh receiver over the wire; wrong source byte and
+  wrong compared word rejected as `UnclosedCombinedRam`; forged result refused
+  by the prover's `validateCall` (AIR-level rejection in tests.zig); absent
+  extension debts, aligned-only keys and changed counts rejected.
+- See section 7 for the measured numbers and what was not run.
+
 
 Branch `codex/rv64-guest-prover-bulk-unaligned` (worktree
 `/private/tmp/stwo-rv64-guest-prover-bulk-unaligned`). Base: bulk-memory branch
@@ -167,3 +201,53 @@ $U/t.sh test-riscv64-word16-bulk-memory 80          # AIR tests
 $U/build_elf.sh $U/elf/NAME.elf sha256-service,arith256-service,admitted-mem   # STWO_ADMITTED_{COPY,UCOPY,SET,CMP}_MIN env
 $U/run.sh NAME                                        # 15 blocks, ethereum_services_v3
 ```
+
+## 7. Verified on `codex/rv64-ge-bulk` (2026-11-02)
+
+Commands (all ReleaseSafe, through memguard, worktree `~/Coding/ge-wt/bulk`):
+
+| Check | Result |
+|---|---|
+| `zig build test-riscv64-word16-bulk-memory` | pass |
+| `zig build test-riscv64-word16-bulk-services` | pass (aligned fixture + new extension fixture, fresh receiver, mutations) |
+| `test-riscv64-word16-memory` | pass (writer guard now an inventory pinned to joint-induction section 11) |
+| `test-riscv64-word16-v3-services`, `-word16-combined-services`, `-word16-global-execution`, `-execution`, `-ethereum-chain` | pass |
+| v2 byte identity: `rv64-word16-combined-services-fixture produce` | all seven files equal the golden sha256s (`bundle.json` be49c88c...) |
+| v3 identity vs base `4e4b38a62`: `produce-v3 sha256`, `produce-v3 all` (aligned bulk) | every file byte-identical |
+| `python3 -I autoresearch/guest_efficiency/test_bench.py` | 41 OK |
+
+evmone v3 client with `umem` now default (`build.py --profile v3`, ELF
+sha256 9f3509f0...f529), 15 blocks, `--profile ethereum_services_v3`, shared
+executor, all guards G1-G6 pass, exact outputs:
+
+| Set | aligned-only v3 (merged head) | + unaligned memcpy + memcmp |
+|---|---|---|
+| scored instr/gas | 4.778 | **4.525** (-5.3%) |
+| scored committed bits/gas | 67,192 | **64,978** (-3.3%) |
+| holdout instr/gas, bits/gas | | 3.854, 55,020 |
+| all instr/gas, bits/gas | | 4.392, 63,012 |
+
+The bits/gas now charges the new kinds: bench.py `ADMITTED_REPORT_FIELDS`
+gains `memcpy_unaligned` (bulk_memcpy_unaligned_calls/bytes) and `memcmp`
+(bulk_memcmp_calls, bytes = 8 x examined words); the earlier 64,650 figure left
+them uncharged. Basket usage (15 blocks): unaligned memcpy 626,931 calls /
+92.8 MB; memcmp 11,675 calls / 149,376 examined bytes (the evmone client
+routes far fewer memcmp than the Rust guest census).
+
+Costs in `calibration.json admitted_services` (LAYOUT TIER, from the proven
+component widths; no complete-block proof was run, coordinator-scheduled):
+memcpy_unaligned 321.6 cells/call (measured desc 154.3 + one 167.35 lead
+row) + 20.92/byte; memcmp 186.1/call + 20.02 per examined byte. Replace with
+complete-block measurements (roster.json `bulk_ucopy`, `bulk_cdesc`,
+`bulk_cmp`) when a v3 block proof with this client is run.
+
+Not done / open:
+- Complete-block or prefix proof with the umem client (not allowed for
+  agents; the Ethereum plan now assigns ucopy/cdesc/cmp logs, untested at
+  block scale).
+- Rust guest: `admitted-mem` already routes unaligned copies (UCOPY_MIN 16)
+  and memcmp (CMP_MIN 8) by default (not gated); not re-run on the basket this
+  session.
+- Recursion and `services/gkr_local` do not know the bulk components.
+- `ethereum/role_cost.zig` family switch lists only 5 families (pre-existing,
+  not compiled by the suites run here).
