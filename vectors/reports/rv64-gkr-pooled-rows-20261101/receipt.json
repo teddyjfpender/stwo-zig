@@ -1,0 +1,64 @@
+{
+  "utc": "2026-11-01T17:45:36.897710+00:00",
+  "base_commit": "f3e4c0830",
+  "live_profile": {
+    "binary_sha256": "70aa84e23c380f1538bd9c4993dbdfe28798a3193f6bac16aca1ec38b7a4c670",
+    "rows": 4194303,
+    "baseline_prove_ns": 143340097250,
+    "sample": "2seconds,10ms interval,181 active-worker samples all in GKR sumcheck; helpers idle",
+    "raw_sample_sha256": "1b43d51a618834efa55b3d24de23a28fa1baf58b0f234d11e20a362f3de37a53"
+  },
+  "changes": [
+    "bounded scoped-pool contiguous oracle reductions",
+    "bounded scoped-pool MLE challenge folds",
+    "preserve M31 weights through OM leaf projective cross-products and bottom tree",
+    "no protocol/field/transcript/statement changes"
+  ],
+  "bounds": {
+    "max_shards": 16,
+    "min_rows_per_shard": 4096,
+    "heap_scratch_bytes": 0,
+    "stack_payload_upper_bound_bytes": 4096,
+    "pool": "existing caller-scoped WorkPool only",
+    "fallback": [
+      "no scoped pool",
+      "less than two available jobs",
+      "cooperative queue active",
+      "lease unavailable"
+    ],
+    "reduction": "join all fixed jobs then add partial sums by shard ordinal"
+  },
+  "qualification": {
+    "portable": [
+      "direct36testsReleaseSafePASS",
+      "direct36testsReleaseFastPASS",
+      "zig build test-native-cpu-gkr-rows -Doptimize=ReleaseSafe --summary all PASS"
+    ],
+    "prechange_source_capture_command": "STWO_ZIG_BENCH_GKR_ROWS=1 zig test -OReleaseFast --dep stwo_core --dep baseline -Mroot=src/prover/gkr_parallel_capture_root.zig --dep stwo_core -Mbaseline=/private/tmp/stwo-rv64-wide-quotient-batch/src/prover/lookups/gkr_prover.zig -Mstwo_core=src/core/mod.zig",
+    "prechange_source_capture_result": "28PASS; QM31 and OM31 four-gate mixed-height proof serializations and next transcript draw identical at1/2/4/8workers; fresh complete terminal-MLE checks",
+    "numerical_scope": [
+      "GrandProduct",
+      "LogUpGeneric",
+      "LogUpMultiplicities including signed,count,zero M31 weights",
+      "LogUpSingles"
+    ],
+    "allocator_failures": "existing exhaustive full lifecycle sweeps pass; new scheduler has no allocator input or heap allocations",
+    "nested_lease": "full pool held by outer lease triggers scalar fallback and completes"
+  },
+  "small_case_timings_shared_host": [
+    "GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=1 control_ns=131551583 prove_ns=128081583 json_bytes=74818",
+    "GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=2 control_ns=131551583 prove_ns=121248750 json_bytes=74818",
+    "GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=4 control_ns=131551583 prove_ns=121254375 json_bytes=74818",
+    "GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=8 control_ns=131551583 prove_ns=122548625 json_bytes=74818",
+    "GKR_ROW_CAPTURE field=fields.om31.OM31 workers=1 control_ns=205451000 prove_ns=207076542 json_bytes=151877",
+    "GKR_ROW_CAPTURE field=fields.om31.OM31 workers=2 control_ns=205451000 prove_ns=186468958 json_bytes=151877",
+    "GKR_ROW_CAPTURE field=fields.om31.OM31 workers=4 control_ns=205451000 prove_ns=177666875 json_bytes=151877",
+    "GKR_ROW_CAPTURE field=fields.om31.OM31 workers=8 control_ns=205451000 prove_ns=178968958 json_bytes=151877"
+  ],
+  "limits": [
+    "small timings do not establish real-prefix speedup",
+    "real4.19Mprefix A/B pending",
+    "not a production security/GPU claim",
+    "packed SIMD optimization not included in this slice"
+  ]
+}
