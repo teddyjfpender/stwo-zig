@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "item": "truths-first (LPT) dispatch order in two-phase services pipeline",
+  "source_base": "87df8e6a5",
+  "branch": "codex/rv64-perf-truths-first",
+  "branch_commit": "92f244fec",
+  "workload": "prefix4 Ethereum (4 CPU proofs + 3 truth proofs), /tmp/stwo-rv64-ethereum-round5-native-jobs-v1",
+  "machine_note": "Apple Silicon, 2 lanes x 8 workers; machine may be shared with other user jobs; each run serialized via lockf on /private/tmp/stwo-rv64-perf-heavy.lock",
+  "sequence": "ABBA (A = baseline 87df8e6a5 driver, B = branch driver)",
+  "runs": [
+    {"label": "A1", "wall_s": 23.77, "user_s": 167.21, "sys_s": 9.00, "peak_footprint_bytes": 17173498936, "prove_ns": 19393127875, "byte_identical": true},
+    {"label": "B1", "wall_s": 25.22, "user_s": 171.98, "sys_s": 9.10, "peak_footprint_bytes": 17643834520, "prove_ns": 20396653458, "byte_identical": true},
+    {"label": "B2", "wall_s": 24.95, "user_s": 174.04, "sys_s": 8.24, "peak_footprint_bytes": 17642966216, "prove_ns": 20517422542, "byte_identical": true},
+    {"label": "A2", "wall_s": 24.67, "user_s": 174.50, "sys_s": 9.50, "peak_footprint_bytes": 17191504952, "prove_ns": 20137286875, "byte_identical": true}
+  ],
+  "byte_identity": "all *.bin, bundle.json, cells.bin of all four runs match /private/tmp/stwo-rv64-perf-runs/baseline-prefix4.sha256 (10/10 OK each)",
+  "means": {
+    "A_wall_s": 24.22, "B_wall_s": 25.085, "wall_delta_s": 0.865,
+    "A_prove_s": 19.765, "B_prove_s": 20.457, "prove_delta_s": 0.692,
+    "A_peak_footprint_gb": 17.18, "B_peak_footprint_gb": 17.64, "peak_delta_gb": 0.46
+  },
+  "stage_sums_s": {
+    "note": "sum over the 7 physical-*.stages.json of all top-level stage seconds; ordering does not target any single per-proof stage, so this is a per-proof work check, not the targeted metric (the target is pipeline makespan = prove_ns)",
+    "A1": 38.30, "B1": 39.08, "B2": 39.35, "A2": 39.70,
+    "A_mean": 39.00, "B_mean": 39.215
+  },
+  "noise": "A1 vs A2 wall differ by 3.8% (below the 5% flag threshold); A1 vs A2 prove differ by 3.8%",
+  "conclusion": "No gain on prefix4. Branch is ~0.87 s wall / ~0.69 s prove slower on average (both B runs above both A runs, but the gap is comparable to the A1-A2 spread, so treat as no-gain-to-slight-regression). Peak footprint +0.46 GB, consistent with truth MAIN being retained earlier in stage one. Proof bytes identical. Prefix4 contains only 3 short truth proofs (~1 s each), so it cannot exercise the full-block stage-two tail (Keccak ~20 s, ~19 s, secp-add ~13.7 s, secp-double ~6 s) this change targets; a full-block A/B is required before claiming the expected 5-8 s."
+}
