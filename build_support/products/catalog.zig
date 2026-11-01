@@ -26,6 +26,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-ethereum-chain", .description = "Check serialized Ethereum proof receipts and expected authority continuity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion", .description = "Check the RV64 recursion leaf transcript walkers and statement helpers", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
+    .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },
     .{ .name = "rv64-recursion", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-distributed-functional", .description = "Verify experimental public facts under actual complete PCS root manifest", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-memory", .description = "Diagnostic sealed-root two-phase RAM aggregate with physical verification", .scope = .riscv_cpu },

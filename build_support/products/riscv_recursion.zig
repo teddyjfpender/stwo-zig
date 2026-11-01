@@ -11,6 +11,7 @@ const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 
 const roots = [_]struct { step: []const u8, source: []const u8, description: []const u8 }{
+    .{ .step = "rv64-word16-recursion-shape", .source = "src/integrations/riscv_cpu/rv64_word16_recursion_shape_main.zig", .description = "Inspect native-verified Word16 shapes without constructing a recursive circuit" },
     .{ .step = "rv64-recursion", .source = "src/integrations/riscv_cpu/rv64_recursion_main.zig", .description = "Build the RV64 recursion tools: wrap batch proofs into circuit leaves, fold them to one root, verify the root" },
 };
 
