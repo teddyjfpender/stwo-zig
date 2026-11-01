@@ -11,6 +11,7 @@ pub fn emitFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: [
             .double => Fns.secpBridgeFor(F, .double, fixed, main, sink),
             .sha256 => Fns.secpBridgeFor(F, .sha256, fixed, main, sink),
             .arith256_mod => Fns.secpBridgeFor(F, .arith256_mod, fixed, main, sink),
+            else => Fns.secpBridgeFor(F, @import("../types.zig").bridgeKind(family), fixed, main, sink),
         },
         .core => |role| switch (role) {
             .cpu => Fns.cpuFor(F, fixed, main, epoch, sink),

@@ -19,6 +19,10 @@ pub const ARITH256_MOD_TAG: u64 = 0x00030021;
 /// Admitted aligned bulk memory (ethereum_services_v3): packet dst, src|byte, len.
 pub const MEMCPY_TAG: u64 = 0x00030001;
 pub const MEMSET_TAG: u64 = 0x00030002;
+/// Admitted curve/field services (ethereum_services_v3), inline 32-byte
+/// aligned packets: BN254 G1 add/double and Fp2 mul, BLS12-381 Fp2 mul and
+/// G1 add/double (Montgomery), arith384_mont. See ethereum_services/curves.zig.
+pub const CURVE_TAGS = [_]u64{ 0x00030100, 0x00030101, 0x00030102, 0x00030112, 0x00030121, 0x00030110, 0x00030111 };
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;
@@ -55,7 +59,11 @@ pub fn secpWords(profile: Profile) bool {
 /// Admitted v3-only service tags (the ROM-independent service roster):
 /// SHA-256 compression, arith256_mod and aligned memcpy/memset.
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isBulkTag(tag));
+    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isBulkTag(tag) or isCurveTag(tag));
+}
+pub fn isCurveTag(tag: u64) bool {
+    for (CURVE_TAGS) |t| if (t == tag) return true;
+    return false;
 }
 pub fn isBulkTag(tag: u64) bool {
     return tag == MEMCPY_TAG or tag == MEMSET_TAG;

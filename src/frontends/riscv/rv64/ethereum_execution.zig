@@ -97,6 +97,8 @@ const Report = struct {
     secp_double_calls: u64 = 0,
     sha256_calls: u64 = 0,
     arith256_mod_calls: u64 = 0,
+    /// Admitted v3 curve/field calls per op (ethereum_services/curves.zig order).
+    curve_calls: [7]u64 = @splat(0),
     bulk_memcpy_calls: u64 = 0,
     bulk_memset_calls: u64 = 0,
     bulk_memcpy_bytes: u64 = 0,
@@ -281,6 +283,11 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.before.len;
                     if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i >= @TypeOf(call).FIRST_WRITTEN);
                 },
+                .curve => |call| {
+                    report.curve_calls[ethereum.curves.index(call.op)] += 1;
+                    report.service_ram_word_transitions += call.wordCount();
+                    if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < call.writtenWords());
+                },
                 .sha256 => |call| {
                     report.sha256_calls += 1;
                     report.service_ram_word_transitions += call.before.len;
@@ -318,7 +325,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
             }
             if (census) |*value| switch (event) {
                 // Bulk memory is counted as a plain ECALL retirement.
-                .bulk => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .bulk, .curve => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
                 .keccak => try value.retireService(.keccak),
                 .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
                 .sha256 => try value.retireService(.sha256),

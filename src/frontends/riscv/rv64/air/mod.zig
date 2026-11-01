@@ -59,6 +59,7 @@ pub const crypto = struct {
     pub const bulk_memory = delegations.bulk_memory;
     pub const sha256 = delegations.sha256;
     pub const arith256 = delegations.arith256;
+    pub const curves = delegations.curves;
 };
 
 pub const memory = struct {
