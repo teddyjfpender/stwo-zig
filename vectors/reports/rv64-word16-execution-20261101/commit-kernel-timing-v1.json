@@ -2942,5 +2942,1596 @@
       "extension_job_ns": 1285586,
       "joined_ns": 366208
     }
-  ]
+  ],
+  "stage_intervals": {
+    "note": "seconds and lane_* CPU are additive across proofs; process_* counters are whole-process and overlap between concurrent lanes, so they are not additive",
+    "by_stage": {
+      "source_construction": {
+        "seconds": 2.468393,
+        "proofs": 7,
+        "lane_user_seconds": 10.454774,
+        "lane_system_seconds": 0.930971,
+        "lane_samples": 7,
+        "process_user_seconds": 20.482967,
+        "process_system_seconds": 1.775909,
+        "minor_faults": 742713,
+        "major_faults": 106881,
+        "max_resident_bytes_at_end": 15219458048,
+        "max_footprint_bytes_at_end": 10714622776
+      },
+      "source_construction/source_cpu_materialize": {
+        "seconds": 0.808885,
+        "proofs": 4,
+        "lane_user_seconds": 5.111396,
+        "lane_system_seconds": 0.328639,
+        "lane_samples": 4,
+        "process_user_seconds": 8.261811,
+        "process_system_seconds": 0.611204,
+        "minor_faults": 288243,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13104824320,
+        "max_footprint_bytes_at_end": 10095782280
+      },
+      "source_construction/source_jalr": {
+        "seconds": 6.9e-05,
+        "proofs": 4,
+        "lane_user_seconds": 1e-05,
+        "lane_system_seconds": 2.5e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 2.9e-05,
+        "process_system_seconds": 2.8e-05,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13104824320,
+        "max_footprint_bytes_at_end": 10095782280
+      },
+      "source_construction/source_alu": {
+        "seconds": 0.152983,
+        "proofs": 4,
+        "lane_user_seconds": 0.658961,
+        "lane_system_seconds": 0.266157,
+        "lane_samples": 4,
+        "process_user_seconds": 1.307783,
+        "process_system_seconds": 0.307104,
+        "minor_faults": 75603,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13234323456,
+        "max_footprint_bytes_at_end": 10225347048
+      },
+      "source_construction/source_binary": {
+        "seconds": 0.150405,
+        "proofs": 4,
+        "lane_user_seconds": 0.81182,
+        "lane_system_seconds": 0.071222,
+        "lane_samples": 4,
+        "process_user_seconds": 1.434558,
+        "process_system_seconds": 0.120369,
+        "minor_faults": 50190,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13413105664,
+        "max_footprint_bytes_at_end": 10404211296
+      },
+      "source_construction/source_shift": {
+        "seconds": 0.25825,
+        "proofs": 4,
+        "lane_user_seconds": 1.359388,
+        "lane_system_seconds": 0.066274,
+        "lane_samples": 4,
+        "process_user_seconds": 2.647619,
+        "process_system_seconds": 0.171781,
+        "minor_faults": 95666,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13546815488,
+        "max_footprint_bytes_at_end": 10537986752
+      },
+      "source_construction/source_alu_tail": {
+        "seconds": 0.014038,
+        "proofs": 3,
+        "lane_user_seconds": 0.043754,
+        "lane_system_seconds": 0.016797,
+        "lane_samples": 3,
+        "process_user_seconds": 0.092055,
+        "process_system_seconds": 0.019913,
+        "minor_faults": 4912,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13551403008,
+        "max_footprint_bytes_at_end": 10542574272
+      },
+      "source_construction/source_binary_tail": {
+        "seconds": 0.018318,
+        "proofs": 3,
+        "lane_user_seconds": 0.096376,
+        "lane_system_seconds": 0.014651,
+        "lane_samples": 3,
+        "process_user_seconds": 0.139774,
+        "process_system_seconds": 0.017353,
+        "minor_faults": 5613,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 12048072704,
+        "max_footprint_bytes_at_end": 9038472792
+      },
+      "source_construction/source_shift_tail": {
+        "seconds": 0.055328,
+        "proofs": 2,
+        "lane_user_seconds": 0.215978,
+        "lane_system_seconds": 0.014335,
+        "lane_samples": 2,
+        "process_user_seconds": 0.601955,
+        "process_system_seconds": 0.038852,
+        "minor_faults": 13825,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13622706176,
+        "max_footprint_bytes_at_end": 10613910256
+      },
+      "source_construction/source_division": {
+        "seconds": 0.000298,
+        "proofs": 4,
+        "lane_user_seconds": 8.1e-05,
+        "lane_system_seconds": 0.000164,
+        "lane_samples": 4,
+        "process_user_seconds": 0.003559,
+        "process_system_seconds": 0.000207,
+        "minor_faults": 182,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13623230464,
+        "max_footprint_bytes_at_end": 10614434544
+      },
+      "source_construction/source_multiplication": {
+        "seconds": 0.106895,
+        "proofs": 4,
+        "lane_user_seconds": 0.102745,
+        "lane_system_seconds": 0.002299,
+        "lane_samples": 4,
+        "process_user_seconds": 0.291837,
+        "process_system_seconds": 0.012013,
+        "minor_faults": 8356,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13706559488,
+        "max_footprint_bytes_at_end": 10697812792
+      },
+      "source_construction/source_memory": {
+        "seconds": 6.9e-05,
+        "proofs": 4,
+        "lane_user_seconds": 1e-05,
+        "lane_system_seconds": 2.5e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 1.6e-05,
+        "process_system_seconds": 3.8e-05,
+        "minor_faults": 7,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13706559488,
+        "max_footprint_bytes_at_end": 10697812792
+      },
+      "source_construction/source_rom": {
+        "seconds": 0.02321,
+        "proofs": 4,
+        "lane_user_seconds": 0.022675,
+        "lane_system_seconds": 0.000123,
+        "lane_samples": 4,
+        "process_user_seconds": 0.103213,
+        "process_system_seconds": 0.011437,
+        "minor_faults": 3431,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13706559488,
+        "max_footprint_bytes_at_end": 10697812792
+      },
+      "source_construction/source_range_counts": {
+        "seconds": 0.001026,
+        "proofs": 4,
+        "lane_user_seconds": 0.000806,
+        "lane_system_seconds": 0.000178,
+        "lane_samples": 4,
+        "process_user_seconds": 0.001234,
+        "process_system_seconds": 0.000854,
+        "minor_faults": 319,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13707083776,
+        "max_footprint_bytes_at_end": 10698337080
+      },
+      "source_construction/source_range16": {
+        "seconds": 0.001293,
+        "proofs": 4,
+        "lane_user_seconds": 0.001234,
+        "lane_system_seconds": 2.8e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 0.002779,
+        "process_system_seconds": 7.7e-05,
+        "minor_faults": 76,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13707083776,
+        "max_footprint_bytes_at_end": 10698337080
+      },
+      "source_construction/source_range8": {
+        "seconds": 6.5e-05,
+        "proofs": 4,
+        "lane_user_seconds": 1.2e-05,
+        "lane_system_seconds": 1.9e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 2.3e-05,
+        "process_system_seconds": 2.7e-05,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13707083776,
+        "max_footprint_bytes_at_end": 10698337080
+      },
+      "source_construction/source_and_table": {
+        "seconds": 0.00129,
+        "proofs": 4,
+        "lane_user_seconds": 0.001195,
+        "lane_system_seconds": 4.1e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 0.014636,
+        "process_system_seconds": 0.00027,
+        "minor_faults": 206,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13715472384,
+        "max_footprint_bytes_at_end": 10706725688
+      },
+      "source_construction/source_shift_table": {
+        "seconds": 0.02371,
+        "proofs": 4,
+        "lane_user_seconds": 0.023324,
+        "lane_system_seconds": 0.000239,
+        "lane_samples": 4,
+        "process_user_seconds": 0.108522,
+        "process_system_seconds": 0.003606,
+        "minor_faults": 2992,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13715472384,
+        "max_footprint_bytes_at_end": 10706725688
+      },
+      "source_construction/source_fact_retirement": {
+        "seconds": 0.000764,
+        "proofs": 4,
+        "lane_user_seconds": 2e-05,
+        "lane_system_seconds": 0.000712,
+        "lane_samples": 4,
+        "process_user_seconds": 0.000687,
+        "process_system_seconds": 0.000725,
+        "minor_faults": 28,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13715472384,
+        "max_footprint_bytes_at_end": 10706725688
+      },
+      "main_commit": {
+        "seconds": 6.957022,
+        "proofs": 7,
+        "lane_user_seconds": 34.898116,
+        "lane_system_seconds": 1.454724,
+        "lane_samples": 7,
+        "process_user_seconds": 66.747277,
+        "process_system_seconds": 3.607677,
+        "minor_faults": 1043252,
+        "major_faults": 193984,
+        "max_resident_bytes_at_end": 15225028608,
+        "max_footprint_bytes_at_end": 11415282472
+      },
+      "main_commit/streaming_commit_prepare": {
+        "seconds": 6.333734,
+        "proofs": 139,
+        "lane_user_seconds": 32.41346,
+        "lane_system_seconds": 1.245761,
+        "lane_samples": 138,
+        "process_user_seconds": 60.757443,
+        "process_system_seconds": 2.995843,
+        "minor_faults": 907048,
+        "major_faults": 125045,
+        "max_resident_bytes_at_end": 15768813568,
+        "max_footprint_bytes_at_end": 12487160000
+      },
+      "main_commit/streaming_commit_prepare/streaming_transform": {
+        "seconds": 4.124012,
+        "proofs": 139,
+        "lane_user_seconds": 17.762821,
+        "lane_system_seconds": 0.496747,
+        "lane_samples": 138,
+        "process_user_seconds": 36.797583,
+        "process_system_seconds": 1.455277,
+        "minor_faults": 430970,
+        "major_faults": 83947,
+        "max_resident_bytes_at_end": 15768813568,
+        "max_footprint_bytes_at_end": 12698824920
+      },
+      "main_commit/streaming_commit_prepare/streaming_leaf_hash": {
+        "seconds": 2.206547,
+        "proofs": 139,
+        "lane_user_seconds": 14.169197,
+        "lane_system_seconds": 0.707084,
+        "lane_samples": 138,
+        "process_user_seconds": 23.343201,
+        "process_system_seconds": 1.451072,
+        "minor_faults": 475149,
+        "major_faults": 24326,
+        "max_resident_bytes_at_end": 15768813568,
+        "max_footprint_bytes_at_end": 12487045312
+      },
+      "main_commit/merkle_commit": {
+        "seconds": 0.622281,
+        "proofs": 7,
+        "lane_user_seconds": 2.178579,
+        "lane_system_seconds": 0.200549,
+        "lane_samples": 7,
+        "process_user_seconds": 5.655572,
+        "process_system_seconds": 0.556339,
+        "minor_faults": 136012,
+        "major_faults": 32090,
+        "max_resident_bytes_at_end": 15225028608,
+        "max_footprint_bytes_at_end": 11415282472
+      },
+      "retained_main_spill": {
+        "seconds": 1.776705,
+        "proofs": 7,
+        "lane_user_seconds": 0.233167,
+        "lane_system_seconds": 0.974294,
+        "lane_samples": 7,
+        "process_user_seconds": 7.076279,
+        "process_system_seconds": 1.751115,
+        "minor_faults": 144560,
+        "major_faults": 442107,
+        "max_resident_bytes_at_end": 15225044992,
+        "max_footprint_bytes_at_end": 10392219288
+      },
+      "interaction_generation": {
+        "seconds": 2.428115,
+        "proofs": 7,
+        "lane_user_seconds": 13.509807,
+        "lane_system_seconds": 0.317282,
+        "lane_samples": 7,
+        "process_user_seconds": 26.023811,
+        "process_system_seconds": 0.968378,
+        "minor_faults": 590041,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15215411200,
+        "max_footprint_bytes_at_end": 9192566952
+      },
+      "interaction_generation/inter_r16_table": {
+        "seconds": 0.013257,
+        "proofs": 4,
+        "lane_user_seconds": 0.012885,
+        "lane_system_seconds": 0.000328,
+        "lane_samples": 4,
+        "process_user_seconds": 0.044069,
+        "process_system_seconds": 0.000914,
+        "minor_faults": 656,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13701890048,
+        "max_footprint_bytes_at_end": 8020979664
+      },
+      "interaction_generation/inter_r8_table": {
+        "seconds": 8.4e-05,
+        "proofs": 4,
+        "lane_user_seconds": 3.6e-05,
+        "lane_system_seconds": 1.9e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 4.8e-05,
+        "process_system_seconds": 2.1e-05,
+        "minor_faults": 1,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13701922816,
+        "max_footprint_bytes_at_end": 8020979664
+      },
+      "interaction_generation/inter_rom": {
+        "seconds": 0.116481,
+        "proofs": 4,
+        "lane_user_seconds": 0.714589,
+        "lane_system_seconds": 0.053244,
+        "lane_samples": 4,
+        "process_user_seconds": 1.288109,
+        "process_system_seconds": 0.059275,
+        "minor_faults": 13757,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13738557440,
+        "max_footprint_bytes_at_end": 8033464296
+      },
+      "interaction_generation/inter_and_table": {
+        "seconds": 0.036982,
+        "proofs": 4,
+        "lane_user_seconds": 0.03665,
+        "lane_system_seconds": 0.00026,
+        "lane_samples": 4,
+        "process_user_seconds": 0.198956,
+        "process_system_seconds": 0.005084,
+        "minor_faults": 1355,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13753139200,
+        "max_footprint_bytes_at_end": 8036757480
+      },
+      "interaction_generation/inter_shift_table": {
+        "seconds": 0.040618,
+        "proofs": 4,
+        "lane_user_seconds": 0.197192,
+        "lane_system_seconds": 0.065662,
+        "lane_samples": 4,
+        "process_user_seconds": 0.31694,
+        "process_system_seconds": 0.091957,
+        "minor_faults": 18026,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13787906048,
+        "max_footprint_bytes_at_end": 8079847424
+      },
+      "interaction_generation/inter_register_boundary": {
+        "seconds": 0.000129,
+        "proofs": 4,
+        "lane_user_seconds": 6.2e-05,
+        "lane_system_seconds": 3.4e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 0.000291,
+        "process_system_seconds": 4.8e-05,
+        "minor_faults": 9,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 13787906048,
+        "max_footprint_bytes_at_end": 8079912960
+      },
+      "interaction_generation/inter_cpu": {
+        "seconds": 1.278358,
+        "proofs": 4,
+        "lane_user_seconds": 8.131114,
+        "lane_system_seconds": 0.118126,
+        "lane_samples": 4,
+        "process_user_seconds": 15.104278,
+        "process_system_seconds": 0.432865,
+        "minor_faults": 315783,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14898610176,
+        "max_footprint_bytes_at_end": 8817930360
+      },
+      "interaction_generation/inter_alu": {
+        "seconds": 0.127448,
+        "proofs": 4,
+        "lane_user_seconds": 0.712321,
+        "lane_system_seconds": 0.009725,
+        "lane_samples": 4,
+        "process_user_seconds": 1.298648,
+        "process_system_seconds": 0.033937,
+        "minor_faults": 41901,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14799011840,
+        "max_footprint_bytes_at_end": 8718233648
+      },
+      "interaction_generation/inter_binary": {
+        "seconds": 0.109911,
+        "proofs": 4,
+        "lane_user_seconds": 0.568157,
+        "lane_system_seconds": 0.012093,
+        "lane_samples": 4,
+        "process_user_seconds": 1.219135,
+        "process_system_seconds": 0.025592,
+        "minor_faults": 22191,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14859419648,
+        "max_footprint_bytes_at_end": 8778641480
+      },
+      "interaction_generation/inter_shift": {
+        "seconds": 0.137305,
+        "proofs": 4,
+        "lane_user_seconds": 0.757375,
+        "lane_system_seconds": 0.015675,
+        "lane_samples": 4,
+        "process_user_seconds": 1.641673,
+        "process_system_seconds": 0.0253,
+        "minor_faults": 28217,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14986362880,
+        "max_footprint_bytes_at_end": 8905601192
+      },
+      "interaction_generation/inter_jalr": {
+        "seconds": 0.009887,
+        "proofs": 4,
+        "lane_user_seconds": 0.009638,
+        "lane_system_seconds": 0.000205,
+        "lane_samples": 4,
+        "process_user_seconds": 0.051855,
+        "process_system_seconds": 0.00331,
+        "minor_faults": 2120,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14986756096,
+        "max_footprint_bytes_at_end": 8905994408
+      },
+      "interaction_generation/inter_multiplication": {
+        "seconds": 0.055836,
+        "proofs": 4,
+        "lane_user_seconds": 0.281805,
+        "lane_system_seconds": 0.005107,
+        "lane_samples": 4,
+        "process_user_seconds": 0.609669,
+        "process_system_seconds": 0.008597,
+        "minor_faults": 10831,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 14986690560,
+        "max_footprint_bytes_at_end": 8905928872
+      },
+      "interaction_generation/inter_memory": {
+        "seconds": 0.306239,
+        "proofs": 4,
+        "lane_user_seconds": 1.237683,
+        "lane_system_seconds": 0.017231,
+        "lane_samples": 4,
+        "process_user_seconds": 2.564333,
+        "process_system_seconds": 0.06129,
+        "minor_faults": 40399,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15121924096,
+        "max_footprint_bytes_at_end": 9041244448
+      },
+      "interaction_generation/inter_memory/inter_ls": {
+        "seconds": 0.134621,
+        "proofs": 4,
+        "lane_user_seconds": 0.748087,
+        "lane_system_seconds": 0.011368,
+        "lane_samples": 4,
+        "process_user_seconds": 1.532885,
+        "process_system_seconds": 0.037735,
+        "minor_faults": 24421,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15060647936,
+        "max_footprint_bytes_at_end": 8979919064
+      },
+      "interaction_generation/inter_memory/inter_ls_tail": {
+        "seconds": 0.044648,
+        "proofs": 4,
+        "lane_user_seconds": 0.214458,
+        "lane_system_seconds": 0.00295,
+        "lane_samples": 4,
+        "process_user_seconds": 0.34632,
+        "process_system_seconds": 0.00685,
+        "minor_faults": 8123,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15069118464,
+        "max_footprint_bytes_at_end": 8988406000
+      },
+      "interaction_generation/inter_memory/inter_initial": {
+        "seconds": 0.011727,
+        "proofs": 4,
+        "lane_user_seconds": 0.076787,
+        "lane_system_seconds": 0.000184,
+        "lane_samples": 4,
+        "process_user_seconds": 0.153402,
+        "process_system_seconds": 0.000328,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15069118464,
+        "max_footprint_bytes_at_end": 8988406000
+      },
+      "interaction_generation/inter_memory/inter_terminal": {
+        "seconds": 0.017016,
+        "proofs": 4,
+        "lane_user_seconds": 0.100385,
+        "lane_system_seconds": 0.002334,
+        "lane_samples": 4,
+        "process_user_seconds": 0.117801,
+        "process_system_seconds": 0.003787,
+        "minor_faults": 4097,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15069134848,
+        "max_footprint_bytes_at_end": 8988422384
+      },
+      "interaction_generation/inter_memory/inter_selection": {
+        "seconds": 0.031666,
+        "proofs": 4,
+        "lane_user_seconds": 0.031589,
+        "lane_system_seconds": 3.7e-05,
+        "lane_samples": 4,
+        "process_user_seconds": 0.11644,
+        "process_system_seconds": 0.000228,
+        "minor_faults": 0,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15069134848,
+        "max_footprint_bytes_at_end": 8988422384
+      },
+      "interaction_generation/inter_memory/inter_boundary_authority": {
+        "seconds": 0.066492,
+        "proofs": 4,
+        "lane_user_seconds": 0.066267,
+        "lane_system_seconds": 0.000148,
+        "lane_samples": 4,
+        "process_user_seconds": 0.297354,
+        "process_system_seconds": 0.012014,
+        "minor_faults": 3742,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15121924096,
+        "max_footprint_bytes_at_end": 9041244448
+      },
+      "interaction_generation/inter_alu_tail": {
+        "seconds": 0.011636,
+        "proofs": 3,
+        "lane_user_seconds": 0.040169,
+        "lane_system_seconds": 0.000824,
+        "lane_samples": 3,
+        "process_user_seconds": 0.085058,
+        "process_system_seconds": 0.004342,
+        "minor_faults": 2136,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15157002240,
+        "max_footprint_bytes_at_end": 9076338976
+      },
+      "interaction_generation/inter_binary_tail": {
+        "seconds": 0.019444,
+        "proofs": 3,
+        "lane_user_seconds": 0.082003,
+        "lane_system_seconds": 0.002412,
+        "lane_samples": 3,
+        "process_user_seconds": 0.178507,
+        "process_system_seconds": 0.003312,
+        "minor_faults": 3282,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15186051072,
+        "max_footprint_bytes_at_end": 9105387832
+      },
+      "interaction_generation/inter_shift_tail": {
+        "seconds": 0.03557,
+        "proofs": 2,
+        "lane_user_seconds": 0.160896,
+        "lane_system_seconds": 0.008588,
+        "lane_samples": 2,
+        "process_user_seconds": 0.335417,
+        "process_system_seconds": 0.102746,
+        "minor_faults": 60422,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15215411200,
+        "max_footprint_bytes_at_end": 9372889376
+      },
+      "interaction_commit": {
+        "seconds": 5.219243,
+        "proofs": 7,
+        "lane_user_seconds": 27.209781,
+        "lane_system_seconds": 1.658325,
+        "lane_samples": 7,
+        "process_user_seconds": 56.519902,
+        "process_system_seconds": 3.67788,
+        "minor_faults": 1755980,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17440473088,
+        "max_footprint_bytes_at_end": 12331907568
+      },
+      "interaction_commit/streaming_commit_prepare": {
+        "seconds": 4.663881,
+        "proofs": 140,
+        "lane_user_seconds": 25.094674,
+        "lane_system_seconds": 1.474516,
+        "lane_samples": 140,
+        "process_user_seconds": 50.048767,
+        "process_system_seconds": 3.080763,
+        "minor_faults": 1455580,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17643438080,
+        "max_footprint_bytes_at_end": 13414694152
+      },
+      "interaction_commit/streaming_commit_prepare/streaming_transform": {
+        "seconds": 2.986099,
+        "proofs": 140,
+        "lane_user_seconds": 13.760571,
+        "lane_system_seconds": 0.787179,
+        "lane_samples": 140,
+        "process_user_seconds": 30.217937,
+        "process_system_seconds": 1.777949,
+        "minor_faults": 837658,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17656741888,
+        "max_footprint_bytes_at_end": 13582531944
+      },
+      "interaction_commit/streaming_commit_prepare/streaming_leaf_hash": {
+        "seconds": 1.675039,
+        "proofs": 140,
+        "lane_user_seconds": 11.332161,
+        "lane_system_seconds": 0.683687,
+        "lane_samples": 140,
+        "process_user_seconds": 19.788694,
+        "process_system_seconds": 1.294379,
+        "minor_faults": 616911,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17643388928,
+        "max_footprint_bytes_at_end": 13414694152
+      },
+      "interaction_commit/merkle_commit": {
+        "seconds": 0.554658,
+        "proofs": 7,
+        "lane_user_seconds": 2.114214,
+        "lane_system_seconds": 0.182801,
+        "lane_samples": 7,
+        "process_user_seconds": 6.452881,
+        "process_system_seconds": 0.594542,
+        "minor_faults": 299932,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17440374784,
+        "max_footprint_bytes_at_end": 12331907568
+      },
+      "retained_main_restore": {
+        "seconds": 0.000111,
+        "proofs": 7,
+        "lane_user_seconds": 1.9e-05,
+        "lane_system_seconds": 4.1e-05,
+        "lane_samples": 7,
+        "process_user_seconds": 7.5e-05,
+        "process_system_seconds": 4.5e-05,
+        "minor_faults": 6,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17440604160,
+        "max_footprint_bytes_at_end": 12331907568
+      },
+      "draw_random_coeff": {
+        "seconds": 0.000114,
+        "proofs": 7,
+        "lane_user_seconds": 1.9e-05,
+        "lane_system_seconds": 3.7e-05,
+        "lane_samples": 7,
+        "process_user_seconds": 4.5e-05,
+        "process_system_seconds": 4.8e-05,
+        "minor_faults": 6,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17440882688,
+        "max_footprint_bytes_at_end": 12331907568
+      },
+      "composition_trace_extract": {
+        "seconds": 0.000201,
+        "proofs": 7,
+        "lane_user_seconds": 6.2e-05,
+        "lane_system_seconds": 8.5e-05,
+        "lane_samples": 7,
+        "process_user_seconds": 0.000108,
+        "process_system_seconds": 0.000101,
+        "minor_faults": 42,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 17441144832,
+        "max_footprint_bytes_at_end": 12332087816
+      },
+      "composition_evaluation": {
+        "seconds": 10.491568,
+        "proofs": 7,
+        "lane_user_seconds": 50.70918,
+        "lane_system_seconds": 2.246726,
+        "lane_samples": 7,
+        "process_user_seconds": 103.558132,
+        "process_system_seconds": 4.346879,
+        "minor_faults": 2679301,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 16280780800,
+        "max_footprint_bytes_at_end": 10199857168
+      },
+      "composition_interpolate_and_split": {
+        "seconds": 0.144018,
+        "proofs": 7,
+        "lane_user_seconds": 0.548481,
+        "lane_system_seconds": 0.001013,
+        "lane_samples": 7,
+        "process_user_seconds": 1.244496,
+        "process_system_seconds": 0.052153,
+        "minor_faults": 25854,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 16445685760,
+        "max_footprint_bytes_at_end": 10364794944
+      },
+      "composition_commit": {
+        "seconds": 0.822855,
+        "proofs": 7,
+        "lane_user_seconds": 4.51403,
+        "lane_system_seconds": 0.352587,
+        "lane_samples": 7,
+        "process_user_seconds": 7.639322,
+        "process_system_seconds": 0.440058,
+        "minor_faults": 266005,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15957704704,
+        "max_footprint_bytes_at_end": 9876616992
+      },
+      "oods_point_and_mask_points": {
+        "seconds": 0.001071,
+        "proofs": 7,
+        "lane_user_seconds": 0.000758,
+        "lane_system_seconds": 0.00023,
+        "lane_samples": 7,
+        "process_user_seconds": 0.002309,
+        "process_system_seconds": 0.000381,
+        "minor_faults": 236,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15823634432,
+        "max_footprint_bytes_at_end": 9742431912
+      },
+      "sampled_value_evaluation": {
+        "seconds": 1.06138,
+        "proofs": 7,
+        "lane_user_seconds": 2.209635,
+        "lane_system_seconds": 0.012631,
+        "lane_samples": 7,
+        "process_user_seconds": 6.736029,
+        "process_system_seconds": 0.30678,
+        "minor_faults": 144565,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15998631936,
+        "max_footprint_bytes_at_end": 9917331232
+      },
+      "sampled_value_channel_mix": {
+        "seconds": 0.001269,
+        "proofs": 7,
+        "lane_user_seconds": 0.00117,
+        "lane_system_seconds": 4.5e-05,
+        "lane_samples": 7,
+        "process_user_seconds": 0.003129,
+        "process_system_seconds": 9.9e-05,
+        "minor_faults": 9,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15998828544,
+        "max_footprint_bytes_at_end": 9917527840
+      },
+      "fri_quotient_build_and_commit": {
+        "seconds": 3.736366,
+        "proofs": 7,
+        "lane_user_seconds": 17.663416,
+        "lane_system_seconds": 1.088984,
+        "lane_samples": 7,
+        "process_user_seconds": 33.783719,
+        "process_system_seconds": 1.87345,
+        "minor_faults": 865960,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 16997842944,
+        "max_footprint_bytes_at_end": 10916968944
+      },
+      "proof_of_work": {
+        "seconds": 0.843404,
+        "proofs": 7,
+        "lane_user_seconds": 6.218433,
+        "lane_system_seconds": 0.009586,
+        "lane_samples": 7,
+        "process_user_seconds": 10.305008,
+        "process_system_seconds": 0.208588,
+        "minor_faults": 63387,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 16833822720,
+        "max_footprint_bytes_at_end": 10752866680
+      },
+      "fri_decommit": {
+        "seconds": 0.035468,
+        "proofs": 7,
+        "lane_user_seconds": 0.01334,
+        "lane_system_seconds": 0.022002,
+        "lane_samples": 7,
+        "process_user_seconds": 0.223734,
+        "process_system_seconds": 0.028924,
+        "minor_faults": 4249,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 16521003008,
+        "max_footprint_bytes_at_end": 10439948520
+      },
+      "trace_decommit": {
+        "seconds": 1.987188,
+        "proofs": 7,
+        "lane_user_seconds": 8.637694,
+        "lane_system_seconds": 0.569699,
+        "lane_samples": 7,
+        "process_user_seconds": 18.403053,
+        "process_system_seconds": 1.126304,
+        "minor_faults": 265810,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 15765618688,
+        "max_footprint_bytes_at_end": 9684301696
+      },
+      "constraint_check_and_assembly": {
+        "seconds": 0.001805,
+        "proofs": 7,
+        "lane_user_seconds": 0.001502,
+        "lane_system_seconds": 0.00016,
+        "lane_samples": 7,
+        "process_user_seconds": 0.002725,
+        "process_system_seconds": 0.000412,
+        "minor_faults": 72,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 12777979904,
+        "max_footprint_bytes_at_end": 8115990504
+      },
+      "interaction_generation/inter_division": {
+        "seconds": 5.8e-05,
+        "proofs": 1,
+        "lane_user_seconds": 3.8e-05,
+        "lane_system_seconds": 1e-05,
+        "lane_samples": 1,
+        "process_user_seconds": 7.5e-05,
+        "process_system_seconds": 1.3e-05,
+        "minor_faults": 10,
+        "major_faults": 0,
+        "max_resident_bytes_at_end": 11319181312,
+        "max_footprint_bytes_at_end": 8250076488
+      }
+    },
+    "per_proof": [
+      {
+        "file": "physical-0000.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.553955,
+            "lane_user_seconds": 2.520035,
+            "lane_system_seconds": 0.226024
+          },
+          "main_commit": {
+            "seconds": 1.984421,
+            "lane_user_seconds": 9.377771,
+            "lane_system_seconds": 0.51414
+          },
+          "retained_main_spill": {
+            "seconds": 0.46588,
+            "lane_user_seconds": 0.059183,
+            "lane_system_seconds": 0.276866
+          },
+          "interaction_generation": {
+            "seconds": 0.574508,
+            "lane_user_seconds": 3.124958,
+            "lane_system_seconds": 0.047457
+          },
+          "interaction_commit": {
+            "seconds": 1.270997,
+            "lane_user_seconds": 6.916542,
+            "lane_system_seconds": 0.354446
+          },
+          "retained_main_restore": {
+            "seconds": 1.9e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 7e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.9e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 6e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 3.6e-05,
+            "lane_user_seconds": 9e-06,
+            "lane_system_seconds": 1.9e-05
+          },
+          "composition_evaluation": {
+            "seconds": 2.641492,
+            "lane_user_seconds": 12.862836,
+            "lane_system_seconds": 0.5124
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.039084,
+            "lane_user_seconds": 0.141925,
+            "lane_system_seconds": 0.000285
+          },
+          "composition_commit": {
+            "seconds": 0.205506,
+            "lane_user_seconds": 1.160139,
+            "lane_system_seconds": 0.076695
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.000102,
+            "lane_user_seconds": 7.3e-05,
+            "lane_system_seconds": 1.7e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.278926,
+            "lane_user_seconds": 0.579181,
+            "lane_system_seconds": 0.001918
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 0.000114,
+            "lane_user_seconds": 0.0001,
+            "lane_system_seconds": 7e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.980626,
+            "lane_user_seconds": 4.556576,
+            "lane_system_seconds": 0.244793
+          },
+          "proof_of_work": {
+            "seconds": 0.216123,
+            "lane_user_seconds": 1.355772,
+            "lane_system_seconds": 0.002532
+          },
+          "fri_decommit": {
+            "seconds": 0.007269,
+            "lane_user_seconds": 0.003164,
+            "lane_system_seconds": 0.00409
+          },
+          "trace_decommit": {
+            "seconds": 0.517384,
+            "lane_user_seconds": 2.248113,
+            "lane_system_seconds": 0.207762
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000205,
+            "lane_user_seconds": 0.00017,
+            "lane_system_seconds": 1.1e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0001.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.44322,
+            "lane_user_seconds": 2.275588,
+            "lane_system_seconds": 0.164167
+          },
+          "main_commit": {
+            "seconds": 1.795897,
+            "lane_user_seconds": 8.553245,
+            "lane_system_seconds": 0.394775
+          },
+          "retained_main_spill": {
+            "seconds": 0.454619,
+            "lane_user_seconds": 0.053689,
+            "lane_system_seconds": 0.264818
+          },
+          "interaction_generation": {
+            "seconds": 0.533735,
+            "lane_user_seconds": 2.922496,
+            "lane_system_seconds": 0.070063
+          },
+          "interaction_commit": {
+            "seconds": 1.180714,
+            "lane_user_seconds": 6.2237,
+            "lane_system_seconds": 0.283271
+          },
+          "retained_main_restore": {
+            "seconds": 1.7e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 8e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 2.2e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 7e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 2.5e-05,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 7e-06
+          },
+          "composition_evaluation": {
+            "seconds": 2.596456,
+            "lane_user_seconds": 11.570772,
+            "lane_system_seconds": 0.491156
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.03748,
+            "lane_user_seconds": 0.143332,
+            "lane_system_seconds": 0.000178
+          },
+          "composition_commit": {
+            "seconds": 0.21358,
+            "lane_user_seconds": 1.143268,
+            "lane_system_seconds": 0.074949
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.000135,
+            "lane_user_seconds": 7.7e-05,
+            "lane_system_seconds": 4.2e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.247623,
+            "lane_user_seconds": 0.527775,
+            "lane_system_seconds": 0.001836
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 8.2e-05,
+            "lane_user_seconds": 6.5e-05,
+            "lane_system_seconds": 8e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.99323,
+            "lane_user_seconds": 4.535394,
+            "lane_system_seconds": 0.260098
+          },
+          "proof_of_work": {
+            "seconds": 0.127722,
+            "lane_user_seconds": 0.946324,
+            "lane_system_seconds": 0.00129
+          },
+          "fri_decommit": {
+            "seconds": 0.006924,
+            "lane_user_seconds": 0.003239,
+            "lane_system_seconds": 0.003662
+          },
+          "trace_decommit": {
+            "seconds": 0.515579,
+            "lane_user_seconds": 2.09653,
+            "lane_system_seconds": 0.14574
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000232,
+            "lane_user_seconds": 0.000166,
+            "lane_system_seconds": 4.2e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0002.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.421336,
+            "lane_user_seconds": 2.53277,
+            "lane_system_seconds": 0.273536
+          },
+          "main_commit": {
+            "seconds": 1.49515,
+            "lane_user_seconds": 7.983569,
+            "lane_system_seconds": 0.165016
+          },
+          "retained_main_spill": {
+            "seconds": 0.393333,
+            "lane_user_seconds": 0.058626,
+            "lane_system_seconds": 0.210504
+          },
+          "interaction_generation": {
+            "seconds": 0.529742,
+            "lane_user_seconds": 3.191621,
+            "lane_system_seconds": 0.083117
+          },
+          "interaction_commit": {
+            "seconds": 1.275578,
+            "lane_user_seconds": 6.313179,
+            "lane_system_seconds": 0.43301
+          },
+          "retained_main_restore": {
+            "seconds": 1.5e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.5e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 2.7e-05,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 1.2e-05
+          },
+          "composition_evaluation": {
+            "seconds": 2.434021,
+            "lane_user_seconds": 11.316392,
+            "lane_system_seconds": 0.613981
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.034339,
+            "lane_user_seconds": 0.134625,
+            "lane_system_seconds": 0.000141
+          },
+          "composition_commit": {
+            "seconds": 0.206798,
+            "lane_user_seconds": 1.133487,
+            "lane_system_seconds": 0.102861
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.0001,
+            "lane_user_seconds": 6e-05,
+            "lane_system_seconds": 2.5e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.230436,
+            "lane_user_seconds": 0.48889,
+            "lane_system_seconds": 0.004506
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 8.9e-05,
+            "lane_user_seconds": 7.7e-05,
+            "lane_system_seconds": 5e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.843683,
+            "lane_user_seconds": 4.054756,
+            "lane_system_seconds": 0.289673
+          },
+          "proof_of_work": {
+            "seconds": 0.086459,
+            "lane_user_seconds": 0.682779,
+            "lane_system_seconds": 0.000584
+          },
+          "fri_decommit": {
+            "seconds": 0.011497,
+            "lane_user_seconds": 0.003222,
+            "lane_system_seconds": 0.008228
+          },
+          "trace_decommit": {
+            "seconds": 0.429344,
+            "lane_user_seconds": 1.916751,
+            "lane_system_seconds": 0.086516
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000177,
+            "lane_user_seconds": 0.000138,
+            "lane_system_seconds": 1.6e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0003.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.657866,
+            "lane_user_seconds": 2.737746,
+            "lane_system_seconds": 0.254235
+          },
+          "main_commit": {
+            "seconds": 1.60085,
+            "lane_user_seconds": 8.541715,
+            "lane_system_seconds": 0.344705
+          },
+          "retained_main_spill": {
+            "seconds": 0.3713,
+            "lane_user_seconds": 0.054547,
+            "lane_system_seconds": 0.189399
+          },
+          "interaction_generation": {
+            "seconds": 0.711654,
+            "lane_user_seconds": 3.752074,
+            "lane_system_seconds": 0.111269
+          },
+          "interaction_commit": {
+            "seconds": 1.417774,
+            "lane_user_seconds": 7.315774,
+            "lane_system_seconds": 0.568864
+          },
+          "retained_main_restore": {
+            "seconds": 1.6e-05,
+            "lane_user_seconds": 2e-06,
+            "lane_system_seconds": 6e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.6e-05,
+            "lane_user_seconds": 2e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 3.9e-05,
+            "lane_user_seconds": 1.1e-05,
+            "lane_system_seconds": 2.1e-05
+          },
+          "composition_evaluation": {
+            "seconds": 2.393597,
+            "lane_user_seconds": 12.100207,
+            "lane_system_seconds": 0.600729
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.032096,
+            "lane_user_seconds": 0.125749,
+            "lane_system_seconds": 0.000291
+          },
+          "composition_commit": {
+            "seconds": 0.193152,
+            "lane_user_seconds": 1.060217,
+            "lane_system_seconds": 0.095844
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.000158,
+            "lane_user_seconds": 0.000105,
+            "lane_system_seconds": 3.7e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.247034,
+            "lane_user_seconds": 0.531744,
+            "lane_system_seconds": 0.003139
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 0.000167,
+            "lane_user_seconds": 0.000153,
+            "lane_system_seconds": 6e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.888906,
+            "lane_user_seconds": 4.358687,
+            "lane_system_seconds": 0.288585
+          },
+          "proof_of_work": {
+            "seconds": 0.260151,
+            "lane_user_seconds": 2.052373,
+            "lane_system_seconds": 0.003153
+          },
+          "fri_decommit": {
+            "seconds": 0.00856,
+            "lane_user_seconds": 0.003088,
+            "lane_system_seconds": 0.005458
+          },
+          "trace_decommit": {
+            "seconds": 0.496698,
+            "lane_user_seconds": 2.196044,
+            "lane_system_seconds": 0.126044
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000306,
+            "lane_user_seconds": 0.000264,
+            "lane_system_seconds": 2.5e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0004.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.173869,
+            "lane_user_seconds": 0.176037,
+            "lane_system_seconds": 0.00806
+          },
+          "main_commit": {
+            "seconds": 0.0373,
+            "lane_user_seconds": 0.202408,
+            "lane_system_seconds": 0.006625
+          },
+          "retained_main_spill": {
+            "seconds": 0.045084,
+            "lane_user_seconds": 0.003949,
+            "lane_system_seconds": 0.015617
+          },
+          "interaction_generation": {
+            "seconds": 0.049982,
+            "lane_user_seconds": 0.318563,
+            "lane_system_seconds": 0.00382
+          },
+          "interaction_commit": {
+            "seconds": 0.040327,
+            "lane_user_seconds": 0.253001,
+            "lane_system_seconds": 0.006311
+          },
+          "retained_main_restore": {
+            "seconds": 1.3e-05,
+            "lane_user_seconds": 2e-06,
+            "lane_system_seconds": 4e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.3e-05,
+            "lane_user_seconds": 2e-06,
+            "lane_system_seconds": 4e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 3.7e-05,
+            "lane_user_seconds": 1.4e-05,
+            "lane_system_seconds": 1.6e-05
+          },
+          "composition_evaluation": {
+            "seconds": 0.265975,
+            "lane_user_seconds": 1.841049,
+            "lane_system_seconds": 0.01981
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.000124,
+            "lane_user_seconds": 0.000326,
+            "lane_system_seconds": 3.7e-05
+          },
+          "composition_commit": {
+            "seconds": 0.000631,
+            "lane_user_seconds": 0.002544,
+            "lane_system_seconds": 0.000602
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.000466,
+            "lane_user_seconds": 0.000365,
+            "lane_system_seconds": 9.3e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.044909,
+            "lane_user_seconds": 0.058886,
+            "lane_system_seconds": 0.000438
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 0.000674,
+            "lane_user_seconds": 0.000662,
+            "lane_system_seconds": 5e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.014376,
+            "lane_user_seconds": 0.091179,
+            "lane_system_seconds": 0.001706
+          },
+          "proof_of_work": {
+            "seconds": 0.021641,
+            "lane_user_seconds": 0.166694,
+            "lane_system_seconds": 0.00018
+          },
+          "fri_decommit": {
+            "seconds": 0.000291,
+            "lane_user_seconds": 0.000175,
+            "lane_system_seconds": 0.000108
+          },
+          "trace_decommit": {
+            "seconds": 0.014193,
+            "lane_user_seconds": 0.096348,
+            "lane_system_seconds": 0.00093
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000642,
+            "lane_user_seconds": 0.000586,
+            "lane_system_seconds": 3.2e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0005.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.161407,
+            "lane_user_seconds": 0.157528,
+            "lane_system_seconds": 0.003468
+          },
+          "main_commit": {
+            "seconds": 0.028386,
+            "lane_user_seconds": 0.160281,
+            "lane_system_seconds": 0.019898
+          },
+          "retained_main_spill": {
+            "seconds": 0.026252,
+            "lane_user_seconds": 0.002066,
+            "lane_system_seconds": 0.011167
+          },
+          "interaction_generation": {
+            "seconds": 0.01622,
+            "lane_user_seconds": 0.116729,
+            "lane_system_seconds": 0.001122
+          },
+          "interaction_commit": {
+            "seconds": 0.02067,
+            "lane_user_seconds": 0.112725,
+            "lane_system_seconds": 0.008915
+          },
+          "retained_main_restore": {
+            "seconds": 1.6e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 6e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.5e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 1.9e-05,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_evaluation": {
+            "seconds": 0.099785,
+            "lane_user_seconds": 0.636322,
+            "lane_system_seconds": 0.005892
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.000651,
+            "lane_user_seconds": 0.001798,
+            "lane_system_seconds": 4.9e-05
+          },
+          "composition_commit": {
+            "seconds": 0.002066,
+            "lane_user_seconds": 0.009851,
+            "lane_system_seconds": 0.00085
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 5.3e-05,
+            "lane_user_seconds": 3.9e-05,
+            "lane_system_seconds": 6e-06
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.008317,
+            "lane_user_seconds": 0.015064,
+            "lane_system_seconds": 0.000403
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 8.1e-05,
+            "lane_user_seconds": 6.7e-05,
+            "lane_system_seconds": 6e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.010058,
+            "lane_user_seconds": 0.044186,
+            "lane_system_seconds": 0.002604
+          },
+          "proof_of_work": {
+            "seconds": 0.00041,
+            "lane_user_seconds": 0.002831,
+            "lane_system_seconds": 5.2e-05
+          },
+          "fri_decommit": {
+            "seconds": 0.000408,
+            "lane_user_seconds": 0.000203,
+            "lane_system_seconds": 0.000196
+          },
+          "trace_decommit": {
+            "seconds": 0.008443,
+            "lane_user_seconds": 0.051657,
+            "lane_system_seconds": 0.000671
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000139,
+            "lane_user_seconds": 9.2e-05,
+            "lane_system_seconds": 2.4e-05
+          }
+        }
+      },
+      {
+        "file": "physical-0006.stages.json",
+        "top_level": {
+          "source_construction": {
+            "seconds": 0.05674,
+            "lane_user_seconds": 0.05507,
+            "lane_system_seconds": 0.001481
+          },
+          "main_commit": {
+            "seconds": 0.015018,
+            "lane_user_seconds": 0.079127,
+            "lane_system_seconds": 0.009565
+          },
+          "retained_main_spill": {
+            "seconds": 0.020237,
+            "lane_user_seconds": 0.001107,
+            "lane_system_seconds": 0.005923
+          },
+          "interaction_generation": {
+            "seconds": 0.012274,
+            "lane_user_seconds": 0.083366,
+            "lane_system_seconds": 0.000434
+          },
+          "interaction_commit": {
+            "seconds": 0.013183,
+            "lane_user_seconds": 0.07486,
+            "lane_system_seconds": 0.003508
+          },
+          "retained_main_restore": {
+            "seconds": 1.5e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "draw_random_coeff": {
+            "seconds": 1.4e-05,
+            "lane_user_seconds": 3e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_trace_extract": {
+            "seconds": 1.8e-05,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 5e-06
+          },
+          "composition_evaluation": {
+            "seconds": 0.060242,
+            "lane_user_seconds": 0.381602,
+            "lane_system_seconds": 0.002758
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.000244,
+            "lane_user_seconds": 0.000726,
+            "lane_system_seconds": 3.2e-05
+          },
+          "composition_commit": {
+            "seconds": 0.001122,
+            "lane_user_seconds": 0.004524,
+            "lane_system_seconds": 0.000786
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 5.7e-05,
+            "lane_user_seconds": 3.9e-05,
+            "lane_system_seconds": 1e-05
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.004135,
+            "lane_user_seconds": 0.008095,
+            "lane_system_seconds": 0.000391
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 6.2e-05,
+            "lane_user_seconds": 4.6e-05,
+            "lane_system_seconds": 8e-06
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 0.005487,
+            "lane_user_seconds": 0.022638,
+            "lane_system_seconds": 0.001525
+          },
+          "proof_of_work": {
+            "seconds": 0.130898,
+            "lane_user_seconds": 1.01166,
+            "lane_system_seconds": 0.001795
+          },
+          "fri_decommit": {
+            "seconds": 0.000519,
+            "lane_user_seconds": 0.000249,
+            "lane_system_seconds": 0.00026
+          },
+          "trace_decommit": {
+            "seconds": 0.005547,
+            "lane_user_seconds": 0.032251,
+            "lane_system_seconds": 0.002036
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.000104,
+            "lane_user_seconds": 8.6e-05,
+            "lane_system_seconds": 1e-05
+          }
+        }
+      }
+    ]
+  }
 }
