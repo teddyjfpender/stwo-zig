@@ -328,7 +328,7 @@ def main(argv=None):
     ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
                          "(SHA-256, arith256_mod, bulk memory incl. unaligned memcpy and memcmp); candidate = execution-only")
-    ap.add_argument("--v3-set", default="sha,arith,mem,umem",
+    ap.add_argument("--v3-set", default="sha,arith,mem,umem,keccak",
                     help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge, "
                          "umem = unaligned-source memcpy and memcmp, needs mem)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
@@ -381,7 +381,7 @@ def main(argv=None):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")
-    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "keccak", "mem", "sha", "umem"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
                else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
