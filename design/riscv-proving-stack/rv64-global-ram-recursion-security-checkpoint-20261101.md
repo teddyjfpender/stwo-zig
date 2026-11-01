@@ -75,3 +75,109 @@ zig build test-riscv64-security-policy -Doptimize=ReleaseFast -j2
 This branch's test assertions are **not yet a clean-host CI receipt**. No Zig toolchain is available in the analysis environment, so a passing test may not be asserted without actual runner output. Any source/format gate failure remains open until the exact head is compiled. The changes leave native proof formats, FS transcript order, hardware backend and production selection unchanged.
 
 Next engineering milestone should be **one real CPU shard + one physical global RAM INIT/TEARDOWN pair** under the shared precommitment, with fresh receiver checks and a hostile CPU event-origin substitution. This will determine whether the tuple projection/bridge is economical before migrating the 30-proof whole-block driver. The user-requested GPU work remains deferred; only after full CPU/security acceptance should a device prove/verify campaign be treated as a performance qualification.
+
+## 7. Follow-up implementation: physical stage-one custody and canonical native certificates
+
+The following additional work landed on this PR **after** the original planning
+checkpoint. It is deliberately version-isolated from the accepting Word16 native
+proof format. No reduction in complete block wall time or proof bytes is claimed.
+
+### 7.1 Physical stage-one roots (new experimental API)
+
+`word16_execution/memory/staged_precommit.zig` now captures the exact physical
+fixed and MAIN roots and declared column geometry of actual Stwo PCS owners in
+a cloned complete-manifest `Plan`. An independently expected execution identity
+and ordered INIT / execution / TEARDOWN roles determine its seal. The diagnostic
+RAM14 / OWNER19 / FUNCTION13 challenges use that seal, with distinct domain tags.
+
+**Trust-critical revision:** challenge selection now receives the **complete
+array of actual live PCS owners** and recomputes every physical root immediately
+before drawing. A mutable host success bit, caller-supplied SHA or receipt is
+not adequate. Omission of one owner and replacement of a MAIN root fail. The
+bounded test constructs four genuine two-tree PCS commitments and checks
+source mutation, missing owners, wrong terminal, and receipt substitution.
+
+Still **not** supplied: a proof that the committed CPU/service event tuples are
+the same columns opened by the original CPU / service AIR; an end-to-end
+manifest-root-bound global RAM AIR receiver; a memory-lifetime-bounded
+multi-machine stage-one protocol. This example retains every PCS owner in the
+host and therefore is **not** a scalable RAM allocation solution. The
+existing `.full_execution_unqualified` manifest scope remains rejected.
+
+### 7.2 Authenticated native Word16 proof roster, not STARK recursion
+
+`word16_global_execution/services/native_certificate.zig` consumes the
+full mixed-service fresh native receiver, then commits every accepted CPU and
+truth proof, ordered manifest/fixed/main roots, typed claims, public memory
+boundaries, program/image identity, service-call span and execution endpoints
+to a **domain-separated SHA-256 statement**. Its `verifyPinned` re-executes
+every native verification before comparing the commitment.
+
+`word16_global_execution/ethereum/native_certificate.zig` composes that
+statement with a **fresh complete Ethereum receiver** and separately binds
+the independently pinned terminal ABI/output to a complete native certificate.
+This deliberately verifies native proofs twice rather than relying on a
+producer-supplied `verified` flag. Optimization must come from a typed opaque
+verified owner with the same admission and memory safety semantics, not
+turning the digest into an acceptance oracle.
+
+These are a reference preimage and a specification for an actual Word16
+recursive leaf/fold/root. They are **not** recursive proofs: a caller still
+needs the original CPU and service proof bytes, independent fixed keys and a
+fresh STARK verifier. Root size and verification time are not constant in
+the number of children. No direct settlement/128-bit claim follows.
+
+Mixed CPU/Keccak/secp and complete Ethereum physical proof tests pass in
+GitHub Actions ReleaseSafe:
+[run 41308455813](https://github.com/teddyjfpender/stwo-zig/actions/runs/41308455813);
+the combined staged-precommit and security accounting gates also passed in
+[run 41308475663](https://github.com/teddyjfpender/stwo-zig/actions/runs/41308475663).
+These are historical revisions of this PR, not blanket qualifications of any
+later changes.
+
+### 7.3 Exact conditional algebraic error bookkeeping
+
+`security_policy.requireConditionalAlgebraicBudget` now takes a complete
+argument roster (one declaration for each of 12 terms) of conditional
+draw counts and maximum polynomial degrees, then uses integer
+`sum(max_degree * draws) * 2^target_bits <= (2^31 - 1)^d`.
+Duplicate, missing and inactive-but-nonzero terms are refused. This is a
+Schwartz–Zippel **conditional union estimate** only. It assumes that each
+adaptively reached polynomial is nonzero before a genuinely uniform draw and
+that no hidden proof-related error term is omitted. It is **not** an actual
+Fiat–Shamir ROM proof, a cryptographic hash bound, an analysis of FRI/WHIR,
+a proof for all LogUp cancellations or a review of recursion. `whole_protocol_128`
+continues to be rejected by the receiver-owned certificate registry.
+
+A natural next experiment is whole-protocol OM31 (degree eight over M31),
+but this requires changing actual AIR evaluation, transcript, PCS, FRI,
+recursive proof arithmetic and security parameters coherently; passing the
+current arithmetic-only OM31 tests does not qualify any of those.
+
+### 7.4 Real mixed-service global RAM diagnostic
+
+`word16_global_execution/services/global_memory_diagnostic.zig` maps actual
+collected native load/store, 25-word Keccak, and secp ADD/DOUBLE word accesses
+to the proposed per-address strict-epoch flow model, checking pristine image
+and rights against independently supplied input. The two-epoch diagnostic
+fixture contains 25 touched words, **1 load/store event + 25 Keccak +
+36 secp word transitions = 62** individual memory transitions. Tests attempt
+stale service predecessors, tampered image values and altered terminal words.
+
+The source is explicitly a host *diagnostic*, not a physically sound
+chip-to-event projection. Its `Report.physical_origin_join_verified` is false.
+Even independently fresh-valid native CPU/service proofs and an accepting
+host diagnostic do not prove that their committed source columns equal the
+diagnostic advice. This is the exact next physical AIR equation/lookup bridge
+to implement before replacing Poseidon sparse RAM.
+
+### 7.5 Acceptance still outstanding
+
+Production graduation must demonstrate, at a minimum: a pinned native
+`WORD16_GLOBAL_RAM_V1` key+statement, physical event tuple source coverage
+and strict time constraints at realistic per-batch cardinality, complete
+init/teardown independent image and output proof, 25+5 and 43-byte output
+native receiver with positive and all adversarial controls, a truly in-circuit
+native Word16 STARK verifier/folding root, and a reviewed 128-bit entire
+protocol security analysis. **None of those is established merely by the new
+host native certificate, diagnostic challenge or conditional algebra model.**
