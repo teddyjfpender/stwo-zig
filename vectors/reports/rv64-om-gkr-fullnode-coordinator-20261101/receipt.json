@@ -56,9 +56,9 @@
   },
   "admission": {
     "fully_parked_frontend_GiB": 15.882601626217365,
-    "max_GKR_peak_GiB": 24.293065071105957,
-    "max_represented_stage1_task_GiB": 26.97049143537879,
-    "unpruned_nodes_GiB": 12.610428631305695,
+    "max_GKR_peak_GiB": 24.292864322662354,
+    "max_represented_stage1_task_GiB": 26.9704914316535,
+    "unpruned_nodes_GiB": 12.609862387180328,
     "host_streaming_nodes_modeled_GiB": 0.8911123871803284,
     "scope_exclusions": [
       "shared immutable setup",
