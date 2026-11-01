@@ -22,6 +22,9 @@ These refs are pushed and explicitly retain unfinished work. A local recovery
 archive at `/private/tmp/rv64-wave2-recovery-20261101-v1/` contains a Git bundle,
 binary patches, the source inventory, and the parent session plus nested agent
 traces. Raw session traces remain local; they are not repository artifacts.
+That path is a compatibility symlink to the persistent, private archive at
+`~/.local/share/stwo-zig/recovery/20261101-wave2/`, so temporary-directory cleanup
+does not remove the recovered evidence.
 The machine-readable `agent-recovery-inventory-v1.json` report records original
 refs and recovered structured implementation/review results. Recovered results
 are attributed evidence, not new independent acceptance claims.
@@ -35,8 +38,8 @@ are attributed evidence, not new independent acceptance claims.
 | DIV trims | Integrate with additional production MUL byte-query regression and raised test-count floors. Safe/Fast DIV tests and circuit checks pass. |
 | Scheduling | Integrate N-lane controls and telemetry with fixes for shared mutable timer access and ignored single-lane worker limits. Default remains two lanes. The memory admission cap is a transient estimate, not a hard RSS/device-memory bound. |
 | GKR | Integrate a separately named experimental tool and dedicated tests. Safe/Fast21 and real-input fresh verification pass; fast/reference GKR proof bytes agree. Production execution, RAM and recursive receivers are unchanged. |
-| Interaction generators | Preserved; qualifying the exact recovered checkpoint before runtime promotion. Earlier prefix evidence predates some final edits. |
-| Composition queue | Preserved; qualifying as an explicit experiment. Active-output admission excludes some retained completed buffers, so it does not establish a hard total-memory limit. |
+| Interaction generators | Integrate after correcting relative-block grouping against the actual row permutation. Six Safe and six Fast suites pass; recovered prefix proofs and all eleven durable artifacts match the schema5 control, with fresh acceptance. Merged schema6 qualification is recorded separately. |
+| Composition queue | Integrate as an explicit experiment, off by default. Safe/Fast152 and same-binary prefix parity pass. Scheduling, metrics and shared state validation have separate modules. Active-output admission excludes some retained completed buffers, so it does not establish a hard total-memory limit. |
 | LS32 | Preserve and hold production promotion pending completion of the writer/canonicality audit and balanced cross-component adversarial coverage. An interrupted review is not a passing review. |
 
 The original per-workstream design documents and their qualification limits

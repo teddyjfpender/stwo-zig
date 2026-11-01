@@ -45,3 +45,11 @@ physical claims, proofs and wire bytes. Each source retires immediately after
 its final proof and receiver obligations have been encoded, so CPU narrow advice
 is not retained through later truth composition. These ownership changes carry
 no standalone RSS or whole-block timing claim.
+
+The operator harness `scripts/rv64_word16_schedule_sweep.py` measures the
+Ethereum driver's lane configurations against pinned artifact hashes. From the
+repository root, run `python3 -I scripts/rv64_word16_schedule_sweep.py --help`
+for its request, job-tape, reference-hash and receipt arguments. Use `--count=0`
+for a complete block and `--verify=all` to freshly verify every measured run.
+The default count is a four-CPU prefix. The harness uses macOS `lockf` and
+`/usr/bin/time -l`; its transient admission estimates are not hard RSS limits.

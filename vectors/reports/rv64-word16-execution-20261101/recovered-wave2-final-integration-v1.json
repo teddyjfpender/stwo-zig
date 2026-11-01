@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "kind": "recovered_wave2_final_integration",
+  "native_code_commit": "ff4272995",
+  "persistent_archive": "/Users/theodorepender/.local/share/stwo-zig/recovery/20261101-wave2",
+  "original_worktrees_untouched": true,
+  "original_branch_count": 9,
+  "unfinished_source_checkpoints": 3,
+  "workflow_agent_records": 17,
+  "reported_complete_at_interruption": 11,
+  "merged_prefix": {
+    "core_schema": 6,
+    "native_code_commit": "ff4272995",
+    "executable": "/tmp/rv64-wave2-final-modular-tools-v1/bin/rv64-word16-ethereum",
+    "executable_sha256": "0897c1e2a88a94c64a49e1120f5fb6c2e8e88cda64f446a99336647a9847b0ca",
+    "runs": [
+      {
+        "label": "legacy",
+        "directory": "/tmp/rv64-wave2-final-legacy-prefix4-v1",
+        "fresh": {
+          "core_schema": 6,
+          "accepted": true,
+          "completed_ethereum_block": false,
+          "output": null,
+          "cpu_proofs": 4,
+          "truth_proofs": 3,
+          "load_and_setup_ns": 2318859250,
+          "verify_ns": 257571208,
+          "fixed_native_cache": {
+            "limit_bytes": 268435456,
+            "retained_bytes": 181229952,
+            "native_backing_bytes": 181214336,
+            "groups": 121,
+            "hits": 428,
+            "duplicate_native_bytes_released": 738370048,
+            "observed_individual_owners": 549,
+            "observed_backing_owners": 0,
+            "observed_spans": 549,
+            "owner_leases": 5
+          },
+          "program_metadata_cache": {
+            "limit_bytes": 67108864,
+            "retained_bytes": 30951766,
+            "payload_bytes": 30951414,
+            "programs": 1,
+            "hits": 4,
+            "metadata_bytes_not_rebuilt": 123805656,
+            "duplicate_metadata_bytes_released": 0,
+            "owner_leases": 6
+          }
+        }
+      },
+      {
+        "label": "queue",
+        "directory": "/tmp/rv64-wave2-final-queue-prefix4-v1",
+        "fresh": {
+          "core_schema": 6,
+          "accepted": true,
+          "completed_ethereum_block": false,
+          "output": null,
+          "cpu_proofs": 4,
+          "truth_proofs": 3,
+          "load_and_setup_ns": 2493881625,
+          "verify_ns": 261972750,
+          "fixed_native_cache": {
+            "limit_bytes": 268435456,
+            "retained_bytes": 181229952,
+            "native_backing_bytes": 181214336,
+            "groups": 121,
+            "hits": 428,
+            "duplicate_native_bytes_released": 738370048,
+            "observed_individual_owners": 549,
+            "observed_backing_owners": 0,
+            "observed_spans": 549,
+            "owner_leases": 5
+          },
+          "program_metadata_cache": {
+            "limit_bytes": 67108864,
+            "retained_bytes": 30951766,
+            "payload_bytes": 30951414,
+            "programs": 1,
+            "hits": 4,
+            "metadata_bytes_not_rebuilt": 123805656,
+            "duplicate_metadata_bytes_released": 0,
+            "owner_leases": 6
+          }
+        }
+      }
+    ],
+    "files": [
+      {
+        "file": "bundle.json",
+        "sha256": "c0712e05c75919771e12c9085a53d0c8a946676e6b8242cc23982f7226da7145",
+        "identical": true
+      },
+      {
+        "file": "cells.bin",
+        "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "identical": true
+      },
+      {
+        "file": "cost.json",
+        "sha256": "526b61cc3109eab41d45c85560a63d5184588877a4e3696c12f5cd0f52f7e046",
+        "identical": true
+      },
+      {
+        "file": "roster.json",
+        "sha256": "afcb79ac71529f4538268e30abe2fa7cd2c99a1b29543cb8a642e9c59860e27c",
+        "identical": true
+      },
+      {
+        "file": "cpu-0.bin",
+        "sha256": "83307f114eb2e14ca7ca0cdad26f436e9f86c29080253a4a4d7f40489b7084b9",
+        "identical": true
+      },
+      {
+        "file": "cpu-1.bin",
+        "sha256": "4b15179a1f6309f7116f915c052dcec39f5bcb2008b0bca92a1b77d0a712642f",
+        "identical": true
+      },
+      {
+        "file": "cpu-2.bin",
+        "sha256": "83c43dd6deaf33c44995b34a0b92dadba860e2bff824899d002fd7b17852939d",
+        "identical": true
+      },
+      {
+        "file": "cpu-3.bin",
+        "sha256": "14668f664be21bf42260adf50f4af6e3ff1bc793650f0df8fe32e441e7cbbaf3",
+        "identical": true
+      },
+      {
+        "file": "truth-0.bin",
+        "sha256": "6be0239130507fb260f9900f3a558eb832aa16142d16c0d5680078fcd44a6b43",
+        "identical": true
+      },
+      {
+        "file": "truth-1.bin",
+        "sha256": "670de3cae532014aedd13d038cf4f1393f32bc1845aa83c8a76dcdeee956abe4",
+        "identical": true
+      },
+      {
+        "file": "truth-2.bin",
+        "sha256": "3420c340ed152c9145d2dce891697811f47e41f6a37354f4a77efc41bde4506f",
+        "identical": true
+      }
+    ],
+    "all_identical": true,
+    "qualification": "Merged AIR trims, scheduler fixes, corrected interaction generators and modular opt-in composition queue. Same-binary correctness comparison, not controlled performance measurement."
+  },
+  "isolated_interaction_prefix": {
+    "baseline": "/tmp/rv64-div-product-ethereum-prefix4-v1",
+    "recovered": "/tmp/rv64-recovered-interaction-fixed-prefix4-v1",
+    "all_identical": true,
+    "files": [
+      {
+        "file": "bundle.json",
+        "sha256": "40018106d80ecc6c6ad0e705e00fa66e68b3a31e018358bc0197c0ffad854a1e",
+        "identical": true
+      },
+      {
+        "file": "cells.bin",
+        "sha256": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+        "identical": true
+      },
+      {
+        "file": "cost.json",
+        "sha256": "9af83627f3d7228cf368a1d6fa1f38f5738514c4a06ce31f9c04654ffb9b0703",
+        "identical": true
+      },
+      {
+        "file": "roster.json",
+        "sha256": "7bbc0bf7fc310eb613f5c539845ed8f6a6d31eb5f04d0b52bee4bc70aae58456",
+        "identical": true
+      },
+      {
+        "file": "cpu-0.bin",
+        "sha256": "20db9114b89ec26b7b9e3ffb427520d4ea3e77e5d4be93b44b873037487d1cb0",
+        "identical": true
+      },
+      {
+        "file": "cpu-1.bin",
+        "sha256": "b6ad1a37d133914787ed3ad3ec2fa075965b374b3f2bdacd129673b1abe966e4",
+        "identical": true
+      },
+      {
+        "file": "cpu-2.bin",
+        "sha256": "18d921a3abbd3dee88888e5c1365596189e9acee4830c32d53a824003a0c73db",
+        "identical": true
+      },
+      {
+        "file": "cpu-3.bin",
+        "sha256": "0929be9ecfd95bd06bd6a91bd7c0183ad9af37c3240dcae11f02f9e65489ae7d",
+        "identical": true
+      },
+      {
+        "file": "truth-0.bin",
+        "sha256": "422215db4d8b326b309fd3443e26650a1b5e00186d75cd12f85ff28596516912",
+        "identical": true
+      },
+      {
+        "file": "truth-1.bin",
+        "sha256": "9155661c51a209ad26f4a08e2692462d83a08e7268997835c10e4b5dd06344a7",
+        "identical": true
+      },
+      {
+        "file": "truth-2.bin",
+        "sha256": "f9ea23971f3ef95a55943ad7a45edfc043aec8469611db88bf2248b14a68ee85",
+        "identical": true
+      }
+    ]
+  },
+  "complete_block_receipt": "recovered-wave2-complete-block-v1.json",
+  "LS32": "Preserved on pushed original branch; independent recovered review found no counterexample, but balanced interior chain/cross-shard adversarial gates remain unqualified. Not promoted.",
+  "default_policy": {
+    "composition": "legacy; queue requires explicit opt-in",
+    "GKR": "separate experimental tool; production protocol unchanged",
+    "service_schedule": "two lanes of eight workers for the pinned16workerrequest"
+  },
+  "hooks": "Session-authorized one-time hook exceptions; no persistent hook configuration changed.",
+  "checks": {
+    "merged_air_safe": {
+      "log": "/tmp/rv64-recovered-air-merged-safe-v1.log",
+      "summary": "Build Summary: 10/10 steps succeeded\ntest-riscv64-word16-alu-proof success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 36s MaxRSS:1G\ntest-riscv64-word16-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G\ntest-riscv64-word16-provider-ladder success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-ls-circuit-lanes success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 13s MaxRSS:956M\ntest-riscv64-word16-execution-circuit success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 19s MaxRSS:1G"
+    },
+    "merged_fast": {
+      "log": "/tmp/rv64-wave2-final-build-fast-v1.log",
+      "summary": "Build Summary: 6/6 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-word16-parallel-interaction success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 30s MaxRSS:1G\ntest-riscv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 21s MaxRSS:1G"
+    },
+    "final_modular_build": {
+      "log": "/tmp/rv64-wave2-final-modular-build-v1.log",
+      "summary": "Build Summary: 2/2 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G"
+    },
+    "GKR_wire_safe": {
+      "log": "/tmp/rv64-recovered-gkr-wire-safe-v1.log",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 29s MaxRSS:1G"
+    },
+    "GKR_wire_fast": {
+      "log": "/tmp/rv64-recovered-gkr-wire-fast-v1.log",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 26s MaxRSS:1G"
+    }
+  },
+  "script_reachability": {
+    "baseline_unreachable": 65,
+    "current_unreachable": 65,
+    "exact_same_names": true,
+    "new_scheduling_harness": "Documented in services/README.md and reachable; no new dead entrypoint."
+  }
+}
