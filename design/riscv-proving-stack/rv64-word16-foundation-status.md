@@ -1,8 +1,34 @@
 # Word16 frontend qualification status
 
-This inventory separates accepting experimental proofs from the unchanged
-full-block Ethereum route. Source counts and timings belong to the named
-fixtures; they are not forecasts for arbitrary blocks.
+Current qualification is the schema4 Word16 execution route described in
+[the Ethereum driver ledger](rv64-ethereum-global-driver.md). The historical
+foundation inventory below records earlier, narrower fixtures; its missing
+joins and opcode limitations do not describe the current Ethereum route.
+Measurements apply to pinned fixtures, not arbitrary blocks.
+
+## Current integrated route, 1 November
+
+| Area | Qualified evidence | Remaining boundary |
+| --- | --- | --- |
+| Full RV64IM execution and services | All 25 CPU and five crypto truth proofs for block24,628,607; 104,253,913 instructions; separate fresh completed receiver; exact43-byte output | Native bundle and61.97MB RAM sidecar; no new-lane recursive root |
+| Global memory | One execution-wide INIT/TEARDOWN, all stage-one roots before shared challenges, physical claims and CPU/service ownership closed by aggregate native receiver | Public cell-list/image authority and statement-specific setup remain material receiver work |
+| Narrow arithmetization | CPU53/40, LS79/48, ALU52/32, BINARY42/24, SHIFT53/36 main/interaction columns in source; native2n CPU with independently sized4n crypto truths | Latest ALU32 has focused independent qualification; the complete-block LS48 receipt still uses ALU48 and SHIFT36 |
+| Complete-block resource accounting | LS48 full block22,371,163,968 native cells,35,968,076 proof bytes;294.74s observed wall,42.46GB lifetime peak RSS | Concurrent engineering observation; neither3–5x wall nor1.5–2x RSS target is claimed achieved |
+| Source and key ownership | Owned CPU/truth MAIN and INTER; streaming tape retirement, consumed RAM-event retirement; explicit fixed-matrix retirement API | Coordinator adoption of early fixed retirement and bounded concurrent lanes is being qualified separately |
+| Independent semantics | All17CSP workloads, all63opcode Sail corpus, fresh receivers and adversarial physical proofs | Current-layout controlled timing tables and same-AIR Rust qualification remain open |
+| Recursion and accelerators | Existing wide-native recursion foundation retained | Word16/services leaf admission, full-block recursive closure and resident GPU route remain unqualified |
+
+The full-block LS48 receipt is
+[ethereum-full-ls48-v1.json](../../vectors/reports/rv64-word16-execution-20261031/ethereum-full-ls48-v1.json).
+Source widths must be read alongside that receipt's version: intentional AIR
+changes alter transcripts, so current source and a historical proof cannot be
+silently combined into a performance claim.
+
+## Historical foundation inventory
+
+The sections below preserve the original fixture scope and follow-up gates.
+Those gates are historical; the integrated evidence above records which have
+since closed.
 
 ## Accepted full-block reference
 
