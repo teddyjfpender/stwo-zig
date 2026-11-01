@@ -1,0 +1,28 @@
+name: RV64 formatter diagnostic (temporary)
+on:
+  pull_request:
+    paths:
+      - "src/integrations/riscv_cpu/**"
+      - ".github/workflows/rv64-format-diagnostic-temp.yml"
+permissions:
+  contents: read
+jobs:
+  format:
+    if: github.event.pull_request.head.ref == 'codex/rv64-global-ram-recursion-gates-20261101'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+      - name: Print exact Zig formatter patch
+        run: |
+          zig fmt src/integrations/riscv_cpu/word16_execution/memory/global_manifest.zig \
+            src/integrations/riscv_cpu/word16_execution/memory/global_manifest_test.zig \
+            src/integrations/riscv_cpu/word16_execution/memory/global_flow_model.zig \
+            src/integrations/riscv_cpu/word16_execution/memory/global_flow_model_test.zig \
+            src/integrations/riscv_cpu/word16_execution/security_policy.zig \
+            src/integrations/riscv_cpu/word16_execution/security_policy_test.zig \
+            src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig
+          git diff --no-ext-diff -- src/integrations/riscv_cpu/
