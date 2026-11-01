@@ -70,12 +70,9 @@ pub fn cpuStatementWithAuthority(setup: *const R.CpuSetup, request: P.Request, f
     return if (fixed) |binding| binding.statement(base) else base;
 }
 pub fn cpuMass(request: P.Request) !Manifest.Mass {
-    var ram = try std.math.mul(u64, 2, request.base.memory.ls_count);
-    for (request.calls, [_]u64{ 50, 48, 24 }) |n, c| ram = try std.math.add(u64, ram, try std.math.mul(u64, n, c));
-    ram = try std.math.add(u64, ram, request.base.memory.initial.len);
-    ram = try std.math.add(u64, ram, request.base.memory.terminal.len);
-    return .{ .ram = ram, .kio = try std.math.mul(u64, 50, request.calls[0]), .wire = try std.math.add(u64, try std.math.mul(u64, 9, request.calls[1]), try std.math.mul(u64, 6, request.calls[2])) };
+    return (try @import("mass_authority.zig").cpu(request)).absolute();
 }
+
 fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, config: W.PcsConfig, fixed: ?*const Fixed.Binding) !void {
     if (fixed) |binding| try binding.require(&setup.key, config) else try W.validateConfig(config);
     const root = if (fixed) |binding| binding.root() else setup.key.root;

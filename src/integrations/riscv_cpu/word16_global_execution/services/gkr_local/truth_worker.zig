@@ -29,15 +29,9 @@ pub const TruthEncoded = struct {
     }
 };
 pub fn truthMass(truth: R.Truth) !Manifest.Mass {
-    return switch (truth) {
-        .keccak => |t| .{ .ram = 0, .kio = (try A.crypto.keccak.layout.admitRoster(&.{t.calls}, &.{})).io, .wire = 0 },
-        .secp => |t| blk: {
-            const p = A.crypto.secp256k1.program.get(t.setup.kind);
-            const mass = try A.crypto.secp256k1.layout.admitRoster(&.{ .{ .kind = .product, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[0] }, .{ .kind = .linear, .program = p, .calls = t.calls, .first_id = t.first_id, .log = t.setup.logs[1] } }, &.{});
-            break :blk .{ .ram = 0, .kio = 0, .wire = mass.wires };
-        },
-    };
+    return (try @import("mass_authority.zig").truth(@import("../wire.zig").TruthDeclaration.from(truth))).absolute();
 }
+
 pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) [32]u8 {
     var ch = W.Channel.init();
     config.mixInto(&ch);
