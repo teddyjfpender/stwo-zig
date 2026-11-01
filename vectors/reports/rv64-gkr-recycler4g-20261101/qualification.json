@@ -1,0 +1,338 @@
+{
+  "parent": "a4de33db2",
+  "source_change": "Experimental Ethereum GKR CLI recycler cap1GiB ->4GiB; noother source changes",
+  "build": "zig fmt --check PASS; zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast -j2 --summary all PASS40s MaxRSS2G",
+  "scope": "Matched oneCPU4,194,303step Ethereum prefix, residentMAIN,16workers; not fullblock or formal128qualification",
+  "control": {
+    "cap_bytes": 1073741824,
+    "report": {
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "security_qualified": false,
+      "completed_ethereum_block": false,
+      "total_steps": 4194303,
+      "cpu_proofs": 1,
+      "truth_proofs": 0,
+      "output": null,
+      "resources": {
+        "gkr_bytes": 34359738368,
+        "global_bytes": 8589934592,
+        "retained_frontend_bytes": 17179869184,
+        "disk_bytes": 0,
+        "park_main": false,
+        "schedule": {
+          "lanes": 1,
+          "workers_per_lane": 16,
+          "lane_workers": [
+            16
+          ],
+          "memory_cap_bytes": 51539607552
+        }
+      },
+      "capture_ns": 1116442000,
+      "capture_cache_released_bytes": 984219648,
+      "setup_ns": 604809542,
+      "prove_ns": 14630853459,
+      "same_process_verify_ns": 469508125,
+      "workers": [
+        {
+          "source_ns": 416238084,
+          "seal_native_and_gkr_ns": 5554893416,
+          "main_commit_ns": 1153637250,
+          "gkr_ns": 4328907334,
+          "inputs_ns": 234359166,
+          "numerical_ns": 3408269375,
+          "binding_ns": 652451750,
+          "metadata_retire_ns": 4119709,
+          "spill_ns": 83,
+          "restore_ns": 42,
+          "native_complete_ns": 8542932500,
+          "stage1_ns": 5975251334,
+          "stage2_ns": 8542932583,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "total_before_report_ns": 16847245083,
+      "retained_main": null
+    },
+    "process": {
+      "real_s": 16.87,
+      "user_s": 90.89,
+      "sys_s": 10.44,
+      "minor_faults": 3163970,
+      "max_rss_bytes": 16441704448
+    },
+    "stages": {
+      "streaming_commit_prepare": {
+        "seconds": 1.5915609999999998,
+        "process_system_seconds": 1.4354989999999996,
+        "minor_faults": 453243
+      },
+      "streaming_transform": {
+        "seconds": 1.104187,
+        "process_system_seconds": 0.9105409999999999,
+        "minor_faults": 296555
+      },
+      "streaming_leaf_hash": {
+        "seconds": 0.48662599999999995,
+        "process_system_seconds": 0.523256,
+        "minor_faults": 156684
+      },
+      "merkle_commit": {
+        "seconds": 0.18250899999999998,
+        "process_system_seconds": 0.160734,
+        "minor_faults": 65924
+      },
+      "draw_random_coeff": {
+        "seconds": 2.3e-05,
+        "process_system_seconds": 8e-06,
+        "minor_faults": 0
+      },
+      "composition_trace_extract": {
+        "seconds": 3.5e-05,
+        "process_system_seconds": 1.2e-05,
+        "minor_faults": 3
+      },
+      "composition_evaluation": {
+        "seconds": 3.559394,
+        "process_system_seconds": 0.290263,
+        "minor_faults": 281306
+      },
+      "composition_interpolate_and_split": {
+        "seconds": 0.225211,
+        "process_system_seconds": 0.012492,
+        "minor_faults": 22528
+      },
+      "composition_commit": {
+        "seconds": 0.143108,
+        "process_system_seconds": 0.116005,
+        "minor_faults": 71693
+      },
+      "oods_point_and_mask_points": {
+        "seconds": 0.002686,
+        "process_system_seconds": 0.000134,
+        "minor_faults": 8
+      },
+      "sampled_value_evaluation": {
+        "seconds": 0.184364,
+        "process_system_seconds": 0.011394,
+        "minor_faults": 54
+      },
+      "sampled_value_channel_mix": {
+        "seconds": 0.000153,
+        "process_system_seconds": 2.4e-05,
+        "minor_faults": 3
+      },
+      "fri_quotient_build_and_commit": {
+        "seconds": 2.003264,
+        "process_system_seconds": 0.478337,
+        "minor_faults": 188057
+      },
+      "proof_of_work": {
+        "seconds": 0.149478,
+        "process_system_seconds": 0.002922,
+        "minor_faults": 36
+      },
+      "fri_decommit": {
+        "seconds": 0.341675,
+        "process_system_seconds": 0.008968,
+        "minor_faults": 5711
+      },
+      "trace_decommit": {
+        "seconds": 0.347552,
+        "process_system_seconds": 0.007107,
+        "minor_faults": 4306
+      },
+      "constraint_check_and_assembly": {
+        "seconds": 0.002639,
+        "process_system_seconds": 6.4e-05,
+        "minor_faults": 0
+      }
+    }
+  },
+  "candidate": {
+    "cap_bytes": 4294967296,
+    "report": {
+      "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+      "security_qualified": false,
+      "completed_ethereum_block": false,
+      "total_steps": 4194303,
+      "cpu_proofs": 1,
+      "truth_proofs": 0,
+      "output": null,
+      "resources": {
+        "gkr_bytes": 34359738368,
+        "global_bytes": 8589934592,
+        "retained_frontend_bytes": 17179869184,
+        "disk_bytes": 0,
+        "park_main": false,
+        "schedule": {
+          "lanes": 1,
+          "workers_per_lane": 16,
+          "lane_workers": [
+            16
+          ],
+          "memory_cap_bytes": 51539607552
+        }
+      },
+      "capture_ns": 981785917,
+      "capture_cache_released_bytes": 1319763968,
+      "setup_ns": 501876333,
+      "prove_ns": 11309650541,
+      "same_process_verify_ns": 406079208,
+      "workers": [
+        {
+          "source_ns": 336047250,
+          "seal_native_and_gkr_ns": 4197156833,
+          "main_commit_ns": 962619042,
+          "gkr_ns": 3170284750,
+          "inputs_ns": 193203417,
+          "numerical_ns": 2504246500,
+          "binding_ns": 450918750,
+          "metadata_retire_ns": 2768917,
+          "spill_ns": 83,
+          "restore_ns": 83,
+          "native_complete_ns": 6690013000,
+          "stage1_ns": 4535973125,
+          "stage2_ns": 6690013125,
+          "actual_main_merkle_bytes": 33554400,
+          "stage1_completed": true,
+          "stage2_completed": true
+        }
+      ],
+      "total_before_report_ns": 13222958917,
+      "retained_main": null
+    },
+    "process": {
+      "real_s": 14.89,
+      "user_s": 85.92,
+      "sys_s": 10.11,
+      "minor_faults": 2446722,
+      "max_rss_bytes": 18737725440
+    },
+    "stages": {
+      "streaming_commit_prepare": {
+        "seconds": 1.273116,
+        "process_system_seconds": 0.732886,
+        "minor_faults": 148014
+      },
+      "streaming_transform": {
+        "seconds": 0.9257100000000001,
+        "process_system_seconds": 0.410981,
+        "minor_faults": 78361
+      },
+      "streaming_leaf_hash": {
+        "seconds": 0.346689,
+        "process_system_seconds": 0.320227,
+        "minor_faults": 69646
+      },
+      "merkle_commit": {
+        "seconds": 0.137301,
+        "process_system_seconds": 0.173861,
+        "minor_faults": 65926
+      },
+      "draw_random_coeff": {
+        "seconds": 1.7e-05,
+        "process_system_seconds": 7e-06,
+        "minor_faults": 0
+      },
+      "composition_trace_extract": {
+        "seconds": 2.7e-05,
+        "process_system_seconds": 1.3e-05,
+        "minor_faults": 5
+      },
+      "composition_evaluation": {
+        "seconds": 2.559933,
+        "process_system_seconds": 0.187917,
+        "minor_faults": 209492
+      },
+      "composition_interpolate_and_split": {
+        "seconds": 0.175594,
+        "process_system_seconds": 0.004505,
+        "minor_faults": 9216
+      },
+      "composition_commit": {
+        "seconds": 0.11256,
+        "process_system_seconds": 0.115098,
+        "minor_faults": 65545
+      },
+      "oods_point_and_mask_points": {
+        "seconds": 0.000126,
+        "process_system_seconds": 6.2e-05,
+        "minor_faults": 18
+      },
+      "sampled_value_evaluation": {
+        "seconds": 0.133908,
+        "process_system_seconds": 0.012626,
+        "minor_faults": 53
+      },
+      "sampled_value_channel_mix": {
+        "seconds": 0.000167,
+        "process_system_seconds": 1.7e-05,
+        "minor_faults": 3
+      },
+      "fri_quotient_build_and_commit": {
+        "seconds": 1.68394,
+        "process_system_seconds": 0.399549,
+        "minor_faults": 146966
+      },
+      "proof_of_work": {
+        "seconds": 0.114385,
+        "process_system_seconds": 0.003478,
+        "minor_faults": 36
+      },
+      "fri_decommit": {
+        "seconds": 0.306594,
+        "process_system_seconds": 0.005255,
+        "minor_faults": 85
+      },
+      "trace_decommit": {
+        "seconds": 0.331621,
+        "process_system_seconds": 0.004494,
+        "minor_faults": 200
+      },
+      "constraint_check_and_assembly": {
+        "seconds": 0.002194,
+        "process_system_seconds": 6.6e-05,
+        "minor_faults": 3
+      }
+    }
+  },
+  "artifacts": {
+    "cpu-0.bin": {
+      "sha256": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+      "identical": true
+    },
+    "stage-one.bin": {
+      "sha256": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+      "identical": true
+    },
+    "bundle.json": {
+      "sha256": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+      "identical": true
+    },
+    "cells.bin": {
+      "sha256": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30",
+      "identical": true
+    }
+  },
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 1,
+    "truth_proofs": 0,
+    "load_and_setup_ns": 923425667,
+    "verify_ns": 412215875
+  },
+  "limitations": [
+    "Single matched probe on shared host; no repeated ABBA or isolated-host precision claim",
+    "4GiBcache trades~2.30GBhigher measuredRSS for fewer faults; allocatorcache is separate from represented frontend admission",
+    "Process wall includes teardown; report total is before teardown, so reportedtotal gain overstates end-to-endwallgain",
+    "Stage process usage includes all threads and overlapping scopes; do not sum nested stage system/fault counts",
+    "No crypto/protocol/pool/guestchange and no wholeprotocol128security claim"
+  ]
+}

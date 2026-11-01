@@ -44,7 +44,7 @@ fn config() !Worker.PcsConfig {
     return value;
 }
 pub fn main() !void {
-    var recycler = Recycler.init(std.heap.smp_allocator, 1 << 30);
+    var recycler = Recycler.init(std.heap.smp_allocator, 4 << 30);
     defer recycler.deinit();
     const a = recycler.allocator();
     const args = try std.process.argsAlloc(a);
