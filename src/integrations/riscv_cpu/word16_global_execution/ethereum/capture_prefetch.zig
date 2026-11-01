@@ -111,6 +111,7 @@ pub fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Prog
         }
         native.deinit(a);
     }
+    var stats = Capture.ScheduleStats{ .decoded_packet_heap_limit_bytes = options.packet_heap_bytes };
     var total: u64 = 0;
     var pc = image.initial_pc;
     var regs = image.initial_registers;
@@ -134,7 +135,13 @@ pub fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Prog
         defer window.deinit();
         // Existing pool only, nonblocking lease, cooperative/held fallback.
         // forEachRange joins every submission before any slot is consumed.
-        _ = engine.lookups.row_work.forEachRange(count, &window, .{ .max_shards = 2, .min_rows_per_shard = 1 });
+        const shards = engine.lookups.row_work.forEachRange(count, &window, .{ .max_shards = 2, .min_rows_per_shard = 1 });
+        stats.max_inflight_packets = @max(stats.max_inflight_packets, @as(u8, @intCast(count)));
+        stats.max_worker_shards = @max(stats.max_worker_shards, @as(u8, @intCast(shards)));
+        stats.max_reserved_decoded_packet_heap_bytes = @max(stats.max_reserved_decoded_packet_heap_bytes, count * options.packet_heap_bytes);
+        for (window.slots[0..count]) |slot| if (slot.budget) |owner| {
+            stats.max_single_packet_decoded_heap_bytes = @max(stats.max_single_packet_decoded_heap_bytes, owner.snapshot().peak_live_bytes);
+        };
         for (window.slots[0..count], index..) |*slot, packet_index| {
             if (slot.read_error) |err| return err;
             const p = &slot.packet.?;
@@ -155,7 +162,7 @@ pub fn run(a: std.mem.Allocator, image: *const Image.Owner, program: *const Prog
             if (done) {
                 var advice = try collector.finish();
                 errdefer advice.deinit();
-                return .{ .allocator = a, .native = native, .advice = advice, .total_steps = total, .final_pc = pc, .final_registers = regs };
+                return .{ .capture_schedule = stats, .allocator = a, .native = native, .advice = advice, .total_steps = total, .final_pc = pc, .final_registers = regs };
             }
             if (p.tape.len != config.batch_steps) return error.IncompleteEthereumPacketChain;
             // Free this packet promptly; its Native has copied its metadata.

@@ -57,3 +57,40 @@ promotion, run real full-block A/B and require all resulting physical proof,
 bundle and RAM cell artifacts byte-identical plus a fresh independently pinned
 receiver. Record capture wall time and total wall time separately, on the same
 host load. No speedup or GPU qualification is inferred from the scheduling code.
+
+## Experimental CLI selection and diagnostics
+
+Both `produce-control` and `produce-candidate` accept the same operational
+nested `capture_options` object in their resource JSON. Omission retains serial
+capture and the historical serialized resource shape. A two-slot example is:
+
+```json
+"capture_options": {
+  "max_inflight_packets": 2,
+  "packet_heap_bytes": 536870912,
+  "max_inflight_packet_heap_bytes": 1073741824,
+  "max_inflight_wire_bytes": 1073741824
+}
+```
+
+These numeric fields cannot select a proof, transcript or security profile.
+They are read only by the producer. Invalid counts/caps or unknown fields are
+rejected. `capture_selection` in producer reports records actual maximum slots
+and leased worker shards, decoded-heap cap, maximum potential slot reservation,
+and the largest single packet's observed decoded-heap allocation peak. It is
+not a process or Native peak measurement.
+
+`rv64-word16-ethereum-gkr capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON`
+imports packets without constructing fixed keys or proving. It reports
+`packet_import_ns` separately from image loading and canonical digest time.
+The domain-separated SHA-256 diagnostic binds the independently derived image
+request identity (which includes program/input/policy/immutable-key/terminal
+and relevant request semantics), ordered native program identities, CPU
+coverage/metadata/range counts, family facts and multiplicities, existing JALR
+witnesses, and ordered RAM/service advice and boundaries. Fields and lengths
+are encoded explicitly; allocation addresses, spare capacity and padding are
+excluded. No witness/table is reconstructed merely for hashing. Scheduler
+selection is deliberately excluded so serial and parallel runs can agree.
+This digest is producer comparison evidence, never an execution acceptance
+claim. A digest match does not replace the full physical-artifact and fresh
+receiver qualification gate.
