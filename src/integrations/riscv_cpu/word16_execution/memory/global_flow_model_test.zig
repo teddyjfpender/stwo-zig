@@ -83,7 +83,7 @@ test "global RAM reference rejects double genesis, wrong rights and unauthorized
     try std.testing.expectError(error.UnauthorizedMemoryWrite, M.audit(&readonly, &readonly_terminal, &readonly_events, 2));
     changed = events;
     changed[1].rights = 1;
-    try std.testing.expectError(error.UnauthorizedMemoryWrite, M.audit(&initial, &terminal, &changed, 2));
+    try std.testing.expectError(error.MemoryPolicyMismatch, M.audit(&initial, &terminal, &changed, 2));
 }
 
 test "global RAM reference rejects invalid epoch and missing terminal information" {
