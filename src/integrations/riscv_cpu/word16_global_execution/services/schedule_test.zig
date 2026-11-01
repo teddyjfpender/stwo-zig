@@ -206,3 +206,96 @@ test "Single lane and single-item schedules enforce their own worker budget and 
     try std.testing.expectEqual(@as(u8, 2), trace[0].workers);
     try std.testing.expectEqual(&outer, Pool.currentScopedPool().?);
 }
+
+const OrderedProbe = struct {
+    tickets: std.atomic.Value(usize) = .init(0),
+    active: std.atomic.Value(usize) = .init(0),
+    seen: [7]usize = undefined,
+    runs: [7]std.atomic.Value(u32) = @splat(.init(0)),
+    fail_index: ?usize = null,
+    fn execute(self: *@This(), index: usize) !void {
+        _ = self.active.fetchAdd(1, .acq_rel);
+        defer _ = self.active.fetchSub(1, .acq_rel);
+        const ticket = self.tickets.fetchAdd(1, .acq_rel);
+        self.seen[ticket] = index;
+        if (self.runs[index].fetchAdd(1, .acq_rel) != 0) return error.DuplicateOrderedWork;
+        if (self.fail_index == index) return error.SyntheticOrderedFailure;
+    }
+};
+test "Ordered service dispatch preserves ordinal estimates traces cancellation and validation atomicity" {
+    const order = [_]usize{ 4, 6, 5, 0, 1, 2, 3 };
+    var pool: Pool.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1, .stack_size = 1024 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    var binding = try Pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var serial = OrderedProbe{};
+    try Schedule.runWithOptions(OrderedProbe, a, &serial, 7, .{ .lanes = 1, .workers_per_lane = 1 }, .{ .order = &order }, OrderedProbe.execute);
+    try std.testing.expectEqualSlices(usize, &order, &serial.seen);
+    var parallel = OrderedProbe{};
+    var trace: [7]Schedule.Trace = @splat(.{});
+    const estimates = [_]u64{ 1, 2, 3, 4, 5, 6, 7 };
+    try Schedule.runWithOptions(OrderedProbe, a, &parallel, 7, .{ .lanes = 2, .workers_per_lane = 1, .memory_cap_bytes = 7 }, .{ .order = &order, .estimates = &estimates, .trace = &trace }, OrderedProbe.execute);
+    for (&parallel.runs, trace, estimates) |*n, row, estimate| {
+        try std.testing.expectEqual(@as(u32, 1), n.load(.acquire));
+        try std.testing.expectEqual(estimate, row.estimate_bytes);
+        try std.testing.expect(row.in_flight_bytes_at_start <= 7);
+    }
+    var unused = OrderedProbe{};
+    for ([_][]const usize{ &.{ 0, 1, 2, 3, 4, 5 }, &.{ 0, 1, 2, 3, 4, 5, 5 }, &.{ 0, 1, 2, 3, 4, 5, 7 } }) |bad| {
+        try std.testing.expectError(error.InvalidServiceDispatchOrder, Schedule.runWithOptions(OrderedProbe, a, &unused, 7, .{ .lanes = 2, .workers_per_lane = 1 }, .{ .order = bad }, OrderedProbe.execute));
+    }
+    var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    try std.testing.expectError(error.OutOfMemory, Schedule.runWithOptions(OrderedProbe, failing.allocator(), &unused, 7, .{ .lanes = 2, .workers_per_lane = 1 }, .{ .order = &order }, OrderedProbe.execute));
+    try std.testing.expectEqual(@as(usize, 0), unused.tickets.load(.acquire));
+    var stopped = OrderedProbe{ .fail_index = 4 };
+    try std.testing.expectError(error.SyntheticOrderedFailure, Schedule.runWithOptions(OrderedProbe, a, &stopped, 7, .{ .lanes = 2, .workers_per_lane = 1 }, .{ .order = &order }, OrderedProbe.execute));
+    try std.testing.expectEqual(@as(usize, 0), stopped.active.load(.acquire));
+}
+test "Truths-first permutation sorts declared truth cells with stable ordinal ties then CPUs" {
+    const Pipeline = @import("pipeline.zig");
+    var c = try F.Case.init(a);
+    defer c.deinit();
+    const truths = c.truths();
+    const order = try Pipeline.dispatchOrder(a, 2, &truths);
+    defer a.free(order);
+    try Schedule.validateOrder(a, 5, order);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1 }, order[3..]);
+    var previous: u64 = std.math.maxInt(u64);
+    for (order[0..3]) |slot| {
+        try std.testing.expect(slot >= 2);
+        var cells: u64 = 0;
+        for ([_]usize{ 1, 2 }) |tree| {
+            const logs = try truths[slot - 2].logs(a, tree);
+            defer a.free(logs);
+            for (logs) |log| cells += @as(u64, 1) << @intCast(log);
+        }
+        try std.testing.expect(cells <= previous);
+        previous = cells;
+    }
+    const ties = try Pipeline.dispatchOrder(a, 2, &.{ truths[1], truths[1] });
+    defer a.free(ties);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 3, 0, 1 }, ties);
+    const absent = try Pipeline.dispatchOrder(a, 2, &.{});
+    defer a.free(absent);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1 }, absent);
+}
+test "Truths-first ordered current services preserve complete proofs claims manifest requests and fresh verification" {
+    var expected = try F.Case.init(a);
+    defer expected.deinit();
+    var captured = try F.Captured.init(a);
+    defer captured.deinit();
+    var candidate = try E.produceWithOptions(a, &expected.keys(), &expected.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected.expected(), .{ .truths_first = true, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 1 }, .consume_memory_events = true });
+    defer candidate.deinit(a);
+    try E.verify(a, &expected.keys(), &expected.truths(), expected.expected(), &candidate);
+    try std.testing.expectEqualDeep(expected.bundle.manifest.digest, candidate.manifest.digest);
+    for (expected.bundle.cpus, candidate.cpus) |x, y| {
+        try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+        try std.testing.expectEqualDeep(x.claims, y.claims);
+        try std.testing.expectEqualDeep(x.request, y.request);
+    }
+    for (expected.bundle.truths, candidate.truths) |x, y| {
+        try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+        try std.testing.expectEqualDeep(x.claims, y.claims);
+    }
+}

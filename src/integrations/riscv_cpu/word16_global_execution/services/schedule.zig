@@ -63,7 +63,22 @@ pub const Trace = struct {
     /// Estimated in-flight bytes including this index at admission.
     in_flight_bytes_at_start: u64 = 0,
 };
+/// Validate before launching any callback, with linear work and bounded metadata.
+pub fn validateOrder(a: std.mem.Allocator, count: usize, order: []const usize) !void {
+    if (order.len == 0) return;
+    if (order.len != count) return error.InvalidServiceDispatchOrder;
+    const seen = try a.alloc(bool, count);
+    defer a.free(seen);
+    @memset(seen, false);
+    for (order) |index| {
+        if (index >= count or seen[index]) return error.InvalidServiceDispatchOrder;
+        seen[index] = true;
+    }
+}
 pub const RunOptions = struct {
+    /// Optional permutation of dispatch slots. Estimates, errors and traces
+    /// stay indexed by the original proof ordinal. Empty preserves manifest order.
+    order: []const usize = &.{},
     /// Empty, or one estimate per index (required when the cap is enabled).
     estimates: []const u64 = &.{},
     /// Empty, or one slot per index.
@@ -90,6 +105,7 @@ fn laneThreads(pool: ?*Pool.WorkPool, storage: []std.Thread.Handle) Usage.LaneTh
 }
 pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, policy: Policy, options: RunOptions, comptime execute: fn (*Context, usize) anyerror!void) !void {
     try policy.validate();
+    try validateOrder(a, count, options.order);
     if (options.estimates.len != 0 and options.estimates.len != count) return error.InvalidServiceSchedule;
     if (options.trace.len != 0 and options.trace.len != count) return error.InvalidServiceSchedule;
     if (policy.memory_cap_bytes != 0 and options.estimates.len != count) return error.MissingServiceMemoryEstimates;
@@ -104,7 +120,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         const lane = laneThreads(Pool.currentScopedPool(), &storage);
         const previous = Usage.bindLane(&lane);
         defer _ = Usage.bindLane(previous);
-        for (0..count) |index| {
+        for (0..count) |slot| {
+            const index = if (options.order.len == 0) slot else options.order[slot];
             const start = elapsed(origin);
             const estimate = if (options.estimates.len != 0) options.estimates[index] else 0;
             try execute(context, index);
@@ -170,8 +187,9 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const previous = Usage.bindLane(&threads);
             defer _ = Usage.bindLane(previous);
             while (!self.stop.load(.acquire)) {
-                const index = self.next.fetchAdd(1, .monotonic);
-                if (index >= self.count) return;
+                const slot = self.next.fetchAdd(1, .monotonic);
+                if (slot >= self.count) return;
+                const index = if (self.options.order.len == 0) slot else self.options.order[slot];
                 const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
                 const in_flight = self.admit(estimate) orelse return;

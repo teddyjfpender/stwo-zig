@@ -104,7 +104,7 @@ pub fn main() !void {
     defer observations.deinit();
     const schedule = try operational.schedule(try Request.effectiveWorkers(config.value));
     const prove_start = timer.read();
-    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .schedule = schedule, .commit_batch_columns = operational.batch, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
+    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .schedule = schedule, .truths_first = operational.truths_first, .commit_batch_columns = operational.batch, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const verify_start = timer.read();

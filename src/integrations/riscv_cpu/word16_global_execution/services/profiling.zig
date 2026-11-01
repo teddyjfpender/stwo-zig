@@ -7,6 +7,8 @@ const G = @import("../protocol.zig");
 pub const Options = struct {
     commit_batch_columns: u32 = 64,
     schedule: @import("schedule.zig").Policy = .{},
+    /// Producer dispatch only; no proof identity or admission policy changes.
+    truths_first: bool = false,
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,

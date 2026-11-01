@@ -95,6 +95,35 @@ const Stage2 = struct {
         self.results[ordinal] = try worker.complete(self.allocator, self.manifest, self.options, ordinal);
     }
 };
+/// Static cost key for a truth worker: declared MAIN plus INTERACTION cells.
+fn truthCells(a: std.mem.Allocator, truth: R.Truth) !u64 {
+    var cells: u64 = 0;
+    for ([_]usize{ 1, 2 }) |tree| {
+        const logs = try truth.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |log| cells += @as(u64, 1) << @intCast(log);
+    }
+    return cells;
+}
+/// Permutation of slots [0, cpus + truths.len) giving each phase's dispatch
+/// order. Slot indices themselves (CPU first, then truths) are unchanged.
+pub fn dispatchOrder(a: std.mem.Allocator, cpus: usize, truths: []const R.Truth) ![]usize {
+    const count = cpus + truths.len;
+    const order = try a.alloc(usize, count);
+    errdefer a.free(order);
+    const Keyed = struct { cells: u64, slot: usize };
+    const keyed = try a.alloc(Keyed, truths.len);
+    defer a.free(keyed);
+    for (keyed, truths, 0..) |*k, truth, i| k.* = .{ .cells = try truthCells(a, truth), .slot = cpus + i };
+    std.sort.pdq(Keyed, keyed, {}, struct {
+        fn lessThan(_: void, x: Keyed, y: Keyed) bool {
+            return if (x.cells != y.cells) x.cells > y.cells else x.slot < y.slot;
+        }
+    }.lessThan);
+    for (order[0..truths.len], keyed) |*slot, k| slot.* = k.slot;
+    for (order[truths.len..], 0..) |*slot, i| slot.* = i;
+    return order;
+}
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
@@ -112,6 +141,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     }
     _ = try P.admit(a, setups, truths, requests, expected);
     const count = setups.len + truths.len;
+    const order: []const usize = if (options.truths_first) try dispatchOrder(a, setups.len, truths) else &.{};
+    defer a.free(order);
     const workers = try a.alloc(?W.Worker, count);
     defer a.free(workers);
     @memset(workers, null);
@@ -127,11 +158,11 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     defer a.free(traces);
     @memset(traces, .{});
     const run_options = struct {
-        fn of(e: []const u64, t: []Schedule.Trace, phase: usize, n: usize) Schedule.RunOptions {
-            return .{ .estimates = e, .trace = if (t.len == 0) &.{} else t[phase * n .. (phase + 1) * n] };
+        fn of(e: []const u64, t: []Schedule.Trace, phase: usize, n: usize, o: []const usize) Schedule.RunOptions {
+            return .{ .order = o, .estimates = e, .trace = if (t.len == 0) &.{} else t[phase * n .. (phase + 1) * n] };
         }
     }.of;
-    try Schedule.runWithOptions(Stage1, a, &stage1, count, options.schedule, run_options(estimates, traces, 0, count), Stage1.execute);
+    try Schedule.runWithOptions(Stage1, a, &stage1, count, options.schedule, run_options(estimates, traces, 0, count, order), Stage1.execute);
     // The only manifest/challenge barrier. No stage2 task exists before join.
     for (workers) |worker| if (worker == null) return error.MissingSealedServiceWorker;
     var manifest = try G.Manifest.init(a, specs, roots);
@@ -141,7 +172,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*result| result.deinit(a);
     var stage2 = Stage2{ .allocator = a, .workers = workers, .manifest = &manifest, .options = options, .results = results };
-    try Schedule.runWithOptions(Stage2, a, &stage2, count, options.schedule, run_options(estimates, traces, 1, count), Stage2.execute);
+    try Schedule.runWithOptions(Stage2, a, &stage2, count, options.schedule, run_options(estimates, traces, 1, count, order), Stage2.execute);
     if (options.directory) |dir| try writeTrace(a, dir, options.schedule, traces, count);
     for (results) |result| if (result == null) return error.MissingCompletedServiceWorker;
     const cpus = try a.alloc(Statement.CpuEncoded, setups.len);
