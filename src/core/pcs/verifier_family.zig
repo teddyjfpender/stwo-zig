@@ -372,7 +372,7 @@ pub fn ForField(comptime Secure: type) type {
                                 &trace_paths.?[i],
                             ) catch |err| {
                                 if (err != error.OutOfMemory)
-                                    std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
+                                    std.log.debug("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
                                 return err;
                             };
                             trace_paths_initialized += 1;
@@ -387,7 +387,7 @@ pub fn ForField(comptime Secure: type) type {
                                 proof.decommitments.items[i],
                             ) catch |err| {
                                 if (err != error.OutOfMemory)
-                                    std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
+                                    std.log.debug("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
                                 return err;
                             };
                         }
