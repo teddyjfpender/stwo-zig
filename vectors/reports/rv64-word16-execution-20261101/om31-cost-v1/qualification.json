@@ -1,0 +1,40 @@
+{
+  "schema": "om31-additive-qualification-v1",
+  "base_commit": "9ded605ae",
+  "production_profile_changed": false,
+  "whole_protocol_128_qualified": false,
+  "gpu_qualified": false,
+  "field": "QM31[v]/(v^2-u), u^2=2+i",
+  "norm_u_to_m31": 5,
+  "independent_oracle": "Schoolbook M31[v]/(v^8-4v^4+5), including inverse exponentiation",
+  "native_pack_rows": 4,
+  "explicit_group_rows": 16,
+  "tests": {
+    "ReleaseSafe": "27 passed including inherited field tests",
+    "ReleaseFast": "27 passed including inherited field tests",
+    "existing_core_m31_surface": "test-stwo-core-m31 ReleaseSafe passed, including recursive public-declaration checks"
+  },
+  "measurements": "3 isolated single-thread runs, shared heavy lock, fixed Q then OM ordering; no whole-prover speedup claim",
+  "median_ns": {
+    "scalar_recurrence_ns": {
+      "qm31": 1135062,
+      "om31": 2273333
+    },
+    "packed_constant_secure_coefficient_times_base_ns": {
+      "qm31": 34732,
+      "om31": 68989
+    },
+    "scaled_batch_inverse_ns": {
+      "qm31_optimized_owned": 289281,
+      "om31_bounded_norm_scratch": 2089541
+    }
+  },
+  "batch_inversion_limitation": "Scalar OM norm/cofactor phases and100 active bytes/element vs36 for optimized owned Q control;7.22x is current implementation, not inherent wider-field penalty",
+  "repetition_security": "Independent adaptive FS proofs do not automatically amplify computational workfactor; lockstep/sharedMAIN requires applicable theorem",
+  "open_gates": [
+    "All weak algebraic terms must migrate, not GKR-only",
+    "Concrete FRI/ROM/hash and outer recursion128 construction",
+    "Full native/circuit sampler retry parity; nonretry guard only intermediate",
+    "Whole-prover and equally secure recursion comparison"
+  ]
+}

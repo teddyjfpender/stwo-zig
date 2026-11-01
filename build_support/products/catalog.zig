@@ -13,6 +13,8 @@ pub const Configure = types.Configure;
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
 pub const steps = [_]Step{
+    .{ .name = "test-stwo-core-om31", .description = "Qualify additive degree8 arithmetic and irreducibility", .scope = .core },
+    .{ .name = "rv64-om31-cost", .description = "Measure additive wider-field primitives and actual circuit graph", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-security-policy", .description = "Fail closed on unqualified whole-protocol security claims", .scope = .riscv_cpu },
     .{ .name = "rv64-logup-gkr-prototype", .description = "Build isolated experimental LS-range LogUp-GKR prover and receiver", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-logup-gkr-prototype", .description = "Qualify experimental committed-column GKR binding and adversarial cases", .scope = .riscv_cpu },
