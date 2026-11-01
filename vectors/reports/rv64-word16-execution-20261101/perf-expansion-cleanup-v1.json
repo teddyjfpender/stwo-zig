@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "rv64-perf-expansion-cleanup-v1",
+  "source_base": "87df8e6a5",
+  "branch": "codex/rv64-perf-expansion-cleanup",
+  "branch_commit": "fb09b87ac541ecb559c6a174f84ecb7cf46f2e4c",
+  "change": "Composition-time column expansion via providers/domain_transform: extension FFT for 2x blowup (no memset of zero upper half, degenerate first layer skipped), per-worker coefficient copy, immutable process-wide twiddle cache served by suffix.",
+  "workload": "prefix4: rv64-word16-ethereum produce /tmp/stwo-rv64-ethereum-round5-native-jobs-v1 with 4 CPU proofs + 3 truth proofs (only 3 truth proofs; the full run has more and is not measured here)",
+  "binaries": {
+    "A_baseline": "/private/tmp/stwo-rv64-perf-baseline/zig-out/bin/rv64-word16-ethereum",
+    "B_branch": "/private/tmp/stwo-rv64-perf-expansion-cleanup/zig-out/bin/rv64-word16-ethereum"
+  },
+  "method": "ABBA (A1,B1,B2,A2), sequential, each run wrapped in lockf -k /private/tmp/stwo-rv64-perf-heavy.lock /usr/bin/time -l, ReleaseFast, fresh output dirs /private/tmp/stwo-rv64-perf-runs/expansion-cleanup-abba-<label>",
+  "runs": [
+    {"label": "A1", "binary": "baseline", "wall_s": 24.24, "user_s": 167.01, "sys_s": 9.93, "peak_footprint_bytes": 17163111768, "max_rss_bytes": 23388291072, "composition_evaluation_sum_s": 8.4194, "byte_identical_to_baseline": true},
+    {"label": "B1", "binary": "branch", "wall_s": 25.84, "user_s": 181.11, "sys_s": 10.80, "peak_footprint_bytes": 17603512944, "max_rss_bytes": 23829348352, "composition_evaluation_sum_s": 8.5770, "byte_identical_to_baseline": true},
+    {"label": "B2", "binary": "branch", "wall_s": 26.18, "user_s": 184.42, "sys_s": 10.43, "peak_footprint_bytes": 17631153256, "max_rss_bytes": 23856545792, "composition_evaluation_sum_s": 8.7135, "byte_identical_to_baseline": true},
+    {"label": "A2", "binary": "baseline", "wall_s": 25.56, "user_s": 179.09, "sys_s": 9.77, "peak_footprint_bytes": 17166896304, "max_rss_bytes": 23392206848, "composition_evaluation_sum_s": 9.0788, "byte_identical_to_baseline": true}
+  ],
+  "byte_identity": {
+    "reference": "/private/tmp/stwo-rv64-perf-runs/baseline-prefix4.sha256",
+    "files": ["cpu-0.bin", "cpu-1.bin", "cpu-2.bin", "cpu-3.bin", "truth-0.bin", "truth-1.bin", "truth-2.bin", "bundle.json", "cells.bin"],
+    "all_runs_identical": true
+  },
+  "means": {
+    "A_wall_s": 24.90, "B_wall_s": 26.01, "wall_delta_s": 1.11,
+    "A_user_s": 173.05, "B_user_s": 182.77,
+    "A_peak_footprint_gb": 17.165, "B_peak_footprint_gb": 17.617, "peak_footprint_delta_gb": 0.452
+  },
+  "stage_deltas": {
+    "stage": "composition_evaluation (top-level, summed over physical-0000..0006.stages.json)",
+    "A_sum_s": [8.4194, 9.0788], "A_mean_s": 8.749,
+    "B_sum_s": [8.5770, 8.7135], "B_mean_s": 8.645,
+    "delta_s": -0.104
+  },
+  "noise": "A1 and A2 differ by 5.4% wall (24.24 vs 25.56 s), above the 5% threshold; the machine may be shared with other user jobs, so a ~1 s wall difference is within observed noise.",
+  "conclusion": "Bit-identical outputs in both branch runs. No measurable wall gain on prefix4: branch mean wall is 1.11 s higher than baseline mean (within run-to-run noise, A1/A2 spread 1.32 s), and the targeted composition_evaluation stage summed over 7 proofs moves by only -0.10 s (~1%), far below the 4-6 s estimate. Peak footprint rises ~0.45 GB, plausibly the process-wide twiddle cache. The expansion is not the composition-evaluation bottleneck at this scale; prefix4 contains only 3 truth proofs, so a full-run effect is unmeasured but unlikely to reach the estimate."
+}
