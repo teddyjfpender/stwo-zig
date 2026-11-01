@@ -36,11 +36,19 @@ pub const CpuClaims = struct {
     }
     pub fn mix(self: @This(), channel: anytype, setup: *const R.CpuSetup) void {
         const all = self.values();
-        channel.mixFelts(all[0..P.CPU_CLAIM_COUNT]);
+        // ONE mixFelts call over the v2 vector followed by the claims of each
+        // present v3 family in T.V3 order (a channel mix is not
+        // concatenation-invariant, so splitting it would change SHA-only
+        // transcripts relative to the pre-arith encoding).
+        var buffer: [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q = undefined;
+        @memcpy(buffer[0..P.CPU_CLAIM_COUNT], all[0..P.CPU_CLAIM_COUNT]);
+        var n: usize = P.CPU_CLAIM_COUNT;
         for (T.V3) |f| if (setup.bridges.at(f) != null) {
             const k = @intFromEnum(f);
-            channel.mixFelts(all[P.CORE_CLAIM_COUNT + 5 * k ..][0..5]);
+            @memcpy(buffer[n..][0..5], all[P.CORE_CLAIM_COUNT + 5 * k ..][0..5]);
+            n += 5;
         };
+        channel.mixFelts(buffer[0..n]);
         // Bulk block last and only when present: v2, SHA-only and
         // arith-only transcripts are unchanged.
         if (setup.bridges.bulk.any()) channel.mixFelts(&self.bulkValues());
