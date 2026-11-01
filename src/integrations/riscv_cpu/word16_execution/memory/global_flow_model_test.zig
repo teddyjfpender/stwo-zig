@@ -62,7 +62,7 @@ test "global RAM reference rejects stale predecessor, wrong terminal, orphan and
     @memcpy(with_orphan[0..4], &events);
     with_orphan[4] = events[2];
     with_orphan[4].previous_tick = 5;
-    with_orphan[4].tick = 3;
+    with_orphan[4].tick = 6;
     try std.testing.expectError(error.UnreachableMemoryEvent, M.audit(&initial, &terminal, &with_orphan, 2));
 }
 
