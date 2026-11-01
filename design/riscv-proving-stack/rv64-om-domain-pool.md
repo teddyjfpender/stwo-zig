@@ -26,3 +26,14 @@ Safe/Fast actual K and ADD/DOUBLE CPU shard proofs preserve scalar-versus-pooled
 artifact hashes, physical claim vectors and fresh verification. These fixture
 gates do not establish a full-prefix speedup. The next required gate is the
 same4.19M-row request/configuration measured before and after this change.
+
+The additive prepared projection uses distributivity only:
+`w*(offset - sum(c[i]*tuple[i])) = w*offset - sum((w*c[i])*tuple[i])`.
+It computes the public challenge products once per role and keeps only their
+packed constants. Domain rows use secure-by-base products; the native OODS
+constraint authority remains the original projection. Padded N=0,D=1 lanes
+contribute the same precomputed weight sum. Each row still validates relation
+order and arity. This adds a checked1MiB constant-cache cap, removes duplicated
+per-job lane-weight arrays and changes no witness column, transcript or degree.
+Randomized native-OODS and packed-row comparisons cover all relation namespaces,
+with complete physical fresh-proof and owner-allocation-failure gates.
