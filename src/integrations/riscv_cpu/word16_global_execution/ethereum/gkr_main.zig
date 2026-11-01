@@ -122,15 +122,17 @@ pub fn main() !void {
     var store = try Store.initFullyParked(args[4], operational.disk_bytes);
     defer store.deinit();
     const setup_ns = timer.read() - capture_ns;
+    const worker_timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
+    defer a.free(worker_timings);
     const prove_start = timer.read();
-    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = 32, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = &store, .schedule = operational.schedule });
+    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = 32, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = &store, .worker_timings = worker_timings, .schedule = operational.schedule });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const verify_start = timer.read();
     const output = try Receiver.verify(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, try config());
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = PROFILE, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = PROFILE, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {

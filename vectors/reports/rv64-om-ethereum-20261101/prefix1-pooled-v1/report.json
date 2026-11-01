@@ -1,0 +1,62 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "completed_ethereum_block": false,
+  "total_steps": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "output": null,
+  "resources": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 17179869184,
+    "disk_bytes": 137438953472,
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 8,
+      "lane_workers": [
+        8
+      ],
+      "memory_cap_bytes": 51539607552
+    }
+  },
+  "capture_ns": 1273057042,
+  "capture_cache_released_bytes": 984219648,
+  "setup_ns": 686658708,
+  "prove_ns": 106309248333,
+  "same_process_verify_ns": 561084000,
+  "workers": [
+    {
+      "source_ns": 582688875,
+      "seal_native_and_gkr_ns": 34509205375,
+      "main_commit_ns": 1896487791,
+      "gkr_ns": 32507807625,
+      "metadata_retire_ns": 4371750,
+      "spill_ns": 2462611625,
+      "restore_ns": 2324498375,
+      "native_complete_ns": 66299394250,
+      "stage1_ns": 37558877667,
+      "stage2_ns": 68623892708,
+      "actual_main_merkle_bytes": 33554400,
+      "stage1_completed": true,
+      "stage2_completed": true
+    }
+  ],
+  "total_before_report_ns": 108854674667,
+  "retained_main": {
+    "live_bytes": 0,
+    "peak_reserved_bytes": 1685635072,
+    "total_bytes": 1685635072,
+    "limit_bytes": 137438953472,
+    "live_mapped_bytes": 0,
+    "peak_mapped_bytes": 1685635072,
+    "parking_enabled": true,
+    "merkle_parking_enabled": true,
+    "parked_merkle_bytes": 0,
+    "prefetch_calls": 0,
+    "prefetch_requested_bytes": 0,
+    "prefetch_advised_bytes": 0,
+    "prefetch_failed_calls": 0,
+    "prefetch_unsupported_calls": 0
+  }
+}
