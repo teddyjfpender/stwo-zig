@@ -171,6 +171,12 @@ uses only tokens with strictly smaller tau.
   U16 list). Independent anchor; unchanged.
 * **secp bridge after token.** after limbs are recomposed from U8-ranged bytes
   (`secp .../equations.zig:25`, `.../layout.zig:32-45`). Independent anchor.
+* **Keccak-sponge after tokens (v3).** State-word after limbs are recomposed
+  from the bytes of the IO11 output tuple the call row consumes; those equal
+  Keccak-f truth bit sums over Boolean bits, so they are independently
+  anchored. Packet and message accesses are reads (`after = before`, edge as
+  E3). Ticks are the ECALL's `4r+4` through OWNER and the run token. Full
+  case: [rv64-keccak-sponge-service.md](rv64-keccak-sponge-service.md) section 4.1.
 
 Every dependency edge strictly decreases tau:
 
