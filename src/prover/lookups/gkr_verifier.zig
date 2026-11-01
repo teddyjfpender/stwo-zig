@@ -1,7 +1,7 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
-const sumcheck = @import("sumcheck.zig");
+const sumcheck_module = @import("sumcheck.zig");
 const utils = @import("utils.zig");
 
 const M31 = m31.M31;
@@ -10,102 +10,15 @@ const QM31 = qm31.QM31;
 const kernel = @import("verifier_kernel.zig");
 pub const GkrError = kernel.GkrError;
 
-/// Values obtained from partial GKR verification.
-pub const GkrArtifact = kernel.Artifact(QM31);
+const sumcheck = sumcheck_module;
+pub const ForField = @import("gkr_verifier_field.zig").ForField;
 
-/// Stores two evaluations of each column in a GKR layer.
-pub const GkrMask = struct {
-    columns: [][2]QM31,
-
-    pub fn initOwned(columns: [][2]QM31) GkrMask {
-        return .{ .columns = columns };
-    }
-
-    pub fn cloneOwned(self: GkrMask, allocator: std.mem.Allocator) !GkrMask {
-        return .{ .columns = try allocator.dupe([2]QM31, self.columns) };
-    }
-
-    pub fn deinit(self: *GkrMask, allocator: std.mem.Allocator) void {
-        allocator.free(self.columns);
-        self.* = undefined;
-    }
-
-    pub fn columnsSlice(self: GkrMask) []const [2]QM31 {
-        return self.columns;
-    }
-
-    pub fn toRows(self: GkrMask, allocator: std.mem.Allocator) ![2][]QM31 {
-        var rows: [2][]QM31 = undefined;
-        rows[0] = try allocator.alloc(QM31, self.columns.len);
-        errdefer allocator.free(rows[0]);
-        rows[1] = try allocator.alloc(QM31, self.columns.len);
-        errdefer allocator.free(rows[1]);
-
-        for (self.columns, 0..) |column, i| {
-            rows[0][i] = column[0];
-            rows[1][i] = column[1];
-        }
-        return rows;
-    }
-
-    pub fn reduceAtPoint(self: GkrMask, allocator: std.mem.Allocator, x: QM31) ![]QM31 {
-        const out = try allocator.alloc(QM31, self.columns.len);
-        for (self.columns, 0..) |column, i| {
-            out[i] = utils.foldMleEvals(QM31, x, column[0], column[1]);
-        }
-        return out;
-    }
-};
-
-/// Batch GKR proof.
-pub const GkrBatchProof = struct {
-    sumcheck_proofs: []sumcheck.SumcheckProof,
-    layer_masks_by_instance: [][]GkrMask,
-    output_claims_by_instance: [][]QM31,
-
-    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
-        for (self.sumcheck_proofs) |*proof| proof.deinit(allocator);
-        allocator.free(self.sumcheck_proofs);
-
-        for (self.layer_masks_by_instance) |masks| {
-            for (masks) |*mask| mask.deinit(allocator);
-            allocator.free(masks);
-        }
-        allocator.free(self.layer_masks_by_instance);
-
-        for (self.output_claims_by_instance) |claims| allocator.free(claims);
-        allocator.free(self.output_claims_by_instance);
-
-        self.* = undefined;
-    }
-};
-
-/// Local gate relation used by GKR.
-pub const Gate = enum {
-    LogUp,
-    GrandProduct,
-
-    pub fn eval(
-        self: Gate,
-        allocator: std.mem.Allocator,
-        mask: *const GkrMask,
-    ) GkrError![]QM31 {
-        return kernel.evalGate(QM31, allocator, self, mask.columns);
-    }
-};
-
-/// Partially verifies a batch GKR proof.
-pub const NativeChecks = struct {
-    pub fn requireEq(_: NativeChecks, lhs: QM31, rhs: QM31, check: kernel.Check) GkrError!void {
-        if (!lhs.eql(rhs)) return switch (check) {
-            .sum => error.InvalidSumcheck,
-            .gate, .terminal => error.CircuitCheckFailure,
-        };
-    }
-};
-pub fn partiallyVerifyBatch(a: std.mem.Allocator, gates: []const Gate, proof: *const GkrBatchProof, channel: anytype) (std.mem.Allocator.Error || GkrError)!GkrArtifact {
-    return kernel.partiallyVerifyBatch(QM31, a, gates, proof, channel, NativeChecks{});
-}
+pub const GkrArtifact = ForField(QM31).GkrArtifact;
+pub const GkrMask = ForField(QM31).GkrMask;
+pub const GkrBatchProof = ForField(QM31).GkrBatchProof;
+pub const Gate = ForField(QM31).Gate;
+pub const NativeChecks = ForField(QM31).NativeChecks;
+pub const partiallyVerifyBatch = ForField(QM31).partiallyVerifyBatch;
 
 test "gkr verifier: mask reduce and gate eval" {
     const alloc = std.testing.allocator;

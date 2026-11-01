@@ -24,6 +24,10 @@ pub const MleError = error{
 /// - construction fails with `NotPowerOfTwo` on invalid length.
 /// - `evalAtPoint` fails with `PointDimensionMismatch` if point arity differs from `nVariables`.
 pub fn Mle(comptime F: type) type {
+    return MleFor(QM31, F);
+}
+
+pub fn MleFor(comptime Secure: type, comptime F: type) type {
     return struct {
         evals: []F,
         owns_evals: bool = true,
@@ -74,28 +78,28 @@ pub fn Mle(comptime F: type) type {
         pub fn fixFirstVariable(
             self: Self,
             allocator: std.mem.Allocator,
-            assignment: QM31,
-        ) !Mle(QM31) {
+            assignment: Secure,
+        ) !MleFor(Secure, Secure) {
             const half = self.evals.len / 2;
-            const out = try allocator.alloc(QM31, half);
+            const out = try allocator.alloc(Secure, half);
             for (0..half) |i| {
                 // Pass F directly so foldMleEvals can use the M31-specialized
                 // small-big multiply path when F=M31, avoiding premature
-                // promotion to QM31.
-                out[i] = lookup_utils.foldMleEvals(F, assignment, self.evals[i], self.evals[i + half]);
+                // promotion to Secure.
+                out[i] = lookup_utils.foldMleEvalsFor(Secure, F, assignment, self.evals[i], self.evals[i + half]);
             }
-            return try Mle(QM31).initOwned(out);
+            return try MleFor(Secure, Secure).initOwned(out);
         }
 
         /// Returns `f(x_0) = sum_{x_1..x_{n-1}} g(x_0, x_1, ..., x_{n-1})`.
         pub fn sumAsPolyInFirstVariable(
             self: Self,
             allocator: std.mem.Allocator,
-            claim: QM31,
-        ) !lookup_utils.UnivariatePoly(QM31) {
+            claim: Secure,
+        ) !lookup_utils.UnivariatePoly(Secure) {
             if (self.evals.len == 1) {
-                return lookup_utils.UnivariatePoly(QM31).initOwned(
-                    try allocator.dupe(QM31, &[_]QM31{asSecure(F, self.evals[0])}),
+                return lookup_utils.UnivariatePoly(Secure).initOwned(
+                    try allocator.dupe(Secure, &[_]Secure{asSecure(Secure, F, self.evals[0])}),
                 );
             }
 
@@ -109,43 +113,44 @@ pub fn Mle(comptime F: type) type {
                     for (self.evals[0..half]) |value| {
                         acc += @as(u64, value.v);
                     }
-                    break :blk QM31.fromBase(M31.fromU64(acc));
+                    break :blk Secure.fromBase(M31.fromU64(acc));
                 } else {
-                    var sum = QM31.zero();
+                    var sum = Secure.zero();
                     for (self.evals[0..half]) |value| {
-                        sum = sum.add(asSecure(F, value));
+                        sum = sum.add(asSecure(Secure, F, value));
                     }
                     break :blk sum;
                 }
             };
             const eval_at_1 = claim.sub(eval_at_0);
 
-            const coeffs = try allocator.alloc(QM31, 2);
+            const coeffs = try allocator.alloc(Secure, 2);
             coeffs[0] = eval_at_0;
             coeffs[1] = eval_at_1.sub(eval_at_0);
-            return lookup_utils.UnivariatePoly(QM31).initOwned(coeffs);
+            return lookup_utils.UnivariatePoly(Secure).initOwned(coeffs);
         }
 
         /// Evaluates the multilinear extension at `point`.
         pub fn evalAtPoint(
             self: Self,
             allocator: std.mem.Allocator,
-            point: []const QM31,
-        ) (std.mem.Allocator.Error || MleError)!QM31 {
+            point: []const Secure,
+        ) (std.mem.Allocator.Error || MleError)!Secure {
             if (point.len != self.nVariables()) return MleError.PointDimensionMismatch;
 
-            var buffer = try allocator.alloc(QM31, self.evals.len);
+            var buffer = try allocator.alloc(Secure, self.evals.len);
             defer allocator.free(buffer);
             for (self.evals, 0..) |value, i| {
-                buffer[i] = asSecure(F, value);
+                buffer[i] = asSecure(Secure, F, value);
             }
 
             var active_len = buffer.len;
             for (point) |assignment| {
                 const half = active_len / 2;
                 for (0..half) |i| {
-                    buffer[i] = lookup_utils.foldMleEvals(
-                        QM31,
+                    buffer[i] = lookup_utils.foldMleEvalsFor(
+                        Secure,
+                        Secure,
                         assignment,
                         buffer[i],
                         buffer[i + half],
@@ -158,10 +163,10 @@ pub fn Mle(comptime F: type) type {
     };
 }
 
-fn asSecure(comptime F: type, value: F) QM31 {
-    if (F == QM31) return value;
-    if (F == M31) return QM31.fromBase(value);
-    @compileError("Mle currently supports M31 and QM31 fields");
+fn asSecure(comptime Secure: type, comptime F: type, value: F) Secure {
+    if (F == Secure) return value;
+    if (F == M31) return Secure.fromBase(value);
+    @compileError("Mle currently supports M31 and Secure fields");
 }
 
 test "mle: init validates power-of-two length" {
