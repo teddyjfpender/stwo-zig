@@ -75,6 +75,7 @@ fn claimsResult(truth: R.Truth, claims: []const O) !Manifest.Claims {
     return .{ .ram = O.zero(), .kio = if (truth == .keccak) claims[3] else O.zero(), .wire = if (truth == .secp) claims[3].add(claims[4]) else O.zero() };
 }
 pub const TruthWorker = struct {
+    allocator: std.mem.Allocator,
     truth: R.Truth,
     source: R.TruthSource,
     expected: Manifest.ExpectedWorker,
@@ -92,12 +93,21 @@ pub const TruthWorker = struct {
         try admit(frames, global_budget);
         var scheme = try W.Scheme.init(a, config);
         scheme.setCompactPolynomialStorage(5);
-        return .{ .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = W.begin(config, expected) };
+        return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = W.begin(config, expected) };
     }
     pub fn deinit(self: *TruthWorker, a: std.mem.Allocator) void {
         if (self.owns_scheme) self.scheme.deinit(a);
         if (self.owns_source) self.source.deinit();
         self.* = undefined;
+    }
+    /// Host custody only. Store lifetime must cover this worker and its proof.
+    pub fn spillMain(self: *TruthWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
+        if (!self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
+        return store.spill(self.allocator, &self.scheme.trees.items[1]);
+    }
+    pub fn restoreMain(self: *TruthWorker, store: *@import("../../retained_main_store.zig").Store) !usize {
+        if (!self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
+        return store.restore(&self.scheme.trees.items[1]);
     }
     pub fn seal(self: *TruthWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;

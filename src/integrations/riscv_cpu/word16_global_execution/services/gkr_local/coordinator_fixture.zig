@@ -66,11 +66,14 @@ pub const Case = struct {
     keys: Keys,
     bundle: C.Bundle,
     pub fn init(a: std.mem.Allocator) !Case {
+        return initWithOptions(a, .{ .gkr_budget = 2 << 30 });
+    }
+    pub fn initWithOptions(a: std.mem.Allocator, options: C.Options) !Case {
         var captured = try F.Captured.init(a);
         defer captured.deinit();
         var keys = try Keys.init(a);
         errdefer keys.deinit();
-        const bundle = try C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, F.expectedFor(captured.program.identity), try config(), .{ .gkr_budget = 2 << 30 });
+        const bundle = try C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, F.expectedFor(captured.program.identity), try config(), options);
         return .{ .allocator = a, .keys = keys, .bundle = bundle };
     }
     pub fn deinit(self: *Case) void {

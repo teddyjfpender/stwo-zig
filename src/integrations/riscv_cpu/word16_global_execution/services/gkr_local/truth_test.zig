@@ -31,12 +31,15 @@ fn lift(comptime n: usize, values: [n]M) [n]O {
     return out;
 }
 pub fn keccakSource() !R.TruthSource {
+    return keccakSourceWithAllocator(a);
+}
+pub fn keccakSourceWithAllocator(allocator: std.mem.Allocator) !R.TruthSource {
     const T = @FieldType(R.TruthSource, "keccak");
     var input: [2]K.trace.State = undefined;
     for (&input, 0..) |*state, i| for (state, 0..) |*lane, j| {
         lane.* = @as(u64, @intCast(7919 * i + 31 * j));
     };
-    return .{ .keccak = try T.initSpan(a, &input, 3, 5) };
+    return .{ .keccak = try T.initSpan(allocator, &input, 3, 5) };
 }
 pub fn secpSource(policy: S.layout.BytePolicy) !R.TruthSource {
     const input = [_]S.trace.Input{.{ .coordinates = .{ 1, 2, 3, 4, 5, 6 } }};

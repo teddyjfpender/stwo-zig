@@ -16,7 +16,9 @@ const W = @import("worker_protocol.zig");
 const Manifest = @import("manifest.zig");
 const ManifestWire = @import("manifest_wire.zig");
 const Execution = @import("execution.zig");
-const Resource = @import("resource.zig");
+const Retention = @import("retention_plan.zig");
+const TruthRetention = @import("truth_retention.zig");
+pub const Store = @import("../../retained_main_store.zig").Store;
 pub const Options = struct {
     max_workers: usize = 8,
     /// Frontend MAIN/backing+binding admission, excluding independently owned setup
@@ -24,10 +26,14 @@ pub const Options = struct {
     max_retained_frontend_bytes: usize = 512 << 20,
     gkr_budget: usize = 512 << 20,
     global_budget: usize = 1 << 30,
+    retained_store: ?*Store = null,
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
-    fn validate(self: Options, count: usize) !void {
-        if (self.max_workers == 0 or self.max_workers > 8 or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
+    pub fn validate(self: Options, count: usize) !void {
+        if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         try self.schedule.validate();
+        if (self.retained_store) |store| {
+            if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
+        } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
     }
 };
 pub const Bundle = struct {
@@ -115,6 +121,7 @@ const Run = struct {
             self.workers[index] = .{ .cpu = worker };
             self.stages[index] = try self.workers[index].?.cpu.seal(self.a);
             try self.workers[index].?.cpu.retireLocalMetadata();
+            if (self.options.retained_store) |store| _ = try self.workers[index].?.cpu.spillMain(store);
         } else {
             const truth = self.truths[index - self.setups.len];
             var source = try R.TruthSource.init(self.a, truth, self.advice);
@@ -124,11 +131,20 @@ const Run = struct {
             owned = false;
             self.workers[index] = .{ .truth = worker };
             self.stages[index] = try self.workers[index].?.truth.seal(self.a);
+            if (self.options.retained_store) |store| _ = try self.workers[index].?.truth.spillMain(store);
         }
     }
     fn stageTwo(self: *Run, index: usize) !void {
         const worker = if (self.workers[index]) |*v| v else return error.MissingWideCoordinatorWorker;
         const pending = self.pending orelse return error.MissingWideCoordinatorManifest;
+        if (self.options.retained_store) |store| switch (worker.*) {
+            .cpu => |*v| {
+                _ = try v.restoreMain(store);
+            },
+            .truth => |*v| {
+                _ = try v.restoreMain(store);
+            },
+        };
         self.results[index] = switch (worker.*) {
             .cpu => |*v| .{ .cpu = try v.complete(self.a, pending, index, self.options.global_budget) },
             .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
@@ -145,7 +161,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     errdefer freeRequests(a, requests);
     var inventory = try Execution.Inventory.init(a, setups, truths, requests, expected, config);
     defer inventory.deinit();
-    const estimates = try admit(a, setups, truths, &inventory, options);
+    const estimates = try admit(a, setups, truths, requests, &inventory, config, options);
     defer a.free(estimates);
     const workers = try a.alloc(?Worker, count);
     defer a.free(workers);
@@ -177,28 +193,24 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     @memset(results, null);
     return .{ .requests = requests, .stage_one_bytes = stage_bytes, .cpus = cpus, .truths = encoded_truths };
 }
-fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, inventory: *const Execution.Inventory, options: Options) ![]u64 {
+fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const P.Request, inventory: *const Execution.Inventory, config: W.PcsConfig, options: Options) ![]u64 {
     const estimates = try a.alloc(u64, inventory.workers.len);
     errdefer a.free(estimates);
     var retained: usize = 0;
+    var disk: usize = 0;
     for (estimates, 0..) |*estimate, i| {
-        const logs = if (i < setups.len) try setups[i].logs(a, 1) else try truths[i - setups.len].logs(a, 1);
-        defer a.free(logs);
-        var main: usize = 0;
-        for (logs) |log| {
-            if (log > 26) return error.BoundedWideCoordinatorLimit;
-            main = try std.math.add(usize, main, try std.math.mul(usize, @as(usize, 1) << @intCast(log), 8));
-        }
-        var binding: usize = 0;
-        var peak: usize = 0;
-        if (i < setups.len) {
-            const plan = try Resource.Plan.forInstances(inventory.instances[i], options.gkr_budget);
-            binding = plan.binding_bytes;
-            peak = plan.peak_bytes;
-        }
-        retained = try std.math.add(usize, retained, try std.math.add(usize, main, binding));
-        estimate.* = try std.math.add(u64, @intCast(main), @intCast(@max(peak, options.global_budget)));
+        const plan = if (i < setups.len) try Retention.forCpu(a, setups[i], requests[i], config, options.gkr_budget, options.global_budget) else try TruthRetention.forTruth(a, truths[i - setups.len], config, options.global_budget);
+        // Preserve the previous conservative task admission, which also reserves
+        // the explicit witness cap; partial counters must never tighten it.
+        const legacy = try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), @max(plan.gkr_peak_bytes, options.global_budget));
+        estimate.* = @intCast(@max(legacy, @max(plan.stage1_task_bytes, plan.stage2_task_bytes)));
+        retained = try std.math.add(usize, retained, if (options.retained_store != null) plan.parked_retained_bytes else @max(plan.resident_retained_bytes, try std.math.add(usize, try std.math.mul(usize, plan.coefficient_bytes, 2), plan.binding_bytes)));
+        disk = try std.math.add(usize, disk, try @import("stwo_prover_engine").file_backed_allocator.ReservedFile.roundedLength(plan.coefficient_bytes));
     }
     if (retained > options.max_retained_frontend_bytes) return error.BoundedWideCoordinatorRetainedLimit;
+    if (options.retained_store) |store| {
+        const stats = store.stats();
+        if (disk > stats.limit_bytes - stats.live_bytes) return error.RetainedMainBudgetExceeded;
+    }
     return estimates;
 }

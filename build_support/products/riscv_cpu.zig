@@ -48,7 +48,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-setup-audit", "src/integrations/riscv_cpu/rv64_word16_setup_audit_test_root.zig", 10 },
         .{ "word16-csp", "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig", 9 },
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
-        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 26 },
+        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
         .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
         .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 8 },

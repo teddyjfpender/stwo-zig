@@ -86,3 +86,38 @@ test "truth local characteristic admission and init budget precede ownership tra
     try std.testing.expectEqual(@as(usize, 0), fail.alloc_index);
     try std.testing.expect(source.keccak.permutation.main.len != 0);
 }
+
+test "parked truth spill OOM is retryable and sealed abort releases unmapped coefficient files" {
+    var setup = try @import("../../keccak/shared/roster.zig").TruthSetup.init(a, 5);
+    defer setup.deinit();
+    var temp = std.testing.tmpDir(.{});
+    defer temp.cleanup();
+    const path = try temp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var store = try @import("../../retained_main_store.zig").Store.initParked(path, 8 << 20);
+    defer store.deinit();
+    var fail = std.testing.FailingAllocator.init(a, .{});
+    const allocator = fail.allocator();
+    const truth = R.Truth{ .keccak = .{ .setup = &setup, .first_id = 3, .calls = 2 } };
+    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
+    const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
+    {
+        const source = try @import("truth_test.zig").keccakSourceWithAllocator(allocator);
+        var worker = W.TruthWorker.init(allocator, truth, source, expected, config, 64 << 20) catch |err| {
+            var owns = source;
+            owns.deinit();
+            return err;
+        };
+        defer worker.deinit(allocator);
+        const stage = try worker.seal(allocator);
+        fail.fail_index = fail.alloc_index;
+        try std.testing.expectError(error.OutOfMemory, worker.spillMain(&store));
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
+        try std.testing.expectEqualSlices(u8, &stage.main, &worker.scheme.trees.items[1].root());
+        fail.fail_index = std.math.maxInt(usize);
+        try std.testing.expect(try worker.spillMain(&store) > 0);
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+    }
+    try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
+    try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+}

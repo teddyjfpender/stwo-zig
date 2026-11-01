@@ -50,3 +50,33 @@ Production-size performance, parked full-block lifetime qualification, complete
 128-bit soundness accounting, outer recursion and GPU execution remain separate
 gates. The accepted small whole-execution fixture establishes functional
 integration of this profile, not performance extrapolation.
+
+## Explicit coefficient parking
+
+The coordinator now accepts an optional `retained_store` with parking enabled.
+Without it, the existing eight-worker limit remains. Larger inventories require
+an explicit `max_workers`, a parking store, nonzero lane-memory admission and a
+strict aggregate retained-frontend budget. Disk reservation is preflighted from
+page-rounded coefficient bytes before source construction. The store's own
+atomic reservations remain authoritative if another caller consumes capacity.
+
+Stage one seals each CPU, retires its local query caches, then parks its MAIN;
+truth MAINs park immediately after sealing. Stage two restores only the active
+worker before completing its unchanged proof. One complete ordered-manifest
+barrier remains. The default profile and every proof/transcript byte stay intact.
+
+Admission counts bindings, narrow retained CPU advice, compact truth local/global
+query metadata, source fixed read views, local-proof reserves and conservative
+owner headers. Coefficient-only parking ALSO retains all MAIN Merkle node layers;
+those are included in `parked_retained_bytes`. Shared immutable setup, original
+capture/advice and full PCS/source-construction scratch are separate leases. Lane
+estimates preserve the maximum of the previous conservative estimate and the new
+partial payload plan, so improved accounting never silently reduces admission.
+
+The small complete fixture is byte-identical across parked/unparked routes for
+every physical proof, physical claim and manifest; a receiver with rebuilt keys
+accepts the parked result. Store live and mapped byte counters return to zero.
+A later CPU-source failure releases an earlier parked worker. Truth spill
+allocation failure leaves the sealed owner/root retryable; retry and abort leave
+no mapped/reserved file ownership. These gates permit explicitly budgeted larger
+inventories; they do not qualify a production-size full block or total RSS.
