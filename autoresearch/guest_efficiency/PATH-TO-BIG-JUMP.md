@@ -12,7 +12,9 @@ gets both metrics down far enough to start the GPU port. Numbers are on the
 | Rust guest, track C on this branch | 13.18 | 151,710 | yes |
 | Rust guest, lean track (`codex/rv64-guest-rust-lean`) | 9.93 | 118,986 | yes |
 | evmone client (`client_evmone/`), admitted services | 8.32 | 101,192 | yes |
-| evmone client + candidate memory, SHA-256, arith256_mod + input adapter | **5.65** | **78,849** | no (services not yet in the prover) |
+| evmone client + candidate memory, SHA-256, arith256_mod + input adapter | 5.65 | 78,849 | no (services not yet in the prover) |
+| **evmone client, merged trie/state + interpreter tracks, admitted** | **6.80** | **85,987** | yes |
+| **same client + all candidate services (mem, SHA-256, arith, BN254, BLS12-381, Keccak sponge)** | **3.39** | **55,508** | no (services not yet in the prover) |
 | Reference: ZisK reth guest / ZisK production commit | 6.38 / - | - / ~95,000 | |
 | Target: ziskethone parity (L3) | 2.02 | ~23,000 | |
 
@@ -115,8 +117,10 @@ item only with its evidence.
 - [x] Verified signature-recovery hints via input adapter, Keccak memo (`004878ebc`, `1549143bb`)
 - [x] Zero-parse input evaluated: at most 4-6% available, not pursued (notes/evmone-port.md)
 - [ ] Ethereum execution spec tests on both clients, host and guest tiers (branch `codex/rv64-guest-prover-eest`, in progress)
-- [ ] Port the Rust-lean techniques that apply (batch ECDSA vs supplied keys, witness node table, aligned MPT re-encode) to the client's trie and state code (branch `codex/rv64-guest-client-trie-state`, in progress)
-- [ ] Interpreter tuned for RV64IM: dispatch, jump-table address, U256 fast paths, cached JUMPDEST bitmaps (target interpreter 1.9 -> ~1.0 instr/gas) (branch `codex/rv64-guest-client-interpreter`, in progress)
+- [x] Port the Rust-lean techniques to the client's trie and state code (branch `codex/rv64-guest-client-trie-state`, 11 commits): admitted 8.317 -> 7.140 instr/gas; trie/MPT/receipts 0.825 -> 0.388, state tables 0.569 -> 0.430 instr/gas
+- [x] Interpreter tuned for RV64IM, first pass (branch `codex/rv64-guest-client-interpreter`, 11 commits): admitted 8.317 -> 7.978 instr/gas; interpreter 1.921 -> 1.659, JUMPDEST 0.299 -> 0.265 (MUL 211 -> 67, MLOAD ~153 -> ~89, SLOAD ~336 -> ~185 instructions)
+- [ ] Interpreter second pass to reach ~1.0: per-basic-block gas and stack checks cached per JUMPDEST, top-of-stack in registers in fused jumps, `rev8` via the ISA extension (each opcode still pays ~10 fixed instructions; dispatch alone is 1.12 instr/gas)
+- [x] Combined client verified (trie/state + interpreter + curves merged): admitted 6.801 scored / 6.566 all instr/gas, 85,987 bits/gas, all guards, promotable; all candidate services 3.390 scored, 55,508 bits/gas
 
 ### Move B: services
 - [x] Six candidate services in the execution tool with tests and cost estimates; measured per family on the Rust guest (`bca94c643`, merged `228a6a38a`)

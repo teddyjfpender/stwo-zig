@@ -1,0 +1,22 @@
+diff --git a/lib/evmone/instructions.hpp b/lib/evmone/instructions.hpp
+index 9bb63ec..9e44161 100644
+--- a/lib/evmone/instructions.hpp
++++ b/lib/evmone/instructions.hpp
+@@ -998,7 +998,7 @@ inline void selfbalance(StackTop stack, ExecutionState& state) noexcept
+ 
+ /// MLOAD fast path for an in-bounds word at an 8-aligned address: no call, so no frame;
+ /// everything else (growth, gas, unaligned) goes to mload_slow.
+-inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++[[gnu::always_inline]] inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ {
+ #ifdef INTX_BE_BYTEWISE
+     auto& index = stack.top();
+@@ -1030,7 +1030,7 @@ inline Result mload(StackTop stack, int64_t gas_left, ExecutionState& state) noe
+ }
+ 
+ /// MSTORE fast path, as mload.
+-inline Result mstore(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
++[[gnu::always_inline]] inline Result mstore(StackTop stack, int64_t gas_left, ExecutionState& state) noexcept
+ {
+ #ifdef INTX_BE_BYTEWISE
+     const auto& index = stack[0];

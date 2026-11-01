@@ -111,6 +111,15 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   rotations; intx big-endian conversions go byte-wise (patch 0003); blst uses
   64-bit limbs with `__int128` products (patch 0002); size-class free-list
   heap (`glue/runtime.cpp`).
+- **Interpreter on RV64IM (patches 0005-0017).** 256-bit big-endian transfers
+  at 8-aligned addresses use aligned words and a 13-instruction mask byte swap
+  (masks in a mutable global so LLVM does not re-expand them); frameless
+  MLOAD/MSTORE fast paths, funnel-shifted CALLDATALOAD, aligned-word context
+  loads; column-wise 256-bit MUL, native DIV/MOD for 64-bit operands; gas
+  tested on the decremented value and a constant on failed requirements (no
+  per-opcode moves); host storage/log calls pass `msg->recipient` in place;
+  sentinel JUMPDEST scan over the padded copy, unrolled by four; LT/GT/SLT/SGT
+  join the fused `PUSH2 JUMPI` set. Measurements: `notes/client-interpreter.md`.
 
 ## Tests
 
