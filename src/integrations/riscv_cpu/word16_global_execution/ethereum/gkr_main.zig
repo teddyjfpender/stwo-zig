@@ -23,6 +23,7 @@ const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const MetadataCache = @import("../../word16_execution/program_metadata.zig");
 const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycler;
+const ReceiverBudget = @import("receiver_budget.zig");
 const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
@@ -91,13 +92,13 @@ fn config() !Worker.PcsConfig {
     return value;
 }
 pub fn main() !void {
-    var recycler = Recycler.init(std.heap.smp_allocator, 4 << 30);
+    var recycler = Recycler.init(std.heap.smp_allocator, ReceiverBudget.RECYCLER_CACHE_BYTES);
     defer recycler.deinit();
-    const a = recycler.allocator();
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT | verify-prefix-control CONFIG OUT | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
-    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(a, .{ .profile = CANDIDATE_PROFILE, .security_qualified = false, .pcs = Candidate.config(), .scope = "beta2 engineering candidate; no reviewed whole-protocol128 certificate", .usage = "produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES" });
+    const base = recycler.allocator();
+    const args = try std.process.argsAlloc(base);
+    defer std.process.argsFree(base, args);
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(base, .{ .profile = PROFILE, .security_qualified = false, .pcs = try config(), .usage = "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT [RECEIVER_BYTES] | verify-prefix-control CONFIG OUT [RECEIVER_BYTES] | plan CONFIG JOBS PREFIX_COUNT | capture CONFIG JOBS PREFIX_COUNT RESOURCE_JSON" });
+    if (args.len == 2 and std.mem.eql(u8, args[1], "describe-candidate")) return emit(base, .{ .profile = CANDIDATE_PROFILE, .security_qualified = false, .pcs = Candidate.config(), .scope = "beta2 engineering candidate; no reviewed whole-protocol128 certificate", .usage = "produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES] | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES [RECEIVER_BYTES]" });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const candidate = std.mem.eql(u8, args[1], "produce-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "verify-prefix-candidate");
     const verify = std.mem.eql(u8, args[1], "verify-control") or std.mem.eql(u8, args[1], "verify-candidate");
@@ -106,7 +107,7 @@ pub fn main() !void {
     const plan = std.mem.eql(u8, args[1], "plan");
     const capture_only = std.mem.eql(u8, args[1], "capture");
     if (!verify and !prefix and !produce and !plan and !capture_only) return error.InvalidWideEthereumMode;
-    if ((verify or prefix) and args.len != (if (candidate) @as(usize, 5) else 4)) return error.VerifierNeedsNoExecutionPackets;
+    const receiver_bytes: ?usize = if (verify or prefix) try ReceiverBudget.limit(args, candidate) else null;
     if (produce and args.len != 7) return error.ExpectedModeConfigJobsOutputPrefixAndResources;
     if (capture_only and args.len != 6) return error.ExpectedCaptureConfigJobsPrefixAndResources;
     if (plan and args.len != 5) return error.ExpectedModeConfigJobsAndPrefix;
@@ -117,12 +118,17 @@ pub fn main() !void {
         fixed_setup_bytes = try std.fmt.parseUnsigned(usize, args[4], 10);
         if (fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
     }
+    // Stable heap owner precedes every receiver image/key/bundle allocation.
+    // Producer and plan allocations retain their historical path.
+    const receiver_budget = if (receiver_bytes) |limit| try engine.host_budget_allocator.SharedHostBudget.create(base, limit) else null;
+    defer if (receiver_budget) |owner| owner.destroy();
+    const a = if (receiver_budget) |owner| owner.allocator() else base;
     const raw = try std.fs.cwd().readFileAlloc(a, args[2], 16384);
     defer a.free(raw);
     const request = try std.json.parseFromSlice(Request.Config, a, raw, .{});
     defer request.deinit();
     var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(request.value), .stack_size = 1024 * 1024, .backing_allocator = a });
+    try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(request.value), .stack_size = ReceiverBudget.WORKER_STACK_BYTES, .backing_allocator = a });
     defer pool.deinit();
     var pool_binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer pool_binding.deinit();
@@ -152,7 +158,7 @@ pub fn main() !void {
         defer if (fixed_set) |*owner| owner.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, if (fixed_set) |*authority| authority else null);
-        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees });
+        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees, .receiver_budget = receiver_budget.?.snapshot(), .receiver_recycler_cache_cap_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES, .receiver_worker_stack_upper_bound_bytes = try ReceiverBudget.stackBytes(try Request.effectiveWorkers(request.value)) });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns });
     }
     var resources: ?Resources = null;

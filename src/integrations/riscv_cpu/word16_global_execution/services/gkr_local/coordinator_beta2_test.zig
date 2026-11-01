@@ -50,9 +50,21 @@ test "beta2 candidate two CPU and K ADD DOUBLE execution verifies from independe
     try std.testing.expectEqual(@as(u64, 7), first.total_steps);
     try std.testing.expectEqual(@as(usize, 5), first.physical_proofs);
     try std.testing.expectError(error.UnsupportedWideServicesConfig, bundle.verify(a, &keys.pointers(), &keys.truths(), expected, config));
-    var fresh = try F.Keys.init(a);
+    // Fresh receiver budget exists before trusted source key construction,
+    // not merely around the later candidate cache. Partially built legacy
+    // source keys must unwind on cap refusal.
+    const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
+    const refused = try Budget.create(a, 1 << 20);
+    defer refused.destroy();
+    try std.testing.expectError(error.OutOfMemory, F.Keys.init(refused.allocator()));
+    try std.testing.expectEqual(@as(usize, 0), refused.snapshot().live_bytes);
+    try std.testing.expect(refused.snapshot().exceeded);
+    const receiver = try Budget.create(a, 8 << 30);
+    defer receiver.destroy();
+    const receiver_allocator = receiver.allocator();
+    var fresh = try F.Keys.init(receiver_allocator);
     defer fresh.deinit();
-    var fresh_cache = try Fixed.Fixed.Cache.init(a, 1 << 30);
+    var fresh_cache = try Fixed.Fixed.Cache.init(receiver_allocator, 1 << 30);
     defer fresh_cache.deinit();
     var equivalent_sources = try FixedSet.init(a, &fresh_cache, &.{ keys.cpus[0], fresh.cpus[0] }, &.{}, config);
     defer equivalent_sources.deinit();
@@ -60,10 +72,12 @@ test "beta2 candidate two CPU and K ADD DOUBLE execution verifies from independe
     try std.testing.expectEqual(@as(usize, 1), equivalent_sources.source_validations);
     try std.testing.expectEqual(equivalent_sources.at(0).source_coefficient_cells, equivalent_sources.source_coefficient_cells);
     try std.testing.expect(equivalent_sources.at(0).lease.key == equivalent_sources.at(1).lease.key);
-    var independently_derived = try FixedSet.init(a, &fresh_cache, &fresh.pointers(), &fresh.truths(), config);
+    var independently_derived = try FixedSet.init(receiver_allocator, &fresh_cache, &fresh.pointers(), &fresh.truths(), config);
     defer independently_derived.deinit();
     try std.testing.expect(authority.at(0).lease.key != independently_derived.at(0).lease.key);
-    const accepted = try bundle.verifyWithAuthority(a, &fresh.pointers(), &fresh.truths(), expected, config, &independently_derived);
+    const accepted = try bundle.verifyWithAuthority(receiver_allocator, &fresh.pointers(), &fresh.truths(), expected, config, &independently_derived);
+    try std.testing.expect(receiver.snapshot().peak_live_bytes > 0);
+    try std.testing.expect(receiver.snapshot().peak_live_bytes <= receiver.snapshot().limit);
     try std.testing.expectEqualDeep(first, accepted);
     var wrong = config;
     wrong.fri_config.n_queries -= 1;
