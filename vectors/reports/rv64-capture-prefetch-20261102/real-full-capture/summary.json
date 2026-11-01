@@ -125,7 +125,7 @@
     "ReleaseSafe": "7 named tests plus root PASS",
     "ReleaseFast": "7 named tests plus root PASS",
     "ReleaseFast_cli": "PASS",
-    "review": "AIR source review of core capture pipeline PASS; CLI follow-up review pending if not independently reported"
+    "review": "recover_air_wave2 independent read-only core capture + CLI/options/digest source review PASS; no concrete blocker. Review is source/lifetime/encoding scope, not additional proof qualification."
   },
   "coverage_qualified": {
     "instructions": 104253913,
