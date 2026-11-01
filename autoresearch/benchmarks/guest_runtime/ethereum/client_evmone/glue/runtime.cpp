@@ -69,7 +69,14 @@ inline void v3_fill_words(uint8_t* d, uint8_t byte, size_t n) noexcept {
 // a service word: the destination body is word-aligned.
 inline bool v3_copy(void* dst, const void* src, size_t n) noexcept {
     const uintptr_t d = reinterpret_cast<uintptr_t>(dst), s = reinterpret_cast<uintptr_t>(src);
+#if defined(ADMITTED_UMEM)
+    // UNVERIFIED (bulk-unaligned track): unaligned-source memcpy is not yet
+    // proved by the bulk-memory AIR; opt in with --v3-set ...,umem.
     const size_t min = ((d ^ s) & 7) == 0 ? STWO_ADMITTED_COPY_MIN : STWO_ADMITTED_UCOPY_MIN;
+#else
+    if (((d ^ s) & 7) != 0) return false;
+    const size_t min = STWO_ADMITTED_COPY_MIN;
+#endif
     if (n < min || (d < s + n && s < d + n)) return false;
     const size_t head = (0 - d) & 7;
     if (n < head + 8) return false;
@@ -298,7 +305,9 @@ void* memset(void* dst, int c, size_t n) {
     return stwo_memset(dst, c, n);
 }
 int memcmp(const void* a, const void* b, size_t n) {
-#if defined(ADMITTED_MEM)
+#if defined(ADMITTED_UMEM)
+    // UNVERIFIED (bulk-unaligned track): the Word16 services collector does
+    // not yet accept memcmp (0x0003_0003); opt in with --v3-set ...,umem.
     int r;
     if (v3_compare(a, b, n, &r)) return r;
 #endif

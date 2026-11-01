@@ -207,5 +207,25 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
     EEST merge; host-test only, not on the guest build path). `build.py` builds
     default/admitted (`client-evmone-admitted.elf` sha256 a83dea52...bc59),
     `--host` (0b609c82...d874) and `--profile v3` (909477e5...82f4).
-- TODO (in progress on this branch): re-run the 15-block basket, and the Word16 services suites. The last
+  - Gate 3 (basket, all 15 blocks, client input adapter, executor built
+    from this tree): admitted client 6.807 scored instr/gas, 86,044 bits/gas;
+    v3 client (`--profile ethereum_services_v3`) 4.778, 67,192 bits/gas; all
+    guards G1-G6 pass, exact outputs. Per-block instruction counts differ from
+    the pre-merge runs by -31..+198 per block (identical deltas in both
+    clients, at most 0.0006%). Cause, confirmed by rebuilding the admitted
+    client with the pre-merge `glue/stwo_client.cpp` (then identical on all 15
+    blocks): the EEST track's `row_reserve`, which sizes the account/storage
+    tables from gas_used instead of gas_limit (fixes bad_alloc on EEST blocks
+    with 2^63-1 gas limits); kept.
+    Gated out: the bulk-unaligned merge made the default v3 client route
+    unaligned-source memcpy and memcmp (0x0003_0003) to the bulk service
+    (v3 4.525), but the Word16 collector rejects memcmp and the unaligned AIR
+    row is not built. That routing now needs `--v3-set sha,arith,mem,umem`
+    (`-DADMITTED_UMEM`, ELF `-v3-sha-arith-mem-umem`); default v3 is
+    aligned-only again. The executor still admits 0x0003_0003 and unaligned
+    sources (execution-only; no verified client issues them).
+    - [ ] TODO (bulk-unaligned track): prove unaligned memcpy and memcmp in
+      the bulk AIR and the services collector, then make `umem` default.
+    `test_bench.py`: 40 tests OK.
+- TODO (in progress on this branch): run the 15-block basket, and the Word16 services suites. The last
   verified head of this branch before the unverified merges is `1c821fc9d`.
