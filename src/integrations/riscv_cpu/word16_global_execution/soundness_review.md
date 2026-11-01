@@ -8,12 +8,15 @@ prefix acceptance does not certify Ethereum completion. The earlier base-only
 review did not cover services. The obligations below now include their joins.
 
 The completed block receipt is
-`vectors/reports/rv64-word16-execution-20261031/ethereum-full-global-s4-v1.json`:
+`vectors/reports/rv64-word16-execution-20261101/ethereum-full-current-foundation-v1.json`:
 104,253,913 instructions,25 CPU STARKs and five independently sized crypto truth
 STARKs, plus a separate fresh receiver. It pins the precise source/binary and
-layout; it does not qualify every later layout change automatically. LS48 has
-its own smaller-workload/CSP/Sail qualification and canonicality proof note;
-a complete-block rerun remains necessary after activating that layout.
+layout (CPU50/40, LS71/48, ALU52/32, SHIFT53/28). It qualifies the joined
+services route at source f4f9cc5ab, including physical closure and the separate
+fresh completed receiver; it does not qualify every later layout automatically.
+The 21,530,255,168 native cells are 3.0445 times fewer than the pinned wide RV64
+route for the same ELF, input, retirements, calls, final registers and output.
+This is an exact representation comparison, not a controlled wall-time claim.
 
 ## Independent authority and geometry
 
@@ -61,11 +64,11 @@ all local closures, then the complete global RAM/KIO/Wire sums. Shared positive
 or absolute masses are bounded below the characteristic. Per-request R16/R8
 relations remain local, avoiding an unjustified block-wide range-query mass.
 
-Known maintenance debt: existing global draw helpers still draw a local RAM
-relation and overwrite it with the manifest-derived relation. Both sides always
-use the shared value; no worker-supplied RAM challenge is accepted. A shared-only
-draw authority should remove the discarded draw with explicit transcript
-requalification, preserving closed/genesis controls.
+Shared protocol revision 1 (WSRD) draws the manifest-derived RAM relation
+without first drawing and discarding a local RAM relation. The protocol identity
+changes explicitly, and prover and receiver use the same draw authority. Closed
+and genesis controls retain their original local relation and transcript. The
+completed-block receipt above includes the revised shared transcript.
 
 ## Memory, canonicality and state connection
 
@@ -90,12 +93,17 @@ anchors; Keccak and secp bridge values are ranged and authenticated by the
 corresponding truth program. Pointer alignment, coordinate ordering, bounded
 addition and final carry0 prohibit wraparound accesses.
 
-LS48 removes only ranges implied by independent write anchors, REG/ROM binding
+The LS48 interaction encoding removes only ranges implied by independent write anchors, REG/ROM binding
 and the closed RAM DAG. The precise noncircular induction, retained query list,
 caller assumptions and counterexamples are in
 `design/riscv-proving-stack/rv64-ls-canonical-range-induction.md`. All gap ranges,
 after-clock limbs and load-result/write-value anchors remain. A bare LS proof
-without OWNER/RAM closure does not establish those inherited facts.
+without OWNER/RAM closure does not establish those inherited facts. The later
+LS79-to-LS71 MAIN projection removes eight affine copies by exact substitution;
+it keeps the same 48 interaction columns, canonical anchors and physical buses.
+CPU53-to-CPU50 similarly derives zero-register flags as 1-enabled; ROM binding
+and padding constraints authenticate that identity. A repaired forged witness
+can pass bare physical verification but is rejected by closed REG/ROM checks.
 
 ## Services and independently sized truths
 
@@ -114,7 +122,10 @@ the surrounding recovery/validation and Ethereum behavior.
 
 ## Ownership, storage and resource scope
 
-CPU and crypto truth MAIN/INTER buffers transfer into streaming commitments.
+The canonical services coordinator transfers both CPU and crypto truth
+MAIN/INTER buffers into owned streaming commitments. Historical borrowed control
+APIs still exist; their presence is not evidence that the production route uses
+them.
 All descriptor/allocator/shape/alias validation precedes ownership changes;
 allocation failures preserve retryable original owners. Narrow relation metadata
 survives MAIN retirement. Completed sources retire only after encoded claims
