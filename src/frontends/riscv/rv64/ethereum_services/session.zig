@@ -135,7 +135,7 @@ pub const Session = struct {
                 return null;
             };
             if (profile.admitsV3(self.execution_profile, tag)) {
-                event.* = if (tag == profile.ARITH256_MOD_TAG) .{ .arith256_mod = try self.mulAddMod() } else .{ .sha256 = try self.compress() };
+                event.* = if (tag == profile.ARITH256_MOD_TAG) .{ .arith256_mod = try self.mulAddMod() } else if (tag == profile.SHA256_COMPRESS_TAG) .{ .sha256 = try self.compress() } else unreachable;
                 return null;
             }
             event.* = .{ .secp = try self.projective() };

@@ -52,7 +52,14 @@ pub fn admitted(profile: Profile, op: isa.Opcode) bool {
 pub fn secpWords(profile: Profile) bool {
     return profile == .ethereum_services_v2 or profile == .ethereum_services_v3;
 }
-/// Admitted v3-only service tags (the ROM-independent service roster).
+/// Admitted v3-only service tags (the ROM-independent service roster):
+/// SHA-256 compression, arith256_mod and aligned memcpy/memset.
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG);
+    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isBulkTag(tag));
 }
+pub fn isBulkTag(tag: u64) bool {
+    return tag == MEMCPY_TAG or tag == MEMSET_TAG;
+}
+/// Most RAM words one admitted bulk call touches: three packet reads plus a
+/// read and a write per word of a 1 MiB copy (bulk_memory.MAX_BYTES).
+pub const BULK_MAX_TOUCHED_WORDS: u64 = 3 + 2 * ((1 << 20) / 8);

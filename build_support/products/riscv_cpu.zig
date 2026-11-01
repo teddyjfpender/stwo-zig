@@ -63,6 +63,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-combined-services", "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig", 24 },
         .{ "word16-bulk-memory", "src/frontends/riscv/rv64_word16_bulk_memory_test_root.zig", 2 },
         .{ "word16-bulk-services", "src/integrations/riscv_cpu/rv64_word16_bulk_services_test_root.zig", 3 },
+        .{ "word16-v3-services", "src/integrations/riscv_cpu/rv64_word16_v3_services_test_root.zig", 2 },
         .{ "word16-secp-bridge", "src/integrations/riscv_cpu/rv64_word16_secp_bridge_test_root.zig", 11 },
         .{ "word16-arith256-bridge", "src/integrations/riscv_cpu/rv64_word16_arith256_bridge_test_root.zig", 3 },
         .{ "word16-arith256-services", "src/integrations/riscv_cpu/rv64_word16_arith256_services_test_root.zig", 3 },

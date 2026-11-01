@@ -48,6 +48,8 @@ pub const Batch = struct {
     /// v3 arith256_mod calls (tape-only, like SHA-256).
     arith256_first: u32 = 1,
     arith256_calls: u32 = 0,
+    /// v3 aligned memcpy/memset calls (no tape records; counted for telemetry).
+    bulk_calls: u32 = 0,
     state_policy: air.state_policy.Policy = .cyclic_v2,
 
     pub fn init(authority: *const Full.ProgramAuthority, tape: *const rv.compact_tape.Tape, capture: *const rv.boundary_capture.Capture, initial_registers: [32]u64, first_ids: [3]u32) !Batch {
@@ -71,8 +73,13 @@ pub const Batch = struct {
         var kind: ?usize = null;
         var sha256 = false;
         var arith = false;
+        var bulk = false;
         if (inst.opcode == .ECALL and rv.execution_profile.admitsV3(self.tape.execution_profile, record.rhs.toInt())) {
-            if (record.rhs.toInt() == rv.execution_profile.ARITH256_MOD_TAG) {
+            if (rv.execution_profile.isBulkTag(record.rhs.toInt())) {
+                // Bulk memory has no call ID or tape payload: the ECALL step
+                // (pointer, tag) is the call; RAM effects are in the capture.
+                bulk = true;
+            } else if (record.rhs.toInt() == rv.execution_profile.ARITH256_MOD_TAG) {
                 if (@as(u64, self.arith256_first) + self.arith256_calls >= Modulus) return error.InvalidEthereumBatchService;
                 arith = true;
             } else {
@@ -101,6 +108,7 @@ pub const Batch = struct {
         if (kind) |k| self.calls[k] += 1;
         if (sha256) self.sha256_calls += 1;
         if (arith) self.arith256_calls += 1;
+        if (bulk) self.bulk_calls += 1;
         self.steps += 1;
         self.next_pc = record.next_pc.toInt();
     }
