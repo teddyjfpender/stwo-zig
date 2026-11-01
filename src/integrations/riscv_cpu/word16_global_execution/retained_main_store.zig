@@ -25,6 +25,61 @@ pub const Store = struct {
     pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize } {
         return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit };
     }
+    /// Retained LDE storage through the existing PCS allocator hook. Each
+    /// mapping is independently owned by its column; the Store outlives trees.
+    /// Allocator failure reports OutOfMemory, including the explicit disk cap.
+    pub fn retainedAllocator(self: *Store) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &DIRECT };
+    }
+    const DIRECT: std.mem.Allocator.VTable = .{ .alloc = directAlloc, .resize = directResize, .remap = directRemap, .free = directFree };
+    fn roundedBytes(len: usize) !usize {
+        return std.mem.alignBackward(usize, try std.math.add(usize, len, std.heap.pageSize() - 1), std.heap.pageSize());
+    }
+    fn directAlloc(context: *anyopaque, len: usize, alignment: std.mem.Alignment, ret: usize) ?[*]u8 {
+        const self: *Store = @ptrCast(@alignCast(context));
+        if (alignment.toByteUnits() > std.heap.pageSize()) return null;
+        const rounded = roundedBytes(len) catch return null;
+        self.reserve(rounded) catch return null;
+        const memory = self.backing.allocator().rawAlloc(len, alignment, ret) orelse {
+            _ = self.reserved.fetchSub(rounded, .acq_rel);
+            return null;
+        };
+        _ = self.total.fetchAdd(rounded, .acq_rel);
+        return memory;
+    }
+    fn directResize(_: *anyopaque, _: []u8, _: std.mem.Alignment, _: usize, _: usize) bool {
+        return false;
+    }
+    fn directRemap(_: *anyopaque, _: []u8, _: std.mem.Alignment, _: usize, _: usize) ?[*]u8 {
+        return null;
+    }
+    fn directFree(context: *anyopaque, bytes: []u8, alignment: std.mem.Alignment, ret: usize) void {
+        const self: *Store = @ptrCast(@alignCast(context));
+        const rounded = roundedBytes(bytes.len) catch unreachable;
+        self.backing.allocator().rawFree(bytes, alignment, ret);
+        const before = self.reserved.fetchSub(rounded, .acq_rel);
+        std.debug.assert(before >= rounded);
+    }
+    /// Complete stage-one writeback precedes page retirement. Failure changes
+    /// no roots, values, or ownership; caller cleanup still releases every map.
+    /// Fixed keys and compact crypto truths are never admitted to this path.
+    pub fn retireEvaluations(self: *Store, tree: *Tree) !usize {
+        const allocator = tree.retained_column_allocator orelse return error.UnsupportedRetainedMainTree;
+        if (allocator.vtable != &DIRECT or allocator.ptr != @as(*anyopaque, @ptrCast(self)) or tree.compact_polynomials or tree.shared_owner != null or tree.coefficients != null or tree.coefficient_backing_buffers != null or tree.column_backing_buffers != null or tree.streaming_column_backings != null or tree.backing_teardown != null) return error.UnsupportedRetainedMainTree;
+        var bytes: usize = 0;
+        for (tree.columns) |column| {
+            if (column.values.len == 0 or column.coefficient_values != null) return error.RetainedMainShapeMismatch;
+            const values = std.mem.sliceAsBytes(column.values);
+            if (@intFromPtr(values.ptr) % std.heap.pageSize() != 0) return error.RetainedMainShapeMismatch;
+            const rounded = try roundedBytes(values.len);
+            // OS advice needs a mutable mapping handle, not mutable polynomial access.
+            const mapping: []align(std.heap.page_size_min) u8 = @alignCast(@constCast(values.ptr[0..rounded]));
+            try std.posix.msync(mapping, std.posix.MSF.SYNC);
+            try std.posix.madvise(mapping.ptr, mapping.len, std.posix.MADV.DONTNEED);
+            bytes = try std.math.add(usize, bytes, rounded);
+        }
+        return bytes;
+    }
     fn reserve(self: *Store, size: usize) !void {
         var old = self.reserved.load(.acquire);
         while (true) {

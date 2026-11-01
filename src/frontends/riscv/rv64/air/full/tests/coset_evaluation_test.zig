@@ -243,3 +243,68 @@ fn degreeThreeAllocationCase(allocator: std.mem.Allocator) !void {
 test "degree3 coset initialization and each FFT allocation failure preserve ownership" {
     try std.testing.checkAllAllocationFailures(a, degreeThreeAllocationCase, .{});
 }
+
+test "matching retained LDE partitions borrow exact views mixed with coefficient FFTs in every source combination" {
+    for ([_]u32{ 1, 2 }) |extra| {
+        var coefficients: [4][8]M = undefined;
+        var sources: [4]Poly = undefined;
+        var reference: [4][]const M = undefined;
+        var initialized: usize = 0;
+        defer for (reference[0..initialized]) |values| a.free(values);
+        const domain = core.poly.circle.canonic.CanonicCoset.new(3 + extra).circleDomain();
+        for (&coefficients, &sources, &reference, 0..) |*c, *source, *values, index| {
+            for (c, 0..) |*value, i| value.* = M.fromCanonical(@intCast(17 + 11 * index + i * i));
+            const polynomial = try Polynomial.initBorrowed(c);
+            source.* = .{ .log_size = 4, .values = &.{}, .coefficients = polynomial };
+            values.* = (try polynomial.evaluate(a, domain)).values;
+            initialized += 1;
+        }
+        const previous = [_]bool{ true, false, true, false };
+        for (0..16) |mask| {
+            var mixed = sources;
+            var own: usize = 0;
+            for (&mixed, reference, previous, 0..) |*source, values, prior, index| {
+                if (mask & (@as(usize, 1) << @intCast(index)) != 0) {
+                    source.* = .{ .log_size = 3 + extra, .values = values };
+                } else own += 1 + @as(usize, @intFromBool(prior));
+            }
+            var evaluation = if (extra == 1) try cosets.Evaluation.initDegreeThree(a, &mixed, 3, &previous) else try cosets.Evaluation.init(a, &mixed, 3, &previous);
+            defer evaluation.deinit();
+            try std.testing.expectEqual(own * 8, evaluation.scratch.len);
+            const order = [_]usize{ 0, 1, 0, 3, 2, 3, 1, 2 };
+            for (order) |part| {
+                if (part >= @as(usize, 1) << @intCast(extra)) continue;
+                try evaluation.evaluatePart(part);
+                for (0..8) |row| {
+                    const global = evaluation.globalRow(part, row);
+                    const prior = core.utils.previousBitReversedCircleDomainIndex(global, 3, 3 + extra);
+                    for (reference, 0..) |values, i| {
+                        try std.testing.expectEqual(values[global], evaluation.current_values[i][row]);
+                        if (previous[i]) try std.testing.expectEqual(values[prior], evaluation.previous_values[i][evaluation.previousRow(part, row)]);
+                        if (mask & (@as(usize, 1) << @intCast(i)) != 0) try std.testing.expect(evaluation.current_values[i].ptr == values[part * 8 ..].ptr);
+                    }
+                }
+            }
+            if (mask == 15) try std.testing.expectEqual(@as(usize, 0), evaluation.test_transformed_columns);
+        }
+        // A committed 2n domain cannot stand in for disjoint 4n points.
+        if (extra == 1) {
+            const wrong = [_]Poly{.{ .log_size = 4, .values = reference[0] }};
+            try std.testing.expectError(error.MissingRv64CosetCoefficients, cosets.Evaluation.init(a, &wrong, 3, &.{true}));
+        }
+    }
+}
+fn mixedRetainedAllocationCase(allocator: std.mem.Allocator) !void {
+    const coefficients: [8]M = .{M.one()} ** 8;
+    const retained: [16]M = .{M.one()} ** 16;
+    const sources = [_]Poly{
+        .{ .log_size = 4, .values = &.{}, .coefficients = try Polynomial.initBorrowed(&coefficients) },
+        .{ .log_size = 4, .values = &retained },
+    };
+    var evaluation = try cosets.Evaluation.initDegreeThree(allocator, &sources, 3, &.{ true, true });
+    defer evaluation.deinit();
+    for ([_]usize{ 0, 1, 0, 0, 1 }) |part| try evaluation.evaluatePart(part);
+}
+test "mixed retained and coefficient partitions unwind every metadata and FFT allocation failure" {
+    try std.testing.checkAllAllocationFailures(a, mixedRetainedAllocationCase, .{});
+}

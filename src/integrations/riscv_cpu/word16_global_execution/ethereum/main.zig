@@ -95,7 +95,7 @@ pub fn main() !void {
     defer observations.deinit();
     const schedule = try operational.schedule(try Request.effectiveWorkers(config.value));
     const prove_start = timer.read();
-    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .schedule = schedule, .commit_batch_columns = operational.batch, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
+    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .retained_cpu_lde = operational.retained_cpu_lde, .schedule = schedule, .commit_batch_columns = operational.batch, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const verify_start = timer.read();
@@ -103,7 +103,7 @@ pub fn main() !void {
     const verify_ns = timer.read() - verify_start;
     const publish_start = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
+    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .retained_cpu_lde = operational.retained_cpu_lde, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {

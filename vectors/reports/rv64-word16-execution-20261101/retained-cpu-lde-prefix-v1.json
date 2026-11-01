@@ -1,0 +1,302 @@
+{
+  "schema": 1,
+  "status": "qualified experimental storage; not enabled by default; slower in measured prefix",
+  "source_base": "bcca5bc25 (CPU53 LS48 ALU32 SHIFT28; before shared-only RAM draw)",
+  "driver_sha256": "3152508ae3da65979650352c351f00d1c31e64c12f1a3d0e6106f9d274aefe6e",
+  "scope": "same-binary ABBA, four real packets16777212instructions, fourCPU+threecrypto truth proofs, two8-worker lanes, sameq70/P26/fold1/hasher; only storage policy differs",
+  "control_all7proofs_bundle_ram_cost_exact": true,
+  "fresh_receiver": {
+    "core_schema": 4,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 2286936875,
+    "verify_ns": 268053208
+  },
+  "tests": {
+    "safe_coset10_retention4": true,
+    "fast_coset10_retention4": true,
+    "all16_mixed_domain_source_combinations_2n_and4n": true,
+    "predecessor_partner_arbitrary_part_order_and_zero_copy": true,
+    "foreign_undefined_allocator_context_guard": true,
+    "partial_budget_two_lane_cleanup": true
+  },
+  "measurement": {
+    "compact": {
+      "wall_seconds": 23.795,
+      "user_seconds": 174.245,
+      "system_seconds": 9.065000000000001,
+      "maximum_resident_bytes": 24544362496.0,
+      "darwin_peak_memory_footprint_bytes": 18106001756.0
+    },
+    "mapped": {
+      "wall_seconds": 27.345,
+      "user_seconds": 155.685,
+      "system_seconds": 12.195,
+      "maximum_resident_bytes": 28506005504.0,
+      "darwin_peak_memory_footprint_bytes": 11500332936.0
+    }
+  },
+  "root_stage_mean_worker_elapsed_seconds": {
+    "False": {
+      "source_construction": 2.0653835000000003,
+      "main_commit": 5.419938000000001,
+      "retained_main_spill": 1.5288570000000001,
+      "interaction_generation": 4.8563855,
+      "interaction_commit": 4.170921,
+      "draw_random_coeff": 1.4999999999999999e-05,
+      "composition_trace_extract": 9.350000000000002e-05,
+      "composition_evaluation": 8.222343,
+      "composition_interpolate_and_split": 0.11476850000000002,
+      "composition_commit": 0.6801444999999999,
+      "oods_point_and_mask_points": 0.0008350000000000002,
+      "sampled_value_evaluation": 0.9352315000000001,
+      "sampled_value_channel_mix": 0.0010034999999999998,
+      "fri_quotient_build_and_commit": 6.204455999999999,
+      "proof_of_work": 1.5979834999999998,
+      "fri_decommit": 0.028256,
+      "trace_decommit": 2.915514,
+      "constraint_check_and_assembly": 0.0012245
+    },
+    "True": {
+      "source_construction": 2.015528,
+      "main_commit": 12.306897,
+      "retained_main_spill": 1.9039265,
+      "interaction_generation": 4.894678,
+      "interaction_commit": 10.441867,
+      "draw_random_coeff": 1e-05,
+      "composition_trace_extract": 8.899999999999998e-05,
+      "composition_evaluation": 4.437715,
+      "composition_interpolate_and_split": 0.11249999999999999,
+      "composition_commit": 1.5129679999999999,
+      "oods_point_and_mask_points": 0.0008175,
+      "sampled_value_evaluation": 1.9851755000000002,
+      "sampled_value_channel_mix": 0.0010145000000000002,
+      "fri_quotient_build_and_commit": 4.10351,
+      "proof_of_work": 1.594601,
+      "fri_decommit": 0.026455999999999997,
+      "trace_decommit": 0.38510400000000006,
+      "constraint_check_and_assembly": 0.0012415
+    }
+  },
+  "stage_scope": "summed worker elapsed intervals; overlap is not wall time; system counters not added per stage",
+  "limitations": [
+    "two observations per mode; wall order drift retained",
+    "mapped policy reduces composition/decommit work but increases commit and sampling cost",
+    "RSS and Darwin footprint are distinct; no memory-improvement target claimed",
+    "retained allocator relocates and copies values, not a direct destination",
+    "conditional intermediate arena detach and per-column file mapping remain performance candidates"
+  ],
+  "runs": [
+    {
+      "ordinal": 0,
+      "mapped": false,
+      "started_unix": 1793496018.304578,
+      "wall_seconds": 22.804893970489502,
+      "report": {
+        "core_schema": 4,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "memory_words": 750521,
+        "output": null,
+        "capture_ns": 2002394958,
+        "capture_cache_trim_ns": 9282583,
+        "capture_cache_released_bytes": 1606811648,
+        "cpu_fixed_witness_retired": true,
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8
+        },
+        "commit_batch_columns": 64,
+        "retained_cpu_lde": false,
+        "setup_ns": 1704444459,
+        "prove_ns": 18755584125,
+        "same_process_verify_ns": 263455417,
+        "publish_before_report_ns": 21360208,
+        "total_before_report_ns": 22757098125,
+        "retained_main": {
+          "live_bytes": 0,
+          "peak_reserved_bytes": 6959972352,
+          "total_bytes": 6959972352,
+          "limit_bytes": 137438953472
+        }
+      },
+      "proof_sha256": {
+        "cpu-0.bin": "bdd43de9f007ed7d75754a311c9e699125e14bbce2328e9d56cca18efe1283a9",
+        "cpu-1.bin": "49cc5e92bc7269e90a92be27560a1bb5bb49665c02b6e1b78858bfc66198121f",
+        "cpu-2.bin": "93ea115513c4a0b7fa2f42ae197026996597f22bd8cd220478e6285e0c0f7b5c",
+        "cpu-3.bin": "9d776b1adbf86c34f178930b6f3d2ca933bb395ed3698d6eef48d3b294610793",
+        "truth-0.bin": "e8609301cb63b5c4fbf883d67e96a3892ce77538d18b9ff9e5ba1b90df756c34",
+        "truth-1.bin": "a896322c4812de0a9af89b8b4f60d8f553a83dc4a817c853b8bcfa3dc0c99774",
+        "truth-2.bin": "fb99e6612d4ca674045342ce1dc6cf3b4a31385db6a2f682cc523cddef8813e5"
+      },
+      "time": {
+        "wall_seconds": 22.79,
+        "user_seconds": 166.9,
+        "system_seconds": 8.89,
+        "maximum_resident_bytes": 24544509952,
+        "darwin_peak_memory_footprint_bytes": 18070620712
+      }
+    },
+    {
+      "ordinal": 1,
+      "mapped": true,
+      "started_unix": 1793496041.112601,
+      "wall_seconds": 26.840852975845337,
+      "report": {
+        "core_schema": 4,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "memory_words": 750521,
+        "output": null,
+        "capture_ns": 2085427583,
+        "capture_cache_trim_ns": 10316333,
+        "capture_cache_released_bytes": 1606811648,
+        "cpu_fixed_witness_retired": true,
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8
+        },
+        "commit_batch_columns": 64,
+        "retained_cpu_lde": true,
+        "setup_ns": 1715639542,
+        "prove_ns": 22667153125,
+        "same_process_verify_ns": 280806875,
+        "publish_before_report_ns": 22922667,
+        "total_before_report_ns": 26782929292,
+        "retained_main": {
+          "live_bytes": 0,
+          "peak_reserved_bytes": 19220201472,
+          "total_bytes": 24698486784,
+          "limit_bytes": 137438953472
+        }
+      },
+      "proof_sha256": {
+        "cpu-0.bin": "bdd43de9f007ed7d75754a311c9e699125e14bbce2328e9d56cca18efe1283a9",
+        "cpu-1.bin": "49cc5e92bc7269e90a92be27560a1bb5bb49665c02b6e1b78858bfc66198121f",
+        "cpu-2.bin": "93ea115513c4a0b7fa2f42ae197026996597f22bd8cd220478e6285e0c0f7b5c",
+        "cpu-3.bin": "9d776b1adbf86c34f178930b6f3d2ca933bb395ed3698d6eef48d3b294610793",
+        "truth-0.bin": "e8609301cb63b5c4fbf883d67e96a3892ce77538d18b9ff9e5ba1b90df756c34",
+        "truth-1.bin": "a896322c4812de0a9af89b8b4f60d8f553a83dc4a817c853b8bcfa3dc0c99774",
+        "truth-2.bin": "fb99e6612d4ca674045342ce1dc6cf3b4a31385db6a2f682cc523cddef8813e5"
+      },
+      "time": {
+        "wall_seconds": 26.83,
+        "user_seconds": 153.82,
+        "system_seconds": 11.99,
+        "maximum_resident_bytes": 28687007744,
+        "darwin_peak_memory_footprint_bytes": 11598645344
+      }
+    },
+    {
+      "ordinal": 2,
+      "mapped": true,
+      "started_unix": 1793496067.956448,
+      "wall_seconds": 27.874933004379272,
+      "report": {
+        "core_schema": 4,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "memory_words": 750521,
+        "output": null,
+        "capture_ns": 2102134500,
+        "capture_cache_trim_ns": 10437041,
+        "capture_cache_released_bytes": 1606811648,
+        "cpu_fixed_witness_retired": true,
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8
+        },
+        "commit_batch_columns": 64,
+        "retained_cpu_lde": true,
+        "setup_ns": 1795192667,
+        "prove_ns": 23611794000,
+        "same_process_verify_ns": 277895625,
+        "publish_before_report_ns": 22004167,
+        "total_before_report_ns": 27820039417,
+        "retained_main": {
+          "live_bytes": 0,
+          "peak_reserved_bytes": 19220201472,
+          "total_bytes": 24698486784,
+          "limit_bytes": 137438953472
+        }
+      },
+      "proof_sha256": {
+        "cpu-0.bin": "bdd43de9f007ed7d75754a311c9e699125e14bbce2328e9d56cca18efe1283a9",
+        "cpu-1.bin": "49cc5e92bc7269e90a92be27560a1bb5bb49665c02b6e1b78858bfc66198121f",
+        "cpu-2.bin": "93ea115513c4a0b7fa2f42ae197026996597f22bd8cd220478e6285e0c0f7b5c",
+        "cpu-3.bin": "9d776b1adbf86c34f178930b6f3d2ca933bb395ed3698d6eef48d3b294610793",
+        "truth-0.bin": "e8609301cb63b5c4fbf883d67e96a3892ce77538d18b9ff9e5ba1b90df756c34",
+        "truth-1.bin": "a896322c4812de0a9af89b8b4f60d8f553a83dc4a817c853b8bcfa3dc0c99774",
+        "truth-2.bin": "fb99e6612d4ca674045342ce1dc6cf3b4a31385db6a2f682cc523cddef8813e5"
+      },
+      "time": {
+        "wall_seconds": 27.86,
+        "user_seconds": 157.55,
+        "system_seconds": 12.4,
+        "maximum_resident_bytes": 28325003264,
+        "darwin_peak_memory_footprint_bytes": 11402020528
+      }
+    },
+    {
+      "ordinal": 3,
+      "mapped": false,
+      "started_unix": 1793496095.8344178,
+      "wall_seconds": 24.812551259994507,
+      "report": {
+        "core_schema": 4,
+        "completed_ethereum_block": false,
+        "total_steps": 16777212,
+        "cpu_proofs": 4,
+        "truth_proofs": 3,
+        "memory_words": 750521,
+        "output": null,
+        "capture_ns": 2087718833,
+        "capture_cache_trim_ns": 10794125,
+        "capture_cache_released_bytes": 1606811648,
+        "cpu_fixed_witness_retired": true,
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8
+        },
+        "commit_batch_columns": 64,
+        "retained_cpu_lde": false,
+        "setup_ns": 1782710834,
+        "prove_ns": 20568483625,
+        "same_process_verify_ns": 283869500,
+        "publish_before_report_ns": 22972875,
+        "total_before_report_ns": 24756897292,
+        "retained_main": {
+          "live_bytes": 0,
+          "peak_reserved_bytes": 6959972352,
+          "total_bytes": 6959972352,
+          "limit_bytes": 137438953472
+        }
+      },
+      "proof_sha256": {
+        "cpu-0.bin": "bdd43de9f007ed7d75754a311c9e699125e14bbce2328e9d56cca18efe1283a9",
+        "cpu-1.bin": "49cc5e92bc7269e90a92be27560a1bb5bb49665c02b6e1b78858bfc66198121f",
+        "cpu-2.bin": "93ea115513c4a0b7fa2f42ae197026996597f22bd8cd220478e6285e0c0f7b5c",
+        "cpu-3.bin": "9d776b1adbf86c34f178930b6f3d2ca933bb395ed3698d6eef48d3b294610793",
+        "truth-0.bin": "e8609301cb63b5c4fbf883d67e96a3892ce77538d18b9ff9e5ba1b90df756c34",
+        "truth-1.bin": "a896322c4812de0a9af89b8b4f60d8f553a83dc4a817c853b8bcfa3dc0c99774",
+        "truth-2.bin": "fb99e6612d4ca674045342ce1dc6cf3b4a31385db6a2f682cc523cddef8813e5"
+      },
+      "time": {
+        "wall_seconds": 24.8,
+        "user_seconds": 181.59,
+        "system_seconds": 9.24,
+        "maximum_resident_bytes": 24544215040,
+        "darwin_peak_memory_footprint_bytes": 18141382800
+      }
+    }
+  ]
+}

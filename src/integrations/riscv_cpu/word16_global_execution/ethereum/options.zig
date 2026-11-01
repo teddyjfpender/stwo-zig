@@ -7,6 +7,7 @@ pub const Options = struct {
     batch_set: bool = false,
     keep_capture_cache: bool = false,
     keep_fixed_witness: bool = false,
+    retained_cpu_lde: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -20,6 +21,9 @@ pub const Options = struct {
                 out.batch_set = true;
                 out.batch = try std.fmt.parseUnsigned(u32, arg[23..], 10);
                 if (out.batch == 0) return error.InvalidStreamingBatchSize;
+            } else if (std.mem.eql(u8, arg, "--retained-cpu-lde")) {
+                if (out.retained_cpu_lde) return error.DuplicateOperationalOption;
+                out.retained_cpu_lde = true;
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
@@ -38,7 +42,7 @@ pub const Options = struct {
         return .{ .lanes = jobs, .workers_per_lane = @intCast(workers / jobs) };
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.retained_cpu_lde;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {

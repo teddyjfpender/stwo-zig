@@ -8,6 +8,9 @@ pub const Options = struct {
     commit_batch_columns: u32 = 64,
     schedule: @import("schedule.zig").Policy = .{},
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
+    /// Experimental execution policy, only for native2n CPU trees. Crypto
+    /// truths retain their independently sized coefficient-backed storage.
+    retained_cpu_lde: bool = false,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,
     /// One-way producer mode: event arrays are freed as owned LS metadata is
@@ -16,6 +19,7 @@ pub const Options = struct {
     pub fn validate(self: Options, count: usize) !void {
         try self.schedule.validate();
         if (self.commit_batch_columns == 0) return error.InvalidStreamingBatchSize;
+        if (self.retained_cpu_lde and self.retained_main == null) return error.MissingRetainedEvaluationStore;
         if (self.recorders.len != 0 and self.recorders.len != count) return error.InvalidServiceRecorderRoster;
         if (self.directory != null and self.recorders.len == 0) return error.MissingServiceRecorders;
     }

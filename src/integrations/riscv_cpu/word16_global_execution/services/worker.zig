@@ -124,6 +124,16 @@ pub const Worker = struct {
     pub fn seal(self: *Worker, a: std.mem.Allocator, expected: P.Expected, options: Profiling.Options, ordinal: usize) !G.Receipt {
         if (self.failed or self.sealed or self.started) return error.InvalidServiceWorkerPhase;
         errdefer self.failed = true;
+        const retained_lde = options.retained_cpu_lde and self.descriptor == .cpu;
+        if (retained_lde) {
+            const store = options.retained_main orelse return error.MissingRetainedEvaluationStore;
+            // This transition precedes every root append. Fixed keys keep
+            // their immutable compact owner; only new CPU MAIN/INTER use LDEs.
+            if (self.scheme.trees.items.len != 0) return error.InvalidServiceWorkerPhase;
+            self.scheme.compact_polynomial_storage = false;
+            self.scheme.setCoefficientRetentionPolicy(.never);
+            self.scheme.setRetainedColumnAllocator(store.retainedAllocator());
+        }
         try self.descriptor.begin(&self.channel, expected);
         self.spec = self.channel.digestBytes();
         try self.descriptor.key().append(a, &self.scheme, &self.channel);
@@ -136,7 +146,7 @@ pub const Worker = struct {
         if (options.retained_main) |store| {
             var spill = try Profile.StageScope.begin(options.recorder(ordinal), "retained_main_spill", "Retain sealed native MAIN coefficients");
             defer spill.end();
-            _ = try store.spill(a, &self.scheme.trees.items[1]);
+            _ = if (retained_lde) try store.retireEvaluations(&self.scheme.trees.items[1]) else try store.spill(a, &self.scheme.trees.items[1]);
         }
         self.sealed = true;
         return receipt;
