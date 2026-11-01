@@ -10,6 +10,8 @@ pub const Kernel = struct {
 };
 pub const MIN_STACK = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 pub fn evaluate(kernel: Kernel, size: usize, output: *Column, pool: ?*work.WorkPool) !void {
+    var timing = @import("domain_timing.zig").Span.begin(.rows, size, output.random_coeff_powers.len, if (pool != null) "leased" else if (work.cooperative.current() != null) "queue" else "serial");
+    defer timing.end();
     return evaluateImpl(kernel, size, output, pool, null);
 }
 fn evaluateImpl(kernel: Kernel, size: usize, output: *Column, pool: ?*work.WorkPool, fail_after_helpers: ?usize) !void {

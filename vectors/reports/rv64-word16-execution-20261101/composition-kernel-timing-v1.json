@@ -1,0 +1,1479 @@
+{
+  "events": [
+    {
+      "kind": "fft",
+      "rows": 512,
+      "width": 12,
+      "nanoseconds": 7417,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 512,
+      "width": 3,
+      "nanoseconds": 66541,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 290,
+      "nanoseconds": 778125,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 5,
+      "nanoseconds": 13875,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 285,
+      "nanoseconds": 755417,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 12,
+      "nanoseconds": 3159708,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 14,
+      "nanoseconds": 3668542,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 42,
+      "nanoseconds": 2625,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 3,
+      "nanoseconds": 35542,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 3284625,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 4,
+      "nanoseconds": 4240834,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 70,
+      "nanoseconds": 21179458,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 262144,
+      "width": 55,
+      "nanoseconds": 33298334,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 10,
+      "nanoseconds": 21808208,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 262144,
+      "width": 37,
+      "nanoseconds": 37141666,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 512,
+      "width": 12,
+      "nanoseconds": 10167,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 512,
+      "width": 3,
+      "nanoseconds": 24709,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 12,
+      "nanoseconds": 4101916,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 14,
+      "nanoseconds": 4560458,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 290,
+      "nanoseconds": 3858417,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 5,
+      "nanoseconds": 63042,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 3373500,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 4,
+      "nanoseconds": 3769083,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 42,
+      "nanoseconds": 4000,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 3,
+      "nanoseconds": 19250,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 285,
+      "nanoseconds": 4846375,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 70,
+      "nanoseconds": 21467500,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 10,
+      "nanoseconds": 26325208,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 524288,
+      "width": 55,
+      "nanoseconds": 78672208,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 524288,
+      "width": 82,
+      "nanoseconds": 121611292,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 55,
+      "nanoseconds": 356959084,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 524288,
+      "width": 37,
+      "nanoseconds": 92336375,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 55,
+      "nanoseconds": 178379667,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 524288,
+      "width": 35,
+      "nanoseconds": 116999916,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 82,
+      "nanoseconds": 265741667,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 121,
+      "nanoseconds": 219111042,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 82,
+      "nanoseconds": 534090375,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 37,
+      "nanoseconds": 160873167,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 37,
+      "nanoseconds": 322587416,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 35,
+      "nanoseconds": 198040291,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 261,
+      "nanoseconds": 252793958,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8388608,
+      "width": 90,
+      "nanoseconds": 619020500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 35,
+      "nanoseconds": 372047041,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 8388608,
+      "width": 52,
+      "nanoseconds": 362535417,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 41,
+      "nanoseconds": 43037209,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 4,
+      "nanoseconds": 13819666,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8388608,
+      "width": 90,
+      "nanoseconds": 343644584,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 81,
+      "nanoseconds": 34983500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 58,
+      "nanoseconds": 27096667,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 31,
+      "nanoseconds": 161125,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 16384,
+      "width": 5,
+      "nanoseconds": 340916,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 121,
+      "nanoseconds": 51802500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 261,
+      "nanoseconds": 70731250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 2375,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 37666,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 1667,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 4416,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 16,
+      "nanoseconds": 1062083,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 888792,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 121,
+      "nanoseconds": 5433500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 261,
+      "nanoseconds": 9486333,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 81,
+      "nanoseconds": 1116792,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 32768,
+      "width": 58,
+      "nanoseconds": 1827209,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 8388608,
+      "width": 52,
+      "nanoseconds": 297753542,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 41,
+      "nanoseconds": 37420125,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 4,
+      "nanoseconds": 13655667,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 81,
+      "nanoseconds": 35608625,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 58,
+      "nanoseconds": 27494167,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 31,
+      "nanoseconds": 442417,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 32768,
+      "width": 5,
+      "nanoseconds": 391584,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 25,
+      "nanoseconds": 29221708,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 25,
+      "nanoseconds": 18328125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 2042,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 5333,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 16,
+      "nanoseconds": 674583,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 909417,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 524288,
+      "width": 121,
+      "nanoseconds": 23697333,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 524288,
+      "width": 261,
+      "nanoseconds": 33312042,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 81,
+      "nanoseconds": 3538917,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 58,
+      "nanoseconds": 3617250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 512,
+      "width": 12,
+      "nanoseconds": 10542,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 512,
+      "width": 3,
+      "nanoseconds": 19959,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 290,
+      "nanoseconds": 1081209,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 5,
+      "nanoseconds": 17583,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2048,
+      "width": 285,
+      "nanoseconds": 987708,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 12,
+      "nanoseconds": 4046625,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 14,
+      "nanoseconds": 4798667,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 42,
+      "nanoseconds": 3458,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 3,
+      "nanoseconds": 13125,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 3328917,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 4,
+      "nanoseconds": 3889292,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 70,
+      "nanoseconds": 20892334,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 262144,
+      "width": 55,
+      "nanoseconds": 37590208,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 10,
+      "nanoseconds": 25405291,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 262144,
+      "width": 37,
+      "nanoseconds": 39182459,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 55,
+      "nanoseconds": 357977042,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 82,
+      "nanoseconds": 755445083,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 37,
+      "nanoseconds": 474285750,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 32,
+      "width": 141,
+      "nanoseconds": 6750,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 32,
+      "width": 5,
+      "nanoseconds": 167,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 512,
+      "width": 12,
+      "nanoseconds": 9291,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 512,
+      "width": 3,
+      "nanoseconds": 20250,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 32,
+      "width": 136,
+      "nanoseconds": 4041,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 12,
+      "nanoseconds": 3937958,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 14,
+      "nanoseconds": 4732875,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 3217167,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 42,
+      "nanoseconds": 3541,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 3,
+      "nanoseconds": 13375,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 4,
+      "nanoseconds": 3944458,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 70,
+      "nanoseconds": 22355958,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 10,
+      "nanoseconds": 24248125,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 290,
+      "nanoseconds": 85136500,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 5,
+      "nanoseconds": 1368500,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 524288,
+      "width": 82,
+      "nanoseconds": 119212500,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8388608,
+      "width": 90,
+      "nanoseconds": 834374709,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 524288,
+      "width": 35,
+      "nanoseconds": 100309333,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 82,
+      "nanoseconds": 247940125,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 285,
+      "nanoseconds": 91851000,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 35,
+      "nanoseconds": 411893167,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 55,
+      "nanoseconds": 365262000,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 35,
+      "nanoseconds": 222426333,
+      "mode": "serial"
+    },
+    {
+      "kind": "rows",
+      "rows": 8388608,
+      "width": 52,
+      "nanoseconds": 457030333,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 37,
+      "nanoseconds": 306984625,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 41,
+      "nanoseconds": 38624500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 4,
+      "nanoseconds": 14048125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 81,
+      "nanoseconds": 32949625,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 58,
+      "nanoseconds": 25282666,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 31,
+      "nanoseconds": 212083,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 16384,
+      "width": 5,
+      "nanoseconds": 301375,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8388608,
+      "width": 90,
+      "nanoseconds": 618939750,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 121,
+      "nanoseconds": 51354583,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 261,
+      "nanoseconds": 68212542,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 2625,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 8958,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 1375,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 3708,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 16,
+      "nanoseconds": 961125,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 787500,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 65536,
+      "width": 121,
+      "nanoseconds": 2829292,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 65536,
+      "width": 261,
+      "nanoseconds": 5177167,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 8388608,
+      "width": 52,
+      "nanoseconds": 295045709,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 41,
+      "nanoseconds": 39568625,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 4,
+      "nanoseconds": 13509542,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 81,
+      "nanoseconds": 34709375,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 58,
+      "nanoseconds": 29075375,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 31,
+      "nanoseconds": 373167,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 32768,
+      "width": 5,
+      "nanoseconds": 311208,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1048576,
+      "width": 121,
+      "nanoseconds": 50463916,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 1048576,
+      "width": 261,
+      "nanoseconds": 67117292,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 2334,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 64,
+      "width": 25,
+      "nanoseconds": 8958,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 2097152,
+      "width": 25,
+      "nanoseconds": 25233459,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 2097152,
+      "width": 25,
+      "nanoseconds": 17361000,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 16,
+      "nanoseconds": 879750,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 3,
+      "nanoseconds": 719500,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 524288,
+      "width": 121,
+      "nanoseconds": 27150750,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 524288,
+      "width": 261,
+      "nanoseconds": 38815125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 131072,
+      "width": 81,
+      "nanoseconds": 4231500,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 131072,
+      "width": 58,
+      "nanoseconds": 6239667,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 188,
+      "nanoseconds": 1985542,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 32768,
+      "width": 167,
+      "nanoseconds": 2927125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 386,
+      "nanoseconds": 1738167,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 16384,
+      "width": 439,
+      "nanoseconds": 6088167,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 386,
+      "nanoseconds": 440584,
+      "mode": "leased"
+    },
+    {
+      "kind": "rows",
+      "rows": 4096,
+      "width": 439,
+      "nanoseconds": 5037250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 12,
+      "nanoseconds": 16083,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 4,
+      "nanoseconds": 5292,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 8,
+      "nanoseconds": 10250,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 12,
+      "nanoseconds": 185958,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 12,
+      "nanoseconds": 15209,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 4,
+      "nanoseconds": 6416,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 4,
+      "nanoseconds": 51625,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 1024,
+      "width": 8,
+      "nanoseconds": 12208,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 8,
+      "nanoseconds": 103291,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 12,
+      "nanoseconds": 153250,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 4,
+      "nanoseconds": 51583,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 8,
+      "nanoseconds": 102208,
+      "mode": "serial"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 4551,
+      "nanoseconds": 10627625,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 1607,
+      "nanoseconds": 3972083,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 2944,
+      "nanoseconds": 7248792,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 4551,
+      "nanoseconds": 11586667,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 1607,
+      "nanoseconds": 4223000,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 8192,
+      "width": 2944,
+      "nanoseconds": 8382125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 391,
+      "nanoseconds": 4026250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 6,
+      "nanoseconds": 100459,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 385,
+      "nanoseconds": 4115083,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 391,
+      "nanoseconds": 4158334,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 6,
+      "nanoseconds": 94208,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 32768,
+      "width": 385,
+      "nanoseconds": 4041375,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 718,
+      "nanoseconds": 3268125,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 6,
+      "nanoseconds": 57958,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 712,
+      "nanoseconds": 3188500,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 718,
+      "nanoseconds": 3123500,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 6,
+      "nanoseconds": 54167,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 712,
+      "nanoseconds": 3186625,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 718,
+      "nanoseconds": 3177208,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 6,
+      "nanoseconds": 54041,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 712,
+      "nanoseconds": 3300000,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 718,
+      "nanoseconds": 3159458,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 6,
+      "nanoseconds": 64250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 16384,
+      "width": 712,
+      "nanoseconds": 3064750,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 391,
+      "nanoseconds": 442750,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 6,
+      "nanoseconds": 29167,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 385,
+      "nanoseconds": 387375,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 391,
+      "nanoseconds": 382708,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 6,
+      "nanoseconds": 27250,
+      "mode": "leased"
+    },
+    {
+      "kind": "fft",
+      "rows": 4096,
+      "width": 385,
+      "nanoseconds": 384209,
+      "mode": "leased"
+    }
+  ],
+  "joined_elapsed_seconds": {
+    "fft": 7.069552212000005,
+    "rows": 5.1702927070000015
+  },
+  "fft_share_of_common_helper_joined_elapsed": 0.5775851131108601,
+  "all11artifacts_byte_exact": true,
+  "coverage": "Common Word16 native2n row and FFT helpers, excluding standalone Keccak/secp native4n truth kernels and buffer preparation. Joined intervals overlap across components/lanes; not blockwall or CPUtime.",
+  "qualification": {
+    "source": "e70b35c31 plus timing scopes",
+    "schema": 6,
+    "scope": "four CPU and three truth prefix; common Word16 composition helpers only",
+    "safe_tests": [
+      "test-riscv64-word16-alu",
+      "test-riscv64-air"
+    ],
+    "checked_artifacts": 11,
+    "all_artifacts_byte_identical": true,
+    "fresh_receiver_accepted": true,
+    "fresh_receiver_receipt": "/tmp/rv64-domain-timing-prefix4-fresh-v1.json",
+    "limitations": [
+      "Joined helper elapsed intervals overlap; sums are neither CPU time nor block wall time.",
+      "Excludes standalone Keccak/secp kernels and buffer/twiddle preparation.",
+      "This receipt predates LS32 schema7; no schema7 proof parity asserted.",
+      "FFT share alone does not establish a profitable expansion cache."
+    ]
+  }
+}

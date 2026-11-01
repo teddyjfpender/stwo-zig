@@ -8,6 +8,11 @@ const M = core.fields.m31.M31;
 const Domain = core.poly.circle.domain.CircleDomain;
 const Twiddles = engine.poly.twiddles.TwiddleTree([]const M);
 pub fn evaluate(buffers: [][]M, domain: Domain, tree: Twiddles, pool: ?*work.WorkPool) !void {
+    var timing = @import("domain_timing.zig").Span.begin(.fft, domain.size(), buffers.len, if (pool != null) "leased" else if (work.cooperative.current() != null) "queue" else "serial");
+    defer timing.end();
+    return evaluateImpl(buffers, domain, tree, pool);
+}
+fn evaluateImpl(buffers: [][]M, domain: Domain, tree: Twiddles, pool: ?*work.WorkPool) !void {
     if (buffers.len == 0) return;
     const size = domain.size();
     for (buffers) |buffer| if (buffer.len != size) return error.InvalidDomainTransformShape;
