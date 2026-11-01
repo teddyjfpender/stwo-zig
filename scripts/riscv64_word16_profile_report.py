@@ -12,6 +12,10 @@ from pathlib import Path
 
 def collect(directory: Path) -> dict:
     cost = json.loads((directory / "cost.json").read_text())
+    report_path = directory / "report.json"
+    report = json.loads(report_path.read_text()) if report_path.exists() else {}
+    schedule = report.get("coordinator_schedule", {"lanes": 1})
+    concurrent = schedule.get("lanes", 1) > 1
     cpu_count = len(cost["cpu"])
     count = cpu_count + len(cost["truth"])
     paths = sorted(directory.glob("physical-*.stages.json"))
@@ -43,7 +47,7 @@ def collect(directory: Path) -> dict:
             stages[name] = entry
             totals[name][f"{kind}_seconds"] += seconds
             for field in ("user_seconds", "system_seconds"):
-                if usage.get(field) is not None:
+                if not concurrent and usage.get(field) is not None:
                     totals[name][field] += usage[field]
             peak = max(peak, usage.get("process_peak_resident_bytes_at_end", 0))
         rows.append({"ordinal": i, "kind": kind, "columns": shape["columns"],
@@ -53,7 +57,13 @@ def collect(directory: Path) -> dict:
                      "stages": stages})
     native = {k: [sum(x["native_cells"][j] for x in cost[k]) for j in range(3)]
               for k in ("cpu", "truth")}
-    return {"schema": 1, "scope": "observations only; no proof verification",
+    if concurrent:
+        for total in totals.values():
+            total["user_seconds"] = None
+            total["system_seconds"] = None
+    return {"schema": 2, "scope": "observations only; no proof verification",
+            "coordinator_schedule": schedule,
+            "stage_duration_scope": "sum of worker elapsed intervals; concurrent intervals overlap and are not block wall time",
             "counter_scope": "whole process/all threads; root stages only; not valid to add overlapping intervals",
             "memory_scope": "process-lifetime peak at interval end, not a per-proof isolated peak",
             "lifting_scope": "exposure is not compression count; native-height incremental hashing reuses prefixes",

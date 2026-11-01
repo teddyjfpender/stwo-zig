@@ -14,6 +14,12 @@ pub const Owner = struct {
     keccak_owners: std.ArrayList(*K.TruthSetup) = .{},
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
+        return initPolicy(a, image, cpu, truth, false);
+    }
+    pub fn initRetiring(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
+        return initPolicy(a, image, cpu, truth, true);
+    }
+    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool) !Owner {
         const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
         const truths = a.alloc(R.Truth, truth.len) catch |err| {
             a.free(cpus);
@@ -35,6 +41,8 @@ pub const Owner = struct {
             const s = try a.create(R.CpuSetup);
             errdefer a.destroy(s);
             s.* = try R.CpuSetup.initWithAuthority(a, &image.authority, d.geometry, d.bridges);
+            errdefer s.deinit();
+            if (retire) try s.releaseFixedWitness();
             self.cpu_owners.appendAssumeCapacity(s);
             out.* = s;
         }

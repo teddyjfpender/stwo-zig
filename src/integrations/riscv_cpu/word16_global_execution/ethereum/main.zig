@@ -18,8 +18,10 @@ pub fn main() !void {
     var recycler = Recycler.init(std.heap.smp_allocator, 4 << 30);
     defer recycler.deinit();
     const a = recycler.allocator();
-    const args = try std.process.argsAlloc(a);
-    defer std.process.argsFree(a, args);
+    const raw_args = try std.process.argsAlloc(a);
+    defer std.process.argsFree(a, raw_args);
+    const operational = try @import("options.zig").Options.parse(raw_args);
+    const args = raw_args[0..operational.count];
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .core_claims = P.CORE_CLAIM_COUNT, .cpu_claims_with_services = P.CPU_CLAIM_COUNT, .pcs_config = @import("../protocol.zig").T.P.config() });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
     const verify = std.mem.eql(u8, args[1], "verify");
@@ -28,6 +30,7 @@ pub fn main() !void {
     const plan = std.mem.eql(u8, args[1], "plan");
     if (!verify and !prefix and !produce and !plan) return error.InvalidWord16EthereumMode;
     if ((verify or prefix) and args.len != 4) return error.VerifierNeedsNoExecutionPackets;
+    if ((verify or prefix) and operational.producerOnly()) return error.ProvingOptionInReceiver;
     if ((produce or plan) and args.len != 6) return error.ExpectedModeConfigJobsOutputPrefixCount;
     const raw = try std.fs.cwd().readFileAlloc(a, args[2], 16384);
     defer a.free(raw);
@@ -50,7 +53,7 @@ pub fn main() !void {
         var trusted_program = try Program.initWithAuthority(a, &image.authority);
         defer trusted_program.deinit();
         _ = try Receiver.expected(&image, trusted_program.identity, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
-        var keys = try Keys.init(a, &image, loaded.cpu_declarations, loaded.truth_declarations);
+        var keys = if (operational.keep_fixed_witness) try Keys.init(a, &image, loaded.cpu_declarations, loaded.truth_declarations) else try Keys.initRetiring(a, &image, loaded.cpu_declarations, loaded.truth_declarations);
         defer keys.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verify(a, &image, &keys, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
@@ -64,13 +67,17 @@ pub fn main() !void {
     var captured = try Capture.init(a, &image, &program, config.value, jobs, count);
     defer captured.deinit();
     const capture_ns = timer.read();
+    const trim_start = timer.read();
+    if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
+    const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
+    const trim_ns = timer.read() - trim_start;
     const cpu_declarations = try Plan.cpus(a, &captured);
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truths(a, &captured);
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
-    var keys = try Keys.init(a, &image, cpu_declarations, truth_declarations);
+    var keys = if (operational.keep_fixed_witness) try Keys.init(a, &image, cpu_declarations, truth_declarations) else try Keys.initRetiring(a, &image, cpu_declarations, truth_declarations);
     defer keys.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = config.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     // Full completion is explicit. Prefix fixtures can never accidentally
@@ -80,14 +87,15 @@ pub fn main() !void {
     try std.fs.cwd().makeDir(args[4]);
     var dir = try std.fs.cwd().openDir(args[4], .{});
     defer dir.close();
-    const setup_ns = timer.read() - capture_ns;
+    const setup_ns = timer.read() - capture_ns - trim_ns;
     try @import("telemetry.zig").write(a, dir, &keys, &captured);
     var store = try @import("../retained_main_store.zig").Store.init(args[4], 128 << 30);
     defer store.deinit();
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();
+    const schedule = try operational.schedule(try Request.effectiveWorkers(config.value));
     const prove_start = timer.read();
-    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
+    var bundle = try E.produceWithOptions(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, .{ .retained_main = &store, .schedule = schedule, .commit_batch_columns = operational.batch, .consume_memory_events = true, .recorders = if (config.value.profile_stages) observations.pointers else &.{}, .directory = if (config.value.profile_stages) dir else null });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     const verify_start = timer.read();
@@ -95,7 +103,7 @@ pub fn main() !void {
     const verify_ns = timer.read() - verify_start;
     const publish_start = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
+    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {

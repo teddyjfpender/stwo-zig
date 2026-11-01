@@ -32,10 +32,11 @@ native memory image. Prefix acceptance returns no completed-block/output claim.
 
 Producer retention is bounded: 128 GiB of temporary unlinked file-backed native
 MAIN coefficients, owned by their PCS trees and released on success or error.
-Original CPU witnesses move into streaming commits; narrow sources retire once
-their final proof and receiver obligations are encoded. The current packet
-import retains tapes until the chronological ledger is built, then releases them
-before key setup/proving; streaming import remains a memory optimization.
+CPU and truth MAIN/INTER witnesses move into owned streaming commits; narrow
+sources retire once their final proof and receiver obligations are encoded.
+Packet import releases each compact tape after adding its records to the
+chronological ledger. Capture records and consumed RAM-event lists retire at
+their explicit ownership barriers. These changes preserve the proof statement.
 
 `cost.json` reports exact native column cells, active family counts, distinct
 setup identities and a base lifted-leaf exposure. The latter is not a compression
@@ -82,3 +83,63 @@ stage/cell accounting. It rejects incomplete profile sets and never verifies a
 proof. Peak values are lifetime process high-water marks, not independently
 measured batch peaks. Neither the overall3–5x time target nor the1.5–2x whole-
 block memory target is claimed complete by this qualification.
+
+## LS48 complete-block qualification
+
+`ethereum-full-ls48-v1.json` records another complete 25+5 proof bundle and a
+separate fresh completed receiver. The canonical-range induction removes
+1,766,326,272 interaction cells, taking the block from 24,137,490,240 to
+22,371,163,968 native cells. Physical proofs total 35,968,076 bytes, with the
+61,971,538-byte public RAM sidecar accounted separately. MAIN retention is
+unchanged: interaction reductions do not shrink the stage-one MAIN barrier.
+
+The observed serial run took 294.74s wall; peak RSS was 42.46GB. These numbers
+are concurrent engineering observations, not a controlled speed or memory win.
+In particular, the higher lifetime RSS prevents claiming a memory improvement.
+
+## Bounded coordinator and ownership policy
+
+The canonical services coordinator has one tagged CPU/truth worker lifecycle:
+construct source, seal fixed/MAIN, join the complete manifest, derive its shared
+challenges, generate owned INTER, prove, then retain the narrow closure data.
+Each phase runs indexed workers independently. Every phase joins all started
+threads before success, failure cleanup, or publication. A failed worker cannot
+publish a partial manifest or partially initialized proof bundle. Legacy routes
+remain compatibility controls; they are not additional production pipelines.
+
+The CLI defaults to two proof lanes, splitting the configured helper budget
+between two stable pools. `--proof-jobs=1` preserves serial scheduling;
+`--proof-jobs=2` requests the bounded concurrent schedule. A complete stage-one
+barrier is mandatory: stage two cannot overlap an unfinished stage-one shard
+under the same execution manifest. No worker accepts a caller-selected RAM
+challenge. Independent lanes require a thread-safe allocator and disjoint
+sources, recorders and result slots.
+
+`--commit-batch-columns=N` controls a requested width (default 64), subject to
+the backend's byte budget. It does not promise 64 simultaneous log-22 columns.
+CPU fixed evaluation matrices retire after their immutable key is sealed;
+native coefficients, commitments and authority metadata remain owned by the
+key. `--keep-fixed-witness` retains them as a qualification control. The capture
+cache is trimmed before key construction; `--keep-capture-cache` disables that
+trim without changing proof bytes. These flags select operational ownership,
+never verifier authority or public statements.
+
+Profile schema 2 labels summed stage intervals as worker elapsed time. In a
+concurrent run they are not wall time. Whole-process user/system counters are
+preserved per interval but are not summed across overlapping proofs. The
+top-level producer timer remains the block elapsed measurement.
+
+`ethereum-concurrent-workers-v1.json` qualifies these operational policies on
+all104,253,913 instructions. Two8-helper lanes, requested commit width64 and
+early CPU fixed retirement preserve all30 physical proofs, bundle manifest,
+RAM cells and cost ledger exactly against the serial LS48 control. A separate
+fresh process accepts the completed block. MAIN reserved bytes return to zero.
+Safe/Fast combined21 tests include joined worker failures, retained-store budget
+failure and a valid changed geometry with a rebuilt key and resealed manifest
+that still rejects the old physical proof. Safe terminal6 also passes.
+
+The observed candidate wall was240.04s, peak RSS35.87GB and lifetime footprint
+36.35GB. The control observed294.74s/42.46GB. Several operational changes and
+other concurrent engineering distinguish these runs: this is qualification and
+resource observation, not an isolated scheduler speedup. A controlled paired
+run must use the same binary and explicit operational flags.
