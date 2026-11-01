@@ -203,14 +203,7 @@ pub fn ForField(comptime Secure: type) type {
                 instance = 0;
                 while (instance < n_instances) : (instance += 1) {
                     if (claims_to_verify_by_instance[instance]) |claims| {
-                        const layer = try popStoredLayer(
-                            checkpointed,
-                            allocator,
-                            if (checkpointed) present_by_instance[instance] else &.{},
-                            layers_by_instance[instance],
-                            &next_layer_idx[instance],
-                        );
-                        var oracle = layer.intoMultivariatePolyOwned(instance_lambda, &eq_evals);
+                        var oracle = try popStoredOracle(checkpointed, allocator, if (checkpointed) present_by_instance[instance] else &.{}, layers_by_instance[instance], &next_layer_idx[instance], instance_lambda, &eq_evals);
                         sumcheck_oracles.append(allocator, oracle) catch |err| {
                             oracle.deinit(allocator);
                             return err;
@@ -370,6 +363,16 @@ pub fn ForField(comptime Secure: type) type {
                 current = next;
             }
             return .{ .layers = layers, .present = present };
+        }
+        fn popStoredOracle(comptime checkpointed: bool, a: std.mem.Allocator, present: []const bool, layers: []Layer, next: *usize, lambda: Secure, eq: *const EqEvals) !GkrMultivariatePolyOracle {
+            if (checkpointed and next.* != 0 and !present[next.* - 1]) {
+                next.* -= 1;
+                const height = next.*;
+                if (height == 0 or !present[height - 1]) return error.InvalidLayerStructure;
+                return layers[height - 1].intoReducedMultivariatePoly(lambda, eq);
+            }
+            const layer = try popStoredLayer(checkpointed, a, present, layers, next);
+            return layer.intoMultivariatePolyOwned(lambda, eq);
         }
         fn popStoredLayer(comptime checkpointed: bool, a: std.mem.Allocator, present: []const bool, layers: []Layer, next: *usize) !Layer {
             if (!checkpointed) return popNextLayer(layers, next);
