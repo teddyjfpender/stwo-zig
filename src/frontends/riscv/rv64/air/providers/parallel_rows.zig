@@ -14,6 +14,7 @@ pub fn evaluate(kernel: Kernel, size: usize, output: *Column, pool: ?*work.WorkP
 }
 fn evaluateImpl(kernel: Kernel, size: usize, output: *Column, pool: ?*work.WorkPool, fail_after_helpers: ?usize) !void {
     if (size == 0 or size % 16 != 0) return error.InvalidPackedRowExtent;
+    if (pool == null) if (work.cooperative.current()) |queue| return evaluateCooperative(kernel, size, output, queue);
     if (pool) |active| if (active.stackSize() < MIN_STACK) return error.InvalidPackedRowWorkerStack;
     const workers = if (pool) |active| @min(active.workerCount(), @max(1, size / 4096)) else 1;
     if (workers == 1) return kernel.run(kernel.context, 0, size, output);
@@ -45,6 +46,36 @@ fn evaluateImpl(kernel: Kernel, size: usize, output: *Column, pool: ?*work.WorkP
     group.wait();
     joined = true;
     for (jobs[0..workers]) |job| if (job.failure) |err| return err;
+}
+/// Upper bound on cooperative row chunks; chunks stay >= 4096 rows.
+pub const MAX_COOPERATIVE_CHUNKS = 128;
+/// Same disjoint 16-row-aligned ranges as the leased path, published on the
+/// composition queue driven by the calling thread. Chunks are finer than one
+/// per worker so concurrently running components balance across threads.
+fn evaluateCooperative(kernel: Kernel, size: usize, output: *Column, queue: *work.cooperative.Queue) !void {
+    const chunks = @min(MAX_COOPERATIVE_CHUNKS, queue.preferredChunks(@max(1, size / 4096)));
+    if (chunks == 1) return kernel.run(kernel.context, 0, size, output);
+    output.next_fresh_index = null;
+    const Split = struct {
+        kernel: Kernel,
+        blocks: usize,
+        chunks: usize,
+        output: *Column,
+        failures: [MAX_COOPERATIVE_CHUNKS]?anyerror = @splat(null),
+        fn run(context: *anyopaque, index: usize) void {
+            const self: *@This() = @ptrCast(@alignCast(context));
+            var local = self.output.*;
+            const start = 16 * (self.blocks * index / self.chunks);
+            const end = 16 * (self.blocks * (index + 1) / self.chunks);
+            self.kernel.run(self.kernel.context, start, end, &local) catch |err| {
+                self.failures[index] = err;
+            };
+        }
+    };
+    var split = Split{ .kernel = kernel, .blocks = size / 16, .chunks = chunks, .output = output };
+    var batch = work.cooperative.Batch{ .context = &split, .run = Split.run, .count = chunks };
+    queue.split(&batch);
+    for (split.failures[0..chunks]) |failure| if (failure) |err| return err;
 }
 const Job = struct {
     kernel: Kernel,

@@ -12,6 +12,7 @@ pub fn evaluate(buffers: [][]M, domain: Domain, tree: Twiddles, pool: ?*work.Wor
     const size = domain.size();
     for (buffers) |buffer| if (buffer.len != size) return error.InvalidDomainTransformShape;
     const cells = std.math.mul(usize, buffers.len, size) catch return error.InvalidDomainTransformShape;
+    if (pool == null) if (work.cooperative.current()) |queue| return evaluateCooperative(buffers, domain, tree, queue);
     const workers = if (pool) |active| @min(active.workerCount(), @min(buffers.len, @max(1, cells / 8192))) else 1;
     if (workers <= 1) return engine.poly.circle.poly.evaluateBuffersWithTwiddles(buffers, domain, tree);
     var lease = try pool.?.acquire(try work.WorkerBudget.init(workers));
@@ -29,6 +30,31 @@ pub fn evaluate(buffers: [][]M, domain: Domain, tree: Twiddles, pool: ?*work.Wor
     }
     for (jobs[0..workers]) |job| if (job.failure) |failure| return failure;
 }
+/// Column chunks published on the composition queue driven by the caller.
+/// Every column is transformed by exactly the serial routine.
+fn evaluateCooperative(buffers: [][]M, domain: Domain, tree: Twiddles, queue: *work.cooperative.Queue) !void {
+    const chunks = @min(MAX_COOPERATIVE_CHUNKS, queue.preferredChunks(buffers.len));
+    if (chunks <= 1) return engine.poly.circle.poly.evaluateBuffersWithTwiddles(buffers, domain, tree);
+    const Split = struct {
+        buffers: [][]M,
+        chunks: usize,
+        domain: Domain,
+        tree: Twiddles,
+        failures: [MAX_COOPERATIVE_CHUNKS]?anyerror = @splat(null),
+        fn run(context: *anyopaque, index: usize) void {
+            const self: *@This() = @ptrCast(@alignCast(context));
+            const slice = self.buffers[self.buffers.len * index / self.chunks .. self.buffers.len * (index + 1) / self.chunks];
+            engine.poly.circle.poly.evaluateBuffersWithTwiddles(slice, self.domain, self.tree) catch |err| {
+                self.failures[index] = err;
+            };
+        }
+    };
+    var split = Split{ .buffers = buffers, .chunks = chunks, .domain = domain, .tree = tree };
+    var batch = work.cooperative.Batch{ .context = &split, .run = Split.run, .count = chunks };
+    queue.split(&batch);
+    for (split.failures[0..chunks]) |failure| if (failure) |err| return err;
+}
+pub const MAX_COOPERATIVE_CHUNKS = 128;
 const Job = struct {
     buffers: [][]M,
     target: Domain,

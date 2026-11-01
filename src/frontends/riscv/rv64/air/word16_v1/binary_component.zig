@@ -180,13 +180,25 @@ pub const Component = struct {
         if (owned_count != 0) {
             var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
             defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("../providers/domain_transform.zig").evaluate(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles), null);
         }
         const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
         defer a.free(inverses);
         const columns = try acc.columns(a, &.{.{ .log_size = eval_log, .n_cols = self.nConstraints() }});
         defer a.free(columns);
         var output = columns[0];
-        try @import("binary_packed_rows.zig").evaluate(self, evaluations, 0, n, inverses, &output);
+        const rows = DomainRows{ .component = self, .columns = evaluations, .inverses = inverses };
+        try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = DomainRows.run }, n, &output, null);
+    }
+};
+/// Row-range adapter: the serial packed kernel over disjoint 16-row-aligned
+/// ranges. Splits only on a cooperative composition queue.
+const DomainRows = struct {
+    component: *const Component,
+    columns: []const []const M,
+    inverses: []const M,
+    fn run(context: *const anyopaque, start: usize, end: usize, output: *accumulation.ColumnAccumulator) anyerror!void {
+        const self: *const DomainRows = @ptrCast(@alignCast(context));
+        return @import("binary_packed_rows.zig").evaluate(self.component, self.columns, start, end, self.inverses, output);
     }
 };

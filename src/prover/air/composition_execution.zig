@@ -132,6 +132,23 @@ pub const Execution = struct {
     }
 };
 
+/// Default soft admission bound of the cooperative composition queue: the
+/// estimated working set (expanded trace columns plus secure output bucket)
+/// of components expanded at the same time. It scales with the number of
+/// queue threads and the composition domain: 64 bytes per max-domain row per
+/// thread, i.e. sixteen max-domain base columns per thread. At 8 threads and
+/// a 2^23 domain this is 4 GiB. One component is always admitted when none is
+/// running, so the bound limits concurrency and never fails a proof.
+/// `STWO_ZIG_COMPOSITION_QUEUE_BYTES` overrides it (decimal bytes).
+pub fn defaultQueueAdmissionBytes(threads: usize, max_log_size: u32) usize {
+    if (std.posix.getenv("STWO_ZIG_COMPOSITION_QUEUE_BYTES")) |text| {
+        if (std.fmt.parseInt(usize, text, 10)) |value| return value else |_| {}
+    }
+    if (max_log_size >= @bitSizeOf(usize) - 8) return std.math.maxInt(usize);
+    const rows = @as(usize, 1) << @intCast(max_log_size);
+    return std.math.mul(usize, @max(threads, 1), rows * 64) catch std.math.maxInt(usize);
+}
+
 /// Adapts the additive execution-aware hook while retaining the established
 /// backend ABI for device and third-party backends.
 pub fn tryBackend(
@@ -245,4 +262,12 @@ test "implicit execution preserves the serial compatibility path in tests" {
         api.CpuCompositionContentionPolicy.compatibility,
         execution.contention_policy,
     );
+}
+
+test "queue admission default scales with threads and composition domain" {
+    if (std.posix.getenv("STWO_ZIG_COMPOSITION_QUEUE_BYTES") != null) return error.SkipZigTest;
+    try std.testing.expectEqual(@as(usize, 4) << 30, defaultQueueAdmissionBytes(8, 23));
+    try std.testing.expectEqual(@as(usize, 64) << 10, defaultQueueAdmissionBytes(1, 10));
+    try std.testing.expectEqual(@as(usize, 64) << 10, defaultQueueAdmissionBytes(0, 10));
+    try std.testing.expectEqual(std.math.maxInt(usize), defaultQueueAdmissionBytes(8, 60));
 }
