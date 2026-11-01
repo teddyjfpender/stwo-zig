@@ -45,6 +45,7 @@ pub const CommitmentOptions = struct {
     proof_of_work: type = void,
 };
 pub const CpuBackend = configured(.{});
+pub const Om31FriBackend = @import("om31_fri.zig").Backend;
 
 /// Product-owned commitment scheduling using the same CPU implementation.
 /// Other frontends retain their existing defaults; qualification can override

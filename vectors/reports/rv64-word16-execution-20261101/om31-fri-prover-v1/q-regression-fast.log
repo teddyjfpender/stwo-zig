@@ -1,0 +1,8 @@
+test-riscv64-gkr-circuit
++- riscv test suite guard
+   +- run test stderr
+GKR_CIRCUIT_COST {"gates":{"eq":19,"qm31_ops":2162,"m31_to_u32":352,"triple_xor":552,"blake_g_gate":5520},"operations":{"equals":19,"add":767,"sub":81,"mul":762,"inv":0,"div":0,"pointwise_mul":552,"guess":116,"blake_updates":69,"permutation_inputs":0,"outputs":1,"triple_xor":552,"m31_to_u32":352},"variables":25146}
+
+GKR_BINDING_COST row_log=22 global_log=22 {"gates":{"eq":560,"qm31_ops":9428,"m31_to_u32":0,"triple_xor":0,"blake_g_gate":0},"operations":{"equals":560,"add":2779,"sub":1268,"mul":5381,"inv":557,"div":0,"pointwise_mul":0,"guess":581,"blake_updates":0,"permutation_inputs":0,"outputs":1,"triple_xor":0,"m31_to_u32":0},"variables":9428}
+
+GKR_BINDING_COST row_log=22 global_log=25 {"gates":{"eq":560,"qm31_ops":9449,"m31_to_u32":0,"triple_xor":0,"blake_g_gate":0},"operations":{"equals":560,"add":2783,"sub":1271,"mul":5395,"inv":557,"div":0,"pointwise_mul":0,"guess":581,"blake_updates":0,"permutation_inputs":0,"outputs":1,"triple_xor":0,"m31_to_u32":0},"variables":9449}

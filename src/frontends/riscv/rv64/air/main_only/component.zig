@@ -9,6 +9,10 @@ const O = core.fields.om31.OM31;
 const Point = core.circle.CirclePoint(O);
 const Air = core.air.components.ForField(O);
 const Acc = core.air.accumulation.ForField(O).PointEvaluationAccumulator;
+const engine = @import("stwo_prover_engine");
+const P = engine.air.component_prover.ForField(O);
+const D = engine.air.accumulation.ForField(O);
+const Domain = @import("domain.zig");
 pub const Component = struct {
     log_size: u32,
     public: A.PublicFor(O),
@@ -103,8 +107,12 @@ pub const Component = struct {
         if (sink.count != s.constraints) return error.InvalidMainOnlyConstraintCount;
     }
     pub fn asVerifierComponent(self: *const @This()) Air.Component {
-        // Only the verifier surface is exposed until the real wide prover
-        // trace/domain interfaces are supplied; no pretend prover exists here.
-        return core.air.derive.ForField(O).ComponentAdapter(@This(), void, void, void).asVerifierComponent(self);
+        return core.air.derive.ForField(O).ComponentAdapter(@This(), P.ComponentProver, P.Trace, D.DomainEvaluationAccumulator).asVerifierComponent(self);
+    }
+    pub fn asProverComponent(self: *const @This()) P.ComponentProver {
+        return core.air.derive.ForField(O).ComponentAdapter(@This(), P.ComponentProver, P.Trace, D.DomainEvaluationAccumulator).asProverComponent(self);
+    }
+    pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const P.Trace, accumulator: *D.DomainEvaluationAccumulator) !void {
+        return Domain.evaluate(self, trace, accumulator, null);
     }
 };
