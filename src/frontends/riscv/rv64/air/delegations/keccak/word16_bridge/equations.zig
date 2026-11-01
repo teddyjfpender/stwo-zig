@@ -23,8 +23,14 @@ pub fn ioTuple(comptime F: type, f: []const F, m: []const F, after: bool) [11]F 
     @memcpy(tuple[3..], m[(if (after) L.AFTER_BYTES else L.BEFORE_BYTES)..][0..8]);
     return tuple;
 }
-pub fn emitFor(comptime F: type, _: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
-    R.equations.transitionLocalFor(F, f[0..3], m[0..28], pm[0..28], 25 * calls, out);
+/// Original direct bridge equations. No local/global interaction columns
+/// enter this seam; OWNER/ranges and RAM/KIO closure remain explicit debts.
+pub fn emitMainFor(comptime F: type, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    if (comptime E.isExternalLane(F)) {
+        R.equations.transitionLocalWithPublicFor(F, f[0..3], m[0..28], pm[0..28], E.callsFor(F, span).mul(E.qFor(F, 25)), E.nonemptyFor(F, span), out);
+    } else {
+        R.equations.transitionLocalFor(F, f[0..3], m[0..28], pm[0..28], 25 * span.calls, out);
+    }
     const one = F.one();
     const active = m[0];
     const padding = one.sub(active);
@@ -47,8 +53,12 @@ pub fn emitFor(comptime F: type, _: L.Kind, f: []const F, m: []const F, pm: []co
     }
     const continuation = active.mul(one.sub(f[4]));
     for ([_]usize{ 9, 12, 13, 28, 29, 30, 31, 32 }) |c| out.emit(continuation.mul(m[c].sub(pm[c])));
-    out.emit(active.mul(m[L.CALL_ID].sub(E.qFor(F, first_id)).sub(f[5])));
+    out.emit(active.mul(m[L.CALL_ID].sub(E.firstIdFor(F, span)).sub(f[5])));
     for (m[28..]) |v| out.emit(padding.mul(v));
+}
+pub fn emitFor(comptime F: type, _: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    emitMainFor(F, f, m, pm, .{ .calls = calls, .first_id = first_id }, out);
+    const active = m[0];
     R.equations.transitionRamFor(F, m, i, pi, f[1], f[2], claims.ram, ch.ram, out);
     S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, m)), active.mul(f[4]).neg(), E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
     const d = E.denominatorFor(F, ch.io.offset, &ch.io.coefficients, &ioTuple(F, f, m, false), true);

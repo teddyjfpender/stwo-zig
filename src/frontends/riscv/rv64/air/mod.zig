@@ -182,4 +182,5 @@ pub const native_output_pages = @import("native_output_pages.zig");
 pub const main_only = struct {
     pub const authority = @import("main_only/authority.zig");
     pub const component = @import("main_only/component.zig");
+    pub const global_classic = @import("main_only/global_classic.zig");
 };

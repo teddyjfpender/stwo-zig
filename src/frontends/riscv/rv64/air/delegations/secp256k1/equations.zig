@@ -59,12 +59,14 @@ pub fn emit(kind: L.Kind, program: *const P.Program, row: Row, current: []const 
 pub fn emitGeneric(comptime F: type, kind: L.Kind, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
     return emitGenericForPolicy(F, kind, .local, program, row, current, previous_final, claim, ch, public, sink);
 }
-pub fn emitGenericForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
+/// Original MAIN arithmetic and phase/call policy, independent of lookup
+/// storage. BYTE GKR and global Wire closure remain mandatory obligations.
+pub fn emitMainFor(comptime F: type, kind: L.Kind, row: RowFor(F), polynomial: Eval.ConstFor(F), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
     const active = row.main[0];
     const id = row.main[L.base(kind)];
     const f = row.fixed;
     const target = Eval.lastIdFor(F, public);
-    if (kind == .product) L.mul.evaluateGeneric(F, row.main[0..L.mul.Layout.main_columns], P.field.base_modulus, Eval.splatFor(F, ch.polynomial), DirectSinkFor(F){ .sink = sink }) else L.linear.evaluateGeneric(F, row.main[0..L.linear.Layout.main_columns], P.field.base_modulus, DirectSinkFor(F){ .sink = sink });
+    if (kind == .product) L.mul.evaluateGeneric(F, row.main[0..L.mul.Layout.main_columns], P.field.base_modulus, Eval.splatFor(F, polynomial), DirectSinkFor(F){ .sink = sink }) else L.linear.evaluateGeneric(F, row.main[0..L.linear.Layout.main_columns], P.field.base_modulus, DirectSinkFor(F){ .sink = sink });
     sink.emit(F.one().sub(f[L.COMPLETE]).mul(active));
     sink.emit(f[L.FIRST].mul(active.sub(Eval.nonemptyFor(F, public))));
     sink.emit(F.one().sub(f[L.PHASE_FIRST]).mul(active.sub(row.previous_active)));
@@ -84,6 +86,10 @@ pub fn emitGenericForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy
         sink.emit(row.main[L.linear.Layout.selector_subtract].sub(active.mul(f[L.SUB])));
         sink.emit(row.main[L.linear.Layout.selector_reduce_once].sub(active.mul(f[L.REDUCE])));
     }
+}
+pub fn emitGenericForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
+    emitMainFor(F, kind, row, ch.polynomial, public, sink);
+    const f = row.fixed;
     const S = Eval.SecureFor(F);
     for (0..L.batchesFor(kind, policy)) |batch| {
         var denominators: [3]S = @splat(S.one());
