@@ -29,9 +29,12 @@ const Snapshot = struct {
         return out;
     }
     fn evaluate(self: *const Snapshot, kind: L.Kind, program: *const P.Program, public: S.equations.Public, ch: S.equations.Challenges, claim: Q, out: *[522]Q) void {
+        self.evaluatePolicy(kind, .local, program, public, ch, claim, out);
+    }
+    fn evaluatePolicy(self: *const Snapshot, kind: L.Kind, policy: L.BytePolicy, program: *const P.Program, public: S.equations.Public, ch: S.equations.Challenges, claim: Q, out: *[522]Q) void {
         var sink = rv.evaluation.Sink{ .values = out };
-        S.equations.emit(kind, program, .{ .fixed = &self.fixed, .main = self.main[0..L.main(kind)], .previous_active = self.previous_active, .previous_id = self.previous_id }, self.current[0..L.batches(kind)], self.previous_final, claim, ch, public, &sink);
-        std.debug.assert(sink.count == L.constraints(kind));
+        S.equations.emitGenericForPolicy(Q, kind, policy, program, .{ .fixed = &self.fixed, .main = self.main[0..L.main(kind)], .previous_active = self.previous_active, .previous_id = self.previous_id }, self.current[0..L.batchesFor(kind, policy)], self.previous_final, claim, ch, public, &sink);
+        std.debug.assert(sink.count == L.constraintsFor(kind, policy));
     }
 };
 fn secure(data: []const M, n: usize, r: usize, c: usize) Q {
@@ -47,7 +50,7 @@ fn challenges() S.equations.Challenges {
 }
 test "projective all arbitrary QM31 residuals have degree at most four" {
     const ch = challenges();
-    for ([_]L.Kind{ .product, .linear }) |kind| {
+    for ([_]L.Kind{ .product, .linear }) |kind| for ([_]L.BytePolicy{ .local, .canonical_inputs }) |policy| {
         var differences: [6][522]Q = undefined;
         for (0..6) |sample| {
             const x = Q.fromBase(M.fromCanonical(@intCast(sample)));
@@ -58,13 +61,13 @@ test "projective all arbitrary QM31 residuals have degree at most four" {
             row.previous_active = dense(8001).add(x.mul(dense(8003)));
             row.previous_id = dense(8011).add(x.mul(dense(8017)));
             row.previous_final = dense(9001).add(x.mul(dense(9007)));
-            row.evaluate(kind, &P.add, .{ .calls = 3, .first_id = 7 }, ch, dense(10001), &differences[sample]);
+            row.evaluatePolicy(kind, policy, &P.add, .{ .calls = 3, .first_id = 7 }, ch, dense(10001), &differences[sample]);
         }
-        for (0..5) |order| for (0..5 - order) |sample| for (0..L.constraints(kind)) |i| {
+        for (0..5) |order| for (0..5 - order) |sample| for (0..L.constraintsFor(kind, policy)) |i| {
             differences[sample][i] = differences[sample + 1][i].sub(differences[sample][i]);
         };
-        for (differences[0][0..L.constraints(kind)]) |v| try std.testing.expect(v.isZero());
-    }
+        for (differences[0][0..L.constraintsFor(kind, policy)]) |v| try std.testing.expect(v.isZero());
+    };
 }
 test "projective public count, IDs, incomplete tail and claim are AIR authority" {
     const a = std.testing.allocator;

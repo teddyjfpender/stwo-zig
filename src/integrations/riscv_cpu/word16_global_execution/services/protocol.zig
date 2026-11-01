@@ -117,7 +117,11 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
     for (expected.final_registers) |x| ch.mixU64(x);
     switch (truth) {
         .keccak => |t| ch.mixU32s(&.{ t.setup.log, 13, 10, K.layout.FIXED, K.layout.MAIN, K.layout.INTERACTION, 11 }),
-        .secp => |t| ch.mixU32s(&.{ t.setup.logs[0], t.setup.logs[1], 8, S.layout.FIXED, @intCast(S.layout.main(.product)), @intCast(S.layout.interaction(.product)), @intCast(S.layout.main(.linear)), @intCast(S.layout.interaction(.linear)), 35 }),
+        .secp => |t| {
+            const policy = @import("../secp/roster.zig").TruthSetup.byte_policy;
+            S.byte_encoding.mix(ch, policy);
+            ch.mixU32s(&.{ t.setup.logs[0], t.setup.logs[1], 8, S.layout.FIXED, @intCast(S.layout.main(.product)), @intCast(S.layout.interactionFor(.product, policy)), @intCast(S.layout.main(.linear)), @intCast(S.layout.interactionFor(.linear, policy)), 35 });
+        },
     }
 }
 pub const Shared = struct { ram: A.memory.closed_ram.types.RamChallenges, kio: K.equations.Io, wire: S.equations.Wire };

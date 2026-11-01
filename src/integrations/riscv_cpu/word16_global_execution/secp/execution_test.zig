@@ -69,3 +69,56 @@ test "Secp receiver binds complete expected roots typed roles and every physical
     c.bundle.truths[1].claims[0] = c.bundle.truths[1].claims[0].sub(G.Q.one());
     if (E.verify(a, &keys, c.truthKeys(), c.expected(), &c.bundle)) |_| return error.AcceptedBalancedSecpClaims else |_| {}
 }
+
+fn zeroInputWord(_: *const anyopaque, address: u64) !u64 {
+    if (address < F.ADDRESS or address > F.ADDRESS + 184 or address & 7 != 0) return error.UntrustedSecpAddress;
+    return 0;
+}
+
+test "locally valid noncanonical secp operand proofs fail the actual closed Word16 Wire receiver" {
+    const S = @import("stwo_riscv_frontend").rv64_air.crypto.secp256k1;
+    inline for (.{ .lhs, .rhs }) |fault| {
+        var c = try F.Captured.init(a);
+        defer c.deinit();
+        for (c.advice.events) |events| for (events) |*event| {
+            event.before.value = 0;
+            event.after.value = 0;
+        };
+        for (c.advice.initial) |*cell| cell.state.value = 0;
+        for (c.advice.terminal) |*cell| cell.state.value = 0;
+        for (c.advice.calls) |*families| for (families) |calls| for (calls) |*call| {
+            @memset(&call.before, 0);
+            @memset(&call.after, 0);
+            for (&call.predecessors) |*state| state.value = 0;
+        };
+        var expected = F.expectedFor(c.program.identity);
+        expected.admission.image.initial_word = zeroInputWord;
+        expected.admission.image_identity = @splat(0x6e);
+        var s0 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try c.native[0].geometry(), .{ 5, 5 });
+        defer s0.deinit();
+        var s1 = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try c.native[1].geometry(), .{ 5, 5 });
+        defer s1.deinit();
+        var ta = try R.TruthSetup.init(a, .add, .{ try S.layout.logSize(.product, &S.program.add, 1), try S.layout.logSize(.linear, &S.program.add, 1) });
+        defer ta.deinit();
+        var td = try R.TruthSetup.init(a, .double, .{ try S.layout.logSize(.product, &S.program.double, 1), try S.layout.logSize(.linear, &S.program.double, 1) });
+        defer td.deinit();
+        // MAIN contains an operand byte256 in a zero-product row. The honest
+        // BYTE metadata/counts remain unchanged, and the dishonest prover
+        // computes Wire debt from the actual committed field coordinates.
+        var bundle = try E.testing.produceWithOperandFault(fault, a, &.{ &s0, &s1 }, .{ &ta, &td }, &.{ &c.native[0], &c.native[1] }, &c.advice, expected);
+        defer bundle.deinit(a);
+        // verify reaches the final closed Wire check only after verifying all
+        // four physical proofs, their MAIN roots, claims and manifest binding.
+        try std.testing.expectError(error.UnclosedSecpWire, E.verify(a, &.{ &s0, &s1 }, .{ &ta, &td }, expected, &bundle));
+        var debt = @import("../protocol.zig").Q.zero();
+        for (bundle.cpus) |cpu| for (cpu.claims.bridges) |bridge| {
+            debt = debt.add(bridge.wire);
+        };
+        for (bundle.truths) |truth| for (truth.claims) |claim| {
+            debt = debt.add(claim);
+        };
+        try std.testing.expect(!debt.isZero());
+        bundle.truths[0].claims[0] = bundle.truths[0].claims[0].sub(debt);
+        if (E.verify(a, &.{ &s0, &s1 }, .{ &ta, &td }, expected, &bundle)) |_| return error.AcceptedRebalancedOperandClaim else |_| {}
+    }
+}

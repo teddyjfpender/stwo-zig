@@ -18,6 +18,7 @@ pub fn ComponentFor(comptime Lane: type) type {
     return struct {
         const Self = @This();
         kind: L.Kind,
+        byte_policy: L.BytePolicy = .local,
         program: *const L.P.Program,
         log_size: u32,
         public: Eval.CallSpanFor(Lane),
@@ -38,7 +39,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             return Adapter.asVerifierComponent(self);
         }
         pub fn nConstraints(self: *const Self) usize {
-            return L.constraints(self.kind);
+            return L.constraintsFor(self.kind, self.byte_policy);
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
             return self.log_size + 2;
@@ -56,7 +57,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             errdefer a.free(f);
             const m = try points.emptyOrFilledLogs(a, L.main(self.kind), self.log_size);
             errdefer a.free(m);
-            const i = try points.emptyOrFilledLogs(a, L.interaction(self.kind), self.log_size);
+            const i = try points.emptyOrFilledLogs(a, L.interactionFor(self.kind, self.byte_policy), self.log_size);
             errdefer a.free(i);
             return air.TraceLogDegreeBounds.initOwned(try a.dupe([]u32, &.{ f, m, i }));
         }
@@ -77,7 +78,7 @@ pub fn ComponentFor(comptime Lane: type) type {
                 a.free(m[index]);
                 m[index] = replacement;
             }
-            const inter = try points.currentPointColumns(a, L.interaction(self.kind), point);
+            const inter = try points.currentPointColumns(a, L.interactionFor(self.kind, self.byte_policy), point);
             errdefer points.freePointColumns(a, inter);
             for (inter[inter.len - 4 ..]) |*column| {
                 const replacement = try a.dupe(Point, &.{ point, geometry.previousPoint(point, global_log) });
@@ -102,7 +103,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             const m = self.offsets.main;
             const i = self.offsets.interaction;
             const width = L.main(self.kind);
-            const inter = L.interaction(self.kind);
+            const inter = L.interactionFor(self.kind, self.byte_policy);
             var fixed: [L.FIXED]F = undefined;
             for (&fixed, 0..) |*v, c| v.* = try lane.sample(F, masks, 0, f + c, 0, 1);
             var main: [319]F = undefined;
@@ -110,10 +111,10 @@ pub fn ComponentFor(comptime Lane: type) type {
             const previous_active = try lane.sample(F, masks, 1, m, 1, 2);
             const previous_id = try lane.sample(F, masks, 1, m + L.base(self.kind), 1, 2);
             var current: [96]Eval.SecureFor(F) = undefined;
-            for (current[0..L.batches(self.kind)], 0..) |*v, b| v.* = try lane.secureSample(F, masks, 2, i + 4 * b, 0, if (4 * b + 4 >= inter) 2 else 1);
+            for (current[0..L.batchesFor(self.kind, self.byte_policy)], 0..) |*v, b| v.* = try lane.secureSample(F, masks, 2, i + 4 * b, 0, if (4 * b + 4 >= inter) 2 else 1);
             const previous_final = try lane.secureSample(F, masks, 2, i + inter - 4, 1, 2);
             sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
-            E.emitGeneric(F, self.kind, self.program, .{ .fixed = &fixed, .main = main[0..width], .previous_active = previous_active, .previous_id = previous_id }, current[0..L.batches(self.kind)], previous_final, self.claim, self.challenges, self.public, sink);
+            E.emitGenericForPolicy(F, self.kind, self.byte_policy, self.program, .{ .fixed = &fixed, .main = main[0..width], .previous_active = previous_active, .previous_id = previous_id }, current[0..L.batchesFor(self.kind, self.byte_policy)], previous_final, self.claim, self.challenges, self.public, sink);
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, accumulator: *acc.DomainEvaluationAccumulator) !void {
             return self.domain(trace, accumulator, null);
@@ -129,7 +130,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             try self.shape(trace.polys.items[0].len, trace.polys.items[1].len, trace.polys.items[2].len);
             const a = accumulator.allocator;
             const width = L.main(self.kind);
-            const inter = L.interaction(self.kind);
+            const inter = L.interactionFor(self.kind, self.byte_policy);
             const total = L.FIXED + width + inter;
             const polys = try a.alloc(cp.Poly, total);
             defer a.free(polys);
@@ -163,20 +164,20 @@ pub fn ComponentFor(comptime Lane: type) type {
             const D = @import("packed_domain.zig");
             const F = D.F;
             const width = L.main(self.kind);
-            const inter = L.interaction(self.kind);
+            const inter = L.interactionFor(self.kind, self.byte_policy);
             var prior: [D.LANES]usize = undefined;
             for (prior[0..count], 0..) |*value, i| value.* = evaluation.previousRow(part, r + i);
             for (&scratch.fixed, 0..) |*v, c| v.* = D.load(evaluation.current_values[c], r, count);
             for (scratch.main[0..width], 0..) |*v, c| v.* = D.load(evaluation.current_values[L.FIXED + c], r, count);
-            for (scratch.current[0..L.batches(self.kind)], 0..) |*v, b| v.* = D.secure(evaluation.current_values[L.FIXED + width + 4 * b ..], r, count);
+            for (scratch.current[0..L.batchesFor(self.kind, self.byte_policy)], 0..) |*v, b| v.* = D.secure(evaluation.current_values[L.FIXED + width + 4 * b ..], r, count);
             var weighted = Eval.PackedWeightedAccumulator{ .powers = output.random_coeff_powers };
             var sink = Eval.PackedSink{ .weighted_accumulator = &weighted };
-            E.emitGeneric(F, self.kind, self.program, .{ .fixed = &scratch.fixed, .main = scratch.main[0..width], .previous_active = D.gather(evaluation.previous_values[L.FIXED], prior[0..count]), .previous_id = D.gather(evaluation.previous_values[L.FIXED + L.base(self.kind)], prior[0..count]) }, scratch.current[0..L.batches(self.kind)], D.previousSecure(evaluation.previous_values[L.FIXED + width + inter - 4 ..], prior[0..count]), self.claim, self.challenges, self.public, &sink);
+            E.emitGenericForPolicy(F, self.kind, self.byte_policy, self.program, .{ .fixed = &scratch.fixed, .main = scratch.main[0..width], .previous_active = D.gather(evaluation.previous_values[L.FIXED], prior[0..count]), .previous_id = D.gather(evaluation.previous_values[L.FIXED + L.base(self.kind)], prior[0..count]) }, scratch.current[0..L.batchesFor(self.kind, self.byte_policy)], D.previousSecure(evaluation.previous_values[L.FIXED + width + inter - 4 ..], prior[0..count]), self.claim, self.challenges, self.public, &sink);
             std.debug.assert(sink.count == self.nConstraints());
             D.accumulate(output, evaluation.globalRow(part, r), count, weighted.accumulation.mulBase(F.splat(inverse)));
         }
         fn shape(self: *const Self, f: usize, m: usize, i: usize) !void {
-            if (f < self.offsets.fixed + L.FIXED or m < self.offsets.main + L.main(self.kind) or i < self.offsets.interaction + L.interaction(self.kind)) return error.InvalidSecpMaskShape;
+            if (f < self.offsets.fixed + L.FIXED or m < self.offsets.main + L.main(self.kind) or i < self.offsets.interaction + L.interactionFor(self.kind, self.byte_policy)) return error.InvalidSecpMaskShape;
         }
     };
 }

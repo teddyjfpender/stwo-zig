@@ -63,9 +63,9 @@ pub const Prepared = struct {
         const kind = trace.kind;
         const per = trace.program.rows(kind == .product);
         const active_rows = @as(usize, trace.calls) * per;
-        const count = L.byteCount(kind);
+        const count = L.byteCountFor(kind, trace.byte_policy);
         const metadata_count = L.metadataByteCount(kind);
-        const batches = L.batches(kind);
+        const batches = L.batchesFor(kind, trace.byte_policy);
         var sum = Q.zero();
         var denominators: [3 * BLOCK_ROWS]Q = undefined;
         var inverses: [3 * BLOCK_ROWS]Q = undefined;
@@ -151,9 +151,9 @@ pub fn generate(trace: *T.Trace, ch: E.Challenges, pool: ?*work.WorkPool) !Q {
     const a = trace.allocator;
     const columns = try columnSources(a, kind);
     defer a.free(columns);
-    const byte_sources = try a.alloc(Source, L.byteCount(kind));
+    const byte_sources = try a.alloc(Source, L.byteCountFor(kind, trace.byte_policy));
     defer a.free(byte_sources);
-    for (byte_sources, 0..) |*v, i| v.* = columns[T.byteColumn(kind, i)];
+    for (byte_sources, 0..) |*v, i| v.* = columns[L.byteColumnFor(kind, trace.byte_policy, i)];
 
     var prepared: Prepared = .{
         .trace = trace,
@@ -192,7 +192,7 @@ pub fn generate(trace: *T.Trace, ch: E.Challenges, pool: ?*work.WorkPool) !Q {
     }
 
     const workers = try workerCount(n, pool);
-    const data = try a.alloc(M, L.interaction(kind) * n);
+    const data = try a.alloc(M, L.interactionFor(kind, trace.byte_policy) * n);
     errdefer a.free(data);
     prepared.data = data;
     const sum = if (workers == 1) try prepared.fillRange(0, n) else blk: {
@@ -234,7 +234,7 @@ fn generateParallel(prepared: *const Prepared, pool: *work.WorkPool, workers: us
         offset.* = claim;
         claim = claim.add(job.sum);
     }
-    const batches = L.batches(prepared.trace.kind);
+    const batches = L.batchesFor(prepared.trace.kind, prepared.trace.byte_policy);
     var corrections: [work.MAX_WORKERS]Correction = undefined;
     for (corrections[0..workers], 0..) |*job, i| job.* = .{ .prepared = prepared, .offsets = &offsets, .workers = workers, .start = batches * i / workers, .end = batches * (i + 1) / workers };
     {

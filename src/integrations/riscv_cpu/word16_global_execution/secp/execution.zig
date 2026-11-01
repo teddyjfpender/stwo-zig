@@ -129,7 +129,7 @@ pub const TruthComponents = struct {
         return initSpan(setup, 1, calls, ch, claims);
     }
     pub fn initSpan(setup: *const R.TruthSetup, first_id: u32, calls: u32, ch: S.equations.Challenges, claims: [3]Q) TruthComponents {
-        return .{ .arithmetic = .{ .{ .kind = .product, .program = S.program.get(setup.kind), .log_size = setup.logs[0], .public = .{ .calls = calls, .first_id = first_id }, .challenges = ch, .claim = claims[0] }, .{ .kind = .linear, .program = S.program.get(setup.kind), .log_size = setup.logs[1], .public = .{ .calls = calls, .first_id = first_id }, .offsets = .{ .fixed = S.layout.FIXED, .main = S.layout.main(.product), .interaction = S.layout.interaction(.product) }, .challenges = ch, .claim = claims[1] } }, .bytes = .{ .fixed_offset = 2 * S.layout.FIXED, .main_offset = S.layout.main(.product) + S.layout.main(.linear), .interaction_offset = S.layout.interaction(.product) + S.layout.interaction(.linear), .alpha = ch.bytes, .claim = claims[2] } };
+        return .{ .arithmetic = .{ .{ .kind = .product, .byte_policy = R.TruthSetup.byte_policy, .program = S.program.get(setup.kind), .log_size = setup.logs[0], .public = .{ .calls = calls, .first_id = first_id }, .challenges = ch, .claim = claims[0] }, .{ .kind = .linear, .byte_policy = R.TruthSetup.byte_policy, .program = S.program.get(setup.kind), .log_size = setup.logs[1], .public = .{ .calls = calls, .first_id = first_id }, .offsets = .{ .fixed = S.layout.FIXED, .main = S.layout.main(.product), .interaction = S.layout.interactionFor(.product, R.TruthSetup.byte_policy) }, .challenges = ch, .claim = claims[1] } }, .bytes = .{ .fixed_offset = 2 * S.layout.FIXED, .main_offset = S.layout.main(.product) + S.layout.main(.linear), .interaction_offset = S.layout.interactionFor(.product, R.TruthSetup.byte_policy) + S.layout.interactionFor(.linear, R.TruthSetup.byte_policy), .alpha = ch.bytes, .claim = claims[2] } };
     }
     pub fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
         var out = [3]engine.air.component_prover.ComponentProver{ self.arithmetic[0].asProverComponent(), self.arithmetic[1].asProverComponent(), self.bytes.asProverComponent() };
@@ -147,6 +147,15 @@ fn firstIds(requests: []const P.Request, index: usize) ![2]u32 {
 /// Bounded qualification harness: coordinator retains several PCS owners here.
 /// No claim of fitting arbitrary execution fanout in one process is made.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2]*const R.TruthSetup, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
+    return produceImpl(a, setups, truths, prepared, advice, expected, .none);
+}
+const OperandFault = enum { none, lhs, rhs };
+pub const testing = if (@import("builtin").is_test) struct {
+    pub fn produceWithOperandFault(comptime fault: OperandFault, a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2]*const R.TruthSetup, prepared: []const *Native, advice: *const Advice, expected: P.Expected) !Bundle {
+        return produceImpl(a, setups, truths, prepared, advice, expected, fault);
+    }
+} else struct {};
+fn produceImpl(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2]*const R.TruthSetup, prepared: []const *Native, advice: *const Advice, expected: P.Expected, comptime fault: OperandFault) !Bundle {
     if (setups.len != prepared.len or setups.len != advice.events.len or setups.len != advice.calls.len) return error.InvalidSecpInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
@@ -215,6 +224,15 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         };
         var ts = try R.TruthSource.init(a, truth, inputs, 1);
         errdefer ts.deinit();
+        if (fault != .none and k == 0) {
+            const trace = &ts.batch.product;
+            const row = A.witness.physical(0, trace.log_size);
+            const column = if (fault == .lhs) S.layout.mul.Layout.lhs else S.layout.mul.Layout.rhs;
+            if (trace.main[S.layout.mul.Layout.lhs * trace.size() + row].v != 0 or trace.main[S.layout.mul.Layout.rhs * trace.size() + row].v != 0) return error.FaultNeedsZeroOperandFixture;
+            trace.main[column * trace.size() + row] = core.fields.m31.M31.fromCanonical(256);
+            // The retained BYTE metadata and multiplicities deliberately stay
+            // honest: this coordinate has no query in the selected schema.
+        }
         var scheme = try G.T.Scheme.init(a, G.T.P.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
@@ -225,7 +243,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const main = try ts.columns(a, 1);
         defer a.free(main);
         try scheme.commitBorrowedStreaming(a, main, 8, &channel);
-        try ts.releaseMain();
+        if (fault == .none or k != 0) try ts.releaseMain();
         const l0 = try truth.columnLogs(a, 0);
         defer a.free(l0);
         const l1 = try truth.columnLogs(a, 1);
@@ -282,7 +300,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         defer a.free(l1);
         if (!std.meta.eql(try actual(a, &tw.scheme, truth.key.root, l0, l1), manifest.roots[setups.len + k])) return error.SecpStage1Mismatch;
         const ch = try P.drawTruth(&tw.channel, &manifest, truth.kind);
-        const claims = [3]Q{ try tw.source.batch.product.generateInteraction(ch), try tw.source.batch.linear.generateInteraction(ch), try tw.source.bytes.generateInteraction(ch.bytes) };
+        const product_claim = if (fault != .none and k == 0) try S.trace.testing.interactionFromCommittedMain(&tw.source.batch.product, ch) else try tw.source.batch.product.generateInteraction(ch);
+        const claims = [3]Q{ product_claim, try tw.source.batch.linear.generateInteraction(ch), try tw.source.bytes.generateInteraction(ch.bytes) };
         tw.channel.mixFelts(&claims);
         const inter = try tw.source.columns(a, 2);
         defer a.free(inter);

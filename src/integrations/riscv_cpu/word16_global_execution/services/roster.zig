@@ -373,7 +373,7 @@ pub const TruthSource = union(enum) {
                     protected[i] = part.fixed;
                     protected[3 + i] = if (tree == 1) part.interaction else part.main;
                     matrices[i] = if (tree == 1) &part.main else &part.interaction;
-                    expected[i] = try std.math.mul(usize, if (tree == 1) A.crypto.secp256k1.layout.main(part.kind) else A.crypto.secp256k1.layout.interaction(part.kind), part.size());
+                    expected[i] = try std.math.mul(usize, if (tree == 1) A.crypto.secp256k1.layout.main(part.kind) else A.crypto.secp256k1.layout.interactionFor(part.kind, part.byte_policy), part.size());
                 }
                 if (!A.memory.ownership.same(a, s.bytes.allocator) or (tree == 1 and s.bytes.interaction.len != 0)) return error.InvalidTruthBufferOwner;
                 protected[2] = s.bytes.fixed;

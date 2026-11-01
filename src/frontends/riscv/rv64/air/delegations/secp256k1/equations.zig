@@ -57,6 +57,9 @@ pub fn emit(kind: L.Kind, program: *const P.Program, row: Row, current: []const 
     emitGeneric(Q, kind, program, row, current, previous_final, claim, ch, public, sink);
 }
 pub fn emitGeneric(comptime F: type, kind: L.Kind, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
+    return emitGenericForPolicy(F, kind, .local, program, row, current, previous_final, claim, ch, public, sink);
+}
+pub fn emitGenericForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy, program: *const P.Program, row: RowFor(F), current: []const Eval.SecureFor(F), previous_final: Eval.SecureFor(F), claim: Eval.ConstFor(F), ch: ChallengesFor(Eval.ConstFor(F)), public: Eval.CallSpanFor(Eval.ConstFor(F)), sink: *Eval.SinkFor(F)) void {
     const active = row.main[0];
     const id = row.main[L.base(kind)];
     const f = row.fixed;
@@ -82,18 +85,18 @@ pub fn emitGeneric(comptime F: type, kind: L.Kind, program: *const P.Program, ro
         sink.emit(row.main[L.linear.Layout.selector_reduce_once].sub(active.mul(f[L.REDUCE])));
     }
     const S = Eval.SecureFor(F);
-    for (0..L.batches(kind)) |batch| {
+    for (0..L.batchesFor(kind, policy)) |batch| {
         var denominators: [3]S = @splat(S.one());
         var coefficients: [3]F = @splat(F.zero());
-        if (batch + 1 == L.batches(kind)) {
+        if (batch + 1 == L.batchesFor(kind, policy)) {
             for (0..3) |event| {
                 denominators[event] = Eval.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTupleFor(F, kind, program, row, event), true);
                 coefficients[event] = wireCoefficientFor(F, row, event);
             }
         } else for (0..3) |j| {
             const index = 3 * batch + j;
-            if (index < L.byteCount(kind)) {
-                denominators[j] = Eval.splatFor(F, ch.bytes).sub(Eval.liftFor(F, byteFor(F, kind, row.main, index)));
+            if (index < L.byteCountFor(kind, policy)) {
+                denominators[j] = Eval.splatFor(F, ch.bytes).sub(Eval.liftFor(F, byteForPolicy(F, kind, policy, row.main, index)));
                 coefficients[j] = F.one();
             }
         }
@@ -107,7 +110,10 @@ pub fn byte(kind: L.Kind, main: []const Q, index: usize) Q {
     return byteFor(Q, kind, main, index);
 }
 pub fn byteFor(comptime F: type, kind: L.Kind, main: []const F, index: usize) F {
-    return main[L.byteColumn(kind, index)];
+    return byteForPolicy(F, kind, .local, main, index);
+}
+pub fn byteForPolicy(comptime F: type, kind: L.Kind, policy: L.BytePolicy, main: []const F, index: usize) F {
+    return main[L.byteColumnFor(kind, policy, index)];
 }
 pub fn wireCoefficient(row: Row, event: usize) Q {
     return wireCoefficientFor(Q, row, event);

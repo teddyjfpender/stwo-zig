@@ -96,6 +96,9 @@ pub const CpuSource = struct {
     }
 };
 pub const TruthSetup = struct {
+    /// This receiver owns Word16 bridges whose BEFORE and AFTER bytes are U8
+    /// authenticated. Producer declarations cannot select a weaker policy.
+    pub const byte_policy: S.layout.BytePolicy = .canonical_inputs;
     allocator: std.mem.Allocator,
     kind: S.program.Kind,
     logs: [2]u32,
@@ -129,7 +132,7 @@ pub const TruthSetup = struct {
         self.bytes.deinit();
     }
     pub fn widths(tree: usize) [3]usize {
-        return .{ if (tree == 0) S.layout.FIXED else if (tree == 1) S.layout.main(.product) else S.layout.interaction(.product), if (tree == 0) S.layout.FIXED else if (tree == 1) S.layout.main(.linear) else S.layout.interaction(.linear), ([_]usize{ 3, 1, 8 })[tree] };
+        return .{ if (tree == 0) S.layout.FIXED else if (tree == 1) S.layout.main(.product) else S.layout.interactionFor(.product, byte_policy), if (tree == 0) S.layout.FIXED else if (tree == 1) S.layout.main(.linear) else S.layout.interactionFor(.linear, byte_policy), ([_]usize{ 3, 1, 8 })[tree] };
     }
     pub fn fixedColumns(self: *const TruthSetup, a: std.mem.Allocator) ![]Col {
         const w = widths(0);
@@ -166,7 +169,7 @@ pub const TruthSource = struct {
                 input.coordinates[coord] = std.mem.readInt(u256, &bytes, .little);
             }
         }
-        var batch = try S.batch.Batch.initWithLogs(a, p, inputs, first, setup.logs[0], setup.logs[1]);
+        var batch = try S.batch.Batch.initWithLogsForPolicy(a, p, inputs, first, setup.logs[0], setup.logs[1], TruthSetup.byte_policy);
         errdefer batch.deinit();
         a.free(batch.product.fixed);
         batch.product.fixed = setup.product_fixed;

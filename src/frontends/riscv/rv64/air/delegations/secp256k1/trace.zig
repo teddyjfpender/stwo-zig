@@ -13,6 +13,7 @@ pub const Input = struct { coordinates: [6]u256 };
 pub const Trace = struct {
     allocator: std.mem.Allocator,
     kind: L.Kind,
+    byte_policy: L.BytePolicy = .local,
     program: *const P.Program,
     calls: u32,
     first_id: u32,
@@ -32,12 +33,15 @@ pub const Trace = struct {
         return initWithLogAndMainAllocator(a, a, kind, program, inputs, first_id, log);
     }
     pub fn initWithLogAndMainAllocator(a: std.mem.Allocator, main_allocator: std.mem.Allocator, kind: L.Kind, program: *const P.Program, inputs: []const Input, first_id: u32, log: u32) !Trace {
-        return build(a, .{ .owned = main_allocator }, kind, program, inputs, first_id, log);
+        return build(a, .{ .owned = main_allocator }, kind, program, inputs, first_id, log, .local);
     }
     pub fn initWithMainBuffer(a: std.mem.Allocator, kind: L.Kind, program: *const P.Program, inputs: []const Input, first_id: u32, log: u32, main: []M) !Trace {
-        return build(a, .{ .borrowed = main }, kind, program, inputs, first_id, log);
+        return build(a, .{ .borrowed = main }, kind, program, inputs, first_id, log, .local);
     }
-    fn build(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *const P.Program, inputs: []const Input, first_id: u32, log: u32) !Trace {
+    pub fn initWithLogAndPolicy(a: std.mem.Allocator, kind: L.Kind, program: *const P.Program, inputs: []const Input, first_id: u32, log: u32, policy: L.BytePolicy) !Trace {
+        return build(a, .{ .owned = a }, kind, program, inputs, first_id, log, policy);
+    }
+    fn build(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *const P.Program, inputs: []const Input, first_id: u32, log: u32, policy: L.BytePolicy) !Trace {
         try L.validate(kind, program, inputs.len, first_id, log);
         const n = @as(usize, 1) << @intCast(log);
         const width = L.main(kind);
@@ -77,9 +81,9 @@ pub const Trace = struct {
                 main[L.base(kind) * n + r] = M.fromCanonical(@intCast(@as(u64, first_id) + call));
             }
         }
-        var out = Trace{ .allocator = a, .kind = kind, .program = program, .calls = @intCast(inputs.len), .first_id = first_id, .log_size = log, .fixed = fixed, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .lookup_bytes = lookup_bytes };
-        for (0..n) |r| for (0..L.byteCount(kind)) |i| {
-            const c = byteColumn(kind, i);
+        var out = Trace{ .allocator = a, .kind = kind, .byte_policy = policy, .program = program, .calls = @intCast(inputs.len), .first_id = first_id, .log_size = log, .fixed = fixed, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .lookup_bytes = lookup_bytes };
+        for (0..n) |r| for (0..L.byteCountFor(kind, policy)) |i| {
+            const c = L.byteColumnFor(kind, policy, i);
             const value = main[c * n + r].v;
             if (value > 255) return error.InvalidSecpByte;
             out.byte_counts[value] += 1;
@@ -135,10 +139,13 @@ pub const Trace = struct {
     /// Serial scalar recipe retained as the exact equivalence authority for
     /// tests; production uses generateInteraction.
     pub fn generateInteractionReference(self: *Trace, ch: E.Challenges) !Q {
+        return self.generateReference(ch, false);
+    }
+    fn generateReference(self: *Trace, ch: E.Challenges, comptime committed_main: bool) !Q {
         if (self.interaction.len != 0) return error.SecpInteractionAlreadyGenerated;
         try self.validateMetadata();
         const n = self.size();
-        const batches = L.batches(self.kind);
+        const batches = L.batchesFor(self.kind, self.byte_policy);
         const data = try self.allocator.alloc(M, 4 * batches * n);
         errdefer self.allocator.free(data);
         const main = try self.allocator.alloc(Q, L.main(self.kind));
@@ -148,7 +155,10 @@ pub const Trace = struct {
             const r = physical(logical, self.log_size);
             var f: [L.FIXED]Q = undefined;
             for (&f, 0..) |*v, c| v.* = Q.fromBase(self.fixed[c * n + r]);
-            try self.metadataRow(logical, main);
+            if (committed_main) {
+                if (self.main.len != L.main(self.kind) * n) return error.InvalidSecpSourcePhase;
+                for (main, 0..) |*value, column| value.* = Q.fromBase(self.main[column * n + r]);
+            } else try self.metadataRow(logical, main);
             const row = E.Row{ .fixed = &f, .main = main };
             for (0..batches) |batch| {
                 if (batch + 1 == batches) {
@@ -156,7 +166,7 @@ pub const Trace = struct {
                 } else {
                     for (0..3) |j| {
                         const index = 3 * batch + j;
-                        if (index < L.byteCount(self.kind)) sum = sum.add(try ch.bytes.sub(E.byte(self.kind, main, index)).inv());
+                        if (index < L.byteCountFor(self.kind, self.byte_policy)) sum = sum.add(try ch.bytes.sub(E.byteForPolicy(Q, self.kind, self.byte_policy, main, index)).inv());
                     }
                 }
                 for (sum.toM31Array(), 0..) |v, c| data[(4 * batch + c) * n + r] = v;
@@ -166,6 +176,14 @@ pub const Trace = struct {
         return sum;
     }
 };
+pub const testing = if (@import("builtin").is_test) struct {
+    /// Dishonest prover fixture: read the actual committed field columns,
+    /// including intentionally noncanonical operand bytes that honest u8
+    /// metadata cannot represent. Never used by production construction.
+    pub fn interactionFromCommittedMain(trace: *Trace, ch: E.Challenges) !Q {
+        return trace.generateReference(ch, true);
+    }
+} else struct {};
 pub const byteColumn = L.byteColumn;
 pub fn fixedColumns(a: std.mem.Allocator, kind: L.Kind, program: *const P.Program, log: u32) ![]M {
     if (log < 5 or log > 22) return error.InvalidSecpGeometry;

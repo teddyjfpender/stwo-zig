@@ -5,6 +5,10 @@ pub const P = @import("program.zig");
 pub const mul = @import("../../../../air/guest_precompile/secp256k1_mul_direct.zig");
 pub const linear = @import("../../../../air/guest_precompile/secp256k1_linear_direct.zig");
 pub const Kind = enum { product, linear };
+/// Receiver-owned relation premise. Legacy bridges require local operand
+/// ranges; only Word16 receivers with canonical positive Wire35 producers
+/// select the inherited-input schema.
+pub const BytePolicy = enum(u32) { local = 0, canonical_inputs = 1 };
 pub const FIXED = 15;
 pub const FIRST = 0;
 pub const PHASE_FIRST = 1;
@@ -30,7 +34,10 @@ pub fn main(kind: Kind) usize {
 } // main call ID, not fixed/request-derived.
 /// BYTE relation queries, independent of the bytes retained for Wire35.
 pub fn byteCount(kind: Kind) usize {
-    return metadataByteCount(kind);
+    return byteCountFor(kind, .local);
+}
+pub fn byteCountFor(kind: Kind, policy: BytePolicy) usize {
+    return metadataByteCount(kind) - (if (policy == .canonical_inputs) @as(usize, 64) else 0);
 }
 /// Retained relation metadata must still reconstruct both Wire35 operands
 /// after the wide MAIN witness has been released, even if their range checks
@@ -42,19 +49,31 @@ pub fn metadataByteColumn(kind: Kind, index: usize) usize {
     return if (kind == .product) mul.Layout.first_byte + index else if (index < 96) linear.Layout.lhs + index else linear.Layout.canonical_sum + index - 96;
 }
 pub fn byteColumn(kind: Kind, index: usize) usize {
-    return metadataByteColumn(kind, index);
+    return byteColumnFor(kind, .local, index);
+}
+pub fn byteColumnFor(kind: Kind, policy: BytePolicy, index: usize) usize {
+    return metadataByteColumn(kind, index + (if (policy == .canonical_inputs) @as(usize, 64) else 0));
 }
 pub fn batches(kind: Kind) usize {
-    return (byteCount(kind) + 2) / 3 + 1;
+    return batchesFor(kind, .local);
+}
+pub fn batchesFor(kind: Kind, policy: BytePolicy) usize {
+    return (byteCountFor(kind, policy) + 2) / 3 + 1;
 }
 pub fn interaction(kind: Kind) usize {
-    return 4 * batches(kind);
+    return interactionFor(kind, .local);
+}
+pub fn interactionFor(kind: Kind, policy: BytePolicy) usize {
+    return 4 * batchesFor(kind, policy);
 }
 pub fn direct(kind: Kind) usize {
     return (if (kind == .product) mul.constraint_count else linear.constraint_count) + 8 + base(kind) - 1 + 32 + @as(usize, if (kind == .linear) 3 else 0);
 }
 pub fn constraints(kind: Kind) usize {
-    return direct(kind) + batches(kind);
+    return constraintsFor(kind, .local);
+}
+pub fn constraintsFor(kind: Kind, policy: BytePolicy) usize {
+    return direct(kind) + batchesFor(kind, policy);
 }
 pub fn logSize(kind: Kind, program: *const P.Program, calls: usize) !u32 {
     const rows = try std.math.mul(usize, calls, program.rows(kind == .product));

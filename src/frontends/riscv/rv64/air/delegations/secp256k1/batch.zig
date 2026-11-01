@@ -19,21 +19,24 @@ pub const Batch = struct {
         return initWithLogs(a, program, inputs, first_id, try L.logSize(.product, program, inputs.len), try L.logSize(.linear, program, inputs.len));
     }
     pub fn initWithLogs(a: std.mem.Allocator, program: *const P.Program, inputs: []const T.Input, first_id: u32, plog: u32, llog: u32) !Batch {
-        return build(a, a, program, .{ .coordinates = inputs }, first_id, plog, llog, null, null);
+        return build(a, a, program, .{ .coordinates = inputs }, first_id, plog, llog, null, null, .local);
+    }
+    pub fn initWithLogsForPolicy(a: std.mem.Allocator, program: *const P.Program, inputs: []const T.Input, first_id: u32, plog: u32, llog: u32, policy: L.BytePolicy) !Batch {
+        return build(a, a, program, .{ .coordinates = inputs }, first_id, plog, llog, null, null, policy);
     }
     pub fn initFromPackets(a: std.mem.Allocator, program: *const P.Program, calls: []const BCall, first_id: u32, format: Format, plog: u32, llog: u32, fixed: ?FixedColumns) !Batch {
-        return build(a, a, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, null);
+        return build(a, a, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, null, .local);
     }
     pub fn initFromPacketsWithMainAllocator(a: std.mem.Allocator, main_allocator: std.mem.Allocator, program: *const P.Program, calls: []const BCall, first_id: u32, format: Format, plog: u32, llog: u32, fixed: ?FixedColumns) !Batch {
-        return build(a, main_allocator, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, null);
+        return build(a, main_allocator, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, null, .local);
     }
     pub fn initFromPacketsWithMainBuffers(a: std.mem.Allocator, program: *const P.Program, calls: []const BCall, first_id: u32, format: Format, plog: u32, llog: u32, fixed: ?FixedColumns, main: MainBuffers) !Batch {
-        return build(a, a, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, main);
+        return build(a, a, program, .{ .packets = .{ .calls = calls, .format = format } }, first_id, plog, llog, fixed, main, .local);
     }
     pub fn initWithMainBuffers(a: std.mem.Allocator, program: *const P.Program, inputs: []const T.Input, first_id: u32, plog: u32, llog: u32, main: MainBuffers) !Batch {
-        return build(a, a, program, .{ .coordinates = inputs }, first_id, plog, llog, null, main);
+        return build(a, a, program, .{ .coordinates = inputs }, first_id, plog, llog, null, main, .local);
     }
-    fn build(a: std.mem.Allocator, main_allocator: std.mem.Allocator, program: *const P.Program, inputs: InputSource, first_id: u32, plog: u32, llog: u32, fixed: ?FixedColumns, main: ?MainBuffers) !Batch {
+    fn build(a: std.mem.Allocator, main_allocator: std.mem.Allocator, program: *const P.Program, inputs: InputSource, first_id: u32, plog: u32, llog: u32, fixed: ?FixedColumns, main: ?MainBuffers, policy: L.BytePolicy) !Batch {
         _ = try L.admitRoster(&.{ .{ .kind = .product, .program = program, .calls = inputs.len(), .first_id = first_id, .log = plog }, .{ .kind = .linear, .program = program, .calls = inputs.len(), .first_id = first_id, .log = llog } }, &.{});
         if (fixed) |f| {
             if (f.product.len != L.FIXED * (@as(usize, 1) << @intCast(plog)) or f.linear.len != L.FIXED * (@as(usize, 1) << @intCast(llog))) return error.InvalidSecpFixedShape;
@@ -47,9 +50,9 @@ pub const Batch = struct {
                 try Storage.exclude(&slices, std.mem.sliceAsBytes(f.linear));
             }
         }
-        var product = try empty(a, if (main) |m| .{ .borrowed = m.product } else .{ .owned = main_allocator }, .product, program, inputs.len(), first_id, plog, if (fixed) |f| f.product else null);
+        var product = try empty(a, if (main) |m| .{ .borrowed = m.product } else .{ .owned = main_allocator }, .product, program, inputs.len(), first_id, plog, if (fixed) |f| f.product else null, policy);
         errdefer product.deinit();
-        var linear = try empty(a, if (main) |m| .{ .borrowed = m.linear } else .{ .owned = main_allocator }, .linear, program, inputs.len(), first_id, llog, if (fixed) |f| f.linear else null);
+        var linear = try empty(a, if (main) |m| .{ .borrowed = m.linear } else .{ .owned = main_allocator }, .linear, program, inputs.len(), first_id, llog, if (fixed) |f| f.linear else null, policy);
         errdefer linear.deinit();
         for (0..inputs.len()) |call| {
             const input = inputs.at(call, program.inputs);
@@ -89,7 +92,7 @@ pub const Batch = struct {
         }
         for ([_]*T.Trace{ &product, &linear }) |trace| {
             const padding = trace.size() - inputs.len() * program.rows(trace.kind == .product);
-            trace.byte_counts[0] += padding * L.byteCount(trace.kind);
+            trace.byte_counts[0] += padding * L.byteCountFor(trace.kind, trace.byte_policy);
         }
         return .{ .product = product, .linear = linear };
     }
@@ -99,7 +102,7 @@ pub const Batch = struct {
         self.* = undefined;
     }
 };
-fn empty(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *const P.Program, calls: usize, first_id: u32, log: u32, borrowed: ?[]const M) !T.Trace {
+fn empty(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *const P.Program, calls: usize, first_id: u32, log: u32, borrowed: ?[]const M, policy: L.BytePolicy) !T.Trace {
     try L.validate(kind, program, calls, first_id, log);
     try storage.validate(L.main(kind) * (@as(usize, 1) << @intCast(log)));
     const fixed = if (borrowed) |data| data else try T.fixedColumns(a, kind, program, log);
@@ -109,7 +112,7 @@ fn empty(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *
     errdefer a.free(lookup_bytes);
     const main = try storage.acquire(L.main(kind) * (@as(usize, 1) << @intCast(log)));
     @memset(main, M.zero());
-    return .{ .allocator = a, .kind = kind, .program = program, .calls = @intCast(calls), .first_id = first_id, .log_size = log, .fixed = fixed, .owns_fixed = borrowed == null, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .lookup_bytes = lookup_bytes };
+    return .{ .allocator = a, .kind = kind, .byte_policy = policy, .program = program, .calls = @intCast(calls), .first_id = first_id, .log_size = log, .fixed = fixed, .owns_fixed = borrowed == null, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .lookup_bytes = lookup_bytes };
 }
 fn writeRow(trace: *T.Trace, row: []const M, call: usize, opindex: usize) void {
     const n = trace.size();
@@ -117,7 +120,7 @@ fn writeRow(trace: *T.Trace, row: []const M, call: usize, opindex: usize) void {
     for (row, 0..) |v, c| trace.main[c * n + r] = v;
     T.captureLookupBytes(trace.kind, trace.lookup_bytes[(call * trace.program.rows(trace.kind == .product) + opindex) * L.metadataByteCount(trace.kind) ..][0..L.metadataByteCount(trace.kind)], row);
     trace.main[L.base(trace.kind) * n + r] = M.fromCanonical(@intCast(@as(u64, trace.first_id) + call));
-    for (0..L.byteCount(trace.kind)) |i| trace.byte_counts[row[T.byteColumn(trace.kind, i)].v] += 1;
+    for (0..L.byteCountFor(trace.kind, trace.byte_policy)) |i| trace.byte_counts[row[L.byteColumnFor(trace.kind, trace.byte_policy, i)].v] += 1;
 }
 
 const InputSource = union(enum) {

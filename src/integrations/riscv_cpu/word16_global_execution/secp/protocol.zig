@@ -71,6 +71,7 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     ch.mixU32s(&.{ 0x57534543, 1, 0, CPU_CLAIM_COUNT, r.calls[0], r.calls[1], ids[0], ids[1], s.bridge_logs[0], s.bridge_logs[1], B.layout.FIXED, B.layout.MAIN, B.layout.INTERACTION, 3, 19, 14, 35, 0x20011, 0x20012 });
 }
 pub fn beginTruth(ch: *G.T.P.Channel, s: *const R.TruthSetup, calls: u32, expected: Expected) void {
+    S.byte_encoding.mix(ch, R.TruthSetup.byte_policy);
     G.T.P.config().mixInto(ch);
     ch.mixU32s(&.{ 0x57534543, 1, 1, 3, @intFromEnum(s.kind), calls, 1, s.logs[0], s.logs[1], 35, 0x52434231 });
     G.Old.digest(ch, expected.program_identity);

@@ -195,3 +195,63 @@ test "batch-inverted secp interaction keeps scalar division-by-zero rejection" {
         try std.testing.expectEqual(@as(usize, 0), trace.interaction.len);
     }
 }
+
+test "canonical secp byte policy keeps every positive Wire producer anchored and legacy queries intact" {
+    const Word16 = S.word16_bridge.layout;
+    const Legacy = S.bridge.layout;
+    for ([_]L.Kind{ .product, .linear }) |kind| {
+        const result = if (kind == .product) L.mul.Layout.result else L.linear.Layout.result;
+        const lhs = if (kind == .product) L.mul.Layout.lhs else L.linear.Layout.lhs;
+        const rhs = if (kind == .product) L.mul.Layout.rhs else L.linear.Layout.rhs;
+        try std.testing.expectEqual(@as(usize, 64), L.byteCount(kind) - L.byteCountFor(kind, .canonical_inputs));
+        try std.testing.expectEqual(@as(usize, 84), L.interaction(kind) - L.interactionFor(kind, .canonical_inputs));
+        for (0..32) |byte| {
+            var result_ranged = false;
+            var lhs_retained = false;
+            var rhs_retained = false;
+            for (0..L.byteCountFor(kind, .canonical_inputs)) |i| {
+                const column = L.byteColumnFor(kind, .canonical_inputs, i);
+                result_ranged = result_ranged or column == result + byte;
+                try std.testing.expect(column != lhs + byte and column != rhs + byte);
+            }
+            for (0..L.metadataByteCount(kind)) |i| {
+                lhs_retained = lhs_retained or L.metadataByteColumn(kind, i) == lhs + byte;
+                rhs_retained = rhs_retained or L.metadataByteColumn(kind, i) == rhs + byte;
+            }
+            try std.testing.expect(result_ranged and lhs_retained and rhs_retained);
+        }
+    }
+    for (0..32) |byte| {
+        try std.testing.expect(std.mem.indexOfScalar(usize, &Word16.U8, Word16.BEFORE + byte) != null);
+        // This older bridge still depends on LOCAL arithmetic input ranges.
+        try std.testing.expect(std.mem.indexOfScalar(usize, &Legacy.RANGE_COLUMNS, Legacy.BEFORE + byte) == null);
+    }
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    const before = channel.digestBytes();
+    S.byte_encoding.mix(&channel, .local);
+    try std.testing.expectEqualSlices(u8, &before, &channel.digestBytes());
+    S.byte_encoding.mix(&channel, .canonical_inputs);
+    try std.testing.expect(!std.mem.eql(u8, &before, &channel.digestBytes()));
+    try std.testing.expect(!std.mem.eql(u8, &S.byte_encoding.identity(.local), &S.byte_encoding.identity(.canonical_inputs)));
+}
+
+test "canonical secp query trims preserve complete Wire operands after MAIN release on uneven pools" {
+    const a = std.testing.allocator;
+    const in = inputs();
+    const ch = challenges();
+    var pool: engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024, .backing_allocator = a });
+    defer pool.deinit();
+    for ([_]*const P.Program{ &P.add, &P.double }) |program| for ([_]L.Kind{ .product, .linear }) |kind| for ([_]usize{ 0, 1, 3 }) |calls| {
+        const log = 1 + try L.logSize(kind, program, calls);
+        var oracle = try S.trace.Trace.initWithLogAndPolicy(a, kind, program, in[0..calls], 41, log, .canonical_inputs);
+        defer oracle.deinit();
+        const expected = try oracle.generateInteractionReference(ch);
+        var trace = try S.trace.Trace.initWithLogAndPolicy(a, kind, program, in[0..calls], 41, log, .canonical_inputs);
+        defer trace.deinit();
+        try std.testing.expectEqual(calls * program.rows(kind == .product) * L.metadataByteCount(kind), trace.lookup_bytes.len);
+        try trace.releaseMain();
+        try std.testing.expect((try trace.generateInteractionWithPool(ch, &pool)).eql(expected));
+        try std.testing.expectEqualSlices(M, oracle.interaction, trace.interaction);
+    };
+}
