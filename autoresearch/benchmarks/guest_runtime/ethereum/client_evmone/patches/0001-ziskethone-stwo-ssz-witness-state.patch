@@ -1,18 +1,19 @@
 diff --git a/cpp-guest/include/zeg/accounts.hpp b/cpp-guest/include/zeg/accounts.hpp
-index 9593d0e..d2e8f6c 100644
+index 9593d0e..6cddb31 100644
 --- a/cpp-guest/include/zeg/accounts.hpp
 +++ b/cpp-guest/include/zeg/accounts.hpp
-@@ -30,7 +30,9 @@
+@@ -30,7 +30,10 @@
  #include <evmc/evmc.hpp>
  
  #include "zeg/trie_node.hpp"
 +#include "zeg/zisk_dma.hpp"
  #include "zeg/seeded_hash.hpp"
 +#include "zeg/stwo_hooks.hpp"
++#include "zeg/stwo_flat_index.hpp"
  
  namespace zeg {
  
-@@ -174,8 +176,10 @@ public:
+@@ -174,8 +177,10 @@ public:
  
      // Non-fataling probe — true iff `addr` is in the table.
      bool contains(const evmc::address& addr) const noexcept {
@@ -24,7 +25,7 @@ index 9593d0e..d2e8f6c 100644
  
      // ----- per-tx warm/cold tracking (EIP-2929) -----
      //
-@@ -281,7 +285,7 @@ private:
+@@ -281,7 +286,7 @@ private:
      };
      struct AddressEq {
          bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
@@ -33,6 +34,18 @@ index 9593d0e..d2e8f6c 100644
          }
      };
  
+@@ -305,7 +310,11 @@ private:
+     std::vector<View>      originals_;
+     std::vector<Mods>      mods_;
+     std::vector<LeafCache> leaf_;
++#if defined(ZEG_STWO)
++    zeg::StwoFlatIndex<evmc::address, 3> index_;
++#else
+     std::unordered_map<evmc::address, size_t, AddressHash, AddressEq> index_;
++#endif
+ 
+     BlockAccessList* bal_ = nullptr;
+     uint64_t         first_sorted_ = kNoLink;
 diff --git a/cpp-guest/include/zeg/contracts.hpp b/cpp-guest/include/zeg/contracts.hpp
 index eba163c..a32cfed 100644
 --- a/cpp-guest/include/zeg/contracts.hpp
@@ -127,18 +140,19 @@ index 53d77cf..2937f1b 100644
  
  }  // namespace zeg
 diff --git a/cpp-guest/include/zeg/storages.hpp b/cpp-guest/include/zeg/storages.hpp
-index 2a49846..33ff29e 100644
+index 2a49846..752aa22 100644
 --- a/cpp-guest/include/zeg/storages.hpp
 +++ b/cpp-guest/include/zeg/storages.hpp
-@@ -29,6 +29,7 @@
+@@ -29,6 +29,8 @@
  #include "zeg/zisk_dma.hpp"
  #include "zeg/trie_node.hpp"
  #include "zeg/seeded_hash.hpp"
 +#include "zeg/stwo_hooks.hpp"
++#include "zeg/stwo_flat_index.hpp"
  
  namespace zeg {
  
-@@ -284,7 +285,7 @@ private:
+@@ -284,7 +286,7 @@ private:
      };
      struct AddressEq {
          bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
@@ -147,8 +161,15 @@ index 2a49846..33ff29e 100644
          }
      };
  
-@@ -306,8 +307,8 @@ private:
+@@ -303,11 +305,15 @@ private:
+     std::vector<View>      originals_;
+     std::vector<Mods>      mods_;
+     std::vector<LeafCache> leaf_;
++#if defined(ZEG_STWO)
++    zeg::StwoFlatIndex<Key, 7> index_;
++#else
      std::unordered_map<Key, size_t, KeyHash, KeyEq> index_;
++#endif
      // Last `find` and its answer (opcodes look a slot up twice in a row);
      // reserve/append invalidate it.
 -    mutable evmc::address last_addr_{};
@@ -158,6 +179,160 @@ index 2a49846..33ff29e 100644
      mutable size_t        last_idx_ = 0;
      mutable uint64_t      last_valid_ = 0;  // u64: byte flags are costly on ZisK
      // address -> its storage indices (see slots_of).
+diff --git a/cpp-guest/include/zeg/stwo_flat_index.hpp b/cpp-guest/include/zeg/stwo_flat_index.hpp
+new file mode 100644
+index 0000000..7812a75
+--- /dev/null
++++ b/cpp-guest/include/zeg/stwo_flat_index.hpp
+@@ -0,0 +1,148 @@
++// Open-addressing key -> row index for the stwo RV64 port (patch-added).
++//
++// Drop-in for the std::unordered_map indexes of Accounts and Storages, with
++// just the members they use (find/end/emplace, ->second, construction from
++// (n, hash, eq) for hash_reserve_empty). Keys are stored as W little-endian
++// words in the slot (an address is 3 words, the 56-byte storage Key 7), so a
++// probe is one seeded multiply-add hash and a word compare; libc++'s node
++// table costs a modulo, a pointer chase and a byte-wise key copy per lookup on
++// RV64IM. The hash is zeg::hash_bytes of the same key bytes (same seed), so
++// grinding resistance is unchanged. Linear probing, load factor <= 1/2,
++// doubling from 1024 slots. Rows are never removed.
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++#include <cstdlib>
++
++#include "zeg/fatal.hpp"
++#include "zeg/seeded_hash.hpp"
++
++#if defined(ZEG_STWO)
++namespace zeg {
++
++template <class Key, std::size_t W>
++class StwoFlatIndex {
++    static_assert(W >= 1 && W <= 8, "key must fit the seed's eight multipliers");
++
++public:
++    struct Entry {
++        uint64_t k[W];
++        std::size_t second;  // row index
++        std::size_t used;    // 0 = empty slot
++    };
++
++    template <class H, class E>
++    StwoFlatIndex(std::size_t, const H& h, const E&) : hash_{h.s_}, seed_(h.s_) {}
++    StwoFlatIndex(StwoFlatIndex&& o) noexcept { *this = static_cast<StwoFlatIndex&&>(o); }
++    StwoFlatIndex& operator=(StwoFlatIndex&& o) noexcept {
++        std::free(slots_);
++        hash_ = o.hash_;
++        eq_ = o.eq_;
++        seed_ = o.seed_;
++        slots_ = o.slots_;
++        mask_ = o.mask_;
++        count_ = o.count_;
++        o.slots_ = nullptr;
++        o.mask_ = 0;
++        o.count_ = 0;
++        return *this;
++    }
++    StwoFlatIndex(const StwoFlatIndex&) = delete;
++    StwoFlatIndex& operator=(const StwoFlatIndex&) = delete;
++    ~StwoFlatIndex() { std::free(slots_); }
++
++    // For hash_reserve_empty: the table starts small and doubles.
++    const auto& hash_function() const noexcept { return hash_; }
++    const auto& key_eq() const noexcept { return eq_; }
++
++    const Entry* end() const noexcept { return nullptr; }
++
++    const Entry* find(const Key& key) const noexcept {
++        if (slots_ == nullptr) return nullptr;
++        uint64_t k[W];
++        pack(key, k);
++        for (std::size_t i = slot_of(k);; i = (i + 1) & mask_) {
++            const Entry& e = slots_[i];
++            if (!e.used) return nullptr;
++            if (same(e.k, k)) return &e;
++        }
++    }
++
++    // Inserts unless the key is present (as unordered_map::emplace).
++    void emplace(const Key& key, std::size_t idx) {
++        if (slots_ == nullptr) rehash(1024);
++        else if ((count_ + 1) * 2 > mask_ + 1) rehash((mask_ + 1) * 2);
++        uint64_t k[W];
++        pack(key, k);
++        std::size_t i = slot_of(k);
++        for (; slots_[i].used; i = (i + 1) & mask_) {
++            if (same(slots_[i].k, k)) return;
++        }
++        Entry& e = slots_[i];
++        for (std::size_t w = 0; w < W; ++w) e.k[w] = k[w];
++        e.second = idx;
++        e.used = 1;
++        ++count_;
++    }
++
++private:
++    typedef uint64_t __attribute__((may_alias)) u64a;
++
++    // The key's bytes as W little-endian words, zero-extended: the same
++    // words zeg::hash_bytes reads.
++    static void pack(const Key& key, uint64_t (&k)[W]) noexcept {
++        constexpr std::size_t n = sizeof(Key);
++        static_assert(n <= 8 * W && n > 8 * (W - 1), "W words must hold the key");
++        const uint8_t* p = reinterpret_cast<const uint8_t*>(&key);
++        if constexpr (alignof(Key) >= 8 && n % 8 == 0) {
++            const u64a* q = reinterpret_cast<const u64a*>(p);
++            for (std::size_t w = 0; w < W; ++w) k[w] = q[w];
++        } else {
++            for (std::size_t w = 0; w < W; ++w) {
++                const std::size_t take = n - 8 * w < 8 ? n - 8 * w : 8;
++                k[w] = detail_hash::ld_le(p + 8 * w, take);
++            }
++        }
++    }
++    static bool same(const uint64_t* a, const uint64_t* b) noexcept {
++        uint64_t d = 0;
++        for (std::size_t w = 0; w < W; ++w) d |= a[w] ^ b[w];
++        return d == 0;
++    }
++    std::size_t slot_of(const uint64_t (&k)[W]) const noexcept {
++        uint64_t h = seed_->c;
++        for (std::size_t w = 0; w < W; ++w) h += seed_->a[w] * k[w];
++        return static_cast<std::size_t>(h ^ (h >> 29)) & mask_;
++    }
++    void rehash(std::size_t cap) {
++        Entry* old = slots_;
++        const std::size_t old_cap = old ? mask_ + 1 : 0;
++        slots_ = static_cast<Entry*>(std::calloc(cap, sizeof(Entry)));
++        if (slots_ == nullptr) fatal("StwoFlatIndex: out of memory");
++        mask_ = cap - 1;
++        for (std::size_t j = 0; j < old_cap; ++j) {
++            if (!old[j].used) continue;
++            std::size_t i = slot_of(old[j].k);
++            while (slots_[i].used) i = (i + 1) & mask_;
++            slots_[i] = old[j];
++        }
++        std::free(old);
++    }
++
++    // hash_reserve_empty rebuilds the table from hash_function()/key_eq();
++    // both callers' hashers carry only the seed pointer (s_).
++    struct HashRef {
++        const HashSeed* s_;
++    };
++    struct EqRef {};
++    HashRef hash_{};
++    EqRef eq_{};
++    const HashSeed* seed_ = nullptr;
++    Entry* slots_ = nullptr;
++    std::size_t mask_ = 0;
++    std::size_t count_ = 0;
++};
++
++}  // namespace zeg
++#endif  // ZEG_STWO
 diff --git a/cpp-guest/include/zeg/stwo_hooks.hpp b/cpp-guest/include/zeg/stwo_hooks.hpp
 new file mode 100644
 index 0000000..78945e5
