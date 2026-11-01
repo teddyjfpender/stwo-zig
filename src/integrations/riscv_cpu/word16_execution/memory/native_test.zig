@@ -368,7 +368,7 @@ test "omitted public boundary U8 claims cannot cancel across the complete ledger
     try std.testing.expectError(error.NonzeroOmittedBoundaryRangeClaim, Sources.validateCanonicalClaims(c));
 }
 
-test "LS48 arbitrary PackedSecure residuals agree with sixteen independent QM31 lanes" {
+test "LS32 arbitrary PackedSecure residuals agree with sixteen independent QM31 lanes" {
     const ch = challenges();
     var channel = core.channel.blake2s.Blake2sChannel{};
     var native: [5][X.layout.MAIN][E.LANES]Q = undefined;

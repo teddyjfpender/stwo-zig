@@ -1,4 +1,6 @@
 test {
+    _ = @import("word16_execution/memory/joint_write_invariants_test.zig");
+    _ = @import("word16_execution/memory/joint_write_proof_test.zig");
     _ = @import("word16_execution/memory/affine_projection_test.zig");
     _ = @import("word16_execution/memory/range_induction_proof_test.zig");
     _ = @import("word16_execution/memory/range_induction_test.zig");

@@ -11,7 +11,8 @@ const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 /// One canonical full-core schema: native degree3/split1, MUL200 interaction.
-pub const SCHEMA: u32 = 6;
+/// Schema7 retains the narrow public boundary and adds LS32 joint-write range inheritance.
+pub const SCHEMA: u32 = 7;
 pub const CLAIM_LS_TAIL: usize = 33;
 pub const CLAIM_ALU_TAIL = CLAIM_LS_TAIL + 5;
 pub const CLAIM_BINARY_TAIL = CLAIM_ALU_TAIL + 2;

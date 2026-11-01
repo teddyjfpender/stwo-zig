@@ -1,4 +1,15 @@
+> Historical LS48 note. The retained C4/after-value anchors described below
+> apply to that encoding, not LS32. The current LS32 effective-address and
+> value arguments use the joint REG/RAM induction and its per-proof closure,
+> unit-activity, clock and selection-parity premises. See
+> [rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md).
+
 # LS canonical range induction
+
+> Superseded encoding: this note qualifies LS48. The current LS32 encoding
+> additionally removes the after-value and load-C queries under
+> [rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md); the
+> dependency order below remains its prerequisite (P1-P3 there).
 
 This review and implementation evolve the concrete `load_store_v2` encoding on
 0751982fd. They do not change `load_store_v1`, the OWNER19 or RAM14 tuple, or the

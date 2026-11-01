@@ -70,7 +70,7 @@ test "LS lane all6 kinds preserve complete arbitrary-Q residuals with dynamic co
     var ch = core.channel.blake2s.Blake2sChannel{};
     for (kinds) |kind| for ([_]u32{ 0, 7 }) |rows| {
         const native = Case.init(&ch, kind, rows);
-        var expected: [261]Q = undefined;
+        var expected: [L.constraints(.ls)]Q = undefined;
         var ns = E.Sink{ .values = &expected };
         emit(&native.component, Q, &native.data, &ns);
         var ctx = try Lane.Context.init(a, 0);
@@ -80,7 +80,7 @@ test "LS lane all6 kinds preserve complete arbitrary-Q residuals with dynamic co
         for (&data, native.data) |*out, in| for (out, in) |*v, q| {
             v.* = try wire(&ctx, q);
         };
-        var actual: [261]F = undefined;
+        var actual: [L.constraints(.ls)]F = undefined;
         var sink = E.SinkFor(F){ .values = &actual };
         Lane.begin(&ctx);
         emit(&component, F, &data, &sink);
@@ -96,7 +96,7 @@ test "LS lane changed count nonempty challenge and claim wires cannot hide behin
     var ch = core.channel.blake2s.Blake2sChannel{};
     for (kinds) |kind| {
         const native = Case.init(&ch, kind, 7);
-        var expected: [261]Q = undefined;
+        var expected: [L.constraints(.ls)]Q = undefined;
         var ns = E.Sink{ .values = &expected };
         emit(&native.component, Q, &native.data, &ns);
         const count_matters = kind == .ls or kind == .initial or kind == .terminal;
@@ -111,7 +111,7 @@ test "LS lane changed count nonempty challenge and claim wires cannot hide behin
             for (&data, native.data) |*out, in| for (out, in) |*v, q| {
                 v.* = try wire(&ctx, q);
             };
-            var actual: [261]F = undefined;
+            var actual: [L.constraints(.ls)]F = undefined;
             var sink = E.SinkFor(F){ .values = &actual };
             Lane.begin(&ctx);
             emit(&component, F, &data, &sink);
@@ -191,7 +191,7 @@ test "LS lane point adapter rejects missing nonempty flag and malformed mask bef
 test "LS lane authenticates separate RAM debt and only the sum of local ledger shares" {
     var ch = core.channel.blake2s.Blake2sChannel{};
     const native = Case.init(&ch, .ls, 7);
-    var expected: [261]Q = undefined;
+    var expected: [L.constraints(.ls)]Q = undefined;
     var ns = E.Sink{ .values = &expected };
     emit(&native.component, Q, &native.data, &ns);
     var changed = native.component;
@@ -204,7 +204,7 @@ test "LS lane authenticates separate RAM debt and only the sum of local ledger s
     for (&data, native.data) |*out, in| for (out, in) |*v, q| {
         v.* = try wire(&ctx, q);
     };
-    var actual: [261]F = undefined;
+    var actual: [L.constraints(.ls)]F = undefined;
     var sink = E.SinkFor(F){ .values = &actual };
     Lane.begin(&ctx);
     emit(&component, F, &data, &sink);

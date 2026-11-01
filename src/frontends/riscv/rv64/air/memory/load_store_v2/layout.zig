@@ -17,9 +17,11 @@ pub const BOUND_MAIN = 14;
 pub const BOUND_INTERACTION = 8;
 // A/I/B come from the closed CPU REG/ROM/OWNER relations. RAM before
 // coordinates inherit canonical produced states; addresses additionally use
-// strict RAM chronology and canonical aligned INIT coverage. Keep independent
-// write anchors (after-value and load C), clock limbs, all gaps and byte splits.
-pub const LOGICAL_U16 = [_]usize{ 12, 18, 19, 20, 21, 24, 25, 40, 41, 42, 43, 68 };
+// strict RAM chronology and canonical aligned INIT coverage. RAM after values
+// and load results inherit canonicality by the joint REG/RAM write induction.
+// OWNER and RAM use the same Boolean activity; REG/OWNER close per CPU proof.
+// Keep after clocks, strict gaps, address quotient and the byte split queries.
+pub const LOGICAL_U16 = [_]usize{ 12, 24, 25, 68 };
 pub const LOGICAL_U8 = [_]usize{ 13, 26, 73, 74 };
 pub const U16 = projection.columns(&LOGICAL_U16);
 /// U8 queries include the retired affine b_low (logical 73), so they have no
@@ -53,7 +55,7 @@ pub fn widths(kind: Kind) [3]usize {
 }
 pub fn constraints(kind: Kind) usize {
     return switch (kind) {
-        .ls => 261,
+        .ls => 257,
         .initial, .terminal => 25,
         .selection => 3,
         .range16, .range8 => 3,
@@ -72,4 +74,8 @@ pub fn previousInterFor(kind: Kind, c: usize) bool {
         .initial, .terminal => c >= 4 and c < 8,
         else => c >= 4,
     };
+}
+
+comptime {
+    if (LOCAL_FRACTIONS != 10 or LOCAL_PAIRS != 5 or INTERACTION != 32) @compileError("LS32 query/interaction ledger mismatch");
 }

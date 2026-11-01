@@ -96,20 +96,95 @@ test "retained gap queries reject modular future epoch and reversed tick counter
     try local(&tick);
     try std.testing.expect(!canonicalKept(&tick));
 }
-test "retained RAM after and load C write ranges break the joint noncanonical read alias cycle" {
+test "removed RAM after and load C ranges leave a locally valid noncanonical load alias that only RAM and OWNER closure exclude" {
     const before = R.types.State{ .value = 65536, .rights = 3 };
     var after = before;
     after.epoch = 1;
     after.tick = 4;
-    var m = row(.{ .opcode = .LD, .a = 0x1000, .immediate = 0, .c = before.value, .epoch = 1, .tick = 4, .before = before, .after = after });
-    try local(&m);
+    const good = row(.{ .opcode = .LD, .a = 0x1000, .immediate = 0, .c = before.value, .epoch = 1, .tick = 4, .before = before, .after = after });
+    try local(&good);
+    var m = good;
     for ([_]usize{ 14, 18, 40 }) |column| {
         m[column] = m[column].add(E.q(65536));
         m[column + 1] = m[column + 1].sub(Q.one());
     }
     try local(&m);
-    try std.testing.expect(!canonicalKept(&m));
+    // LS32: every retained U16/U8 query is still canonical, so the removed
+    // write anchors no longer see the alias. The joint write induction instead
+    // requires the before token to be a produced canonical token (RAM closure)
+    // and the C limbs to equal the CPU's REG slot-2 value (OWNER closure).
+    try std.testing.expect(canonicalKept(&m));
+    try std.testing.expect((try m[40].tryIntoM31()).v >= 65536);
+    const honest_before = R.equations.ramTuple(Q, .transition, good[0..28], false);
+    const forged_before = R.equations.ramTuple(Q, .transition, m[0..28], false);
+    try std.testing.expect(!honest_before[8].eql(forged_before[8]));
+    const honest_owner = X.equations.ownerTupleForLogical(Q, &good);
+    const forged_owner = X.equations.ownerTupleForLogical(Q, &m);
+    try std.testing.expect(!honest_owner[13].eql(forged_owner[13]));
 }
+test "removed RAM after ranges leave a locally valid noncanonical store write that only OWNER B binding excludes" {
+    const before = R.types.State{ .value = 0, .rights = 3 };
+    var after = before;
+    after.value = 0x0000000100000000;
+    after.epoch = 1;
+    after.tick = 4;
+    const good = row(.{ .opcode = .SD, .a = 0x1000, .immediate = 0, .b = after.value, .epoch = 1, .tick = 4, .before = before, .after = after });
+    try local(&good);
+    var m = good;
+    // B limb 0 is tied to the retained b_low/b_high split, so attack limbs 2/3.
+    for ([_]usize{ V.layout.b + 2, 20 }) |column| {
+        m[column] = m[column].add(E.q(65536));
+        m[column + 1] = m[column + 1].sub(Q.one());
+    }
+    try local(&m);
+    try std.testing.expect(canonicalKept(&m));
+    try std.testing.expect((try m[20].tryIntoM31()).v >= 65536);
+    // RAM before/OWNER A,I,C are unchanged; the forged after token is only
+    // admissible if CPU REG produced the same noncanonical B (induction E4).
+    try std.testing.expectEqualDeep(R.equations.ramTuple(Q, .transition, good[0..28], false), R.equations.ramTuple(Q, .transition, m[0..28], false));
+    const honest_owner = X.equations.ownerTupleForLogical(Q, &good);
+    const forged_owner = X.equations.ownerTupleForLogical(Q, &m);
+    try std.testing.expect(!honest_owner[11].eql(forged_owner[11]));
+}
+test "removed load C ranges leave a locally valid LB with a false selected byte that only selection truth excludes" {
+    const before = R.types.State{ .value = 0x8070605040302010, .rights = 3 };
+    var after = before;
+    after.epoch = 1;
+    after.tick = 4;
+    const good = row(.{ .opcode = .LB, .a = 0x1001, .immediate = 0, .c = 0x20, .epoch = 1, .tick = 4, .before = before, .after = after });
+    try local(&good);
+    var m = good;
+    m[V.layout.selected_byte] = m[V.layout.selected_byte].add(E.q(65536));
+    m[V.layout.c] = m[V.layout.c].add(E.q(65536));
+    try local(&m);
+    try std.testing.expect(canonicalKept(&m));
+    try std.testing.expect((try m[V.layout.c].tryIntoM31()).v >= 65536);
+    const honest = V.equations.selectionTuple(Q, &good);
+    const forged = V.equations.selectionTuple(Q, &m);
+    try std.testing.expect(!honest[2].eql(forged[2]));
+    // The immutable selection table only holds byte_p(x) < 256.
+    try std.testing.expect((try forged[2].tryIntoM31()).v >= 256);
+}
+test "removed after ranges keep SB target limb canonical only through selection truth and retained b_low U8" {
+    const s = store();
+    var good = row(s);
+    try local(&good);
+    // A false selected byte moves the written limb outside u16.
+    var wrong = good;
+    wrong[V.layout.selected_byte] = wrong[V.layout.selected_byte].add(E.q(65536));
+    wrong[18] = wrong[18].sub(E.q(65536));
+    try local(&wrong);
+    try std.testing.expect(canonicalKept(&wrong));
+    try std.testing.expect((try wrong[18].tryIntoM31()).v >= 65536);
+    try std.testing.expect(!V.equations.selectionTuple(Q, &good)[2].eql(V.equations.selectionTuple(Q, &wrong)[2]));
+    // A wide b_low is rejected by the retained U8 query on column 73.
+    good[V.layout.b_low] = good[V.layout.b_low].add(E.q(256));
+    good[V.layout.b_high] = good[V.layout.b_high].sub(Q.one());
+    good[18] = good[18].add(E.q(256));
+    try local(&good);
+    try std.testing.expect(!canonicalKept(&good));
+}
+
 test "removed address ranges require canonical INIT ancestry rather than local effective address equations" {
     var event = store();
     event.a = 65535;
