@@ -148,11 +148,9 @@ pub inline fn zeroPackedQM31x4() PackedQM31x4 {
     return .{ .c0a = @splat(0), .c0b = @splat(0), .c1a = @splat(0), .c1b = @splat(0) };
 }
 
-/// Loads eight consecutive AoS values `ptr[0..8]` and returns the four even
-/// (`ptr[0], ptr[2], ptr[4], ptr[6]`) and four odd elements as packed lanes.
-pub inline fn loadEvenOddPackedQM31x4(ptr: [*]const qm31.QM31) [2]PackedQM31x4 {
-    const lo = loadPackedQM31x4(ptr);
-    const hi = loadPackedQM31x4(ptr + 4);
+/// Splits lanes `(x0, x1, x2, x3)`, `(x4, x5, x6, x7)` into the even
+/// `(x0, x2, x4, x6)` and odd `(x1, x3, x5, x7)` elements.
+pub inline fn evenOddPackedQM31x4(lo: PackedQM31x4, hi: PackedQM31x4) [2]PackedQM31x4 {
     const even = @Vector(4, i32){ 0, 2, -1, -3 };
     const odd = @Vector(4, i32){ 1, 3, -2, -4 };
     return .{
@@ -169,6 +167,32 @@ pub inline fn loadEvenOddPackedQM31x4(ptr: [*]const qm31.QM31) [2]PackedQM31x4 {
             .c1b = @shuffle(u32, lo.c1b, hi.c1b, odd),
         },
     };
+}
+
+/// Inverse of `evenOddPackedQM31x4`: returns `(e0, o0, e1, o1)`, `(e2, o2, e3, o3)`.
+pub inline fn interleavePackedQM31x4(even: PackedQM31x4, odd: PackedQM31x4) [2]PackedQM31x4 {
+    const lo = @Vector(4, i32){ 0, -1, 1, -2 };
+    const hi = @Vector(4, i32){ 2, -3, 3, -4 };
+    return .{
+        .{
+            .c0a = @shuffle(u32, even.c0a, odd.c0a, lo),
+            .c0b = @shuffle(u32, even.c0b, odd.c0b, lo),
+            .c1a = @shuffle(u32, even.c1a, odd.c1a, lo),
+            .c1b = @shuffle(u32, even.c1b, odd.c1b, lo),
+        },
+        .{
+            .c0a = @shuffle(u32, even.c0a, odd.c0a, hi),
+            .c0b = @shuffle(u32, even.c0b, odd.c0b, hi),
+            .c1a = @shuffle(u32, even.c1a, odd.c1a, hi),
+            .c1b = @shuffle(u32, even.c1b, odd.c1b, hi),
+        },
+    };
+}
+
+/// Loads eight consecutive AoS values `ptr[0..8]` and returns the four even
+/// (`ptr[0], ptr[2], ptr[4], ptr[6]`) and four odd elements as packed lanes.
+pub inline fn loadEvenOddPackedQM31x4(ptr: [*]const qm31.QM31) [2]PackedQM31x4 {
+    return evenOddPackedQM31x4(loadPackedQM31x4(ptr), loadPackedQM31x4(ptr + 4));
 }
 
 /// Exact field sum of the four lanes (field addition is associative, so the
@@ -200,5 +224,10 @@ test "packed QM31x4 helpers agree with scalar arithmetic" {
         total = total.add(got_sum[i]);
     }
     try std.testing.expect(sumLanesPackedQM31x4(sum).eql(total));
+    const back = interleavePackedQM31x4(pair[0], pair[1]);
+    var round: [8]qm31.QM31 = undefined;
+    storePackedQM31x4(&round, back[0]);
+    storePackedQM31x4(round[4..].ptr, back[1]);
+    for (values, round) |x, y| try std.testing.expect(x.eql(y));
     try std.testing.expect(sumLanesPackedQM31x4(zeroPackedQM31x4()).isZero());
 }

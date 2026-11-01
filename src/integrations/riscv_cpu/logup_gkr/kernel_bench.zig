@@ -6,7 +6,7 @@
 //! kernel change can be checked byte-for-byte against the previous binary.
 //!
 //!   gkr <log> <singles|generic|mixed> <fast|reference> <threads> [reps]
-//!   om31 <log> <reps>                    generic ForField(OM31) LogUpMultiplicities
+//!   om31 <log> [reference|fast] [threads] [reps]  OM31 LogUpMultiplicities (services shape)
 //!   logup <log> <n_sums> <threads> [reps]  frontend generateParallelColumns
 //!   columns <log> <width> <threads> [reps] engine logup_columns.build
 //!   inverse <log> <threads> [reps]         chunked QM31 batch inversion (4096)
@@ -86,7 +86,10 @@ pub fn main() !void {
         if (args.len < 6) return error.ExpectedGkrKindImplThreads;
         return benchGkr(a, log, args[3], args[4], try parse(args, 5, 1), try parse(args, 6, 3));
     }
-    if (std.mem.eql(u8, kernel, "om31")) return benchOm31(a, log, try parse(args, 3, 3));
+    if (std.mem.eql(u8, kernel, "om31")) {
+        const impl = if (args.len > 3) args[3] else "reference";
+        return benchOm31(a, log, impl, try parse(args, 4, 1), try parse(args, 5, 3));
+    }
     if (std.mem.eql(u8, kernel, "logup")) return benchLogup(a, log, try parse(args, 3, 4), try parse(args, 4, 1), try parse(args, 5, 3));
     if (std.mem.eql(u8, kernel, "columns")) return benchColumns(a, log, try parse(args, 3, 4), try parse(args, 4, 1), try parse(args, 5, 3));
     if (std.mem.eql(u8, kernel, "inverse")) return benchInverse(a, log, try parse(args, 3, 1), try parse(args, 4, 5));
@@ -198,7 +201,10 @@ fn benchGkr(a: std.mem.Allocator, log: u32, kind_text: []const u8, impl: []const
 
 // ------------------------------------------------------- GKR generic (OM31)
 
-fn benchOm31(a: std.mem.Allocator, log: u32, reps: usize) !void {
+fn benchOm31(a: std.mem.Allocator, log: u32, impl: []const u8, threads: usize, reps: usize) !void {
+    const fast = std.mem.eql(u8, impl, "fast");
+    if (!fast and !std.mem.eql(u8, impl, "reference")) return error.InvalidGkrImpl;
+    const Fast = lookups.gkr_prover_fast.ForField(OM31);
     const GP = lookups.gkr_prover.ForField(OM31);
     const Channel = core.channel.raw_mod_m31.Om31Channel;
     const Mle = lookups.mle.MleFor;
@@ -220,7 +226,8 @@ fn benchOm31(a: std.mem.Allocator, log: u32, reps: usize) !void {
         var channel = Channel.init();
         channel.mixU32s(&.{ 0x42454e43, log });
         var timer = try std.time.Timer.start();
-        var result = try GP.proveBatch(a, &channel, &layers);
+        // Fast inputs are borrowed, exactly as the services child passes them.
+        var result = if (fast) try Fast.proveBatch(a, &channel, &.{.{ .num = .{ .base = num }, .den = den, .owned = false }}, .{ .threads = threads }, null) else try GP.proveBatch(a, &channel, &layers);
         ns[rep] = timer.read();
         defer result.deinit(a);
         var h = std.crypto.hash.sha2.Sha256.init(.{});
@@ -231,7 +238,7 @@ fn benchOm31(a: std.mem.Allocator, log: u32, reps: usize) !void {
         digest = hexDigest(&h);
     }
     const s = Sample.of(ns);
-    try emit(a, .{ .kernel = "om31", .log = log, .threads = 1, .reps = reps, .leaves = n, .min_ns = s.min, .median_ns = s.median, .ns_per_leaf = @as(f64, @floatFromInt(s.median)) / @as(f64, @floatFromInt(n)), .sha256 = digest });
+    try emit(a, .{ .kernel = "om31", .impl = impl, .log = log, .threads = threads, .reps = reps, .leaves = n, .min_ns = s.min, .median_ns = s.median, .ns_per_leaf = @as(f64, @floatFromInt(s.median)) / @as(f64, @floatFromInt(n)), .sha256 = digest });
 }
 
 // ------------------------------------------------------ LogUp interaction
