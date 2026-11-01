@@ -120,6 +120,27 @@ lift the CPU's native2n composition. Secp truths certify the specified modular
 RCB programs, not standalone ECDSA validity; the complete guest execution proves
 the surrounding recovery/validation and Ethereum behavior.
 
+### arith256_mod (v3 family 4)
+
+`ethereum_services_v3` admits `0x0003_0021`: r = (a*b + c) mod m, r = 0 when
+m = 0, on a 32-byte aligned 20-word packet (only r written). The Word16 bridge
+kind 4 binds five coordinates to RAM exactly as for secp/SHA-256; the truth
+(`air/delegations/arith256`, one row per call, degree 3, own PCS) proves
+`(1-z)(a*b+c) = q*m + r` over byte limbs with 48 two-coefficient groups and
+carries in [-2^14, 2^14), whose field residuals stay below 1.61e9 < p and are
+therefore integer equations; r < m is `m - r - 1 = d` with canonical d bytes
+and no final borrow; z = [m = 0] is forced by `z*Σm = 0`, `Σm*inv = active-z`.
+Operand and result bytes inherit U8 range from the bridge through Wire35; q, d
+and carry bytes use a local BYTE table whose challenge is drawn after the
+truth MAIN root and whose chain must close to zero (mass 237n < p). The truth
+also consumes the before-value of the r slot (wire 4) so that every bridge
+input tuple is matched. Adversarial tests cover wrong r, r >= m, wrapped q,
+m = 0 forgeries, non-canonical limbs, carry forgery, forged Wire35/RAM/OWNER
+data in real proofs, and absent/foreign bridges at a fresh receiver; the v2
+fixture bundle is byte-identical to the pre-v3 base. Not established: a
+block-scale proof with a guest using the tag, and recursion support. Details:
+`design/riscv-proving-stack/rv64-arith256-service.md`.
+
 ## Ownership, storage and resource scope
 
 The canonical services coordinator transfers both CPU and crypto truth

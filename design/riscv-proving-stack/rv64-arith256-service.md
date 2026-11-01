@@ -179,7 +179,14 @@ reference at this call count.
 
 ## v2 byte-identity
 
-V2_IDENTITY_PLACEHOLDER
+The v2 combined-services fixture tool (`rv64-word16-combined-services-fixture
+produce`, ReleaseFast, 2 CPU + 3 truth proofs) was built at the pre-v3 base
+`71b25b2cd` (`codex/rv64-guest-services-base`) and at this branch's head. All
+seven artifacts are byte-identical (`bundle.json` sha256 `be49c88c…`,
+`cells.bin` `c4162b24…`, `cpu-0.bin` `8ae9b7a8…`, `cpu-1.bin` `545877eb…`,
+`truth-{0,1,2}.bin` `756461d3…`, `0383740b…`, `2ddb3fc9…`), the head receiver
+verifies the base bundle and the base receiver verifies the head bundle. v1/v2
+tape-wire bytes are unchanged (the arith extension exists only on v3 tapes).
 
 ## Remaining gaps
 
