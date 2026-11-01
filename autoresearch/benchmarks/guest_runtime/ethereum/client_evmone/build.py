@@ -8,7 +8,8 @@ compiled with `zig c++` (Zig 0.15.2: bundled libc++ headers, compiler-rt, RISC-V
 backend). Only the Python standard library is used.
 
   python3 -I build.py --out DIR [--cache DIR] [--profile admitted|v3|candidate]
-                      [--isa im|zba|zbb|zba_zbb] [--host] [--jobs 4] [--clean]
+                      [--isa im|zba|zbb|zba_zbb|zbkb|zbb_binary] [--isa-audit TOOL]
+                      [--host] [--jobs 4] [--clean]
 
 `--profile v3` builds the ADMITTED ethereum_services_v3 guest: SHA-256
 compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
@@ -20,7 +21,11 @@ for the UNVERIFIED unaligned-source memcpy and memcmp routing, not yet proved).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
-`-<isa>` to the ELF name.
+`-<isa>` to the ELF name. `--isa zbb_binary` is the ADMITTED Zbb BINARY subset
+(profile `ethereum_services_v3_zbb`): the compiler stays RV64IM and every
+byte swap is one `rev8` (glue/stwo_zbb_binary.h, patch 0024); the linked ELF
+must pass `rv64-isa-audit --require-subset` (`--isa-audit`, required), i.e.
+contain no Zbb/Zba/Zbkb encoding outside andn/orn/xnor/rev8/sext.b/sext.h/zext.h.
 
 Outputs DIR/client-evmone-<profile>.elf (or DIR/client-evmone-host for --host)
 and DIR/build-manifest.json.
@@ -88,7 +93,9 @@ ZIG_LIBCXX = None  # resolved from `zig env`
 
 GUEST_TARGET = ["-target", "riscv64-linux-musl", "-mcpu=generic_rv64+m"]
 # Candidate bit-manipulation extensions (CONTEXT.md "Candidate instructions").
-ISA_FEATURES = {"im": "", "zba": "+zba", "zbb": "+zbb", "zba_zbb": "+zba+zbb"}
+# zbkb is an audit experiment only (it emits pack/packh and rotates); zbb_binary
+# compiles RV64IM and issues the admitted rev8 explicitly.
+ISA_FEATURES = {"im": "", "zba": "+zba", "zbb": "+zbb", "zba_zbb": "+zba+zbb", "zbkb": "+zbkb", "zbb_binary": ""}
 COMMON_CXX = ["-std=c++20", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections",
               "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wno-deprecated-declarations"]
 GUEST_EXTRA = ["-fno-pic", "-fomit-frame-pointer", "-mcmodel=medlow"]
@@ -317,6 +324,11 @@ def main(argv=None):
     ap.add_argument("--opt", default="-O2")
     ap.add_argument("--isa", choices=tuple(ISA_FEATURES), default="im",
                     help="guest ISA: RV64IM (admitted) or a candidate Zba/Zbb build")
+    ap.add_argument("--zbb-kernel-only", dest="zbb_builtins", action="store_false",
+                    help="zbb_binary: use rev8 only in the intx swap kernel (patch 0024), not for every "
+                         "__builtin_bswap* (measured 2026-11-02: 4.588 vs 4.582 instr/gas scored; default routes all)")
+    ap.add_argument("--isa-audit", default=None,
+                    help="rv64-isa-audit binary (src/frontends/riscv/rv64 build); required for --isa zbb_binary")
     ap.add_argument("--secp", choices=("stwo", "evmone"), default="stwo",
                     help="stwo: recover on the admitted secp services; evmone: software reference")
     ap.add_argument("--jobs", type=int, default=4)
@@ -366,6 +378,15 @@ def main(argv=None):
     if "zbb" in a.isa and not a.host:
         # ziskethone's default for Zbb targets (zeg/bswap.hpp): plain __builtin_bswap64 -> rev8.
         defines.append("-DZEG_BSWAP_BUILTIN")
+    if a.isa == "zbb_binary":
+        if a.host:
+            raise SystemExit("--isa zbb_binary is a guest build")
+        if not a.isa_audit:
+            raise SystemExit("--isa zbb_binary needs --isa-audit (the ELF must pass the admitted-subset audit)")
+        # zeg::bswap64 -> __builtin_bswap64 -> rev8 (forced header); intx swaps via patch 0024.
+        defines += ["-DSTWO_ZBB_BINARY", "-include", str(HERE / "glue" / "stwo_zbb_binary.h")]
+        if a.zbb_builtins:
+            defines += ["-DSTWO_ZBB_BINARY_BUILTINS", "-DZEG_BSWAP_BUILTIN"]
     if a.profile == "v3":
         if a.host:
             raise SystemExit("--profile v3 is a guest build (the host build emulates services only for candidates)")
@@ -421,6 +442,15 @@ def main(argv=None):
         exe = out / f"client-evmone-{tag}{isa_suffix}{'-eest' if a.eest else ''}.elf"
         run(["zig", "c++", "-target", "riscv64-freestanding-none", mcpu, "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
+    audit = None
+    if a.isa_audit and not a.host:
+        r = subprocess.run([a.isa_audit, "--require-subset", str(exe)], capture_output=True, text=True)
+        audit = json.loads(r.stdout.strip().splitlines()[-1])
+        print("isa audit:", json.dumps(audit))
+        if r.returncode != 0:
+            raise SystemExit(f"{exe}: ISA audit failed (non-admitted encodings present)")
+        if a.isa in ("im",) and audit["zbb_binary"] != 0:
+            raise SystemExit(f"{exe}: RV64IM build contains Zbb encodings")
     if a.tests:
         run_tests(src, out, work, a)
     digest = hashlib.sha256(exe.read_bytes()).hexdigest()
@@ -433,6 +463,7 @@ def main(argv=None):
         "optimization": a.opt,
         "secp": a.secp,
         "isa": a.isa,
+        "isa_audit": audit,
         "defines": defines,
         "pinned_sources": pinned,
         "staging": staged,

@@ -98,6 +98,8 @@ pub const Entry = struct {
             // Already handled by the shared pure operation authority above.
             .ADD, .SUB, .SLL, .SLT, .SLTU, .XOR, .SRL, .SRA, .OR, .AND, .ADDI, .SLTI, .SLTIU, .XORI, .ORI, .ANDI, .SLLI, .SRLI, .SRAI, .ADDW, .SUBW, .SLLW, .SRLW, .SRAW, .ADDIW, .SLLIW, .SRLIW, .SRAIW, .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => unreachable,
             .EBREAK => unreachable,
+            // Not admitted by PROFILE (RV64IM): rejected by `admitted` above.
+            .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H => unreachable,
         }
         return self;
     }
@@ -136,7 +138,8 @@ pub fn identity() [32]u8 {
     const std = @import("std");
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("rv64.word16-execution.full64.v3:main47/inter40/D3;zero=1-enabled;previous-clock=tick-1-gap16-65536*gap8;FUNCTION13:old-ALU0..9,JALR10-nonzero-I,JALR0-AND16,BIN16..18,SHIFT32..37,raw-MUL-DIV49..61;OWNER19:raw-LS28..38,ECALL63;epoch16/tick24;normalized-static-RHS;ROM30-link-and-taken");
-    for (std.enums.values(isa.Opcode)) |op| for ([_]i64{ 0, -16 }) |immediate| {
+    // RV64IM domain only: the v3 identity is byte-identical to the pre-Zbb build.
+    for (isa.baseOpcodes()) |op| for ([_]i64{ 0, -16 }) |immediate| {
         const entry = Entry.fromInstruction(0, 0, .{ .opcode = op, .rs1 = 1, .rs2 = 2, .rd = 3, .imm = immediate });
         const fields = [_]u8{ @intFromEnum(op), @intFromBool(entry.valid), entry.operation, entry.ids[0], entry.ids[1], entry.ids[2], @intFromBool(entry.use_immediate), @intFromBool(entry.branch), @intFromBool(entry.use_pc), @intFromBool(entry.dynamic_next), @intFromBool(entry.function) };
         hash.update(&fields);

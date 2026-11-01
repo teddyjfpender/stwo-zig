@@ -151,8 +151,12 @@ pub const Session = struct {
         return initWithProfile(a, cpu, mem, options, .ethereum_services_v1);
     }
     pub fn initWithProfile(a: std.mem.Allocator, cpu: machine.Cpu, mem: *memory.Memory, options: Base.Options, execution_profile: profile.Profile) Error!Session {
-        if (execution_profile != .ethereum_services_v1 and execution_profile != .ethereum_services_v2 and execution_profile != .ethereum_services_v3) return error.UnsupportedService;
-        return .{ .keccak = try K.Session.init(a, cpu, mem, options), .execution_profile = execution_profile, .allocator = a };
+        if (execution_profile != .ethereum_services_v1 and execution_profile != .ethereum_services_v2 and !profile.isV3(execution_profile)) return error.UnsupportedService;
+        // The ISA follows the profile; a caller cannot widen a pre-Zbb profile.
+        var opts = options;
+        if (opts.isa != .rv64im and opts.isa != profile.isaOf(execution_profile)) return error.UnsupportedService;
+        opts.isa = profile.isaOf(execution_profile);
+        return .{ .keccak = try K.Session.init(a, cpu, mem, opts), .execution_profile = execution_profile, .allocator = a };
     }
     pub fn deinit(self: *Session) void {
         self.bulk_before.deinit(self.allocator);
@@ -166,11 +170,11 @@ pub const Session = struct {
             if (err != error.UnsupportedService) return err;
             // v3-only tags are dispatched before secp; v2 never sees them.
             const tag = self.keccak.base.cpu.read(profile.TAG_REGISTER);
-            if (self.execution_profile == .ethereum_services_v3) if (bulk_memory.kindOf(tag)) |kind| {
+            if (profile.isV3(self.execution_profile)) if (bulk_memory.kindOf(tag)) |kind| {
                 event.* = .{ .bulk = try self.bulk(kind) };
                 return null;
             };
-            if (self.execution_profile == .ethereum_services_v3 and tag == profile.KECCAK_SPONGE_TAG) {
+            if (profile.isV3(self.execution_profile) and tag == profile.KECCAK_SPONGE_TAG) {
                 event.* = .{ .sponge = try self.sponge() };
                 return null;
             }

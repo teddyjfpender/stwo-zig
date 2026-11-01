@@ -4,7 +4,7 @@ const std = @import("std");
 const machine = @import("machine.zig");
 const memory = @import("memory.zig");
 const cache = @import("decode_cache.zig");
-pub const Options = struct { cache_entries: usize = 1024, max_retirements: u64 = 10000000 };
+pub const Options = struct { cache_entries: usize = 1024, max_retirements: u64 = 10000000, isa: @import("decode.zig").Isa = .rv64im };
 pub const Error = machine.Error || cache.Error || error{InvalidBudget};
 pub const Batch = struct { written: usize, stop: ?Error = null };
 pub const Session = struct {
@@ -15,7 +15,7 @@ pub const Session = struct {
 
     pub fn init(allocator: std.mem.Allocator, cpu: machine.Cpu, mem: *memory.Memory, options: Options) Error!Session {
         if (options.max_retirements < cpu.retired) return error.InvalidBudget;
-        return .{ .cpu = cpu, .memory = mem, .decoder = try cache.Cache.init(allocator, options.cache_entries), .max_retirements = options.max_retirements };
+        return .{ .cpu = cpu, .memory = mem, .decoder = try cache.Cache.initIsa(allocator, options.cache_entries, options.isa), .max_retirements = options.max_retirements };
     }
 
     pub fn deinit(self: *Session) void {

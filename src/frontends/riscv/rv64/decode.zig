@@ -66,7 +66,73 @@ pub const Opcode = enum(u8) {
     FENCE,
     ECALL,
     EBREAK,
+    // Zbb BINARY subset. Appended so every RV64IM value above is unchanged.
+    // `Instruction.decode` never yields these; only `decodeFor(.rv64im_zbb_binary, _)`
+    // does, and only profiles with `execution_profile.isaOf(p) == .rv64im_zbb_binary` admit them.
+    ANDN,
+    ORN,
+    XNOR,
+    REV8,
+    SEXT_B,
+    SEXT_H,
+    ZEXT_H,
 };
+
+/// The base RV64IM opcodes, in enum order (the pre-Zbb identity domain).
+pub const BASE_OPCODE_COUNT: usize = @intFromEnum(Opcode.EBREAK) + 1;
+pub fn isBase(op: Opcode) bool {
+    return @intFromEnum(op) < BASE_OPCODE_COUNT;
+}
+pub fn baseOpcodes() [BASE_OPCODE_COUNT]Opcode {
+    var out: [BASE_OPCODE_COUNT]Opcode = undefined;
+    for (&out, 0..) |*op, i| op.* = @enumFromInt(i);
+    return out;
+}
+
+/// Instruction-set option. `rv64im` is the default for every existing profile.
+/// `rv64im_zbb_binary` adds exactly andn, orn, xnor, rev8 (RV64), sext.b,
+/// sext.h and zext.h (RV64) with their standard Zbb encodings; every other
+/// Zbb/Zba/Zbkb encoding (clz, cpop, max, rotates, orc.b, pack with rs2 != 0,
+/// RV32 rev8, ...) stays illegal.
+pub const Isa = enum(u8) { rv64im = 0, rv64im_zbb_binary = 1 };
+pub fn decodeFor(isa: Isa, word: u32) Error!Instruction {
+    return Instruction.decode(word) catch |err| switch (isa) {
+        .rv64im => err,
+        .rv64im_zbb_binary => decodeZbbBinary(word) orelse err,
+    };
+}
+/// Exact-match decoder for the admitted Zbb BINARY subset (Bit-Manipulation
+/// ISA-extensions v1.0.0, RV64 encodings). Null for anything else.
+pub fn decodeZbbBinary(word: u32) ?Instruction {
+    const rd: u5 = @truncate(word >> 7);
+    const rs1: u5 = @truncate(word >> 15);
+    const rs2: u5 = @truncate(word >> 20);
+    const f3: u3 = @truncate(word >> 12);
+    const f7: u7 = @truncate(word >> 25);
+    const imm12: u12 = @truncate(word >> 20);
+    const op: Opcode = switch (@as(u7, @truncate(word))) {
+        0x33 => if (f7 == 0x20) switch (f3) {
+            7 => .ANDN,
+            6 => .ORN,
+            4 => .XNOR,
+            else => return null,
+        } else return null,
+        0x13 => switch (f3) {
+            1 => switch (imm12) {
+                0x604 => .SEXT_B,
+                0x605 => .SEXT_H,
+                else => return null,
+            },
+            5 => if (imm12 == 0x6b8) .REV8 else return null,
+            else => return null,
+        },
+        // zext.h (RV64) is packw rd, rs1, x0; packw with rs2 != 0 stays illegal.
+        0x3b => if (f7 == 0x04 and f3 == 4 and rs2 == 0) .ZEXT_H else return null,
+        else => return null,
+    };
+    const unary = op != .ANDN and op != .ORN and op != .XNOR;
+    return .{ .opcode = op, .rd = rd, .rs1 = rs1, .rs2 = if (unary) 0 else rs2 };
+}
 
 pub const Effects = struct { reads_rs1: bool, reads_rs2: bool, writes_rd: bool, memory_width: u4 = 0 };
 
@@ -129,6 +195,8 @@ pub fn effects(op: Opcode) Effects {
         .BEQ, .BNE, .BLT, .BGE, .BLTU, .BGEU => .{ .reads_rs1 = true, .reads_rs2 = true, .writes_rd = false },
         .LUI, .AUIPC, .JAL => .{ .reads_rs1 = false, .reads_rs2 = false, .writes_rd = true },
         .FENCE, .ECALL, .EBREAK => .{ .reads_rs1 = false, .reads_rs2 = false, .writes_rd = false },
+        .ANDN, .ORN, .XNOR => .{ .reads_rs1 = true, .reads_rs2 = true, .writes_rd = true },
+        .REV8, .SEXT_B, .SEXT_H, .ZEXT_H => .{ .reads_rs1 = true, .reads_rs2 = false, .writes_rd = true },
     };
 }
 

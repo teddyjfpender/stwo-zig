@@ -11,7 +11,11 @@ fn word(values: []const M) u64 {
     return out;
 }
 test "full CPU feature authority explicitly partitions every decoded opcode and true architectural effects" {
-    for (std.enums.values(isa.Opcode)) |opcode| {
+    // The Word16 v2/v3 ROM is RV64IM: Zbb BINARY opcodes are never valid entries.
+    for (std.enums.values(isa.Opcode)) |opcode| if (!isa.isBase(opcode)) {
+        try std.testing.expect(!X.Entry.fromInstruction(0, 0x1000, .{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4 }).valid);
+    };
+    for (isa.baseOpcodes()) |opcode| {
         const instruction = isa.Instruction{ .opcode = opcode, .rs1 = 2, .rs2 = 3, .rd = 4, .imm = -16 };
         const entry = X.Entry.fromInstruction(0, 0x1000, instruction);
         try std.testing.expectEqual(opcode != .EBREAK, entry.valid);
@@ -146,12 +150,13 @@ fn specimen(op: isa.Opcode) u32 {
         .FENCE => 0x0f,
         .ECALL => 0x73,
         .EBREAK => 0x00100073,
+        .ANDN, .ORN, .XNOR, .REV8, .SEXT_B, .SEXT_H, .ZEXT_H => unreachable, // not RV64IM
     };
     const effects = isa.effects(op);
     return base | (if (effects.writes_rd) @as(u32, 1) << 7 else 0) | (if (effects.reads_rs1) @as(u32, 1) << 15 else 0) | (if (effects.reads_rs2) @as(u32, 2) << 20 else 0);
 }
 test "full CPU all65 raw encodings and cached independent decode have identical admission and ROM projection" {
-    for (std.enums.values(isa.Opcode)) |op| {
+    for (isa.baseOpcodes()) |op| {
         const raw = specimen(op);
         const decoded = try execution.decode(.ethereum_services_v2, raw);
         try std.testing.expectEqual(op, decoded.opcode);

@@ -8,5 +8,8 @@ test {
     _ = @import("rv64/tests/foundations_test.zig");
     _ = @import("rv64/tests/ethereum_contract_test.zig");
     _ = @import("rv64/tests/service_session_test.zig");
+    _ = @import("rv64/tests/zbb_binary_test.zig");
+    _ = @import("rv64/isa_audit.zig");
+    _ = @import("rv64/candidate_isa_test.zig");
     _ = @import("isa/decode.zig");
 }
