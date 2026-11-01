@@ -120,6 +120,7 @@ pub fn addProduct(context: Context) void {
         .{ "providers", "src/integrations/riscv_cpu/rv64_providers_test_root.zig", 8 },
         .{ "main-arena", "src/integrations/riscv_cpu/rv64_main_arena_test_root.zig", 12 },
         .{ "secp", "src/integrations/riscv_cpu/delegations/secp256k1/test_root.zig", 32 },
+        .{ "sha256-truth", "src/frontends/riscv/rv64_sha256_truth_test_root.zig", 7 },
         .{ "keccak", "src/integrations/riscv_cpu/delegations/keccak/test_root.zig", 54 },
         .{ "keccak-pair2n", "src/integrations/riscv_cpu/delegations/keccak/pair2n_test_root.zig", 12 },
         .{ "keccak-quartet", "src/integrations/riscv_cpu/delegations/keccak/quartet_test_root.zig", 6 },
