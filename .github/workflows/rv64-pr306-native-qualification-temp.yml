@@ -1,0 +1,22 @@
+name: RV64 PR306 native certificate qualification (temporary)
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  focused:
+    if: github.event.pull_request.number == 306
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+      - name: Zig format check
+        run: |
+          zig fmt --check src/integrations/riscv_cpu/word16_global_execution/services/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/services/native_certificate_test.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate_test.zig
+      - name: Verify mixed-service native certificate
+        run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="native Word16 certificate"
+      - name: Verify complete Ethereum terminal certificate
+        run: zig build test-riscv64-word16-ethereum-terminal -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="complete native Word16"
