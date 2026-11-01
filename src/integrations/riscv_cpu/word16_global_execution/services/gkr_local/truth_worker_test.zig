@@ -57,6 +57,21 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     bad.pow_bits = 33;
     try std.testing.expectError(error.UnsupportedWideServicesConfig, W.verifyTruthWithAuthority(rejecting.allocator(), truth, expected, &pending, 0, bad, &encoded, fixed_ptr));
     try std.testing.expectEqual(@as(usize, 0), rejecting.alloc_index);
+    var decoded = try P.decodePhysical(a, encoded.bytes);
+    defer decoded.deinit(a);
+    decoded.commitment_scheme_proof.config.fri_config.n_queries += 1;
+    const changed_config_bytes = try P.encodePhysical(a, decoded);
+    defer a.free(changed_config_bytes);
+    var changed_config = encoded;
+    changed_config.bytes = changed_config_bytes;
+    try std.testing.expectError(error.WideTruthProofConfig, W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &changed_config, fixed_ptr));
+    decoded.commitment_scheme_proof.config = config;
+    // Revision metadata is not representable in the current wide wire codec;
+    // directly qualify the same structured guard used after decoding.
+    const Revision = core.pcs.config_v2;
+    decoded.commitment_scheme_proof.revision_config = Revision.PcsConfigV2.fromFriAndTraceSize(try Revision.FriConfigV2.init(config.pow_bits, 0, config.fri_config.log_blowup_factor, @intCast(config.fri_config.n_queries), config.fri_config.fold_step), 5);
+    try std.testing.expectError(error.WideTruthProofConfig, W.validateProofConfig(&decoded, config));
+    decoded.commitment_scheme_proof.revision_config = null;
     const claims = try W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, fixed_ptr);
     try std.testing.expect(claims.ram.isZero());
     if (truth == .keccak) {

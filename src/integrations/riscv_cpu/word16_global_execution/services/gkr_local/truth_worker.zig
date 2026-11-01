@@ -233,6 +233,12 @@ fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Wi
     for (globals) |*v| v.data = &.{};
     return .{ .columns = columns, .backings = backings };
 }
+/// Receiver configuration is authority; embedded wire metadata must agree.
+/// The current wide codec cannot carry revisions, and this rejects them if a
+/// structured/future transport ever supplies one.
+pub fn validateProofConfig(proof: *const W.Proof, config: W.PcsConfig) !void {
+    if (!std.meta.eql(proof.commitment_scheme_proof.config, config) or proof.commitment_scheme_proof.revision_config != null) return error.WideTruthProofConfig;
+}
 pub fn verifyTruth(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded) !Manifest.Claims {
     return verifyTruthWithAuthority(a, truth, expected, pending, index, config, encoded, null);
 }
@@ -243,6 +249,7 @@ pub fn verifyTruthWithAuthority(a: std.mem.Allocator, truth: R.Truth, expected: 
     var proof = try W.decodePhysical(a, encoded.bytes);
     var owns_proof = true;
     defer if (owns_proof) proof.deinit(a);
+    try validateProofConfig(&proof, config);
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4) return error.WideTruthRoots;
     try pending.checkPhysicalRoots(index, roots[0], roots[1]);
