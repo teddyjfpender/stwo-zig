@@ -112,8 +112,9 @@ inline void compress(uint32_t st[8], const uint8_t* block) {
     ShaPacket p;
     for (int i = 0; i < 8; ++i) p.state[i] = st[i];
     if ((reinterpret_cast<uintptr_t>(block) & 7) == 0) {
-        const uint64_t* q = reinterpret_cast<const uint64_t*>(block);
-        for (int i = 0; i < 8; ++i) p.block[i] = q[i];
+        // Forced inline: LLVM turns the word loop into a 64-byte memcpy call
+        // (itself a bulk-memory service call), ~3x the 16 ld/sd.
+        __builtin_memcpy_inline(p.block, __builtin_assume_aligned(block, 8), 64);
     } else {
         uint8_t* d = reinterpret_cast<uint8_t*>(p.block);
         for (int i = 0; i < 64; ++i) d[i] = block[i];

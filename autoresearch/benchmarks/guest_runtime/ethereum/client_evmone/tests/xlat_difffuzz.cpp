@@ -276,12 +276,19 @@ int main(int argc, char** argv)
     auto* xlat_vm = static_cast<evmone::VM*>(evmc_create_evmone());
     auto* fused_vm = static_cast<evmone::VM*>(evmc_create_evmone());
     auto* plain_vm = static_cast<evmone::VM*>(evmc_create_evmone());
-    if (fused_vm->set_option(fused_vm, "xlat", "no") != EVMC_SET_OPTION_SUCCESS ||
+    // Without the (parked, unapplied) translated-segment patch there is no "xlat"
+    // option: the default VM is then the fused cgoto dispatch, and only fused vs
+    // plain is compared.
+    const auto xo = fused_vm->set_option(fused_vm, "xlat", "no");
+    const bool has_xlat = xo == EVMC_SET_OPTION_SUCCESS;
+    if ((!has_xlat && xo != EVMC_SET_OPTION_INVALID_NAME) ||
         plain_vm->set_option(plain_vm, "cgoto", "no") != EVMC_SET_OPTION_SUCCESS)
     {
-        std::fprintf(stderr, "evmone built without cgoto/xlat dispatch; nothing to compare\n");
+        std::fprintf(stderr, "evmone built without cgoto dispatch; nothing to compare\n");
         return 2;
     }
+    if (!has_xlat)
+        std::printf("no xlat dispatch in this build: comparing fused cgoto vs plain switch\n");
 
     std::mt19937_64 rng(seed);
     long mismatches = 0, runs = 0;
@@ -298,9 +305,9 @@ int main(int argc, char** argv)
             const int64_t gas = (k == 0) ? (int64_t)(rng() % 400) + 1 :
                                 (k == 1) ? (int64_t)(rng() % 5000) + 1 :
                                            (int64_t)(rng() % 200000) + 1;
-            const auto a = run(*xlat_vm, analysis, gas, rev, calldata);
             const auto b = run(*plain_vm, analysis, gas, rev, calldata);
             const auto f = run(*fused_vm, analysis, gas, rev, calldata);
+            const auto a = has_xlat ? run(*xlat_vm, analysis, gas, rev, calldata) : f;
             ++runs;
             const auto same = [](const Out& x, const Out& y) {
                 return x.status == y.status && x.gas_left == y.gas_left &&
