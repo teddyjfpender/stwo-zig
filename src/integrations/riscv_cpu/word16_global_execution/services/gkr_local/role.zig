@@ -57,6 +57,23 @@ pub fn emitLocalFor(comptime F: type, role: Main.Role, fixed: []const F, main: [
     }
 }
 pub const Component = struct {
+    pub const MAX_FIXED = 3;
+    pub const MAX_MAIN = 128;
+    pub fn mainShape(self: *const @This()) Main.Shape {
+        return Main.shape(self.main.role());
+    }
+    pub fn columnOffsets(self: *const @This()) [2]usize {
+        return .{ self.main.offsets[0], self.main.offsets[1] };
+    }
+    pub fn previousMain(self: *const @This(), column: usize) bool {
+        return Main.previousMain(self.main.role(), column);
+    }
+    pub fn emitMainFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, previous: []const F, sink: *E.SinkFor(F)) !void {
+        return Main.emitFor(F, self.main.public, fixed, main, previous, sink);
+    }
+    pub fn emitLocalFor(self: *const @This(), comptime F: type, fixed: []const F, main: []const F, sink: anytype) void {
+        @import("role.zig").emitLocalFor(F, self.main.role(), fixed, main, E.scalarFor(F, self.epoch), sink);
+    }
     main: A.main_only.component.Component,
     data: Data,
     inter_offset: usize,
@@ -92,67 +109,16 @@ pub const Component = struct {
         if (self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;
     }
     pub fn traceLogDegreeBounds(self: *const @This(), a: std.mem.Allocator) !Air.TraceLogDegreeBounds {
-        try self.validate();
-        var bounds = try self.main.traceLogDegreeBounds(a);
-        errdefer bounds.deinitDeep(a);
-        const inter = try a.alloc(u32, 16);
-        @memset(inter, self.main.log_size);
-        a.free(bounds.items[2]);
-        bounds.items[2] = inter;
-        return bounds;
+        return @import("role_geometry.zig").bounds(self, a);
     }
     pub fn preprocessedColumnIndices(self: *const @This(), a: std.mem.Allocator) ![]usize {
-        return self.main.preprocessedColumnIndices(a);
+        return @import("role_geometry.zig").indices(self, a);
     }
     pub fn maskPoints(self: *const @This(), a: std.mem.Allocator, point: Point, global_log: u32) !Air.MaskPoints {
-        try self.validate();
-        var masks = try self.main.maskPoints(a, point, global_log);
-        errdefer masks.deinitDeep(a);
-        const inter = try a.alloc([]Point, 16);
-        var done: usize = 0;
-        errdefer {
-            for (inter[0..done]) |v| a.free(v);
-            a.free(inter);
-        }
-        const step = core.poly.circle.canonic.CanonicCoset.new(global_log).coset().step.double();
-        const next2 = point.add(.{ .x = O.fromBase(step.x), .y = O.fromBase(step.y) });
-        for (inter, 0..) |*v, i| {
-            v.* = try a.dupe(Point, &.{ point, if (i < 8) next2 else A.geometry.previousPointFor(O, point, global_log) });
-            done += 1;
-        }
-        a.free(masks.items[2]);
-        masks.items[2] = inter;
-        return masks;
+        return @import("role_geometry.zig").masks(self, a, point, global_log);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: Point, mask: *const Air.MaskValues, acc: *Acc, global_log: u32) !void {
-        try self.validate();
-        try self.main.evaluateConstraintQuotientsAtPoint(point, mask, acc, global_log);
-        const shape = Main.shape(self.main.role());
-        const samples = E.lane.NativeMasksForField(O){ .values = mask };
-        var fixed: [3]O = undefined;
-        var main: [128]O = undefined;
-        for (fixed[0..shape.fixed], 0..) |*v, c| v.* = try E.lane.sample(O, samples, 0, self.main.offsets[0] + c, 0, 1);
-        for (main[0..shape.main], 0..) |*v, c| v.* = try E.lane.sample(O, samples, 1, self.main.offsets[1] + c, 0, if (Main.previousMain(self.main.role(), c)) 2 else 1);
-        var projection = B.ProjectionFor(O){ .challenges = &self.data.challenges, .lane_weights = self.data.lane_weights[0..self.data.lane_count], .terms = self.data.instance.terms };
-        emitLocalFor(O, self.main.role(), fixed[0..shape.fixed], main[0..shape.main], O.fromBase(M.fromCanonical(self.epoch)), &projection);
-        try projection.finish();
-        var current: [16]O = undefined;
-        var shifted: [16]O = undefined;
-        for (&current, &shifted, 0..) |*v, *s, c| {
-            v.* = try E.lane.sample(O, samples, 2, self.inter_offset + c, 0, 2);
-            s.* = try E.lane.sample(O, samples, 2, self.inter_offset + c, 1, 2);
-        }
-        const local = try A.geometry.localPointFor(O, point, global_log, self.main.log_size);
-        const anchors = try MP.evalAnchorsFor(O, self.main.log_size, local);
-        var sink = E.SinkFor(O){ .accumulator = acc, .scale = try A.geometry.denominatorInverseFor(O, point, global_log, self.main.log_size) };
-        // Actual values are secure polynomials reconstructed from8 committed
-        // base coordinates, not base-field values reinterpreted as secure.
-        const eq = E.secureFromCoordinatesForField(O, O, current[0..8].*);
-        const next = E.secureFromCoordinatesForField(O, O, shifted[0..8].*);
-        const prefix = E.secureFromCoordinatesForField(O, O, current[8..16].*);
-        const prior = E.secureFromCoordinatesForField(O, O, shifted[8..16].*);
-        B.emitFor(O, .{ .eq = eq, .eq_next2 = next, .prefix = prefix, .prefix_previous = prior }, .{ .first = anchors[0], .second = anchors[1], .carry = try MP.evalCarryQuotientFor(O, &self.data.point, local), .eq0 = self.data.point.eq0, .eq1 = self.data.point.eq1 }, projection.combine(self.data.eta), self.data.target_per_row, &sink);
-        if (sink.count != B.CONSTRAINTS) return error.LocalGkrProjectionShape;
+        return @import("role_oods.zig").evaluate(self, point, mask, acc, global_log);
     }
     pub fn asVerifierComponent(self: *const @This()) Air.Component {
         return core.air.derive.ForField(O).ComponentAdapter(@This(), P.ComponentProver, P.Trace, D.DomainEvaluationAccumulator).asVerifierComponent(self);
