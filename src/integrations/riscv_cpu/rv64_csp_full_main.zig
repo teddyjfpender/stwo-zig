@@ -8,6 +8,8 @@ const native = @import("stwo_riscv_cpu_integration").rv64_full;
 const Capture = native.Capture;
 const Trace = native.Trace;
 const wire = @import("stwo_proof_wire");
+const Metrics = @import("word16_qualification/proof_metrics.zig");
+const LegacyMetrics = @import("word16_qualification/legacy_source_metrics.zig");
 const base = std.heap.smp_allocator;
 const Config = struct {
     artifact_dir: []const u8,
@@ -56,13 +58,14 @@ pub fn main() !void {
     var trace = try Trace.init(a, capture.records, public, &setup.materials.program, &setup.materials.plan);
     defer trace.deinit();
     const witness_ns = timer.lap();
+    const source_geometry = try LegacyMetrics.LegacySource.capture(&setup, &trace, interaction_columns);
     // The narrow capture journal has served its purpose. Keep public boundaries
     // alive but release every retirement before commitment/domain expansion.
     a.free(capture.records.ptr[0..capture.record_capacity]);
     capture.records = &.{};
     capture.record_capacity = 0;
     const Stage = @import("stwo_prover_api").stage_profile;
-    var recorder = Stage.Recorder.initWithOptions(a, "cpu", "rv64-full", .{ .capture_tasks = false });
+    var recorder = Stage.Recorder.initWithOptions(a, "cpu", "rv64-full", .{ .capture_tasks = false, .capture_process_usage = config.profile_stages });
     defer recorder.deinit();
     var bundle = try native.proveTraceProfiled(a, &setup, public, &trace, if (config.profile_stages) &recorder else null);
     defer bundle.deinit(a);
@@ -77,19 +80,9 @@ pub fn main() !void {
     const verify_ns = timer.lap();
     var stages: ?Stage.StageProfile = if (config.profile_stages) try recorder.snapshot(a) else null;
     defer if (stages) |*profile| profile.deinit(a);
-    var oods_samples: usize = 0;
-    var queried_values: usize = 0;
-    var authenticated_hashes: usize = 0;
-    for (bundle.proof.commitment_scheme_proof.sampled_values.items) |tree| for (tree) |column| {
-        oods_samples += column.len;
-    };
-    for (bundle.proof.commitment_scheme_proof.queried_values.items) |tree| for (tree) |column| {
-        queried_values += column.len;
-    };
-    for (bundle.proof.commitment_scheme_proof.decommitments.items) |tree| {
-        authenticated_hashes += tree.hash_witness.len;
-    }
-    try print(scratch, .{ .control_policy = config.control_policy, .pcs_config = air.protocol.config(), .stage_profile = stages, .verified = true, .whole_guest_proof = true, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .setup_ns = setup_ns, .witness_ns = witness_ns, .prove_ns = prove_ns, .encode_decode_ns = encode_decode_ns, .verify_ns = verify_ns, .proof_bytes = encoded.len, .oods_samples = oods_samples, .queried_base_values = queried_values, .authenticated_hashes = authenticated_hashes, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .pow_bits = air.protocol.config().pow_bits, .fri_queries = air.protocol.config().fri_config.n_queries, .workers = if (engine.work_pool.getGlobalPool()) |pool| pool.n_workers else @as(usize, 1), .build_mode = @tagName(@import("builtin").mode) });
+    try source_geometry.validate(&bundle.proof);
+    const proof_metrics = Metrics.inspect(&bundle.proof);
+    try print(scratch, .{ .control_policy = config.control_policy, .pcs_config = air.protocol.config(), .stage_profile = stages, .verified = true, .whole_guest_proof = true, .instructions = public.steps, .rows = rows, .main_columns = main_columns, .interaction_columns = interaction_columns, .cpu_base_bytes = cpu_base_bytes, .rom_words = capture.program_words.len, .ram_cells = capture.cells.len, .capture_ns = capture_ns, .setup_ns = setup_ns, .witness_ns = witness_ns, .prove_ns = prove_ns, .encode_decode_ns = encode_decode_ns, .verify_ns = verify_ns, .proof_bytes = encoded.len, .oods_samples = proof_metrics.oods_samples, .queried_base_values = proof_metrics.queried_base_values, .authenticated_hashes = proof_metrics.authenticated_hashes, .source_cells = source_geometry.cells, .source_column_counts = source_geometry.columns, .opcode_histogram = capture.histogram, .opcode_names = Metrics.OPCODE_NAMES, .peak_caller_bytes = budget.snapshot().peak_live_bytes, .pow_bits = air.protocol.config().pow_bits, .fri_queries = air.protocol.config().fri_config.n_queries, .workers = if (engine.work_pool.getGlobalPool()) |pool| pool.n_workers else @as(usize, 1), .build_mode = @tagName(@import("builtin").mode) });
 }
 fn writeJson(a: std.mem.Allocator, dir: std.fs.Dir, name: []const u8, value: anytype) !void {
     const bytes = try std.json.Stringify.valueAlloc(a, value, .{});

@@ -14,6 +14,7 @@ const E = @import("../word16_execution/execution.zig");
 const P = @import("../word16_execution/protocol.zig");
 const Driver = @import("../word16_execution/driver.zig");
 const Cells = @import("../word16_execution/cells_wire.zig");
+const Metrics = @import("proof_metrics.zig");
 const Output = @import("csp_execution.zig");
 
 fn programFromImage(a: std.mem.Allocator, image: *Image.Owner) !Program {
@@ -59,7 +60,8 @@ pub fn prove(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void 
     var dir = try std.fs.cwd().openDir(path, .{});
     defer dir.close();
     try Driver.publish(a, dir, &setup, encoded);
-    const report = .{ .scope = "one continuous Sail RV64IM workload; all63 ordinary retiring opcodes; no ECALL/EBREAK or service acceptance", .physical_proof_verified = true, .every_retirement_compared = true, .expected_cpu_and_ram_endpoint_bound = true, .steps = capture.boundary.steps, .target_cases = image.parsed.value.target_cases, .opcode_histogram = capture.histogram, .image_identity = image.identity, .program_identity = setup.materials.program.identity, .geometry = geometry, .shapes = shapes, .evaluation_domains = G.domains(shapes), .source_cells = try G.cells(&shapes), .capture_ns = capture_ns, .prepare_ns = prepare_ns, .setup_ns = setup_ns, .source_ns = source_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read() };
+    const metrics = try Metrics.encoded(a, encoded.bytes);
+    const report = .{ .pcs_config = P.T.P.config(), .workers = image.config.workers, .build_mode = @tagName(@import("builtin").mode), .oods_samples = metrics.oods_samples, .queried_base_values = metrics.queried_base_values, .authenticated_hashes = metrics.authenticated_hashes, .scope = "one continuous Sail RV64IM workload; all63 ordinary retiring opcodes; no ECALL/EBREAK or service acceptance", .physical_proof_verified = true, .every_retirement_compared = true, .expected_cpu_and_ram_endpoint_bound = true, .steps = capture.boundary.steps, .target_cases = image.parsed.value.target_cases, .opcode_histogram = capture.histogram, .opcode_names = Metrics.OPCODE_NAMES, .image_identity = image.identity, .program_identity = setup.materials.program.identity, .geometry = geometry, .shapes = shapes, .evaluation_domains = G.domains(shapes), .source_cells = try G.cells(&shapes), .capture_ns = capture_ns, .prepare_ns = prepare_ns, .setup_ns = setup_ns, .source_ns = source_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .proof_bytes = encoded.bytes.len, .total_ns = timer.read() };
     try Driver.writeJson(a, dir, "report.json", report);
     try Output.stdout(a, report);
 }
@@ -92,5 +94,5 @@ pub fn verify(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void
     const bytes = try dir.readFileAlloc(a, "proof.bin", 64 * 1024 * 1024);
     defer a.free(bytes);
     try E.verify(a, &setup, image.admission(), .{ .bytes = bytes, .claims = b.claims, .request = request });
-    try Output.stdout(a, .{ .scope = "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints", .physical_proof_verified = true, .steps = b.cpu.steps, .proof_bytes = bytes.len, .receiver_ns = timer.read() });
+    try Output.stdout(a, .{ .pcs_config = P.T.P.config(), .workers = image.config.workers, .build_mode = @tagName(@import("builtin").mode), .scope = "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints", .physical_proof_verified = true, .steps = b.cpu.steps, .proof_bytes = bytes.len, .receiver_ns = timer.read() });
 }
