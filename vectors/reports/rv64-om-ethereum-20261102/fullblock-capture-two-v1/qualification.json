@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "scope": "Complete pinned104253913-instruction block24628607, q70/P26/fold4 OM31 localGKR, capture2, natural stage2 order,2lanes8workers",
+  "compiled_binary_sha256": "581445315dc7bdc28c392f79e9e65a78eff97e8a5aea974141ed9046b68cb144",
+  "source": "row-packed DEEP binary581445315dc7bdc28c392f79e9e65a78eff97e8a5aea974141ed9046b68cb144; publicAux+compact96+intern, before weighted gate factor/inline/window changes",
+  "completed": true,
+  "prove_seconds": 312.38314075,
+  "wall_seconds": 330.54,
+  "capture_seconds": 5.7183865,
+  "maximum_rss_bytes": 43602542592,
+  "peak_footprint_bytes": 42809640760,
+  "process_user_seconds": 2624.96,
+  "process_system_seconds": 137.64,
+  "page_reclaims": 55889215,
+  "page_faults": 2134949,
+  "durable_artifacts": [
+    {
+      "name": "bundle.json",
+      "bytes": 135813,
+      "sha256": "ba0979f02a818c4cb7d3afaec6681779d5e80bad833489ad67f564ab89b13325",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cells.bin",
+      "bytes": 61971538,
+      "sha256": "40a53821eb6c23b06ab93c3c6406c6694a1385305795557041d6cbe1c8315e8b",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-0.bin",
+      "bytes": 691584,
+      "sha256": "8783288e9c17c34bfc5b342a927984d03661d3327b9b3fc9e3a1fbfdf5a81506",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-1.bin",
+      "bytes": 665760,
+      "sha256": "5d8cc4f5de1d7a8100ad49cc79adb743d0ccb0bec0a9ea3e89dfd29cf37e6802",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-10.bin",
+      "bytes": 902656,
+      "sha256": "77620f35f1555807be22e2c5322350c1caf45c7727cae294814a4e8e7699f396",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-11.bin",
+      "bytes": 761984,
+      "sha256": "2f121b123cc4078bd8d3b0c3a5d59b3d7597f784484ac60ac28f493b3de1bf25",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-12.bin",
+      "bytes": 762944,
+      "sha256": "3ae68d60dd1a6b152eabd8bbaa6cfd37b7edf39668933cafbe037d37da0f173e",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-13.bin",
+      "bytes": 739808,
+      "sha256": "a4645e4da55b849790a874cad9af07bedfe3f6e88a0005467b140295545d10dc",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-14.bin",
+      "bytes": 877824,
+      "sha256": "d37cceb3dcc1d0eab4b6679e467e6f1b3e7958d23b75e50439d2257517a70011",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-15.bin",
+      "bytes": 724704,
+      "sha256": "2431922b461d5fb94ab27e811a6465053073e7fa1df52723666d4eb2a5bb6f7b",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-16.bin",
+      "bytes": 698720,
+      "sha256": "6434334ece6a1879dc0528c497fd56a889af0029bd5f69298478f839b2dcb13c",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-17.bin",
+      "bytes": 683488,
+      "sha256": "1fe10fb9680760326604eef8e73d8fe9aef4b9759c41de64d09dfdbef4bebcf9",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-18.bin",
+      "bytes": 880800,
+      "sha256": "24398814d16246a0667a89cbde794529abc59f89a908d143bb6e28ac1bf79b58",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-19.bin",
+      "bytes": 879808,
+      "sha256": "45fbe21016b11eaa2874c9e4f546476100c07c475892aa7fc6503f332c9fa769",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-2.bin",
+      "bytes": 647648,
+      "sha256": "d55bf9dc8dc109d5566e2e9f733302d536c80e47eb638a0c6cb7dbe846960b57",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-20.bin",
+      "bytes": 867776,
+      "sha256": "25d340cc428706e49ccedda544a0feae6fd4b9f70a5fc809ee8d54119222eb59",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-21.bin",
+      "bytes": 750016,
+      "sha256": "c8c8456672aff117f3b734149195e47dcd382315419ae632fc63e7ee5d584df6",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-22.bin",
+      "bytes": 680416,
+      "sha256": "ee142e72c52eec7f00b827feac0ccf222ab596dfd6a529cc481b4262699eb723",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-23.bin",
+      "bytes": 726208,
+      "sha256": "2a7d24a0e0ffeb8dda25e61db469c14a46c7a1aae9e6b68baf1c2b68a477f518",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-24.bin",
+      "bytes": 727680,
+      "sha256": "f68848c2b01f536fbc5527584800e948bae2749fd4fc76135359b848f6f85421",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-3.bin",
+      "bytes": 884352,
+      "sha256": "2078affe97fea3c9fb6d115a67bf0a4cb5761ae6f8877bffe5c95d7e001cc494",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-4.bin",
+      "bytes": 780192,
+      "sha256": "e9c003ae3fd03e21ae0f1606ab3f104107e47d5d93097f609521c0b77ec40f0e",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-5.bin",
+      "bytes": 792608,
+      "sha256": "7d8519d2b4fdd26eb6cb8ab9d283b45c29ac8b61760d6bf914f0f5aeb0228ffa",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-6.bin",
+      "bytes": 855904,
+      "sha256": "af55b5d3cc4adaa467f5c389badf9938afdd12c831451da36b4089b4bd162516",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-7.bin",
+      "bytes": 726432,
+      "sha256": "5b98282ab3fe77d6b34aa406aba1eaae996017a221b54afaac9dba373db0d5eb",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-8.bin",
+      "bytes": 741184,
+      "sha256": "5a63e3ca6d4005be899b09a2351dca1a1bcabd0a9f6c3ee930e4c6c4dc1a2518",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "cpu-9.bin",
+      "bytes": 743360,
+      "sha256": "e71015e3c0c7639114db63c85181fe476bbd619acabc3be3fb85b0aa35285aad",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "stage-one.bin",
+      "bytes": 2240420,
+      "sha256": "de11c2812ce2f90303f0742151c7b832ea822361018d93d32b68d183687d338e",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "truth-0.bin",
+      "bytes": 2803192,
+      "sha256": "75822d87c352e8a4f6182131ce3ead4710b656387da31056f9ee36cc8f8e86d4",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "truth-1.bin",
+      "bytes": 2792792,
+      "sha256": "15fd24e72554eee33e367c0df065b593aff325a439009fdf1797ac1e7f700aa8",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "truth-2.bin",
+      "bytes": 810584,
+      "sha256": "f9c08abd754c0925a5c48b9755984d4003e926883b57c00c64d6bd48ec0ab26b",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "truth-3.bin",
+      "bytes": 685032,
+      "sha256": "c41731717a696709c4749bc754dd9fa43c7593b1942e3b37a08e65030c25fb72",
+      "matches_classic_parallel": true
+    },
+    {
+      "name": "truth-4.bin",
+      "bytes": 784760,
+      "sha256": "bc16541cc6bbf8d8082b3dc40a2461c066626cbf6e0daf7968df0f25e310120f",
+      "matches_classic_parallel": true
+    }
+  ],
+  "all33_exact_to_previous_control": true,
+  "fresh_receiver": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "accepted": true,
+    "completed_ethereum_block": true,
+    "output": [
+      230,
+      61,
+      39,
+      151,
+      202,
+      92,
+      111,
+      130,
+      106,
+      50,
+      210,
+      12,
+      65,
+      186,
+      85,
+      45,
+      37,
+      119,
+      117,
+      51,
+      171,
+      41,
+      95,
+      157,
+      35,
+      37,
+      96,
+      176,
+      20,
+      208,
+      144,
+      48,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      20
+    ],
+    "cpu_proofs": 25,
+    "truth_proofs": 5,
+    "load_and_setup_ns": 11314254625,
+    "verify_ns": 898679250
+  },
+  "stage_elapsed_sums": {
+    "streaming_commit_prepare": {
+      "seconds": 51.938474,
+      "occurrences": 1227
+    },
+    "streaming_transform": {
+      "seconds": 31.568756999999987,
+      "occurrences": 1227
+    },
+    "streaming_leaf_hash": {
+      "seconds": 20.347954000000016,
+      "occurrences": 1227
+    },
+    "merkle_commit": {
+      "seconds": 5.152430000000001,
+      "occurrences": 60
+    },
+    "interaction_generation": {
+      "seconds": 14.031410000000001,
+      "occurrences": 30
+    },
+    "draw_random_coeff": {
+      "seconds": 0.00045,
+      "occurrences": 30
+    },
+    "composition_trace_extract": {
+      "seconds": 0.0008169999999999999,
+      "occurrences": 30
+    },
+    "composition_evaluation": {
+      "seconds": 143.87168,
+      "occurrences": 30
+    },
+    "composition_interpolate_and_split": {
+      "seconds": 6.605495000000001,
+      "occurrences": 30
+    },
+    "composition_commit": {
+      "seconds": 6.76424,
+      "occurrences": 30
+    },
+    "oods_point_and_mask_points": {
+      "seconds": 0.008117,
+      "occurrences": 30
+    },
+    "sampled_value_evaluation": {
+      "seconds": 8.231022000000001,
+      "occurrences": 30
+    },
+    "sampled_value_channel_mix": {
+      "seconds": 0.008441999999999996,
+      "occurrences": 30
+    },
+    "fri_quotient_build_and_commit": {
+      "seconds": 55.14560499999999,
+      "occurrences": 30
+    },
+    "proof_of_work": {
+      "seconds": 4.60277,
+      "occurrences": 30
+    },
+    "fri_decommit": {
+      "seconds": 8.691184,
+      "occurrences": 30
+    },
+    "trace_decommit": {
+      "seconds": 10.759462,
+      "occurrences": 30
+    },
+    "constraint_check_and_assembly": {
+      "seconds": 0.066822,
+      "occurrences": 30
+    }
+  },
+  "limitations": [
+    "Single shared-host correctness/performance observation; not a quiet causal A/B",
+    "Stage sums include nested/overlapping intervals and are not additive to wall time",
+    "Nominal96PCS benchmark profile; security_qualified remains false",
+    "Capture2 remains explicit resource opt-in; no default promotion",
+    "No new-profile recursion or GPU qualification"
+  ]
+}
