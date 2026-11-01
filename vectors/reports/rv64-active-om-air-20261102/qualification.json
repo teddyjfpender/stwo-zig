@@ -7,5 +7,18 @@
   },
   "performance_qualified": false,
   "whole_protocol_128": false,
-  "actual_service_artifact_parity_pending": true
+  "actual_service_artifact_parity_pending": true,
+  "source_commit": "0d5f8fa4d",
+  "independent_source_review": "pipeline: no concrete math/dispatch/ownership blocker",
+  "actual_binary_caller_audit": {
+    "old_out_of_line_packed_full_products": 140,
+    "new_out_of_line_packed_full_products": 4,
+    "remaining_callers": "classic numeric batchInverse/contributions",
+    "base_mul_calls": "Scaled/fallback call remains; static call count does not measure dynamic nullscale bypass."
+  },
+  "binary_bytes": {
+    "baseline": 3195512,
+    "candidate": 3475192,
+    "note": "Native fullmul is concretely inlined at active AIR sites; binary grew about8.8%, not heap retention."
+  }
 }
