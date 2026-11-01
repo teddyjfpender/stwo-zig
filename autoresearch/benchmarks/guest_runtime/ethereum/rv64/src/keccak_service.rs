@@ -83,14 +83,15 @@ pub unsafe extern "C" fn native_keccak256(input: *const u8, length: usize, outpu
         unsafe {
             assign_block(state_ptr, input, offset);
             for i in RATE / 8..25 {
-                ptr::write(state_ptr.add(i), 0);
+                ptr::write_volatile(state_ptr.add(i), 0);
             }
             permute(state_ptr);
         }
         consumed = RATE;
     } else {
+        // volatile: LLVM would turn a plain loop back into a memset call
         for i in 0..25 {
-            unsafe { ptr::write(state_ptr.add(i), 0) };
+            unsafe { ptr::write_volatile(state_ptr.add(i), 0) };
         }
     }
     while length - consumed >= RATE {
