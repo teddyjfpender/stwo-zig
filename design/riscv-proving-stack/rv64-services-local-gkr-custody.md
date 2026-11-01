@@ -122,30 +122,6 @@ suffixes. No Eq column is shared solely because roles or row logs agree.
 Affine-fraction pairing and better lane-height partitioning are future measured
 resource optimizations; neither is applied implicitly in this version.
 
-Binding ownership now crosses the existing owned PCS seam explicitly. N/D,
-cloned GKR layers, proof and artifacts remain allocated through the stable local
-budget owner. Eq/prefix planes use the parent worker allocator with an external
-reservation charged against the same local cap. `takeBindingCommit` allocates
-and validates headers before releasing source custody; failure preserves the
-planes and reservation for retry. Success transfers the existing plane pointers
-to the worker's owned committer, then releases only the local reservation. The
-receiving worker must continue charging that live storage; no RSS drop is claimed.
-This avoids an allocator mismatch and a whole-binding-witness copy.
-
-`global_cpu.zig` retains the separate physical RAM/KIO/Wire debts. Its widths
-are16 global base columns for LS/INIT/TERM,32 for Keccak bridges and56 for secp
-bridges, in addition to local binding where present. RAM/KIO affine fractions
-use strict paired inverses plus joint prefixes; secp Wire's quadratic after
-weight uses an independently claimed cleared pair. Original tuples and signs
-are shared across native and authenticated arithmetic. Claim-vector conversion
-and native absent-field checks prevent free absent cancellation debts. The
-new accepting role constructors must invoke those checks before worker sums.
-
-The INIT/TEARDOWN20 direct MAIN residuals now have their own shared seam; legacy
-constraint ordering is retained and the existing55-test memory suite passes.
-Global CPU authority has degree-three, layout/prefix-mask and zero-weight-pole
-gates. These are authority gates, not a completed global service proof route.
-
 ## Shared table bindings and manifest (integration slice)
 
 `role_domain.zig`, `role_oods.zig` and `role_geometry.zig` now share the packed
@@ -216,3 +192,27 @@ relations reject, and the manifest digest binds all bounds and presence masks.
 These numbers must be derived from admitted operation counts/program geometry
 and public boundary sizes; copying producer-supplied totals would not establish
 the invariant. The assembly still owns that derivation and physical coverage.
+
+Binding ownership now crosses the existing owned PCS seam explicitly. N/D,
+cloned GKR layers, proof and artifacts remain allocated through the stable local
+budget owner. Eq/prefix planes use the parent worker allocator with an external
+reservation charged against the same local cap. `takeBindingCommit` allocates
+and validates headers before releasing source custody; failure preserves the
+planes and reservation for retry. Success transfers the existing plane pointers
+to the worker's owned committer, then releases only the local reservation. The
+receiving worker must continue charging that live storage; no RSS drop is claimed.
+This avoids an allocator mismatch and a whole-binding-witness copy.
+
+`global_cpu.zig` retains the separate physical RAM/KIO/Wire debts. Its widths
+are16 global base columns for LS/INIT/TERM,32 for Keccak bridges and56 for secp
+bridges, in addition to local binding where present. RAM/KIO affine fractions
+use strict paired inverses plus joint prefixes; secp Wire's quadratic after
+weight uses an independently claimed cleared pair. Original tuples and signs
+are shared across native and authenticated arithmetic. Claim-vector conversion
+and native absent-field checks prevent free absent cancellation debts. The
+new accepting role constructors must invoke those checks before worker sums.
+
+The INIT/TEARDOWN20 direct MAIN residuals now have their own shared seam; legacy
+constraint ordering is retained and the existing55-test memory suite passes.
+Global CPU authority has degree-three, layout/prefix-mask and zero-weight-pole
+gates. These are authority gates, not a completed global service proof route.

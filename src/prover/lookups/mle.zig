@@ -55,6 +55,11 @@ pub fn MleFor(comptime Secure: type, comptime F: type) type {
             self.* = undefined;
         }
 
+        /// Non-owning immutable view; source storage must outlive the view.
+        pub fn borrowed(self: Self) Self {
+            return .{ .evals = self.evals, .owns_evals = false };
+        }
+
         pub fn cloneOwned(self: Self, allocator: std.mem.Allocator) !Self {
             return try Self.initOwned(try allocator.dupe(F, self.evals));
         }

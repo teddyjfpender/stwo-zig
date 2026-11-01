@@ -10,10 +10,14 @@ No production frontend is selected by importing this API.
 
 A caller builds `P.Layer` values and calls `P.proveBatch(allocator, channel,
 layers)`. The result owns its proof and terminal artifact. Each MLE may borrow or
-own its input slice; borrowed inputs must survive the call. The prover clones
-its input and constructs owned binary layers. This is not a streaming or
-constant-memory prover: admission must include those layers, working oracles,
-and caller-owned inputs. `result.deinit(allocator)` releases all result owners.
+own its input slice; all caller inputs must survive the call and remain untouched
+for subsequent committed-input binding. The prover borrows that bottom layer,
+constructs owned upper binary layers, and moves each consumed layer into sumcheck.
+An immutable Eq table is shared only within its enclosing GKR layer scope.
+`sumcheck.proveBatchOwned` consumes its array and elements on every exit, while
+the original borrowed sumcheck API retains its independent-clone contract.
+This is not a streaming or constant-memory prover: admission must include
+the upper tree, working oracles, and caller-owned inputs. `result.deinit(allocator)` releases all result owners.
 Partially constructed owners are released on failure; the focused tests inject
 failure at every allocation in a mixed-height proving and verification run.
 Allocation failures propagate as `OutOfMemory` through the producer and verifier;
@@ -57,3 +61,16 @@ multiplicities, singles, independent direct output arithmetic, terminal MLE
 binding, sumcheck/mask/output/input mutations and allocation-failure cleanup.
 It also executes the inherited QM31 numerical unit tests. Production-service
 adapters and OM31 circuit-wire tests are separate integration gates.
+
+Ownership regressions, including exhaustive allocation failures and caller input
+immutability, run with `owner_memory_test.zig` using the same focused command
+above. The bounded standalone `src/prover/gkr_memory_probe_root.zig` reports
+requested allocator-live bytes, proof/transcript hashes and fresh terminal
+binding; it does not measure RSS or a complete production batch.
+
+`resource.ForField(S).Plan` bounds requested numerical live bytes from typed
+shapes before allocation. The services planner separately includes the binding
+phase and preserves external parent backing reservations. See
+[the admission derivation](../../../design/riscv-proving-stack/rv64-gkr-requested-memory-bound.md).
+The hard allocator remains authoritative. The bound excludes RSS/allocator
+metadata, stacks, externally owned transcripts and embedding PCS/recursion.

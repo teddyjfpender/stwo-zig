@@ -1,0 +1,82 @@
+{
+  "schema": "rv64-om31-compact-prover-qualification-v1",
+  "implementation_commit": "13877e2ab",
+  "wide_codec_dependency": "e03c6a31e",
+  "registered_gates": {
+    "test-native-cpu-om31_ReleaseSafe": "pass",
+    "test-native-cpu-om31_ReleaseFast": "pass",
+    "qm31_ls_gkr_prototype_ReleaseFast": 22,
+    "qm31_gkr_wire_circuit_ReleaseFast": 9
+  },
+  "storage_parity": [
+    {
+      "fold": 1,
+      "mixed": false,
+      "binary_bytes": 3316
+    },
+    {
+      "fold": 1,
+      "mixed": true,
+      "binary_bytes": 6364
+    },
+    {
+      "fold": 4,
+      "mixed": false,
+      "binary_bytes": 3328
+    },
+    {
+      "fold": 4,
+      "mixed": true,
+      "binary_bytes": 7780
+    }
+  ],
+  "hybrid_parity": [
+    {
+      "fold": 1,
+      "binary_bytes": 6364
+    },
+    {
+      "fold": 4,
+      "binary_bytes": 7780
+    }
+  ],
+  "parity_authority": "actual STWOPRW8 durable encoding, byte equality compact/hybrid versus retained; decoded compact/hybrid copies verified by fresh native OM31 core receiver",
+  "covered": [
+    "uniform16-row and mixed32/64-row actual Boolean AIRs",
+    "complete fold1/fold4 profiles",
+    "threshold7 hybrid storage: small MAIN retained, large MAIN and composition compact",
+    "all compact pipeline allocation failures release every owner",
+    "explicit aggregate scratch budget refusal",
+    "quotient log0/log31/log63 rejected before constructing canonic domain",
+    "existing wide constant/high-coordinate/mutation/allocation gates and five legacy full-prover cases"
+  ],
+  "architecture": [
+    "M31 source coefficients combined by(batch,height,representation) before shared pooled base-field aggregate FFT",
+    "no source-column LDE reconstruction or retention",
+    "same shared core quadratic DEEP finalizer",
+    "per-proof owners only, no process cache",
+    "one cached zero/nonzero scan per active source column",
+    "checked aggregate evaluation plus conservative distinct-height twiddle byte plan before materialization",
+    "metadata and small row workspace charged to caller allocator"
+  ],
+  "admission": {
+    "scheme_field": "wide_quotient_group_byte_limit",
+    "refusal": "QuotientScratchBudgetExceeded",
+    "provider_metadata": "resourcePlan()",
+    "budget_scope": "dominant aggregate evaluation/twiddle buffers, not a whole-prover/RSS limit"
+  },
+  "legacy_real_proof": {
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "byte_identical": true,
+    "fresh_receiver_accepted": true
+  },
+  "limits": [
+    "No source LDE cache and no GPU qualification",
+    "No production-scale wide throughput or peak-RSS claim",
+    "Wide per-row quotient finalization still uses scalar row scheduling; bounded denominator batch scheduling is a separate optimization",
+    "No whole-protocol128 certificate or production field default switch"
+  ],
+  "performance_claim": null,
+  "host": "shared host; compiler MaxRSS in build logs is not prover peak memory"
+}
