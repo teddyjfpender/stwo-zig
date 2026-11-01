@@ -1,0 +1,41 @@
+{
+  "schema": "om31-packed-norm-cofactor-qualification-v1",
+  "parent_field_commit": "ce335668f",
+  "scope": "Qualified additive native-pack norm/cofactor primitive; current proof protocols unchanged",
+  "production_profile_changed": false,
+  "whole_protocol_128_qualified": false,
+  "gpu_qualified": false,
+  "measurement_environment": "Shared host, canonical lockf -k shared heavy lock. Other workloads outside this workflow were active. No controlled whole-prover speedup claim. Fixed Q then scalar OM then packed OM order.",
+  "rows": 65536,
+  "runs": 3,
+  "measured_repetitions_per_run": 12,
+  "warmups_per_run": 1,
+  "native_vector_rows": 4,
+  "median_inverse_ns": {
+    "qm31_optimized_owned": 287232,
+    "om31_bounded_norm_scratch": 2057593,
+    "om31_packed_norm_scratch": 946878
+  },
+  "scalar_to_packed_candidate_ratio": 2.1730286267079815,
+  "packed_candidate_to_q_control_ratio": 3.2965616644385025,
+  "active_plane_bytes_per_element": {
+    "qm31_owned_control": 36,
+    "both_om31_candidates": 100
+  },
+  "tests": {
+    "ReleaseSafe": "30 passed including inherited tests",
+    "ReleaseFast": "30 passed including inherited tests",
+    "existing_core_m31_surface": "test-stwo-core-m31 ReleaseSafe passed, recursive public-declaration checks"
+  },
+  "correctness": [
+    "Packed outputs byte/field-equal scalar across native tails, high limbs, subfields and zero weights",
+    "Scaled inverse identity checked for every element in all measured runs",
+    "Alias/zero failures preserve output, no additional allocation or cache",
+    "Independent polynomial p4 Frobenius confirms quadratic conjugation and embedded QM31 fixed field"
+  ],
+  "remaining_costs": [
+    "Non-destructive100B planes vs possible68B owned design",
+    "Packed AoS transpose costs and scalar zero validation",
+    "Full protocol field migration, sampler retry authority, FRI/ROM/outer recursion certificate remain unimplemented"
+  ]
+}

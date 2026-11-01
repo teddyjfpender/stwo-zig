@@ -183,15 +183,43 @@ pub const OM31 = struct {
 /// values; the current optimized Q norm inverter is reused. All planes must
 /// be disjoint. Zero/geometry failures occur before writing the output.
 pub fn invertScaled(input: []const OM31, output: []OM31, scratch: []Q, scales: []const M31) !void {
-    const n = input.len;
-    if (output.len != n or scales.len != n or n > std.math.maxInt(usize) / 2 or scratch.len != 2 * n) return error.InvalidBatchGeometry;
-    if (overlap(input, output) or overlap(input, scratch) or overlap(input, scales) or overlap(output, scratch) or overlap(output, scales) or overlap(scratch, scales)) return error.InvalidBatchGeometry;
-    for (input) |x| if (x.isZero()) return error.DivisionByZero;
+    const n = try validateBatch(input, output, scratch, scales);
     const norms = scratch[0..n];
     const inverses = scratch[n..];
     for (input, norms) |x, *norm| norm.* = x.norm();
     try @import("qm31_norm_batch.zig").invertScaledOwned(norms, inverses, scales);
     for (input, inverses, output) |x, inverse, *out| out.* = x.conjugate().mulInner(inverse);
+}
+/// Same bounded API, with native-width SIMD norm and cofactor phases.
+/// This remains opt-in until qualified measurements justify its use.
+pub fn invertScaledPacked(input: []const OM31, output: []OM31, scratch: []Q, scales: []const M31) !void {
+    const n = try validateBatch(input, output, scratch, scales);
+    const packed_fields = @import("packed_om31.zig");
+    const PackedQ = @import("packed_qm31.zig").PackedQM31;
+    const width = m31.PACK_WIDTH;
+    const norms = scratch[0..n];
+    const inverses = scratch[n..];
+    var first: usize = 0;
+    while (first + width <= n) : (first += width) {
+        const norm = packed_fields.loadNative(input[first..][0..width]).norm();
+        inline for (0..width) |j| norms[first + j] = norm.lane(j);
+    }
+    for (input[first..], norms[first..]) |x, *norm| norm.* = x.norm();
+    try @import("qm31_norm_batch.zig").invertScaledOwned(norms, inverses, scales);
+    first = 0;
+    while (first + width <= n) : (first += width) {
+        const inverse = PackedQ.fromLanes(inverses[first..][0..width].*);
+        const product = packed_fields.loadNative(input[first..][0..width]).conjugate().mulInner(inverse);
+        packed_fields.storeNative(output[first..][0..width], product);
+    }
+    for (input[first..], inverses[first..], output[first..]) |x, inverse, *out| out.* = x.conjugate().mulInner(inverse);
+}
+fn validateBatch(input: []const OM31, output: []OM31, scratch: []Q, scales: []const M31) !usize {
+    const n = input.len;
+    if (output.len != n or scales.len != n or n > std.math.maxInt(usize) / 2 or scratch.len != 2 * n) return error.InvalidBatchGeometry;
+    if (overlap(input, output) or overlap(input, scratch) or overlap(input, scales) or overlap(output, scratch) or overlap(output, scales) or overlap(scratch, scales)) return error.InvalidBatchGeometry;
+    for (input) |x| if (x.isZero()) return error.DivisionByZero;
+    return n;
 }
 fn overlap(a: anytype, b: anytype) bool {
     if (a.len == 0 or b.len == 0) return false;
