@@ -132,6 +132,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-cpu-degree-diagnostic", .description = "Audit full D3 cyclic service CPU polynomial degree", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-verifier-cache", .description = "Check bounded immutable verifier keys and fresh request admission", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-point-evaluation", .description = "Check lane-generic RV64 batch composition evaluation against native OODS values", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-truth-parallel", .description = "Qualify bounded packed service truth composition and exact proof parity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-truth-gkr", .description = "Qualify bounded service truth GKR metadata and wide global authorities", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-main-merkle-parking", .description = "Qualify durable MAIN nodes, mapped ownership, proof parity and failure cleanup", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-wide-fixed-setup", .description = "Qualify field-neutral fixed setup with receiver-owned commitment rates", .scope = .riscv_cpu },
