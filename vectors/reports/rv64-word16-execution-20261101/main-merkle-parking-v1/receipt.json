@@ -1,0 +1,56 @@
+{
+  "base": "b134c5fe4f22d98c22eee9be0c88377fef786e87",
+  "test_fixture_dependencies": [
+    "a004a0ad7",
+    "eeb0c59d1",
+    "c8dc7015a",
+    "ede61e72a",
+    "d8996a13e"
+  ],
+  "qualification": {
+    "ReleaseSafe": 17,
+    "ReleaseFast": 17,
+    "actual_CPU_OM_shards": "Keccak + ADD/DOUBLE, resident/fullpark hashes identical and each fresh receiver accepted"
+  },
+  "proof_and_claim_sha256": {
+    "Keccak": "bdbbd96c95a15b0332d66d22765763f2a358d8b31a94a23f2c61b25ebcf4f1fa",
+    "ADD_DOUBLE": "75fa333bfba1eddf904f8ee730c175bc4d9f72247faaed3b52d367f0142cfaaf"
+  },
+  "capability": "Store.initFullyParked,stats.merkle_parking_enabled; oldinitParked coefficientonly unchanged",
+  "disk_profile": "128Bversion/hash/M31/endian/root/shape header + actualcoefficient/nativeMerkle payload, roundedonce",
+  "tiny_plan": {
+    "coefficient_bytes": 384,
+    "merkle_bytes": 8160,
+    "header_bytes": 128,
+    "root_cell_bytes": 32,
+    "rounded_file_bytes": 16384
+  },
+  "full_CPU_log22_node_model": {
+    "beta1": 536870880,
+    "beta2": 1073741792,
+    "resident_root_bytes": 32,
+    "is_RSS_measurement": false
+  },
+  "hard_mapping_budget": "Newmode reserves filebytes externally on original identifiableSharedHostBudget; unmap releases. Otherallocators require calleradmission.",
+  "coverage": [
+    "foreignregistrydescriptors/root/shape",
+    "fileheader/coefficient/node/lengthtamper failureatomic",
+    "allallocationfailures and parkedabort",
+    "laterCPUworkerOOM",
+    "diskcaprefusal",
+    "externalhostcaprefusal/retry",
+    "exactrestoredvalues/idempotence"
+  ],
+  "no_replay_or_rebuild": true,
+  "remaining": [
+    "capabilityaware coordinatoradmission",
+    "fullblock memory/IObenchmark",
+    "fixedkeyparking separately"
+  ],
+  "claims": {
+    "throughput_speedup": false,
+    "fullblock_RSS": false,
+    "GPU": false,
+    "wholeprotocol128": false
+  }
+}
