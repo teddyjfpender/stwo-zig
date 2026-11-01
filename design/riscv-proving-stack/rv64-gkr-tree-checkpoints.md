@@ -83,3 +83,15 @@ Q/OM numerical proofs, artifacts and next draws match the borrowed path; fresh
 terminal verification and exhaustive allocation failures pass. Full child Safe/
 Fast suites pass with opt-in stride2. No default or admission estimate is changed
 by this slice; actual requested peaks and physical RSS require another benchmark.
+
+The subsequent actual owned/replay CPU0 ABBA is pinned separately at63ab7e2c6
+(with the qualified paired/owned-D fold dependency81f30b1a6). All four durable
+artifacts remain identical to both policies and the earlier benchmark; every
+fresh receiver accepts. Numerical requested peak remains exactly8.847GB versus
+12.616GB dense. Owned replay does not improve that numerical peak. Its process
+RSS is15.165GB versus18.259GB dense (only about68MB below the previous borrowed
+stride2 observation, not a material additional gain). Dense mean source+prove is
+8.730s; owned stride2 is9.414s. Metadata binding is about0.350s versus0.308s dense.
+This sample is not host-quiet, and other native stages also shifted. The lifecycle
+and removal of retained raw terminal planes are qualified; neither artifact
+parity nor these numbers justify promoting the slower memory policy by default.
