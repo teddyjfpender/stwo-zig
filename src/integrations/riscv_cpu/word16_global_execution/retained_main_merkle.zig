@@ -87,7 +87,7 @@ pub const Capture = struct {
 };
 pub fn metadataDigest(tree: *const Tree, words: usize, capture: *const Capture) Hash {
     var h = std.crypto.hash.blake2.Blake2s256.init(.{});
-    h.update("STWO/native-main/coefficient+merkle-shape/v2\x00");
+    h.update("STWO/native-main/coefficient+merkle-shape/v3\x00");
     var bytes: [8]u8 = undefined;
     for ([_]usize{ HASH_SCHEMA, words, tree.columns.len, capture.lengths.len, capture.offset, capture.bytes }) |n| {
         std.mem.writeInt(u64, &bytes, @intCast(n), .little);
@@ -107,8 +107,8 @@ pub fn metadataDigest(tree: *const Tree, words: usize, capture: *const Capture) 
 }
 pub fn header(tree: *const Tree, words: usize, capture: *const Capture) [HEADER_BYTES]u8 {
     var out = [_]u8{0} ** HEADER_BYTES;
-    @memcpy(out[0..16], "STWOMAINPARKv2\x00\x00");
-    std.mem.writeInt(u32, out[16..20], 2, .little);
+    @memcpy(out[0..16], "STWOMAINPARKv3\x00\x00");
+    std.mem.writeInt(u32, out[16..20], 3, .little);
     std.mem.writeInt(u32, out[20..24], HASH_SCHEMA, .little);
     std.mem.writeInt(u32, out[24..28], @intCast(capture.lengths.len), .little);
     std.mem.writeInt(u32, out[28..32], @intCast(tree.columns.len), .little);

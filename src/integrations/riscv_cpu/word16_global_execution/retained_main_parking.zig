@@ -5,6 +5,7 @@ const engine = @import("stwo_prover_engine");
 const Store = @import("retained_main_store.zig").Store;
 const Tree = @import("protocol.zig").T.Scheme.CommittedTree;
 const M = @import("stwo_core").fields.m31.M31;
+const Integrity = @import("retained_main_integrity.zig");
 const Merkle = @import("retained_main_merkle.zig");
 const Reserved = engine.file_backed_allocator.ReservedFile;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
@@ -80,27 +81,36 @@ pub fn spill(store: *Store, a: std.mem.Allocator, tree: *Tree, words: usize, coe
     var file = try Reserved.init(store.backing.dir, payload_bytes);
     errdefer file.deinit();
     std.debug.assert(file.size == rounded);
-    var digest = std.crypto.hash.blake2.Blake2s256.init(.{});
     const header = if (capture) |*c| Merkle.header(tree, words, c) else [_]u8{0} ** Merkle.HEADER_BYTES;
-    if (capture != null) {
-        try file.file.writeAll(&header);
-        digest.update(&header);
-    }
+    const segment_count = if (capture) |c| try std.math.add(usize, try std.math.add(usize, 1, coefficients.len), c.lengths.len) else 0;
+    if (capture != null) _ = try Integrity.scratchBytes(payload_bytes, segment_count);
+    const segments = try a.alloc(Integrity.Segment, segment_count);
+    defer a.free(segments);
+    if (capture != null) segments[0] = .{ .offset = 0, .bytes = &header };
     var offset: usize = coefficient_offset / @sizeOf(M);
-    for (coefficients, tree.columns, columns) |coefficient, column, *description| {
+    for (coefficients, tree.columns, columns, 0..) |coefficient, column, *description, index| {
         const values = coefficient.coefficients();
         description.* = .{ .offset = offset, .count = values.len, .native_log = coefficient.log_size, .column_log = column.log_size };
         // No second wide allocation or initial mmap: stream the existing owner.
         const bytes = std.mem.sliceAsBytes(values);
-        try file.file.writeAll(bytes);
-        if (capture != null) digest.update(bytes);
+        if (capture != null) {
+            segments[1 + index] = .{ .offset = offset * @sizeOf(M), .bytes = bytes };
+        } else try file.file.writeAll(bytes);
         offset += values.len;
     }
     std.debug.assert(offset == words + coefficient_offset / @sizeOf(M));
-    if (capture) |*c| try c.write(tree, file.file, &digest);
+    var payload_digest: [32]u8 = @splat(0);
+    if (capture != null) {
+        var node_at = node_offset;
+        for (tree.commitment.layers, 0..) |layer, i| {
+            const bytes = std.mem.sliceAsBytes(layer);
+            segments[1 + coefficients.len + i] = .{ .offset = node_at, .bytes = bytes };
+            node_at = try std.math.add(usize, node_at, bytes.len);
+        }
+        if (node_at != payload_bytes) return error.RetainedMainIntegrityShape;
+        payload_digest = try Integrity.digest(a, file.file, segments, payload_bytes);
+    }
     try file.file.sync();
-    var payload_digest: [32]u8 = undefined;
-    digest.final(&payload_digest);
     owner.* = .{ .allocator = a, .budget = if (Budget.fromAllocator(a)) |budget| budget.retain() else null, .store = store, .file = file, .columns = columns, .coefficient_descriptors = @intFromPtr(coefficients.ptr), .column_descriptors = @intFromPtr(tree.columns.ptr), .root = tree.root(), .merkle = capture, .header = header, .payload_bytes = payload_bytes, .payload_digest = payload_digest };
     if (owner.merkle) |*c| c.park(tree);
     // Infallible publication under exclusive tree access. No unmapped pointer is
@@ -181,8 +191,7 @@ pub fn restore(store: *Store, tree: *Tree) !usize {
     errdefer std.posix.munmap(memory);
     if (owner.merkle != null) {
         if (owner.payload_bytes > memory.len or !std.mem.eql(u8, memory[0..Merkle.HEADER_BYTES], &owner.header)) return error.RetainedMainFileIntegrityMismatch;
-        var actual: [32]u8 = undefined;
-        std.crypto.hash.blake2.Blake2s256.hash(memory[0..owner.payload_bytes], &actual, .{});
+        const actual = try Integrity.digest(owner.allocator, null, &.{.{ .offset = 0, .bytes = memory[0..owner.payload_bytes] }}, owner.payload_bytes);
         if (!std.mem.eql(u8, &actual, &owner.payload_digest)) return error.RetainedMainFileIntegrityMismatch;
     }
     const values = std.mem.bytesAsSlice(M, memory);
