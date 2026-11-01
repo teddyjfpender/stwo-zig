@@ -7,8 +7,18 @@ a cache directory, our patches are applied to a staged copy, and the ELF is
 compiled with `zig c++` (Zig 0.15.2: bundled libc++ headers, compiler-rt, RISC-V
 backend). Only the Python standard library is used.
 
-  python3 -I build.py --out DIR [--cache DIR] [--profile admitted|candidate]
-                      [--host] [--jobs 4] [--clean]
+  python3 -I build.py --out DIR [--cache DIR] [--profile admitted|v3|candidate]
+                      [--isa im|zba|zbb|zba_zbb] [--host] [--jobs 4] [--clean]
+
+`--profile v3` builds the ADMITTED ethereum_services_v3 guest: SHA-256
+compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
+ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
+head/tail and software fallback for overlap or mismatched alignment
+(`--v3-set` selects a subset of sha, arith, mem for ablations).
+
+`--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
+profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
+`-<isa>` to the ELF name.
 
 Outputs DIR/client-evmone-<profile>.elf (or DIR/client-evmone-host for --host)
 and DIR/build-manifest.json.
@@ -75,6 +85,8 @@ ZISKETHONE_EVMONE_PATCHES = [
 ZIG_LIBCXX = None  # resolved from `zig env`
 
 GUEST_TARGET = ["-target", "riscv64-linux-musl", "-mcpu=generic_rv64+m"]
+# Candidate bit-manipulation extensions (CONTEXT.md "Candidate instructions").
+ISA_FEATURES = {"im": "", "zba": "+zba", "zbb": "+zbb", "zba_zbb": "+zba+zbb"}
 COMMON_CXX = ["-std=c++20", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections",
               "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wno-deprecated-declarations"]
 GUEST_EXTRA = ["-fno-pic", "-fomit-frame-pointer", "-mcmodel=medlow"]
@@ -156,7 +168,7 @@ def sources(src: Path, host: bool, profile: str, secp: str) -> list[tuple[Path, 
     files += [ev / "test" / "state" / "precompiles.cpp"]
     glue = HERE / "glue"
     files += [glue / n for n in ("keccak_stwo.cpp", "sha256_stwo.cpp", "witness_trie.cpp", "stwo_client.cpp", "arith_stwo.cpp",
-                                 )]
+                                 "curves_stwo.cpp")]
     files += [src / "blst" / "src" / "server.c"]
     if host:
         files += [src / "blst" / "build" / "assembly.S"]
@@ -209,7 +221,8 @@ def compile_one(job):
 
 
 def run_tests(src: Path, out: Path, work: Path, a) -> None:
-    """Host tests: memory-function fuzz and secp256k1 differential vs evmone."""
+    """Host tests: memory-function fuzz, secp256k1 differential vs evmone, witness trie
+    differential vs a reference MPT encoder, ziskethone word paths (hash, compare, copy)."""
     tdir = work / "obj-tests"
     tdir.mkdir(parents=True, exist_ok=True)
     glue = HERE / "glue"
@@ -227,6 +240,37 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         objs.append(o)
     run(["zig", "c++", a.opt, *objs, "-o", tdir / "secp_differential"])
     run([tdir / "secp_differential", "3000"])
+    # Candidate curve/field/sponge glue vs independent references (all hooks live,
+    # portable blst so the 384-bit Montgomery hook is exercised too).
+    ev = src / "evmone" / "lib" / "evmone_precompiles"
+    bn = ["-DCANDIDATE_ARITH", "-DCANDIDATE_BN"]
+    units = [(glue / "curves_stwo.cpp", ["-DCANDIDATE_BN", "-DCANDIDATE_BLS"]), (glue / "arith_stwo.cpp", ["-DCANDIDATE_ARITH"]),
+             (glue / "host_services.cpp", []), (glue / "keccak_stwo.cpp", []), (glue / "sha256_stwo.cpp", []),
+             (ev / "bn254.cpp", bn), (ev / "kzg.cpp", []), (ev / "kzg_precomputed_lines.cpp", []),
+             (HERE / "tests" / "curves_test.cpp", bn)]
+    objs = []
+    for f, extra in units:
+        o = tdir / ("curves-" + f.name + ".o")
+        run(["zig", "c++", *flags, *extra, "-c", f, "-o", o])
+        objs.append(o)
+    o = tdir / "curves-blst-server.c.o"
+    run(["zig", "cc", a.opt, "-g", "-D__BLST_NO_ASM__", "-DCANDIDATE_BLS", "-ffunction-sections", "-fdata-sections",
+         "-c", src / "blst" / "src" / "server.c", "-o", o])
+    objs.append(o)
+    run(["zig", "c++", a.opt, *objs, "-o", tdir / "curves_test"])
+    run([tdir / "curves_test"])
+    tobjs = []
+    for f in (glue / "witness_trie.cpp", glue / "keccak_stwo.cpp", glue / "host_services.cpp",
+              HERE / "tests" / "trie_differential.cpp"):
+        o = tdir / ("trie-" + f.name + ".o")
+        run(["zig", "c++", *flags, "-c", f, "-o", o])
+        tobjs.append(o)
+    run(["zig", "c++", a.opt, *tobjs, "-o", tdir / "trie_differential"])
+    run([tdir / "trie_differential", "600"])
+    wobj = tdir / "zeg_words_test.o"
+    run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
+    run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
+    run([tdir / "zeg_words_test"])
 
 
 def main(argv=None):
@@ -234,11 +278,18 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--cache", default=None, help="pinned source checkouts (default OUT/cache)")
-    ap.add_argument("--profile", choices=("admitted", "candidate"), default="admitted")
+    ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
+                    help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
+                         "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
+    ap.add_argument("--v3-set", default="sha,arith,mem",
+                    help="admitted v3 service groups for --profile v3 (sha, arith, mem)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
-                    help="candidate service groups for --profile candidate (mem, sha, arith, mul)")
+                    help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
+                         "bn = BN254 G1/Fq2 [needs arith], bls = BLS12-381 Fp/Fp2, keccak = Keccak sponge)")
     ap.add_argument("--opt", default="-O2")
+    ap.add_argument("--isa", choices=tuple(ISA_FEATURES), default="im",
+                    help="guest ISA: RV64IM (admitted) or a candidate Zba/Zbb build")
     ap.add_argument("--secp", choices=("stwo", "evmone"), default="stwo",
                     help="stwo: recover on the admitted secp services; evmone: software reference")
     ap.add_argument("--jobs", type=int, default=4)
@@ -246,6 +297,9 @@ def main(argv=None):
     ap.add_argument("--tests", action="store_true",
                     help="build and run the host tests (memory fuzz, secp differential vs evmone)")
     ap.add_argument("--no-stage", action="store_true", help="reuse the staged, patched sources")
+    ap.add_argument("--eest", action="store_true",
+                    help="EEST conformance build (never deployed): fork and blob schedule from the "
+                         "input schema id instead of the mainnet timestamp schedule")
     a = ap.parse_args(argv)
     out = Path(a.out).resolve()
     cache = Path(a.cache).resolve() if a.cache else out / "cache"
@@ -268,12 +322,34 @@ def main(argv=None):
         staged = stage(cache, work)
     src = work / "src"
 
-    variant = "host" if a.host else a.profile if a.profile == "admitted" else "candidate-" + a.candidate_set.replace(",", "-")
+    v3_groups = a.v3_set.split(",")
+    for svc in v3_groups:
+        if svc not in ("sha", "arith", "mem"):
+            raise SystemExit(f"unknown admitted v3 service group {svc!r}")
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)
+    variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
+               else "candidate-" + a.candidate_set.replace(",", "-"))
+    isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
+    variant += isa_suffix
+    mcpu = "-mcpu=generic_rv64+m" + ISA_FEATURES[a.isa]
+    guest_target = [mcpu if f.startswith("-mcpu=") else f for f in GUEST_TARGET]
     defines = list(DEFINES)
+    if "zbb" in a.isa and not a.host:
+        # ziskethone's default for Zbb targets (zeg/bswap.hpp): plain __builtin_bswap64 -> rev8.
+        defines.append("-DZEG_BSWAP_BUILTIN")
+    if a.profile == "v3":
+        if a.host:
+            raise SystemExit("--profile v3 is a guest build (the host build emulates services only for candidates)")
+        defines.append("-DADMITTED_V3")
+        for svc in v3_groups:
+            defines.append(f"-DADMITTED_{svc.upper()}")
+    if a.eest:
+        variant += "-eest"
+        defines += ["-DZEG_FORK_FROM_INPUT", "-DSTWO_EEST_FORK_FROM_SCHEMA"]
     if a.profile == "candidate":
         defines.append("-DCANDIDATE_SERVICES")
         for svc in a.candidate_set.split(","):
-            if svc not in ("mem", "sha", "arith", "mul"):
+            if svc not in ("mem", "sha", "arith", "mul", "bn", "bls", "keccak"):
                 raise SystemExit(f"unknown candidate service group {svc!r}")
             defines.append(f"-DCANDIDATE_{svc.upper()}")
     if a.host:
@@ -281,8 +357,8 @@ def main(argv=None):
         cxx = [a.opt, "-g", *COMMON_CXX, *defines, *includes(src)]
         cc = [a.opt, "-g", *defines]
     else:
-        cxx = [*GUEST_TARGET, a.opt, *COMMON_CXX, *GUEST_EXTRA, *defines, *includes(src)]
-        cc = [*GUEST_TARGET, *defines]
+        cxx = [*guest_target, a.opt, *COMMON_CXX, *GUEST_EXTRA, *defines, *includes(src)]
+        cc = [*guest_target, *defines]
     jobs = []
     objdir = work / f"obj-{variant}"
     for f, kind in sources(src, a.host, a.profile, a.secp):
@@ -308,13 +384,13 @@ def main(argv=None):
         raise SystemExit(f"{len(errors)} compile errors")
     objs = [str(j[2]) for j in jobs]
     if a.host:
-        exe = out / "client-evmone-host"
+        exe = out / ("client-evmone-host-eest" if a.eest else "client-evmone-host")
         run(["zig", "c++", a.opt, "-g", *objs, "-o", exe])
     else:
-        tag = a.profile if a.profile == "admitted" or a.candidate_set == "mem,sha,arith" else \
-            "candidate-" + a.candidate_set.replace(",", "-")
-        exe = out / f"client-evmone-{tag}.elf"
-        run(["zig", "c++", "-target", "riscv64-freestanding-none", "-mcpu=generic_rv64+m", "-nostdlib",
+        tag = a.profile if a.profile == "admitted" or (a.profile == "candidate" and a.candidate_set == "mem,sha,arith") else \
+            v3_tag if a.profile == "v3" else "candidate-" + a.candidate_set.replace(",", "-")
+        exe = out / f"client-evmone-{tag}{isa_suffix}{'-eest' if a.eest else ''}.elf"
+        run(["zig", "c++", "-target", "riscv64-freestanding-none", mcpu, "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
     if a.tests:
         run_tests(src, out, work, a)
@@ -327,6 +403,7 @@ def main(argv=None):
         "zig_version": zig_version,
         "optimization": a.opt,
         "secp": a.secp,
+        "isa": a.isa,
         "defines": defines,
         "pinned_sources": pinned,
         "staging": staged,

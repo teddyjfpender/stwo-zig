@@ -1,0 +1,751 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-admitted-v3-run.v1",
+ "date": "2026-11-01",
+ "client": "evmone (client_evmone build.py --profile v3, admitted ethereum_services_v3: SHA-256, arith256_mod, aligned memcpy/memset)",
+ "reference": "same tree, build.py --profile admitted, ethereum_services_v2",
+ "input_adapter": "client_evmone/adapter.py with the host build",
+ "elf_sha256": {
+  "v3": "597b225e5d0d01eac8238f7b0b0568a9c31d3527148c9d16e6d6429c7863e3c4",
+  "v2_reference": "35b2a303e41334ccfcfa6a7dab787e4cb176cf7f437f47e268336191657c1e62"
+ },
+ "executor_sha256": "f69d42e171ceb57960f7ed6e60fc456a36a003318a445985a8cb8be66b80bec4",
+ "ok": true,
+ "promotable": true,
+ "guards": [
+  {
+   "guard": "G1_complete_basket",
+   "ok": true,
+   "detail": {
+    "missing": []
+   }
+  },
+  {
+   "guard": "G2_exact_output",
+   "ok": true,
+   "detail": {
+    "failed": []
+   }
+  },
+  {
+   "guard": "G3_determinism",
+   "ok": true,
+   "detail": {
+    "nondeterministic": []
+   }
+  },
+  {
+   "guard": "G4_per_block_regression",
+   "ok": true,
+   "detail": {
+    "limit": 0.02,
+    "regressed": []
+   }
+  },
+  {
+   "guard": "G5_holdout_generalises",
+   "ok": true,
+   "detail": {
+    "scored_ratio": 0.34418198342908257,
+    "holdout_ratio": 0.3453872748923535,
+    "required_share": 0.5
+   }
+  },
+  {
+   "guard": "G6_execution_profile",
+   "ok": true,
+   "detail": {
+    "seen": [
+     "ethereum_services_v3"
+    ],
+    "allowed": [
+     "ethereum_services_v2",
+     "ethereum_services_v3",
+     "ethereum_services_v3_candidate",
+     "ethereum_services_v3_candidate_isa"
+    ]
+   }
+  }
+ ],
+ "metrics": {
+  "v3": {
+   "scored": {
+    "blocks": 12,
+    "gas_used": 357472990,
+    "instructions": 1707862777,
+    "instructions_per_gas": 4.777599496398316,
+    "committed_bits_per_gas": 67191.8199209477,
+    "committed_bits_per_instruction": 14063.928960893758,
+    "keccak_f_calls_per_kgas": 2.9700118042484833,
+    "secp_calls_per_kgas": 3.1590302808612196,
+    "memory_ops_per_gas": 1.6621237901078905
+   },
+   "holdout": {
+    "blocks": 3,
+    "gas_used": 87926127,
+    "instructions": 357028515,
+    "instructions_per_gas": 4.060550909970139,
+    "committed_bits_per_gas": 56828.7486982947,
+    "committed_bits_per_instruction": 13995.329687594685,
+    "keccak_f_calls_per_kgas": 2.4760899567428916,
+    "secp_calls_per_kgas": 2.799566049349586,
+    "memory_ops_per_gas": 1.3969591655049243
+   },
+   "all": {
+    "blocks": 15,
+    "gas_used": 445399117,
+    "instructions": 2064891292,
+    "instructions_per_gas": 4.636047116366421,
+    "committed_bits_per_gas": 65146.048652763915,
+    "committed_bits_per_instruction": 14052.067853836485,
+    "keccak_f_calls_per_kgas": 2.8725068172957333,
+    "secp_calls_per_kgas": 3.0880685378637605,
+    "memory_ops_per_gas": 1.6097777086522602
+   }
+  },
+  "v2_reference": {
+   "scored": {
+    "blocks": 12,
+    "gas_used": 357472990,
+    "instructions": 2433166886,
+    "instructions_per_gas": 6.806575473016856,
+    "committed_bits_per_gas": 86044.47304385097,
+    "committed_bits_per_instruction": 12641.37500347348,
+    "keccak_f_calls_per_kgas": 2.9700118042484833,
+    "secp_calls_per_kgas": 3.1590302808612196,
+    "memory_ops_per_gas": 1.9019673038793785
+   },
+   "holdout": {
+    "blocks": 3,
+    "gas_used": 87926127,
+    "instructions": 493787908,
+    "instructions_per_gas": 5.615940617968991,
+    "committed_bits_per_gas": 71349.88930214525,
+    "committed_bits_per_instruction": 12704.886706574365,
+    "keccak_f_calls_per_kgas": 2.4760899567428916,
+    "secp_calls_per_kgas": 2.799566049349586,
+    "memory_ops_per_gas": 1.6040494198044228
+   },
+   "all": {
+    "blocks": 15,
+    "gas_used": 445399117,
+    "instructions": 2926954794,
+    "instructions_per_gas": 6.571532547515131,
+    "committed_bits_per_gas": 83143.61898516331,
+    "committed_bits_per_instruction": 12652.089658538187,
+    "keccak_f_calls_per_kgas": 2.8725068172957333,
+    "secp_calls_per_kgas": 3.0880685378637605,
+    "memory_ops_per_gas": 1.8431554097580305
+   }
+  }
+ },
+ "admitted_service_totals": {
+  "sha256_compress": {
+   "calls": 198819,
+   "bytes": 0
+  },
+  "arith256_mod": {
+   "calls": 800115,
+   "bytes": 0
+  },
+  "memcpy": {
+   "calls": 1526468,
+   "bytes": 158319928
+  },
+  "memset": {
+   "calls": 496811,
+   "bytes": 113855200
+  }
+ },
+ "costing": "calibration.json admitted_services, MEASURED on the complete-block proof (design/riscv-proving-stack/rv64-services-v3-integration.md)",
+ "rows": {
+  "v3": {
+   "24626900": {
+    "gas_used": 16338083,
+    "instructions": 65467958,
+    "instructions_per_gas": 4.007077084869749,
+    "keccak_f_calls": 56377,
+    "secp_add_calls": 32313,
+    "secp_double_calls": 30376,
+    "sha256_calls": 8435,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 8435,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 156,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 61792,
+      "bytes": 6356216
+     },
+     "memset": {
+      "calls": 16963,
+      "bytes": 4541768
+     }
+    },
+    "verified_output": true
+   },
+   "24628590": {
+    "gas_used": 49134719,
+    "instructions": 201424912,
+    "instructions_per_gas": 4.09944161886832,
+    "keccak_f_calls": 146821,
+    "secp_add_calls": 80632,
+    "secp_double_calls": 75751,
+    "sha256_calls": 23823,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 23823,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 595,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 174580,
+      "bytes": 17156088
+     },
+     "memset": {
+      "calls": 58217,
+      "bytes": 13171264
+     }
+    },
+    "verified_output": true
+   },
+   "24628595": {
+    "gas_used": 54230474,
+    "instructions": 227027990,
+    "instructions_per_gas": 4.186354520891704,
+    "keccak_f_calls": 166402,
+    "secp_add_calls": 98980,
+    "secp_double_calls": 93122,
+    "sha256_calls": 23237,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 23237,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 48385,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 196761,
+      "bytes": 20095120
+     },
+     "memset": {
+      "calls": 64954,
+      "bytes": 13945224
+     }
+    },
+    "verified_output": true
+   },
+   "24628607": {
+    "gas_used": 7372614,
+    "instructions": 36659052,
+    "instructions_per_gas": 4.972327589644595,
+    "keccak_f_calls": 29998,
+    "secp_add_calls": 10358,
+    "secp_double_calls": 9751,
+    "sha256_calls": 2901,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 2901,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 319,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 26695,
+      "bytes": 3330392
+     },
+     "memset": {
+      "calls": 10473,
+      "bytes": 2650424
+     }
+    },
+    "verified_output": true
+   },
+   "24628608": {
+    "gas_used": 12907474,
+    "instructions": 50504146,
+    "instructions_per_gas": 3.9127830898594103,
+    "keccak_f_calls": 39676,
+    "secp_add_calls": 19620,
+    "secp_double_calls": 18501,
+    "sha256_calls": 4101,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 4101,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 386,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 39815,
+      "bytes": 4412720
+     },
+     "memset": {
+      "calls": 14354,
+      "bytes": 3492808
+     }
+    },
+    "verified_output": true
+   },
+   "24628611": {
+    "gas_used": 58862996,
+    "instructions": 273071060,
+    "instructions_per_gas": 4.639095502376399,
+    "keccak_f_calls": 176023,
+    "secp_add_calls": 95860,
+    "secp_double_calls": 90251,
+    "sha256_calls": 29434,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 29434,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 1264,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 209277,
+      "bytes": 21267896
+     },
+     "memset": {
+      "calls": 65304,
+      "bytes": 15019080
+     }
+    },
+    "verified_output": true
+   },
+   "24647140": {
+    "gas_used": 7704951,
+    "instructions": 34936286,
+    "instructions_per_gas": 4.534264526795822,
+    "keccak_f_calls": 32231,
+    "secp_add_calls": 12781,
+    "secp_double_calls": 12001,
+    "sha256_calls": 4029,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 4029,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 124,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 29487,
+      "bytes": 3522384
+     },
+     "memset": {
+      "calls": 7863,
+      "bytes": 2925392
+     }
+    },
+    "verified_output": true
+   },
+   "24697070": {
+    "gas_used": 17435221,
+    "instructions": 80600966,
+    "instructions_per_gas": 4.622881809183835,
+    "keccak_f_calls": 58880,
+    "secp_add_calls": 37465,
+    "secp_double_calls": 35251,
+    "sha256_calls": 7807,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 7807,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 54604,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 68311,
+      "bytes": 7097600
+     },
+     "memset": {
+      "calls": 19334,
+      "bytes": 5520576
+     }
+    },
+    "verified_output": true
+   },
+   "24697073": {
+    "gas_used": 22277128,
+    "instructions": 108175796,
+    "instructions_per_gas": 4.855913024335992,
+    "keccak_f_calls": 61612,
+    "secp_add_calls": 51545,
+    "secp_double_calls": 48626,
+    "sha256_calls": 12328,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 12328,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 399,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 79124,
+      "bytes": 6867896
+     },
+     "memset": {
+      "calls": 14966,
+      "bytes": 5012544
+     }
+    },
+    "verified_output": true
+   },
+   "25229951": {
+    "gas_used": 57944048,
+    "instructions": 213916433,
+    "instructions_per_gas": 3.6917757799731215,
+    "keccak_f_calls": 123870,
+    "secp_add_calls": 62451,
+    "secp_double_calls": 58751,
+    "sha256_calls": 19431,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 19431,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 86177,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 153952,
+      "bytes": 16188440
+     },
+     "memset": {
+      "calls": 64243,
+      "bytes": 12561784
+     }
+    },
+    "verified_output": true
+   },
+   "25229955": {
+    "gas_used": 39102791,
+    "instructions": 174668688,
+    "instructions_per_gas": 4.466911019215994,
+    "keccak_f_calls": 94286,
+    "secp_add_calls": 46095,
+    "secp_double_calls": 43501,
+    "sha256_calls": 15797,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 15797,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 175113,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 123910,
+      "bytes": 13909864
+     },
+     "memset": {
+      "calls": 42695,
+      "bytes": 8475432
+     }
+    },
+    "verified_output": true
+   },
+   "25229957": {
+    "gas_used": 9768139,
+    "instructions": 37627347,
+    "instructions_per_gas": 3.8520486860393777,
+    "keccak_f_calls": 34757,
+    "secp_add_calls": 17035,
+    "secp_double_calls": 16001,
+    "sha256_calls": 4565,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 4565,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 78,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 34452,
+      "bytes": 3886320
+     },
+     "memset": {
+      "calls": 9689,
+      "bytes": 3461544
+     }
+    },
+    "verified_output": true
+   },
+   "26235156": {
+    "gas_used": 5443474,
+    "instructions": 21401619,
+    "instructions_per_gas": 3.9316104017397713,
+    "keccak_f_calls": 20994,
+    "secp_add_calls": 14855,
+    "secp_double_calls": 14001,
+    "sha256_calls": 3157,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 3157,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 25,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 22264,
+      "bytes": 2370304
+     },
+     "memset": {
+      "calls": 4821,
+      "bytes": 1976248
+     }
+    },
+    "verified_output": true
+   },
+   "26235159": {
+    "gas_used": 57734946,
+    "instructions": 340514708,
+    "instructions_per_gas": 5.897896016045464,
+    "keccak_f_calls": 151832,
+    "secp_add_calls": 86324,
+    "secp_double_calls": 81251,
+    "sha256_calls": 27732,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 27732,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 174094,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 204088,
+      "bytes": 20063016
+     },
+     "memset": {
+      "calls": 69808,
+      "bytes": 13950736
+     }
+    },
+    "verified_output": true
+   },
+   "26235168": {
+    "gas_used": 29142059,
+    "instructions": 198894331,
+    "instructions_per_gas": 6.824992393296575,
+    "keccak_f_calls": 85653,
+    "secp_add_calls": 42223,
+    "secp_double_calls": 39751,
+    "sha256_calls": 12042,
+    "admitted_service_calls": {
+     "sha256_compress": {
+      "calls": 12042,
+      "bytes": 0
+     },
+     "arith256_mod": {
+      "calls": 258396,
+      "bytes": 0
+     },
+     "memcpy": {
+      "calls": 101960,
+      "bytes": 11795672
+     },
+     "memset": {
+      "calls": 33127,
+      "bytes": 7150376
+     }
+    },
+    "verified_output": true
+   }
+  },
+  "v2_reference": {
+   "24626900": {
+    "gas_used": 16338083,
+    "instructions": 92203179,
+    "instructions_per_gas": 5.643451499175271,
+    "keccak_f_calls": 56377,
+    "secp_add_calls": 32313,
+    "secp_double_calls": 30376,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24628590": {
+    "gas_used": 49134719,
+    "instructions": 276701198,
+    "instructions_per_gas": 5.63148021666716,
+    "keccak_f_calls": 146821,
+    "secp_add_calls": 80632,
+    "secp_double_calls": 75751,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24628595": {
+    "gas_used": 54230474,
+    "instructions": 314426893,
+    "instructions_per_gas": 5.797974271808872,
+    "keccak_f_calls": 166402,
+    "secp_add_calls": 98980,
+    "secp_double_calls": 93122,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24628607": {
+    "gas_used": 7372614,
+    "instructions": 46535941,
+    "instructions_per_gas": 6.312000194232331,
+    "keccak_f_calls": 29998,
+    "secp_add_calls": 10358,
+    "secp_double_calls": 9751,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24628608": {
+    "gas_used": 12907474,
+    "instructions": 64246571,
+    "instructions_per_gas": 4.977470495001578,
+    "keccak_f_calls": 39676,
+    "secp_add_calls": 19620,
+    "secp_double_calls": 18501,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24628611": {
+    "gas_used": 58862996,
+    "instructions": 366212934,
+    "instructions_per_gas": 6.221445710986236,
+    "keccak_f_calls": 176023,
+    "secp_add_calls": 95860,
+    "secp_double_calls": 90251,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24647140": {
+    "gas_used": 7704951,
+    "instructions": 48077936,
+    "instructions_per_gas": 6.239875633212982,
+    "keccak_f_calls": 32231,
+    "secp_add_calls": 12781,
+    "secp_double_calls": 12001,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24697070": {
+    "gas_used": 17435221,
+    "instructions": 120806701,
+    "instructions_per_gas": 6.928888426478792,
+    "keccak_f_calls": 58880,
+    "secp_add_calls": 37465,
+    "secp_double_calls": 35251,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "24697073": {
+    "gas_used": 22277128,
+    "instructions": 146300318,
+    "instructions_per_gas": 6.567288117211518,
+    "keccak_f_calls": 61612,
+    "secp_add_calls": 51545,
+    "secp_double_calls": 48626,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "25229951": {
+    "gas_used": 57944048,
+    "instructions": 299409654,
+    "instructions_per_gas": 5.1672201776444755,
+    "keccak_f_calls": 123870,
+    "secp_add_calls": 62451,
+    "secp_double_calls": 58751,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "25229955": {
+    "gas_used": 39102791,
+    "instructions": 272357194,
+    "instructions_per_gas": 6.96515995495053,
+    "keccak_f_calls": 94286,
+    "secp_add_calls": 46095,
+    "secp_double_calls": 43501,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "25229957": {
+    "gas_used": 9768139,
+    "instructions": 52462913,
+    "instructions_per_gas": 5.370819661759523,
+    "keccak_f_calls": 34757,
+    "secp_add_calls": 17035,
+    "secp_double_calls": 16001,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "26235156": {
+    "gas_used": 5443474,
+    "instructions": 31484567,
+    "instructions_per_gas": 5.783910605616928,
+    "keccak_f_calls": 20994,
+    "secp_add_calls": 14855,
+    "secp_double_calls": 14001,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "26235159": {
+    "gas_used": 57734946,
+    "instructions": 477788412,
+    "instructions_per_gas": 8.27554964717556,
+    "keccak_f_calls": 151832,
+    "secp_add_calls": 86324,
+    "secp_double_calls": 81251,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   },
+   "26235168": {
+    "gas_used": 29142059,
+    "instructions": 317940383,
+    "instructions_per_gas": 10.910017819948823,
+    "keccak_f_calls": 85653,
+    "secp_add_calls": 42223,
+    "secp_double_calls": 39751,
+    "sha256_calls": 0,
+    "admitted_service_calls": null,
+    "verified_output": true
+   }
+  }
+ }
+}

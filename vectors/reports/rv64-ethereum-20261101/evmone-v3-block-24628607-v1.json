@@ -1,0 +1,585 @@
+{
+ "schema": "stwo.rv64.evmone-v3-block-proof.v1",
+ "date": "2026-11-01",
+ "block": 24628607,
+ "guest": {
+  "client": "evmone, client_evmone build.py --profile v3",
+  "elf_sha256": "597b225e5d0d01eac8238f7b0b0568a9c31d3527148c9d16e6d6429c7863e3c4",
+  "input_sha256": "e549944d05baec739cfead4e19025cdfb378949baedc6e4d891a19aa6d059d56",
+  "execution_profile": "ethereum_services_v3",
+  "instructions_to_terminal": 36659069
+ },
+ "native_jobs": {
+  "batches": 9,
+  "completed": true,
+  "wall_s": 5.3,
+  "max_rss_bytes": 954695680
+ },
+ "prefix4": {
+  "report": {
+   "total_steps": 16777212,
+   "cpu_proofs": 4,
+   "truth_proofs": 6,
+   "prove_ns": 32192907042,
+   "same_process_verify_ns": 282613917
+  },
+  "produce_wall_s": 36.16,
+  "produce_max_rss_bytes": 24800411648,
+  "fresh_verify_prefix": {
+   "accepted": true,
+   "completed_ethereum_block": false,
+   "verify_ns": 222037416
+  },
+  "verify_max_rss_bytes": 2183217152,
+  "v2_request_rejects": "UnadmittedSha256Service"
+ },
+ "complete": {
+  "report": {
+   "completed_ethereum_block": true,
+   "total_steps": 36659069,
+   "cpu_proofs": 9,
+   "truth_proofs": 6,
+   "prove_ns": 67528900417,
+   "capture_ns": 4092086042,
+   "setup_ns": 3839675625,
+   "same_process_verify_ns": 385222250
+  },
+  "produce_wall_s": 76.01,
+  "produce_max_rss_bytes": 35801235456,
+  "fresh_verify": {
+   "accepted": true,
+   "completed_ethereum_block": true,
+   "cpu_proofs": 9,
+   "truth_proofs": 6,
+   "verify_ns": 374532875
+  },
+  "verify_max_rss_bytes": 2427797504
+ },
+ "cost": {
+  "scope": "exact physical native column cells; lifted leaf cells exclude commitment blowup; neither is measured stage time",
+  "cpu": [
+   {
+    "columns": [
+     150,
+     782,
+     984
+    ],
+    "native_cells": [
+     38166688,
+     439128960,
+     354887808
+    ],
+    "lifted_leaf_cells": [
+     629145600,
+     3279945728,
+     4127195136
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     168,
+     1105,
+     1532
+    ],
+    "native_cells": [
+     33074176,
+     403540608,
+     310599424
+    ],
+    "lifted_leaf_cells": [
+     704643072,
+     4634705920,
+     6425673728
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     155,
+     907,
+     1076
+    ],
+    "native_cells": [
+     29561856,
+     344000640,
+     258958080
+    ],
+    "lifted_leaf_cells": [
+     650117120,
+     3804233728,
+     4513071104
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     173,
+     1204,
+     1588
+    ],
+    "native_cells": [
+     29557760,
+     344214656,
+     259136256
+    ],
+    "lifted_leaf_cells": [
+     725614592,
+     5049942016,
+     6660554752
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     157,
+     959,
+     1104
+    ],
+    "native_cells": [
+     29406208,
+     342091904,
+     257237760
+    ],
+    "lifted_leaf_cells": [
+     658505728,
+     4022337536,
+     4630511616
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     171,
+     1175,
+     1564
+    ],
+    "native_cells": [
+     29558784,
+     344809344,
+     261076224
+    ],
+    "lifted_leaf_cells": [
+     717225984,
+     4928307200,
+     6559891456
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     173,
+     1204,
+     1588
+    ],
+    "native_cells": [
+     29705216,
+     345815168,
+     261309184
+    ],
+    "lifted_leaf_cells": [
+     725614592,
+     5049942016,
+     6660554752
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     165,
+     1093,
+     1348
+    ],
+    "native_cells": [
+     30031872,
+     343090752,
+     266133376
+    ],
+    "lifted_leaf_cells": [
+     692060160,
+     4584374272,
+     5653921792
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   },
+   {
+    "columns": [
+     172,
+     1178,
+     1556
+    ],
+    "native_cells": [
+     33597344,
+     364610240,
+     314247680
+    ],
+    "lifted_leaf_cells": [
+     721420288,
+     4940890112,
+     6526337024
+    ],
+    "max_log": [
+     22,
+     22,
+     22
+    ]
+   }
+  ],
+  "truth": [
+   {
+    "columns": [
+     46,
+     1925,
+     2604
+    ],
+    "native_cells": [
+     8453120,
+     504112128,
+     680562688
+    ],
+    "lifted_leaf_cells": [
+     12058624,
+     504627200,
+     682622976
+    ],
+    "max_log": [
+     18,
+     18,
+     18
+    ]
+   },
+   {
+    "columns": [
+     46,
+     1925,
+     2604
+    ],
+    "native_cells": [
+     8453120,
+     504112128,
+     680562688
+    ],
+    "lifted_leaf_cells": [
+     12058624,
+     504627200,
+     682622976
+    ],
+    "max_log": [
+     18,
+     18,
+     18
+    ]
+   },
+   {
+    "columns": [
+     33,
+     520,
+     400
+    ],
+    "native_cells": [
+     7865088,
+     136052992,
+     102762496
+    ],
+    "lifted_leaf_cells": [
+     8650752,
+     136314880,
+     104857600
+    ],
+    "max_log": [
+     18,
+     18,
+     18
+    ]
+   },
+   {
+    "columns": [
+     33,
+     520,
+     400
+    ],
+    "native_cells": [
+     2949888,
+     54919424,
+     45352960
+    ],
+    "lifted_leaf_cells": [
+     4325376,
+     68157440,
+     52428800
+    ],
+    "max_log": [
+     17,
+     17,
+     17
+    ]
+   },
+   {
+    "columns": [
+     3,
+     7409,
+     8
+    ],
+    "native_cells": [
+     12288,
+     30347264,
+     32768
+    ],
+    "lifted_leaf_cells": [
+     12288,
+     30347264,
+     32768
+    ],
+    "max_log": [
+     12,
+     12,
+     12
+    ]
+   },
+   {
+    "columns": [
+     4,
+     401,
+     488
+    ],
+    "native_cells": [
+     2048,
+     205312,
+     249856
+    ],
+    "lifted_leaf_cells": [
+     2048,
+     205312,
+     249856
+    ],
+    "max_log": [
+     9,
+     9,
+     9
+    ]
+   }
+  ],
+  "active": [
+   {
+    "retirements": 4194303,
+    "alu_facts": 832814,
+    "binary_facts": 420327,
+    "shift_facts": 505297,
+    "ram_events": 1217379,
+    "keccak_calls": 11291,
+    "add_calls": 0,
+    "double_calls": 0,
+    "sha256_calls": 1,
+    "arith256_mod_calls": 0,
+    "bulk": {
+     "calls": 1127,
+     "copy_words": 36074,
+     "set_words": 114392
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 356796,
+    "binary_facts": 231945,
+    "shift_facts": 49703,
+    "ram_events": 1641703,
+    "keccak_calls": 10407,
+    "add_calls": 273,
+    "double_calls": 251,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 48,
+    "bulk": {
+     "calls": 3221,
+     "copy_words": 42939,
+     "set_words": 58193
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 370651,
+    "binary_facts": 64276,
+    "shift_facts": 57966,
+    "ram_events": 1428217,
+    "keccak_calls": 179,
+    "add_calls": 0,
+    "double_calls": 0,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 58,
+    "bulk": {
+     "calls": 3569,
+     "copy_words": 45206,
+     "set_words": 37390
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 365626,
+    "binary_facts": 69882,
+    "shift_facts": 55866,
+    "ram_events": 1474086,
+    "keccak_calls": 213,
+    "add_calls": 136,
+    "double_calls": 125,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 60,
+    "bulk": {
+     "calls": 3785,
+     "copy_words": 40334,
+     "set_words": 20008
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 376989,
+    "binary_facts": 59438,
+    "shift_facts": 48666,
+    "ram_events": 1482630,
+    "keccak_calls": 162,
+    "add_calls": 0,
+    "double_calls": 0,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 58,
+    "bulk": {
+     "calls": 3376,
+     "copy_words": 41180,
+     "set_words": 20604
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 353732,
+    "binary_facts": 60344,
+    "shift_facts": 50119,
+    "ram_events": 1487564,
+    "keccak_calls": 227,
+    "add_calls": 800,
+    "double_calls": 750,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 23,
+    "bulk": {
+     "calls": 4088,
+     "copy_words": 42720,
+     "set_words": 20382
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 375761,
+    "binary_facts": 72069,
+    "shift_facts": 55771,
+    "ram_events": 1458932,
+    "keccak_calls": 232,
+    "add_calls": 394,
+    "double_calls": 375,
+    "sha256_calls": 0,
+    "arith256_mod_calls": 55,
+    "bulk": {
+     "calls": 4199,
+     "copy_words": 47056,
+     "set_words": 37530
+    }
+   },
+   {
+    "retirements": 4194303,
+    "alu_facts": 375630,
+    "binary_facts": 245911,
+    "shift_facts": 192798,
+    "ram_events": 1282525,
+    "keccak_calls": 4507,
+    "add_calls": 0,
+    "double_calls": 0,
+    "sha256_calls": 1,
+    "arith256_mod_calls": 17,
+    "bulk": {
+     "calls": 3485,
+     "copy_words": 36179,
+     "set_words": 17651
+    }
+   },
+   {
+    "retirements": 3104645,
+    "alu_facts": 368114,
+    "binary_facts": 148838,
+    "shift_facts": 139754,
+    "ram_events": 1100388,
+    "keccak_calls": 2780,
+    "add_calls": 8755,
+    "double_calls": 8250,
+    "sha256_calls": 2899,
+    "arith256_mod_calls": 0,
+    "bulk": {
+     "calls": 10318,
+     "copy_words": 84611,
+     "set_words": 5153
+    }
+   }
+  ],
+  "memory_words": 1031767,
+  "unique_cpu_setups": 9,
+  "unique_keccak_setups": 1,
+  "unique_secp_setups": 2,
+  "unique_sha256_setups": 1,
+  "unique_arith256_setups": 1
+ },
+ "caveat": "First complete run overlapped this branch's ReleaseSafe test suites; the rerun overlapped other sessions' load (load average ~15). Default driver options, not the baseline-2x8 schedule of optimization-current-baseline-v1.json.",
+ "committed_cells": {
+  "cpu_by_tree": [
+   282659904,
+   3271302272,
+   2543585792
+  ],
+  "truth_by_tree": [
+   27735552,
+   1229749248,
+   1509523456
+  ],
+  "main_plus_interaction": 8554160768,
+  "including_fixed": 8864556224
+ },
+ "complete_rerun": {
+  "report": {
+   "prove_ns": 61635992750,
+   "capture_ns": 3839437833,
+   "setup_ns": 3494497626,
+   "same_process_verify_ns": 374857958
+  },
+  "produce_wall_s": 69.47,
+  "produce_max_rss_bytes": 37451350016,
+  "peak_footprint_bytes": 24500907920,
+  "cost_json_identical_to_first_run": true,
+  "fresh_verify": "accepted, completed block",
+  "load_average_at_end": 15.57
+ }
+}

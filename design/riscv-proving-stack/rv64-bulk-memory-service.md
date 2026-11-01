@@ -337,3 +337,27 @@ ordinary instructions. Entered as measured tiers in
 - Interaction generation is scalar per row (chunked batch inversion); no SIMD or
   parallel path yet.
 - The design is a source-level argument; no machine-checked proof.
+
+## 10. Integration into the shared v3 profile (2026-11-01)
+
+Merged with SHA-256 and arith256_mod on `codex/rv64-guest-prover-v3-integration`
+([rv64-services-v3-integration.md](rv64-services-v3-integration.md)):
+
+- The bulk block stays after all families (`T.Family` keccak..arith256_mod) in
+  roster sources, fixed columns, components, claims, `beginCpu` and wire
+  JSON; its nine claims are mixed in their own trailing `mixFelts` call, as
+  before, so bulk-only transcripts are unchanged.
+- **Ethereum work-packet route now works for bulk** (the section-9 gap):
+  `execution_profile.admitsV3` includes the two tags; the native batch accepts
+  bulk ECALLs (no call ID or tape payload, RAM effects come from the boundary
+  capture); work-packet admission counts them and bounds touched cells by
+  `3 + 2 * 2^17` words per call; the cost roster reports `bulk_desc`,
+  `bulk_copy`, `bulk_set` rows; `admitProfile` rejects bulk bridges under a
+  v2 request (`UnadmittedBulkMemoryService`). A 4-shard prefix and the
+  complete block 24,628,607 with the evmone v3 guest were proved and freshly
+  verified (integration note).
+- **evmone client.** `build.py --profile v3` (glue `runtime.cpp`,
+  `ADMITTED_MEM`) mirrors the Rust `admitted-mem` wrapper: inline head/tail,
+  1 MiB chunks, 16-byte threshold, software fallback for overlap and
+  mismatched alignment; memcmp stays in software.
+- `services/gkr_local` and recursion still do not know the bulk components.

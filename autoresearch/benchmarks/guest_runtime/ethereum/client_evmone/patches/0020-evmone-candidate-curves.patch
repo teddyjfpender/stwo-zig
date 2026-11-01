@@ -1,0 +1,156 @@
+diff --git a/lib/evmone_precompiles/bn254.cpp b/lib/evmone_precompiles/bn254.cpp
+index 3affffb..9b2e149 100644
+--- a/lib/evmone_precompiles/bn254.cpp
++++ b/lib/evmone_precompiles/bn254.cpp
+@@ -3,6 +3,13 @@
+ // SPDX-License-Identifier: Apache-2.0
+ 
+ #include "bn254.hpp"
++#if defined(CANDIDATE_BN)
++// stwo candidate profile: affine G1 arithmetic on the execution-only
++// bn254_g1_add/double services (client_evmone glue/curves_stwo.cpp).
++// Coordinates are plain little-endian limbs; inf != 0 marks the point at infinity.
++extern "C" void stwo_bn254_g1_mul(const uint64_t p[8], const uint64_t k[4], uint64_t r[8], int* inf) noexcept;
++extern "C" void stwo_bn254_g1_add(const uint64_t p[8], const uint64_t q[8], uint64_t r[8], int* inf) noexcept;
++#endif
+ 
+ namespace evmone::crypto::bn254
+ {
+@@ -23,6 +30,24 @@ AffinePoint mul(const AffinePoint& pt, const uint256& c) noexcept
+ 
+     if (c == 0)
+         return {};
++#if defined(CANDIDATE_BN)
++    {
++        uint64_t in[8], k[4], out[8];
++        int inf = 0;
++        const auto x = pt.x.value();
++        const auto y = pt.y.value();
++        for (int i = 0; i < 4; ++i)
++        {
++            in[i] = x[i];
++            in[4 + i] = y[i];
++            k[i] = c[i];
++        }
++        stwo_bn254_g1_mul(in, k, out, &inf);
++        if (inf)
++            return {};
++        return {Fq{uint256{out[0], out[1], out[2], out[3]}}, Fq{uint256{out[4], out[5], out[6], out[7]}}};
++    }
++#endif
+ 
+     // Optimized using field endomorphism with scalar decomposition.
+     // See ecc::decompose() for more details.
+@@ -33,4 +58,27 @@ AffinePoint mul(const AffinePoint& pt, const uint256& c) noexcept
+     const auto pr = msm(k1.value, p, k2.value, q);
+     return ecc::to_affine(pr);
+ }
++#if defined(CANDIDATE_BN)
++AffinePoint add(const AffinePoint& p, const AffinePoint& q) noexcept
++{
++    if (p == 0)
++        return q;
++    if (q == 0)
++        return p;
++    uint64_t a[8], b[8], out[8];
++    int inf = 0;
++    const auto px = p.x.value(), py = p.y.value(), qx = q.x.value(), qy = q.y.value();
++    for (int i = 0; i < 4; ++i)
++    {
++        a[i] = px[i];
++        a[4 + i] = py[i];
++        b[i] = qx[i];
++        b[4 + i] = qy[i];
++    }
++    stwo_bn254_g1_add(a, b, out, &inf);
++    if (inf)
++        return {};
++    return {Fq{uint256{out[0], out[1], out[2], out[3]}}, Fq{uint256{out[4], out[5], out[6], out[7]}}};
++}
++#endif
+ }  // namespace evmone::crypto::bn254
+diff --git a/lib/evmone_precompiles/bn254.hpp b/lib/evmone_precompiles/bn254.hpp
+index 11f3302..c395443 100644
+--- a/lib/evmone_precompiles/bn254.hpp
++++ b/lib/evmone_precompiles/bn254.hpp
+@@ -90,6 +90,11 @@ bool validate(const AffinePoint& pt) noexcept;
+ /// Computes [c]P for a point in affine coordinate on the bn254 curve,
+ AffinePoint mul(const AffinePoint& pt, const uint256& c) noexcept;
+ 
++#if defined(CANDIDATE_BN)
++/// P + Q for validated points (stwo candidate bn254_g1_add/double services).
++AffinePoint add(const AffinePoint& p, const AffinePoint& q) noexcept;
++#endif
++
+ /// ate paring implementation for bn254 curve according to https://eips.ethereum.org/EIPS/eip-197
+ ///
+ /// @param pairs  Sequence of point pairs: a point from the bn254 curve G1 group over the base field
+diff --git a/lib/evmone_precompiles/pairing/bn254/fields.hpp b/lib/evmone_precompiles/pairing/bn254/fields.hpp
+index f3953b6..8afaeb9 100644
+--- a/lib/evmone_precompiles/pairing/bn254/fields.hpp
++++ b/lib/evmone_precompiles/pairing/bn254/fields.hpp
+@@ -7,6 +7,15 @@
+ #include "../../ecc.hpp"
+ #include "../field_template.hpp"
+ 
++#if defined(CANDIDATE_BN)
++#if !defined(CANDIDATE_ARITH)
++#error "CANDIDATE_BN needs CANDIDATE_ARITH: the Fq2 service takes plain (non-Montgomery) values"
++#endif
++// stwo candidate profile: Fq2 products on the execution-only bn254_fp2_mul
++// service (client_evmone glue/curves_stwo.cpp); r may alias a or b.
++extern "C" void stwo_bn254_fp2_mul(uint64_t r[8], const uint64_t a[8], const uint64_t b[8]) noexcept;
++#endif
++
+ namespace evmone::crypto::bn254
+ {
+ using namespace intx;
+@@ -40,6 +49,16 @@ using Fq12 = ecc::ExtFieldElem<Fq12Config>;
+ /// Multiplies two Fq^2 field elements
+ constexpr Fq2 multiply(const Fq2& a, const Fq2& b) noexcept
+ {
++#if defined(CANDIDATE_BN)
++    static_assert(sizeof(Fq2) == 8 * sizeof(uint64_t));
++    if (!std::is_constant_evaluated())
++    {
++        Fq2 r;
++        stwo_bn254_fp2_mul(reinterpret_cast<uint64_t*>(&r), reinterpret_cast<const uint64_t*>(&a),
++            reinterpret_cast<const uint64_t*>(&b));
++        return r;
++    }
++#endif
+     const auto& [a0, a1] = a.coeffs;
+     const auto& [b0, b1] = b.coeffs;
+     return Fq2({a0 * b0 - a1 * b1, a1 * b0 + a0 * b1});
+@@ -48,6 +67,15 @@ constexpr Fq2 multiply(const Fq2& a, const Fq2& b) noexcept
+ /// Squares an Fq^2 field element.
+ constexpr Fq2 sqr(const Fq2& a) noexcept
+ {
++#if defined(CANDIDATE_BN)
++    if (!std::is_constant_evaluated())
++    {
++        Fq2 r;
++        stwo_bn254_fp2_mul(reinterpret_cast<uint64_t*>(&r), reinterpret_cast<const uint64_t*>(&a),
++            reinterpret_cast<const uint64_t*>(&a));
++        return r;
++    }
++#endif
+     const auto& [a0, a1] = a.coeffs;
+ 
+     // (a0 + a1*u)^2 = (a0+a1)*(a0-a1) + 2a0a1*u.
+diff --git a/test/state/precompiles.cpp b/test/state/precompiles.cpp
+index 136bd62..2f78363 100644
+--- a/test/state/precompiles.cpp
++++ b/test/state/precompiles.cpp
+@@ -505,7 +505,11 @@ ExecutionResult ecadd_execute(const uint8_t* input, size_t input_size, uint8_t*
+     if (!validate(*p) || !validate(*q)) [[unlikely]]
+         return {EVMC_PRECOMPILE_FAILURE, 0};
+ 
++#if defined(CANDIDATE_BN)
++    const auto res = crypto::bn254::add(*p, *q);
++#else
+     const auto res = crypto::ecc::add_affine(*p, *q);
++#endif
+     const std::span<uint8_t, 64> output_span{output, 64};
+     res.to_bytes(output_span);
+     return {EVMC_SUCCESS, output_span.size()};

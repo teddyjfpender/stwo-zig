@@ -1,0 +1,15 @@
+diff --git a/src/no_asm.h b/src/no_asm.h
+index 4e33b78..ec70090 100644
+--- a/src/no_asm.h
++++ b/src/no_asm.h
+@@ -1119,7 +1119,9 @@ limb_t div_3_limbs(const limb_t div_top[2], limb_t d_lo, limb_t d_hi)
+ static limb_t quot_rem_n(limb_t *div_rem, const limb_t *divisor,
+                                           limb_t quotient, size_t n)
+ {
+-    __builtin_assume(n != 0 && n%2 == 0);
++    /* stwo RV64: with 64-bit limbs quot_rem_64 passes n = 1 (div_by_z in
++     * blst_p2_mult's GLS split), so n is not always even here. */
++    __builtin_assume(n != 0);
+     llimb_t limbx;
+     limb_t tmp[n+1], carry, mask, borrow;
+     size_t i;

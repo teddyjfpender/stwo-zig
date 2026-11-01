@@ -150,8 +150,19 @@ class Guards(unittest.TestCase):
         rows[0]["execution_profile"] = "ethereum_services_v9"
         self.assertFalse(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
 
+    def test_admitted_v3_profile_passes_and_costs_sha256(self):
+        rows = good_rows()
+        rows[0]["execution_profile"] = "ethereum_services_v3"
+        self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+        self.assertIn("ethereum_services_v3", POLICY["allowed_execution_profiles"])
+        base = bench.committed_bits(CAL, 1000, 0, 0, 0)
+        more = bench.committed_bits(CAL, 1000, 0, 0, 0, None, {"sha256_compress": {"calls": 10, "bytes": 0}})
+        c = CAL["coefficients"]
+        per_call = CAL["admitted_services"]["sha256_compress"]["cells_per_call"]
+        self.assertAlmostEqual(more - base, 10 * per_call * c["bits_per_cell_at_lde"] * (1 + c["composition_fraction"]))
 
-class Admitted(unittest.TestCase):
+
+class AdmittedBulk(unittest.TestCase):
     def test_admitted_bulk_cost_added(self):
         cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 1.0, "keccak_cells_per_call": 0.0,
                                 "secp_cells_per_call": 0.0, "composition_fraction": 0.0},
@@ -180,6 +191,53 @@ class Candidates(unittest.TestCase):
             r["execution_profile"] = "ethereum_services_v3_candidate"
         self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
         self.assertNotIn("ethereum_services_v3_candidate", POLICY["allowed_execution_profiles"])
+
+
+class Admitted(unittest.TestCase):
+    def test_admitted_arith256_mod_cost_added(self):
+        base = bench.committed_bits(CAL, 1000, 0, 0, 0)
+        more = bench.committed_bits(CAL, 1000, 0, 0, 0, None, {"arith256_mod": {"calls": 2, "bytes": 0}})
+        c = CAL["coefficients"]
+        cells = 2 * CAL["admitted_services"]["arith256_mod"]["cells_per_call"]
+        self.assertAlmostEqual(more - base, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
+
+    def test_unknown_admitted_rejected(self):
+        with self.assertRaises(ValueError):
+            bench.committed_bits(CAL, 1, 0, 0, 0, None, {"teleport": {"calls": 1}})
+
+    def test_v3_profile_admitted(self):
+        rows = good_rows()
+        for r in rows:
+            r["execution_profile"] = "ethereum_services_v3"
+        self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+
+
+class AdmittedScheme(unittest.TestCase):
+    def test_every_admitted_service_has_measured_cost_and_report_fields(self):
+        self.assertEqual(set(CAL["admitted_services"]), set(bench.ADMITTED_REPORT_FIELDS))
+        for name, cost in CAL["admitted_services"].items():
+            self.assertGreater(cost["cells_per_call"], 0, name)
+            self.assertIn("derivation", cost, name)
+            self.assertIn("status", cost, name)
+
+    def test_usage_from_report(self):
+        report = {"sha256_calls": 3, "arith256_mod_calls": 2, "bulk_memcpy_calls": 1, "bulk_memcpy_bytes": 64,
+                  "bulk_memset_calls": 0, "bulk_memset_bytes": 0}
+        self.assertEqual(bench.admitted_usage(report), {"sha256_compress": {"calls": 3, "bytes": 0},
+                                                        "arith256_mod": {"calls": 2, "bytes": 0},
+                                                        "memcpy": {"calls": 1, "bytes": 64}})
+        self.assertIsNone(bench.admitted_usage({"sha256_calls": 0}))
+
+    def test_all_three_services_cost_additively(self):
+        c = CAL["coefficients"]
+        t = CAL["admitted_services"]
+        use = {"sha256_compress": {"calls": 2, "bytes": 0}, "arith256_mod": {"calls": 3, "bytes": 0},
+               "memcpy": {"calls": 1, "bytes": 80}, "memset": {"calls": 1, "bytes": 16}}
+        cells = (2 * t["sha256_compress"]["cells_per_call"] + 3 * t["arith256_mod"]["cells_per_call"]
+                 + t["memcpy"]["cells_per_call"] + 80 * t["memcpy"]["cells_per_byte"]
+                 + t["memset"]["cells_per_call"] + 16 * t["memset"]["cells_per_byte"])
+        delta = bench.committed_bits(CAL, 0, 0, 0, 0, None, use) - bench.committed_bits(CAL, 0, 0, 0, 0)
+        self.assertAlmostEqual(delta, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
 
 
 class Levels(unittest.TestCase):

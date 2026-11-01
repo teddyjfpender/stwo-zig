@@ -1,5 +1,6 @@
-// arith256_mod glue (our code): the candidate service in candidate builds, a
-// software fallback otherwise (only referenced when CANDIDATE_SERVICES is set).
+// arith256_mod glue (our code): the admitted v3 service (32-byte aligned packet)
+// in --profile v3 builds, the candidate service in candidate builds, a software
+// fallback otherwise (only referenced when an arith service is configured).
 #include <cstdint>
 #include <cstring>
 
@@ -9,7 +10,19 @@
 
 extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
                                   const uint64_t m[4], uint64_t r[4]) noexcept {
-#if defined(CANDIDATE_ARITH)
+#if defined(ADMITTED_ARITH)
+    // Admitted packet: a, b, c, m, r (four LE limbs each) at a 32-byte aligned
+    // pointer; only r is written. Word copies, no memcpy (it may itself be a service).
+    alignas(32) uint64_t p[20];
+    for (int i = 0; i < 4; ++i) {
+        p[i] = a[i];
+        p[4 + i] = b[i];
+        p[8 + i] = c[i];
+        p[12 + i] = m[i];
+    }
+    stwo::ecall(stwo::kV3Arith256Mod, p);
+    for (int i = 0; i < 4; ++i) r[i] = p[16 + i];
+#elif defined(CANDIDATE_ARITH)
     alignas(8) uint64_t p[20];
     std::memcpy(p, a, 32);
     std::memcpy(p + 4, b, 32);

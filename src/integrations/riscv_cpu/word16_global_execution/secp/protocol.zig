@@ -38,7 +38,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2
         var mass16 = try setup.materials.geometry.range16Mass();
         var mass8 = try setup.materials.geometry.range8Mass();
         for (0..2) |k| {
-            const kind: S.program.Kind = @enumFromInt(k + 1);
+            const kind: B.types.Kind = @enumFromInt(k + 1);
             _ = try B.types.validateGeometry(kind, req.calls[k], @intCast(1 + totals[k]), setup.bridge_logs[k]);
             const n = @as(u64, 1) << @intCast(setup.bridge_logs[k]);
             mass16 = try std.math.add(u64, mass16, B.layout.U16.len * n);
@@ -56,14 +56,14 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2
         const p = S.program.get(truth.kind);
         const mass = try S.layout.admitRoster(&.{ .{ .kind = .product, .program = p, .calls = @intCast(totals[k]), .first_id = 1, .log = truth.logs[0] }, .{ .kind = .linear, .program = p, .calls = @intCast(totals[k]), .first_id = 1, .log = truth.logs[1] } }, &.{});
         wire = try std.math.add(u64, wire, mass.wires);
-        wire = try std.math.add(u64, wire, (Tcoords(truth.kind) + 3) * totals[k]);
+        wire = try std.math.add(u64, wire, (Tcoords(B.types.kindOf(truth.kind)) + 3) * totals[k]);
     }
     ram = try std.math.add(u64, ram, rr[0].memory.initial.len + rr[rr.len - 1].memory.terminal.len);
     if (ram >= core.fields.m31.Modulus) return error.GlobalRamCharacteristicBound;
     if (wire >= core.fields.m31.Modulus) return error.SecpLookupMassExceeded;
     return .{ @intCast(totals[0]), @intCast(totals[1]) };
 }
-fn Tcoords(kind: S.program.Kind) u64 {
+fn Tcoords(kind: B.types.Kind) u64 {
     return @intCast(B.types.coordinates(kind));
 }
 pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: Expected, index: usize, first_step: u64, ids: [2]u32) !void {

@@ -99,7 +99,41 @@ fn small1(x: u32) -> u32 {
 
 // Constant indices let LLVM keep the rolling sixteen-word schedule in SSA,
 // while rotating round arguments avoids eight assignments in every round.
-#[cfg(all(feature = "stwo-candidate-sha256", target_arch = "riscv64"))]
+/// Admitted v3 packet: 12 little-endian u64 words, 32-byte aligned because the
+/// Word16 prover bridge binds three aligned 32-byte coordinates.
+#[cfg(all(feature = "stwo-sha256-service", target_arch = "riscv64"))]
+#[repr(C, align(32))]
+struct Packet([u64; 12]);
+
+// Admitted `sha256_compress` ECALL (tag 0x0003_0010, ethereum_services_v3).
+// Same packet as the candidate: H0..H7 as little-endian u32 pairs in four u64
+// (H0 in the low half of word 0), then the 64 block bytes in stream order. The
+// service overwrites the four state words in place; registers are preserved.
+#[cfg(all(feature = "stwo-sha256-service", target_arch = "riscv64"))]
+#[inline(never)]
+fn compress(state: &mut [u32; 8], block: &[u8]) {
+    debug_assert_eq!(block.len(), 64);
+    let mut packet = Packet([0u64; 12]);
+    for i in 0..4 {
+        packet.0[i] = u64::from(state[2 * i]) | (u64::from(state[2 * i + 1]) << 32);
+    }
+    for i in 0..8 {
+        let mut word = [0u8; 8];
+        word.copy_from_slice(&block[8 * i..8 * i + 8]);
+        packet.0[4 + i] = u64::from_le_bytes(word);
+    }
+    // SAFETY: the packet is live, 32-aligned and unique; the service reads 96
+    // bytes and writes the first 32 in place (no other memory is touched).
+    unsafe {
+        core::arch::asm!("ecall", in("a0") packet.0.as_mut_ptr(), in("a7") 0x0003_0010usize, options(nostack));
+    }
+    for i in 0..4 {
+        state[2 * i] = packet.0[i] as u32;
+        state[2 * i + 1] = (packet.0[i] >> 32) as u32;
+    }
+}
+
+#[cfg(all(feature = "stwo-candidate-sha256", not(feature = "stwo-sha256-service"), target_arch = "riscv64"))]
 #[inline(never)]
 fn compress(state: &mut [u32; 8], block: &[u8]) {
     // Execution-only candidate `sha256_compress` ECALL (tag 0x0003_0010).
@@ -127,7 +161,7 @@ fn compress(state: &mut [u32; 8], block: &[u8]) {
     }
 }
 
-#[cfg(not(all(feature = "stwo-candidate-sha256", target_arch = "riscv64")))]
+#[cfg(not(all(any(feature = "stwo-candidate-sha256", feature = "stwo-sha256-service"), target_arch = "riscv64")))]
 #[inline(never)]
 fn compress(state: &mut [u32; 8], block: &[u8]) {
     debug_assert_eq!(block.len(), 64);

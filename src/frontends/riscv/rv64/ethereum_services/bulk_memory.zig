@@ -186,8 +186,8 @@ test "admitted bulk memory: copy, fill, and every trap leaves memory unchanged" 
         .{ .packet = .{ 0x1204, 0x1100, 8 }, .kind = .memcpy, .err = error.MisalignedAddress },
         .{ .packet = .{ 0x1108, 0x1100, 16 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
         .{ .packet = .{ 0x1100, 0x1108, 16 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
-        // Unaligned source sharing one aligned word with the destination.
-        .{ .packet = .{ 0x1110, 0x1101, 8 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
+        // Unaligned source whose extra word is a destination word.
+        .{ .packet = .{ 0x1108, 0x1101, 8 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
         .{ .packet = .{ 0x1100, 0x1107, 8 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
         .{ .packet = .{ 0x1200, 0x1013, 8 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
         .{ .packet = .{ 0x0FF8, 0x1100, 16 }, .kind = .memset, .err = error.UnmappedAddress },
@@ -196,7 +196,7 @@ test "admitted bulk memory: copy, fill, and every trap leaves memory unchanged" 
         .{ .packet = .{ 0x1200, 0x1010, 8 }, .kind = .memcpy, .err = error.BulkMemoryOverlap },
         .{ .packet = .{ 0xFFFF_FFFF_FFFF_FFF8, 0x1100, 16 }, .kind = .memcpy, .err = error.AddressOverflow },
         // Unaligned source whose last source word is unmapped.
-        .{ .packet = .{ 0x1200, 0x1FF1, 8 }, .kind = .memcpy, .err = error.UnmappedAddress },
+        .{ .packet = .{ 0x1200, 0x1FF9, 8 }, .kind = .memcpy, .err = error.UnmappedAddress },
     };
     for (cases) |c| {
         try mem.storeWords(0x1000, &c.packet);

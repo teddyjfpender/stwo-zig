@@ -27,6 +27,14 @@ candidate-mem = ["stwo-rv64-mem/candidate-services"]
 candidate-sha256 = ["dep:sha2", "sha2/stwo-candidate-sha256"]
 candidate-arith = ["dep:revm-interpreter", "revm-interpreter/stwo-candidate-arith"]
 candidate-services = ["candidate-mem", "candidate-sha256", "candidate-arith"]
+# ADMITTED v3 service (profile ethereum_services_v3): SHA-256 compression via
+# ECALL 0x0003_0010 on a 32-byte aligned packet. Proven by the Word16 services
+# lane's SHA-256 truth and Wire35 bridge.
+sha256-service = ["dep:sha2", "sha2/stwo-sha256-service"]
+# ADMITTED v3 service (profile ethereum_services_v3): arith256_mod via ECALL
+# 0x0003_0021 on a 32-byte aligned packet (MULMOD, ADDMOD). Proven by the Word16
+# services lane's arith256 truth and Wire35 bridge.
+arith256-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
 # ADMITTED bulk memory (profile ethereum_services_v3): aligned word memcpy and
 # memset through tags 0x30001/0x30002; heads, tails, overlap and mismatched
 # alignment stay in software. See design/riscv-proving-stack/rv64-bulk-memory-service.md.
