@@ -152,6 +152,13 @@ pub const ComponentProver = struct {
     /// row-level parallelism. The default retains the component-parallel
     /// scheduler used by Cairo and other heterogeneous frontends.
     pool_exclusive_domain: bool = false,
+    /// Declares that the ordinary (pool-less) domain evaluator splits its
+    /// expansion and row work only through `work_pool.cooperative` batches
+    /// and never acquires a pool lease. The composition work queue may then
+    /// run it as an ordinary queue item even when `pool_exclusive_domain` is
+    /// set: its row/column chunks are drawn by every queue thread, so it no
+    /// longer needs a breadth-first exclusive pool phase.
+    cooperative_domain: bool = false,
 
     pub inline fn nConstraints(self: ComponentProver) usize {
         return self.vtable.nConstraints(self.ctx);

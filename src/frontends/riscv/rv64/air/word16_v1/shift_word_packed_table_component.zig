@@ -114,15 +114,29 @@ pub const Component = struct {
         if (owned_count != 0) {
             var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
             defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("../providers/domain_transform.zig").evaluate(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles), null);
         }
         const inv = try geometry.denominatorInverses(a, 16, 17);
         defer a.free(inv);
         const columns = try acc.columns(a, &.{.{ .log_size = 17, .n_cols = Table.CONSTRAINTS }});
         defer a.free(columns);
         var output = columns[0];
-        var row: usize = 0;
-        while (row < n) : (row += E.LANES) {
+        const rows = DomainRows{ .component = self, .values = &values, .inv = inv };
+        try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = DomainRows.run }, n, &output, null);
+    }
+};
+/// Row-range form of the packed table loop (unchanged arithmetic); ranges are
+/// 16-row aligned, so one packed block never straddles two ranges.
+const DomainRows = struct {
+    component: *const Component,
+    values: *const [70][]const M,
+    inv: []const M,
+    fn run(context: *const anyopaque, start: usize, end: usize, output: *accumulation.ColumnAccumulator) anyerror!void {
+        const self: *const DomainRows = @ptrCast(@alignCast(context));
+        const values = self.values;
+        const inv = self.inv;
+        var row: usize = start;
+        while (row < end) : (row += E.LANES) {
             var fields: [70]E.PackedBase = undefined;
             var previous: [36]E.PackedBase = @splat(E.PackedBase.zero());
             for (values, &fields) |column, *v| v.* = E.PackedBase.load(column.ptr + row);
@@ -133,7 +147,7 @@ pub const Component = struct {
             }
             var accumulator = E.PackedWeightedAccumulator{ .powers = output.random_coeff_powers };
             var sink = E.PackedSink{ .weighted_accumulator = &accumulator };
-            self.emitFor(E.PackedBase, fields[0..18], fields[18..34], fields[34..70], &previous, &sink);
+            self.component.emitFor(E.PackedBase, fields[0..18], fields[18..34], fields[34..70], &previous, &sink);
             const result = accumulator.accumulation.mulBase(E.PackedBase.splat(inv[row >> 16]));
             const coordinates = result.coordinates();
             const fresh = if (output.next_fresh_index) |next| next == row else false;

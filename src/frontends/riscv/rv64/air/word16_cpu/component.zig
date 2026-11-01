@@ -36,6 +36,8 @@ pub const Component = struct {
         if (self.kind == .cpu) {
             result.domain_parallel_evaluator = evaluateParallel;
             result.pool_exclusive_domain = true;
+            // Domain splits go only through the shared row/column providers.
+            result.cooperative_domain = true;
         }
         return result;
     }

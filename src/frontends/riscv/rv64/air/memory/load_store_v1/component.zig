@@ -26,6 +26,8 @@ pub const Component = struct {
         var result = Adapter.asProverComponent(self);
         result.domain_parallel_evaluator = evaluateParallel;
         result.pool_exclusive_domain = true;
+        // Domain splits go only through the shared row/column providers.
+        result.cooperative_domain = true;
         return result;
     }
     fn evaluateParallel(ctx: *const anyopaque, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator, pool: *engine.work_pool.WorkPool) anyerror!void {

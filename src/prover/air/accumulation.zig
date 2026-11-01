@@ -468,6 +468,38 @@ pub const DomainEvaluationAccumulator = struct {
         }
     }
 
+    /// Writes positions `[start, end)` of the general-case `finalize`
+    /// result into caller-owned storage. Every position receives exactly the
+    /// serial finalizer's ordered sum: zero, then each nonconstant bucket in
+    /// increasing log order, then the constant when it is nonzero. Disjoint
+    /// ranges may run concurrently. The caller must already have excluded
+    /// pending polynomial extensions.
+    pub fn finalizeRangeInto(
+        self: *const DomainEvaluationAccumulator,
+        out: *SecureColumnByCoords,
+        start: usize,
+        end: usize,
+    ) AccumulationError!void {
+        if (self.next_power_index != 0) return AccumulationError.UnusedCoefficients;
+        if (self.hasPolynomialExtensions())
+            return AccumulationError.PolynomialExtensionRequiresAllocation;
+        const max_size = try checkedPow2(self.max_log_size);
+        if (out.len() != max_size or start > end or end > max_size)
+            return AccumulationError.ShapeMismatch;
+        var constant = QM31.zero();
+        for (self.constant_accumulations) |value| constant = constant.add(value);
+        const add_constant = !constant.eql(QM31.zero());
+        for (start..end) |position| {
+            var value = QM31.zero();
+            for (self.sub_accumulations, 0..) |maybe_sub, log_size_usize| {
+                const sub = maybe_sub orelse continue;
+                value = value.add(try liftedValueAt(sub, @intCast(log_size_usize), self.max_log_size, position));
+            }
+            if (add_constant) value = value.add(constant);
+            out.set(position, value);
+        }
+    }
+
     fn materializePolynomialExtensions(
         self: *DomainEvaluationAccumulator,
     ) anyerror!void {
