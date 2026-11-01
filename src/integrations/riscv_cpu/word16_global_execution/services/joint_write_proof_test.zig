@@ -38,19 +38,19 @@ fn verifyPhysical(setup: *const R.CpuSetup, expected: P.Expected, manifest: *con
     var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, setup.key.suite.config());
     defer verifier.deinit(a);
     var channel = G.T.P.Channel{};
-    try P.beginCpu(&channel, setup, encoded.request, expected, index, 3 * index, .{ 1, 1, 1 });
+    try P.beginCpu(&channel, setup, encoded.request, expected, index, 3 * index, .{ 1, 1, 1, 1 });
     for (0..2) |tree| {
         const logs = try setup.logs(a, tree);
         defer a.free(logs);
         try verifier.commit(a, proof.commitment_scheme_proof.commitments.items[tree], logs, &channel);
     }
     const ch = try P.drawCpu(&channel, manifest, index);
-    channel.mixFelts(&encoded.claims.values());
+    encoded.claims.mix(&channel, setup);
     const logs = try setup.logs(a, 2);
     defer a.free(logs);
     try verifier.commit(a, proof.commitment_scheme_proof.commitments.items[2], logs, &channel);
     var components = try Components.init(&setup.materials, encoded.request.base, ch, encoded.claims.base);
-    var bridges = Adapters.Bridges.init(setup, encoded.request.calls, .{ 1, 1, 1 }, ch, try P.shared(manifest), encoded.claims.extras);
+    var bridges = Adapters.Bridges.init(setup, encoded.request.calls, .{ 1, 1, 1, 1 }, ch, try P.shared(manifest), encoded.claims.extras);
     const handles = try Adapters.cpuVerifierHandles(a, &components, &bridges);
     defer a.free(handles);
     owns = false;
@@ -107,8 +107,8 @@ fn run(kind: Kind) !void {
         forged_cpu[k] = try a.dupe(M, source.core.cpu.main);
         forged_ls[k] = try a.dupe(M, source.core.memory.ls.main);
         matrices += 1;
-        requests[k] = .{ .base = source.core.request(), .calls = .{ 0, 0, 0 } };
-        w.* = try W.Worker.init(a, .{ .cpu = .{ .setup = setup, .request = requests[k], .ordinal = k, .first_step = 3 * k, .first_ids = .{ 1, 1, 1 } } }, .{ .cpu = source });
+        requests[k] = .{ .base = source.core.request(), .calls = .{ 0, 0, 0, 0 } };
+        w.* = try W.Worker.init(a, .{ .cpu = .{ .setup = setup, .request = requests[k], .ordinal = k, .first_step = 3 * k, .first_ids = .{ 1, 1, 1, 1 } } }, .{ .cpu = source });
         owns_source = false;
         worker_done += 1;
         roots[k] = try w.seal(a, expected, .{}, k);
@@ -148,7 +148,7 @@ fn run(kind: Kind) !void {
             try std.testing.expectError(error.UnclosedCombinedCpuRelations, claims.local());
         }
         ram = ram.add(claims.ram());
-        w.channel.mixFelts(&claims.values());
+        claims.mix(&w.channel, &setups[k]);
         const inter = try w.source.cpu.columns(a, &setups[k], 2);
         defer a.free(inter);
         try w.scheme.commitBorrowedStreaming(a, inter, 8, &w.channel);

@@ -57,6 +57,7 @@ pub const crypto = struct {
     pub const secp256k1 = delegations.secp256k1;
     pub const keccak = delegations.keccak;
     pub const bulk_memory = delegations.bulk_memory;
+    pub const sha256 = delegations.sha256;
 };
 
 pub const memory = struct {

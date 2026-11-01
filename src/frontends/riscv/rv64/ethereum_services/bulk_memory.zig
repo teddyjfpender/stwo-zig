@@ -15,6 +15,22 @@
 const std = @import("std");
 const memory = @import("../memory.zig");
 const profile = @import("../execution_profile.zig");
+const machine = @import("../machine.zig");
+const Word = @import("../word.zig").Word;
+
+/// The tape/retirement view of one call: the ECALL step itself.
+pub const BulkCall = struct {
+    clock: u64,
+    pc: u64,
+    pointer: u64,
+    tag: u64,
+    pub fn retirement(self: BulkCall) machine.Retirement {
+        return .{ .clock = self.clock, .pc = Word.fromInt(self.pc), .next_pc = Word.fromInt(self.pc +% 4), .immediate = Word.fromInt(0), .instruction = 0x73, .opcode = .ECALL, .rs1 = profile.POINTER_REGISTER, .rs2 = profile.TAG_REGISTER, .lhs = Word.fromInt(self.pointer), .rhs = Word.fromInt(self.tag), .rd = 0, .previous_rd = Word.fromInt(0), .result = Word.fromInt(0), .writes_rd = false, .branch_taken = false, .memory = null };
+    }
+};
+/// Session event: the call, its packet and the destination words' values
+/// before the call (borrowed from the session; valid until its next step).
+pub const Event = struct { call: BulkCall, packet: Packet, dst_before: []const u64 };
 
 pub const MEMCPY_TAG = profile.MEMCPY_TAG;
 pub const MEMSET_TAG = profile.MEMSET_TAG;
@@ -55,7 +71,15 @@ pub fn admit(mem: *memory.Memory, kind: Kind, pointer: u64) Error!Packet {
 }
 /// Executes one admitted call (the caller retires the ECALL afterwards).
 pub fn execute(a: std.mem.Allocator, mem: *memory.Memory, kind: Kind, pointer: u64) Error!Packet {
+    var before: std.ArrayList(u64) = .empty;
+    defer before.deinit(a);
+    return executeRecording(a, mem, kind, pointer, &before);
+}
+/// As `execute`, also leaving the destination's previous words in `before`.
+pub fn executeRecording(a: std.mem.Allocator, mem: *memory.Memory, kind: Kind, pointer: u64, before: *std.ArrayList(u64)) Error!Packet {
     const p = try admit(mem, kind, pointer);
+    try before.resize(a, @intCast(p.len / 8));
+    for (before.items, 0..) |*w, j| w.* = mem.backing.load(p.dst + 8 * j, 8).value;
     const words = try a.alloc(u64, @intCast(p.len / 8));
     defer a.free(words);
     switch (kind) {
