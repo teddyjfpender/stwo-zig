@@ -44,7 +44,8 @@ pub fn ForField(comptime S: type) type {
                         temporary = try poly.interpolateFromEvaluation(a, try eval_mod.CircleEvaluation.init(domain, column.values));
                         break :blk temporary.?;
                     };
-                    for (ps, 0..) |point, i| values[i] = coefficients.evalAtPointFor(S, point);
+                    const fold_count = log - column.log_size;
+                    for (ps, 0..) |point, i| values[i] = coefficients.evalAtPointFor(S, point.repeatedDouble(fold_count));
                 }
                 out[ti] = result;
                 ntrees += 1;
