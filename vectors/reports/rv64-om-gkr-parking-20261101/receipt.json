@@ -1,0 +1,58 @@
+{
+  "source_commit": "f918cf02c",
+  "dependencies": [
+    "a004a0ad7 CPU parked abort cleanup",
+    "eeb0c59d1 narrowed metadata and shared retention plan"
+  ],
+  "tests": {
+    "ReleaseSafe": "PASS28",
+    "ReleaseFast": "PASS28"
+  },
+  "whole_fixture": {
+    "CPU_shards": 2,
+    "truths": [
+      "Keccak",
+      "ADD",
+      "DOUBLE"
+    ],
+    "comparison": "every native proof byte, physical claim and ordered stage-one byte identical parked vsresident",
+    "fresh_independent_keys_accepted": true,
+    "parked_store_live_after_produce": 0,
+    "parked_store_mapped_after_produce": 0,
+    "lanes": 1
+  },
+  "failures": [
+    "truth spill allocation OOM preserves sealed root and retryable owner",
+    "truth parked abort releases reserved file owner",
+    "later CPU1 source validation failure releases previously parked CPU0 owner",
+    "larger-worker options require park-enabled Store and nonzero lane memory cap",
+    "retained and disk budgets admitted before source construction"
+  ],
+  "admission": {
+    "default_store": null,
+    "default_hard_worker_cap": 8,
+    "larger_inventory": "only explicitly parked +explicit maxworkers +strict retained budget +lane memory admission",
+    "retained": [
+      "binding planes",
+      "narrow global CPU metadata",
+      "compact local/global truth query metadata",
+      "source fixed read views",
+      "MAIN Merkle layers (remain resident)",
+      "local proof reserves",
+      "owner headers"
+    ],
+    "separate": [
+      "page-rounded coefficient disk budget",
+      "shared immutable setup",
+      "original capture/advice",
+      "full source construction and PCS transient scratch"
+    ],
+    "task_estimate": "max(previous conservative estimate,new represented-payload plan); no RSS claim"
+  },
+  "not_qualified": [
+    "production-size whole block",
+    "node-array parking (separate upcoming helper)",
+    "whole-protocol128 certification",
+    "GPU execution"
+  ]
+}
