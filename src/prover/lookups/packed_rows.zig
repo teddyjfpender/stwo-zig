@@ -16,7 +16,7 @@ pub fn ForField(comptime S: type) type {
         /// aggregate-by-value call ABI in numerical row kernels.
         pub inline fn mul(a: P, b: P) P {
             @setEvalBranchQuota(100000);
-            return @call(.always_inline, P.mul, .{ a, b });
+            return if (S == O) po.mul(a, b) else @call(.always_inline, P.mul, .{ a, b });
         }
         pub inline fn splat(x: S) P {
             return if (S == Q) P.splat(x) else po.splat(x);
