@@ -13,7 +13,8 @@
 // limitations under the License.
 
 use super::{
-    children::{Children, Entry},
+    source::NodeSource,
+    children::Children,
     memoize::Memoization,
     node::Node,
 };
@@ -185,7 +186,7 @@ impl<M: Memoization> Node<M> {
     /// Resolves all applicable digest nodes with the node corresponding to the RLP encoding.
     pub(super) fn resolve_digests(
         &mut self,
-        rlp_by_digest: &B256IndexMap<impl AsRef<[u8]>>,
+        rlp_by_digest: &(impl NodeSource + ?Sized),
     ) -> alloy_rlp::Result<()> {
         match self {
             Node::Null | Node::Leaf(..) => {}
@@ -196,21 +197,38 @@ impl<M: Memoization> Node<M> {
                 }
             }
             Node::Branch(children, _) => {
-                for entry in children.entries() {
-                    if let Entry::Occupied(mut entry) = entry {
-                        entry.get_mut().resolve_digests(rlp_by_digest)?;
+                // stwo: digest children (nearly all of them, and nearly all
+                // absent from the witness) are probed inline instead of
+                // through a recursive call each.
+                for slot in children.slots_mut().iter_mut() {
+                    let Some(child) = slot else { continue };
+                    match &**child {
+                        Node::Digest(digest) => {
+                            let Some(bytes) = rlp_by_digest.node_rlp(digest) else { continue };
+                            if bytes.len() == 33 && bytes[0] == 0xa0 {
+                                continue;
+                            }
+                            let rlp_node = RlpNode::from_digest(digest);
+                            child.decode_exact_into(bytes)?;
+                            child.cache_set(rlp_node);
+                            child.resolve_digests(rlp_by_digest)?;
+                        }
+                        _ => child.resolve_digests(rlp_by_digest)?,
+                    }
+                    // a branch never holds a Null child (as `Entry` enforces)
+                    if matches!(**child, Node::Null) {
+                        *slot = None;
                     }
                 }
             }
             Node::Digest(digest) => {
-                if let Some(bytes) = rlp_by_digest.get(digest) {
-                    let bytes = bytes.as_ref();
+                if let Some(bytes) = rlp_by_digest.node_rlp(digest) {
                     // do not try to replace a node by a digest (stwo: decided
                     // from the encoding so the node is decoded straight into
                     // place instead of through a temporary and a second move)
                     if !(bytes.len() == 33 && bytes[0] == 0xa0) {
                         let rlp_node = RlpNode::from_digest(digest);
-                        *self = alloy_rlp::decode_exact(bytes)?;
+                        self.decode_exact_into(bytes)?;
                         self.cache_set(rlp_node);
                         self.resolve_digests(rlp_by_digest)?;
                     }
@@ -233,7 +251,28 @@ impl<M: Memoization> Node<M> {
 }
 
 impl<M: Memoization> Decodable for Node<M> {
+    #[inline]
     fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
+        let mut node = Node::Null;
+        node.decode_into(buf)?;
+        Ok(node)
+    }
+}
+
+impl<M: Memoization> Node<M> {
+    /// stwo: decodes a whole encoding straight into `self` (a boxed child
+    /// being resolved), avoiding the moves of a 176-byte node through
+    /// `Result` temporaries. Errors like `alloy_rlp::decode_exact`.
+    fn decode_exact_into(&mut self, bytes: &[u8]) -> alloy_rlp::Result<()> {
+        let mut buf = bytes;
+        self.decode_into(&mut buf)?;
+        if !buf.is_empty() {
+            return Err(alloy_rlp::Error::UnexpectedLength);
+        }
+        Ok(())
+    }
+
+    fn decode_into(&mut self, buf: &mut &[u8]) -> alloy_rlp::Result<()> {
         // stwo: walk the list payload into a fixed 17-slot array instead of
         // collecting a heap `Vec<&[u8]>` per node (`Header::decode_raw`).
         let header = Header::decode(buf)?;
@@ -244,11 +283,12 @@ impl<M: Memoization> Decodable for Node<M> {
         *buf = rest;
         if !header.list {
             // if the node is not a list, it must be empty or a digest
-            return match payload.len() {
-                0 => Ok(Node::Null),
-                32 => Ok(Node::Digest(B256::from_slice(payload))),
-                _ => Err(alloy_rlp::Error::UnexpectedLength),
+            *self = match payload.len() {
+                0 => Node::Null,
+                32 => Node::Digest(B256::from_slice(payload)),
+                _ => return Err(alloy_rlp::Error::UnexpectedLength),
             };
+            return Ok(());
         }
         let mut items: [&[u8]; 17] = [&[]; 17];
         let mut count = 0usize;
@@ -272,8 +312,8 @@ impl<M: Memoization> Decodable for Node<M> {
             17 => {
                 // Build the branch inside its final node so the 128-byte
                 // children table is not moved into the enum after decoding.
-                let mut node = Node::Branch(Children::default(), M::default());
-                let Node::Branch(children, _) = &mut node else { unreachable!() };
+                *self = Node::Branch(Children::default(), M::default());
+                let Node::Branch(children, _) = self else { unreachable!() };
                 for (i, child_rlp) in items.iter().enumerate() {
                     if child_rlp != &[EMPTY_STRING_CODE] {
                         if i == 16 {
@@ -293,7 +333,7 @@ impl<M: Memoization> Decodable for Node<M> {
                     return Err(alloy_rlp::Error::Custom("branch node without two children"));
                 }
 
-                Ok(node)
+                Ok(())
             }
             // leaf or extension node: 2-item node [ encodedPath, v ]
             // they are distinguished by a flag in the first nibble of the encodedPath
@@ -301,7 +341,8 @@ impl<M: Memoization> Decodable for Node<M> {
                 let (mut encode_path, mut v) = (items[0], items[1]);
                 let (path, is_leaf) = decode_path(&mut encode_path)?;
                 if is_leaf {
-                    Ok(Node::Leaf(path, Bytes::decode(&mut v)?, M::default()))
+                    *self = Node::Leaf(path, Bytes::decode(&mut v)?, M::default());
+                    Ok(())
                 } else {
                     let node = Node::decode(&mut v)?;
                     if !matches!(node, Node::Branch(..) | Node::Digest(..)) {
@@ -309,7 +350,8 @@ impl<M: Memoization> Decodable for Node<M> {
                             "extension node with invalid child",
                         ));
                     }
-                    Ok(Node::Extension(path, node.into(), M::default()))
+                    *self = Node::Extension(path, node.into(), M::default());
+                    Ok(())
                 }
             }
             _ => Err(alloy_rlp::Error::Custom("unexpected list length")),

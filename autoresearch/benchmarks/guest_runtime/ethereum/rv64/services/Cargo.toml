@@ -49,3 +49,4 @@ sha2 = { path = "../vendor/sha2" }
 
 [patch."https://github.com/paradigmxyz/stateless.git"]
 zeth-mpt = { path = "../vendor/zeth-mpt" }
+tries = { path = "../vendor/tries" }

@@ -1,0 +1,26 @@
+# Vendored from paradigmxyz/stateless rev a134a621 (crates/tries) with the
+# workspace-inherited fields made concrete and the std-only default trie
+# (reth-trie-sparse) removed; the guest enables no features. See src/zeth.rs
+# for the stwo changes.
+[package]
+name = "tries"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Trie abstractions and implementations for stateless validation"
+
+[dependencies]
+alloy-primitives = { version = "1.6.1", default-features = false, features = ["map-foldhash", "map-indexmap"] }
+alloy-rlp = { version = "0.3.16", default-features = false }
+alloy-rpc-types-debug = { version = "2.4.1", default-features = false }
+alloy-trie = { version = "0.9.4", default-features = false }
+reth-trie-common = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+revm-database-interface = { version = "42.0.0", default-features = false }
+thiserror = { version = "2.0", default-features = false }
+zeth-mpt = { path = "../zeth-mpt" }
+
+[features]
+default = []
+std = []

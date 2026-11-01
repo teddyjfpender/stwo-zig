@@ -142,6 +142,12 @@ impl<M> Children<M> {
         self.0[idx as usize] = Some(child);
     }
 
+    /// stwo: direct slot access for the digest-resolution walk.
+    #[inline]
+    pub(super) fn slots_mut(&mut self) -> &mut [Option<Child<M>>; 16] {
+        &mut self.0
+    }
+
     #[inline]
     pub(super) fn len(&self) -> usize {
         self.0.iter().flatten().count()

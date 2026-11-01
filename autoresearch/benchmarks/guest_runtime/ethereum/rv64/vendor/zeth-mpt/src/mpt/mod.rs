@@ -27,6 +27,7 @@ mod children;
 
 mod memoize;
 mod nibbles;
+mod source;
 mod node;
 #[cfg(feature = "orphan")]
 pub mod orphan;
@@ -37,6 +38,7 @@ mod rlp;
 mod serde;
 
 pub use alloy_trie::EMPTY_ROOT_HASH;
+pub use source::{NodeSource, PrehashedNodes};
 
 /// A sparse Merkle Patricia trie storing byte values.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -123,7 +125,8 @@ impl Trie {
         &mut self,
         nodes: impl IntoIterator<Item = T>,
     ) -> alloy_rlp::Result<()> {
-        let rlp_by_digest = nodes.into_iter().map(|rlp| (keccak256(&rlp), rlp)).collect();
+        let rlp_by_digest: B256IndexMap<T> =
+            nodes.into_iter().map(|rlp| (keccak256(&rlp), rlp)).collect();
         self.0.resolve_digests(&rlp_by_digest)
     }
 
@@ -198,7 +201,7 @@ impl Trie {
     #[inline]
     pub fn from_prehashed_nodes(
         root: B256,
-        rlp_by_digest: &B256IndexMap<impl AsRef<[u8]>>,
+        rlp_by_digest: &(impl NodeSource + ?Sized),
     ) -> alloy_rlp::Result<Self> {
         let mut trie = Self::from_digest(root);
         trie.0.resolve_digests(rlp_by_digest)?;
@@ -354,7 +357,8 @@ impl CachedTrie {
         &mut self,
         nodes: impl IntoIterator<Item = T>,
     ) -> alloy_rlp::Result<()> {
-        let rlp_by_digest = nodes.into_iter().map(|rlp| (keccak256(&rlp), rlp)).collect();
+        let rlp_by_digest: B256IndexMap<T> =
+            nodes.into_iter().map(|rlp| (keccak256(&rlp), rlp)).collect();
         self.inner.resolve_digests(&rlp_by_digest)
     }
 
@@ -392,7 +396,7 @@ impl CachedTrie {
     #[inline]
     pub fn from_prehashed_nodes(
         root: B256,
-        rlp_by_digest: &B256IndexMap<impl AsRef<[u8]>>,
+        rlp_by_digest: &(impl NodeSource + ?Sized),
     ) -> alloy_rlp::Result<Self> {
         let mut trie = Self::from_digest(root);
         trie.inner.resolve_digests(rlp_by_digest)?;
