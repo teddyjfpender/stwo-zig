@@ -434,3 +434,81 @@ test "interaction: a forged BYTE multiplicity or claim leaves a nonzero residual
     source.counts[4] -= 1;
     try std.testing.expectError(error.InvalidArith256ByteCounts, source.generateInteraction(challenges()));
 }
+
+const PackedView = struct {
+    values: []const E.PackedBase,
+    pub fn fixed(self: *const PackedView, c: usize) E.PackedBase {
+        return self.values[c];
+    }
+    pub fn main(self: *const PackedView, c: usize) E.PackedBase {
+        return self.values[L.FIXED + c];
+    }
+    pub fn previousActive(self: *const PackedView) E.PackedBase {
+        return self.values[L.FIXED + L.MAIN];
+    }
+    pub fn interaction(self: *const PackedView, c: usize) E.PackedBase {
+        return self.values[L.FIXED + L.MAIN + 1 + c];
+    }
+    pub fn previousInteraction(self: *const PackedView, c: usize) E.PackedBase {
+        return self.values[L.FIXED + L.MAIN + 1 + L.INTERACTION + c];
+    }
+};
+const TOTAL = L.FIXED + L.MAIN + 1 + 2 * L.INTERACTION;
+fn viewFrom(values: *const [TOTAL]Q, main: *[L.MAIN]Q) View {
+    var v = View{ .fixed_values = values[0..L.FIXED].*, .main_values = main, .previous_active = values[L.FIXED + L.MAIN] };
+    @memcpy(main, values[L.FIXED..][0..L.MAIN]);
+    v.inter = values[L.FIXED + L.MAIN + 1 ..][0..L.INTERACTION].*;
+    v.previous_inter = values[L.FIXED + L.MAIN + 1 + L.INTERACTION ..][0..L.INTERACTION].*;
+    return v;
+}
+
+test "packed 16-lane residuals equal scalar residuals and every constraint has degree at most 3" {
+    @setEvalBranchQuota(10_000_000);
+    const ch = challenges();
+    const claim = Q.fromPartialEvals(.{ q(3), q(1), q(4), q(1) });
+    const span: E.CallSpanFor(Q) = .{ .calls = 7, .first_id = 2 };
+    var base: [TOTAL]E.PackedBase = undefined;
+    for (&base, 0..) |*v, c| {
+        var lanes: [E.LANES]M = undefined;
+        for (&lanes, 0..) |*x, lane| x.* = M.fromCanonical(@intCast((1 + c * 17 + lane * 131) % core.fields.m31.Modulus));
+        v.* = E.PackedBase.fromLanes(lanes);
+    }
+    var packed_residuals: [L.CONSTRAINTS]E.PackedSecure = undefined;
+    var psink = E.PackedSink{ .values = &packed_residuals };
+    const pv = PackedView{ .values = &base };
+    Eq.emit(E.PackedBase, &pv, span, claim, ch, &psink);
+    try std.testing.expectEqual(@as(usize, L.CONSTRAINTS), psink.count);
+    var main: [L.MAIN]Q = undefined;
+    for (0..E.LANES) |lane| {
+        var values: [TOTAL]Q = undefined;
+        for (base, &values) |v, *x| x.* = Q.fromBase(v.lane(lane));
+        var view = viewFrom(&values, &main);
+        var residuals: [L.CONSTRAINTS]Q = undefined;
+        var sink = E.Sink{ .values = &residuals };
+        Eq.emit(Q, &view, span, claim, ch, &sink);
+        for (residuals, packed_residuals) |x, y| try std.testing.expect(x.eql(y.lane(lane)));
+    }
+    // Every mask value moves on an arbitrary QM31 line; the fourth finite
+    // difference of each residual vanishes (degree <= 3) and the third does
+    // not for some constraint (the bound is attained).
+    var rows: [5][L.CONSTRAINTS]Q = undefined;
+    for (&rows, 0..) |*residual, step| {
+        var values: [TOTAL]Q = undefined;
+        for (&values, 0..) |*x, c| {
+            const intercept = Q.fromU32Unchecked(@intCast(1 + c), 2, 3, 4);
+            const slope = Q.fromU32Unchecked(5, @intCast(6 + c), 7, 8);
+            x.* = intercept.add(slope.mulM31(M.fromCanonical(@intCast(step))));
+        }
+        var view = viewFrom(&values, &main);
+        var sink = E.Sink{ .values = residual };
+        Eq.emit(Q, &view, span, claim, ch, &sink);
+    }
+    var cubic = false;
+    for (0..L.CONSTRAINTS) |c| {
+        const third = rows[3][c].sub(rows[2][c].mulM31(M.fromCanonical(3))).add(rows[1][c].mulM31(M.fromCanonical(3))).sub(rows[0][c]);
+        cubic = cubic or !third.isZero();
+        const fourth = rows[4][c].sub(rows[3][c].mulM31(M.fromCanonical(4))).add(rows[2][c].mulM31(M.fromCanonical(6))).sub(rows[1][c].mulM31(M.fromCanonical(4))).add(rows[0][c]);
+        try std.testing.expect(fourth.isZero());
+    }
+    try std.testing.expect(cubic);
+}

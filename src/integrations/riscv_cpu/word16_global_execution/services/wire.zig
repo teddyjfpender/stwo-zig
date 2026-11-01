@@ -24,24 +24,26 @@ pub const CompactRequest = struct {
     calls: [3]u32,
     /// v3 SHA-256 calls; omitted from JSON when zero (v2 bytes unchanged).
     sha256_calls: u32 = 0,
+    /// v3 arith256_mod calls; omitted from JSON when zero.
+    arith256_mod_calls: u32 = 0,
     fn from(r: P.Request) @This() {
-        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3] };
+        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4] };
     }
     fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
         return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all() };
     }
     pub fn all(self: @This()) [T.FAMILIES]u32 {
-        return self.calls ++ [1]u32{self.sha256_calls};
+        return self.calls ++ [2]u32{ self.sha256_calls, self.arith256_mod_calls };
     }
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
         inline for (std.meta.fields(@This())) |field| {
-            if (comptime !std.mem.eql(u8, field.name, "sha256_calls")) {
+            if (comptime !std.mem.eql(u8, field.name, "sha256_calls") and !std.mem.eql(u8, field.name, "arith256_mod_calls")) {
                 try jws.objectField(field.name);
                 try jws.write(@field(self, field.name));
-            } else if (self.sha256_calls != 0) {
+            } else if (@field(self, field.name) != 0) {
                 try jws.objectField(field.name);
-                try jws.write(self.sha256_calls);
+                try jws.write(@field(self, field.name));
             }
         }
         try jws.endObject();
@@ -52,11 +54,12 @@ pub const WireClaims = struct {
     base: G.Old.Claims,
     extras: [3]T.ExtraClaims,
     sha256: ?T.ExtraClaims = null,
-    fn from(c: E.CpuClaims, present: bool) @This() {
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (present) c.extras[3] else null };
+    arith256_mod: ?T.ExtraClaims = null,
+    fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null };
     }
     fn expand(self: @This()) E.CpuClaims {
-        return .{ .base = self.base, .extras = self.extras ++ [1]T.ExtraClaims{self.sha256 orelse T.ExtraClaims.zero()} };
+        return .{ .base = self.base, .extras = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() } };
     }
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
@@ -66,6 +69,10 @@ pub const WireClaims = struct {
         try jws.write(self.extras);
         if (self.sha256) |extra| {
             try jws.objectField("sha256");
+            try jws.write(extra);
+        }
+        if (self.arith256_mod) |extra| {
+            try jws.objectField("arith256_mod");
             try jws.write(extra);
         }
         try jws.endObject();
@@ -82,6 +89,7 @@ pub const TruthDeclaration = struct {
             .keccak => |k| .{ k.setup.log, 0 },
             .secp => |s| s.setup.logs,
             .sha256 => |h| .{ h.setup.log, 0 },
+            .arith256_mod => |h| .{ h.setup.log, 0 },
         } };
     }
 };
@@ -147,9 +155,10 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         const g = cpu.declaration.geometry;
         try g.validate();
         try cpu.request.cpu.validate(g.cpu_log);
-        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.sha256_calls + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
+        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.sha256_calls + cpu.request.arith256_mod_calls + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
         const calls = cpu.request.all();
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
         _ = try g.lsCounts(cpu.request.ls_count);
         if (g.omit_empty_division and cpu.request.division_requests != 0) return error.InvalidServicesWireRequest;
@@ -206,6 +215,12 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, 4 * @as(u64, t.calls));
+        } else if (t.family == .arith256_mod) {
+            if (t.logs[0] > @import("../arith256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+            try A.crypto.arith256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
+            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
+            wire = try std.math.add(u64, wire, A.crypto.arith256.layout.WIRE_FRACTIONS * @as(u64, t.calls));
         } else {
             const S = A.crypto.secp256k1;
             const program = S.program.get(@enumFromInt(k));
@@ -230,7 +245,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     defer a.free(cpus);
     for (setups, bundle.cpus, cpus, 0..) |setup, c, *out, index| {
         if ((index != 0 and c.request.base.memory.initial.len != 0) or (index + 1 != setups.len and c.request.base.memory.terminal.len != 0)) return error.InvalidServicesWireBoundary;
-        out.* = .{ .declaration = .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .request = CompactRequest.from(c.request), .claims = WireClaims.from(c.claims, setup.bridges.sha256 != null), .proof = .{ .bytes = c.bytes.len, .sha256 = hash(c.bytes) } };
+        out.* = .{ .declaration = .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .request = CompactRequest.from(c.request), .claims = WireClaims.from(c.claims, setup.bridges), .proof = .{ .bytes = c.bytes.len, .sha256 = hash(c.bytes) } };
     }
     const tt = try a.alloc(Truth, truths.len);
     defer a.free(tt);

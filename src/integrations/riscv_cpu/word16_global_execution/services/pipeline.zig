@@ -81,7 +81,10 @@ const Stage1 = struct {
         if (cpu.setup.bridges.add) |log| add = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .add, self.advice.secp[cpu.ordinal][0], cpu.first_ids[1], log);
         if (cpu.setup.bridges.double) |log| double = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .double, self.advice.secp[cpu.ordinal][1], cpu.first_ids[2], log);
         if (cpu.setup.bridges.sha256) |log| sha256 = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .sha256, self.advice.sha256[cpu.ordinal], cpu.first_ids[3], log);
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256 };
+        var arith: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+        errdefer if (arith) |*s| s.deinit();
+        if (cpu.setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, self.advice.arith256_mod[cpu.ordinal], cpu.first_ids[4], log);
+        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith };
         // Locals own all fields until this final fallible operation succeeds.
         try source.mergeRanges();
         return source;
@@ -101,7 +104,7 @@ const Stage2 = struct {
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
-    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len) return error.InvalidCombinedInventory;
+    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
     const first_steps = try a.alloc(u64, setups.len);
@@ -111,7 +114,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         first.* = step;
         step = try std.math.add(u64, step, cpu.public.steps);
-        r.* = .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        r.* = .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
     }
     _ = try P.admit(a, setups, truths, requests, expected);
     const count = setups.len + truths.len;

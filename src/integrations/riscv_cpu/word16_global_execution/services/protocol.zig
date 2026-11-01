@@ -6,6 +6,7 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const K = A.crypto.keccak;
 const S = A.crypto.secp256k1;
 const H = A.crypto.sha256;
+const Ar = A.crypto.arith256;
 const G = @import("../protocol.zig");
 const R = @import("roster.zig");
 const T = @import("types.zig");
@@ -47,7 +48,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.calls[3] + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
+        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.calls[3] + req.calls[4] + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         var mass16 = try setup.materials.geometry.range16Mass();
         var mass8 = try setup.materials.geometry.range8Mass();
         for (0..T.FAMILIES) |k| {
@@ -94,6 +95,10 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
                 try H.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
                 wire = try std.math.add(u64, wire, 4 * @as(u64, t.calls));
             },
+            .arith256_mod => |t| {
+                try Ar.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
+                wire = try std.math.add(u64, wire, Ar.layout.WIRE_FRACTIONS * @as(u64, t.calls));
+            },
         }
         next[family] = try std.math.add(u64, next[family], truth.count());
     }
@@ -119,6 +124,11 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         ch.mixU32s(&.{ 0x57534833, 1, CPU_CLAIM_COUNT_V3, 0x30010, @intFromEnum(T.Family.sha256), r.calls[3], first[3], H.layout.PROGRAM_KIND, log });
         for (T.widths(.sha256)) |width| ch.mixU32s(&.{@intCast(width)});
     } else if (r.calls[3] != 0) return error.InvalidCombinedBridgePresence;
+    // v3 arith256_mod bridge: same rule, its own domain word and claim count.
+    if (s.bridges.arith256_mod) |log| {
+        ch.mixU32s(&.{ 0x57534134, 1, 5, 0x30021, @intFromEnum(T.Family.arith256_mod), r.calls[4], first[4], Ar.layout.PROGRAM_KIND, log });
+        for (T.widths(.arith256_mod)) |width| ch.mixU32s(&.{@intCast(width)});
+    } else if (r.calls[4] != 0) return error.InvalidCombinedBridgePresence;
 }
 pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordinal: usize) void {
     truth.key().suite.config().mixInto(ch);
@@ -139,6 +149,7 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
             ch.mixU32s(&.{ t.setup.logs[0], t.setup.logs[1], 8, S.layout.FIXED, @intCast(S.layout.main(.product)), @intCast(S.layout.interactionFor(.product, policy)), @intCast(S.layout.main(.linear)), @intCast(S.layout.interactionFor(.linear, policy)), 35 });
         },
         .sha256 => |t| ch.mixU32s(&.{ 0x53484132, t.setup.log, H.layout.FIXED, H.layout.MAIN, H.layout.INTERACTION, H.layout.CONSTRAINTS, 35, H.layout.PROGRAM_KIND }),
+        .arith256_mod => |t| ch.mixU32s(&.{ 0x41524d34, t.setup.log, Ar.layout.FIXED, Ar.layout.MAIN, Ar.layout.INTERACTION, Ar.layout.CONSTRAINTS, 35, Ar.layout.PROGRAM_KIND, Ar.layout.BYTE_QUERIES }),
     }
 }
 pub const Shared = struct { ram: A.memory.closed_ram.types.RamChallenges, kio: K.equations.Io, wire: S.equations.Wire };
@@ -162,7 +173,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     G.Old.digest(ch, manifest.digest);
     return G.Old.drawWithSharedRam(ch, common.ram);
 }
-pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire };
+pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges };
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, ordinal: usize) !TruthDraw {
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534332, 1, 1, @intCast(ordinal), @intFromEnum(truth.family()) });
@@ -177,5 +188,10 @@ pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, 
         .secp => .{ .secp = .{ .polynomial = ch.drawSecureFelt(), .bytes = ch.drawSecureFelt(), .wire = common.wire } },
         // No local relation: every SHA-256 lookup is the shared Wire35 bus.
         .sha256 => .{ .sha256 = common.wire },
+        // Local BYTE point, drawn after this truth's MAIN root is sealed.
+        .arith256_mod => block: {
+            ch.mixU32s(&.{ 0x41524231, 8 });
+            break :block .{ .arith256_mod = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
+        },
     };
 }

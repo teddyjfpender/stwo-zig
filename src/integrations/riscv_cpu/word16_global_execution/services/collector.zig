@@ -16,6 +16,8 @@ pub const Advice = struct {
     secp: [][2][]S.types.Call,
     /// Admitted v3 SHA-256 packets per shard (empty for v2 tapes).
     sha256: [][]S.types.Call,
+    /// Admitted v3 arith256_mod packets per shard (empty for v2 tapes).
+    arith256_mod: [][]S.types.Call,
     initial: []Cell,
     terminal: []Cell,
     pub fn deinit(self: *Advice) void {
@@ -24,10 +26,12 @@ pub const Advice = struct {
         for (self.keccak) |c| a.free(c);
         for (self.secp) |cc| for (cc) |c| a.free(c);
         for (self.sha256) |c| a.free(c);
+        for (self.arith256_mod) |c| a.free(c);
         a.free(self.events);
         a.free(self.keccak);
         a.free(self.secp);
         a.free(self.sha256);
+        a.free(self.arith256_mod);
         a.free(self.initial);
         a.free(self.terminal);
     }
@@ -69,15 +73,18 @@ pub const Builder = struct {
         errdefer a.free(secp);
         const sha256 = try a.alloc([]S.types.Call, self.shards.items.len);
         errdefer a.free(sha256);
+        const arith = try a.alloc([]S.types.Call, self.shards.items.len);
+        errdefer a.free(arith);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp, sha256) |shard, *e, *k, *s, *h| {
+        for (self.shards.items, events, keccak, secp, sha256, arith) |shard, *e, *k, *s, *h, *r| {
+            r.* = shard.arith256_mod;
             e.* = shard.events;
             k.* = shard.keccak;
             s.* = shard.secp;
             h.* = shard.sha256;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -92,11 +99,13 @@ const Shard = struct {
     keccak: []K.types.Call,
     secp: [2][]S.types.Call,
     sha256: []S.types.Call,
+    arith256_mod: []S.types.Call,
     fn deinit(self: Shard, a: std.mem.Allocator) void {
         a.free(self.events);
         a.free(self.keccak);
         for (self.secp) |calls| a.free(calls);
         a.free(self.sha256);
+        a.free(self.arith256_mod);
     }
 };
 fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize) !Shard {
@@ -119,6 +128,9 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const hh = try a.alloc(S.types.Call, tape.sha256_calls.items.len);
     errdefer a.free(hh);
     var hi: usize = 0;
+    const rr = try a.alloc(S.types.Call, tape.arith256_mod_calls.items.len);
+    errdefer a.free(rr);
+    var ri: usize = 0;
     var next: [2]usize = @splat(0);
     var mi: usize = 0;
     var ci: usize = 0;
@@ -185,12 +197,26 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 for (0..words) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
                 hh[hi] = call;
                 hi += 1;
+            } else if (v3 and rec.tag == 0x30021) {
+                if (ri >= rr.len) return error.InvalidCombinedServiceOwner;
+                const captured = tape.arith256_mod_calls.items[ri];
+                const words = @TypeOf(captured).WORDS;
+                if (rec.pointer & 31 != 0 or rec.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidCombinedServiceOwner;
+                try owner(rec.pointer, rec.tick, tape, captured.pointer, captured.clock);
+                var call: S.types.Call = .{ .pointer = rec.pointer, .epoch = cpu.epoch, .tick = rec.tick, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
+                call.before[0..words].* = captured.before;
+                call.after[0..words].* = captured.after;
+                for (0..words) |lane| call.predecessors[lane] = try get(ledger, rec.pointer + 8 * lane);
+                try S.source.validate(.arith256_mod, call);
+                for (0..words) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
+                rr[ri] = call;
+                ri += 1;
             } else return error.UnqualifiedCombinedServiceTag;
             ci += 1;
         }
     }
-    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len) return error.InvalidCombinedServiceRoster;
-    return .{ .events = ee, .keccak = kk, .secp = ss, .sha256 = hh };
+    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len or ri != rr.len) return error.InvalidCombinedServiceRoster;
+    return .{ .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr };
 }
 fn owner(pointer: u64, tick: u24, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {
     if (pointer != captured_pointer or clock <= tape.initial_clock or clock - tape.initial_clock > tape.len or 4 * (clock - tape.initial_clock) != tick) return error.InvalidCombinedServiceOwner;

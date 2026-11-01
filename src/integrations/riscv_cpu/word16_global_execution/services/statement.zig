@@ -12,20 +12,27 @@ pub const CpuClaims = struct {
     base: G.Old.Claims,
     /// Families in T.Family order; an absent bridge's claims are zero.
     extras: [T.FAMILIES]T.ExtraClaims,
-    pub fn values(self: @This()) [P.CPU_CLAIM_COUNT_V3]Q {
-        var out: [P.CPU_CLAIM_COUNT_V3]Q = undefined;
+    pub fn values(self: @This()) [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q {
+        var out: [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q = undefined;
         out[0..P.CORE_CLAIM_COUNT].* = self.base.values();
         for (self.extras, 0..) |extra, k| out[P.CORE_CLAIM_COUNT + 5 * k ..][0..5].* = extra.values();
         return out;
     }
-    /// Transcript length: v2 shards (no SHA-256 bridge) mix exactly the v2
-    /// vector; presence() separately forces every absent claim to zero.
-    pub fn count(sha256: bool) usize {
-        return if (sha256) P.CPU_CLAIM_COUNT_V3 else P.CPU_CLAIM_COUNT;
+    /// Transcript length: v2 shards (no v3 bridge) mix exactly the v2
+    /// vector, then five claims per PRESENT v3 bridge in T.V3 order;
+    /// presence() separately forces every absent claim to zero.
+    pub fn count(setup: *const R.CpuSetup) usize {
+        var n: usize = P.CPU_CLAIM_COUNT;
+        for (T.V3) |f| n += if (setup.bridges.at(f) != null) @as(usize, 5) else 0;
+        return n;
     }
     pub fn mix(self: @This(), channel: anytype, setup: *const R.CpuSetup) void {
         const all = self.values();
-        channel.mixFelts(all[0..count(setup.bridges.sha256 != null)]);
+        channel.mixFelts(all[0..P.CPU_CLAIM_COUNT]);
+        for (T.V3) |f| if (setup.bridges.at(f) != null) {
+            const k = @intFromEnum(f);
+            channel.mixFelts(all[P.CORE_CLAIM_COUNT + 5 * k ..][0..5]);
+        };
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);
@@ -49,9 +56,11 @@ pub const CpuClaims = struct {
         for (self.extras) |c| sum = sum.sub(c.truth);
         if (!sum.isZero()) return error.UnclosedCombinedCpuRelations;
     }
-    /// Shared Wire35 debt of this shard: ADD, DOUBLE and SHA-256 bridges.
+    /// Shared Wire35 debt of this shard: every non-Keccak bridge.
     pub fn wire(self: @This()) Q {
-        return self.extras[1].truth.add(self.extras[2].truth).add(self.extras[3].truth);
+        var sum = Q.zero();
+        for (self.extras[1..]) |c| sum = sum.add(c.truth);
+        return sum;
     }
 };
 pub const CpuEncoded = struct {

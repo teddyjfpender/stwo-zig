@@ -18,6 +18,7 @@ pub const Bridges = struct {
     add: ?B.component.Component = null,
     double: ?B.component.Component = null,
     sha256: ?B.component.Component = null,
+    arith256_mod: ?B.component.Component = null,
     pub fn init(setup: *const R.CpuSetup, calls: [T.FAMILIES]u32, first: [T.FAMILIES]u32, ch: G.Old.Draw, common: P.Shared, claims: [T.FAMILIES]T.ExtraClaims) Bridges {
         var out = Bridges{};
         for (0..T.FAMILIES) |k| {
@@ -32,6 +33,7 @@ pub const Bridges = struct {
                     .add => out.add = component,
                     .double => out.double = component,
                     .sha256 => out.sha256 = component,
+                    .arith256_mod => out.arith256_mod = component,
                     .keccak => unreachable,
                 }
             }
@@ -39,7 +41,7 @@ pub const Bridges = struct {
         return out;
     }
     fn count(self: *const Bridges) usize {
-        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null);
+        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null) + @intFromBool(self.arith256_mod != null);
     }
 };
 pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]engine.air.component_prover.ComponentProver {
@@ -48,7 +50,7 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
     const out = try a.alloc(engine.air.component_prover.ComponentProver, old.len + bridges.count());
     @memcpy(out[0..old.len], old);
     var at = old.len;
-    inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(bridges, name)) |*c| {
+    inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(bridges, name)) |*c| {
         out[at] = c.asProverComponent();
         at += 1;
     };
@@ -60,7 +62,7 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
     const out = try a.alloc(core.air.components.Component, old.len + bridges.count());
     @memcpy(out[0..old.len], old);
     var at = old.len;
-    inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(bridges, name)) |*c| {
+    inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(bridges, name)) |*c| {
         out[at] = c.asVerifierComponent();
         at += 1;
     };
@@ -70,6 +72,7 @@ pub const TruthComponents = union(enum) {
     keccak: [3]K.component.Component,
     secp: @import("../secp/execution.zig").TruthComponents,
     sha256: A.crypto.sha256.component.Component,
+    arith256_mod: A.crypto.arith256.component.Component,
     pub fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
         return switch (truth) {
             .keccak => |t| switch (ch) {
@@ -87,6 +90,13 @@ pub const TruthComponents = union(enum) {
                 },
                 else => error.InvalidCombinedTruthChallenge,
             },
+            .arith256_mod => |t| switch (ch) {
+                .arith256_mod => |ac| block: {
+                    if (!claims[1].isZero() or !claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+                    break :block .{ .arith256_mod = .{ .log_size = t.setup.log, .public = .{ .calls = t.calls, .first_id = t.first_id }, .claim = claims[0], .challenges = ac } };
+                },
+                else => error.InvalidCombinedTruthChallenge,
+            },
         };
     }
     pub fn provers(self: *const TruthComponents, out: *[3]engine.air.component_prover.ComponentProver) []engine.air.component_prover.ComponentProver {
@@ -94,6 +104,10 @@ pub const TruthComponents = union(enum) {
             .keccak => |*c| out.* = .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
             .secp => |*c| out.* = c.provers(),
             .sha256 => |*c| {
+                out[0] = c.asProverComponent();
+                return out[0..1];
+            },
+            .arith256_mod => |*c| {
                 out[0] = c.asProverComponent();
                 return out[0..1];
             },
@@ -105,6 +119,10 @@ pub const TruthComponents = union(enum) {
             .keccak => |*c| out.* = .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
             .secp => |*c| out.* = c.verifiers(),
             .sha256 => |*c| {
+                out[0] = c.asVerifierComponent();
+                return out[0..1];
+            },
+            .arith256_mod => |*c| {
                 out[0] = c.asVerifierComponent();
                 return out[0..1];
             },

@@ -13,6 +13,7 @@ const Key = @import("../keccak/shared/key.zig").Key;
 const T = @import("types.zig");
 const append = @import("../keccak/roster.zig").append;
 const Sha = @import("../sha256/roster.zig");
+const Arith = @import("../arith256/roster.zig");
 const M = core.fields.m31.M31;
 const Col = engine.pcs.ColumnEvaluation;
 pub const CpuSetup = struct {
@@ -127,11 +128,13 @@ pub const Sources = struct {
     add: ?S.source.Source = null,
     double: ?S.source.Source = null,
     sha256: ?S.source.Source = null,
+    arith256_mod: ?S.source.Source = null,
     pub fn deinit(self: *Sources) void {
         if (self.keccak) |*s| s.deinit();
         if (self.add) |*s| s.deinit();
         if (self.double) |*s| s.deinit();
         if (self.sha256) |*s| s.deinit();
+        if (self.arith256_mod) |*s| s.deinit();
         self.core.deinit();
     }
     pub fn main(self: *Sources, family: T.Family) ?*[]M {
@@ -143,6 +146,7 @@ pub const Sources = struct {
             .add => if (self.add) |*s| if (tree == 1) &s.main else &s.interaction else null,
             .double => if (self.double) |*s| if (tree == 1) &s.main else &s.interaction else null,
             .sha256 => if (self.sha256) |*s| if (tree == 1) &s.main else &s.interaction else null,
+            .arith256_mod => if (self.arith256_mod) |*s| if (tree == 1) &s.main else &s.interaction else null,
         };
     }
     fn matrix(self: *const Sources, family: T.Family, tree: usize) ?[]const M {
@@ -151,6 +155,7 @@ pub const Sources = struct {
             .add => if (self.add) |s| if (tree == 1) s.main else s.interaction else null,
             .double => if (self.double) |s| if (tree == 1) s.main else s.interaction else null,
             .sha256 => if (self.sha256) |s| if (tree == 1) s.main else s.interaction else null,
+            .arith256_mod => if (self.arith256_mod) |s| if (tree == 1) s.main else s.interaction else null,
         };
     }
     pub fn columns(self: *const Sources, a: std.mem.Allocator, setup: *const CpuSetup, tree: usize) ![]Col {
@@ -175,6 +180,7 @@ pub const Sources = struct {
         if (self.add) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.double) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.sha256) |*s| try merge(&self.core, s.counts16, s.counts8);
+        if (self.arith256_mod) |*s| try merge(&self.core, s.counts16, s.counts8);
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -182,6 +188,7 @@ pub const Sources = struct {
         if (self.add) |*s| s.releaseMain();
         if (self.double) |*s| s.releaseMain();
         if (self.sha256) |*s| s.releaseMain();
+        if (self.arith256_mod) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -204,7 +211,7 @@ pub const Sources = struct {
         };
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
-        inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(self, name)) |*s| {
+        inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
             if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
         };
         for (0..T.FAMILIES) |k| {
@@ -225,7 +232,7 @@ pub const Sources = struct {
         var at = old.backings.len;
         a.free(old.columns);
         a.free(old.backings);
-        inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(self, name)) |*s| {
+        inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
             if (tree == 1) {
                 backings[at] = s.main;
                 s.main = &.{};
@@ -262,11 +269,13 @@ pub const Truth = union(enum) {
     keccak: struct { setup: *const @import("../keccak/shared/roster.zig").TruthSetup, first_id: u32, calls: u32 },
     secp: struct { setup: *const @import("../secp/roster.zig").TruthSetup, first_id: u32, calls: u32 },
     sha256: struct { setup: *const Sha.TruthSetup, first_id: u32, calls: u32 },
+    arith256_mod: struct { setup: *const Arith.TruthSetup, first_id: u32, calls: u32 },
     pub fn family(self: @This()) T.Family {
         return switch (self) {
             .keccak => .keccak,
             .secp => |t| if (t.setup.kind == .add) .add else .double,
             .sha256 => .sha256,
+            .arith256_mod => .arith256_mod,
         };
     }
     pub fn first(self: @This()) u32 {
@@ -289,6 +298,7 @@ pub const Truth = union(enum) {
             .keccak => |t| t.setup.logs(a, tree),
             .secp => |t| t.setup.columnLogs(a, tree),
             .sha256 => |t| t.setup.logs(a, tree),
+            .arith256_mod => |t| t.setup.logs(a, tree),
         };
     }
 };
@@ -296,6 +306,7 @@ pub const TruthSource = union(enum) {
     keccak: @import("../keccak/shared/roster.zig").TruthSource,
     secp: @import("../secp/roster.zig").TruthSource,
     sha256: Sha.TruthSource,
+    arith256_mod: Arith.TruthSource,
     pub fn init(a: std.mem.Allocator, truth: Truth, advice: *const @import("collector.zig").Advice) !TruthSource {
         if (truth.first() == 0) return error.InvalidCombinedTruthSpan;
         const begin: usize = truth.first() - 1;
@@ -357,6 +368,24 @@ pub const TruthSource = union(enum) {
                 if (written != t.calls) return error.InvalidCombinedTruthSpan;
                 break :block .{ .sha256 = try Sha.TruthSource.init(a, t.setup, inputs, t.first_id) };
             },
+            .arith256_mod => |t| block: {
+                const inputs = try a.alloc(S.types.Call, t.calls);
+                defer a.free(inputs);
+                var offset: usize = 0;
+                var written: usize = 0;
+                for (advice.arith256_mod) |cc| {
+                    const lo = @max(begin, offset);
+                    const hi = @min(end, offset + cc.len);
+                    if (lo < hi) {
+                        const selected = cc[lo - offset .. hi - offset];
+                        @memcpy(inputs[written..][0..selected.len], selected);
+                        written += selected.len;
+                    }
+                    offset += cc.len;
+                }
+                if (written != t.calls) return error.InvalidCombinedTruthSpan;
+                break :block .{ .arith256_mod = try Arith.TruthSource.init(a, t.setup, inputs, t.first_id) };
+            },
         };
     }
     /// Transfers the three original wide allocations, preserving only the
@@ -370,10 +399,11 @@ pub const TruthSource = union(enum) {
     }
     fn take(self: *TruthSource, tree: usize) !Commit {
         if (self.* == .sha256) return takeSha(&self.sha256.source, tree);
+        if (self.* == .arith256_mod) return takeArith(&self.arith256_mod.source, tree);
         const a = switch (self.*) {
             .keccak => |s| s.permutation.allocator,
             .secp => |s| s.batch.product.allocator,
-            .sha256 => unreachable,
+            .sha256, .arith256_mod => unreachable,
         };
         var matrices: [3]*[]M = undefined;
         var expected: [3]usize = undefined;
@@ -412,7 +442,7 @@ pub const TruthSource = union(enum) {
                 matrices[2] = if (tree == 1) &s.bytes.main else &s.bytes.interaction;
                 expected[2] = (if (tree == 1) @as(usize, 1) else 8) * 256;
             },
-            .sha256 => unreachable,
+            .sha256, .arith256_mod => unreachable,
         }
         for (matrices, expected, 0..) |matrix, size, i| {
             if (matrix.len != size) return error.InvalidTruthBufferPhase;
@@ -441,7 +471,7 @@ pub const TruthSource = union(enum) {
                 s.batch.linear.owns_main = false;
                 s.bytes.main = byte_counts.?;
             },
-            .sha256 => unreachable,
+            .sha256, .arith256_mod => unreachable,
         };
         return .{ .columns = headers, .backings = backings };
     }
@@ -466,6 +496,28 @@ fn takeSha(s: *A.crypto.sha256.trace.Source, tree: usize) !Commit {
     const a = s.allocator;
     try s.validateMetadata();
     const L = A.crypto.sha256.layout;
+    const matrix = if (tree == 1) &s.main else &s.interaction;
+    if (tree == 1 and (!s.owns_main or !A.memory.ownership.same(a, s.main_allocator orelse s.allocator))) return error.InvalidTruthBufferOwner;
+    if ((tree == 1 and s.interaction.len != 0) or matrix.len != @as(usize, if (tree == 1) L.MAIN else L.INTERACTION) * s.size()) return error.InvalidTruthBufferPhase;
+    const end = try spanEnd(matrix.*);
+    const other = if (tree == 1) s.interaction else s.main;
+    if (overlap(matrix.*, try spanEnd(s.fixed), s.fixed, end) or overlap(matrix.*, try spanEnd(other), other, end)) return error.AliasedTruthBuffers;
+    const headers = try a.alloc(Col, L.widths()[tree]);
+    errdefer a.free(headers);
+    var at: usize = 0;
+    append(headers, &at, matrix.*, s.log_size);
+    const backings = try a.alloc([]M, 1);
+    // No fallible operation may follow this point.
+    backings[0] = matrix.*;
+    matrix.* = &.{};
+    if (tree == 1) s.owns_main = false;
+    return .{ .columns = headers, .backings = backings };
+}
+/// One wide arith256 MAIN/INTER matrix moves to the PCS; fixed stays key-owned.
+fn takeArith(s: *A.crypto.arith256.trace.Source, tree: usize) !Commit {
+    const a = s.allocator;
+    try s.validateMetadata();
+    const L = A.crypto.arith256.layout;
     const matrix = if (tree == 1) &s.main else &s.interaction;
     if (tree == 1 and (!s.owns_main or !A.memory.ownership.same(a, s.main_allocator orelse s.allocator))) return error.InvalidTruthBufferOwner;
     if ((tree == 1 and s.interaction.len != 0) or matrix.len != @as(usize, if (tree == 1) L.MAIN else L.INTERACTION) * s.size()) return error.InvalidTruthBufferPhase;
