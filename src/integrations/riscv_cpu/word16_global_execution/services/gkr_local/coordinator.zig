@@ -46,10 +46,12 @@ pub const Options = struct {
     global_budget: usize = 1 << 30,
     retained_store: ?*Store = null,
     worker_timings: ?[]WorkerTiming = null,
+    native_profiles: []const ?*@import("stwo_prover_api").stage_profile.Recorder = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
+        if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
         try self.schedule.validate();
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
@@ -146,6 +148,7 @@ const Run = struct {
             const worker = try CPU.CpuWorker.init(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
+            self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             var cpu_timing = CPU.SealTiming{};
             self.workers[index].?.cpu.seal_timing = if (timing != null) &cpu_timing else null;
             defer self.workers[index].?.cpu.seal_timing = null;
@@ -171,6 +174,7 @@ const Run = struct {
             const worker = try Truth.TruthWorker.init(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget);
             owned = false;
             self.workers[index] = .{ .truth = worker };
+            self.workers[index].?.truth.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
             self.stages[index] = try self.workers[index].?.truth.seal(self.a);
             if (timer) |*clock| {
                 timing.?.seal_native_and_gkr_ns = clock.lap();

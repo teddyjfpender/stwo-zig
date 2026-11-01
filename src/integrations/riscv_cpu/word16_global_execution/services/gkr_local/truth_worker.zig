@@ -82,6 +82,7 @@ pub const TruthWorker = struct {
     scheme: W.Scheme,
     channel: W.Channel,
     owns_scheme: bool = true,
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     owns_source: bool = true,
     sealed: bool = false,
     started: bool = false,
@@ -114,7 +115,7 @@ pub const TruthWorker = struct {
         errdefer self.failed = true;
         try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain();
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         var roots = try self.scheme.roots(a);
         defer roots.deinit(a);
         if (roots.items.len != 2) return error.WideTruthRoots;
@@ -161,9 +162,9 @@ pub const TruthWorker = struct {
         var components = try Components.init(self.truth, local, pending.shared, claims);
         W.mixManifestAndClaims(&self.channel, pending.digest, claims);
         const inter = try take(a, &locals, globals[0..gd]);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, 64, self.native_recorder, &self.channel);
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, &components.provers(), &self.channel, self.scheme, .{});
+        var proof = try W.Prover.prove(a, &components.provers(), &self.channel, self.scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         const bytes = try W.encodePhysical(a, proof.proof);
         self.source.deinit();

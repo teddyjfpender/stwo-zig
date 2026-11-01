@@ -131,6 +131,7 @@ pub const CpuWorker = struct {
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
+    native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     local_metadata_retired: bool = false,
     seal_timing: ?*SealTiming = null,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize) !CpuWorker {
@@ -194,7 +195,7 @@ pub const CpuWorker = struct {
         self.consumed = true;
         try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain(self.setup);
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         const root = self.scheme.trees.items[1].root();
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
         var phase_timing = Child.PhaseTiming{};
@@ -278,11 +279,11 @@ pub const CpuWorker = struct {
         };
         W.mixManifestAndClaims(&self.channel, pending.digest, claims);
         owns_buffers = false;
-        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, headers, backings, 64, null, &self.channel);
+        try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, headers, backings, 64, self.native_recorder, &self.channel);
         const scheme = self.scheme;
         self.scheme = undefined;
         self.owns_scheme = false;
-        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{});
+        var proof = try W.Prover.prove(a, handles, &self.channel, scheme, .{ .recorder = self.native_recorder });
         defer proof.deinit(a);
         return .{ .bytes = try W.encodePhysical(a, proof.proof), .claims = claims };
     }

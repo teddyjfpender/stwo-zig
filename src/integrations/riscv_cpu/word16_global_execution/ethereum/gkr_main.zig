@@ -122,12 +122,18 @@ pub fn main() !void {
     var store = try Store.initFullyParked(args[4], operational.disk_bytes);
     defer store.deinit();
     const setup_ns = timer.read() - capture_ns;
+    var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
+    defer observations.deinit();
     const worker_timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
     defer a.free(worker_timings);
     const prove_start = timer.read();
-    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = 32, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = &store, .worker_timings = worker_timings, .schedule = operational.schedule });
+    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = 32, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = &store, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
+    if (request.value.profile_stages) {
+        const profiling = @import("../services/profiling.zig").Options{ .recorders = observations.pointers, .directory = dir };
+        for (0..observations.pointers.len) |i| try profiling.finish(a, i);
+    }
     const verify_start = timer.read();
     const output = try Receiver.verify(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, try config());
     const verify_ns = timer.read() - verify_start;
