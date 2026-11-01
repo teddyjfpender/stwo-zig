@@ -1,0 +1,709 @@
+//! GKR circuit layers and the polynomial oracle consumed by batch sum-check.
+
+const std = @import("std");
+const fraction = @import("stwo_core").fraction;
+const m31 = @import("stwo_core").fields.m31;
+const qm31 = @import("stwo_core").fields.qm31;
+const gkr_verifier_module = @import("gkr_verifier.zig");
+const mle_mod = @import("mle.zig");
+const utils = @import("utils.zig");
+
+const M31 = m31.M31;
+const QM31 = qm31.QM31;
+
+pub const GkrProverError = error{
+    EmptyBatch,
+    InvalidK,
+    DivisionByZero,
+    ShapeMismatch,
+    NotPowerOfTwo,
+    PointDimensionMismatch,
+    NotOutputLayer,
+    NotConstantPoly,
+    InvalidLayerStructure,
+    InvalidSumcheck,
+};
+
+/// Evaluations of `eq((0, x), y)` over the boolean hypercube.
+/// One algorithm authority for the selected secure extension; Q entrypoints below remain compatible.
+pub fn ForField(comptime Secure: type) type {
+    return struct {
+        const gkr_verifier_field = gkr_verifier_module.ForField(Secure);
+        const MleBase = mle_mod.MleFor(Secure, M31);
+        const MleSecure = mle_mod.MleFor(Secure, Secure);
+        pub const EqEvals = struct {
+            y: []Secure,
+            evals: MleSecure,
+
+            pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+                allocator.free(self.y);
+                self.evals.deinit(allocator);
+                self.* = undefined;
+            }
+
+            pub fn cloneOwned(self: @This(), allocator: std.mem.Allocator) !EqEvals {
+                const y = try allocator.dupe(Secure, self.y);
+                errdefer allocator.free(y);
+                return .{ .y = y, .evals = try self.evals.cloneOwned(allocator) };
+            }
+
+            pub fn ySlice(self: @This()) []const Secure {
+                return self.y;
+            }
+
+            pub fn at(self: @This(), index: usize) Secure {
+                return self.evals.evalsSlice()[index];
+            }
+
+            pub fn generate(allocator: std.mem.Allocator, y: []const Secure) !EqEvals {
+                const y_owned = try allocator.dupe(Secure, y);
+                errdefer allocator.free(y_owned);
+
+                const evals = blk: {
+                    if (y.len == 0) {
+                        break :blk try MleSecure.initOwned(try allocator.dupe(Secure, &[_]Secure{Secure.one()}));
+                    }
+                    const v = Secure.one().sub(y[0]);
+                    break :blk try genEqEvals(allocator, y[1..], v);
+                };
+                errdefer {
+                    var e = evals;
+                    e.deinit(allocator);
+                }
+
+                return .{
+                    .y = y_owned,
+                    .evals = evals,
+                };
+            }
+        };
+
+        /// A layer in a binary-tree GKR circuit.
+        pub const Layer = union(enum) {
+            GrandProduct: MleSecure,
+            LogUpGeneric: struct {
+                numerators: MleSecure,
+                denominators: MleSecure,
+            },
+            LogUpMultiplicities: struct {
+                numerators: MleBase,
+                denominators: MleSecure,
+            },
+            LogUpSingles: struct {
+                denominators: MleSecure,
+            },
+
+            pub fn deinit(self: *Layer, allocator: std.mem.Allocator) void {
+                switch (self.*) {
+                    .GrandProduct => |*mle| mle.deinit(allocator),
+                    .LogUpGeneric => |*inner| {
+                        inner.numerators.deinit(allocator);
+                        inner.denominators.deinit(allocator);
+                    },
+                    .LogUpMultiplicities => |*inner| {
+                        inner.numerators.deinit(allocator);
+                        inner.denominators.deinit(allocator);
+                    },
+                    .LogUpSingles => |*inner| inner.denominators.deinit(allocator),
+                }
+                self.* = undefined;
+            }
+
+            pub fn cloneOwned(self: Layer, allocator: std.mem.Allocator) !Layer {
+                return switch (self) {
+                    .GrandProduct => |mle| .{ .GrandProduct = try mle.cloneOwned(allocator) },
+                    .LogUpGeneric => |inner| blk: {
+                        var numerator = try inner.numerators.cloneOwned(allocator);
+                        errdefer numerator.deinit(allocator);
+                        break :blk .{ .LogUpGeneric = .{ .numerators = numerator, .denominators = try inner.denominators.cloneOwned(allocator) } };
+                    },
+                    .LogUpMultiplicities => |inner| blk: {
+                        var numerator = try inner.numerators.cloneOwned(allocator);
+                        errdefer numerator.deinit(allocator);
+                        break :blk .{ .LogUpMultiplicities = .{ .numerators = numerator, .denominators = try inner.denominators.cloneOwned(allocator) } };
+                    },
+                    .LogUpSingles => |inner| .{ .LogUpSingles = .{
+                        .denominators = try inner.denominators.cloneOwned(allocator),
+                    } },
+                };
+            }
+
+            pub fn nVariables(self: Layer) usize {
+                return switch (self) {
+                    .GrandProduct => |mle| mle.nVariables(),
+                    .LogUpGeneric => |inner| inner.denominators.nVariables(),
+                    .LogUpMultiplicities => |inner| inner.denominators.nVariables(),
+                    .LogUpSingles => |inner| inner.denominators.nVariables(),
+                };
+            }
+
+            pub fn isOutputLayer(self: Layer) bool {
+                return self.nVariables() == 0;
+            }
+
+            pub fn nextLayer(self: Layer, allocator: std.mem.Allocator) !?Layer {
+                if (self.isOutputLayer()) return null;
+
+                return switch (self) {
+                    .GrandProduct => |mle| try nextGrandProductLayer(allocator, mle),
+                    .LogUpGeneric => |inner| try nextLogupLayer(
+                        allocator,
+                        .{ .MleSecure = &inner.numerators },
+                        &inner.denominators,
+                    ),
+                    .LogUpMultiplicities => |inner| try nextLogupLayer(
+                        allocator,
+                        .{ .MleBase = &inner.numerators },
+                        &inner.denominators,
+                    ),
+                    .LogUpSingles => |inner| try nextLogupLayer(
+                        allocator,
+                        .{ .Constant = Secure.one() },
+                        &inner.denominators,
+                    ),
+                };
+            }
+
+            pub fn outputLayerValues(self: Layer, allocator: std.mem.Allocator) GkrProverError![]Secure {
+                if (!self.isOutputLayer()) return GkrProverError.NotOutputLayer;
+
+                return switch (self) {
+                    .GrandProduct => |mle| blk: {
+                        const out = allocator.alloc(Secure, 1) catch return GkrProverError.ShapeMismatch;
+                        out[0] = mle.evalsSlice()[0];
+                        break :blk out;
+                    },
+                    .LogUpGeneric => |inner| blk: {
+                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        out[0] = inner.numerators.evalsSlice()[0];
+                        out[1] = inner.denominators.evalsSlice()[0];
+                        break :blk out;
+                    },
+                    .LogUpMultiplicities => |inner| blk: {
+                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        out[0] = Secure.fromBase(inner.numerators.evalsSlice()[0]);
+                        out[1] = inner.denominators.evalsSlice()[0];
+                        break :blk out;
+                    },
+                    .LogUpSingles => |inner| blk: {
+                        const out = allocator.alloc(Secure, 2) catch return GkrProverError.ShapeMismatch;
+                        out[0] = Secure.one();
+                        out[1] = inner.denominators.evalsSlice()[0];
+                        break :blk out;
+                    },
+                };
+            }
+
+            pub fn fixFirstVariable(
+                self: Layer,
+                allocator: std.mem.Allocator,
+                x0: Secure,
+            ) !Layer {
+                if (self.nVariables() == 0) return self.cloneOwned(allocator);
+
+                return switch (self) {
+                    .GrandProduct => |mle| .{ .GrandProduct = try mle.fixFirstVariable(allocator, x0) },
+                    .LogUpGeneric => |inner| blk: {
+                        var numerator = try inner.numerators.fixFirstVariable(allocator, x0);
+                        errdefer numerator.deinit(allocator);
+                        break :blk .{ .LogUpGeneric = .{ .numerators = numerator, .denominators = try inner.denominators.fixFirstVariable(allocator, x0) } };
+                    },
+                    .LogUpMultiplicities => |inner| blk: {
+                        var numerator = try inner.numerators.fixFirstVariable(allocator, x0);
+                        errdefer numerator.deinit(allocator);
+                        break :blk .{ .LogUpGeneric = .{ .numerators = numerator, .denominators = try inner.denominators.fixFirstVariable(allocator, x0) } };
+                    },
+                    .LogUpSingles => |inner| .{ .LogUpSingles = .{
+                        .denominators = try inner.denominators.fixFirstVariable(allocator, x0),
+                    } },
+                };
+            }
+
+            pub fn intoMultivariatePoly(
+                self: Layer,
+                allocator: std.mem.Allocator,
+                lambda: Secure,
+                eq_evals: *const EqEvals,
+            ) !GkrMultivariatePolyOracle {
+                var eq_owned = try eq_evals.cloneOwned(allocator);
+                errdefer eq_owned.deinit(allocator);
+                return .{
+                    .eq_evals = eq_owned,
+                    .input_layer = try self.cloneOwned(allocator),
+                    .eq_fixed_var_correction = Secure.one(),
+                    .lambda = lambda,
+                };
+            }
+        };
+
+        /// Multivariate polynomial oracle used by GKR sum-check.
+        pub const GkrMultivariatePolyOracle = struct {
+            eq_evals: EqEvals,
+            input_layer: Layer,
+            eq_fixed_var_correction: Secure,
+            lambda: Secure,
+
+            pub fn deinit(self: *GkrMultivariatePolyOracle, allocator: std.mem.Allocator) void {
+                self.eq_evals.deinit(allocator);
+                self.input_layer.deinit(allocator);
+                self.* = undefined;
+            }
+
+            pub fn cloneOwned(self: GkrMultivariatePolyOracle, allocator: std.mem.Allocator) !GkrMultivariatePolyOracle {
+                var eq_owned = try self.eq_evals.cloneOwned(allocator);
+                errdefer eq_owned.deinit(allocator);
+                return .{
+                    .eq_evals = eq_owned,
+                    .input_layer = try self.input_layer.cloneOwned(allocator),
+                    .eq_fixed_var_correction = self.eq_fixed_var_correction,
+                    .lambda = self.lambda,
+                };
+            }
+
+            pub fn nVariables(self: GkrMultivariatePolyOracle) usize {
+                const in_vars = self.input_layer.nVariables();
+                return if (in_vars == 0) 0 else in_vars - 1;
+            }
+
+            pub fn isConstant(self: GkrMultivariatePolyOracle) bool {
+                return self.nVariables() == 0;
+            }
+
+            pub fn sumAsPolyInFirstVariable(
+                self: GkrMultivariatePolyOracle,
+                allocator: std.mem.Allocator,
+                claim: Secure,
+            ) (std.mem.Allocator.Error || GkrProverError)!utils.UnivariatePoly(Secure) {
+                const n_variables = self.nVariables();
+                if (n_variables == 0) return GkrProverError.InvalidLayerStructure;
+
+                const n_terms: usize = @as(usize, 1) << @intCast(n_variables - 1);
+
+                var eval_pair: [2]Secure = undefined;
+                switch (self.input_layer) {
+                    .GrandProduct => |mle| {
+                        eval_pair = evalGrandProductSum(&self.eq_evals, &mle, n_terms);
+                    },
+                    .LogUpGeneric => |inner| {
+                        eval_pair = evalLogupSum(
+                            Secure,
+                            &self.eq_evals,
+                            &inner.numerators,
+                            &inner.denominators,
+                            n_terms,
+                            self.lambda,
+                        );
+                    },
+                    .LogUpMultiplicities => |inner| {
+                        eval_pair = evalLogupSum(
+                            M31,
+                            &self.eq_evals,
+                            &inner.numerators,
+                            &inner.denominators,
+                            n_terms,
+                            self.lambda,
+                        );
+                    },
+                    .LogUpSingles => |inner| {
+                        eval_pair = evalLogupSinglesSum(
+                            &self.eq_evals,
+                            &inner.denominators,
+                            n_terms,
+                            self.lambda,
+                        );
+                    },
+                }
+
+                const eval_at_0 = eval_pair[0].mul(self.eq_fixed_var_correction);
+                const eval_at_2 = eval_pair[1].mul(self.eq_fixed_var_correction);
+                return try correctSumAsPolyInFirstVariable(
+                    allocator,
+                    eval_at_0,
+                    eval_at_2,
+                    claim,
+                    self.eq_evals.ySlice(),
+                    n_variables,
+                );
+            }
+
+            pub fn fixFirstVariable(
+                self: GkrMultivariatePolyOracle,
+                allocator: std.mem.Allocator,
+                challenge: Secure,
+            ) !GkrMultivariatePolyOracle {
+                if (self.isConstant()) return self.cloneOwned(allocator);
+
+                const n_variables = self.nVariables();
+                const z0 = self.eq_evals.ySlice()[self.eq_evals.ySlice().len - n_variables];
+                const eq_term = utils.eq(
+                    Secure,
+                    &[_]Secure{challenge},
+                    &[_]Secure{z0},
+                ) catch return GkrProverError.ShapeMismatch;
+
+                var eq_owned = try self.eq_evals.cloneOwned(allocator);
+                errdefer eq_owned.deinit(allocator);
+                return .{
+                    .eq_evals = eq_owned,
+                    .eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term),
+                    .input_layer = try self.input_layer.fixFirstVariable(allocator, challenge),
+                    .lambda = self.lambda,
+                };
+            }
+
+            pub fn tryIntoMask(
+                self: GkrMultivariatePolyOracle,
+                allocator: std.mem.Allocator,
+            ) GkrProverError!gkr_verifier_field.GkrMask {
+                if (!self.isConstant()) return GkrProverError.NotConstantPoly;
+
+                return switch (self.input_layer) {
+                    .GrandProduct => |mle| blk: {
+                        if (mle.evalsSlice().len != 2) return GkrProverError.InvalidLayerStructure;
+                        break :blk gkr_verifier_field.GkrMask.initOwned(
+                            allocator.dupe([2]Secure, &[_][2]Secure{.{
+                                mle.evalsSlice()[0],
+                                mle.evalsSlice()[1],
+                            }}) catch return GkrProverError.ShapeMismatch,
+                        );
+                    },
+                    .LogUpGeneric => |inner| blk: {
+                        if (inner.numerators.evalsSlice().len != 2 or inner.denominators.evalsSlice().len != 2) {
+                            return GkrProverError.InvalidLayerStructure;
+                        }
+                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                            .{ inner.numerators.evalsSlice()[0], inner.numerators.evalsSlice()[1] },
+                            .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
+                        }) catch return GkrProverError.ShapeMismatch;
+                        break :blk gkr_verifier_field.GkrMask.initOwned(cols);
+                    },
+                    .LogUpMultiplicities => |inner| blk: {
+                        if (inner.numerators.evalsSlice().len != 2 or inner.denominators.evalsSlice().len != 2) {
+                            return GkrProverError.InvalidLayerStructure;
+                        }
+                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                            .{ Secure.fromBase(inner.numerators.evalsSlice()[0]), Secure.fromBase(inner.numerators.evalsSlice()[1]) },
+                            .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
+                        }) catch return GkrProverError.ShapeMismatch;
+                        break :blk gkr_verifier_field.GkrMask.initOwned(cols);
+                    },
+                    .LogUpSingles => |inner| blk: {
+                        if (inner.denominators.evalsSlice().len != 2) return GkrProverError.InvalidLayerStructure;
+                        const cols = allocator.dupe([2]Secure, &[_][2]Secure{
+                            .{ Secure.one(), Secure.one() },
+                            .{ inner.denominators.evalsSlice()[0], inner.denominators.evalsSlice()[1] },
+                        }) catch return GkrProverError.ShapeMismatch;
+                        break :blk gkr_verifier_field.GkrMask.initOwned(cols);
+                    },
+                };
+            }
+        };
+        /// Computes `r(t) = sum_x eq((t, x), y[-k:]) * p(t, x)` from evaluations of
+        /// `f(t) = sum_x eq(({0}^(n-k), 0, x), y) * p(t, x)`.
+        pub fn correctSumAsPolyInFirstVariable(
+            allocator: std.mem.Allocator,
+            f_at_0: Secure,
+            f_at_2: Secure,
+            claim: Secure,
+            y: []const Secure,
+            k: usize,
+        ) (std.mem.Allocator.Error || GkrProverError)!utils.UnivariatePoly(Secure) {
+            if (k == 0 or k > y.len) return GkrProverError.InvalidK;
+
+            const n = y.len;
+            const prefix_len = n - k + 1;
+            const eq_prefix = try eqZerosPrefix(y[0..prefix_len]);
+            const a_const = Secure.one().div(eq_prefix) catch return GkrProverError.DivisionByZero;
+
+            const y_idx = y[n - k];
+            const denom = Secure.one().sub(y_idx.add(y_idx));
+            const b_const = Secure.one().sub(y_idx).div(denom) catch return GkrProverError.DivisionByZero;
+
+            const eq_at_0 = Secure.one().sub(y_idx);
+
+            const x_two = Secure.fromBase(M31.fromCanonical(2));
+            const eq_at_2 = utils.eq(
+                Secure,
+                &[_]Secure{x_two},
+                &[_]Secure{y_idx},
+            ) catch return GkrProverError.ShapeMismatch;
+
+            const r_at_0 = f_at_0.mul(eq_at_0).mul(a_const);
+            const r_at_1 = claim.sub(r_at_0);
+            const r_at_2 = f_at_2.mul(eq_at_2).mul(a_const);
+            const r_at_b = Secure.zero();
+
+            const xs = [_]Secure{ Secure.zero(), Secure.one(), x_two, b_const };
+            const ys = [_]Secure{ r_at_0, r_at_1, r_at_2, r_at_b };
+            return utils.UnivariatePoly(Secure).interpolateLagrange(allocator, xs[0..], ys[0..]) catch |err| switch (err) {
+                utils.LookupUtilsError.ShapeMismatch => GkrProverError.ShapeMismatch,
+                utils.LookupUtilsError.DivisionByZero => GkrProverError.DivisionByZero,
+                else => err,
+            };
+        }
+        pub fn buildLayers(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
+            var out = std.ArrayList(Layer).empty;
+            errdefer {
+                for (out.items) |*layer| layer.deinit(allocator);
+                out.deinit(allocator);
+            }
+
+            var current = try input_layer.cloneOwned(allocator);
+            out.append(allocator, current) catch |err| {
+                current.deinit(allocator);
+                return err;
+            };
+
+            while (try current.nextLayer(allocator)) |next| {
+                current = next;
+                out.append(allocator, next) catch |err| {
+                    current.deinit(allocator);
+                    return err;
+                };
+            }
+
+            return out.toOwnedSlice(allocator);
+        }
+
+        fn nextGrandProductLayer(allocator: std.mem.Allocator, layer: MleSecure) !Layer {
+            const values = layer.evalsSlice();
+            const out = try allocator.alloc(Secure, values.len / 2);
+            for (out, 0..) |*dst, i| {
+                dst.* = values[2 * i].mul(values[2 * i + 1]);
+            }
+            return .{ .GrandProduct = try MleSecure.initOwned(out) };
+        }
+
+        const MleExpr = union(enum) {
+            Constant: Secure,
+            MleSecure: *const MleSecure,
+            MleBase: *const MleBase,
+
+            fn at(self: MleExpr, index: usize) Secure {
+                return switch (self) {
+                    .Constant => |v| v,
+                    .MleSecure => |mle| mle.evalsSlice()[index],
+                    .MleBase => |mle| Secure.fromBase(mle.evalsSlice()[index]),
+                };
+            }
+        };
+
+        fn nextLogupLayer(
+            allocator: std.mem.Allocator,
+            numerators: MleExpr,
+            denominators: *const MleSecure,
+        ) !Layer {
+            const den_values = denominators.evalsSlice();
+            const half_n = den_values.len / 2;
+
+            const next_numerators = try allocator.alloc(Secure, half_n);
+            errdefer allocator.free(next_numerators);
+            const next_denominators = try allocator.alloc(Secure, half_n);
+            errdefer allocator.free(next_denominators);
+
+            for (0..half_n) |i| {
+                const a = fraction.Fraction(Secure, Secure).new(
+                    numerators.at(2 * i),
+                    den_values[2 * i],
+                );
+                const b = fraction.Fraction(Secure, Secure).new(
+                    numerators.at(2 * i + 1),
+                    den_values[2 * i + 1],
+                );
+                const res = a.add(b);
+                next_numerators[i] = res.numerator;
+                next_denominators[i] = res.denominator;
+            }
+
+            return .{ .LogUpGeneric = .{
+                .numerators = try MleSecure.initOwned(next_numerators),
+                .denominators = try MleSecure.initOwned(next_denominators),
+            } };
+        }
+
+        fn evalGrandProductSum(
+            eq_evals: *const EqEvals,
+            input_layer: *const MleSecure,
+            n_terms: usize,
+        ) [2]Secure {
+            var eval_at_0 = Secure.zero();
+            var eval_at_2 = Secure.zero();
+
+            const input = input_layer.evalsSlice();
+            for (0..n_terms) |i| {
+                const inp_at_r0i0 = input[i * 2];
+                const inp_at_r0i1 = input[i * 2 + 1];
+                const inp_at_r1i0 = input[(n_terms + i) * 2];
+                const inp_at_r1i1 = input[(n_terms + i) * 2 + 1];
+
+                const inp_at_r2i0 = inp_at_r1i0.add(inp_at_r1i0).sub(inp_at_r0i0);
+                const inp_at_r2i1 = inp_at_r1i1.add(inp_at_r1i1).sub(inp_at_r0i1);
+
+                const prod_at_r0i = inp_at_r0i0.mul(inp_at_r0i1);
+                const prod_at_r2i = inp_at_r2i0.mul(inp_at_r2i1);
+
+                const eq_eval = eq_evals.at(i);
+                eval_at_0 = eval_at_0.add(eq_eval.mul(prod_at_r0i));
+                eval_at_2 = eval_at_2.add(eq_eval.mul(prod_at_r2i));
+            }
+
+            return .{ eval_at_0, eval_at_2 };
+        }
+
+        fn evalLogupSum(
+            comptime F: type,
+            eq_evals: *const EqEvals,
+            input_numerators: *const mle_mod.MleFor(Secure, F),
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+        ) [2]Secure {
+            var eval_at_0 = Secure.zero();
+            var eval_at_2 = Secure.zero();
+
+            const numerators = input_numerators.evalsSlice();
+            const denominators = input_denominators.evalsSlice();
+
+            for (0..n_terms) |i| {
+                const den_r0i0 = denominators[i * 2];
+                const den_r0i1 = denominators[i * 2 + 1];
+                const den_r1i0 = denominators[(n_terms + i) * 2];
+                const den_r1i1 = denominators[(n_terms + i) * 2 + 1];
+
+                const den_r2i0 = den_r1i0.add(den_r1i0).sub(den_r0i0);
+                const den_r2i1 = den_r1i1.add(den_r1i1).sub(den_r0i1);
+
+                const eq_eval = eq_evals.at(i);
+
+                if (F == M31) {
+                    // Small-big specialization: keep numerators as M31 through
+                    // interpolation and use Fraction(M31, Secure) so cross-products
+                    // use Secure.mulM31 (4 base-field muls) instead of Secure.mul
+                    // (9 base-field muls via Karatsuba).
+                    const num_r0i0 = numerators[i * 2];
+                    const num_r0i1 = numerators[i * 2 + 1];
+                    const num_r1i0 = numerators[(n_terms + i) * 2];
+                    const num_r1i1 = numerators[(n_terms + i) * 2 + 1];
+
+                    const num_r2i0 = num_r1i0.add(num_r1i0).sub(num_r0i0);
+                    const num_r2i1 = num_r1i1.add(num_r1i1).sub(num_r0i1);
+
+                    const frac_r0 = baseFraction(num_r0i0, den_r0i0)
+                        .add(baseFraction(num_r0i1, den_r0i1));
+                    const frac_r2 = baseFraction(num_r2i0, den_r2i0)
+                        .add(baseFraction(num_r2i1, den_r2i1));
+
+                    eval_at_0 = eval_at_0.add(
+                        eq_eval.mul(frac_r0.numerator.add(lambda.mul(frac_r0.denominator))),
+                    );
+                    eval_at_2 = eval_at_2.add(
+                        eq_eval.mul(frac_r2.numerator.add(lambda.mul(frac_r2.denominator))),
+                    );
+                } else {
+                    const num_r0i0 = asSecure(F, numerators[i * 2]);
+                    const num_r0i1 = asSecure(F, numerators[i * 2 + 1]);
+                    const num_r1i0 = asSecure(F, numerators[(n_terms + i) * 2]);
+                    const num_r1i1 = asSecure(F, numerators[(n_terms + i) * 2 + 1]);
+
+                    const num_r2i0 = num_r1i0.add(num_r1i0).sub(num_r0i0);
+                    const num_r2i1 = num_r1i1.add(num_r1i1).sub(num_r0i1);
+
+                    const frac_r0 = fraction.Fraction(Secure, Secure).new(num_r0i0, den_r0i0)
+                        .add(fraction.Fraction(Secure, Secure).new(num_r0i1, den_r0i1));
+                    const frac_r2 = fraction.Fraction(Secure, Secure).new(num_r2i0, den_r2i0)
+                        .add(fraction.Fraction(Secure, Secure).new(num_r2i1, den_r2i1));
+
+                    eval_at_0 = eval_at_0.add(
+                        eq_eval.mul(frac_r0.numerator.add(lambda.mul(frac_r0.denominator))),
+                    );
+                    eval_at_2 = eval_at_2.add(
+                        eq_eval.mul(frac_r2.numerator.add(lambda.mul(frac_r2.denominator))),
+                    );
+                }
+            }
+
+            return .{ eval_at_0, eval_at_2 };
+        }
+
+        fn evalLogupSinglesSum(
+            eq_evals: *const EqEvals,
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+        ) [2]Secure {
+            var eval_at_0 = Secure.zero();
+            var eval_at_2 = Secure.zero();
+
+            const denominators = input_denominators.evalsSlice();
+            const R = utils.Reciprocal(Secure);
+
+            for (0..n_terms) |i| {
+                const den_r0i0 = denominators[i * 2];
+                const den_r0i1 = denominators[i * 2 + 1];
+                const den_r1i0 = denominators[(n_terms + i) * 2];
+                const den_r1i1 = denominators[(n_terms + i) * 2 + 1];
+
+                const den_r2i0 = den_r1i0.add(den_r1i0).sub(den_r0i0);
+                const den_r2i1 = den_r1i1.add(den_r1i1).sub(den_r0i1);
+
+                const frac_r0 = R.new(den_r0i0).add(R.new(den_r0i1));
+                const frac_r2 = R.new(den_r2i0).add(R.new(den_r2i1));
+
+                const eq_eval = eq_evals.at(i);
+                eval_at_0 = eval_at_0.add(
+                    eq_eval.mul(frac_r0.numerator.add(lambda.mul(frac_r0.denominator))),
+                );
+                eval_at_2 = eval_at_2.add(
+                    eq_eval.mul(frac_r2.numerator.add(lambda.mul(frac_r2.denominator))),
+                );
+            }
+
+            return .{ eval_at_0, eval_at_2 };
+        }
+
+        fn asSecure(comptime F: type, value: F) Secure {
+            if (F == Secure) return value;
+            if (F == M31) return Secure.fromBase(value);
+            @compileError("unsupported field in gkr prover helper");
+        }
+
+        fn genEqEvals(
+            allocator: std.mem.Allocator,
+            y: []const Secure,
+            scale: Secure,
+        ) !MleSecure {
+            if (y.len == 0) {
+                return try MleSecure.initOwned(try allocator.dupe(Secure, &[_]Secure{scale}));
+            }
+
+            var tail = try genEqEvals(allocator, y[1..], scale);
+            defer tail.deinit(allocator);
+
+            const tail_values = tail.evalsSlice();
+            const out = try allocator.alloc(Secure, tail_values.len * 2);
+
+            const eq0 = Secure.one().sub(y[0]);
+            const eq1 = y[0];
+            for (tail_values, 0..) |v, i| {
+                out[i] = v.mul(eq0);
+                out[i + tail_values.len] = v.mul(eq1);
+            }
+
+            return try MleSecure.initOwned(out);
+        }
+
+        pub fn eqZerosPrefix(y: []const Secure) GkrProverError!Secure {
+            var out = Secure.one();
+            for (y) |yi| {
+                out = out.mul(Secure.one().sub(yi));
+            }
+            if (out.isZero()) return GkrProverError.DivisionByZero;
+            return out;
+        }
+
+        fn baseFraction(n: M31, d: Secure) (if (Secure == QM31) fraction.Fraction(M31, Secure) else fraction.Fraction(Secure, Secure)) {
+            if (Secure == QM31) return .{ .numerator = n, .denominator = d };
+            return .{ .numerator = Secure.fromBase(n), .denominator = d };
+        }
+    };
+}
