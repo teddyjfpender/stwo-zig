@@ -123,7 +123,7 @@ pub const Tape = struct {
     /// clock) is the whole call; the prover replays it on its RAM ledger.
     /// Not counted by serviceCount; the tape wire needs no new section.
     pub fn appendBulk(self: *Tape, call: BulkCall) !void {
-        if (self.execution_profile != .ethereum_services_v3 or (call.tag != profile.MEMCPY_TAG and call.tag != profile.MEMSET_TAG)) return error.InvalidTapeService;
+        if (self.execution_profile != .ethereum_services_v3 or (call.tag != profile.MEMCPY_TAG and call.tag != profile.MEMSET_TAG and call.tag != profile.MEMCMP_TAG)) return error.InvalidTapeService;
         try self.appendRecord(call.retirement());
     }
     pub fn appendSha256(self: *Tape, call: ethereum.Sha256Call) !void {

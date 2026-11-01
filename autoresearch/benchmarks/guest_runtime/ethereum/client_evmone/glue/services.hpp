@@ -56,6 +56,7 @@ inline void secp_double(SecpDoublePacket& p) noexcept { ecall(kSecpDoubleWords, 
 #if defined(ADMITTED_V3)
 inline constexpr uint64_t kV3Memcpy = 0x00030001;
 inline constexpr uint64_t kV3Memset = 0x00030002;
+inline constexpr uint64_t kV3Memcmp = 0x00030003;
 inline constexpr uint64_t kV3Sha256 = 0x00030010;
 inline constexpr uint64_t kV3Arith256Mod = 0x00030021;
 #if defined(CANDIDATE_SERVICES)

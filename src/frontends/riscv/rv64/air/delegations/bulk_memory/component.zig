@@ -97,9 +97,9 @@ pub const Component = struct {
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const core.air.components.MaskValues, acc: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidBulkMemoryMask;
         const widths_ = self.widths();
-        var data: [128]Q = undefined;
-        var pm: [64]Q = @splat(Q.zero());
-        var pi: [64]Q = @splat(Q.zero());
+        var data: [192]Q = undefined;
+        var pm: [96]Q = @splat(Q.zero());
+        var pi: [96]Q = @splat(Q.zero());
         var at: usize = 0;
         for (widths_, 0..) |width, tree| {
             if (mask.items[tree].len < self.offsets[tree] + width) return error.InvalidBulkMemoryMask;
@@ -124,7 +124,7 @@ pub const Component = struct {
         const a = acc.allocator;
         const widths_ = self.widths();
         const total = widths_[0] + widths_[1] + widths_[2];
-        var polys_buffer: [128]cp.Poly = undefined;
+        var polys_buffer: [192]cp.Poly = undefined;
         const polys = polys_buffer[0..total];
         var at: usize = 0;
         for (widths_, 0..) |width, tree| {
@@ -142,7 +142,7 @@ pub const Component = struct {
             for (owned[0..initialized]) |column| a.free(column);
             a.free(owned);
         }
-        var eval_buffer: [128][]const M = undefined;
+        var eval_buffer: [192][]const M = undefined;
         const evals = eval_buffer[0..total];
         for (polys, evals) |poly, *data| data.* = try support.evaluationValues(a, poly, log, n, owned, &initialized);
         if (owned_count != 0) {

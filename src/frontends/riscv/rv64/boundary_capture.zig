@@ -76,12 +76,20 @@ pub const Capture = struct {
         try self.publish(clock, transitions[0..count], memory);
     }
     /// Packet and source words are reads (unchanged by the call); destination
-    /// words go from the session's recorded before-values to current memory.
+    /// words (memcmp: the result word) go from the session's recorded
+    /// before-values to current memory.
     fn appendBulk(self: *Capture, e: @import("ethereum_services/bulk_memory.zig").Event, memory: *Memory) !void {
+        const BM = @import("ethereum_services/bulk_memory.zig");
+        const kind = BM.kindOf(e.call.tag) orelse return error.InvalidBoundaryService;
         const words: usize = @intCast(e.packet.len / 8);
-        const copy = e.call.tag == @import("execution_profile.zig").MEMCPY_TAG;
-        if (e.dst_before.len != words) return error.InvalidBoundaryService;
-        const transitions = try self.allocator.alloc(Transition, 3 + (if (copy) 2 * words else words));
+        const source = BM.sourceWords(e.packet.word1, e.packet.len);
+        const count: usize = switch (kind) {
+            .memcpy => 3 + words + @as(usize, @intCast(source.count)),
+            .memset => 3 + words,
+            .memcmp => 4 + 2 * @as(usize, @intCast(e.packet.examined)),
+        };
+        if (e.dst_before.len != (if (kind == .memcmp) 1 else words)) return error.InvalidBoundaryService;
+        const transitions = try self.allocator.alloc(Transition, count);
         defer self.allocator.free(transitions);
         for (0..3) |k| {
             const address = e.call.pointer + 8 * k;
@@ -89,17 +97,32 @@ pub const Capture = struct {
             transitions[k] = .{ .address = address, .before = value, .after = value, .writable_required = false };
         }
         var at: usize = 3;
-        for (0..words) |j| {
-            const d = e.packet.dst + 8 * j;
-            transitions[at] = .{ .address = d, .before = e.dst_before[j], .after = memory.backing.load(d, 8).value, .writable_required = true };
-            at += 1;
-            if (copy) {
-                const s = e.packet.word1 + 8 * j;
-                const value = memory.backing.load(s, 8).value;
-                transitions[at] = .{ .address = s, .before = value, .after = value, .writable_required = false };
-                at += 1;
-            }
+        switch (kind) {
+            .memcmp => {
+                const r = e.call.pointer + 24;
+                transitions[3] = .{ .address = r, .before = e.dst_before[0], .after = memory.backing.load(r, 8).value, .writable_required = true };
+                at = 4;
+                for (0..@intCast(e.packet.examined)) |j| for ([_]u64{ e.packet.dst, e.packet.word1 }) |base| {
+                    const value = memory.backing.load(base + 8 * j, 8).value;
+                    transitions[at] = .{ .address = base + 8 * j, .before = value, .after = value, .writable_required = false };
+                    at += 1;
+                };
+            },
+            .memcpy, .memset => {
+                for (0..words) |j| {
+                    const d = e.packet.dst + 8 * j;
+                    transitions[at] = .{ .address = d, .before = e.dst_before[j], .after = memory.backing.load(d, 8).value, .writable_required = true };
+                    at += 1;
+                }
+                if (kind == .memcpy) for (0..@intCast(source.count)) |j| {
+                    const s = source.base + 8 * j;
+                    const value = memory.backing.load(s, 8).value;
+                    transitions[at] = .{ .address = s, .before = value, .after = value, .writable_required = false };
+                    at += 1;
+                };
+            },
         }
+        std.debug.assert(at == count);
         try self.publish(e.call.clock, transitions, memory);
     }
     fn publish(self: *Capture, clock: u64, transitions: []const Transition, memory: *Memory) !void {

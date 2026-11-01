@@ -101,6 +101,12 @@ const Report = struct {
     bulk_memset_calls: u64 = 0,
     bulk_memcpy_bytes: u64 = 0,
     bulk_memset_bytes: u64 = 0,
+    /// memcpy with a source not 8-aligned (unaligned body rows).
+    bulk_memcpy_unaligned_calls: u64 = 0,
+    bulk_memcpy_unaligned_bytes: u64 = 0,
+    bulk_memcmp_calls: u64 = 0,
+    /// 8 x examined word pairs (the proof's compare rows).
+    bulk_memcmp_bytes: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -287,26 +293,52 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 4);
                 },
                 .bulk => |e| {
-                    const copy = e.call.tag == rv.execution_profile.MEMCPY_TAG;
-                    if (copy) {
-                        report.bulk_memcpy_calls += 1;
-                        report.bulk_memcpy_bytes += e.packet.len;
-                    } else {
-                        report.bulk_memset_calls += 1;
-                        report.bulk_memset_bytes += e.packet.len;
+                    const kind = ethereum.bulk_memory.kindOf(e.call.tag).?;
+                    const words = e.packet.len / 8;
+                    switch (kind) {
+                        .memcpy => if (e.packet.word1 & 7 == 0) {
+                            report.bulk_memcpy_calls += 1;
+                            report.bulk_memcpy_bytes += e.packet.len;
+                        } else {
+                            report.bulk_memcpy_unaligned_calls += 1;
+                            report.bulk_memcpy_unaligned_bytes += e.packet.len;
+                        },
+                        .memset => {
+                            report.bulk_memset_calls += 1;
+                            report.bulk_memset_bytes += e.packet.len;
+                        },
+                        .memcmp => {
+                            report.bulk_memcmp_calls += 1;
+                            // Proof rows are the examined word pairs, not len.
+                            report.bulk_memcmp_bytes += 8 * e.packet.examined;
+                        },
                     }
-                    report.service_ram_word_transitions += 3 + @as(u64, if (copy) 2 else 1) * e.dst_before.len;
+                    const source = ethereum.bulk_memory.sourceWords(e.packet.word1, e.packet.len);
+                    report.service_ram_word_transitions += switch (kind) {
+                        .memcpy => 3 + words + source.count,
+                        .memset => 3 + words,
+                        .memcmp => 4 + 2 * e.packet.examined,
+                    };
                     if (census) |*value| {
                         for (0..3) |k| {
                             const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
                             try value.observe(e.call.pointer + 8 * k, w, w, false);
                         }
-                        for (e.dst_before, 0..) |before, j| {
-                            if (copy) {
-                                const w = memory.backing.load(e.packet.word1 + 8 * j, 8).value;
-                                try value.observe(e.packet.word1 + 8 * j, w, w, false);
-                            }
-                            try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                        switch (kind) {
+                            .memcmp => {
+                                try value.observe(e.call.pointer + 24, e.dst_before[0], memory.backing.load(e.call.pointer + 24, 8).value, true);
+                                for (0..e.packet.examined) |j| for ([_]u64{ e.packet.dst, e.packet.word1 }) |base| {
+                                    const w = memory.backing.load(base + 8 * j, 8).value;
+                                    try value.observe(base + 8 * j, w, w, false);
+                                };
+                            },
+                            .memcpy, .memset => {
+                                if (kind == .memcpy) for (0..source.count) |j| {
+                                    const w = memory.backing.load(source.base + 8 * j, 8).value;
+                                    try value.observe(source.base + 8 * j, w, w, false);
+                                };
+                                for (e.dst_before, 0..) |before, j| try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                            },
                         }
                     }
                 },

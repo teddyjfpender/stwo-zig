@@ -1,4 +1,4 @@
-//! Admitted bulk-memory services (aligned word memcpy and memset).
+//! Admitted bulk-memory services (memcpy with any source alignment, memset, memcmp).
 //!
 //! Three bridge components live inside the issuing CPU proof:
 //! - `desc`: one row per ECALL. Consumes the CPU OWNER19 ECALL tuple, reads the

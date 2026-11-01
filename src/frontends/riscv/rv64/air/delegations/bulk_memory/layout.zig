@@ -1,9 +1,15 @@
-//! Column maps for the three bulk-memory bridge kinds.
+//! Column maps for the six bulk-memory bridge kinds: `desc` (memcpy/memset
+//! descriptor), `copy` (aligned source), `set`, `ucopy` (unaligned source),
+//! `cdesc` (memcmp descriptor) and `cmp` (memcmp body).
 //!
 //! Every RAM access embeds one strict-clock block of six columns
 //! `before_epoch, before_low, before_high, same, gap16, gap8` (offsets below).
 //! All accesses of one call share the CPU step's after clock `(E, TL, TH)`.
-pub const Kind = enum { desc, copy, set };
+pub const Kind = enum { desc, copy, set, ucopy, cdesc, cmp };
+pub const kinds = [_]Kind{ .desc, .copy, .set, .ucopy, .cdesc, .cmp };
+pub const UCOPY_CONSTRAINTS = 133;
+pub const CDESC_CONSTRAINTS = 115;
+pub const CMP_CONSTRAINTS = 148;
 pub const FIXED = 3; // logical row index, first-row, last-row selectors
 pub const CLOCK = 6;
 pub const clock = struct {
@@ -65,13 +71,96 @@ pub const set = struct {
     pub const dst_clock = 18;
     pub const MAIN = 24;
 };
-/// Fractions per row: desc 6 RAM + 3 OWNER + 17 range16; copy 4 + 1 + 6;
-/// set 2 + 1 + 3. Consecutive fractions share one inverse column group.
+/// Unaligned copy: one row per source word. Row 0 of a run (the lead row,
+/// `start`) only reads source word 0; row r >= 1 reads source word r and
+/// writes destination word r - 1 from the bytes of source words r - 1
+/// (previous row) and r at the call's byte shift (one-hot `sel`).
+pub const ucopy = struct {
+    pub const active = 0;
+    pub const start = 1;
+    pub const epoch = 2;
+    pub const tick_low = 3;
+    pub const tick_high = 4;
+    pub const remaining = 5;
+    pub const dst = 6;
+    pub const dst_carry = 10;
+    pub const src = 13; // aligned source word address
+    pub const src_carry = 17;
+    pub const sel = 20; // 7 one-hot shift selectors, shift = 1 + index
+    pub const bytes = 27; // 8 bytes of the source word read on this row
+    pub const out = 35; // destination after limbs
+    pub const dst_before = 39;
+    pub const dst_clock = 43;
+    pub const src_clock = 49;
+    pub const src_writable = 55;
+    pub const MAIN = 56;
+};
+/// memcmp descriptor: packet a, b, len, result at P, P+8, P+16, P+24.
+pub const cdesc = struct {
+    pub const active = 0;
+    pub const pointer = 1;
+    pub const carry8 = 5;
+    pub const carry16 = 8;
+    pub const carry24 = 11;
+    pub const epoch = 14;
+    pub const tick_low = 15;
+    pub const tick_high = 16;
+    pub const a = 17;
+    pub const b = 21;
+    pub const len_q0 = 25;
+    pub const len_l1 = 26;
+    pub const clocks = 27; // 4 x CLOCK (three packet reads, result write)
+    pub const writable = 51; // 3 packet-read W bits
+    pub const result_before = 54;
+    pub const neg = 58;
+    pub const pos = 59;
+    pub const MAIN = 60;
+};
+/// memcmp body: one row per compared word pair, up to the first difference.
+pub const cmp = struct {
+    pub const active = 0;
+    pub const start = 1;
+    pub const epoch = 2;
+    pub const tick_low = 3;
+    pub const tick_high = 4;
+    pub const remaining = 5;
+    pub const last = 6;
+    pub const is_one = 7; // remaining == 1
+    pub const inv = 8; // (remaining - 1)^-1 when remaining != 1
+    pub const a = 9;
+    pub const a_carry = 13;
+    pub const b = 16;
+    pub const b_carry = 20;
+    pub const va = 23;
+    pub const vb = 27;
+    pub const a_clock = 31;
+    pub const b_clock = 37;
+    pub const a_writable = 43;
+    pub const b_writable = 44;
+    pub const diff = 45;
+    pub const limbsel = 46; // one-hot first differing limb (diff rows)
+    pub const hb = 50; // first difference in the high byte of that limb
+    pub const lt = 51; // a < b at the first differing byte
+    pub const alo = 52;
+    pub const ahi = 53;
+    pub const blo = 54;
+    pub const bhi = 55;
+    pub const da = 56; // first differing byte of a
+    pub const db = 57;
+    pub const gap = 58; // (1 - 2 lt)(da - db) - 1 in [0, 2^16)
+    pub const MAIN = 59;
+};
+/// Fractions per row (RAM + OWNER + range16): desc 6 + 3 + 17; copy 4 + 1 + 6;
+/// set 2 + 1 + 3; ucopy 4 + 1 + 18; cdesc 8 + 3 + 16; cmp 4 + 2 + 13.
+/// Consecutive fractions share one inverse column group.
 pub fn fractionCount(kind: Kind) usize {
     return switch (kind) {
         .desc => 26,
         .copy => 11,
         .set => 6,
+        .ucopy => 23,
+        .cdesc => 27,
+        .cmp => 19,
     };
 }
 pub fn range16Count(kind: Kind) usize {
@@ -79,6 +168,17 @@ pub fn range16Count(kind: Kind) usize {
         .desc => 17,
         .copy => 6,
         .set => 3,
+        .ucopy => 18,
+        .cdesc => 16,
+        .cmp => 13,
+    };
+}
+/// RAM14 fractions per row (each access is a consume/produce pair).
+pub fn ramCount(kind: Kind) usize {
+    return switch (kind) {
+        .desc, .cdesc => if (kind == .desc) 6 else 8,
+        .copy, .ucopy, .cmp => 4,
+        .set => 2,
     };
 }
 pub fn slots(kind: Kind) usize {
@@ -93,6 +193,9 @@ pub fn main(kind: Kind) usize {
         .desc => desc.MAIN,
         .copy => copy.MAIN,
         .set => set.MAIN,
+        .ucopy => ucopy.MAIN,
+        .cdesc => cdesc.MAIN,
+        .cmp => cmp.MAIN,
     };
 }
 pub fn interaction(kind: Kind) usize {
@@ -106,6 +209,9 @@ pub fn constraints(kind: Kind) usize {
         .desc => 94,
         .copy => 93,
         .set => 59,
+        .ucopy => UCOPY_CONSTRAINTS,
+        .cdesc => CDESC_CONSTRAINTS,
+        .cmp => CMP_CONSTRAINTS,
     };
 }
 pub fn previousMainFor(kind: Kind, c: usize) bool {
@@ -113,6 +219,9 @@ pub fn previousMainFor(kind: Kind, c: usize) bool {
         .desc => c == desc.active,
         .copy => c == copy.active or (c >= copy.epoch and c <= copy.remaining) or (c >= copy.dst and c < copy.dst + 4) or (c >= copy.src and c < copy.src + 4),
         .set => c == set.active or (c >= set.epoch and c <= set.remaining) or (c >= set.dst and c < set.dst + 4) or c == set.fill,
+        .ucopy => c <= ucopy.remaining or (c >= ucopy.dst and c < ucopy.dst + 4) or (c >= ucopy.src and c < ucopy.src + 4) or (c >= ucopy.sel and c < ucopy.bytes + 8),
+        .cdesc => c == cdesc.active,
+        .cmp => c == cmp.active or (c >= cmp.epoch and c <= cmp.last) or (c >= cmp.a and c < cmp.a + 4) or (c >= cmp.b and c < cmp.b + 4),
     };
 }
 pub fn previousInterFor(kind: Kind, c: usize) bool {

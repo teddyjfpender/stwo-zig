@@ -1,4 +1,4 @@
-//! Native witness rows for the three bulk-memory kinds. Call/word metadata
+//! Native witness rows for the six bulk-memory kinds. Call/word metadata
 //! survives MAIN ownership transfer; interaction generation recomputes rows.
 const std = @import("std");
 const core = @import("stwo_core");
@@ -14,7 +14,10 @@ fn put(out: []M, at: usize, value: u64) void {
     for (0..4) |i| out[at + i] = M.fromCanonical(@as(u16, @truncate(value >> @as(u6, @intCast(16 * i)))));
 }
 fn carries(out: []M, at: usize, base: u64) void {
-    var carry: u32 = 8;
+    carriesBy(out, at, base, 8);
+}
+fn carriesBy(out: []M, at: usize, base: u64, step: u32) void {
+    var carry: u32 = step;
     for (0..3) |i| {
         carry = (@as(u32, @as(u16, @truncate(base >> @as(u6, @intCast(16 * i))))) + carry) >> 16;
         out[at + i] = M.fromCanonical(carry);
@@ -98,6 +101,104 @@ pub fn setRow(call: ?T.Call, j: usize, word: T.Word) [L.set.MAIN]M {
     clockBlock(&out, S.dst_clock, word.dst, c.epoch, c.tick);
     return out;
 }
+/// Unaligned copy row r of a run (r = 0 lead row): `words[r]` holds source
+/// word r (and destination word r - 1); `prev` is `words[r - 1]` (r >= 1).
+pub fn ucopyRow(call: ?T.Call, r: usize, word: T.Word, prev: T.Word) [L.ucopy.MAIN]M {
+    var out: [L.ucopy.MAIN]M = @splat(M.zero());
+    const c = call orelse return out;
+    const U = L.ucopy;
+    const shift = c.shift();
+    const base = c.word1 & ~@as(u64, 7);
+    out[U.active] = M.one();
+    out[U.start] = M.fromCanonical(@intFromBool(r == 0));
+    afterClock(&out, U.epoch, c);
+    out[U.remaining] = M.fromCanonical(@intCast(c.entries() - r));
+    put(&out, U.dst, c.dst + 8 * (if (r == 0) 0 else r - 1));
+    put(&out, U.src, base + 8 * r);
+    if (r >= 2) carries(&out, U.dst_carry, c.dst + 8 * (r - 2));
+    if (r == 1) carriesBy(&out, U.dst_carry, c.dst, 0);
+    if (r != 0) carries(&out, U.src_carry, base + 8 * (r - 1));
+    out[U.sel + @as(usize, shift) - 1] = M.one();
+    for (0..8) |b| out[U.bytes + b] = M.fromCanonical(@as(u8, @truncate(word.src.value >> @intCast(8 * b))));
+    if (r != 0) {
+        put(&out, U.out, T.shifted(prev.src.value, word.src.value, shift));
+        put(&out, U.dst_before, word.dst.value);
+        clockBlock(&out, U.dst_clock, word.dst, c.epoch, c.tick);
+    }
+    clockBlock(&out, U.src_clock, word.src, c.epoch, c.tick);
+    out[U.src_writable] = M.fromCanonical(word.src.rights >> 1);
+    return out;
+}
+fn zeroBlock(out: []M, at: usize) void {
+    @memset(out[at..][0..L.CLOCK], M.zero());
+}
+pub fn cdescRow(call: ?T.Call) [L.cdesc.MAIN]M {
+    var out: [L.cdesc.MAIN]M = @splat(M.zero());
+    const c = call orelse return out;
+    const D = L.cdesc;
+    out[D.active] = M.one();
+    put(&out, D.pointer, c.pointer);
+    carries(&out, D.carry8, c.pointer);
+    carries(&out, D.carry16, c.pointer + 8);
+    carries(&out, D.carry24, c.pointer + 16);
+    afterClock(&out, D.epoch, c);
+    put(&out, D.a, c.dst);
+    put(&out, D.b, c.word1);
+    out[D.len_q0] = M.fromCanonical(@as(u16, @truncate(c.len)) / 8);
+    out[D.len_l1] = M.fromCanonical(@as(u16, @truncate(c.len >> 16)));
+    for (c.packet, 0..) |state, k| clockBlock(&out, D.clocks + L.CLOCK * k, state, c.epoch, c.tick);
+    for (c.packet[0..3], 0..) |state, k| out[D.writable + k] = M.fromCanonical(state.rights >> 1);
+    put(&out, D.result_before, c.packet[3].value);
+    out[D.neg] = M.fromCanonical(@intFromBool(c.result < 0));
+    out[D.pos] = M.fromCanonical(@intFromBool(c.result > 0));
+    return out;
+}
+pub fn cmpRow(call: ?T.Call, j: usize, word: T.Word) [L.cmp.MAIN]M {
+    var out: [L.cmp.MAIN]M = @splat(M.zero());
+    const c = call orelse return out;
+    const C = L.cmp;
+    const remaining: u32 = c.count() - @as(u32, @intCast(j));
+    const last = j + 1 == c.examined;
+    out[C.active] = M.one();
+    out[C.start] = M.fromCanonical(@intFromBool(j == 0));
+    afterClock(&out, C.epoch, c);
+    out[C.remaining] = M.fromCanonical(remaining);
+    out[C.last] = M.fromCanonical(@intFromBool(last));
+    out[C.is_one] = M.fromCanonical(@intFromBool(remaining == 1));
+    if (remaining != 1) out[C.inv] = M.fromCanonical(remaining - 1).inv() catch unreachable;
+    put(&out, C.a, c.dst + 8 * j);
+    put(&out, C.b, c.word1 + 8 * j);
+    if (j != 0) {
+        carries(&out, C.a_carry, c.dst + 8 * (j - 1));
+        carries(&out, C.b_carry, c.word1 + 8 * (j - 1));
+    }
+    const va = word.dst.value;
+    const vb = word.src.value;
+    put(&out, C.va, va);
+    put(&out, C.vb, vb);
+    clockBlock(&out, C.a_clock, word.dst, c.epoch, c.tick);
+    clockBlock(&out, C.b_clock, word.src, c.epoch, c.tick);
+    out[C.a_writable] = M.fromCanonical(word.dst.rights >> 1);
+    out[C.b_writable] = M.fromCanonical(word.src.rights >> 1);
+    if (va != vb) {
+        const byte: u6 = @intCast(@ctz(va ^ vb) / 8);
+        const limb = byte / 2;
+        const x: u8 = @truncate(va >> (8 * byte));
+        const y: u8 = @truncate(vb >> (8 * byte));
+        out[C.diff] = M.one();
+        out[C.limbsel + limb] = M.one();
+        out[C.hb] = M.fromCanonical(byte & 1);
+        out[C.lt] = M.fromCanonical(@intFromBool(x < y));
+        out[C.alo] = M.fromCanonical(@as(u8, @truncate(va >> (16 * limb))));
+        out[C.ahi] = M.fromCanonical(@as(u8, @truncate(va >> (16 * limb + 8))));
+        out[C.blo] = M.fromCanonical(@as(u8, @truncate(vb >> (16 * limb))));
+        out[C.bhi] = M.fromCanonical(@as(u8, @truncate(vb >> (16 * limb + 8))));
+        out[C.da] = M.fromCanonical(x);
+        out[C.db] = M.fromCanonical(y);
+        out[C.gap] = M.fromCanonical(@as(u32, if (x < y) y - x else x - y) - 1);
+    }
+    return out;
+}
 /// The U16 lookup values of one row, in fraction order (equations.fractions).
 pub fn rangeValues(comptime kind: L.Kind, m: []const M) [L.range16Count(kind)]u32 {
     var out: [L.range16Count(kind)]u32 = undefined;
@@ -119,8 +220,34 @@ pub fn rangeValues(comptime kind: L.Kind, m: []const M) [L.range16Count(kind)]u3
             clockValues(out[3..6], m[L.copy.src_clock..]);
         },
         .set => clockValues(out[0..3], m[L.set.dst_clock..]),
+        .ucopy => {
+            clockValues(out[0..3], m[L.ucopy.dst_clock..]);
+            clockValues(out[3..6], m[L.ucopy.src_clock..]);
+            for (0..4) |i| limbByteValues(out[6 + 3 * i ..][0..3], m[L.ucopy.bytes + 2 * i].v, m[L.ucopy.bytes + 2 * i + 1].v);
+        },
+        .cdesc => {
+            const D = L.cdesc;
+            out[0] = m[D.tick_low].v;
+            out[1] = m[D.tick_high].v;
+            out[2] = 256 * m[D.tick_high].v;
+            out[3] = m[D.len_q0].v;
+            for (0..4) |k| clockValues(out[4 + 3 * k ..][0..3], m[D.clocks + L.CLOCK * k ..]);
+        },
+        .cmp => {
+            const C = L.cmp;
+            clockValues(out[0..3], m[C.a_clock..]);
+            clockValues(out[3..6], m[C.b_clock..]);
+            limbByteValues(out[6..9], m[C.alo].v, m[C.ahi].v);
+            limbByteValues(out[9..12], m[C.blo].v, m[C.bhi].v);
+            out[12] = m[C.gap].v;
+        },
     }
     return out;
+}
+fn limbByteValues(out: *[3]u32, lo: u32, hi: u32) void {
+    out[0] = lo;
+    out[1] = 256 * lo;
+    out[2] = hi;
 }
 fn clockValues(out: *[3]u32, k: []const M) void {
     out[0] = k[L.clock.gap16].v;
@@ -150,10 +277,10 @@ pub const Source = struct {
     rows: u32,
     calls: []T.Call,
     words: []T.Word,
-    /// Body kinds: per active row, the call index and word index.
+    /// Per active row, the call index and word index.
     row_call: []u32,
     row_word: []u32,
-    /// Body kinds: first row of each call of this kind (unused entries 0).
+    /// First row of each call of this kind (unused entries 0).
     call_row: []u32,
     fixed: []M,
     main: []M,
@@ -164,12 +291,14 @@ pub const Source = struct {
 
     pub fn rowsFor(kind: L.Kind, calls: []const T.Call) u64 {
         var total: u64 = 0;
-        for (calls) |c| switch (kind) {
-            .desc => total += 1,
-            .copy => total += if (c.op == .copy) c.count() else 0,
-            .set => total += if (c.op == .set) c.count() else 0,
-        };
+        for (calls) |c| {
+            if (c.descriptor() == kind) total += 1;
+            if (c.body() == kind) total += c.entries();
+        }
         return total;
+    }
+    fn isDescriptor(kind: L.Kind) bool {
+        return kind == .desc or kind == .cdesc;
     }
     pub fn init(a: std.mem.Allocator, kind: L.Kind, calls: []const T.Call, words: []const T.Word, log: u32) !Source {
         return create(a, kind, calls, words, log, null);
@@ -182,10 +311,10 @@ pub const Source = struct {
         const n = try T.validateGeometry(kind, total, log);
         var offset: usize = 0;
         for (calls, 0..) |c, k| {
-            if (offset + c.count() > words.len) return error.InvalidBulkMemoryWords;
-            try T.validateCall(c, words[offset..][0..c.count()]);
+            if (offset + c.entries() > words.len) return error.InvalidBulkMemoryWords;
+            try T.validateCall(c, words[offset..][0..c.entries()]);
             if (k != 0 and (c.epoch < calls[k - 1].epoch or (c.epoch == calls[k - 1].epoch and c.tick <= calls[k - 1].tick))) return error.InvalidBulkMemoryCallOrder;
-            offset += c.count();
+            offset += c.entries();
         }
         if (offset != words.len) return error.InvalidBulkMemoryWords;
         const width = L.main(kind);
@@ -194,25 +323,34 @@ pub const Source = struct {
         errdefer a.free(call_copy);
         const word_copy = try a.dupe(T.Word, words);
         errdefer a.free(word_copy);
-        const body = kind != .desc;
-        const row_call = try a.alloc(u32, if (body) total else 0);
+        // Per active row: the call index and the word index (descriptor
+        // kinds: the word index is unused); per call: its first row here.
+        const row_call = try a.alloc(u32, total);
         errdefer a.free(row_call);
-        const row_word = try a.alloc(u32, if (body) total else 0);
+        const row_word = try a.alloc(u32, total);
         errdefer a.free(row_word);
-        const call_row = try a.alloc(u32, if (body) calls.len else 0);
+        const call_row = try a.alloc(u32, calls.len);
         errdefer a.free(call_row);
-        if (body) {
+        {
             var at: usize = 0;
             offset = 0;
             @memset(call_row, 0);
             for (calls, 0..) |c, k| {
-                if (c.op == (if (kind == .copy) T.Op.copy else T.Op.set)) call_row[k] = @intCast(at);
-                if (c.op == (if (kind == .copy) T.Op.copy else T.Op.set)) for (0..c.count()) |j| {
+                if (c.descriptor() == kind) {
+                    call_row[k] = @intCast(at);
                     row_call[at] = @intCast(k);
-                    row_word[at] = @intCast(offset + j);
+                    row_word[at] = @intCast(offset);
                     at += 1;
-                };
-                offset += c.count();
+                }
+                if (c.body() == kind) {
+                    call_row[k] = @intCast(at);
+                    for (0..c.entries()) |j| {
+                        row_call[at] = @intCast(k);
+                        row_word[at] = @intCast(offset + j);
+                        at += 1;
+                    }
+                }
+                offset += c.entries();
             }
         }
         const f = try fixed(a, log);
@@ -235,16 +373,20 @@ pub const Source = struct {
         return self;
     }
     pub fn row(self: *const Source, comptime kind: L.Kind, logical: usize) [L.main(kind)]M {
+        const empty = T.Word{ .dst = .{ .value = 0, .rights = 0 } };
+        const active = logical < self.rows;
+        const k = if (active) self.row_call[logical] else 0;
+        const call: ?T.Call = if (active) self.calls[k] else null;
+        const w = if (active) self.row_word[logical] else 0;
+        const j = if (active) logical - self.call_row[k] else 0;
+        const word = if (active and !isDescriptor(kind)) self.words[w] else empty;
         return switch (kind) {
-            .desc => descRow(if (logical < self.rows) self.calls[logical] else null),
-            .copy, .set => block: {
-                if (logical >= self.rows) break :block (if (kind == .copy) copyRow(null, 0, .{ .dst = undefined }) else setRow(null, 0, .{ .dst = undefined }));
-                const k = self.row_call[logical];
-                const w = self.row_word[logical];
-                // Rows of one call are consecutive; its first row holds word 0.
-                const j = logical - self.call_row[k];
-                break :block (if (kind == .copy) copyRow(self.calls[k], j, self.words[w]) else setRow(self.calls[k], j, self.words[w]));
-            },
+            .desc => descRow(call),
+            .cdesc => cdescRow(call),
+            .copy => copyRow(call, j, word),
+            .set => setRow(call, j, word),
+            .ucopy => ucopyRow(call, j, word, if (active and j != 0) self.words[w - 1] else empty),
+            .cmp => cmpRow(call, j, word),
         };
     }
     pub fn size(self: *const Source) usize {
