@@ -2,8 +2,8 @@
   "base": "de137ccbdc96ccd3b5f895f7566f21fd1d296796",
   "status": "additive explicit-rate immutable key/cache helper; production worker wiring pending",
   "tests": {
-    "ReleaseSafe": 5,
-    "ReleaseFast": 5
+    "ReleaseSafe": 6,
+    "ReleaseFast": 6
   },
   "native_heights": [
     5,
@@ -11,7 +11,7 @@
   ],
   "coefficient_reconstruction": false,
   "retained_coefficient_copy": "once per cache seal through existing commitPolys; source\u03b21 key remains independently owned",
-  "cache_key": "receiverprotocol,rate,orderedlogs,canonicalcoefficientbytes; actualcontentcompare onhit",
+  "cache_key": "immutable prefixed-Blake schema/rate/orderedlogs/canonicalcoefficients; no q/PoW/fold/request/protocol coupling",
   "budget": "hard requested-byte cap including control+retained data+sealing scratch, not RSS",
   "lifetime": "appended OM PCS tree survives original source/cache/lease release with explicit budget backingtoken",
   "default_beta1_root_and_transcript_parity": true,
@@ -30,5 +30,7 @@
     "CPU/truth worker key authority and manifest fixedroots",
     "actualbeta2 proof/freshreceiver",
     "candidate protocol formal/security/outer gates"
-  ]
+  ],
+  "request_authority": "append separately requires exact receiver-admitted PcsConfig; embedding profile admission/transcript binding remain independent",
+  "same_key_reused_different_q_pow_fold": true
 }
