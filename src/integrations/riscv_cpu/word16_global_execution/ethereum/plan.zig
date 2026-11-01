@@ -51,8 +51,8 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
         // v3 curve/field families: coordinates rows per call each.
         const ST = @import("../services/types.zig");
-        for (captured.advice.curves[i], ST.FIRST_CURVE..) |calls, k| if (calls.len != 0) {
-            const family: ST.Family = @enumFromInt(k);
+        for (captured.advice.curves[i], ST.FIRST_CURVE..) |calls, f| if (calls.len != 0) {
+            const family: ST.Family = @enumFromInt(f);
             d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
         };
         // v3 bulk memory: one descriptor row per call, one body row per word.
@@ -60,6 +60,10 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
         if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
         if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+        // Extension: unaligned copy rows, memcmp descriptors and compared words.
+        if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
+        if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
+        if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
         // v3 Keccak sponge: one call row per ECALL, one row per permutation.
         const sponge = captured.advice.sponge[i].counts();
         if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
@@ -133,12 +137,12 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     const CR = @import("../curves/roster.zig");
     const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
     for (0..ST.CURVES) |c| {
-        var total: u32 = 0;
-        for (captured.advice.curves) |shard| total = try std.math.add(u32, total, @intCast(shard[c].len));
+        var curve_total: u32 = 0;
+        for (captured.advice.curves) |shard| curve_total = try std.math.add(u32, curve_total, @intCast(shard[c].len));
         const family: ST.Family = @enumFromInt(ST.FIRST_CURVE + c);
         next = 1;
-        while (next <= total) {
-            const calls: u32 = @min(curve_capacity, total - next + 1);
+        while (next <= curve_total) {
+            const calls: u32 = @min(curve_capacity, curve_total - next + 1);
             try out.append(a, .{ .family = family, .first_id = next, .calls = calls, .logs = .{ try CR.logSize(ST.curveOp(family).?, calls), 0 } });
             next = try std.math.add(u32, next, calls);
         }

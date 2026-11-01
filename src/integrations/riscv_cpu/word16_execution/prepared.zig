@@ -103,7 +103,7 @@ pub const Prepared = struct {
                 .keccak => call.tag == 0x10001,
                 .secp_words => call.tag == 0x20011 or call.tag == 0x20012,
                 .combined_words => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012,
-                .combined_words_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag),
+                .combined_words_v3 => call.tag == 0x10001 or call.tag == 0x20011 or call.tag == 0x20012 or call.tag == 0x30010 or call.tag == 0x30021 or call.tag == 0x30001 or call.tag == 0x30002 or call.tag == 0x30003 or call.tag == 0x30130 or @import("stwo_riscv_frontend").rv64.execution_profile.isCurveTag(call.tag),
             };
             if (!valid) return error.UnqualifiedWord16ServiceOwners;
         }

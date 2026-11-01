@@ -36,46 +36,96 @@ static inline void store_partial(uint8_t* d, uint64_t w, size_t k) {
     }
 }
 
+// Head of a destination up to its next 8-byte boundary: the high `8 - off`
+// bytes of the aligned word at d - off take the low bytes of `w` (one RMW).
+static inline void store_head(uint8_t* d, uint64_t w) {
+    const unsigned off = reinterpret_cast<uintptr_t>(d) & 7;
+    uint8_t* a = d - off;
+    const uint64_t keep = (uint64_t(1) << (off * 8)) - 1;  // off in 1..7
+    st64(a, (ld64(a) & keep) | (w << (off * 8)));
+}
+// Tail at an 8-aligned d: the low k bytes (k in 1..7) take the low bytes of `w`.
+static inline void store_tail(uint8_t* d, uint64_t w, size_t k) {
+    const uint64_t mask = (uint64_t(1) << (8 * k)) - 1;
+    st64(d, (ld64(d) & ~mask) | (w & mask));
+}
+
+// Forward copy, every access an aligned word. Bodies run on end pointers and,
+// for a source misaligned against the destination, a funnel shift unrolled to
+// 32 bytes (4 ld, 4 srl, 4 sll, 4 or, 4 sd, 2 addi, 1 bne).
 __attribute__((noinline)) static void copy_forward(uint8_t* d, const uint8_t* s, size_t n) {
-    if (n == 0) return;
     if (n <= 8) {
-        store_partial(d, load_unaligned(s, n), n);
+        if (n) store_partial(d, load_unaligned(s, n), n);
         return;
     }
     // Head: bring d to an 8-byte boundary.
     const size_t head = (0 - reinterpret_cast<uintptr_t>(d)) & 7;
     if (head) {
-        store_partial(d, load_unaligned(s, n), head);
+        store_head(d, load_unaligned(s, n));
         d += head; s += head; n -= head;
     }
-    const unsigned shift = (reinterpret_cast<uintptr_t>(s) & 7) * 8;
-    if (shift == 0) {
-        while (n >= 32) {
-            uint64_t a = ld64(s), b = ld64(s + 8), c = ld64(s + 16), e = ld64(s + 24);
+    const size_t body = n & ~size_t(7);
+    const size_t rem = n & 7;
+    uint8_t* const end = d + body;
+    uint8_t* const end4 = d + (n & ~size_t(31));
+    const uint8_t* const s_tail = s + body;
+    const unsigned off = reinterpret_cast<uintptr_t>(s) & 7;
+    if (off == 0) {
+        while (d != end4) {
+            const uint64_t a = ld64(s), b = ld64(s + 8), c = ld64(s + 16), e = ld64(s + 24);
             st64(d, a); st64(d + 8, b); st64(d + 16, c); st64(d + 24, e);
-            d += 32; s += 32; n -= 32;
+            d += 32; s += 32;
         }
-        while (n >= 8) { st64(d, ld64(s)); d += 8; s += 8; n -= 8; }
+        while (d != end) { st64(d, ld64(s)); d += 8; s += 8; }
     } else {
         // Funnel shift from aligned source words; reads only words that hold
-        // a byte of the range.
-        const uint8_t* sa = s - (shift / 8);
-        uint64_t lo = ld64(sa);
+        // a byte of the range (word k+1 holds source byte 8k+7).
+        const unsigned shift = off * 8;
         const unsigned rs = 64 - shift;
-        while (n >= 16) {
-            const uint64_t m = ld64(sa + 8), h = ld64(sa + 16);
-            st64(d, (lo >> shift) | (m << rs));
-            st64(d + 8, (m >> shift) | (h << rs));
-            lo = h;
-            sa += 16; d += 16; s += 16; n -= 16;
+        const uint8_t* sa = s - off;
+        uint64_t lo = ld64(sa);
+        while (d != end4) {
+            const uint64_t m1 = ld64(sa + 8), m2 = ld64(sa + 16), m3 = ld64(sa + 24), m4 = ld64(sa + 32);
+            st64(d, (lo >> shift) | (m1 << rs));
+            st64(d + 8, (m1 >> shift) | (m2 << rs));
+            st64(d + 16, (m2 >> shift) | (m3 << rs));
+            st64(d + 24, (m3 >> shift) | (m4 << rs));
+            lo = m4;
+            sa += 32; d += 32;
         }
-        if (n >= 8) {
+        while (d != end) {
             const uint64_t h = ld64(sa + 8);
             st64(d, (lo >> shift) | (h << rs));
-            sa += 8; d += 8; s += 8; n -= 8;
+            lo = h;
+            sa += 8; d += 8;
         }
     }
-    if (n) st64(d, (ld64(d) & ~((uint64_t(1) << (8 * n)) - 1)) | (load_unaligned(s, n) & ((uint64_t(1) << (8 * n)) - 1)));
+    if (rem) store_tail(end, load_unaligned(s_tail, rem), rem);
+}
+
+// Service copy/fill split (runtime.cpp, admitted v3 bulk memory): for n >= 15
+// the destination has at least one whole aligned word; its unaligned head and
+// tail are one aligned read-modify-write word each and `body(d, s|byte, len)`
+// gets an 8-aligned d and a nonzero multiple of 8. Tested by tests/mem_fuzz.cpp.
+template <class Body>
+static inline void split_copy(uint8_t* dp, const uint8_t* sp, size_t n, Body body) {
+    const size_t head = (0 - reinterpret_cast<uintptr_t>(dp)) & 7;
+    const size_t len = (n - head) & ~size_t(7);
+    const size_t tail = n - head - len;
+    if (head) store_head(dp, load_unaligned(sp, n));
+    body(dp + head, sp + head, len);
+    if (tail) store_tail(dp + head + len, load_unaligned(sp + head + len, tail), tail);
+}
+template <class Body>
+static inline void split_fill(uint8_t* dp, int c, size_t n, Body body) {
+    const size_t head = (0 - reinterpret_cast<uintptr_t>(dp)) & 7;
+    const size_t len = (n - head) & ~size_t(7);
+    const size_t tail = n - head - len;
+    const uint8_t byte = static_cast<uint8_t>(c);
+    const uint64_t w = uint64_t(byte) * 0x0101010101010101ull;
+    if (head) store_head(dp, w);
+    body(dp + head, byte, len);
+    if (tail) store_tail(dp + head + len, w, tail);
 }
 
 static inline void* stwo_memcpy(void* dst, const void* src, size_t n) {
@@ -102,16 +152,18 @@ static inline void* stwo_memmove(void* dst, const void* src, size_t n) {
 
 static inline void* stwo_memset(void* dst, int c, size_t n) {
     uint8_t* d = static_cast<uint8_t*>(dst);
-    const uint8_t b = static_cast<uint8_t>(c);
-    if (n >= 16) {
-        size_t head = (0 - reinterpret_cast<uintptr_t>(d)) & 7;
-        n -= head;
-        while (head--) *d++ = b;
-        const uint64_t w = uint64_t(b) * 0x0101010101010101ull;
-        while (n >= 32) { st64(d, w); st64(d + 8, w); st64(d + 16, w); st64(d + 24, w); d += 32; n -= 32; }
-        while (n >= 8) { st64(d, w); d += 8; n -= 8; }
+    const uint64_t w = uint64_t(static_cast<uint8_t>(c)) * 0x0101010101010101ull;
+    if (n <= 8) {
+        if (n) store_partial(d, w, n);
+        return dst;
     }
-    while (n--) *d++ = b;
+    const size_t head = (0 - reinterpret_cast<uintptr_t>(d)) & 7;
+    if (head) { store_head(d, w); d += head; n -= head; }
+    uint8_t* const end = d + (n & ~size_t(7));
+    uint8_t* const end4 = d + (n & ~size_t(31));
+    while (d != end4) { st64(d, w); st64(d + 8, w); st64(d + 16, w); st64(d + 24, w); d += 32; }
+    while (d != end) { st64(d, w); d += 8; }
+    if (n & 7) store_tail(d, w, n & 7);
     return dst;
 }
 

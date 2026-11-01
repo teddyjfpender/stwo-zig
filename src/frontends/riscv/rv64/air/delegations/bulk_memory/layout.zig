@@ -7,8 +7,8 @@
 //! All accesses of one call share the CPU step's after clock `(E, TL, TH)`.
 pub const Kind = enum { desc, copy, set, ucopy, cdesc, cmp };
 pub const kinds = [_]Kind{ .desc, .copy, .set, .ucopy, .cdesc, .cmp };
-pub const UCOPY_CONSTRAINTS = 133;
-pub const CDESC_CONSTRAINTS = 115;
+pub const UCOPY_CONSTRAINTS = 134;
+pub const CDESC_CONSTRAINTS = 117;
 pub const CMP_CONSTRAINTS = 148;
 pub const FIXED = 3; // logical row index, first-row, last-row selectors
 pub const CLOCK = 6;
@@ -114,7 +114,8 @@ pub const cdesc = struct {
     pub const result_before = 54;
     pub const neg = 58;
     pub const pos = 59;
-    pub const MAIN = 60;
+    pub const len_inv = 60; // (len / 8)^-1: memcmp length is nonzero
+    pub const MAIN = 61;
 };
 /// memcmp body: one row per compared word pair, up to the first difference.
 pub const cmp = struct {

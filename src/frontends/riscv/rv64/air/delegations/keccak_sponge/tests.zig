@@ -52,6 +52,8 @@ pub const World = struct {
     calls: std.ArrayList(T.Call) = .{},
     words: std.ArrayList(T.State) = .{},
     perms: u32 = 0,
+    /// Test-only RAM environment correction (a forged terminal token).
+    ram_adjust: Q = Q.zero(),
     fn init(a: std.mem.Allocator) World {
         return .{ .a = a, .states = std.AutoHashMap(u64, T.State).init(a), .initial = std.AutoHashMap(u64, T.State).init(a) };
     }
@@ -110,7 +112,7 @@ pub const World = struct {
             sum = sum.sub(try den(ch, address, entry.value_ptr.*).inv());
             sum = sum.add(try den(ch, address, self.states.get(address).?).inv());
         }
-        return sum;
+        return sum.add(self.ram_adjust);
     }
     fn cpuOwner(self: *World, ch: T.Challenges) !Q {
         var sum = Q.zero();
@@ -132,12 +134,14 @@ pub const World = struct {
     }
 };
 fn den(ch: T.Challenges, address: u64, s: T.State) Q {
-    var addr: [4]Q = undefined;
     var value: [4]Q = undefined;
-    for (0..4) |i| {
-        addr[i] = E.q(@as(u16, @truncate(address >> @as(u6, @intCast(16 * i)))));
-        value[i] = E.q(@as(u16, @truncate(s.value >> @as(u6, @intCast(16 * i)))));
-    }
+    for (0..4) |i| value[i] = E.q(@as(u16, @truncate(s.value >> @as(u6, @intCast(16 * i)))));
+    return denLimbs(ch, address, s, value);
+}
+/// RAM14 denominator with explicit (possibly non-canonical) value limbs.
+fn denLimbs(ch: T.Challenges, address: u64, s: T.State, value: [4]Q) Q {
+    var addr: [4]Q = undefined;
+    for (0..4) |i| addr[i] = E.q(@as(u16, @truncate(address >> @as(u6, @intCast(16 * i)))));
     return ch.ram.denominatorFor(Q, Eq.ramTuple(Q, addr, E.q(s.epoch), E.q(@as(u16, @truncate(s.tick))), E.q(s.tick >> 16), value, E.q(s.rights & 1), E.q(s.rights >> 1)));
 }
 
@@ -504,6 +508,63 @@ test "keccak sponge adversarial: non-canonical tail byte decomposition is reject
     const v = try fx.check();
     try testing.expect(!accepted(v));
     try testing.expect(!v.ranges);
+}
+
+test "keccak sponge adversarial: digest-write forgery is rejected" {
+    const a = testing.allocator;
+    const C = L.call;
+    const lane = 24; // A's lane 24 is only read by TERM (call E reads lanes 0..16)
+    const at = C.new + 8 * lane;
+    const inv256 = M.fromCanonical(256).inv() catch unreachable;
+    // (a) Non-canonical written limbs with the same integer word value:
+    // limb0 + 65536, limb1 - 1 (byte1 + 256, byte2 - 1). The environment's
+    // terminal token is forged to the same limbs, so RAM14 closes and every
+    // local residual and range holds; only the truth's canonical output bytes
+    // (IO11) exclude the write.
+    {
+        var fx = try Fixture.init(a);
+        defer fx.deinit();
+        const r = &fx.wit.call[0];
+        r[at + 1] = r[at + 1].add(mm(256));
+        r[at + 2] = r[at + 2].sub(mm(1));
+        const ch = challenges();
+        const address = fx.world.calls.items[0].p().state + 8 * lane;
+        const s = fx.world.states.get(address).?;
+        var limbs: [4]Q = undefined;
+        for (0..4) |i| limbs[i] = E.q(@as(u16, @truncate(s.value >> @as(u6, @intCast(16 * i)))));
+        limbs[0] = limbs[0].add(E.q(65536));
+        limbs[1] = limbs[1].sub(Q.one());
+        fx.world.ram_adjust = (try denLimbs(ch, address, s, limbs).inv()).sub(try den(ch, address, s).inv());
+        const v = try fx.check();
+        try testing.expectEqual(@as(usize, 0), v.local);
+        try testing.expect(v.ranges and v.ram and v.owner and v.and_);
+        try testing.expect(!v.io);
+    }
+    // (b) Same RAM limbs, non-canonical byte split (byte0 + 1, byte1 - 1/256):
+    // RAM is untouched; the IO11 output tuple no longer matches the truth.
+    {
+        var fx = try Fixture.init(a);
+        defer fx.deinit();
+        const r = &fx.wit.call[0];
+        r[at] = r[at].add(mm(1));
+        r[at + 1] = r[at + 1].sub(inv256);
+        const v = try fx.check();
+        try testing.expectEqual(@as(usize, 0), v.local);
+        try testing.expect(v.ranges and v.ram and v.owner);
+        try testing.expect(!v.io);
+    }
+    // (c) Digest redirected: the call writes its state at another pointer
+    // (state limb 0 + 8, carries unchanged): the packet word read no longer
+    // matches memory, and the state words are not the ones the guest named.
+    {
+        var fx = try Fixture.init(a);
+        defer fx.deinit();
+        const r = &fx.wit.call[0];
+        r[C.state] = r[C.state].add(mm(8));
+        const v = try fx.check();
+        try testing.expect(!accepted(v));
+        try testing.expect(!v.ram);
+    }
 }
 
 test "keccak sponge: degree three on random lines (finite differences)" {
