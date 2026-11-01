@@ -131,3 +131,26 @@ and the evmone client's pins in `client_evmone/build.py`.
 - The schema-from-fork model validates each block in isolation; the guests
   never see the previous block's fork. EEST transition tests still pass because
   each block's rules depend on its own timestamp.
+
+## Results (tests@v21.0.2, 2026-11-01)
+
+4,723 fixture files, 34,561 tests, 41,286 blocks: 37,287 valid and 3,543
+invalid blocks became inputs; 416 Cancun blocks are out of scope and 32 invalid
+payloads cannot be expressed as SSZ requests. Every input ran on both tiers
+(T2 is the whole corpus, not a sample), plus 37,287 full-state-witness controls.
+
+| | valid PASS | valid FAIL | invalid rejected | invalid accepted | error |
+|---|---:|---:|---:|---:|---:|
+| evmone host | 37,095 | 200 | 3,543 | 0 | 0 |
+| evmone RV64 | 36,942 | 349 | 3,543 | 0 | 4 |
+| rust host | 37,287 | 0 + 8 | 3,539 | **4** | 0 |
+| rust RV64 | 37,284 | 10 | 3,539 | **4** | 1 |
+
+(Rust "0 + 8": the 8 `withdrawals_credited_before_request_system_call` blocks,
+on which reth disagrees with the fixture.) Every failure group is classified in
+`failure-classification.json`, which the receipt embeds. Conversion took 7 min
+(RAM disk), host 6 min, guest 85 min at 6 jobs on an M-series Mac.
+
+Two evmone witness-dependence bugs found here are fixed (EIP-7702 designator
+code, trie delete ordering: 1,111 blocks); the production admitted ELF still
+reproduces all 15 basket blocks exactly (8.500 scored instructions/gas).
