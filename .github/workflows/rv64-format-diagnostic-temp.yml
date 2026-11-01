@@ -26,7 +26,7 @@ jobs:
             src/integrations/riscv_cpu/word16_execution/security_policy_test.zig \
             src/integrations/riscv_cpu/rv64_word16_global_memory_test_root.zig
           git diff --no-ext-diff -- src/integrations/riscv_cpu/
-      - name: Run focused RV64 global-memory and security-policy suites
-        run: |
-          zig build test-riscv64-word16-global-memory -Doptimize=ReleaseSafe -j2
-          zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j2
+      - name: Run focused RV64 security-policy suite
+        run: zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j2
+      - name: Run focused RV64 global-memory suite
+        run: zig build test-riscv64-word16-global-memory -Doptimize=ReleaseSafe -j2
