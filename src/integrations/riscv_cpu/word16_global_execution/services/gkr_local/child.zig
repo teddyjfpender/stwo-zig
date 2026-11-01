@@ -8,6 +8,20 @@ const O = core.fields.om31.OM31;
 const Channel = core.channel.raw_mod_m31.Om31Channel;
 const GP = engine.lookups.gkr_prover.ForField(O);
 const GV = engine.lookups.gkr_verifier.ForField(O);
+const Fast = engine.lookups.gkr_prover_fast.ForField(O);
+/// The clone-free prover emits the reference `GP.proveBatch` transcript and
+/// proof byte for byte. Layers stay borrowed (the binding witness reads them
+/// after proving) and it runs on the calling thread: the bounded allocator
+/// owner is single-threaded.
+fn proveLayers(a: std.mem.Allocator, ch: *Channel, layers: []const GP.Layer) !GP.ProveBatchResult {
+    const inputs = try a.alloc(Fast.Input, layers.len);
+    defer a.free(inputs);
+    for (layers, inputs) |layer, *input| input.* = switch (layer) {
+        .LogUpMultiplicities => |l| .{ .num = .{ .base = l.numerators.evalsSlice() }, .den = @constCast(l.denominators.evalsSlice()), .owned = false },
+        else => return error.LocalGkrLayerKind,
+    };
+    return Fast.proveBatch(a, ch, inputs, .{}, null);
+}
 const Frame = @import("frame.zig");
 const Receipt = @import("receipt.zig");
 const Resource = @import("resource.zig");
