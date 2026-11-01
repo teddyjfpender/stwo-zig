@@ -115,6 +115,62 @@
     "permutations": 1173787
    },
    "keccak_f_calls": 105625
+  },
+  "m3": {
+   "client": "merged head 73977eb2a: --profile v3 (sha,arith,mem), provable baseline",
+   "elf_sha256": "3669e7895d557ad6d1ecaf3613db3cd778cc9cd756128e9a9c76c89605c5fc3e",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 4.538196994967368,
+     "committed_bits_per_gas": 64577.520612748995,
+     "keccak_f_calls_per_kgas": 2.970014601662632
+    },
+    "holdout": {
+     "instructions_per_gas": 3.8410951957431263,
+     "committed_bits_per_gas": 54442.48639393519,
+     "keccak_f_calls_per_kgas": 2.4760899567428916
+    },
+    "all": {
+     "instructions_per_gas": 4.40058230515082,
+     "committed_bits_per_gas": 62576.766071799226,
+     "keccak_f_calls_per_kgas": 2.8725090624730627
+    }
+   },
+   "sponge_totals": {
+    "calls": 0,
+    "bytes": 0,
+    "permutations": 0
+   },
+   "keccak_f_calls": 1279413
+  },
+  "mk": {
+   "client": "merged head 73977eb2a: --v3-set sha,arith,mem,keccak, provable",
+   "elf_sha256": "314bab7a4f8eb97b3c923c69e7875dc46c82cd0de3499f377891abc67b3d5978",
+   "guards_ok": true,
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 4.214667441028202,
+     "committed_bits_per_gas": 61773.059774027635,
+     "keccak_f_calls_per_kgas": 0.24190359109369355
+    },
+    "holdout": {
+     "instructions_per_gas": 3.565714932490999,
+     "committed_bits_per_gas": 52046.68862941097,
+     "keccak_f_calls_per_kgas": 0.2178192154420722
+    },
+    "all": {
+     "instructions_per_gas": 4.086557890504305,
+     "committed_bits_per_gas": 59852.97930716246,
+     "keccak_f_calls_per_kgas": 0.23714910058970773
+    }
+   },
+   "sponge_totals": {
+    "calls": 273562,
+    "bytes": 149916610,
+    "permutations": 1173787
+   },
+   "keccak_f_calls": 105626
   }
  },
  "keccak_glue_instr_per_gas_all_blocks": {

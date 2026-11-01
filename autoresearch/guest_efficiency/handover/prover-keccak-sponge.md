@@ -15,7 +15,7 @@ Branch `codex/rv64-ge-sponge` (worktree `~/Coding/ge-wt/sponge`), from
 | Soundness: joint write induction | design doc section 4.1 (sponge writer case: P1 clocks, P2/P4 atomic Boolean transitions, rights, ordering, written values anchored by Keccak-f truth bits through IO11); pointer in `rv64-ls-joint-write-induction.md` |
 | Adversarial | skipped block, wrong XOR, reordered blocks, forged final state, length mismatch, padding/fresh-state forgery, non-canonical tail byte (existing) + new digest-write forgery (non-canonical written limbs with forged RAM env -> only IO11 rejects; byte split; redirected state pointer). Inverted-assertion check confirmed the test runs |
 | evmone routing | `glue/keccak_stwo.cpp` `ADMITTED_KECCAK` (> 64 bytes; chunks < 2^20) built via `build.py --profile v3 --v3-set sha,arith,mem,keccak` (ELF ce85a9fd...) |
-| Basket (15 blocks, all guards, exact outputs) | provable v3 scored 4.778 -> 4.426 instr/gas, 67,192 -> 64,114 bits/gas; holdout 4.061 -> 3.764; all 4.636 -> 4.295. Keccak glue 0.465 -> 0.108 instr/gas. `notes/keccak-sponge-admitted-results-20261102.json` |
+| Basket (15 blocks, all guards, exact outputs) | **merged head 73977eb2a** (client pass 2): provable v3 scored 4.538 -> 4.215 instr/gas (-7.1%), 64,578 -> 61,773 bits/gas (-4.3%); holdout 3.841 -> 3.566; all 4.401 -> 4.087. Pre-merge client: scored 4.778 -> 4.426 instr/gas, 67,192 -> 64,114 bits/gas; holdout 4.061 -> 3.764; all 4.636 -> 4.295. Keccak glue 0.465 -> 0.108 instr/gas. `notes/keccak-sponge-admitted-results-20261102.json` |
 | Costs | `calibration.json admitted_services.keccak_sponge`: 1,409.3 cells/call, 2,100.3 + 72,159.3 (truth) per permutation (planned geometry, complete block 26,235,156); confirmed by produced roster.json of its 1-packet prefix (1,494.7 / 1,988.6 on shard 0). bench.py counts sponge calls/bytes/permutations; test_bench 41 OK |
 | Driver | `rv64-word16-ethereum` compiles again (plan.zig shadows, role_cost/telemetry for 12 families + bulk kinds + sponge rows). nativeprepare (block 24,628,607: 8 packets, completed; block 26,235,156: 5 packets) and a real 1-packet prefix proof of block 26,235,156 accepted by fresh `verify-prefix`; v2 request rejects |
 
@@ -35,9 +35,11 @@ Branch `codex/rv64-ge-sponge` (worktree `~/Coding/ge-wt/sponge`), from
 From `~/Coding/ge-wt/sponge` at the branch head (binaries already built in
 `~/Coding/ge-cache/sponge/head/bin`; rebuild with
 `zig build rv64-ethereum-proof rv64-word16-ethereum -Doptimize=ReleaseFast --prefix ~/Coding/ge-cache/sponge/head`).
-Request: `~/Coding/ge-cache/sponge/b607/request.json` (ELF
-`~/Coding/ge-cache/sponge/evm/client-evmone-v3-sha-arith-mem-keccak.elf`
-ce85a9fd, adapted input e549944d, v3, terminal_pc 536264, batch_steps 4194303).
+Request: `~/Coding/ge-cache/sponge/b607/request.json` (merged-head ELF
+`~/Coding/ge-cache/sponge/evm2/client-evmone-v3-sha-arith-mem-keccak.elf`
+314bab7a, symbols from that ELF, adapted input e549944d, v3, terminal_pc
+535672, batch_steps 4194303). nativeprepare with it was checked: 8 packets,
+32,312,707 instructions, completed (packets deleted for disk).
 
 ```sh
 cd ~/Coding/ge-cache/sponge/b607
