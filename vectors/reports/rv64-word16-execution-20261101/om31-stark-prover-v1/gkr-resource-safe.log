@@ -1,0 +1,26 @@
+1/25 om31_test.test.OM31 actual mixed-height GKR accepts and binds all terminal MLE inputs...OK
+2/25 om31_test.test.OM31 actual prover and verifier allocation failures release every owned layer...OK
+3/25 om31_test.test.OM31 actual GKR rejects sumcheck mask output and terminal mutations...OK
+4/25 gkr_prover.test.gkr prover: grand product prove and verify...OK
+5/25 gkr_prover.test.gkr prover: logup generic prove and verify...OK
+6/25 gkr_prover.test.gkr prover: logup singles prove and verify...OK
+7/25 gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+8/25 gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+9/25 gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+10/25 mle.test.mle: init validates power-of-two length...OK
+11/25 mle.test.mle: fix first variable preserves evaluation semantics...OK
+12/25 mle.test.mle: fix first variable lifts base-field mle...OK
+13/25 mle.test.mle: evalAtPoint validates dimensions...OK
+14/25 gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+15/25 gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+16/25 sumcheck.test.sumcheck: prove and partially verify single mle...OK
+17/25 sumcheck.test.sumcheck: invalid proof is rejected...OK
+18/25 utils.test.lookups utils: lagrange interpolation...OK
+19/25 utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+20/25 utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+21/25 utils.test.lookups utils: polynomial arithmetic and normalization...OK
+22/25 utils.test.lookups utils: horner and random linear combination...OK
+23/25 utils.test.lookups utils: eq kernel...OK
+24/25 utils.test.lookups utils: fold mle evals...OK
+25/25 utils.test.lookups utils: reciprocal arithmetic...OK
+All 25 tests passed.

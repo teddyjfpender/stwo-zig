@@ -75,16 +75,19 @@ const Air = struct {
         try acc.accumulateColumn(log, &col);
     }
 };
-fn config() !CP.PcsConfig {
+fn configWithFold(fold: u32) !CP.PcsConfig {
     var c = CP.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(S).FriConfig.init(0, 1, 12) };
-    c.fri_config.fold_step = 1;
+    c.fri_config.fold_step = fold;
     return c;
 }
 fn produce(a: std.mem.Allocator) !E.ExtendedProof {
     return produceTrace(a, false);
 }
 fn produceTrace(a: std.mem.Allocator, invalid: bool) !E.ExtendedProof {
-    const cfg = try config();
+    return produceTraceWithFold(a, invalid, 1);
+}
+fn produceTraceWithFold(a: std.mem.Allocator, invalid: bool, fold: u32) !E.ExtendedProof {
+    const cfg = try configWithFold(fold);
     var channel = C.init();
     cfg.mixInto(&channel);
     var scheme = try E.init(a, cfg);
@@ -101,11 +104,14 @@ fn produceTrace(a: std.mem.Allocator, invalid: bool) !E.ExtendedProof {
     return E.prove(a, &components, &channel, scheme, .{});
 }
 fn verify(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H)) !void {
+    return verifyFold(a, proof, 1);
+}
+fn verifyFold(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H), fold: u32) !void {
     var owned = proof;
     var owns = true;
     defer if (owns) owned.deinit(a);
     if (proof.commitment_scheme_proof.commitments.items.len != 3) return error.InvalidStructure;
-    const cfg = try config();
+    const cfg = try configWithFold(fold);
     var channel = C.init();
     cfg.mixInto(&channel);
     var receiver = try CP.verifier.CommitmentSchemeVerifier(H, MC).init(a, cfg);
@@ -120,6 +126,8 @@ fn verify(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H)) !vo
 test "OM31 STARK actual boolean AIR full prover and fresh receiver" {
     var proof = try produce(A);
     defer proof.aux.deinit(A);
+    try std.testing.expectEqual(@as(usize, 16), proof.proof.commitment_scheme_proof.sampled_values.items[2].len);
+    try std.testing.expect(!proof.proof.commitment_scheme_proof.sampled_values.items[1][0][0].c1.isZero());
     try verify(A, proof.proof);
 }
 
@@ -178,4 +186,10 @@ test "OM31 STARK rejects an invalid boolean trace before returning a proof" {
     };
     proof.deinit(A);
     return error.ExpectedRejection;
+}
+
+test "OM31 STARK complete fold4 profile verifies through wide lazy PCS" {
+    var proof = try produceTraceWithFold(A, false, 4);
+    defer proof.aux.deinit(A);
+    try verifyFold(A, proof.proof, 4);
 }
