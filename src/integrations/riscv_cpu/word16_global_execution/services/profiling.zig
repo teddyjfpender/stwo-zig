@@ -4,9 +4,19 @@ const engine = @import("stwo_prover_engine");
 const core = @import("stwo_core");
 const Profile = @import("stwo_prover_api").stage_profile;
 const G = @import("../protocol.zig");
+pub const Dispatch = enum {
+    /// Slot order: CPU workers, then truth workers.
+    manifest,
+    /// Longest-processing-time first: truths by declared MAIN+INTERACTION
+    /// cells descending (Keccak, then secp ADD, then DOUBLE), then CPUs.
+    truths_first,
+};
 pub const Options = struct {
     commit_batch_columns: u32 = 64,
     schedule: @import("schedule.zig").Policy = .{},
+    /// Execution order of slots within each phase. Never changes slot indices,
+    /// manifest order, transcripts or bytes; only which slot a lane runs next.
+    dispatch: Dispatch = .truths_first,
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,

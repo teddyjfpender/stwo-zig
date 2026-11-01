@@ -95,6 +95,42 @@ const Stage2 = struct {
         self.results[ordinal] = try worker.complete(self.allocator, self.manifest, self.options, ordinal);
     }
 };
+/// Static cost key for a truth worker: declared MAIN plus INTERACTION cells.
+fn truthCells(a: std.mem.Allocator, truth: R.Truth) !u64 {
+    var cells: u64 = 0;
+    for ([_]usize{ 1, 2 }) |tree| {
+        const logs = try truth.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |log| cells += @as(u64, 1) << @intCast(log);
+    }
+    return cells;
+}
+/// Permutation of slots [0, cpus + truths.len) giving each phase's dispatch
+/// order. Slot indices themselves (CPU first, then truths) are unchanged.
+pub fn dispatchOrder(a: std.mem.Allocator, cpus: usize, truths: []const R.Truth, dispatch: @import("profiling.zig").Dispatch) ![]usize {
+    const count = cpus + truths.len;
+    const order = try a.alloc(usize, count);
+    errdefer a.free(order);
+    switch (dispatch) {
+        .manifest => for (order, 0..) |*slot, i| {
+            slot.* = i;
+        },
+        .truths_first => {
+            const Keyed = struct { cells: u64, slot: usize };
+            const keyed = try a.alloc(Keyed, truths.len);
+            defer a.free(keyed);
+            for (keyed, truths, 0..) |*k, truth, i| k.* = .{ .cells = try truthCells(a, truth), .slot = cpus + i };
+            std.sort.pdq(Keyed, keyed, {}, struct {
+                fn lessThan(_: void, x: Keyed, y: Keyed) bool {
+                    return if (x.cells != y.cells) x.cells > y.cells else x.slot < y.slot;
+                }
+            }.lessThan);
+            for (order[0..truths.len], keyed) |*slot, k| slot.* = k.slot;
+            for (order[truths.len..], 0..) |*slot, i| slot.* = i;
+        },
+    }
+    return order;
+}
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
@@ -112,6 +148,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     }
     _ = try P.admit(a, setups, truths, requests, expected);
     const count = setups.len + truths.len;
+    const order = try dispatchOrder(a, setups.len, truths, options.dispatch);
+    defer a.free(order);
     const workers = try a.alloc(?W.Worker, count);
     defer a.free(workers);
     @memset(workers, null);
@@ -121,7 +159,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     const roots = try a.alloc(G.Receipt, count);
     defer a.free(roots);
     var stage1 = Stage1{ .allocator = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .expected = expected, .options = options, .requests = requests, .first_steps = first_steps, .workers = workers, .specs = specs, .roots = roots };
-    try Schedule.run(Stage1, a, &stage1, count, options.schedule, Stage1.execute);
+    try Schedule.runOrdered(Stage1, a, &stage1, count, order, options.schedule, Stage1.execute);
     // The only manifest/challenge barrier. No stage2 task exists before join.
     for (workers) |worker| if (worker == null) return error.MissingSealedServiceWorker;
     var manifest = try G.Manifest.init(a, specs, roots);
@@ -131,7 +169,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*result| result.deinit(a);
     var stage2 = Stage2{ .allocator = a, .workers = workers, .manifest = &manifest, .options = options, .results = results };
-    try Schedule.run(Stage2, a, &stage2, count, options.schedule, Stage2.execute);
+    try Schedule.runOrdered(Stage2, a, &stage2, count, order, options.schedule, Stage2.execute);
     for (results) |result| if (result == null) return error.MissingCompletedServiceWorker;
     const cpus = try a.alloc(Statement.CpuEncoded, setups.len);
     errdefer a.free(cpus);

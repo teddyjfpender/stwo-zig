@@ -13,15 +13,34 @@ pub const Policy = struct {
 /// The context's indexed slots must be disjoint and allocator thread-safe.
 /// Default lane1 keeps the caller's already bound pool and old execution path.
 pub fn run(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, policy: Policy, comptime execute: fn (*Context, usize) anyerror!void) !void {
+    return runOrdered(Context, a, context, count, null, policy, execute);
+}
+/// Rejects anything but a permutation of [0, count): every slot runs once.
+pub fn validateOrder(a: std.mem.Allocator, count: usize, order: []const usize) !void {
+    if (order.len != count) return error.InvalidServiceDispatchOrder;
+    const seen = try a.alloc(bool, count);
+    defer a.free(seen);
+    @memset(seen, false);
+    for (order) |slot| {
+        if (slot >= count or seen[slot]) return error.InvalidServiceDispatchOrder;
+        seen[slot] = true;
+    }
+}
+/// Same as `run`, but the k-th dispatched task executes slot `order[k]`.
+/// Only the execution order changes; `execute` still receives the stable slot
+/// index, so slot<->spec mapping and all outputs are dispatch-order invariant.
+pub fn runOrdered(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, order: ?[]const usize, policy: Policy, comptime execute: fn (*Context, usize) anyerror!void) !void {
     try policy.validate();
+    if (order) |o| try validateOrder(a, count, o);
     if (count == 0) return;
     if (policy.lanes == 1 or count == 1) {
-        for (0..count) |index| try execute(context, index);
+        for (0..count) |index| try execute(context, if (order) |o| o[index] else index);
         return;
     }
     const Shared = struct {
         context: *Context,
         count: usize,
+        order: ?[]const usize,
         workers_per_lane: usize,
         allocator: std.mem.Allocator,
         next: std.atomic.Value(usize) = .init(0),
@@ -43,8 +62,9 @@ pub fn run(comptime Context: type, a: std.mem.Allocator, context: *Context, coun
             };
             defer binding.deinit();
             while (!self.stop.load(.acquire)) {
-                const index = self.next.fetchAdd(1, .monotonic);
-                if (index >= self.count) return;
+                const ticket = self.next.fetchAdd(1, .monotonic);
+                if (ticket >= self.count) return;
+                const index = if (self.order) |o| o[ticket] else ticket;
                 execute(self.context, index) catch |err| {
                     self.errors[index] = err;
                     self.stop.store(true, .release);
@@ -56,7 +76,7 @@ pub fn run(comptime Context: type, a: std.mem.Allocator, context: *Context, coun
     const errors = try a.alloc(?anyerror, count);
     defer a.free(errors);
     @memset(errors, null);
-    var shared = Shared{ .context = context, .count = count, .workers_per_lane = policy.workers_per_lane, .allocator = a, .errors = errors };
+    var shared = Shared{ .context = context, .count = count, .order = order, .workers_per_lane = policy.workers_per_lane, .allocator = a, .errors = errors };
     var threads: [2]std.Thread = undefined;
     var spawned: usize = 0;
     // Spawn failure also joins every started task before caller cleanup.

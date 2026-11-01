@@ -7,6 +7,47 @@ const R = @import("roster.zig");
 const P = @import("protocol.zig");
 const G = @import("../protocol.zig");
 const a = std.testing.allocator;
+const Pipeline = @import("pipeline.zig");
+const Recorder = struct {
+    tickets: std.atomic.Value(usize) = .init(0),
+    seen: [7]usize = @splat(std.math.maxInt(usize)),
+    runs: [7]std.atomic.Value(u32) = @splat(.init(0)),
+    fn execute(self: *Recorder, slot: usize) !void {
+        const ticket = self.tickets.fetchAdd(1, .acq_rel);
+        self.seen[ticket] = slot;
+        if (self.runs[slot].fetchAdd(1, .acq_rel) != 0) return error.DuplicateWorkerOrdinal;
+    }
+};
+test "Ordered dispatch runs every slot exactly once and rejects non-permutations" {
+    const order = [_]usize{ 4, 6, 5, 0, 1, 2, 3 };
+    var serial = Recorder{};
+    try Schedule.runOrdered(Recorder, a, &serial, 7, &order, .{ .lanes = 1, .workers_per_lane = 1 }, Recorder.execute);
+    try std.testing.expectEqualSlices(usize, &order, &serial.seen);
+    for (0..4) |_| {
+        var parallel = Recorder{};
+        try Schedule.runOrdered(Recorder, a, &parallel, 7, &order, .{ .lanes = 2, .workers_per_lane = 2 }, Recorder.execute);
+        for (&parallel.runs) |*n| try std.testing.expectEqual(@as(u32, 1), n.load(.acquire));
+    }
+    var unused = Recorder{};
+    for ([_][]const usize{ &.{ 0, 1, 2, 3, 4, 5 }, &.{ 0, 1, 2, 3, 4, 5, 5 }, &.{ 0, 1, 2, 3, 4, 5, 7 } }) |bad| {
+        try std.testing.expectError(error.InvalidServiceDispatchOrder, Schedule.runOrdered(Recorder, a, &unused, 7, bad, .{ .lanes = 2, .workers_per_lane = 2 }, Recorder.execute));
+    }
+    try std.testing.expectEqual(@as(usize, 0), unused.tickets.load(.acquire));
+}
+test "Truths-first dispatch is a permutation with truths by declared cells descending then CPUs" {
+    var c = try F.Case.init(a);
+    defer c.deinit();
+    const truths = c.truths();
+    const manifest = try Pipeline.dispatchOrder(a, 2, &truths, .manifest);
+    defer a.free(manifest);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1, 2, 3, 4 }, manifest);
+    const lpt = try Pipeline.dispatchOrder(a, 2, &truths, .truths_first);
+    defer a.free(lpt);
+    try Schedule.validateOrder(a, 5, lpt);
+    for (lpt[0..3]) |slot| try std.testing.expect(slot >= 2);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1 }, lpt[3..]);
+    try std.testing.expectEqual(@as(usize, 2), lpt[0]); // Keccak is the widest truth.
+}
 const Probe = struct {
     arrivals: std.atomic.Value(u32) = .init(0),
     active: std.atomic.Value(u32) = .init(0),
@@ -50,10 +91,12 @@ test "Two service lanes own disjoint pools and join callbacks on success failure
 test "Concurrent two-phase services preserve all proof bytes claims manifest and fresh verification" {
     var expected = try F.Case.init(a);
     defer expected.deinit();
-    for ([_]u32{ 8, 64 }) |batch| {
+    // Fixture bundle is lane-1 truths-first; every dispatch order and lane
+    // count must reproduce it byte for byte.
+    for ([_]u32{ 8, 64, 64 }, [_]@import("profiling.zig").Dispatch{ .manifest, .truths_first, .manifest }, [_]u8{ 2, 2, 1 }) |batch, dispatch, lanes| {
         var captured = try F.Captured.init(a);
         defer captured.deinit();
-        var candidate = try E.produceWithOptions(a, &expected.keys(), &expected.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected.expected(), .{ .commit_batch_columns = batch, .schedule = .{ .lanes = 2, .workers_per_lane = 2 }, .consume_memory_events = true });
+        var candidate = try E.produceWithOptions(a, &expected.keys(), &expected.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected.expected(), .{ .commit_batch_columns = batch, .schedule = .{ .lanes = lanes, .workers_per_lane = 2 }, .dispatch = dispatch, .consume_memory_events = true });
         defer candidate.deinit(a);
         try E.verify(a, &expected.keys(), &expected.truths(), expected.expected(), &candidate);
         try std.testing.expectEqualDeep(expected.bundle.manifest.digest, candidate.manifest.digest);

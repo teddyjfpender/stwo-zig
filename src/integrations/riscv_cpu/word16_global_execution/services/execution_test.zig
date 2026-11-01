@@ -78,9 +78,12 @@ test "Combined receiver rejects free absent debts missing roots and wrong typed 
 }
 
 fn produceStored(a2: std.mem.Allocator, c: *const F.Case, store: *@import("../retained_main_store.zig").Store) !E.Bundle {
+    return produceStoredOrdered(a2, c, store, .truths_first);
+}
+fn produceStoredOrdered(a2: std.mem.Allocator, c: *const F.Case, store: *@import("../retained_main_store.zig").Store, dispatch: @import("profiling.zig").Dispatch) !E.Bundle {
     var captured = try F.Captured.init(a2);
     defer captured.deinit();
-    return E.produceWithStorage(a2, &c.keys(), &c.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, c.expected(), store);
+    return E.produceWithOptions(a2, &c.keys(), &c.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, c.expected(), .{ .retained_main = store, .dispatch = dispatch });
 }
 fn mainBytes(logs: []const u32) usize {
     var bytes: usize = 0;
@@ -134,14 +137,16 @@ test "Combined mapped CPU and all truth MAIN preserve every proof manifest and w
         defer a.free(y);
         try std.testing.expectEqualSlices(u8, x, y);
     }
-    // First-spill refusal and truth-phase refusal after both CPU spills must
+    // First-spill refusal, truth-phase refusal after both CPU spills (slot
+    // order) and CPU-phase refusal after every truth spill (truths-first) must
     // drain all earlier mapped owners without requiring a successful proof.
-    for ([_]usize{ 1, cpu_bytes }) |cap| {
+    const truth_bytes = expected_bytes - cpu_bytes;
+    for ([_]usize{ 1, cpu_bytes, 1, truth_bytes }, [_]@import("profiling.zig").Dispatch{ .manifest, .manifest, .truths_first, .truths_first }) |cap, dispatch| {
         var refused = try Store.init(path, cap);
         defer refused.deinit();
-        try std.testing.expectError(error.RetainedMainBudgetExceeded, produceStored(a, &c, &refused));
+        try std.testing.expectError(error.RetainedMainBudgetExceeded, produceStoredOrdered(a, &c, &refused, dispatch));
         try std.testing.expectEqual(@as(usize, 0), refused.stats().live_bytes);
-        try std.testing.expectEqual(if (cap == 1) @as(usize, 0) else cpu_bytes, refused.stats().total_bytes);
+        try std.testing.expectEqual(if (cap == 1) @as(usize, 0) else cap, refused.stats().total_bytes);
     }
 }
 test "All physical stage recorders preserve proof authority and retain process usage" {
