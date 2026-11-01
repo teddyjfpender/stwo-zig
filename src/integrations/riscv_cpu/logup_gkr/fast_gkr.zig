@@ -59,10 +59,14 @@ pub const Stats = struct {
 };
 
 pub const Options = struct {
+    /// Dedicated prototype pool, never borrowed from a production coordinator.
+    /// The caller must include it in its own scheduling/resource admission.
     threads: usize = 1,
     /// Smallest loop that is split across the pool (tests lower it).
     min_parallel: usize = 1 << 13,
 };
+
+pub const MAX_THREADS: usize = 64;
 
 const Ctx = struct {
     pool: *std.Thread.Pool,
@@ -159,10 +163,21 @@ fn pow2(n: usize) M31 {
 /// Consumes `inputs` (frees their buffers). Returns the same result type as
 /// the reference prover.
 pub fn proveBatch(a: std.mem.Allocator, channel: anytype, inputs: []Input, options: Options, stats: ?*Stats) !gkr_prover.ProveBatchResult {
-    const threads = @max(1, options.threads);
+    // Inputs are consumed on every exit, including validation/pool-init OOM.
+    var adopted: usize = 0;
+    defer for (inputs[adopted..]) |input| {
+        if (input.num) |num| a.free(num);
+        a.free(input.den);
+    };
+    if (options.threads == 0 or options.threads > MAX_THREADS) return error.InvalidGkrThreads;
+    const threads = options.threads;
     var timer = try std.time.Timer.start();
     const n_inst = inputs.len;
     if (n_inst == 0 or n_inst > 4) return error.InvalidBatch;
+    for (inputs) |input| {
+        if (input.den.len < 2 or !std.math.isPowerOfTwo(input.den.len)) return error.InvalidInputShape;
+        if (input.num) |num| if (num.len != input.den.len) return error.InvalidInputShape;
+    }
     var pool: std.Thread.Pool = undefined;
     try pool.init(.{ .allocator = a, .n_jobs = threads });
     defer pool.deinit();
@@ -185,6 +200,7 @@ pub fn proveBatch(a: std.mem.Allocator, channel: anytype, inputs: []Input, optio
         for (layers[i]) |*l| l.* = Layer.init(null, &.{});
         built += 1;
         layers[i][n_vars[i]] = Layer.init(input.num, input.den);
+        adopted = i + 1;
         layer_bytes += input.den.len * @sizeOf(QM31) * @as(u64, if (input.num != null) 2 else 1);
         var k = n_vars[i];
         while (k > 0) : (k -= 1) {
@@ -356,4 +372,3 @@ pub fn proveBatch(a: std.mem.Allocator, channel: anytype, inputs: []Input, optio
     };
     return .{ .proof = proof, .artifact = artifact };
 }
-

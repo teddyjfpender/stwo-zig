@@ -1,0 +1,744 @@
+{
+  "schema": 1,
+  "kind": "recovered_experimental_logup_gkr_qualification",
+  "source_snapshot": "e129aa435",
+  "source_design_commit": "89099a0c5",
+  "protocol": "WGKR-LS-RANGE-v0",
+  "scope": "Isolated range mini-AIR over sixteen captured LS query columns; not CPU execution, LS owner/global RAM closure, Ethereum output, or recursion. Default Word16 prover/receiver/protocol untouched.",
+  "recovery_trace_agent": "agent-aa59b805679a63984",
+  "tests": {
+    "dedicated_target": "test-riscv64-logup-gkr-prototype",
+    "minimum_tests": 21,
+    "checks": {
+      "safe": {
+        "path": "/tmp/rv64-recovered-gkr-safe-v1.log",
+        "sha256": "f72f58646cca0e75cb44eb559a5e2662899c596a7b860556eafae70c3100a2ed",
+        "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 38s MaxRSS:1G"
+      },
+      "fast": {
+        "path": "/tmp/rv64-recovered-gkr-fast-v1.log",
+        "sha256": "0409bc2c6a903c0b7baf736c31307eea1f218286de956e6f5ffff5aeb341056d",
+        "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 28s MaxRSS:1G"
+      },
+      "public_tool_build": {
+        "path": "/tmp/rv64-recovered-gkr-build-v1.log",
+        "sha256": "f7409550d080265c00fa77ad2919b2208dec1820ff153bb8d438e3b2bd0a2602",
+        "summary": "Build Summary: 2/2 steps succeeded\nrv64-logup-gkr-prototype success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 33s MaxRSS:1G"
+      }
+    },
+    "coverage": [
+      "classic/GKR fresh binding and receiver-selected variant/statement",
+      "mutated round/mask/shape/noncanonical/zero root denominator",
+      "forged multiplicity/MAIN mutation/eq mutation/wrong terminal delta/unclosed range sums",
+      "mixed-size singles+generic fast/reference proof+channel equality at1/3helpers",
+      "resource/input admission consumes ownership on error"
+    ]
+  },
+  "resource_policy": {
+    "private_pool_helpers_default": 1,
+    "private_pool_helpers_max": 64,
+    "production_coordinator_integration": false,
+    "all_layers_materialized": true,
+    "exhaustive_allocation_failure_qualified": false
+  },
+  "witness": {
+    "path": "/private/tmp/stwo-rv64-perf-runs/gkr-proto/batch0.witness",
+    "sha256": "f4473a9d8761af959602c32717bfd3ab417587a765cff842c8594f1f5d4114af",
+    "ls_log": 20,
+    "tail_log": 18,
+    "range_queries": 20971520,
+    "scope": "Captured production batch0 LS range lanes only"
+  },
+  "runs": {
+    "classic": {
+      "protocol": "WGKR-LS-RANGE-v0",
+      "variant": "classic",
+      "statement": {
+        "ls_log": 20,
+        "tail_log": 18,
+        "hi_log": 16,
+        "lo_log": 8
+      },
+      "witness_load_ns": 8663625,
+      "prove_ns": 2139063291,
+      "gkr_prover": "fast",
+      "gkr_threads": 1,
+      "gkr_input_and_prove_ns": 0,
+      "gkr_input_ns": 0,
+      "gkr_binding_columns_ns": 0,
+      "interaction_generation_ns": 437757583,
+      "gkr_input_layer_bytes": 0,
+      "proof_bytes": 380792,
+      "stark_bytes": 380688,
+      "gkr_bytes": 0,
+      "proof_sha256": "e2d7679664fb5fdf34b88f27a3ccb549470afb80295da67df4c3a0687c758431",
+      "inter_columns": 88,
+      "inter_cells": 47712256,
+      "range_queries": 20971520,
+      "stages": [
+        {
+          "id": "channel_and_scheme_init",
+          "label": "Channel and scheme init",
+          "seconds": 8e-06,
+          "children": null
+        },
+        {
+          "id": "preprocessed_commit",
+          "label": "Preprocessed commit",
+          "seconds": 2.6e-05,
+          "children": null
+        },
+        {
+          "id": "main_trace_commit",
+          "label": "Main trace commit",
+          "seconds": 0.073436,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.041969,
+              "children": [
+                {
+                  "id": "interpolate_columns",
+                  "label": "Interpolate columns",
+                  "seconds": 0.011691,
+                  "children": null
+                },
+                {
+                  "id": "evaluate_extended_domain",
+                  "label": "Evaluate extended domain",
+                  "seconds": 0.030272,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.031465,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "interaction_trace_generation",
+          "label": "Interaction trace generation",
+          "seconds": 0.437772,
+          "children": null
+        },
+        {
+          "id": "interaction_trace_commit",
+          "label": "Interaction trace commit",
+          "seconds": 0.099633,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.045208,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.054423,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "statement_mix",
+          "label": "Statement mix",
+          "seconds": 1e-06,
+          "children": null
+        },
+        {
+          "id": "core_prove",
+          "label": "Core prove",
+          "seconds": 1.491026,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 3e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.231053,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.006568,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.036061,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 4e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.016789,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 1e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.157166,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.029009,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.003804,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.002175,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 1.1e-05,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "process_usage": {
+        "wall_seconds": 2.15,
+        "user_seconds": 4.7,
+        "system_seconds": 0.26,
+        "maximum_resident_bytes": 1224196096,
+        "peak_memory_footprint_bytes": 1223706088
+      },
+      "fresh_receiver": {
+        "accepted": true,
+        "protocol": "WGKR-LS-RANGE-v0",
+        "variant": "classic",
+        "statement": {
+          "ls_log": 20,
+          "tail_log": 18,
+          "hi_log": 16,
+          "lo_log": 8
+        },
+        "proof_bytes": 380792,
+        "verify_wall_ns": 10766500,
+        "report": {
+          "gkr_ns": 0,
+          "stark_ns": 6310208,
+          "total_ns": 10619542,
+          "gkr_mix_calls": 0,
+          "gkr_mixed_felts": 0,
+          "gkr_draws": 0,
+          "gkr_blake_compressions": 0
+        }
+      }
+    },
+    "fast6": {
+      "protocol": "WGKR-LS-RANGE-v0",
+      "variant": "gkr",
+      "statement": {
+        "ls_log": 20,
+        "tail_log": 18,
+        "hi_log": 16,
+        "lo_log": 8
+      },
+      "witness_load_ns": 14096500,
+      "prove_ns": 1607534625,
+      "gkr_prover": "fast",
+      "gkr_threads": 6,
+      "gkr_input_and_prove_ns": 734305333,
+      "gkr_input_ns": 19157083,
+      "gkr_binding_columns_ns": 75355625,
+      "interaction_generation_ns": 836521834,
+      "gkr_input_layer_bytes": 335544320,
+      "proof_bytes": 381800,
+      "stark_bytes": 360752,
+      "gkr_bytes": 20976,
+      "proof_sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+      "inter_columns": 32,
+      "inter_cells": 11012096,
+      "range_queries": 20971520,
+      "stages": [
+        {
+          "id": "channel_and_scheme_init",
+          "label": "Channel and scheme init",
+          "seconds": 4e-05,
+          "children": null
+        },
+        {
+          "id": "preprocessed_commit",
+          "label": "Preprocessed commit",
+          "seconds": 4.8e-05,
+          "children": null
+        },
+        {
+          "id": "main_trace_commit",
+          "label": "Main trace commit",
+          "seconds": 0.072322,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.039927,
+              "children": [
+                {
+                  "id": "interpolate_columns",
+                  "label": "Interpolate columns",
+                  "seconds": 0.011814,
+                  "children": null
+                },
+                {
+                  "id": "evaluate_extended_domain",
+                  "label": "Evaluate extended domain",
+                  "seconds": 0.028109,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.032394,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "interaction_trace_generation",
+          "label": "Interaction trace generation",
+          "seconds": 0.836567,
+          "children": null
+        },
+        {
+          "id": "interaction_trace_commit",
+          "label": "Interaction trace commit",
+          "seconds": 0.043263,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.018153,
+              "children": [
+                {
+                  "id": "interpolate_columns",
+                  "label": "Interpolate columns",
+                  "seconds": 0.003891,
+                  "children": null
+                },
+                {
+                  "id": "evaluate_extended_domain",
+                  "label": "Evaluate extended domain",
+                  "seconds": 0.014259,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.025106,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "statement_mix",
+          "label": "Statement mix",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "core_prove",
+          "label": "Core prove",
+          "seconds": 0.618017,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.456722,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.006816,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.030651,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 1.8e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.014396,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 1.6e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.09573,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.004896,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002975,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.001769,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000123,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "process_usage": {
+        "wall_seconds": 2.01,
+        "user_seconds": 5.77,
+        "system_seconds": 0.31,
+        "maximum_resident_bytes": 1381056512,
+        "peak_memory_footprint_bytes": 1380796048
+      },
+      "fresh_receiver": {
+        "accepted": true,
+        "protocol": "WGKR-LS-RANGE-v0",
+        "variant": "gkr",
+        "statement": {
+          "ls_log": 20,
+          "tail_log": 18,
+          "hi_log": 16,
+          "lo_log": 8
+        },
+        "proof_bytes": 381800,
+        "verify_wall_ns": 12221416,
+        "report": {
+          "gkr_ns": 364666,
+          "stark_ns": 7114459,
+          "total_ns": 12075875,
+          "gkr_mix_calls": 368,
+          "gkr_mixed_felts": 1380,
+          "gkr_draws": 348,
+          "gkr_blake_compressions": 1038
+        }
+      }
+    },
+    "reference": {
+      "protocol": "WGKR-LS-RANGE-v0",
+      "variant": "gkr",
+      "statement": {
+        "ls_log": 20,
+        "tail_log": 18,
+        "hi_log": 16,
+        "lo_log": 8
+      },
+      "witness_load_ns": 8790084,
+      "prove_ns": 4272755500,
+      "gkr_prover": "reference",
+      "gkr_threads": 1,
+      "gkr_input_and_prove_ns": 3376622250,
+      "gkr_input_ns": 61699084,
+      "gkr_binding_columns_ns": 81619916,
+      "interaction_generation_ns": 3484718292,
+      "gkr_input_layer_bytes": 335544320,
+      "proof_bytes": 381800,
+      "stark_bytes": 360752,
+      "gkr_bytes": 20976,
+      "proof_sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+      "inter_columns": 32,
+      "inter_cells": 11012096,
+      "range_queries": 20971520,
+      "stages": [
+        {
+          "id": "channel_and_scheme_init",
+          "label": "Channel and scheme init",
+          "seconds": 1.1e-05,
+          "children": null
+        },
+        {
+          "id": "preprocessed_commit",
+          "label": "Preprocessed commit",
+          "seconds": 2.8e-05,
+          "children": null
+        },
+        {
+          "id": "main_trace_commit",
+          "label": "Main trace commit",
+          "seconds": 0.074508,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.041505,
+              "children": [
+                {
+                  "id": "interpolate_columns",
+                  "label": "Interpolate columns",
+                  "seconds": 0.011942,
+                  "children": null
+                },
+                {
+                  "id": "evaluate_extended_domain",
+                  "label": "Evaluate extended domain",
+                  "seconds": 0.029558,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.033,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "interaction_trace_generation",
+          "label": "Interaction trace generation",
+          "seconds": 3.484789,
+          "children": null
+        },
+        {
+          "id": "interaction_trace_commit",
+          "label": "Interaction trace commit",
+          "seconds": 0.04164,
+          "children": [
+            {
+              "id": "owned_commit_prepare",
+              "label": "Prepare owned columns for commit",
+              "seconds": 0.016139,
+              "children": [
+                {
+                  "id": "interpolate_columns",
+                  "label": "Interpolate columns",
+                  "seconds": 0.003944,
+                  "children": null
+                },
+                {
+                  "id": "evaluate_extended_domain",
+                  "label": "Evaluate extended domain",
+                  "seconds": 0.012193,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.025498,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "statement_mix",
+          "label": "Statement mix",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "core_prove",
+          "label": "Core prove",
+          "seconds": 0.634965,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.474348,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.006988,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.031622,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 1.3e-05,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.013952,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 8e-06,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.093017,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.004886,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.003229,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.001737,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000129,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "process_usage": {
+        "wall_seconds": 4.29,
+        "user_seconds": 5.41,
+        "system_seconds": 0.66,
+        "maximum_resident_bytes": 2926690304,
+        "peak_memory_footprint_bytes": 2927283080
+      },
+      "fresh_receiver": {
+        "accepted": true,
+        "protocol": "WGKR-LS-RANGE-v0",
+        "variant": "gkr",
+        "statement": {
+          "ls_log": 20,
+          "tail_log": 18,
+          "hi_log": 16,
+          "lo_log": 8
+        },
+        "proof_bytes": 381800,
+        "verify_wall_ns": 11358708,
+        "report": {
+          "gkr_ns": 322042,
+          "stark_ns": 6870291,
+          "total_ns": 11219417,
+          "gkr_mix_calls": 368,
+          "gkr_mixed_felts": 1380,
+          "gkr_draws": 348,
+          "gkr_blake_compressions": 1038
+        }
+      }
+    }
+  },
+  "proof_parity": {
+    "fast6_reference_identical": true,
+    "recovered_reference_identical": true,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255"
+  },
+  "measurement_scope": "One run per configuration under shared heavy lock while other workflows could be active. No controlled speedup, complete-block, production-memory or GPU extrapolation claim. Native GKR verification is additional protocol work; fewer interaction cells are not free.",
+  "remaining": [
+    "independent binding/soundness/security review",
+    "allocation failure and input resource qualification beyond admission test",
+    "bounded streaming layer generation/shared worker scheduling",
+    "production LS owner/RAM execution integration",
+    "recursive receiver gadgets and benchmarks"
+  ]
+}

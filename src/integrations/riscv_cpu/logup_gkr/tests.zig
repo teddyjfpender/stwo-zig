@@ -273,3 +273,16 @@ test "logup-gkr: bundle is identical with the reference and the parallel GKR pro
     defer y.deinit(a);
     try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
 }
+
+test "logup-gkr: fast prover consumes inputs on invalid resource admission" {
+    const a = std.testing.allocator;
+    const F = @import("fast_gkr.zig");
+    for ([_]usize{ 0, F.MAX_THREADS + 1 }) |threads| {
+        var inputs = [_]F.Input{.{ .num = null, .den = try a.alloc(QM31, 4) }};
+        var channel = P.Channel{};
+        try std.testing.expectError(error.InvalidGkrThreads, F.proveBatch(a, &channel, &inputs, .{ .threads = threads }, null));
+    }
+    var inputs = [_]F.Input{.{ .num = try a.alloc(QM31, 2), .den = try a.alloc(QM31, 3) }};
+    var channel = P.Channel{};
+    try std.testing.expectError(error.InvalidInputShape, F.proveBatch(a, &channel, &inputs, .{}, null));
+}
