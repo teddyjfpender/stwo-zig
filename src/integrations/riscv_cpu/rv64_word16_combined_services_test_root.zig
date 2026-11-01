@@ -9,4 +9,5 @@ test {
     _ = @import("word16_global_execution/services/execution_test.zig");
     _ = @import("word16_global_execution/services/native_certificate_test.zig");
     _ = @import("word16_global_execution/services/global_memory_diagnostic_test.zig");
+    _ = @import("word16_global_execution/services/recursive_statement_test.zig");
 }
