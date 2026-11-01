@@ -80,7 +80,13 @@ coefficients and pruned nodes, stream at most 64 columns through commitment,
 then release that LDE tile. Composition expands one component/coset on demand;
 current/previous/next masks share its storage. DEEP keeps one secure aggregate
 and bounded expansion workspace, then hands off to FRI. There is no new
-cross-phase expansion cache. GPU equivalents are still unimplemented.
+cross-phase expansion cache. Progressive leaf storage now derives from the
+actual native compact state: 96 bytes per leaf (32-byte chaining state plus
+64-byte pending block); uniform counter/backend metadata is shared per wave.
+This replaces the earlier 112-byte inner-hasher estimate. The pending block
+includes a full final block when present. Historical receipt totals retain
+their original source model; the planning API uses the current state type.
+GPU equivalents are still unimplemented.
 
 The contrasting policy that retains every MAIN LDE across the manifest needs
 142.69 GiB at beta 1 or 231.53 GiB at beta 2 before FIXED. Under that policy,

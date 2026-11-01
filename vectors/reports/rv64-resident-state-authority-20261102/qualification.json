@@ -1,0 +1,38 @@
+{
+  "scope": "Planning authority refresh and independent immutable-coefficient custody review; no protocol, proof, device, or security claim change.",
+  "source_base": "0179ab361",
+  "dependency_reviewed": "452b029566136744991d6cba9afd4cd3dfff57a5",
+  "state_authority": {
+    "type": "engine.vcs_lifted.compact_blake_state.State",
+    "bytes": 96,
+    "previous_model_bytes": 112,
+    "native_legacy_full_state_bytes": 136,
+    "formula": "(1 << (max_native_log + beta)) * sizeof(State)",
+    "uniform_metadata": "Not replicated in leaf payload; per-wave metadata remains separately owned.",
+    "qualification": "Planning API only; current native incremental compact state independently qualified under 495178053+04ceb689b. GPU state ABI/kernel remains unsupported until implemented."
+  },
+  "review": {
+    "blocking_findings": [],
+    "custody": "tree.share allocates the owner before interning. Constructor seam requires exclusive reference count one and exact original allocator; native interning plans all fallible work before ownership transfer and refreshes the unpublished view synchronously.",
+    "identity": "Different immutable layouts retain their own identity/root; cache hits compare actual ordered coefficient logs and contents after digest, not supplied identity alone.",
+    "budget": "Inner cache metadata and adopted payload allocations use the same outer SharedHostBudget. Inner retention capacity cannot authorize extra outer bytes; temporary sealing costs remain charged.",
+    "lifetime": "Shared tree owner retains native backing-cache token; native cache state and adopted allocations retain budget owners. Fixed State destroys keys before releasing native cache handle. No-groups path installs explicit budget-retaining token.",
+    "failure": "New test sweeps all allocation failures and destroys original source keys, cache and explicit leases while appended scheme owners remain live. No fallible operation follows custody adoption.",
+    "caveat": "No eviction: payload remains retained until last native-cache lease. Live allocation counters are not process RSS, and memory reduction is not a proving speed claim."
+  },
+  "gates": [
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe -Driscv-test-filter='resident OM layout' -j2 --summary all",
+      "result": "PASS 8s MaxRSS859M"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast -Driscv-test-filter='resident OM layout' -j2 --summary all",
+      "result": "PASS 3s MaxRSS402M"
+    },
+    {
+      "command": "zig build test-riscv64-wide-fixed-setup -Doptimize=ReleaseSafe -Driscv-test-filter='different immutable layouts' -j2 --summary all",
+      "result": "PASS 7s MaxRSS596M; actual changed-layout sharing/lifetime/all-allocation-failure test selected after dependency cherry-pick"
+    }
+  ],
+  "unchanged": "Historical full-roster receipts retain their original source model; not silently rewritten as remeasurements. No heavy proof or GPU execution run for this planning-only refresh."
+}
