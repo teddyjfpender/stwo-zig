@@ -159,3 +159,36 @@ The manifest digest commits reconstructed terminal marginals as well as the
 canonical child proof receipt. Its algebra and framing are implemented, but
 complete bundle-wire, physical-role assembly and accepting execution-receiver
 integration remain pending. This is not a whole-protocol 128-bit certificate.
+
+## Stage-one file and characteristic admission
+
+`manifest_wire.zig` frames a bounded `RV64MGK1` stage-one file with the expected
+execution identity, ordered MAIN roots and canonical local child proofs/receipts.
+The decoder takes the receiver's expected roster; it does not deserialize an
+alternative statement, FIXED tree, geometry or relation policy. It checks all
+framing, counts, ordinals and lengths before allocating entries or nested child
+proofs. The total encoded file is capped at64 MiB and each child at16 MiB.
+After decoding, `verifyAndSeal` freshly verifies the children. Decoding alone
+never verifies a proof or establishes execution acceptance.
+
+Decoded child arenas use the stable caller allocator. They do not retain an
+allocator pointer into an enclosing arena that can move when returned. Checked
+pending artifacts own their terminal values independently of the decoded file;
+the decoder can be released before physical verification continues. Partial
+child decoders and partial manifest verification are covered by allocation
+failure sweeps.
+
+The child polynomial decoder preserves the **declared coefficient-vector
+length**, including trailing zeros. The transcript mixes that exact vector;
+normalizing through `UnivariatePoly.initOwned` would silently change it. A
+codec-only changed polynomial tests this case without claiming the changed
+proof is cryptographically valid.
+
+The expected roster now also contains conservative receiver-derived positive
+event-mass bounds for each global relation. The complete sums must stay strictly
+below the M31 characteristic before any child allocation or shared challenge.
+A wider extension does not increase the characteristic. Bounds in absent
+relations reject, and the manifest digest binds all bounds and presence masks.
+These numbers must be derived from admitted operation counts/program geometry
+and public boundary sizes; copying producer-supplied totals would not establish
+the invariant. The assembly still owns that derivation and physical coverage.

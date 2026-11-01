@@ -114,7 +114,9 @@ pub fn decode(a: std.mem.Allocator, instances: []const Instance, bytes: []const 
         for (sumcheck.round_polys) |*poly| {
             const coefficients = try allocator.alloc(O, try r.bounded(4));
             for (coefficients) |*v| v.* = try r.field();
-            poly.* = L.utils.UnivariatePoly(O).initOwned(coefficients);
+            // Transcript framing includes the exact declared vector length.
+            // initOwned normalizes trailing zeros and would silently change it.
+            poly.* = .{ .coeffs = coefficients, .len = coefficients.len };
         }
     }
     for (masks, mask_counts[0..count]) |*instance_masks, n_masks| {

@@ -15,11 +15,11 @@ const Balanced = struct {
         sink.emitBase(.range16, [1]M{M.fromCanonical(@intCast(logical))}, if (instance.origin.core == .alu) M.one() else M.one().neg());
     }
 };
-const Fixture = struct {
+pub const Fixture = struct {
     children: [2]*Child.Unbound,
     expected: [3]Manifest.ExpectedWorker,
     stages: [3]Manifest.StageOne,
-    fn init() !Fixture {
+    pub fn init() !Fixture {
         var children: [2]*Child.Unbound = undefined;
         var initialized: usize = 0;
         errdefer for (children[0..initialized]) |child| child.deinit();
@@ -29,17 +29,17 @@ const Fixture = struct {
             const scope = @import("receipt.zig").Scope{ .statement = @splat(@intCast(11 + i)), .fixed = @splat(@intCast(21 + i)), .main = @splat(@intCast(31 + i)), .ordinal = @intCast(i) };
             children[i] = try Child.Unbound.prove(a, 1 << 20, scope, &instances, Balanced{});
             initialized += 1;
-            expected[i] = .{ .kind = .cpu, .global_relations = .{ .ram = true, .kio = true, .wire = true }, .ordinal = @intCast(i), .statement = scope.statement, .fixed = scope.fixed, .local_instances = &instances };
+            expected[i] = .{ .kind = .cpu, .global_relations = .{ .ram = true, .kio = true, .wire = true }, .mass = .{ .ram = 1, .kio = 1, .wire = 1 }, .ordinal = @intCast(i), .statement = scope.statement, .fixed = scope.fixed, .local_instances = &instances };
             stages[i] = .{ .main = scope.main, .local = .{ .proof = &children[i].result.proof, .receipt_digest = children[i].digest } };
         }
-        expected[2] = .{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .ordinal = 2, .statement = @splat(41), .fixed = @splat(42), .local_instances = null };
+        expected[2] = .{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = .{ .ram = 0, .kio = 1, .wire = 0 }, .ordinal = 2, .statement = @splat(41), .fixed = @splat(42), .local_instances = null };
         stages[2] = .{ .main = @splat(43), .local = null };
         return .{ .children = children, .expected = expected, .stages = stages };
     }
-    fn deinit(self: *Fixture) void {
+    pub fn deinit(self: *Fixture) void {
         for (self.children) |child| child.deinit();
     }
-    fn verify(self: *const Fixture) !Manifest.PendingManifest {
+    pub fn verify(self: *const Fixture) !Manifest.PendingManifest {
         return Manifest.verifyAndSeal(a, @splat(1), &self.expected, &self.stages);
     }
 };
@@ -164,4 +164,22 @@ test "OM manifest rejects absent relation debt even if another worker cancels it
     try std.testing.expectError(error.NonzeroAbsentGlobalGkrClaim, manifest.checkGlobalClosure(&claims));
     f.expected[2].global_relations.ram = true;
     try std.testing.expectError(error.GlobalGkrRelationRoster, f.verify());
+}
+
+test "OM manifest enforces whole-execution characteristic bounds before allocation" {
+    var f = try Fixture.init();
+    defer f.deinit();
+    // Each shard is individually below p; their complete sum reaches p.
+    f.expected[1].mass.ram = core.fields.m31.Modulus - 1;
+    var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    try std.testing.expectError(error.GlobalGkrCharacteristicBound, Manifest.verifyAndSeal(fail.allocator(), @splat(1), &f.expected, &f.stages));
+    try std.testing.expectEqual(@as(usize, 0), fail.alloc_index);
+    f.expected[1].mass.ram = core.fields.m31.Modulus - 2;
+    var just_below = try f.verify();
+    defer just_below.deinit(a);
+    f.expected[1].mass.ram = std.math.maxInt(u64);
+    try std.testing.expectError(error.GlobalGkrCharacteristicBound, f.verify());
+    f.expected[1].mass.ram = 1;
+    f.expected[2].mass.wire = 1;
+    try std.testing.expectError(error.GlobalGkrRelationMass, f.verify());
 }
