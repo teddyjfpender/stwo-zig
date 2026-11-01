@@ -83,6 +83,9 @@ pub fn prove(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, candid
 }
 pub const Verification = struct { accepted: bool, completed: bool, security_qualified: bool = false, candidate: bool, steps: u64, expected_cpu_and_ram_endpoint_bound: bool = true, fresh_process: bool = true, wrong_endpoint_rejected: bool = true, verify_ns: u64 };
 pub fn verify(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, candidate: bool) !Verification {
+    return verifyWithExport(a, image, path, candidate, false);
+}
+pub fn verifyWithExport(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, candidate: bool, exporting: bool) !Verification {
     const cfg = try config(candidate);
     var timer = try std.time.Timer.start();
     var dir = try std.fs.cwd().openDir(path, .{});
@@ -105,6 +108,24 @@ pub fn verify(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, candi
     defer if (fixed) |*authority| authority.deinit();
     const want = expected(image, setup.materials.program.identity);
     const accepted = try verifyBundle(a, &loaded.bundle, &setup, want, cfg, if (fixed) |*authority| authority else null);
+    if (exporting) {
+        const Execution = @import("../word16_global_execution/services/gkr_local/execution.zig");
+        const Stage = @import("../word16_global_execution/services/gkr_local/manifest_wire.zig");
+        const Child = @import("../word16_global_execution/services/gkr_local/child.zig");
+        const Ch = @import("../word16_global_execution/services/gkr_local/challenges.zig");
+        var inventory = try Execution.Inventory.initWithAuthority(a, &.{&setup}, &.{}, loaded.bundle.requests, want, cfg, if (fixed) |*authority| authority else null);
+        defer inventory.deinit();
+        var stages = try Stage.decode(a, inventory.execution_identity, inventory.workers, loaded.bundle.stage_one_bytes);
+        defer stages.deinit();
+        var initial_channel = Child.begin(.{ .statement = inventory.workers[0].statement, .fixed = inventory.workers[0].fixed, .main = stages.stages[0].main, .ordinal = 0 }, inventory.instances[0]);
+        _ = Ch.For(W.O).draw(&initial_channel);
+        const gates = try a.alloc(@import("stwo_prover_engine").lookups.gkr_verifier.ForField(W.O).Gate, inventory.instances[0].len);
+        defer a.free(gates);
+        @memset(gates, .LogUp);
+        var file = try dir.createFile("rust-gkr-child.json", .{ .exclusive = true });
+        defer file.close();
+        try @import("om_gkr_oracle_export.zig").write(a, file, "actual freshly native-accepted Sail CPU child; public starting channel only; physical terminal binding remains outside Rust", stages.stages[0].local.?.proof, gates, initial_channel, null, true);
+    }
     var wrong = want;
     wrong.final_registers[3] ^= 1;
     if (verifyBundle(a, &loaded.bundle, &setup, wrong, cfg, if (fixed) |*authority| authority else null)) |_| return error.AcceptedWrongSailEndpoint else |_| {}

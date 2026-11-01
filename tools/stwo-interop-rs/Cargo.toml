@@ -17,6 +17,7 @@ stwo = { git = "https://github.com/starkware-libs/stwo", rev = "a8fcf4bdde3778ae
 stwo-constraint-framework = { git = "https://github.com/starkware-libs/stwo", rev = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2", features = ["prover", "parallel"] }
 stwo-examples = { git = "https://github.com/starkware-libs/stwo", rev = "a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2", features = ["parallel"] }
 tracing = "0.1"
+thiserror = "=2.0.18"
 
 [dev-dependencies]
 test-log = { version = "0.2.15", features = ["trace"] }

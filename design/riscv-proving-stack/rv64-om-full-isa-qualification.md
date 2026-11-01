@@ -48,3 +48,8 @@ zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe \
 
 The explicit test-root import and selection guard ensure that a filtered
 invocation cannot pass after discovering zero named qualification tests.
+
+The additive Rust numerical GKR oracle now agrees on tiny fixtures and the real
+Sail child; see `rv64-om-rust-numerical-gkr-qualification.md`. It explicitly does
+not authenticate PCS, production terminal bindings or execution, so it does not
+close the full Rust-verifier gap in the table above.

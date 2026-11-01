@@ -12,10 +12,12 @@ pub fn main() !void {
     const a = budget.allocator();
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "fixture")) return @import("word16_qualification/om_gkr_oracle_export.zig").fixtures(a, args[2]);
     if (args.len != 4) return error.ExpectedModeConfigDirectory;
     const proving = std.mem.eql(u8, args[1], "prove-control") or std.mem.eql(u8, args[1], "prove-candidate");
-    const candidate = std.mem.eql(u8, args[1], "prove-candidate") or std.mem.eql(u8, args[1], "verify-candidate");
-    if (!proving and !std.mem.eql(u8, args[1], "verify-control") and !std.mem.eql(u8, args[1], "verify-candidate")) return error.ExpectedModeConfigDirectory;
+    const candidate = std.mem.eql(u8, args[1], "prove-candidate") or std.mem.eql(u8, args[1], "verify-candidate") or std.mem.eql(u8, args[1], "export-candidate");
+    const exporting = std.mem.eql(u8, args[1], "export-control") or std.mem.eql(u8, args[1], "export-candidate");
+    if (!proving and !exporting and !std.mem.eql(u8, args[1], "verify-control") and !std.mem.eql(u8, args[1], "verify-candidate")) return error.ExpectedModeConfigDirectory;
     const raw = try std.fs.cwd().readFileAlloc(a, args[2], 16384);
     defer a.free(raw);
     const parsed = try std.json.parseFromSlice(Image.Config, a, raw, .{});
@@ -29,6 +31,6 @@ pub fn main() !void {
     var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
     var verification: ?Run.Verification = null;
-    if (proving) try Run.prove(a, &image, args[3], candidate) else verification = try Run.verify(a, &image, args[3], candidate);
+    if (proving) try Run.prove(a, &image, args[3], candidate) else verification = try Run.verifyWithExport(a, &image, args[3], candidate, exporting);
     try @import("word16_qualification/csp_execution.zig").stdout(a, .{ .verification = verification, .requested_budget = budget.snapshot(), .recycler_cache_cap_bytes = @as(u64, 4) << 30, .recycler = recycler.stats(), .security_qualified = false });
 }
