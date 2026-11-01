@@ -64,9 +64,13 @@ pub fn ForField(comptime Secure: type) type {
             const sum_ret = @typeInfo(@typeInfo(@TypeOf(O.sumAsPolyInFirstVariable)).@"fn".return_type.?);
             const fix_ret = @typeInfo(@typeInfo(@TypeOf(O.fixFirstVariable)).@"fn".return_type.?);
 
+            const inplace_errors = if (@hasDecl(O, "fixFirstVariableInPlace"))
+                @typeInfo(@typeInfo(@TypeOf(O.fixFirstVariableInPlace)).@"fn".return_type.?).error_union.error_set
+            else
+                error{};
             return clone_ret.error_union.error_set ||
                 sum_ret.error_union.error_set ||
-                fix_ret.error_union.error_set;
+                fix_ret.error_union.error_set || inplace_errors;
         }
 
         /// Performs batched sum-check on a random linear combination of oracle polynomials.
@@ -76,6 +80,9 @@ pub fn ForField(comptime Secure: type) type {
         /// - `cloneOwned(self: O, allocator) !O`
         /// - `sumAsPolyInFirstVariable(self: O, allocator, claim: Secure) !UnivariatePoly(Secure)`
         /// - `fixFirstVariable(self: O, allocator, challenge: Secure) !O`
+        /// Optional `fixFirstVariableInPlace(*O, allocator, challenge) !void`
+        /// consumes exclusive internal state; on error it remains deinitializable.
+        /// Original caller-owned oracles are cloned before this interface runs.
         pub fn proveBatch(
             comptime O: type,
             allocator: std.mem.Allocator,
@@ -198,9 +205,13 @@ pub fn ForField(comptime Secure: type) type {
 
                 for (multivariate_polys) |*poly| {
                     if (n_remaining_rounds != poly.nVariables()) continue;
-                    const fixed = try poly.fixFirstVariable(allocator, challenge);
-                    poly.deinit(allocator);
-                    poly.* = fixed;
+                    if (comptime @hasDecl(O, "fixFirstVariableInPlace")) {
+                        try poly.fixFirstVariableInPlace(allocator, challenge);
+                    } else {
+                        const fixed = try poly.fixFirstVariable(allocator, challenge);
+                        poly.deinit(allocator);
+                        poly.* = fixed;
+                    }
                 }
 
                 try round_polys_builder.append(allocator, round_poly);
