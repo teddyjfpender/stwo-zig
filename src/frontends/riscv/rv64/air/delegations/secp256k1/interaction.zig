@@ -64,6 +64,7 @@ pub const Prepared = struct {
         const per = trace.program.rows(kind == .product);
         const active_rows = @as(usize, trace.calls) * per;
         const count = L.byteCount(kind);
+        const metadata_count = L.metadataByteCount(kind);
         const batches = L.batches(kind);
         var sum = Q.zero();
         var denominators: [3 * BLOCK_ROWS]Q = undefined;
@@ -76,7 +77,7 @@ pub const Prepared = struct {
                 const logical = block + local;
                 const r = physical(logical, trace.log_size);
                 const active_row = logical < active_rows;
-                const bytes: []const u8 = if (active_row) trace.lookup_bytes[logical * count ..][0..count] else &.{};
+                const bytes: []const u8 = if (active_row) trace.lookup_bytes[logical * metadata_count ..][0..metadata_count] else &.{};
                 const id = if (active_row) M.fromCanonical(@intCast(@as(usize, trace.first_id) + logical / per)) else M.zero();
                 const active = sourceValue(self.active_source, active_row, id, bytes);
                 const tuple_id = sourceValue(self.id_source, active_row, id, bytes);
@@ -104,7 +105,7 @@ pub const Prepared = struct {
                 const logical = block + local;
                 const r = physical(logical, trace.log_size);
                 const active_row = logical < active_rows;
-                const bytes: []const u8 = if (active_row) trace.lookup_bytes[logical * count ..][0..count] else &.{};
+                const bytes: []const u8 = if (active_row) trace.lookup_bytes[logical * metadata_count ..][0..metadata_count] else &.{};
                 const id = if (active_row) M.fromCanonical(@intCast(@as(usize, trace.first_id) + logical / per)) else M.zero();
                 for (0..batches) |batch| {
                     if (batch + 1 == batches) {
@@ -136,7 +137,7 @@ fn store(data: []M, n: usize, row: usize, secure_column: usize, value: Q) void {
 fn columnSources(a: std.mem.Allocator, kind: L.Kind) ![]Source {
     const sources = try a.alloc(Source, L.main(kind));
     @memset(sources, .zero);
-    for (0..L.byteCount(kind)) |i| sources[T.byteColumn(kind, i)] = .{ .byte = @intCast(i) };
+    for (0..L.metadataByteCount(kind)) |i| sources[L.metadataByteColumn(kind, i)] = .{ .byte = @intCast(i) };
     sources[0] = .active;
     sources[L.base(kind)] = .id;
     return sources;

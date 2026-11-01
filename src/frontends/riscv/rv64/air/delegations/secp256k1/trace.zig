@@ -45,7 +45,7 @@ pub const Trace = struct {
         if (storage == .borrowed) try Storage.exclude(&.{.{ .values = storage.borrowed, .cells = width * n }}, std.mem.sliceAsBytes(inputs));
         const fixed = try fixedColumns(a, kind, program, log);
         errdefer a.free(fixed);
-        const lookup_bytes = try a.alloc(u8, inputs.len * program.rows(kind == .product) * L.byteCount(kind));
+        const lookup_bytes = try a.alloc(u8, inputs.len * program.rows(kind == .product) * L.metadataByteCount(kind));
         errdefer a.free(lookup_bytes);
         const main = try storage.acquire(width * n);
         errdefer storage.release(main);
@@ -62,7 +62,7 @@ pub const Trace = struct {
                     const witness = try P.field.create(lhs, rhs, P.field.base_modulus);
                     const row = L.mul.rowFromWitness(&witness);
                     for (row, 0..) |v, c| main[c * n + r] = v;
-                    captureLookupBytes(kind, lookup_bytes[(call * program.rows(kind == .product) + opindex) * L.byteCount(kind) ..][0..L.byteCount(kind)], &row);
+                    captureLookupBytes(kind, lookup_bytes[(call * program.rows(kind == .product) + opindex) * L.metadataByteCount(kind) ..][0..L.metadataByteCount(kind)], &row);
                 } else {
                     const record = P.affine.LinearRecord{ .kind = switch (op.kind) {
                         .add => .add,
@@ -72,7 +72,7 @@ pub const Trace = struct {
                     }, .modulus = .base, .lhs = lhs, .rhs = rhs, .result = result };
                     const row = try L.linear.rowFromRecord(&record);
                     for (row, 0..) |v, c| main[c * n + r] = v;
-                    captureLookupBytes(kind, lookup_bytes[(call * program.rows(kind == .product) + opindex) * L.byteCount(kind) ..][0..L.byteCount(kind)], &row);
+                    captureLookupBytes(kind, lookup_bytes[(call * program.rows(kind == .product) + opindex) * L.metadataByteCount(kind) ..][0..L.metadataByteCount(kind)], &row);
                 }
                 main[L.base(kind) * n + r] = M.fromCanonical(@intCast(@as(u64, first_id) + call));
             }
@@ -98,16 +98,16 @@ pub const Trace = struct {
     }
     pub fn validateMetadata(self: *const Trace) !void {
         try L.validate(self.kind, self.program, self.calls, self.first_id, self.log_size);
-        if (self.lookup_bytes.len != @as(usize, self.calls) * self.program.rows(self.kind == .product) * L.byteCount(self.kind) or self.fixed.len != L.FIXED * self.size()) return error.InvalidSecpLookupMetadata;
+        if (self.lookup_bytes.len != @as(usize, self.calls) * self.program.rows(self.kind == .product) * L.metadataByteCount(self.kind) or self.fixed.len != L.FIXED * self.size()) return error.InvalidSecpLookupMetadata;
     }
     pub fn metadataRow(self: *const Trace, logical: usize, out: []Q) !void {
         if (out.len != L.main(self.kind)) return error.InvalidSecpLookupMetadata;
         @memset(out, Q.zero());
         const per = self.program.rows(self.kind == .product);
         if (logical >= @as(usize, self.calls) * per) return;
-        const count = L.byteCount(self.kind);
+        const count = L.metadataByteCount(self.kind);
         if (self.lookup_bytes.len < (logical + 1) * count) return error.InvalidSecpLookupMetadata;
-        for (self.lookup_bytes[logical * count ..][0..count], 0..) |v, i| out[byteColumn(self.kind, i)] = Q.fromBase(M.fromCanonical(v));
+        for (self.lookup_bytes[logical * count ..][0..count], 0..) |v, i| out[L.metadataByteColumn(self.kind, i)] = Q.fromBase(M.fromCanonical(v));
         out[0] = Q.one();
         out[L.base(self.kind)] = Q.fromBase(M.fromCanonical(@intCast(@as(usize, self.first_id) + logical / per)));
     }
@@ -166,9 +166,7 @@ pub const Trace = struct {
         return sum;
     }
 };
-pub fn byteColumn(kind: L.Kind, index: usize) usize {
-    return if (kind == .product) L.mul.Layout.first_byte + index else if (index < 96) L.linear.Layout.lhs + index else L.linear.Layout.canonical_sum + index - 96;
-}
+pub const byteColumn = L.byteColumn;
 pub fn fixedColumns(a: std.mem.Allocator, kind: L.Kind, program: *const P.Program, log: u32) ![]M {
     if (log < 5 or log > 22) return error.InvalidSecpGeometry;
     const n = @as(usize, 1) << @intCast(log);
@@ -204,5 +202,5 @@ pub fn fixedColumns(a: std.mem.Allocator, kind: L.Kind, program: *const P.Progra
 }
 
 pub fn captureLookupBytes(kind: L.Kind, out: []u8, row: []const M) void {
-    for (out, 0..) |*v, i| v.* = @intCast(row[byteColumn(kind, i)].v);
+    for (out, 0..) |*v, i| v.* = @intCast(row[L.metadataByteColumn(kind, i)].v);
 }

@@ -28,8 +28,21 @@ pub fn base(kind: Kind) usize {
 pub fn main(kind: Kind) usize {
     return base(kind) + 1;
 } // main call ID, not fixed/request-derived.
+/// BYTE relation queries, independent of the bytes retained for Wire35.
 pub fn byteCount(kind: Kind) usize {
+    return metadataByteCount(kind);
+}
+/// Retained relation metadata must still reconstruct both Wire35 operands
+/// after the wide MAIN witness has been released, even if their range checks
+/// can later be inherited from the closed Wire35 producers.
+pub fn metadataByteCount(kind: Kind) usize {
     return if (kind == .product) 284 else 128;
+}
+pub fn metadataByteColumn(kind: Kind, index: usize) usize {
+    return if (kind == .product) mul.Layout.first_byte + index else if (index < 96) linear.Layout.lhs + index else linear.Layout.canonical_sum + index - 96;
+}
+pub fn byteColumn(kind: Kind, index: usize) usize {
+    return metadataByteColumn(kind, index);
 }
 pub fn batches(kind: Kind) usize {
     return (byteCount(kind) + 2) / 3 + 1;

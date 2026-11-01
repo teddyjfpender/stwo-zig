@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "kind": "secp_query_metadata_separation_and_service_cost",
+  "source_base": "259f49ff8",
+  "scope": "metadata/schema separation only; range queries and native proof protocol remain unchanged",
+  "checks": {
+    "safe": {
+      "path": "/tmp/rv64-secp-metadata-separation-safe.log",
+      "sha256": "769c684a88213eb5519487340994333182287c1a45656fbc6db73b8a1d5797b1",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-secp success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 33s MaxRSS:2G"
+    },
+    "fast": {
+      "path": "/tmp/rv64-secp-metadata-separation-fast.log",
+      "sha256": "b5fb270f7e22e3899e707077e2f1243b03c642128e06eda820728db96d342ed1",
+      "summary": "Build Summary: 2/2 steps succeeded\ntest-riscv64-secp success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 32s MaxRSS:1G"
+    }
+  },
+  "current_shapes": {
+    "product": {
+      "main": 319,
+      "interaction": 384,
+      "retained_metadata_bytes_per_active_row": 284
+    },
+    "linear": {
+      "main": 200,
+      "interaction": 176,
+      "retained_metadata_bytes_per_active_row": 128
+    }
+  },
+  "conditional_word16_canonical_input_variant": {
+    "product": {
+      "main": 319,
+      "interaction": 300,
+      "byte_queries": 220,
+      "retained_metadata_bytes_per_active_row": 284
+    },
+    "linear": {
+      "main": 200,
+      "interaction": 92,
+      "byte_queries": 64,
+      "retained_metadata_bytes_per_active_row": 128
+    }
+  },
+  "reference_cost": "/tmp/rv64-wave2-integrated-full-v1/cost.json",
+  "reference_cost_sha256": "1227d1845a6399dab7f168ee0cd89f8ee2e22bebe49523c02966bd2232e2a817",
+  "truths": [
+    {
+      "truth": 2,
+      "family": "add",
+      "calls": 11397,
+      "logs": [
+        18,
+        18
+      ],
+      "current_native_cells": 290720768,
+      "conditional_input_range_trim_cells_saved": 44040192,
+      "conditional_lifted_leaf_cells_saved_excluding_blowup": 44040192
+    },
+    {
+      "truth": 3,
+      "family": "add",
+      "calls": 99,
+      "logs": [
+        11,
+        12
+      ],
+      "current_native_cells": 3075072,
+      "conditional_input_range_trim_cells_saved": 516096,
+      "conditional_lifted_leaf_cells_saved_excluding_blowup": 688128
+    },
+    {
+      "truth": 4,
+      "family": "double",
+      "calls": 9768,
+      "logs": [
+        17,
+        16
+      ],
+      "current_native_cells": 119737344,
+      "conditional_input_range_trim_cells_saved": 16515072,
+      "conditional_lifted_leaf_cells_saved_excluding_blowup": 22020096
+    }
+  ],
+  "conditional_native_cells_saved": 61071360,
+  "conditional_lifted_leaf_cells_saved_excluding_blowup": 66748416,
+  "keccak_D3_existing_prototype": {
+    "status": "inactive standalone; not selected for production",
+    "current_main": 1923,
+    "current_interaction": 2596,
+    "prototype_main": 1925,
+    "prototype_interaction": 3896,
+    "source_column_increase_ratio": 1.2881168400088516,
+    "provisional_point_column_ratio": 0.6440584200044258,
+    "memory_note": "Existing bounded n-point coset scratch grows; native2n does not imply halved peak memory."
+  },
+  "soundness_blocker": "Legacy secp bridge BEFORE/AFTER bytes are not separately ranged and rely on arithmetic input BYTE queries. Any trim MUST be receiver-selected Word16-only with full positive Wire producer canonicality, explicit query identity and retained operand metadata. Global query deletion is unsound for that legacy acceptance context.",
+  "security": "Current control receipts nominal96/q70/P26; not whole-protocol128bit evidence.",
+  "gpu_qualification": "Explicitly deferred by user; no device qualification or projection claim."
+}

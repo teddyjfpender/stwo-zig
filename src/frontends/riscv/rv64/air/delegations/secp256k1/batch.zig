@@ -105,7 +105,7 @@ fn empty(a: std.mem.Allocator, storage: Storage.Buffer, kind: L.Kind, program: *
     const fixed = if (borrowed) |data| data else try T.fixedColumns(a, kind, program, log);
     errdefer if (borrowed == null) a.free(fixed);
     if (fixed.len != L.FIXED * (@as(usize, 1) << @intCast(log))) return error.InvalidSecpFixedShape;
-    const lookup_bytes = try a.alloc(u8, calls * program.rows(kind == .product) * L.byteCount(kind));
+    const lookup_bytes = try a.alloc(u8, calls * program.rows(kind == .product) * L.metadataByteCount(kind));
     errdefer a.free(lookup_bytes);
     const main = try storage.acquire(L.main(kind) * (@as(usize, 1) << @intCast(log)));
     @memset(main, M.zero());
@@ -115,7 +115,7 @@ fn writeRow(trace: *T.Trace, row: []const M, call: usize, opindex: usize) void {
     const n = trace.size();
     const r = physical(call * trace.program.rows(trace.kind == .product) + opindex, trace.log_size);
     for (row, 0..) |v, c| trace.main[c * n + r] = v;
-    T.captureLookupBytes(trace.kind, trace.lookup_bytes[(call * trace.program.rows(trace.kind == .product) + opindex) * L.byteCount(trace.kind) ..][0..L.byteCount(trace.kind)], row);
+    T.captureLookupBytes(trace.kind, trace.lookup_bytes[(call * trace.program.rows(trace.kind == .product) + opindex) * L.metadataByteCount(trace.kind) ..][0..L.metadataByteCount(trace.kind)], row);
     trace.main[L.base(trace.kind) * n + r] = M.fromCanonical(@intCast(@as(u64, trace.first_id) + call));
     for (0..L.byteCount(trace.kind)) |i| trace.byte_counts[row[T.byteColumn(trace.kind, i)].v] += 1;
 }

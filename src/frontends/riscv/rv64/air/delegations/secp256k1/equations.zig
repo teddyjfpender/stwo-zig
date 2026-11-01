@@ -107,7 +107,7 @@ pub fn byte(kind: L.Kind, main: []const Q, index: usize) Q {
     return byteFor(Q, kind, main, index);
 }
 pub fn byteFor(comptime F: type, kind: L.Kind, main: []const F, index: usize) F {
-    return if (kind == .product) main[L.mul.Layout.first_byte + index] else if (index < 96) main[L.linear.Layout.lhs + index] else main[L.linear.Layout.canonical_sum + index - 96];
+    return main[L.byteColumn(kind, index)];
 }
 pub fn wireCoefficient(row: Row, event: usize) Q {
     return wireCoefficientFor(Q, row, event);
