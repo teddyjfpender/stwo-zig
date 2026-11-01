@@ -75,6 +75,74 @@ pub fn validateExpected(expected: Expected) !void {
     }
     if (end != expected.context.total_steps) return error.InvalidGlobalCoverage;
 }
+/// Independent *planning* admission for the proposed full-execution RAM
+/// manifest. This does not create a Manifest, derive Fiat-Shamir challenges,
+/// verify a proof or authorize global RAM execution. Manifest.init deliberately
+/// continues to reject .full_execution_unqualified until every physical CPU,
+/// service, boundary and aggregate receiver gate is implemented.
+pub const ExecutionAnchors = struct {
+    initial_pc: u64,
+    initial_registers: Digest,
+    terminal_pc: u64,
+    terminal_registers: Digest,
+    total_steps: u64,
+};
+pub const MAX_EXECUTION_STEPS_PER_SHARD: u32 = (1 << 22) - 1;
+
+/// The anchor is supplied by an independent expected-image / execution
+/// receiver, never read from a producer manifest. Boundaries are zero-step
+/// participants: INIT uses epoch zero, CPU shards use epochs 1..N, and
+/// TEARDOWN shares the final execution epoch (not an extra RAM epoch).
+///
+/// This preflight checks metadata only. Positive mass and roots still require
+/// binding to real committed physical rows, and the global RAM relation, strict
+/// per-address time ordering, service coverage and terminal proof remain open.
+pub fn validateStagedExecutionPlan(expected: Expected, anchors: ExecutionAnchors) !void {
+    if (expected.context.scope != .full_execution_unqualified) return error.InvalidStagedGlobalScope;
+    if (expected.specs.len < 3 or expected.specs.len > MAX_WORKERS) return error.InvalidStagedGlobalRoster;
+    if (anchors.total_steps == 0 or anchors.total_steps != expected.context.total_steps) return error.InvalidStagedGlobalCoverage;
+    var next_step: u64 = 0;
+    var next_pc = anchors.initial_pc;
+    var next_registers = anchors.initial_registers;
+    var masses: [3]u64 = @splat(0);
+    for (expected.specs, 0..) |s, i| {
+        const first = i == 0;
+        const last = i + 1 == expected.specs.len;
+        const intended_role: Role = if (first) .initial else if (last) .terminal else .execution;
+        const epoch: u16 = @intCast(if (last) expected.specs.len - 2 else i);
+        if (s.ordinal != i or s.role != intended_role or s.coverage.epoch != epoch)
+            return error.InvalidStagedGlobalRoster;
+        if (s.coverage.first_step != next_step) return error.InvalidStagedGlobalCoverage;
+        if (s.coverage.initial_pc != next_pc or
+            !std.mem.eql(u8, &s.coverage.initial_registers, &next_registers))
+            return error.InvalidStagedGlobalAdjacency;
+        if (first or last) {
+            if (s.coverage.steps != 0 or s.coverage.final_pc != next_pc or
+                !std.mem.eql(u8, &s.coverage.final_registers, &next_registers))
+                return error.InvalidStagedGlobalBoundary;
+        } else {
+            if (s.coverage.steps == 0 or s.coverage.steps > MAX_EXECUTION_STEPS_PER_SHARD)
+                return error.InvalidStagedGlobalCoverage;
+            next_step = std.math.add(u64, next_step, s.coverage.steps) catch return error.InvalidStagedGlobalCoverage;
+            if (next_step > anchors.total_steps) return error.InvalidStagedGlobalCoverage;
+            next_pc = s.coverage.final_pc;
+            next_registers = s.coverage.final_registers;
+        }
+        if (s.fixed_logs.len == 0 or s.main_logs.len == 0 or
+            s.fixed_logs.len > MAX_COLUMNS or s.main_logs.len > MAX_COLUMNS)
+            return error.InvalidStagedGlobalGeometry;
+        for (s.fixed_logs) |log| if (log < 5 or log > 22) return error.InvalidStagedGlobalGeometry;
+        for (s.main_logs) |log| if (log < 5 or log > 22) return error.InvalidStagedGlobalGeometry;
+        for (&masses, s.positive_mass) |*sum, mass| {
+            sum.* = std.math.add(u64, sum.*, mass) catch return error.GlobalCharacteristicBound;
+            if (sum.* >= core.fields.m31.Modulus) return error.GlobalCharacteristicBound;
+        }
+    }
+    if (next_step != anchors.total_steps or next_pc != anchors.terminal_pc or
+        !std.mem.eql(u8, &next_registers, &anchors.terminal_registers))
+        return error.InvalidStagedGlobalTerminal;
+}
+
 pub fn beginStage1(ctx: Context, spec: Spec, ch: *P.Channel) void {
     mixContext(ch, ctx);
     mixSpec(ch, spec);

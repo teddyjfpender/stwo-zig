@@ -1,0 +1,34 @@
+name: RV64 PR306 native certificate qualification (temporary)
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: rv64-pr306-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  focused:
+    if: github.event.pull_request.number == 306
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.15.2
+      - name: Format diagnostic and print exact formatter patch
+        run: |
+          zig fmt src/integrations/riscv_cpu/word16_global_execution/services/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/services/native_certificate_test.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate_test.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit_test.zig src/integrations/riscv_cpu/word16_global_execution/services/global_memory_diagnostic.zig src/integrations/riscv_cpu/word16_global_execution/services/global_memory_diagnostic_test.zig src/integrations/riscv_cpu/word16_execution/security_policy.zig src/integrations/riscv_cpu/word16_execution/security_policy_test.zig src/integrations/riscv_cpu/word16_global_execution/services/recursive_statement.zig src/integrations/riscv_cpu/word16_global_execution/services/recursive_statement_test.zig
+          git diff --no-ext-diff -- src/integrations/riscv_cpu/word16_global_execution/ src/integrations/riscv_cpu/word16_execution/memory/staged_precommit.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit_test.zig
+      - name: Verify real staged RAM PCS precommit admission
+        run: zig build test-riscv64-word16-global-memory -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="staged global RAM precommit"
+      - name: Verify conditional 128-bit algebraic-policy accounting
+        run: zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j2
+      - name: Audit real collected mixed service RAM flows
+        run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="diagnostic"
+      - name: Verify typed Word16 native span and root closure
+        run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="Word16 span"
+      - name: Verify mixed-service native certificate
+        run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="native Word16 certificate"
+      - name: Verify complete Ethereum terminal certificate
+        run: zig build test-riscv64-word16-ethereum-terminal -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="complete native Word16"

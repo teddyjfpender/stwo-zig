@@ -112,3 +112,74 @@ test "security policy bounded profile parameters reject malformed candidates" {
     p.queries = 0;
     try std.testing.expectError(error.InvalidSecurityProfile, P.requireCandidate128Conditions(p));
 }
+
+test "single-draw M31 field-size bound refuses nominal 128 bits for QM31 even at degree one" {
+    // (2^31-1)^4 is strictly below 2^124; increasing query PoW does
+    // not strengthen the independent algebraic field draw.
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1, 128));
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1, 124));
+    try P.requireSingleDrawAlgebraicBudget(4, 1, 123);
+    // A degree-eight extension is a mathematical candidate, not a reviewed
+    // protocol: the receiver-owned certificate gate still rejects whole128.
+    try P.requireSingleDrawAlgebraicBudget(8, 1 << 24, 132);
+    try std.testing.expectError(error.NoReviewedWholeProtocol128Certificate, P.requireClaim(candidate(), .none, .whole_protocol_128));
+}
+test "single-draw algebraic budget scales by actual polynomial degree and rejects nonsensical bounds" {
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1 << 24, 123));
+    try P.requireSingleDrawAlgebraicBudget(4, 1 << 24, 99);
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(0, 1, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(4, 0, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(4, 1, 0));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(17, 1, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(8, 1, 257));
+}
+
+fn conditionalTerms() [P.ARGUMENT_COUNT]P.ConditionalTerm {
+    var out: [P.ARGUMENT_COUNT]P.ConditionalTerm = undefined;
+    inline for (std.meta.tags(P.Argument), 0..) |tag, i| {
+        out[i] = .{ .argument = tag, .max_degree = 1, .draws = 1 };
+    }
+    return out;
+}
+
+test "conditional algebraic union model exposes insufficiency of QM31 even for one draw per phase" {
+    const terms = conditionalTerms();
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireConditionalAlgebraicBudget(4, &terms, 128));
+    const wider = try P.requireConditionalAlgebraicBudget(8, &terms, 128);
+    try std.testing.expectEqual(@as(u512, P.ARGUMENT_COUNT), wider.total_degree_weight);
+    try std.testing.expectEqual(@as(u16, 128), wider.requested_bits);
+    try std.testing.expect(wider.field_size > wider.total_degree_weight);
+    // The conditional union check never promotes a new whole-protocol
+    // certificate, even when the arithmetic inequality happens to hold.
+    try std.testing.expectError(error.NoReviewedWholeProtocol128Certificate, P.requireClaim(candidate(), .none, .whole_protocol_128));
+}
+
+test "conditional algebraic budget requires every proof argument to be accounted for exactly once" {
+    var terms = conditionalTerms();
+    try std.testing.expectError(error.MissingAlgebraicArguments, P.requireConditionalAlgebraicBudget(8, terms[0 .. terms.len - 1], 128));
+    terms[1].argument = terms[0].argument;
+    try std.testing.expectError(error.DuplicateAlgebraicArgument, P.requireConditionalAlgebraicBudget(8, &terms, 128));
+    terms = conditionalTerms();
+    terms[3].applicable = false;
+    try std.testing.expectError(error.InvalidConditionalTerm, P.requireConditionalAlgebraicBudget(8, &terms, 128));
+    terms[3].max_degree = 0;
+    terms[3].draws = 0;
+    _ = try P.requireConditionalAlgebraicBudget(8, &terms, 128);
+    for (&terms) |*term| {
+        term.applicable = false;
+        term.max_degree = 0;
+        term.draws = 0;
+    }
+    try std.testing.expectError(error.EmptyAlgebraicBudget, P.requireConditionalAlgebraicBudget(8, &terms, 128));
+}
+
+test "conditional algebraic budget uses exact total degree times repetitions, not post-challenge PoW" {
+    var terms = conditionalTerms();
+    terms[0].draws = 10000;
+    terms[0].max_degree = 1 << 24;
+    const estimate = try P.requireConditionalAlgebraicBudget(8, &terms, 128);
+    try std.testing.expect(estimate.total_degree_weight > @as(u512, 10000) * (1 << 24));
+    try std.testing.expectError(error.ConditionalAlgebraicBudgetInsufficient, P.requireConditionalAlgebraicBudget(4, &terms, 120));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireConditionalAlgebraicBudget(0, &terms, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireConditionalAlgebraicBudget(8, &terms, 257));
+}
