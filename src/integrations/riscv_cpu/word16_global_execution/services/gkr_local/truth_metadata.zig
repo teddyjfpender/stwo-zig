@@ -28,9 +28,17 @@ pub const Provider = struct {
     frames: [3]Frame.Instance,
     plan: Frame.Plan,
     pub fn init(source: *const R.TruthSource, expected: [3]Frame.Instance, budget: usize) !Provider {
+        const plan = try Frame.Plan.admit(&expected, budget);
+        return initChecked(source, expected, plan);
+    }
+    /// Classic producers never materialize a row×query GKR fact matrix.
+    pub fn initClassic(source: *const R.TruthSource, expected: [3]Frame.Instance) !Provider {
+        for (expected) |instance| _ = try instance.variables();
+        return initChecked(source, expected, .{});
+    }
+    fn initChecked(source: *const R.TruthSource, expected: [3]Frame.Instance, plan: Frame.Plan) !Provider {
         const actual = Frame.forSource(source);
         for (actual, expected) |x, y| if (!std.meta.eql(x, y)) return error.TruthGkrSourceGeometryMismatch;
-        const plan = try Frame.Plan.admit(&expected, budget); // BEFORE allocations.
         switch (source.*) {
             .keccak => |s| {
                 try s.permutation.validateMetadata();

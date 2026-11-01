@@ -64,3 +64,41 @@ The joined role binding, receiver-admitted geometry, stage-one manifest, global
 closure and complete execution receiver are still required. This module alone is
 not a complete accepting VM proof. Production selection and recursion cost gates
 remain open; there is no GPU qualification or performance projection here.
+
+## Accepting classic truth worker (separate additive slice)
+
+`truth_worker.zig` is the actual physical truth proving/receiving seam for the
+initial CPU-local-GKR / classic-truth OM profile. It consumes MAIN ownership only
+after successful initialization, seals FIXED and MAIN, emits a null local child
+at stage one, derives its own local polynomial/lookup challenges after MAIN, and
+accepts global RAM/KIO/Wire challenges only from the checked pending manifest.
+Every physical claim enters stage two's transcript. The fresh receiver uses
+receiver-owned setup/logs/configuration, checks both physical roots against the
+manifest, reconstructs every role, verifies the complete physical STARK, and
+returns pure KIO/Wire debt only. It does not accept a producer's mixed debt sum.
+
+The five physical claims are three local claims followed by two global claims.
+The local claims must sum to zero within this truth before proving or receiving;
+the second global is zero for Keccak. Global RAM is absent. Keccak locals use
+strict triple-denominator inverses plus one joint prefix (5,128 columns) and its
+separate strict KIO argument (208), on a 4n truth PCS. Its prefix has degree five;
+all pole inverses remain independently constrained. Secp locals use strict pairs
+and one joint prefix; the original degree-three arithmetic and separate strict
+Wire argument run on 2n. All table-provider claims are physical components in
+the same proof. No row×query GKR matrix is allocated for this initial truth lane.
+The CPU proof stays in its independent 2n PCS.
+
+A derived last-row anchor is evaluated from verifier-owned geometry at OODS and
+from a temporary known polynomial in the domain kernel. No producer column or
+shifted FIXED opening is trusted for that endpoint. The shared classic producer
+retains its default 32-term CPU limit and exposes a separate 640-term truth entry;
+both charge bounded chunk scratch before allocation. At Keccak log 18 the 5,336
+interaction columns alone require 5,595,201,536 bytes, so callers must admit the
+wide-field cost explicitly. This is a correctness milestone, not a speed claim.
+
+The worker independently reuses original positive-event characteristic admission
+before allocation/decoding: Keccak's active-round roster bounds and secp's combined
+product/linear padded BYTE mass. The complete execution receiver must still admit
+the entire global roster and close the pure global claims. The physical fixtures
+use a trusted pending-manifest fragment to exercise actual Keccak and secp proofs;
+they do not claim whole-execution manifest qualification or a 128-bit certificate.
