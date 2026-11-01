@@ -98,7 +98,7 @@ pub fn main() !void {
     defer dir.close();
     const setup_ns = timer.read() - capture_ns - trim_ns;
     try @import("telemetry.zig").write(a, dir, &keys, &captured);
-    var store = try @import("../retained_main_store.zig").Store.init(args[4], 128 << 30);
+    var store = if (operational.park_retained_main) try @import("../retained_main_store.zig").Store.initParked(args[4], 128 << 30) else try @import("../retained_main_store.zig").Store.init(args[4], 128 << 30);
     defer store.deinit();
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();

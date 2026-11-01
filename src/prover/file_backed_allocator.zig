@@ -38,22 +38,10 @@ pub const FileBackedAllocator = struct {
     }
 
     fn map(self: *FileBackedAllocator, len: usize) ![*]u8 {
-        const size = std.mem.alignBackward(usize, try std.math.add(usize, len, std.heap.pageSize() - 1), std.heap.pageSize());
-        if (size == 0 or size > std.math.maxInt(i64)) return error.InvalidMappingLength;
-        var random: [16]u8 = undefined;
-        std.crypto.random.bytes(&random);
-        const name = std.fmt.bytesToHex(random, .lower);
-        const file = try self.dir.createFile(&name, .{ .read = true, .exclusive = true, .mode = 0o600 });
-        defer file.close();
-        // Unlink while the descriptor is live: failures and killed producers
-        // cannot leave tens of GiB of abandoned named scratch files behind.
-        self.dir.deleteFile(&name) catch |err| {
-            self.dir.deleteFile(&name) catch {};
-            return err;
-        };
-        try reserve(file, size);
-        try file.setEndPos(size);
-        const memory = try std.posix.mmap(null, size, std.posix.PROT.READ | std.posix.PROT.WRITE, .{ .TYPE = .SHARED }, file.handle, 0);
+        var owned = try ReservedFile.init(self.dir, len);
+        defer owned.deinit();
+        const size = owned.size;
+        const memory = try owned.map(false);
         _ = self.live_bytes.fetchAdd(size, .monotonic);
         _ = self.total_bytes.fetchAdd(size, .monotonic);
         return memory.ptr;
@@ -71,6 +59,44 @@ pub const FileBackedAllocator = struct {
         std.posix.munmap(@alignCast(memory.ptr[0..size]));
         const previous = self.live_bytes.fetchSub(size, .monotonic);
         std.debug.assert(previous >= size);
+    }
+};
+
+/// One authoritative temporary-file reservation shared by mapped allocations
+/// and parked proof coefficients. Owns an open, already unlinked descriptor.
+/// Mapping owners must unmap separately before closing this move-only owner.
+pub const ReservedFile = struct {
+    file: std.fs.File,
+    size: usize,
+    pub fn roundedLength(len: usize) !usize {
+        const size = std.mem.alignBackward(usize, try std.math.add(usize, len, std.heap.pageSize() - 1), std.heap.pageSize());
+        if (size == 0 or size > std.math.maxInt(i64)) return error.InvalidMappingLength;
+        return size;
+    }
+    pub fn init(dir: std.fs.Dir, len: usize) !ReservedFile {
+        if (comptime builtin.os.tag != .macos and builtin.os.tag != .linux) return error.FileBackedColumnsUnsupported;
+        const size = try roundedLength(len);
+        var random: [16]u8 = undefined;
+        std.crypto.random.bytes(&random);
+        const name = std.fmt.bytesToHex(random, .lower);
+        const file = try dir.createFile(&name, .{ .read = true, .exclusive = true, .mode = 0o600 });
+        errdefer file.close();
+        dir.deleteFile(&name) catch |err| {
+            dir.deleteFile(&name) catch {};
+            return err;
+        };
+        try reserve(file, size);
+        try file.setEndPos(size);
+        return .{ .file = file, .size = size };
+    }
+    pub fn map(self: *const ReservedFile, read_only: bool) ![]align(std.heap.page_size_min) u8 {
+        if (try self.file.getEndPos() != self.size) return error.ReservedFileLengthMismatch;
+        const protection: u32 = @intCast(if (read_only) std.posix.PROT.READ else std.posix.PROT.READ | std.posix.PROT.WRITE);
+        return std.posix.mmap(null, self.size, protection, .{ .TYPE = .SHARED }, self.file.handle, 0);
+    }
+    pub fn deinit(self: *ReservedFile) void {
+        self.file.close();
+        self.* = undefined;
     }
 };
 

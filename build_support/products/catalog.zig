@@ -40,6 +40,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-secp-bridge", .description = "Word16 coordinate bridge joins CPU owner RAM14 and RCB Wire35", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-shared", .description = "Execution-wide K truth joins actual CPU RAM shards", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-bridge", .description = "Word16 Keccak OWNER RAM bridge qualification", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-retained-parking", .description = "Qualify unmapped sealed MAIN and read-only restored proof custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-retained-storage", .description = "Qualify file-retained compact polynomials across shared challenges", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-ethereum-terminal", .description = "Require trusted Ethereum halt and output after complete physical verification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-global-execution", .description = "Actual multi-shard CPU and global RAM prefix", .scope = .riscv_cpu },
