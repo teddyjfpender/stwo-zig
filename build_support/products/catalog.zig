@@ -47,6 +47,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-global-memory", .description = "Diagnostic sealed-root two-phase RAM aggregate with physical verification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-prepared", .description = "One native CPU witness with grouped weighted provider geometry", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-combined-services", .description = "One CPU per shard joins all LE services with shared RAM and bounded truths", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-bulk-memory", .description = "Admitted aligned memcpy/memset bridge AIR: known-answer and adversarial tests", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-secp-bridge", .description = "Word16 coordinate bridge joins CPU owner RAM14 and RCB Wire35", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-shared", .description = "Execution-wide K truth joins actual CPU RAM shards", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-keccak-bridge", .description = "Word16 Keccak OWNER RAM bridge qualification", .scope = .riscv_cpu },
