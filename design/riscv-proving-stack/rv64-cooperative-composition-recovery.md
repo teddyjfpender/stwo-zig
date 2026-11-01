@@ -47,3 +47,17 @@ by default.
 Native RV64 qualification and same-binary prefix evidence are recorded in the
 accompanying receipt after those gates finish. No full-block performance claim
 or default queue promotion follows from these focused tests.
+
+The recovery's Safe native driver, Word16 ALU/shared-provider suite and RV64
+AIR suite pass. Both modes prove the real 4-CPU/3-truth prefix, and separate
+fresh receivers accept. All seven proofs, bundle, cells, cost and roster are
+byte-identical between modes and to the frozen schema5 baseline. The queue
+actually executes four CPU waves on eight threads. With the explicit 1 GiB
+soft cap the largest estimated active component is 3,154,116,608 bytes, using
+the documented oversized-component exception.
+
+The single engineering pair is slower with the queue (34.51 -> 40.08 seconds
+wall; 28.18 -> 32.81 seconds proving), while capture/setup also slow and a
+fresh receiver overlaps the queue run. This establishes neither a controlled
+speedup nor a regression attribution. Default enablement remains withheld.
+See `vectors/reports/rv64-word16-execution-20261101/cooperative-composition-recovery-v1.json`.
