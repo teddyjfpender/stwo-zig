@@ -4,6 +4,8 @@ const builtin = @import("builtin");
 
 pub const m31 = @import("m31.zig");
 pub const cm31 = @import("cm31.zig");
+pub const om31 = @import("om31.zig");
+pub const packed_om31 = @import("packed_om31.zig");
 pub const qm31 = @import("qm31.zig");
 pub const qm31_pointwise = @import("qm31_pointwise.zig");
 pub const packed_qm31 = @import("packed_qm31.zig");
