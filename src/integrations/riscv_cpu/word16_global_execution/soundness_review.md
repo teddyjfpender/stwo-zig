@@ -177,3 +177,53 @@ protocol96-bit or128-bit guarantee. Lookup degree, actual masses, adaptive
 statement selection and unions across all relations/proofs require separate
 security analysis. Epoch16/tick24 and the characteristic guard remain explicit
 finite limits, not unbounded-execution claims.
+
+## SHA-256 compression (`ethereum_services_v3`)
+
+Design and evidence: `design/riscv-proving-stack/rv64-sha256-service.md`.
+
+SHA-256 is Wire35 program kind 3 and services `Family.sha256 = 3`, appended
+after the v2 roster. A v2 bundle is byte-identical with or without this code.
+
+- **Bridge.** The shared Word16 Wire35 bridge with kind `.sha256` binds:
+  - OWNER19 (ECALL, full64 `a0`, `a7 = 0x30010`, epoch, CPU tick);
+  - 32-byte alignment and non-wrapping word addresses;
+  - an authenticated RAM14 predecessor for each of the 12 words, all readable;
+  - write rights for words 0..3; words 4..11 are read-only, so their after
+    value equals the before value.
+
+  RAM adds 24 terms per call.
+- **Truth.** One compression per row, degree 3, native 2n, in its own PCS.
+  - Boolean registers for `W_0..63`, `A_{-4..63}` and `E_{-4..63}`, plus
+    exact carried 16-bit-half sums.
+  - Every half-sum is below `8·2^16 < p`, so each field equation is an integer
+    equation.
+  - Padding rows are honest zero-state compressions.
+  - Activity is a strict prefix of exactly `calls` rows, enforced through the
+    previous-row ACTIVE mask, FIRST/LAST and the public `calls`.
+- **Joins.** The truth consumes wires 0..2 (state and both message halves) and
+  produces wire 3, keyed by kind, call ID (`first_id + ROW`) and wire ID. The
+  bridge produces its BEFORE tuples and consumes coordinate 0's AFTER tuple.
+  Input bytes are linear forms over truth bits (the big-endian swap is in the
+  form). Output bytes inherit U8 canonicality from the bridge through Wire35
+  closure. The receiver adds every bridge and truth Wire35 claim into the one
+  global sum.
+- **Transcript.** The CPU spec mixes the SHA block only when the bridge is
+  present, and the CPU claim vector then grows by five claims. The truth
+  spec mixes its geometry and constraint count. Unused truth-claim slots must
+  be zero.
+- **Admission.**
+  - The ROM and CPU AIR are unchanged: a SHA tag closes OWNER only in a shard
+    whose admitted roster contains a SHA bridge.
+  - The Ethereum receiver rejects any SHA declaration unless the request's
+    `execution_profile` is v3.
+- **Tests** (beyond the unit/AIR suites): locally valid false new state →
+  Wire35 unclosed; forged block word consistent between bridge and truth →
+  RAM unclosed; wrong pointer → CPU local OWNER unclosed; missing-bridge
+  receiver → presence mismatch; a 4-shard real-block prefix accepted by a
+  fresh receiver.
+- **Open.**
+  - recursion support;
+  - a complete-block v3 qualification;
+  - binding the profile into the program identity rather than receiver policy;
+  - whole-protocol security accounting.

@@ -1,7 +1,8 @@
 # RV64 admitted SHA-256 compression service (`ethereum_services_v3`)
 
-Status: implemented in the Word16 services lane. It is qualified by unit,
-adversarial and services-fixture tests with a fresh receiver. See "Evidence"
+Status: implemented in the Word16 services lane and qualified by unit,
+adversarial and services-fixture tests with a fresh receiver, plus a
+freshly verified 4-shard Ethereum prefix (block 24,628,607). See "Evidence"
 and "Remaining gaps" below for what is and is not established.
 
 ## ABI
@@ -163,12 +164,110 @@ The bridge is the existing secp Word16 Wire35 bridge with
 
 ## Measured cost
 
-MEASURED_COST_PLACEHOLDER
+Committed MAIN+INTERACTION cells per compression (fixed columns are key
+material and are not counted):
+
+| Item | Nominal | Measured, block 24,628,607 prefix |
+|---|---:|---:|
+| Truth row | 7,417 | 30,380,032 cells / 2,771 calls = 10,964 (log12, 4,096 rows) |
+| Bridge (3 rows × (134 + 244)) | 1,134 | (3,096,576 + 193,536) / 2,771 = 1,187 (shard logs 13 and 9) |
+| **Total** | **8,551** | **12,151** |
+
+- The measurement is a 4-shard prefix that contains 2,771 of the block's 2,772
+  compressions. It is recorded in `calibration.json`
+  `coefficients.sha256_cells_per_call` together with its derivation.
+- The sibling estimate was 18,000 (range 12k-26k). Software SHA-256 costs
+  about 3,980 instructions, which is about 616k cells, per compression.
+- The SHA-256 truth proof for 2,771 compressions took 0.69 s of worker
+  stages: composition 0.22 s and MAIN commit 0.09 s, with 8 lane threads
+  (M-series CPU, same-process run).
+- The whole 4-shard prefix proved in 29.5 s with peak RSS 22.8 GB. A fresh
+  `verify-prefix` took 3.2 s with RSS 2.9 GB.
+- Guest-efficiency harness, all 15 blocks, admitted v3 ELF against a same-tree
+  v2-lean reference ELF. Outputs are exact on every block.
+
+  | Set | instr/gas (v2 ref → v3) | committed bits/gas (v2 ref → v3) |
+  |---|---|---|
+  | scored | 13.181 → 11.541 (−12.4%) | 151,702 → 135,602 (−10.6%) |
+  | holdout | 11.164 → 9.699 (−13.1%) | 128,554 → 114,175 (−11.2%) |
+  | all | 12.783 → 11.177 (−12.6%) | 147,133 → 131,372 (−10.7%) |
+
+  The basket made 196,254 compressions. Block 24,628,607 dropped from
+  98.82M to 88.72M instructions.
 
 ## Evidence
 
-EVIDENCE_PLACEHOLDER
+- `zig build test-riscv64-sha256-truth`:
+  - FIPS 180-4 known answers: "abc", the empty message, the two-block 448-bit
+    message and the 896-bit message.
+  - 48 random and extreme blocks (all-ones state and block, zero, IV) checked
+    against an independent compression (`candidate_services.sha256Compress`),
+    with every MAIN residual zero and the wire byte forms equal to the native
+    bytes.
+  - Adversarial rows are rejected: a wrong output byte, a flipped message bit,
+    a non-canonical bit (2·2^(i−1) substituted for 2^i), a forged round carry,
+    and a forged feed-forward carry.
+  - A +1 perturbation of every one of the 7,409 MAIN cells is caught.
+  - Activity-prefix rules hold.
+  - The interaction claim equals the native Wire35 sum, and both batch
+    residuals vanish on every row.
+- `test-riscv64-execution`:
+  - The v3 session executes SHA-256 and v2 traps on the tag.
+  - Misaligned and read-only packets trap without publishing anything.
+  - Tape wire round-trips for every profile, including the v3 SHA-256
+    section. A mutated read-only word, a SHA count in a v2 header and a
+    misaligned record are each rejected.
+- `test-riscv64-word16-combined-services`:
+  - The existing suites pass, plus `services/sha256_test.zig`.
+  - A two-shard v3 fixture (SD, SHA, SHA | SD, SHA on one cross-page packet)
+    proves 2 CPU proofs and 1 SHA truth. It verifies with independently built
+    keys after a durable wire round-trip.
+  - The same calls split over two truth spans also verify. Swapping the spans
+    is rejected.
+  - A receiver expecting no SHA bridge rejects the bundle
+    (`InvalidCombinedBridgePresence`), and a nonzero unused truth-claim slot
+    is rejected.
+  - Locally valid but false proofs are rejected by global closure:
+    - a false new state → `UnclosedCombinedSecpWire`;
+    - a forged block word consistent between truth and bridge →
+      `UnclosedCombinedRam`;
+    - a wrong pointer → `UnclosedCombinedCpuRelations`.
+- v2 identity: the `rv64-word16-combined-services-fixture produce` bundle
+  (bundle.json, cells.bin, 2 CPU and 3 truth proofs) is byte-identical before
+  and after the change, and the pre-change bundle verifies with the new
+  binary.
+- Other suites still pass: word16-global-execution, word16-ethereum-terminal,
+  word16-keccak-shared, word16-keccak-bridge, word16-secp-bridge,
+  services-gkr-local, word16-execution-prepared and secp.
+- Ethereum: block 24,628,607 with the admitted v3 guest:
+  - native jobs: 22 batches, completed, 88,717,886 instructions;
+  - 4-shard `produce` (2,771 SHA-256 calls) followed by a fresh
+    `verify-prefix`: `accepted: true`;
+  - the same bundle under a v2 request fails with `UnadmittedSha256Service`.
 
 ## Remaining gaps
 
-GAPS_PLACEHOLDER
+- **Recursion.** The RV64 recursion circuits (om31 and circuit lanes) have no
+  SHA-256 truth or bridge role, so a v3 bundle cannot yet be wrapped or folded.
+  This is the largest remaining piece of prover work.
+- **Complete block.** Only a 4-shard prefix was proved. A complete-block v3
+  proof with a fresh `verify` has not been run.
+- **Profile in the statement.** v3 is a receiver policy (`admitProfile`),
+  enforced together with bridge presence in the per-shard spec. It is not part
+  of the program identity: native jobs keep the v2-decoded ROM authority,
+  because decode is identical. A downstream consumer must run the v3 receiver.
+- **Security accounting.** Whole-protocol security bits are not established,
+  exactly as for the other services. That includes LogUp rational degree, the
+  per-proof Wire35 mass (4 terms per call on each side) and union bounds.
+- **No local OUT range check.** OUT canonicality comes from the bridge's U8
+  checks through Wire35 (an argument, tested via `wrong_output`). An auditor
+  may prefer a local byte range check; it would add 32 queries per row.
+- **Width.** The truth is wide (7,417 columns) and log13 caps a span at 8,191
+  calls. The largest basket blocks (about 29k compressions) need 4 spans.
+- **Not reviewed or optimised.**
+  - The guest crate's admitted `stwo-sha256-service` feature needs
+    dependency and cryptographic review.
+  - Carry bits could be narrowed and the bits for `A_63`, `E_63`, `W_62` and
+    `W_63` folded away, which would save about 2%.
+  - GPU/Metal paths and same-AIR Rust verification are not done.
+  - The legacy wide route (`rv64-ethereum-proof prove`) rejects v3 by design.
