@@ -26,6 +26,23 @@ pub const Lane = struct {
     c0: q.Lane,
     c1: q.Lane,
     pub const InnerField = q.Lane;
+    pub const rv64_external_lane = true;
+    pub const rv64_extension_degree = 8;
+    pub fn fromU32(input: u32) Lane {
+        return fromBase(M31.fromCanonical(input));
+    }
+    pub fn fromQm31(input: Q) Lane {
+        return .{ .c0 = q.Lane.fromQm31(input), .c1 = q.Lane.zero() };
+    }
+    pub fn fromPartialEvals(input: [8]Lane) Lane {
+        var out = zero();
+        inline for (0..8) |i| {
+            var basis = [_]M31{M31.zero()} ** 8;
+            basis[i] = M31.one();
+            out = out.add(input[i].mul(fromOm31(O.fromM31Array(basis))));
+        }
+        return out;
+    }
     fn arithmetic(x: Lane) A {
         return .{ .c0 = x.c0, .c1 = x.c1 };
     }

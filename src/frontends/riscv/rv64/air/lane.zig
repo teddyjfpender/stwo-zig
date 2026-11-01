@@ -1,7 +1,7 @@
 //! External arithmetic lane contract for RV64 constraint evaluation at a point.
 //!
 //! An external lane is any type declaring `pub const rv64_external_lane = true`
-//! (for example an in-circuit verifier's wire type). It is QM31-shaped: the
+//! (for example an in-circuit verifier's wire type). For a selected field, the
 //! trace lane and the secure lane coincide, every challenge, claim and public
 //! scalar is a lane value, and literal constants enter through `fromU32`.
 //!
@@ -12,7 +12,8 @@
 //!   fn fromU32(x: u32) F;            canonical small-integer constant
 //!   fn fromBase(m: M31) F;           base-field constant (shared Poseidon/secp equations)
 //!   fn fromQm31(c: QM31) F;          secure-field constant (flatteners, tests)
-//!   fn fromPartialEvals(c: [4]F) F;  c0 + c1*u + c2*v + c3*w in the QM31 basis
+//!   fn fromPartialEvals(c: [degree]F) F; secure basis reconstruction
+//! Degree defaults to4 for legacy lanes; wide lanes explicitly declare8.
 //!   fn add(a: F, b: F) F;
 //!   fn sub(a: F, b: F) F;
 //!   fn mul(a: F, b: F) F;
@@ -39,7 +40,9 @@ pub fn assertExternalLane(comptime F: type) void {
         expectFn(F, "fromU32", &.{u32}, F);
         expectFn(F, "fromBase", &.{M}, F);
         expectFn(F, "fromQm31", &.{Q}, F);
-        expectFn(F, "fromPartialEvals", &.{[4]F}, F);
+        const degree = if (@hasDecl(F, "rv64_extension_degree")) F.rv64_extension_degree else 4;
+        if (degree != 4 and degree != 8) @compileError("unsupported external secure extension degree");
+        expectFn(F, "fromPartialEvals", &.{[degree]F}, F);
         const binary = [_][]const u8{ "add", "sub", "mul" };
         for (binary) |name| expectFn(F, name, &.{ F, F }, F);
         const unary = [_][]const u8{ "neg", "square", "inv" };
@@ -125,6 +128,7 @@ pub fn sample(comptime F: type, masks: anytype, tree: usize, column: usize, inde
 
 /// Four consecutive base-coordinate columns combine into one secure value.
 pub fn secureSample(comptime F: type, masks: anytype, tree: usize, column: usize, index: usize, expected: usize) !F {
+    comptime if (F == core.fields.om31.OM31 or (@hasDecl(F, "rv64_extension_degree") and F.rv64_extension_degree != 4)) @compileError("legacy four-coordinate sample cannot encode wide secure values");
     var coordinates: [4]F = undefined;
     for (&coordinates, 0..) |*coordinate, i| coordinate.* = try sample(F, masks, tree, column + i, index, expected);
     return F.fromPartialEvals(coordinates);
@@ -147,4 +151,32 @@ pub const NativeMasks = struct {
 test "lane power matches QM31 exponentiation" {
     const base = Q.fromU32Unchecked(3, 5, 7, 11);
     for ([_]u64{ 0, 1, 2, 3, 17, 2528, 65535 }) |exponent| try std.testing.expect(pow(Q, base, exponent).eql(base.pow(exponent)));
+}
+
+/// Explicit wide masks: the caller chooses an independently admitted field and
+/// physical width; old component offsets must not be reused for this accessor.
+pub fn secureSampleForField(comptime C: type, comptime F: type, masks: anytype, tree: usize, column: usize, index: usize, expected: usize) !@import("evaluation.zig").SecureFor(F) {
+    const degree = @import("evaluation.zig").extensionDegree(C);
+    var coordinates: [degree]F = undefined;
+    for (&coordinates, 0..) |*coordinate, i| coordinate.* = try sample(F, masks, tree, column + i, index, expected);
+    return @import("evaluation.zig").secureFromCoordinatesForField(C, F, coordinates);
+}
+
+/// Native typed mask view. Storage carries the actual relation field; unlike
+/// a cast of the legacy MaskValues, all eight coordinates remain represented.
+pub fn NativeMasksForField(comptime C: type) type {
+    if (C == Q) return NativeMasks;
+    comptime if (C != core.fields.om31.OM31) @compileError("unsupported native RV64 mask field");
+    return struct {
+        values: *const core.pcs.TreeVec([][]C),
+        pub fn count(self: @This(), tree: usize, column: usize) !usize {
+            if (tree >= self.values.items.len or column >= self.values.items[tree].len) return error.InvalidRv64MaskShape;
+            return self.values.items[tree][column].len;
+        }
+        pub fn at(self: @This(), tree: usize, column: usize, index: usize) !C {
+            const n = try self.count(tree, column);
+            if (index >= n) return error.InvalidRv64MaskShape;
+            return self.values.items[tree][column][index];
+        }
+    };
 }
