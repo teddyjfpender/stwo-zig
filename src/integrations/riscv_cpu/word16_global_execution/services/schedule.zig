@@ -9,6 +9,7 @@ const Pool = @import("stwo_prover_engine").work_pool;
 const Usage = @import("stwo_prover_api").stage_profile.process_usage;
 pub const MAX_LANES = 4;
 pub const MAX_TOTAL_WORKERS = 32;
+pub const MAX_ORDERED_TASKS = 4096;
 pub const Policy = struct {
     lanes: u8 = 1,
     workers_per_lane: u8 = 8,
@@ -66,9 +67,28 @@ pub const Trace = struct {
 pub const RunOptions = struct {
     /// Empty, or one estimate per index (required when the cap is enabled).
     estimates: []const u64 = &.{},
+    /// Empty means natural order. Otherwise a borrowed complete permutation;
+    /// results, errors, estimates and traces remain indexed by original ordinal.
+    order: []const usize = &.{},
     /// Empty, or one slot per index.
     trace: []Trace = &.{},
 };
+/// No allocation or execution is permitted before the optional permutation
+/// is proven bijective. A bounded stack bitmap gives linear validation.
+pub fn validateOrder(order: []const usize, count: usize) !void {
+    if (order.len == 0) return;
+    if (order.len != count or count > MAX_ORDERED_TASKS) return error.InvalidServiceOrder;
+    var seen: [MAX_ORDERED_TASKS / 64]u64 = @splat(0);
+    for (order) |index| {
+        if (index >= count) return error.InvalidServiceOrder;
+        const bit = @as(u64, 1) << @intCast(index % 64);
+        if (seen[index / 64] & bit != 0) return error.InvalidServiceOrder;
+        seen[index / 64] |= bit;
+    }
+}
+fn originalIndex(order: []const usize, position: usize) usize {
+    return if (order.len == 0) position else order[position];
+}
 /// The context's indexed slots must be disjoint and allocator thread-safe.
 /// A single lane reuses the caller pool only when its worker budget matches.
 /// Otherwise a lane-local pool enforces the requested budget and is joined.
@@ -90,6 +110,7 @@ fn laneThreads(pool: ?*Pool.WorkPool, storage: []std.Thread.Handle) Usage.LaneTh
 }
 pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Context, count: usize, policy: Policy, options: RunOptions, comptime execute: fn (*Context, usize) anyerror!void) !void {
     try policy.validate();
+    try validateOrder(options.order, count);
     if (options.estimates.len != 0 and options.estimates.len != count) return error.InvalidServiceSchedule;
     if (options.trace.len != 0 and options.trace.len != count) return error.InvalidServiceSchedule;
     if (policy.memory_cap_bytes != 0 and options.estimates.len != count) return error.MissingServiceMemoryEstimates;
@@ -104,7 +125,8 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
         const lane = laneThreads(Pool.currentScopedPool(), &storage);
         const previous = Usage.bindLane(&lane);
         defer _ = Usage.bindLane(previous);
-        for (0..count) |index| {
+        for (0..count) |position| {
+            const index = originalIndex(options.order, position);
             const start = elapsed(origin);
             const estimate = if (options.estimates.len != 0) options.estimates[index] else 0;
             try execute(context, index);
@@ -170,8 +192,9 @@ pub fn runWithOptions(comptime Context: type, a: std.mem.Allocator, context: *Co
             const previous = Usage.bindLane(&threads);
             defer _ = Usage.bindLane(previous);
             while (!self.stop.load(.acquire)) {
-                const index = self.next.fetchAdd(1, .monotonic);
-                if (index >= self.count) return;
+                const position = self.next.fetchAdd(1, .monotonic);
+                if (position >= self.count) return;
+                const index = originalIndex(self.options.order, position);
                 const claimed = elapsed(self.origin);
                 const estimate = if (self.options.estimates.len != 0) self.options.estimates[index] else 0;
                 const in_flight = self.admit(estimate) orelse return;

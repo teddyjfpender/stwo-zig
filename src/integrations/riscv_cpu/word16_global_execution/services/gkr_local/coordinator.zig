@@ -49,12 +49,15 @@ pub const Options = struct {
     retained_store: ?*Store = null,
     worker_timings: ?[]WorkerTiming = null,
     native_profiles: []const ?*@import("stwo_prover_api").stage_profile.Recorder = &.{},
+    /// Operational execution order only; manifests and result slots keep original ordinals.
+    stage2_order: []const usize = &.{},
     schedule: Schedule.Policy = .{ .lanes = 1, .workers_per_lane = 2 },
     pub fn validate(self: Options, count: usize) !void {
         if (self.max_workers == 0 or self.max_workers > Manifest.MAX_WORKERS or count > self.max_workers or self.max_retained_frontend_bytes == 0 or self.gkr_budget == 0 or self.global_budget == 0) return error.BoundedWideCoordinatorLimit;
         if (self.worker_timings) |timings| if (timings.len != count) return error.InvalidWideCoordinatorTimings;
         if (self.native_profiles.len != 0 and self.native_profiles.len != count) return error.InvalidWideNativeProfiles;
         try self.schedule.validate();
+        try Schedule.validateOrder(self.stage2_order, count);
         if (self.retained_store) |store| {
             if (!store.stats().parking_enabled or self.schedule.memory_cap_bytes == 0) return error.WideCoordinatorRequiresParkingAdmission;
         } else if (self.max_workers > 8) return error.BoundedWideCoordinatorLimit;
@@ -257,7 +260,7 @@ pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSe
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
     var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
     const stage1_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage1 else &.{} };
-    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{} };
+    const stage2_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates.stage2 else &.{}, .order = options.stage2_order };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, stage1_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
     var pending = try Manifest.verifyAndSeal(a, inventory.execution_identity, inventory.workers, stages);

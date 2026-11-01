@@ -36,10 +36,25 @@ const Resources = struct {
     disk_bytes: usize,
     /// Explicit operational choice: small inventories may retain MAIN in RAM.
     park_main: bool = true,
+    stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn validate(self: Resources) !void {
         if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or (self.park_main and self.disk_bytes == 0) or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
         try self.schedule.validate();
+        try Schedule.validateOrder(self.stage2_order, self.stage2_order.len);
+    }
+    pub fn jsonStringify(self: Resources, writer: anytype) !void {
+        try writer.beginObject();
+        inline for (.{ "gkr_bytes", "global_bytes", "retained_frontend_bytes", "disk_bytes", "park_main", "schedule" }) |name| {
+            try writer.objectField(name);
+            try writer.write(@field(self, name));
+        }
+        // Preserve historical default report schema; only explicit opt-in emits order.
+        if (self.stage2_order.len != 0) {
+            try writer.objectField("stage2_order");
+            try writer.write(self.stage2_order);
+        }
+        try writer.endObject();
     }
 };
 /// Separate operational schema keeps historical control resource/report bytes
@@ -51,9 +66,10 @@ const CandidateResources = struct {
     disk_bytes: usize,
     fixed_setup_bytes: usize,
     park_main: bool = true,
+    stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -127,20 +143,22 @@ pub fn main() !void {
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns });
     }
     var resources: ?Resources = null;
+    var control_resource_owner: ?std.json.Parsed(Resources) = null;
+    defer if (control_resource_owner) |*owner| owner.deinit();
+    var candidate_resource_owner: ?std.json.Parsed(CandidateResources) = null;
+    defer if (candidate_resource_owner) |*owner| owner.deinit();
     if (produce) {
         const limits_bytes = try std.fs.cwd().readFileAlloc(a, args[6], 16384);
         defer a.free(limits_bytes);
         if (candidate) {
-            const limits = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
-            defer limits.deinit();
-            try limits.value.validate();
-            resources = limits.value.operational();
-            fixed_setup_bytes = limits.value.fixed_setup_bytes;
+            candidate_resource_owner = try std.json.parseFromSlice(CandidateResources, a, limits_bytes, .{});
+            try candidate_resource_owner.?.value.validate();
+            resources = candidate_resource_owner.?.value.operational();
+            fixed_setup_bytes = candidate_resource_owner.?.value.fixed_setup_bytes;
         } else {
-            const limits = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
-            defer limits.deinit();
-            try limits.value.validate();
-            resources = limits.value;
+            control_resource_owner = try std.json.parseFromSlice(Resources, a, limits_bytes, .{});
+            try control_resource_owner.?.value.validate();
+            resources = control_resource_owner.?.value;
         }
     }
     const count = try std.fmt.parseUnsigned(u32, args[if (plan) 4 else 5], 10);
@@ -157,6 +175,7 @@ pub fn main() !void {
     defer a.free(truths);
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
+    try Schedule.validateOrder(operational.stage2_order, try std.math.add(usize, cpu.len, truths.len));
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
     var fixed_cache: ?FixedAuthority.Fixed.Cache = if (candidate) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
@@ -177,7 +196,7 @@ pub fn main() !void {
     const worker_timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
     defer a.free(worker_timings);
     const prove_start = timer.read();
-    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .max_workers = if (operational.park_main) 32 else 8, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule }, if (fixed_set) |*authority| authority else null);
+    var bundle = try C.produceWithAuthority(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, pcs, .{ .max_workers = if (operational.park_main) 32 else 8, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule, .stage2_order = operational.stage2_order }, if (fixed_set) |*authority| authority else null);
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     if (request.value.profile_stages) {
@@ -208,6 +227,7 @@ test "candidate operational budget cannot select protocol and control resource s
     const encoded = try std.json.Stringify.valueAlloc(a, parsed.value, .{});
     defer a.free(encoded);
     try std.testing.expect(std.mem.indexOf(u8, encoded, "fixed_setup_bytes") == null);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "stage2_order") == null);
     try std.testing.expectError(error.MissingField, std.json.parseFromSlice(CandidateResources, a, control_json, .{}));
     var candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 4, .fixed_setup_bytes = 0, .schedule = .{ .memory_cap_bytes = 5 } };
     try std.testing.expectError(error.MissingCandidateFixedSetupAdmission, candidate.validate());
@@ -216,4 +236,18 @@ test "candidate operational budget cannot select protocol and control resource s
     try std.testing.expectEqualDeep(parsed.value, candidate.operational());
     const bad = "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":4,\"fixed_setup_bytes\":6,\"schedule\":{\"memory_cap_bytes\":5},\"security_qualified\":true}";
     try std.testing.expectError(error.UnknownField, std.json.parseFromSlice(CandidateResources, a, bad, .{}));
+}
+
+test "explicit stage2 resource order remains owner-backed and serializes only when selected" {
+    const a = std.testing.allocator;
+    const parsed = try std.json.parseFromSlice(Resources, a, "{\"gkr_bytes\":1,\"global_bytes\":2,\"retained_frontend_bytes\":3,\"disk_bytes\":0,\"park_main\":false,\"stage2_order\":[2,0,1],\"schedule\":{\"memory_cap_bytes\":5}}", .{});
+    defer parsed.deinit();
+    const operational = parsed.value;
+    try operational.validate();
+    try Schedule.validateOrder(operational.stage2_order, 3);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 0, 1 }, operational.stage2_order);
+    const encoded = try std.json.Stringify.valueAlloc(a, operational, .{});
+    defer a.free(encoded);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "\"stage2_order\":[2,0,1]") != null);
+    try std.testing.expectError(error.InvalidServiceOrder, Schedule.validateOrder(operational.stage2_order, 5));
 }

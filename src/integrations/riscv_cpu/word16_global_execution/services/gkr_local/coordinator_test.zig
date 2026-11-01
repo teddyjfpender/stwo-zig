@@ -38,7 +38,7 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var store = try C.Store.initFullyParked(path, 128 << 20);
     defer store.deinit();
     var timings: [5]C.WorkerTiming = undefined;
-    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings });
+    var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 } });
     defer parked.deinit();
     for (timings, 0..) |t, i| {
         try std.testing.expect(t.stage1_completed and t.stage2_completed);
@@ -74,6 +74,8 @@ test "bounded coordinator refuses large inventory before consuming native traces
     defer keys.deinit();
     const expected = Original.expectedFor(captured.program.identity);
     try std.testing.expectError(error.BoundedWideCoordinatorLimit, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .max_workers = 4 }));
+    try std.testing.expect(captured.native[0].cpu != null);
+    try std.testing.expectError(error.InvalidServiceOrder, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .stage2_order = &.{ 0, 1, 2, 3, 3 } }));
     try std.testing.expect(captured.native[0].cpu != null);
     try std.testing.expectError(error.BoundedWideCoordinatorRetainedLimit, C.produce(a, &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected, try F.config(), .{ .max_retained_frontend_bytes = 1, .gkr_budget = 2 << 30 }));
     try std.testing.expect(captured.native[0].cpu != null);

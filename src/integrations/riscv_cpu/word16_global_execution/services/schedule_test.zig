@@ -206,3 +206,49 @@ test "Single lane and single-item schedules enforce their own worker budget and 
     try std.testing.expectEqual(@as(u8, 2), trace[0].workers);
     try std.testing.expectEqual(&outer, Pool.currentScopedPool().?);
 }
+
+test "explicit task permutation preserves original estimate trace and exactly-once result ordinals" {
+    const order = [_]usize{ 8, 1, 10, 0, 4, 11, 3, 9, 2, 7, 6, 5 };
+    const estimates = [_]u64{ 6, 6, 6, 6, 1, 1, 1, 1, 20, 6, 1, 1 };
+    var wide = Wide{ .estimates = &estimates };
+    var trace: [12]Schedule.Trace = undefined;
+    try Schedule.runWithOptions(Wide, a, &wide, 12, .{ .lanes = 4, .workers_per_lane = 2, .memory_cap_bytes = 13 }, .{ .estimates = &estimates, .trace = &trace, .order = &order }, Wide.execute);
+    for (&wide.done, trace, estimates, 0..) |*done, t, estimate, i| {
+        try std.testing.expectEqual(@as(u32, 1), done.load(.acquire));
+        try std.testing.expectEqual(estimate, t.estimate_bytes);
+        try std.testing.expect(t.finished_ns >= t.started_ns and t.started_ns >= t.claimed_ns);
+        if (i == 8) try std.testing.expectEqual(@as(u64, 20), t.in_flight_bytes_at_start) else try std.testing.expect(t.in_flight_bytes_at_start <= 13);
+    }
+}
+test "invalid task permutation rejects before allocation or callback and ordered failure joins" {
+    const ProbeOrder = struct {
+        count: usize = 0,
+        values: [12]usize = @splat(0),
+        fail_index: ?usize = null,
+        fn execute(self: *@This(), index: usize) !void {
+            self.values[self.count] = index;
+            self.count += 1;
+            if (self.fail_index == index) return error.OrderedProbeFailure;
+        }
+    };
+    var probe = ProbeOrder{};
+    var none = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    for ([_][]const usize{ &.{ 0, 0, 1 }, &.{ 0, 1, 3 }, &.{ 1, 0 } }) |bad| {
+        try std.testing.expectError(error.InvalidServiceOrder, Schedule.runWithOptions(ProbeOrder, none.allocator(), &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = bad }, ProbeOrder.execute));
+        try std.testing.expectEqual(@as(usize, 0), probe.count);
+    }
+    try std.testing.expectError(error.InvalidServiceOrder, Schedule.validateOrder(&([_]usize{0} ** (Schedule.MAX_ORDERED_TASKS + 1)), Schedule.MAX_ORDERED_TASKS + 1));
+    var pool: Pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2 });
+    defer pool.deinit();
+    var binding = try Pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try Schedule.runWithOptions(ProbeOrder, a, &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = &.{ 2, 0, 1 } }, ProbeOrder.execute);
+    try std.testing.expectEqualSlices(usize, &.{ 2, 0, 1 }, probe.values[0..probe.count]);
+    probe = .{ .fail_index = 0 };
+    try std.testing.expectError(error.OrderedProbeFailure, Schedule.runWithOptions(ProbeOrder, a, &probe, 3, .{ .lanes = 1, .workers_per_lane = 2 }, .{ .order = &.{ 2, 0, 1 } }, ProbeOrder.execute));
+    try std.testing.expectEqualSlices(usize, &.{ 2, 0 }, probe.values[0..probe.count]);
+    var parallel_failure = Probe{ .fail = true };
+    try std.testing.expectError(error.SyntheticWorkerFailure, Schedule.runWithOptions(Probe, a, &parallel_failure, 8, .{ .lanes = 2, .workers_per_lane = 2 }, .{ .order = &.{ 1, 0, 2, 3, 4, 5, 6, 7 } }, Probe.execute));
+    try std.testing.expectEqual(@as(u32, 0), parallel_failure.active.load(.acquire));
+}
