@@ -90,8 +90,14 @@ pub fn commit(
         // Coefficient commitments enter after interpolation, so keep that basis
         // and hash their GPU extensions directly. No resident tree may borrow
         // an LDE that compaction is about to retire.
+        const native_start_ns = if (timing) |*clock| clock.read() else 0;
         columns_owned = false;
-        return commitNativeCompact(B, H, BackendCommitmentTree, self, allocator, columns, stored_coefficients, channel);
+        try commitNativeCompact(B, H, BackendCommitmentTree, self, allocator, columns, stored_coefficients, channel);
+        if (timing) |*clock| std.log.info("pcs coefficient commit: path=native_compact columns={} blowup={} setup_ns={} extension_ns={} retention_ns={} merkle_compact_append_ns={} total_ns={}", .{
+            polys.len,                          blowup,                         extension_start_ns, extension_end_ns - extension_start_ns,
+            native_start_ns - extension_end_ns, clock.read() - native_start_ns, clock.read(),
+        });
+        return;
     }
 
     if (work_recorder) |work| try work.expectProducer(.commitment_tree_merkle);

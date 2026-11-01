@@ -1,0 +1,3 @@
+Opt-in STWO_ZIG_PCS_TIMING now covers the native-compact coefficient commitment branch and immutable-cache identity versus seal time. The existing PCS timer remains disabled by default, and cache acquisition starts no timer without the same environment flag. Fields are diagnostic inclusive scopes, not protocol parameters. Native merkle_compact_append_ns includes hashing, LDE release/compaction and append, rather than asserting pure leaf hash time.
+
+Source gate: fixed setup suite ReleaseSafe PASS; ReleaseFast enabled-environment filtered actual beta1/beta2 root gate PASS; CLI ReleaseFast build PASS. Test runner normally suppresses info diagnostics; the actual CLI profiling run will capture them. Actual29-key attribution pending.
