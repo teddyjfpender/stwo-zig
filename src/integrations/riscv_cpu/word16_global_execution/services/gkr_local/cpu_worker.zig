@@ -82,8 +82,16 @@ fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, 
     const presence = Manifest.Relations{ .ram = true, .kio = setup.bridges.keccak != null, .wire = setup.bridges.add != null or setup.bridges.double != null };
     if (!std.meta.eql(expected.global_relations, presence)) return error.WideCpuRelationMismatch;
 }
+fn checkManifest(expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize) !void {
+    if (index != expected.ordinal or index >= pending.entries.len) return error.WideCpuStatementMismatch;
+    const entry = pending.entries[index];
+    if (entry.kind != .cpu or entry.local == null or entry.scope.ordinal != expected.ordinal or
+        !std.meta.eql(entry.mass, expected.mass) or !std.meta.eql(entry.global_relations, expected.global_relations) or
+        !std.mem.eql(u8, &entry.scope.statement, &expected.statement) or !std.mem.eql(u8, &entry.scope.fixed, &expected.fixed)) return error.WideCpuManifestMismatch;
+}
 fn publicClaims(request: P.Request, plan: *const Components.Plan, shared: Manifest.Shared, claims: []const O) !void {
     if (claims.len != plan.claim_count) return error.InvalidWideCpuClaims;
+    for (claims) |value| for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalWideCpuClaim;
     for (plan.slots) |slot| switch (slot.origin) {
         .core => |role| if (role == .initial or role == .terminal) {
             const initial = role == .initial;
@@ -110,6 +118,7 @@ pub const CpuWorker = struct {
     sealed: bool = false,
     consumed: bool = false,
     owns_scheme: bool = true,
+    local_metadata_retired: bool = false,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize) !CpuWorker {
         try validate(a, setup, request, expected, first, config);
         const instances = try @import("roster.zig").fromSetup(a, setup);
@@ -122,6 +131,19 @@ pub const CpuWorker = struct {
         var own_expected = expected;
         own_expected.local_instances = instances;
         return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = first, .config = config, .plan = plan, .scheme = scheme, .channel = W.begin(config, expected), .gkr_budget = gkr_budget };
+    }
+    /// Local fractions and their authenticated binding are durable now. Retain
+    /// only RAM/bridge metadata needed for the later global challenge. Retired
+    /// source fields are tombstones and are never read or destroyed again.
+    pub fn retireLocalMetadata(self: *CpuWorker) !void {
+        if (!self.sealed or self.consumed) return error.WideCpuPhase;
+        if (self.local_metadata_retired) return;
+        const source = &self.source.core;
+        inline for (.{ "range8", "range16", "shift_table", "and_table", "multiplication", "division", "tails", "jalr", "shift", "binary", "alu", "rom", "cpu" }) |name| @field(source, name).deinit();
+        source.allocator.free(source.counts16);
+        source.allocator.free(source.counts8);
+        source.allocator.free(source.boundary);
+        self.local_metadata_retired = true;
     }
     /// Stage-one barrier ownership seam. The field-neutral retained store owns
     /// mapped/parked buffers; its explicit admission remains the caller's duty.
@@ -151,6 +173,7 @@ pub const CpuWorker = struct {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
         if (!self.sealed or self.consumed) return error.WideCpuPhase;
         const root = self.scheme.trees.items[1].root();
+        try checkManifest(self.expected, pending, index);
         try pending.checkPhysicalRoots(index, self.expected.fixed, root);
         if (index != self.expected.ordinal or !std.mem.eql(u8, &pending.entries[index].scope.statement, &self.expected.statement)) return error.WideCpuStatementMismatch;
         const local = &(pending.entries[index].local orelse return error.WideCpuLocalRequired);
@@ -225,7 +248,12 @@ pub const CpuWorker = struct {
     }
     pub fn deinit(self: *CpuWorker, a: std.mem.Allocator) void {
         if (self.child) |c| c.deinit();
-        self.source.deinit();
+        if (self.local_metadata_retired) {
+            self.source.core.memory.deinit();
+            if (self.source.keccak) |*source| source.deinit();
+            if (self.source.add) |*source| source.deinit();
+            if (self.source.double) |*source| source.deinit();
+        } else self.source.deinit();
         if (self.owns_scheme) self.scheme.deinit(a);
         self.plan.deinit();
         a.free(self.instances);
@@ -236,7 +264,7 @@ pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Requ
     try validate(a, setup, request, expected, first, config);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
-    if (index != expected.ordinal or index >= pending.entries.len or !std.mem.eql(u8, &expected.statement, &pending.entries[index].scope.statement)) return error.WideCpuStatementMismatch;
+    try checkManifest(expected, pending, index);
     var proof = try W.decodePhysical(a, encoded.bytes);
     var owns = true;
     defer if (owns) proof.deinit(a);
