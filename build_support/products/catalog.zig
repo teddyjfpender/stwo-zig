@@ -96,6 +96,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-word16-combined-services-fixture", .description = "Actual one CPU per shard with all LE services and shared RAM", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-setup-audit", .description = "Check unique setup payload accounting and shared custody", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-csp", .description = "Qualify CSP32 and Sail independent image output and compact capture authority", .scope = .riscv_cpu },
+    .{ .name = "rv64-om-sail-qualification", .description = "Qualify pinned Sail workload on explicit current OM coordinator", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-sail", .description = "Prove a continuous pinned Sail RV64IM workload using joined Word16 AIR", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-setup-ownership", .description = "Measure retained immutable full execution setup payloads", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-csp", .description = "Prove complete software CSP32 requests using joined Word16 AIR", .scope = .riscv_cpu },
