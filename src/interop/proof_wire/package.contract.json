@@ -29,7 +29,8 @@
     "encodeProofBytesBinary",
     "encodeProofHexAlloc",
     "proofToWire",
-    "wireToProof"
+    "wireToProof",
+    "ForField"
   ],
   "api_contract": {
     "signature_tests": [

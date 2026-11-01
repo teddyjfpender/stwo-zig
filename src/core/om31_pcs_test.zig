@@ -100,12 +100,12 @@ test "wide PCS: raw-mod proof-of-work preserves the tagged digest and draw count
     var channel = core.channel.raw_mod_m31.Om31Channel.init();
     channel.mixU32s(&.{ 17, 29, 41 });
     _ = channel.drawSecureFelt();
-    const before = channel.inner.counter;
+    const before = channel.inner.n_draws;
     const digest = channel.digestBytes();
     const nonce = channel.grindWithWorkerCount(8, 1);
     try std.testing.expect(channel.verifyPowNonce(8, nonce));
     try std.testing.expectEqual(nonce, channel.inner.grindWithWorkerCount(8, 1));
-    try std.testing.expectEqual(before, channel.inner.counter);
+    try std.testing.expectEqual(before, channel.inner.n_draws);
     try std.testing.expectEqualSlices(u8, &digest, &channel.digestBytes());
     var invalid: u64 = 0;
     while (channel.inner.verifyPowNonce(8, invalid)) : (invalid += 1) {}
