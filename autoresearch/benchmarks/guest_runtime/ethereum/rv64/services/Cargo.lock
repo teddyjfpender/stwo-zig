@@ -1025,6 +1025,7 @@ dependencies = [
  "rfc6979",
  "serdect",
  "signature",
+ "spki",
 ]
 
 [[package]]
@@ -2879,7 +2880,6 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "stateless"
 version = "0.1.0"
-source = "git+https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621bad7229ff7f980e42dfca8e22d101491"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2887,6 +2887,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-rlp",
  "alloy-rpc-types-debug",
+ "k256",
  "reth-chainspec",
  "reth-consensus",
  "reth-ethereum-consensus",

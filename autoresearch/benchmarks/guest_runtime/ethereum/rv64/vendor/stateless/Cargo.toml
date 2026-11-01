@@ -1,0 +1,44 @@
+# Vendored from paradigmxyz/stateless rev a134a621 (crates/stateless) with the
+# workspace-inherited fields made concrete. The guest enables no features, so
+# the `reth-trie` default and the `zkvm-interface` module are dropped. See
+# src/stwo_verify.rs for the stwo change (batched signature verification
+# against the supplied public keys instead of per-transaction recovery).
+[package]
+name = "stateless"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Stateless Ethereum block validation using execution witnesses"
+
+[dependencies]
+tries = { path = "../tries", default-features = false }
+
+alloy-primitives = { version = "1.6.1", default-features = false, features = ["map-foldhash", "map-indexmap"] }
+alloy-rlp = { version = "0.3.16", default-features = false }
+alloy-consensus = { version = "2.4.1", default-features = false }
+alloy-eips = { version = "2.4.1", default-features = false }
+alloy-rpc-types-debug = { version = "2.4.1", default-features = false }
+alloy-genesis = { version = "2.4.1", default-features = false, features = ["serde-bincode-compat"] }
+
+reth-ethereum-consensus = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+reth-primitives-traits = { version = "0.6.0", default-features = false }
+reth-ethereum-primitives = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false, features = ["serde"] }
+reth-evm = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+reth-trie-common = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+reth-consensus = { git = "https://github.com/paradigmxyz/reth", rev = "3d270d933daeeb90c5735d81ff7f80c00322d6de", default-features = false }
+
+revm-bytecode = { version = "42.0.0", default-features = false }
+revm-database-interface = { version = "42.0.0", default-features = false }
+revm-state = { version = "42.0.0", default-features = false }
+
+k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa", "alloc"] }
+
+thiserror = { version = "2.0", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+serde_with = { version = "3.16", default-features = false, features = ["alloc"] }
+
+[features]
+default = []

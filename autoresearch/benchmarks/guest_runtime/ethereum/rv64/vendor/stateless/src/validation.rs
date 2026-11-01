@@ -1,0 +1,401 @@
+use crate::{
+    ExecutionWitness,
+    recover_block::{UncompressedPublicKey, recover_block_with_public_keys},
+    witness_db::WitnessDatabase,
+};
+use alloc::{
+    collections::BTreeMap,
+    fmt::Debug,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
+use alloy_consensus::{BlockHeader, Header};
+use alloy_eips::eip7928::{
+    BlockAccessList, ITEM_COST, compute_block_access_list_hash, total_bal_items,
+};
+use alloy_primitives::{B256, keccak256};
+use reth_chainspec::{EthChainSpec, EthereumHardforks};
+use reth_consensus::ConsensusError;
+use reth_consensus::{Consensus, HeaderValidator};
+use reth_ethereum_consensus::{EthBeaconConsensus, validate_block_post_execution};
+use reth_ethereum_primitives::{Block, EthPrimitives, EthereumReceipt};
+use reth_evm::{
+    ConfigureEvm,
+    execute::{BlockExecutionOutput, Executor},
+};
+use reth_primitives_traits::{RecoveredBlock, SealedHeader};
+use reth_trie_common::{HashedStorage, KeccakKeyHasher, KeyHasher};
+use tries::{StatelessTrie, StatelessTrieError};
+
+#[cfg(feature = "reth-trie")]
+use tries::default::StatelessSparseTrie;
+
+/// BLOCKHASH ancestor lookup window limit per EVM (number of most recent blocks accessible).
+const BLOCKHASH_ANCESTOR_LIMIT: usize = 256;
+
+/// Errors that can occur during stateless validation.
+#[derive(Debug, thiserror::Error)]
+pub enum StatelessValidationError {
+    /// Error when the number of ancestor headers exceeds the limit.
+    #[error("ancestor header count ({count}) exceeds limit ({limit})")]
+    AncestorHeaderLimitExceeded {
+        /// The number of headers provided.
+        count: usize,
+        /// The limit.
+        limit: usize,
+    },
+
+    /// Error when an ancestor header hash does not match its child's parent hash.
+    #[error(
+        "invalid ancestor chain: child block {child_number} expects parent hash {expected_parent_hash}, but ancestor block {parent_number} has hash {actual_parent_hash}"
+    )]
+    InvalidAncestorParentHash {
+        /// The child block number whose parent hash was checked.
+        child_number: u64,
+        /// The ancestor block number provided as the parent.
+        parent_number: u64,
+        /// The parent hash committed to by the child header.
+        expected_parent_hash: B256,
+        /// The hash of the provided ancestor header.
+        actual_parent_hash: B256,
+    },
+
+    /// Error when ancestor header numbers are not contiguous.
+    #[error(
+        "invalid ancestor chain: ancestor block {parent_number} is not the parent of child block {child_number}; expected parent block {expected_parent_number}"
+    )]
+    InvalidAncestorNumber {
+        /// The child block number whose parent number was checked.
+        child_number: u64,
+        /// The expected parent block number.
+        expected_parent_number: u64,
+        /// The ancestor block number provided as the parent.
+        parent_number: u64,
+    },
+
+    /// Error when revealing the witness data failed.
+    #[error("failed to reveal witness data for pre-state root {pre_state_root}")]
+    WitnessRevealFailed {
+        /// The pre-state root used for verification.
+        pre_state_root: B256,
+    },
+
+    /// Error during stateless block execution.
+    #[error("stateless block execution failed: {0}")]
+    StatelessExecutionFailed(String),
+
+    /// Error during consensus validation of the block.
+    #[error("consensus validation failed: {0}")]
+    ConsensusValidationFailed(#[from] ConsensusError),
+
+    /// Error when the block access list exceeds the per-block item gas limit (EIP-7928).
+    #[error("block access list exceeds gas limit, {items} items exceeds limit of {limit}")]
+    BlockAccessListGasLimitExceeded {
+        /// The number of block access list items produced during execution.
+        items: u64,
+        /// The maximum number of items allowed, the block gas limit divided by the per item cost.
+        limit: u64,
+    },
+
+    /// Error during stateless state root calculation.
+    #[error("stateless state root calculation failed")]
+    StatelessStateRootCalculationFailed,
+
+    /// Error calculating the pre-state root from the witness data.
+    #[error("stateless pre-state root calculation failed")]
+    StatelessPreStateRootCalculationFailed,
+
+    /// Error when required ancestor headers are missing (e.g., parent header for pre-state root).
+    #[error("missing required ancestor headers")]
+    MissingAncestorHeader,
+
+    /// Error when deserializing ancestor headers
+    #[error("could not deserialize ancestor headers")]
+    HeaderDeserializationFailed,
+
+    /// Error when the computed state root does not match the one in the block header.
+    #[error("mismatched post-state root: {got}\n {expected}")]
+    PostStateRootMismatch {
+        /// The computed post-state root
+        got: B256,
+        /// The expected post-state root; in the block header
+        expected: B256,
+    },
+
+    /// Error when the computed pre-state root does not match the expected one.
+    #[error("mismatched pre-state root: {got} \n {expected}")]
+    PreStateRootMismatch {
+        /// The computed pre-state root
+        got: B256,
+        /// The expected pre-state root from the previous block
+        expected: B256,
+    },
+
+    /// Error during signer recovery.
+    #[error("signer recovery failed")]
+    SignerRecovery,
+
+    /// Error when signature has non-normalized s value in homestead block.
+    #[error("signature s value not normalized for homestead block")]
+    HomesteadSignatureNotNormalized,
+
+    /// Custom error.
+    #[error("{0}")]
+    Custom(&'static str),
+}
+
+impl From<StatelessTrieError> for StatelessValidationError {
+    fn from(err: StatelessTrieError) -> Self {
+        match err {
+            StatelessTrieError::WitnessRevealFailed { pre_state_root } => {
+                Self::WitnessRevealFailed { pre_state_root }
+            }
+            StatelessTrieError::StatelessStateRootCalculationFailed => {
+                Self::StatelessStateRootCalculationFailed
+            }
+            StatelessTrieError::StatelessPreStateRootCalculationFailed => {
+                Self::StatelessPreStateRootCalculationFailed
+            }
+            StatelessTrieError::PreStateRootMismatch { got, expected } => {
+                Self::PreStateRootMismatch { got, expected }
+            }
+        }
+    }
+}
+
+/// Output of successful stateless block validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StatelessValidationOutput {
+    /// Hash of the validated block.
+    pub block_hash: B256,
+    /// Execution output produced while validating the block.
+    pub execution_output: BlockExecutionOutput<EthereumReceipt>,
+    /// Block access list produced during execution, if available.
+    pub block_access_list: Option<BlockAccessList>,
+}
+
+/// Performs stateless validation of a block using the provided witness data.
+#[cfg(feature = "reth-trie")]
+pub fn stateless_validation<ChainSpec, E>(
+    current_block: Block,
+    public_keys: Vec<UncompressedPublicKey>,
+    witness: ExecutionWitness,
+    chain_spec: Arc<ChainSpec>,
+    evm_config: E,
+) -> Result<StatelessValidationOutput, StatelessValidationError>
+where
+    ChainSpec: Send + Sync + EthChainSpec<Header = Header> + EthereumHardforks + Debug,
+    E: ConfigureEvm<Primitives = EthPrimitives> + Clone + 'static,
+{
+    stateless_validation_with_trie::<StatelessSparseTrie, ChainSpec, E>(
+        current_block,
+        public_keys,
+        witness,
+        chain_spec,
+        evm_config,
+    )
+}
+
+/// Performs stateless validation of a block using a custom `StatelessTrie` implementation.
+pub fn stateless_validation_with_trie<T, ChainSpec, E>(
+    current_block: Block,
+    public_keys: Vec<UncompressedPublicKey>,
+    witness: ExecutionWitness,
+    chain_spec: Arc<ChainSpec>,
+    evm_config: E,
+) -> Result<StatelessValidationOutput, StatelessValidationError>
+where
+    T: StatelessTrie,
+    ChainSpec: Send + Sync + EthChainSpec<Header = Header> + EthereumHardforks + Debug,
+    E: ConfigureEvm<Primitives = EthPrimitives> + Clone + 'static,
+{
+    let recovered_block = recover_block_with_public_keys(current_block, public_keys, &*chain_spec)?;
+
+    stateless_validation_recovered_with_trie::<T, ChainSpec, E>(
+        recovered_block,
+        witness,
+        chain_spec,
+        evm_config,
+    )
+}
+
+/// Performs stateless validation of an already-recovered block.
+#[cfg(feature = "reth-trie")]
+pub fn stateless_validation_recovered<ChainSpec, E>(
+    recovered_block: RecoveredBlock<Block>,
+    witness: ExecutionWitness,
+    chain_spec: Arc<ChainSpec>,
+    evm_config: E,
+) -> Result<StatelessValidationOutput, StatelessValidationError>
+where
+    ChainSpec: Send + Sync + EthChainSpec<Header = Header> + EthereumHardforks + Debug,
+    E: ConfigureEvm<Primitives = EthPrimitives> + Clone + 'static,
+{
+    stateless_validation_recovered_with_trie::<StatelessSparseTrie, ChainSpec, E>(
+        recovered_block,
+        witness,
+        chain_spec,
+        evm_config,
+    )
+}
+
+/// Performs stateless validation of an already-recovered block using a custom `StatelessTrie` implementation.
+pub fn stateless_validation_recovered_with_trie<T, ChainSpec, E>(
+    current_block: RecoveredBlock<Block>,
+    witness: ExecutionWitness,
+    chain_spec: Arc<ChainSpec>,
+    evm_config: E,
+) -> Result<StatelessValidationOutput, StatelessValidationError>
+where
+    T: StatelessTrie,
+    ChainSpec: Send + Sync + EthChainSpec<Header = Header> + EthereumHardforks + Debug,
+    E: ConfigureEvm<Primitives = EthPrimitives> + Clone + 'static,
+{
+    let ancestor_headers: Vec<_> = witness
+        .headers
+        .iter()
+        .map(|bytes| {
+            let hash = keccak256(bytes);
+            alloy_rlp::decode_exact::<Header>(bytes)
+                .map(|h| SealedHeader::new(h, hash))
+                .map_err(|_| StatelessValidationError::HeaderDeserializationFailed)
+        })
+        .collect::<Result<_, _>>()?;
+
+    let count = ancestor_headers.len();
+    if count > BLOCKHASH_ANCESTOR_LIMIT {
+        return Err(StatelessValidationError::AncestorHeaderLimitExceeded {
+            count,
+            limit: BLOCKHASH_ANCESTOR_LIMIT,
+        });
+    }
+
+    let ancestor_hashes = compute_ancestor_hashes(&current_block, &ancestor_headers)?;
+
+    let parent = match ancestor_headers.last() {
+        Some(prev_header) => prev_header,
+        None => return Err(StatelessValidationError::MissingAncestorHeader),
+    };
+
+    validate_block_consensus(chain_spec.clone(), &current_block, parent)?;
+
+    let (mut trie, bytecode) = T::new(witness, parent.state_root)?;
+
+    let db = WitnessDatabase::new(&trie, bytecode, ancestor_hashes);
+
+    let mut executor = evm_config.executor(db);
+    let result = executor
+        .execute_one(&current_block)
+        .map_err(|e| StatelessValidationError::StatelessExecutionFailed(e.to_string()))?;
+
+    let block_access_list = executor.take_bal();
+
+    // Validate the block access list gas limit constraint.
+    if let Some(bal) = block_access_list.as_ref() {
+        let items = total_bal_items(bal.as_slice());
+        let limit = current_block.sealed_header().gas_limit() / ITEM_COST as u64;
+        if items > limit {
+            return Err(StatelessValidationError::BlockAccessListGasLimitExceeded { items, limit });
+        }
+    }
+
+    let block_access_list_hash = block_access_list.as_deref().map(compute_block_access_list_hash);
+
+    let mut state = executor.into_state();
+    let output = BlockExecutionOutput { state: state.take_bundle(), result };
+
+    validate_block_post_execution(
+        &current_block,
+        &chain_spec,
+        &output.result,
+        None,
+        block_access_list_hash,
+    )
+    .map_err(StatelessValidationError::ConsensusValidationFailed)?;
+
+    let hashed_state = output
+        .state
+        .state()
+        .iter()
+        .map(|(address, account)| {
+            let hashed_address = KeccakKeyHasher::hash_key(address);
+            let hashed_account = account.info.as_ref().map(Into::into);
+            let mut hashed_storage = HashedStorage::from_iter(
+                account
+                    .storage
+                    .iter()
+                    .map(|(slot, value)| (keccak256(B256::from(*slot)), value.present_value)),
+            );
+            hashed_storage.wiped = account.was_destroyed();
+
+            (hashed_address, hashed_account, (!hashed_storage.is_empty()).then_some(hashed_storage))
+        })
+        .collect();
+    let state_root = trie.calculate_state_root(hashed_state)?;
+    if state_root != current_block.state_root {
+        return Err(StatelessValidationError::PostStateRootMismatch {
+            got: state_root,
+            expected: current_block.state_root,
+        });
+    }
+
+    Ok(StatelessValidationOutput {
+        block_hash: current_block.hash(),
+        execution_output: output,
+        block_access_list,
+    })
+}
+
+fn validate_block_consensus<ChainSpec>(
+    chain_spec: Arc<ChainSpec>,
+    block: &RecoveredBlock<Block>,
+    parent: &SealedHeader<Header>,
+) -> Result<(), StatelessValidationError>
+where
+    ChainSpec: Send + Sync + EthChainSpec<Header = Header> + EthereumHardforks + Debug,
+{
+    let consensus = EthBeaconConsensus::new(chain_spec);
+
+    consensus.validate_header(block.sealed_header())?;
+    consensus.validate_header_against_parent(block.sealed_header(), parent)?;
+
+    consensus.validate_block_pre_execution(block)?;
+
+    Ok(())
+}
+
+fn compute_ancestor_hashes(
+    current_block: &RecoveredBlock<Block>,
+    ancestor_headers: &[SealedHeader],
+) -> Result<BTreeMap<u64, B256>, StatelessValidationError> {
+    let mut ancestor_hashes = BTreeMap::new();
+
+    let mut child_header = current_block.sealed_header();
+
+    for parent_header in ancestor_headers.iter().rev() {
+        let parent_hash = child_header.parent_hash();
+        ancestor_hashes.insert(parent_header.number, parent_hash);
+
+        if parent_hash != parent_header.hash() {
+            return Err(StatelessValidationError::InvalidAncestorParentHash {
+                child_number: child_header.number,
+                parent_number: parent_header.number,
+                expected_parent_hash: parent_hash,
+                actual_parent_hash: parent_header.hash(),
+            });
+        }
+
+        if parent_header.number + 1 != child_header.number {
+            return Err(StatelessValidationError::InvalidAncestorNumber {
+                child_number: child_header.number,
+                expected_parent_number: child_header.number.saturating_sub(1),
+                parent_number: parent_header.number,
+            });
+        }
+
+        child_header = parent_header
+    }
+
+    Ok(ancestor_hashes)
+}
