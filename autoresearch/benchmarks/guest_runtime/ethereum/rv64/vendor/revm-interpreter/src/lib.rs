@@ -10,6 +10,8 @@ extern crate alloc as std;
 #[macro_use]
 mod macros;
 
+mod be_word;
+
 /// Gas calculation utilities and constants.
 pub mod gas;
 /// Context passed to instruction implementations.

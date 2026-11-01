@@ -124,8 +124,7 @@ pub fn calldataload<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
         // stwo: the common full word converts straight to limbs; a short
         // tail goes through a zero-padded buffer. No memcpy call either way.
         if count == 32 {
-            let limb = |k: usize| u64::from_be_bytes(data[k * 8..k * 8 + 8].try_into().unwrap());
-            result = U256::from_limbs([limb(3), limb(2), limb(1), limb(0)]);
+            result = unsafe { crate::be_word::load_u256(data.as_ptr()) };
         } else {
             let mut word = [0u8; 32];
             for (dst, src) in word.iter_mut().zip(data) {

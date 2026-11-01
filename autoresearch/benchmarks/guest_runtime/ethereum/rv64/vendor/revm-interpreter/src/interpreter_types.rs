@@ -119,6 +119,16 @@ pub trait MemoryTr {
     /// Panics if range is out of scope of allocated memory.
     fn set(&mut self, memory_offset: usize, data: &[u8]);
 
+    /// stwo: stores `value` as a 32-byte big-endian word at `memory_offset`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if range is out of scope of allocated memory.
+    #[inline]
+    fn set_u256(&mut self, memory_offset: usize, value: &primitives::U256) {
+        self.set(memory_offset, &value.to_be_bytes::<32>());
+    }
+
     /// Returns memory size.
     fn size(&self) -> usize;
 

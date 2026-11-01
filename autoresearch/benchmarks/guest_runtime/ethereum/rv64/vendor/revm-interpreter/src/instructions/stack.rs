@@ -26,8 +26,10 @@ pub fn push0<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 ///
 /// Pushes N bytes from bytecode onto the stack as a 32-byte value.
 pub fn push<const N: usize, IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
+    // stwo: the N immediate bytes convert straight to limbs (see be_word).
     let slice = context.interpreter.bytecode.read_slice(N);
-    if !context.interpreter.stack.push_slice(slice) {
+    let value = unsafe { crate::be_word::load_u256_n::<N>(slice.as_ptr()) };
+    if !context.interpreter.stack.push(value) {
         return Err(InstructionResult::StackOverflow);
     }
 

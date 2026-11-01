@@ -77,6 +77,13 @@ impl MemoryTr for SharedMemory {
         self.set(memory_offset, data);
     }
 
+    #[inline]
+    fn set_u256(&mut self, memory_offset: usize, value: &primitives::U256) {
+        let mut dst = self.slice_mut(memory_offset, 32);
+        // SAFETY: `slice_mut` returned exactly 32 writable bytes.
+        unsafe { crate::be_word::store_u256(dst.as_mut_ptr(), value) };
+    }
+
     fn size(&self) -> usize {
         self.len()
     }

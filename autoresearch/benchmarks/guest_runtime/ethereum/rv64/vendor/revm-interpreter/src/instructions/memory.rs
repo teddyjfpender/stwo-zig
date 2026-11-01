@@ -18,8 +18,8 @@ pub fn mload<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
         offset,
         32,
     )?;
-    *top =
-        U256::try_from_be_slice(context.interpreter.memory.slice_len(offset, 32).as_ref()).unwrap();
+    // stwo: direct big-endian limb loads (see be_word)
+    *top = unsafe { crate::be_word::load_u256(context.interpreter.memory.slice_len(offset, 32).as_ptr()) };
     Ok(())
 }
 
@@ -32,10 +32,8 @@ pub fn mstore<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     context
         .interpreter
         .resize_memory(context.host.gas_params(), offset, 32)?;
-    context
-        .interpreter
-        .memory
-        .set(offset, &value.to_be_bytes::<32>());
+    // stwo: direct big-endian limb stores (see be_word)
+    context.interpreter.memory.set_u256(offset, &value);
     Ok(())
 }
 
