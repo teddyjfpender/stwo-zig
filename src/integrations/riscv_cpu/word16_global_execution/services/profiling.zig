@@ -7,6 +7,8 @@ const G = @import("../protocol.zig");
 pub const Options = struct {
     commit_batch_columns: u32 = 64,
     schedule: @import("schedule.zig").Policy = .{},
+    /// Maximum byte range advised for the current worker only, not an RSS cap.
+    prefetch_main_bytes: usize = 0,
     retained_main: ?*@import("../retained_main_store.zig").Store = null,
     recorders: []const ?*Profile.Recorder = &.{},
     directory: ?std.fs.Dir = null,
@@ -15,6 +17,7 @@ pub const Options = struct {
     consume_memory_events: bool = false,
     pub fn validate(self: Options, count: usize) !void {
         try self.schedule.validate();
+        if (self.prefetch_main_bytes > 4 << 30 or (self.prefetch_main_bytes != 0 and self.prefetch_main_bytes < std.heap.page_size_min)) return error.InvalidRetainedMainPrefetchCap;
         if (self.commit_batch_columns == 0) return error.InvalidStreamingBatchSize;
         if (self.recorders.len != 0 and self.recorders.len != count) return error.InvalidServiceRecorderRoster;
         if (self.directory != null and self.recorders.len == 0) return error.MissingServiceRecorders;

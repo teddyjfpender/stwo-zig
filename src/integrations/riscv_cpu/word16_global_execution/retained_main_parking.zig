@@ -140,3 +140,13 @@ pub fn restore(store: *Store, tree: *Tree) !usize {
     store.addMapped(memory.len);
     return memory.len;
 }
+
+/// Restore only the caller's stable current worker, then advise under the
+/// registry lease. No other worker tree is observed or retained speculatively.
+pub fn prefetch(store: *Store, tree: *Tree, cap: usize) !@import("retained_main_prefetch.zig").Result {
+    _ = try restore(store, tree);
+    store.parking.mutex.lock();
+    defer store.parking.mutex.unlock();
+    const owner = try findOwner(store, tree);
+    return @import("retained_main_prefetch.zig").advise(owner.mapping.?, cap);
+}

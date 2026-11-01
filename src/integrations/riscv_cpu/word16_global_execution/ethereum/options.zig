@@ -18,6 +18,8 @@ pub const Options = struct {
     program_metadata_cache_bytes: usize = 64 << 20,
     metadata_cache_set: bool = false,
     park_retained_main: bool = false,
+    prefetch_main_bytes: usize = 0,
+    prefetch_main_set: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -57,6 +59,12 @@ pub const Options = struct {
                 const prefix = "--program-metadata-cache-bytes=";
                 out.program_metadata_cache_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
                 if (out.program_metadata_cache_bytes > 1 << 30 or (out.program_metadata_cache_bytes != 0 and out.program_metadata_cache_bytes < 4096)) return error.InvalidProgramMetadataBudget;
+            } else if (std.mem.startsWith(u8, arg, "--prefetch-retained-main-bytes=")) {
+                if (out.prefetch_main_set) return error.DuplicateOperationalOption;
+                out.prefetch_main_set = true;
+                const prefix = "--prefetch-retained-main-bytes=";
+                out.prefetch_main_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
+                if (out.prefetch_main_bytes > 4 << 30 or (out.prefetch_main_bytes != 0 and out.prefetch_main_bytes < std.heap.page_size_min)) return error.InvalidRetainedMainPrefetchCap;
             } else if (std.mem.eql(u8, arg, "--park-retained-main")) {
                 if (out.park_retained_main) return error.DuplicateOperationalOption;
                 out.park_retained_main = true;
@@ -90,7 +98,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main or self.prefetch_main_set;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
@@ -181,5 +189,20 @@ test "retained MAIN parking is an explicit producer-only operational opt-in" {
     try std.testing.expect(options.park_retained_main and options.producerOnly());
     try std.testing.expectEqual(@as(usize, 2), options.count);
     var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--park-retained-main"), @constCast("--park-retained-main") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
+}
+
+test "Retained MAIN prefetch has an explicit bounded producer-only cap and is off by default" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("produce") };
+    try std.testing.expectEqual(@as(usize, 0), (try Options.parse(&defaults)).prefetch_main_bytes);
+    var flags = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--prefetch-retained-main-bytes=268435456") };
+    const options = try Options.parse(&flags);
+    try std.testing.expectEqual(@as(usize, 256 << 20), options.prefetch_main_bytes);
+    try std.testing.expect(options.producerOnly());
+    for ([_][:0]const u8{ "--prefetch-retained-main-bytes=1", "--prefetch-retained-main-bytes=4294967297" }) |bad| {
+        var one = [_][:0]u8{ @constCast("tool"), @constCast(bad) };
+        try std.testing.expectError(error.InvalidRetainedMainPrefetchCap, Options.parse(&one));
+    }
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--prefetch-retained-main-bytes=0"), @constCast("--prefetch-retained-main-bytes=0") };
     try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
 }

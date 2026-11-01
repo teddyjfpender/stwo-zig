@@ -7,12 +7,20 @@ const P = @import("protocol.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const Tree = P.T.Scheme.CommittedTree;
 const Parking = @import("retained_main_parking.zig");
+pub const Prefetch = @import("retained_main_prefetch.zig");
 const ALIGNMENT: std.mem.Alignment = .fromByteUnits(64);
 pub const Store = struct {
     backing: engine.file_backed_allocator.FileBackedAllocator,
     limit: usize,
     park: bool = false,
     parking: Parking.Registry = .{},
+    owner_mutex: std.Thread.Mutex = .{},
+    owners: ?*Owner = null,
+    prefetch_calls: std.atomic.Value(usize) = .init(0),
+    prefetch_requested: std.atomic.Value(usize) = .init(0),
+    prefetch_advised: std.atomic.Value(usize) = .init(0),
+    prefetch_failed: std.atomic.Value(usize) = .init(0),
+    prefetch_unsupported: std.atomic.Value(usize) = .init(0),
     mapped: std.atomic.Value(usize) = .init(0),
     peak_mapped: std.atomic.Value(usize) = .init(0),
     reserved: std.atomic.Value(usize) = .init(0),
@@ -29,12 +37,12 @@ pub const Store = struct {
     }
     pub fn deinit(self: *Store) void {
         std.debug.assert(self.reserved.load(.acquire) == 0);
-        std.debug.assert(self.mapped.load(.acquire) == 0 and self.parking.head == null);
+        std.debug.assert(self.mapped.load(.acquire) == 0 and self.parking.head == null and self.owners == null);
         self.backing.deinit();
         self.* = undefined;
     }
-    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize, live_mapped_bytes: usize, peak_mapped_bytes: usize, parking_enabled: bool } {
-        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit, .live_mapped_bytes = self.mapped.load(.acquire), .peak_mapped_bytes = self.peak_mapped.load(.acquire), .parking_enabled = self.park };
+    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize, live_mapped_bytes: usize, peak_mapped_bytes: usize, parking_enabled: bool, prefetch_calls: usize, prefetch_requested_bytes: usize, prefetch_advised_bytes: usize, prefetch_failed_calls: usize, prefetch_unsupported_calls: usize } {
+        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit, .live_mapped_bytes = self.mapped.load(.acquire), .peak_mapped_bytes = self.peak_mapped.load(.acquire), .parking_enabled = self.park, .prefetch_calls = self.prefetch_calls.load(.acquire), .prefetch_requested_bytes = self.prefetch_requested.load(.acquire), .prefetch_advised_bytes = self.prefetch_advised.load(.acquire), .prefetch_failed_calls = self.prefetch_failed.load(.acquire), .prefetch_unsupported_calls = self.prefetch_unsupported.load(.acquire) };
     }
     pub fn addMapped(self: *Store, size: usize) void {
         const next = self.mapped.fetchAdd(size, .acq_rel) + size;
@@ -51,6 +59,47 @@ pub const Store = struct {
             return 0;
         }
         return Parking.restore(self, tree);
+    }
+    /// Caller exclusively owns this live worker/tree through the call. No
+    /// lookahead at another worker and no ownership transfer is performed.
+    pub fn prefetchMain(self: *Store, tree: *Tree, cap: usize) !Prefetch.Result {
+        if (cap == 0) return .{};
+        const result = if (comptime !Prefetch.supported) Prefetch.Result{ .unsupported = true } else if (self.park) try Parking.prefetch(self, tree, cap) else try self.prefetchMapped(tree, cap);
+        _ = self.prefetch_calls.fetchAdd(1, .monotonic);
+        _ = self.prefetch_requested.fetchAdd(result.requested_bytes, .monotonic);
+        _ = self.prefetch_advised.fetchAdd(result.advised_bytes, .monotonic);
+        if (result.failed) _ = self.prefetch_failed.fetchAdd(1, .monotonic);
+        if (result.unsupported) _ = self.prefetch_unsupported.fetchAdd(1, .monotonic);
+        return result;
+    }
+    fn prefetchMapped(self: *Store, tree: *Tree, cap: usize) !Prefetch.Result {
+        self.owner_mutex.lock();
+        defer self.owner_mutex.unlock();
+        const token = tree.backing_teardown orelse return error.MissingRetainedMainOwner;
+        if (token.release_fn != Owner.release) return error.ForeignRetainedMainOwner;
+        const context = token.context orelse return error.ForeignRetainedMainOwner;
+        var next = self.owners;
+        while (next) |owner| : (next = owner.next) {
+            // Numeric registry lookup precedes any interpretation of a token's
+            // context. The registry lock protects the owner and mapping lease.
+            if (@intFromPtr(owner) != @intFromPtr(context)) continue;
+            if (token.value != owner.reserved_bytes or !tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or !std.mem.eql(u8, &tree.root(), &owner.root)) return error.RetainedMainShapeMismatch;
+            const coefficients = tree.coefficients orelse return error.RetainedMainShapeMismatch;
+            if (coefficients.len != tree.columns.len or @intFromPtr(coefficients.ptr) != owner.coefficient_descriptors or @intFromPtr(tree.columns.ptr) != owner.column_descriptors) return error.RetainedMainShapeMismatch;
+            var offset: usize = 0;
+            for (coefficients, tree.columns) |coefficient, column| {
+                const values = coefficient.coefficients();
+                if (values.len == 0 or values.len > owner.arena.len -| offset or coefficient.owns_coeffs or coefficient.log_size >= @bitSizeOf(usize) or values.len != @as(usize, 1) << @intCast(coefficient.log_size) or column.values.len != 0) return error.RetainedMainShapeMismatch;
+                const retained = column.coefficient_values orelse return error.RetainedMainShapeMismatch;
+                const wanted = owner.arena[offset..][0..values.len];
+                if (values.ptr != wanted.ptr or retained.len != wanted.len or retained.ptr != wanted.ptr) return error.RetainedMainShapeMismatch;
+                offset += values.len;
+            }
+            if (offset != owner.arena.len) return error.RetainedMainShapeMismatch;
+            const mapping: []align(std.heap.page_size_min) u8 = @alignCast(std.mem.sliceAsBytes(owner.arena).ptr[0..owner.reserved_bytes]);
+            return Prefetch.advise(mapping, cap);
+        }
+        return error.ForeignRetainedMainOwner;
     }
     pub fn reserve(self: *Store, size: usize) !void {
         var old = self.reserved.load(.acquire);
@@ -112,7 +161,7 @@ pub const Store = struct {
         try std.posix.msync(mapping, std.posix.MSF.SYNC);
         // These are shared FILE pages. Anonymous MADV_FREE would be incorrect.
         try std.posix.madvise(mapping.ptr, mapping.len, std.posix.MADV.DONTNEED);
-        owner.* = .{ .allocator = a, .store = self, .arena = arena, .reserved_bytes = rounded };
+        owner.* = .{ .allocator = a, .store = self, .arena = arena, .reserved_bytes = rounded, .root = tree.root(), .coefficient_descriptors = @intFromPtr(coefficients.ptr), .column_descriptors = @intFromPtr(tree.columns.ptr) };
         // From here ownership transfer and cleanup cannot fail. Compact column
         // and coefficient views are re-pointed together; no stale aliases stay.
         offset = 0;
@@ -133,7 +182,12 @@ pub const Store = struct {
             tree.coefficient_backing_buffers = null;
         }
         tree.backing_teardown = engine.pcs.BackingTeardownToken.init(owner, rounded, Owner.release);
+        self.owner_mutex.lock();
+        owner.next = self.owners;
+        if (owner.next) |next| next.previous = owner;
+        self.owners = owner;
         self.addMapped(rounded);
+        self.owner_mutex.unlock();
         _ = self.total.fetchAdd(rounded, .acq_rel);
         return rounded;
     }
@@ -143,11 +197,20 @@ const Owner = struct {
     store: *Store,
     arena: []align(64) M,
     reserved_bytes: usize,
+    root: [32]u8,
+    coefficient_descriptors: usize,
+    column_descriptors: usize,
+    next: ?*Owner = null,
+    previous: ?*Owner = null,
     fn release(context: ?*anyopaque, bytes: u64) void {
         const self: *Owner = @ptrCast(@alignCast(context.?));
         std.debug.assert(bytes == self.reserved_bytes);
+        self.store.owner_mutex.lock();
+        if (self.previous) |previous| previous.next = self.next else self.store.owners = self.next;
+        if (self.next) |next| next.previous = self.previous;
         self.store.backing.allocator().free(self.arena);
         self.store.removeMapped(self.reserved_bytes);
+        self.store.owner_mutex.unlock();
         const before = self.store.reserved.fetchSub(self.reserved_bytes, .acq_rel);
         std.debug.assert(before >= self.reserved_bytes);
         self.allocator.destroy(self);
