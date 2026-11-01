@@ -200,8 +200,12 @@ as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover
 
 ## Post-merge status (after merging the six UNVERIFIED checkpoints)
 
+- **Status: repaired, all four gates pass** on the head that also contains
+  the six tracks' final checkpoints and handovers (merged at `77e137c3c`).
+  Details and the gated-out pieces follow; the history below records how the
+  head got there.
 - Harness unit tests (`test_bench.py`): pass.
-- **The merged head does not build yet.** Resolving conflicts in favour of the
+- (Historical) the first merged head did not build. Resolving conflicts in favour of the
   verified side kept the verified versions of shared executor plumbing hunks
   that the curves and Keccak-sponge checkpoints had changed. Remaining errors
   from `bench.py build-exec`:
@@ -256,5 +260,38 @@ as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover
     - [ ] TODO (bulk-unaligned track): prove unaligned memcpy and memcmp in
       the bulk AIR and the services collector, then make `umem` default.
     `test_bench.py`: 40 tests OK.
-- TODO (in progress on this branch): run the 15-block basket, and the Word16 services suites. The last
-  verified head of this branch before the unverified merges is `1c821fc9d`.
+  - Services lane (curves merge dropped hunks): curve request/claims fields
+    in `services/wire.zig` (request `curve_calls` omitted from JSON when zero,
+    so v2/v3 bytes are unchanged), curve replay in `collector.zig`,
+    FAMILIES-wide call vector in `pipeline.zig`, call-count bound in
+    `protocol.zig`, each union-merged with the sponge code. Gated WIP gaps,
+    each with a TODO for its track:
+    - [ ] TODO (bulk-unaligned): services-lane `Bulk.at`/`BulkCounts.rows`
+      return none for the new `ucopy`/`cdesc`/`cmp` AIR kinds; the collector
+      still rejects memcmp. Wire them in with their own claims and tests.
+    - [ ] TODO (curves): `ethereum/keys.zig` rejects curve truth families with
+      `UnsupportedServicesTruthFamily` (Ethereum work-packet route not wired);
+      `services/owned_truth_test.zig` marks `.curve` unreachable (its fixture
+      has no curve truths).
+- Re-run after merging the tracks' final checkpoints (`77e137c3c`): those
+  merges used `-X ours` again; `git merge-tree` shows conflicts only in the
+  interpreter's 0023 patch location (it stays only in `patches/wip/` and
+  `notes/attempts/`, not in `patches/`) and in `build_support/products/catalog.zig`,
+  where the `test-riscv64-word16-curves-services` entry was dropped; restored.
+  No other track-added line is missing. Results on this head:
+  - Gate 1: `bench.py build-exec` OK; `zig build test` in src/frontends/riscv/rv64 passes.
+  - Gate 2: admitted, `--host` and `--profile v3` clients build (client guest
+    sources unchanged by the final merges).
+  - Gate 3: per-block instruction counts identical to the gate-3 runs above:
+    admitted 6.807 / 86,044, v3 4.778 / 67,192, all guards pass, exact
+    outputs on all 15 blocks; `test_bench.py` 40 OK.
+  - Gate 4 (ReleaseSafe, all pass): word16-combined-services,
+    word16-v3-services, sha256-truth, arith256-truth, word16-arith256-bridge,
+    word16-arith256-services, word16-bulk-memory, word16-bulk-services,
+    execution. v2 byte identity: `rv64-word16-combined-services-fixture
+    produce` equals the golden v2 bundle in all seven files (`bundle.json`
+    `be49c88c...`), and this head's receiver verifies the golden bundle.
+  - Not run (unverified-track suites, outside the gates): curves-truth,
+    keccak-sponge, word16-sponge-services, word16-curves-services,
+    v3-services-recursion.
+- The last verified head before the unverified merges is `1c821fc9d`.
