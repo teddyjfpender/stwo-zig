@@ -24,6 +24,10 @@ pub fn terms(role: Geometry.Role) u32 {
     };
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    // The local GKR lane replaces the CPU LogUp interaction with its own
+    // term layout (`terms(.cpu)`); it has no fused-tail variant. Fail closed
+    // rather than silently ignore a declared CPU interaction layout.
+    if (setup.materials.geometry.cpu_fused_tail) return error.UnsupportedFusedTailInLocalGkr;
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

@@ -242,7 +242,13 @@ pub const Case = struct {
             cell.state.value = value;
         };
     }
+    /// Producer layout options; every one is a Geometry field, so it is
+    /// declared in the wire and mixed into each CPU transcript.
+    pub const Options = struct { cpu_fused_tail: bool = false };
     pub fn init(a: std.mem.Allocator, mutation: Mutation) !Case {
+        return initWith(a, mutation, .{});
+    }
+    pub fn initWith(a: std.mem.Allocator, mutation: Mutation, options: Options) !Case {
         var captured = try Captured.init(a);
         defer captured.deinit();
         const advice = &captured.advice;
@@ -287,6 +293,7 @@ pub const Case = struct {
             var geometry = try native.geometry();
             geometry.initial_log = BOUNDARY_LOG;
             geometry.terminal_log = BOUNDARY_LOG;
+            geometry.cpu_fused_tail = options.cpu_fused_tail;
             s.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, geometry, bridges);
             out.* = s;
             made += 1;

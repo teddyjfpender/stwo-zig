@@ -152,7 +152,7 @@ pub fn identity() [32]u8 {
 pub fn fusedTailIdentity() [32]u8 {
     const std = @import("std");
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("rv64.word16-execution.full64.fused-tail.v1:inter36/D3/residuals51;REG3=fraction(R*b*a=w*(a-b));OWNER+U16=fraction(F*d0*d1=d0+w*d1);FUNCTION,ROM,U16x2,U8x2=strict-inverse;U8-single=fused((S-S'+claim*first-C8)*d8-1)");
+    hash.update("rv64.word16-execution.full64.fused-tail.v1:inter36/D3/residuals51;REG3=fraction(R*b*a=w*(a-b));OWNER+U16=fraction(F*d0*d1=d0+w*d1);FUNCTION,ROM,U16x2,U8x2=strict-inverse;U8-single=fused((S-S'+claim*first-C8)*d6-1)");
     const base = identity();
     hash.update(&base);
     return hash.finalResult();

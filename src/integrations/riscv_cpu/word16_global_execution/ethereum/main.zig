@@ -81,7 +81,7 @@ pub fn main() !void {
     if (!operational.keep_fixed_witness) try program.releaseFixedWitness();
     const capture_cache_released = if (operational.keep_capture_cache) 0 else recycler.releaseCached();
     const trim_ns = timer.read() - trim_start;
-    const cpu_declarations = try Plan.cpus(a, &captured);
+    const cpu_declarations = try Plan.cpus(a, &captured, Plan.CpuLayout.forProfile(config.value.execution_profile));
     defer a.free(cpu_declarations);
     const truth_declarations = try Plan.truths(a, &captured);
     defer a.free(truth_declarations);
@@ -122,6 +122,9 @@ pub fn main() !void {
 /// proof that relies on them.
 pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
     if (config.execution_profile == .ethereum_services_v3) return;
+    // The fused-tail CPU layout is admitted only on the v3 route. A v2
+    // receiver keeps the historical CPU AIR and fails closed on any other.
+    for (cpus) |d| if (d.geometry.cpu_fused_tail) return error.UnadmittedFusedTailCpuLayout;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
