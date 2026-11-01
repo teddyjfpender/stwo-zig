@@ -3,6 +3,7 @@
 //! Those partial bounds exclude setup/capture/PCS scratch; they are not total RSS.
 //! Schedule policy is operational; the manifest barrier is not.
 const std = @import("std");
+const FixedSet = @import("fixed_authority_set.zig").Set;
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const P = @import("../protocol.zig");
@@ -76,6 +77,9 @@ pub const Bundle = struct {
     pub fn verify(self: *const Bundle, a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig) !Execution.Verified {
         return Execution.verify(a, setups, truths, self.requests, expected, config, self.stage_one_bytes, self.cpus, self.truths);
     }
+    pub fn verifyWithAuthority(self: *const Bundle, a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, expected: P.Expected, config: W.PcsConfig, fixed: *const FixedSet) !Execution.Verified {
+        return Execution.verifyWithAuthority(a, setups, truths, self.requests, expected, config, self.stage_one_bytes, self.cpus, self.truths, fixed);
+    }
 };
 fn freeRequests(a: std.mem.Allocator, requests: []P.Request) void {
     for (requests) |r| {
@@ -128,6 +132,7 @@ const Run = struct {
     advice: *const Advice,
     requests: []const P.Request,
     inventory: *const Execution.Inventory,
+    fixed: ?*const FixedSet,
     config: W.PcsConfig,
     options: Options,
     workers: []?Worker,
@@ -146,7 +151,7 @@ const Run = struct {
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
-            const worker = try CPU.CpuWorker.init(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget);
+            const worker = try CPU.CpuWorker.initWithAuthority(self.a, self.setups[index], self.requests[index], source, self.inventory.workers[index], self.config, self.inventory.first_ids[index], self.options.gkr_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .cpu = worker };
             self.workers[index].?.cpu.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
@@ -172,7 +177,7 @@ const Run = struct {
             if (timer) |*clock| timing.?.source_ns = clock.lap();
             var owned = true;
             errdefer if (owned) source.deinit();
-            const worker = try Truth.TruthWorker.init(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget);
+            const worker = try Truth.TruthWorker.initWithAuthority(self.a, truth, source, self.inventory.workers[index], self.config, self.options.global_budget, if (self.fixed) |authority| authority.at(index) else null);
             owned = false;
             self.workers[index] = .{ .truth = worker };
             self.workers[index].?.truth.native_recorder = if (self.options.native_profiles.len == 0) null else self.options.native_profiles[index];
@@ -225,13 +230,18 @@ fn mainNodes(scheme: *const W.Scheme) !usize {
 /// Consume prepared CPU traces only through successful original source building;
 /// advice and setup remain borrowed. Returned request cell lists are independent.
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options) !Bundle {
+    return produceWithAuthority(a, setups, truths, native, advice, expected, config, options, null);
+}
+/// The authority is independently derived from trusted setup, never parsed from
+/// operational resource JSON or a producer bundle. It stays live through return.
+pub fn produceWithAuthority(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, config: W.PcsConfig, options: Options, fixed: ?*const FixedSet) !Bundle {
     const count = try std.math.add(usize, setups.len, truths.len);
     try options.validate(count);
     if (options.worker_timings) |timings| @memset(timings, .{});
     if (setups.len == 0 or setups.len != native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
     const requests = try requestsFrom(a, native, advice);
     errdefer freeRequests(a, requests);
-    var inventory = try Execution.Inventory.init(a, setups, truths, requests, expected, config);
+    var inventory = try Execution.Inventory.initWithAuthority(a, setups, truths, requests, expected, config, fixed);
     defer inventory.deinit();
     const estimates = try admit(a, setups, truths, requests, &inventory, config, options);
     defer a.free(estimates);
@@ -245,7 +255,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     defer a.free(results);
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*v| v.deinit(a);
-    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
+    var run = Run{ .a = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .requests = requests, .inventory = &inventory, .fixed = fixed, .config = config, .options = options, .workers = workers, .stages = stages, .results = results };
     const run_options = Schedule.RunOptions{ .estimates = if (options.schedule.memory_cap_bytes != 0) estimates else &.{} };
     try Schedule.runWithOptions(Run, a, &run, count, options.schedule, run_options, Run.stageOne);
     // The complete ordered set of sealed MAINs and local children is joined once.
