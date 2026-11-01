@@ -11,39 +11,9 @@ const T = @import("trace.zig");
 const physical = @import("../../witness.zig").physical;
 const tables = @import("../../../../air/guest_precompile/keccakf_tables.zig");
 const tuple_algebra = @import("../../../../air/guest_precompile/keccakf_lookup_tuples.zig");
-pub const Counts = struct {
-    chi: [8192]u64 = @splat(0),
-    xor5: [1024]u64 = @splat(0),
-    pub fn fromTrace(trace: *const T.Trace) !Counts {
-        try trace.validateMetadata();
-        var counts = Counts{};
-        const n = trace.size();
-        for (0..trace.metadata.len) |logical| {
-            const r = physical(logical, trace.log_size);
-            var selectors: [24]M = undefined;
-            var active = false;
-            for (&selectors, 0..) |*s, i| {
-                s.* = trace.fixed[(2 + i) * n + r];
-                active = active or !s.isZero();
-            }
-            active = active and (trace.metadata[logical].flags & 1 != 0);
-            if (!active) continue;
-            const main = try trace.metadataRow(logical);
-            const next = try trace.metadataRow((logical + 1) % n);
-            for (0..L.STATE) |event| {
-                const tuple = tuple_algebra.chi(M, main[0..L.STATE], main[L.STATE..L.ACTIVE_A], next[0..L.STATE], &selectors, event);
-                const index = try tables.index(.chi, &tuple);
-                counts.chi[index] += 1;
-            }
-            for (0..L.PARITY) |event| {
-                const tuple = tuple_algebra.xor5(M, main[0..L.STATE], main[L.STATE..L.ACTIVE_A], event);
-                const index = try tables.index(.xor5, &tuple);
-                counts.xor5[index] += 1;
-            }
-        }
-        return counts;
-    }
-};
+pub const Counts = @import("counts.zig").Counts;
+pub const CountOptions = @import("counts.zig").Options;
+pub const CountProfile = @import("counts.zig").Profile;
 pub const Options = struct {
     pool: ?*engine.work_pool.WorkPool = null,
     recorder: ?*engine.stage_profile.Recorder = null,

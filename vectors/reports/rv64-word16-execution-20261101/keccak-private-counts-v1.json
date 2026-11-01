@@ -1,0 +1,406 @@
+{
+  "status": "QUALIFIED same-protocol native count generation",
+  "base_commit": "58d35e2e676d66ac8b6505980b9466afafcf3980",
+  "authority": "Existing Counts row loop moved unchanged into counts.zig; interaction.Counts remains an alias. Serial and parallel both call one addRange using the original shared tuple_algebra and tables.index. No tuple, query weight, source layout, AIR, degree, challenge, key or transcript changes.",
+  "lifecycle": {
+    "scheduler": "Existing providers/native_fill joined private-histogram kernel;4096retained rows per worker minimum. Busy-pool fallback stays serial.",
+    "histogram_bytes_per_worker": 73728,
+    "histogram_bytes_16workers": 1179648,
+    "merge": "Existing checked u64 merge and exact expected mass validation. Preflight counts only the original fixed-selector/active-A gate. Private outputs publish only after full successful merge.",
+    "worker_errors": "First native error captured atomically; all submitted helpers drain before original tuple/metadata error returns. No recorder ownership shared across workers.",
+    "retained_metadata": "No MAIN reads/reconstruction or permutation replay. Existing narrow metadata remains sufficient after immediate MAIN retirement."
+  },
+  "qualification": {
+    "Safe": "PASS54runtime",
+    "Fast": "PASS54runtime",
+    "target": "test-riscv64-keccak",
+    "metadata_minimum": 54,
+    "logs": [
+      "/tmp/rv64-keccak-counts-safe.log",
+      "/tmp/rv64-keccak-counts-fast.log"
+    ],
+    "new_tests": [
+      "retained65,714row fixture with no wide MAIN; exact serial and1/3/8/16worker histograms, odd final chunk, near-modulus call IDs, busy-pool fallback",
+      "every private allocation failure and cancellation after0/1/14submissions; pool reusable",
+      "malformed tuple/ID original errors, corrected retry, arbitrary legacy gates preserved"
+    ],
+    "artifacts": [
+      {
+        "name": "primitive-w1",
+        "proof_bytes": 1621800,
+        "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-counts-q70-v1/primitive-w1/proof.bin"
+      },
+      {
+        "name": "primitive-w16",
+        "proof_bytes": 1621800,
+        "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-counts-q70-v1/primitive-w16/proof.bin"
+      },
+      {
+        "name": "quartet",
+        "proof_bytes": 1418680,
+        "sha256": "ccd0112a120361ed4690e218cfedd8048c69ff815bde744a3aa5c363d2b8c299",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-counts-q70-v1/quartet/proof.bin"
+      },
+      {
+        "name": "bridge",
+        "proof_bytes": 1661832,
+        "sha256": "059f59a90060a7b752a94a74f19501dc6f34a7dac48f1439799f5b346a9f32e8",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-counts-q70-v1/bridge/proof.bin"
+      },
+      {
+        "name": "parallel566",
+        "proof_bytes": 1649056,
+        "sha256": "6801a6b9aac7665bb493207b9ecb62be91a813905ba313aecf2e363f3aec01be",
+        "fresh_receiver": "PASS",
+        "path": "/tmp/rv64-keccak-counts-q70-v1/parallel566/proof.bin"
+      }
+    ],
+    "parallel_physical_proof": "566calls/log14,8,207retained rows selects2workers total in current production scheduler; actual full q70/P26 proof matches frozen serial-counter control6801a6b9\u2026 and fresh independent receiver passes.",
+    "security": "Existing q70/P26 parameters unchanged; no stronger whole-protocol security claim."
+  },
+  "measurement": {
+    "scope": "Native seeded18078-call source only, actual log18 geometry; tiledMAIN both controls, changed only native count generation; no full execution timing",
+    "order": "ABBA ABBA, A=serial counts/B=private histograms; all requested16workers",
+    "compiler": "0.15.2",
+    "optimization": "ReleaseFast",
+    "binaries": {
+      "serial": {
+        "path": "/tmp/rv64-keccak-source-tile-native-tools/bin/rv64-keccak-source-profile",
+        "sha256": "10458cff8023ac2007624a9c16d4dae4e0f574a535d5a5074823d202ac832c14"
+      },
+      "parallel": {
+        "path": "/tmp/rv64-keccak-counts-final-tools/bin/rv64-keccak-source-profile",
+        "sha256": "685d1c8dc8f69096f6f7a6068e106e333001ba142b9d3112d23cda198924fe05"
+      }
+    },
+    "all_main_counts_hashes_identical": true,
+    "main_sha256": "4df06c1723d6386f3b0c6e8d4897b60d0b2786690799ab75f572d2c15acbe0fe",
+    "counts_sha256": "e23302a1e043b40d6306bff2c63b01fc564ed9a426640a96b2df8dfd33cc4cc9",
+    "source_change_percent": -72.86823956367657,
+    "counts_speed_ratio": 11.35943724136458,
+    "interpretation": "Four observations per mode in a quiet team window, same seeded largest18078-call/log18 source geometry and tiled render. Actual source-only RSS rises about2MB; userCPU rises about22%. No memory-reduction or full-block performance extrapolation. Hash cost measured separately.",
+    "summary": {
+      "serial": {
+        "source_s": {
+          "mean": 4.93897595825,
+          "median": 4.9261946455,
+          "min": 4.919494292,
+          "max": 4.98402025
+        },
+        "counts_s": {
+          "mean": 3.95228734375,
+          "median": 3.943384771,
+          "min": 3.936160375,
+          "max": 3.986219458
+        },
+        "hash_s": {
+          "mean": 0.67412879175,
+          "median": 0.670213,
+          "min": 0.6617485,
+          "max": 0.694340667
+        },
+        "wall_s": {
+          "mean": 5.6375,
+          "median": 5.63,
+          "min": 5.61,
+          "max": 5.68
+        },
+        "user_s": {
+          "mean": 6.0875,
+          "median": 6.09,
+          "min": 6.05,
+          "max": 6.12
+        },
+        "sys_s": {
+          "mean": 0.485,
+          "median": 0.475,
+          "min": 0.45,
+          "max": 0.54
+        },
+        "peak_rss_bytes": {
+          "mean": 2183766016,
+          "median": 2183766016.0,
+          "min": 2183757824,
+          "max": 2183774208
+        },
+        "minor_faults": {
+          "mean": 133491.75,
+          "median": 133485.0,
+          "min": 133484,
+          "max": 133513
+        }
+      },
+      "parallel": {
+        "source_s": {
+          "mean": 1.3400311249999999,
+          "median": 1.3366311665000001,
+          "min": 1.33275175,
+          "max": 1.354110417
+        },
+        "counts_s": {
+          "mean": 0.34792985425,
+          "median": 0.34774716650000004,
+          "min": 0.3462725,
+          "max": 0.349952584
+        },
+        "hash_s": {
+          "mean": 0.65631612475,
+          "median": 0.6552623535,
+          "min": 0.653345833,
+          "max": 0.661393959
+        },
+        "wall_s": {
+          "mean": 2.155,
+          "median": 2.02,
+          "min": 2.01,
+          "max": 2.57
+        },
+        "user_s": {
+          "mean": 7.4425,
+          "median": 7.445,
+          "min": 7.42,
+          "max": 7.46
+        },
+        "sys_s": {
+          "mean": 0.4575,
+          "median": 0.455,
+          "min": 0.43,
+          "max": 0.49
+        },
+        "peak_rss_bytes": {
+          "mean": 2185723904,
+          "median": 2185723904.0,
+          "min": 2185723904,
+          "max": 2185723904
+        },
+        "minor_faults": {
+          "mean": 133600.5,
+          "median": 133600.0,
+          "min": 133599,
+          "max": 133603
+        }
+      }
+    },
+    "observations": [
+      {
+        "index": 0,
+        "kind": "serial",
+        "start_utc": "2026-11-01T00:58:31.904133+00:00",
+        "wall_s": 5.68,
+        "user_s": 6.12,
+        "sys_s": 0.54,
+        "peak_rss_bytes": 2183774208,
+        "minor_faults": 133513,
+        "source_s": 4.98402025,
+        "counts_s": 3.986219458,
+        "hash_s": 0.6638195,
+        "trace_ns": 997800792,
+        "render_profile": {
+          "fixed_ns": 4225375,
+          "metadata_ns": 915308834,
+          "zero_ns": 0,
+          "render_ns": 78248458,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 1
+        }
+      },
+      {
+        "index": 1,
+        "kind": "parallel",
+        "start_utc": "2026-11-01T00:58:37.594129+00:00",
+        "wall_s": 2.57,
+        "user_s": 7.44,
+        "sys_s": 0.45,
+        "peak_rss_bytes": 2185723904,
+        "minor_faults": 133603,
+        "source_s": 1.354110417,
+        "counts_s": 0.347693542,
+        "hash_s": 0.656182916,
+        "trace_ns": 1006416875,
+        "render_profile": {
+          "fixed_ns": 7072542,
+          "metadata_ns": 927048000,
+          "zero_ns": 0,
+          "render_ns": 72276000,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 16,
+          "round_rows": 216936,
+          "chi_queries": 347097600,
+          "xor5_queries": 69419520
+        }
+      },
+      {
+        "index": 2,
+        "kind": "parallel",
+        "start_utc": "2026-11-01T00:58:40.181150+00:00",
+        "wall_s": 2.02,
+        "user_s": 7.42,
+        "sys_s": 0.49,
+        "peak_rss_bytes": 2185723904,
+        "minor_faults": 133599,
+        "source_s": 1.340426417,
+        "counts_s": 0.349952584,
+        "hash_s": 0.654341791,
+        "trace_ns": 990473833,
+        "render_profile": {
+          "fixed_ns": 3696708,
+          "metadata_ns": 910720041,
+          "zero_ns": 0,
+          "render_ns": 76045292,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 16,
+          "round_rows": 216936,
+          "chi_queries": 347097600,
+          "xor5_queries": 69419520
+        }
+      },
+      {
+        "index": 3,
+        "kind": "serial",
+        "start_utc": "2026-11-01T00:58:42.213560+00:00",
+        "wall_s": 5.64,
+        "user_s": 6.11,
+        "sys_s": 0.48,
+        "peak_rss_bytes": 2183757824,
+        "minor_faults": 133484,
+        "source_s": 4.929297791,
+        "counts_s": 3.943454125,
+        "hash_s": 0.694340667,
+        "trace_ns": 985843666,
+        "render_profile": {
+          "fixed_ns": 3707708,
+          "metadata_ns": 906168292,
+          "zero_ns": 0,
+          "render_ns": 75952167,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 1
+        }
+      },
+      {
+        "index": 4,
+        "kind": "serial",
+        "start_utc": "2026-11-01T00:58:47.871348+00:00",
+        "wall_s": 5.62,
+        "user_s": 6.05,
+        "sys_s": 0.47,
+        "peak_rss_bytes": 2183774208,
+        "minor_faults": 133486,
+        "source_s": 4.919494292,
+        "counts_s": 3.936160375,
+        "hash_s": 0.6766065,
+        "trace_ns": 983333917,
+        "render_profile": {
+          "fixed_ns": 3651042,
+          "metadata_ns": 909977083,
+          "zero_ns": 0,
+          "render_ns": 69695000,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 1
+        }
+      },
+      {
+        "index": 5,
+        "kind": "parallel",
+        "start_utc": "2026-11-01T00:58:53.506315+00:00",
+        "wall_s": 2.02,
+        "user_s": 7.45,
+        "sys_s": 0.43,
+        "peak_rss_bytes": 2185723904,
+        "minor_faults": 133600,
+        "source_s": 1.332835916,
+        "counts_s": 0.347800791,
+        "hash_s": 0.661393959,
+        "trace_ns": 985035125,
+        "render_profile": {
+          "fixed_ns": 3638834,
+          "metadata_ns": 910848125,
+          "zero_ns": 0,
+          "render_ns": 70534792,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 16,
+          "round_rows": 216936,
+          "chi_queries": 347097600,
+          "xor5_queries": 69419520
+        }
+      },
+      {
+        "index": 6,
+        "kind": "parallel",
+        "start_utc": "2026-11-01T00:58:55.537900+00:00",
+        "wall_s": 2.01,
+        "user_s": 7.46,
+        "sys_s": 0.46,
+        "peak_rss_bytes": 2185723904,
+        "minor_faults": 133600,
+        "source_s": 1.33275175,
+        "counts_s": 0.3462725,
+        "hash_s": 0.653345833,
+        "trace_ns": 986479250,
+        "render_profile": {
+          "fixed_ns": 3704458,
+          "metadata_ns": 910956375,
+          "zero_ns": 0,
+          "render_ns": 71805208,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 16,
+          "round_rows": 216936,
+          "chi_queries": 347097600,
+          "xor5_queries": 69419520
+        }
+      },
+      {
+        "index": 7,
+        "kind": "serial",
+        "start_utc": "2026-11-01T00:58:57.559489+00:00",
+        "wall_s": 5.61,
+        "user_s": 6.07,
+        "sys_s": 0.45,
+        "peak_rss_bytes": 2183757824,
+        "minor_faults": 133484,
+        "source_s": 4.9230915,
+        "counts_s": 3.943315417,
+        "hash_s": 0.6617485,
+        "trace_ns": 979776083,
+        "render_profile": {
+          "fixed_ns": 3647959,
+          "metadata_ns": 905219541,
+          "zero_ns": 0,
+          "render_ns": 70896250,
+          "render_workers": 16
+        },
+        "count_profile": {
+          "workers": 1
+        }
+      }
+    ]
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "33fa21af64fb43252ceda21f0dd84358451726ab4208d416a353ad4025cc86df",
+    "src/frontends/riscv/rv64/air/delegations/keccak/interaction.zig": "4f279a31d7ada416df700bf7b15a3fd9df04cf253dccf13af0b5a21659cdfd07",
+    "src/frontends/riscv/rv64/air/delegations/keccak/counts.zig": "cd5e1b43a85b8937551481d413d0a8f567108f5b906502f51417d2ab11db3c96",
+    "src/integrations/riscv_cpu/delegations/keccak/source_profile.zig": "37c315e2282b4de84a771e7f45e89c81312beaf9896c52cb3edb7731241ca1c3",
+    "src/integrations/riscv_cpu/delegations/keccak/test_root.zig": "40af56aea15dfee31cf4652b39d6735de103b33fee7be48ffc438cea0beb77aa",
+    "src/integrations/riscv_cpu/tests/rv64_keccak_counts_parallel_test.zig": "d3c0fb6c4e690e7c11851f97677c3e9f8e2cc1a68a5d3e9817c60e8889dd90ee"
+  },
+  "shared_scheduler_sha256": "38830d42d46d89ab145b0d834704af9d29d383bc71983d382f106de0c1d2795f"
+}
