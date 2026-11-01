@@ -52,9 +52,11 @@ certificate: the merged prefix authenticates only their physical sum.
 The closed CPU REG6 relation starts from receiver-admitted u64 registers. Its
 fixed after-clocks and retained gap16/U8 queries establish strict integer
 predecessor order. All writers retain independent anchors: this ALU as above,
-BINARY/SHIFT lookup truth, DIV/MUL bit/byte constraints, LS C4 and immutable
-ROM link/constant results. RAM/service writes retain their own anchors. Thus
-REG read canonicality follows by induction without presupposing ALU read ranges.
+BINARY/SHIFT lookup truth, DIV/MUL result ranges and immutable ROM links.
+LS C and RAM after values use the strict joint REG/RAM time induction in
+[rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md), rather
+than independent LS C4 queries. Service RAM writes retain byte anchors. Thus
+canonical reads follow without presupposing ALU input ranges.
 ROM authenticates immediate/PC operands. The CPU commits its effective B mux
 before the affine FUNCTION lookup. Exact tuple equality supplies canonical A/B
 coordinates to every consumed ALU fact, restoring ordinary bounded-integer

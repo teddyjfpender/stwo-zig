@@ -40,8 +40,10 @@ Inactive selectors produce C=0. Therefore all contributing C outputs are canonic
 independently of the removed B-high ranges, so register induction is noncircular.
 
 The closed REG6 clock argument and known initial u64 values supply canonical
-register reads; ROM supplies immediates. ALU, LS, BINARY, SHIFT, DIV/MUL and static
-ROM writes retain their independent anchors. Stateful OWNER/RAM activity stays
+register reads; ROM supplies immediates. ALU, BINARY, SHIFT, DIV/MUL and static
+ROM writes retain independent result anchors. LS writes instead satisfy the
+strict joint REG/RAM induction in
+[rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md). Stateful OWNER/RAM activity stays
 Boolean/unit on both sides, separate from reusable pure-function multiplicities.
 The new encoding identity is mixed by the full CPU protocol and standalone
 Word16 SHIFT fixtures. Fixed table geometry and its semantic identity are unchanged.

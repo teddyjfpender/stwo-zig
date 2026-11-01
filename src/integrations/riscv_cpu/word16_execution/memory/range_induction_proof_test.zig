@@ -76,13 +76,13 @@ fn attack(kind: Attack) !void {
     var source = try Sources.Source.init(a, &setup.materials, admission.image, fixture.boundary, 1, &fixture.tape);
     defer source.deinit();
     const request = source.request();
-    const row: usize = switch (kind) {
+    const logical_row: usize = switch (kind) {
         .upper_store_b, .store_byte_split => 3,
         .future_epoch, .ghost_cycle, .store_after_alias => 0,
         .lb_false_byte => 2,
         else => 1,
     };
-    const pos = R.trace.physical(row, 5);
+    const pos = R.trace.physical(logical_row, 5);
     const honest_main = try a.dupe(M, source.memory.ls.main);
     defer a.free(honest_main);
     const m = try @import("projection_test_support.zig").expandMatrix(a, source.memory.ls.main, n);

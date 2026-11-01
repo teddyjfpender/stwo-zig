@@ -1,4 +1,4 @@
-//! Eighteen affine fractions share strict pair inverses and one prefix.
+//! Ten affine fractions share strict pair inverses and one prefix.
 //! OWNER/range/selection fields are additive ledger shares; only their sum is
 //! authenticated here. RAM keeps its own inverse/prefix and physical claim.
 const E = @import("../../evaluation.zig");

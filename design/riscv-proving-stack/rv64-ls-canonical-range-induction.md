@@ -1,3 +1,9 @@
+> Historical LS48 note. The retained C4/after-value anchors described below
+> apply to that encoding, not LS32. The current LS32 effective-address and
+> value arguments use the joint REG/RAM induction and its per-proof closure,
+> unit-activity, clock and selection-parity premises. See
+> [rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md).
+
 # LS canonical range induction
 
 > Superseded encoding: this note qualifies LS48. The current LS32 encoding

@@ -1,6 +1,9 @@
 # LS joint REG/RAM write induction (LS48 -> LS32 gate)
 
-Status: implemented (STEP 2, section 10). Design gate (STEP 1) for removing the eight LS v2 U16 queries on the RAM
+Status: recovered implementation; qualification of the current MAIN70/schema7
+port is tracked in [rv64-ls32-qualification.md](rv64-ls32-qualification.md).
+Sections 1–10 preserve the earlier LS32 reasoning and historical measurements.
+This is the design gate for removing the eight LS v2 U16 queries on the RAM
 after-value limbs (logical columns 18-21) and the load result C (40-43). Base
 commit eac3b7c07. This is a source-level argument, not a machine-checked proof.
 It is conditional on the soundness of the physical STARKs and the randomized typed
@@ -60,7 +63,13 @@ used inside the value induction without circularity.
 * **P3 Strict REG predecessor, per shard.** In each CPU proof every enabled REG
   before token equals a produced REG token of the same proof with smaller clock:
   after clocks are fixed `4r+s+1`, s in {0,1,2} (`x/tuples.zig:6-13,27-35`),
-  gap16/gap8 ranges retained (`x/equations.zig:30-33`), REG closes locally.
+  gap16/gap8 ranges retained, REG closes locally. This per-CPU scope is
+  load-bearing because REG6 contains no epoch. The production services receiver
+  calls `services/statement.zig::CpuClaims.local` inside each CPU verification
+  loop; `services/protocol.zig::drawCpu` binds ordinal/manifest before drawing
+  local REG/OWNER challenges. Only RAM and service truth debts may leave that
+  proof. Named ledger shares are not individually authenticated certificates;
+  closure uses the combined typed rational identity and independent challenges.
 * **P4 OWNER bijection with coupled RAM weight.** CPU OWNER weight is
   `active-function`, Boolean (`x/equations.zig:19,84-85`); CPU tuples are pairwise
   distinct by tick. LS OWNER weight is LS `active` (`ls2/local_lookup.zig:25`),
@@ -71,15 +80,20 @@ used inside the value induction without circularity.
   transition is in the global RAM multiset with weight exactly 1, and whose
   C equals the CPU C of row `r` (`ls2/equations.zig:11-17`, `x/tuples.zig:52-61`).
   Opcode whitelists separate LS and ECALL providers.
-* **P5 FUNCTION writers.** Every consumed FUNCTION fact is an active provider row
-  satisfying its local AIR. Inherited premise (not re-audited here): each provider
-  has an independent C anchor - ALU sum/difference ranges and Boolean predicates
-  (`rv64-alu-canonical-input-ranges.md`, "Noncircular write anchors"), BINARY AND-table
-  bytes, SHIFT table chunks (`rv64-shift-canonical-input-ranges.md:20-40`), MUL
-  byte/limb ranges, DIV explicit U16 output anchors
-  (`air/delegations/division/word16_product/README.md`), JALR/JAL link via ROM.
-  The induction below only needs the weaker "canonical inputs => canonical C",
-  and supplies canonical inputs anyway.
+* **P5 FUNCTION writers.** Every consumed FUNCTION fact matches provider
+  truth under the closed typed relation. The current source audit is complete
+  for all52 architectural writers, explicitly including LUI/AUIPC, in
+  [rv64-ls32-qualification.md](rv64-ls32-qualification.md#every-register-writer-and-its-source-authority).
+  ALU sum/difference anchors are `word16_v1/alu.zig:143`; BINARY byte tuple
+  anchors `word16_v1/binary.zig:97`; SHIFT tuple/sign anchors
+  `word16_v1/shift_word.zig:80,84,109`; MUL RESULT BYTE coverage
+  `delegations/multiplication/provider.zig:53`; DIV C queries
+  `delegations/division/word16_product/equations.zig:43`. LUI and AUIPC route
+  through ALU ADD at `word16_execution/features.zig:48,53`. JAL also uses ALU
+  ADD at `:59`; only JALR's architectural link is ROM-bound at
+  `word16_execution/tuples.zig:43`. These output anchors do not presuppose LS
+  canonicality. Reusable FUNCTION fact weights must not be confused with
+  stateful OWNER/RAM activity: the latter remains Boolean/unit.
 * **P6 Selection truth.** The selection table is the immutable set
   `(x, p, byte_p(x), bit7(byte_p(x)), bit15(x))` for `x < 2^16`, `p in {0,1}`
   (`ls1/selection.zig:5-11,26-29`), fixed root rebuilt by the receiver; every LS row
@@ -193,7 +207,14 @@ with I false) would contradict the corresponding case. QED.
   be an unconstrained before limb such as 65536 and nothing else would reject it.
   Previously the C range blocked this; now only the coupling does. Any future
   change to LS/CPU OWNER weights must re-open this lemma.
-* **Tick residue is load-bearing.** If any RAM producer could emit a tick
+* **SB parity coupling is load-bearing.** Selection parity is the sum of the
+  odd one-hot offset flags (`ls1/equations.zig:21`); byte replacement uses1 or256
+  from those same flags (`:116`). Decoupling these would invalidate the byte
+  replacement bound.
+* **Per-proof REG/OWNER closure is load-bearing.** The production verifier must
+  not sum CPU-local debts across shards; REG tuples have no epoch. Public u64
+  register adjacency does not authorize a global unclosed REG argument.
+* **Tick residue is load-bearing for unanchored LS writers.** If any RAM producer could emit a tick
   `4r+1..4r+3` in the CPU's epoch, E2 would not be strictly decreasing in this
   measure (a load's RAM predecessor could be "later" than its REG write). All
   current producers are OWNER-bound to `4r'+4` (P1).
@@ -249,9 +270,9 @@ target limb, ECALL/store C = 0, Keccak/secp bridges) or depends only on tokens
 with strictly smaller `(epoch, clock)`. Two properties not previously stated as
 LS obligations are now load-bearing and must be guarded in STEP 2 and in future
 changes: OWNER weight equals the Boolean RAM weight on LS rows, and every RAM
-producer's tick is `4r'+4` (or INIT 0). P5 is an inherited premise from the
-existing provider notes and was not re-audited in this gate. MUL/DIV ranges are
-not touched.
+producer's tick is `4r'+4` (or INIT 0). P5 was inherited in the original design gate; the current source audit and
+file-and-line writer inventory are now in rv64-ls32-qualification.md. MUL/DIV
+result anchors are retained; DIV input-range trims are separately versioned.
 
 ## 10. Implementation (STEP 2) and deviations from section 8
 
