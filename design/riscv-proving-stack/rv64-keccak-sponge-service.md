@@ -315,8 +315,14 @@ Exact padded MAIN+INTERACTION cells (widths × 2^log, as cost.json computes):
 2,100.3 + 72,159.3 (frozen Keccak truth coefficient) per permutation.
 Basket (15 blocks, all guards, exact outputs): provable v3 scored 4.778 →
 4.426 instr/gas, 67,192 → 64,114 bits/gas; Keccak glue 0.465 → 0.108
-instr/gas (`notes/keccak-sponge-admitted-results-20261102.json`). Not yet
-confirmed by a produced proof's cost.json.
+instr/gas (`notes/keccak-sponge-admitted-results-20261102.json`).
+
+Confirmed by a produced proof: a 1-packet prefix of the same block
+(`rv64-word16-ethereum produce request.json native/jobs OUT 1`, 1 CPU + 4
+truth proofs, 26.4 s, 15.2 GB max RSS) accepted by a fresh `verify-prefix`
+(a v2 request rejects it). Its roster.json: `sponge_call` log 12, 2,943
+active rows, 4,399,104 cells (1,494.7 / call); `sponge_perm` log 14, 13,685
+active rows, 27,213,824 cells (1,988.6 / permutation).
 
 ## 7. Integration
 
@@ -328,4 +334,8 @@ sources, AND merge, Keccak truth inputs), `protocol` (`admitSponge`, ID
 checks, transcript block), `statement`, `air_components`, `worker`,
 `pipeline`, `execution` (IO sum), `wire`, `collector` +
 `sponge_collector.zig` (ledger replay). Driver: plan logs and Keccak truth
-totals, `admitProfile`, native batch and work-packet admission.
+totals, `admitProfile`, native batch and work-packet admission (sponge is a
+payload-free tag: no tape payload, RAM effects in the capture, touched-word
+bound `BULK_MAX_TOUCHED_WORDS` covers 29 + W ≤ 131,102 words), cost/roster
+telemetry rows `sponge_call`/`sponge_perm`. Exercised end to end by the
+prefix proof in section 6.
