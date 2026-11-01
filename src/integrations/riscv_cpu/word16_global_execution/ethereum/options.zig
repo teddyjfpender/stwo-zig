@@ -64,7 +64,7 @@ pub const Options = struct {
                 out.prefetch_main_set = true;
                 const prefix = "--prefetch-retained-main-bytes=";
                 out.prefetch_main_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
-                if (out.prefetch_main_bytes > 4 << 30 or (out.prefetch_main_bytes != 0 and out.prefetch_main_bytes < std.heap.page_size_min)) return error.InvalidRetainedMainPrefetchCap;
+                if (out.prefetch_main_bytes > 4 << 30 or (out.prefetch_main_bytes != 0 and out.prefetch_main_bytes < std.heap.pageSize())) return error.InvalidRetainedMainPrefetchCap;
             } else if (std.mem.eql(u8, arg, "--park-retained-main")) {
                 if (out.park_retained_main) return error.DuplicateOperationalOption;
                 out.park_retained_main = true;

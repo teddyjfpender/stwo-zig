@@ -13,7 +13,7 @@ pub const Result = struct {
     ready: bool = false,
 };
 pub fn boundedLength(mapping_bytes: usize, cap: usize) usize {
-    return std.mem.alignBackward(usize, @min(mapping_bytes, cap), std.heap.page_size_min);
+    return std.mem.alignBackward(usize, @min(mapping_bytes, cap), std.heap.pageSize());
 }
 pub fn advise(memory: []align(std.heap.page_size_min) u8, cap: usize) Result {
     if (comptime !supported) return .{ .unsupported = true };

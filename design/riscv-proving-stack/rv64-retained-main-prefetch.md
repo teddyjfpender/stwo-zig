@@ -1,7 +1,7 @@
 # Bounded advice for the current worker's sealed MAIN
 
 `--prefetch-retained-main-bytes=N` is a producer-only operational option, off
-by default (`N=0`). Nonzero CLI/pipeline caps range from one host minimum page
+by default (`N=0`). Nonzero CLI/pipeline caps range from one actual host page
 to 4GiB. Advice ranges round down to complete pages without exceeding the cap or
 owned mapping. This is a per-worker bound on requested advice, not a global
 cache, completed read count, reservation of resident pages or hard RAM limit.
