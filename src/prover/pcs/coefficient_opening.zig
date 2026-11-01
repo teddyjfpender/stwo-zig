@@ -8,30 +8,38 @@ const work_pool = @import("../work_pool.zig");
 const Column = @import("stwo_prover_api").ColumnEvaluation;
 const batch_byte_limit = 128 * 1024 * 1024;
 const traversal = @import("../vcs_lifted/decommit.zig");
+const transforms = @import("../poly/circle/transforms.zig");
 
 pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
     return decommitForBackend(void, H, a, tree, queries);
 }
 
+/// Host openings default to half-scratch pruned expansion with per-worker
+/// scratch reuse and a column work queue. STWO_ZIG_FULL_SCRATCH_OPENING=1
+/// restores the previous full-scratch wave schedule for A/B comparison.
 pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
-    return decommitImpl(B, H, a, tree, queries, std.process.hasEnvVarConstant("STWO_ZIG_HALF_SCRATCH_OPENING"));
+    const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
+    if (native_expansion or std.process.hasEnvVarConstant("STWO_ZIG_FULL_SCRATCH_OPENING"))
+        return decommitWaves(B, H, a, tree, queries, false);
+    return decommitQueued(H, a, tree, queries, true);
 }
 
-fn decommitImpl(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, half_requested: bool) !traversal.DecommitmentResult(H) {
-    const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
-    const use_half = !native_expansion and half_requested;
-    const max_log = tree.commitment.maxLogSize();
+fn validateQueries(max_log: u32, queries: []const usize) !void {
     const size = @as(usize, 1) << @intCast(max_log);
     for (queries, 0..) |query, i| {
         if (query >= size or (i != 0 and query < queries[i - 1])) return error.InvalidColumnSize;
     }
+}
+
+/// Leaf positions whose hashes must be recomputed (sorted, unique).
+fn collectLeaves(a: std.mem.Allocator, tree: anytype, queries: []const usize) !std.ArrayList(usize) {
+    var leaves = std.ArrayList(usize).empty;
+    errdefer leaves.deinit(a);
     var first_missing: usize = tree.commitment.layers.len;
     for (tree.commitment.layers, 0..) |layer, i| if (layer.len == 0) {
         first_missing = i;
         break;
     };
-    var leaves = std.ArrayList(usize).empty;
-    defer leaves.deinit(a);
     if (first_missing < tree.commitment.layers.len) {
         if (first_missing == 0) return error.InvalidColumnSize;
         const block_size = @as(usize, 1) << @intCast(tree.commitment.layers.len - first_missing);
@@ -42,6 +50,196 @@ fn decommitImpl(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: 
             for (start..start + block_size) |position| leaves.appendAssumeCapacity(position);
         }
     }
+    return leaves;
+}
+
+fn sortedColumnOrder(a: std.mem.Allocator, columns: anytype) ![]usize {
+    const indices = try a.alloc(usize, columns.len);
+    for (indices, 0..) |*index, i| index.* = i;
+    const Order = struct {
+        columns: @TypeOf(columns),
+        fn less(self: @This(), left: usize, right: usize) bool {
+            const x = self.columns[left].log_size;
+            const y = self.columns[right].log_size;
+            return x < y or (x == y and left < right);
+        }
+    };
+    std.sort.heap(usize, indices, Order{ .columns = columns }, Order.less);
+    return indices;
+}
+
+fn allocValues(a: std.mem.Allocator, columns: usize, queries: usize) ![][]M31 {
+    const values = try a.alloc([]M31, columns);
+    var initialized: usize = 0;
+    errdefer {
+        for (values[0..initialized]) |column| a.free(column);
+        a.free(values);
+    }
+    for (values) |*column| {
+        column.* = try a.alloc(M31, queries);
+        initialized += 1;
+    }
+    return values;
+}
+
+fn freeValues(a: std.mem.Allocator, values: [][]M31) void {
+    for (values) |column| a.free(column);
+    a.free(values);
+}
+
+inline fn project(position: usize, shift: std.math.Log2Int(usize)) usize {
+    return ((position >> shift) << 1) + (position & 1);
+}
+
+/// Work-queue opening: every coefficient-backed column is expanded by whichever
+/// worker is free next into that worker's reusable scratch; the selected
+/// evaluations land in a per-column slot. Leaf absorption then runs serially in
+/// canonical (log size, index) order, so hashes are schedule independent.
+fn decommitQueued(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, half: bool) !traversal.DecommitmentResult(H) {
+    const max_log = tree.commitment.maxLogSize();
+    try validateQueries(max_log, queries);
+    var leaves = try collectLeaves(a, tree, queries);
+    defer leaves.deinit(a);
+    const columns = tree.columns;
+    for (columns) |column| {
+        try column.validateRetained();
+        if (column.log_size > max_log) return error.InvalidColumnSize;
+    }
+    const plans = try a.alloc(?PositionPlan, max_log + 1);
+    @memset(plans, null);
+    defer {
+        for (plans) |*plan| if (plan.*) |*value| value.deinit(a);
+        a.free(plans);
+    }
+    const offsets = try a.alloc(usize, columns.len);
+    defer a.free(offsets);
+    var work = std.ArrayList(usize).empty;
+    defer work.deinit(a);
+    var selected_len: usize = 0;
+    var max_scratch: usize = 0;
+    for (columns, offsets, 0..) |column, *offset, i| {
+        offset.* = selected_len;
+        if (column.coefficient_values == null) continue;
+        if (plans[column.log_size] == null) plans[column.log_size] = try PositionPlan.init(a, max_log, column.log_size, queries, leaves.items);
+        selected_len = try std.math.add(usize, selected_len, plans[column.log_size].?.positions.len);
+        max_scratch = @max(max_scratch, scratchLength(column, half));
+        try work.append(a, i);
+    }
+    const selected = try a.alloc(M31, selected_len);
+    defer a.free(selected);
+    // Largest columns first keeps the queue tail short.
+    const Largest = struct {
+        columns: @TypeOf(columns),
+        fn less(self: @This(), left: usize, right: usize) bool {
+            const x = self.columns[left].log_size;
+            const y = self.columns[right].log_size;
+            return x > y or (x == y and left < right);
+        }
+    };
+    std.sort.heap(usize, work.items, Largest{ .columns = columns }, Largest.less);
+    if (work.items.len != 0) {
+        var transform = try twiddles.precomputeM31(a, poly.CanonicCoset.new(max_log).circleDomain().half_coset);
+        defer twiddles.deinitM31(a, &transform);
+        const pool = work_pool.getGlobalPool();
+        const scratch_bytes = try std.math.mul(usize, max_scratch, @sizeOf(M31));
+        const budget_workers = @max(1, batch_byte_limit / scratch_bytes);
+        const workers = @min(@min(if (pool) |active| active.workerCount() else 1, budget_workers), @min(work.items.len, work_pool.MAX_WORKERS));
+        const scratch = try a.alloc(M31, try std.math.mul(usize, max_scratch, workers));
+        defer a.free(scratch);
+        var queue: Queue(@TypeOf(columns)) = .{
+            .columns = columns,
+            .work = work.items,
+            .plans = plans,
+            .offsets = offsets,
+            .selected = selected,
+            .scratch = scratch,
+            .scratch_len = max_scratch,
+            .half = half,
+            .transform = .{ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles },
+        };
+        if (pool != null and workers > 1) {
+            var group: std.Thread.WaitGroup = .{};
+            for (1..workers) |worker| pool.?.spawnWg(&group, @TypeOf(queue).run, .{ &queue, worker });
+            queue.run(0);
+            group.wait();
+        } else queue.run(0);
+        for (queue.failures[0..workers]) |failure| if (failure) |err| return err;
+    }
+    const hashers = try a.alloc(H, leaves.items.len);
+    defer a.free(hashers);
+    for (hashers) |*hasher| hasher.* = H.defaultWithInitialState();
+    const values = try allocValues(a, columns.len, queries.len);
+    defer freeValues(a, values);
+    const indices = try sortedColumnOrder(a, columns);
+    defer a.free(indices);
+    for (indices) |index| {
+        const column = columns[index];
+        const shift: std.math.Log2Int(usize) = @intCast(max_log - column.log_size + 1);
+        if (column.coefficient_values != null) {
+            const plan = &plans[column.log_size].?;
+            const source = selected[offsets[index]..][0..plan.positions.len];
+            for (plan.query_indices, values[index]) |at, *value| value.* = source[at];
+            for (plan.leaf_indices, hashers) |at, *hasher| hasher.updateLeaf(source[at..][0..1]);
+        } else {
+            for (queries, values[index]) |position, *value| value.* = column.values[project(position, shift)];
+            for (leaves.items, hashers) |position, *hasher| hasher.updateLeaf(column.values[project(position, shift)..][0..1]);
+        }
+    }
+    return finish(H, a, tree, queries, leaves.items, hashers, values);
+}
+
+fn Queue(comptime Columns: type) type {
+    return struct {
+        columns: Columns,
+        work: []const usize,
+        plans: []const ?PositionPlan,
+        offsets: []const usize,
+        selected: []M31,
+        scratch: []M31,
+        scratch_len: usize,
+        half: bool,
+        transform: twiddles.TwiddleTree([]const M31),
+        next: std.atomic.Value(usize) = .init(0),
+        stop: std.atomic.Value(bool) = .init(false),
+        failures: [work_pool.MAX_WORKERS]?anyerror = @splat(null),
+
+        fn run(self: *@This(), worker: usize) void {
+            const scratch = self.scratch[worker * self.scratch_len ..][0..self.scratch_len];
+            while (!self.stop.load(.monotonic)) {
+                const item = self.next.fetchAdd(1, .monotonic);
+                if (item >= self.work.len) return;
+                self.expand(self.work[item], scratch) catch |err| {
+                    self.failures[worker] = err;
+                    self.stop.store(true, .monotonic);
+                    return;
+                };
+            }
+        }
+
+        fn expand(self: *@This(), index: usize, scratch: []M31) !void {
+            const column = self.columns[index];
+            const coefficients = column.coefficient_values.?;
+            const plan = &self.plans[column.log_size].?;
+            const out = self.selected[self.offsets[index]..][0..plan.positions.len];
+            const domain = poly.CanonicCoset.new(column.log_size).circleDomain();
+            const values = scratch[0..scratchLength(column, self.half)];
+            if (self.half) return transforms.evaluateSelectedCoefficientsWithTwiddles(coefficients, values, domain, self.transform, plan.positions, out);
+            @memcpy(values[0..coefficients.len], coefficients);
+            try transforms.evaluateSelectedBufferWithTwiddles(values, coefficients.len, domain, self.transform, plan.positions);
+            for (plan.positions, out) |position, *value| value.* = values[position];
+        }
+    };
+}
+
+/// Previous schedule: bounded waves with a fresh scratch per column. Kept for
+/// native (GPU) expansion and as the STWO_ZIG_FULL_SCRATCH_OPENING A/B path.
+fn decommitWaves(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, half_requested: bool) !traversal.DecommitmentResult(H) {
+    const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
+    const use_half = !native_expansion and half_requested;
+    const max_log = tree.commitment.maxLogSize();
+    try validateQueries(max_log, queries);
+    var leaves = try collectLeaves(a, tree, queries);
+    defer leaves.deinit(a);
     const plans: []?PositionPlan = if (use_half) try a.alloc(?PositionPlan, max_log + 1) else &.{};
     @memset(plans, null);
     defer {
@@ -182,6 +380,10 @@ fn decommitImpl(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: 
         }
         next = end;
     }
+    return finish(H, a, tree, queries, leaves.items, hashers, values);
+}
+
+fn finish(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, leaves: []const usize, hashers: []H, values: []const []M31) !traversal.DecommitmentResult(H) {
     const hashes = try a.alloc(H.Hash, hashers.len);
     defer a.free(hashes);
     for (hashers, hashes) |*hasher, *hash| hash.* = hasher.finalize();
@@ -228,7 +430,7 @@ fn decommitImpl(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: 
             return out;
         }
     };
-    return traversal.decommit(H, Reader{ .commitment = tree.commitment, .positions = leaves.items, .hashes = hashes, .values = values }, a, queries, &.{});
+    return traversal.decommit(H, Reader{ .commitment = tree.commitment, .positions = leaves, .hashes = hashes, .values = values }, a, queries, &.{});
 }
 
 const Expansion = struct {
@@ -309,10 +511,20 @@ const PositionPlan = struct {
     }
 };
 pub const testing = if (@import("builtin").is_test) struct {
+    /// Previous default: full-scratch waves (STWO_ZIG_FULL_SCRATCH_OPENING).
     pub fn decommitFull(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
-        return decommitImpl(void, H, a, tree, queries, false);
+        return decommitWaves(void, H, a, tree, queries, false);
     }
+    /// Current default: half-scratch work queue with per-worker scratch reuse.
     pub fn decommitHalf(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
-        return decommitImpl(void, H, a, tree, queries, true);
+        return decommitQueued(H, a, tree, queries, true);
+    }
+    /// Half-scratch waves, the previously optional mode.
+    pub fn decommitHalfWaves(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+        return decommitWaves(void, H, a, tree, queries, true);
+    }
+    /// Full-scratch work queue with deduplicated positions.
+    pub fn decommitFullQueued(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+        return decommitQueued(H, a, tree, queries, false);
     }
 } else struct {};
