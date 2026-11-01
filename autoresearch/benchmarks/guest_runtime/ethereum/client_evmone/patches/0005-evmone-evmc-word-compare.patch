@@ -1,0 +1,70 @@
+diff --git a/evmc/include/evmc/evmc.hpp b/evmc/include/evmc/evmc.hpp
+index 08da50a..5948490 100644
+--- a/evmc/include/evmc/evmc.hpp
++++ b/evmc/include/evmc/evmc.hpp
+@@ -140,6 +140,34 @@ inline constexpr uint64_t load64le(const uint8_t* data) noexcept
+            (uint64_t{data[6]} << 48) | (uint64_t{data[7]} << 56);
+ }
+ 
++#if defined(ZEG_STWO)
++namespace stwo_detail
++{
++// stwo RV64IM guest: misaligned loads trap and evmc byte arrays have
++// alignment 1, so load64le() above compiles to eight byte loads. Words of
++// any alignment are a funnel of the aligned words holding their bytes.
++typedef uint64_t __attribute__((may_alias)) u64a;
++inline uint64_t ldu64(const uint8_t* p) noexcept
++{
++    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
++    const u64a* a = reinterpret_cast<const u64a*>(p - off);
++    if (off == 0)
++        return a[0];
++    return (a[0] >> (off * 8)) | (a[1] << (64 - off * 8));
++}
++/// Low `k` (1..8) bytes at p as a little-endian word.
++inline uint64_t ldu_tail(const uint8_t* p, unsigned k) noexcept
++{
++    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
++    const u64a* a = reinterpret_cast<const u64a*>(p - off);
++    uint64_t w = a[0] >> (off * 8);
++    if (off + k > 8)
++        w |= a[1] << (64 - off * 8);
++    return k == 8 ? w : w & ((uint64_t{1} << (8 * k)) - 1);
++}
++}  // namespace stwo_detail
++#endif
++
+ /// Loads 32 bits / 4 bytes of data from the given @p data array in big-endian order.
+ inline constexpr uint32_t load32be(const uint8_t* data) noexcept
+ {
+@@ -170,6 +198,14 @@ inline constexpr uint64_t fnv1a_by64(uint64_t h, uint64_t x) noexcept
+ /// The "equal to" comparison operator for the evmc::address type.
+ inline constexpr bool operator==(const address& a, const address& b) noexcept
+ {
++#if defined(ZEG_STWO)
++    if (!__builtin_is_constant_evaluated())
++    {
++        using namespace stwo_detail;
++        return ((ldu64(&a.bytes[0]) ^ ldu64(&b.bytes[0])) | (ldu64(&a.bytes[8]) ^ ldu64(&b.bytes[8])) |
++                   (ldu_tail(&a.bytes[16], 4) ^ ldu_tail(&b.bytes[16], 4))) == 0;
++    }
++#endif
+     return load64le(&a.bytes[0]) == load64le(&b.bytes[0]) &&
+            load64le(&a.bytes[8]) == load64le(&b.bytes[8]) &&
+            load32le(&a.bytes[16]) == load32le(&b.bytes[16]);
+@@ -212,6 +248,15 @@ inline constexpr bool operator>=(const address& a, const address& b) noexcept
+ /// The "equal to" comparison operator for the evmc::bytes32 type.
+ inline constexpr bool operator==(const bytes32& a, const bytes32& b) noexcept
+ {
++#if defined(ZEG_STWO)
++    if (!__builtin_is_constant_evaluated())
++    {
++        using namespace stwo_detail;
++        return ((ldu64(&a.bytes[0]) ^ ldu64(&b.bytes[0])) | (ldu64(&a.bytes[8]) ^ ldu64(&b.bytes[8])) |
++                   (ldu64(&a.bytes[16]) ^ ldu64(&b.bytes[16])) |
++                   (ldu64(&a.bytes[24]) ^ ldu64(&b.bytes[24]))) == 0;
++    }
++#endif
+     return load64le(&a.bytes[0]) == load64le(&b.bytes[0]) &&
+            load64le(&a.bytes[8]) == load64le(&b.bytes[8]) &&
+            load64le(&a.bytes[16]) == load64le(&b.bytes[16]) &&
