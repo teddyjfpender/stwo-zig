@@ -322,5 +322,6 @@ test {
 }
 test {
     _ = @import("manifest_test.zig");
+    _ = @import("manifest_wire_test.zig");
     _ = @import("table_role_test.zig");
 }

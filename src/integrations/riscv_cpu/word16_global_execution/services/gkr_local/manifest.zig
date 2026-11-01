@@ -23,9 +23,11 @@ pub const Relations = struct {
         return @as(usize, @intFromBool(self.ram)) | (@as(usize, @intFromBool(self.kio)) << 1) | (@as(usize, @intFromBool(self.wire)) << 2);
     }
 };
+pub const Mass = struct { ram: u64, kio: u64, wire: u64 };
 pub const ExpectedWorker = struct {
     kind: Kind,
     global_relations: Relations,
+    mass: Mass,
     ordinal: u32,
     statement: [32]u8,
     fixed: [32]u8,
@@ -39,7 +41,7 @@ pub const Shared = struct {
     wire: A.crypto.secp256k1.equations.WireFor(O),
 };
 pub const Claims = struct { ram: O, kio: O, wire: O };
-pub const Entry = struct { kind: Kind, global_relations: Relations, scope: Receipt.Scope, local: ?Child.Pending };
+pub const Entry = struct { kind: Kind, global_relations: Relations, mass: Mass, scope: Receipt.Scope, local: ?Child.Pending };
 pub const PendingManifest = struct {
     entries: []Entry,
     digest: [32]u8,
@@ -75,13 +77,21 @@ pub const PendingManifest = struct {
 fn canonical(value: O) !void {
     for (value.toM31Array()) |coordinate| if (coordinate.v >= core.fields.m31.Modulus) return error.NoncanonicalGlobalGkrCoordinate;
 }
-fn validateExpected(expected: []const ExpectedWorker, stages: []const StageOne) !void {
-    if (expected.len == 0 or expected.len > MAX_WORKERS or stages.len != expected.len or expected[0].kind != .cpu) return error.GlobalGkrManifestRoster;
+pub fn validateRoster(expected: []const ExpectedWorker) !void {
+    if (expected.len == 0 or expected.len > MAX_WORKERS or expected[0].kind != .cpu) return error.GlobalGkrManifestRoster;
     var previous: u32 = 0;
-    for (expected, stages, 0..) |worker, stage, i| {
+    var mass = Mass{ .ram = 0, .kio = 0, .wire = 0 };
+    for (expected, 0..) |worker, i| {
         if (worker.ordinal != i or @intFromEnum(worker.kind) < previous) return error.GlobalGkrManifestOrdinal;
         previous = @intFromEnum(worker.kind);
         const mask = worker.global_relations;
+        inline for (.{ "ram", "kio", "wire" }) |name| {
+            const bound = @field(worker.mass, name);
+            if (!@field(mask, name) and bound != 0) return error.GlobalGkrRelationMass;
+            if (bound >= core.fields.m31.Modulus) return error.GlobalGkrCharacteristicBound;
+            @field(mass, name) = std.math.add(u64, @field(mass, name), bound) catch return error.GlobalGkrCharacteristicBound;
+            if (@field(mass, name) >= core.fields.m31.Modulus) return error.GlobalGkrCharacteristicBound;
+        }
         switch (worker.kind) {
             .cpu => if (!mask.ram) return error.GlobalGkrRelationRoster,
             .keccak => if (mask.ram or !mask.kio or mask.wire) return error.GlobalGkrRelationRoster,
@@ -89,13 +99,17 @@ fn validateExpected(expected: []const ExpectedWorker, stages: []const StageOne) 
         }
         if (worker.kind == .cpu) {
             const instances = worker.local_instances orelse return error.MissingGlobalGkrLocalChild;
-            if (instances.len == 0 or instances.len > Receipt.MAX_INSTANCES or stage.local == null) return error.MissingGlobalGkrLocalChild;
+            if (instances.len == 0 or instances.len > Receipt.MAX_INSTANCES) return error.MissingGlobalGkrLocalChild;
             for (instances) |instance| _ = try instance.variables();
-        } else {
-            // This version explicitly selects OM classic arguments for truth
-            // locals. A future truth-GKR route needs its own admitted profile.
-            if (worker.local_instances != null or stage.local != null) return error.UnexpectedGlobalGkrLocalChild;
-        }
+        } else if (worker.local_instances != null) return error.UnexpectedGlobalGkrLocalChild;
+    }
+}
+pub fn validateStageOneShape(expected: []const ExpectedWorker, stages: []const StageOne) !void {
+    try validateRoster(expected);
+    if (stages.len != expected.len) return error.GlobalGkrManifestRoster;
+    for (expected, stages) |worker, stage| {
+        if (worker.kind == .cpu and stage.local == null) return error.MissingGlobalGkrLocalChild;
+        if (worker.kind != .cpu and stage.local != null) return error.UnexpectedGlobalGkrLocalChild;
     }
 }
 const Writer = struct {
@@ -103,7 +117,7 @@ const Writer = struct {
     fn bytes(self: *Writer, value: []const u8) void {
         self.hash.update(value);
     }
-    fn integer(self: *Writer, value: usize) void {
+    fn integer(self: *Writer, value: anytype) void {
         var encoded: [8]u8 = undefined;
         std.mem.writeInt(u64, &encoded, @intCast(value), .little);
         self.hash.update(&encoded);
@@ -128,6 +142,9 @@ pub fn emitCanonical(execution: [32]u8, entries: []const Entry, writer: anytype)
     for (entries) |entry| {
         writer.integer(@intFromEnum(entry.kind));
         writer.integer(entry.global_relations.bits());
+        writer.integer(entry.mass.ram);
+        writer.integer(entry.mass.kio);
+        writer.integer(entry.mass.wire);
         writer.integer(entry.scope.ordinal);
         writer.bytes(&entry.scope.statement);
         writer.bytes(&entry.scope.fixed);
@@ -168,7 +185,7 @@ fn drawShared(digest: [32]u8) Shared {
 /// checkPhysicalRoots must match them to every later accepted native proof.
 /// A successfully returned value contains PENDING physical-binding obligations.
 pub fn verifyAndSeal(a: std.mem.Allocator, execution: [32]u8, expected: []const ExpectedWorker, stages: []const StageOne) !PendingManifest {
-    try validateExpected(expected, stages);
+    try validateStageOneShape(expected, stages);
     const entries = try a.alloc(Entry, expected.len);
     errdefer a.free(entries);
     var initialized: usize = 0;
@@ -177,7 +194,7 @@ pub fn verifyAndSeal(a: std.mem.Allocator, execution: [32]u8, expected: []const 
     };
     for (expected, stages, 0..) |worker, stage, i| {
         const scope = Receipt.Scope{ .ordinal = worker.ordinal, .statement = worker.statement, .fixed = worker.fixed, .main = stage.main };
-        entries[i] = .{ .kind = worker.kind, .global_relations = worker.global_relations, .scope = scope, .local = if (stage.local) |local| try Child.verifyPending(a, scope, worker.local_instances.?, local.proof, local.receipt_digest) else null };
+        entries[i] = .{ .kind = worker.kind, .global_relations = worker.global_relations, .mass = worker.mass, .scope = scope, .local = if (stage.local) |local| try Child.verifyPending(a, scope, worker.local_instances.?, local.proof, local.receipt_digest) else null };
         initialized += 1;
     }
     var writer = Writer{};
