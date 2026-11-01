@@ -1,0 +1,43 @@
+# Built as a member of the pinned paradigmxyz/stateless workspace (a134a621,
+# the same revision the Rust guest links), see ../eest.py `build-gen`.
+[package]
+name = "stwo-eest-witness-gen"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "stwo-eest-witness-gen"
+path = "src/main.rs"
+
+[dependencies]
+ef-tests = { path = "../ef-tests" }
+stateless-validator-common = { workspace = true, features = ["std"] }
+stateless-validator-reth = { workspace = true, features = ["std"] }
+stateless = { workspace = true, features = ["reth-trie"] }
+
+reth-chainspec = { workspace = true, features = ["std"] }
+reth-ethereum-primitives = { workspace = true, features = ["std"] }
+reth-primitives-traits = { workspace = true, features = ["std"] }
+reth-consensus = { workspace = true, features = ["std"] }
+reth-db = { workspace = true, features = ["mdbx", "test-utils", "disable-lock"] }
+reth-db-api.workspace = true
+reth-db-common.workspace = true
+reth-provider = { workspace = true, features = ["test-utils"] }
+reth-evm = { workspace = true, features = ["std"] }
+reth-evm-ethereum = { workspace = true, features = ["std"] }
+reth-ethereum-consensus = { workspace = true, features = ["std"] }
+reth-revm = { workspace = true, features = ["std", "witness"] }
+reth-trie-common = { workspace = true, features = ["std"] }
+reth-trie.workspace = true
+reth-trie-db.workspace = true
+revm = { workspace = true, features = ["secp256k1", "blst", "c-kzg", "memory_limit"] }
+
+alloy-rlp.workspace = true
+alloy-primitives.workspace = true
+alloy-eips.workspace = true
+alloy-consensus.workspace = true
+alloy-genesis.workspace = true
+
+serde_json.workspace = true
+sha2.workspace = true

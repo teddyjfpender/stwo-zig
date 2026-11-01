@@ -508,18 +508,25 @@ evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages) {
         if (storages.value_unchanged_at(i)) continue;
         changed[accounts.index_of(storages.address_at(i))].push_back(i);
     }
+    // Inserts and updates go before deletions, in both tries: a deletion that
+    // runs first can collapse a branch transiently and then need a sibling
+    // node the canonical witness rightly omits (EEST mpt/storage_trie_structure).
     stwo::MutableTrie state(g.store, g.parent_state_root);
+    std::vector<size_t> removed_accounts;
     for (size_t a = 0; a < na; ++a) {
         H256 sroot = g.acct_sroot[a];
         bool storage_changed = false;
         if (!changed[a].empty()) {
             stwo::MutableTrie st(g.store, sroot);
-            for (size_t s : changed[a]) {
-                const evmc::bytes32 v = storages.value_at(s);
-                uint8_t enc[33];
-                const size_t n = put_rlp_uint(enc, v.bytes, 32);
-                if (n == 1 && enc[0] == 0x80) st.remove(g.slot_key[s].b);
-                else st.put(g.slot_key[s].b, enc, n);
+            for (int pass = 0; pass < 2; ++pass) {
+                for (size_t s : changed[a]) {
+                    const evmc::bytes32 v = storages.value_at(s);
+                    uint8_t enc[33];
+                    const size_t n = put_rlp_uint(enc, v.bytes, 32);
+                    const bool del = n == 1 && enc[0] == 0x80;
+                    if (pass == 0 && !del) st.put(g.slot_key[s].b, enc, n);
+                    if (pass == 1 && del) st.remove(g.slot_key[s].b);
+                }
             }
             const H256 nr = st.root_hash();
             storage_changed = nr != sroot;
@@ -530,7 +537,7 @@ evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages) {
         const uint64_t nonce = accounts.nonce_at(a);
         const evmc::bytes32 ch = accounts.code_hash_at(a);
         if (is_empty_account(nonce, bal, ch) && sroot == stwo::kEmptyTrieRoot) {
-            state.remove(g.acct_key[a].b);
+            removed_accounts.push_back(a);
             continue;
         }
         uint8_t nb[8];
@@ -550,6 +557,7 @@ evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages) {
         std::memcpy(enc + e, body, k);
         state.put(g.acct_key[a].b, enc, e + k);
     }
+    for (size_t a : removed_accounts) state.remove(g.acct_key[a].b);
     const H256 r = state.root_hash();
     evmc::bytes32 out;
     std::memcpy(out.bytes, r.b, 32);
@@ -664,8 +672,32 @@ const uint64_t* build_zeg0(const Input& in, size_t& out_len) {
         0x1d, 0xcc, 0x4d, 0xe8, 0xde, 0xc7, 0x5d, 0x7a, 0xab, 0x85, 0xb5, 0x67, 0xb6, 0xcc, 0xd4, 0x1a,
         0xd3, 0x12, 0x45, 0x1b, 0x94, 0x8a, 0x74, 0x13, 0xf0, 0xa1, 0x42, 0xfd, 0x40, 0xd4, 0x93, 0x47};
     std::memcpy(ci + 304, kEmptyOmmers, 32);
+#if defined(STWO_EEST_FORK_FROM_SCHEMA)
+    // EEST conformance build only (build.py --eest): EEST replays every fork
+    // at synthetic timestamps, so the fork and blob schedule come from the
+    // input's schema id, as in the Rust guest (stateless-validator-reth
+    // activates every fork up to the schema's at genesis). Never deployed.
+    {
+        static constexpr uint64_t kGasPerBlob = 131072;
+        uint64_t fork = 0, target = 0, max = 0, fraction = 0;
+        switch (in.fork_index) {
+            case 0x11: fork = uint64_t(zeg::ForkId::Prague); target = 6; max = 9; fraction = 5007716; break;
+            case 0x12: fork = uint64_t(zeg::ForkId::Osaka); target = 6; max = 9; fraction = 5007716; break;
+            case 0x13: fork = uint64_t(zeg::ForkId::Osaka); target = 10; max = 15; fraction = 8346193; break;
+            case 0x14: fork = uint64_t(zeg::ForkId::Osaka); target = 14; max = 21; fraction = 11684671; break;
+            default: fail("ssz: unsupported fork");
+        }
+        target *= kGasPerBlob;
+        max *= kGasPerBlob;
+        std::memcpy(ci + 336, &fork, 8);
+        std::memcpy(ci + 344, &fraction, 8);
+        std::memcpy(ci + 352, &target, 8);
+        std::memcpy(ci + 360, &max, 8);
+    }
+#else
     const uint64_t fork = static_cast<uint64_t>(zeg::fork_params_at(ts).fork);
     std::memcpy(ci + 336, &fork, 8);
+#endif
     for (uint64_t i = 0; i < nw; ++i) {
         const uint8_t* s = in.withdrawals.p + 44 * i;
         uint8_t* d = w.zeros(48);
@@ -755,7 +787,14 @@ extern "C" void stwo_validate(const uint8_t* ssz, size_t len, uint8_t out_root[3
     in = parse_input(ssz, len);
     g.in = &in;
     if (in.chain_id != 1) fail("chain id: only mainnet is configured");
+#if defined(STWO_EEST_FORK_FROM_SCHEMA)
+#if !defined(ZEG_FORK_FROM_INPUT)
+#error "STWO_EEST_FORK_FROM_SCHEMA needs ZEG_FORK_FROM_INPUT"
+#endif
+    (void)fork_index_for_timestamp;
+#else
     if (fork_index_for_timestamp(pl_timestamp(in)) != in.fork_index) fail("schema fork mismatch");
+#endif
     // Index the witness trie nodes by hash.
     g.store.init(in.state_nodes.count);
     for (size_t i = 0; i < in.state_nodes.count; ++i) {
