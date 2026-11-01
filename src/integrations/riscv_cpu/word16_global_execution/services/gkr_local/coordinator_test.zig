@@ -103,3 +103,19 @@ test "parking admission is explicit and later worker failure releases every earl
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
 }
+
+test "phase task admission retires only numerical GKR scratch and preserves PCS global and retained payloads" {
+    const R = @import("retention_plan.zig");
+    const plan = R.RetentionPlan{ .coefficient_bytes = 2 << 30, .gkr_peak_bytes = 24 << 30, .stage1_task_bytes = 27 << 30, .stage2_task_bytes = 7 << 30, .parked_retained_bytes = 1 << 30 };
+    const tasks = try R.taskEstimates(plan, 8 << 30);
+    try std.testing.expectEqual(@as(u64, 28 << 30), tasks.stage1);
+    try std.testing.expectEqual(@as(u64, 12 << 30), tasks.stage2);
+    try std.testing.expect(tasks.stage2 >= plan.stage2_task_bytes);
+    try std.testing.expectEqual(@as(usize, 1 << 30), plan.parked_retained_bytes);
+    try std.testing.expectError(error.MissingWideGlobalBudget, R.taskEstimates(plan, 0));
+    try std.testing.expectError(error.Overflow, R.taskEstimates(.{ .coefficient_bytes = std.math.maxInt(usize) }, 1));
+    const wide_inter = try R.taskEstimates(.{ .coefficient_bytes = 2 << 30, .binding_bytes = 1 << 30, .global_output_bytes = 5 << 30, .global_scratch_bytes = 4096 }, 8 << 30);
+    try std.testing.expectEqual(@as(u64, (16 << 30) + 4096), wide_inter.stage2);
+    const needs_more = try R.taskEstimates(.{ .coefficient_bytes = 1, .stage2_task_bytes = 100 }, 1);
+    try std.testing.expectEqual(@as(u64, 100), needs_more.stage2);
+}
