@@ -88,6 +88,7 @@ pub const TruthWorker = struct {
     started: bool = false,
     failed: bool = false,
     pub fn init(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, expected: Manifest.ExpectedWorker, config: W.PcsConfig, global_budget: usize) !TruthWorker {
+        try W.validateConfig(config);
         try validateExpected(truth, expected);
         const frames = try expectedFrames(truth);
         _ = try Metadata.Provider.initClassic(&source, frames);
@@ -218,6 +219,7 @@ fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Wi
     return .{ .columns = columns, .backings = backings };
 }
 pub fn verifyTruth(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded) !Manifest.Claims {
+    try W.validateConfig(config);
     try validateExpected(truth, expected);
     try validatePending(expected, pending, index);
     var proof = try W.decodePhysical(a, encoded.bytes);

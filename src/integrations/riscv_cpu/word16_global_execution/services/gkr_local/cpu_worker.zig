@@ -72,6 +72,7 @@ pub fn cpuMass(request: P.Request) !Manifest.Mass {
     return .{ .ram = ram, .kio = try std.math.mul(u64, 50, request.calls[0]), .wire = try std.math.add(u64, try std.math.mul(u64, 9, request.calls[1]), try std.math.mul(u64, 6, request.calls[2])) };
 }
 fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, config: W.PcsConfig) !void {
+    try W.validateConfig(config);
     if (expected.kind != .cpu or !std.mem.eql(u8, &expected.fixed, &setup.key.root) or !std.mem.eql(u8, &expected.statement, &cpuStatement(setup, request, first, config))) return error.WideCpuStatementMismatch;
     const roster = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(roster);

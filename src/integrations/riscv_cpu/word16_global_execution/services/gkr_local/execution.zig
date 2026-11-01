@@ -86,11 +86,9 @@ pub const Inventory = struct {
 /// Initial profile supports the two qualified fold schedules and the fixed
 /// trees' blowup. Numeric parameters are receiver inputs, never proof hydration.
 pub fn validateConfig(config: Config) !void {
-    if (config.pow_bits > 64 or config.fri_config.n_queries == 0 or config.fri_config.n_queries > 1024 or
-        config.fri_config.log_blowup_factor != 1 or config.fri_config.log_last_layer_degree_bound != 0 or
-        (config.fri_config.fold_step != 1 and config.fri_config.fold_step != 4) or config.lifting_log_size != null)
-        return error.UnsupportedWideServicesConfig;
+    return @import("worker_protocol.zig").validateConfig(config);
 }
+
 pub const Limits = struct {
     max_proof_bytes: usize = 128 << 20,
     max_total_proof_bytes: usize = 2 << 30,

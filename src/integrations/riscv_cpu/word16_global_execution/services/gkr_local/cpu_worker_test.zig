@@ -42,6 +42,17 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     defer store.deinit();
     const retention = try @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1 << 26);
     try std.testing.expectError(error.ClassicWitnessBudgetExceeded, @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1));
+    if (shard == 0 and mode == .normal) {
+        var bad = config;
+        bad.pow_bits = 33;
+        const allocations_before = failing.alloc_index;
+        try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.CpuWorker.init(a, &setup, request, source, expected, bad, .{ 1, 1, 1 }, 2 << 30));
+        try std.testing.expectEqual(allocations_before, failing.alloc_index);
+        bad = config;
+        bad.fri_config.log_blowup_factor = 2;
+        try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.CpuWorker.init(a, &setup, request, source, expected, bad, .{ 1, 1, 1 }, 2 << 30));
+        try std.testing.expectEqual(allocations_before, failing.alloc_index);
+    }
     var worker = try Worker.CpuWorker.init(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30);
     owns = false;
     var owns_worker = true;
@@ -128,6 +139,13 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
     var encoded = try worker.complete(a, &pending, 0, 1 << 26);
     defer encoded.deinit(a);
     try std.testing.expectError(error.WideCpuPhase, worker.complete(a, &pending, 0, 1 << 26));
+    if (shard == 0 and mode == .normal) {
+        var bad = config;
+        bad.pow_bits = 33;
+        const allocations_before = failing.alloc_index;
+        try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, bad, &encoded));
+        try std.testing.expectEqual(allocations_before, failing.alloc_index);
+    }
     const accepted = try Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded);
     try std.testing.expect(!accepted.ram.isZero());
     var initial_claim: usize = undefined;

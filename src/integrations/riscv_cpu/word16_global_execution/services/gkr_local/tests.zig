@@ -343,3 +343,7 @@ test {
 test {
     _ = @import("prepared_projection_test.zig");
 }
+
+test {
+    _ = @import("worker_protocol_test.zig");
+}

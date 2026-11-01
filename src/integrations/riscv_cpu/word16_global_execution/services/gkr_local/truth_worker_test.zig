@@ -31,6 +31,11 @@ fn run(truth: R.Truth, source: R.TruthSource) !void {
     const pending = Manifest.PendingManifest{ .entries = &entries, .digest = @splat(29), .shared = shared };
     var encoded = try worker.complete(a, &pending, 0, 64 * 1024 * 1024);
     defer encoded.deinit(a);
+    var rejecting = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    var bad = config;
+    bad.pow_bits = 33;
+    try std.testing.expectError(error.UnsupportedWideServicesConfig, W.verifyTruth(rejecting.allocator(), truth, expected, &pending, 0, bad, &encoded));
+    try std.testing.expectEqual(@as(usize, 0), rejecting.alloc_index);
     const claims = try W.verifyTruth(a, truth, expected, &pending, 0, config, &encoded);
     try std.testing.expect(claims.ram.isZero());
     if (truth == .keccak) {
@@ -82,6 +87,14 @@ test "truth local characteristic admission and init budget precede ownership tra
     const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
     const expected = Manifest.ExpectedWorker{ .kind = .keccak, .global_relations = .{ .ram = false, .kio = true, .wire = false }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
     var fail = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
+    var bad = config;
+    bad.pow_bits = 33;
+    try std.testing.expectError(error.UnsupportedWideServicesConfig, W.TruthWorker.init(fail.allocator(), truth, source, expected, bad, 1));
+    try std.testing.expectEqual(@as(usize, 0), fail.alloc_index);
+    bad = config;
+    bad.fri_config.log_blowup_factor = 2;
+    try std.testing.expectError(error.UnsupportedWideServicesConfig, W.TruthWorker.init(fail.allocator(), truth, source, expected, bad, 1));
+    try std.testing.expectEqual(@as(usize, 0), fail.alloc_index);
     try std.testing.expectError(error.WideTruthBudgetExceeded, W.TruthWorker.init(fail.allocator(), truth, source, expected, config, 1));
     try std.testing.expectEqual(@as(usize, 0), fail.alloc_index);
     try std.testing.expect(source.keccak.permutation.main.len != 0);
