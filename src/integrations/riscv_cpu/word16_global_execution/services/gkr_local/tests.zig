@@ -333,3 +333,6 @@ test "binding owned commit transfer is failure atomic and retains its parent all
 test {
     _ = @import("global_cpu_test.zig");
 }
+test {
+    _ = @import("cpu_worker_test.zig");
+}

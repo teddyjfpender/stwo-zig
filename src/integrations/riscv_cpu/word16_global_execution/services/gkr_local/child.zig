@@ -108,6 +108,15 @@ pub const Unbound = struct {
         // explicit transfer; releasing the local reservation is not an RSS drop.
         return commit;
     }
+    /// Caller allocates and validates its combined INTER descriptors first.
+    /// This no-allocation transfer is the final ownership transition.
+    pub fn takeBindingBackings(self: *Unbound) [][]core.fields.m31.M31 {
+        const out = self.binding.columns;
+        self.binding.columns = &.{};
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
+        self.binding_reserved_bytes = 0;
+        return out;
+    }
     pub fn deinit(self: *Unbound) void {
         const a = self.parent_allocator;
         self.binding.deinit();
