@@ -1,0 +1,43 @@
+{
+  "source_commits": [
+    "4798e2160",
+    "7ecb77dda"
+  ],
+  "dependencies": [
+    "819d57f5a shared row_work.forEachRange export (equivalent local cherry 427062fd7)"
+  ],
+  "gates": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 57,
+      "max_rss": "1G"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 41,
+      "max_rss": "1G"
+    }
+  ],
+  "coverage": [
+    "Existing actual CPU/service metadata projection and local physical proof/receiver tests",
+    "Independent old interleaved Eq and serial prefix reference, all eight OM31 coordinates, 16384 rows, one/two/four workers",
+    "Incorrect target rejection after joined prefix waves",
+    "Existing local hard-budget and allocation-failure checks"
+  ],
+  "resources": {
+    "new_heap_planes": 0,
+    "row_scheduler": "Existing scoped proof pool; MAX_SHARDS=16; minimum4096rows/shard; serial fallback when unavailable or cooperative",
+    "input_ownership": "Caller allocates once; all jobs join before error/cleanup",
+    "binding_storage": "Original16 column-major M31 planes; prefix backing reused for physical projections and partial prefixes; fixed-size shard totals/carries only"
+  },
+  "performance_status": "No speedup claimed from unit gates. Parent combined production prefix must establish artifact parity, fresh acceptance and measured inputs/binding phase impact.",
+  "baseline_phase_evidence": {
+    "report": "/tmp/stwo-rv64-om-ethereum-prefix1-domain-pooled-v1/report.json",
+    "inputs_s": 4.916,
+    "numerical_s": 19.41,
+    "binding_s": 7.266
+  },
+  "protocol": "No transcript, layout, physical claim or security-profile change. No whole-protocol128-bit certification."
+}
