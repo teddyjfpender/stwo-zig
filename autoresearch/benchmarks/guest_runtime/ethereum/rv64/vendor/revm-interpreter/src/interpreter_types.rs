@@ -157,6 +157,14 @@ pub trait MemoryTr {
 
 /// Functions needed for Interpreter Stack operations.
 pub trait StackTr {
+    /// Whether one temporary PUSH followed immediately by its POP may be
+    /// omitted at the current height. Opt in only when that PUSH cannot fail
+    /// and the pair has no observable effects. Custom stacks default to the
+    /// ordinary instruction path.
+    fn can_elide_push_pop(&self) -> bool {
+        false
+    }
+
     /// Returns stack length.
     fn len(&self) -> usize;
 

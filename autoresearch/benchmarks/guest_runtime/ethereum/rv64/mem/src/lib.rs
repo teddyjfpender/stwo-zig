@@ -26,8 +26,32 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
     if (dest as usize).wrapping_sub(src as usize) >= n {
         unsafe { copy_forward(dest, src, n) };
     } else {
-        // Overlapping with dest ahead of src: byte copy from the end. Rare.
+        // Copy backwards, keeping every load/store aligned and loading a
+        // whole group before any store (also handles a distance of one word).
         let mut i = n;
+        if ((dest as usize) ^ (src as usize)) & 7 == 0 && n >= 16 {
+            while (dest as usize + i) & 7 != 0 {
+                i -= 1;
+                unsafe { *dest.add(i) = *src.add(i) };
+            }
+            while i >= 32 {
+                i -= 32;
+                unsafe {
+                    let a = load(src.add(i));
+                    let b = load(src.add(i + 8));
+                    let c = load(src.add(i + 16));
+                    let d = load(src.add(i + 24));
+                    store(dest.add(i), a);
+                    store(dest.add(i + 8), b);
+                    store(dest.add(i + 16), c);
+                    store(dest.add(i + 24), d);
+                }
+            }
+            while i >= 8 {
+                i -= 8;
+                unsafe { store(dest.add(i), load(src.add(i))) };
+            }
+        }
         while i != 0 {
             i -= 1;
             unsafe { *dest.add(i) = *src.add(i) };
@@ -86,8 +110,17 @@ pub unsafe extern "C" fn memcmp(a: *const u8, b: *const u8, n: usize) -> i32 {
         while n >= 8 {
             let (wa, wb) = unsafe { (load(a), load(b)) };
             if wa != wb {
-                // Lexicographic byte order is big-endian word order.
-                return if wa.swap_bytes() < wb.swap_bytes() { -1 } else { 1 };
+                // Identify the first differing byte without two expensive
+                // RV64IM byte swaps. Propagate each byte's differing bits to
+                // its low bit, then isolate the first such byte.
+                let mut diff = wa ^ wb;
+                diff |= diff >> 4;
+                diff |= diff >> 2;
+                diff |= diff >> 1;
+                let flags = diff & 0x0101_0101_0101_0101;
+                let first = flags & flags.wrapping_neg();
+                let mask = first.wrapping_mul(255);
+                return if wa & mask < wb & mask { -1 } else { 1 };
             }
             a = unsafe { a.add(8) };
             b = unsafe { b.add(8) };
@@ -108,7 +141,27 @@ pub unsafe extern "C" fn memcmp(a: *const u8, b: *const u8, n: usize) -> i32 {
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn bcmp(a: *const u8, b: *const u8, n: usize) -> i32 {
-    unsafe { memcmp(a, b, n) }
+    // Equality needs neither a first-difference search nor byte order.
+    let (mut a, mut b, mut n) = (a, b, n);
+    if ((a as usize) | (b as usize)) & 7 == 0 {
+        while n >= 8 {
+            if unsafe { load(a) != load(b) } {
+                return 1;
+            }
+            a = unsafe { a.add(8) };
+            b = unsafe { b.add(8) };
+            n -= 8;
+        }
+    }
+    while n != 0 {
+        if unsafe { *a != *b } {
+            return 1;
+        }
+        a = unsafe { a.add(1) };
+        b = unsafe { b.add(1) };
+        n -= 1;
+    }
+    0
 }
 
 #[inline(always)]
@@ -131,6 +184,12 @@ unsafe fn copy_forward(dest: *mut u8, src: *const u8, n: usize) {
     let mut n = n;
     if n < 16 {
         unsafe { copy_small(d, s, n) };
+        return;
+    }
+    // Most object copies already have both pointers aligned. Bypass the
+    // byte prologue's jump table and the funnel machinery entirely.
+    if ((d as usize) | (s as usize)) & 7 == 0 {
+        unsafe { copy_aligned(d, s, n) };
         return;
     }
     let head = (d as usize).wrapping_neg() & 7;
@@ -175,6 +234,9 @@ unsafe fn copy_aligned(mut d: *mut u8, mut s: *const u8, mut n: usize) {
             s = s.add(8);
         }
         n -= 8;
+    }
+    if n == 0 {
+        return;
     }
     unsafe { copy_small(d, s, n) };
 }
@@ -347,7 +409,10 @@ mod tests {
                         r
                     };
                     unsafe { memcpy(dst.as_mut_ptr().add(doff), src.as_ptr().add(so), len) };
-                    assert_eq!(dst, reference, "len {len} src offset {so} dst offset {doff}");
+                    assert_eq!(
+                        dst, reference,
+                        "len {len} src offset {so} dst offset {doff}"
+                    );
                 }
             }
         }
@@ -403,6 +468,25 @@ mod tests {
     }
 
     #[test]
+    fn bcmp_matches_equality_for_independent_alignments() {
+        for len in 0..130 {
+            for ao in 0..8 {
+                for bo in 0..8 {
+                    let a = pattern(len + 16, (len * 29 + ao) as u64);
+                    let mut b = vec![0u8; len + 16];
+                    b[bo..bo + len].copy_from_slice(&a[ao..ao + len]);
+                    assert_eq!(unsafe { bcmp(a.as_ptr().add(ao), b.as_ptr().add(bo), len) }, 0);
+                    for pos in (0..len).step_by(7) {
+                        b[bo + pos] ^= 0x81;
+                        assert_ne!(unsafe { bcmp(a.as_ptr().add(ao), b.as_ptr().add(bo), len) }, 0);
+                        b[bo + pos] ^= 0x81;
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn memcmp_sign_matches_lexicographic_order() {
         for len in 0..80 {
             for off in 0..9 {
@@ -410,11 +494,16 @@ mod tests {
                     let a = pattern(len + 16, (len * 3 + off) as u64);
                     let mut b = a.clone();
                     if position < len {
-                        b[off + position] = a[off + position].wrapping_add(1 + (position as u8 % 3));
+                        b[off + position] =
+                            a[off + position].wrapping_add(1 + (position as u8 % 3));
                     }
                     let expected = a[off..off + len].cmp(&b[off..off + len]) as i32;
                     let actual = unsafe { memcmp(a.as_ptr().add(off), b.as_ptr().add(off), len) };
-                    assert_eq!(actual.signum(), expected, "len {len} off {off} pos {position}");
+                    assert_eq!(
+                        actual.signum(),
+                        expected,
+                        "len {len} off {off} pos {position}"
+                    );
                     let reverse = unsafe { memcmp(b.as_ptr().add(off), a.as_ptr().add(off), len) };
                     assert_eq!(reverse.signum(), -expected);
                 }

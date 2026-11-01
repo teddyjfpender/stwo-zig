@@ -46,7 +46,14 @@ python3 -I autoresearch/guest_efficiency/test_bench.py
 ```
 
 Any ELF that follows the guest ABI (CONTEXT.md) can be scored; a new client
-supplies its own build script under its client directory.
+supplies its own build script under its client directory. A client may also use
+its own private input layout (for example a zero-parse witness table): pass
+`--input-adapter "<cmd>"`, a deterministic program under the client directory
+that turns `canonical-input.ssz` into the client's input. The adapter is
+untrusted prover-side preparation: the guest must verify every fact it uses
+(witness hashes against the parent state root, transactions against the
+payload, everything bound by the request root), and the 43-byte output is still
+compared with the host-validated expected output from the canonical input.
 
 ## Scores
 

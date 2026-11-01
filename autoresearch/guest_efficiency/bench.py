@@ -341,10 +341,23 @@ def cmd_build_exec(a):
 
 
 def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cache: Path, out: Path,
-                  basket: dict, keep_profile: bool, repeat: int, profile: str | None = None) -> dict:
+                  basket: dict, keep_profile: bool, repeat: int, profile: str | None = None,
+                  adapter: list[str] | None = None) -> dict:
     blk = cache / "blocks" / str(b["block"])
     inp = blk / "canonical-input.ssz"
     expected = (blk / "expected-output.bin").read_bytes()
+    if adapter:
+        # Client-specific private input. The adapter runs outside the guest (it is
+        # untrusted prover-side preparation); the guest must verify everything it
+        # relies on, and the output is still checked against the host-validated
+        # expected output derived from the canonical input.
+        adapted = out / "blocks" / str(b["block"]) / "adapted-input.bin"
+        adapted.parent.mkdir(parents=True, exist_ok=True)
+        r = subprocess.run([*adapter, str(inp), str(adapted)], capture_output=True, text=True)
+        if r.returncode != 0:
+            return {"block": b["block"], "set": b["set"], "gas_used": b["gas_used"], "status": "error",
+                    "error": "input adapter failed: " + ((r.stderr.strip().splitlines() or ["?"])[-1])}
+        inp = adapted
     data = inp.read_bytes()
     cfg = {"elf": str(elf), "elf_sha256": sha256(raw), "input": str(inp), "input_sha256": sha256(data),
            "expected_output": expected.hex(), "symbols": abi, **basket["execution"]}
@@ -393,7 +406,8 @@ def cmd_run(a):
     det = {basket["blocks"][0]["block"]} if a.determinism else set()
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
         futs = [pool.submit(execute_block, b, elf, raw, abi, Path(a.executor).resolve(), cache, out, basket,
-                            a.keep_profiles, 2 if b["block"] in det else 1, a.profile) for b in blocks]
+                            a.keep_profiles, 2 if b["block"] in det else 1, a.profile,
+                            a.input_adapter.split() if a.input_adapter else None) for b in blocks]
         rows = [f.result() for f in futs]
     rows.sort(key=lambda r: r["block"])
     ok_rows = [r for r in rows if r.get("instructions")]
@@ -410,6 +424,10 @@ def cmd_run(a):
     used = {r.get("execution_profile") for r in rows}
     result["promotable"] = result["ok"] and used <= set(policy["allowed_execution_profiles"])
     result["client"] = a.client
+    if a.input_adapter:
+        exe = a.input_adapter.split()[0]
+        result["input_adapter"] = {"command": a.input_adapter,
+                                   "sha256": sha256(Path(exe).read_bytes()) if Path(exe).exists() else None}
     (out / "result.json").write_text(json.dumps(result, indent=1))
     summarize(result, basket, cal)
     if not result["ok"]:
@@ -501,6 +519,9 @@ def main(argv=None):
     s.add_argument("--profile", default=None,
                    help="execution profile override (admitted: ethereum_services_v2; candidate: see targets.json)")
     s.add_argument("--client", default="rust-reth", help="free-form client label recorded in the result")
+    s.add_argument("--input-adapter", default=None,
+                   help="command run as `CMD canonical-input.ssz OUT` to produce a client-specific private input; "
+                        "the output is still checked against the host-validated expected output")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("compare")
