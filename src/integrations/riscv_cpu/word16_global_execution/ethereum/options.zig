@@ -9,6 +9,8 @@ pub const Options = struct {
     keep_fixed_witness: bool = false,
     fixed_native_cache_bytes: usize = 256 << 20,
     native_cache_set: bool = false,
+    program_metadata_cache_bytes: usize = 64 << 20,
+    metadata_cache_set: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -28,6 +30,12 @@ pub const Options = struct {
                 const prefix = "--fixed-native-cache-bytes=";
                 out.fixed_native_cache_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
                 if (out.fixed_native_cache_bytes > 1 << 30 or (out.fixed_native_cache_bytes != 0 and out.fixed_native_cache_bytes < 4096)) return error.InvalidFixedNativeCacheBudget;
+            } else if (std.mem.startsWith(u8, arg, "--program-metadata-cache-bytes=")) {
+                if (out.metadata_cache_set) return error.DuplicateOperationalOption;
+                out.metadata_cache_set = true;
+                const prefix = "--program-metadata-cache-bytes=";
+                out.program_metadata_cache_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
+                if (out.program_metadata_cache_bytes > 1 << 30 or (out.program_metadata_cache_bytes != 0 and out.program_metadata_cache_bytes < 4096)) return error.InvalidProgramMetadataBudget;
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
@@ -75,5 +83,23 @@ test "fixed native cache refuses duplicate undersized and excessive budgets befo
     for ([_][:0]const u8{ "--fixed-native-cache-bytes=1", "--fixed-native-cache-bytes=1073741825" }) |bad| {
         var one = [_][:0]u8{ @constCast("tool"), @constCast(bad) };
         try std.testing.expectError(error.InvalidFixedNativeCacheBudget, Options.parse(&one));
+    }
+}
+
+test "program metadata budget is bounded operational state independent of receiver authority" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("verify") };
+    try std.testing.expectEqual(@as(usize, 64 << 20), (try Options.parse(&defaults)).program_metadata_cache_bytes);
+    var args = [_][:0]u8{ @constCast("tool"), @constCast("verify"), @constCast("--program-metadata-cache-bytes=0") };
+    const options = try Options.parse(&args);
+    try std.testing.expectEqual(@as(usize, 2), options.count);
+    try std.testing.expectEqual(@as(usize, 0), options.program_metadata_cache_bytes);
+    try std.testing.expect(!options.producerOnly());
+}
+test "program metadata duplicate tiny and excessive cache budgets reject before input allocation" {
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--program-metadata-cache-bytes=0"), @constCast("--program-metadata-cache-bytes=4096") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
+    for ([_][:0]const u8{ "--program-metadata-cache-bytes=1", "--program-metadata-cache-bytes=1073741825" }) |bad| {
+        var args = [_][:0]u8{ @constCast("tool"), @constCast(bad) };
+        try std.testing.expectError(error.InvalidProgramMetadataBudget, Options.parse(&args));
     }
 }
