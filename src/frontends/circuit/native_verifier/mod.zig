@@ -25,6 +25,7 @@
 
 pub const blake_chain = @import("blake_chain.zig");
 pub const channel = @import("channel.zig");
+pub const raw_mod_channel = @import("raw_mod_channel.zig");
 pub const merkle = @import("merkle.zig");
 pub const fri = @import("fri.zig");
 pub const deep = @import("deep.zig");
