@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "perf-half-scratch-default-v1",
+  "item": "Half-scratch coefficient openings by default, per-worker reusable scratch, atomic work queue instead of waves (trace decommit)",
+  "source_base": "87df8e6a5",
+  "branch": "codex/rv64-perf-half-scratch-default",
+  "branch_commit": "b780931e3538d89797fd2a6fb2d01c6afc33b515",
+  "workload": {
+    "driver": "zig-out/bin/rv64-word16-ethereum (ReleaseFast)",
+    "command": "produce /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json /tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs <out> 4",
+    "shape": "prefix4: 4 CPU proofs + 3 truth proofs",
+    "serialization": "each run wrapped in lockf -k /private/tmp/stwo-rv64-perf-heavy.lock",
+    "order": "ABBA (A = baseline 87df8e6a5 binary, B = branch binary)"
+  },
+  "runs": [
+    {"label": "A1", "binary": "baseline", "dir": "/private/tmp/stwo-rv64-perf-runs/half-scratch-default-abba-A1", "wall_s": 26.45, "user_s": 178.37, "sys_s": 11.31, "peak_footprint_bytes": 17192488256, "trace_decommit_sum_s": 3.224, "byte_identical_to_baseline": true},
+    {"label": "B1", "binary": "branch", "dir": "/private/tmp/stwo-rv64-perf-runs/half-scratch-default-abba-B1", "wall_s": 25.23, "user_s": 174.71, "sys_s": 9.62, "peak_footprint_bytes": 17192782928, "trace_decommit_sum_s": 1.809, "byte_identical_to_baseline": true},
+    {"label": "B2", "binary": "branch", "dir": "/private/tmp/stwo-rv64-perf-runs/half-scratch-default-abba-B2", "wall_s": 26.40, "user_s": 180.95, "sys_s": 9.50, "peak_footprint_bytes": 17195451816, "trace_decommit_sum_s": 1.850, "byte_identical_to_baseline": true},
+    {"label": "A2", "binary": "baseline", "dir": "/private/tmp/stwo-rv64-perf-runs/half-scratch-default-abba-A2", "wall_s": 27.50, "user_s": 184.72, "sys_s": 10.65, "peak_footprint_bytes": 17191324992, "trace_decommit_sum_s": 3.241, "byte_identical_to_baseline": true}
+  ],
+  "byte_identity": {
+    "reference": "/private/tmp/stwo-rv64-perf-runs/baseline-prefix4.sha256",
+    "files": ["cpu-0.bin", "cpu-1.bin", "cpu-2.bin", "cpu-3.bin", "truth-0.bin", "truth-1.bin", "truth-2.bin", "bundle.json", "cells.bin"],
+    "result": "all four ABBA runs (both baseline and both branch) hash identically to the reference"
+  },
+  "stage_deltas": {
+    "stage": "trace_decommit, summed over physical-0000..0006.stages.json",
+    "baseline_mean_s": 3.2325,
+    "branch_mean_s": 1.8295,
+    "delta_s": -1.403,
+    "delta_pct": -43.4,
+    "fri_decommit_note": "fri_decommit unchanged (0.031-0.036 s)"
+  },
+  "wall_summary": {
+    "baseline_mean_s": 26.975,
+    "branch_mean_s": 25.815,
+    "delta_s": -1.16,
+    "delta_pct": -4.3,
+    "baseline_a1_a2_spread_pct": 4.0,
+    "peak_footprint": "unchanged (~17.19 GB both)"
+  },
+  "conclusion": "Byte-identical in all runs. trace_decommit summed stage time drops ~43% (3.23 s -> 1.83 s), reproducible across both B runs and matching the earlier same-binary A/B in the branch commit message (3.10-3.20 -> 1.76-1.82 s). Wall clock fell 1.16 s on average, but the baseline runs themselves spread 4.0% (26.45 vs 27.50 s, under the 5% noise flag but the same order as the effect) and B2 (26.40 s) is level with A1, so the wall gain is not separable from noise in this 4-run sample; per-proof stage seconds also overlap in the pipeline, so the 1.4 s stage saving need not map 1:1 to wall. Realised gain is below the 3-5 s planning estimate. The machine may be shared with other jobs, and prefix4 contains only 3 truth proofs, so the full workload may show a different absolute saving. Peak footprint unchanged."
+}
