@@ -72,7 +72,8 @@ fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
     try std.testing.expectEqual(retention.coefficient_bytes, coefficient_bytes);
     var merkle_bytes: usize = 0;
     for (worker.scheme.trees.items[1].commitment.layers) |layer| merkle_bytes += std.mem.sliceAsBytes(layer).len;
-    try std.testing.expect(merkle_bytes <= retention.main_merkle_bytes);
+    try std.testing.expect(merkle_bytes <= retention.main_merkle_node_bytes);
+    try std.testing.expectEqual(retention.main_merkle_bytes, retention.main_merkle_node_bytes + retention.main_merkle_descriptor_bytes);
     var binding_bytes: usize = 0;
     for (worker.child.?.binding.columns) |column| binding_bytes += std.mem.sliceAsBytes(column).len;
     try std.testing.expectEqual(retention.binding_bytes, binding_bytes);
