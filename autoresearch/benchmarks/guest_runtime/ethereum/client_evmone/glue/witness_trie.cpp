@@ -83,6 +83,20 @@ inline W4 load32(const uint8_t* p) {
     r.w[3] = (a3 >> sh) | (a4 << rs);
     return r;
 }
+// Little-endian word of the k (1..8) bytes at p, upper bytes zero.
+inline uint64_t ldu(const uint8_t* p, size_t k) {
+    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
+    const uint8_t* a = p - off;
+    uint64_t w = ldw(a) >> (off * 8);
+    if (off + k > 8) w |= ldw(a + 8) << (64 - off * 8);
+    return k == 8 ? w : w & ((uint64_t(1) << (8 * k)) - 1);
+}
+// Index of the lowest set bit of m (m != 0; RV64IM has no ctz).
+inline unsigned low_bit(unsigned m) {
+    static constexpr uint8_t kDeBruijn[32] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
+                                              31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
+    return kDeBruijn[((m & (0u - m)) * 0x077CB531u) >> 27];
+}
 inline void store_h256(H256& dst, const W4& v) {
     uint64_t* d = reinterpret_cast<uint64_t*>(dst.b);
     d[0] = v.w[0]; d[1] = v.w[1]; d[2] = v.w[2]; d[3] = v.w[3];
@@ -202,8 +216,12 @@ inline bool hp_leaf_matches(const uint8_t* h, size_t plen, const uint8_t* key, s
         if ((h[0] & 0x0f) != (key[kb] & 0x0f)) return false;
         ++kb;
     }
-    unsigned diff = 0;
-    for (size_t i = 1; kb < 32; ++i, ++kb) diff |= h[i] ^ key[kb];
+    const uint8_t* x = h + 1;
+    const uint8_t* y = key + kb;
+    size_t n = 32 - kb;
+    uint64_t diff = 0;
+    for (; n >= 8; n -= 8, x += 8, y += 8) diff |= ldu(x, 8) ^ ldu(y, 8);
+    if (n) diff |= ldu(x, n) ^ ldu(y, n);
     return diff == 0;
 }
 
@@ -760,8 +778,8 @@ size_t encode(Node* n, uint8_t* out, const NodeStore& store) {
             const uint8_t* raw = s->raw;
             const unsigned mod = n->mod;
             size_t payload = s->raw_len - s->off[0];
-            for (unsigned i = 0; i < 16; ++i) {
-                if (!(mod >> i & 1)) continue;
+            for (unsigned m = mod; m; m &= m - 1) {
+                const unsigned i = low_bit(m);
                 payload -= s->off[i + 1] - s->off[i];
                 Node* c = n->child[i];
                 if (is_empty(c)) ref[i] = ItemRef{nullptr, 1};
@@ -770,8 +788,8 @@ size_t encode(Node* n, uint8_t* out, const NodeStore& store) {
             }
             put_header(b, payload, 0xc0, 0xf7);
             size_t run = s->off[0];
-            for (unsigned i = 0; i < 16; ++i) {
-                if (!(mod >> i & 1)) continue;
+            for (unsigned m = mod; m; m &= m - 1) {
+                const unsigned i = low_bit(m);
                 if (s->off[i] > run) b.bytes(raw + run, s->off[i] - run);
                 if (ref[i].p == nullptr) b.byte(0x80);
                 else put_item(b, ref[i]);

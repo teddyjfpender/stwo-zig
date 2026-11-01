@@ -2,7 +2,8 @@
 // zeg::hash_bytes (seeded_hash.hpp) must equal the reference memcpy-to-word
 // hash, and zisk_xmemcmp / zisk_xmemcpy (zisk_dma.hpp) must agree with
 // memcmp == 0 / memcpy, for every source and destination alignment and for
-// keys that differ in a single byte.
+// keys that differ in a single byte; count_nonzero_bytes (intrinsic_gas.hpp)
+// must equal a byte loop for any offset, length and zero density.
 //
 // Build: python3 -I build.py --out DIR --host --tests  (runs it)
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include <cstring>
 #include <random>
 
+#include "zeg/intrinsic_gas.hpp"
 #include "zeg/seeded_hash.hpp"
 #include "zeg/zisk_dma.hpp"
 
@@ -68,9 +70,18 @@ int main() {
         const size_t n = 1 + rng() % 64;
         if (zeg::hash_bytes(s, buf + off, n) != reference_hash(s, buf + off, n)) fail("hash_bytes", n, off, 0);
     }
+    for (int t = 0; t < 20000; ++t) {
+        const unsigned dens = rng() % 4;  // 0: all zero ... 3: mostly non-zero
+        for (auto& c : buf) c = (rng() % 4 < dens) ? uint8_t(rng() | 1) : 0;
+        const unsigned off = rng() % 8;
+        const size_t n = rng() % (sizeof(buf) - 8);
+        size_t ref = 0;
+        for (size_t i = 0; i < n; ++i) ref += buf[off + i] != 0;
+        if (zeg::count_nonzero_bytes({buf + off, n}) != ref) fail("count_nonzero_bytes", n, off, 0);
+    }
     check_fixed<20>(rng);
     check_fixed<32>(rng);
     check_fixed<56>(rng);
-    std::printf("zeg_words_test: hash_bytes and zisk_xmemcmp/xmemcpy<20,32,56> OK\n");
+    std::printf("zeg_words_test: hash_bytes, count_nonzero_bytes, zisk_xmemcmp/xmemcpy<20,32,56> OK\n");
     return 0;
 }

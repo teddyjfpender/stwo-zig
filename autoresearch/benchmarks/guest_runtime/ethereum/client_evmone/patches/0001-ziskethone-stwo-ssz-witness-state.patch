@@ -55,6 +55,27 @@ index eba163c..a32cfed 100644
          }
      };
  
+diff --git a/cpp-guest/include/zeg/intrinsic_gas.hpp b/cpp-guest/include/zeg/intrinsic_gas.hpp
+index 440dc50..ccdd35b 100644
+--- a/cpp-guest/include/zeg/intrinsic_gas.hpp
++++ b/cpp-guest/include/zeg/intrinsic_gas.hpp
+@@ -41,6 +41,16 @@ inline size_t count_nonzero_bytes(std::span<const uint8_t> data) {
+         bits += __builtin_popcountll(m);
+     }
+     nz += bits >> 3;
++#elif defined(ZEG_STWO)
++    // stwo RV64IM (no Zbb): aligned words, the high bit of each byte of t is
++    // set iff that byte is non-zero; summing the flags by one multiply.
++    for (; i < data.size() && (reinterpret_cast<uintptr_t>(p + i) & 7u); ++i) nz += (p[i] != 0);
++    constexpr uint64_t kLow7 = 0x7f7f7f7f7f7f7f7full;
++    for (; i + 8 <= data.size(); i += 8) {
++        const uint64_t w = *reinterpret_cast<const uint64_t __attribute__((may_alias))*>(p + i);
++        const uint64_t t = (((w & kLow7) + kLow7) | w) & ~kLow7;
++        nz += ((t >> 7) * 0x0101010101010101ull) >> 56;
++    }
+ #endif
+     for (; i < data.size(); ++i) nz += (p[i] != 0);
+     return nz;
 diff --git a/cpp-guest/include/zeg/seeded_hash.hpp b/cpp-guest/include/zeg/seeded_hash.hpp
 index 53d77cf..2937f1b 100644
 --- a/cpp-guest/include/zeg/seeded_hash.hpp
