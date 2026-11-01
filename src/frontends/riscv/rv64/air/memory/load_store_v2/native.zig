@@ -87,8 +87,11 @@ pub fn row(event: ?Event) [@import("layout.zig").MAIN]M {
     const logical = logicalRow(event);
     return @import("projection.zig").projectFor(M, &logical);
 }
-pub fn boundaryRow(cells: []const R.types.Cell, index: usize) [23]M {
-    var values: [23]M = @splat(M.zero());
+/// Public RAM14 boundary row: exactly the canonical tuple of one validated
+/// public cell. No gap/carry/inverse witnesses: order and uniqueness are
+/// receiver-owned facts about the public list, not chip obligations.
+pub fn boundaryRow(cells: []const R.types.Cell, index: usize) [@import("layout.zig").BOUND_MAIN]M {
+    var values: [@import("layout.zig").BOUND_MAIN]M = @splat(M.zero());
     if (index >= cells.len) return values;
     const cell = cells[index];
     values[0] = M.one();
@@ -99,16 +102,5 @@ pub fn boundaryRow(cells: []const R.types.Cell, index: usize) [23]M {
     values[11] = M.fromCanonical(cell.state.tick >> 16);
     values[12] = M.fromCanonical(cell.state.rights & 1);
     values[13] = M.fromCanonical(cell.state.rights >> 1);
-    if (index != 0) {
-        R.trace.word(values[14..], cell.address - cells[index - 1].address);
-        var carry: u32 = 0;
-        var sum = M.zero();
-        for (0..4) |i| {
-            carry = (@as(u32, @as(u16, @truncate(cells[index - 1].address >> @as(u6, @intCast(16 * i))))) + values[14 + i].v + carry) >> 16;
-            values[18 + i] = M.fromCanonical(carry);
-            sum = sum.add(values[14 + i]);
-        }
-        values[22] = sum.inv() catch unreachable;
-    }
     return values;
 }

@@ -177,7 +177,7 @@ fn cells(count: usize, terminal: bool) ![]R.types.Cell {
     for (output, 0..) |*cell, i| cell.* = .{ .address = 0xfedcba9800000000 + 8 * @as(u64, @intCast(i)), .state = .{ .value = 0x8000000000000000 + @as(u64, @intCast(i)), .epoch = if (terminal) 1 else 0, .tick = if (terminal) @intCast(4 * (i + 1)) else 0, .rights = 3 } };
     return output;
 }
-test "INIT TERM pooled2prefix20columns match serial at1 4 16workers after MAIN retirement" {
+test "INIT TERM pooled RAM8 columns match serial at1 4 16workers after MAIN retirement" {
     const data = try Data.init();
     defer data.deinit();
     for ([_]X.layout.Kind{ .initial, .terminal }) |kind| {
@@ -255,9 +255,8 @@ test "boundary two-wave submission poles alloc failures drain and remain retryab
     try std.testing.expectError(error.InvalidBoundaryMetadata, source.generateSerial(data.ch, data.d16, data.d8));
     try std.testing.expectError(error.InvalidBoundaryMetadata, BoundaryParallel.generate(&source, data.ch, data.d16, data.d8, &pool));
     source.metadata[0] = saved;
-    source.counts16[0] += 1;
-    try std.testing.expectError(error.InvalidBoundaryCounts, BoundaryParallel.generate(&source, data.ch, data.d16, data.d8, &pool));
-    source.counts16[0] -= 1;
+    // Public boundary chips own no range histograms; there is no count ledger
+    // to corrupt and both range claims are pinned to zero by the AIR.
     var small: engine.work_pool.WorkPool = .{};
     try small.initInPlaceWithOptions(.{ .worker_count = 1, .stack_size = BoundaryParallel.MIN_STACK_BYTES - 1, .backing_allocator = a });
     defer small.deinit();

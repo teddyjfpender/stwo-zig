@@ -74,6 +74,16 @@ test "global execution binds actual stage1 roots physical claims and complete or
         case.bundle.proofs[0].claims.initial.selection = Q.one().neg();
         try std.testing.expectError(error.NonzeroOmittedMemoryClaim, verify(&case, &case.bundle));
     }
+    {
+        // Public INIT/TEARDOWN chips own no range lookups. A balanced shift of
+        // range16 debt into the boundary claim is rejected before the AIR
+        // (which also pins it to zero as a constant residual).
+        const before = case.bundle.proofs[0].claims;
+        defer case.bundle.proofs[0].claims = before;
+        case.bundle.proofs[0].claims.initial.range16 = Q.one();
+        case.bundle.proofs[0].claims.r16 = before.r16.sub(Q.one());
+        try std.testing.expectError(error.NonzeroOmittedBoundaryRangeClaim, verify(&case, &case.bundle));
+    }
 }
 test "global execution independently admits genesis policy program budget epoch and continuation" {
     var case = try F.Case.init(a);

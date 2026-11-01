@@ -1,7 +1,8 @@
 //! Scalable public-boundary witness with domain-only fixed key. Canonical RAM14
-//! tuple ranges come from receiver-validated typed public lists sealed into FS.
-//! Acceptance REQUIRES exact expectedClaim comparison for each physical RAM
-//! debt, independently of global closure; only four address-gap ranges remain.
+//! tuples, address order, uniqueness and alignment come from receiver-validated
+//! typed public lists sealed into FS. Acceptance REQUIRES exact expectedClaim
+//! comparison for each physical RAM debt, independently of global closure; the
+//! chip carries no range debt (no address-gap or tuple lookups).
 const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
@@ -10,12 +11,12 @@ const T = @import("types.zig");
 const L = @import("layout.zig");
 const Native = @import("native.zig");
 const SourceSupport = @import("source.zig");
-const I = @import("interaction.zig");
 const M = T.M;
 const Q = T.Q;
 pub const Cell = R.types.Cell;
 pub const Metadata = struct {
-    range16: [14]u16,
+    /// address4, value4, epoch, tick-low: the RAM14 u16 coordinates only.
+    range16: [10]u16,
     high: u8,
     flags: u8,
     pub fn active(self: @This()) M {
@@ -37,7 +38,7 @@ pub const Metadata = struct {
     }
 };
 comptime {
-    std.debug.assert(@sizeOf(Metadata) == 30);
+    std.debug.assert(@sizeOf(Metadata) == 22);
 }
 pub const Source = struct {
     allocator: std.mem.Allocator,
@@ -49,8 +50,6 @@ pub const Source = struct {
     owns_main: bool,
     interaction: []M = &.{},
     metadata: []Metadata,
-    counts16: []u64,
-    counts8: []u64,
     pub fn init(a: std.mem.Allocator, kind: L.Kind, cells: []const Cell, log: u32) !Source {
         return initInternal(a, kind, cells, log, null);
     }
@@ -63,7 +62,7 @@ pub const Source = struct {
         if (cells.len >= n) return error.BoundaryCapacityExceeded;
         for (cells, 0..) |cell, i| if (cell.address & 7 != 0 or (i != 0 and cells[i - 1].address >= cell.address)) return error.InvalidBoundaryOrder;
         if (buffers) |b| {
-            if (b.main.len != 23 * n) return error.InvalidBoundaryMain;
+            if (b.main.len != L.BOUND_MAIN * n) return error.InvalidBoundaryMain;
             const x = @intFromPtr(b.main.ptr);
             const y = @intFromPtr(cells.ptr);
             const xe = std.math.add(usize, x, std.mem.sliceAsBytes(b.main).len) catch return error.InvalidMemoryInputSpan;
@@ -72,29 +71,19 @@ pub const Source = struct {
         }
         const f = try SourceSupport.fixed(a, log);
         errdefer a.free(f);
-        const c16 = try a.alloc(u64, 65536);
-        errdefer a.free(c16);
-        const c8 = try a.alloc(u64, 256);
-        errdefer a.free(c8);
         const meta = try a.alloc(Metadata, n);
         errdefer a.free(meta);
-        const main = if (buffers) |b| b.main else try a.alloc(M, 23 * n);
-        @memset(c16, 0);
-        @memset(c8, 0);
+        const main = if (buffers) |b| b.main else try a.alloc(M, L.BOUND_MAIN * n);
         for (0..n) |pos| {
             const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(pos, log), log);
             const row = Native.boundaryRow(cells, logical);
             for (row, 0..) |v, c| main[c * n + pos] = v;
-            for (R.layout.B_U16, 0..) |c, i| {
-                meta[logical].range16[i] = @intCast(row[c].v);
-                if (i >= 10) c16[row[c].v] += 1;
-            }
+            for (R.layout.B_U16[0..10], 0..) |c, i| meta[logical].range16[i] = @intCast(row[c].v);
             meta[logical].high = @intCast(row[11].v);
             // All public tuple ranges are anchored by expectedClaim.
-
             meta[logical].flags = @intCast(row[0].v | (row[12].v << 1) | (row[13].v << 2));
         }
-        return .{ .allocator = a, .kind = kind, .log_size = log, .rows = @intCast(cells.len), .fixed = f, .main = main, .owns_main = buffers == null, .metadata = meta, .counts16 = c16, .counts8 = c8 };
+        return .{ .allocator = a, .kind = kind, .log_size = log, .rows = @intCast(cells.len), .fixed = f, .main = main, .owns_main = buffers == null, .metadata = meta };
     }
     pub fn size(self: *const Source) usize {
         return @as(usize, 1) << @intCast(self.log_size);
@@ -110,8 +99,6 @@ pub const Source = struct {
         a.free(self.fixed);
         a.free(self.interaction);
         a.free(self.metadata);
-        a.free(self.counts16);
-        a.free(self.counts8);
         self.* = undefined;
     }
     pub fn columns(self: *const Source, a: std.mem.Allocator, tree: u2) ![]engine.pcs.ColumnEvaluation {
@@ -129,15 +116,14 @@ pub const Source = struct {
     pub fn generate(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
         return @import("boundary_interaction_parallel.zig").generate(self, ch, dict16, dict8, engine.work_pool.currentScopedPool());
     }
+    /// Range dictionaries are accepted for call-site uniformity only: the
+    /// public boundary chip has no range debt, so range claims stay zero.
     pub fn generateSerial(self: *Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q) !T.Claims {
+        _ = dict16;
+        _ = dict8;
         const n = try validateMetadataImpl(self);
         const a = self.allocator;
-        try I.validateDictionary(ch.range16, dict16, 65536);
-        try I.validateDictionary(ch.range8, dict8, 256);
         var claims = T.Claims.zero();
-        claims.range16 = try I.countDot(self.counts16, dict16);
-        claims.range8 = try I.countDot(self.counts8, dict8);
-        if (!claims.range8.isZero()) return error.InvalidBoundaryCounts;
         const output = try a.alloc(M, L.BOUND_INTERACTION * n);
         errdefer a.free(output);
         const denominator = try a.alloc(Q, n);
@@ -150,10 +136,9 @@ pub const Source = struct {
             d.* = ch.ram.denominatorFor(Q, tuple);
         }
         try core.fields.batchInverseInPlace(Q, denominator, inverse);
-        var prefix: [3]Q = .{ Q.zero(), claims.range16.neg(), claims.range8.neg() };
-        writeRows(self, dict16, dict8, output, inverse, 0, &prefix);
-        claims.ram = prefix[0];
-        if (!prefix[1].isZero() or !prefix[2].isZero()) return error.InvalidBoundaryCounts;
+        var prefix = Q.zero();
+        writeRows(self, output, inverse, 0, &prefix);
+        claims.ram = prefix;
         R.trace.center(output, n, 4, claims.ram);
         self.interaction = output;
         a.free(self.metadata);
@@ -204,16 +189,15 @@ fn nativeDenominator(meta: Metadata, ch: R.types.RamChallenges) Q {
     for (ch.coefficients, meta.tuple()) |coefficient, value| d = d.sub(coefficient.mulM31(value));
     return d;
 }
-fn fillChunkImpl(source: *const Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q, output: []M, scratch: []Q, start: usize, prefix: *[3]Q) !void {
+fn fillChunkImpl(source: *const Source, ch: T.Challenges, output: []M, scratch: []Q, start: usize, prefix: *Q) !void {
     const count: usize = @min(CHUNK, source.size() - start);
     const denominators = scratch[0..count];
     const inverse = scratch[CHUNK..][0..count];
     for (source.metadata[start..][0..count], denominators) |meta, *value| value.* = nativeDenominator(meta, ch.ram);
     try core.fields.batchInverseInPlace(Q, denominators, inverse);
-    writeRows(source, dict16, dict8, output, inverse, start, prefix);
+    writeRows(source, output, inverse, start, prefix);
 }
-fn writeRows(source: *const Source, dict16: []const Q, dict8: []const Q, output: []M, inverse: []const Q, start: usize, prefix: *[3]Q) void {
-    _ = dict8; // Boundary tuple high limbs are public-authority anchored.
+fn writeRows(source: *const Source, output: []M, inverse: []const Q, start: usize, prefix: *Q) void {
     const n = source.size();
     for (source.metadata[start..][0..inverse.len], inverse, 0..) |meta, inv, offset| {
         const logical = start + offset;
@@ -221,15 +205,8 @@ fn writeRows(source: *const Source, dict16: []const Q, dict8: []const Q, output:
         const pos = R.trace.physical(logical, source.log_size);
         R.trace.store(output, n, pos, 0, inv);
         const value = inv.mulM31(meta.active());
-        prefix[0] = if (source.kind == .initial) prefix[0].sub(value) else prefix[0].add(value);
-        R.trace.store(output, n, pos, 4, prefix[0]);
-        for (0..2) |batch| {
-            const x = dict16[meta.range16[10 + 2 * batch]];
-            const y = dict16[meta.range16[11 + 2 * batch]];
-            R.trace.store(output, n, pos, 8 + 4 * batch, x.mul(y));
-            prefix[1] = prefix[1].add(x).add(y);
-        }
-        R.trace.store(output, n, pos, 16, prefix[1]);
+        prefix.* = if (source.kind == .initial) prefix.sub(value) else prefix.add(value);
+        R.trace.store(output, n, pos, 4, prefix.*);
     }
 }
 pub const ParallelSupport = struct {

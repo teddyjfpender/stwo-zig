@@ -27,19 +27,31 @@ pub fn emitWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []cons
     } else if (kind == .range16 or kind == .range8) {
         @import("../../providers/scalar_range.zig").rangeFor(F, f, m, i, pi, if (kind == .range16) claims.range16 else claims.range8, if (kind == .range16) ch.range16 else ch.range8, out);
     } else {
-        const active = m[0];
-        const first = f[1];
-        out.emit(first.mul(active.sub(nonempty)));
-        out.emit(f[2].mul(active));
-        out.emit(F.one().sub(first).mul(active).mul(F.one().sub(pm[0])));
-        out.emit(F.one().sub(first).mul(active.sub(pm[0])).mul(f[0].sub(row_count)));
-        for (m[1..14]) |value| out.emit(F.one().sub(active).mul(value));
-        R.equations.boundaryLocalFor(F, m, pm, first, nonempty, out);
-        const scalar = @import("../../providers/scalar_range.zig");
-        scalar.single(F, ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, f[2], claims.ram, out);
-        R.equations.rangesFor(F, m, i, pi, &L.BOUND_U16, 8, first, f[2], claims.range16, ch.range16, out);
-        out.emit(E.splatFor(F, claims.range8));
+        emitBoundaryWithPublicFor(F, kind, f, m, pm, i, pi, row_count, nonempty, claims, ch, out);
     }
+}
+/// Public INIT/TEARDOWN RAM14 debt. The chip proves only an active prefix of
+/// exactly row_count rows and the signed LogUp sum of their RAM14 tuples.
+/// Address order, uniqueness, alignment and every tuple coordinate's range are
+/// receiver-owned: the receiver validates the public cell list natively and
+/// requires claims.ram == expectedClaim(cells) exactly, which by LogUp
+/// (random RAM challenges drawn after MAIN) forces the active-row multiset to
+/// equal the canonical public tuples. No range lookups remain, so the range16
+/// and range8 claims of these chips are constrained to zero here.
+pub fn emitBoundaryWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    const active = m[0];
+    const first = f[1];
+    const one = F.one();
+    out.emit(first.mul(active.sub(nonempty)));
+    out.emit(f[2].mul(active));
+    out.emit(one.sub(first).mul(active).mul(one.sub(pm[0])));
+    out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(row_count)));
+    for (m[1..L.BOUND_MAIN]) |value| out.emit(one.sub(active).mul(value));
+    for ([_]usize{ R.layout.boundary.active, R.layout.boundary.readable, R.layout.boundary.writable }) |c| E.booleanFor(F, out, m[c]);
+    const scalar = @import("../../providers/scalar_range.zig");
+    scalar.single(F, ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, f[2], claims.ram, out);
+    out.emit(E.splatFor(F, claims.range16));
+    out.emit(E.splatFor(F, claims.range8));
 }
 pub fn baseChallenges(ch: T.Challenges) R.types.Challenges {
     return .{ .ram = ch.ram, .owner = .{ .offset = T.Q.zero(), .coefficients = @splat(T.Q.zero()) }, .range16 = ch.range16, .range8 = ch.range8 };

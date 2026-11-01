@@ -44,7 +44,9 @@ test "Independent INIT TERM domains physically prove cross shard RAM and default
     defer same_key.deinit();
     try std.testing.expectEqualSlices(u8, &old_key.fixed_root.value, &same_key.fixed_root.value);
     explicit.terminal_log = 5;
-    try std.testing.expectEqual(@as(u64, 4 * 32), (try legacy.range16Mass()) - (try explicit.range16Mass()));
+    // Public INIT/TEARDOWN chips own no range16 queries: boundary geometry no
+    // longer moves the admitted range16 mass.
+    try std.testing.expectEqual(@as(u64, 0), (try legacy.range16Mass()) - (try explicit.range16Mass()));
     try std.testing.expectEqual(@as(u64, 0), (try legacy.range8Mass()) - (try explicit.range8Mass()));
     explicit.initial_log = 4;
     try std.testing.expectError(error.InvalidExecutionGeometry, explicit.validate());

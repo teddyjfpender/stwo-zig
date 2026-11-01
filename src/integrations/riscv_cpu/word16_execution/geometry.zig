@@ -70,7 +70,7 @@ pub const Geometry = struct {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
         total = try std.math.add(u64, total, B.shift_word_packed_experiment.equations.RANGE_QUERIES * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
-        total = try std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
+        // Public INIT/TEARDOWN chips own no range16 queries (receiver-anchored).
         if (!self.omit_empty_division) total = try std.math.add(u64, total, A.division.word16_product.layout.RANGE_QUERIES * rows(self.division_log));
         return total;
     }
