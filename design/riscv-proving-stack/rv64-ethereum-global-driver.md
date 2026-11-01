@@ -158,3 +158,19 @@ CPU inventory size and exact cell sums before including this optional ledger.
 manifest, RAM and existing cost bytes remain exact; a fresh prefix receiver
 accepts with completed=false/output=null. This adds observability, not a new
 acceptance rule or performance claim.
+
+## Joined CPU50/LS71 complete block
+
+`ethereum-full-current-foundation-v1.json` pins the joined CPU50, LS71, ALU32,
+SHIFT28, shared-only RAM draw and tiled/parallel-count Keccak implementation at
+f4f9cc5ab. All25 CPU and five truth proofs pass complete native closure and a
+separate fresh receiver. The final register values also match the pinned legacy
+receiver. Both runs use the same ELF/input,104,253,913 instructions and service
+counts. This is L1 execution evidence, not OP derivation or a recursive root.
+
+Native cells are21,530,255,168 (206.52/retirement), against65,548,757,120 in the
+pinned legacy wide-RV64 receipt: an exact3.044x cell reduction. The observed wall
+was194.74s, with40.31GB lifetime peak RSS and34.44GB Darwin footprint. Another
+prototype prefix overlapped this engineering run. Neither controlled whole-
+block speedup nor the1.5–2x RSS target is established by it. Complete native
+verification still requires the public RAM sidecar and statement-specific setup.
