@@ -217,3 +217,13 @@ adversarial case below.
   This change does not touch recursion code.
 
 This is a manual source argument, not a machine-checked proof.
+
+## Recovery review gates
+
+The focused DIV suite now includes a production-route regression, rather than
+checking only the legacy helper accessors: each of the 24 MUL A/B/RESULT byte
+coordinates is independently changed to 256, and the actual degree-three MUL
+emitter must produce the expected nonzero BYTE-pair and FUNCTION residuals.
+This guards the canonicality dependency against a future provider rewrite.
+The suite floors are raised to 20 DIV tests and 36 coordinator tests so the
+new soundness checks cannot silently disappear from their test roots.

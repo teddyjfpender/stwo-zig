@@ -316,3 +316,38 @@ test "DIV support coordinates stay byte ranged by the MUL provider and PRODUCT_H
         for (A.rangeValuesFor(Q, &probe)) |v| try std.testing.expect(!v.eql(probe[start + i]));
     };
 }
+
+test "DIV canonical support dependency reaches production degree3 MUL byte and FUNCTION residuals" {
+    // Exercise the production emitter, rather than only its helper accessors:
+    // a later degree3-provider rewrite must not silently stop authenticating
+    // any A/B/RESULT coordinate that DIV relies on for canonicality.
+    const ML = @import("../../multiplication/degree3_layout.zig");
+    const MP = @import("../../multiplication/degree3_provider.zig");
+    const alpha = E.q(4096);
+    const byte_inverse = try alpha.mul(alpha).inv();
+    for (0..24) |column| {
+        var main: [ML.MAIN]Q = @splat(Q.zero());
+        main[column] = E.q(256);
+        var interaction: [ML.INTERACTION]Q = @splat(Q.zero());
+        for (0..ML.BYTE_PAIRS) |pair| {
+            for (byte_inverse.toM31Array(), 0..) |limb, i| interaction[4 * pair + i] = Q.fromBase(limb);
+        }
+        // FUNCTION inverse for the all-zero tuple; the selected coordinate's
+        // coefficient makes the same input mutation visible in that argument.
+        const offset = E.q(1024);
+        const fn_inverse = try offset.inv();
+        for (fn_inverse.toM31Array(), 0..) |limb, i| interaction[ML.FUNCTION_INVERSE + i] = Q.fromBase(limb);
+        var ch: MP.Challenges = .{ .offset = offset, .coefficients = @splat(Q.zero()) };
+        ch.coefficients[1 + column] = Q.one();
+        var values: [ML.CONSTRAINTS]Q = undefined;
+        var sink: E.Sink = .{ .values = &values };
+        MP.evaluateFor(Q, .{ Q.zero(), Q.one(), Q.one() }, &main, &interaction, Q.zero(), Q.zero(), Q.zero(), ch, alpha, Q.zero(), &sink);
+        try std.testing.expectEqual(ML.CONSTRAINTS, sink.count);
+        const expected_byte = alpha.sub(E.q(256)).mul(alpha).mul(byte_inverse).sub(Q.one());
+        try std.testing.expect(!expected_byte.isZero());
+        try std.testing.expect(values[ML.ARITHMETIC_CONSTRAINTS + column / 2].eql(expected_byte));
+        const expected_function = fn_inverse.mul(offset.add(E.q(256))).sub(Q.one());
+        try std.testing.expect(!expected_function.isZero());
+        try std.testing.expect(values[ML.ARITHMETIC_CONSTRAINTS + ML.BYTE_PAIRS].eql(expected_function));
+    }
+}
