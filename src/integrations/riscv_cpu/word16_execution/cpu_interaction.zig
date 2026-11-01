@@ -107,7 +107,7 @@ pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionar
     const segments = if (segment_log) |log| n >> @intCast(log) else chunks;
     const workers = if (pool) |active| @min(active.workerCount(), units) else 1;
     const a = source.allocator;
-    const output = try a.alloc(M, X.layout.inter.COUNT * n);
+    const output = try a.alloc(M, X.layout.interCount(source.fused_tail) * n);
     errdefer a.free(output);
     @import("stwo_riscv_frontend").rv64_air.native_output_pages.prepare(output);
     const summaries = try a.alloc([1]Q, segments);
@@ -152,7 +152,8 @@ const Job = struct {
             for (self.start..self.end) |p| {
                 const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, self.source.log_size), self.source.log_size);
                 const correction = self.summaries[logical >> @intCast(self.segment_log)][0].toM31Array();
-                for (correction, 0..) |value, c| self.output[(X.layout.inter.sum + c) * n + p] = self.output[(X.layout.inter.sum + c) * n + p].add(value);
+                const sum_at: usize = if (self.source.fused_tail) X.layout.fused.sum else X.layout.inter.sum;
+                for (correction, 0..) |value, c| self.output[(sum_at + c) * n + p] = self.output[(sum_at + c) * n + p].add(value);
             }
             return;
         }
@@ -215,14 +216,23 @@ const Job = struct {
         inverses[7] = r8[0].mul(r8[1]);
         inverses[8] = r8[2];
         const p = X.layout.physical(logical, self.source.log_size);
-        for (inverses, 0..) |value, column| store(self.output, n, p, 4 * column, value);
+        var registers: [3]Q = undefined;
+        for (&registers, 0..) |*value, slot| value.* = hint.delta[slot].mul(inverses[slot]).mulM31(hint.enabled[slot]);
+        const owner_pair = source_inv[4].mulM31(hint.active.sub(hint.function)).add(r16[0]);
+        if (self.source.fused_tail) {
+            // Fraction witnesses for REG and OWNER+U16; no U8-single column.
+            const witnesses = [X.layout.fused.WITNESSES]Q{ registers[0], registers[1], registers[2], inverses[3], inverses[4], owner_pair, inverses[6], inverses[7] };
+            for (witnesses, 0..) |value, column| store(self.output, n, p, 4 * column, value);
+        } else {
+            for (inverses, 0..) |value, column| store(self.output, n, p, 4 * column, value);
+        }
         var s = sum.*;
-        for (0..3) |slot| s = s.add(hint.delta[slot].mul(inverses[slot]).mulM31(hint.enabled[slot]));
+        for (registers) |value| s = s.add(value);
         s = s.add(inverses[3].mulM31(hint.function)).add(inverses[4].mulM31(hint.active));
-        s = s.add(source_inv[4].mulM31(hint.active.sub(hint.function)));
-        for (r16) |inverse| s = s.add(inverse);
+        s = s.add(owner_pair);
+        for (r16[1..]) |inverse| s = s.add(inverse);
         for (r8) |inverse| s = s.add(inverse);
-        store(self.output, n, p, X.layout.inter.sum, s);
+        store(self.output, n, p, if (self.source.fused_tail) X.layout.fused.sum else X.layout.inter.sum, s);
         sum.* = s;
     }
 };

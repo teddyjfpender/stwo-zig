@@ -51,6 +51,38 @@ obligations; local CPU residuals alone are not an independent canonicality
 proof. Register clocks reset per independently admitted batch, and PC/all
 register values must be linked between batches by the receiving protocol.
 
+## Opt-in fused-tail interaction (36 columns, 51 residuals)
+
+`Geometry.cpu_fused_tail` (default false) selects `emitFusedFor` instead of
+`emitFor`. False keeps the 40-column AIR, the transcript and bundle JSON
+byte-identical; true additionally mixes `features.fusedTailIdentity()` and
+the shape width 36. The LogUp statement and every honest per-row increment
+are unchanged; only the witness form changes:
+
+- REG slots 0..2 are FRACTION witnesses `R*before*after = enabled*(after-before)`
+  (degree 3), contributing `R` (degree 1). This replaces the strict inverse
+  product, so a REG pole is no longer rejected per row: if `before*after = 0`
+  the row's `R` is free. Tuples are committed before `(z, alpha)` are drawn, so
+  by Schwartz-Zippel a pole occurs with probability at most
+  `2*3*2^22/|QM31|` (about 2^-100) per proof. This is the standard stwo
+  `LogupAtRow` fraction argument. A one-sided pole with nonzero numerator is
+  unsatisfiable, and a disabled slot with no pole forces `R = 0`.
+- OWNER+U16 (slot 5) is a fraction witness `F*d0*d1 = d0 + (active-function)*d1`.
+  Its numerator is affine, so the inverse form would make the fused residual
+  degree 4. The same negligible pole argument applies.
+- FUNCTION, ROM, U16+U16 and U8+U8 keep strict inverses `d*I = 1`.
+- The U8 single has no column. It is enforced through the prefix:
+  `(S - S_prev + claim*first - C8)*d6 - 1 = 0`, where every term of `C8` has
+  degree at most 2. This is strict: `d6 = 0` makes the residual `-1`.
+  Otherwise it forces `S - S_prev = C8 + 1/d6 - claim*first`, the same
+  recurrence as the old (inverse, sum) pair. `last*S = 0` is unchanged.
+
+Register closure and chronological induction rely only on the rational identity
+`sum(+-1/(z-t)) = 0`, never on per-row strictness, so they are unaffected.
+The main-only authority uses only `emitMainFor`, which both encodings share.
+Recursion lanes and the services/Ethereum routes have not been qualified
+with fused geometry. Do not enable it there until they are.
+
 ## Affine zero-register flags
 
 The three zero-register flags are `1-enabled`, not independent committed

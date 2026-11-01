@@ -8,6 +8,11 @@ const M = @import("stwo_core").fields.m31.M31;
 const Q = E.Q;
 const m = L.main;
 pub const CONSTRAINTS = 52;
+/// Fused-tail encoding: 8 witness residuals + 1 fused prefix + last*S.
+pub const FUSED_CONSTRAINTS = CONSTRAINTS - 1;
+pub fn constraintCount(fused: bool) usize {
+    return if (fused) FUSED_CONSTRAINTS else CONSTRAINTS;
+}
 pub fn DenominatorsFor(comptime F: type) type {
     const S = E.SecureFor(F);
     return struct { before: [3]S, after: [3]S, function: S, rom: S, affine: [7]S };
@@ -102,6 +107,45 @@ pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main
     sink.emit(E.mulBaseFor(F, sum, last));
 }
 
+/// Fused-tail contribution of the eight committed witnesses. Every term has
+/// degree <= 2, so multiplying the prefix residual by the affine U8 tail
+/// denominator stays within degree 3. The tail 1/affine[6] is NOT included.
+pub fn fusedContributionFor(comptime F: type, ds: DenominatorsFor(F), w: WeightsFor(F), witness: [L.fused.WITNESSES]E.SecureFor(F)) E.SecureFor(F) {
+    var out = witness[0].add(witness[1]).add(witness[2]);
+    out = out.add(E.mulBaseFor(F, witness[3], w.function)).add(E.mulBaseFor(F, witness[4], w.rom));
+    out = out.add(witness[5]);
+    out = out.add(ds.affine[2].add(ds.affine[3]).mul(witness[6]));
+    return out.add(ds.affine[4].add(ds.affine[5]).mul(witness[7]));
+}
+/// Opt-in fused-tail CPU interaction (36 columns, FUSED_CONSTRAINTS residuals).
+/// Same LogUp statement and per-row increment as `emitFor`:
+/// - REG slots are fraction witnesses R*before*after = w*(after-before);
+/// - OWNER+U16 is a fraction witness F*d0*d1 = d0 + w_owner*d1, because its
+///   numerator is affine and the inverse form would make the fused residual
+///   degree four;
+/// - FUNCTION, ROM, U16+U16 and U8+U8 keep strict inverses;
+/// - the U8 single is (S-S_prev+claim*first-C8)*d6 - 1, strict at d6=0.
+pub fn emitFusedFor(comptime F: type, fixed: []const F, row: []const F, previous_main: []const F, current: []const F, previous: []const F, public: T.InputsFor(E.ConstFor(F)), claim: E.ConstFor(F), ch: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    emitMainFor(F, fixed, row, previous_main, public, sink);
+    const S = E.SecureFor(F);
+    const first = fixed[L.fixed.first];
+    const last = fixed[L.fixed.last];
+    const w = weightsFor(F, row);
+    const ds = denominatorsFor(F, fixed, row, public, ch);
+    var witness: [L.fused.WITNESSES]S = undefined;
+    for (&witness, 0..) |*value, i| value.* = E.secureFor(F, current, 4 * i);
+    for (0..3) |slot| sink.emit(witness[slot].mul(ds.before[slot]).mul(ds.after[slot]).sub(E.mulBaseFor(F, ds.after[slot].sub(ds.before[slot]), w.registers[slot])));
+    sink.emit(ds.function.mul(witness[3]).sub(S.one()));
+    sink.emit(ds.rom.mul(witness[4]).sub(S.one()));
+    sink.emit(witness[5].mul(ds.affine[0]).mul(ds.affine[1]).sub(ds.affine[0].add(E.mulBaseFor(F, ds.affine[1], w.owner))));
+    sink.emit(ds.affine[2].mul(ds.affine[3]).mul(witness[6]).sub(S.one()));
+    sink.emit(ds.affine[4].mul(ds.affine[5]).mul(witness[7]).sub(S.one()));
+    const sum = E.secureFor(F, current, L.fused.sum);
+    const step = sum.sub(E.secureFor(F, previous, L.fused.sum)).add(E.mulBaseFor(F, E.splatFor(F, claim), first)).sub(fusedContributionFor(F, ds, w, witness));
+    sink.emit(step.mul(ds.affine[6]).sub(S.one()));
+    sink.emit(E.mulBaseFor(F, sum, last));
+}
+
 /// Native witness acceleration uses the SAME tuple projections. No ISA
 /// arithmetic, shape-dependent equations or host membership checks occur here.
 fn dot(ch: anytype, values: anytype) Q {
@@ -127,4 +171,21 @@ pub fn nativeDenominators(fixed: []const M, row: []const M, public: T.Inputs, ch
 pub fn nativeContribution(ds: DenominatorsFor(Q), row: []const M, inverse: [9]Q) Q {
     const w = weightsFor(M, row);
     return contributionFor(Q, ds, .{ .registers = .{ Q.fromBase(w.registers[0]), Q.fromBase(w.registers[1]), Q.fromBase(w.registers[2]) }, .function = Q.fromBase(w.function), .rom = Q.fromBase(w.rom), .owner = Q.fromBase(w.owner) }, inverse);
+}
+/// Honest native fused witnesses (tests/repair only; the prover fill batch-inverts).
+pub fn nativeFusedWitnesses(ds: DenominatorsFor(Q), row: []const M) ![L.fused.WITNESSES]Q {
+    const w = weightsFor(M, row);
+    var out: [L.fused.WITNESSES]Q = undefined;
+    for (0..3) |slot| out[slot] = ds.after[slot].sub(ds.before[slot]).mul(try ds.before[slot].mul(ds.after[slot]).inv()).mulM31(w.registers[slot]);
+    out[3] = try ds.function.inv();
+    out[4] = try ds.rom.inv();
+    out[5] = ds.affine[0].add(ds.affine[1].mulM31(w.owner)).mul(try ds.affine[0].mul(ds.affine[1]).inv());
+    out[6] = try ds.affine[2].mul(ds.affine[3]).inv();
+    out[7] = try ds.affine[4].mul(ds.affine[5]).inv();
+    return out;
+}
+/// Exact per-row prefix increment of the fused encoding, tail included.
+pub fn nativeFusedContribution(ds: DenominatorsFor(Q), row: []const M, witness: [L.fused.WITNESSES]Q) !Q {
+    const w = weightsFor(M, row);
+    return fusedContributionFor(Q, ds, .{ .registers = .{ Q.fromBase(w.registers[0]), Q.fromBase(w.registers[1]), Q.fromBase(w.registers[2]) }, .function = Q.fromBase(w.function), .rom = Q.fromBase(w.rom), .owner = Q.fromBase(w.owner) }, witness).add(try ds.affine[6].inv());
 }

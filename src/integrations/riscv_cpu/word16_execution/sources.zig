@@ -92,6 +92,7 @@ pub const Source = struct {
         }
         var cpu = try prepared.takeCpu(&materials.program, g.cpu_log);
         errdefer cpu.deinit();
+        cpu.fused_tail = g.cpu_fused_tail;
         var jalr = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_jalr", "Adopt prepared JALR witness");
             defer stage.end();

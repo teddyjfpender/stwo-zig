@@ -28,6 +28,28 @@ pub const Geometry = struct {
     /// historical shared geometry, immutable roots and transcript exactly.
     initial_log: ?u32 = null,
     terminal_log: ?u32 = null,
+    /// Opt-in fused-tail CPU interaction (36 instead of 40 columns, same LogUp
+    /// statement). False preserves the historical CPU AIR, transcript and
+    /// bundle JSON byte-for-byte (the field is omitted from JSON when false).
+    cpu_fused_tail: bool = false,
+    /// Omits `cpu_fused_tail` when false so legacy bundle.json bytes are unchanged.
+    pub fn jsonStringify(self: Geometry, jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(Geometry)) |field| {
+            const value = @field(self, field.name);
+            const omitted = if (comptime std.mem.eql(u8, field.name, "cpu_fused_tail"))
+                !self.cpu_fused_tail
+            else if (comptime @typeInfo(field.type) == .optional)
+                value == null and !jws.options.emit_null_optional_fields
+            else
+                false;
+            if (!omitted) {
+                try jws.objectField(field.name);
+                try jws.write(value);
+            }
+        }
+        try jws.endObject();
+    }
     pub fn initialLog(self: Geometry) u32 {
         return self.initial_log orelse self.boundary_log;
     }
@@ -106,7 +128,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
         const widths: [3]usize = switch (role) {
-            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.inter.COUNT },
+            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.interCount(geometry.cpu_fused_tail) },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },

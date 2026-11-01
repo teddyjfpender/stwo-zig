@@ -40,6 +40,8 @@ pub const Source = struct {
     /// MAIN never authorizes a second wide projection from the same capture.
     main_projection_closed: bool = false,
     interaction: []M = &.{},
+    /// Opt-in fused-tail interaction encoding (Geometry.cpu_fused_tail).
+    fused_tail: bool = false,
     rom_counts: []u64,
     counts16: []u64,
     counts8: []u64,

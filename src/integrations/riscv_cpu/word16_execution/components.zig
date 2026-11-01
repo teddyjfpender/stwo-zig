@@ -52,7 +52,7 @@ pub const Components = struct {
         for (materials.shapes()) |shape| {
             if (!shape.present()) continue;
             switch (shape.role) {
-                .cpu => result.cpu = .{ .log_size = shape.log, .offsets = shape.offsets, .public = try X.types.inputs(request.cpu, request.epoch, shape.log), .challenges = ch.cpu, .claim = claims.cpu },
+                .cpu => result.cpu = .{ .log_size = shape.log, .offsets = shape.offsets, .public = try X.types.inputs(request.cpu, request.epoch, shape.log), .challenges = ch.cpu, .claim = claims.cpu, .fused = materials.geometry.cpu_fused_tail },
                 .rom => result.rom = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.rom, .claim = claims.rom },
                 .boundary, .range16, .range8 => {
                     const component = W.component.Component{ .kind = switch (shape.role) {
