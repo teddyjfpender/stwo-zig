@@ -19,6 +19,15 @@ pub fn For(comptime C: type) type {
             }
             return out;
         }
+        /// Native metadata is base-valued. Keep every tuple product a small
+        /// M31 by OM31 multiply rather than promoting both operands to OM31.
+        pub fn denominatorBase(self: *const @This(), relation: R.Relation, tuple: anytype) C {
+            std.debug.assert(tuple.len == relation.arity());
+            const index = @intFromEnum(relation);
+            var d = self.offsets[index];
+            for (tuple, 0..) |value, i| d = d.sub(self.coefficients[index][i].mulM31(value));
+            return d;
+        }
         pub fn denominatorFor(self: *const @This(), comptime F: type, relation: R.Relation, tuple: anytype) E.SecureFor(F) {
             std.debug.assert(tuple.len == relation.arity());
             const index = @intFromEnum(relation);

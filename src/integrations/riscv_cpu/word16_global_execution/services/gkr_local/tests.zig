@@ -203,3 +203,88 @@ test "Eq recurrence and cyclic prefix bind each terminal pair without cancellati
         }
     }
 }
+test {
+    _ = @import("role_test.zig");
+}
+fn omValue(seed: usize) O {
+    var c: [8]core.fields.m31.M31 = undefined;
+    for (&c, 0..) |*v, i| v.* = core.fields.m31.M31.fromCanonical(@intCast((seed * 719 + i * 79 + 3) % 65521));
+    return O.fromM31Array(c);
+}
+test "all eight actual role terminal bindings have degree at most three" {
+    const Role = @import("role.zig");
+    const Main = A.main_only.authority;
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    const challenges = @import("challenges.zig").For(O).draw(&channel);
+    var weights: [128]O = undefined;
+    for (&weights, 0..) |*v, i| v.* = omValue(i + 331);
+    for (std.enums.values(Main.Role)) |role| {
+        const core_role: @import("../../../word16_execution/geometry.zig").Role = switch (role) {
+            .cpu => .cpu,
+            .alu => .alu,
+            .binary => .binary,
+            .shift => .shift,
+            .ls => .ls,
+            .jalr => .jalr,
+            .mul => .multiplication,
+            .div => .division,
+        };
+        const terms = @import("roster.zig").terms(core_role);
+        const lanes: usize = @as(usize, 1) << @intCast(std.math.log2_int_ceil(u32, terms));
+        var values: [5]O = undefined;
+        for (&values, 0..) |*out, t| {
+            const x = O.fromBase(core.fields.m31.M31.fromCanonical(@intCast(t)));
+            var main: [256]O = undefined;
+            var fixed: [64]O = undefined;
+            for (&main, 0..) |*v, i| v.* = omValue(i + 11).add(omValue(i + 211).mul(x));
+            for (&fixed, 0..) |*v, i| v.* = omValue(i + 31).add(omValue(i + 311).mul(x));
+            var projection = @import("binding.zig").ProjectionFor(O){ .challenges = &challenges, .lane_weights = weights[0..lanes], .terms = terms };
+            Role.emitLocalFor(O, role, fixed[0..Main.shape(role).fixed], main[0..Main.shape(role).main], O.one(), &projection);
+            try projection.finish();
+            out.* = projection.combine(omValue(771)).mul(omValue(991).add(omValue(191).mul(x)));
+        }
+        for (0..3) |order| for (0..4 - order) |t| {
+            values[t] = values[t + 1].sub(values[t]);
+        };
+        try std.testing.expect(values[1].sub(values[0]).isZero());
+    }
+}
+fn wireAllocationCase(a: std.mem.Allocator, instances: []const Frame.Instance, proof: *const @import("stwo_prover_engine").lookups.gkr_verifier.ForField(O).GkrBatchProof) !void {
+    const W = @import("wire.zig");
+    const bytes = try W.encode(a, instances, proof);
+    defer a.free(bytes);
+    var decoded = try W.decode(a, instances, bytes);
+    defer decoded.deinit();
+}
+test "local OM child wire preserves canonical transcript rejects aliases and releases all partial decodes" {
+    const Child = @import("child.zig");
+    const W = @import("wire.zig");
+    const a = std.testing.allocator;
+    const instances = [_]Frame.Instance{
+        .{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 },
+        .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
+    };
+    const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    const child = try Child.Unbound.prove(a, 1 << 20, scope, &instances, BalancedMetadata{});
+    defer child.deinit();
+    const bytes = try W.encode(a, &instances, &child.result.proof);
+    defer a.free(bytes);
+    var decoded = try W.decode(a, &instances, bytes);
+    defer decoded.deinit();
+    var pending = try Child.verifyPending(a, scope, &instances, &decoded.proof, child.digest);
+    defer pending.deinit(a);
+    const bad = try a.dupe(u8, bytes);
+    defer a.free(bad);
+    bad[0] ^= 1;
+    try std.testing.expectError(error.LocalGkrWireProfile, W.decode(a, &instances, bad));
+    bad[0] ^= 1;
+    std.mem.writeInt(u32, bad[20..][0..4], core.fields.m31.Modulus, .little);
+    try std.testing.expectError(error.NoncanonicalLocalGkrCoordinate, W.decode(a, &instances, bad));
+    try std.testing.expectError(error.TruncatedLocalGkrProof, W.decode(a, &instances, bytes[0 .. bytes.len - 1]));
+    const trailing = try a.alloc(u8, bytes.len + 1);
+    defer a.free(trailing);
+    @memcpy(trailing[0..bytes.len], bytes);
+    trailing[bytes.len] = 0;
+    try std.testing.expectError(error.TrailingLocalGkrBytes, W.decode(a, &instances, trailing));
+    try std.testing.checkAllAllocationFailures(a, wireAllocationCase, .{ &instances, &child.result.proof });
+}

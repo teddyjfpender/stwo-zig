@@ -37,7 +37,12 @@ nonzero even for a zero numerator; no proof-dependent redraw is permitted.
    binds those roots, trusted statement/program digest, ordinal and derived roster.
 2. Local relation draws produce actual M31 numerator and OM31 denominator MLEs.
    Rows use physical circle storage; lanes are the low bits. Missing lanes are0/1.
-3. The existing OM31 core proves all local instances, then the child receiver
+3. The local root closure is one batched rational-sum identity across independently
+   random relation namespaces. It does not assert exact per-relation marginal
+   claims. Its exceptional-event/degree bound belongs in the protocol security
+   ledger; exact per-relation claims would need a different authenticated
+   partition/binding construction. The existing OM31 core proves all local
+   instances, then the child receiver
    reconstructs its transcript and output closure. The canonical receipt frames
    scope, field degree, ordered roster, proof and reconstructed terminal marginals.
 4. GKR's common point is sliced by each instance's complete variable count
@@ -92,3 +97,24 @@ ROM arithmetic admission constraints; native and circuit physical masks binding;
 stage-one manifest/wire/receiver integration; separate truth PCS local profiles;
 physical-invalid-witness tests; and whole-block semantic/fresh-verification
 qualification. No helper test makes those remaining obligations optional.
+
+The first physical gate now exists in `role.zig` and `role_domain.zig` for the
+eight computed CPU families. Original MAIN residuals and three binding residuals
+share one physical MAIN span and one bounded2n expansion. Domain residuals use
+packed M31 for original arithmetic and packed OM31 for the secure binding. The
+Eq carry and first/second selectors are derived ephemeral polynomials, not new
+trusted witness columns. There is no second MAIN FFT for binding.
+
+The actual varying ALU witness proves47 MAIN columns plus13 local query lanes
+and16 binding base planes through full OM31 composition, PCS, FRI and a fresh
+core receiver. An active MAIN multiplicity can be changed while all original
+ALU arithmetic residuals remain zero; the physical local binding rejects it.
+Independent target, Eq and prefix changes also reject. This is a local fragment:
+its nonzero FUNCTION/range debts do not become an execution acceptance claim.
+The full source catalog, bridge/global joining and complete manifest receiver
+remain separate gates.
+
+Instances with different lane counts generally have different row-point
+suffixes. No Eq column is shared solely because roles or row logs agree.
+Affine-fraction pairing and better lane-height partitioning are future measured
+resource optimizations; neither is applied implicitly in this version.

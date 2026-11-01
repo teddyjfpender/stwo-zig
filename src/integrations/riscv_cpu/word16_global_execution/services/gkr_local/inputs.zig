@@ -26,14 +26,27 @@ pub const RowSink = struct {
             self.invalid = true;
             return;
         };
+        var base: [tuple.len]M = undefined;
+        for (tuple, &base) |value, *out| {
+            const c = value.toM31Array();
+            for (c[1..]) |v| if (!v.isZero()) {
+                self.invalid = true;
+                return;
+            };
+            out.* = c[0];
+        }
         self.numerator[self.count] = coordinates[0];
-        self.denominator[self.count] = self.challenges.denominatorFor(O, relation, tuple);
+        self.denominator[self.count] = self.challenges.denominatorBase(relation, base);
         self.count += 1;
     }
     pub fn emitBase(self: *RowSink, relation: Fractions.Relation, tuple: anytype, weight: M) void {
-        var lifted: [tuple.len]O = undefined;
-        for (tuple, &lifted) |v, *out| out.* = O.fromBase(v);
-        self.emit(relation, lifted, O.fromBase(weight));
+        if (self.count >= self.numerator.len) {
+            self.invalid = true;
+            return;
+        }
+        self.numerator[self.count] = weight;
+        self.denominator[self.count] = self.challenges.denominatorBase(relation, tuple);
+        self.count += 1;
     }
 };
 pub const Inputs = struct {
