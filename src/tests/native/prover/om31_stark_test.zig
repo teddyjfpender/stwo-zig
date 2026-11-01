@@ -23,6 +23,7 @@ const MC = struct {
 const E = engine.engine.ForField(S).ProverEngine(CPU, H, MC, C);
 const Air = struct {
     log: u32 = 4,
+    main_index: usize = 0,
     const Adapter = core.air.derive.ForField(S).ComponentAdapter(@This(), P.ComponentProver, P.Trace, D.DomainEvaluationAccumulator);
     pub fn nConstraints(_: *const @This()) usize {
         return 2;
@@ -55,13 +56,15 @@ const Air = struct {
         const z = core.constraints.cosetVanishing(S, core.poly.circle.canonic.CanonicCoset.new(self.log).coset(), point);
         return v.mul(v.sub(S.one())).div(z);
     }
-    pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: Point, mask: *const K.MaskValues, acc: *Acc.PointEvaluationAccumulator, _: u32) !void {
-        const q = try self.quotient(point, mask.items[1][0][0]);
+    pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: Point, mask: *const K.MaskValues, acc: *Acc.PointEvaluationAccumulator, max_log: u32) !void {
+        if (max_log < self.log) return error.InvalidStructure;
+        const native_point = point.repeatedDouble(max_log - self.log);
+        const q = try self.quotient(native_point, mask.items[1][self.main_index][0]);
         acc.accumulate(q);
         acc.accumulate(q);
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const @This(), trace: *const P.Trace, acc: *D.DomainEvaluationAccumulator) !void {
-        const poly = trace.polys.items[1][0].coefficients orelse return error.MissingCoefficients;
+        const poly = trace.polys.items[1][self.main_index].coefficients orelse return error.MissingCoefficients;
         const log = self.log + 1;
         const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
         var col = try engine.secure_column.SecureColumnByCoordsFor(S).uninitialized(acc.allocator, domain.size());
@@ -86,7 +89,7 @@ fn produce(a: std.mem.Allocator) !E.ExtendedProof {
 fn produceTrace(a: std.mem.Allocator, invalid: bool) !E.ExtendedProof {
     return produceTraceWithFold(a, invalid, 1);
 }
-fn produceTraceWithFold(a: std.mem.Allocator, invalid: bool, fold: u32) !E.ExtendedProof {
+pub fn produceTraceWithFold(a: std.mem.Allocator, invalid: bool, fold: u32) !E.ExtendedProof {
     const cfg = try configWithFold(fold);
     var channel = C.init();
     cfg.mixInto(&channel);
@@ -106,7 +109,7 @@ fn produceTraceWithFold(a: std.mem.Allocator, invalid: bool, fold: u32) !E.Exten
 fn verify(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H)) !void {
     return verifyFold(a, proof, 1);
 }
-fn verifyFold(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H), fold: u32) !void {
+pub fn verifyFold(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H), fold: u32) !void {
     var owned = proof;
     var owns = true;
     defer if (owns) owned.deinit(a);
@@ -192,4 +195,39 @@ test "OM31 STARK complete fold4 profile verifies through wide lazy PCS" {
     var proof = try produceTraceWithFold(A, false, 4);
     defer proof.aux.deinit(A);
     try verifyFold(A, proof.proof, 4);
+}
+
+fn mixed(a: std.mem.Allocator, fold: u32) !void {
+    const cfg = try configWithFold(fold);
+    var channel = C.init();
+    cfg.mixInto(&channel);
+    var scheme = try E.init(a, cfg);
+    var owns = true;
+    errdefer if (owns) scheme.deinit(a);
+    try scheme.commit(a, &.{}, &channel);
+    var small: [32]M = undefined;
+    var large: [64]M = undefined;
+    for (&small, 0..) |*v, i| v.* = M.fromCanonical(@intCast((i * i + i / 3) & 1));
+    for (&large, 0..) |*v, i| v.* = M.fromCanonical(@intCast((i + i / 5) & 1));
+    try scheme.commit(a, &.{ .{ .log_size = 5, .values = &small }, .{ .log_size = 6, .values = &large } }, &channel);
+    const roles = [_]Air{ .{ .log = 5, .main_index = 0 }, .{ .log = 6, .main_index = 1 } };
+    const components = [_]P.ComponentProver{ Air.Adapter.asProverComponent(&roles[0]), Air.Adapter.asProverComponent(&roles[1]) };
+    owns = false;
+    var proof = try E.prove(a, &components, &channel, scheme, .{});
+    defer proof.aux.deinit(a);
+    var owned = true;
+    defer if (owned) proof.proof.deinit(a);
+    var fresh = C.init();
+    cfg.mixInto(&fresh);
+    var receiver = try CP.verifier.CommitmentSchemeVerifier(H, MC).init(a, cfg);
+    defer receiver.deinit(a);
+    try receiver.commit(a, proof.proof.commitment_scheme_proof.commitments.items[0], &.{}, &fresh);
+    try receiver.commit(a, proof.proof.commitment_scheme_proof.commitments.items[1], &.{ 5, 6 }, &fresh);
+    const verify_components = [_]K.Component{ Air.Adapter.asVerifierComponent(&roles[0]), Air.Adapter.asVerifierComponent(&roles[1]) };
+    owned = false;
+    try core.verifier.ForField(S).verify(H, MC, a, &verify_components, &fresh, &receiver, proof.proof);
+}
+test "OM31 STARK mixed log5 log6 MAIN baseline folds samples per column" {
+    try mixed(A, 1);
+    try mixed(A, 4);
 }
