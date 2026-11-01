@@ -19,3 +19,5 @@ Focused Safe/Fast suites pass8tests: full cell/claim parity against the untouche
 Both Safe/Fast physical gates pass. Independent source review found no ownership/concurrency blocker. Kernel and whole-block performance remain unmeasured at this source commit; the optional benchmark is serialized under the shared heavy lock and must be reported separately. No transcript, statement, field, security claim or receiver authority changes.
 
 Commands and raw logs are in `vectors/reports/rv64-classic-witness-parallel-20261102/`.
+
+The subsequent locked synthetic640-inverse kernel run used the committed source24d1ebf5c atlog12 with84,017,152output bytes. Serial took339.90ms; optimized1/4/16workers took114.63/38.58/72.00ms, respectively, with exact cells/claims. Every case used16,384,000scratch bytes; chunk sizes were256/64/16rows. Four workers won this small memory-heavy case, so higher fanout is not assumed to improve time. The synthetic provider excludes actual truth tuple projection. This is not a whole-truth/block improvement; the parent real2×8run remains the required measurement.

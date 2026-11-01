@@ -19,7 +19,7 @@
     "admission": "runtime,CPUretention,truthretention,truthworkeradmit sharecheckedceiling; alloutputs+maxlocal/global scratch+secpGMdescriptors coexist",
     "hard_allocator_test": "actualrequestedpeak<=exactoutput+sharedscratch; live0afterrelease"
   },
-  "performance": "UNMEASURED atsourcecommit; kernelA/Bapprovedaftercommitunderheavylock; actualwholeblockprofilepending",
+  "performance": "Synthetickernelmeasured; actualwholeblockpendingparentrun. Nooverallproverclaim.",
   "baseline_target": {
     "firstKeccak_interaction_seconds": 64.175,
     "secondKeccak_interaction_seconds": 62.264,
@@ -30,5 +30,38 @@
     "NoRSS/device-memory/security128claim",
     "Kernelmicrodoesnotqualifywholeblockspeed",
     "Derivedprefixownerusesactualschedulerendcuts"
-  ]
+  ],
+  "kernel_AB": {
+    "source_commit": "24d1ebf5c",
+    "serialized_by": "/private/tmp/stwo-rv64-perf-heavy.lock",
+    "conditions": "single shared-host syntheticread-only640inverseprovider; actualtupleprojection excluded; notwholeblock",
+    "log": 12,
+    "output_bytes": 84017152,
+    "serial_ns": 339896541,
+    "variants": [
+      {
+        "workers": 1,
+        "optimized_ns": 114630542,
+        "scratch_bytes": 16384000,
+        "chunk_rows": 256,
+        "ratio": 2.965
+      },
+      {
+        "workers": 4,
+        "optimized_ns": 38577458,
+        "scratch_bytes": 16384000,
+        "chunk_rows": 64,
+        "ratio": 8.811
+      },
+      {
+        "workers": 16,
+        "optimized_ns": 71996916,
+        "scratch_bytes": 16384000,
+        "chunk_rows": 16,
+        "ratio": 4.721
+      }
+    ],
+    "all_cells_and_claims": "exact",
+    "interpretation": "4workersbestonsmallmemoryheavykernel;16workersisnotassumedbetter; actual2x8wholetruthrequired"
+  }
 }

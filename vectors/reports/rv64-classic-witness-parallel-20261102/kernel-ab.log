@@ -1,0 +1,12 @@
+1/8 rv64_classic_witness_test_root.test_0...OK
+2/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic parallel physical scatter and two-wave prefix preserve all cells claims and immutable input...OK
+3/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic witness plan counts every tile and adapts to exact legacy scratch cap...OK
+4/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic pooled tile allocation failures clean every partially initialized owner...OK
+5/8 word16_global_execution.services.gkr_local.classic_witness_test.test.classic zero-weight poles and provider errors reject after joined workers...OK
+6/8 word16_global_execution.services.gkr_local.classic_witness_test.test.non-opted stateful providers retain serial logical order...OK
+7/8 word16_global_execution.services.gkr_local.classic_witness_test.test.packed classic inverse contributions and dots match scalar with tails and strict poles...OK
+8/8 word16_global_execution.services.gkr_local.classic_witness_test.test.optional classic640 inverse kernel A B...CLASSIC_WITNESS_KERNEL log=12 inverses=640 workers=1 serial_ns=339896541 optimized_ns=114630542 scratch_bytes=16384000 chunk_rows=256 output_bytes=84017152 speedup=2.965 exact=true
+CLASSIC_WITNESS_KERNEL log=12 inverses=640 workers=4 serial_ns=339896541 optimized_ns=38577458 scratch_bytes=16384000 chunk_rows=64 output_bytes=84017152 speedup=8.811 exact=true
+CLASSIC_WITNESS_KERNEL log=12 inverses=640 workers=16 serial_ns=339896541 optimized_ns=71996916 scratch_bytes=16384000 chunk_rows=16 output_bytes=84017152 speedup=4.721 exact=true
+OK
+All 8 tests passed.
