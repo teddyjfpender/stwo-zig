@@ -34,5 +34,15 @@
   ],
   "timing_effect": "optional caller-owned WorkerTiming fields only; retirement excluded from spill time",
   "safe_gate": "PASS final source, both tests selected by memory advice retires filter",
-  "fast_gate": "PASS final source, both tests selected by memory advice retires filter"
+  "fast_gate": "PASS final source, both tests selected by memory advice retires filter",
+  "completed_worker_retirement": {
+    "pending_artifact_independently_owned": true,
+    "stage_one_serialized_before_retirement": true,
+    "encoded_result_detached": true,
+    "worker_slot_cleared_for_deferred_cleanup": true,
+    "admission_bounds_unchanged": true,
+    "safe_gate": "PASS three selected lifecycle tests plus imported gates, MaxRSS2G, 38s",
+    "fast_gate": "PASS same final source, MaxRSS2G, 37s",
+    "later_stage_failure": "deterministic allocator refuses new allocations after CPU0 completed owner was freed; error.OutOfMemory, remaining cleanup leak-free"
+  }
 }

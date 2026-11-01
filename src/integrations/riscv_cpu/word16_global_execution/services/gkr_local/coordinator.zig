@@ -40,6 +40,7 @@ pub const WorkerTiming = struct {
     memory_event_retire_ns: u64 = 0,
     stage1_completed: bool = false,
     stage2_completed: bool = false,
+    completed_worker_retired: bool = false,
 };
 pub const Options = struct {
     max_workers: usize = 8,
@@ -243,9 +244,15 @@ const Run = struct {
             .cpu => |*v| .{ .cpu = try v.complete(self.a, pending, index, self.options.global_budget) },
             .truth => |*v| .{ .truth = try v.complete(self.a, pending, index, self.options.global_budget) },
         };
-        if (timer) |*clock| {
-            timing.?.native_complete_ns = clock.lap();
-            timing.?.stage2_completed = true;
+        if (timer) |*clock| timing.?.native_complete_ns = clock.lap();
+        // Encoded bytes/claims are detached owners. The joined manifest owns its
+        // reconstructed local artifacts, and StageOne bytes were encoded before
+        // this phase. No later worker needs this completed source/child owner.
+        worker.deinit(self.a);
+        self.workers[index] = null;
+        if (timing) |value| {
+            value.stage2_completed = true;
+            value.completed_worker_retired = true;
         }
     }
 };

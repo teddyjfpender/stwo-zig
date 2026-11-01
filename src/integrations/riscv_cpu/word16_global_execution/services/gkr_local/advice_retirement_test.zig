@@ -35,6 +35,7 @@ test "ordinary memory advice retires after seal with exact five proofs and fresh
     try std.testing.expectEqual(@as(usize, 0), Owned.native(&captured.native[0]).total());
     try std.testing.expectEqual(@as(usize, 0), Owned.native(&captured.native[1]).total());
     try std.testing.expectEqual(before.ordinary_events, timings[0].retired_memory_event_bytes + timings[1].retired_memory_event_bytes);
+    for (timings) |timing| try std.testing.expect(timing.completed_worker_retired);
     for (bundle.cpus, baseline.bundle.cpus) |proof, original| try std.testing.expectEqualSlices(u8, original.bytes, proof.bytes);
     for (bundle.truths, baseline.bundle.truths) |proof, original| try std.testing.expectEqualSlices(u8, original.bytes, proof.bytes);
     try std.testing.expectEqualSlices(u8, baseline.bundle.stage_one_bytes, bundle.stage_one_bytes);
@@ -57,4 +58,46 @@ test "ordinary memory advice retires completed ordinals before later failed stag
     try std.testing.expectEqual(@as(usize, 0), captured.advice.events[0].len);
     try std.testing.expect(captured.advice.keccak[0].len == 1 and captured.advice.secp[1][0].len == 1);
     try std.testing.expectError(error.InvalidCombinedOrdinal, captured.advice.retireEvents(2));
+}
+
+const FailAfterRetirement = struct {
+    child: std.mem.Allocator,
+    retired: *const bool,
+    fn allocator(self: *@This()) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &.{ .alloc = alloc, .resize = resize, .remap = remap, .free = free } };
+    }
+    fn alloc(ctx: *anyopaque, len: usize, alignment: std.mem.Alignment, ra: usize) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        if (self.retired.*) return null;
+        return self.child.rawAlloc(len, alignment, ra);
+    }
+    fn resize(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) bool {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        return !self.retired.* and self.child.rawResize(memory, alignment, len, ra);
+    }
+    fn remap(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, len: usize, ra: usize) ?[*]u8 {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        if (self.retired.*) return null;
+        return self.child.rawRemap(memory, alignment, len, ra);
+    }
+    fn free(ctx: *anyopaque, memory: []u8, alignment: std.mem.Alignment, ra: usize) void {
+        const self: *@This() = @ptrCast(@alignCast(ctx));
+        self.child.rawFree(memory, alignment, ra);
+    }
+};
+
+test "ordinary memory advice retires and completed worker cleanup survives a later stage-two allocation failure" {
+    var timings: [5]C.WorkerTiming = @splat(.{});
+    // Serial stage two makes the first completed owner an exact failure point.
+    // The allocator refuses new owners only after CPU0's joined proof and
+    // deinit; all free operations continue through the original allocator.
+    var failing = FailAfterRetirement{ .child = a, .retired = &timings[0].completed_worker_retired };
+    var captured = try Original.Captured.init(failing.allocator());
+    defer captured.deinit();
+    var keys = try F.Keys.init(failing.allocator());
+    defer keys.deinit();
+    try std.testing.expectError(error.OutOfMemory, C.produce(failing.allocator(), &keys.pointers(), &keys.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, Original.expectedFor(captured.program.identity), try F.config(), .{ .gkr_budget = 2 << 30, .consume_memory_events = true, .worker_timings = &timings }));
+    try std.testing.expect(timings[0].completed_worker_retired and timings[0].stage2_completed);
+    try std.testing.expect(!timings[1].stage2_completed);
+    try std.testing.expectEqual(@as(usize, 0), Owned.advice(&captured.advice).ordinary_events);
 }

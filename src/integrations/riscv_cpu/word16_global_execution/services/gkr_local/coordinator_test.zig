@@ -43,7 +43,7 @@ test "complete two-CPU K ADD DOUBLE OM-GKR services execution proves and fresh r
     var parked = try F.Case.initWithOptions(a, .{ .gkr_budget = 2 << 30, .retained_store = &store, .max_workers = 32, .schedule = .{ .lanes = 2, .workers_per_lane = 2, .memory_cap_bytes = 4 << 30 }, .worker_timings = &timings, .stage2_order = &.{ 2, 0, 3, 1, 4 }, .stage1_trace = &first_trace, .stage2_trace = &second_trace });
     defer parked.deinit();
     for (timings, 0..) |t, i| {
-        try std.testing.expect(t.stage1_completed and t.stage2_completed);
+        try std.testing.expect(t.stage1_completed and t.stage2_completed and t.completed_worker_retired);
         try std.testing.expect(t.stage1_ns >= t.source_ns + t.seal_native_and_gkr_ns + t.metadata_retire_ns + t.spill_ns);
         try std.testing.expect(t.stage2_ns >= t.restore_ns + t.native_complete_ns);
         try std.testing.expect(t.actual_main_merkle_bytes > 0);
