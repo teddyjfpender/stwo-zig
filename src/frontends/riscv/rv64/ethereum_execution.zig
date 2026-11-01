@@ -121,7 +121,7 @@ pub fn main() !void {
     var expected: [contract.OUTPUT_BYTES]u8 = undefined;
     _ = try std.fmt.hexToBytes(&expected, c.expected_output);
     const bytes = try std.fs.cwd().readFileAlloc(a, c.elf, 32 * 1024 * 1024);
-    const input = try std.fs.cwd().readFileAlloc(a, c.input, contract.INPUT_CAPACITY - 4);
+    const input = try std.fs.cwd().readFileAlloc(a, c.input, contract.INPUT_CAPACITY_MAX - 4);
     const elf_hash = try checkedHash(bytes, c.elf_sha256);
     const input_hash = try checkedHash(input, c.input_sha256);
     var report = try run(c, bytes, input, expected);

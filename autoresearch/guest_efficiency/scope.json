@@ -1,0 +1,63 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-scope.v1",
+ "note": "Checked by `bench.py check-scope --base <ref>`. Locked globs win over editable ones. Tiers tell the reviewer what kind of change it is; every tier must still pass all run guards.",
+ "editable": {
+  "A_guest_code": [
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/src/*",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem/src/*",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/vendor/*",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/Cargo.toml",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/projective_service_test/*",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/sponge_test/*"
+  ],
+  "B_dependency_change": [
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/Cargo.lock",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.toml",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/Cargo.lock",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem/Cargo.toml",
+   "autoresearch/benchmarks/guest_runtime/ethereum/rv64/mem/Cargo.lock"
+  ],
+  "C_new_client": [
+   "autoresearch/benchmarks/guest_runtime/ethereum/evmone/*",
+   "autoresearch/benchmarks/guest_runtime/ethereum/client_*/*"
+  ],
+  "D_ledger_and_notes": [
+   "autoresearch/guest_efficiency/ledger/*",
+   "autoresearch/guest_efficiency/proposals/*",
+   "autoresearch/guest_efficiency/notes/*"
+  ]
+ },
+ "locked": [
+  "autoresearch/guest_efficiency/bench.py",
+  "autoresearch/guest_efficiency/test_bench.py",
+  "autoresearch/guest_efficiency/basket.json",
+  "autoresearch/guest_efficiency/calibration.json",
+  "autoresearch/guest_efficiency/targets.json",
+  "autoresearch/guest_efficiency/scope.json",
+  "autoresearch/guest_efficiency/README.md",
+  "autoresearch/guest_efficiency/PROGRAM.md",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/linker.ld",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/linker-wide.ld",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/linker.ld",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/linker-wide.ld",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/riscv64i-stwo.json",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/services/riscv64i-stwo.json",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/service_abi/*",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.py",
+  "autoresearch/benchmarks/guest_runtime/ethereum/rv64/build.rs",
+  "autoresearch/benchmarks/guest_runtime/projection/*",
+  "autoresearch/benchmarks/guest_runtime/host_validation/*",
+  "src/*",
+  "build.zig",
+  "build.zig.zon",
+  "build_support/*",
+  "vectors/*",
+  "conformance/*",
+  ".github/*"
+ ],
+ "review_required": {
+  "B_dependency_change": "Any new or changed crate must be vendored or pinned by hash; no new network fetch at build time without human review.",
+  "C_new_client": "Before any third-party client code (evmone, ziskethone, or others) is copied in, its licence must be recorded in the client's README and checked by legal; see PROGRAM.md Part 3.",
+  "service_abi": "New or changed ECALL services (e.g. SHA-256, bulk copy, full ECDSA recovery) change the prover's AIR and statement. Write a proposal under proposals/; the loop must not edit service_abi/ or src/."
+ }
+}
