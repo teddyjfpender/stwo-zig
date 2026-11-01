@@ -347,4 +347,5 @@ test {
 // Keep binding-kernel tests explicitly reachable under focused test filters.
 test {
     _ = @import("witness.zig");
+    _ = @import("worker_protocol_test.zig");
 }
