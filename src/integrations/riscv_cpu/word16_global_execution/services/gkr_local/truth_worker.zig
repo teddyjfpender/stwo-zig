@@ -7,6 +7,7 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const R = @import("../roster.zig");
 const Manifest = @import("manifest.zig");
 const W = @import("worker_protocol.zig");
+const Fixed = @import("fixed_authority.zig");
 const TF = @import("truth_fractions.zig");
 const Frame = @import("truth_frame.zig");
 const Metadata = @import("truth_metadata.zig");
@@ -49,12 +50,17 @@ pub fn truthStatement(truth: R.Truth, config: W.PcsConfig, execution: [32]u8) [3
     }
     return ch.digestBytes();
 }
-fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker) !void {
+pub fn truthStatementWithAuthority(truth: R.Truth, config: W.PcsConfig, execution: [32]u8, fixed: ?*const Fixed.Binding) [32]u8 {
+    const base = truthStatement(truth, config, execution);
+    return if (fixed) |binding| binding.statement(base) else base;
+}
+fn validateExpected(truth: R.Truth, expected: Manifest.ExpectedWorker, fixed: ?*const Fixed.Binding) !void {
     const kind: Manifest.Kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
     };
-    if (expected.kind != kind or expected.local_instances != null or !std.mem.eql(u8, &expected.fixed, &truth.key().root) or !std.meta.eql(expected.mass, try truthMass(truth))) return error.WideTruthExpectedMismatch;
+    const root = if (fixed) |binding| binding.root() else truth.key().root;
+    if (expected.kind != kind or expected.local_instances != null or !std.mem.eql(u8, &expected.fixed, &root) or !std.meta.eql(expected.mass, try truthMass(truth))) return error.WideTruthExpectedMismatch;
     const relations = Manifest.Relations{ .ram = false, .kio = kind == .keccak, .wire = kind != .keccak };
     if (!std.meta.eql(relations, expected.global_relations)) return error.WideTruthExpectedMismatch;
 }
@@ -87,19 +93,24 @@ pub const TruthWorker = struct {
     sealed: bool = false,
     started: bool = false,
     failed: bool = false,
+    fixed_authority: ?Fixed.Binding = null,
     pub fn init(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, expected: Manifest.ExpectedWorker, config: W.PcsConfig, global_budget: usize) !TruthWorker {
-        try W.validateConfig(config);
-        try validateExpected(truth, expected);
+        return initWithAuthority(a, truth, source, expected, config, global_budget, null);
+    }
+    pub fn initWithAuthority(a: std.mem.Allocator, truth: R.Truth, source: R.TruthSource, expected: Manifest.ExpectedWorker, config: W.PcsConfig, global_budget: usize, fixed: ?*const Fixed.Binding) !TruthWorker {
+        if (fixed) |binding| try binding.require(truth.key(), config) else try W.validateConfig(config);
+        try validateExpected(truth, expected, fixed);
         const frames = try expectedFrames(truth);
         _ = try Metadata.Provider.initClassic(&source, frames);
         try admit(frames, global_budget);
         var scheme = try W.Scheme.init(a, config);
         scheme.setCompactPolynomialStorage(5);
-        return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = W.begin(config, expected) };
+        return .{ .allocator = a, .truth = truth, .source = source, .expected = expected, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null };
     }
     pub fn deinit(self: *TruthWorker, a: std.mem.Allocator) void {
         if (self.owns_scheme) self.scheme.deinit(a);
         if (self.owns_source) self.source.deinit();
+        if (self.fixed_authority) |*binding| binding.deinit();
         self.* = undefined;
     }
     /// Host custody only. Store lifetime must cover this worker and its proof.
@@ -114,7 +125,7 @@ pub const TruthWorker = struct {
     pub fn seal(self: *TruthWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (self.sealed or self.started or self.failed) return error.InvalidWideTruthPhase;
         errdefer self.failed = true;
-        try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
+        if (self.fixed_authority) |*binding| try binding.append(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, self.truth.key(), self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain();
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         var roots = try self.scheme.roots(a);
@@ -219,8 +230,11 @@ fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Wi
     return .{ .columns = columns, .backings = backings };
 }
 pub fn verifyTruth(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded) !Manifest.Claims {
-    try W.validateConfig(config);
-    try validateExpected(truth, expected);
+    return verifyTruthWithAuthority(a, truth, expected, pending, index, config, encoded, null);
+}
+pub fn verifyTruthWithAuthority(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.ExpectedWorker, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const TruthEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
+    if (fixed) |binding| try binding.require(truth.key(), config) else try W.validateConfig(config);
+    try validateExpected(truth, expected, fixed);
     try validatePending(expected, pending, index);
     var proof = try W.decodePhysical(a, encoded.bytes);
     var owns_proof = true;
@@ -228,7 +242,7 @@ pub fn verifyTruth(a: std.mem.Allocator, truth: R.Truth, expected: Manifest.Expe
     const roots = proof.commitment_scheme_proof.commitments.items;
     if (roots.len != 4) return error.WideTruthRoots;
     try pending.checkPhysicalRoots(index, roots[0], roots[1]);
-    var ch = W.begin(config, expected);
+    var ch = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, config);
     defer receiver.deinit(a);
     const shape = try templates(truth);

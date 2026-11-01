@@ -22,9 +22,17 @@ pub const Wire = @import("stwo_proof_wire").ForField(O);
 /// physical worker entrypoint. This is the current experimental beta1 profile,
 /// not admission of the separately unqualified beta2/128 candidate.
 pub fn validateConfig(config: PcsConfig) !void {
+    return validateAtRate(config, 1);
+}
+/// Engineering candidate only; callers also need independently reconstructed
+/// beta2 fixed authority. This is never selected by the control entrypoint.
+pub fn validateBeta2Config(config: PcsConfig) !void {
+    return validateAtRate(config, 2);
+}
+fn validateAtRate(config: PcsConfig, rate: u32) !void {
     const max_pow = core.channel.blake2s.pow_order.MAX_POW_BITS;
     if (config.pow_bits > max_pow or config.fri_config.n_queries == 0 or config.fri_config.n_queries > 1024 or
-        config.fri_config.log_blowup_factor != 1 or config.fri_config.log_last_layer_degree_bound != 0 or
+        config.fri_config.log_blowup_factor != rate or config.fri_config.log_last_layer_degree_bound != 0 or
         (config.fri_config.fold_step != 1 and config.fri_config.fold_step != 4) or config.lifting_log_size != null)
         return error.UnsupportedWideServicesConfig;
 }

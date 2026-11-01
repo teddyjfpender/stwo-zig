@@ -4,6 +4,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const engine = @import("stwo_prover_engine");
 const W = @import("worker_protocol.zig");
+const Fixed = @import("fixed_authority.zig");
 const O = W.O;
 const M = core.fields.m31.M31;
 const R = @import("../roster.zig");
@@ -64,6 +65,10 @@ pub fn cpuStatement(setup: *const R.CpuSetup, request: P.Request, first: [3]u32,
     h.final(&out);
     return out;
 }
+pub fn cpuStatementWithAuthority(setup: *const R.CpuSetup, request: P.Request, first: [3]u32, config: W.PcsConfig, fixed: ?*const Fixed.Binding) [32]u8 {
+    const base = cpuStatement(setup, request, first, config);
+    return if (fixed) |binding| binding.statement(base) else base;
+}
 pub fn cpuMass(request: P.Request) !Manifest.Mass {
     var ram = try std.math.mul(u64, 2, request.base.memory.ls_count);
     for (request.calls, [_]u64{ 50, 48, 24 }) |n, c| ram = try std.math.add(u64, ram, try std.math.mul(u64, n, c));
@@ -71,9 +76,10 @@ pub fn cpuMass(request: P.Request) !Manifest.Mass {
     ram = try std.math.add(u64, ram, request.base.memory.terminal.len);
     return .{ .ram = ram, .kio = try std.math.mul(u64, 50, request.calls[0]), .wire = try std.math.add(u64, try std.math.mul(u64, 9, request.calls[1]), try std.math.mul(u64, 6, request.calls[2])) };
 }
-fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, config: W.PcsConfig) !void {
-    try W.validateConfig(config);
-    if (expected.kind != .cpu or !std.mem.eql(u8, &expected.fixed, &setup.key.root) or !std.mem.eql(u8, &expected.statement, &cpuStatement(setup, request, first, config))) return error.WideCpuStatementMismatch;
+fn validate(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, config: W.PcsConfig, fixed: ?*const Fixed.Binding) !void {
+    if (fixed) |binding| try binding.require(&setup.key, config) else try W.validateConfig(config);
+    const root = if (fixed) |binding| binding.root() else setup.key.root;
+    if (expected.kind != .cpu or !std.mem.eql(u8, &expected.fixed, &root) or !std.mem.eql(u8, &expected.statement, &cpuStatementWithAuthority(setup, request, first, config, fixed))) return error.WideCpuStatementMismatch;
     const roster = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(roster);
     const admitted = expected.local_instances orelse return error.WideCpuLocalRequired;
@@ -135,8 +141,12 @@ pub const CpuWorker = struct {
     native_recorder: ?*@import("stwo_prover_api").stage_profile.Recorder = null,
     local_metadata_retired: bool = false,
     seal_timing: ?*SealTiming = null,
+    fixed_authority: ?Fixed.Binding = null,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize) !CpuWorker {
-        try validate(a, setup, request, expected, first, config);
+        return initWithAuthority(a, setup, request, source, expected, config, first, gkr_budget, null);
+    }
+    pub fn initWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize, fixed: ?*const Fixed.Binding) !CpuWorker {
+        try validate(a, setup, request, expected, first, config, fixed);
         const instances = try @import("roster.zig").fromSetup(a, setup);
         errdefer a.free(instances);
         var plan = try Components.Plan.init(a, setup);
@@ -146,7 +156,7 @@ pub const CpuWorker = struct {
         scheme.setCompactPolynomialStorage(1);
         var own_expected = expected;
         own_expected.local_instances = instances;
-        return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = first, .config = config, .plan = plan, .scheme = scheme, .channel = W.begin(config, expected), .gkr_budget = gkr_budget };
+        return .{ .allocator = a, .setup = setup, .request = request, .source = source, .expected = own_expected, .instances = instances, .first = first, .config = config, .plan = plan, .scheme = scheme, .channel = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected), .fixed_authority = if (fixed) |binding| binding.retain() else null, .gkr_budget = gkr_budget };
     }
     /// Local fractions and their authenticated binding are durable now. Retain
     /// only RAM/bridge metadata needed for the later global challenge. Retired
@@ -194,7 +204,7 @@ pub const CpuWorker = struct {
         if (self.seal_timing) |output| output.* = .{};
         // Failure consumes the worker: owned commitment consumes storage on errors too.
         self.consumed = true;
-        try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
+        if (self.fixed_authority) |*binding| try binding.append(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel) else try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain(self.setup);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, self.native_recorder, &self.channel);
         const root = self.scheme.trees.items[1].root();
@@ -299,11 +309,15 @@ pub const CpuWorker = struct {
         if (self.owns_scheme) self.scheme.deinit(a);
         self.plan.deinit();
         a.free(self.instances);
+        if (self.fixed_authority) |*binding| binding.deinit();
         self.* = undefined;
     }
 };
 pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded) !Manifest.Claims {
-    try validate(a, setup, request, expected, first, config);
+    return verifyCpuWithAuthority(a, setup, request, expected, first, pending, index, config, encoded, null);
+}
+pub fn verifyCpuWithAuthority(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, expected: Manifest.ExpectedWorker, first: [3]u32, pending: *const Manifest.PendingManifest, index: usize, config: W.PcsConfig, encoded: *const CpuEncoded, fixed: ?*const Fixed.Binding) !Manifest.Claims {
+    try validate(a, setup, request, expected, first, config, fixed);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
     try checkManifest(expected, pending, index);
@@ -319,7 +333,7 @@ pub fn verifyCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Requ
     defer set.deinit();
     const handles = try set.verifiers(a);
     defer a.free(handles);
-    var ch = W.begin(config, expected);
+    var ch = if (fixed) |binding| binding.begin(config, expected) else W.begin(config, expected);
     var receiver = try core.pcs.ForField(O).verifier.CommitmentSchemeVerifier(W.H, W.MC).init(a, config);
     defer receiver.deinit(a);
     const f = try setup.logs(a, 0);
