@@ -1,6 +1,7 @@
 //! Bounded two-stage producer for the explicitly selected OM services profile.
-//! This initial retained-owner coordinator rejects block-size inventories until
-//! parking is wired. Schedule policy is operational; the manifest barrier is not.
+//! Large inventories require explicit parking and retained/disk/task admission.
+//! Those partial bounds exclude setup/capture/PCS scratch; they are not total RSS.
+//! Schedule policy is operational; the manifest barrier is not.
 const std = @import("std");
 const core = @import("stwo_core");
 const A = @import("stwo_riscv_frontend").rv64_air;
