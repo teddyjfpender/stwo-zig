@@ -27,7 +27,7 @@ const CORRECTION_ROWS: usize = 256;
 const BYTES: usize = 32;
 
 /// Where a metadata-row column value comes from (see Trace.metadataRow).
-const Source = union(enum) { zero, active, id, byte: u16 };
+pub const Source = union(enum) { zero, active, id, byte: u16 };
 
 pub const Prepared = struct {
     trace: *const T.Trace,
@@ -46,7 +46,7 @@ pub const Prepared = struct {
     /// Lookup-byte index read by each BYTE term (identity in every layout).
     byte_sources: []const Source,
 
-    fn sourceValue(source: Source, active_row: bool, id: M, bytes: []const u8) M {
+    pub fn sourceValue(source: Source, active_row: bool, id: M, bytes: []const u8) M {
         if (!active_row) return M.zero();
         return switch (source) {
             .zero => M.zero(),
@@ -134,7 +134,7 @@ fn store(data: []M, n: usize, row: usize, secure_column: usize, value: Q) void {
 }
 
 /// Metadata-row column sources in Trace.metadataRow overwrite order.
-fn columnSources(a: std.mem.Allocator, kind: L.Kind) ![]Source {
+pub fn columnSources(a: std.mem.Allocator, kind: L.Kind) ![]Source {
     const sources = try a.alloc(Source, L.main(kind));
     @memset(sources, .zero);
     for (0..L.metadataByteCount(kind)) |i| sources[L.metadataByteColumn(kind, i)] = .{ .byte = @intCast(i) };

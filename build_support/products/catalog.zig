@@ -125,6 +125,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-cpu-degree-diagnostic", .description = "Audit full D3 cyclic service CPU polynomial degree", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-verifier-cache", .description = "Check bounded immutable verifier keys and fresh request admission", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-point-evaluation", .description = "Check lane-generic RV64 batch composition evaluation against native OODS values", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-truth-gkr", .description = "Qualify bounded service truth GKR metadata and wide global authorities", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-simd-fields", .description = "Check sixteen-row base/secure SIMD arithmetic and mixed residual weighting", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-borrowed-services", .description = "Qualify borrowed CPU arithmetic crypto main ownership and complete proof identity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-lean-proof", .description = "Prove lean RV64 CPU with shared arithmetic service", .scope = .riscv_cpu },

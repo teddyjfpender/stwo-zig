@@ -3,6 +3,7 @@ pub const program = @import("program.zig");
 pub const layout = @import("layout.zig");
 pub const byte_encoding = @import("byte_encoding.zig");
 pub const equations = @import("equations.zig");
+pub const interaction = @import("interaction.zig");
 pub const trace = @import("trace.zig");
 pub const component = @import("component.zig");
 pub const batch = @import("batch.zig");
