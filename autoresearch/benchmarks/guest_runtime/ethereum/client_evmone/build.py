@@ -8,7 +8,11 @@ compiled with `zig c++` (Zig 0.15.2: bundled libc++ headers, compiler-rt, RISC-V
 backend). Only the Python standard library is used.
 
   python3 -I build.py --out DIR [--cache DIR] [--profile admitted|candidate]
-                      [--host] [--jobs 4] [--clean]
+                      [--isa im|zba|zbb|zba_zbb] [--host] [--jobs 4] [--clean]
+
+`--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
+profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
+`-<isa>` to the ELF name.
 
 Outputs DIR/client-evmone-<profile>.elf (or DIR/client-evmone-host for --host)
 and DIR/build-manifest.json.
@@ -75,6 +79,8 @@ ZISKETHONE_EVMONE_PATCHES = [
 ZIG_LIBCXX = None  # resolved from `zig env`
 
 GUEST_TARGET = ["-target", "riscv64-linux-musl", "-mcpu=generic_rv64+m"]
+# Candidate bit-manipulation extensions (CONTEXT.md "Candidate instructions").
+ISA_FEATURES = {"im": "", "zba": "+zba", "zbb": "+zbb", "zba_zbb": "+zba+zbb"}
 COMMON_CXX = ["-std=c++20", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections",
               "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wno-deprecated-declarations"]
 GUEST_EXTRA = ["-fno-pic", "-fomit-frame-pointer", "-mcmodel=medlow"]
@@ -239,6 +245,8 @@ def main(argv=None):
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul)")
     ap.add_argument("--opt", default="-O2")
+    ap.add_argument("--isa", choices=tuple(ISA_FEATURES), default="im",
+                    help="guest ISA: RV64IM (admitted) or a candidate Zba/Zbb build")
     ap.add_argument("--secp", choices=("stwo", "evmone"), default="stwo",
                     help="stwo: recover on the admitted secp services; evmone: software reference")
     ap.add_argument("--jobs", type=int, default=4)
@@ -269,7 +277,14 @@ def main(argv=None):
     src = work / "src"
 
     variant = "host" if a.host else a.profile if a.profile == "admitted" else "candidate-" + a.candidate_set.replace(",", "-")
+    isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
+    variant += isa_suffix
+    mcpu = "-mcpu=generic_rv64+m" + ISA_FEATURES[a.isa]
+    guest_target = [mcpu if f.startswith("-mcpu=") else f for f in GUEST_TARGET]
     defines = list(DEFINES)
+    if "zbb" in a.isa and not a.host:
+        # ziskethone's default for Zbb targets (zeg/bswap.hpp): plain __builtin_bswap64 -> rev8.
+        defines.append("-DZEG_BSWAP_BUILTIN")
     if a.profile == "candidate":
         defines.append("-DCANDIDATE_SERVICES")
         for svc in a.candidate_set.split(","):
@@ -281,8 +296,8 @@ def main(argv=None):
         cxx = [a.opt, "-g", *COMMON_CXX, *defines, *includes(src)]
         cc = [a.opt, "-g", *defines]
     else:
-        cxx = [*GUEST_TARGET, a.opt, *COMMON_CXX, *GUEST_EXTRA, *defines, *includes(src)]
-        cc = [*GUEST_TARGET, *defines]
+        cxx = [*guest_target, a.opt, *COMMON_CXX, *GUEST_EXTRA, *defines, *includes(src)]
+        cc = [*guest_target, *defines]
     jobs = []
     objdir = work / f"obj-{variant}"
     for f, kind in sources(src, a.host, a.profile, a.secp):
@@ -313,8 +328,8 @@ def main(argv=None):
     else:
         tag = a.profile if a.profile == "admitted" or a.candidate_set == "mem,sha,arith" else \
             "candidate-" + a.candidate_set.replace(",", "-")
-        exe = out / f"client-evmone-{tag}.elf"
-        run(["zig", "c++", "-target", "riscv64-freestanding-none", "-mcpu=generic_rv64+m", "-nostdlib",
+        exe = out / f"client-evmone-{tag}{isa_suffix}.elf"
+        run(["zig", "c++", "-target", "riscv64-freestanding-none", mcpu, "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
     if a.tests:
         run_tests(src, out, work, a)
@@ -327,6 +342,7 @@ def main(argv=None):
         "zig_version": zig_version,
         "optimization": a.opt,
         "secp": a.secp,
+        "isa": a.isa,
         "defines": defines,
         "pinned_sources": pinned,
         "staging": staged,
