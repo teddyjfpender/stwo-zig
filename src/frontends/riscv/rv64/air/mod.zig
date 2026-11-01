@@ -66,6 +66,8 @@ pub const crypto = struct {
 pub const memory = struct {
     pub const load_store_v1 = @import("memory/load_store_v1/mod.zig");
     pub const load_store_v2 = @import("memory/load_store_v2/mod.zig");
+    /// LS-D64: aligned LD/SD-only fast row sharing RAM14/OWNER19/U16/U8.
+    pub const load_store_dword = @import("memory/load_store_dword/mod.zig");
     pub const closed_ram = @import("memory/closed_ram/mod.zig");
     pub const terminal_air = @import("memory/terminal_air.zig");
     pub const terminal_component = @import("memory/terminal_component.zig");
