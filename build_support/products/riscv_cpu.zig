@@ -173,6 +173,7 @@ pub fn addProduct(context: Context) void {
     const tools = [_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
         .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
+        .{ .name = "rv64-logup-kernel-bench", .source = "src/integrations/riscv_cpu/rv64_logup_kernel_bench_main.zig" },
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
         .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
         .{ .name = "rv64-word16-setup-ownership", .source = "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig" },
