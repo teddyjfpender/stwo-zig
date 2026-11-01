@@ -186,7 +186,16 @@ impl<M> Children<M> {
 impl<M: Memoization> Children<M> {
     #[inline]
     pub(super) fn memoize(&mut self) {
-        self.0.iter_mut().flatten().for_each(|child| child.memoize())
+        // stwo: skip the call (and its large frame) for children that need
+        // no work: digests and already memoized nodes, nearly all of them.
+        for child in self.0.iter_mut().flatten() {
+            match &**child {
+                Node::Null | Node::Digest(_) => {}
+                Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache)
+                    if cache.get().is_some() => {}
+                _ => child.memoize(),
+            }
+        }
     }
 }
 

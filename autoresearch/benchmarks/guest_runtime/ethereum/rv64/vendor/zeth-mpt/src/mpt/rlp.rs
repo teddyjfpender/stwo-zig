@@ -22,7 +22,6 @@ use alloc::{vec, vec::Vec};
 use alloy_primitives::{hex, keccak256, map::B256IndexMap, Bytes, B256};
 use alloy_rlp::{BufMut, Decodable, Encodable, Header, EMPTY_STRING_CODE};
 use alloy_trie::{nodes::encode_path_leaf, Nibbles, EMPTY_ROOT_HASH};
-use arrayvec::ArrayVec;
 use core::fmt;
 
 /// The length in bytes of an RLP-encoded digest, i.e. hash length + 1 byte for the RLP header.
@@ -98,6 +97,12 @@ impl<M: Memoization> Node<M> {
             Node::Extension(_, child, _) => child.memoize(),
             Node::Branch(children, _) => children.memoize(),
             _ => {} // no children to memoize for Leaf, Null, or Digest
+        }
+        if let Node::Branch(children, cache) = self {
+            if let Some(rlp_node) = Self::branch_rlp_node(children) {
+                cache.set(rlp_node);
+                return;
+            }
         }
         let rlp = self.rlp_encoded();
         match self {
@@ -359,54 +364,197 @@ impl<M: Memoization> Node<M> {
     }
 }
 
-/// An RLP-encoded node.
+/// An RLP-encoded node reference: the 33-byte `0xa0 || keccak` form of a
+/// node of 32 or more bytes, or the node's own encoding when shorter.
+///
+/// stwo: stored as an 8-aligned 32-byte array plus a length (33 marks a
+/// digest) instead of an `ArrayVec<u8, 33>`, so a branch re-encoding can
+/// move the digest as four aligned words (see `branch_rlp_node`).
 #[derive(Clone)]
-pub(super) struct RlpNode(ArrayVec<u8, DIGEST_RLP_LENGTH>);
+#[repr(C, align(8))]
+pub(super) struct RlpNode {
+    bytes: [u8; 32],
+    len: u8,
+}
 
 impl RlpNode {
     #[inline]
     fn from_rlp(rlp: impl AsRef<[u8]>) -> Self {
         let rlp = rlp.as_ref();
         if rlp.len() >= B256::len_bytes() {
-            Self(alloy_rlp::encode_fixed_size(&keccak256(rlp)))
+            Self::from_digest(&keccak256(rlp))
         } else {
-            let mut arr = ArrayVec::new();
-            // SAFETY: rlp.len() < 32 < DIGEST_RLP_LENGTH
-            unsafe { arr.try_extend_from_slice(rlp).unwrap_unchecked() };
-            Self(arr)
+            let mut bytes = [0u8; 32];
+            bytes[..rlp.len()].copy_from_slice(rlp);
+            Self { bytes, len: rlp.len() as u8 }
         }
     }
 
     #[inline]
     fn from_digest(digest: &B256) -> Self {
-        Self(alloy_rlp::encode_fixed_size(digest))
+        Self { bytes: digest.0, len: DIGEST_RLP_LENGTH as u8 }
+    }
+
+    #[inline]
+    fn is_digest(&self) -> bool {
+        self.len as usize == DIGEST_RLP_LENGTH
     }
 
     #[inline]
     fn hash(&self) -> B256 {
-        if self.0.len() == DIGEST_RLP_LENGTH {
-            B256::from_slice(&self.0[1..])
+        if self.is_digest() {
+            B256::from(self.bytes)
         } else {
-            keccak256(&self.0)
+            keccak256(&self.bytes[..self.len as usize])
         }
     }
 }
 
 impl fmt::Debug for RlpNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{}", hex::encode(&self.0))
+        if self.is_digest() {
+            write!(f, "0xa0{}", hex::encode(self.bytes))
+        } else {
+            write!(f, "0x{}", hex::encode(&self.bytes[..self.len as usize]))
+        }
     }
 }
 
 impl Encodable for RlpNode {
     #[inline]
     fn encode(&self, out: &mut dyn BufMut) {
-        out.put_slice(&self.0)
+        if self.is_digest() {
+            out.put_u8(0xa0);
+            out.put_slice(&self.bytes)
+        } else {
+            out.put_slice(&self.bytes[..self.len as usize])
+        }
     }
 
     #[inline]
     fn length(&self) -> usize {
-        self.0.len()
+        self.len as usize
+    }
+}
+
+/// stwo: little-endian word buffer for one branch encoding (at most
+/// 3 + 16 * 33 + 1 = 532 bytes); bytes are OR-ed into zeroed words.
+struct WordBuf {
+    w: [u64; 68],
+}
+
+impl WordBuf {
+    #[inline(always)]
+    fn put_byte(&mut self, n: usize, b: u8) {
+        debug_assert!(n < 8 * 68);
+        // SAFETY: n < 532 for a branch encoding
+        unsafe { *self.w.get_unchecked_mut(n >> 3) |= (b as u64) << ((n & 7) * 8) };
+    }
+
+    /// Writes `0xa0 || d` (33 bytes) at byte position `n`; `d` is 8-aligned.
+    #[inline(always)]
+    fn put_digest(&mut self, n: usize, d: &[u8; 32]) {
+        debug_assert!(n + 33 <= 8 * 67);
+        let p = d.as_ptr().cast::<u64>();
+        // SAFETY: `d` is 8-aligned (checked by the caller); n + 33 < 8 * 68
+        unsafe {
+            let x = |i: usize| u64::from_le(p.add(i).read());
+            let (d0, d1, d2, d3) = (x(0), x(1), x(2), x(3));
+            // the 33 bytes as four words plus one byte, shifted by the 0xa0
+            let v = [
+                0xa0 | (d0 << 8),
+                (d0 >> 56) | (d1 << 8),
+                (d1 >> 56) | (d2 << 8),
+                (d2 >> 56) | (d3 << 8),
+            ];
+            let k = n >> 3;
+            let sh = ((n & 7) * 8) as u32;
+            let w = self.w.as_mut_ptr().add(k);
+            *w |= v[0] << sh;
+            let carry = |x: u64| (x >> 1) >> (63 - sh);
+            *w.add(1) = carry(v[0]) | (v[1] << sh);
+            *w.add(2) = carry(v[1]) | (v[2] << sh);
+            *w.add(3) = carry(v[2]) | (v[3] << sh);
+            // byte 32 lands in word k + 4 at the same offset as byte 0 in k
+            *w.add(4) = carry(v[3]) | ((d3 >> 56) << sh);
+        }
+    }
+
+    #[inline(always)]
+    fn as_bytes(&self, n: usize) -> &[u8] {
+        // SAFETY: the words are plain bytes; n <= 8 * 68
+        unsafe { core::slice::from_raw_parts(self.w.as_ptr().cast::<u8>(), n) }
+    }
+}
+
+impl<M: Memoization> Node<M> {
+    /// stwo: the reference of a branch whose children are all absent,
+    /// digests or memoized, built in an aligned word buffer and hashed from
+    /// it: no `Vec`, no `dyn BufMut`, no per-child `memcpy` call. `None` if a
+    /// child has no cached reference (the generic path handles it).
+    fn branch_rlp_node(children: &Children<M>) -> Option<RlpNode> {
+        let mut payload = 1usize;
+        for child in children.iter() {
+            payload += match child.as_deref() {
+                None => 1,
+                Some(Node::Digest(_)) => DIGEST_RLP_LENGTH,
+                Some(Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache)) => {
+                    cache.get()?.length()
+                }
+                Some(Node::Null) => return None,
+            };
+        }
+        let mut buf = WordBuf { w: [0; 68] };
+        let mut n = 0;
+        if payload < 56 {
+            buf.put_byte(0, 0xc0 + payload as u8);
+            n = 1;
+        } else if payload < 256 {
+            buf.put_byte(0, 0xf8);
+            buf.put_byte(1, payload as u8);
+            n = 2;
+        } else {
+            buf.put_byte(0, 0xf9);
+            buf.put_byte(1, (payload >> 8) as u8);
+            buf.put_byte(2, payload as u8);
+            n = 3;
+        }
+        let mut put_bytes = |buf: &mut WordBuf, n: &mut usize, bytes: &[u8]| {
+            for &b in bytes {
+                buf.put_byte(*n, b);
+                *n += 1;
+            }
+        };
+        for child in children.iter() {
+            let digest = match child.as_deref() {
+                None => {
+                    buf.put_byte(n, EMPTY_STRING_CODE);
+                    n += 1;
+                    continue;
+                }
+                Some(Node::Digest(d)) => &d.0,
+                Some(Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache)) => {
+                    let r = cache.get()?;
+                    if !r.is_digest() {
+                        put_bytes(&mut buf, &mut n, &r.bytes[..r.len as usize]);
+                        continue;
+                    }
+                    &r.bytes
+                }
+                Some(Node::Null) => return None,
+            };
+            if (digest.as_ptr() as usize) & 7 == 0 {
+                buf.put_digest(n, digest);
+                n += DIGEST_RLP_LENGTH;
+            } else {
+                buf.put_byte(n, 0xa0);
+                n += 1;
+                put_bytes(&mut buf, &mut n, digest);
+            }
+        }
+        buf.put_byte(n, EMPTY_STRING_CODE);
+        n += 1;
+        Some(RlpNode::from_rlp(buf.as_bytes(n)))
     }
 }
 
