@@ -81,8 +81,7 @@ __attribute__((noinline)) void v3_set_run(uint8_t* dp, int c, size_t n) noexcept
 __attribute__((always_inline)) inline bool v3_copy(void* dst, const void* src, size_t n) noexcept {
     const uintptr_t d = reinterpret_cast<uintptr_t>(dst), s = reinterpret_cast<uintptr_t>(src);
 #if defined(ADMITTED_UMEM)
-    // UNVERIFIED (bulk-unaligned track): unaligned-source memcpy is not yet
-    // proved by the bulk-memory AIR; opt in with --v3-set ...,umem.
+    // Unaligned-source memcpy: bulk-memory `ucopy` rows (rv64-bulk-memory-service.md B8).
     const size_t min = ((d ^ s) & 7) == 0 ? STWO_ADMITTED_COPY_MIN : STWO_ADMITTED_UCOPY_MIN;
 #else
     if (((d ^ s) & 7) != 0) return false;
@@ -299,8 +298,7 @@ void* memset(void* dst, int c, size_t n) {
 }
 int memcmp(const void* a, const void* b, size_t n) {
 #if defined(ADMITTED_UMEM)
-    // UNVERIFIED (bulk-unaligned track): the Word16 services collector does
-    // not yet accept memcmp (0x0003_0003); opt in with --v3-set ...,umem.
+    // memcmp 0x0003_0003: bulk-memory `cdesc`/`cmp` rows (rv64-bulk-memory-service.md B10).
     int r;
     if (v3_compare(a, b, n, &r)) return r;
 #endif

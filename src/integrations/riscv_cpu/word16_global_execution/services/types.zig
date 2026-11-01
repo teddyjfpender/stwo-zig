@@ -1,4 +1,5 @@
 //! One explicit LE-word service inventory; no ISA/profile enumeration changes.
+const std = @import("std");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const Q = A.evaluation.Q;
 /// Families 0..2 are the v2 roster; `sha256` (v3) is appended so every v2
@@ -80,7 +81,7 @@ pub const Logs = struct {
             try jws.objectField(name);
             try jws.write(log);
         };
-        if (self.bulk.anyKind()) {
+        if (self.bulk.any()) {
             try jws.objectField("bulk");
             try jws.write(self.bulk);
         }
@@ -142,69 +143,71 @@ pub fn widths(family: Family) [3]usize {
     return if (family == .keccak) A.crypto.keccak.word16_bridge.layout.widths(.bridge) else A.crypto.secp256k1.word16_bridge.layout.widths(.bridge);
 }
 
-/// Bulk-memory bridge logs: descriptor (one row per call), copy and set bodies
-/// (one row per word), then the JUMPDEST block (jdesc per call, jscan per 64
-/// code bytes, the jtab transition table). Each present kind is one component
-/// of the CPU proof, in this order. The memory block (`MEM_KINDS`) keeps its
-/// transcript, claims and JSON; the JUMPDEST block is mixed, serialized and
-/// committed only when present, so every earlier bundle is unchanged.
+/// Bulk-memory bridge logs: memcpy/memset descriptors (one row per call),
+/// aligned copy and set bodies (one row per word), unaligned copy bodies (one
+/// row per source word), memcmp descriptors and memcmp bodies (one row per
+/// examined word pair), then the JUMPDEST analysis kinds (jdesc per call,
+/// jscan per 64 code bytes, the jtab transition table). Each present kind is
+/// one component of the CPU proof, in this order. Three blocks: the original
+/// aligned block [0, BULK_BASE), the extension [BULK_BASE, BULK_EXT) and the
+/// JUMPDEST block [BULK_EXT, len); the latter two are mixed, committed and
+/// serialized only when present, so earlier bundles stay byte-identical.
 pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
-pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set, .jdesc, .jscan, .jtab };
-pub const BULK_KINDS = bulk_kinds.len;
-pub const MEM_KINDS = 3;
-pub const jump_kinds = bulk_kinds[MEM_KINDS..];
+pub const bulk_kinds = A.crypto.bulk_memory.layout.kinds ++ A.crypto.bulk_memory.layout.jumpdest_kinds;
+pub const BULK_BASE = 3;
+pub const BULK_EXT = A.crypto.bulk_memory.layout.kinds.len;
 pub const Bulk = struct {
     desc: ?u32 = null,
     copy: ?u32 = null,
     set: ?u32 = null,
+    ucopy: ?u32 = null,
+    cdesc: ?u32 = null,
+    cmp: ?u32 = null,
     jdesc: ?u32 = null,
     jscan: ?u32 = null,
     jtab: ?u32 = null,
     pub fn at(self: @This(), kind: BulkKind) ?u32 {
         return switch (kind) {
-            .desc => self.desc,
-            .copy => self.copy,
-            .set => self.set,
-            .jdesc => self.jdesc,
-            .jscan => self.jscan,
-            .jtab => self.jtab,
-            // UNVERIFIED bulk-unaligned AIR kinds; the services lane does not
-            // carry them yet (TODO bulk-unaligned track).
-            .ucopy, .cdesc, .cmp => null,
+            inline else => |k| @field(self, @tagName(k)),
         };
     }
-    /// The memory block (desc, copy, set) is present.
     pub fn any(self: @This()) bool {
-        return self.desc != null or self.copy != null or self.set != null;
+        inline for (bulk_kinds) |k| if (self.at(k) != null) return true;
+        return false;
     }
-    /// The JUMPDEST block is present.
+    /// Any extension kind (unaligned copy, memcmp) present.
+    pub fn anyExtension(self: @This()) bool {
+        inline for (bulk_kinds[BULK_BASE..BULK_EXT]) |k| if (self.at(k) != null) return true;
+        return false;
+    }
+    /// Any JUMPDEST kind present.
     pub fn jump(self: @This()) bool {
-        return self.jdesc != null or self.jscan != null or self.jtab != null;
+        inline for (bulk_kinds[BULK_EXT..]) |k| if (self.at(k) != null) return true;
+        return false;
     }
-    pub fn anyKind(self: @This()) bool {
-        return self.any() or self.jump();
-    }
-    /// Memory-block bytes are unchanged: JUMPDEST logs only when present.
+    /// Aligned-only rosters serialize exactly as before the extensions.
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
-        inline for (.{ "desc", "copy", "set" }) |name| {
-            try jws.objectField(name);
-            try jws.write(@field(self, name));
-        }
-        inline for (.{ "jdesc", "jscan", "jtab" }) |name| if (@field(self, name)) |log| {
-            try jws.objectField(name);
-            try jws.write(log);
+        inline for (bulk_kinds, 0..) |k, i| if (i < BULK_BASE or self.at(k) != null) {
+            try jws.objectField(@tagName(k));
+            try jws.write(self.at(k));
         };
         try jws.endObject();
     }
 };
-/// Public bulk rows of one CPU proof: calls (descriptor rows) and words;
-/// JUMPDEST calls (jdesc rows) and scan rows (jscan; jtab has the fixed
-/// TABLE_ENTRIES rows whenever a call exists).
+/// Public bulk rows of one CPU proof: memcpy/memset calls (descriptor rows),
+/// aligned body words, unaligned body rows, memcmp calls and memcmp rows,
+/// JUMPDEST calls (jdesc rows) and scan rows (jtab has TABLE_ENTRIES rows
+/// whenever a call exists).
 pub const BulkCounts = struct {
     calls: u32 = 0,
     copy_words: u32 = 0,
     set_words: u32 = 0,
+    /// Unaligned memcpy body rows: destination words plus one lead row per call.
+    ucopy_rows: u32 = 0,
+    cmp_calls: u32 = 0,
+    /// memcmp body rows: word pairs examined up to the first difference.
+    cmp_words: u32 = 0,
     jump_calls: u32 = 0,
     jump_rows: u32 = 0,
     pub fn rows(self: @This(), kind: BulkKind) u32 {
@@ -212,30 +215,43 @@ pub const BulkCounts = struct {
             .desc => self.calls,
             .copy => self.copy_words,
             .set => self.set_words,
+            .ucopy => self.ucopy_rows,
+            .cdesc => self.cmp_calls,
+            .cmp => self.cmp_words,
             .jdesc => self.jump_calls,
             .jscan => self.jump_rows,
             .jtab => if (self.jump_calls != 0) @intCast(A.crypto.bulk_memory.types.TABLE_ENTRIES) else 0,
-            .ucopy, .cdesc, .cmp => 0,
         };
     }
     pub fn any(self: @This()) bool {
-        return self.calls != 0 or self.copy_words != 0 or self.set_words != 0;
+        inline for (bulk_kinds) |k| if (self.rows(k) != 0) return true;
+        return false;
+    }
+    pub fn anyExtension(self: @This()) bool {
+        inline for (bulk_kinds[BULK_BASE..BULK_EXT]) |k| if (self.rows(k) != 0) return true;
+        return false;
     }
     pub fn jump(self: @This()) bool {
         return self.jump_calls != 0 or self.jump_rows != 0;
     }
-    pub fn anyKind(self: @This()) bool {
-        return self.any() or self.jump();
+    /// RAM14 fractions (each access a consume/produce pair, at most): desc 6,
+    /// copy 4, set 2, ucopy 4, cdesc 8 (three packet reads, result write),
+    /// cmp 4 per row; jdesc 6, jscan 18 (8 code reads, bitmap write).
+    pub fn ram(self: @This()) u64 {
+        var n: u64 = 0;
+        inline for (bulk_kinds) |k| n += @as(u64, A.crypto.bulk_memory.layout.ramCount(k)) * self.rows(k);
+        return n;
     }
+    /// memcpy/memset, memcmp and JUMPDEST ECALLs (each one CPU step).
+    pub fn ecalls(self: @This()) u64 {
+        return @as(u64, self.calls) + self.cmp_calls + self.jump_calls;
+    }
+    /// Extension and JUMPDEST counts are omitted when zero (aligned-only bytes unchanged).
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
-        inline for (.{ "calls", "copy_words", "set_words" }) |name| {
-            try jws.objectField(name);
-            try jws.write(@field(self, name));
-        }
-        if (self.jump()) inline for (.{ "jump_calls", "jump_rows" }) |name| {
-            try jws.objectField(name);
-            try jws.write(@field(self, name));
+        inline for (std.meta.fields(@This()), 0..) |f, i| if (i < BULK_BASE or @field(self, f.name) != 0) {
+            try jws.objectField(f.name);
+            try jws.write(@field(self, f.name));
         };
         try jws.endObject();
     }

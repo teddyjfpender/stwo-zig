@@ -449,6 +449,8 @@ fn ucopyConstraints(comptime F: type, m: []const F, pm: []const F, out: *E.SinkF
     out.emit(pm[U.active].mul(pm[U.remaining].sub(one)).mul(one.sub(c)));
     for ([_]usize{ U.epoch, U.tick_low, U.tick_high }) |col| out.emit(c.mul(m[col].sub(pm[col])));
     out.emit(c.mul(pm[U.remaining].sub(one).sub(m[U.remaining])));
+    // A lead row is never the whole run: every unaligned call writes >= 1 word.
+    out.emit(pm[U.start].mul(one.sub(c)));
     // Destination: +8 except right after the lead row (step 8 (1 - start')).
     for (m[U.dst_carry..][0..3]) |v| {
         E.booleanFor(F, out, v);
@@ -618,6 +620,9 @@ pub fn emitFor(comptime F: type, comptime kind: L.Kind, f: []const F, m: []const
         .cdesc => {
             const D = L.cdesc;
             for (m[D.carry8..][0..9]) |v| E.booleanFor(F, out, v);
+            // len != 0: a zero-word run could never reach remaining = 1 and
+            // would let the body read past the operands and claim a difference.
+            out.emit(a.mul(m[D.len_q0].add(m[D.len_l1].mul(E.qFor(F, 8192))).mul(m[D.len_inv]).sub(one)));
             for (0..4) |k| clockConstraints(F, m[D.clocks + L.CLOCK * k ..][0..L.CLOCK], after, a, out);
             for (m[D.writable..][0..3]) |v| E.booleanFor(F, out, v);
             E.booleanFor(F, out, m[D.neg]);

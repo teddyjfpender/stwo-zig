@@ -25,7 +25,7 @@ pub const Bridges = struct {
     sha256: ?B.component.Component = null,
     arith256_mod: ?B.component.Component = null,
     curves: [T.CURVES]?B.component.Component = @splat(null),
-    bulk: [T.BULK_KINDS]?BM.component.Component = @splat(null),
+    bulk: [T.bulk_kinds.len]?BM.component.Component = @splat(null),
     sponge: [2]?KS.component.Component = @splat(null),
     /// Keccak-sponge components share the CPU proof's RAM14, OWNER19, AND and
     /// range challenges and the bundle's Keccak IO11 challenge.
@@ -38,7 +38,7 @@ pub const Bridges = struct {
         return out;
     }
     /// Bulk-memory components share the CPU proof's RAM14, OWNER19 and U16 challenges.
-    pub fn withBulk(self: Bridges, setup: *const R.CpuSetup, counts: T.BulkCounts, ch: G.Old.Draw, claims: [T.BULK_KINDS]T.BulkClaims) Bridges {
+    pub fn withBulk(self: Bridges, setup: *const R.CpuSetup, counts: T.BulkCounts, ch: G.Old.Draw, claims: [T.bulk_kinds.len]T.BulkClaims) Bridges {
         var out = self;
         for (T.bulk_kinds, 0..) |kind, k| {
             const log = setup.bridges.bulk.at(kind) orelse continue;

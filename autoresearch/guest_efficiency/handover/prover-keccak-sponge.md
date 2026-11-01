@@ -1,60 +1,51 @@
-# Handover: admitted Keccak-256 sponge (prover), 2026-11-01
+# Handover: admitted Keccak-256 sponge (prover), 2026-11-02
 
-Branch `codex/rv64-guest-prover-keccak-sponge` (worktree
-`/private/tmp/stwo-rv64-guest-prover-keccak-sponge`), based on the finished
-v3 integration (`origin/codex/rv64-guest-prover-v3-integration` b25175ff6,
-merged in 6e6c95992). Paused on user instruction.
+Branch `codex/rv64-ge-sponge` (worktree `~/Coding/ge-wt/sponge`), from
+`origin/codex/rv64-guest-efficiency` 4e4b38a62. Previous handover (branch
+`codex/rv64-guest-prover-keccak-sponge`) is superseded by this one.
 
-## Done and verified
+## Done and verified (2026-11-02)
 
 | Item | Evidence |
 |---|---|
-| Admitted executor, tag `0x0003_0130` in `ethereum_services_v3` (`src/frontends/riscv/rv64/ethereum_services/keccak_sponge.zig`): any input alignment, len < 2^20, finalize/fresh flags, no empty non-final call, state rights 3, packet/state/message words disjoint, traps change nothing | `zig build test-riscv64-execution` passes: Keccak-256 for lengths 0..559 x 8 alignments, split absorb+finalize, empty message, every trap; v3 session dispatch, v2 traps |
-| Frontend plumbing: tag, `isPayloadFreeTag`, session arm, payload-free tape record (no tape wire section, like bulk), boundary capture, census, report counters | same suite |
-| Bridge AIR `src/frontends/riscv/rv64/air/delegations/keccak_sponge/` (call row 694 MAIN / 380 INTER / 325 constraints; perm row 973 / 688 / 1,025) | `zig build test-riscv64-keccak-sponge`: honest 5-call scenario closes RAM/OWNER/IO/AND/ranges; 23 lengths x 8 alignments match std Keccak-256 and close; 8 adversarial cases rejected (wrong XOR, wrong byte, skipped/reordered blocks, forged final state, length mismatch, forged padding/fresh state, non-canonical tail byte); degree <= 3 |
-| Services lane (roster block after bulk, shared Keccak IO11 IDs after all Keccak-f calls, per-shard `sponge.first_id` checked in `admit`, AND-table merge, transcript/claims/wire blocks only when present) | `zig build test-riscv64-word16-sponge-services -Doptimize=ReleaseSafe` passes (commit 7709689fe): 2 shards, real STARKs, fresh receiver over the wire, split truth spans; wrong truth input -> UnclosedCombinedKeccakIo; forged/stale message -> UnclosedCombinedRam; missing bridge, short span, wrong first ID, nonzero absent claim rejected |
-| Docs | `design/riscv-proving-stack/rv64-keccak-sponge-service.md`, section in `src/integrations/riscv_cpu/word16_global_execution/soundness_review.md` |
-
-## Written but NOT verified (compiled only as far as noted)
-
-- Driver: `ethereum/plan.zig` (sponge logs, Keccak truth totals include sponge
-  perms), `ethereum/main.zig admitProfile` (`UnadmittedKeccakSpongeService`),
-  `rv64_ethereum_batch.zig` / `rv64_work_packet_admission.zig`
-  (`isPayloadFreeTag`). Compiled into nothing tested yet; no Ethereum block run.
-- AND-table receiver mass check in `services/protocol.zig admitSponge`
-  (added after the last passing services run; not compiled).
-- evmone client: `glue/keccak_stwo.cpp` `ADMITTED_KECCAK` path and
-  `build.py --v3-set ...,keccak`. Not built, not run.
-- `role_cost.zig` / `telemetry.zig` have no sponge rows (cost telemetry gap).
+| AIR + services suites | `zig build test-riscv64-keccak-sponge -Doptimize=ReleaseSafe` (19 tests) and `test-riscv64-word16-sponge-services` pass |
+| Regression (ReleaseSafe) | word16-combined-services, word16-v3-services, word16-keccak-shared, word16-keccak-bridge, word16-global-execution, execution, ethereum-chain: all pass |
+| v2 byte identity | `rv64-word16-combined-services-fixture produce` = golden in all 7 files (bundle.json be49c88c, cells c4162b24, cpu-0 8ae9b7a8, cpu-1 545877eb, truth 756461d3/0383740b/2ddb3fc9); verifies |
+| SHA-only v3 identity | `produce-v3 sha256` at head = at pre-sponge base b25175ff6 (diff -r identical; bundle.json e97771c4); each receiver verifies the other's bundle |
+| Soundness: joint write induction | design doc section 4.1 (sponge writer case: P1 clocks, P2/P4 atomic Boolean transitions, rights, ordering, written values anchored by Keccak-f truth bits through IO11); pointer in `rv64-ls-joint-write-induction.md` |
+| Adversarial | skipped block, wrong XOR, reordered blocks, forged final state, length mismatch, padding/fresh-state forgery, non-canonical tail byte (existing) + new digest-write forgery (non-canonical written limbs with forged RAM env -> only IO11 rejects; byte split; redirected state pointer). Inverted-assertion check confirmed the test runs |
+| evmone routing | `glue/keccak_stwo.cpp` `ADMITTED_KECCAK` (> 64 bytes; chunks < 2^20) built via `build.py --profile v3 --v3-set sha,arith,mem,keccak` (ELF ce85a9fd...) |
+| Basket (15 blocks, all guards, exact outputs) | **merged head 73977eb2a** (client pass 2): provable v3 scored 4.538 -> 4.215 instr/gas (-7.1%), 64,578 -> 61,773 bits/gas (-4.3%); holdout 3.841 -> 3.566; all 4.401 -> 4.087. Pre-merge client: scored 4.778 -> 4.426 instr/gas, 67,192 -> 64,114 bits/gas; holdout 4.061 -> 3.764; all 4.636 -> 4.295. Keccak glue 0.465 -> 0.108 instr/gas. `notes/keccak-sponge-admitted-results-20261102.json` |
+| Costs | `calibration.json admitted_services.keccak_sponge`: 1,409.3 cells/call, 2,100.3 + 72,159.3 (truth) per permutation (planned geometry, complete block 26,235,156); confirmed by produced roster.json of its 1-packet prefix (1,494.7 / 1,988.6 on shard 0). bench.py counts sponge calls/bytes/permutations; test_bench 41 OK |
+| Driver | `rv64-word16-ethereum` compiles again (plan.zig shadows, role_cost/telemetry for 12 families + bulk kinds + sponge rows). nativeprepare (block 24,628,607: 8 packets, completed; block 26,235,156: 5 packets) and a real 1-packet prefix proof of block 26,235,156 accepted by fresh `verify-prefix`; v2 request rejects |
 
 ## Not done
 
-1. Regression: v2 combined services, bulk, v3 all-services, word16-execution-prepared,
-   global-execution suites have NOT been re-run on this branch.
-2. v2/SHA-only/v3 fixture bundle byte identity vs base b25175ff6 NOT checked.
-   Script prepared (not run): scratchpad `prover-keccak-sponge/ident.sh`
-   (builds `rv64-word16-combined-services-fixture` at base and branch, produces
-   `produce` and `produce-v3` bundles, cross-verifies, diffs).
-3. Cost measurement: only nominal cells (call 1,074; perm 1,661 cells/row,
-   plus the unchanged Keccak-f truth ~72k per permutation). No measured
-   per-call/per-block numbers, no calibration.json `admitted_services` entry,
-   no bench run.
-4. Recursion: no sponge role in om31/circuit lanes.
-5. Throughput-table Keccak AIR (cost design option (a)): not started.
+- Block 24,628,607 prefix/complete proofs with the sponge guest (coordinator; command below).
+- Throughput-table Keccak AIR (-43% cells/permutation): not started. It needs a
+  new RV64 truth component next to the compact one (tuples from
+  `guest_precompile/keccakf_throughput_tables_v1.zig`), 2^21 chi and 2^16 xor5
+  table components, re-derived lookup masses, truth keys/wire/receiver roster,
+  adversarial tests; multi-week (design doc estimate 2.5 weeks).
+- Recursion: no sponge role in om31/circuit lanes.
+- `cost.json active[].sponge.first_id` prints 0 (counts() omits it; diagnostic only).
 
-## Known issues / risks
+## Prefix-proof command for block 24,628,607 (coordinator)
 
-- Wide perm row (973 MAIN): packed_rows uses heap scratch; interaction
-  generation is scalar QM31 per row (slow at large logs, unprofiled).
-- `mask` (136 cols) is paid on every perm row; a separate final-row component
-  would cut ~8% of perm cells.
-- Debug builds of the services suite may overflow worker stacks (as bulk); use ReleaseSafe.
-
-## Resume
+From `~/Coding/ge-wt/sponge` at the branch head (binaries already built in
+`~/Coding/ge-cache/sponge/head/bin`; rebuild with
+`zig build rv64-ethereum-proof rv64-word16-ethereum -Doptimize=ReleaseFast --prefix ~/Coding/ge-cache/sponge/head`).
+Request: `~/Coding/ge-cache/sponge/b607/request.json` (merged-head ELF
+`~/Coding/ge-cache/sponge/evm2/client-evmone-v3-sha-arith-mem-keccak.elf`
+314bab7a, symbols from that ELF, adapted input e549944d, v3, terminal_pc
+535672, batch_steps 4194303). nativeprepare with it was checked: 8 packets,
+32,312,707 instructions, completed (packets deleted for disk).
 
 ```sh
-cd /private/tmp/stwo-rv64-guest-prover-keccak-sponge
-lockf -k /private/tmp/stwo-rv64-perf-build.lock zig build test-riscv64-keccak-sponge test-riscv64-execution -j3
-lockf -k /private/tmp/stwo-rv64-perf-build.lock zig build test-riscv64-word16-sponge-services test-riscv64-word16-v3-services test-riscv64-word16-bulk-services test-riscv64-word16-combined-services test-riscv64-word16-execution-prepared -Doptimize=ReleaseSafe -j3
-# byte identity: recreate a base worktree at b25175ff6 (git worktree add --detach <scratch>/base b25175ff6) and run ident.sh
+cd ~/Coding/ge-cache/sponge/b607
+B=~/Coding/ge-cache/sponge/head/bin
+memguard run --gb 4 --label sponge-nprep -- $B/rv64-ethereum-proof nativeprepare request.json   # ~2.0 GB packets in ./native
+memguard run --gb 24 --label sponge-prefix4 -- $B/rv64-word16-ethereum produce request.json native/jobs prefix4 4
+memguard run --gb 4 --label sponge-vprefix -- $B/rv64-word16-ethereum verify-prefix request.json prefix4
+# complete block: produce request.json native/jobs complete 0 ; verify request.json complete
 ```
