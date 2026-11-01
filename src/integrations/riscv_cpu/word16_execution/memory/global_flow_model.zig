@@ -15,6 +15,8 @@ pub const Word = struct {
 };
 
 pub const Origin = enum { load_store, keccak, secp256k1 };
+/// Diagnostic operation policy, not inferred from (and not bound to) an AIR.
+pub const Access = enum { read, write, read_write };
 pub const Event = struct {
     address: u64,
     previous_epoch: u16,
@@ -24,6 +26,7 @@ pub const Event = struct {
     before: u64,
     after: u64,
     rights: u2,
+    access: Access = .read_write,
     origin: Origin,
     origin_ordinal: u32,
 };
@@ -57,6 +60,12 @@ pub fn audit(initial: []const Word, terminal: []const Word, events: []const Even
             event.previous_epoch > execution_epochs or
             !earlier(event.previous_epoch, event.previous_tick, event.epoch, event.tick))
             return error.InvalidMemoryTime;
+        if ((event.access == .read or event.access == .read_write) and (event.rights & 1) == 0)
+            return error.UnauthorizedMemoryRead;
+        if ((event.access == .write or event.access == .read_write) and (event.rights & 2) == 0)
+            return error.UnauthorizedMemoryWrite;
+        if (event.access == .read and event.before != event.after)
+            return error.InvalidReadOnlyMemoryEffect;
         if (event.before != event.after and (event.rights & 2) == 0)
             return error.UnauthorizedMemoryWrite;
         var admitted = false;
