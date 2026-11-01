@@ -94,7 +94,9 @@ test "pure provider partition permits full head and rejects missing or overflowi
         try std.testing.expect(present[i].present());
     }
     // Combined padding masses are admitted before fixed/witness allocations.
-    const expected16: u64 = 3 * 256 + 12 * 96 + 5 * 64 + 12 * 32 + front.rv64_air.memory.load_store_v2.layout.BOUND_U16.len * 64;
+    // No boundary range16 debt; the always-present narrow DIV provider (added at
+    // eac3b7c07 without updating this expectation) contributes RANGE_QUERIES rows.
+    const expected16: u64 = 3 * 256 + 12 * 96 + 5 * 64 + 12 * 32 + front.rv64_air.delegations.division.word16_product.layout.RANGE_QUERIES * 32;
     try std.testing.expectEqual(expected16, try LADDER.range16Mass());
 }
 test "one PCS all three pure function tails closes actual native loop and independent receiver" {

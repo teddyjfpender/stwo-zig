@@ -11,7 +11,7 @@ const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 /// One canonical full-core schema: native degree3/split1, MUL200 interaction.
-pub const SCHEMA: u32 = 5;
+pub const SCHEMA: u32 = 6;
 pub const CLAIM_LS_TAIL: usize = 33;
 pub const CLAIM_ALU_TAIL = CLAIM_LS_TAIL + 5;
 pub const CLAIM_BINARY_TAIL = CLAIM_ALU_TAIL + 2;
@@ -71,7 +71,7 @@ pub const Claims = struct {
     pub fn validate(self: Claims) !void {
         for (self.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalExecutionClaim;
         // These fields have no physical columns in boundary components.
-        if (!self.initial.range8.isZero() or !self.terminal.range8.isZero()) return error.NonzeroOmittedBoundaryRangeClaim;
+        if (!self.initial.range16.isZero() or !self.terminal.range16.isZero() or !self.initial.range8.isZero() or !self.terminal.range8.isZero()) return error.NonzeroOmittedBoundaryRangeClaim;
         if (!self.initial.owner.isZero() or !self.initial.selection.isZero() or !self.terminal.owner.isZero() or !self.terminal.selection.isZero()) return error.NonzeroOmittedMemoryClaim;
         var total = Q.zero();
         for (self.values()) |q| total = total.add(q);

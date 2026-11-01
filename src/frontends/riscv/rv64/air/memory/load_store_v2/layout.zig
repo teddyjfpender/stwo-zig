@@ -7,8 +7,14 @@ pub const MAIN = projection.MAIN;
 pub const LOCAL_INVERSES = 8;
 pub const LOCAL_PREFIX = LOCAL_INVERSES + 4 * LOCAL_PAIRS;
 pub const INTERACTION = LOCAL_PREFIX + 4;
-pub const BOUND_INTERACTION = 20;
-pub const BOUND_U16 = [_]usize{ 14, 15, 16, 17 };
+// INIT/TEARDOWN keep only the canonical RAM14 tuple prefix of the closed
+// boundary row (active, address4, value4, epoch, tick lo/hi, R, W). Sorted,
+// unique, aligned addresses are NOT re-proved in-chip: every accepting
+// receiver validates them natively on the public cell list and compares the
+// chip's RAM debt exactly against expectedClaim (see
+// design/riscv-proving-stack/rv64-boundary-public-sortedness-v1.md).
+pub const BOUND_MAIN = 14;
+pub const BOUND_INTERACTION = 8;
 // A/I/B come from the closed CPU REG/ROM/OWNER relations. RAM before
 // coordinates inherit canonical produced states; addresses additionally use
 // strict RAM chronology and canonical aligned INIT coverage. Keep independent
@@ -38,7 +44,7 @@ pub fn widths(kind: Kind) [3]usize {
     return switch (kind) {
         .ls => .{ 3, MAIN, INTERACTION },
         .selection => V1.widths(.selection),
-        .initial, .terminal => .{ 3, R.BOUND_MAIN, BOUND_INTERACTION },
+        .initial, .terminal => .{ 3, BOUND_MAIN, BOUND_INTERACTION },
         .range16 => R.widths(.range16),
         .range8 => R.widths(.range8),
     };
@@ -46,7 +52,7 @@ pub fn widths(kind: Kind) [3]usize {
 pub fn constraints(kind: Kind) usize {
     return switch (kind) {
         .ls => 261,
-        .initial, .terminal => 47,
+        .initial, .terminal => 25,
         .selection => 3,
         .range16, .range8 => 3,
     };
@@ -54,14 +60,14 @@ pub fn constraints(kind: Kind) usize {
 pub fn previousMainFor(kind: Kind, c: usize) bool {
     return switch (kind) {
         .ls => V1.previousMainFor(.ls, c),
-        .initial, .terminal => c == 0 or (c >= 1 and c < 5),
+        .initial, .terminal => c == 0,
         else => false,
     };
 }
 pub fn previousInterFor(kind: Kind, c: usize) bool {
     return switch (kind) {
         .ls => (c >= 4 and c < 8) or c >= LOCAL_PREFIX,
-        .initial, .terminal => (c >= 4 and c < 8) or c >= 16,
+        .initial, .terminal => c >= 4 and c < 8,
         else => c >= 4,
     };
 }

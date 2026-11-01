@@ -43,6 +43,8 @@ pub const Components = struct {
         try P.validateProviderTailClaims(materials.geometry, claims);
         const ls_counts = try materials.geometry.lsCounts(request.memory.ls_count);
         if (!claims.initial.owner.eql(Q.zero()) or !claims.initial.selection.eql(Q.zero()) or !claims.terminal.owner.eql(Q.zero()) or !claims.terminal.selection.eql(Q.zero())) return error.UnconstrainedMemoryClaim;
+        // Public boundary chips own no range lookups (AIR also pins these to zero).
+        if (!claims.initial.range16.isZero() or !claims.initial.range8.isZero() or !claims.terminal.range16.isZero() or !claims.terminal.range8.isZero()) return error.UnconstrainedMemoryClaim;
         if (!ch.cpu.range8.coefficient.eql(Q.one())) return error.InvalidArithmeticByteChallenge;
         var result: Components = undefined;
         result.materials = materials;

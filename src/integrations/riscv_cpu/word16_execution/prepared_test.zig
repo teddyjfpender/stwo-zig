@@ -88,7 +88,8 @@ test "One CPU witness chooses grouped geometry then rebinds moved Program and fr
     try std.testing.expectEqualSlices(core.fields.m31.M31, cpu_main, source.cpu.main);
     var mass: u64 = 0;
     for (source.alu.range16_counts) |v| mass += v;
-    try std.testing.expectEqual(@as(u64, 20 * 32), mass);
+    // LS 12 U16 queries per row; public INIT/TEARDOWN chips own no range debt.
+    try std.testing.expectEqual(@as(u64, 12 * 32), mass);
     var and_mass: u64 = 0;
     for (source.binary.and_counts) |v| and_mass += v;
     try std.testing.expectEqual(@as(u64, 8 * 32), and_mass);

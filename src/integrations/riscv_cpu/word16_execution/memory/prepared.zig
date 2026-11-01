@@ -106,14 +106,15 @@ pub const Prepared = struct {
         errdefer a.free(counts16);
         const counts8 = try a.dupe(u64, ls.counts8);
         errdefer a.free(counts8);
-        for ([_][]const u64{ if (ls_tail) |tail| tail.counts16 else &.{}, initial.counts16, terminal.counts16 }) |input| {
+        // Public INIT/TEARDOWN chips own no range lookups (receiver-anchored tuples).
+        for ([_][]const u64{if (ls_tail) |tail| tail.counts16 else &.{}}) |input| {
             if (input.len == 0) continue;
             for (counts16, input) |*out, v| {
                 out.* = try std.math.add(u64, out.*, v);
                 if (out.* >= @import("stwo_core").fields.m31.Modulus) return error.MemoryLookupMassExceeded;
             }
         }
-        for ([_][]const u64{ if (ls_tail) |tail| tail.counts8 else &.{}, initial.counts8, terminal.counts8 }) |input| {
+        for ([_][]const u64{if (ls_tail) |tail| tail.counts8 else &.{}}) |input| {
             if (input.len == 0) continue;
             for (counts8, input) |*out, v| {
                 out.* = try std.math.add(u64, out.*, v);

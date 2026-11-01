@@ -13,7 +13,7 @@ const Q = G.Q;
 const Col = engine.pcs.ColumnEvaluation;
 const Backend = @import("stwo_cpu_backend").CpuBackend;
 const FL = [_]u32{5} ** 3 ++ [_]u32{16} ** 3 ++ [_]u32{8} ** 3;
-const ML = [_]u32{5} ** 23 ++ [_]u32{16} ++ [_]u32{8};
+const ML = [_]u32{5} ** X.layout.BOUND_MAIN ++ [_]u32{16} ++ [_]u32{8};
 const IL = [_]u32{5} ** X.layout.BOUND_INTERACTION ++ [_]u32{16} ** 8 ++ [_]u32{8} ** 8;
 pub const Encoded = struct {
     bytes: []u8,
@@ -41,10 +41,17 @@ const Native = struct {
         errdefer b.deinit();
         var r16 = try R.trace.Trace.init(a, .range16, 16, 0);
         errdefer r16.deinit();
-        try r16.setCounts(b.counts16);
+        // The public boundary chip owns no range debt: both tables stay empty.
+        const zero16 = try a.alloc(u64, 65536);
+        defer a.free(zero16);
+        @memset(zero16, 0);
+        try r16.setCounts(zero16);
         var r8 = try R.trace.Trace.init(a, .range8, 8, 0);
         errdefer r8.deinit();
-        try r8.setCounts(b.counts8);
+        const zero8 = try a.alloc(u64, 256);
+        defer a.free(zero8);
+        @memset(zero8, 0);
+        try r8.setCounts(zero8);
         return .{ .a = a, .b = b, .r16 = r16, .r8 = r8 };
     }
     fn deinit(self: *@This()) void {
@@ -151,7 +158,7 @@ fn components(initial: bool, rows: u32, ch: X.types.Challenges, claims: G.Physic
     c16.range16 = claims[3];
     var c8 = z;
     c8.range8 = claims[4];
-    return .{ .{ .kind = if (initial) .initial else .terminal, .log_size = 5, .rows = rows, .offsets = .{ 0, 0, 0 }, .claims = bc, .challenges = ch }, .{ .kind = .range16, .log_size = 16, .rows = 0, .offsets = .{ 3, 23, X.layout.BOUND_INTERACTION }, .claims = c16, .challenges = ch }, .{ .kind = .range8, .log_size = 8, .rows = 0, .offsets = .{ 6, 24, X.layout.BOUND_INTERACTION + 8 }, .claims = c8, .challenges = ch } };
+    return .{ .{ .kind = if (initial) .initial else .terminal, .log_size = 5, .rows = rows, .offsets = .{ 0, 0, 0 }, .claims = bc, .challenges = ch }, .{ .kind = .range16, .log_size = 16, .rows = 0, .offsets = .{ 3, X.layout.BOUND_MAIN, X.layout.BOUND_INTERACTION }, .claims = c16, .challenges = ch }, .{ .kind = .range8, .log_size = 8, .rows = 0, .offsets = .{ 6, X.layout.BOUND_MAIN + 1, X.layout.BOUND_INTERACTION + 8 }, .claims = c8, .challenges = ch } };
 }
 fn finish(w: *Worker, n: *Native, manifest: *const G.Manifest, index: usize) !Encoded {
     const shared = try manifest.resumeWorker(w.a, index, &w.scheme, &w.ch);
