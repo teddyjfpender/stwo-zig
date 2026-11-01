@@ -1,0 +1,38 @@
+{
+  "scope": "Exact integer arithmetic diagnostic only; current candidate ledger already applies the bias. No protocol/field/profile/certificate change.",
+  "coordinate": {
+    "raw_bits": 32,
+    "modulus": 2147483647,
+    "max_preimages": 3,
+    "max_point_mass_numerator": 3,
+    "max_point_mass_denominator": 4294967296,
+    "min_entropy_bits_display": 30.415037499278846
+  },
+  "om31": {
+    "coordinates": 8,
+    "max_preimages": 6561,
+    "max_point_mass_numerator": 6561,
+    "max_point_mass_denominator": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+    "min_entropy_bits_display": 243.32029999423077,
+    "integer_floor_min_entropy": 243,
+    "density_relative_uniform_numerator": "2967624588499547661936948779995584002145499773567306905658047443043094374652321",
+    "density_relative_uniform_denominator": "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+    "density_relative_uniform_display": 25.628906154524884,
+    "uniform_entropy_loss_bits_display": 4.679700000394791
+  },
+  "union128": {
+    "maximum_degree_weight": "51864405871199278077027070177071820",
+    "next_weight": "51864405871199278077027070177071821",
+    "exact_maximum_passes": true,
+    "next_exact_rejected": true,
+    "next_wrong_uniform_passes": true
+  },
+  "remaining_gates": [
+    "Applicability of conditional root count to each actual polynomial/relation",
+    "Admitted whole-execution transcript-round/fresh-input bound",
+    "Adaptive Fiat-Shamir/raw-mod RO reduction and repeated-query/collision work",
+    "Circle PCS/DEEP/FRI theorem and every recursive layer security"
+  ],
+  "promotion": "requireWholeProtocolPromotion always returns NoReviewedWholeProtocol128Certificate even if all flags are true.",
+  "displays": "Float fields are explanatory display only. Decisions and tests use exact integer inequalities."
+}

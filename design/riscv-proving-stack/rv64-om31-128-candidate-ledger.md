@@ -79,6 +79,34 @@ proven bound. It must be replaced by the instantiated theorem before promotion.
 
 The raw modulo map has maximum point mass 3^8/2^256. Integer arithmetic tests
 `degree_weight ×3^8×2^bits ≤2^256`; it never substitutes a uniform 1/p^8 claim.
+The exact coordinate min-entropy is `32−log2(3)` (about30.415 bits),
+and the eight-coordinate maximum point mass has min-entropy
+`256−8log2(3)` (about243.320 bits), rather than approximately248 uniform-field bits.
+The density relative to uniform OM31 is exactly `(3p)^8/2^256`, strictly
+less than `(3/2)^8` (about25.629), a loss below4.680 bits. The integer ledger
+already includes this loss; no new correction factor is missing. Tests now pin
+both the243/244-bit single-root threshold and the exact128-bit union-weight
+boundary, including a weight incorrectly accepted by a uniform-field model.
+
+This is conditional distribution arithmetic, not a proof that Blake outputs are
+independent. One fresh ideal-RO256 block has independent uniform raw32-bit words;
+residue reduction gives the stated product bound. Across adaptive rounds, each
+bad-polynomial event needs the conditional bound after earlier messages are
+fixed. Apply a union over the admitted degree weights, not a claim that all
+transcript outputs are jointly uniform or a density exponent for every round.
+
+`drawU32s` hashes `digest || little_endian_counter || 0` (37 bytes); absorption
+hashes the previous digest and a whole number of32-bit words (length divisible
+by4), so these two encodings are distinct. The draw counter increments modulo
+2^32 and resets when the digest is updated. Conditional freshness therefore
+needs distinct counter inputs before wrap, and a reduction accounting for
+adaptive digest states, repeated RO queries/collisions and Fiat–Shamir work.
+The current source-bound report explicitly leaves
+`transcript_round_bound_qualified=false`, and `adaptive_raw_mod_rom_theorem`
+is not established. Counter-parity tests do not close either proof obligation.
+Whole-protocol promotion remains unconditionally fail-closed, even if all
+caller review flags are set true.
+
 At the full admitted cap, the generated budget report records every term and
 its conditional integer-bit bound. Tuple collisions dominate the current
 conditional ledger. Neither PoW nor unreviewed repetition appears in it.

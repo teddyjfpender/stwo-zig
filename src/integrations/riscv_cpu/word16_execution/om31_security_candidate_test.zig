@@ -83,3 +83,37 @@ test "candidate arithmetic rejects arbitrary overflowing budget values" {
     l.degree_weight[0] = std.math.maxInt(u512);
     try std.testing.expectError(error.Om31CandidateBudgetOverflow, l.requireRawModuloBits(128));
 }
+
+test "candidate raw modulo exact integer entropy and union threshold reject uniform substitution" {
+    const sampler = core.channel.raw_mod_m31;
+    try std.testing.expectEqual(@as(u32, 8), sampler.om31_profile.degree);
+    try std.testing.expectEqual(@as(u32, 3), sampler.MAX_PREIMAGES);
+    try std.testing.expectEqual(@as(u64, 1) << 32, sampler.RAW_ORDER);
+    var max_preimages: u512 = 1;
+    var field_order: u512 = 1;
+    for (0..sampler.om31_profile.degree) |_| {
+        max_preimages *= sampler.MAX_PREIMAGES;
+        field_order *= core.fields.m31.Modulus;
+    }
+    try std.testing.expectEqual(@as(u512, 6561), max_preimages);
+    // Point mass is exactly6561/2^256 under a fresh uniform256-bit RO block.
+    // This establishes floor(min-entropy)=243 without floating-point logs.
+    try std.testing.expect(max_preimages << 243 <= @as(u512, 1) << 256);
+    try std.testing.expect(max_preimages << 244 > @as(u512, 1) << 256);
+    var l = C.Ledger{ .degree_weight = @splat(0) };
+    l.degree_weight[0] = 1;
+    try l.requireRawModuloBits(243);
+    try std.testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, l.requireRawModuloBits(244));
+    // Exact density over uniform OM31 is (3*p)^8/2^256, strictly between1
+    // and(3/2)^8. The latter comparison uses integers with no rounded bits.
+    const density_numerator = max_preimages * field_order;
+    try std.testing.expect(density_numerator > @as(u512, 1) << 256);
+    try std.testing.expect(density_numerator * 256 < max_preimages * (@as(u512, 1) << 256));
+    // Largest union weight admitted at128bits, then one beyond it. The latter
+    // still passes a WRONG uniform-field calculation: pin this regression.
+    l.degree_weight[0] = (@as(u512, 1) << 128) / max_preimages;
+    try l.requireRawModuloBits(128);
+    l.degree_weight[0] += 1;
+    try std.testing.expect(l.degree_weight[0] << 128 <= field_order);
+    try std.testing.expectError(error.Om31CandidateAlgebraicBudgetInsufficient, l.requireRawModuloBits(128));
+}
