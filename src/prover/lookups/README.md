@@ -16,9 +16,8 @@ constant-memory prover: admission must include those layers, working oracles,
 and caller-owned inputs. `result.deinit(allocator)` releases all result owners.
 Partially constructed owners are released on failure; the focused tests inject
 failure at every allocation in a mixed-height proving and verification run.
-Legacy public error mapping sometimes reports allocation failures as
-`ShapeMismatch` or `InvalidSumcheck`; the failure-injection test normalizes those
-errors only for its fixed, independently accepted input.
+Allocation failures propagate as `OutOfMemory` through the producer and verifier;
+structural proof errors retain their separate error tags.
 
 The verifier entrypoint is `V.partiallyVerifyBatch(allocator, gates, &proof,
 channel)`. It returns a **partial** artifact, not an authenticated lookup result.

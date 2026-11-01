@@ -6,7 +6,7 @@ const core = @import("stwo_core");
 const QM31 = core.fields.qm31.QM31;
 const M31 = core.fields.m31.M31;
 const utils = @import("utils.zig");
-pub const GkrError = error{ MalformedProof, InvalidMask, NumInstancesMismatch, InvalidSumcheck, CircuitCheckFailure, ShapeMismatch };
+pub const GkrError = error{ MalformedProof, InvalidMask, NumInstancesMismatch, InvalidSumcheck, CircuitCheckFailure, ShapeMismatch, OutOfMemory };
 pub const MAX_DEGREE: usize = 3;
 pub const Check = enum { sum, gate, terminal };
 pub fn Artifact(comptime F: type) type {
@@ -53,14 +53,14 @@ pub fn evalGate(comptime F: type, a: std.mem.Allocator, gate: anytype, columns: 
     return switch (gate) {
         .LogUp => blk: {
             if (columns.len != 2) return error.InvalidMask;
-            const out = a.alloc(F, 2) catch return error.ShapeMismatch;
+            const out = try a.alloc(F, 2);
             out[0] = columns[0][0].mul(columns[1][1]).add(columns[0][1].mul(columns[1][0]));
             out[1] = columns[1][0].mul(columns[1][1]);
             break :blk out;
         },
         .GrandProduct => blk: {
             if (columns.len != 1) return error.InvalidMask;
-            const out = a.alloc(F, 1) catch return error.ShapeMismatch;
+            const out = try a.alloc(F, 1);
             out[0] = columns[0][0].mul(columns[0][1]);
             break :blk out;
         },
