@@ -10,7 +10,11 @@ const S = @import("ethereum_services/session.zig");
 pub const MAGIC = "RV64TP01";
 pub const HEADER_BYTES = 48;
 pub const Limits = struct { steps: u32 = T.MAX_STEPS, bytes: usize = 512 * 1024 * 1024 };
-const Header = struct { steps: u32, memory: u32, keccak: u32, secp: u32, execution: profile.Profile, pc: u64, clock: u64 };
+/// raw[28..32] was reserved-zero; v3 tapes store the SHA-256 record count
+/// there, so every pre-v3 tape is byte-identical. Further v3 sections must
+/// follow the SHA-256 records and take their counts from a v3-only extension.
+const Header = struct { steps: u32, memory: u32, keccak: u32, secp: u32, sha256: u32 = 0, execution: profile.Profile, pc: u64, clock: u64 };
+const SHA256_RECORD = 32 + 96 + 96;
 comptime {
     if (@sizeOf(T.Step) != 48 or @offsetOf(T.Step, "next_pc") != 0 or @offsetOf(T.Step, "lhs") != 8 or @offsetOf(T.Step, "rhs") != 16 or @offsetOf(T.Step, "previous_rd") != 24 or @offsetOf(T.Step, "result") != 32 or @offsetOf(T.Step, "memory_index") != 40 or @offsetOf(T.Step, "flags") != 44) @compileError("native tape layout needs an explicit wire migration");
 }
@@ -18,12 +22,12 @@ pub fn encodedBytes(tape: *const T.Tape) !usize {
     return size(try header(tape));
 }
 fn header(tape: *const T.Tape) !Header {
-    if (tape.len == 0 or tape.len > T.MAX_STEPS or tape.len > tape.storage.len or tape.memory_before.items.len > tape.len or tape.service_calls.items.len > tape.len or tape.secp_calls.items.len > tape.len - tape.service_calls.items.len) return error.InvalidTapeWireGeometry;
-    return .{ .steps = @intCast(tape.len), .memory = @intCast(tape.memory_before.items.len), .keccak = @intCast(tape.service_calls.items.len), .secp = @intCast(tape.secp_calls.items.len), .execution = tape.execution_profile, .pc = tape.initial_pc, .clock = tape.initial_clock };
+    if (tape.len == 0 or tape.len > T.MAX_STEPS or tape.len > tape.storage.len or tape.memory_before.items.len > tape.len or tape.service_calls.items.len > tape.len or tape.secp_calls.items.len > tape.len - tape.service_calls.items.len or tape.sha256_calls.items.len > tape.len - tape.service_calls.items.len - tape.secp_calls.items.len) return error.InvalidTapeWireGeometry;
+    return .{ .steps = @intCast(tape.len), .memory = @intCast(tape.memory_before.items.len), .keccak = @intCast(tape.service_calls.items.len), .secp = @intCast(tape.secp_calls.items.len), .sha256 = @intCast(tape.sha256_calls.items.len), .execution = tape.execution_profile, .pc = tape.initial_pc, .clock = tape.initial_clock };
 }
 fn size(h: Header) !usize {
     var result: usize = HEADER_BYTES;
-    for ([_]usize{ h.steps, h.memory, h.keccak, h.secp }, [_]usize{ 48, 8, 432, 424 }) |count, width| result = try std.math.add(usize, result, try std.math.mul(usize, count, width));
+    for ([_]usize{ h.steps, h.memory, h.keccak, h.secp, h.sha256 }, [_]usize{ 48, 8, 432, 424, SHA256_RECORD }) |count, width| result = try std.math.add(usize, result, try std.math.mul(usize, count, width));
     return result;
 }
 /// Caller owns the file and its atomic/durable publication. A valid tape is
@@ -39,6 +43,7 @@ pub fn write(file: std.fs.File, tape: *const T.Tape) !void {
     put(u32, raw[16..20], h.memory);
     put(u32, raw[20..24], h.keccak);
     put(u32, raw[24..28], h.secp);
+    put(u32, raw[28..32], h.sha256);
     put(u64, raw[32..40], h.pc);
     put(u64, raw[40..48], h.clock);
     try file.writeAll(&raw);
@@ -75,16 +80,24 @@ pub fn write(file: std.fs.File, tape: *const T.Tape) !void {
         for (call.after, 0..) |word, i| put(u64, encoded[232 + 8 * i ..][0..8], word);
         try file.writeAll(&encoded);
     }
+    for (tape.sha256_calls.items) |call| {
+        var encoded: [SHA256_RECORD]u8 = undefined;
+        for ([_]u64{ call.call_id, call.clock, call.pc, call.pointer }, 0..) |word, i| put(u64, encoded[8 * i ..][0..8], word);
+        for (call.before, 0..) |word, i| put(u64, encoded[32 + 8 * i ..][0..8], word);
+        for (call.after, 0..) |word, i| put(u64, encoded[128 + 8 * i ..][0..8], word);
+        try file.writeAll(&encoded);
+    }
 }
 /// Counts and byte budget are admitted before allocation. Consumes through EOF
 /// and rejects trailing bytes; a work-packet container must put this section last.
 pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape {
     var raw: [HEADER_BYTES]u8 = undefined;
     try exact(file, &raw);
-    if (!std.mem.eql(u8, raw[0..8], MAGIC) or get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
+    if (!std.mem.eql(u8, raw[0..8], MAGIC)) return error.InvalidTapeWireHeader;
     const execution = std.meta.intToEnum(profile.Profile, get(u32, raw[8..12])) catch return error.InvalidTapeWireProfile;
-    const h = Header{ .execution = execution, .steps = get(u32, raw[12..16]), .memory = get(u32, raw[16..20]), .keccak = get(u32, raw[20..24]), .secp = get(u32, raw[24..28]), .pc = get(u64, raw[32..40]), .clock = get(u64, raw[40..48]) };
-    if (h.steps == 0 or h.steps > T.MAX_STEPS or h.steps > limits.steps or h.memory > h.steps or h.keccak > h.steps or h.secp > h.steps - h.keccak or (h.execution == .rv64im and h.keccak != 0) or ((h.execution == .rv64im or h.execution == .keccak_service_v1) and h.secp != 0) or try size(h) > limits.bytes) return error.InvalidTapeWireGeometry;
+    if (execution != .ethereum_services_v3 and get(u32, raw[28..32]) != 0) return error.InvalidTapeWireHeader;
+    const h = Header{ .execution = execution, .steps = get(u32, raw[12..16]), .memory = get(u32, raw[16..20]), .keccak = get(u32, raw[20..24]), .secp = get(u32, raw[24..28]), .sha256 = get(u32, raw[28..32]), .pc = get(u64, raw[32..40]), .clock = get(u64, raw[40..48]) };
+    if (h.steps == 0 or h.steps > T.MAX_STEPS or h.steps > limits.steps or h.memory > h.steps or h.keccak > h.steps or h.secp > h.steps - h.keccak or h.sha256 > h.steps - h.keccak - h.secp or (h.execution == .rv64im and h.keccak != 0) or ((h.execution == .rv64im or h.execution == .keccak_service_v1) and h.secp != 0) or try size(h) > limits.bytes) return error.InvalidTapeWireGeometry;
     var tape = try T.Tape.init(a, h.steps, h.pc, h.clock, h.execution);
     errdefer tape.deinit();
     tape.len = h.steps;
@@ -117,6 +130,15 @@ pub fn readTail(a: std.mem.Allocator, file: std.fs.File, limits: Limits) !T.Tape
         for (&call.after, 0..) |*word, i| word.* = get(u64, encoded[232 + 8 * i ..][0..8]);
         tape.secp_calls.appendAssumeCapacity(call);
     }
+    try tape.sha256_calls.ensureTotalCapacityPrecise(a, h.sha256);
+    for (0..h.sha256) |_| {
+        var encoded: [SHA256_RECORD]u8 = undefined;
+        try exact(file, &encoded);
+        var call = S.Sha256Call{ .call_id = get(u64, encoded[0..8]), .clock = get(u64, encoded[8..16]), .pc = get(u64, encoded[16..24]), .pointer = get(u64, encoded[24..32]), .before = undefined, .after = undefined };
+        for (&call.before, 0..) |*word, i| word.* = get(u64, encoded[32 + 8 * i ..][0..8]);
+        for (&call.after, 0..) |*word, i| word.* = get(u64, encoded[128 + 8 * i ..][0..8]);
+        tape.sha256_calls.appendAssumeCapacity(call);
+    }
     var trailing: [1]u8 = undefined;
     if (try file.read(&trailing) != 0) return error.TrailingTapeWireData;
     try validate(&tape);
@@ -145,7 +167,7 @@ fn validate(tape: *const T.Tape) !void {
     var previous_clock: u64 = 0;
     var ids: [2]?u64 = @splat(null);
     for (tape.secp_calls.items) |call| {
-        const format: profile.SecpPacketFormat = if (tape.execution_profile == .ethereum_services_v2) .little_endian_words_v2 else .big_endian_bytes_v1;
+        const format: profile.SecpPacketFormat = if (profile.secpWords(tape.execution_profile)) .little_endian_words_v2 else .big_endian_bytes_v1;
         if (call.packet_format != format or call.clock <= previous_clock) return error.InvalidTapeWireService;
         const family = @intFromEnum(call.kind) - 1;
         if (ids[family]) |prior| if (prior == std.math.maxInt(u64) or call.call_id != prior + 1) return error.InvalidTapeWireService;
@@ -153,6 +175,15 @@ fn validate(tape: *const T.Tape) !void {
         try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
         previous_clock = call.clock;
         ids[family] = call.call_id;
+    }
+    if (tape.execution_profile != .ethereum_services_v3 and tape.sha256_calls.items.len != 0) return error.InvalidTapeWireService;
+    var previous_sha: ?S.Sha256Call = null;
+    for (tape.sha256_calls.items) |call| {
+        if (previous_sha) |prior| if (prior.clock >= call.clock or prior.call_id == std.math.maxInt(u64) or call.call_id != prior.call_id + 1) return error.InvalidTapeWireService;
+        if (call.pointer & 31 != 0) return error.InvalidTapeWireService;
+        for (call.before[S.Sha256Call.WRITTEN..], call.after[S.Sha256Call.WRITTEN..]) |before, after| if (before != after) return error.InvalidTapeWireService;
+        try service(tape, call.clock, call.pc, call.pointer, call.tag(), call.call_id);
+        previous_sha = call;
     }
 }
 fn service(tape: *const T.Tape, clock: u64, pc: u64, pointer: u64, tag: u64, id: u64) !void {

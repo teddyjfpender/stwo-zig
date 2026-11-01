@@ -14,7 +14,7 @@ const Point = core.circle.CirclePointQM31;
 const cp = engine.air.component_prover;
 const accumulation = engine.air.accumulation;
 pub const Component = struct {
-    kind: @import("../program.zig").Kind,
+    kind: T.Kind,
     log_size: u32,
     rows: u32,
     first_id: u32 = 1,

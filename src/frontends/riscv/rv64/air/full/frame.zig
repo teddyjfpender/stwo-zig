@@ -21,7 +21,8 @@ pub fn width(profile: @import("../../execution_profile.zig").Profile) usize {
     return switch (profile) {
         .rv64im => WIDTH,
         .keccak_service_v1 => WIDTH + 1,
-        .ethereum_services_v1, .ethereum_services_v2 => WIDTH + 6,
+        // The legacy full route never admits v3 (component plan validation).
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3 => WIDTH + 6,
     };
 }
 pub const Advice = [WIDTH]Q;

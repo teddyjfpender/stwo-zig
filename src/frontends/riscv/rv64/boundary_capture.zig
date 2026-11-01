@@ -50,6 +50,16 @@ pub const Capture = struct {
                 }
                 break :blk call.clock;
             },
+            .sha256 => |call| blk: {
+                count = call.before.len;
+                if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
+                for (0..count) |lane| {
+                    const written = lane < @TypeOf(call).WRITTEN;
+                    if (!written and call.before[lane] != call.after[lane]) return error.BoundaryReadMutation;
+                    transitions[lane] = .{ .address = call.pointer + 8 * lane, .before = call.before[lane], .after = call.after[lane], .writable_required = written };
+                }
+                break :blk call.clock;
+            },
         };
         try self.publish(clock, transitions[0..count], memory);
     }
