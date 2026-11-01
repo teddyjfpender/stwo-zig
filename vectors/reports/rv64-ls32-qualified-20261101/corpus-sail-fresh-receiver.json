@@ -1,0 +1,19 @@
+{
+  "pcs_config": {
+    "pow_bits": 26,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "workers": 8,
+  "build_mode": "ReleaseFast",
+  "scope": "fresh receiver with independently pinned Sail expected ELF and CPU/RAM endpoints",
+  "physical_proof_verified": true,
+  "steps": 1032240,
+  "proof_bytes": 704432,
+  "receiver_ns": 407678500
+}

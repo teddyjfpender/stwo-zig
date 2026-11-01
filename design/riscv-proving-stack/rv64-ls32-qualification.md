@@ -129,3 +129,27 @@ semantic parity and provenance are in
 `vectors/reports/rv64-ls32-qualified-20261101/receipt.json`. The build occurred
 before the qualification commit with uncommitted tests/docs; the receipt states
 that provenance rather than claiming a clean-source binary.
+
+## Full ISA and CSP corpus closure
+
+The existing CSP qualification wrapper proves all 17 pinned Unicorn-agreed
+requests on clean source `13c3c0c6e` and verifies each in a fresh process. This
+includes the complete positive ECDSA request (1,625,938 instructions) and negative
+ECDSA request (1,627,849 instructions). Every case retains exactly the control's
+CPU endpoint, epoch, division/multiplication/LS request counts, public RAM words,
+complete cell bytes and instruction histogram. The current CPU47 positive
+ECDSA control agrees independently as well.
+
+The continuous Sail workload proves all 1,032,240 retirements and all 63 ordinary
+RV64IM opcodes, comparing every retirement to the pinned RVFI. A fresh receiver
+accepts using the intentionally absent-RVFI configuration: its authority comes
+from the pinned ELF and expected CPU/RAM endpoints. CPU state, public RAM/cell
+bytes, instruction histogram, division and LS counts match the CPU47 control.
+The sole declared request-count adapter is 1,168 to 4,896 multiplication provider
+obligations: 1,864 DIV requests now each add two closed MUL/MULHU support facts
+(`word16_execution/prepared.zig:117`). These are not extra guest retirements.
+
+The build, binary, configs, oracle and complete case identities are pinned in
+`vectors/reports/rv64-ls32-qualified-20261101/corpus-receipt.json`. This closes
+the functional full-ISA/corpus gate; it adds neither a controlled performance
+claim nor a whole-protocol 128-bit security claim.
