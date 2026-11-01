@@ -271,6 +271,18 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
     run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
     run([tdir / "zeg_words_test"])
+    # Translated-segment dispatch (patch 0023) vs the fused cgoto and the plain switch
+    # dispatch, linked against the host build's evmone objects.
+    hobj = work / "obj-host"
+    fobj = tdir / "xlat_difffuzz.o"
+    run(["zig", "c++", *flags, "-c", HERE / "tests" / "xlat_difffuzz.cpp", "-o", fobj])
+    link = sorted(hobj.glob("evmone__lib__evmone*__*.o")) + sorted(hobj.glob("evmone__lib__evmone_precompiles__*.o"))
+    link += [hobj / n for n in ("evmone__test__state__precompiles.cpp.o", "ext__keccak_stwo.cpp.o",
+                                "ext__host_services.cpp.o", "ext__sha256_stwo.cpp.o", "ext__secp256k1_stwo.cpp.o",
+                                "ext__arith_stwo.cpp.o", "ext__curves_stwo.cpp.o", "blst__src__server.c.o",
+                                "blst__build__assembly.S.o", "ziskethone__cpp-guest__zisk__tracer_stubs.cpp.o")]
+    run(["zig", "c++", a.opt, fobj, *sorted(set(link)), "-o", tdir / "xlat_difffuzz"])
+    run([tdir / "xlat_difffuzz", "20000", "1"])
 
 
 def main(argv=None):
