@@ -60,7 +60,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 | Output | 43 bytes at `__output_data` (request root, 1, chain id LE, schema id LE), `__output_len = 43`, `__halt_flag = 1`, then spin |
 | Failure | illegal instruction (`.word 0`), no output (the Rust guest panics the same way) |
 | Linker | `linker-wide-cxx.ld` = `rv64/linker-wide.ld` plus `.init_array` inside `.data`; memory map and symbols unchanged |
-| Patches | 0001 ziskethone (SSZ witness state, lazy rows, RV64 word paths), 0002 blst 64-bit limbs, 0003 intx byte-wise big-endian, 0004 candidate arith256_mod, 0005 evmc word compares and copy-free host trampolines |
+| Patches | 0001 ziskethone (SSZ witness state, lazy rows, RV64 word paths), 0002 blst 64-bit limbs, 0003 intx byte-wise big-endian, 0004 candidate arith256_mod, 0005 evmc word compares and copy-free host trampolines; 0006-0017 interpreter; 0020/0021 candidate curves; 0023 v3 modexp; 0025 code digest in the ZEG0 contract record; 0026 blst constant-limb Montgomery product; 0027 ziskethone word copies; `wip/0024` translated segments (parked, not applied: measured slower) |
 | Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
 | secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
 | Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
@@ -120,6 +120,16 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
   per-opcode moves); host storage/log calls pass `msg->recipient` in place;
   sentinel JUMPDEST scan over the padded copy, unrolled by four; LT/GT/SLT/SGT
   join the fused `PUSH2 JUMPI` set. Measurements: `notes/client-interpreter.md`.
+- **Client pass 2 (glue, patches 0025-0027).** Memory functions: 32-byte
+  funnel copy for misaligned sources, word heads/tails (one aligned RMW each)
+  for memset and around the admitted service calls, service only from 64
+  bytes. Contract codes are hashed while they are copied into ZEG0 (patch
+  0025 carries the digest in the record: `u64 size | keccak256 | code | pad`).
+  blst's portable Montgomery product runs with a constant limb count (patch
+  0026). Hot evmc bytes32/address copies in ziskethone use `zisk_xmemcpy` (patch 0027); the secp glue's 96-byte
+  point copies, the SHA-256 block copy and the Keccak first-block absorb are
+  forced inline instead of memcpy calls. Measurements:
+  `autoresearch/guest_efficiency/notes/client-pass2-20261102.md`.
 
 ## Tests
 
@@ -137,6 +147,12 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 - `tests/trie_differential.cpp`: witness trie vs a from-scratch reference MPT
   encoder (lookups, puts/removes over several root rounds, embedded nodes;
   partial witnesses report Missing and abort on mutation).
+- `tests/keccak_copy_test.cpp`: the fused copy + Keccak-256 of contract
+  codes vs `ethash_keccak256` (0..700 bytes, every source alignment).
+- `tests/jumpdest_scan_test.cpp`: the guest-only sentinel JUMPDEST scan vs
+  evmone's reference scan (200k codes).
+- `tests/xlat_difffuzz.cpp`: fused cgoto vs plain switch dispatch (plus the
+  parked xlat dispatch when `wip/0024` is applied).
 - `tests/zeg_words_test.cpp`: the patched word paths (seeded hash, non-zero
   byte count, flat row index, fixed-size compare/copy at every alignment).
 
