@@ -4,6 +4,7 @@ const std = @import("std");
 const R = @import("../services/roster.zig");
 const W = @import("../services/wire.zig");
 const K = @import("../keccak/shared/roster.zig");
+const KeccakPolicy = @import("stwo_riscv_frontend").rv64_air.crypto.keccak.equations.BatchPolicy;
 const S = @import("../secp/roster.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
@@ -17,13 +18,13 @@ pub const Owner = struct {
     keccak_owners: std.ArrayList(*K.TruthSetup) = .{},
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, false, Suite.production(), .{});
+        return initPolicy(a, image, cpu, truth, false, Suite.production(), .{}, .triple_v2);
     }
     pub fn initRetiring(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, true, Suite.production(), .{});
+        return initPolicy(a, image, cpu, truth, true, Suite.production(), .{}, .triple_v2);
     }
     pub fn initWithSuite(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite) !Owner {
-        return initPolicy(a, image, cpu, truth, retire, suite, .{});
+        return initPolicy(a, image, cpu, truth, retire, suite, .{}, .triple_v2);
     }
     pub fn initWithNativeCache(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, cache: *const NativeCache.Cache) !Owner {
         return initWithSuiteAndNativeCache(a, image, cpu, truth, false, Suite.production(), cache);
@@ -35,9 +36,13 @@ pub const Owner = struct {
         return initWithSuiteAndCaches(a, image, cpu, truth, retire, suite, .{ .native = cache });
     }
     pub fn initWithSuiteAndCaches(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
-        return initPolicy(a, image, cpu, truth, retire, suite, caches);
+        return initPolicy(a, image, cpu, truth, retire, suite, caches, .triple_v2);
     }
-    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
+    /// Caller supplies the trusted profile; producer declarations carry no mode.
+    pub fn initWithSuiteCachesAndKeccakPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches, keccak_policy: KeccakPolicy) !Owner {
+        return initPolicy(a, image, cpu, truth, retire, suite, caches, keccak_policy);
+    }
+    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches, keccak_policy: KeccakPolicy) !Owner {
         try suite.validate();
         const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
         const truths = a.alloc(R.Truth, truth.len) catch |err| {
@@ -68,7 +73,7 @@ pub const Owner = struct {
         for (truth, truths) |d, *out| switch (d.family) {
             .keccak => {
                 var found: ?*const K.TruthSetup = null;
-                for (self.keccak_owners.items) |s| if (s.log == d.logs[0]) {
+                for (self.keccak_owners.items) |s| if (s.log == d.logs[0] and s.policy == keccak_policy) {
                     found = s;
                     break;
                 };
@@ -76,7 +81,7 @@ pub const Owner = struct {
                     try self.keccak_owners.ensureUnusedCapacity(a, 1);
                     const s = try a.create(K.TruthSetup);
                     errdefer a.destroy(s);
-                    s.* = try K.TruthSetup.initWithSuite(a, d.logs[0], suite);
+                    s.* = try K.TruthSetup.initWithSuiteAndPolicy(a, d.logs[0], suite, keccak_policy);
                     self.keccak_owners.appendAssumeCapacity(s);
                     found = s;
                 }

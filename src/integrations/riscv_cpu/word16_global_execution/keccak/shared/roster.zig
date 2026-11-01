@@ -101,6 +101,9 @@ pub const CpuSource = struct {
         return out;
     }
 };
+pub fn truthWidths(policy: K.equations.BatchPolicy) [3]usize {
+    return .{ K.layout.FIXED + 14, K.layout.MAIN + 2, policy.interactionCount() + 8 };
+}
 pub const TruthSetup = struct {
     allocator: std.mem.Allocator,
     log: u32,
@@ -108,11 +111,20 @@ pub const TruthSetup = struct {
     chi: K.tables.Trace,
     xor5: K.tables.Trace,
     key: Key,
-    pub const WIDTHS = [3]usize{ K.layout.FIXED + 14, K.layout.MAIN + 2, K.layout.INTERACTION + 8 };
+    policy: K.equations.BatchPolicy = .triple_v2,
+    /// Default geometry stays a legacy constant for existing scoped routes.
+    pub const WIDTHS = truthWidths(.triple_v2);
+    pub fn columnWidths(self: *const TruthSetup) [3]usize {
+        return truthWidths(self.policy);
+    }
     pub fn init(a: std.mem.Allocator, log: u32) !TruthSetup {
         return initWithSuite(a, log, Key.Suite.production());
     }
     pub fn initWithSuite(a: std.mem.Allocator, log: u32, suite: Key.Suite) !TruthSetup {
+        return initWithSuiteAndPolicy(a, log, suite, .triple_v2);
+    }
+    /// Policy is independently chosen by the receiver, never a bundle field.
+    pub fn initWithSuiteAndPolicy(a: std.mem.Allocator, log: u32, suite: Key.Suite, policy: K.equations.BatchPolicy) !TruthSetup {
         try suite.validate();
         if (log > 21) return error.SharedTruthGeometryBudget;
         try K.layout.validateGeometry(0, 1, log);
@@ -122,7 +134,7 @@ pub const TruthSetup = struct {
         errdefer chi.deinit();
         var xor = try K.tables.Trace.init(a, .xor5, &(@as([1024]u64, @splat(0))));
         errdefer xor.deinit();
-        var self = TruthSetup{ .allocator = a, .log = log, .fixed = fixed, .chi = chi, .xor5 = xor, .key = undefined };
+        var self = TruthSetup{ .allocator = a, .log = log, .fixed = fixed, .chi = chi, .xor5 = xor, .key = undefined, .policy = policy };
         const cols = try self.fixedColumns(a);
         defer a.free(cols);
         self.key = try Key.sealWithSuite(a, cols, suite);
@@ -143,8 +155,8 @@ pub const TruthSetup = struct {
         return out;
     }
     pub fn logs(self: *const TruthSetup, a: std.mem.Allocator, tree: usize) ![]u32 {
-        const out = try a.alloc(u32, WIDTHS[tree]);
-        const widths = if (tree == 0) [3]usize{ K.layout.FIXED, 7, 7 } else if (tree == 1) [3]usize{ K.layout.MAIN, 1, 1 } else [3]usize{ K.layout.INTERACTION, 4, 4 };
+        const out = try a.alloc(u32, self.columnWidths()[tree]);
+        const widths = if (tree == 0) [3]usize{ K.layout.FIXED, 7, 7 } else if (tree == 1) [3]usize{ K.layout.MAIN, 1, 1 } else [3]usize{ self.policy.interactionCount(), 4, 4 };
         var at: usize = 0;
         for (widths, [3]u32{ self.log, 13, 10 }) |w, l| {
             @memset(out[at..][0..w], l);
@@ -154,6 +166,7 @@ pub const TruthSetup = struct {
     }
 };
 pub const TruthSource = struct {
+    policy: K.equations.BatchPolicy = .triple_v2,
     permutation: K.trace.Trace,
     chi: K.tables.Trace,
     xor5: K.tables.Trace,
@@ -161,12 +174,15 @@ pub const TruthSource = struct {
         return initSpan(a, inputs, 1, log);
     }
     pub fn initSpan(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32) !TruthSource {
+        return initSpanWithPolicy(a, inputs, first_id, log, .triple_v2);
+    }
+    pub fn initSpanWithPolicy(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32, policy: K.equations.BatchPolicy) !TruthSource {
         var p = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
         errdefer p.deinit();
         const counts = try K.interaction.Counts.fromTrace(&p);
         var c = try K.tables.Trace.init(a, .chi, &counts.chi);
         errdefer c.deinit();
-        return .{ .permutation = p, .chi = c, .xor5 = try K.tables.Trace.init(a, .xor5, &counts.xor5) };
+        return .{ .permutation = p, .chi = c, .xor5 = try K.tables.Trace.init(a, .xor5, &counts.xor5), .policy = policy };
     }
     pub fn deinit(self: *TruthSource) void {
         self.xor5.deinit();
@@ -179,7 +195,7 @@ pub const TruthSource = struct {
         try self.xor5.releaseMain();
     }
     pub fn columns(self: *const TruthSource, a: std.mem.Allocator, tree: usize) ![]Col {
-        const out = try a.alloc(Col, TruthSetup.WIDTHS[tree]);
+        const out = try a.alloc(Col, truthWidths(self.policy)[tree]);
         var at: usize = 0;
         V1.append(out, &at, if (tree == 1) self.permutation.main else self.permutation.interaction, self.permutation.log_size);
         V1.append(out, &at, if (tree == 1) self.chi.main else self.chi.interaction, 13);

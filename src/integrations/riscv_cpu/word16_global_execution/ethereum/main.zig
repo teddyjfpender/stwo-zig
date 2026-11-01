@@ -62,11 +62,11 @@ pub fn main() !void {
         var trusted_program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
         defer trusted_program.deinit();
         _ = try Receiver.expected(&image, trusted_program.identity, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
-        var keys = try Keys.initWithSuiteAndCaches(a, &image, loaded.cpu_declarations, loaded.truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache });
+        var keys = try Keys.initWithSuiteCachesAndKeccakPolicy(a, &image, loaded.cpu_declarations, loaded.truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache }, config.value.word16_keccak_truth_policy);
         defer keys.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verify(a, &image, &keys, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
-        return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
+        return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .accepted = true, .keccak_truth_policy = @tagName(config.value.word16_keccak_truth_policy), .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     }
     const count = try std.fmt.parseUnsigned(u32, args[5], 10);
     var jobs = try std.fs.cwd().openDir(args[3], .{});
@@ -86,7 +86,7 @@ pub fn main() !void {
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
-    var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache });
+    var keys = try Keys.initWithSuiteCachesAndKeccakPolicy(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache }, config.value.word16_keccak_truth_policy);
     defer keys.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = config.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     // Full completion is explicit. Prefix fixtures can never accidentally
@@ -112,7 +112,7 @@ pub fn main() !void {
     const verify_ns = timer.read() - verify_start;
     const publish_start = timer.read();
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
+    try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .keccak_truth_policy = @tagName(config.value.word16_keccak_truth_policy), .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {

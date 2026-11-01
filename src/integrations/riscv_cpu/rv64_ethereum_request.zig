@@ -23,6 +23,9 @@ pub const Config = struct {
     control_policy: @import("stwo_riscv_frontend").rv64_air.control_policy.Policy = .bytes_v1,
     state_policy: @import("stwo_riscv_frontend").rv64_air.state_policy.Policy = .cyclic_v2,
     diagnose_constraints: enum { none, cpu, ram, arithmetic, crypto, providers, all } = .none,
+    /// Independently supplied receiver proof authority, not execution/packet
+    /// identity and never selected from a producer bundle. Default unchanged.
+    word16_keccak_truth_policy: @import("stwo_riscv_frontend").rv64_air.crypto.keccak.equations.BatchPolicy = .triple_v2,
     profile_stages: bool = true,
     diagnose_allocations: bool = false,
 };

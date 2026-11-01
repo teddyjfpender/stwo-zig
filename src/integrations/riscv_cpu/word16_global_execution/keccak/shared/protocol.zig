@@ -57,6 +57,7 @@ pub fn validateSpans(truths: []const Truth, calls: u32) !void {
     if (truths.len == 0 or truths.len > 65534) return error.InvalidSharedTruthInventory;
     var first: u64 = 1;
     for (truths) |t| {
+        if (t.setup.policy != .triple_v2) return error.UnsupportedLegacyKeccakTruthPolicy;
         if (t.first_id != first or (t.calls == 0 and (truths.len != 1 or calls != 0))) return error.InvalidSharedTruthSpan;
         // Chi/xor challenges are LOCAL to this proof. Do not sum their mass
         // across independent local families; common IO mass is checked above.

@@ -307,7 +307,7 @@ pub const TruthSource = union(enum) {
                     offset += cc.len;
                 }
                 if (written != t.calls) return error.InvalidCombinedTruthSpan;
-                break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpan(a, inputs, t.first_id, t.setup.log) };
+                break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpanWithPolicy(a, inputs, t.first_id, t.setup.log, t.setup.policy) };
             },
             .secp => |t| block: {
                 const inputs = try a.alloc(S.types.Call, t.calls);
@@ -359,7 +359,7 @@ pub const TruthSource = union(enum) {
                     protected[i] = part.fixed;
                     protected[3 + i] = if (tree == 1) part.interaction else part.main;
                     matrices[i] = if (tree == 1) &part.main else &part.interaction;
-                    const width: usize = if (i == 0) (if (tree == 1) A.crypto.keccak.layout.MAIN else A.crypto.keccak.layout.INTERACTION) else (if (tree == 1) 1 else 4);
+                    const width: usize = if (i == 0) (if (tree == 1) A.crypto.keccak.layout.MAIN else s.policy.interactionCount()) else (if (tree == 1) 1 else 4);
                     expected[i] = try std.math.mul(usize, width, part.size());
                 }
             },

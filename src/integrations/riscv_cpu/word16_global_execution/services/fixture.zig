@@ -137,6 +137,9 @@ pub const Case = struct {
         return initMutationWithSuite(a, .none, suite);
     }
     fn initMutationWithSuite(a: std.mem.Allocator, mutation: Mutation, suite: @import("../../word16_execution/pcs_suite.zig").Suite) !Case {
+        return initMutationWithKeccakPolicy(a, mutation, suite, .triple_v2);
+    }
+    pub fn initMutationWithKeccakPolicy(a: std.mem.Allocator, mutation: Mutation, suite: @import("../../word16_execution/pcs_suite.zig").Suite, policy: K.equations.BatchPolicy) !Case {
         try suite.validate();
         var captured = try Captured.init(a);
         defer captured.deinit();
@@ -172,7 +175,7 @@ pub const Case = struct {
         errdefer s1.deinit();
         const kt = try a.create(KR.TruthSetup);
         errdefer a.destroy(kt);
-        kt.* = try KR.TruthSetup.initWithSuite(a, 5, suite);
+        kt.* = try KR.TruthSetup.initWithSuiteAndPolicy(a, 5, suite, policy);
         errdefer kt.deinit();
         const at = try a.create(SR.TruthSetup);
         errdefer a.destroy(at);

@@ -60,13 +60,37 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
     };
     return out;
 }
+// Reuse the existing policy tag; no protocol/version enum or generic AIR type.
+const KeccakTruthComponents = union(K.equations.BatchPolicy) {
+    triple_v2: [3]K.component.Component,
+    quartet_v3: struct { permutation: K.quartet_component.Component, chi: K.component.Component, xor5: K.component.Component },
+    fn init(setup: *const @import("../keccak/shared/roster.zig").TruthSetup, first: u32, calls: u32, ch: K.equations.Challenges, claims: [3]Q) KeccakTruthComponents {
+        var base = @import("../keccak/shared/execution.zig").truthComponents(setup, first, calls, ch, claims);
+        if (setup.policy == .triple_v2) return .{ .triple_v2 = base };
+        base[1].offsets.interaction = setup.policy.interactionCount();
+        base[2].offsets.interaction = setup.policy.interactionCount() + 4;
+        return .{ .quartet_v3 = .{ .permutation = .{ .base = base[0] }, .chi = base[1], .xor5 = base[2] } };
+    }
+    fn provers(self: *const KeccakTruthComponents) [3]engine.air.component_prover.ComponentProver {
+        return switch (self.*) {
+            .triple_v2 => |*c| .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
+            .quartet_v3 => |*c| .{ c.permutation.asProverComponent(), c.chi.asProverComponent(), c.xor5.asProverComponent() },
+        };
+    }
+    fn verifiers(self: *const KeccakTruthComponents) [3]core.air.components.Component {
+        return switch (self.*) {
+            .triple_v2 => |*c| .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
+            .quartet_v3 => |*c| .{ c.permutation.asVerifierComponent(), c.chi.asVerifierComponent(), c.xor5.asVerifierComponent() },
+        };
+    }
+};
 pub const TruthComponents = union(enum) {
-    keccak: [3]K.component.Component,
+    keccak: KeccakTruthComponents,
     secp: @import("../secp/execution.zig").TruthComponents,
     pub fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
         return switch (truth) {
             .keccak => |t| switch (ch) {
-                .keccak => |kc| .{ .keccak = @import("../keccak/shared/execution.zig").truthComponents(t.setup, t.first_id, t.calls, kc, claims) },
+                .keccak => |kc| .{ .keccak = KeccakTruthComponents.init(t.setup, t.first_id, t.calls, kc, claims) },
                 else => error.InvalidCombinedTruthChallenge,
             },
             .secp => |t| switch (ch) {
@@ -77,13 +101,13 @@ pub const TruthComponents = union(enum) {
     }
     pub fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
         return switch (self.*) {
-            .keccak => |*c| .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
+            .keccak => |*c| c.provers(),
             .secp => |*c| c.provers(),
         };
     }
     pub fn verifiers(self: *const TruthComponents) [3]core.air.components.Component {
         return switch (self.*) {
-            .keccak => |*c| .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
+            .keccak => |*c| c.verifiers(),
             .secp => |*c| c.verifiers(),
         };
     }

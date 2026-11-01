@@ -95,6 +95,9 @@ pub const Worker = struct {
     retained_store: ?*@import("../retained_main_store.zig").Store = null,
     pub fn init(a: std.mem.Allocator, descriptor: Descriptor, source: Source) !Worker {
         if ((descriptor == .cpu) != (source == .cpu)) return error.ServiceWorkerKindMismatch;
+        if (descriptor == .truth and descriptor.truth.value == .keccak) {
+            if (source.truth != .keccak or source.truth.keccak.policy != descriptor.truth.value.keccak.setup.policy) return error.ServiceTruthPolicyMismatch;
+        }
         try descriptor.key().suite.validate();
         var scheme = try G.T.Scheme.init(a, descriptor.key().suite.config());
         scheme.setCompactPolynomialStorage(5);
@@ -236,7 +239,7 @@ pub const Worker = struct {
 fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
     return switch (source.*) {
         .keccak => |*s| switch (draw) {
-            .keccak => |ch| .{ try A.crypto.keccak.interaction.generate(&s.permutation, ch), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
+            .keccak => |ch| .{ if (s.policy == .triple_v2) try A.crypto.keccak.interaction.generate(&s.permutation, ch) else try A.crypto.keccak.interaction.generateForPolicy(&s.permutation, ch, .quartet_v3, .{ .pool = engine.work_pool.currentScopedPool() }), try s.chi.generateInteraction(ch), try s.xor5.generateInteraction(ch) },
             else => error.InvalidCombinedTruthChallenge,
         },
         .secp => |*s| switch (draw) {

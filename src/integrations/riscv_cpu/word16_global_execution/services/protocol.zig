@@ -116,7 +116,12 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
     ch.mixU64(expected.final_pc);
     for (expected.final_registers) |x| ch.mixU64(x);
     switch (truth) {
-        .keccak => |t| ch.mixU32s(&.{ t.setup.log, 13, 10, K.layout.FIXED, K.layout.MAIN, K.layout.INTERACTION, 11 }),
+        .keccak => |t| {
+            // Preserve the complete default transcript. The opt-in authority
+            // is mixed before fixed/MAIN commitments and all lookup challenges.
+            if (t.setup.policy == .quartet_v3) t.setup.policy.mix(ch);
+            ch.mixU32s(&.{ t.setup.log, 13, 10, K.layout.FIXED, K.layout.MAIN, @intCast(t.setup.policy.interactionCount()), 11 });
+        },
         .secp => |t| {
             const policy = @import("../secp/roster.zig").TruthSetup.byte_policy;
             S.byte_encoding.mix(ch, policy);
