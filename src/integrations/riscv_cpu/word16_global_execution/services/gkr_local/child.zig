@@ -71,7 +71,7 @@ pub fn parseTreeCheckpoints(value: ?[]const u8) !bool {
     if (std.mem.eql(u8, text, "2")) return true;
     return error.InvalidGkrTreeCheckpointPolicy;
 }
-fn treeCheckpoints(a: std.mem.Allocator) !bool {
+pub fn treeCheckpoints(a: std.mem.Allocator) !bool {
     const value = std.process.getEnvVarOwned(a, "STWO_ZIG_GKR_TREE_CHECKPOINTS") catch |err| switch (err) {
         error.EnvironmentVariableNotFound => return false,
         else => return err,
@@ -102,13 +102,15 @@ pub const Unbound = struct {
         return proveTimed(a, limit, scope, instances, provider, null);
     }
     pub fn proveTimed(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, timing: ?*PhaseTiming) !*Unbound {
-        const checkpointed = try treeCheckpoints(a);
+        return proveTimedWithCheckpoints(a, limit, scope, instances, provider, try treeCheckpoints(a), timing);
+    }
+    pub fn proveTimedWithCheckpoints(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, checkpointed: bool, timing: ?*PhaseTiming) !*Unbound {
         const metrics = try treeMetrics(a);
-        const plan = try Resource.Plan.forInstances(instances, limit);
+        const plan = try Resource.Plan.forInstancesWithOwnedCheckpoints(instances, limit, checkpointed);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
-        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
+        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, if (checkpointed) plan.peak_bytes else limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
         const challenges = Challenges.draw(&ch);

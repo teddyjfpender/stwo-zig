@@ -55,9 +55,12 @@ fn rows(log: u32) !usize {
     return @as(usize, 1) << @intCast(log);
 }
 pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize) !RetentionPlan {
+    return forCpuWithOwnedCheckpoints(a, setup, request, config, gkr_limit, global_limit, false);
+}
+pub fn forCpuWithOwnedCheckpoints(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, config: W.PcsConfig, gkr_limit: usize, global_limit: usize, checkpointed: bool) !RetentionPlan {
     const instances = try @import("roster.zig").fromSetup(a, setup);
     defer a.free(instances);
-    const numerical = try @import("resource.zig").Plan.forInstances(instances, gkr_limit);
+    const numerical = try @import("resource.zig").Plan.forInstancesWithOwnedCheckpoints(instances, gkr_limit, checkpointed);
     var plan = try Components.Plan.init(a, setup);
     defer plan.deinit();
     const logs = try setup.logs(a, 1);
