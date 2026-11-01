@@ -30,7 +30,7 @@ fn lift(comptime n: usize, values: [n]M) [n]O {
     for (&out, values) |*v, m| v.* = O.fromBase(m);
     return out;
 }
-fn keccakSource() !R.TruthSource {
+pub fn keccakSource() !R.TruthSource {
     const T = @FieldType(R.TruthSource, "keccak");
     var input: [2]K.trace.State = undefined;
     for (&input, 0..) |*state, i| for (state, 0..) |*lane, j| {
@@ -38,7 +38,7 @@ fn keccakSource() !R.TruthSource {
     };
     return .{ .keccak = try T.initSpan(a, &input, 3, 5) };
 }
-fn secpSource(policy: S.layout.BytePolicy) !R.TruthSource {
+pub fn secpSource(policy: S.layout.BytePolicy) !R.TruthSource {
     const input = [_]S.trace.Input{.{ .coordinates = .{ 1, 2, 3, 4, 5, 6 } }};
     const program = S.program.get(.add);
     var batch = try S.batch.Batch.initWithLogsForPolicy(a, program, &input, 5, try S.layout.logSize(.product, program, 1), try S.layout.logSize(.linear, program, 1), policy);

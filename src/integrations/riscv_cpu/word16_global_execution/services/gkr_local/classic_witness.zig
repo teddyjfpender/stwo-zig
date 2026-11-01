@@ -10,7 +10,7 @@ const Commit = @import("../../../word16_execution/main_ownership.zig").Commit;
 pub const MAX_TERMS = 32;
 pub const MAX_GROUPS = 4;
 pub const ROW_CHUNK = 256;
-pub const Group = struct { inverses: u8 };
+pub const Group = struct { inverses: u16 };
 pub const Numerator = union(enum) {
     base: M,
     secure: O,
@@ -37,6 +37,13 @@ pub const Witness = struct {
         return self.claims[0..self.group_count];
     }
     pub fn init(allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
+        return initBounded(MAX_TERMS, allocator, log, groups, provider, budget);
+    }
+    /// Explicit separately admitted wide truth catalog; CPU callers retain32.
+    pub fn initTruth(allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
+        return initBounded(640, allocator, log, groups, provider, budget);
+    }
+    fn initBounded(comptime max_terms: usize, allocator: std.mem.Allocator, log: u32, groups: []const Group, provider: anytype, budget: usize) !Witness {
         if (log < 5 or log > 22 or groups.len == 0 or groups.len > MAX_GROUPS) return error.InvalidClassicWitnessShape;
         var terms: usize = 0;
         var width_: usize = 0;
@@ -45,7 +52,7 @@ pub const Witness = struct {
             terms += g.inverses;
             width_ += 8 * (@as(usize, g.inverses) + 1);
         }
-        if (terms > MAX_TERMS) return error.InvalidClassicWitnessShape;
+        if (terms > max_terms) return error.InvalidClassicWitnessShape;
         const rows = @as(usize, 1) << @intCast(log);
         const cells = try std.math.mul(usize, width_, rows);
         const scratch_terms = try std.math.mul(usize, @min(rows, ROW_CHUNK), terms);
