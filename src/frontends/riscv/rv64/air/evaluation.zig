@@ -142,6 +142,7 @@ pub fn SecureFor(comptime F: type) type {
 }
 pub const secureTypeFor = SecureFor;
 pub inline fn qFor(comptime F: type, value: u32) F {
+    if (F == M) return M.fromCanonical(value);
     if (F == Q) return q(value);
     if (F == NativeO) return NativeO.fromBase(M.fromCanonical(value));
     if (F == PackedFields.PackedOmBase) return F.fromCanonical(value);

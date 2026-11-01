@@ -12,11 +12,12 @@ const R = @import("../roster.zig");
 const Frame = @import("frame.zig");
 const F = @import("fractions.zig");
 const Sink = @import("inputs.zig").RowSink;
-fn lift(values: anytype) [values.len]O {
-    var out: [values.len]O = undefined;
-    for (values, &out) |v, *d| d.* = O.fromBase(v);
-    return out;
-}
+const BaseSink = struct {
+    target: *Sink,
+    pub fn emit(self: *@This(), relation: F.Relation, tuple: anytype, weight: M) void {
+        self.target.emitBase(relation, tuple, weight);
+    }
+};
 fn count(value: u64) !M {
     if (value >= core.fields.m31.Modulus) return error.LocalGkrMultiplicityMass;
     return M.fromCanonical(@intCast(value));
@@ -30,6 +31,7 @@ pub const Provider = struct {
     source: *const R.Sources,
     pub fn emit(self: Provider, instance: Frame.Instance, logical: usize, sink: *Sink) !void {
         if (logical >= try instance.rows()) return error.LocalGkrMetadataShape;
+        var base_sink = BaseSink{ .target = sink };
         switch (instance.origin) {
             .core => |role| try self.emitCore(role, logical, sink),
             .bridge => |family| switch (family) {
@@ -38,9 +40,9 @@ pub const Provider = struct {
                     const lane = logical % 25;
                     const index = logical / 25;
                     const m = A.crypto.keccak.word16_bridge.source.nativeRow(if (index < s.calls.len) s.calls[index] else null, lane, s.first_id + @as(u32, @intCast(index)));
-                    var f = [_]O{O.zero()} ** 6;
-                    f[4] = O.fromBase(M.fromCanonical(@intFromBool(lane == 0)));
-                    F.keccakBridgeFor(O, &f, &lift(m), sink);
+                    var f = [_]M{M.zero()} ** 6;
+                    f[4] = M.fromCanonical(@intFromBool(lane == 0));
+                    F.keccakBridgeFor(M, &f, &m, &base_sink);
                 },
                 .add, .double => {
                     const s = (if (family == .add) self.source.add else self.source.double) orelse return error.MissingLocalGkrBridge;
@@ -48,20 +50,21 @@ pub const Provider = struct {
                     const coord = logical % coords;
                     const index = logical / coords;
                     const m = A.crypto.secp256k1.word16_bridge.source.nativeRow(s.kind, if (index < s.calls.len) s.calls[index] else null, coord, s.first_id + @as(u32, @intCast(index)));
-                    var f = [_]O{O.zero()} ** 8;
-                    f[4] = O.fromBase(M.fromCanonical(@intFromBool(coord == 0)));
-                    F.secpBridgeFor(O, s.kind, &f, &lift(m), sink);
+                    var f = [_]M{M.zero()} ** 8;
+                    f[4] = M.fromCanonical(@intFromBool(coord == 0));
+                    F.secpBridgeFor(M, s.kind, &f, &m, &base_sink);
                 },
             },
         }
     }
     fn emitCore(self: Provider, role: @import("../../../word16_execution/geometry.zig").Role, i: usize, sink: *Sink) !void {
         const s = &self.source.core;
+        var base_sink = BaseSink{ .target = sink };
         switch (role) {
             .cpu => {
                 const main = try s.cpu.row(i);
-                const fixed = [_]O{ O.fromBase(M.fromCanonical(@intCast(i))), O.zero(), O.zero() };
-                F.cpuFor(O, &fixed, &lift(main), O.fromBase(M.fromCanonical(s.cpu.epoch)), sink);
+                const fixed = [_]M{ M.fromCanonical(@intCast(i)), M.zero(), M.zero() };
+                F.cpuFor(M, &fixed, &main, M.fromCanonical(s.cpu.epoch), &base_sink);
             },
             .rom => sink.emitBase(.rom, try s.rom.program.tupleAt(i), (try count(s.rom.counts[X.layout.physical(i, s.rom.program.log_size)])).neg()),
             .boundary => {
@@ -111,17 +114,17 @@ pub const Provider = struct {
                 for (0..5) |query| sink.emitBase(.range16, [1]M{M.fromCanonical(Support.range(meta, query))}, M.one());
                 sink.emitBase(.function, payload(meta), (try count(meta.multiplicity())).neg());
             },
-            .jalr => F.jalrFor(O, &lift(s.jalr.rowValues(i)), sink),
+            .jalr => F.jalrFor(M, &s.jalr.rowValues(i), &base_sink),
             .division => {
                 const q = s.division.metadata[i].queryRow();
-                var row: [q.len]O = undefined;
-                for (q, &row) |v, *d| d.* = O.fromBase(v.toM31Array()[0]);
-                F.divisionFor(O, &row, sink);
+                var row: [q.len]M = undefined;
+                for (q, &row) |v, *d| d.* = v.toM31Array()[0];
+                F.divisionFor(M, &row, &base_sink);
             },
             .multiplication => {
                 const L = A.arithmetic.multiplication.layout;
                 const row = if (i < s.multiplication.request_metadata.len) try A.arithmetic.multiplication.trace.row(s.multiplication.request_metadata[i]) else [_]M{M.zero()} ** L.MAIN;
-                F.multiplicationFor(O, &lift(row), sink);
+                F.multiplicationFor(M, &row, &base_sink);
             },
             .ls, .ls_tail => {
                 const source = if (role == .ls) &s.memory.ls else &(s.memory.ls_tail orelse return error.MissingLocalGkrTail);
