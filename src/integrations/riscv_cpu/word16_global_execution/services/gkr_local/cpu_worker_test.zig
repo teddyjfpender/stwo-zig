@@ -6,7 +6,8 @@ const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 const Worker = @import("cpu_worker.zig");
 const Manifest = @import("manifest.zig");
-fn exercise(comptime shard: usize, comptime fail_seal: bool) !void {
+const Mode = enum { normal, early_seal, parked_abort, later_worker_oom };
+fn exercise(comptime shard: usize, comptime mode: Mode) !void {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
     const a = failing.allocator();
     var captured = try F.Captured.init(a);
@@ -39,8 +40,9 @@ fn exercise(comptime shard: usize, comptime fail_seal: bool) !void {
     defer store.deinit();
     var worker = try Worker.CpuWorker.init(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30);
     owns = false;
-    defer worker.deinit(a);
-    if (fail_seal) {
+    var owns_worker = true;
+    defer if (owns_worker) worker.deinit(a);
+    if (mode == .early_seal) {
         failing.fail_index = failing.alloc_index;
         try std.testing.expectError(error.OutOfMemory, worker.seal(a));
         failing.fail_index = std.math.maxInt(usize);
@@ -52,6 +54,35 @@ fn exercise(comptime shard: usize, comptime fail_seal: bool) !void {
     try worker.retireLocalMetadata();
     try std.testing.expect(try worker.spillMain(&store) > 0);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+    if (mode == .parked_abort or mode == .later_worker_oom) {
+        if (mode == .later_worker_oom) {
+            const next = &captured.native[1];
+            var next_setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try next.geometry(), .{ .add = 5, .double = 5 });
+            defer next_setup.deinit();
+            const next_request = P.Request{ .calls = .{ 0, 1, 1 }, .base = .{ .cpu = next.cpu.?.public, .epoch = 2, .division_requests = @intCast(next.division.len), .multiplication_requests = @intCast(next.multiplication.len), .memory = .{ .initial = &.{}, .terminal = captured.advice.terminal, .epoch = 2, .ls_count = @intCast(captured.advice.events[1].len) } } };
+            var next_source = try @import("../pipeline.zig").buildCpuSource(a, &next_setup, next_request, next, &captured.advice, 1, .{ 1, 1, 1 }, false, null);
+            var owns_next_source = true;
+            defer if (owns_next_source) next_source.deinit();
+            const next_instances = try @import("roster.zig").fromSetup(a, &next_setup);
+            defer a.free(next_instances);
+            const next_expected = Manifest.ExpectedWorker{ .kind = .cpu, .ordinal = 1, .statement = Worker.cpuStatement(&next_setup, next_request, .{ 1, 1, 1 }, config), .fixed = next_setup.key.root, .local_instances = next_instances, .mass = try Worker.cpuMass(next_request), .global_relations = .{ .ram = true, .kio = false, .wire = true } };
+            var later = try Worker.CpuWorker.init(a, &next_setup, next_request, next_source, next_expected, config, .{ 1, 1, 1 }, 2 << 30);
+            owns_next_source = false;
+            defer later.deinit(a);
+            failing.fail_index = failing.alloc_index;
+            try std.testing.expectError(error.OutOfMemory, later.seal(a));
+            failing.fail_index = std.math.maxInt(usize);
+            // The previous parked worker remains owned throughout this failure.
+            try std.testing.expect(store.stats().live_bytes > 0);
+            try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+        }
+        worker.deinit(a);
+        owns_worker = false;
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+        try std.testing.expect(store.parking.head == null and store.owners == null);
+        return;
+    }
     try std.testing.expect(try worker.restoreMain(&store) > 0);
     try std.testing.expectEqualSlices(u8, &stage.main, &worker.scheme.trees.items[1].root());
     var pending = try Manifest.verifyAndSeal(a, @splat(0x91), &.{expected}, &.{stage});
@@ -93,12 +124,19 @@ fn exercise(comptime shard: usize, comptime fail_seal: bool) !void {
 }
 
 test "actual CPU Keccak services shard local GKR and physical OM proof fresh verify" {
-    try exercise(0, false);
+    try exercise(0, .normal);
 }
 test "actual CPU ADD DOUBLE shard local GKR and physical OM proof fresh verify" {
-    try exercise(1, false);
+    try exercise(1, .normal);
 }
 
 test "CPU worker stage-one early OOM destroys its retained owners once" {
-    try exercise(0, true);
+    try exercise(0, .early_seal);
+}
+
+test "CPU parked worker abort tears down FD registry and store without restore" {
+    try exercise(0, .parked_abort);
+}
+test "later CPU stage-one OOM unwinds prior parked worker without stale owners" {
+    try exercise(0, .later_worker_oom);
 }
