@@ -664,8 +664,13 @@ fn referenceCombinedViews(
     return views.toOwnedSlice(a);
 }
 
-test "pooled combined quotient setup matches column-serial reference on random columns" {
+test "coefficient storage pooled combined quotient setup matches column-serial reference on random columns" {
     const a = std.testing.allocator;
+    var pool: @import("../work_pool.zig").WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try @import("../work_pool.zig").ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
     const Executor = @import("quotient_row_executor.zig");
     var prng = std.Random.DefaultPrng.init(0x5eed_9017);
     const random = prng.random();
