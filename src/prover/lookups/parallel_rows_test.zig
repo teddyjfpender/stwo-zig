@@ -112,3 +112,24 @@ test "row kernels fall back without a nested lease and use bounded stack payload
     try std.testing.expect(result[0].eql(O.fromBase(M.fromCanonical(65536))));
     try std.testing.expect(@import("row_work.zig").scratchBytes(O) < 4096);
 }
+
+test "bounded callback ranges honor explicit grain and publish each ordinal once" {
+    const Rows = @import("row_work.zig");
+    const Context = struct {
+        lengths: [Rows.MAX_SHARDS]usize = @splat(0),
+        pub fn runRange(self: *@This(), index: usize, first: usize, end: usize) void {
+            self.lengths[index] = end - first;
+        }
+    };
+    var pool: Pools.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try Pools.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    var context = Context{};
+    const shards = Rows.forEachRange(513, &context, .{ .max_shards = 3, .min_rows_per_shard = 64 });
+    try std.testing.expectEqual(@as(usize, 3), shards);
+    var count: usize = 0;
+    for (context.lengths) |n| count += n;
+    try std.testing.expectEqual(@as(usize, 513), count);
+}
