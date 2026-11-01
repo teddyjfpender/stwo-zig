@@ -414,10 +414,56 @@ inline void to_be(const U256& a, uint8_t* b) {
     }
 }
 
+// ---- recovery hints (input adapter) ----
+// The untrusted adapter may supply, per recovery it observed on the host, the
+// recovered key Q, the y of R = (r, y) and w = s^-1 mod N. A hint is used only
+// after checking s*w = 1, y^2 = r^3 + 7 with parity recid, Q on the curve and
+// (z w) G + (r w) Q = R projectively; that pins Q to the recovery result
+// without a square root or an inversion. Otherwise the full recovery runs.
+struct Hint {
+    U256 z, r, s, qx, qy, ry, w;
+    u64 recid;
+};
+const Hint* g_hints = nullptr;
+size_t g_hint_n = 0;
+
+bool on_curve(const U256& x, const U256& y) {
+    const U256 seven = {{7, 0, 0, 0}};
+    return !geq(x, P) && !geq(y, P) && eq(fe_sqr(y), fe_add(fe_mul(fe_sqr(x), x), seven));
+}
+
+Proj double_mul(const U256& u1, const U256& u2, const Proj& p);
+
+bool recover_hinted(const U256& z, const U256& r, const U256& s, unsigned recid, U256& qx, U256& qy) {
+    for (size_t i = 0; i < g_hint_n; ++i) {
+        const Hint& h = g_hints[i];
+        if (!eq(h.z, z) || !eq(h.r, r) || !eq(h.s, s) || h.recid != recid) continue;
+        const U256 one = {{1, 0, 0, 0}};
+        if (geq(h.w, N) || !eq(sc_mul(s, h.w), one)) return false;
+        if ((h.ry.v[0] & 1) != recid || !on_curve(r, h.ry) || !on_curve(h.qx, h.qy)) return false;
+        const Proj rp = double_mul(sc_mul(z, h.w), sc_mul(r, h.w), Proj{h.qx, h.qy, one});
+        if (is_zero(rp.z) || !eq(fe_mul(r, rp.z), rp.x) || !eq(fe_mul(h.ry, rp.z), rp.y)) return false;
+        qx = h.qx;
+        qy = h.qy;
+        return true;
+    }
+    return false;
+}
+
+#if defined(STWO_HOST)
+void record_hint(const U256& z, const U256& r, const U256& s, unsigned recid, const U256& qx, const U256& qy,
+                 const U256& ry, const U256& w);
+#endif
+
 // Core recover on LE limbs. Returns 0 on success.
 int recover(const U256& z_in, const U256& r, const U256& s, unsigned recid, U256& qx, U256& qy) {
     if (recid > 1) return 1;
     if (is_zero(r) || geq(r, N) || is_zero(s) || geq(s, N)) return 1;
+    {
+        U256 zr = z_in;
+        if (geq(zr, N)) sub_to(zr, zr, N);
+        if (g_hint_n && recover_hinted(zr, r, s, recid, qx, qy)) return 0;
+    }
     // R.x = r (r < N < P); y^2 = r^3 + 7.
     const U256 seven = {{7, 0, 0, 0}};
     const U256 rhs = fe_add(fe_mul(fe_sqr(r), r), seven);
@@ -434,6 +480,9 @@ int recover(const U256& z_in, const U256& r, const U256& s, unsigned recid, U256
     const U256 zi = inv_mod(q.z, P);
     qx = fe_mul(q.x, zi);
     qy = fe_mul(q.y, zi);
+#if defined(STWO_HOST)
+    record_hint(z, r, s, recid, qx, qy, y, inv_mod(s, N));
+#endif
     return 0;
 }
 
@@ -479,6 +528,24 @@ extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be
     const auto h = ethash_keccak256(pubkey65 + 1, 64);
     std::memcpy(addr_out, h.bytes + 12, 20);
     return true;
+}
+
+// Recovery hints from the adapted input (copied; 8 x 32-byte LE values + recid each).
+extern "C" void stwo_secp_set_hints(const uint8_t* p, size_t count) {
+    Hint* h = new Hint[count];
+    for (size_t i = 0; i < count; ++i) {
+        const uint8_t* q = p + i * 232;
+        U256* f[7] = {&h[i].z, &h[i].r, &h[i].s, &h[i].qx, &h[i].qy, &h[i].ry, &h[i].w};
+        for (int k = 0; k < 7; ++k)
+            for (int j = 0; j < 4; ++j) {
+                u64 v = 0;
+                for (int b = 7; b >= 0; --b) v = (v << 8) | q[32 * k + 8 * j + b];
+                f[k]->v[j] = v;
+            }
+        h[i].recid = q[224];
+    }
+    g_hints = h;
+    g_hint_n = count;
 }
 
 // Test hook: drop deferred signatures (the guest itself aborts on failure).
@@ -572,3 +639,25 @@ std::optional<evmc::address> ecrecover(std::span<const uint8_t, 32> hash, std::s
 
 }  // namespace evmone::crypto::secp256k1
 #endif  // STWO_SECP_NO_EVMONE_API
+
+#if defined(STWO_HOST)
+// Host only: record each successful full recovery for the input adapter
+// (STWO_SECP_HINTS_OUT=<file>; 232-byte records, see stwo_secp_set_hints).
+#include <cstdio>
+#include <cstdlib>
+namespace {
+void record_hint(const U256& z, const U256& r, const U256& s, unsigned recid, const U256& qx, const U256& qy,
+                 const U256& ry, const U256& w) {
+    static FILE* f = [] { const char* p = std::getenv("STWO_SECP_HINTS_OUT"); return p ? std::fopen(p, "ab") : nullptr; }();
+    if (!f) return;
+    uint8_t rec[232] = {};
+    const U256* v[7] = {&z, &r, &s, &qx, &qy, &ry, &w};
+    for (int k = 0; k < 7; ++k)
+        for (int j = 0; j < 4; ++j)
+            for (int b = 0; b < 8; ++b) rec[32 * k + 8 * j + b] = uint8_t(v[k]->v[j] >> (8 * b));
+    rec[224] = uint8_t(recid);
+    std::fwrite(rec, 1, sizeof rec, f);
+    std::fflush(f);
+}
+}  // namespace
+#endif

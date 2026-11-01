@@ -46,6 +46,7 @@ extern "C" size_t stwo_heap_used() noexcept;
 extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be[32], const uint8_t s_be[32],
                                       unsigned recid, const uint8_t pubkey65[65], uint8_t addr_out[20]);
 extern "C" void stwo_secp_verify_pending();
+extern "C" void stwo_secp_set_hints(const uint8_t* p, size_t count);
 extern "C" [[noreturn]] void stwo_fatal(const char* why) noexcept { stwo_guest_abort(why); }
 
 namespace {
@@ -719,6 +720,22 @@ void write_output(const H256& root, uint64_t chain_id, uint16_t schema_id) {
 // Runs the whole validation on a canonical SSZ input; returns the output root.
 extern "C" void stwo_validate(const uint8_t* ssz, size_t len, uint8_t out_root[32], uint64_t* chain_id,
                               uint16_t* schema_id) {
+    // Adapted input (client_evmone/adapter.py): "STW1" | u64 ssz_len | SSZ |
+    // zero pad to 8 | u64 hint_count | 232-byte recovery hints. Hints are
+    // untrusted (each is verified before use); the SSZ is the canonical input.
+    if (len >= 12 && std::memcmp(ssz, "STW1", 4) == 0) {
+        const uint64_t sl = le64(ssz + 4);
+        if (sl > len - 12) fail("adapted input: ssz length");
+        const uint8_t* body = ssz + 12;
+        size_t off = 12 + sl;
+        off = (off + 7) & ~size_t(7);
+        if (off + 8 > len) fail("adapted input: hint header");
+        const uint64_t nh = le64(ssz + off);
+        if (nh > (len - off - 8) / 232) fail("adapted input: hint count");
+        stwo_secp_set_hints(ssz + off + 8, nh);
+        ssz = body;
+        len = sl;
+    }
     static Input in;
     in = parse_input(ssz, len);
     g.in = &in;
