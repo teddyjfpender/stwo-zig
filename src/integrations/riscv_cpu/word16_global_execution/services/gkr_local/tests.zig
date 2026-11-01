@@ -339,3 +339,7 @@ test {
 test {
     _ = @import("domain_pool_test.zig");
 }
+
+test {
+    _ = @import("prepared_projection_test.zig");
+}

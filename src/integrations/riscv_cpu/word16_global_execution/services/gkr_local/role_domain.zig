@@ -14,6 +14,7 @@ const S = E.PackedFields.SecureForField(O);
 const P = engine.air.component_prover.ForField(O);
 const D = engine.air.accumulation.ForField(O);
 const B = @import("binding.zig");
+const PreparedProjection = @import("prepared_projection.zig").For(F);
 const Geo = @import("role_geometry.zig");
 const Partition = A.full.coset_evaluation.Evaluation;
 fn packedSecure(values: [][]const M, start: usize, row: usize) S {
@@ -24,7 +25,7 @@ fn packedSecure(values: [][]const M, start: usize, row: usize) S {
 pub const MAX_ROW_SCRATCH_BYTES: usize = 8 * 1024 * 1024;
 pub const MIN_PACKED_BLOCKS_PER_SHARD: usize = 256;
 fn ScratchFor(comptime Component: type) type {
-    return struct { fixed: [Component.MAX_FIXED]F, main: [Component.MAX_MAIN]F, previous: [Component.MAX_MAIN]F, inter: [Geo.maxInter(Component)]F, previous_inter: [Geo.maxInter(Component)]F, weights: [if (Geo.hasLocal(Component)) 128 else 0]S };
+    return struct { fixed: [Component.MAX_FIXED]F, main: [Component.MAX_MAIN]F, previous: [Component.MAX_MAIN]F, inter: [Geo.maxInter(Component)]F, previous_inter: [Geo.maxInter(Component)]F };
 }
 pub const RowScratchPlan = struct { jobs: usize, bytes_per_job: usize, total_bytes: usize };
 pub fn rowScratchPlan(comptime Component: type, rows: usize, requested: usize) !RowScratchPlan {
@@ -107,12 +108,10 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     defer scratch_owner.deinit();
     const scratch_plan = scratch_owner.plan;
     const scratches = scratch_owner.data;
-    for (scratches) |*scratch| {
-        scratch.previous = @splat(F.zero());
-        if (comptime local_binding) {
-            for (scratch.weights[0..self.data.lane_count], self.data.lane_weights[0..self.data.lane_count]) |*v, x| v.* = S.splat(x);
-        }
-    }
+    for (scratches) |*scratch| scratch.previous = @splat(F.zero());
+    var prepared: ?PreparedProjection = null;
+    defer if (prepared) |*owned| owned.deinit();
+    if (comptime local_binding) prepared = try PreparedProjection.initComponent(a, self);
     const outputs = try acc.columns(a, &.{.{ .log_size = log + 1, .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
@@ -131,6 +130,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         inter_width: usize,
         inverse: F,
         fresh: bool,
+        prepared: ?*const PreparedProjection,
         errors: [engine.lookups.row_work.MAX_SHARDS]?anyerror = @splat(null),
         pub fn runRange(ctx: *@This(), index: usize, first: usize, end: usize) void {
             ctx.execute(index, first, end) catch |err| {
@@ -175,7 +175,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
                     }
                 }
                 if (comptime local_binding) {
-                    var projection = B.ProjectionFor(F){ .challenges = &component.data.challenges, .lane_weights = scratch.weights[0..component.data.lane_count], .terms = component.data.instance.terms };
+                    var projection = ctx.prepared.?.projection();
                     component.emitLocalFor(F, scratch.fixed[0..column_shape.fixed], scratch.main[0..column_shape.main], &projection);
                     try projection.finish();
                     var next_coords: [8]F = undefined;
@@ -215,7 +215,7 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         if (timer) |*clock| fft_ns += clock.lap();
         const start = evaluation.globalRow(part, 0);
         const fresh = if (output.next_fresh_index) |next| next == start else false;
-        var work = Work{ .component = self, .evaluation = &evaluation, .output = output, .scratch = scratches, .part = part, .rows = rows, .log = log, .shape = shape, .main_at = main_at, .inter_at = inter_at, .aux_at = aux_at, .inter_width = inter_width, .inverse = inverse, .fresh = fresh };
+        var work = Work{ .component = self, .evaluation = &evaluation, .output = output, .scratch = scratches, .part = part, .rows = rows, .log = log, .shape = shape, .main_at = main_at, .inter_at = inter_at, .aux_at = aux_at, .inter_width = inter_width, .inverse = inverse, .fresh = fresh, .prepared = if (prepared) |*owned| owned else null };
         const jobs = engine.lookups.row_work.forEachRange(rows / E.LANES, &work, .{ .max_shards = scratch_plan.jobs, .min_rows_per_shard = MIN_PACKED_BLOCKS_PER_SHARD });
         actual_jobs = @max(actual_jobs, jobs);
         for (work.errors[0..jobs]) |failure| if (failure) |err| {
@@ -226,5 +226,5 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         output.next_fresh_index = if (fresh) start + rows else null;
         if (timer) |*clock| row_ns += clock.read();
     }
-    if (profile) std.debug.print("OM_DOMAIN_STAGE log={d} main={d} inter={d} constraints={d} jobs={d} scratch_bytes={d} prep_ns={d} fft_ns={d} rows_ns={d}\n", .{ log, shape.main, inter_width, self.nConstraints(), actual_jobs, scratch_plan.total_bytes, prep_ns, fft_ns, row_ns });
+    if (profile) std.debug.print("OM_DOMAIN_STAGE log={d} main={d} inter={d} constraints={d} jobs={d} scratch_bytes={d} prepared_bytes={d} prep_ns={d} fft_ns={d} rows_ns={d}\n", .{ log, shape.main, inter_width, self.nConstraints(), actual_jobs, scratch_plan.total_bytes, if (prepared) |*owned| owned.bytes() else @as(usize, 0), prep_ns, fft_ns, row_ns });
 }
