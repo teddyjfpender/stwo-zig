@@ -812,18 +812,29 @@ pub fn ForField(comptime Secure: type) type {
 
             const eq0 = Secure.one().sub(y[0]);
             const eq1 = y[0];
-            var at: usize = 0;
-            const p0 = Packed.splat(eq0);
-            const p1 = Packed.splat(eq1);
-            while (at + @import("packed_rows.zig").WIDTH <= tail_values.len) : (at += @import("packed_rows.zig").WIDTH) {
-                const v = Packed.load(tail_values, at, 1);
-                Packed.store(out, at, v.mul(p0));
-                Packed.store(out, at + tail_values.len, v.mul(p1));
-            }
-            for (at..tail_values.len) |i| {
-                out[i] = tail_values[i].mul(eq0);
-                out[i + tail_values.len] = tail_values[i].mul(eq1);
-            }
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                zero: Secure,
+                one: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const p0 = Packed.splat(ctx.zero);
+                    const p1 = Packed.splat(ctx.one);
+                    var at = first;
+                    while (at + @import("packed_rows.zig").WIDTH <= end) : (at += @import("packed_rows.zig").WIDTH) {
+                        const v = Packed.load(ctx.input, at, 1);
+                        Packed.store(ctx.output, at, v.mul(p0));
+                        Packed.store(ctx.output, at + ctx.input.len, v.mul(p1));
+                    }
+                    for (at..end) |i| {
+                        ctx.output[i] = ctx.input[i].mul(ctx.zero);
+                        ctx.output[i + ctx.input.len] = ctx.input[i].mul(ctx.one);
+                    }
+                }
+            };
+            // The current input level stays immutable until every disjoint
+            // output-half range joins; recursive tail release happens later.
+            rows.fill(tail_values.len, Context{ .input = tail_values, .output = out, .zero = eq0, .one = eq1 });
 
             return try MleSecure.initOwned(out);
         }
