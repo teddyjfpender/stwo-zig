@@ -297,6 +297,10 @@ pub fn configured(comptime options: CommitmentOptions) type {
             const BaseTwiddles = @TypeOf(base_twiddles);
             const ExtendedDomain = @TypeOf(extended_domain);
             const ExtendedTwiddles = @TypeOf(extended_twiddles);
+            // Per-job timing is collected into disjoint job records and emitted
+            // only after the pool joins. No shared recorder enters worker callbacks.
+            const timing_enabled = std.process.hasEnvVarConstant("STWO_ZIG_PCS_KERNEL_TIMING");
+            var joined_timer: ?std.time.Timer = if (timing_enabled) std.time.Timer.start() catch null else null;
             const Job = struct {
                 base: []M31,
                 extended: []M31,
@@ -306,8 +310,12 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 extended_twiddles: ExtendedTwiddles,
                 err: ?anyerror = null,
                 row_pool: ?*prover.work_pool.WorkPool = null,
+                timing_enabled: bool = false,
+                interpolation_ns: u64 = 0,
+                extension_ns: u64 = 0,
 
                 fn run(job: *@This()) void {
+                    var timer: ?std.time.Timer = if (job.timing_enabled) std.time.Timer.start() catch null else null;
                     var base_batch = [_][]M31{job.base};
                     prover.poly.circle.poly.interpolateBuffersWithTwiddlesWithPool(
                         &base_batch,
@@ -317,6 +325,13 @@ pub fn configured(comptime options: CommitmentOptions) type {
                     ) catch |err| {
                         job.err = err;
                         return;
+                    };
+                    if (timer) |*clock| {
+                        job.interpolation_ns = clock.read();
+                        clock.reset();
+                    }
+                    defer if (timer) |*clock| {
+                        job.extension_ns = clock.read();
                     };
                     @memcpy(job.extended[0..job.base.len], job.base);
                     var extended_batch = [_][]M31{job.extended};
@@ -350,6 +365,7 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 if (source.ptr != base.ptr) @memcpy(base, source);
                 job.* = .{
                     .base = base,
+                    .timing_enabled = timing_enabled,
                     .extended = extended,
                     .base_domain = base_domain,
                     .base_twiddles = base_twiddles,
@@ -375,6 +391,20 @@ pub fn configured(comptime options: CommitmentOptions) type {
                 for (jobs) |*job| Job.run(job);
             }
             for (jobs) |job| if (job.err) |err| return err;
+            if (joined_timer) |*clock| {
+                var interpolation_ns: u128 = 0;
+                var extension_ns: u128 = 0;
+                for (jobs) |job| {
+                    interpolation_ns += job.interpolation_ns;
+                    extension_ns += job.extension_ns;
+                }
+                // Job intervals overlap. Extension includes the coefficient copy
+                // and zero fill; joined time also includes setup and allocation.
+                std.debug.print("pcs_kernel columns={d} base_log={d} extended_log={d} interpolation_job_ns={d} extension_job_ns={d} joined_ns={d}\n", .{
+                    jobs.len,         base_domain.logSize(), extended_domain.logSize(),
+                    interpolation_ns, extension_ns,          clock.read(),
+                });
+            }
             return .{
                 .interpolation = .{
                     .log_size = base_domain.logSize(),

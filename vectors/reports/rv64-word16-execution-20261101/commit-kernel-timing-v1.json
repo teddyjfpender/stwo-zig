@@ -1,0 +1,2946 @@
+{
+  "scope": "Opt-in CPU combined commit transform accounting; schema7+canonical Word16 secp profile, four CPU/three truth prefix. Not a performance comparison.",
+  "binary_sha256": "8a21c4fecb6bf1b0c661c3edc07b47f6e4e0d97fe939c310081d0db59641a111",
+  "source": "01f1d4905 plus CPU kernel timing scopes; later documentation-only commits do not affect executable",
+  "environment": "STWO_ZIG_PCS_KERNEL_TIMING=1",
+  "artifacts_identical": {
+    "bundle.json": true,
+    "cells.bin": true,
+    "cost.json": true,
+    "roster.json": true,
+    "cpu-0.bin": true,
+    "cpu-1.bin": true,
+    "cpu-2.bin": true,
+    "cpu-3.bin": true,
+    "truth-0.bin": true,
+    "truth-1.bin": true,
+    "truth-2.bin": true
+  },
+  "fresh_receiver": {
+    "core_schema": 7,
+    "accepted": true,
+    "completed_ethereum_block": false,
+    "output": null,
+    "cpu_proofs": 4,
+    "truth_proofs": 3,
+    "load_and_setup_ns": 2412886791,
+    "verify_ns": 258830834,
+    "fixed_native_cache": {
+      "limit_bytes": 268435456,
+      "retained_bytes": 181229952,
+      "native_backing_bytes": 181214336,
+      "groups": 121,
+      "hits": 428,
+      "duplicate_native_bytes_released": 738370048,
+      "observed_individual_owners": 549,
+      "observed_backing_owners": 0,
+      "observed_spans": 549,
+      "owner_leases": 5
+    },
+    "program_metadata_cache": {
+      "limit_bytes": 67108864,
+      "retained_bytes": 30951766,
+      "payload_bytes": 30951414,
+      "programs": 1,
+      "hits": 4,
+      "metadata_bytes_not_rebuilt": 123805656,
+      "duplicate_metadata_bytes_released": 0,
+      "owner_leases": 6
+    }
+  },
+  "calls": 360,
+  "sums": {
+    "interpolation_job_ns": 10579722500,
+    "extension_job_ns": 23248630846,
+    "joined_ns": 6717560373
+  },
+  "limitations": [
+    "Job intervals overlap; job sums are not stage elapsed or CPU time.",
+    "Joined interval includes allocation/source copy/scheduling; extension includes coefficient copy/zero fill.",
+    "Leaf hashing remains separately scoped by streaming_leaf_hash.",
+    "Only combined CPU backend path; no claim to instrument other backends or all fallback paths.",
+    "Team compilers/tests active, no speed inference."
+  ],
+  "events": [
+    {
+      "columns": 28,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 5622,
+      "extension_job_ns": 5916,
+      "joined_ns": 91167
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 875,
+      "extension_job_ns": 3250,
+      "joined_ns": 4458
+    },
+    {
+      "columns": 35,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 245752,
+      "extension_job_ns": 323249,
+      "joined_ns": 192167
+    },
+    {
+      "columns": 52,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 317583,
+      "extension_job_ns": 491628,
+      "joined_ns": 196583
+    },
+    {
+      "columns": 12,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 401626,
+      "extension_job_ns": 467749,
+      "joined_ns": 228042
+    },
+    {
+      "columns": 5,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 87875,
+      "extension_job_ns": 224083,
+      "joined_ns": 107708
+    },
+    {
+      "columns": 47,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 1796589,
+      "extension_job_ns": 5029541,
+      "joined_ns": 1052291
+    },
+    {
+      "columns": 12,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 2015833,
+      "extension_job_ns": 6198917,
+      "joined_ns": 1344708
+    },
+    {
+      "columns": 64,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 13640084,
+      "extension_job_ns": 26360130,
+      "joined_ns": 6070584
+    },
+    {
+      "columns": 14,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 2534917,
+      "extension_job_ns": 5407961,
+      "joined_ns": 1693292
+    },
+    {
+      "columns": 29,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 10903957,
+      "extension_job_ns": 33804627,
+      "joined_ns": 6844958
+    },
+    {
+      "columns": 21,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 36719122,
+      "extension_job_ns": 98599252,
+      "joined_ns": 21426500
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 73165749,
+      "extension_job_ns": 173472166,
+      "joined_ns": 35794042
+    },
+    {
+      "columns": 14,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 2583,
+      "extension_job_ns": 21248,
+      "joined_ns": 31458
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 750,
+      "extension_job_ns": 3000,
+      "joined_ns": 4041
+    },
+    {
+      "columns": 49,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 863668,
+      "extension_job_ns": 1917251,
+      "joined_ns": 2813750
+    },
+    {
+      "columns": 38,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 673373,
+      "extension_job_ns": 1666252,
+      "joined_ns": 1391625
+    },
+    {
+      "columns": 17,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 728125,
+      "extension_job_ns": 1511958,
+      "joined_ns": 1817417
+    },
+    {
+      "columns": 9,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 1519750,
+      "extension_job_ns": 3723126,
+      "joined_ns": 1657375
+    },
+    {
+      "columns": 58,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 11614788,
+      "extension_job_ns": 30733128,
+      "joined_ns": 8333875
+    },
+    {
+      "columns": 6,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 4631000,
+      "extension_job_ns": 10800959,
+      "joined_ns": 5190375
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 70885709,
+      "extension_job_ns": 166335084,
+      "joined_ns": 35810709
+    },
+    {
+      "columns": 64,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 56212206,
+      "extension_job_ns": 162872708,
+      "joined_ns": 34512916
+    },
+    {
+      "columns": 12,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 20518128,
+      "extension_job_ns": 47201834,
+      "joined_ns": 15557334
+    },
+    {
+      "columns": 64,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 80164171,
+      "extension_job_ns": 119648831,
+      "joined_ns": 29510125
+    },
+    {
+      "columns": 15,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 55826039,
+      "extension_job_ns": 153263791,
+      "joined_ns": 31334250
+    },
+    {
+      "columns": 17,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 16868458,
+      "extension_job_ns": 37909499,
+      "joined_ns": 9136417
+    },
+    {
+      "columns": 34,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 64236496,
+      "extension_job_ns": 155938672,
+      "joined_ns": 34243000
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 84794165,
+      "extension_job_ns": 186632667,
+      "joined_ns": 45324916
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 82062914,
+      "extension_job_ns": 178859001,
+      "joined_ns": 38551542
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 89190917,
+      "extension_job_ns": 190329585,
+      "joined_ns": 45434125
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 88919382,
+      "extension_job_ns": 178966503,
+      "joined_ns": 40751917
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 91312168,
+      "extension_job_ns": 188705205,
+      "joined_ns": 42309292
+    },
+    {
+      "columns": 10,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 19518419,
+      "extension_job_ns": 37609583,
+      "joined_ns": 11706875
+    },
+    {
+      "columns": 4,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 15703332,
+      "extension_job_ns": 35819458,
+      "joined_ns": 16250458
+    },
+    {
+      "columns": 16,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 63812708,
+      "extension_job_ns": 128047875,
+      "joined_ns": 35430959
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 82153541,
+      "extension_job_ns": 169538959,
+      "joined_ns": 36285834
+    },
+    {
+      "columns": 4,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 71710250,
+      "extension_job_ns": 163016834,
+      "joined_ns": 60698625
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 87092375,
+      "extension_job_ns": 193854960,
+      "joined_ns": 44257083
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 92142373,
+      "extension_job_ns": 190622211,
+      "joined_ns": 44811291
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 95602710,
+      "extension_job_ns": 189822459,
+      "joined_ns": 63828750
+    },
+    {
+      "columns": 6,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 24553334,
+      "extension_job_ns": 76382666,
+      "joined_ns": 24039250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 94044625,
+      "extension_job_ns": 182186668,
+      "joined_ns": 57530000
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 90504458,
+      "extension_job_ns": 196643292,
+      "joined_ns": 61411417
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 59387834,
+      "extension_job_ns": 125731333,
+      "joined_ns": 62442833
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 96253792,
+      "extension_job_ns": 212781042,
+      "joined_ns": 66863750
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 101756293,
+      "extension_job_ns": 208098208,
+      "joined_ns": 71528666
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 96383334,
+      "extension_job_ns": 198543541,
+      "joined_ns": 64473792
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 98391043,
+      "extension_job_ns": 194672542,
+      "joined_ns": 60827083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 104683292,
+      "extension_job_ns": 194535875,
+      "joined_ns": 61696417
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 94757958,
+      "extension_job_ns": 238190626,
+      "joined_ns": 77887833
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 98983667,
+      "extension_job_ns": 195842374,
+      "joined_ns": 69312667
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 98167208,
+      "extension_job_ns": 198651377,
+      "joined_ns": 61963459
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 95981126,
+      "extension_job_ns": 203863874,
+      "joined_ns": 62320125
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 97618208,
+      "extension_job_ns": 206406749,
+      "joined_ns": 67661708
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 57282666,
+      "extension_job_ns": 133366750,
+      "joined_ns": 69285208
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 119408085,
+      "extension_job_ns": 232211833,
+      "joined_ns": 80070250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 115457876,
+      "extension_job_ns": 217339041,
+      "joined_ns": 78210375
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 193609165,
+      "extension_job_ns": 204591292,
+      "joined_ns": 91477083
+    },
+    {
+      "columns": 4,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 74034168,
+      "extension_job_ns": 155373501,
+      "joined_ns": 58434375
+    },
+    {
+      "columns": 28,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 11249,
+      "extension_job_ns": 9957,
+      "joined_ns": 79375
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 875,
+      "extension_job_ns": 1250,
+      "joined_ns": 5125
+    },
+    {
+      "columns": 35,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 179083,
+      "extension_job_ns": 326461,
+      "joined_ns": 123791
+    },
+    {
+      "columns": 52,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 233827,
+      "extension_job_ns": 454921,
+      "joined_ns": 143334
+    },
+    {
+      "columns": 12,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 277542,
+      "extension_job_ns": 443002,
+      "joined_ns": 140750
+    },
+    {
+      "columns": 5,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 94041,
+      "extension_job_ns": 256834,
+      "joined_ns": 98667
+    },
+    {
+      "columns": 59,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 5018875,
+      "extension_job_ns": 11980586,
+      "joined_ns": 2563417
+    },
+    {
+      "columns": 11,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 899166,
+      "extension_job_ns": 3155960,
+      "joined_ns": 690584
+    },
+    {
+      "columns": 20,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 3615543,
+      "extension_job_ns": 9273459,
+      "joined_ns": 2014084
+    },
+    {
+      "columns": 29,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 10844627,
+      "extension_job_ns": 25473257,
+      "joined_ns": 5326333
+    },
+    {
+      "columns": 4,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 7112375,
+      "extension_job_ns": 15993001,
+      "joined_ns": 5820958
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 76163502,
+      "extension_job_ns": 162229790,
+      "joined_ns": 36328834
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 71285167,
+      "extension_job_ns": 160025165,
+      "joined_ns": 34499542
+    },
+    {
+      "columns": 29,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 49328669,
+      "extension_job_ns": 133101709,
+      "joined_ns": 26653125
+    },
+    {
+      "columns": 6,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 21286874,
+      "extension_job_ns": 56916832,
+      "joined_ns": 13811708
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 75061244,
+      "extension_job_ns": 163429626,
+      "joined_ns": 34460625
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 75460043,
+      "extension_job_ns": 162955375,
+      "joined_ns": 34727500
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 77299459,
+      "extension_job_ns": 168998583,
+      "joined_ns": 36106167
+    },
+    {
+      "columns": 13,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 49246209,
+      "extension_job_ns": 101766042,
+      "joined_ns": 23701166
+    },
+    {
+      "columns": 2,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 33962416,
+      "extension_job_ns": 66592125,
+      "joined_ns": 50318458
+    },
+    {
+      "columns": 64,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 9996,
+      "extension_job_ns": 9372,
+      "joined_ns": 85709
+    },
+    {
+      "columns": 28,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 4332,
+      "extension_job_ns": 10043,
+      "joined_ns": 49166
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 750,
+      "extension_job_ns": 2417,
+      "joined_ns": 3416
+    },
+    {
+      "columns": 35,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 141291,
+      "extension_job_ns": 353253,
+      "joined_ns": 165625
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 262162,
+      "extension_job_ns": 569132,
+      "joined_ns": 195166
+    },
+    {
+      "columns": 35,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 142912,
+      "extension_job_ns": 343418,
+      "joined_ns": 190166
+    },
+    {
+      "columns": 29,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 517166,
+      "extension_job_ns": 1171039,
+      "joined_ns": 609291
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1151997,
+      "extension_job_ns": 2396249,
+      "joined_ns": 1026166
+    },
+    {
+      "columns": 41,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 729539,
+      "extension_job_ns": 1860709,
+      "joined_ns": 685083
+    },
+    {
+      "columns": 23,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 981832,
+      "extension_job_ns": 2344625,
+      "joined_ns": 616416
+    },
+    {
+      "columns": 60,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2289249,
+      "extension_job_ns": 6095293,
+      "joined_ns": 1816833
+    },
+    {
+      "columns": 4,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 680499,
+      "extension_job_ns": 2020583,
+      "joined_ns": 1240625
+    },
+    {
+      "columns": 63,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 12236789,
+      "extension_job_ns": 30702665,
+      "joined_ns": 6722583
+    },
+    {
+      "columns": 1,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 353334,
+      "extension_job_ns": 795584,
+      "joined_ns": 1149334
+    },
+    {
+      "columns": 64,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 23542041,
+      "extension_job_ns": 67252913,
+      "joined_ns": 13448917
+    },
+    {
+      "columns": 22,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 8721251,
+      "extension_job_ns": 25481042,
+      "joined_ns": 4855292
+    },
+    {
+      "columns": 42,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 32389915,
+      "extension_job_ns": 85297666,
+      "joined_ns": 16999542
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 79435083,
+      "extension_job_ns": 175078582,
+      "joined_ns": 52167167
+    },
+    {
+      "columns": 64,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 48798326,
+      "extension_job_ns": 106364084,
+      "joined_ns": 23993167
+    },
+    {
+      "columns": 16,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 12394708,
+      "extension_job_ns": 25805665,
+      "joined_ns": 7173667
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 81013333,
+      "extension_job_ns": 173322750,
+      "joined_ns": 51900792
+    },
+    {
+      "columns": 34,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 58904043,
+      "extension_job_ns": 136318460,
+      "joined_ns": 28046292
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 82568919,
+      "extension_job_ns": 172875749,
+      "joined_ns": 52404417
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 70450713,
+      "extension_job_ns": 155088047,
+      "joined_ns": 32408125
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 74604082,
+      "extension_job_ns": 162974169,
+      "joined_ns": 35291125
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84069041,
+      "extension_job_ns": 172893794,
+      "joined_ns": 52492875
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 75143670,
+      "extension_job_ns": 162218792,
+      "joined_ns": 34430459
+    },
+    {
+      "columns": 9,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 15713290,
+      "extension_job_ns": 35765708,
+      "joined_ns": 10971250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84875000,
+      "extension_job_ns": 176955375,
+      "joined_ns": 52926375
+    },
+    {
+      "columns": 16,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 61684710,
+      "extension_job_ns": 137498625,
+      "joined_ns": 35551833
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86345708,
+      "extension_job_ns": 173696542,
+      "joined_ns": 52648375
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 82163043,
+      "extension_job_ns": 173407917,
+      "joined_ns": 36790500
+    },
+    {
+      "columns": 7,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 27516000,
+      "extension_job_ns": 74118750,
+      "joined_ns": 14658917
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 85759666,
+      "extension_job_ns": 179899083,
+      "joined_ns": 53744792
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84104043,
+      "extension_job_ns": 175948334,
+      "joined_ns": 52697083
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 52213459,
+      "extension_job_ns": 112546916,
+      "joined_ns": 55711667
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84068709,
+      "extension_job_ns": 188408126,
+      "joined_ns": 55821083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88187877,
+      "extension_job_ns": 209486959,
+      "joined_ns": 61580708
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86055834,
+      "extension_job_ns": 183917834,
+      "joined_ns": 54690375
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86077625,
+      "extension_job_ns": 187030458,
+      "joined_ns": 57361209
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86810375,
+      "extension_job_ns": 185357459,
+      "joined_ns": 55039833
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84106916,
+      "extension_job_ns": 179061000,
+      "joined_ns": 55496250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 85957292,
+      "extension_job_ns": 177550166,
+      "joined_ns": 53308833
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84419999,
+      "extension_job_ns": 177344667,
+      "joined_ns": 53771625
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 83635499,
+      "extension_job_ns": 171581124,
+      "joined_ns": 51711834
+    },
+    {
+      "columns": 4,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 62111376,
+      "extension_job_ns": 134718875,
+      "joined_ns": 49687000
+    },
+    {
+      "columns": 1,
+      "base_log": 10,
+      "extended_log": 11,
+      "interpolation_job_ns": 2958,
+      "extension_job_ns": 4667,
+      "joined_ns": 8333
+    },
+    {
+      "columns": 63,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1142415,
+      "extension_job_ns": 2299210,
+      "joined_ns": 534500
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1644208,
+      "extension_job_ns": 2334377,
+      "joined_ns": 782000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1137125,
+      "extension_job_ns": 2366080,
+      "joined_ns": 674458
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1158543,
+      "extension_job_ns": 2314251,
+      "joined_ns": 557958
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1171786,
+      "extension_job_ns": 2311915,
+      "joined_ns": 565167
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1154668,
+      "extension_job_ns": 2297458,
+      "joined_ns": 550125
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1202335,
+      "extension_job_ns": 2320583,
+      "joined_ns": 564625
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1145461,
+      "extension_job_ns": 2377037,
+      "joined_ns": 566292
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1160622,
+      "extension_job_ns": 2339418,
+      "joined_ns": 608875
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1183415,
+      "extension_job_ns": 2316546,
+      "joined_ns": 555042
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1168255,
+      "extension_job_ns": 2318166,
+      "joined_ns": 561250
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1187540,
+      "extension_job_ns": 2308832,
+      "joined_ns": 562125
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1162790,
+      "extension_job_ns": 2305959,
+      "joined_ns": 547292
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1156502,
+      "extension_job_ns": 2306704,
+      "joined_ns": 551417
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1184461,
+      "extension_job_ns": 2314997,
+      "joined_ns": 566083
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1191627,
+      "extension_job_ns": 2291999,
+      "joined_ns": 611084
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1174623,
+      "extension_job_ns": 2302709,
+      "joined_ns": 543917
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1168789,
+      "extension_job_ns": 2309622,
+      "joined_ns": 549792
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1135552,
+      "extension_job_ns": 2316160,
+      "joined_ns": 556916
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1146584,
+      "extension_job_ns": 2305835,
+      "joined_ns": 549000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1137335,
+      "extension_job_ns": 2301124,
+      "joined_ns": 544708
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1144079,
+      "extension_job_ns": 2355458,
+      "joined_ns": 559000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1170545,
+      "extension_job_ns": 2293953,
+      "joined_ns": 628583
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1171709,
+      "extension_job_ns": 2303580,
+      "joined_ns": 557917
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1154534,
+      "extension_job_ns": 2344340,
+      "joined_ns": 568708
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1164371,
+      "extension_job_ns": 2314412,
+      "joined_ns": 553083
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1189419,
+      "extension_job_ns": 2308373,
+      "joined_ns": 559000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1187121,
+      "extension_job_ns": 2320790,
+      "joined_ns": 554750
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1172705,
+      "extension_job_ns": 2330207,
+      "joined_ns": 550334
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1150583,
+      "extension_job_ns": 2345371,
+      "joined_ns": 567667
+    },
+    {
+      "columns": 5,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 95499,
+      "extension_job_ns": 192460,
+      "joined_ns": 94250
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 1542,
+      "extension_job_ns": 3333,
+      "joined_ns": 5167
+    },
+    {
+      "columns": 63,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2591662,
+      "extension_job_ns": 5629335,
+      "joined_ns": 1253417
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2362749,
+      "extension_job_ns": 6890454,
+      "joined_ns": 1390625
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2293498,
+      "extension_job_ns": 6121002,
+      "joined_ns": 1277292
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2368172,
+      "extension_job_ns": 6071831,
+      "joined_ns": 1253750
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2511751,
+      "extension_job_ns": 7388084,
+      "joined_ns": 1481625
+    },
+    {
+      "columns": 64,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 4741335,
+      "extension_job_ns": 12525090,
+      "joined_ns": 2516500
+    },
+    {
+      "columns": 64,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 4744667,
+      "extension_job_ns": 12898587,
+      "joined_ns": 2611375
+    },
+    {
+      "columns": 64,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 4738627,
+      "extension_job_ns": 12716250,
+      "joined_ns": 2587000
+    },
+    {
+      "columns": 8,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 735792,
+      "extension_job_ns": 2434418,
+      "joined_ns": 532833
+    },
+    {
+      "columns": 1,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 1625,
+      "extension_job_ns": 1667,
+      "joined_ns": 3792
+    },
+    {
+      "columns": 63,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 600666,
+      "extension_job_ns": 1126170,
+      "joined_ns": 304083
+    },
+    {
+      "columns": 64,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 520164,
+      "extension_job_ns": 1443292,
+      "joined_ns": 329833
+    },
+    {
+      "columns": 64,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 491965,
+      "extension_job_ns": 1029039,
+      "joined_ns": 250083
+    },
+    {
+      "columns": 9,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 72543,
+      "extension_job_ns": 211250,
+      "joined_ns": 80167
+    },
+    {
+      "columns": 55,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 1985665,
+      "extension_job_ns": 5392543,
+      "joined_ns": 1124042
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2352126,
+      "extension_job_ns": 5922498,
+      "joined_ns": 1249834
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2336918,
+      "extension_job_ns": 6219747,
+      "joined_ns": 1284875
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2191664,
+      "extension_job_ns": 5417538,
+      "joined_ns": 1154708
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2186208,
+      "extension_job_ns": 5628795,
+      "joined_ns": 1153416
+    },
+    {
+      "columns": 8,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 282000,
+      "extension_job_ns": 986166,
+      "joined_ns": 187708
+    },
+    {
+      "columns": 24,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 4831,
+      "extension_job_ns": 15665,
+      "joined_ns": 59583
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 4500,
+      "extension_job_ns": 7667,
+      "joined_ns": 34417
+    },
+    {
+      "columns": 32,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 145663,
+      "extension_job_ns": 316419,
+      "joined_ns": 107083
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 281374,
+      "extension_job_ns": 569748,
+      "joined_ns": 165833
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 285253,
+      "extension_job_ns": 611084,
+      "joined_ns": 167417
+    },
+    {
+      "columns": 40,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 164375,
+      "extension_job_ns": 582623,
+      "joined_ns": 147334
+    },
+    {
+      "columns": 12,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 235082,
+      "extension_job_ns": 609959,
+      "joined_ns": 163042
+    },
+    {
+      "columns": 12,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 478875,
+      "extension_job_ns": 1360166,
+      "joined_ns": 321209
+    },
+    {
+      "columns": 20,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 785585,
+      "extension_job_ns": 2036582,
+      "joined_ns": 477625
+    },
+    {
+      "columns": 44,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 7704079,
+      "extension_job_ns": 20314709,
+      "joined_ns": 4010292
+    },
+    {
+      "columns": 48,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 8225627,
+      "extension_job_ns": 21941583,
+      "joined_ns": 4450459
+    },
+    {
+      "columns": 16,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 6246125,
+      "extension_job_ns": 14758374,
+      "joined_ns": 3807583
+    },
+    {
+      "columns": 8,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 2882250,
+      "extension_job_ns": 5979167,
+      "joined_ns": 1591125
+    },
+    {
+      "columns": 16,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 3669,
+      "extension_job_ns": 5870,
+      "joined_ns": 34958
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 5959,
+      "extension_job_ns": 13583,
+      "joined_ns": 20292
+    },
+    {
+      "columns": 40,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 719879,
+      "extension_job_ns": 1765999,
+      "joined_ns": 404583
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1150877,
+      "extension_job_ns": 2324666,
+      "joined_ns": 523500
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1151752,
+      "extension_job_ns": 2307543,
+      "joined_ns": 513584
+    },
+    {
+      "columns": 32,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 580959,
+      "extension_job_ns": 1449957,
+      "joined_ns": 338958
+    },
+    {
+      "columns": 12,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 473791,
+      "extension_job_ns": 1299001,
+      "joined_ns": 310875
+    },
+    {
+      "columns": 20,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 3433376,
+      "extension_job_ns": 10252083,
+      "joined_ns": 2071458
+    },
+    {
+      "columns": 64,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 10876122,
+      "extension_job_ns": 23845204,
+      "joined_ns": 4997958
+    },
+    {
+      "columns": 40,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 64067164,
+      "extension_job_ns": 134562788,
+      "joined_ns": 29774500
+    },
+    {
+      "columns": 8,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 1374292,
+      "extension_job_ns": 2892834,
+      "joined_ns": 718417
+    },
+    {
+      "columns": 56,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 41618665,
+      "extension_job_ns": 86745208,
+      "joined_ns": 18654417
+    },
+    {
+      "columns": 24,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 38549585,
+      "extension_job_ns": 81144833,
+      "joined_ns": 19802959
+    },
+    {
+      "columns": 28,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 20704374,
+      "extension_job_ns": 43581416,
+      "joined_ns": 9367083
+    },
+    {
+      "columns": 9,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 31616540,
+      "extension_job_ns": 66785458,
+      "joined_ns": 21065333
+    },
+    {
+      "columns": 28,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 46694293,
+      "extension_job_ns": 99253002,
+      "joined_ns": 21143250
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 71100334,
+      "extension_job_ns": 161335040,
+      "joined_ns": 33543000
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 83435250,
+      "extension_job_ns": 157347582,
+      "joined_ns": 35555334
+    },
+    {
+      "columns": 14,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 23516958,
+      "extension_job_ns": 56980416,
+      "joined_ns": 11945125
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 82069082,
+      "extension_job_ns": 168726291,
+      "joined_ns": 35954750
+    },
+    {
+      "columns": 14,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 53032835,
+      "extension_job_ns": 106646375,
+      "joined_ns": 23249708
+    },
+    {
+      "columns": 9,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 32267709,
+      "extension_job_ns": 68798666,
+      "joined_ns": 22503042
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 78737791,
+      "extension_job_ns": 161718249,
+      "joined_ns": 34823167
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 49606417,
+      "extension_job_ns": 105369457,
+      "joined_ns": 51782375
+    },
+    {
+      "columns": 13,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 48571084,
+      "extension_job_ns": 102695749,
+      "joined_ns": 24579125
+    },
+    {
+      "columns": 2,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 34284249,
+      "extension_job_ns": 72655416,
+      "joined_ns": 54322083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 85316583,
+      "extension_job_ns": 180001875,
+      "joined_ns": 54120250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 82468748,
+      "extension_job_ns": 199084666,
+      "joined_ns": 57260542
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 85477041,
+      "extension_job_ns": 201562250,
+      "joined_ns": 60265666
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 90607666,
+      "extension_job_ns": 203915959,
+      "joined_ns": 60930708
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88251084,
+      "extension_job_ns": 200832875,
+      "joined_ns": 59405375
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88455501,
+      "extension_job_ns": 200840667,
+      "joined_ns": 58800542
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84995960,
+      "extension_job_ns": 206637250,
+      "joined_ns": 59396083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84496167,
+      "extension_job_ns": 198636125,
+      "joined_ns": 57978500
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 87438666,
+      "extension_job_ns": 201421958,
+      "joined_ns": 59300791
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 87225375,
+      "extension_job_ns": 204671084,
+      "joined_ns": 60670458
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88514250,
+      "extension_job_ns": 199700001,
+      "joined_ns": 59503042
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88873877,
+      "extension_job_ns": 200535001,
+      "joined_ns": 58796667
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 87900167,
+      "extension_job_ns": 201584042,
+      "joined_ns": 58448250
+    },
+    {
+      "columns": 2,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 35023458,
+      "extension_job_ns": 78738250,
+      "joined_ns": 56995167
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 85377166,
+      "extension_job_ns": 201900041,
+      "joined_ns": 58327083
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 51814625,
+      "extension_job_ns": 118334959,
+      "joined_ns": 57625250
+    },
+    {
+      "columns": 24,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 5458,
+      "extension_job_ns": 6000,
+      "joined_ns": 97625
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 6667,
+      "extension_job_ns": 10748,
+      "joined_ns": 34208
+    },
+    {
+      "columns": 32,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 135922,
+      "extension_job_ns": 304081,
+      "joined_ns": 102125
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 275912,
+      "extension_job_ns": 662085,
+      "joined_ns": 174917
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 270086,
+      "extension_job_ns": 600706,
+      "joined_ns": 156917
+    },
+    {
+      "columns": 40,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 167288,
+      "extension_job_ns": 451876,
+      "joined_ns": 114250
+    },
+    {
+      "columns": 12,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 235667,
+      "extension_job_ns": 704042,
+      "joined_ns": 173208
+    },
+    {
+      "columns": 12,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 965835,
+      "extension_job_ns": 2956123,
+      "joined_ns": 654125
+    },
+    {
+      "columns": 20,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 1591332,
+      "extension_job_ns": 3353501,
+      "joined_ns": 763334
+    },
+    {
+      "columns": 44,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 7684504,
+      "extension_job_ns": 15696959,
+      "joined_ns": 3699250
+    },
+    {
+      "columns": 16,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 2747332,
+      "extension_job_ns": 7810209,
+      "joined_ns": 1918833
+    },
+    {
+      "columns": 24,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 8751206,
+      "extension_job_ns": 24830374,
+      "joined_ns": 5505333
+    },
+    {
+      "columns": 24,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 39597454,
+      "extension_job_ns": 114297831,
+      "joined_ns": 24974583
+    },
+    {
+      "columns": 40,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 68654994,
+      "extension_job_ns": 145544835,
+      "joined_ns": 32395833
+    },
+    {
+      "columns": 1,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 3810834,
+      "extension_job_ns": 7534709,
+      "joined_ns": 11357500
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 87036460,
+      "extension_job_ns": 181703793,
+      "joined_ns": 39992625
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 86765001,
+      "extension_job_ns": 199087995,
+      "joined_ns": 43353958
+    },
+    {
+      "columns": 17,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 65257207,
+      "extension_job_ns": 182239790,
+      "joined_ns": 39040375
+    },
+    {
+      "columns": 1,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 16860417,
+      "extension_job_ns": 38676625,
+      "joined_ns": 55537375
+    },
+    {
+      "columns": 64,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 11160,
+      "extension_job_ns": 12167,
+      "joined_ns": 98084
+    },
+    {
+      "columns": 12,
+      "base_log": 5,
+      "extended_log": 6,
+      "interpolation_job_ns": 2461,
+      "extension_job_ns": 15083,
+      "joined_ns": 31459
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 5333,
+      "extension_job_ns": 16583,
+      "joined_ns": 22833
+    },
+    {
+      "columns": 44,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 191255,
+      "extension_job_ns": 519166,
+      "joined_ns": 130917
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 264672,
+      "extension_job_ns": 601957,
+      "joined_ns": 163125
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 260952,
+      "extension_job_ns": 543579,
+      "joined_ns": 150083
+    },
+    {
+      "columns": 64,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 262254,
+      "extension_job_ns": 654168,
+      "joined_ns": 160084
+    },
+    {
+      "columns": 8,
+      "base_log": 11,
+      "extended_log": 12,
+      "interpolation_job_ns": 38583,
+      "extension_job_ns": 103750,
+      "joined_ns": 44458
+    },
+    {
+      "columns": 56,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1036503,
+      "extension_job_ns": 2610705,
+      "joined_ns": 564959
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1160002,
+      "extension_job_ns": 2337083,
+      "joined_ns": 533208
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1169956,
+      "extension_job_ns": 2320541,
+      "joined_ns": 555125
+    },
+    {
+      "columns": 60,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1224335,
+      "extension_job_ns": 2186623,
+      "joined_ns": 527500
+    },
+    {
+      "columns": 4,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 162000,
+      "extension_job_ns": 322291,
+      "joined_ns": 134917
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2883039,
+      "extension_job_ns": 6384667,
+      "joined_ns": 1419166
+    },
+    {
+      "columns": 60,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2459044,
+      "extension_job_ns": 4753082,
+      "joined_ns": 1110750
+    },
+    {
+      "columns": 4,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 697917,
+      "extension_job_ns": 1425876,
+      "joined_ns": 564708
+    },
+    {
+      "columns": 64,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 10872455,
+      "extension_job_ns": 22581746,
+      "joined_ns": 4753167
+    },
+    {
+      "columns": 24,
+      "base_log": 16,
+      "extended_log": 17,
+      "interpolation_job_ns": 4109002,
+      "extension_job_ns": 12619541,
+      "joined_ns": 2769583
+    },
+    {
+      "columns": 40,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 15156207,
+      "extension_job_ns": 42222994,
+      "joined_ns": 8614458
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 82625416,
+      "extension_job_ns": 201119625,
+      "joined_ns": 58383083
+    },
+    {
+      "columns": 64,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 23627792,
+      "extension_job_ns": 49698295,
+      "joined_ns": 11394000
+    },
+    {
+      "columns": 64,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 23716503,
+      "extension_job_ns": 48253502,
+      "joined_ns": 10831416
+    },
+    {
+      "columns": 32,
+      "base_log": 17,
+      "extended_log": 18,
+      "interpolation_job_ns": 12036832,
+      "extension_job_ns": 33412872,
+      "joined_ns": 6818209
+    },
+    {
+      "columns": 32,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 25115831,
+      "extension_job_ns": 71049125,
+      "joined_ns": 14784042
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86205458,
+      "extension_job_ns": 198862083,
+      "joined_ns": 58841250
+    },
+    {
+      "columns": 28,
+      "base_log": 18,
+      "extended_log": 19,
+      "interpolation_job_ns": 28818125,
+      "extension_job_ns": 56616000,
+      "joined_ns": 12274792
+    },
+    {
+      "columns": 28,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 46687333,
+      "extension_job_ns": 129470336,
+      "joined_ns": 25600458
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 83759793,
+      "extension_job_ns": 208516499,
+      "joined_ns": 59206625
+    },
+    {
+      "columns": 42,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 73436664,
+      "extension_job_ns": 192092872,
+      "joined_ns": 38583791
+    },
+    {
+      "columns": 22,
+      "base_log": 19,
+      "extended_log": 20,
+      "interpolation_job_ns": 38458293,
+      "extension_job_ns": 109317582,
+      "joined_ns": 20353125
+    },
+    {
+      "columns": 10,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 37395082,
+      "extension_job_ns": 100241167,
+      "joined_ns": 25831917
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 91627418,
+      "extension_job_ns": 206109124,
+      "joined_ns": 60770625
+    },
+    {
+      "columns": 21,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 83667167,
+      "extension_job_ns": 167762207,
+      "joined_ns": 36338208
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 89130665,
+      "extension_job_ns": 183068501,
+      "joined_ns": 55153125
+    },
+    {
+      "columns": 9,
+      "base_log": 20,
+      "extended_log": 21,
+      "interpolation_job_ns": 37424248,
+      "extension_job_ns": 71391499,
+      "joined_ns": 23586917
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 89991834,
+      "extension_job_ns": 182185250,
+      "joined_ns": 55475791
+    },
+    {
+      "columns": 3,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 51081208,
+      "extension_job_ns": 105069208,
+      "joined_ns": 52345375
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 89887124,
+      "extension_job_ns": 223045667,
+      "joined_ns": 63646292
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 92496417,
+      "extension_job_ns": 229441875,
+      "joined_ns": 65533750
+    },
+    {
+      "columns": 4,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 71090293,
+      "extension_job_ns": 150899542,
+      "joined_ns": 56106000
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 94912833,
+      "extension_job_ns": 214479333,
+      "joined_ns": 64371583
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 89887750,
+      "extension_job_ns": 252308791,
+      "joined_ns": 70611083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 88871999,
+      "extension_job_ns": 220793250,
+      "joined_ns": 64427083
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84084125,
+      "extension_job_ns": 204625625,
+      "joined_ns": 58903625
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 86543292,
+      "extension_job_ns": 203099040,
+      "joined_ns": 59104250
+    },
+    {
+      "columns": 5,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 84940000,
+      "extension_job_ns": 203437624,
+      "joined_ns": 60158792
+    },
+    {
+      "columns": 2,
+      "base_log": 22,
+      "extended_log": 23,
+      "interpolation_job_ns": 35710834,
+      "extension_job_ns": 75548416,
+      "joined_ns": 56531334
+    },
+    {
+      "columns": 4,
+      "base_log": 10,
+      "extended_log": 11,
+      "interpolation_job_ns": 11124,
+      "extension_job_ns": 26834,
+      "joined_ns": 29500
+    },
+    {
+      "columns": 60,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1225583,
+      "extension_job_ns": 2770002,
+      "joined_ns": 645958
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1109541,
+      "extension_job_ns": 2243580,
+      "joined_ns": 516708
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1091039,
+      "extension_job_ns": 2178333,
+      "joined_ns": 530041
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1235542,
+      "extension_job_ns": 2162125,
+      "joined_ns": 546000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1074791,
+      "extension_job_ns": 2135383,
+      "joined_ns": 486292
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1109418,
+      "extension_job_ns": 2153876,
+      "joined_ns": 491500
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1084376,
+      "extension_job_ns": 2126841,
+      "joined_ns": 484041
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1096997,
+      "extension_job_ns": 2135546,
+      "joined_ns": 479125
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1154625,
+      "extension_job_ns": 2232544,
+      "joined_ns": 504250
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1112917,
+      "extension_job_ns": 2147499,
+      "joined_ns": 497000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1096996,
+      "extension_job_ns": 2128207,
+      "joined_ns": 487750
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1082377,
+      "extension_job_ns": 2124751,
+      "joined_ns": 483000
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1089959,
+      "extension_job_ns": 2141585,
+      "joined_ns": 480416
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1141791,
+      "extension_job_ns": 2154749,
+      "joined_ns": 512416
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1104331,
+      "extension_job_ns": 2145291,
+      "joined_ns": 510666
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1081750,
+      "extension_job_ns": 2124917,
+      "joined_ns": 479792
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1092916,
+      "extension_job_ns": 2158792,
+      "joined_ns": 496750
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1100128,
+      "extension_job_ns": 2140164,
+      "joined_ns": 491334
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1092916,
+      "extension_job_ns": 2135539,
+      "joined_ns": 484292
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1094002,
+      "extension_job_ns": 2130580,
+      "joined_ns": 508542
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1100501,
+      "extension_job_ns": 2140957,
+      "joined_ns": 483792
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1084625,
+      "extension_job_ns": 2151041,
+      "joined_ns": 511709
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1093207,
+      "extension_job_ns": 2138334,
+      "joined_ns": 488875
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1065545,
+      "extension_job_ns": 2121249,
+      "joined_ns": 479542
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1070703,
+      "extension_job_ns": 2131835,
+      "joined_ns": 480041
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1081666,
+      "extension_job_ns": 2132545,
+      "joined_ns": 475792
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1110290,
+      "extension_job_ns": 2159375,
+      "joined_ns": 516625
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1080211,
+      "extension_job_ns": 2124410,
+      "joined_ns": 479125
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1092290,
+      "extension_job_ns": 2130958,
+      "joined_ns": 486917
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1086710,
+      "extension_job_ns": 2122328,
+      "joined_ns": 488083
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1085084,
+      "extension_job_ns": 2133881,
+      "joined_ns": 480750
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1128746,
+      "extension_job_ns": 2135289,
+      "joined_ns": 479916
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1096328,
+      "extension_job_ns": 2125251,
+      "joined_ns": 477583
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1088291,
+      "extension_job_ns": 2129455,
+      "joined_ns": 483541
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1110673,
+      "extension_job_ns": 2137122,
+      "joined_ns": 493375
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1069291,
+      "extension_job_ns": 2124047,
+      "joined_ns": 480125
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1072087,
+      "extension_job_ns": 2117789,
+      "joined_ns": 474667
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1082124,
+      "extension_job_ns": 2130669,
+      "joined_ns": 479208
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1075952,
+      "extension_job_ns": 2130627,
+      "joined_ns": 483708
+    },
+    {
+      "columns": 64,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 1087416,
+      "extension_job_ns": 2135418,
+      "joined_ns": 505000
+    },
+    {
+      "columns": 44,
+      "base_log": 13,
+      "extended_log": 14,
+      "interpolation_job_ns": 741586,
+      "extension_job_ns": 1466914,
+      "joined_ns": 361041
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 7834,
+      "extension_job_ns": 93000,
+      "joined_ns": 38334
+    },
+    {
+      "columns": 56,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2175499,
+      "extension_job_ns": 5669707,
+      "joined_ns": 1206084
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2506291,
+      "extension_job_ns": 6639287,
+      "joined_ns": 1392833
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2490291,
+      "extension_job_ns": 4988038,
+      "joined_ns": 1186625
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2474374,
+      "extension_job_ns": 4965664,
+      "joined_ns": 1166458
+    },
+    {
+      "columns": 52,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2007751,
+      "extension_job_ns": 4318459,
+      "joined_ns": 994583
+    },
+    {
+      "columns": 12,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 988918,
+      "extension_job_ns": 2168250,
+      "joined_ns": 572125
+    },
+    {
+      "columns": 64,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 5025669,
+      "extension_job_ns": 19862538,
+      "joined_ns": 3528042
+    },
+    {
+      "columns": 16,
+      "base_log": 15,
+      "extended_log": 16,
+      "interpolation_job_ns": 1276458,
+      "extension_job_ns": 2724749,
+      "joined_ns": 756875
+    },
+    {
+      "columns": 8,
+      "base_log": 8,
+      "extended_log": 9,
+      "interpolation_job_ns": 7083,
+      "extension_job_ns": 62834,
+      "joined_ns": 33250
+    },
+    {
+      "columns": 56,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 465083,
+      "extension_job_ns": 1192877,
+      "joined_ns": 268208
+    },
+    {
+      "columns": 36,
+      "base_log": 12,
+      "extended_log": 13,
+      "interpolation_job_ns": 305208,
+      "extension_job_ns": 774918,
+      "joined_ns": 177833
+    },
+    {
+      "columns": 28,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 1090456,
+      "extension_job_ns": 3034710,
+      "joined_ns": 639042
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2480751,
+      "extension_job_ns": 4981627,
+      "joined_ns": 1132666
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2479628,
+      "extension_job_ns": 4970414,
+      "joined_ns": 1097334
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2467125,
+      "extension_job_ns": 5025668,
+      "joined_ns": 1120708
+    },
+    {
+      "columns": 64,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 2512293,
+      "extension_job_ns": 5106335,
+      "joined_ns": 1203666
+    },
+    {
+      "columns": 16,
+      "base_log": 14,
+      "extended_log": 15,
+      "interpolation_job_ns": 627457,
+      "extension_job_ns": 1285586,
+      "joined_ns": 366208
+    }
+  ]
+}
