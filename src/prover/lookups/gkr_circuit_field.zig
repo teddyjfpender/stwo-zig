@@ -460,16 +460,29 @@ pub fn ForField(comptime Secure: type) type {
             const r_at_0 = f_at_0.mul(eq_at_0).mul(a_const);
             const r_at_1 = claim.sub(r_at_0);
             const r_at_2 = f_at_2.mul(eq_at_2).mul(a_const);
-            const r_at_b = Secure.zero();
-
-            const xs = [_]Secure{ Secure.zero(), Secure.one(), x_two, b_const };
-            const ys = [_]Secure{ r_at_0, r_at_1, r_at_2, r_at_b };
-            return utils.UnivariatePoly(Secure).interpolateLagrange(allocator, xs[0..], ys[0..]) catch |err| switch (err) {
-                utils.LookupUtilsError.ShapeMismatch => GkrProverError.ShapeMismatch,
-                utils.LookupUtilsError.DivisionByZero => GkrProverError.DivisionByZero,
-                else => err,
-            };
+            return interpolate012WithRoot(allocator, .{ r_at_0, r_at_1, r_at_2 }, b_const);
         }
+        /// The GKR cubic has the known fourth value r(b)=0. Newton's basis
+        /// avoids generic Lagrange factors and needs one secure inverse here.
+        /// b=0,1,2 remains a pole: zero numerators never mask that failure.
+        pub fn interpolate012WithRoot(allocator: std.mem.Allocator, values: [3]Secure, b: Secure) (std.mem.Allocator.Error || GkrProverError)!utils.UnivariatePoly(Secure) {
+            const one = Secure.one();
+            const two = one.add(one);
+            const bm1 = b.sub(one);
+            const bm2 = b.sub(two);
+            const denominator = b.mul(bm1).mul(bm2);
+            const delta = values[1].sub(values[0]);
+            const quadratic = values[2].sub(values[1].add(values[1])).add(values[0]).mulM31(M31.fromCanonical(1073741824));
+            const at_b = values[0].add(delta.mul(b)).add(quadratic.mul(b).mul(bm1));
+            const cubic = at_b.neg().div(denominator) catch return GkrProverError.DivisionByZero;
+            const coeffs = try allocator.alloc(Secure, 4);
+            coeffs[0] = values[0];
+            coeffs[1] = delta.sub(quadratic).add(cubic.add(cubic));
+            coeffs[2] = quadratic.sub(cubic.add(cubic).add(cubic));
+            coeffs[3] = cubic;
+            return utils.UnivariatePoly(Secure).initOwned(coeffs);
+        }
+
         pub fn buildLayers(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
             return buildLayersImpl(allocator, input_layer, true);
         }
