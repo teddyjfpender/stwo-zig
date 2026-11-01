@@ -32,6 +32,7 @@ B=autoresearch/benchmarks/guest_runtime/ethereum/client_evmone
 python3 -I $B/build.py --out OUT                         # OUT/client-evmone-admitted.elf
 python3 -I $B/build.py --out OUT --profile candidate     # + candidate services (mem,sha,arith)
 python3 -I $B/build.py --out OUT --profile candidate --candidate-set mem,sha   # subsets
+python3 -I $B/build.py --out OUT --profile candidate --candidate-set mem,sha,arith,bn,bls,keccak  # + curve/sponge candidates
 python3 -I $B/build.py --out OUT --host --tests          # native build + host tests
 ```
 
@@ -62,6 +63,7 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 | Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
 | secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
 | Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
+| Candidate curves | groups `bn` (needs `arith`): `0x0003_0100/0101` BN254 affine add/double for ecAdd/ecMul, `0x0003_0102` Fq2 product in ecPairing; `bls`: `0x0003_0121` arith384_mont for blst's 384-bit Montgomery products and `0x0003_0112` BLS12-381 Fp2 product (KZG, EIP-2537); `keccak`: `0x0003_0130` Keccak-256 sponge for inputs over 64 bytes. Glue `glue/curves_stwo.cpp`, `glue/candidate_curves.hpp`, patches 0020/0021; ABI `autoresearch/guest_efficiency/notes/candidate-curves-abi.md` |
 
 ## Design
 
@@ -102,6 +104,11 @@ The adapter is optional (the guest also accepts the plain canonical SSZ).
 the memory functions) and `tests/secp_differential.cpp` (stwo recovery vs
 evmone's reference on random and edge-case signatures; hinted verification
 accepts true keys and rejects negated keys, wrong recid and wrong hash).
+`tests/curves_test.cpp` checks the candidate curve/field/sponge glue with every
+hook live (portable blst, services emulated): ecMul/ecAdd vs a naive intx
+double-and-add, Fq2 and blst Fp/Fp2 products vs intx, BLS12-381 pairing
+bilinearity, evmone's KZG vectors, and the sponge vs the admitted Keccak path for
+every length 0..600 at all alignments.
 `tests/tamper.py HOST BLOCK_DIR` mutates inputs: targeted payload, header and
 transaction mutations must abort, random bit flips must abort or reproduce the
 exact output.

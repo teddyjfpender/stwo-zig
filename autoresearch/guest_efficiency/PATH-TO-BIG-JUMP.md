@@ -125,7 +125,8 @@ item only with its evidence.
 - [ ] **Bulk-memory services in the prover** (aligned memcpy/memset, then memcmp) (branch `codex/rv64-guest-prover-bulk-memory`; bridge AIR committed `49576d8ce`)
 - [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
 - [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp) (branch `codex/rv64-guest-prover-arith256`, in progress)
-- [ ] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (branch `codex/rv64-guest-candidate-curves`, in progress); then services
+- [x] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (`fa8a2c7aa`, `683c40b2b`): client 5.653 -> 4.662 instr/gas (-17.5%), 78,849 -> 68,671 bits/gas (-12.9%); BLS/KZG 0.46 -> 0.09, Keccak glue 0.43 -> 0.08, BN254 0.30 -> 0.06 instr/gas
+- [ ] BN254, BLS12-381 and Keccak-sponge services in the prover (proposals: `bn254-g1-fp2.md`, `bls12-381-fp-fp2.md`, `keccak-sponge.md`)
 - [ ] Recursion-circuit support for each new service
 
 ### Move D: instruction-set extension (candidate first)

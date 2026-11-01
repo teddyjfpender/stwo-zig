@@ -162,7 +162,7 @@ def sources(src: Path, host: bool, profile: str, secp: str) -> list[tuple[Path, 
     files += [ev / "test" / "state" / "precompiles.cpp"]
     glue = HERE / "glue"
     files += [glue / n for n in ("keccak_stwo.cpp", "sha256_stwo.cpp", "witness_trie.cpp", "stwo_client.cpp", "arith_stwo.cpp",
-                                 )]
+                                 "curves_stwo.cpp")]
     files += [src / "blst" / "src" / "server.c"]
     if host:
         files += [src / "blst" / "build" / "assembly.S"]
@@ -233,6 +233,25 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         objs.append(o)
     run(["zig", "c++", a.opt, *objs, "-o", tdir / "secp_differential"])
     run([tdir / "secp_differential", "3000"])
+    # Candidate curve/field/sponge glue vs independent references (all hooks live,
+    # portable blst so the 384-bit Montgomery hook is exercised too).
+    ev = src / "evmone" / "lib" / "evmone_precompiles"
+    bn = ["-DCANDIDATE_ARITH", "-DCANDIDATE_BN"]
+    units = [(glue / "curves_stwo.cpp", ["-DCANDIDATE_BN", "-DCANDIDATE_BLS"]), (glue / "arith_stwo.cpp", ["-DCANDIDATE_ARITH"]),
+             (glue / "host_services.cpp", []), (glue / "keccak_stwo.cpp", []), (glue / "sha256_stwo.cpp", []),
+             (ev / "bn254.cpp", bn), (ev / "kzg.cpp", []), (ev / "kzg_precomputed_lines.cpp", []),
+             (HERE / "tests" / "curves_test.cpp", bn)]
+    objs = []
+    for f, extra in units:
+        o = tdir / ("curves-" + f.name + ".o")
+        run(["zig", "c++", *flags, *extra, "-c", f, "-o", o])
+        objs.append(o)
+    o = tdir / "curves-blst-server.c.o"
+    run(["zig", "cc", a.opt, "-g", "-D__BLST_NO_ASM__", "-DCANDIDATE_BLS", "-ffunction-sections", "-fdata-sections",
+         "-c", src / "blst" / "src" / "server.c", "-o", o])
+    objs.append(o)
+    run(["zig", "c++", a.opt, *objs, "-o", tdir / "curves_test"])
+    run([tdir / "curves_test"])
 
 
 def main(argv=None):
@@ -243,7 +262,8 @@ def main(argv=None):
     ap.add_argument("--profile", choices=("admitted", "candidate"), default="admitted")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
-                    help="candidate service groups for --profile candidate (mem, sha, arith, mul)")
+                    help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
+                         "bn = BN254 G1/Fq2 [needs arith], bls = BLS12-381 Fp/Fp2, keccak = Keccak sponge)")
     ap.add_argument("--opt", default="-O2")
     ap.add_argument("--isa", choices=tuple(ISA_FEATURES), default="im",
                     help="guest ISA: RV64IM (admitted) or a candidate Zba/Zbb build")
@@ -288,7 +308,7 @@ def main(argv=None):
     if a.profile == "candidate":
         defines.append("-DCANDIDATE_SERVICES")
         for svc in a.candidate_set.split(","):
-            if svc not in ("mem", "sha", "arith", "mul"):
+            if svc not in ("mem", "sha", "arith", "mul", "bn", "bls", "keccak"):
                 raise SystemExit(f"unknown candidate service group {svc!r}")
             defines.append(f"-DCANDIDATE_{svc.upper()}")
     if a.host:
