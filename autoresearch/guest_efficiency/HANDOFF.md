@@ -169,6 +169,35 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
 | `codex/rv64-guest-client-eest-fixes` | EEST liveness bugs | WIP, merged UNVERIFIED |
 | `codex/rv64-keccak-memory-cost` | Keccak/memory cost design | verified doc |
 
+## Paused tracks: handovers (2026-11-02)
+
+All six in-flight tracks were paused at the user's request. Each wrote its own
+handover (done and verified with evidence, in progress, next steps, risks,
+resume commands), committed, pushed its branch, and was merged into this branch
+as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover").
+
+| Track | Handover | Branch head | One-line state |
+|---|---|---|---|
+| Keccak sponge | [handover/prover-keccak-sponge.md](handover/prover-keccak-sponge.md) | `fb253bde8` | AIR + services lane verified with real STARKs and a fresh receiver (23 lengths x 8 alignments, 8 adversarial); regression suites, byte identity, driver hooks and evmone option not run; costs estimated (~1,074 cells/call + 1,661/block) |
+| BN254 / BLS12-381 | [handover/prover-curves.md](handover/prover-curves.md) | `e15fb991a` | one truth AIR for 7 ops, verified vs independent big-int; measured truth cells (BN254 add 2,036, dbl 1,884, Fp2 1,126; BLS Fp2 2,088, add 3,460, dbl 3,502; arith384_mont 1,256) + 378 per 32-byte coordinate; one quotient-tamper test unresolved; lane/receiver/driver wiring not compiled on the track branch; packets now inline 32-byte aligned |
+| Unaligned memcpy / memcmp | [handover/prover-bulk-unaligned.md](handover/prover-bulk-unaligned.md) | `6806dec8c` | measured: 57% of copies (4.52M calls) have mismatched alignment; executor and Rust guest routing pass (-4.9% instr/gas, exact); AIR rows written, tests not confirmed green; not wired into the lane. Routing is gated off on this branch (`776015b65`) so guests stay provable |
+| Recursion for v3 | [handover/prover-recursion-v3.md](handover/prover-recursion-v3.md) | `701ee5f0b` | correction: no Word16 services bundle (v2 or v3) can be wrapped/folded yet; needs a CPU-with-bridges leaf and a services root closing RAM14/KIO11/Wire35. Circuit evaluators built for SHA-256, arith256_mod, bridge, bulk; SHA leaf ~37% of the 2^23 budget on a fixture; 10/12 tests last run |
+| Interpreter pass 2 | [handover/client-interpreter2.md](handover/client-interpreter2.md) | `68a0867d3` | negative result: translated segments cut dispatch 1.117 -> 0.836/gas but translation cost more (all-blocks 6.566 -> 6.834); not kept (~4.5 executions per unique opcode); patch parked in `client_evmone/patches/wip/` (not applied); 3-way differential fuzzer added |
+| evmone EEST bugs | [handover/client-eest-fixes.md](handover/client-eest-fixes.md) | `365f1b165` | BLS G2 crash fixed (blst 0002, 40 -> 0 failures); table sizing fixed (host 200/200, guest 307/309); 7702 depth fixed by the same change; BLS MSM step budget not started; full host re-run and new receipt pending |
+
+### Flags that need an owner
+
+- **Soundness: joint REG/RAM write induction.** `test-riscv64-word16-memory`
+  fails because its guard now counts 7 RAM-writing services instead of 4; its
+  comment says adding a writer requires reopening the soundness argument. Bulk
+  memory, the sponge and the curve services write RAM: re-establish the
+  induction argument (canonical limbs per writer) before treating them as sound.
+- **Candidate-profile output mismatch.** The interpreter track saw the
+  candidate-profile baseline fail exact output with no interpreter change;
+  uninvestigated. Re-check the candidate basket at the current head.
+- **Unverified code is merged.** Default builds exercise only the verified or
+  gated paths; each handover states what is unverified.
+
 ## Post-merge status (after merging the six UNVERIFIED checkpoints)
 
 - Harness unit tests (`test_bench.py`): pass.
