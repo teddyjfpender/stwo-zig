@@ -43,3 +43,25 @@ test "raw-mod channels separate trusted degree and packing profiles and consume 
     try std.testing.expectEqual(@as(u32, 0), q.inner.n_draws);
     try std.testing.expectEqual(@as(u32, 0), o.inner.n_draws);
 }
+
+test "raw-mod accepts a real raw Blake rejection block once while legacy sampling still retries" {
+    // Fixed single-block Blake2s fixture, found once offline. No search in CI.
+    const counter: u32 = 107289826;
+    var raw: B.Blake2sChannel = .{ .n_draws = counter };
+    const words = raw.drawU32s();
+    try std.testing.expectEqual(@as(u32, 0xffffffff), words[2]);
+    var q = R.Qm31Channel.init();
+    q.inner = .{ .n_draws = counter };
+    var o = R.Om31Channel.init();
+    o.inner = .{ .n_draws = counter };
+    const small = q.drawSecureFelt();
+    const wide = o.drawSecureFelt();
+    try std.testing.expect(small.eql(wide.c0));
+    try std.testing.expectEqualDeep(R.reduceWords(words), wide.toM31Array());
+    try std.testing.expectEqual(counter + 1, q.inner.n_draws);
+    try std.testing.expectEqual(counter + 1, o.inner.n_draws);
+    var legacy: B.Blake2sChannel = .{ .n_draws = counter };
+    const uniform = legacy.drawSecureFelt();
+    try std.testing.expect(legacy.n_draws > counter + 1);
+    try std.testing.expect(!uniform.eql(small));
+}
