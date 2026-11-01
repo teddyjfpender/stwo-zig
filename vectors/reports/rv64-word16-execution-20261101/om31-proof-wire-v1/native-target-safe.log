@@ -1,0 +1,12 @@
+test-native-cpu-om31
++- run test stderr
+OM31_STARK_REJECT main_sample OodsNotMatching
+OM31_STARK_REJECT composition_sample OodsNotMatching
+OM31_STARK_REJECT opening RootMismatch
+OM31_STARK_REJECT root OodsNotMatching
+OM31_STARK_REJECT terminal InvalidQueryShape
+OM31_STARK_REJECT shape InvalidStructure
+OM31_WIRE_FRESH fold=1 binary=false bytes=9629
+OM31_WIRE_FRESH fold=1 binary=true bytes=3316
+OM31_WIRE_FRESH fold=4 binary=false bytes=9348
+OM31_WIRE_FRESH fold=4 binary=true bytes=3328

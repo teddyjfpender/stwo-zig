@@ -13,6 +13,10 @@ pub const Configure = types.Configure;
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
 pub const steps = [_]Step{
+    .{ .name = "test-native-cpu-om31", .description = "Qualify wide STARKs, mixed heights and fresh proof-file receivers", .scope = .native_cpu },
+    .{ .name = "test-stwo-core-om31-deep", .description = "Qualify explicit wide DEEP authority", .scope = .core },
+    .{ .name = "test-stwo-core-om31-fri", .description = "Qualify explicit wide FRI authority", .scope = .core },
+    .{ .name = "test-stwo-core-om31-pcs", .description = "Qualify explicit wide PCS authority", .scope = .core },
     .{ .name = "test-stwo-core-om31", .description = "Qualify additive degree8 arithmetic and irreducibility", .scope = .core },
     .{ .name = "rv64-om31-cost", .description = "Measure additive wider-field primitives and actual circuit graph", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-security-policy", .description = "Fail closed on unqualified whole-protocol security claims", .scope = .riscv_cpu },
