@@ -59,3 +59,27 @@ about23% more numerical time; total proving is4.8% slower in this sample, within
 prior approximately7.5% host variation. This is a measured memory/time tradeoff,
 not a whole-prover1.5× gain or a reason to promote the default. Consuming leaves
 and metadata-only terminal binding remain a separately qualified next slice.
+
+## Consuming leaves and metadata-only terminal binding
+
+The opt-in stride2 child now transfers the input layer headers and owned MLEs to
+`proveBatchOwnedCheckpointed`, which consumes them on success and failure. The
+borrowed/default APIs preserve their immutable caller-input contract. The owned
+multiplicity denominator uses the separately qualified owned-D fold; it may keep
+its original physical backing when the recycler reports a logical shrink.
+
+After numerical proving, terminal binding replays the existing durable native
+metadata through the original `RowSink`. An explicit projection mode hoists
+lane-Eq times relation coefficients once, then accumulates M31 tuple products
+into the exact weighted N+etaD form. No full N/D planes, tuple planes, MAIN copy
+or FFT is rebuilt. Row0 discovers the bounded relation roster, and every replayed
+row must match that roster and canonical base encoding. Padding still contributes
+N=0,D=1. The original Eq generation and logical-prefix/carry kernel is shared.
+
+Safe/Fast tests compare matrix and metadata-derived binding planes exactly,
+reject altered final-row metadata, exercise every namespace with signed/zero
+weights and padded lanes, and check noncanonical tuples. Consuming mixed-height
+Q/OM numerical proofs, artifacts and next draws match the borrowed path; fresh
+terminal verification and exhaustive allocation failures pass. Full child Safe/
+Fast suites pass with opt-in stride2. No default or admission estimate is changed
+by this slice; actual requested peaks and physical RSS require another benchmark.
