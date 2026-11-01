@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "boundary_receiver_public_authority_qualification",
+  "source_base": "9ded605ae3b2765fc87f902202be71225070b622",
+  "scope": "Test-only receiver audit; no production constraints, transcript or schema changes",
+  "modified_source_sha256": {
+    "build_support/products/riscv_cpu.zig": "e4319105a6f50f38727ecc5fde6319a2b86974d9f4d5b10f48ec233915a15744",
+    "src/integrations/riscv_cpu/rv64_word16_combined_services_test_root.zig": "6959891fa66b3a25197f82d81665c70b1c31ca6a92962d727c556ac297460bae",
+    "src/integrations/riscv_cpu/word16_execution/memory/boundary_anchor_test.zig": "56fcda07166181d09c0bd1722133048773db9c01589ff64ae64edea5e4b28490",
+    "src/integrations/riscv_cpu/word16_execution/memory/global_manifest_test.zig": "37198467e842524a438a6c763560383aba608691ef4acd1ec4ff9eb39add4de4",
+    "src/integrations/riscv_cpu/word16_global_execution/execution_test.zig": "400789eb577fc0fe22128a014250dae9d271e7752cf9980eba171e374c03b10c",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/execution_test.zig": "c2576d256b56b3a2e088e3c5ae1290dddd28379804a15a86c26a1665e2e3e38c",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/execution_test.zig": "a95299b60dc641f8d844763fd7327cd9800b10dd98e1e05d3d8ed33b2e725325",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/execution_test.zig": "f077e99a574aad1c34cb34c005b5f8e9dd759453f4b02176645a8417076ac1fd",
+    "src/integrations/riscv_cpu/word16_execution/memory/boundary_fixture.zig": "b19761414eb57c307697bbd891f009f3073e14b45d0a3f332ee1250d7ab1ded8",
+    "src/integrations/riscv_cpu/word16_global_execution/boundary_guard_fixture.zig": "4c15ff30ab1775f2bfb473c4bf6b6f775b9cfad2f509095a85898b293dfd1d13",
+    "src/integrations/riscv_cpu/word16_global_execution/services/boundary_receiver_test.zig": "92f1b866716280bd6fe0526cc3371017f544c1f25bca86bf4fe183455d82242d"
+  },
+  "gates": {
+    "physical_safe": {
+      "path": "/tmp/rv64-boundary-receiver-physical-safe-v2.log",
+      "sha256": "38290e7fdfcf6c84ef01ab5db6d8e7ef8c709d3488ff71e9c432ba7a0eb75f2a",
+      "summary": "Build Summary: 4/4 steps succeeded\ntest-riscv64-word16-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:5G"
+    },
+    "physical_fast": {
+      "path": "/tmp/rv64-boundary-receiver-physical-fast-v2.log",
+      "sha256": "522f5dbe1ef09f122fe8c69863e96da31b2b7d0a42b5b37f4e9f574b7a197abc",
+      "summary": "Build Summary: 4/4 steps succeeded\ntest-riscv64-word16-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G\ntest-riscv64-word16-combined-services success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:4G"
+    },
+    "routes_safe": {
+      "path": "/tmp/rv64-boundary-receiver-routes-safe-v1.log",
+      "sha256": "512bdcd1dfb94c4ae58c0f5bf59bb2c96b446518265a620817ca44bb7872a8d8",
+      "summary": "Build Summary: 10/10 steps succeeded\ntest-riscv64-word16-global-execution success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-word16-keccak-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-word16-keccak-shared success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-secp-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-global-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 43s MaxRSS:2G"
+    },
+    "routes_fast": {
+      "path": "/tmp/rv64-boundary-receiver-routes-fast-v1.log",
+      "sha256": "20875b11dc927ebdac9f30f8fb9e7061312f67f494611882df9cefb21b842972",
+      "summary": "Build Summary: 10/10 steps succeeded\ntest-riscv64-word16-global-execution success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:3G\ntest-riscv64-word16-keccak-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-word16-keccak-shared success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-secp-bridge success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G\ntest-riscv64-word16-global-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 38s MaxRSS:1G"
+    }
+  },
+  "genuine_malformed_transcript_cases": [
+    "duplicate public addresses",
+    "unsorted public addresses",
+    "unaligned public address",
+    "public initial value contradicts pristine image"
+  ],
+  "genuine_malformed_transcript_receivers": [
+    "genesis per-execution",
+    "canonical mixed services",
+    "Ethereum prefix (same mixed-service gate precedes completed acceptance)"
+  ],
+  "physical_positive_control": "Canonical public list with independently permuted MAIN boundary rows and retained metadata must verify",
+  "specialized_route_coverage": {
+    "global_RAM": "Actual top receiving endpoint guard tests on an independently valid baseline two-shard proof; malformed headers are not re-proved under this specialized transcript",
+    "per_shard_Keccak": "same top receiver guard test pattern",
+    "shared_bounded_Keccak": "single truth delegates to bounded receiver, which uses the common public gate",
+    "secp": "same top receiver guard test pattern",
+    "diagnostic_boundary": "Independent public authority before fixed-key/helper construction; duplicate/unsorted/unaligned/wrong-image inputs reject"
+  },
+  "canonical_transport": "cells_wire.read explicitly rejects raw tick>=2^24 and rights>3 before cast; Cell usesu64/u64/u16/u24/u2; existing transport regressions retained",
+  "native_diagnostics": "Residual inspection is not an accepting proof receiver or coverage certificate",
+  "small_and_DIV": "Source authority reviewed; existing physical regressions preserved; no duplicate trims. Parent already ran actual degree3 MUL24-coordinate and DIV physical support gates.",
+  "initial_engineering_failure": {
+    "log": "/tmp/rv64-boundary-receiver-public-safe-v1.log",
+    "cause": "Hostile genesis fixture retained canonical metadata after mutating public cells, so honest producer rejected MemoryBoundaryClaimMismatch before proving. Corrected fixture rewrites MAIN and metadata together. Not an accepting receiver defect."
+  },
+  "security": "Functional nominal96 control qualification only; not whole-protocol128-bit evidence",
+  "gpu": "No GPU qualifications performed, per user direction",
+  "status": "All seven focused suites passed in ReleaseSafe and ReleaseFast; test-only delta qualified.",
+  "test_floors_changed": {
+    "memory": 55,
+    "combined_services": 22
+  }
+}

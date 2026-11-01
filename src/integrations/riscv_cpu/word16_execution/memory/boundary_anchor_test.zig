@@ -36,6 +36,10 @@ pub const Attack = enum {
     out_of_range_value,
     /// Rows 1 and 2 swapped: unsorted, but the exact public multiset.
     unsorted_permutation,
+    /// Native public address violates word alignment; the physical limbs agree.
+    unaligned_address,
+    /// Canonical field limbs, but the public initial value disagrees with image.
+    untrusted_initial_value,
 };
 fn cell(main: []M, row: usize, column: usize) *M {
     return &main[column * n + R.trace.physical(row, 5)];
@@ -50,6 +54,8 @@ fn ghostMain(main: []M, attack: Attack) void {
             cell(main, 2, c).* = cell(main, 1, c).*;
         },
         .out_of_range_value => cell(main, 2, 5).* = M.fromCanonical(70000),
+        .unaligned_address => cell(main, 2, 1).* = cell(main, 2, 1).add(M.one()),
+        .untrusted_initial_value => cell(main, 2, 5).* = M.one(),
         .unsorted_permutation => for (0..W) |c| {
             const t = cell(main, 1, c).*;
             cell(main, 1, c).* = cell(main, 2, c).*;
@@ -98,6 +104,9 @@ pub fn verifyPhysical(setup: *const Mat.Setup, admission: Execution.Admission, e
     try core.verifier.verify(P.T.P.Hasher, P.T.P.MerkleChannel, a, handles, &channel, &verifier, proof);
 }
 fn runAttack(attack: Attack) !void {
+    return runAttackWithPublic(attack, false);
+}
+fn runAttackWithPublic(attack: Attack, malformed_public: bool) !void {
     var fixture = try @import("../../tests/rv64_word16_execution_fixture.zig").Fixture.init(a);
     defer fixture.deinit();
     var setup = try Mat.Setup.initWithAuthority(a, &fixture.image.authority, .{ .cpu_log = 5, .alu_log = 5, .binary_log = 5, .shift_log = 5, .jalr_log = 5, .division_log = 5, .multiplication_log = 5, .ls_log = 5, .boundary_log = 5 });
@@ -123,6 +132,32 @@ fn runAttack(attack: Attack) !void {
     try admission.validate(&setup, request);
     ghostMain(source.memory.initial.main, attack);
     ghostMain(source.memory.terminal.main, attack);
+    if (malformed_public) switch (attack) {
+        .duplicate_address => {
+            initial[2] = initial[1];
+            terminal[2] = terminal[1];
+        },
+        .unsorted_permutation => {
+            std.mem.swap(R.types.Cell, &initial[1], &initial[2]);
+            std.mem.swap(R.types.Cell, &terminal[1], &terminal[2]);
+        },
+        .unaligned_address => {
+            initial[2].address += 1;
+            terminal[2].address += 1;
+        },
+        .untrusted_initial_value => {
+            initial[2].state.value = 1;
+            terminal[2].state.value = 1;
+        },
+        else => unreachable,
+    };
+    if (malformed_public) {
+        // Producer metadata must agree with the malformed public tuples too;
+        // otherwise the honest witness recipe would reject before proving.
+        const rewrite = @import("boundary_fixture.zig").rewrite;
+        rewrite(&source.memory.initial, initial);
+        rewrite(&source.memory.terminal, terminal);
+    }
     const im = try a.dupe(M, source.memory.initial.main);
     defer a.free(im);
     const tm = try a.dupe(M, source.memory.terminal.main);
@@ -145,7 +180,7 @@ fn runAttack(attack: Attack) !void {
     try claims.validate(); // Ghost debts cancel; aggregate-only validation passes.
     const expected_initial = try X.boundary_source.expectedClaim(request.memory.initial, true, draw.memory.ram);
     const expected_terminal = try X.boundary_source.expectedClaim(request.memory.terminal, false, draw.memory.ram);
-    const same_multiset = attack == .unsorted_permutation;
+    const same_multiset = malformed_public or attack == .unsorted_permutation;
     try std.testing.expectEqual(same_multiset, claims.initial.ram.eql(expected_initial));
     try std.testing.expectEqual(same_multiset, claims.terminal.ram.eql(expected_terminal));
     channel.mixFelts(&claims.values());
@@ -170,6 +205,13 @@ fn runAttack(attack: Attack) !void {
     var fresh = try Mat.Setup.initWithAuthority(a, &fixture.image.authority, setup.materials.geometry);
     defer fresh.deinit();
     try verifyPhysical(&fresh, admission, encoded);
+    if (malformed_public) {
+        // The transcript, AIR, claims and public list all agree. Only the
+        // actual receiving endpoint's independent public admission rejects.
+        const expected_error = if (attack == .untrusted_initial_value) error.UntrustedMemoryInitialState else error.InvalidMemoryTouchedSet;
+        try std.testing.expectError(expected_error, Execution.verify(a, &fresh, admission, encoded));
+        return;
+    }
     if (same_multiset) {
         // Order is not part of the statement: same RAM14 multiset, same debt.
         try Execution.verify(a, &fresh, admission, encoded);
@@ -223,4 +265,17 @@ test "trimmed boundary chip: nonzero boundary range claims are rejected before a
         for (values) |v| nonzero += @intFromBool(!v.isZero());
         try std.testing.expectEqual(@as(usize, 1), nonzero);
     }
+}
+
+test "physically valid boundary proof with duplicate public addresses is rejected by the top receiver" {
+    try runAttackWithPublic(.duplicate_address, true);
+}
+test "physically valid boundary proof with unsorted public addresses is rejected by the top receiver" {
+    try runAttackWithPublic(.unsorted_permutation, true);
+}
+test "physically valid boundary proof with unaligned public address is rejected by the top receiver" {
+    try runAttackWithPublic(.unaligned_address, true);
+}
+test "physically valid boundary proof with unauthorized public initial value is rejected by the top receiver" {
+    try runAttackWithPublic(.untrusted_initial_value, true);
 }

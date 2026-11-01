@@ -20,6 +20,14 @@ test "Two actual CPU RAM shards join one independent execution wide K truth proo
     try E.verify(a, &.{ &s0, &s1 }, &truth, c.expected(), &c.bundle);
     try std.testing.expectEqual(@as(usize, 3), c.bundle.manifest.roots.len);
     try std.testing.expectEqual(@as(u32, 2), try P.firstCall(&.{ c.bundle.cpus[0].request, c.bundle.cpus[1].request }, 1));
+    const PublicGuard = struct {
+        fn verify(ctx: *anyopaque) !void {
+            const case_ptr: *F.Case = @ptrCast(@alignCast(ctx));
+            const verify_keys = case_ptr.keys();
+            try E.verify(a, &verify_keys, case_ptr.truth, case_ptr.expected(), &case_ptr.bundle);
+        }
+    };
+    try @import("../../boundary_guard_fixture.zig").check(&c.bundle.cpus[0].request.base.memory, &c.bundle.cpus[c.bundle.cpus.len - 1].request.base.memory, .{ .context = &c, .verify = PublicGuard.verify });
 }
 test "Physically valid false K output and false cross shard genesis reject shared truth closure" {
     var wrong = try F.Case.init(a, .wrong_output);

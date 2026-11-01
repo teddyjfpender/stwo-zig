@@ -17,6 +17,14 @@ test "Actual CPU SD ADD ADDI DOUBLE join independently sized RCB truth and globa
     var td = try R.TruthSetup.init(a, .double, c.truths[1].logs);
     defer td.deinit();
     try E.verify(a, &.{ &s0, &s1 }, .{ &ta, &td }, c.expected(), &c.bundle);
+    const PublicGuard = struct {
+        fn verify(ctx: *anyopaque) !void {
+            const case_ptr: *F.Case = @ptrCast(@alignCast(ctx));
+            const verify_keys = case_ptr.keys();
+            try E.verify(a, &verify_keys, case_ptr.truthKeys(), case_ptr.expected(), &case_ptr.bundle);
+        }
+    };
+    try @import("../boundary_guard_fixture.zig").check(&c.bundle.cpus[0].request.base.memory, &c.bundle.cpus[c.bundle.cpus.len - 1].request.base.memory, .{ .context = &c, .verify = PublicGuard.verify });
 }
 test "Actual valid local secp proofs reject false output and fabricated cross epoch predecessor" {
     var output = try F.Case.init(a, .wrong_output);

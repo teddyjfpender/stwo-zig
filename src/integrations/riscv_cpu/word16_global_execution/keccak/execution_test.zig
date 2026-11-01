@@ -17,6 +17,14 @@ test "Actual two CPU shards Keccak IO and global RAM join through one first INIT
     try std.testing.expectEqual(@as(usize, 0), c.bundle.proofs[0].request.base.memory.terminal.len);
     try std.testing.expectEqual(@as(usize, 0), c.bundle.proofs[1].request.base.memory.initial.len);
     try std.testing.expectEqual(@as(usize, 25), c.bundle.proofs[1].request.base.memory.terminal.len);
+    const PublicGuard = struct {
+        fn verify(ctx: *anyopaque) !void {
+            const case_ptr: *F.Case = @ptrCast(@alignCast(ctx));
+            const verify_keys = case_ptr.keys();
+            try E.verify(a, &verify_keys, case_ptr.expected(), &case_ptr.bundle);
+        }
+    };
+    try @import("../boundary_guard_fixture.zig").check(&c.bundle.proofs[0].request.base.memory, &c.bundle.proofs[c.bundle.proofs.len - 1].request.base.memory, .{ .context = &c, .verify = PublicGuard.verify });
 }
 
 test "Actual physically proved K output forgery and cross shard predecessor reset reject" {

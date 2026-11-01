@@ -23,6 +23,23 @@ test "Complete stage1 manifest fresh-verifies both physical boundary proofs befo
     var agg = try B.produce(a, expected());
     defer agg.deinit(a);
     try B.verify(a, expected(), &agg);
+    // This diagnostic has its own receiving admission, independent of the
+    // execution/global services validator. Invalid public cells must reject
+    // before roots or helper construction can turn them into a statement.
+    var malformed = cells;
+    var bad_public = expected();
+    bad_public.cells = &malformed;
+    malformed[1] = malformed[0];
+    try std.testing.expectError(error.InvalidGlobalGenesis, B.verify(a, bad_public, &agg));
+    malformed = .{ cells[1], cells[0] };
+    try std.testing.expectError(error.InvalidGlobalGenesis, B.verify(a, bad_public, &agg));
+    malformed = cells;
+    malformed[0].address |= 1;
+    try std.testing.expectError(error.InvalidGlobalGenesis, B.verify(a, bad_public, &agg));
+    malformed = cells;
+    malformed[0].state.value ^= 1;
+    try std.testing.expectError(error.InvalidGlobalGenesis, B.verify(a, bad_public, &agg));
+
     try std.testing.expect(!agg.proofs[0].claims[22].isZero());
     try std.testing.expect(agg.proofs[0].claims[22].add(agg.proofs[1].claims[27]).isZero());
     var bad = expected();

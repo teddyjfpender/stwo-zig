@@ -18,6 +18,14 @@ test "Actual two CPU shards share RAM across store load with one trusted INIT an
     var fresh1 = try Setup.initWithAuthority(a, &case.fixture.image.authority, case.setups[1].materials.geometry);
     defer fresh1.deinit();
     try E.verify(a, &.{ &fresh0, &fresh1 }, case.expected(), &case.bundle);
+    const PublicGuard = struct {
+        fn verify(ctx: *anyopaque) !void {
+            const case_ptr: *F.Case = @ptrCast(@alignCast(ctx));
+            const verify_keys = case_ptr.keys();
+            try E.verify(a, &verify_keys, case_ptr.expected(), &case_ptr.bundle);
+        }
+    };
+    try @import("boundary_guard_fixture.zig").check(&case.bundle.proofs[0].request.memory, &case.bundle.proofs[case.bundle.proofs.len - 1].request.memory, .{ .context = &case, .verify = PublicGuard.verify });
 }
 
 test "Independent INIT TERM domains physically prove cross shard RAM and default geometry keys stay exact" {
