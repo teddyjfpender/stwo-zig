@@ -185,6 +185,10 @@ pub fn secureFieldPointFromRandomSeedCheckedFor(comptime F: type, t: F) !CircleP
     };
 }
 
+pub fn randomSecureFieldPoint(channel: anytype) CirclePointQM31 {
+    return secureFieldPointFromRandomSeed(channel.drawSecureFelt());
+}
+
 pub fn randomSecureFieldPointFor(comptime F: type, channel: anytype) !CirclePoint(F) {
     return secureFieldPointFromRandomSeedCheckedFor(F, channel.drawSecureFelt());
 }
