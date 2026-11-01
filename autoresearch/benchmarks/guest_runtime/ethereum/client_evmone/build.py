@@ -270,6 +270,14 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         tobjs.append(o)
     run(["zig", "c++", a.opt, *tobjs, "-o", tdir / "trie_differential"])
     run([tdir / "trie_differential", "600"])
+    # Fused copy + Keccak-256 of contract codes (build_zeg0) vs ethash_keccak256.
+    kobjs = []
+    for f in (glue / "keccak_stwo.cpp", glue / "host_services.cpp", HERE / "tests" / "keccak_copy_test.cpp"):
+        o = tdir / ("kcopy-" + f.name + ".o")
+        run(["zig", "c++", *flags, "-c", f, "-o", o])
+        kobjs.append(o)
+    run(["zig", "c++", a.opt, *kobjs, "-o", tdir / "keccak_copy_test"])
+    run([tdir / "keccak_copy_test"])
     wobj = tdir / "zeg_words_test.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
     run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
