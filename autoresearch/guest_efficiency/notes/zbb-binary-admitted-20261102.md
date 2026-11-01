@@ -28,7 +28,18 @@ Branch `codex/rv64-ge-zbb`. Proposal: `proposals/isa-extension.md` group 1.
   component; `word16/binary_fixture.zig` is generic (`FixtureSet`), `binary_fixture.zbb`
   proves the chip.
 
-## Measured (basket `--set all`, all 15 blocks exact output, G1-G5 pass)
+## Measured after merging origin/codex/rv64-guest-efficiency bf59d0334 (umem default)
+
+Same method; v3 default set is now sha,arith,mem,umem. Executor rebuilt from the merged tree.
+
+| client | instr/gas scored | holdout | all | committed bits/gas scored (proxy) |
+|---|---:|---:|---:|---:|
+| v3 RV64IM (541968b6) | 4.447 | 3.761 | 4.311 | 63,851 |
+| v3 zbb_binary (db44755d, 744 rev8, audit clean) | **4.251 (-4.4%)** | 3.584 | 4.119 | **61,887 (-3.1%)** |
+
+Estimated with the cheaper mask-row cost (0.8x proxy saving): ~62,280 bits/gas (-2.5%).
+
+## Measured before the merge (basket `--set all`, all 15 blocks exact output, G1-G5 pass)
 
 Baseline is this tree's own `--profile v3 --isa im` client (sha, arith, aligned mem), the
 same v3 set as the zbb build. G6 fails for the zbb run only because
