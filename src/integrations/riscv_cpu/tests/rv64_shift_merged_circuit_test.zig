@@ -1,4 +1,4 @@
-//! Direct circuit wires for the complete SHIFT38 polynomial, including claims.
+//! Direct circuit wires for the complete 36-residual SHIFT polynomial, including claims.
 const std = @import("std");
 const core = @import("stwo_core");
 const rv = @import("stwo_riscv_frontend").rv64_air;
@@ -10,7 +10,7 @@ const F = Lane.Lane;
 fn wire(ctx: *Lane.Context, q: Q) !F {
     return F.wire(try ctx.guess(q));
 }
-test "SHIFT36 complete CircuitLane binds function range and total claim without independent ledger certificates" {
+test "SHIFT28 complete CircuitLane binds function range and total claim without independent ledger certificates" {
     var channel = core.channel.blake2s.Blake2sChannel{};
     var ch = P.Challenges{ .shift = .{ .offset = channel.drawSecureFelt(), .coefficients = undefined }, .range16 = .{ .offset = channel.drawSecureFelt(), .coefficient = channel.drawSecureFelt() }, .function = .{ .offset = channel.drawSecureFelt(), .coefficients = undefined } };
     for (&ch.shift.coefficients) |*v| v.* = channel.drawSecureFelt();

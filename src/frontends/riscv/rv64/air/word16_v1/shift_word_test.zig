@@ -41,14 +41,14 @@ test "SHIFT direct quotient and sign ranges close genuine locally zero modular a
     alias.quotient = E.q(1 << 25); // 64^-1 in M31; 64*q=1.
     try expectZero(&alias);
     try std.testing.expect(S.nativeResult(.sll, 1, 1) != 1);
-    try std.testing.expectEqual(@as(u32, 1), (try S.rangeValueFor(E.Q, &alias, 5).tryIntoM31()).v);
-    try std.testing.expect((try S.rangeValueFor(E.Q, &alias, 4).tryIntoM31()).v >= 65536);
+    try std.testing.expectEqual(@as(u32, 1), (try S.rangeValueFor(E.Q, &alias, 1).tryIntoM31()).v);
+    try std.testing.expect((try S.rangeValueFor(E.Q, &alias, 0).tryIntoM31()).v >= 65536);
     var sign_alias = S.witness(.sllw, 0, 0);
     sign_alias.sign[2] = E.Q.one();
     sign_alias.payload[11] = E.q(65535);
     sign_alias.payload[12] = E.q(65535);
     try expectZero(&sign_alias);
-    try std.testing.expect((try S.rangeValueFor(E.Q, &sign_alias, 8).tryIntoM31()).v >= 65536);
+    try std.testing.expect((try S.rangeValueFor(E.Q, &sign_alias, 4).tryIntoM31()).v >= 65536);
 }
 
 test "SHIFT every dense secure residual is cubic and identical across sixteen base and secure lanes" {
@@ -118,7 +118,7 @@ fn packedFields(comptime F: type, comptime n: usize, scalar: *[16][n]E.Q, counte
     }
     return result;
 }
-test "SHIFT complete paired-table range and function polynomial preserves all38 secure SIMD residuals" {
+test "SHIFT complete paired-table range and function polynomial preserves all36 secure SIMD residuals" {
     var ch = P.Challenges{ .shift = .{ .offset = secure(3), .coefficients = undefined }, .range16 = .{ .offset = secure(7), .coefficient = secure(11) }, .function = .{ .offset = secure(13), .coefficients = undefined } };
     for (&ch.shift.coefficients, 0..) |*v, i| v.* = secure(@intCast(17 + 4 * i));
     for (&ch.function.coefficients, 0..) |*v, i| v.* = secure(@intCast(41 + 4 * i));
@@ -163,4 +163,36 @@ test "Word16 fixed table enumerates both directions without a direction-index du
     forged[5] += 1;
     try std.testing.expectError(error.InvalidWordShiftTuple, WordTable.rowIndex(forged));
     try std.testing.expect(!std.mem.eql(u32, &Tables.Kind.byte_shift.tupleAt(9), &WordTable.tupleAt(17)));
+}
+
+test "SHIFT canonical chunk bounds cover every input amount and disjoint recomposition" {
+    for (0..16) |amount| {
+        const max = WordTable.tupleAt(65535 * 16 + amount);
+        try std.testing.expectEqual(@as(u32, 65535), max[2] | max[3]);
+        try std.testing.expectEqual(@as(u32, 0), max[2] & max[3]);
+        try std.testing.expectEqual(@as(u32, 65535), max[4] | max[5]);
+        try std.testing.expectEqual(@as(u32, 0), max[4] & max[5]);
+        for (0..65536) |input| {
+            const t = WordTable.tupleAt(input * 16 + amount);
+            for (0..4) |i| {
+                try std.testing.expect(t[2 + i] <= 65535);
+                try std.testing.expectEqual(@as(u32, 0), t[2 + i] & ~max[2 + i]);
+            }
+        }
+    }
+}
+
+test "SHIFT canonical outputs and retained obligations are independent of unused B high coordinates" {
+    const words = [_]u64{ 0, 1, 65535, 0x80000000, 0x8000000000000000, 0xffffffffffffffff, 0x12345678abcdef00 };
+    for (std.enums.values(Ops.Shift)) |op| for (words) |input| for (0..64) |amount| {
+        var r = S.witness(op, input, amount);
+        // The instruction consumes only low5/6 count bits. Function lookup
+        // still binds ALL B coordinates to the canonical CPU/ROM operand.
+        r.payload[6] = E.q(@import("stwo_core").fields.m31.Modulus - 1);
+        r.payload[7] = E.q(65536);
+        r.payload[8] = E.q((@import("stwo_core").fields.m31.Modulus + 1) / 2);
+        try expectZero(&r);
+        for (0..S.RANGE_QUERIES) |q| try std.testing.expect((try S.rangeValueFor(E.Q, &r, q).tryIntoM31()).v < 65536);
+        for (r.payload[9..13]) |c| try std.testing.expect((try c.tryIntoM31()).v < 65536);
+    };
 }

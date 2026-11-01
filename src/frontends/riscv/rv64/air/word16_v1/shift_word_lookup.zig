@@ -21,7 +21,7 @@ pub fn ClaimsFor(comptime C: type) type {
     if (C == E.Q) return Claims;
     return struct { shift: C, range16: C, function: C };
 }
-/// First five unit queries are SHIFT, then nine U16. The third pair crosses
+/// First five unit queries are SHIFT, then five U16. The third pair crosses
 /// the family boundary; both denominators are affine and both weights are1.
 pub fn unitDenominatorFor(comptime F: type, row: *const S.RowFor(F), query: usize, ch: ChallengesFor(E.ConstFor(F))) E.SecureFor(F) {
     if (query < 5) {

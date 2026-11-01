@@ -45,7 +45,7 @@ pub const Geometry = struct {
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log)});
         _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log)});
-        _ = try B.function_bus.admitPositiveMass(&.{5 * familyRows(self.shift_log, self.shift_tail_log)});
+        _ = try B.function_bus.admitPositiveMass(&.{B.shift_word_packed_experiment.equations.TABLE_QUERIES * familyRows(self.shift_log, self.shift_tail_log)});
     }
     pub const LsCounts = struct { head: u32, tail: u32 };
     /// Every present LS instance needs a trailing inactive row. Tail is used
@@ -67,7 +67,7 @@ pub const Geometry = struct {
     /// Future service rosters must extend this admission BEFORE allocation.
     pub fn range16Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
-        total = try std.math.add(u64, total, 9 * familyRows(self.shift_log, self.shift_tail_log));
+        total = try std.math.add(u64, total, B.shift_word_packed_experiment.equations.RANGE_QUERIES * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
         return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
     }

@@ -21,7 +21,7 @@ pub const CONFIG = core.pcs.PcsConfig{ .pow_bits = 26, .fri_config = .{ .log_blo
 pub const Encoded = struct { bytes: []u8, claims: [6]Q };
 fn mix(channel: *Channel, roster: *const C.ExpectedRoster) !void {
     CONFIG.mixInto(channel);
-    channel.mixU32s(&.{ X.table.DOMAIN_TAG, 1, 5, 5, 20, 16, P.MAIN, P.INTERACTION, 13, 7, 160, 288, 3 });
+    channel.mixU32s(&.{ X.table.DOMAIN_TAG, 1, 5, 5, 20, 16, P.MAIN, P.INTERACTION, 13, 7, 160, X.equations.RANGE_QUERIES * 32, 3 });
     P.encoding.mix(channel);
     const digest = try C.expectedRosterDigest(roster);
     var words: [8]u32 = undefined;

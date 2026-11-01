@@ -22,7 +22,7 @@ fn evaluate(input: *const [N]Q, ch: P.Challenges, claims: P.Claims) [P.CONSTRAIN
     std.debug.assert(sink.count == P.CONSTRAINTS);
     return result;
 }
-test "SHIFT36 joint polynomial is genuinely cubic at arbitrary extension points and preserves arithmetic" {
+test "SHIFT28 joint polynomial is genuinely cubic at arbitrary extension points and preserves arithmetic" {
     const ch = challenges();
     const claims = P.Claims{ .shift = dense(13), .range16 = dense(29), .function = dense(37) };
     var results: [5][P.CONSTRAINTS]Q = undefined;
@@ -47,7 +47,7 @@ test "SHIFT36 joint polynomial is genuinely cubic at arbitrary extension points 
     }
     try std.testing.expect(cubic);
 }
-test "SHIFT36 authenticates only combined physical claim and rejects unweighted poles" {
+test "SHIFT28 authenticates only combined physical claim and rejects unweighted poles" {
     const ch = challenges();
     var input: [N]Q = undefined;
     for (&input, 0..) |*v, i| v.* = dense(@intCast(3 * i));
@@ -65,7 +65,7 @@ test "SHIFT36 authenticates only combined physical claim and rejects unweighted 
     @memcpy(input[0..A.LOCAL_MAIN], &A.rowToColumnsFor(Q, &row));
     var range_claim = Q.zero();
     var shift_claim = Q.zero();
-    for (0..7) |i| {
+    for (0..P.encoding.PAIRS) |i| {
         const dx = P.unitDenominatorFor(Q, &row, 2 * i, ch);
         const dy = P.unitDenominatorFor(Q, &row, 2 * i + 1, ch);
         const inverse = try dx.mul(dy).inv();
@@ -80,7 +80,7 @@ test "SHIFT36 authenticates only combined physical claim and rejects unweighted 
     var pole = ch;
     pole.function.offset = Q.zero();
     const bad = evaluate(&input, pole, .{ .shift = shift_claim, .range16 = range_claim, .function = Q.zero() });
-    for (bad[0 .. A.CONSTRAINTS + 1 + 7]) |value| try std.testing.expect(value.isZero());
-    try std.testing.expect(bad[A.CONSTRAINTS + 1 + 7].eql(Q.one().neg()));
-    for (bad[A.CONSTRAINTS + 2 + 7 ..]) |value| try std.testing.expect(value.isZero());
+    for (bad[0 .. A.CONSTRAINTS + 1 + P.encoding.PAIRS]) |value| try std.testing.expect(value.isZero());
+    try std.testing.expect(bad[A.CONSTRAINTS + 1 + P.encoding.PAIRS].eql(Q.one().neg()));
+    for (bad[A.CONSTRAINTS + 2 + P.encoding.PAIRS ..]) |value| try std.testing.expect(value.isZero());
 }

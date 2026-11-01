@@ -73,7 +73,7 @@ test "native Word16 SHIFT writes physical columns exactly once and matches Q wit
         for (values, 0..) |value, c| try std.testing.expectEqual(try value.tryIntoM31(), source.main[c * N + physical(i, 5)]);
         try std.testing.expectEqual(try row.active.tryIntoM31(), source.main[A.LOCAL_MAIN * N + physical(i, 5)]);
         for (row.payload, source.metadata[i].payload) |v, value| try std.testing.expectEqual(value, (try v.tryIntoM31()).v);
-        for (0..9) |q| range_counts[(try A.rangeValueFor(Q, &row, q).tryIntoM31()).v] += 1;
+        for (0..A.RANGE_QUERIES) |q| range_counts[(try A.rangeValueFor(Q, &row, q).tryIntoM31()).v] += 1;
         for (0..5) |q| {
             const tuple = A.tableTupleFor(Q, &row, q);
             table_counts[(try tuple[0].tryIntoM31()).v * 16 + (try tuple[1].tryIntoM31()).v] += 1;
@@ -97,13 +97,13 @@ fn oracle(a: std.mem.Allocator, main: []const M) !struct { values: []M, claims: 
         var row_values: [P.MAIN]Q = undefined;
         for (&row_values, 0..) |*v, c| v.* = Q.fromBase(main[c * N + p]);
         const row = A.rowFromColumnsFor(Q, &row_values);
-        var inverse_units: [14]Q = undefined;
+        var inverse_units: [P.encoding.UNIT_QUERIES]Q = undefined;
         for (&inverse_units, 0..) |*inverse, q| {
             inverse.* = if (q < 5) try challenges.shift.denominator(&A.tableTupleFor(Q, &row, q)).inv() else try challenges.range16.denominatorFor(Q, A.rangeValueFor(Q, &row, q - 5)).inv();
             const family: usize = if (q < 5) 0 else 1;
             sums[family] = sums[family].add(inverse.*);
         }
-        for (0..7) |pair| store(output, p, 4 * pair, inverse_units[2 * pair].mul(inverse_units[2 * pair + 1]));
+        for (0..P.encoding.PAIRS) |pair| store(output, p, 4 * pair, inverse_units[2 * pair].mul(inverse_units[2 * pair + 1]));
         const inverse = try challenges.function.denominatorFor(Q, row.payload).inv();
         store(output, p, P.FUNCTION_INVERSE, inverse);
         sums[2] = sums[2].sub(inverse.mul(row_values[A.LOCAL_MAIN]));
@@ -114,7 +114,7 @@ fn oracle(a: std.mem.Allocator, main: []const M) !struct { values: []M, claims: 
     };
     return .{ .values = output, .claims = .{ .shift = sums[0], .range16 = sums[1], .function = sums[2] } };
 }
-test "Word16 SHIFT owned and borrowed main retire before native generation with all36 interactions" {
+test "Word16 SHIFT owned and borrowed main retire before native generation with all28 interactions" {
     const a = std.testing.allocator;
     var requests = facts();
     var source = try S.Source.init(a, &requests, 5);

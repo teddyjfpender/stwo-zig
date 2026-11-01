@@ -84,7 +84,7 @@ pub const Fill = struct {
             const family: usize = if (i < RANGE) 0 else 1;
             totals[family] = std.math.add(u64, totals[family], c) catch return error.InvalidShiftNativeFillMass;
         }
-        if (totals[0] != 9 * n or totals[1] != 5 * n) return error.InvalidShiftNativeFillMass;
+        if (totals[0] != @import("shift_word.zig").RANGE_QUERIES * n or totals[1] != @import("shift_word.zig").TABLE_QUERIES * n) return error.InvalidShiftNativeFillMass;
         @memcpy(ranges, merged[0..RANGE]);
         @memcpy(shifts, merged[RANGE..]);
     }

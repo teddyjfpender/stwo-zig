@@ -8,7 +8,7 @@ const Table = @import("shift_word_table.zig");
 pub const LOCAL_MAIN = 52;
 pub const CONSTRAINTS = 27;
 pub const TABLE_QUERIES = 5;
-pub const RANGE_QUERIES = 9;
+pub const RANGE_QUERIES = 5;
 pub const nativeResult = Arithmetic.nativeResult;
 pub fn RowFor(comptime F: type) type {
     return struct {
@@ -73,16 +73,15 @@ pub fn tableTupleFor(comptime F: type, r: *const RowFor(F), query: usize) [6]F {
 }
 pub fn rangeValueFor(comptime F: type, r: *const RowFor(F), query: usize) F {
     std.debug.assert(query < RANGE_QUERIES);
-    if (query < 4) return r.payload[5 + query];
-    if (query == 4) return r.quotient;
-    if (query == 5) return r.quotient.mul(E.qFor(F, 64));
+    if (query == 0) return r.quotient;
+    if (query == 1) return r.quotient.mul(E.qFor(F, 64));
     const limb = switch (query) {
-        6 => r.payload[2],
-        7 => r.payload[4],
-        8 => r.payload[10],
+        2 => r.payload[2],
+        3 => r.payload[4],
+        4 => r.payload[10],
         else => unreachable,
     };
-    return limb.mul(E.qFor(F, 2)).sub(r.sign[query - 6].mul(E.qFor(F, 65536)));
+    return limb.mul(E.qFor(F, 2)).sub(r.sign[query - 2].mul(E.qFor(F, 65536)));
 }
 pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     Arithmetic.emitHeadFor(F, 16, r, sink);

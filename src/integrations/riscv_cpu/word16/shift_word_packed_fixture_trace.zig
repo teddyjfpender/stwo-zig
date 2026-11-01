@@ -55,7 +55,7 @@ pub const Fixture = struct {
         return initWithRecorder(a, attack, null);
     }
     pub fn initWithRecorder(a: std.mem.Allocator, attack: Attack, recorder: ?*Profile.Recorder) !Fixture {
-        _ = try rv.word16_v1.function_bus.admitPositiveMass(&.{9 * N});
+        _ = try rv.word16_v1.function_bus.admitPositiveMass(&.{S.RANGE_QUERIES * N});
         const fixed = try a.alloc(M, 2 * N);
         errdefer a.free(fixed);
         @memset(fixed, M.zero());

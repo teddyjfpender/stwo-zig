@@ -34,9 +34,9 @@ pub const Mass = struct { fact_capacity: u64, shift_queries: u64, range16_querie
 pub fn massForLog(log: u32) !Mass {
     if (log < 5 or log > 26) return error.InvalidShiftGeometry;
     const n = @as(u64, 1) << @intCast(log);
-    _ = try Bus.admitPositiveMass(&.{5 * n});
-    _ = try Bus.admitPositiveMass(&.{9 * n});
-    return .{ .fact_capacity = n, .shift_queries = 5 * n, .range16_queries = 9 * n };
+    _ = try Bus.admitPositiveMass(&.{S.TABLE_QUERIES * n});
+    _ = try Bus.admitPositiveMass(&.{S.RANGE_QUERIES * n});
+    return .{ .fact_capacity = n, .shift_queries = S.TABLE_QUERIES * n, .range16_queries = S.RANGE_QUERIES * n };
 }
 pub fn fixedForLog(a: std.mem.Allocator, log: u32) ![]M {
     _ = try massForLog(log);
@@ -86,13 +86,12 @@ fn tableIndex(meta: Metadata, query: usize) usize {
     return @as(usize, if (query < 4) meta.payload[1 + query] else 65535) * 16 + (meta.payload[5] & 15);
 }
 fn rangeIndex(meta: Metadata, query: usize) u16 {
-    if (query < 4) return meta.payload[5 + query];
-    if (query == 4) return meta.payload[5] >> 6;
-    if (query == 5) return meta.payload[5] & 0xffc0;
+    if (query == 0) return meta.payload[5] >> 6;
+    if (query == 1) return meta.payload[5] & 0xffc0;
     const limb = switch (query) {
-        6 => meta.payload[2],
-        7 => meta.payload[4],
-        8 => meta.payload[10],
+        2 => meta.payload[2],
+        3 => meta.payload[4],
+        4 => meta.payload[10],
         else => unreachable,
     };
     return (limb & 32767) * 2;
@@ -230,7 +229,7 @@ pub const Source = struct {
         }
         if (function_mass != self.function_mass) return error.InvalidShiftMetadata;
         if (shift_dictionary.len != Table.SIZE or range_dictionary.len != 65536 or self.shift_counts.len != Table.SIZE or self.range16_counts.len != 65536) return error.InvalidShiftDictionary;
-        if (try Bus.admitPositiveMass(self.shift_counts) != 5 * n or try Bus.admitPositiveMass(self.range16_counts) != 9 * n) return error.InvalidShiftMetadata;
+        if (try Bus.admitPositiveMass(self.shift_counts) != S.TABLE_QUERIES * n or try Bus.admitPositiveMass(self.range16_counts) != S.RANGE_QUERIES * n) return error.InvalidShiftMetadata;
         try validateDictionaries(ch, shift_dictionary, range_dictionary);
         const shift_claim = countDot(self.shift_counts, shift_dictionary);
         const range_claim = countDot(self.range16_counts, range_dictionary);
@@ -343,6 +342,6 @@ pub const NativeSupport = struct {
         metadata[i].multiplicity_words = .{ @truncate(weight), @truncate(weight >> 16) };
         for (row.payload, 0..) |v, c| metadata[i].payload[c] = @intCast(v.v);
         for (0..5) |query| shifts[tableIndex(metadata[i], query)] += 1;
-        for (0..9) |query| ranges[rangeIndex(metadata[i], query)] += 1;
+        for (0..S.RANGE_QUERIES) |query| ranges[rangeIndex(metadata[i], query)] += 1;
     }
 };
