@@ -21,7 +21,9 @@ pub fn tupleFor(comptime F: type, m: []const F, support: ?bool) [13]F {
         out[0] = E.qFor(F, @intFromEnum(if (high) @import("../../../../decode.zig").Opcode.MULHU else @import("../../../../decode.zig").Opcode.MUL));
         @memcpy(out[1..5], m[L.QUOTIENT..][0..4]);
         @memcpy(out[5..9], m[L.ABS_B..][0..4]);
-        @memcpy(out[9..13], m[(if (high) L.PRODUCT_HIGH else L.PRODUCT_LOW)..][0..4]);
+        // MULHU result is the constant zero word: no committed PRODUCT_HIGH.
+        // The MUL provider byte-ranges RESULT, so its high product must be 0.
+        if (high) @memset(out[9..13], F.zero()) else @memcpy(out[9..13], m[L.PRODUCT_LOW..][0..4]);
     } else {
         out[0] = F.zero();
         for (L.OPCODES, 0..) |op, i| out[0] = out[0].add(m[L.SELECTORS + i].mul(E.qFor(F, @intFromEnum(op))));
@@ -30,18 +32,24 @@ pub fn tupleFor(comptime F: type, m: []const F, support: ?bool) [13]F {
     return out;
 }
 /// The two selected-top queries are quadratic, so they MUST use individual
-/// strict inverses. The remaining29 range queries and3 FUNCTION queries are
-/// affine and fit16 strict pairs. No packed-limb query replaces byte bounds.
+/// strict inverses. The remaining21 range queries and3 FUNCTION queries are
+/// affine and fit12 strict pairs. No packed-limb query replaces byte bounds.
+///
+/// A/B limbs have NO direct U16 query: every consumed DIV FUNCTION fact must
+/// equal a CPU tuple whose A/B are canonical register reads (REG induction +
+/// ROM). The doubled selected-top query alone does not range a top limb.
+/// QUOTIENT/ABS_B/PRODUCT_LOW are canonical only through the MUL provider's
+/// byte queries on its A/B/RESULT (multiplication/provider.zig byteValuesFor).
 pub fn rangeValuesFor(comptime F: type, m: []const F) [L.RANGE_QUERIES]F {
     var out: [L.RANGE_QUERIES]F = undefined;
-    @memcpy(out[0..12], m[L.A..][0..12]);
-    for ([_]usize{ L.ABS_A, L.REMAINDER, L.GAP, L.OUT }, 0..) |start, i| @memcpy(out[12 + 4 * i ..][0..4], m[start..][0..4]);
+    @memcpy(out[0..4], m[L.C..][0..4]);
+    for ([_]usize{ L.ABS_A, L.REMAINDER, L.GAP, L.OUT }, 0..) |start, i| @memcpy(out[4 + 4 * i ..][0..4], m[start..][0..4]);
     const word = wordFor(F, m);
-    for ([_]usize{ L.A, L.B }, 0..) |start, i| {
+    for ([_]usize{ L.A, L.B }, L.RANGE_QUADRATIC, 0..) |start, query, i| {
         const top = m[start + 3].add(word.mul(m[start + 1].sub(m[start + 3])));
-        out[28 + i] = top.mul(E.qFor(F, 2)).sub(m[L.SIGN_A + i].mul(E.qFor(F, 65536)));
+        out[query] = top.mul(E.qFor(F, 2)).sub(m[L.SIGN_A + i].mul(E.qFor(F, 65536)));
     }
-    out[30] = m[L.OUT + 1].mul(E.qFor(F, 2)).sub(m[L.SIGN_OUT32].mul(E.qFor(F, 65536)));
+    out[22] = m[L.OUT + 1].mul(E.qFor(F, 2)).sub(m[L.SIGN_OUT32].mul(E.qFor(F, 65536)));
     return out;
 }
 pub fn emitFor(comptime F: type, fixed: []const F, m: []const F, previous_count: F, count: F, out: *E.SinkFor(F)) void {
@@ -74,7 +82,6 @@ pub fn emitFor(comptime F: type, fixed: []const F, m: []const F, previous_count:
             out.emit(m[which[1] + i].sub(one.sub(m[which[3]].mul(E.qFor(F, 2))).mul(effective)).add(prior).sub(radix.mul(m[which[2] + i])));
             out.emit(one.sub(m[which[3]]).mul(m[which[2] + i]));
         }
-        out.emit(m[L.PRODUCT_HIGH + i]);
         out.emit(m[L.ZERO].mul(m[L.QUOTIENT + i]));
         const prior_sum = if (i == 0) F.zero() else m[L.CARRY_SUM + i - 1];
         out.emit(m[L.PRODUCT_LOW + i].add(m[L.REMAINDER + i]).add(prior_sum).sub(m[L.ABS_A + i]).sub(radix.mul(m[L.CARRY_SUM + i])));

@@ -58,7 +58,9 @@ pub fn row(request: Request) !Row {
     const normalized = (if (neg_out) 0 -% chosen else chosen) & n.mask;
     var result = Row{ .main = @splat(M.zero()), .support = supportFrom(n) };
     const m = &result.main;
-    for ([_]usize{ L.A, L.B, L.C, L.ABS_A, L.ABS_B, L.QUOTIENT, L.REMAINDER, L.PRODUCT_LOW, L.PRODUCT_HIGH, L.GAP, L.OUT }, [_]u64{ request.a, request.b, request.result, n.abs_a, n.abs_b, n.quotient, n.remainder, @truncate(n.product), @intCast(n.product >> 64), gap, normalized }) |start, value| limbs(m, start, value);
+    // The MULHU support result is the constant zero word (no committed column).
+    if (n.product >> 64 != 0) return error.InvalidProductDivisionWitness;
+    for ([_]usize{ L.A, L.B, L.C, L.ABS_A, L.ABS_B, L.QUOTIENT, L.REMAINDER, L.PRODUCT_LOW, L.GAP, L.OUT }, [_]u64{ request.a, request.b, request.result, n.abs_a, n.abs_b, n.quotient, n.remainder, @truncate(n.product), gap, normalized }) |start, value| limbs(m, start, value);
     m[L.SELECTORS + n.op] = M.one();
     m[L.COUNT] = M.one();
     m[L.SIGN_A] = M.fromCanonical(@intFromBool(n.sign_a));
