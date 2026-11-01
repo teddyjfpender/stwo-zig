@@ -59,7 +59,7 @@ pub fn descRow(call: ?T.Call) [L.desc.MAIN]M {
     out[D.len_l1] = M.fromCanonical(@as(u16, @truncate(c.len >> 16)));
     out[D.fill_low] = M.fromCanonical(@as(u8, @truncate(c.word1)));
     out[D.fill_high] = M.fromCanonical(@as(u8, @truncate(c.word1 >> 8)));
-    for (c.packet, 0..) |state, k| {
+    for (c.packet[0..3], 0..) |state, k| {
         clockBlock(&out, D.clocks + L.CLOCK * k, state, c.epoch, c.tick);
         out[D.writable + k] = M.fromCanonical(state.rights >> 1);
     }

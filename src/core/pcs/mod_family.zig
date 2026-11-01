@@ -1,13 +1,16 @@
 const std = @import("std");
 const m31 = @import("../fields/m31.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
-const config_v2 = @import("config_v2.zig");
+const config_v2_module = @import("config_v2.zig");
 const shared = @import("mod.zig");
 pub fn ForField(comptime Secure: type) type {
     return struct {
         const QM31 = Secure;
         const M31 = m31.M31;
         pub const PcsConfig = shared.PcsConfig;
+        /// The circuit-revision PCS config is field independent; the engine
+        /// family's revision constructors name it through the family.
+        pub const config_v2 = shared.config_v2;
         pub const TreeVec = shared.TreeVec;
         pub const TreeSubspan = shared.TreeSubspan;
         pub const utils = @import("utils.zig");
@@ -30,7 +33,7 @@ pub fn ForField(comptime Secure: type) type {
                 /// is then its FRI/PoW view and the proof's own configuration, with
                 /// both lifting heights, is this (the bincode `PcsConfig` of that
                 /// revision). Null for the existing lanes, which `config` defines.
-                revision_config: ?config_v2.PcsConfigV2 = null,
+                revision_config: ?config_v2_module.PcsConfigV2 = null,
 
                 const Self = @This();
 

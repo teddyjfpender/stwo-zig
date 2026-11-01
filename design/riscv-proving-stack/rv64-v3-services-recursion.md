@@ -119,7 +119,14 @@ the leaf circuit hash from that set.
 
 ## 4. Measurements
 
-See section 6 (filled from the run log).
+SHA-256 truth leaf on the v3 services fixture (log 5, ReleaseSafe test run):
+15,253,544 variables; blake_g 3,081,280, qm31_ops 1,492,889, m31_to_u32
+552,512, triple_xor 308,128, eq 6,047. That is about 37% of the 2^23
+production target, so it pads to the shared shape. The Blake cost is
+dominated by hashing the 7,409 MAIN columns at 70 queries, which does not
+depend on the log. The complete-block leaves (SHA-256 log 12 and
+arith256_mod log 9 in `prover-v3/eth/full`) and the wrap time were not
+measured before the pause. Use `rv64-v3-truth-leaf ... full prove`.
 
 ## 5. Next steps, in order
 

@@ -140,7 +140,7 @@
              gas = dispatch<false>(cost_table, state, gas, code_begin);
 --- a/lib/evmone/baseline_xlat.inl
 +++ b/lib/evmone/baseline_xlat.inl
-@@ -0,0 +1,897 @@
+@@ -0,0 +1,1000 @@
 +// baseline_xlat.inl -- stwo: lazily translated segments for the baseline interpreter.
 +//
 +// Included in baseline_execution.cpp's anonymous namespace, after dispatch_cgoto.
@@ -281,6 +281,8 @@
 +    int depth = 0;  ///< live dispatch_xlat frames (the arena is only reset at 0)
 +};
 +inline XState g_x;
++struct XDescTab;
++inline XDescTab* g_xdesc[4];  ///< per-revision translator tables (see xdesc)
 +
 +inline void xreset() noexcept
 +{
@@ -292,6 +294,11 @@
 +    }
 +    std::free(g_x.tab);
 +    g_x = XState{};
++    for (auto& t : g_xdesc)
++    {
++        std::free(t);
++        t = nullptr;
++    }
 +}
 +
 +[[gnu::noinline]] inline bool xreserve(size_t words) noexcept
@@ -332,7 +339,7 @@
 +{
 +    if (g_x.tab == nullptr || (g_x.used + 1) * 2 > g_x.mask + 1)
 +    {
-+        const unsigned bits = g_x.tab == nullptr ? 13 : 64 - g_x.shift + 1;
++        const unsigned bits = g_x.tab == nullptr ? 15 : 64 - g_x.shift + 1;
 +        const size_t n = size_t{1} << bits;
 +        const size_t old_n = g_x.tab == nullptr ? 0 : g_x.mask + 1;
 +        if (g_x.bytes + n * sizeof(XState::Ent) > kXBudget)
@@ -366,239 +373,335 @@
 +    return true;
 +}
 +
++/// Per-revision opcode descriptors for the translator: the record handler, base gas,
++/// stack effect and how the opcode is translated.
++enum XClass : uint8_t
++{
++    XC_PLAIN,    ///< [handler]
++    XC_GAS,      ///< [handler, rem | pc next << 32]
++    XC_TERM,     ///< [handler], ends the segment
++    XC_PUSH,     ///< PUSH1..PUSH32 (may start a fused jump)
++    XC_TEST,     ///< ISZERO/EQ/LT/GT/SLT/SGT: plain unless followed by PUSH1/2 JUMPI
++    XC_SPECIAL,  ///< JUMPDEST, JUMP, JUMPI, PC, and everything handed over
++};
++
++struct XDesc
++{
++    XWord h;
++    int32_t cost;
++    int8_t req;
++    int8_t chg;
++    uint8_t cls;
++    uint8_t len;  ///< PUSH data bytes
++};
++
++struct XDescTab
++{
++    const CostTable* ct;
++    XDesc d[256];
++};
++
++
++[[gnu::noinline]] const XDesc* xdesc_build(
++    const void* const* xops, const void* const* xs, const CostTable& ct) noexcept
++{
++    int slot = 0;
++    while (slot < 4 && g_xdesc[slot] != nullptr)
++        ++slot;
++    if (slot == 4)
++        return nullptr;
++    auto* t = static_cast<XDescTab*>(std::malloc(sizeof(XDescTab)));
++    if (t == nullptr)
++        return nullptr;
++    t->ct = &ct;
++    for (int op = 0; op < 256; ++op)
++    {
++        const auto& inf = kXInfo[static_cast<size_t>(op)];
++        auto& d = t->d[op];
++        d.cost = ct[static_cast<size_t>(op)];
++        d.req = static_cast<int8_t>(inf.req);
++        d.chg = inf.change;
++        d.len = 0;
++        d.h = reinterpret_cast<XWord>(xops[op]);
++        if (d.cost < 0 || inf.kind == XK_NONE)
++            d.cls = XC_SPECIAL;
++        else if (op >= OP_PUSH1 && op <= OP_PUSH32)
++        {
++            d.cls = XC_PUSH;
++            d.len = static_cast<uint8_t>(op - OP_PUSH1 + 1);
++            d.h = reinterpret_cast<XWord>(xs[XS_PUSH1W + (d.len + 7) / 8 - 1]);
++        }
++        else if (op == OP_JUMPDEST || op == OP_JUMP || op == OP_JUMPI || op == OP_PC ||
++                 inf.kind == XK_CODEIT)
++            d.cls = XC_SPECIAL;
++        else if (op == OP_ISZERO || op == OP_EQ || op == OP_LT || op == OP_GT || op == OP_SLT ||
++                 op == OP_SGT)
++            d.cls = XC_TEST;
++        else if (inf.kind == XK_GAS)
++            d.cls = XC_GAS;
++        else if (inf.kind == XK_TERM)
++            d.cls = XC_TERM;
++        else
++            d.cls = XC_PLAIN;
++    }
++    g_xdesc[slot] = t;
++    g_x.bytes += sizeof(XDescTab);
++    return t->d;
++}
++
++[[gnu::always_inline]] inline const XDesc* xdesc(
++    const void* const* xops, const void* const* xs, const CostTable& ct) noexcept
++{
++    for (int i = 0; i < 4 && g_xdesc[i] != nullptr; ++i)
++        if (g_xdesc[i]->ct == &ct)
++            return g_xdesc[i]->d;
++    return xdesc_build(xops, xs, ct);
++}
++
++/// Big-endian immediate of `n` (<= 8) bytes at `p`.
++[[gnu::always_inline]] inline uint64_t ximm(const uint8_t* p, int n) noexcept
++{
++    uint64_t v = 0;
++    for (int i = 0; i < n; ++i)
++        v = (v << 8) | p[i];
++    return v;
++}
++
 +/// Translate the segment starting at `pc` (an opcode boundary of `a`'s padded code) and
 +/// register it under `key`. Returns the segment header, or nullptr when the budget is
 +/// exhausted (the caller then hands over to dispatch_cgoto).
 +[[gnu::noinline]] XWord* xtranslate(const void* const* xops, const void* const* xs,
 +    const CodeAnalysis& a, const CostTable& ct, uint64_t key, uint32_t pc) noexcept
 +{
-+    constexpr size_t kMaxWords = kXMaxOps * 5 + 16;
-+    if (!xreserve(kMaxWords))
++    constexpr ptrdiff_t kMaxWords = kXMaxOps * 5 + 16;
++    const XDesc* const D = xdesc(xops, xs, ct);
++    if (D == nullptr)
++        return nullptr;
++    if (g_x.end - g_x.cur < kMaxWords && !xreserve(kMaxWords))
 +        return nullptr;
 +    const uint8_t* const code = a.code().data();
 +    XWord* const seg = g_x.cur;
-+    XWord* w = seg;
-+    const auto H = [xs](int s) noexcept { return reinterpret_cast<XWord>(xs[s]); };
-+
-+    w[0] = H(XS_ENTER);
-+    w[2] = pc;
-+    w += 3;
++    seg[0] = reinterpret_cast<XWord>(xs[XS_ENTER]);
++    seg[2] = pc;
++    XWord* w = seg + 3;
 +
 +    int64_t gsum = 0;
-+    int h = 0;
-+    int need = 0;
-+    int grow = 0;
-+    uint32_t p = pc;
-+
-+    // Opcodes whose implementation takes gas: where their aux word is and the base gas
-+    // charged up to and including them (the rest of the segment's base gas is their
-+    // correction).
-+    XWord* gas_rec[kXMaxOps];
-+    int64_t gas_at[kXMaxOps];
++    int h = 0;     // stack height relative to entry
++    int need = 0;  // items the segment needs at entry
++    int grow = 0;  // max height reached (<= kXGrowCap)
++    const uint8_t* p = code + pc;
++    XWord* gas_rec[kXMaxOps];  // aux words of XC_GAS records (hold the base gas so far)
 +    int ng = 0;
 +
-+    if (code[p] == OP_JUMPDEST)
++#define XSTK(REQ, CHG)               \
++    do                               \
++    {                                \
++        const int t_ = (REQ) - h;    \
++        if (t_ > need)               \
++            need = t_;               \
++        h += (CHG);                  \
++        if (h > grow)                \
++            grow = h;                \
++    } while (0)
++#define XPC(PTR) static_cast<uint64_t>((PTR) - code)
++
++    if (*p == OP_JUMPDEST)
 +    {
 +        gsum += ct[OP_JUMPDEST];
 +        ++p;
 +    }
 +
-+    // Apply the stack effects of `n` opcodes in order; false (nothing changed) if the
-+    // segment would then exceed its caps.
-+    const auto fits = [&](std::initializer_list<uint8_t> ops) noexcept {
-+        int hh = h, nn = need, gg = grow;
-+        for (const auto op : ops)
-+        {
-+            nn = std::max(nn, kXInfo[op].req - hh);
-+            hh += kXInfo[op].change;
-+            gg = std::max(gg, hh);
-+        }
-+        if (gg > kXGrowCap || nn > StackSpace::limit)
-+            return false;
-+        h = hh;
-+        need = nn;
-+        grow = gg;
-+        return true;
-+    };
-+    const auto push_imm = [code](uint32_t at, int n) noexcept {
-+        uint64_t v = 0;
-+        for (int i = 0; i < n; ++i)
-+            v = (v << 8) | code[at + static_cast<uint32_t>(i)];
-+        return v;
-+    };
-+    const auto is_push12 = [](uint8_t op) noexcept { return op == OP_PUSH1 || op == OP_PUSH2; };
-+
 +    for (int n = 0;; ++n)
 +    {
-+        const uint8_t op = code[p];
-+        if (n == kXMaxOps || op == OP_JUMPDEST)
++        const uint8_t op = *p;
++        const XDesc& d = D[op];
++        // Every opcode or fused pattern grows the stack by at most one at any point, so
++        // h < kXGrowCap keeps the segment's growth within the cap.
++        if (n == kXMaxOps || h >= kXGrowCap) [[unlikely]]
++            goto split;
++        switch (d.cls)
 +        {
-+            w[0] = H(XS_GOTO);
-+            w[1] = 0;
-+            w[2] = p;
-+            w += 3;
-+            break;
-+        }
-+        const int cost = ct[op];
-+        const auto& inf = kXInfo[op];
-+        if (cost < 0 || inf.kind == XK_NONE)
-+        {
-+            w[0] = H(XS_FALLBACK);
-+            w[1] = p;
++        case XC_PLAIN:
++            w[0] = d.h;
++            w += 1;
++            XSTK(d.req, d.chg);
++            gsum += d.cost;
++            ++p;
++            continue;
++        case XC_GAS:
++            XSTK(d.req, d.chg);
++            gsum += d.cost;
++            w[0] = d.h;
++            w[1] = (XPC(p + 1) << 32) | static_cast<uint32_t>(gsum);
++            gas_rec[ng++] = w + 1;
 +            w += 2;
-+            break;
-+        }
-+
-+        // Fused control flow (all opcodes involved exist in every revision).
-+        if (is_push12(op))
++            ++p;
++            continue;
++        case XC_TERM:
++            w[0] = d.h;
++            w += 1;
++            XSTK(d.req, d.chg);
++            gsum += d.cost;
++            ++p;
++            goto done;
++        case XC_PUSH:
 +        {
-+            const int len = op - OP_PUSH1 + 1;
-+            const uint8_t nx = code[p + 1 + static_cast<uint32_t>(len)];
-+            if (nx == OP_JUMP && fits({op, OP_JUMP}))
++            const int len = d.len;
++            if (len <= 2)
 +            {
-+                gsum += cost + ct[OP_JUMP];
-+                w[0] = H(XS_SJUMP);
-+                w[1] = 0;
-+                w[2] = push_imm(p + 1, len);
-+                w += 3;
-+                break;
++                const uint8_t nx = p[1 + len];
++                if (nx == OP_JUMP)
++                {
++                    XSTK(0, 1);
++                    XSTK(1, -1);
++                    gsum += d.cost + ct[OP_JUMP];
++                    w[0] = reinterpret_cast<XWord>(xs[XS_SJUMP]);
++                    w[1] = 0;
++                    w[2] = ximm(p + 1, len);
++                    w += 3;
++                    goto done;
++                }
++                if (nx == OP_JUMPI)
++                {
++                    XSTK(0, 1);
++                    XSTK(2, -2);
++                    gsum += d.cost + ct[OP_JUMPI];
++                    w[0] = reinterpret_cast<XWord>(xs[XS_BR_NZ]);
++                    w[1] = 0;
++                    w[2] = 0;
++                    w[3] = ximm(p + 1, len) | (XPC(p + 2 + len) << 32);
++                    w += 4;
++                    goto done;
++                }
 +            }
-+            if (nx == OP_JUMPI && fits({op, OP_JUMPI}))
++            else if (len == 4 && p[5] == OP_EQ && (p[6] == OP_PUSH1 || p[6] == OP_PUSH2))
 +            {
-+                gsum += cost + ct[OP_JUMPI];
-+                w[0] = H(XS_BR_NZ);
-+                w[1] = 0;
-+                w[2] = 0;
-+                w[3] = push_imm(p + 1, len) | (uint64_t{p + 2 + static_cast<uint32_t>(len)} << 32);
-+                w += 4;
-+                break;
++                const int len2 = p[6] - OP_PUSH1 + 1;
++                if (p[7 + len2] == OP_JUMPI)
++                {
++                    XSTK(0, 1);
++                    XSTK(2, -1);
++                    XSTK(0, 1);
++                    XSTK(2, -2);
++                    gsum += d.cost + ct[OP_EQ] + ct[p[6]] + ct[OP_JUMPI];
++                    w[0] = reinterpret_cast<XWord>(xs[XS_BR_P4EQ]);
++                    w[1] = 0;
++                    w[2] = 0;
++                    w[3] = ximm(p + 7, len2) | (XPC(p + 8 + len2) << 32);
++                    w[4] = ximm(p + 1, 4);
++                    w += 5;
++                    goto done;
++                }
 +            }
++            XSTK(0, 1);
++            gsum += d.cost;
++            w[0] = d.h;
++            if (len <= 8)
++            {
++                w[1] = ximm(p + 1, len);
++                w += 2;
++            }
++            else
++            {
++                // Limb j (least significant first) holds data bytes [len-8(j+1), len-8j).
++                const int words = (len + 7) / 8;
++                for (int j = 0; j < words; ++j)
++                {
++                    const int hi = len - 8 * j;
++                    const int lo = hi > 8 ? hi - 8 : 0;
++                    w[1 + j] = ximm(p + 1 + lo, hi - lo);
++                }
++                w += 1 + words;
++            }
++            p += 1 + len;
++            continue;
 +        }
-+        if (op == OP_ISZERO || op == OP_EQ || op == OP_LT || op == OP_GT || op == OP_SLT ||
-+            op == OP_SGT)
++        case XC_TEST:
 +        {
-+            const uint8_t p2 = code[p + 1];
-+            if (is_push12(p2))
++            const uint8_t p2 = p[1];
++            if (p2 == OP_PUSH1 || p2 == OP_PUSH2)
 +            {
 +                const int len = p2 - OP_PUSH1 + 1;
-+                if (code[p + 2 + static_cast<uint32_t>(len)] == OP_JUMPI &&
-+                    fits({op, p2, OP_JUMPI}))
++                if (p[2 + len] == OP_JUMPI)
 +                {
-+                    gsum += cost + ct[p2] + ct[OP_JUMPI];
++                    XSTK(d.req, d.chg);
++                    XSTK(0, 1);
++                    XSTK(2, -2);
++                    gsum += d.cost + ct[p2] + ct[OP_JUMPI];
 +                    const int s = op == OP_ISZERO ? XS_BR_ISZERO :
 +                                  op == OP_EQ     ? XS_BR_EQ :
 +                                  op == OP_LT     ? XS_BR_LT :
 +                                  op == OP_GT     ? XS_BR_GT :
 +                                  op == OP_SLT    ? XS_BR_SLT :
 +                                                    XS_BR_SGT;
-+                    w[0] = H(s);
++                    w[0] = reinterpret_cast<XWord>(xs[s]);
 +                    w[1] = 0;
 +                    w[2] = 0;
-+                    w[3] = push_imm(p + 2, len) |
-+                           (uint64_t{p + 3 + static_cast<uint32_t>(len)} << 32);
++                    w[3] = ximm(p + 2, len) | (XPC(p + 3 + len) << 32);
 +                    w += 4;
-+                    break;
++                    goto done;
 +                }
 +            }
-+        }
-+        if (op == OP_PUSH4 && code[p + 5] == OP_EQ && is_push12(code[p + 6]))
-+        {
-+            const uint8_t p2 = code[p + 6];
-+            const int len = p2 - OP_PUSH1 + 1;
-+            if (code[p + 7 + static_cast<uint32_t>(len)] == OP_JUMPI &&
-+                fits({OP_PUSH4, OP_EQ, p2, OP_JUMPI}))
-+            {
-+                gsum += cost + ct[OP_EQ] + ct[p2] + ct[OP_JUMPI];
-+                w[0] = H(XS_BR_P4EQ);
-+                w[1] = 0;
-+                w[2] = 0;
-+                w[3] = push_imm(p + 7, len) | (uint64_t{p + 8 + static_cast<uint32_t>(len)} << 32);
-+                w[4] = push_imm(p + 1, 4);
-+                w += 5;
-+                break;
-+            }
-+        }
-+
-+        if (inf.kind == XK_CODEIT && !(op >= OP_PUSH1 && op <= OP_PUSH32) && op != OP_PC &&
-+            op != OP_JUMP && op != OP_JUMPI)
-+        {
-+            // DUPN, SWAPN, EXCHANGE: not translated; the hand-over runs (and checks) them.
-+            w[0] = H(XS_FALLBACK);
-+            w[1] = p;
-+            w += 2;
-+            break;
-+        }
-+        if (!fits({op}))
-+        {
-+            w[0] = H(XS_GOTO);
-+            w[1] = 0;
-+            w[2] = p;
-+            w += 3;
-+            break;
-+        }
-+        gsum += cost;
-+
-+        if (op >= OP_PUSH1 && op <= OP_PUSH32)
-+        {
-+            const int len = op - OP_PUSH1 + 1;
-+            const int words = (len + 7) / 8;
-+            w[0] = H(XS_PUSH1W + words - 1);
-+            // Limb j (least significant first) holds data bytes [len-8(j+1), len-8j).
-+            for (int j = 0; j < words; ++j)
-+            {
-+                const int hi = len - 8 * j;  // exclusive end of this limb's bytes
-+                const int lo = std::max(0, hi - 8);
-+                w[1 + j] = push_imm(p + 1 + static_cast<uint32_t>(lo), hi - lo);
-+            }
-+            w += 1 + words;
-+            p += 1 + static_cast<uint32_t>(len);
-+            continue;
-+        }
-+        if (op == OP_PC)
-+        {
-+            w[0] = H(XS_PC);
-+            w[1] = p;
-+            w += 2;
++            w[0] = d.h;
++            w += 1;
++            XSTK(d.req, d.chg);
++            gsum += d.cost;
 +            ++p;
 +            continue;
 +        }
-+        if (op == OP_JUMP)
-+        {
-+            w[0] = H(XS_JUMP);
-+            w[1] = ~uint64_t{0};
-+            w[2] = reinterpret_cast<XWord>(g_x.bad);
-+            w += 3;
-+            break;
-+        }
-+        if (op == OP_JUMPI)
-+        {
-+            w[0] = H(XS_JUMPI);
++        default:  // XC_SPECIAL
++            if (op == OP_JUMPDEST)
++                goto split;
++            if (d.cost < 0 || (op != OP_JUMP && op != OP_JUMPI && op != OP_PC))
++            {
++                // Undefined in this revision, or DUPN/SWAPN/EXCHANGE: the hand-over
++                // runs (and checks) it.
++                w[0] = reinterpret_cast<XWord>(xs[XS_FALLBACK]);
++                w[1] = XPC(p);
++                w += 2;
++                goto done;
++            }
++            XSTK(d.req, d.chg);
++            gsum += d.cost;
++            if (op == OP_PC)
++            {
++                w[0] = reinterpret_cast<XWord>(xs[XS_PC]);
++                w[1] = XPC(p);
++                w += 2;
++                ++p;
++                continue;
++            }
++            if (op == OP_JUMP)
++            {
++                w[0] = reinterpret_cast<XWord>(xs[XS_JUMP]);
++                w[1] = ~uint64_t{0};
++                w[2] = reinterpret_cast<XWord>(g_x.bad);
++                w += 3;
++                goto done;
++            }
++            w[0] = reinterpret_cast<XWord>(xs[XS_JUMPI]);
 +            w[1] = 0;
-+            w[2] = p + 1;
++            w[2] = XPC(p + 1);
 +            w[3] = ~uint64_t{0};
 +            w[4] = reinterpret_cast<XWord>(g_x.bad);
 +            w += 5;
-+            break;
++            goto done;
 +        }
-+        w[0] = reinterpret_cast<XWord>(xops[op]);
-+        if (inf.kind == XK_GAS)
-+        {
-+            gas_rec[ng] = w + 1;
-+            gas_at[ng] = gsum;
-+            ++ng;
-+            w[1] = uint64_t{p + 1} << 32;
-+            w += 2;
-+            ++p;
-+            continue;
-+        }
-+        w += 1;
-+        ++p;
-+        if (inf.kind == XK_TERM)
-+            break;
 +    }
-+
++split:
++    w[0] = reinterpret_cast<XWord>(xs[XS_GOTO]);
++    w[1] = 0;
++    w[2] = XPC(p);
++    w += 3;
++done:
++#undef XSTK
++#undef XPC
 +    for (int i = 0; i < ng; ++i)
-+        *gas_rec[i] |= static_cast<uint32_t>(gsum - gas_at[i]);
++    {
++        const auto v = *gas_rec[i];
++        *gas_rec[i] = (v & ~uint64_t{0xffffffff}) |
++                      static_cast<uint32_t>(gsum - static_cast<uint32_t>(v));
++    }
 +    seg[1] = static_cast<uint64_t>(static_cast<uint32_t>(gsum)) |
 +             (static_cast<uint64_t>(need * 32) << 32) | (static_cast<uint64_t>(grow) << 48);
 +    g_x.cur = w;

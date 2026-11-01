@@ -49,6 +49,12 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
         const arith = captured.advice.arith256_mod[i].len;
         if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
+        // v3 curve/field families: coordinates rows per call each.
+        const ST = @import("../services/types.zig");
+        for (captured.advice.curves[i], ST.FIRST_CURVE..) |calls, k| if (calls.len != 0) {
+            const family: ST.Family = @enumFromInt(k);
+            d.bridges.set(family, try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(ST.bridgeKind(family)), calls.len))));
+        };
         // v3 bulk memory: one descriptor row per call, one body row per word.
         const bulk = captured.advice.bulk[i].counts();
         if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
@@ -120,6 +126,22 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
         const calls: u32 = @min(arith_capacity, arith - next + 1);
         try out.append(a, .{ .family = .arith256_mod, .first_id = next, .calls = calls, .logs = .{ try A.crypto.arith256.layout.logSize(calls), 0 } });
         next = try std.math.add(u32, next, calls);
+    }
+    // Curve/field families 5..11: one call per row plus a padding row
+    // (>= 256 rows for the local BYTE table); bounded log16 spans.
+    const ST = @import("../services/types.zig");
+    const CR = @import("../curves/roster.zig");
+    const curve_capacity: u32 = (@as(u32, 1) << @intCast(CR.MAX_LOG)) - 1;
+    for (0..ST.CURVES) |c| {
+        var total: u32 = 0;
+        for (captured.advice.curves) |shard| total = try std.math.add(u32, total, @intCast(shard[c].len));
+        const family: ST.Family = @enumFromInt(ST.FIRST_CURVE + c);
+        next = 1;
+        while (next <= total) {
+            const calls: u32 = @min(curve_capacity, total - next + 1);
+            try out.append(a, .{ .family = family, .first_id = next, .calls = calls, .logs = .{ try CR.logSize(ST.curveOp(family).?, calls), 0 } });
+            next = try std.math.add(u32, next, calls);
+        }
     }
     return out.toOwnedSlice(a);
 }

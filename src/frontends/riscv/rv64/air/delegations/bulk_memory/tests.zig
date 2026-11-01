@@ -793,7 +793,13 @@ test "bulk memory adversarial: memcmp early or late stops are rejected" {
     const honest_rows = fx.wit.cmp;
     for (3..N) |r| fx.wit.cmp[r] = honest_rows[r - 1];
     fx.wit.cmp[1][L.cmp.last] = M.zero();
-    fx.wit.cmp[2] = Src.cmpRow(fx.world.calls.items[2], 2, .{ .dst = .{ .value = 7, .rights = 3 }, .src = .{ .value = 9, .rights = 3 } });
+    var longer = fx.world.calls.items[2];
+    longer.len = 24;
+    longer.examined = 3;
+    fx.wit.cmp[2] = Src.cmpRow(longer, 2, .{ .dst = .{ .value = 7, .rights = 3 }, .src = .{ .value = 9, .rights = 3 } });
+    fx.wit.cmp[2][L.cmp.remaining] = M.zero();
+    fx.wit.cmp[2][L.cmp.is_one] = M.zero();
+    fx.wit.cmp[2][L.cmp.inv] = neg(1);
     fx.wit.rows[5] += 1;
     try testing.expect((try fx.check()).local != 0);
 }
