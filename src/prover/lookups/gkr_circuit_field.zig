@@ -34,10 +34,11 @@ pub fn ForField(comptime Secure: type) type {
         const MleSecure = mle_mod.MleFor(Secure, Secure);
         pub const EqEvals = struct {
             y: []Secure,
+            owns_y: bool = true,
             evals: MleSecure,
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
-                allocator.free(self.y);
+                if (self.owns_y) allocator.free(self.y);
                 self.evals.deinit(allocator);
                 self.* = undefined;
             }
@@ -46,6 +47,16 @@ pub fn ForField(comptime Secure: type) type {
                 const y = try allocator.dupe(Secure, self.y);
                 errdefer allocator.free(y);
                 return .{ .y = y, .evals = try self.evals.cloneOwned(allocator) };
+            }
+
+            /// Borrows one immutable table for the current GKR layer scope.
+            pub fn borrowed(self: @This()) EqEvals {
+                return .{ .y = self.y, .owns_y = false, .evals = self.evals.borrowed() };
+            }
+
+            fn forNextRound(self: @This(), allocator: std.mem.Allocator) !EqEvals {
+                if (!self.owns_y and !self.evals.owns_evals) return self;
+                return self.cloneOwned(allocator);
             }
 
             pub fn ySlice(self: @This()) []const Secure {
@@ -108,6 +119,15 @@ pub fn ForField(comptime Secure: type) type {
                     .LogUpSingles => |*inner| inner.denominators.deinit(allocator),
                 }
                 self.* = undefined;
+            }
+
+            pub fn borrowed(self: Layer) Layer {
+                return switch (self) {
+                    .GrandProduct => |v| .{ .GrandProduct = v.borrowed() },
+                    .LogUpGeneric => |v| .{ .LogUpGeneric = .{ .numerators = v.numerators.borrowed(), .denominators = v.denominators.borrowed() } },
+                    .LogUpMultiplicities => |v| .{ .LogUpMultiplicities = .{ .numerators = v.numerators.borrowed(), .denominators = v.denominators.borrowed() } },
+                    .LogUpSingles => |v| .{ .LogUpSingles = .{ .denominators = v.denominators.borrowed() } },
+                };
             }
 
             pub fn cloneOwned(self: Layer, allocator: std.mem.Allocator) !Layer {
@@ -218,6 +238,12 @@ pub fn ForField(comptime Secure: type) type {
                         .denominators = try inner.denominators.fixFirstVariable(allocator, x0),
                     } },
                 };
+            }
+
+            /// Moves this internal layer; the immutable Eq owner must outlive
+            /// the oracle and all sumcheck rounds. No input/table copy occurs.
+            pub fn intoMultivariatePolyOwned(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrMultivariatePolyOracle {
+                return .{ .eq_evals = eq_evals.borrowed(), .input_layer = self, .eq_fixed_var_correction = Secure.one(), .lambda = lambda };
             }
 
             pub fn intoMultivariatePoly(
@@ -342,7 +368,7 @@ pub fn ForField(comptime Secure: type) type {
                     &[_]Secure{z0},
                 ) catch return GkrProverError.ShapeMismatch;
 
-                var eq_owned = try self.eq_evals.cloneOwned(allocator);
+                var eq_owned = try self.eq_evals.forNextRound(allocator);
                 errdefer eq_owned.deinit(allocator);
                 return .{
                     .eq_evals = eq_owned,
@@ -443,13 +469,23 @@ pub fn ForField(comptime Secure: type) type {
             };
         }
         pub fn buildLayers(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
+            return buildLayersImpl(allocator, input_layer, true);
+        }
+
+        /// The caller retains the original matrix until all returned layers
+        /// are deinitialized. Upper layers have their ordinary independent owners.
+        pub fn buildLayersBorrowedInput(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
+            return buildLayersImpl(allocator, input_layer, false);
+        }
+
+        fn buildLayersImpl(allocator: std.mem.Allocator, input_layer: Layer, comptime clone_input: bool) ![]Layer {
             var out = std.ArrayList(Layer).empty;
             errdefer {
                 for (out.items) |*layer| layer.deinit(allocator);
                 out.deinit(allocator);
             }
 
-            var current = try input_layer.cloneOwned(allocator);
+            var current = if (clone_input) try input_layer.cloneOwned(allocator) else input_layer.borrowed();
             out.append(allocator, current) catch |err| {
                 current.deinit(allocator);
                 return err;
