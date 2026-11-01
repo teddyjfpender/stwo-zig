@@ -6,8 +6,8 @@ const G = @import("../../word16_execution/geometry.zig");
 const Prepared = @import("../../word16_execution/prepared.zig").Prepared;
 const R = @import("../services/roster.zig");
 const T = @import("../services/types.zig");
-/// Core roles, one row per service family bridge, then the three v3
-/// bulk-memory components (desc, copy, set).
+/// Core roles, one row per service family bridge, then the v3 bulk-memory
+/// components (`T.bulk_kinds`).
 pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len;
 pub const Row = struct {
     role: []const u8,
@@ -65,6 +65,7 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .double => A.crypto.secp256k1.word16_bridge.types.coordinates(.double),
             .sha256 => A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256),
             .arith256_mod => A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod),
+            else => A.crypto.secp256k1.word16_bridge.types.coordinates(A.crypto.secp256k1.word16_bridge.types.curveKind(T.curveOp(family).?)),
         };
         const log = setup.bridges.at(family);
         const active = try std.math.mul(u64, calls[i], words);
@@ -74,14 +75,13 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .double => "double_bridge",
             .sha256 => "sha256_bridge",
             .arith256_mod => "arith256_mod_bridge",
+            inline else => |f| @tagName(f) ++ "_bridge",
         }, log orelse 5, if (log != null) T.widths(family) else .{ 0, 0, 0 }, active);
     }
     for (T.bulk_kinds, 0..) |kind, k| {
         const log = setup.bridges.bulk.at(kind);
         result[G.ROLE_COUNT + T.FAMILIES + k] = try row(switch (kind) {
-            .desc => "bulk_desc",
-            .copy => "bulk_copy",
-            .set => "bulk_set",
+            inline else => |bulk_kind| "bulk_" ++ @tagName(bulk_kind),
         }, log orelse 5, if (log != null) T.bulkWidths(kind) else .{ 0, 0, 0 }, bulk.rows(kind));
     }
     for (0..3) |tree| {

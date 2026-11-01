@@ -48,6 +48,9 @@ pub const Batch = struct {
     /// v3 arith256_mod calls (tape-only, like SHA-256).
     arith256_first: u32 = 1,
     arith256_calls: u32 = 0,
+    /// v3 curve/field calls per op (curves.Op order; tape-only, like SHA-256).
+    curve_first: [rv.ethereum_services.curves.COUNT]u32 = @splat(1),
+    curve_calls: [rv.ethereum_services.curves.COUNT]u32 = @splat(0),
     /// v3 aligned memcpy/memset calls (no tape records; counted for telemetry).
     bulk_calls: u32 = 0,
     state_policy: air.state_policy.Policy = .cyclic_v2,
@@ -73,6 +76,7 @@ pub const Batch = struct {
         var kind: ?usize = null;
         var sha256 = false;
         var arith = false;
+        var curve: ?usize = null;
         var bulk = false;
         if (inst.opcode == .ECALL and rv.execution_profile.admitsV3(self.tape.execution_profile, record.rhs.toInt())) {
             if (rv.execution_profile.isPayloadFreeTag(record.rhs.toInt())) {
@@ -82,6 +86,10 @@ pub const Batch = struct {
             } else if (record.rhs.toInt() == rv.execution_profile.ARITH256_MOD_TAG) {
                 if (@as(u64, self.arith256_first) + self.arith256_calls >= Modulus) return error.InvalidEthereumBatchService;
                 arith = true;
+            } else if (rv.ethereum_services.curves.opOfTag(record.rhs.toInt())) |op| {
+                const c = rv.ethereum_services.curves.index(op);
+                if (@as(u64, self.curve_first[c]) + self.curve_calls[c] >= Modulus) return error.InvalidEthereumBatchService;
+                curve = c;
             } else {
                 if (@as(u64, self.sha256_first) + self.sha256_calls >= Modulus) return error.InvalidEthereumBatchService;
                 sha256 = true;
@@ -108,6 +116,7 @@ pub const Batch = struct {
         if (kind) |k| self.calls[k] += 1;
         if (sha256) self.sha256_calls += 1;
         if (arith) self.arith256_calls += 1;
+        if (curve) |c| self.curve_calls[c] += 1;
         if (bulk) self.bulk_calls += 1;
         self.steps += 1;
         self.next_pc = record.next_pc.toInt();
@@ -120,6 +129,13 @@ pub const Batch = struct {
         for (self.tape.sha256_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.sha256_first) + i) return error.InvalidEthereumBatchService;
         if (self.tape.arith256_mod_calls.items.len != self.arith256_calls) return error.InvalidEthereumBatchBoundary;
         for (self.tape.arith256_mod_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.arith256_first) + i) return error.InvalidEthereumBatchService;
+        var curve_seen: [rv.ethereum_services.curves.COUNT]u32 = @splat(0);
+        for (self.tape.curve_calls.items) |call| {
+            const c = rv.ethereum_services.curves.index(call.op);
+            if (call.call_id != @as(u64, self.curve_first[c]) + curve_seen[c]) return error.InvalidEthereumBatchService;
+            curve_seen[c] += 1;
+        }
+        if (!std.mem.eql(u32, &curve_seen, &self.curve_calls)) return error.InvalidEthereumBatchBoundary;
         if (self.steps == 0 or self.steps != self.tape.len or self.steps != self.capture.steps or final_cpu.retired != self.initial_clock + self.steps or final_cpu.pc != self.next_pc or final_cpu.regs[0] != 0 or self.tape.service_calls.items.len != self.calls[0] or self.tape.secp_calls.items.len != @as(u64, self.calls[1]) + self.calls[2]) return error.InvalidEthereumBatchBoundary;
         var actual: [3]u32 = @splat(0);
         for (self.tape.service_calls.items) |call| {

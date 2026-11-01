@@ -58,5 +58,12 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
     // contiguous per-family spans from the admitted per-shard counts.
     if (tape.sha256_calls.items.len > 1) for (tape.sha256_calls.items[1..], 1..) |call, i| if (call.call_id != tape.sha256_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
     if (tape.arith256_mod_calls.items.len > 1) for (tape.arith256_mod_calls.items[1..], 1..) |call, i| if (call.call_id != tape.arith256_mod_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
+    // Curve/field IDs: contiguous per op (records of different ops interleave).
+    var curve_next: [rv.ethereum_services.curves.COUNT]?u64 = @splat(null);
+    for (tape.curve_calls.items) |call| {
+        const c = rv.ethereum_services.curves.index(call.op);
+        if (curve_next[c]) |next_id| if (call.call_id != next_id) return error.InvalidWorkPacketService;
+        curve_next[c] = call.call_id + 1;
+    }
     return .{ .metadata = header.metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = header.content_digest };
 }
