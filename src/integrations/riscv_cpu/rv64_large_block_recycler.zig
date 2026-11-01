@@ -26,6 +26,17 @@ pub const LargeBlockRecycler = struct {
         return .{ .child = child, .cap_bytes = cap_bytes };
     }
 
+    /// Change the cache ceiling without changing any live allocation. If the
+    /// old cache exceeds it, detach that cache through the existing joined
+    /// ownership path. Concurrent alloc/free remain safe under the new ceiling.
+    pub fn setCap(self: *LargeBlockRecycler, cap_bytes: usize) usize {
+        self.mutex.lock();
+        self.cap_bytes = cap_bytes;
+        const trim = self.cached_bytes > cap_bytes;
+        self.mutex.unlock();
+        return if (trim) self.releaseCached() else 0;
+    }
+
     /// Return cached free blocks to the child without touching live ownership.
     /// Concurrent alloc/free remain valid; blocks freed after the detach can
     /// populate the new cache. The returned byte count covers this detach only.
@@ -191,6 +202,26 @@ test "large blocks are recycled by rounded capacity, small blocks pass through, 
     try std.testing.expectEqual(LargeBlockRecycler.capacityFor(1_000_000).?, recycler.stats().cached_bytes);
 }
 
+test "cache ceiling changes preserve live backing ownership and content" {
+    var recycler = LargeBlockRecycler.init(std.testing.allocator, 4 * 1024 * 1024);
+    defer recycler.deinit();
+    const a = recycler.allocator();
+    const live = try a.alloc(u8, 1024 * 1024);
+    @memset(live, 0xa7);
+    const parked = try a.alloc(u8, 1024 * 1024);
+    a.free(parked);
+    try std.testing.expectEqual(@as(usize, 1024 * 1024), recycler.setCap(0));
+    try std.testing.expectEqual(@as(usize, 0), recycler.stats().cached_bytes);
+    for (live) |byte| try std.testing.expectEqual(@as(u8, 0xa7), byte);
+    a.free(live);
+    try std.testing.expectEqual(@as(usize, 0), recycler.stats().cached_bytes);
+    try std.testing.expectEqual(@as(usize, 0), recycler.setCap(2 * 1024 * 1024));
+    const next = try a.alloc(u8, 1024 * 1024);
+    a.free(next);
+    try std.testing.expectEqual(@as(usize, 1024 * 1024), recycler.stats().cached_bytes);
+    try std.testing.expectEqual(@as(usize, 0), recycler.live.count());
+}
+
 test "cached capacity preserves stronger alignment and overflow is allocation failure" {
     var child = AlignmentChild{};
     var recycler = LargeBlockRecycler.init(child.allocator(), 4 * 1024 * 1024);
@@ -353,7 +384,8 @@ test "recycler phase trim and live allocation traffic are concurrent safe" {
             spawned += 1;
         }
         while (done.load(.acquire) < workers.len) {
-            _ = recycler.releaseCached();
+            _ = recycler.setCap(0);
+            _ = recycler.setCap(4 * 1024 * 1024);
             std.Thread.yield() catch {};
         }
     }
