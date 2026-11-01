@@ -1,0 +1,3703 @@
+{
+  "schema": 1,
+  "scope": "operational scheduling sweep; proof bytes must be identical to the expected digests for every run",
+  "started": "2026-11-01T13:19:46",
+  "host": {
+    "platform": "macOS-26.7.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "cpu_count": 18
+  },
+  "driver": "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+  "driver_sha256": "79634774d8b5f3c8b96e18dcf90cc3ff25f9d577f5c7e94586eb3159991853f6",
+  "driver_repo_head": null,
+  "request": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+  "jobs": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+  "count": 4,
+  "runs_per_config": 1,
+  "order": "interleaved",
+  "expected_sha256_file": "/tmp/rv64-parking-qualified-prefix4.sha256",
+  "expected": {
+    "bundle.json": "0e6020003f0c51485c18d20738ff9315e0e6f553503af22f5d8d5030584d1581",
+    "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+    "cost.json": "cdf80cf0cbdc4a11b3ba250a8c5d4b34556627a3a13237071bdcbafd8a65de54",
+    "cpu-0.bin": "ad3458caecbae493bdfe0b37ba08e7d0b3f85946489c70ca58e0f508ad9391f4",
+    "cpu-1.bin": "bbde8726b664b9fb3372c1e6cca3c6b81469b39b8d785729e7358775d107cb8d",
+    "cpu-2.bin": "75334fa0848d040c03a343d4d9a50805829b68c6d25ad5eec458583d96539ed2",
+    "cpu-3.bin": "ccc350840d01a91eb7952b08e653baa33d38ae31f5cd65bc7b325b7a142f119b",
+    "roster.json": "f9c8f0c7177bb6b7b0af83aaf04af75888b0840410aa8b4c8de1b6c10cc22677",
+    "truth-0.bin": "ae735c23ed5a225717224bb5cb55e9a69bb9d72304afac562bda923ac776724e",
+    "truth-1.bin": "7fed32eaa2fa3a5adbac50f63cbcaadd5a84797745aedc16f2020f2239ada898",
+    "truth-2.bin": "77fad6e8961ef4e2887704e5d5287ebba71d96df28f4324d48db07fc910b246b"
+  },
+  "configs": [
+    {
+      "label": "manifest2x8",
+      "request_workers": 16
+    },
+    {
+      "label": "truths2x8",
+      "request_workers": 16,
+      "extra": [
+        "--truths-first"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "label": "manifest2x8",
+      "run": 0,
+      "out_dir": "/tmp/rv64-truth-dispatch-prefix4-v1/manifest2x8-r0",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-prefix4-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-prefix4-v1/manifest2x8-r0",
+        "4"
+      ],
+      "exit_code": 0,
+      "outer_wall_seconds": 21.482,
+      "process": {
+        "wall_seconds": 21.46,
+        "user_seconds": 165.29,
+        "sys_seconds": 9.47,
+        "max_rss_bytes": 22314893312,
+        "minor_faults": 4761058,
+        "major_faults": 371522,
+        "voluntary_switches": 5958,
+        "involuntary_switches": 79786,
+        "instructions_retired": 1972062836566,
+        "cycles_elapsed": 707400166873,
+        "peak_footprint_bytes": 16237365728,
+        "prove_seconds": 16.541101083
+      },
+      "report": {
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "capture_ns": 2337258750,
+        "setup_ns": 2071880251,
+        "prove_ns": 16541101083,
+        "same_process_verify_ns": 298473750,
+        "total_before_report_ns": 21283700584,
+        "cpu_proofs": 4,
+        "truth_proofs": 3
+      },
+      "identical": true,
+      "mismatches": [],
+      "stages": {
+        "note": "seconds and lane_* CPU are additive across proofs; process_* counters are whole-process and overlap between concurrent lanes, so they are not additive",
+        "by_stage": {
+          "source_construction": {
+            "seconds": 1.944973,
+            "proofs": 7,
+            "lane_user_seconds": 8.640462,
+            "lane_system_seconds": 0.866036,
+            "lane_samples": 7,
+            "process_user_seconds": 17.108703,
+            "process_system_seconds": 1.616229,
+            "minor_faults": 771577,
+            "major_faults": 90471,
+            "max_resident_bytes_at_end": 15219163136,
+            "max_footprint_bytes_at_end": 10714540832
+          },
+          "source_construction/source_cpu_materialize": {
+            "seconds": 0.646636,
+            "proofs": 4,
+            "lane_user_seconds": 4.225532,
+            "lane_system_seconds": 0.250955,
+            "lane_samples": 4,
+            "process_user_seconds": 6.920934,
+            "process_system_seconds": 0.515823,
+            "minor_faults": 289372,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13104775168,
+            "max_footprint_bytes_at_end": 10095683928
+          },
+          "source_construction/source_jalr": {
+            "seconds": 5e-05,
+            "proofs": 4,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 1.8e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 1e-05,
+            "process_system_seconds": 2.3e-05,
+            "minor_faults": 10,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13104775168,
+            "max_footprint_bytes_at_end": 10095683928
+          },
+          "source_construction/source_alu": {
+            "seconds": 0.129066,
+            "proofs": 4,
+            "lane_user_seconds": 0.531465,
+            "lane_system_seconds": 0.320836,
+            "lane_samples": 4,
+            "process_user_seconds": 1.04596,
+            "process_system_seconds": 0.351734,
+            "minor_faults": 90336,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13234274304,
+            "max_footprint_bytes_at_end": 10225248696
+          },
+          "source_construction/source_binary": {
+            "seconds": 0.113921,
+            "proofs": 4,
+            "lane_user_seconds": 0.680887,
+            "lane_system_seconds": 0.058654,
+            "lane_samples": 4,
+            "process_user_seconds": 1.172132,
+            "process_system_seconds": 0.102589,
+            "minor_faults": 53414,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13413056512,
+            "max_footprint_bytes_at_end": 10404129352
+          },
+          "source_construction/source_shift": {
+            "seconds": 0.198865,
+            "proofs": 4,
+            "lane_user_seconds": 1.121612,
+            "lane_system_seconds": 0.058594,
+            "lane_samples": 4,
+            "process_user_seconds": 2.140332,
+            "process_system_seconds": 0.195115,
+            "minor_faults": 99818,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13546749952,
+            "max_footprint_bytes_at_end": 10537888424
+          },
+          "source_construction/source_alu_tail": {
+            "seconds": 0.014868,
+            "proofs": 3,
+            "lane_user_seconds": 0.037299,
+            "lane_system_seconds": 0.018023,
+            "lane_samples": 3,
+            "process_user_seconds": 0.105957,
+            "process_system_seconds": 0.021303,
+            "minor_faults": 4352,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13551337472,
+            "max_footprint_bytes_at_end": 10542475944
+          },
+          "source_construction/source_binary_tail": {
+            "seconds": 0.018102,
+            "proofs": 3,
+            "lane_user_seconds": 0.08235,
+            "lane_system_seconds": 0.009806,
+            "lane_samples": 3,
+            "process_user_seconds": 0.184892,
+            "process_system_seconds": 0.018666,
+            "minor_faults": 8005,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12080529408,
+            "max_footprint_bytes_at_end": 9070929520
+          },
+          "source_construction/source_shift_tail": {
+            "seconds": 0.042831,
+            "proofs": 2,
+            "lane_user_seconds": 0.184003,
+            "lane_system_seconds": 0.014646,
+            "lane_samples": 2,
+            "process_user_seconds": 0.445329,
+            "process_system_seconds": 0.033883,
+            "minor_faults": 16335,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13622657024,
+            "max_footprint_bytes_at_end": 10613828312
+          },
+          "source_construction/source_division": {
+            "seconds": 0.000244,
+            "proofs": 4,
+            "lane_user_seconds": 6.7e-05,
+            "lane_system_seconds": 0.00015,
+            "lane_samples": 4,
+            "process_user_seconds": 0.009457,
+            "process_system_seconds": 0.000163,
+            "minor_faults": 143,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13623181312,
+            "max_footprint_bytes_at_end": 10614352600
+          },
+          "source_construction/source_multiplication": {
+            "seconds": 0.080247,
+            "proofs": 4,
+            "lane_user_seconds": 0.078332,
+            "lane_system_seconds": 0.001643,
+            "lane_samples": 4,
+            "process_user_seconds": 0.307724,
+            "process_system_seconds": 0.006763,
+            "minor_faults": 7123,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13706510336,
+            "max_footprint_bytes_at_end": 10697714440
+          },
+          "source_construction/source_memory": {
+            "seconds": 4.7e-05,
+            "proofs": 4,
+            "lane_user_seconds": 7e-06,
+            "lane_system_seconds": 1.5e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 8e-06,
+            "process_system_seconds": 1.6e-05,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13706510336,
+            "max_footprint_bytes_at_end": 10697714440
+          },
+          "source_construction/source_rom": {
+            "seconds": 0.018147,
+            "proofs": 4,
+            "lane_user_seconds": 0.018003,
+            "lane_system_seconds": 9.7e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.08136,
+            "process_system_seconds": 0.002772,
+            "minor_faults": 1936,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13706510336,
+            "max_footprint_bytes_at_end": 10697714440
+          },
+          "source_construction/source_range_counts": {
+            "seconds": 0.000779,
+            "proofs": 4,
+            "lane_user_seconds": 0.000609,
+            "lane_system_seconds": 0.000145,
+            "lane_samples": 4,
+            "process_user_seconds": 0.004002,
+            "process_system_seconds": 0.000198,
+            "minor_faults": 185,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13707034624,
+            "max_footprint_bytes_at_end": 10698238728
+          },
+          "source_construction/source_range16": {
+            "seconds": 0.000904,
+            "proofs": 4,
+            "lane_user_seconds": 0.000858,
+            "lane_system_seconds": 2.1e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.002304,
+            "process_system_seconds": 0.000149,
+            "minor_faults": 85,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13707034624,
+            "max_footprint_bytes_at_end": 10698238728
+          },
+          "source_construction/source_range8": {
+            "seconds": 5e-05,
+            "proofs": 4,
+            "lane_user_seconds": 1.1e-05,
+            "lane_system_seconds": 1.6e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 1.3e-05,
+            "process_system_seconds": 3.9e-05,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13707034624,
+            "max_footprint_bytes_at_end": 10698238728
+          },
+          "source_construction/source_and_table": {
+            "seconds": 0.000928,
+            "proofs": 4,
+            "lane_user_seconds": 0.000863,
+            "lane_system_seconds": 2.3e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.00549,
+            "process_system_seconds": 0.0002,
+            "minor_faults": 154,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13715423232,
+            "max_footprint_bytes_at_end": 10706643744
+          },
+          "source_construction/source_shift_table": {
+            "seconds": 0.02293,
+            "proofs": 4,
+            "lane_user_seconds": 0.022758,
+            "lane_system_seconds": 7.8e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.129794,
+            "process_system_seconds": 0.001554,
+            "minor_faults": 692,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13715423232,
+            "max_footprint_bytes_at_end": 10706643744
+          },
+          "source_construction/source_fact_retirement": {
+            "seconds": 0.000628,
+            "proofs": 4,
+            "lane_user_seconds": 1.4e-05,
+            "lane_system_seconds": 0.000588,
+            "lane_samples": 4,
+            "process_user_seconds": 0.00055,
+            "process_system_seconds": 0.000608,
+            "minor_faults": 42,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13715423232,
+            "max_footprint_bytes_at_end": 10706643744
+          },
+          "main_commit": {
+            "seconds": 5.330164,
+            "proofs": 7,
+            "lane_user_seconds": 27.668517,
+            "lane_system_seconds": 1.190691,
+            "lane_samples": 7,
+            "process_user_seconds": 53.140029,
+            "process_system_seconds": 2.923331,
+            "minor_faults": 1051324,
+            "major_faults": 172716,
+            "max_resident_bytes_at_end": 15224750080,
+            "max_footprint_bytes_at_end": 11351584000
+          },
+          "main_commit/streaming_commit_prepare": {
+            "seconds": 4.874723,
+            "proofs": 139,
+            "lane_user_seconds": 25.789722,
+            "lane_system_seconds": 1.00974,
+            "lane_samples": 138,
+            "process_user_seconds": 48.594552,
+            "process_system_seconds": 2.435208,
+            "minor_faults": 918368,
+            "major_faults": 123635,
+            "max_resident_bytes_at_end": 15768764416,
+            "max_footprint_bytes_at_end": 12724613312
+          },
+          "main_commit/merkle_commit": {
+            "seconds": 0.454572,
+            "proofs": 7,
+            "lane_user_seconds": 1.606652,
+            "lane_system_seconds": 0.164308,
+            "lane_samples": 7,
+            "process_user_seconds": 4.254574,
+            "process_system_seconds": 0.44086,
+            "minor_faults": 132753,
+            "major_faults": 18750,
+            "max_resident_bytes_at_end": 15224750080,
+            "max_footprint_bytes_at_end": 11351584000
+          },
+          "retained_main_spill": {
+            "seconds": 1.46081,
+            "proofs": 7,
+            "lane_user_seconds": 0.184637,
+            "lane_system_seconds": 0.709088,
+            "lane_samples": 7,
+            "process_user_seconds": 5.229037,
+            "process_system_seconds": 1.336076,
+            "minor_faults": 136296,
+            "major_faults": 479800,
+            "max_resident_bytes_at_end": 15224766464,
+            "max_footprint_bytes_at_end": 10392120936
+          },
+          "interaction_generation": {
+            "seconds": 2.314917,
+            "proofs": 7,
+            "lane_user_seconds": 11.645418,
+            "lane_system_seconds": 0.297113,
+            "lane_samples": 7,
+            "process_user_seconds": 23.718717,
+            "process_system_seconds": 0.724698,
+            "minor_faults": 533976,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15213182976,
+            "max_footprint_bytes_at_end": 9263705968
+          },
+          "interaction_generation/inter_r16_table": {
+            "seconds": 0.012628,
+            "proofs": 4,
+            "lane_user_seconds": 0.011302,
+            "lane_system_seconds": 0.000508,
+            "lane_samples": 4,
+            "process_user_seconds": 0.046592,
+            "process_system_seconds": 0.000849,
+            "minor_faults": 565,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13702168576,
+            "max_footprint_bytes_at_end": 8417374352
+          },
+          "interaction_generation/inter_r8_table": {
+            "seconds": 9.6e-05,
+            "proofs": 4,
+            "lane_user_seconds": 4e-05,
+            "lane_system_seconds": 2.8e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 5.4e-05,
+            "process_system_seconds": 2.7e-05,
+            "minor_faults": 6,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13702184960,
+            "max_footprint_bytes_at_end": 8417374352
+          },
+          "interaction_generation/inter_rom": {
+            "seconds": 0.130774,
+            "proofs": 4,
+            "lane_user_seconds": 0.636112,
+            "lane_system_seconds": 0.028953,
+            "lane_samples": 4,
+            "process_user_seconds": 1.30777,
+            "process_system_seconds": 0.033299,
+            "minor_faults": 11383,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13738328064,
+            "max_footprint_bytes_at_end": 8450945192
+          },
+          "interaction_generation/inter_and_table": {
+            "seconds": 0.02815,
+            "proofs": 4,
+            "lane_user_seconds": 0.027779,
+            "lane_system_seconds": 0.000207,
+            "lane_samples": 4,
+            "process_user_seconds": 0.115206,
+            "process_system_seconds": 0.00302,
+            "minor_faults": 1064,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13751582720,
+            "max_footprint_bytes_at_end": 8450945192
+          },
+          "interaction_generation/inter_shift_table": {
+            "seconds": 0.064247,
+            "proofs": 4,
+            "lane_user_seconds": 0.175181,
+            "lane_system_seconds": 0.03836,
+            "lane_samples": 4,
+            "process_user_seconds": 0.451955,
+            "process_system_seconds": 0.040567,
+            "minor_faults": 12472,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13787611136,
+            "max_footprint_bytes_at_end": 8462479528
+          },
+          "interaction_generation/inter_register_boundary": {
+            "seconds": 0.000107,
+            "proofs": 4,
+            "lane_user_seconds": 5.8e-05,
+            "lane_system_seconds": 2.2e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.000297,
+            "process_system_seconds": 3e-05,
+            "minor_faults": 5,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13787611136,
+            "max_footprint_bytes_at_end": 8462479528
+          },
+          "interaction_generation/inter_cpu": {
+            "seconds": 1.233766,
+            "proofs": 4,
+            "lane_user_seconds": 7.161593,
+            "lane_system_seconds": 0.156864,
+            "lane_samples": 4,
+            "process_user_seconds": 13.954002,
+            "process_system_seconds": 0.402703,
+            "minor_faults": 357916,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14898364416,
+            "max_footprint_bytes_at_end": 8817602632
+          },
+          "interaction_generation/inter_alu": {
+            "seconds": 0.102274,
+            "proofs": 4,
+            "lane_user_seconds": 0.549271,
+            "lane_system_seconds": 0.005663,
+            "lane_samples": 4,
+            "process_user_seconds": 0.992237,
+            "process_system_seconds": 0.026869,
+            "minor_faults": 22051,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14798733312,
+            "max_footprint_bytes_at_end": 8913481296
+          },
+          "interaction_generation/inter_binary": {
+            "seconds": 0.092331,
+            "proofs": 4,
+            "lane_user_seconds": 0.498867,
+            "lane_system_seconds": 0.015152,
+            "lane_samples": 4,
+            "process_user_seconds": 0.824691,
+            "process_system_seconds": 0.023397,
+            "minor_faults": 9995,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14858633216,
+            "max_footprint_bytes_at_end": 8847388192
+          },
+          "interaction_generation/inter_shift": {
+            "seconds": 0.156458,
+            "proofs": 4,
+            "lane_user_seconds": 0.684602,
+            "lane_system_seconds": 0.016078,
+            "lane_samples": 4,
+            "process_user_seconds": 1.561922,
+            "process_system_seconds": 0.089412,
+            "minor_faults": 46258,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14986084352,
+            "max_footprint_bytes_at_end": 9073979056
+          },
+          "interaction_generation/inter_jalr": {
+            "seconds": 0.008305,
+            "proofs": 4,
+            "lane_user_seconds": 0.008008,
+            "lane_system_seconds": 0.000234,
+            "lane_samples": 4,
+            "process_user_seconds": 0.043415,
+            "process_system_seconds": 0.000963,
+            "minor_faults": 1557,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14986477568,
+            "max_footprint_bytes_at_end": 9073979056
+          },
+          "interaction_generation/inter_multiplication": {
+            "seconds": 0.037051,
+            "proofs": 4,
+            "lane_user_seconds": 0.138158,
+            "lane_system_seconds": 0.013188,
+            "lane_samples": 4,
+            "process_user_seconds": 0.299165,
+            "process_system_seconds": 0.015617,
+            "minor_faults": 6905,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14986412032,
+            "max_footprint_bytes_at_end": 9011048088
+          },
+          "interaction_generation/inter_memory": {
+            "seconds": 0.271879,
+            "proofs": 4,
+            "lane_user_seconds": 1.034935,
+            "lane_system_seconds": 0.011299,
+            "lane_samples": 4,
+            "process_user_seconds": 2.552888,
+            "process_system_seconds": 0.044504,
+            "minor_faults": 33846,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15150252032,
+            "max_footprint_bytes_at_end": 9246076736
+          },
+          "interaction_generation/inter_alu_tail": {
+            "seconds": 0.011684,
+            "proofs": 3,
+            "lane_user_seconds": 0.036208,
+            "lane_system_seconds": 0.000659,
+            "lane_samples": 3,
+            "process_user_seconds": 0.110482,
+            "process_system_seconds": 0.000822,
+            "minor_faults": 512,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15158657024,
+            "max_footprint_bytes_at_end": 9246076736
+          },
+          "interaction_generation/inter_binary_tail": {
+            "seconds": 0.018977,
+            "proofs": 3,
+            "lane_user_seconds": 0.075148,
+            "lane_system_seconds": 0.002378,
+            "lane_samples": 3,
+            "process_user_seconds": 0.161393,
+            "process_system_seconds": 0.00251,
+            "minor_faults": 3077,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15183822848,
+            "max_footprint_bytes_at_end": 9103094048
+          },
+          "interaction_generation/inter_shift_tail": {
+            "seconds": 0.032337,
+            "proofs": 2,
+            "lane_user_seconds": 0.141393,
+            "lane_system_seconds": 0.001614,
+            "lane_samples": 2,
+            "process_user_seconds": 0.358729,
+            "process_system_seconds": 0.003046,
+            "minor_faults": 1801,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15213182976,
+            "max_footprint_bytes_at_end": 9132470584
+          },
+          "interaction_commit": {
+            "seconds": 4.483808,
+            "proofs": 7,
+            "lane_user_seconds": 22.643218,
+            "lane_system_seconds": 1.234683,
+            "lane_samples": 7,
+            "process_user_seconds": 46.481581,
+            "process_system_seconds": 2.71174,
+            "minor_faults": 1624902,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17574903808,
+            "max_footprint_bytes_at_end": 11856214056
+          },
+          "interaction_commit/streaming_commit_prepare": {
+            "seconds": 3.989531,
+            "proofs": 144,
+            "lane_user_seconds": 20.976744,
+            "lane_system_seconds": 1.078585,
+            "lane_samples": 144,
+            "process_user_seconds": 41.201109,
+            "process_system_seconds": 2.210687,
+            "minor_faults": 1339416,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17578983424,
+            "max_footprint_bytes_at_end": 13391936296
+          },
+          "interaction_commit/merkle_commit": {
+            "seconds": 0.493611,
+            "proofs": 7,
+            "lane_user_seconds": 1.665654,
+            "lane_system_seconds": 0.155083,
+            "lane_samples": 7,
+            "process_user_seconds": 5.277089,
+            "process_system_seconds": 0.498804,
+            "minor_faults": 285127,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17574707200,
+            "max_footprint_bytes_at_end": 11856214056
+          },
+          "draw_random_coeff": {
+            "seconds": 0.000102,
+            "proofs": 7,
+            "lane_user_seconds": 1.8e-05,
+            "lane_system_seconds": 3.4e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 4.2e-05,
+            "process_system_seconds": 5.7e-05,
+            "minor_faults": 4,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17575198720,
+            "max_footprint_bytes_at_end": 11856214056
+          },
+          "composition_trace_extract": {
+            "seconds": 0.000174,
+            "proofs": 7,
+            "lane_user_seconds": 5.4e-05,
+            "lane_system_seconds": 6.6e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 9.6e-05,
+            "process_system_seconds": 0.000108,
+            "minor_faults": 38,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17575444480,
+            "max_footprint_bytes_at_end": 11856361512
+          },
+          "composition_evaluation": {
+            "seconds": 8.693979,
+            "proofs": 7,
+            "lane_user_seconds": 40.717228,
+            "lane_system_seconds": 1.821304,
+            "lane_samples": 7,
+            "process_user_seconds": 81.318894,
+            "process_system_seconds": 3.922398,
+            "minor_faults": 2780468,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15879634944,
+            "max_footprint_bytes_at_end": 11429656592
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.119085,
+            "proofs": 7,
+            "lane_user_seconds": 0.4611,
+            "lane_system_seconds": 0.000656,
+            "lane_samples": 7,
+            "process_user_seconds": 0.894343,
+            "process_system_seconds": 0.005307,
+            "minor_faults": 2503,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15904817152,
+            "max_footprint_bytes_at_end": 11429656592
+          },
+          "composition_commit": {
+            "seconds": 0.750316,
+            "proofs": 7,
+            "lane_user_seconds": 3.826951,
+            "lane_system_seconds": 0.317506,
+            "lane_samples": 7,
+            "process_user_seconds": 7.38649,
+            "process_system_seconds": 0.478859,
+            "minor_faults": 301841,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16011329536,
+            "max_footprint_bytes_at_end": 11580717168
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.001003,
+            "proofs": 7,
+            "lane_user_seconds": 0.00064,
+            "lane_system_seconds": 0.000264,
+            "lane_samples": 7,
+            "process_user_seconds": 0.008372,
+            "process_system_seconds": 0.000637,
+            "minor_faults": 148,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15879897088,
+            "max_footprint_bytes_at_end": 11446499368
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.904948,
+            "proofs": 7,
+            "lane_user_seconds": 1.876563,
+            "lane_system_seconds": 0.009776,
+            "lane_samples": 7,
+            "process_user_seconds": 7.016782,
+            "process_system_seconds": 0.209676,
+            "minor_faults": 98713,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16231841792,
+            "max_footprint_bytes_at_end": 10150541088
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 0.000946,
+            "proofs": 7,
+            "lane_user_seconds": 0.000835,
+            "lane_system_seconds": 4.8e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 0.002112,
+            "process_system_seconds": 0.000106,
+            "minor_faults": 44,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16232120320,
+            "max_footprint_bytes_at_end": 10150819616
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 3.221912,
+            "proofs": 7,
+            "lane_user_seconds": 14.93802,
+            "lane_system_seconds": 0.975421,
+            "lane_samples": 7,
+            "process_user_seconds": 29.684805,
+            "process_system_seconds": 1.731336,
+            "minor_faults": 901027,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17104535552,
+            "max_footprint_bytes_at_end": 11023628664
+          },
+          "proof_of_work": {
+            "seconds": 1.652705,
+            "proofs": 7,
+            "lane_user_seconds": 11.897514,
+            "lane_system_seconds": 0.015615,
+            "lane_samples": 7,
+            "process_user_seconds": 18.404395,
+            "process_system_seconds": 0.314934,
+            "minor_faults": 135933,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16714350592,
+            "max_footprint_bytes_at_end": 10633263240
+          },
+          "fri_decommit": {
+            "seconds": 0.028529,
+            "proofs": 7,
+            "lane_user_seconds": 0.010481,
+            "lane_system_seconds": 0.017781,
+            "lane_samples": 7,
+            "process_user_seconds": 0.22784,
+            "process_system_seconds": 0.023182,
+            "minor_faults": 3302,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16451780608,
+            "max_footprint_bytes_at_end": 10370611240
+          },
+          "trace_decommit": {
+            "seconds": 1.747803,
+            "proofs": 7,
+            "lane_user_seconds": 7.495874,
+            "lane_system_seconds": 0.607958,
+            "lane_samples": 7,
+            "process_user_seconds": 16.601608,
+            "process_system_seconds": 0.860593,
+            "minor_faults": 237352,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15992307712,
+            "max_footprint_bytes_at_end": 9911007104
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.001782,
+            "proofs": 7,
+            "lane_user_seconds": 0.001265,
+            "lane_system_seconds": 0.000388,
+            "lane_samples": 7,
+            "process_user_seconds": 0.001269,
+            "process_system_seconds": 0.000447,
+            "minor_faults": 31,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13172473856,
+            "max_footprint_bytes_at_end": 8510615720
+          },
+          "interaction_generation/inter_division": {
+            "seconds": 4.2e-05,
+            "proofs": 1,
+            "lane_user_seconds": 3.1e-05,
+            "lane_system_seconds": 5e-06,
+            "lane_samples": 1,
+            "process_user_seconds": 3.1e-05,
+            "process_system_seconds": 4e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12142821376,
+            "max_footprint_bytes_at_end": 9073979056
+          }
+        },
+        "per_proof": [
+          {
+            "file": "physical-0000.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.448094,
+                "lane_user_seconds": 2.191861,
+                "lane_system_seconds": 0.236568
+              },
+              "main_commit": {
+                "seconds": 1.356846,
+                "lane_user_seconds": 7.147402,
+                "lane_system_seconds": 0.43859
+              },
+              "retained_main_spill": {
+                "seconds": 0.355541,
+                "lane_user_seconds": 0.049546,
+                "lane_system_seconds": 0.187375
+              },
+              "interaction_generation": {
+                "seconds": 0.571777,
+                "lane_user_seconds": 2.821375,
+                "lane_system_seconds": 0.043394
+              },
+              "interaction_commit": {
+                "seconds": 1.081718,
+                "lane_user_seconds": 5.710199,
+                "lane_system_seconds": 0.243139
+              },
+              "draw_random_coeff": {
+                "seconds": 1.8e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 7e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 3e-05,
+                "lane_user_seconds": 6e-06,
+                "lane_system_seconds": 1.3e-05
+              },
+              "composition_evaluation": {
+                "seconds": 2.161215,
+                "lane_user_seconds": 9.995102,
+                "lane_system_seconds": 0.486472
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.030642,
+                "lane_user_seconds": 0.116149,
+                "lane_system_seconds": 0.000138
+              },
+              "composition_commit": {
+                "seconds": 0.178371,
+                "lane_user_seconds": 0.945488,
+                "lane_system_seconds": 0.076154
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 9.3e-05,
+                "lane_user_seconds": 5.6e-05,
+                "lane_system_seconds": 1.9e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.22119,
+                "lane_user_seconds": 0.461748,
+                "lane_system_seconds": 0.001627
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 7.6e-05,
+                "lane_user_seconds": 5.8e-05,
+                "lane_system_seconds": 9e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.757392,
+                "lane_user_seconds": 3.560908,
+                "lane_system_seconds": 0.235417
+              },
+              "proof_of_work": {
+                "seconds": 0.572087,
+                "lane_user_seconds": 4.095095,
+                "lane_system_seconds": 0.005661
+              },
+              "fri_decommit": {
+                "seconds": 0.005998,
+                "lane_user_seconds": 0.002314,
+                "lane_system_seconds": 0.003659
+              },
+              "trace_decommit": {
+                "seconds": 0.420069,
+                "lane_user_seconds": 1.852275,
+                "lane_system_seconds": 0.118936
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000161,
+                "lane_user_seconds": 0.000127,
+                "lane_system_seconds": 1.1e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0001.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.346419,
+                "lane_user_seconds": 1.99315,
+                "lane_system_seconds": 0.203819
+              },
+              "main_commit": {
+                "seconds": 1.248699,
+                "lane_user_seconds": 6.576481,
+                "lane_system_seconds": 0.297185
+              },
+              "retained_main_spill": {
+                "seconds": 0.333738,
+                "lane_user_seconds": 0.04337,
+                "lane_system_seconds": 0.166077
+              },
+              "interaction_generation": {
+                "seconds": 0.516695,
+                "lane_user_seconds": 2.594524,
+                "lane_system_seconds": 0.043779
+              },
+              "interaction_commit": {
+                "seconds": 1.013147,
+                "lane_user_seconds": 5.192197,
+                "lane_system_seconds": 0.214117
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 2.5e-05,
+                "lane_user_seconds": 6e-06,
+                "lane_system_seconds": 1e-05
+              },
+              "composition_evaluation": {
+                "seconds": 1.989244,
+                "lane_user_seconds": 8.894643,
+                "lane_system_seconds": 0.410832
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.028537,
+                "lane_user_seconds": 0.112209,
+                "lane_system_seconds": 0.000133
+              },
+              "composition_commit": {
+                "seconds": 0.182081,
+                "lane_user_seconds": 0.93966,
+                "lane_system_seconds": 0.07785
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000131,
+                "lane_user_seconds": 6e-05,
+                "lane_system_seconds": 5.2e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.19968,
+                "lane_user_seconds": 0.422247,
+                "lane_system_seconds": 0.001902
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 8.5e-05,
+                "lane_user_seconds": 6.6e-05,
+                "lane_system_seconds": 9e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.766009,
+                "lane_user_seconds": 3.600258,
+                "lane_system_seconds": 0.247987
+              },
+              "proof_of_work": {
+                "seconds": 0.109007,
+                "lane_user_seconds": 0.868921,
+                "lane_system_seconds": 0.000883
+              },
+              "fri_decommit": {
+                "seconds": 0.005609,
+                "lane_user_seconds": 0.002453,
+                "lane_system_seconds": 0.003141
+              },
+              "trace_decommit": {
+                "seconds": 0.417905,
+                "lane_user_seconds": 1.756775,
+                "lane_system_seconds": 0.113481
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000338,
+                "lane_user_seconds": 0.000119,
+                "lane_system_seconds": 0.000201
+              }
+            }
+          },
+          {
+            "file": "physical-0002.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.325391,
+                "lane_user_seconds": 1.98804,
+                "lane_system_seconds": 0.189903
+              },
+              "main_commit": {
+                "seconds": 1.283178,
+                "lane_user_seconds": 6.605317,
+                "lane_system_seconds": 0.162688
+              },
+              "retained_main_spill": {
+                "seconds": 0.332321,
+                "lane_user_seconds": 0.042617,
+                "lane_system_seconds": 0.161203
+              },
+              "interaction_generation": {
+                "seconds": 0.53596,
+                "lane_user_seconds": 2.68334,
+                "lane_system_seconds": 0.075224
+              },
+              "interaction_commit": {
+                "seconds": 1.048048,
+                "lane_user_seconds": 5.155888,
+                "lane_system_seconds": 0.30234
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.7e-05,
+                "lane_user_seconds": 6e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_evaluation": {
+                "seconds": 1.993377,
+                "lane_user_seconds": 9.116722,
+                "lane_system_seconds": 0.428358
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.030586,
+                "lane_user_seconds": 0.117266,
+                "lane_system_seconds": 0.000136
+              },
+              "composition_commit": {
+                "seconds": 0.186485,
+                "lane_user_seconds": 0.955722,
+                "lane_system_seconds": 0.072345
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000113,
+                "lane_user_seconds": 6.3e-05,
+                "lane_system_seconds": 3.4e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.204715,
+                "lane_user_seconds": 0.434997,
+                "lane_system_seconds": 0.001771
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 8.2e-05,
+                "lane_user_seconds": 6.9e-05,
+                "lane_system_seconds": 6e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.829473,
+                "lane_user_seconds": 3.691329,
+                "lane_system_seconds": 0.242315
+              },
+              "proof_of_work": {
+                "seconds": 0.560164,
+                "lane_user_seconds": 4.087685,
+                "lane_system_seconds": 0.005191
+              },
+              "fri_decommit": {
+                "seconds": 0.007462,
+                "lane_user_seconds": 0.002624,
+                "lane_system_seconds": 0.004711
+              },
+              "trace_decommit": {
+                "seconds": 0.407854,
+                "lane_user_seconds": 1.718729,
+                "lane_system_seconds": 0.1588
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000164,
+                "lane_user_seconds": 0.000127,
+                "lane_system_seconds": 1.3e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0003.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.543001,
+                "lane_user_seconds": 2.186816,
+                "lane_system_seconds": 0.225941
+              },
+              "main_commit": {
+                "seconds": 1.35139,
+                "lane_user_seconds": 6.947038,
+                "lane_system_seconds": 0.26374
+              },
+              "retained_main_spill": {
+                "seconds": 0.343082,
+                "lane_user_seconds": 0.044767,
+                "lane_system_seconds": 0.165487
+              },
+              "interaction_generation": {
+                "seconds": 0.617122,
+                "lane_user_seconds": 3.118725,
+                "lane_system_seconds": 0.130458
+              },
+              "interaction_commit": {
+                "seconds": 1.238361,
+                "lane_user_seconds": 6.100509,
+                "lane_system_seconds": 0.458234
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 5e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 2.6e-05,
+                "lane_user_seconds": 9e-06,
+                "lane_system_seconds": 1.1e-05
+              },
+              "composition_evaluation": {
+                "seconds": 2.057052,
+                "lane_user_seconds": 9.910786,
+                "lane_system_seconds": 0.461396
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.02856,
+                "lane_user_seconds": 0.113204,
+                "lane_system_seconds": 0.000131
+              },
+              "composition_commit": {
+                "seconds": 0.199001,
+                "lane_user_seconds": 0.971384,
+                "lane_system_seconds": 0.088849
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000144,
+                "lane_user_seconds": 9.6e-05,
+                "lane_system_seconds": 3.7e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.227673,
+                "lane_user_seconds": 0.483644,
+                "lane_system_seconds": 0.003214
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 0.000116,
+                "lane_user_seconds": 0.000104,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.834317,
+                "lane_user_seconds": 3.931905,
+                "lane_system_seconds": 0.244788
+              },
+              "proof_of_work": {
+                "seconds": 0.152999,
+                "lane_user_seconds": 1.036404,
+                "lane_system_seconds": 0.001331
+              },
+              "fri_decommit": {
+                "seconds": 0.008458,
+                "lane_user_seconds": 0.002578,
+                "lane_system_seconds": 0.005818
+              },
+              "trace_decommit": {
+                "seconds": 0.471659,
+                "lane_user_seconds": 1.98964,
+                "lane_system_seconds": 0.208618
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000321,
+                "lane_user_seconds": 0.000232,
+                "lane_system_seconds": 7e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0004.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.143535,
+                "lane_user_seconds": 0.147376,
+                "lane_system_seconds": 0.006001
+              },
+              "main_commit": {
+                "seconds": 0.050858,
+                "lane_user_seconds": 0.180203,
+                "lane_system_seconds": 0.004906
+              },
+              "retained_main_spill": {
+                "seconds": 0.05492,
+                "lane_user_seconds": 0.002077,
+                "lane_system_seconds": 0.014251
+              },
+              "interaction_generation": {
+                "seconds": 0.045302,
+                "lane_user_seconds": 0.253552,
+                "lane_system_seconds": 0.002843
+              },
+              "interaction_commit": {
+                "seconds": 0.042631,
+                "lane_user_seconds": 0.242468,
+                "lane_system_seconds": 0.006202
+              },
+              "draw_random_coeff": {
+                "seconds": 1.3e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 5e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 4e-05,
+                "lane_user_seconds": 1.5e-05,
+                "lane_system_seconds": 1.9e-05
+              },
+              "composition_evaluation": {
+                "seconds": 0.291312,
+                "lane_user_seconds": 1.679349,
+                "lane_system_seconds": 0.018693
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000173,
+                "lane_user_seconds": 0.000301,
+                "lane_system_seconds": 5.9e-05
+              },
+              "composition_commit": {
+                "seconds": 0.000725,
+                "lane_user_seconds": 0.00225,
+                "lane_system_seconds": 0.000643
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000401,
+                "lane_user_seconds": 0.000298,
+                "lane_system_seconds": 9.1e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.039472,
+                "lane_user_seconds": 0.050607,
+                "lane_system_seconds": 0.000462
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 0.000459,
+                "lane_user_seconds": 0.00044,
+                "lane_system_seconds": 9e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.017537,
+                "lane_user_seconds": 0.090074,
+                "lane_system_seconds": 0.001557
+              },
+              "proof_of_work": {
+                "seconds": 0.098824,
+                "lane_user_seconds": 0.58186,
+                "lane_system_seconds": 0.000974
+              },
+              "fri_decommit": {
+                "seconds": 0.000247,
+                "lane_user_seconds": 0.000132,
+                "lane_system_seconds": 0.000108
+              },
+              "trace_decommit": {
+                "seconds": 0.013869,
+                "lane_user_seconds": 0.090925,
+                "lane_system_seconds": 0.007091
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000586,
+                "lane_user_seconds": 0.000514,
+                "lane_system_seconds": 5.2e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0005.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.096948,
+                "lane_user_seconds": 0.093902,
+                "lane_system_seconds": 0.002553
+              },
+              "main_commit": {
+                "seconds": 0.024691,
+                "lane_user_seconds": 0.140053,
+                "lane_system_seconds": 0.015475
+              },
+              "retained_main_spill": {
+                "seconds": 0.024459,
+                "lane_user_seconds": 0.001489,
+                "lane_system_seconds": 0.009153
+              },
+              "interaction_generation": {
+                "seconds": 0.01524,
+                "lane_user_seconds": 0.118729,
+                "lane_system_seconds": 0.000335
+              },
+              "interaction_commit": {
+                "seconds": 0.036836,
+                "lane_user_seconds": 0.152702,
+                "lane_system_seconds": 0.008102
+              },
+              "draw_random_coeff": {
+                "seconds": 1.5e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.9e-05,
+                "lane_user_seconds": 7e-06,
+                "lane_system_seconds": 5e-06
+              },
+              "composition_evaluation": {
+                "seconds": 0.133517,
+                "lane_user_seconds": 0.721406,
+                "lane_system_seconds": 0.01231
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000406,
+                "lane_user_seconds": 0.001357,
+                "lane_system_seconds": 3.9e-05
+              },
+              "composition_commit": {
+                "seconds": 0.002495,
+                "lane_user_seconds": 0.008065,
+                "lane_system_seconds": 0.000942
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 6.6e-05,
+                "lane_user_seconds": 3.1e-05,
+                "lane_system_seconds": 1.9e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.007774,
+                "lane_user_seconds": 0.015114,
+                "lane_system_seconds": 0.000506
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 6.8e-05,
+                "lane_user_seconds": 4.9e-05,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.012583,
+                "lane_user_seconds": 0.043186,
+                "lane_system_seconds": 0.00226
+              },
+              "proof_of_work": {
+                "seconds": 0.068883,
+                "lane_user_seconds": 0.504207,
+                "lane_system_seconds": 0.000794
+              },
+              "fri_decommit": {
+                "seconds": 0.000444,
+                "lane_user_seconds": 0.000213,
+                "lane_system_seconds": 0.000222
+              },
+              "trace_decommit": {
+                "seconds": 0.011419,
+                "lane_user_seconds": 0.056682,
+                "lane_system_seconds": 0.0006
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000115,
+                "lane_user_seconds": 6.7e-05,
+                "lane_system_seconds": 3.4e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0006.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.041585,
+                "lane_user_seconds": 0.039317,
+                "lane_system_seconds": 0.001251
+              },
+              "main_commit": {
+                "seconds": 0.014502,
+                "lane_user_seconds": 0.072023,
+                "lane_system_seconds": 0.008107
+              },
+              "retained_main_spill": {
+                "seconds": 0.016749,
+                "lane_user_seconds": 0.000771,
+                "lane_system_seconds": 0.005542
+              },
+              "interaction_generation": {
+                "seconds": 0.012821,
+                "lane_user_seconds": 0.055173,
+                "lane_system_seconds": 0.00108
+              },
+              "interaction_commit": {
+                "seconds": 0.023067,
+                "lane_user_seconds": 0.089255,
+                "lane_system_seconds": 0.002549
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 5e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.7e-05,
+                "lane_user_seconds": 5e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_evaluation": {
+                "seconds": 0.068262,
+                "lane_user_seconds": 0.39922,
+                "lane_system_seconds": 0.003243
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000181,
+                "lane_user_seconds": 0.000614,
+                "lane_system_seconds": 2e-05
+              },
+              "composition_commit": {
+                "seconds": 0.001158,
+                "lane_user_seconds": 0.004382,
+                "lane_system_seconds": 0.000723
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 5.5e-05,
+                "lane_user_seconds": 3.6e-05,
+                "lane_system_seconds": 1.2e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.004444,
+                "lane_user_seconds": 0.008206,
+                "lane_system_seconds": 0.000294
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 6e-05,
+                "lane_user_seconds": 4.9e-05,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.004601,
+                "lane_user_seconds": 0.02036,
+                "lane_system_seconds": 0.001097
+              },
+              "proof_of_work": {
+                "seconds": 0.090741,
+                "lane_user_seconds": 0.723342,
+                "lane_system_seconds": 0.000781
+              },
+              "fri_decommit": {
+                "seconds": 0.000311,
+                "lane_user_seconds": 0.000167,
+                "lane_system_seconds": 0.000122
+              },
+              "trace_decommit": {
+                "seconds": 0.005028,
+                "lane_user_seconds": 0.030848,
+                "lane_system_seconds": 0.000432
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 9.7e-05,
+                "lane_user_seconds": 7.9e-05,
+                "lane_system_seconds": 7e-06
+              }
+            }
+          }
+        ]
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "stage1": {
+          "span_seconds": 4.416215,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "1": {
+              "indices": [
+                0,
+                3
+              ],
+              "busy_seconds": 4.41609,
+              "admission_wait_seconds": 0.0
+            },
+            "0": {
+              "indices": [
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              "busy_seconds": 4.338119,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 12.105496,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "0": {
+              "indices": [
+                0,
+                3,
+                6
+              ],
+              "busy_seconds": 12.10542,
+              "admission_wait_seconds": 0.0
+            },
+            "1": {
+              "indices": [
+                1,
+                2,
+                4,
+                5
+              ],
+              "busy_seconds": 11.949813,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        }
+      },
+      "fresh_verify": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      }
+    },
+    {
+      "label": "truths2x8",
+      "run": 0,
+      "out_dir": "/tmp/rv64-truth-dispatch-prefix4-v1/truths2x8-r0",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-prefix4-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-prefix4-v1/truths2x8-r0",
+        "4",
+        "--truths-first"
+      ],
+      "exit_code": 0,
+      "outer_wall_seconds": 22.669,
+      "process": {
+        "wall_seconds": 22.65,
+        "user_seconds": 170.61,
+        "sys_seconds": 9.31,
+        "max_rss_bytes": 22160130048,
+        "minor_faults": 4770145,
+        "major_faults": 371522,
+        "voluntary_switches": 5891,
+        "involuntary_switches": 83405,
+        "instructions_retired": 1965602958996,
+        "cycles_elapsed": 704002880917,
+        "peak_footprint_bytes": 16216328768,
+        "prove_seconds": 17.3716375
+      },
+      "report": {
+        "coordinator_schedule": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "capture_ns": 2572758708,
+        "setup_ns": 2319543458,
+        "prove_ns": 17371637500,
+        "same_process_verify_ns": 299063875,
+        "total_before_report_ns": 22604993166,
+        "cpu_proofs": 4,
+        "truth_proofs": 3
+      },
+      "identical": true,
+      "mismatches": [],
+      "stages": {
+        "note": "seconds and lane_* CPU are additive across proofs; process_* counters are whole-process and overlap between concurrent lanes, so they are not additive",
+        "by_stage": {
+          "source_construction": {
+            "seconds": 2.031156,
+            "proofs": 7,
+            "lane_user_seconds": 8.757044,
+            "lane_system_seconds": 0.881345,
+            "lane_samples": 7,
+            "process_user_seconds": 17.426169,
+            "process_system_seconds": 1.73325,
+            "minor_faults": 766487,
+            "major_faults": 5494,
+            "max_resident_bytes_at_end": 13390053376,
+            "max_footprint_bytes_at_end": 10246564280
+          },
+          "source_construction/source_cpu_materialize": {
+            "seconds": 0.670103,
+            "proofs": 4,
+            "lane_user_seconds": 4.285839,
+            "lane_system_seconds": 0.300963,
+            "lane_samples": 4,
+            "process_user_seconds": 7.234978,
+            "process_system_seconds": 0.584645,
+            "minor_faults": 313500,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12719374336,
+            "max_footprint_bytes_at_end": 9575557080
+          },
+          "source_construction/source_jalr": {
+            "seconds": 5.7e-05,
+            "proofs": 4,
+            "lane_user_seconds": 9e-06,
+            "lane_system_seconds": 2e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 3.2e-05,
+            "process_system_seconds": 3.4e-05,
+            "minor_faults": 9,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12719374336,
+            "max_footprint_bytes_at_end": 9575557080
+          },
+          "source_construction/source_alu": {
+            "seconds": 0.138404,
+            "proofs": 4,
+            "lane_user_seconds": 0.549255,
+            "lane_system_seconds": 0.307507,
+            "lane_samples": 4,
+            "process_user_seconds": 1.298737,
+            "process_system_seconds": 0.338332,
+            "minor_faults": 84009,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12750307328,
+            "max_footprint_bytes_at_end": 9606506480
+          },
+          "source_construction/source_binary": {
+            "seconds": 0.129794,
+            "proofs": 4,
+            "lane_user_seconds": 0.678508,
+            "lane_system_seconds": 0.045419,
+            "lane_samples": 4,
+            "process_user_seconds": 1.146912,
+            "process_system_seconds": 0.143547,
+            "minor_faults": 62476,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13050724352,
+            "max_footprint_bytes_at_end": 9907054768
+          },
+          "source_construction/source_shift": {
+            "seconds": 0.245296,
+            "proofs": 4,
+            "lane_user_seconds": 1.159576,
+            "lane_system_seconds": 0.061654,
+            "lane_samples": 4,
+            "process_user_seconds": 2.500683,
+            "process_system_seconds": 0.21987,
+            "minor_faults": 98399,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13234749440,
+            "max_footprint_bytes_at_end": 10091178304
+          },
+          "source_construction/source_alu_tail": {
+            "seconds": 0.010717,
+            "proofs": 3,
+            "lane_user_seconds": 0.037376,
+            "lane_system_seconds": 0.015797,
+            "lane_samples": 3,
+            "process_user_seconds": 0.091321,
+            "process_system_seconds": 0.019085,
+            "minor_faults": 5380,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13251657728,
+            "max_footprint_bytes_at_end": 10108086592
+          },
+          "source_construction/source_binary_tail": {
+            "seconds": 0.019939,
+            "proofs": 3,
+            "lane_user_seconds": 0.0816,
+            "lane_system_seconds": 0.014108,
+            "lane_samples": 3,
+            "process_user_seconds": 0.182385,
+            "process_system_seconds": 0.018835,
+            "minor_faults": 8495,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 12279676928,
+            "max_footprint_bytes_at_end": 9135810448
+          },
+          "source_construction/source_shift_tail": {
+            "seconds": 0.042595,
+            "proofs": 2,
+            "lane_user_seconds": 0.184326,
+            "lane_system_seconds": 0.015333,
+            "lane_samples": 2,
+            "process_user_seconds": 0.377801,
+            "process_system_seconds": 0.021739,
+            "minor_faults": 10047,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13322960896,
+            "max_footprint_bytes_at_end": 10179438984
+          },
+          "source_construction/source_division": {
+            "seconds": 0.000261,
+            "proofs": 4,
+            "lane_user_seconds": 6.9e-05,
+            "lane_system_seconds": 0.000167,
+            "lane_samples": 4,
+            "process_user_seconds": 0.000103,
+            "process_system_seconds": 0.000215,
+            "minor_faults": 178,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13323501568,
+            "max_footprint_bytes_at_end": 10179979656
+          },
+          "source_construction/source_multiplication": {
+            "seconds": 0.088703,
+            "proofs": 4,
+            "lane_user_seconds": 0.086489,
+            "lane_system_seconds": 0.002065,
+            "lane_samples": 4,
+            "process_user_seconds": 0.678161,
+            "process_system_seconds": 0.003797,
+            "minor_faults": 4021,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373292544,
+            "max_footprint_bytes_at_end": 10229787040
+          },
+          "source_construction/source_memory": {
+            "seconds": 4.8e-05,
+            "proofs": 4,
+            "lane_user_seconds": 8e-06,
+            "lane_system_seconds": 1.6e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 8e-06,
+            "process_system_seconds": 1.6e-05,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373292544,
+            "max_footprint_bytes_at_end": 10229787040
+          },
+          "source_construction/source_rom": {
+            "seconds": 0.021817,
+            "proofs": 4,
+            "lane_user_seconds": 0.021581,
+            "lane_system_seconds": 0.000118,
+            "lane_samples": 4,
+            "process_user_seconds": 0.158994,
+            "process_system_seconds": 0.005327,
+            "minor_faults": 2774,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373292544,
+            "max_footprint_bytes_at_end": 10229787040
+          },
+          "source_construction/source_range_counts": {
+            "seconds": 0.00557,
+            "proofs": 4,
+            "lane_user_seconds": 0.000625,
+            "lane_system_seconds": 0.000131,
+            "lane_samples": 4,
+            "process_user_seconds": 0.046463,
+            "process_system_seconds": 0.000429,
+            "minor_faults": 161,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373816832,
+            "max_footprint_bytes_at_end": 10230311328
+          },
+          "source_construction/source_range16": {
+            "seconds": 0.000939,
+            "proofs": 4,
+            "lane_user_seconds": 0.000894,
+            "lane_system_seconds": 1.8e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.0026,
+            "process_system_seconds": 0.000112,
+            "minor_faults": 95,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373816832,
+            "max_footprint_bytes_at_end": 10230311328
+          },
+          "source_construction/source_range8": {
+            "seconds": 4.5e-05,
+            "proofs": 4,
+            "lane_user_seconds": 8e-06,
+            "lane_system_seconds": 1.5e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 9e-06,
+            "process_system_seconds": 1.4e-05,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13373816832,
+            "max_footprint_bytes_at_end": 10230311328
+          },
+          "source_construction/source_and_table": {
+            "seconds": 0.001014,
+            "proofs": 4,
+            "lane_user_seconds": 0.000957,
+            "lane_system_seconds": 2.6e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.004015,
+            "process_system_seconds": 0.000155,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13382205440,
+            "max_footprint_bytes_at_end": 10238699936
+          },
+          "source_construction/source_shift_table": {
+            "seconds": 0.018666,
+            "proofs": 4,
+            "lane_user_seconds": 0.018488,
+            "lane_system_seconds": 7.9e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.115858,
+            "process_system_seconds": 0.009553,
+            "minor_faults": 3563,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13382205440,
+            "max_footprint_bytes_at_end": 10238699936
+          },
+          "source_construction/source_fact_retirement": {
+            "seconds": 9.4e-05,
+            "proofs": 4,
+            "lane_user_seconds": 1.6e-05,
+            "lane_system_seconds": 5.5e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 9.8e-05,
+            "process_system_seconds": 6.1e-05,
+            "minor_faults": 3,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13382205440,
+            "max_footprint_bytes_at_end": 10238699936
+          },
+          "main_commit": {
+            "seconds": 5.462912,
+            "proofs": 7,
+            "lane_user_seconds": 28.554302,
+            "lane_system_seconds": 1.337355,
+            "lane_samples": 7,
+            "process_user_seconds": 55.022021,
+            "process_system_seconds": 3.042959,
+            "minor_faults": 1149007,
+            "major_faults": 136988,
+            "max_resident_bytes_at_end": 14708326400,
+            "max_footprint_bytes_at_end": 11565510032
+          },
+          "main_commit/streaming_commit_prepare": {
+            "seconds": 4.980522,
+            "proofs": 139,
+            "lane_user_seconds": 26.892129,
+            "lane_system_seconds": 1.149117,
+            "lane_samples": 138,
+            "process_user_seconds": 50.804368,
+            "process_system_seconds": 2.552096,
+            "minor_faults": 1015724,
+            "major_faults": 87907,
+            "max_resident_bytes_at_end": 16117055488,
+            "max_footprint_bytes_at_end": 12841218312
+          },
+          "main_commit/merkle_commit": {
+            "seconds": 0.481505,
+            "proofs": 7,
+            "lane_user_seconds": 1.655337,
+            "lane_system_seconds": 0.187199,
+            "lane_samples": 7,
+            "process_user_seconds": 4.203478,
+            "process_system_seconds": 0.488487,
+            "minor_faults": 132966,
+            "major_faults": 48272,
+            "max_resident_bytes_at_end": 14708326400,
+            "max_footprint_bytes_at_end": 11565510032
+          },
+          "retained_main_spill": {
+            "seconds": 1.517153,
+            "proofs": 7,
+            "lane_user_seconds": 0.194793,
+            "lane_system_seconds": 0.74952,
+            "lane_samples": 7,
+            "process_user_seconds": 4.274938,
+            "process_system_seconds": 1.291209,
+            "minor_faults": 77864,
+            "major_faults": 507206,
+            "max_resident_bytes_at_end": 14715437056,
+            "max_footprint_bytes_at_end": 10164104904
+          },
+          "interaction_generation": {
+            "seconds": 2.362542,
+            "proofs": 7,
+            "lane_user_seconds": 12.024628,
+            "lane_system_seconds": 0.325577,
+            "lane_samples": 7,
+            "process_user_seconds": 23.611069,
+            "process_system_seconds": 0.764203,
+            "minor_faults": 573037,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15142453248,
+            "max_footprint_bytes_at_end": 9234968072
+          },
+          "interaction_generation/inter_r16_table": {
+            "seconds": 0.01166,
+            "proofs": 4,
+            "lane_user_seconds": 0.011473,
+            "lane_system_seconds": 0.00015,
+            "lane_samples": 4,
+            "process_user_seconds": 0.109964,
+            "process_system_seconds": 0.000668,
+            "minor_faults": 236,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13700481024,
+            "max_footprint_bytes_at_end": 8393240384
+          },
+          "interaction_generation/inter_r8_table": {
+            "seconds": 7.6e-05,
+            "proofs": 4,
+            "lane_user_seconds": 3.4e-05,
+            "lane_system_seconds": 1.7e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 6.4e-05,
+            "process_system_seconds": 2.1e-05,
+            "minor_faults": 1,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13700513792,
+            "max_footprint_bytes_at_end": 8393240384
+          },
+          "interaction_generation/inter_rom": {
+            "seconds": 0.114574,
+            "proofs": 4,
+            "lane_user_seconds": 0.666704,
+            "lane_system_seconds": 0.052617,
+            "lane_samples": 4,
+            "process_user_seconds": 1.284066,
+            "process_system_seconds": 0.060541,
+            "minor_faults": 12871,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13588480000,
+            "max_footprint_bytes_at_end": 8426811224
+          },
+          "interaction_generation/inter_and_table": {
+            "seconds": 0.028949,
+            "proofs": 4,
+            "lane_user_seconds": 0.028537,
+            "lane_system_seconds": 0.000355,
+            "lane_samples": 4,
+            "process_user_seconds": 0.160221,
+            "process_system_seconds": 0.004642,
+            "minor_faults": 1323,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13603536896,
+            "max_footprint_bytes_at_end": 8428924784
+          },
+          "interaction_generation/inter_shift_table": {
+            "seconds": 0.053664,
+            "proofs": 4,
+            "lane_user_seconds": 0.214542,
+            "lane_system_seconds": 0.048097,
+            "lane_samples": 4,
+            "process_user_seconds": 0.492057,
+            "process_system_seconds": 0.073167,
+            "minor_faults": 16504,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13637779456,
+            "max_footprint_bytes_at_end": 8457236336
+          },
+          "interaction_generation/inter_register_boundary": {
+            "seconds": 0.000122,
+            "proofs": 4,
+            "lane_user_seconds": 6e-05,
+            "lane_system_seconds": 2.6e-05,
+            "lane_samples": 4,
+            "process_user_seconds": 0.0002,
+            "process_system_seconds": 4e-05,
+            "minor_faults": 6,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13637779456,
+            "max_footprint_bytes_at_end": 8457236336
+          },
+          "interaction_generation/inter_cpu": {
+            "seconds": 1.317795,
+            "proofs": 4,
+            "lane_user_seconds": 7.376091,
+            "lane_system_seconds": 0.11381,
+            "lane_samples": 4,
+            "process_user_seconds": 14.025029,
+            "process_system_seconds": 0.338422,
+            "minor_faults": 367699,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14782644224,
+            "max_footprint_bytes_at_end": 8835166256
+          },
+          "interaction_generation/inter_alu": {
+            "seconds": 0.094664,
+            "proofs": 4,
+            "lane_user_seconds": 0.561061,
+            "lane_system_seconds": 0.007118,
+            "lane_samples": 4,
+            "process_user_seconds": 0.972477,
+            "process_system_seconds": 0.024155,
+            "minor_faults": 18432,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14849753088,
+            "max_footprint_bytes_at_end": 8902307936
+          },
+          "interaction_generation/inter_binary": {
+            "seconds": 0.103733,
+            "proofs": 4,
+            "lane_user_seconds": 0.522946,
+            "lane_system_seconds": 0.018342,
+            "lane_samples": 4,
+            "process_user_seconds": 1.012254,
+            "process_system_seconds": 0.02191,
+            "minor_faults": 12503,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14815428608,
+            "max_footprint_bytes_at_end": 8982277400
+          },
+          "interaction_generation/inter_shift": {
+            "seconds": 0.119179,
+            "proofs": 4,
+            "lane_user_seconds": 0.642948,
+            "lane_system_seconds": 0.011799,
+            "lane_samples": 4,
+            "process_user_seconds": 0.977304,
+            "process_system_seconds": 0.01643,
+            "minor_faults": 20145,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14907932672,
+            "max_footprint_bytes_at_end": 8982277400
+          },
+          "interaction_generation/inter_jalr": {
+            "seconds": 0.008212,
+            "proofs": 4,
+            "lane_user_seconds": 0.007923,
+            "lane_system_seconds": 0.000179,
+            "lane_samples": 4,
+            "process_user_seconds": 0.048047,
+            "process_system_seconds": 0.00905,
+            "minor_faults": 2185,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14916861952,
+            "max_footprint_bytes_at_end": 8982277400
+          },
+          "interaction_generation/inter_multiplication": {
+            "seconds": 0.034313,
+            "proofs": 4,
+            "lane_user_seconds": 0.148285,
+            "lane_system_seconds": 0.031654,
+            "lane_samples": 4,
+            "process_user_seconds": 0.288727,
+            "process_system_seconds": 0.055606,
+            "minor_faults": 15625,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 14916796416,
+            "max_footprint_bytes_at_end": 9032150392
+          },
+          "interaction_generation/inter_memory": {
+            "seconds": 0.278461,
+            "proofs": 4,
+            "lane_user_seconds": 1.074623,
+            "lane_system_seconds": 0.025138,
+            "lane_samples": 4,
+            "process_user_seconds": 2.42822,
+            "process_system_seconds": 0.100328,
+            "minor_faults": 58493,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15084240896,
+            "max_footprint_bytes_at_end": 9187978712
+          },
+          "interaction_generation/inter_alu_tail": {
+            "seconds": 0.010363,
+            "proofs": 3,
+            "lane_user_seconds": 0.040032,
+            "lane_system_seconds": 0.000759,
+            "lane_samples": 3,
+            "process_user_seconds": 0.143825,
+            "process_system_seconds": 0.002758,
+            "minor_faults": 1456,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15099756544,
+            "max_footprint_bytes_at_end": 9187978712
+          },
+          "interaction_generation/inter_binary_tail": {
+            "seconds": 0.019132,
+            "proofs": 3,
+            "lane_user_seconds": 0.072934,
+            "lane_system_seconds": 0.002559,
+            "lane_samples": 3,
+            "process_user_seconds": 0.167594,
+            "process_system_seconds": 0.005545,
+            "minor_faults": 5015,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15142043648,
+            "max_footprint_bytes_at_end": 9194746168
+          },
+          "interaction_generation/inter_shift_tail": {
+            "seconds": 0.031503,
+            "proofs": 2,
+            "lane_user_seconds": 0.143341,
+            "lane_system_seconds": 0.003496,
+            "lane_samples": 2,
+            "process_user_seconds": 0.303481,
+            "process_system_seconds": 0.007079,
+            "minor_faults": 7805,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15015444480,
+            "max_footprint_bytes_at_end": 9068064960
+          },
+          "interaction_commit": {
+            "seconds": 4.636457,
+            "proofs": 7,
+            "lane_user_seconds": 23.468032,
+            "lane_system_seconds": 1.081281,
+            "lane_samples": 7,
+            "process_user_seconds": 48.726353,
+            "process_system_seconds": 2.46616,
+            "minor_faults": 1488796,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16452894720,
+            "max_footprint_bytes_at_end": 11862259512
+          },
+          "interaction_commit/streaming_commit_prepare": {
+            "seconds": 4.135967,
+            "proofs": 144,
+            "lane_user_seconds": 21.75457,
+            "lane_system_seconds": 0.938016,
+            "lane_samples": 144,
+            "process_user_seconds": 43.540688,
+            "process_system_seconds": 1.986022,
+            "minor_faults": 1222551,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 17501175808,
+            "max_footprint_bytes_at_end": 13397948960
+          },
+          "interaction_commit/merkle_commit": {
+            "seconds": 0.499836,
+            "proofs": 7,
+            "lane_user_seconds": 1.71264,
+            "lane_system_seconds": 0.142304,
+            "lane_samples": 7,
+            "process_user_seconds": 5.18348,
+            "process_system_seconds": 0.478599,
+            "minor_faults": 265889,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16452878336,
+            "max_footprint_bytes_at_end": 11862259512
+          },
+          "draw_random_coeff": {
+            "seconds": 0.000104,
+            "proofs": 7,
+            "lane_user_seconds": 1.7e-05,
+            "lane_system_seconds": 3.5e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 3.8e-05,
+            "process_system_seconds": 7e-05,
+            "minor_faults": 26,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16452960256,
+            "max_footprint_bytes_at_end": 11862259512
+          },
+          "composition_trace_extract": {
+            "seconds": 0.000183,
+            "proofs": 7,
+            "lane_user_seconds": 5.3e-05,
+            "lane_system_seconds": 8.1e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 9.2e-05,
+            "process_system_seconds": 0.000165,
+            "minor_faults": 109,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16452960256,
+            "max_footprint_bytes_at_end": 11862406968
+          },
+          "composition_evaluation": {
+            "seconds": 8.900489,
+            "proofs": 7,
+            "lane_user_seconds": 42.033349,
+            "lane_system_seconds": 1.776028,
+            "lane_samples": 7,
+            "process_user_seconds": 85.430511,
+            "process_system_seconds": 3.502282,
+            "minor_faults": 2750110,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15849439232,
+            "max_footprint_bytes_at_end": 11410323232
+          },
+          "composition_interpolate_and_split": {
+            "seconds": 0.125906,
+            "proofs": 7,
+            "lane_user_seconds": 0.481782,
+            "lane_system_seconds": 0.000898,
+            "lane_samples": 7,
+            "process_user_seconds": 1.071592,
+            "process_system_seconds": 0.019692,
+            "minor_faults": 13792,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16013885440,
+            "max_footprint_bytes_at_end": 11410323232
+          },
+          "composition_commit": {
+            "seconds": 0.738414,
+            "proofs": 7,
+            "lane_user_seconds": 3.932521,
+            "lane_system_seconds": 0.280024,
+            "lane_samples": 7,
+            "process_user_seconds": 6.720693,
+            "process_system_seconds": 0.409851,
+            "minor_faults": 319900,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16060727296,
+            "max_footprint_bytes_at_end": 10113267344
+          },
+          "oods_point_and_mask_points": {
+            "seconds": 0.000925,
+            "proofs": 7,
+            "lane_user_seconds": 0.000633,
+            "lane_system_seconds": 0.00021,
+            "lane_samples": 7,
+            "process_user_seconds": 0.003191,
+            "process_system_seconds": 0.000347,
+            "minor_faults": 170,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15933865984,
+            "max_footprint_bytes_at_end": 9986323992
+          },
+          "sampled_value_evaluation": {
+            "seconds": 0.92859,
+            "proofs": 7,
+            "lane_user_seconds": 1.940813,
+            "lane_system_seconds": 0.007967,
+            "lane_samples": 7,
+            "process_user_seconds": 6.350361,
+            "process_system_seconds": 0.245623,
+            "minor_faults": 144771,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15851274240,
+            "max_footprint_bytes_at_end": 9903732248
+          },
+          "sampled_value_channel_mix": {
+            "seconds": 0.00094,
+            "proofs": 7,
+            "lane_user_seconds": 0.000839,
+            "lane_system_seconds": 4.4e-05,
+            "lane_samples": 7,
+            "process_user_seconds": 0.003994,
+            "process_system_seconds": 7.5e-05,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15851274240,
+            "max_footprint_bytes_at_end": 9903732248
+          },
+          "fri_quotient_build_and_commit": {
+            "seconds": 3.346011,
+            "proofs": 7,
+            "lane_user_seconds": 15.528783,
+            "lane_system_seconds": 0.901035,
+            "lane_samples": 7,
+            "process_user_seconds": 30.871597,
+            "process_system_seconds": 1.525266,
+            "minor_faults": 868158,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16655679488,
+            "max_footprint_bytes_at_end": 10708498472
+          },
+          "proof_of_work": {
+            "seconds": 1.717197,
+            "proofs": 7,
+            "lane_user_seconds": 12.115586,
+            "lane_system_seconds": 0.019167,
+            "lane_samples": 7,
+            "process_user_seconds": 19.325873,
+            "process_system_seconds": 0.428818,
+            "minor_faults": 172602,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16746708992,
+            "max_footprint_bytes_at_end": 10799560792
+          },
+          "fri_decommit": {
+            "seconds": 0.030486,
+            "proofs": 7,
+            "lane_user_seconds": 0.011089,
+            "lane_system_seconds": 0.016331,
+            "lane_samples": 7,
+            "process_user_seconds": 0.163264,
+            "process_system_seconds": 0.019192,
+            "minor_faults": 2007,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 16395911168,
+            "max_footprint_bytes_at_end": 10448697336
+          },
+          "trace_decommit": {
+            "seconds": 1.752585,
+            "proofs": 7,
+            "lane_user_seconds": 7.671208,
+            "lane_system_seconds": 0.566017,
+            "lane_samples": 7,
+            "process_user_seconds": 15.22381,
+            "process_system_seconds": 0.705849,
+            "minor_faults": 205931,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 15836004352,
+            "max_footprint_bytes_at_end": 9888527992
+          },
+          "constraint_check_and_assembly": {
+            "seconds": 0.001478,
+            "proofs": 7,
+            "lane_user_seconds": 0.001209,
+            "lane_system_seconds": 0.000131,
+            "lane_samples": 7,
+            "process_user_seconds": 0.011358,
+            "process_system_seconds": 0.000348,
+            "minor_faults": 103,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 13928398848,
+            "max_footprint_bytes_at_end": 8488087384
+          },
+          "interaction_generation/inter_division": {
+            "seconds": 3.8e-05,
+            "proofs": 1,
+            "lane_user_seconds": 2.8e-05,
+            "lane_system_seconds": 5e-06,
+            "lane_samples": 1,
+            "process_user_seconds": 2.8e-05,
+            "process_system_seconds": 5e-06,
+            "minor_faults": 0,
+            "major_faults": 0,
+            "max_resident_bytes_at_end": 11917312000,
+            "max_footprint_bytes_at_end": 8982277400
+          }
+        },
+        "per_proof": [
+          {
+            "file": "physical-0000.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.446053,
+                "lane_user_seconds": 2.18405,
+                "lane_system_seconds": 0.233934
+              },
+              "main_commit": {
+                "seconds": 1.435881,
+                "lane_user_seconds": 7.381929,
+                "lane_system_seconds": 0.544974
+              },
+              "retained_main_spill": {
+                "seconds": 0.400468,
+                "lane_user_seconds": 0.0555,
+                "lane_system_seconds": 0.205454
+              },
+              "interaction_generation": {
+                "seconds": 0.543266,
+                "lane_user_seconds": 2.901096,
+                "lane_system_seconds": 0.052678
+              },
+              "interaction_commit": {
+                "seconds": 1.163653,
+                "lane_user_seconds": 5.933403,
+                "lane_system_seconds": 0.289128
+              },
+              "draw_random_coeff": {
+                "seconds": 2.4e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 9e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 4.5e-05,
+                "lane_user_seconds": 7e-06,
+                "lane_system_seconds": 2.6e-05
+              },
+              "composition_evaluation": {
+                "seconds": 2.13374,
+                "lane_user_seconds": 10.358344,
+                "lane_system_seconds": 0.428768
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.030903,
+                "lane_user_seconds": 0.120531,
+                "lane_system_seconds": 0.000226
+              },
+              "composition_commit": {
+                "seconds": 0.180493,
+                "lane_user_seconds": 0.963687,
+                "lane_system_seconds": 0.067412
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 9.6e-05,
+                "lane_user_seconds": 6.3e-05,
+                "lane_system_seconds": 2e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.234411,
+                "lane_user_seconds": 0.488883,
+                "lane_system_seconds": 0.001623
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 7e-05,
+                "lane_user_seconds": 5.8e-05,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.830667,
+                "lane_user_seconds": 3.762663,
+                "lane_system_seconds": 0.22097
+              },
+              "proof_of_work": {
+                "seconds": 0.638231,
+                "lane_user_seconds": 4.31304,
+                "lane_system_seconds": 0.007135
+              },
+              "fri_decommit": {
+                "seconds": 0.009019,
+                "lane_user_seconds": 0.00243,
+                "lane_system_seconds": 0.003633
+              },
+              "trace_decommit": {
+                "seconds": 0.449219,
+                "lane_user_seconds": 1.966007,
+                "lane_system_seconds": 0.093918
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000185,
+                "lane_user_seconds": 0.000147,
+                "lane_system_seconds": 1.4e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0001.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.370886,
+                "lane_user_seconds": 2.017193,
+                "lane_system_seconds": 0.246429
+              },
+              "main_commit": {
+                "seconds": 1.328034,
+                "lane_user_seconds": 6.842943,
+                "lane_system_seconds": 0.315398
+              },
+              "retained_main_spill": {
+                "seconds": 0.385863,
+                "lane_user_seconds": 0.046318,
+                "lane_system_seconds": 0.19903
+              },
+              "interaction_generation": {
+                "seconds": 0.566995,
+                "lane_user_seconds": 2.644916,
+                "lane_system_seconds": 0.070013
+              },
+              "interaction_commit": {
+                "seconds": 1.073261,
+                "lane_user_seconds": 5.393395,
+                "lane_system_seconds": 0.263904
+              },
+              "draw_random_coeff": {
+                "seconds": 1.3e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.3e-05,
+                "lane_user_seconds": 5e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_evaluation": {
+                "seconds": 2.097776,
+                "lane_user_seconds": 9.242836,
+                "lane_system_seconds": 0.402883
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.031872,
+                "lane_user_seconds": 0.120401,
+                "lane_system_seconds": 0.0002
+              },
+              "composition_commit": {
+                "seconds": 0.173976,
+                "lane_user_seconds": 0.964917,
+                "lane_system_seconds": 0.064799
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000105,
+                "lane_user_seconds": 6e-05,
+                "lane_system_seconds": 2.8e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.207144,
+                "lane_user_seconds": 0.442749,
+                "lane_system_seconds": 0.001577
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 7.1e-05,
+                "lane_user_seconds": 5.7e-05,
+                "lane_system_seconds": 6e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.81895,
+                "lane_user_seconds": 3.761689,
+                "lane_system_seconds": 0.232744
+              },
+              "proof_of_work": {
+                "seconds": 0.123309,
+                "lane_user_seconds": 0.910031,
+                "lane_system_seconds": 0.0015
+              },
+              "fri_decommit": {
+                "seconds": 0.005589,
+                "lane_user_seconds": 0.002455,
+                "lane_system_seconds": 0.003115
+              },
+              "trace_decommit": {
+                "seconds": 0.462571,
+                "lane_user_seconds": 1.887029,
+                "lane_system_seconds": 0.136607
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000188,
+                "lane_user_seconds": 0.000143,
+                "lane_system_seconds": 2.9e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0002.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.366781,
+                "lane_user_seconds": 2.048415,
+                "lane_system_seconds": 0.168285
+              },
+              "main_commit": {
+                "seconds": 1.283231,
+                "lane_user_seconds": 6.773007,
+                "lane_system_seconds": 0.207479
+              },
+              "retained_main_spill": {
+                "seconds": 0.321884,
+                "lane_user_seconds": 0.043647,
+                "lane_system_seconds": 0.158189
+              },
+              "interaction_generation": {
+                "seconds": 0.51174,
+                "lane_user_seconds": 2.800164,
+                "lane_system_seconds": 0.107967
+              },
+              "interaction_commit": {
+                "seconds": 1.090512,
+                "lane_user_seconds": 5.380384,
+                "lane_system_seconds": 0.255335
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 5e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 2.6e-05,
+                "lane_user_seconds": 6e-06,
+                "lane_system_seconds": 1.2e-05
+              },
+              "composition_evaluation": {
+                "seconds": 2.067411,
+                "lane_user_seconds": 9.429235,
+                "lane_system_seconds": 0.440695
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.033248,
+                "lane_user_seconds": 0.125951,
+                "lane_system_seconds": 0.000173
+              },
+              "composition_commit": {
+                "seconds": 0.194213,
+                "lane_user_seconds": 1.012092,
+                "lane_system_seconds": 0.072567
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000107,
+                "lane_user_seconds": 6.4e-05,
+                "lane_system_seconds": 2.9e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.205782,
+                "lane_user_seconds": 0.439896,
+                "lane_system_seconds": 0.001768
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 6.9e-05,
+                "lane_user_seconds": 5.6e-05,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.799693,
+                "lane_user_seconds": 3.760413,
+                "lane_system_seconds": 0.201873
+              },
+              "proof_of_work": {
+                "seconds": 0.56414,
+                "lane_user_seconds": 4.046565,
+                "lane_system_seconds": 0.006943
+              },
+              "fri_decommit": {
+                "seconds": 0.006966,
+                "lane_user_seconds": 0.002632,
+                "lane_system_seconds": 0.004318
+              },
+              "trace_decommit": {
+                "seconds": 0.395319,
+                "lane_user_seconds": 1.738568,
+                "lane_system_seconds": 0.155029
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000161,
+                "lane_user_seconds": 0.000122,
+                "lane_system_seconds": 1.6e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0003.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.579693,
+                "lane_user_seconds": 2.239874,
+                "lane_system_seconds": 0.224881
+              },
+              "main_commit": {
+                "seconds": 1.34544,
+                "lane_user_seconds": 7.160579,
+                "lane_system_seconds": 0.248912
+              },
+              "retained_main_spill": {
+                "seconds": 0.322266,
+                "lane_user_seconds": 0.04506,
+                "lane_system_seconds": 0.156951
+              },
+              "interaction_generation": {
+                "seconds": 0.643276,
+                "lane_user_seconds": 3.203281,
+                "lane_system_seconds": 0.087114
+              },
+              "interaction_commit": {
+                "seconds": 1.208442,
+                "lane_user_seconds": 6.27784,
+                "lane_system_seconds": 0.253535
+              },
+              "draw_random_coeff": {
+                "seconds": 1.2e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 3e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 2.9e-05,
+                "lane_user_seconds": 1e-05,
+                "lane_system_seconds": 1.4e-05
+              },
+              "composition_evaluation": {
+                "seconds": 2.100685,
+                "lane_user_seconds": 10.250534,
+                "lane_system_seconds": 0.47505
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.029172,
+                "lane_user_seconds": 0.112615,
+                "lane_system_seconds": 0.000195
+              },
+              "composition_commit": {
+                "seconds": 0.185624,
+                "lane_user_seconds": 0.977422,
+                "lane_system_seconds": 0.0735
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000131,
+                "lane_user_seconds": 9e-05,
+                "lane_system_seconds": 2.6e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.230823,
+                "lane_user_seconds": 0.494831,
+                "lane_system_seconds": 0.002029
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 0.000131,
+                "lane_user_seconds": 0.000114,
+                "lane_system_seconds": 7e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.861394,
+                "lane_user_seconds": 4.088484,
+                "lane_system_seconds": 0.240211
+              },
+              "proof_of_work": {
+                "seconds": 0.129336,
+                "lane_user_seconds": 1.01173,
+                "lane_system_seconds": 0.001073
+              },
+              "fri_decommit": {
+                "seconds": 0.007841,
+                "lane_user_seconds": 0.002992,
+                "lane_system_seconds": 0.004815
+              },
+              "trace_decommit": {
+                "seconds": 0.416432,
+                "lane_user_seconds": 1.910239,
+                "lane_system_seconds": 0.178675
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000255,
+                "lane_user_seconds": 0.000212,
+                "lane_system_seconds": 2.3e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0004.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.128063,
+                "lane_user_seconds": 0.132065,
+                "lane_system_seconds": 0.004618
+              },
+              "main_commit": {
+                "seconds": 0.030057,
+                "lane_user_seconds": 0.178304,
+                "lane_system_seconds": 0.00849
+              },
+              "retained_main_spill": {
+                "seconds": 0.021614,
+                "lane_user_seconds": 0.002012,
+                "lane_system_seconds": 0.011058
+              },
+              "interaction_generation": {
+                "seconds": 0.054374,
+                "lane_user_seconds": 0.25454,
+                "lane_system_seconds": 0.003561
+              },
+              "interaction_commit": {
+                "seconds": 0.05631,
+                "lane_user_seconds": 0.24727,
+                "lane_system_seconds": 0.007192
+              },
+              "draw_random_coeff": {
+                "seconds": 1.6e-05,
+                "lane_user_seconds": 2e-06,
+                "lane_system_seconds": 6e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 3.6e-05,
+                "lane_user_seconds": 1.4e-05,
+                "lane_system_seconds": 1.5e-05
+              },
+              "composition_evaluation": {
+                "seconds": 0.28745,
+                "lane_user_seconds": 1.662699,
+                "lane_system_seconds": 0.016599
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000123,
+                "lane_user_seconds": 0.000296,
+                "lane_system_seconds": 3e-05
+              },
+              "composition_commit": {
+                "seconds": 0.000683,
+                "lane_user_seconds": 0.001999,
+                "lane_system_seconds": 0.000316
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 0.000376,
+                "lane_user_seconds": 0.000287,
+                "lane_system_seconds": 8e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.038809,
+                "lane_user_seconds": 0.051734,
+                "lane_system_seconds": 0.000302
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 0.000453,
+                "lane_user_seconds": 0.000442,
+                "lane_system_seconds": 4e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.016989,
+                "lane_user_seconds": 0.092821,
+                "lane_system_seconds": 0.00112
+              },
+              "proof_of_work": {
+                "seconds": 0.077692,
+                "lane_user_seconds": 0.570201,
+                "lane_system_seconds": 0.000516
+              },
+              "fri_decommit": {
+                "seconds": 0.000202,
+                "lane_user_seconds": 0.000131,
+                "lane_system_seconds": 6.5e-05
+              },
+              "trace_decommit": {
+                "seconds": 0.012348,
+                "lane_user_seconds": 0.084563,
+                "lane_system_seconds": 0.000613
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000456,
+                "lane_user_seconds": 0.000421,
+                "lane_system_seconds": 1.9e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0005.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.095689,
+                "lane_user_seconds": 0.093461,
+                "lane_system_seconds": 0.002176
+              },
+              "main_commit": {
+                "seconds": 0.023312,
+                "lane_user_seconds": 0.143755,
+                "lane_system_seconds": 0.008304
+              },
+              "retained_main_spill": {
+                "seconds": 0.037008,
+                "lane_user_seconds": 0.001451,
+                "lane_system_seconds": 0.010891
+              },
+              "interaction_generation": {
+                "seconds": 0.027971,
+                "lane_user_seconds": 0.133116,
+                "lane_system_seconds": 0.002856
+              },
+              "interaction_commit": {
+                "seconds": 0.025549,
+                "lane_user_seconds": 0.15071,
+                "lane_system_seconds": 0.009385
+              },
+              "draw_random_coeff": {
+                "seconds": 1.1e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.6e-05,
+                "lane_user_seconds": 5e-06,
+                "lane_system_seconds": 6e-06
+              },
+              "composition_evaluation": {
+                "seconds": 0.121398,
+                "lane_user_seconds": 0.694665,
+                "lane_system_seconds": 0.007945
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000393,
+                "lane_user_seconds": 0.001329,
+                "lane_system_seconds": 5e-05
+              },
+              "composition_commit": {
+                "seconds": 0.002274,
+                "lane_user_seconds": 0.008032,
+                "lane_system_seconds": 0.000719
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 5.7e-05,
+                "lane_user_seconds": 3.4e-05,
+                "lane_system_seconds": 1.5e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.007139,
+                "lane_user_seconds": 0.014483,
+                "lane_system_seconds": 0.000385
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 7.9e-05,
+                "lane_user_seconds": 6.4e-05,
+                "lane_system_seconds": 5e-06
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.013457,
+                "lane_user_seconds": 0.041503,
+                "lane_system_seconds": 0.002896
+              },
+              "proof_of_work": {
+                "seconds": 0.074711,
+                "lane_user_seconds": 0.534468,
+                "lane_system_seconds": 0.001002
+              },
+              "fri_decommit": {
+                "seconds": 0.000559,
+                "lane_user_seconds": 0.000283,
+                "lane_system_seconds": 0.000249
+              },
+              "trace_decommit": {
+                "seconds": 0.010309,
+                "lane_user_seconds": 0.054501,
+                "lane_system_seconds": 0.000737
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000122,
+                "lane_user_seconds": 8.5e-05,
+                "lane_system_seconds": 2e-05
+              }
+            }
+          },
+          {
+            "file": "physical-0006.stages.json",
+            "top_level": {
+              "source_construction": {
+                "seconds": 0.043991,
+                "lane_user_seconds": 0.041986,
+                "lane_system_seconds": 0.001022
+              },
+              "main_commit": {
+                "seconds": 0.016957,
+                "lane_user_seconds": 0.073785,
+                "lane_system_seconds": 0.003798
+              },
+              "retained_main_spill": {
+                "seconds": 0.02805,
+                "lane_user_seconds": 0.000805,
+                "lane_system_seconds": 0.007947
+              },
+              "interaction_generation": {
+                "seconds": 0.01492,
+                "lane_user_seconds": 0.087515,
+                "lane_system_seconds": 0.001388
+              },
+              "interaction_commit": {
+                "seconds": 0.01873,
+                "lane_user_seconds": 0.08503,
+                "lane_system_seconds": 0.002802
+              },
+              "draw_random_coeff": {
+                "seconds": 1.4e-05,
+                "lane_user_seconds": 3e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_trace_extract": {
+                "seconds": 1.8e-05,
+                "lane_user_seconds": 6e-06,
+                "lane_system_seconds": 4e-06
+              },
+              "composition_evaluation": {
+                "seconds": 0.092029,
+                "lane_user_seconds": 0.395036,
+                "lane_system_seconds": 0.004088
+              },
+              "composition_interpolate_and_split": {
+                "seconds": 0.000195,
+                "lane_user_seconds": 0.000659,
+                "lane_system_seconds": 2.4e-05
+              },
+              "composition_commit": {
+                "seconds": 0.001151,
+                "lane_user_seconds": 0.004372,
+                "lane_system_seconds": 0.000711
+              },
+              "oods_point_and_mask_points": {
+                "seconds": 5.3e-05,
+                "lane_user_seconds": 3.5e-05,
+                "lane_system_seconds": 1.2e-05
+              },
+              "sampled_value_evaluation": {
+                "seconds": 0.004482,
+                "lane_user_seconds": 0.008237,
+                "lane_system_seconds": 0.000283
+              },
+              "sampled_value_channel_mix": {
+                "seconds": 6.7e-05,
+                "lane_user_seconds": 4.8e-05,
+                "lane_system_seconds": 1.2e-05
+              },
+              "fri_quotient_build_and_commit": {
+                "seconds": 0.004861,
+                "lane_user_seconds": 0.02121,
+                "lane_system_seconds": 0.001221
+              },
+              "proof_of_work": {
+                "seconds": 0.109778,
+                "lane_user_seconds": 0.729551,
+                "lane_system_seconds": 0.000998
+              },
+              "fri_decommit": {
+                "seconds": 0.00031,
+                "lane_user_seconds": 0.000166,
+                "lane_system_seconds": 0.000136
+              },
+              "trace_decommit": {
+                "seconds": 0.006387,
+                "lane_user_seconds": 0.030301,
+                "lane_system_seconds": 0.000438
+              },
+              "constraint_check_and_assembly": {
+                "seconds": 0.000111,
+                "lane_user_seconds": 7.9e-05,
+                "lane_system_seconds": 1e-05
+              }
+            }
+          }
+        ]
+      },
+      "schedule": {
+        "policy": {
+          "lanes": 2,
+          "workers_per_lane": 8,
+          "lane_workers": [
+            8,
+            8
+          ],
+          "memory_cap_bytes": 0
+        },
+        "stage1": {
+          "span_seconds": 4.727969,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "1": {
+              "indices": [
+                0,
+                3,
+                4
+              ],
+              "busy_seconds": 4.727849,
+              "admission_wait_seconds": 0.0
+            },
+            "0": {
+              "indices": [
+                1,
+                2,
+                5,
+                6
+              ],
+              "busy_seconds": 4.301759,
+              "admission_wait_seconds": 2e-06
+            }
+          }
+        },
+        "stage2": {
+          "span_seconds": 12.62362,
+          "max_in_flight_estimate_bytes": 0,
+          "lanes": {
+            "1": {
+              "indices": [
+                0,
+                3,
+                5,
+                6
+              ],
+              "busy_seconds": 12.623513,
+              "admission_wait_seconds": 0.0
+            },
+            "0": {
+              "indices": [
+                1,
+                2,
+                4
+              ],
+              "busy_seconds": 12.03693,
+              "admission_wait_seconds": 0.0
+            }
+          }
+        }
+      },
+      "fresh_verify": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      }
+    }
+  ],
+  "summary": {
+    "manifest2x8": {
+      "runs": 1,
+      "succeeded": 1,
+      "all_identical": true,
+      "fresh_verify_accepted": [
+        true
+      ],
+      "wall_seconds": {
+        "median": 21.46,
+        "min": 21.46,
+        "max": 21.46,
+        "n": 1
+      },
+      "user_seconds": {
+        "median": 165.29,
+        "min": 165.29,
+        "max": 165.29,
+        "n": 1
+      },
+      "sys_seconds": {
+        "median": 9.47,
+        "min": 9.47,
+        "max": 9.47,
+        "n": 1
+      },
+      "minor_faults": {
+        "median": 4761058,
+        "min": 4761058,
+        "max": 4761058,
+        "n": 1
+      },
+      "major_faults": {
+        "median": 371522,
+        "min": 371522,
+        "max": 371522,
+        "n": 1
+      },
+      "peak_footprint_bytes": {
+        "median": 16237365728,
+        "min": 16237365728,
+        "max": 16237365728,
+        "n": 1
+      },
+      "max_rss_bytes": {
+        "median": 22314893312,
+        "min": 22314893312,
+        "max": 22314893312,
+        "n": 1
+      },
+      "involuntary_switches": {
+        "median": 79786,
+        "min": 79786,
+        "max": 79786,
+        "n": 1
+      },
+      "prove_seconds": {
+        "median": 16.541101083,
+        "min": 16.541101083,
+        "max": 16.541101083,
+        "n": 1
+      },
+      "stages": {
+        "composition_commit": {
+          "seconds_median": 0.750316,
+          "lane_cpu_seconds_median": 4.144457
+        },
+        "composition_evaluation": {
+          "seconds_median": 8.693979,
+          "lane_cpu_seconds_median": 42.538532
+        },
+        "composition_interpolate_and_split": {
+          "seconds_median": 0.119085,
+          "lane_cpu_seconds_median": 0.461756
+        },
+        "composition_trace_extract": {
+          "seconds_median": 0.000174,
+          "lane_cpu_seconds_median": 0.00012
+        },
+        "constraint_check_and_assembly": {
+          "seconds_median": 0.001782,
+          "lane_cpu_seconds_median": 0.001653
+        },
+        "draw_random_coeff": {
+          "seconds_median": 0.000102,
+          "lane_cpu_seconds_median": 5.2000000000000004e-05
+        },
+        "fri_decommit": {
+          "seconds_median": 0.028529,
+          "lane_cpu_seconds_median": 0.028262000000000002
+        },
+        "fri_quotient_build_and_commit": {
+          "seconds_median": 3.221912,
+          "lane_cpu_seconds_median": 15.913441
+        },
+        "interaction_commit": {
+          "seconds_median": 4.483808,
+          "lane_cpu_seconds_median": 23.877901
+        },
+        "interaction_commit/merkle_commit": {
+          "seconds_median": 0.493611,
+          "lane_cpu_seconds_median": 1.820737
+        },
+        "interaction_commit/streaming_commit_prepare": {
+          "seconds_median": 3.989531,
+          "lane_cpu_seconds_median": 22.055329
+        },
+        "interaction_generation": {
+          "seconds_median": 2.314917,
+          "lane_cpu_seconds_median": 11.942530999999999
+        },
+        "interaction_generation/inter_alu": {
+          "seconds_median": 0.102274,
+          "lane_cpu_seconds_median": 0.5549339999999999
+        },
+        "interaction_generation/inter_alu_tail": {
+          "seconds_median": 0.011684,
+          "lane_cpu_seconds_median": 0.036867
+        },
+        "interaction_generation/inter_and_table": {
+          "seconds_median": 0.02815,
+          "lane_cpu_seconds_median": 0.027986
+        },
+        "interaction_generation/inter_binary": {
+          "seconds_median": 0.092331,
+          "lane_cpu_seconds_median": 0.514019
+        },
+        "interaction_generation/inter_binary_tail": {
+          "seconds_median": 0.018977,
+          "lane_cpu_seconds_median": 0.07752600000000001
+        },
+        "interaction_generation/inter_cpu": {
+          "seconds_median": 1.233766,
+          "lane_cpu_seconds_median": 7.3184569999999995
+        },
+        "interaction_generation/inter_division": {
+          "seconds_median": 4.2e-05,
+          "lane_cpu_seconds_median": 3.6e-05
+        },
+        "interaction_generation/inter_jalr": {
+          "seconds_median": 0.008305,
+          "lane_cpu_seconds_median": 0.008242
+        },
+        "interaction_generation/inter_memory": {
+          "seconds_median": 0.271879,
+          "lane_cpu_seconds_median": 1.0462339999999999
+        },
+        "interaction_generation/inter_multiplication": {
+          "seconds_median": 0.037051,
+          "lane_cpu_seconds_median": 0.151346
+        },
+        "interaction_generation/inter_r16_table": {
+          "seconds_median": 0.012628,
+          "lane_cpu_seconds_median": 0.01181
+        },
+        "interaction_generation/inter_r8_table": {
+          "seconds_median": 9.6e-05,
+          "lane_cpu_seconds_median": 6.8e-05
+        },
+        "interaction_generation/inter_register_boundary": {
+          "seconds_median": 0.000107,
+          "lane_cpu_seconds_median": 7.999999999999999e-05
+        },
+        "interaction_generation/inter_rom": {
+          "seconds_median": 0.130774,
+          "lane_cpu_seconds_median": 0.665065
+        },
+        "interaction_generation/inter_shift": {
+          "seconds_median": 0.156458,
+          "lane_cpu_seconds_median": 0.7006800000000001
+        },
+        "interaction_generation/inter_shift_table": {
+          "seconds_median": 0.064247,
+          "lane_cpu_seconds_median": 0.213541
+        },
+        "interaction_generation/inter_shift_tail": {
+          "seconds_median": 0.032337,
+          "lane_cpu_seconds_median": 0.143007
+        },
+        "main_commit": {
+          "seconds_median": 5.330164,
+          "lane_cpu_seconds_median": 28.859208000000002
+        },
+        "main_commit/merkle_commit": {
+          "seconds_median": 0.454572,
+          "lane_cpu_seconds_median": 1.77096
+        },
+        "main_commit/streaming_commit_prepare": {
+          "seconds_median": 4.874723,
+          "lane_cpu_seconds_median": 26.799462000000002
+        },
+        "oods_point_and_mask_points": {
+          "seconds_median": 0.001003,
+          "lane_cpu_seconds_median": 0.0009040000000000001
+        },
+        "proof_of_work": {
+          "seconds_median": 1.652705,
+          "lane_cpu_seconds_median": 11.913129
+        },
+        "retained_main_spill": {
+          "seconds_median": 1.46081,
+          "lane_cpu_seconds_median": 0.8937250000000001
+        },
+        "sampled_value_channel_mix": {
+          "seconds_median": 0.000946,
+          "lane_cpu_seconds_median": 0.000883
+        },
+        "sampled_value_evaluation": {
+          "seconds_median": 0.904948,
+          "lane_cpu_seconds_median": 1.886339
+        },
+        "source_construction": {
+          "seconds_median": 1.944973,
+          "lane_cpu_seconds_median": 9.506497999999999
+        },
+        "source_construction/source_alu": {
+          "seconds_median": 0.129066,
+          "lane_cpu_seconds_median": 0.852301
+        },
+        "source_construction/source_alu_tail": {
+          "seconds_median": 0.014868,
+          "lane_cpu_seconds_median": 0.055321999999999996
+        },
+        "source_construction/source_and_table": {
+          "seconds_median": 0.000928,
+          "lane_cpu_seconds_median": 0.0008860000000000001
+        },
+        "source_construction/source_binary": {
+          "seconds_median": 0.113921,
+          "lane_cpu_seconds_median": 0.739541
+        },
+        "source_construction/source_binary_tail": {
+          "seconds_median": 0.018102,
+          "lane_cpu_seconds_median": 0.092156
+        },
+        "source_construction/source_cpu_materialize": {
+          "seconds_median": 0.646636,
+          "lane_cpu_seconds_median": 4.4764870000000005
+        },
+        "source_construction/source_division": {
+          "seconds_median": 0.000244,
+          "lane_cpu_seconds_median": 0.000217
+        },
+        "source_construction/source_fact_retirement": {
+          "seconds_median": 0.000628,
+          "lane_cpu_seconds_median": 0.000602
+        },
+        "source_construction/source_jalr": {
+          "seconds_median": 5e-05,
+          "lane_cpu_seconds_median": 2.5e-05
+        },
+        "source_construction/source_memory": {
+          "seconds_median": 4.7e-05,
+          "lane_cpu_seconds_median": 2.2e-05
+        },
+        "source_construction/source_multiplication": {
+          "seconds_median": 0.080247,
+          "lane_cpu_seconds_median": 0.079975
+        },
+        "source_construction/source_range16": {
+          "seconds_median": 0.000904,
+          "lane_cpu_seconds_median": 0.000879
+        },
+        "source_construction/source_range8": {
+          "seconds_median": 5e-05,
+          "lane_cpu_seconds_median": 2.7e-05
+        },
+        "source_construction/source_range_counts": {
+          "seconds_median": 0.000779,
+          "lane_cpu_seconds_median": 0.0007539999999999999
+        },
+        "source_construction/source_rom": {
+          "seconds_median": 0.018147,
+          "lane_cpu_seconds_median": 0.0181
+        },
+        "source_construction/source_shift": {
+          "seconds_median": 0.198865,
+          "lane_cpu_seconds_median": 1.180206
+        },
+        "source_construction/source_shift_table": {
+          "seconds_median": 0.02293,
+          "lane_cpu_seconds_median": 0.022836000000000002
+        },
+        "source_construction/source_shift_tail": {
+          "seconds_median": 0.042831,
+          "lane_cpu_seconds_median": 0.198649
+        },
+        "trace_decommit": {
+          "seconds_median": 1.747803,
+          "lane_cpu_seconds_median": 8.103832
+        }
+      }
+    },
+    "truths2x8": {
+      "runs": 1,
+      "succeeded": 1,
+      "all_identical": true,
+      "fresh_verify_accepted": [
+        true
+      ],
+      "wall_seconds": {
+        "median": 22.65,
+        "min": 22.65,
+        "max": 22.65,
+        "n": 1
+      },
+      "user_seconds": {
+        "median": 170.61,
+        "min": 170.61,
+        "max": 170.61,
+        "n": 1
+      },
+      "sys_seconds": {
+        "median": 9.31,
+        "min": 9.31,
+        "max": 9.31,
+        "n": 1
+      },
+      "minor_faults": {
+        "median": 4770145,
+        "min": 4770145,
+        "max": 4770145,
+        "n": 1
+      },
+      "major_faults": {
+        "median": 371522,
+        "min": 371522,
+        "max": 371522,
+        "n": 1
+      },
+      "peak_footprint_bytes": {
+        "median": 16216328768,
+        "min": 16216328768,
+        "max": 16216328768,
+        "n": 1
+      },
+      "max_rss_bytes": {
+        "median": 22160130048,
+        "min": 22160130048,
+        "max": 22160130048,
+        "n": 1
+      },
+      "involuntary_switches": {
+        "median": 83405,
+        "min": 83405,
+        "max": 83405,
+        "n": 1
+      },
+      "prove_seconds": {
+        "median": 17.3716375,
+        "min": 17.3716375,
+        "max": 17.3716375,
+        "n": 1
+      },
+      "stages": {
+        "composition_commit": {
+          "seconds_median": 0.738414,
+          "lane_cpu_seconds_median": 4.2125449999999995
+        },
+        "composition_evaluation": {
+          "seconds_median": 8.900489,
+          "lane_cpu_seconds_median": 43.809377
+        },
+        "composition_interpolate_and_split": {
+          "seconds_median": 0.125906,
+          "lane_cpu_seconds_median": 0.48268
+        },
+        "composition_trace_extract": {
+          "seconds_median": 0.000183,
+          "lane_cpu_seconds_median": 0.000134
+        },
+        "constraint_check_and_assembly": {
+          "seconds_median": 0.001478,
+          "lane_cpu_seconds_median": 0.00134
+        },
+        "draw_random_coeff": {
+          "seconds_median": 0.000104,
+          "lane_cpu_seconds_median": 5.2e-05
+        },
+        "fri_decommit": {
+          "seconds_median": 0.030486,
+          "lane_cpu_seconds_median": 0.02742
+        },
+        "fri_quotient_build_and_commit": {
+          "seconds_median": 3.346011,
+          "lane_cpu_seconds_median": 16.429818
+        },
+        "interaction_commit": {
+          "seconds_median": 4.636457,
+          "lane_cpu_seconds_median": 24.549313
+        },
+        "interaction_commit/merkle_commit": {
+          "seconds_median": 0.499836,
+          "lane_cpu_seconds_median": 1.854944
+        },
+        "interaction_commit/streaming_commit_prepare": {
+          "seconds_median": 4.135967,
+          "lane_cpu_seconds_median": 22.692586000000002
+        },
+        "interaction_generation": {
+          "seconds_median": 2.362542,
+          "lane_cpu_seconds_median": 12.350204999999999
+        },
+        "interaction_generation/inter_alu": {
+          "seconds_median": 0.094664,
+          "lane_cpu_seconds_median": 0.568179
+        },
+        "interaction_generation/inter_alu_tail": {
+          "seconds_median": 0.010363,
+          "lane_cpu_seconds_median": 0.040791
+        },
+        "interaction_generation/inter_and_table": {
+          "seconds_median": 0.028949,
+          "lane_cpu_seconds_median": 0.028892
+        },
+        "interaction_generation/inter_binary": {
+          "seconds_median": 0.103733,
+          "lane_cpu_seconds_median": 0.541288
+        },
+        "interaction_generation/inter_binary_tail": {
+          "seconds_median": 0.019132,
+          "lane_cpu_seconds_median": 0.075493
+        },
+        "interaction_generation/inter_cpu": {
+          "seconds_median": 1.317795,
+          "lane_cpu_seconds_median": 7.489901
+        },
+        "interaction_generation/inter_division": {
+          "seconds_median": 3.8e-05,
+          "lane_cpu_seconds_median": 3.3e-05
+        },
+        "interaction_generation/inter_jalr": {
+          "seconds_median": 0.008212,
+          "lane_cpu_seconds_median": 0.008102
+        },
+        "interaction_generation/inter_memory": {
+          "seconds_median": 0.278461,
+          "lane_cpu_seconds_median": 1.0997610000000002
+        },
+        "interaction_generation/inter_multiplication": {
+          "seconds_median": 0.034313,
+          "lane_cpu_seconds_median": 0.17993900000000002
+        },
+        "interaction_generation/inter_r16_table": {
+          "seconds_median": 0.01166,
+          "lane_cpu_seconds_median": 0.011623000000000001
+        },
+        "interaction_generation/inter_r8_table": {
+          "seconds_median": 7.6e-05,
+          "lane_cpu_seconds_median": 5.1e-05
+        },
+        "interaction_generation/inter_register_boundary": {
+          "seconds_median": 0.000122,
+          "lane_cpu_seconds_median": 8.6e-05
+        },
+        "interaction_generation/inter_rom": {
+          "seconds_median": 0.114574,
+          "lane_cpu_seconds_median": 0.719321
+        },
+        "interaction_generation/inter_shift": {
+          "seconds_median": 0.119179,
+          "lane_cpu_seconds_median": 0.654747
+        },
+        "interaction_generation/inter_shift_table": {
+          "seconds_median": 0.053664,
+          "lane_cpu_seconds_median": 0.262639
+        },
+        "interaction_generation/inter_shift_tail": {
+          "seconds_median": 0.031503,
+          "lane_cpu_seconds_median": 0.146837
+        },
+        "main_commit": {
+          "seconds_median": 5.462912,
+          "lane_cpu_seconds_median": 29.891657
+        },
+        "main_commit/merkle_commit": {
+          "seconds_median": 0.481505,
+          "lane_cpu_seconds_median": 1.842536
+        },
+        "main_commit/streaming_commit_prepare": {
+          "seconds_median": 4.980522,
+          "lane_cpu_seconds_median": 28.041246
+        },
+        "oods_point_and_mask_points": {
+          "seconds_median": 0.000925,
+          "lane_cpu_seconds_median": 0.000843
+        },
+        "proof_of_work": {
+          "seconds_median": 1.717197,
+          "lane_cpu_seconds_median": 12.134753
+        },
+        "retained_main_spill": {
+          "seconds_median": 1.517153,
+          "lane_cpu_seconds_median": 0.944313
+        },
+        "sampled_value_channel_mix": {
+          "seconds_median": 0.00094,
+          "lane_cpu_seconds_median": 0.000883
+        },
+        "sampled_value_evaluation": {
+          "seconds_median": 0.92859,
+          "lane_cpu_seconds_median": 1.94878
+        },
+        "source_construction": {
+          "seconds_median": 2.031156,
+          "lane_cpu_seconds_median": 9.638389
+        },
+        "source_construction/source_alu": {
+          "seconds_median": 0.138404,
+          "lane_cpu_seconds_median": 0.856762
+        },
+        "source_construction/source_alu_tail": {
+          "seconds_median": 0.010717,
+          "lane_cpu_seconds_median": 0.053173
+        },
+        "source_construction/source_and_table": {
+          "seconds_median": 0.001014,
+          "lane_cpu_seconds_median": 0.000983
+        },
+        "source_construction/source_binary": {
+          "seconds_median": 0.129794,
+          "lane_cpu_seconds_median": 0.723927
+        },
+        "source_construction/source_binary_tail": {
+          "seconds_median": 0.019939,
+          "lane_cpu_seconds_median": 0.095708
+        },
+        "source_construction/source_cpu_materialize": {
+          "seconds_median": 0.670103,
+          "lane_cpu_seconds_median": 4.5868020000000005
+        },
+        "source_construction/source_division": {
+          "seconds_median": 0.000261,
+          "lane_cpu_seconds_median": 0.000236
+        },
+        "source_construction/source_fact_retirement": {
+          "seconds_median": 9.4e-05,
+          "lane_cpu_seconds_median": 7.1e-05
+        },
+        "source_construction/source_jalr": {
+          "seconds_median": 5.7e-05,
+          "lane_cpu_seconds_median": 2.9e-05
+        },
+        "source_construction/source_memory": {
+          "seconds_median": 4.8e-05,
+          "lane_cpu_seconds_median": 2.4e-05
+        },
+        "source_construction/source_multiplication": {
+          "seconds_median": 0.088703,
+          "lane_cpu_seconds_median": 0.088554
+        },
+        "source_construction/source_range16": {
+          "seconds_median": 0.000939,
+          "lane_cpu_seconds_median": 0.000912
+        },
+        "source_construction/source_range8": {
+          "seconds_median": 4.5e-05,
+          "lane_cpu_seconds_median": 2.3e-05
+        },
+        "source_construction/source_range_counts": {
+          "seconds_median": 0.00557,
+          "lane_cpu_seconds_median": 0.000756
+        },
+        "source_construction/source_rom": {
+          "seconds_median": 0.021817,
+          "lane_cpu_seconds_median": 0.021699
+        },
+        "source_construction/source_shift": {
+          "seconds_median": 0.245296,
+          "lane_cpu_seconds_median": 1.22123
+        },
+        "source_construction/source_shift_table": {
+          "seconds_median": 0.018666,
+          "lane_cpu_seconds_median": 0.018567
+        },
+        "source_construction/source_shift_tail": {
+          "seconds_median": 0.042595,
+          "lane_cpu_seconds_median": 0.19965899999999998
+        },
+        "trace_decommit": {
+          "seconds_median": 1.752585,
+          "lane_cpu_seconds_median": 8.237225
+        }
+      }
+    }
+  },
+  "all_identical": true,
+  "all_verified": true,
+  "finished": "2026-11-01T13:20:36"
+}

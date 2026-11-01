@@ -37,13 +37,15 @@ callbacks, serial reused-pool ordering, parallel exactly-once work, ordinal
 estimate/trace indexing, cap enforcement and joined cancellation. Additional
 physical tests prove mixed CPU/Keccak/ADD/DOUBLE workloads under truth-first
 scheduling and require exact proof, claim, request and manifest parity followed
-by fresh verification. A schema7 prefix4 sweep also requires all11 retained
+by fresh verification. A schema7 prefix4 sweep also requires all 11 retained
 proof/public artifacts to match and verifies both modes in separate processes.
-The observed prefix walls are21.46s and22.65s while compilation was active;
+The observed prefix walls are 21.46s and 22.65s while compilation was active;
 these do not establish a speedup.
 
-Full Safe regression and a current-shape full-block ABBA comparison are the
-remaining measurement gates. Full-block outcomes must distinguish correctness
-from performance qualification. Current nominal96 q70/P26/fold1 is only a
-control suite; this scheduling change does not qualify whole-protocol128-bit
+Full Safe services and terminal regression passes. A current-shape full-block
+ABBA comparison is in progress; performance promotion remains held. Full-block outcomes must distinguish correctness
+from performance qualification. Current nominal 96-bit q70/P26/fold1 is only a
+control suite; this scheduling change does not qualify whole-protocol 128-bit
 security.
+
+Functional receipt: `vectors/reports/rv64-word16-execution-20261101/truth-dispatch-ls7-functional-v1.json`.
