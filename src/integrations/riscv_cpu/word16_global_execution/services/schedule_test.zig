@@ -175,3 +175,34 @@ test "Schedule policy reports resolved lane workers as numbers" {
     defer a.free(json);
     try std.testing.expectEqualStrings("{\"lanes\":3,\"workers_per_lane\":4,\"lane_workers\":[6,4,2],\"memory_cap_bytes\":7}", json);
 }
+
+test "Single lane and single-item schedules enforce their own worker budget and restore the caller" {
+    var outer: Pool.WorkPool = .{};
+    try outer.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer outer.deinit();
+    var binding = try Pool.ScopedPoolBinding.init(&outer);
+    defer binding.deinit();
+    const Single = struct {
+        seen: [3]usize = @splat(0),
+        fn execute(self: *@This(), index: usize) !void {
+            self.seen[index] = (Pool.currentScopedPool() orelse return error.MissingWorkerPool).workerCount();
+        }
+    };
+    for ([_]u8{ 1, 2, 4 }) |workers| {
+        var single = Single{};
+        var trace: [3]Schedule.Trace = undefined;
+        try Schedule.runWithOptions(Single, a, &single, 3, .{ .lanes = 1, .workers_per_lane = workers }, .{ .trace = &trace }, Single.execute);
+        for (single.seen, trace) |seen, entry| {
+            try std.testing.expectEqual(@as(usize, workers), seen);
+            try std.testing.expectEqual(workers, entry.workers);
+            try std.testing.expect(entry.finished_ns >= entry.started_ns and entry.started_ns >= entry.claimed_ns);
+        }
+        try std.testing.expectEqual(&outer, Pool.currentScopedPool().?);
+    }
+    var only = Single{};
+    var trace: [1]Schedule.Trace = undefined;
+    try Schedule.runWithOptions(Single, a, &only, 1, .{ .lanes = 3, .workers_per_lane = 2 }, .{ .trace = &trace }, Single.execute);
+    try std.testing.expectEqual(@as(usize, 2), only.seen[0]);
+    try std.testing.expectEqual(@as(u8, 2), trace[0].workers);
+    try std.testing.expectEqual(&outer, Pool.currentScopedPool().?);
+}
