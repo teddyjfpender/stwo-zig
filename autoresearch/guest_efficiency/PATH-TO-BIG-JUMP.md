@@ -42,7 +42,7 @@ and a cheaper CPU row (~91 cells per instruction).
 | 4 | BN254 and BLS12-381 operations (add, double/mul, field ops) as candidates, then services | guest + prover | -0.6 to -0.7 instr/gas on blocks using those precompiles |
 | 5 | Interpreter: evmone tuned for RV64IM (dispatch, jump-table address, U256 fast paths, JUMPDEST bitmaps cached per code hash) | guest | interpreter 1.9 -> ~1.0 |
 | 6 | Throughput-table Keccak AIR (-43% cells per call) and padding ladder | prover | -8,000 to -9,000 bits/gas |
-| 6b | **Instruction-set extension, candidate first** (Zbb/Zba subset, then wider 256-bit ops) | guest + prover | the only identified route below ~3 instr/gas (see "The Zbb gap" below) |
+| 6b | Instruction-set extension, candidate first (Zbb/Zba subset) | guest + prover | measured: -5.5% instr/gas, -3.7% bits/gas; ~6.5% of the gap to 2.02 |
 | 7 | **CPU cells per instruction** (row width, LS row for aligned 8-byte accesses, range trims) | prover | the only route to <30,000 bits/gas at ~3 instr/gas |
 
 Items 1-4 together: client from 8.3 to roughly 3.5-4.5 instructions/gas
@@ -50,6 +50,14 @@ Items 1-4 together: client from 8.3 to roughly 3.5-4.5 instructions/gas
 reach the ~25,000-30,000 range.
 
 ## The Zbb gap and how to measure it
+
+**Measured result (`notes/zbb-gap-report.md`):** Zba+Zbb close only about 6.5%
+of the gap to ziskethone's 2.02. The rest splits roughly evenly between
+services ZisK has and we lack (BLS12-381, BN254, Keccak absorb, ~44%) and client
+code (interpreter, trie, state tables, ~45%). The route to ~2 is therefore the
+curve and sponge services plus client work, with the ISA extension a small
+final step. The method below is kept for re-measurement.
+
 
 Everything on the service and client list lands the client around 3-3.5
 instructions/gas (est.). ziskethone reaches 2.02 on ZisK, whose guests are
@@ -121,10 +129,11 @@ item only with its evidence.
 - [ ] Recursion-circuit support for each new service
 
 ### Move D: instruction-set extension (candidate first)
-- [ ] Candidate ISA profile in the execution tool: Zbb subset (`andn`, `orn`, `xnor`, `clz`/`ctz`/`cpop` and `w` forms, `max`/`min`/`maxu`/`minu`, `sext.b`/`sext.h`, `zext.h`, `rol`/`ror`/`rori` and `w` forms, `orc.b`, `rev8`) plus Zba (`sh1add`/`sh2add`/`sh3add` and `.uw` forms, `add.uw`, `slli.uw`), execution-only, admitted decode untouched
-- [ ] Client and Rust guest rebuilt with `-march=rv64im_zba_zbb` / `+zba,+zbb`; per-extension measurement on the basket with an estimated cost per new instruction
-- [ ] Gap report: which buckets shrink, how far the result is from ziskethone's 2.02, and which remaining ZisK advantages (DMA ops, precompiles, ISA) explain the rest
-- [ ] Proposal for the instructions that pay: CPU AIR changes, cost per row, soundness, recursion impact
+- [x] Candidate ISA profile in the execution tool (`b68291571`; 32 instructions, 13 tests incl. LLVM encodings and admitted-decoder rejection): Zbb subset (`andn`, `orn`, `xnor`, `clz`/`ctz`/`cpop` and `w` forms, `max`/`min`/`maxu`/`minu`, `sext.b`/`sext.h`, `zext.h`, `rol`/`ror`/`rori` and `w` forms, `orc.b`, `rev8`) plus Zba (`sh1add`/`sh2add`/`sh3add` and `.uw` forms, `add.uw`, `slli.uw`), execution-only, admitted decode untouched
+- [x] Client and Rust guest rebuilt with `-march=rv64im_zba_zbb` / `+zba,+zbb`; per-extension measurement on the basket with an estimated cost per new instruction (`b9a1dd66e`): client 5.653 -> 5.343 instr/gas (-5.5%), 78,849 -> 75,960 bits/gas (-3.7%); Rust guest 9.825 -> 9.282
+- [x] Gap report (`notes/zbb-gap-report.md`, `b9a1dd66e`): on ziskethone's three blocks the ISA closes only ~6.5% of the gap to 2.02; services ZisK has and we lack (BLS12-381, BN254, Keccak absorb) ~44%, client code (interpreter, trie, state tables) ~45%, small-copy DMA ~4%
+- [x] Proposal (`proposals/isa-extension.md`): BINARY extension for andn/orn/xnor/rev8/sext/zext.h first (cheapest, most of the Zbb saving); measure Zbkb vs Zbb before AIR work; defer bit-count; Zba marginal; do not build rotates
+- [ ] BINARY-extension Zbb subset in the CPU AIR (only after services and client work, given its ~4-5% value)
 
 ### Move C: hygiene
 - [x] Rust guest lean track: 9.93 instr/gas admitted, 12 measured commits (branch `codex/rv64-guest-rust-lean`, not merged; overlaps track C)
