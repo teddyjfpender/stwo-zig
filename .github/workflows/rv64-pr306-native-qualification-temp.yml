@@ -13,9 +13,10 @@ jobs:
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
         with:
           version: 0.15.2
-      - name: Zig format check
+      - name: Format diagnostic and print exact formatter patch
         run: |
-          zig fmt --check src/integrations/riscv_cpu/word16_global_execution/services/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/services/native_certificate_test.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate_test.zig
+          zig fmt src/integrations/riscv_cpu/word16_global_execution/services/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/services/native_certificate_test.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate.zig src/integrations/riscv_cpu/word16_global_execution/ethereum/native_certificate_test.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit_test.zig
+          git diff --no-ext-diff -- src/integrations/riscv_cpu/word16_global_execution/ src/integrations/riscv_cpu/word16_execution/memory/staged_precommit.zig src/integrations/riscv_cpu/word16_execution/memory/staged_precommit_test.zig
       - name: Verify mixed-service native certificate
         run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="native Word16 certificate"
       - name: Verify complete Ethereum terminal certificate
