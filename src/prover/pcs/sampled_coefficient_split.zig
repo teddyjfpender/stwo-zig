@@ -38,6 +38,12 @@ pub fn evaluate(coefficients: []const polynomial.CircleCoefficients, factors: []
         points.fillSubsetProductBasis(point_factors[0..low_log], low);
         points.fillSubsetProductBasis(point_factors[low_log..], high);
         var cursor = std.atomic.Value(usize).init(0);
+        if (if (allow_parallel) pools.cooperative.current() else null) |queue| {
+            var item = Work{ .coefficients = coefficients, .out = out, .low = low, .high = high, .point = point_index, .cursor = &cursor };
+            var batch = pools.cooperative.Batch{ .context = &item, .run = Work.runBatch, .count = (coefficients.len + width - 1) / width };
+            queue.split(&batch);
+            continue;
+        }
         for (work[0..worker_count]) |*worker| worker.* = .{
             .coefficients = coefficients,
             .out = out,
@@ -66,16 +72,23 @@ const Work = struct {
         while (true) {
             const start = self.cursor.fetchAdd(width, .monotonic);
             if (start >= self.coefficients.len) return;
-            const end = @min(start + width, self.coefficients.len);
-            if (end - start == width) {
-                var batch: [width][]const M31 = undefined;
-                for (&batch, self.coefficients[start..end]) |*column, coefficients| column.* = coefficients.coeffs;
-                const values = points.evalBatchWithSplitProductBasis(batch, self.low, self.high);
-                for (values, self.out[start..end]) |value, output| output[self.point] = value;
-            } else {
-                for (self.coefficients[start..end], self.out[start..end]) |coefficients, output|
-                    output[self.point] = points.evalWithSplitProductBasis(coefficients.coeffs, self.low, self.high);
-            }
+            self.runStart(start);
+        }
+    }
+    fn runBatch(raw: *anyopaque, index: usize) void {
+        const self: *const Work = @ptrCast(@alignCast(raw));
+        self.runStart(index * width);
+    }
+    fn runStart(self: *const Work, start: usize) void {
+        const end = @min(start + width, self.coefficients.len);
+        if (end - start == width) {
+            var batch: [width][]const M31 = undefined;
+            for (&batch, self.coefficients[start..end]) |*column, coefficients| column.* = coefficients.coeffs;
+            const values = points.evalBatchWithSplitProductBasis(batch, self.low, self.high);
+            for (values, self.out[start..end]) |value, output| output[self.point] = value;
+        } else {
+            for (self.coefficients[start..end], self.out[start..end]) |coefficients, output|
+                output[self.point] = points.evalWithSplitProductBasis(coefficients.coeffs, self.low, self.high);
         }
     }
 };

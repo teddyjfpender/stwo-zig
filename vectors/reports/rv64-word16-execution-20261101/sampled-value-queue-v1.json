@@ -1,0 +1,485 @@
+{
+  "schema": 1,
+  "kind": "compact_sampled_value_bounded_cooperative_wave",
+  "base": "9ded605ae",
+  "foundation": "31f54aa40",
+  "legacy_control": "STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE=1",
+  "scope": "Host coefficient-only sampled scheduling; unchanged arithmetic/transcript/proof protocol",
+  "queue_bound": "One active tree planner/basis owner, at most existing available leased threads; leaf batches write disjoint native-width column result slots; join before free",
+  "gates": {
+    "safe": {
+      "path": "/tmp/rv64-sampled-queue-safe-final.log",
+      "sha256": "9d46eb7ca49cf9a3919660715544191d9baaaceb4b5e235dc70b247339f1efee",
+      "summary": "Build Summary: 3/3 steps succeeded; 33/33 tests passed\ntest-pcs-sampled-values success\n+- run test 33 passed 627ms MaxRSS:6M\n   +- compile test ReleaseSafe native success 8s MaxRSS:623M"
+    },
+    "fast": {
+      "path": "/tmp/rv64-sampled-queue-fast-final.log",
+      "sha256": "fdd2afe356ad1732fcb3afbbd1112a3f5e93d43be75bf220f3c78195d5c9024d",
+      "summary": "Build Summary: 3/3 steps succeeded; 33/33 tests passed\ntest-pcs-sampled-values success\n+- run test 33 passed 553ms MaxRSS:6M\n   +- compile test ReleaseFast native success 7s MaxRSS:539M"
+    },
+    "driver": {
+      "path": "/tmp/rv64-sampled-queue-driver-fast-final.log",
+      "sha256": "99ba1f3a213edefc54b9cf06252f57cc706cf32b95975d0658fd9c0d026d1c53",
+      "summary": "Build Summary: 2/2 steps succeeded\nrv64-word16-ethereum success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G"
+    }
+  },
+  "prefix": {
+    "scope": "same-binary prefix4 engineering A/B, single run per schedule; not whole-block timing qualification",
+    "artifact_parity_11_files": true,
+    "runs": [
+      {
+        "label": "old",
+        "command": [
+          "/usr/bin/time",
+          "-l",
+          "/private/tmp/stwo-rv64-sampled-value-queue/zig-out/bin/rv64-word16-ethereum",
+          "produce",
+          "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+          "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+          "/tmp/rv64-sampled-queue-prefix4-old-v1",
+          "4",
+          "--proof-jobs=2",
+          "--commit-batch-columns=64"
+        ],
+        "directory": "/tmp/rv64-sampled-queue-prefix4-old-v1",
+        "wall_ns": 19239316750,
+        "whole_user_seconds": 154.808498,
+        "whole_system_seconds": 8.311834,
+        "whole_minor_faults": 4667528,
+        "whole_major_faults": 371523,
+        "sampled": {
+          "wall_s": 0.814761,
+          "lane_user_seconds": 1.702863,
+          "lane_system_seconds": 0.007302,
+          "minor_faults": 142935,
+          "major_faults": 0,
+          "effective_lane_cpu": 2.0900153541958932
+        },
+        "sampled_physical_proofs": [
+          {
+            "seconds": 0.20686,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.634413,
+              "system_seconds": 0.107875,
+              "minor_faults": 59336,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 307,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 16094314496,
+              "process_footprint_bytes_at_end": 10013161512,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.432275,
+              "lane_system_seconds": 0.001406
+            }
+          },
+          {
+            "seconds": 0.175017,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.366518,
+              "system_seconds": 0.059968,
+              "minor_faults": 57140,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 233,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 16485482496,
+              "process_footprint_bytes_at_end": 10404395024,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.372881,
+              "lane_system_seconds": 0.001417
+            }
+          },
+          {
+            "seconds": 0.181764,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.429111,
+              "system_seconds": 0.029637,
+              "minor_faults": 21512,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 284,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 11862458368,
+              "process_footprint_bytes_at_end": 8793731096,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.384848,
+              "lane_system_seconds": 0.001556
+            }
+          },
+          {
+            "seconds": 0.206618,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 2.103451,
+              "system_seconds": 0.003709,
+              "minor_faults": 321,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 461,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 11881414656,
+              "process_footprint_bytes_at_end": 8812556432,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.449216,
+              "lane_system_seconds": 0.001669
+            }
+          },
+          {
+            "seconds": 0.033254,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.145705,
+              "system_seconds": 0.015464,
+              "minor_faults": 4445,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 30,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 8759492608,
+              "process_footprint_bytes_at_end": 7097804952,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.043295,
+              "lane_system_seconds": 0.000447
+            }
+          },
+          {
+            "seconds": 0.007634,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.073059,
+              "system_seconds": 0.000541,
+              "minor_faults": 91,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 17,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 8734834688,
+              "process_footprint_bytes_at_end": 7136127248,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.013756,
+              "lane_system_seconds": 0.000489
+            }
+          },
+          {
+            "seconds": 0.003614,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.006592,
+              "system_seconds": 0.000314,
+              "minor_faults": 90,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 10,
+              "process_peak_resident_bytes_at_end": 22316007424,
+              "process_resident_bytes_at_end": 5313822720,
+              "process_footprint_bytes_at_end": 5289909952,
+              "process_footprint_peak_bytes_at_end": 16238545568,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.006592,
+              "lane_system_seconds": 0.000318
+            }
+          }
+        ],
+        "fresh": {
+          "core_schema": 7,
+          "accepted": true,
+          "completed_ethereum_block": false,
+          "output": null,
+          "cpu_proofs": 4,
+          "truth_proofs": 3,
+          "load_and_setup_ns": 2277025792,
+          "verify_ns": 251162792,
+          "fixed_native_cache": {
+            "limit_bytes": 268435456,
+            "retained_bytes": 181229952,
+            "native_backing_bytes": 181214336,
+            "groups": 121,
+            "hits": 428,
+            "duplicate_native_bytes_released": 738370048,
+            "observed_individual_owners": 549,
+            "observed_backing_owners": 0,
+            "observed_spans": 549,
+            "owner_leases": 5
+          },
+          "program_metadata_cache": {
+            "limit_bytes": 67108864,
+            "retained_bytes": 30951766,
+            "payload_bytes": 30951414,
+            "programs": 1,
+            "hits": 4,
+            "metadata_bytes_not_rebuilt": 123805656,
+            "duplicate_metadata_bytes_released": 0,
+            "owner_leases": 6
+          }
+        },
+        "hashes": {
+          "bundle.json": "0e6020003f0c51485c18d20738ff9315e0e6f553503af22f5d8d5030584d1581",
+          "cost.json": "cdf80cf0cbdc4a11b3ba250a8c5d4b34556627a3a13237071bdcbafd8a65de54",
+          "roster.json": "f9c8f0c7177bb6b7b0af83aaf04af75888b0840410aa8b4c8de1b6c10cc22677",
+          "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+          "cpu-0.bin": "ad3458caecbae493bdfe0b37ba08e7d0b3f85946489c70ca58e0f508ad9391f4",
+          "cpu-1.bin": "bbde8726b664b9fb3372c1e6cca3c6b81469b39b8d785729e7358775d107cb8d",
+          "cpu-2.bin": "75334fa0848d040c03a343d4d9a50805829b68c6d25ad5eec458583d96539ed2",
+          "cpu-3.bin": "ccc350840d01a91eb7952b08e653baa33d38ae31f5cd65bc7b325b7a142f119b",
+          "truth-0.bin": "ae735c23ed5a225717224bb5cb55e9a69bb9d72304afac562bda923ac776724e",
+          "truth-1.bin": "7fed32eaa2fa3a5adbac50f63cbcaadd5a84797745aedc16f2020f2239ada898",
+          "truth-2.bin": "77fad6e8961ef4e2887704e5d5287ebba71d96df28f4324d48db07fc910b246b"
+        },
+        "max_rss_bytes": 22316007424,
+        "peak_footprint_bytes": 16238545568,
+        "produce_time_log_sha256": "1ae46b1658f2de7e18884a49ebe9d6d051f90ee00659449b034e59dd35c09a73",
+        "driver_prove_ns": 14264535666,
+        "environment": {
+          "STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE": "1",
+          "STWO_ZIG_PROFILE_SAMPLED_DISPATCH": "1",
+          "STWO_ZIG_PROFILE_SAMPLED_QUEUE": "1"
+        }
+      },
+      {
+        "label": "new",
+        "command": [
+          "/usr/bin/time",
+          "-l",
+          "/private/tmp/stwo-rv64-sampled-value-queue/zig-out/bin/rv64-word16-ethereum",
+          "produce",
+          "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+          "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+          "/tmp/rv64-sampled-queue-prefix4-new-v1",
+          "4",
+          "--proof-jobs=2",
+          "--commit-batch-columns=64"
+        ],
+        "directory": "/tmp/rv64-sampled-queue-prefix4-new-v1",
+        "wall_ns": 18648006875,
+        "whole_user_seconds": 157.794144,
+        "whole_system_seconds": 8.276582,
+        "whole_minor_faults": 4603816,
+        "whole_major_faults": 371523,
+        "sampled": {
+          "wall_s": 0.55003,
+          "lane_user_seconds": 1.84348,
+          "lane_system_seconds": 0.023023,
+          "minor_faults": 84972,
+          "major_faults": 0,
+          "effective_lane_cpu": 3.3515990036907075
+        },
+        "sampled_physical_proofs": [
+          {
+            "seconds": 0.135521,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.137072,
+              "system_seconds": 0.048728,
+              "minor_faults": 22393,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 1030,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 16035594240,
+              "process_footprint_bytes_at_end": 9954260768,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.445889,
+              "lane_system_seconds": 0.006938
+            }
+          },
+          {
+            "seconds": 0.128159,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.089013,
+              "system_seconds": 0.040999,
+              "minor_faults": 39010,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 662,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 16189505536,
+              "process_footprint_bytes_at_end": 10108155488,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.419664,
+              "lane_system_seconds": 0.00379
+            }
+          },
+          {
+            "seconds": 0.128833,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.100347,
+              "system_seconds": 0.029235,
+              "minor_faults": 14599,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 604,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 11727929344,
+              "process_footprint_bytes_at_end": 8659300520,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.41843,
+              "lane_system_seconds": 0.003901
+            }
+          },
+          {
+            "seconds": 0.144071,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 1.623603,
+              "system_seconds": 0.006067,
+              "minor_faults": 321,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 936,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 11880726528,
+              "process_footprint_bytes_at_end": 8812015976,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.484487,
+              "lane_system_seconds": 0.004575
+            }
+          },
+          {
+            "seconds": 0.008045,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.067903,
+              "system_seconds": 0.047281,
+              "minor_faults": 8294,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 248,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 8821702656,
+              "process_footprint_bytes_at_end": 7160228304,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.053701,
+              "lane_system_seconds": 0.001612
+            }
+          },
+          {
+            "seconds": 0.003319,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.016916,
+              "system_seconds": 0.001269,
+              "minor_faults": 265,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 160,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 8584642560,
+              "process_footprint_bytes_at_end": 6986017160,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.013705,
+              "lane_system_seconds": 0.001096
+            }
+          },
+          {
+            "seconds": 0.002082,
+            "usage": {
+              "scope": "whole process, all threads; nested, adopted and overlapping intervals are not additive",
+              "user_seconds": 0.007603,
+              "system_seconds": 0.001109,
+              "minor_faults": 90,
+              "major_faults": 0,
+              "voluntary_switches": 0,
+              "involuntary_switches": 156,
+              "process_peak_resident_bytes_at_end": 22314860544,
+              "process_resident_bytes_at_end": 5312413696,
+              "process_footprint_bytes_at_end": 5288681416,
+              "process_footprint_peak_bytes_at_end": 16237218200,
+              "lane_threads": 8,
+              "lane_user_seconds": 0.007604,
+              "lane_system_seconds": 0.001111
+            }
+          }
+        ],
+        "fresh": {
+          "core_schema": 7,
+          "accepted": true,
+          "completed_ethereum_block": false,
+          "output": null,
+          "cpu_proofs": 4,
+          "truth_proofs": 3,
+          "load_and_setup_ns": 2352559083,
+          "verify_ns": 254898084,
+          "fixed_native_cache": {
+            "limit_bytes": 268435456,
+            "retained_bytes": 181229952,
+            "native_backing_bytes": 181214336,
+            "groups": 121,
+            "hits": 428,
+            "duplicate_native_bytes_released": 738370048,
+            "observed_individual_owners": 549,
+            "observed_backing_owners": 0,
+            "observed_spans": 549,
+            "owner_leases": 5
+          },
+          "program_metadata_cache": {
+            "limit_bytes": 67108864,
+            "retained_bytes": 30951766,
+            "payload_bytes": 30951414,
+            "programs": 1,
+            "hits": 4,
+            "metadata_bytes_not_rebuilt": 123805656,
+            "duplicate_metadata_bytes_released": 0,
+            "owner_leases": 6
+          }
+        },
+        "hashes": {
+          "bundle.json": "0e6020003f0c51485c18d20738ff9315e0e6f553503af22f5d8d5030584d1581",
+          "cost.json": "cdf80cf0cbdc4a11b3ba250a8c5d4b34556627a3a13237071bdcbafd8a65de54",
+          "roster.json": "f9c8f0c7177bb6b7b0af83aaf04af75888b0840410aa8b4c8de1b6c10cc22677",
+          "cells.bin": "0dd86c965fca11d591e3a6d980a3689108e0c7294a4a6ac153bb625f8f212a8d",
+          "cpu-0.bin": "ad3458caecbae493bdfe0b37ba08e7d0b3f85946489c70ca58e0f508ad9391f4",
+          "cpu-1.bin": "bbde8726b664b9fb3372c1e6cca3c6b81469b39b8d785729e7358775d107cb8d",
+          "cpu-2.bin": "75334fa0848d040c03a343d4d9a50805829b68c6d25ad5eec458583d96539ed2",
+          "cpu-3.bin": "ccc350840d01a91eb7952b08e653baa33d38ae31f5cd65bc7b325b7a142f119b",
+          "truth-0.bin": "ae735c23ed5a225717224bb5cb55e9a69bb9d72304afac562bda923ac776724e",
+          "truth-1.bin": "7fed32eaa2fa3a5adbac50f63cbcaadd5a84797745aedc16f2020f2239ada898",
+          "truth-2.bin": "77fad6e8961ef4e2887704e5d5287ebba71d96df28f4324d48db07fc910b246b"
+        },
+        "max_rss_bytes": 22314860544,
+        "peak_footprint_bytes": 16237218200,
+        "produce_time_log_sha256": "0c2761e2e4b1c95cafc1338d9878576d1ebb66b4ce25b9db8ef5b8b3176d8e2b",
+        "driver_prove_ns": 14402375708,
+        "environment": {
+          "STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE": "unset",
+          "STWO_ZIG_PROFILE_SAMPLED_DISPATCH": "1",
+          "STWO_ZIG_PROFILE_SAMPLED_QUEUE": "1"
+        }
+      }
+    ],
+    "executable_sha256": "ce51d8ae352140fcc9fb5781f1d68367a41853693889d77482a8d4cff95201fd"
+  },
+  "source_sha256": {
+    "src/prover/pcs/sampled_coefficient_plans.zig": "359c595f78df84fae6456a60e1c719711420d4c6109025af47290e4998b3a45c",
+    "src/prover/pcs/sampled_coefficient_split.zig": "3b217b89975c47e152d474a89d3c7f6bca0566ae1fa08e3b51c83779f6f59032",
+    "src/prover/pcs/sampled_values.zig": "0d388f04d294a150a0d79c92010869173ed22ce6a6330e4ccd7dd06620eedddb",
+    "src/prover/pcs/sampled_values_work_test.zig": "56abfbb053eef6adc1156b6f6606585d43d3d07ad311156d1b39955727c47029",
+    "src/prover/pcs_commitments_test_root.zig": "616eb95a13d482450d1259b8cc83b4a2b704a9afb0fdc926393d391d0c65c77f",
+    "src/prover/pcs/sampled_queue_test.zig": "08513413b4a0d49dce112d6b6c9f1abaf380e01322cc77c67aea9da11cda358d",
+    "src/prover/pcs/sampled_value_queue.zig": "184184bc4e21395bc8b781d04fd122e3b05849b13469d55f581f5f9d1136f55f"
+  },
+  "security": "Nominal96 control only; not whole-protocol128-bit qualification",
+  "gpu": "No device qualification",
+  "limitations": [
+    "Single engineering prefix pair; no holistic/full-block speed claim.",
+    "3.35/8 effective sampled cores still leaves serial planning and small-column work.",
+    "Stage process-wide fault intervals overlap; whole-process faults and per-proof snapshots retained, not asserted stage-attributed."
+  ]
+}

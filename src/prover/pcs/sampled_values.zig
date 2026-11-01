@@ -295,7 +295,21 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             };
         }
 
-        if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant("STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS")) {
+        var all_coefficients = true;
+        for (trees) |tree| if (tree.coefficients == null) {
+            all_coefficients = false;
+            break;
+        };
+        if (all_coefficients and !std.process.hasEnvVarConstant("STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE")) {
+            const Callback = struct {
+                fn run(raw: *anyopaque, index: usize) void {
+                    const workers: [*]SampledValueWorkerCtx(B, H) = @ptrCast(@alignCast(raw));
+                    workers[index].run();
+                }
+            };
+            for (worker_contexts) |*context| context.parallel_coefficient_plans = true;
+            @import("sampled_value_queue.zig").run(pool, trees.len, largestTreeIndex(trees, sampled_points.items), worker_contexts.ptr, Callback.run);
+        } else if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant("STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS")) {
             // Large evaluation-form trees benefit from inner parallelism.
             // Drain one tree at a time so its bounded weight/dot lease does not
             // compete with unrelated tree workers or nested waits. The
