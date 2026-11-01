@@ -278,6 +278,10 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         kobjs.append(o)
     run(["zig", "c++", a.opt, *kobjs, "-o", tdir / "keccak_copy_test"])
     run([tdir / "keccak_copy_test"])
+    # Guest-only sentinel JUMPDEST scan vs evmone's reference scan.
+    jexe = tdir / "jumpdest_scan_test"
+    run(["zig", "c++", *flags, HERE / "tests" / "jumpdest_scan_test.cpp", "-o", jexe])
+    run([jexe])
     wobj = tdir / "zeg_words_test.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
     run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
