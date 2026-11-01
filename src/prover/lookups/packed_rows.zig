@@ -12,6 +12,12 @@ pub fn ForField(comptime S: type) type {
     if (S != Q and S != O) @compileError("unsupported packed GKR secure field");
     return struct {
         pub const P = if (S == Q) pq.PackedQM31 else po.PackedOM31;
+        /// Preserve the packed arithmetic authority while eliminating the
+        /// aggregate-by-value call ABI in numerical row kernels.
+        pub inline fn mul(a: P, b: P) P {
+            @setEvalBranchQuota(100000);
+            return @call(.always_inline, P.mul, .{ a, b });
+        }
         pub inline fn splat(x: S) P {
             return if (S == Q) P.splat(x) else po.splat(x);
         }
@@ -61,7 +67,7 @@ pub fn ForField(comptime S: type) type {
             return if (F == m.M31) base(values, start, stride) else load(values, start, stride);
         }
         pub inline fn cross(comptime F: type, n: if (F == m.M31) m.PackedM31 else P, d: P) P {
-            return if (F == m.M31) d.mulBase(n) else d.mul(n);
+            return if (F == m.M31) d.mulBase(n) else mul(d, n);
         }
         pub inline fn numTwo(comptime F: type, a: if (F == m.M31) m.PackedM31 else P, b: if (F == m.M31) m.PackedM31 else P) if (F == m.M31) m.PackedM31 else P {
             return if (F == m.M31) m.subPacked(m.addPacked(b, b), a) else b.add(b).sub(a);
@@ -78,14 +84,14 @@ pub fn ForField(comptime S: type) type {
                 } else {
                     const a = load(input, i, 1);
                     const b = load(input, i + output.len, 1);
-                    store(output, i, r.mul(b.sub(a)).add(a));
+                    store(output, i, mul(r, b.sub(a)).add(a));
                 }
             }
             return i;
         }
         pub fn nextProduct(input: []const S, output: []S, first: usize, end: usize) usize {
             var i = first;
-            while (i + WIDTH <= end) : (i += WIDTH) store(output, i, load(input, 2 * i, 2).mul(load(input, 2 * i + 1, 2)));
+            while (i + WIDTH <= end) : (i += WIDTH) store(output, i, mul(load(input, 2 * i, 2), load(input, 2 * i + 1, 2)));
             return i;
         }
         pub fn nextLogup(comptime F: type, nums: []const F, dens: []const S, out_n: []S, out_d: []S, first: usize, end: usize) usize {
@@ -95,7 +101,7 @@ pub fn ForField(comptime S: type) type {
                 const b = load(dens, 2 * i + 1, 2);
                 const n = if (F == void) a.add(b) else cross(F, numerator(F, nums, 2 * i, 2), b).add(cross(F, numerator(F, nums, 2 * i + 1, 2), a));
                 store(out_n, i, n);
-                store(out_d, i, a.mul(b));
+                store(out_d, i, mul(a, b));
             }
             return i;
         }
@@ -112,8 +118,8 @@ pub fn ForField(comptime S: type) type {
                 const a2 = a1.add(a1).sub(a);
                 const b2 = b1.add(b1).sub(b);
                 const e = load(eq, i, 1);
-                s0 = s0.add(e.mul(a.mul(b)));
-                s2 = s2.add(e.mul(a2.mul(b2)));
+                s0 = s0.add(mul(e, mul(a, b)));
+                s2 = s2.add(mul(e, mul(a2, b2)));
             }
             return .{ .values = .{ sum(s0), sum(s2) }, .end = i };
         }
@@ -126,7 +132,7 @@ pub fn ForField(comptime S: type) type {
                 if (S == Q) P.fromBase(na) else po.fromCoordinates(.{ na, @splat(0), @splat(0), @splat(0), @splat(0), @splat(0), @splat(0), @splat(0) })
             else
                 na;
-            return promoted.add(lambda.mul(a)).mul(b).add(cross(F, nb, a));
+            return mul(promoted.add(mul(lambda, a)), b).add(cross(F, nb, a));
         }
         pub fn sumLogup(comptime F: type, eq: []const S, nums: []const F, dens: []const S, terms: usize, lambda: S, first: usize, end: usize) SumResult {
             var s0 = splat(S.zero());
@@ -140,11 +146,11 @@ pub fn ForField(comptime S: type) type {
                 const b1 = load(dens, 2 * (terms + i) + 1, 2);
                 const a2 = a1.add(a1).sub(a);
                 const b2 = b1.add(b1).sub(b);
-                const gate0 = if (F == void) a.add(b).add(l.mul(a.mul(b))) else weightedLogupGate(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * i + 1, 2), a, b, l);
-                const gate2 = if (F == void) a2.add(b2).add(l.mul(a2.mul(b2))) else weightedLogupGate(F, numTwo(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * (terms + i), 2)), numTwo(F, numerator(F, nums, 2 * i + 1, 2), numerator(F, nums, 2 * (terms + i) + 1, 2)), a2, b2, l);
+                const gate0 = if (F == void) a.add(b).add(mul(l, mul(a, b))) else weightedLogupGate(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * i + 1, 2), a, b, l);
+                const gate2 = if (F == void) a2.add(b2).add(mul(l, mul(a2, b2))) else weightedLogupGate(F, numTwo(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * (terms + i), 2)), numTwo(F, numerator(F, nums, 2 * i + 1, 2), numerator(F, nums, 2 * (terms + i) + 1, 2)), a2, b2, l);
                 const e = load(eq, i, 1);
-                s0 = s0.add(e.mul(gate0));
-                s2 = s2.add(e.mul(gate2));
+                s0 = s0.add(mul(e, gate0));
+                s2 = s2.add(mul(e, gate2));
             }
             return .{ .values = .{ sum(s0), sum(s2) }, .end = i };
         }

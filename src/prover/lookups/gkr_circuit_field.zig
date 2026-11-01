@@ -856,8 +856,8 @@ pub fn ForField(comptime Secure: type) type {
                     var at = first;
                     while (at + @import("packed_rows.zig").WIDTH <= end) : (at += @import("packed_rows.zig").WIDTH) {
                         const v = Packed.load(ctx.input, at, 1);
-                        Packed.store(ctx.output, at, v.mul(p0));
-                        Packed.store(ctx.output, at + ctx.input.len, v.mul(p1));
+                        Packed.store(ctx.output, at, Packed.mul(v, p0));
+                        Packed.store(ctx.output, at + ctx.input.len, Packed.mul(v, p1));
                     }
                     for (at..end) |i| {
                         ctx.output[i] = ctx.input[i].mul(ctx.zero);
