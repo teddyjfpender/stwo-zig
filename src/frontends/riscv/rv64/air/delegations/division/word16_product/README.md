@@ -1,22 +1,28 @@
 # Word16 DIV with shared unsigned-product truths
 
-The production core schema5 uses one82-MAIN/76-INTER DIV row with192 residuals
-of degree at most3, on native2n. The previous independently sized DIV row had
+The production core schema5 uses one78-MAIN/60-INTER DIV row with180 residuals
+of degree at most3, on native2n (trimmed from82/76/192; see
+`design/riscv-proving-stack/rv64-div-canonical-input-trims.md`). The previous independently sized DIV row had
 1135 MAIN/8 INTER columns and1567 residuals. Integer division is reduced to
 canonical limb arithmetic and two ordinary unsigned MUL/MULHU FUNCTION requests.
 There is no new execution profile, ECALL, accepted hint or instruction semantic.
 
 The provider emits `-DIV(A,B,C) + MUL(Q,absB,productLow) +
-MULHU(Q,absB,productHigh)`, with unit weights on active rows. The existing MUL
-provider establishes the full128-bit product and canonical Q/absB/product limbs.
-DIV enforces productHigh=0, productLow+R=absA with a zero terminal carry, and
+MULHU(Q,absB,0)`, with unit weights on active rows. The MULHU result is the
+constant zero word; no productHigh column is committed. The existing MUL
+provider establishes the full128-bit product and canonical Q/absB/product limbs
+by byte-ranging its A/B/RESULT after the FUNCTION13->byte25 basis change; those
+MUL byte queries are a hard soundness dependency of DIV.
+DIV thereby gets productHigh=0, enforces productLow+R=absA with a zero terminal carry, and
 R<absB through a ranged strict difference and zero final borrow. These facts
 establish unsigned quotient uniqueness in integers, including absence of64-bit
 product wrap. The high product obligation is essential even when the low product
 looks correct.
 
-A/B/C, absA, R, the strict gap and normalized output limbs have explicit U16
-anchors. Signed input/output normalization uses Boolean carries. Each integer
+C, absA, R, the strict gap and normalized output limbs have explicit U16
+anchors. A/B have none: every consumed DIV fact must equal a CPU FUNCTION tuple
+whose A/B are canonical register reads (REG induction + ROM), as for ALU v4.
+Signed (NEG=1) and W-upper A/B limbs are NOT locally pinned without it. Signed input/output normalization uses Boolean carries. Each integer
 limb residual has magnitude below2^18, far below M31, so a field equality cannot
 hide an integer carry alias. absB and Q canonicality comes from the closed MUL
 support graph; local DIV residuals alone are deliberately insufficient.
@@ -30,15 +36,15 @@ For a zero divisor, Q=0 and R=absA; quotient output is independently forced to
 allones while remainder restores the input. W results are sign extended from
 bit31, including unsigned W instructions.
 
-There are31 U16 queries per PHYSICAL row, including padding. The remaining29
-linear U16 denominators and three linear FUNCTION denominators form16 strict
+There are23 U16 queries per PHYSICAL row, including padding. The remaining21
+linear U16 denominators and three linear FUNCTION denominators form12 strict
 pairs. Two quadratic sign-query denominators remain single. One cyclic prefix
-closes the combined debt:16 pair inverses +2 single inverses +1 prefix =76
+closes the combined debt:12 pair inverses +2 single inverses +1 prefix =60
 base coordinates. Claims must enter the transcript and close with every caller,
 MUL truth and canonical U16 provider; additive subrelation splits are not
 independent certificates.
 
-Native MAIN is constructed once. A96-byte metadata record retains only11 query
+Native MAIN is constructed once. An88-byte metadata record retains only10 query
 words, opcode and sign flags after MAIN destruction. Interaction generation
 uses the same denominator and contribution expressions; it does not rerun
 normalization, integer multiplication or carry generation. Owned/borrowed paths
@@ -62,7 +68,8 @@ The narrower DIV saves8,573,440 native cells, but668 extra support requests in
 CPU shard13 cross the MUL power-of-two boundary and add9,502,720 cells. Net native
 cells INCREASE929,280 (about0.0044% of the block). The intended improvement is
 16,745 fewer OODS samples (1151->166 per DIV component) and lower opening and
-recursive arithmetic work, not a source-cell multiplier.
+recursive arithmetic work, not a source-cell multiplier. The later trims cut a
+further20 columns (166->146 samples) per DIV component.
 
 Qualification covers all8 policies against an independent signed-integer oracle
 on extrema/random words; dense degree tests; scalar/PackedM31 parity; actual

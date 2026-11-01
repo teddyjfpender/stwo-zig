@@ -17,6 +17,7 @@ const Source = @import("sources.zig").Source;
 const Components = @import("components.zig").Components;
 const Execution = @import("execution.zig");
 const Wire = @import("stwo_proof_wire");
+const AB = @import("arithmetic_bus.zig");
 const a = std.testing.allocator;
 const CASES = [_]D.source.Request{
     .{ .opcode = .DIVU, .a = 15, .b = 4, .result = 3 },
@@ -112,7 +113,7 @@ fn falseFragment(quotient: u64) !void {
     patchWord(d.main, d.domainSize(), pos, D.layout.OUT, quotient);
     for (source.counts16, d.counts16) |*total, count| total.* -= count;
     d.metadata[0].words[5] = quotient;
-    d.metadata[0].words[10] = quotient;
+    d.metadata[0].words[9] = quotient;
     @memset(d.counts16, 0);
     for (d.metadata) |meta| {
         const row = meta.queryRow();
@@ -121,20 +122,27 @@ fn falseFragment(quotient: u64) !void {
     for (source.counts16, d.counts16) |*total, count| total.* += count;
     source.range16.deinit();
     source.range16 = try A.word16_cpu.table_trace.Source.initRange16(a, setup.materials.range16_fixed, source.counts16);
+    try proveRejected(&f, &setup, &source, null);
+}
+
+fn proveRejected(f: *const Fixture, setup: *Mat.Setup, source: *Source, patched_division: ?[]const M) !void {
     const request = source.request();
     var scheme = try P.T.Scheme.init(a, P.T.P.config());
     var owns = true;
     defer if (owns) scheme.deinit(a);
     scheme.setCompactPolynomialStorage(5);
     var channel = P.T.P.Channel{};
-    try P.mix(&channel, &setup, request, f.admission().image_identity);
+    try P.mix(&channel, setup, request, f.admission().image_identity);
     try setup.appendFixed(a, &scheme, &channel);
     const main = try source.columns(a, 1);
     defer a.free(main);
     try scheme.commitBorrowedStreaming(a, main, 8, &channel);
     try source.releaseMain();
     const draw = P.draw(&channel);
-    const claims = (try source.generateForDelegationJoin(draw)).physical;
+    var claims = (try source.generateForDelegationJoin(draw)).physical;
+    // A patched DIV MAIN carries non-canonical tuple limbs that query metadata
+    // cannot represent: rebuild DIV interaction from the committed MAIN itself.
+    if (patched_division) |main_copy| claims.division = try rebuildDivisionInteraction(main_copy, &source.division, AB.division(draw.cpu.function, draw.cpu.range16));
     try std.testing.expectError(error.UnclosedExecutionRelations, claims.validate());
     channel.mixFelts(&claims.values());
     const inter = try source.columns(a, 2);
@@ -150,16 +158,112 @@ fn falseFragment(quotient: u64) !void {
     const bytes = try Wire.encodeProofBytesBinary(a, result.proof);
     defer a.free(bytes);
     var fragment = Execution.Encoded{ .bytes = bytes, .claims = claims, .request = request };
-    try @import("optional_division_test.zig").verifyPhysicalFragment(&setup, f.admission(), fragment);
-    try std.testing.expectError(error.UnclosedExecutionRelations, Execution.verify(a, &setup, f.admission(), fragment));
+    try @import("optional_division_test.zig").verifyPhysicalFragment(setup, f.admission(), fragment);
+    try std.testing.expectError(error.UnclosedExecutionRelations, Execution.verify(a, setup, f.admission(), fragment));
     var total = Q.zero();
     for (claims.values()) |value| total = total.add(value);
     fragment.claims.division = fragment.claims.division.sub(total);
     try fragment.claims.validate();
-    try f.admission().validate(&setup, fragment.request);
-    if (Execution.verify(a, &setup, f.admission(), fragment)) |_| return error.AcceptedBalancedFalseProduct else |_| {}
+    try f.admission().validate(setup, fragment.request);
+    if (Execution.verify(a, setup, f.admission(), fragment)) |_| return error.AcceptedBalancedFalseProduct else |_| {}
 }
+
 test "real valid local DIV proofs require BOTH low and high MUL support closure" {
     try falseFragment(4); // False low product12; true MUL says16.
     try falseFragment((@as(u64, 1) << 62) + 3); // Low product12 is true; high must be1, not0.
+}
+
+/// Logical-order DIV interaction from actual committed MAIN values (no metadata).
+fn rebuildDivisionInteraction(main: []const M, d: *D.source.Source, ch: D.lookup.Challenges) !Q {
+    const n = d.domainSize();
+    const L = D.layout;
+    var sum = Q.zero();
+    for (0..n) |logical| {
+        const pos = A.program.provider.physical(logical, d.log_size);
+        var row: [L.MAIN]Q = undefined;
+        for (&row, 0..) |*v, c| v.* = Q.fromBase(main[c * n + pos]);
+        const ds = D.lookup.denominatorsFor(Q, &row, ch);
+        var inverses = D.lookup.inverseDenominatorsFor(Q, ds);
+        for (&inverses) |*v| v.* = try v.inv();
+        for (inverses, 0..) |v, i| for (v.toM31Array(), 0..) |coordinate, c| {
+            d.interaction[(4 * i + c) * n + pos] = coordinate;
+        };
+        sum = sum.add(D.lookup.contributionFor(Q, ds, inverses));
+        for (sum.toM31Array(), 0..) |coordinate, c| d.interaction[(L.PREFIX + c) * n + pos] = coordinate;
+    }
+    for (sum.toM31Array(), 0..) |correction, c| for (0..n) |r| {
+        d.interaction[(L.PREFIX + c) * n + r] = d.interaction[(L.PREFIX + c) * n + r].sub(correction);
+    };
+    return sum;
+}
+const Alias = enum { signed_a, signed_b, word_upper };
+/// Non-canonical A/B limbs that every LOCAL DIV obligation and every retained
+/// U16 query accepts once the A/B memberships are gone. The only remaining
+/// authority is the closed CPU FUNCTION relation over canonical REG/ROM reads.
+fn aliasedOperandFragment(alias: Alias) !void {
+    var f = try Fixture.init(null);
+    defer f.deinit();
+    var setup = try Mat.Setup.init(a, .{ .base = 4096, .words = &f.words }, .{ .cpu_log = 6 });
+    defer setup.deinit();
+    var prepared = try Native.capture(a, &setup.materials.program, f.public, 1, 6, &f.tape, .{});
+    defer prepared.deinit();
+    var source = try Source.fromPrepared(a, &setup.materials, f.admission().image, &prepared);
+    defer source.deinit();
+    const d = &source.division;
+    const n = d.domainSize();
+    const L = D.layout;
+    const target = CASES[
+        switch (alias) {
+            .signed_a => 2,
+            .signed_b => 8,
+            .word_upper => 4,
+        }
+    ];
+    const op_index = for (L.OPCODES, 0..) |op, j| {
+        if (op == target.opcode) break j;
+    } else unreachable;
+    const logical = for (d.metadata, 0..) |meta, i| {
+        if (meta.opcode == op_index and meta.words[0] == target.a and meta.words[1] == target.b) break i;
+    } else return error.MissingDivisionRow;
+    const pos = A.program.provider.physical(logical, d.log_size);
+    const p = core.fields.m31.Modulus;
+    const at = struct {
+        fn cell(main: []M, size: usize, row: usize, column: usize) *M {
+            return &main[column * size + row];
+        }
+    }.cell;
+    switch (alias) {
+        .signed_a => {
+            try std.testing.expectEqual(@as(u32, 0xfff1), at(d.main, n, pos, L.A).v);
+            try std.testing.expectEqual(@as(u32, 1), at(d.main, n, pos, L.CARRY_A).v);
+            at(d.main, n, pos, L.A).* = M.fromCanonical(p - 15);
+            at(d.main, n, pos, L.A + 1).* = M.fromCanonical(65536);
+            at(d.main, n, pos, L.CARRY_A).* = M.zero();
+        },
+        .signed_b => {
+            try std.testing.expectEqual(@as(u32, 1), at(d.main, n, pos, L.NEG_B).v);
+            try std.testing.expectEqual(@as(u32, 1), at(d.main, n, pos, L.CARRY_B).v);
+            at(d.main, n, pos, L.B).* = M.fromCanonical(p - 1);
+            at(d.main, n, pos, L.B + 1).* = M.fromCanonical(65536);
+            at(d.main, n, pos, L.CARRY_B).* = M.zero();
+        },
+        .word_upper => at(d.main, n, pos, L.A + 3).* = M.fromCanonical(p - 1),
+    }
+    // Every local residual still vanishes and every retained U16 value is in range.
+    var row: [L.MAIN]Q = undefined;
+    for (&row, 0..) |*v, c| v.* = Q.fromBase(d.main[c * n + pos]);
+    var residuals: [L.ARITHMETIC_CONSTRAINTS]Q = undefined;
+    var sink = A.evaluation.Sink{ .values = &residuals };
+    D.equations.emitFor(Q, &.{ Q.zero(), Q.zero(), Q.zero() }, &row, row[L.COUNT].sub(Q.one()), Q.zero(), &sink);
+    for (residuals[0..L.ARITHMETIC_CONSTRAINTS]) |v| try std.testing.expect(v.isZero());
+    const honest = d.metadata[logical].queryRow();
+    try std.testing.expectEqualDeep(D.equations.rangeValuesFor(Q, &honest), D.equations.rangeValuesFor(Q, &row));
+    const copy = try a.dupe(M, d.main);
+    defer a.free(copy);
+    try proveRejected(&f, &setup, &source, copy);
+}
+test "real valid local DIV proofs with non-canonical A/B operand limbs fail only the closed CPU FUNCTION relation" {
+    try aliasedOperandFragment(.signed_a);
+    try aliasedOperandFragment(.signed_b);
+    try aliasedOperandFragment(.word_upper);
 }

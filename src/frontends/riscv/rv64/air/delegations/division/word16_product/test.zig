@@ -56,7 +56,7 @@ test "Word16 product DIV all8 policies match independent signed integer referenc
 }
 test "Word16 product DIV count padding output and zero-divisor ghosts reject" {
     var m = qrow((try W.row(.{ .opcode = .DIVU, .a = 15, .b = 4, .result = 3 })).main);
-    for ([_]usize{ L.C, L.PRODUCT_HIGH, L.CARRY_SUM + 3, L.ZERO, L.NEG_A, L.COUNT }) |index| {
+    for ([_]usize{ L.C, L.CARRY_SUM + 3, L.ZERO, L.NEG_A, L.COUNT }) |index| {
         var bad = m;
         bad[index] = bad[index].add(Q.one());
         var dirty = false;
@@ -180,4 +180,139 @@ test "Word16 product DIV concrete component binds degree3 masks and native dispa
     }
     c.count = 33;
     try std.testing.expectError(error.InvalidDivisionProductShape, c.traceLogDegreeBounds(a));
+}
+
+fn localClean(m: *const [L.MAIN]Q) !void {
+    for (residuals(m)) |v| try std.testing.expect(v.isZero());
+    for (A.rangeValuesFor(Q, m)) |v| try std.testing.expect((try v.tryIntoM31()).v < 65536);
+}
+fn noncanonical(v: Q) !bool {
+    return (try v.tryIntoM31()).v >= 65536;
+}
+
+test "DIV operand A/B limbs have no local range: aliased signed and W-upper limbs pass every retained local obligation" {
+    // These rows are locally valid AND satisfy every retained U16 query, yet
+    // their FUNCTION tuple carries non-canonical A/B limbs. Only the closed
+    // CPU FUNCTION relation (canonical REG reads + ROM) excludes them; see
+    // word16_execution/division_product_integration_test.zig for real proofs.
+    const p = core.fields.m31.Modulus;
+    // Signed A: move one radix unit from limb0 into limb1 (0xfff1 -> -15, 0xffff -> 65536).
+    var r = try W.row(.{ .opcode = .DIV, .a = @bitCast(@as(i64, -15)), .b = 4, .result = @bitCast(@as(i64, -3)) });
+    const honest_a = qrow(r.main);
+    try localClean(&honest_a);
+    r.main[L.A] = core.fields.m31.M31.fromCanonical(p - 15);
+    r.main[L.A + 1] = core.fields.m31.M31.fromCanonical(65536);
+    r.main[L.CARRY_A] = core.fields.m31.M31.zero();
+    var m = qrow(r.main);
+    try localClean(&m);
+    try std.testing.expectEqualDeep(A.rangeValuesFor(Q, &honest_a), A.rangeValuesFor(Q, &m));
+    try std.testing.expect(try noncanonical(m[L.A]) and try noncanonical(m[L.A + 1]));
+    try std.testing.expect(!std.meta.eql(A.tupleFor(Q, &honest_a, null), A.tupleFor(Q, &m, null)));
+    // Signed B, same alias with NEG_B=1: ABS_B (MUL-ranged) is unchanged.
+    r = try W.row(.{ .opcode = .DIV, .a = 0x8000000000000000, .b = 0xffffffffffffffff, .result = 0x8000000000000000 });
+    const honest_b = qrow(r.main);
+    r.main[L.B] = core.fields.m31.M31.fromCanonical(p - 1);
+    r.main[L.B + 1] = core.fields.m31.M31.fromCanonical(65536);
+    r.main[L.CARRY_B] = core.fields.m31.M31.zero();
+    m = qrow(r.main);
+    try localClean(&m);
+    try std.testing.expectEqualDeep(A.tupleFor(Q, &honest_b, false), A.tupleFor(Q, &m, false));
+    try std.testing.expect(try noncanonical(m[L.B]));
+    // W policies ignore upper input limbs entirely.
+    r = try W.row(.{ .opcode = .DIVW, .a = 0x1234567880000000, .b = 0xabcdef01ffffffff, .result = 0xffffffff80000000 });
+    r.main[L.A + 3] = core.fields.m31.M31.fromCanonical(p - 1);
+    r.main[L.B + 2] = core.fields.m31.M31.fromCanonical(1 << 20);
+    m = qrow(r.main);
+    try localClean(&m);
+    // Unsigned non-W A is still locally pinned: ABS_A = A limbwise and ABS_A is ranged.
+    r = try W.row(.{ .opcode = .DIVU, .a = 0x10000, .b = 4, .result = 0x4000 });
+    r.main[L.A] = core.fields.m31.M31.fromCanonical(65536);
+    r.main[L.A + 1] = core.fields.m31.M31.zero();
+    m = qrow(r.main);
+    var dirty = false;
+    for (residuals(&m)) |v| dirty = dirty or !v.isZero();
+    try std.testing.expect(dirty);
+}
+
+test "DIV ABS_B negation carries are unique when NEG_B=1 for canonical B and canonical ABS_B" {
+    const values = [_]u64{ 1, 0xffff, 0x10000, 0x8000000000000000, 0xffffffffffffffff, 0xfffffffffffffffe, 0xffff0000ffff0000, 0x8000, 0x80000000, 0xffffffff80000000, 0x0001000000000000 };
+    const ops = [_]struct { op: E.O, a: u64 }{ .{ .op = .DIV, .a = 0x123456789abcdef }, .{ .op = .REM, .a = 0x123456789abcdef }, .{ .op = .DIVW, .a = 0x12345678 }, .{ .op = .REMW, .a = 0x12345678 } };
+    var checked: usize = 0;
+    for (ops) |case| for (values) |b| {
+        const r = try W.row(.{ .opcode = case.op, .a = case.a, .b = b, .result = 0 });
+        if (r.main[L.NEG_B].v != 1) continue;
+        const word = case.op == .DIVW or case.op == .REMW;
+        // Solve the four negation residuals for every Boolean carry vector.
+        var honest_count: usize = 0;
+        for (0..16) |bits| {
+            var abs: [4]i64 = undefined;
+            var canonical = true;
+            for (0..4) |i| {
+                const c: i64 = @intCast((bits >> @as(u2, @intCast(i))) & 1);
+                const prev: i64 = if (i == 0) 0 else @intCast((bits >> @as(u2, @intCast(i - 1))) & 1);
+                const prior: i64 = if (word and i == 2) 0 else prev;
+                const eff: i64 = if (word and i >= 2) 0 else r.main[L.B + i].v;
+                abs[i] = 65536 * c - eff - prior;
+                canonical = canonical and abs[i] >= 0 and abs[i] < 65536;
+            }
+            if (!canonical) continue;
+            honest_count += 1;
+            for (0..4) |i| {
+                try std.testing.expectEqual(@as(i64, r.main[L.ABS_B + i].v), abs[i]);
+                if (!(word and i >= 2)) try std.testing.expectEqual(@as(u32, @intCast((bits >> @as(u2, @intCast(i))) & 1)), r.main[L.CARRY_B + i].v);
+            }
+        }
+        try std.testing.expect(honest_count >= 1);
+        // The actual AIR rejects any flipped carry against the honest ABS_B.
+        for (0..4) |i| {
+            var bad = qrow(r.main);
+            bad[L.CARRY_B + i] = Q.one().sub(bad[L.CARRY_B + i]);
+            var dirty = false;
+            for (residuals(&bad)) |v| dirty = dirty or !v.isZero();
+            try std.testing.expect(dirty);
+        }
+        checked += 1;
+    };
+    try std.testing.expect(checked >= 20);
+}
+
+test "DIV support coordinates stay byte ranged by the MUL provider and PRODUCT_HIGH is a constant zero tuple" {
+    // DIV QUOTIENT, ABS_B and PRODUCT_LOW have NO DIV range query. Their only
+    // canonicality authority is the MUL provider: tuple coordinates1..24 are
+    // MAIN[0..24] (A,B,RESULT bytes) and every one is a direct BYTE query.
+    // Removing any MUL A/B/RESULT byte query breaks DIV soundness: this fails.
+    const ML = @import("../../multiplication/layout.zig");
+    const MP = @import("../../multiplication/provider.zig");
+    const MD = @import("../../multiplication/degree3_layout.zig");
+    const MT = @import("../../multiplication/trace.zig");
+    comptime std.debug.assert(ML.A == 0 and ML.B == 8 and ML.RESULT == 16 and ML.TUPLE == 25);
+    comptime std.debug.assert(2 * MD.BYTE_PAIRS == ML.BYTE_QUERIES and ML.BYTE_QUERIES >= 24);
+    for (0..24) |column| {
+        var main: [ML.MAIN]Q = @splat(Q.zero());
+        main[column] = E.q(@intCast(1000 + column));
+        const bytes = MP.byteValuesFor(Q, &main);
+        try std.testing.expect(bytes[column].eql(main[column]));
+        try std.testing.expect(MP.tupleFor(Q, &main)[1 + column].eql(main[column]));
+        var native: [ML.MAIN]core.fields.m31.M31 = @splat(core.fields.m31.M31.zero());
+        native[column] = core.fields.m31.M31.fromCanonical(256);
+        try std.testing.expectError(error.InvalidRv64MultiplicationByte, MT.byteValuesNative(&native));
+    }
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    var m: [L.MAIN]Q = undefined;
+    for (&m) |*v| v.* = channel.drawSecureFelt();
+    for ([_]bool{ false, true }) |high| {
+        const t = A.tupleFor(Q, &m, high);
+        for (0..4) |i| {
+            try std.testing.expect(t[1 + i].eql(m[L.QUOTIENT + i]));
+            try std.testing.expect(t[5 + i].eql(m[L.ABS_B + i]));
+            try std.testing.expect(t[9 + i].eql(if (high) Q.zero() else m[L.PRODUCT_LOW + i]));
+        }
+    }
+    // No retained DIV U16 query is a direct membership of QUOTIENT, ABS_B,
+    // PRODUCT_LOW, A or B limbs (only the doubled selected A/B tops remain).
+    for ([_]usize{ L.QUOTIENT, L.ABS_B, L.PRODUCT_LOW, L.A, L.B }) |start| for (0..4) |i| {
+        var probe: [L.MAIN]Q = @splat(Q.zero());
+        probe[start + i] = E.q(@intCast(70000 + start + i));
+        for (A.rangeValuesFor(Q, &probe)) |v| try std.testing.expect(!v.eql(probe[start + i]));
+    };
 }

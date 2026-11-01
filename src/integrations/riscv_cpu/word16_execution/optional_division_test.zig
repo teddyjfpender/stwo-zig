@@ -95,13 +95,13 @@ test "Omitted DIV proves fresh with exact semantics, canonical zero claim and ow
     const old_samples = try sampledCounts(old.bytes);
     const omitted_samples = try sampledCounts(proof.bytes);
     // Pin physical withdrawal of the new provider, independently of LS/ALU:
-    // fixed3, main82 plus previous count, interaction76 plus previous prefix.
+    // fixed3, main78 plus previous count, interaction60 plus previous prefix.
     const D = front.rv64_air.arithmetic.division.word16_product.layout;
     for (old_samples, omitted_samples, [_]usize{ D.FIXED, D.MAIN + 1, D.INTERACTION + 4, 0 }) |normal, absent, removed| {
         try std.testing.expectEqual(removed, normal - absent);
     }
 
-    try std.testing.expectEqual(@as(usize, 166), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
+    try std.testing.expectEqual(@as(usize, 146), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
     try std.testing.expect(proof.bytes.len < old.bytes.len);
     try std.testing.expect(!std.mem.eql(u8, proof.bytes, old.bytes));
     var fresh = try Mat.Setup.init(a, .{ .base = 4096, .words = &WORDS }, geometry(true));

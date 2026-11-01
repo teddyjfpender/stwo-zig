@@ -11,7 +11,7 @@ const physical = @import("../../../program/provider.zig").physical;
 const M = core.fields.m31.M31;
 const Q = E.Q;
 pub const Request = W.Request;
-const WORDS = [_]usize{ L.A, L.B, L.C, L.ABS_A, L.ABS_B, L.QUOTIENT, L.REMAINDER, L.PRODUCT_LOW, L.PRODUCT_HIGH, L.GAP, L.OUT };
+const WORDS = [_]usize{ L.A, L.B, L.C, L.ABS_A, L.ABS_B, L.QUOTIENT, L.REMAINDER, L.PRODUCT_LOW, L.GAP, L.OUT };
 pub const MIN_LOG: u32 = 5;
 pub const MAX_LOG: u32 = 22;
 pub const Metadata = struct {
@@ -48,7 +48,7 @@ pub const Metadata = struct {
     }
 };
 comptime {
-    std.debug.assert(@sizeOf(Metadata) == 96);
+    std.debug.assert(@sizeOf(Metadata) == 88);
 }
 pub const Mass = struct { range16: u64, function_positive: u64 };
 pub fn massForLog(log: u32) !Mass {
@@ -151,9 +151,9 @@ pub const Source = struct {
         const n = self.domainSize();
         if (self.interaction.len != 0 or self.metadata.len != n) return error.InvalidRv64DivisionPhase;
         const window: usize = @min(64, n);
-        const denominators = try self.allocator.alloc(Q, 18 * window);
+        const denominators = try self.allocator.alloc(Q, L.INVERSES * window);
         defer self.allocator.free(denominators);
-        const inverses = try self.allocator.alloc(Q, 18 * window);
+        const inverses = try self.allocator.alloc(Q, L.INVERSES * window);
         defer self.allocator.free(inverses);
         const records = try self.allocator.alloc(P.DenominatorsFor(Q), window);
         defer self.allocator.free(records);
@@ -166,12 +166,12 @@ pub const Source = struct {
             for (0..count) |j| {
                 const row = self.metadata[first + j].queryRow();
                 records[j] = P.denominatorsFor(Q, &row, challenges);
-                denominators[j * 18 ..][0..18].* = P.inverseDenominatorsFor(Q, records[j]);
+                denominators[j * L.INVERSES ..][0..L.INVERSES].* = P.inverseDenominatorsFor(Q, records[j]);
             }
-            try core.fields.batchInverseInPlace(Q, denominators[0 .. count * 18], inverses[0 .. count * 18]);
+            try core.fields.batchInverseInPlace(Q, denominators[0 .. count * L.INVERSES], inverses[0 .. count * L.INVERSES]);
             for (0..count) |j| {
                 const row = physical(first + j, self.log_size);
-                const inverse_row = inverses[j * 18 ..][0..18].*;
+                const inverse_row = inverses[j * L.INVERSES ..][0..L.INVERSES].*;
                 for (inverse_row, 0..) |value, i| store(values, n, row, 4 * i, value);
                 sum = sum.add(P.contributionFor(Q, records[j], inverse_row));
                 store(values, n, row, L.PREFIX, sum);
