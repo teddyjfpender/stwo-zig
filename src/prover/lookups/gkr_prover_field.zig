@@ -340,16 +340,13 @@ pub fn ForField(comptime Secure: type) type {
             layers[0] = input.borrowed();
             present[0] = true;
             var current = layers[0];
-            var transient: ?Layer = null;
-            defer if (transient) |*layer| layer.deinit(a);
-            for (1..count) |height| {
-                const next = (try current.nextLayer(a)) orelse return error.InvalidLayerStructure;
-                if (transient) |*layer| layer.deinit(a);
-                transient = null;
-                if (height % 2 == 0 or height + 1 == count) {
-                    layers[height] = next;
-                    present[height] = true;
-                } else transient = next;
+            var height: usize = 0;
+            while (height + 1 < count) {
+                const jump: usize = if (height + 2 < count) 2 else 1;
+                const next = if (jump == 2) try current.nextLayerTwice(a) else (try current.nextLayer(a)) orelse return error.InvalidLayerStructure;
+                height += jump;
+                layers[height] = next;
+                present[height] = true;
                 current = next;
             }
             return .{ .layers = layers, .present = present };
