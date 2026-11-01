@@ -1,0 +1,1248 @@
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=5 constant_columns=0 source_values=160 constant_values=0 source_payload_bytes=640 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=3 constant_columns=0 source_values=24576 constant_values=0 source_payload_bytes=98304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=6 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=2 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=242125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=753584 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=246125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=7 constant_columns=1 source_values=7340032 constant_values=1048576 source_payload_bytes=29360128 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=21 columns=1 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=21 columns=2 constant_columns=0 source_values=4194304 constant_values=0 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=333 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=3 constant_columns=0 source_values=6144 constant_values=0 source_payload_bytes=24576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=6 constant_columns=0 source_values=393216 constant_values=0 source_payload_bytes=1572864 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=736500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=246292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=247375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=3 constant_columns=0 source_values=6144 constant_values=0 source_payload_bytes=24576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=2 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=6 constant_columns=2 source_values=6291456 constant_values=2097152 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: scan_ns=490750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=490917 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=291 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=488792 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=6 constant_columns=0 source_values=6291456 constant_values=0 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=2 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=458 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=1 constant_columns=0 source_values=4194304 constant_values=0 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=3 constant_columns=0 source_values=96 constant_values=0 source_payload_bytes=384 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=41 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=6 constant_columns=1 source_values=12288 constant_values=2048 source_payload_bytes=49152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=583 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=6 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=2 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=3 constant_columns=0 source_values=393216 constant_values=0 source_payload_bytes=1572864 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=5 constant_columns=0 source_values=1310720 constant_values=0 source_payload_bytes=5242880 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=7 constant_columns=0 source_values=3670016 constant_values=0 source_payload_bytes=14680064 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=984584 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=334 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=5 constant_columns=0 source_values=40960 constant_values=0 source_payload_bytes=163840 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=1 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=7 constant_columns=1 source_values=114688 constant_values=16384 source_payload_bytes=458752 payload_is_allocator_live=false
+info: pcs source census: scan_ns=4125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=1 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=7 constant_columns=0 source_values=229376 constant_values=0 source_payload_bytes=917504 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=736750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=2959 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245916 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=247917 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=291 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=5 constant_columns=0 source_values=20480 constant_values=0 source_payload_bytes=81920 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=1 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=7 constant_columns=1 source_values=114688 constant_values=16384 source_payload_bytes=458752 payload_is_allocator_live=false
+info: pcs source census: scan_ns=4042 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=1 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=7 constant_columns=0 source_values=229376 constant_values=0 source_payload_bytes=917504 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=291 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=736708 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=416 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=248958 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=249042 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=6 columns=3 constant_columns=0 source_values=192 constant_values=0 source_payload_bytes=768 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=6 constant_columns=1 source_values=24576 constant_values=4096 source_payload_bytes=98304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=1208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=6 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=6 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=7 constant_columns=0 source_values=1835008 constant_values=0 source_payload_bytes=7340032 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=251083 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=742875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=247083 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=7 constant_columns=1 source_values=7340032 constant_values=1048576 source_payload_bytes=29360128 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=1 constant_columns=0 source_values=4194304 constant_values=0 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=248750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=2 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=1 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=1 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=6 constant_columns=0 source_values=786432 constant_values=0 source_payload_bytes=3145728 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=985583 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=492083 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=3 constant_columns=0 source_values=96 constant_values=0 source_payload_bytes=384 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=7 constant_columns=0 source_values=1835008 constant_values=0 source_payload_bytes=7340032 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=3 constant_columns=0 source_values=786432 constant_values=0 source_payload_bytes=3145728 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=981959 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491791 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=7 columns=3 constant_columns=0 source_values=384 constant_values=0 source_payload_bytes=1536 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=4 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=2 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=3167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=3 constant_columns=0 source_values=786432 constant_values=0 source_payload_bytes=3145728 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=984958 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=458 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=492125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=3042 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=2 constant_columns=0 source_values=2048 constant_values=0 source_payload_bytes=8192 payload_is_allocator_live=false
+info: pcs source census: scan_ns=41 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=10 columns=6 constant_columns=1 source_values=6144 constant_values=1024 source_payload_bytes=24576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=334 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=6 constant_columns=0 source_values=12288 constant_values=0 source_payload_bytes=49152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=6 constant_columns=0 source_values=393216 constant_values=0 source_payload_bytes=1572864 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=3 constant_columns=0 source_values=393216 constant_values=0 source_payload_bytes=1572864 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=735167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=333 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491916 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=8 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=1 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=738042 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=247166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=792 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=494417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=4 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=1 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=735875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=248542 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=792 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=493875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=4 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=291 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=1 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=5 constant_columns=0 source_values=2621440 constant_values=0 source_payload_bytes=10485760 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=980667 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=542 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=494542 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=5 constant_columns=0 source_values=2560 constant_values=0 source_payload_bytes=10240 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=9 columns=6 constant_columns=1 source_values=3072 constant_values=512 source_payload_bytes=12288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=2 constant_columns=0 source_values=2048 constant_values=0 source_payload_bytes=8192 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=10 columns=6 constant_columns=0 source_values=6144 constant_values=0 source_payload_bytes=24576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=980166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=667 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=494042 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=4 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=4 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=981500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=416 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=834 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=5 constant_columns=2 source_values=5242880 constant_values=2097152 source_payload_bytes=20971520 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=21 columns=3 constant_columns=0 source_values=6291456 constant_values=0 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=3 constant_columns=0 source_values=3072 constant_values=0 source_payload_bytes=12288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=2 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=6 constant_columns=2 source_values=6291456 constant_values=2097152 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: scan_ns=494667 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=492584 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=490500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=5 constant_columns=0 source_values=5242880 constant_values=0 source_payload_bytes=20971520 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=3 constant_columns=0 source_values=3072 constant_values=0 source_payload_bytes=12288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=7 constant_columns=2 source_values=7340032 constant_values=2097152 source_payload_bytes=29360128 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491083 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=495750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=291 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=492500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=21 columns=3 constant_columns=0 source_values=6291456 constant_values=0 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=3 constant_columns=0 source_values=3072 constant_values=0 source_payload_bytes=12288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=6 constant_columns=1 source_values=12288 constant_values=2048 source_payload_bytes=49152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=667 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=6 constant_columns=0 source_values=24576 constant_values=0 source_payload_bytes=98304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=2 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=6 constant_columns=0 source_values=786432 constant_values=0 source_payload_bytes=3145728 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=981500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491333 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=10 columns=5 constant_columns=0 source_values=5120 constant_values=0 source_payload_bytes=20480 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=10 columns=6 constant_columns=1 source_values=6144 constant_values=1024 source_payload_bytes=24576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=333 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=6 constant_columns=0 source_values=12288 constant_values=0 source_payload_bytes=49152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=6 constant_columns=0 source_values=393216 constant_values=0 source_payload_bytes=1572864 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=1 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=5 constant_columns=0 source_values=2621440 constant_values=0 source_payload_bytes=10485760 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=2 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=980083 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=6 constant_columns=1 source_values=12288 constant_values=2048 source_payload_bytes=49152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=2 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=6 constant_columns=0 source_values=24576 constant_values=0 source_payload_bytes=98304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=4 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=4 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=4 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=4 constant_columns=1 source_values=4194304 constant_values=1048576 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=736625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245458 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=7 constant_columns=1 source_values=7340032 constant_values=1048576 source_payload_bytes=29360128 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=1 constant_columns=0 source_values=4194304 constant_values=0 source_payload_bytes=16777216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=246041 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=2 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=9 columns=3 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=41 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=2 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=4 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=84 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=1 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=3 source_values=8388608 constant_values=3145728 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=743750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=1 source_values=8388608 constant_values=1048576 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=245875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=3125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491000 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=334 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=6 constant_columns=0 source_values=1536 constant_values=0 source_payload_bytes=6144 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=2 constant_columns=0 source_values=16384 constant_values=0 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=7 constant_columns=0 source_values=917504 constant_values=0 source_payload_bytes=3670016 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=7 constant_columns=2 source_values=7340032 constant_values=2097152 source_payload_bytes=29360128 payload_is_allocator_live=false
+info: pcs source census: scan_ns=505875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=490875 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=1 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=21 columns=3 constant_columns=0 source_values=6291456 constant_values=0 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=41 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=14 columns=3 constant_columns=0 source_values=49152 constant_values=0 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=2 constant_columns=0 source_values=65536 constant_values=0 source_payload_bytes=262144 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=4 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=4 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=8 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=2 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=3 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=3 constant_columns=0 source_values=3145728 constant_values=0 source_payload_bytes=12582912 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=4 source_values=8388608 constant_values=4194304 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=996792 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=459 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=496750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=8 constant_columns=0 source_values=256 constant_values=0 source_payload_bytes=1024 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=5 columns=5 constant_columns=0 source_values=160 constant_values=0 source_payload_bytes=640 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=14 columns=5 constant_columns=0 source_values=81920 constant_values=0 source_payload_bytes=327680 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=15 columns=3 constant_columns=0 source_values=98304 constant_values=0 source_payload_bytes=393216 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=15 columns=1 constant_columns=0 source_values=32768 constant_values=0 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=7 constant_columns=0 source_values=458752 constant_values=0 source_payload_bytes=1835008 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=83 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=334 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=3 constant_columns=0 source_values=196608 constant_values=0 source_payload_bytes=786432 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=4 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=19 columns=1 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=19 columns=2 constant_columns=0 source_values=1048576 constant_values=0 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=20 columns=6 constant_columns=2 source_values=6291456 constant_values=2097152 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: scan_ns=492708 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=499167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=0 source_values=8388608 constant_values=0 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=8 constant_columns=2 source_values=8388608 constant_values=2097152 source_payload_bytes=33554432 payload_is_allocator_live=false
+info: pcs source census: scan_ns=491167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=20 columns=5 constant_columns=0 source_values=5242880 constant_values=0 source_payload_bytes=20971520 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=21 columns=3 constant_columns=0 source_values=6291456 constant_values=0 source_payload_bytes=25165824 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=22 columns=3 constant_columns=0 source_values=12582912 constant_values=0 source_payload_bytes=50331648 payload_is_allocator_live=false
+info: pcs source census: scan_ns=209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=10 columns=7 constant_columns=0 source_values=7168 constant_values=0 source_payload_bytes=28672 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=13 columns=1 constant_columns=0 source_values=8192 constant_values=0 source_payload_bytes=32768 payload_is_allocator_live=false
+info: pcs source census: scan_ns=125 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=13 columns=6 constant_columns=1 source_values=49152 constant_values=8192 source_payload_bytes=196608 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=2 constant_columns=0 source_values=524288 constant_values=0 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=2209 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=417 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=0 source_values=2097152 constant_values=0 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=292 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=6 constant_columns=0 source_values=1572864 constant_values=0 source_payload_bytes=6291456 payload_is_allocator_live=false
+info: pcs source census: scan_ns=458 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=18 columns=5 constant_columns=1 source_values=1310720 constant_values=262144 source_payload_bytes=5242880 payload_is_allocator_live=false
+info: pcs source census: scan_ns=61542 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=2 source_values=2097152 constant_values=524288 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=138375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=2 source_values=2097152 constant_values=524288 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=128667 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=8 constant_columns=2 source_values=2097152 constant_values=524288 source_payload_bytes=8388608 payload_is_allocator_live=false
+info: pcs source census: scan_ns=122958 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=18 columns=1 constant_columns=0 source_values=262144 constant_values=0 source_payload_bytes=1048576 payload_is_allocator_live=false
+info: pcs source census: scan_ns=208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=11 columns=5 constant_columns=1 source_values=10240 constant_values=2048 source_payload_bytes=40960 payload_is_allocator_live=false
+info: pcs source census: scan_ns=625 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=8 constant_columns=2 source_values=16384 constant_values=4096 source_payload_bytes=65536 payload_is_allocator_live=false
+info: pcs source census: scan_ns=1375 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=11 columns=2 constant_columns=2 source_values=4096 constant_values=4096 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=12 columns=6 constant_columns=0 source_values=24576 constant_values=0 source_payload_bytes=98304 payload_is_allocator_live=false
+info: pcs source census: scan_ns=1166 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=8 constant_columns=2 source_values=32768 constant_values=8192 source_payload_bytes=131072 payload_is_allocator_live=false
+info: pcs source census: scan_ns=2208 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=12 columns=1 constant_columns=0 source_values=4096 constant_values=0 source_payload_bytes=16384 payload_is_allocator_live=false
+info: pcs source census: scan_ns=42 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=8 columns=3 constant_columns=0 source_values=768 constant_values=0 source_payload_bytes=3072 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=16 columns=5 constant_columns=0 source_values=327680 constant_values=0 source_payload_bytes=1310720 payload_is_allocator_live=false
+info: pcs source census: scan_ns=250 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=8 constant_columns=2 source_values=524288 constant_values=131072 source_payload_bytes=2097152 payload_is_allocator_live=false
+info: pcs source census: scan_ns=30750 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=16 columns=2 constant_columns=0 source_values=131072 constant_values=0 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: declared_log_size=17 columns=6 constant_columns=0 source_values=786432 constant_values=0 source_payload_bytes=3145728 payload_is_allocator_live=false
+info: pcs source census: scan_ns=167 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=8 constant_columns=3 source_values=1048576 constant_values=393216 source_payload_bytes=4194304 payload_is_allocator_live=false
+info: pcs source census: scan_ns=92500 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs source census: declared_log_size=17 columns=1 constant_columns=1 source_values=131072 constant_values=131072 source_payload_bytes=524288 payload_is_allocator_live=false
+info: pcs source census: scan_ns=30583 invalid_log_columns=0 scan_includes_no_logging=true
+info: pcs coefficient commit: path=expanded columns=133 setup_ns=41 extension_ns=232546375 retention_ns=8251917 merkle_ns=424401667 append_join_ns=20375 column_payload_bytes=1005484544 coefficient_payload_bytes=251371136 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=133 blowup=2 identity_ns=77030291 lookup_and_control_ns=1250 seal_ns=743904000 total_ns=820935583
+info: pcs coefficient commit: path=expanded columns=131 setup_ns=0 extension_ns=171488167 retention_ns=7765917 merkle_ns=420085750 append_join_ns=18291 column_payload_bytes=889061376 coefficient_payload_bytes=222265344 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=131 blowup=2 identity_ns=68015333 lookup_and_control_ns=1834 seal_ns=672374166 total_ns=740391333
+info: pcs coefficient commit: path=expanded columns=129 setup_ns=42 extension_ns=171611125 retention_ns=3374083 merkle_ns=422443750 append_join_ns=19375 column_payload_bytes=886964224 coefficient_payload_bytes=221741056 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=129 blowup=2 identity_ns=67926625 lookup_and_control_ns=1500 seal_ns=670394125 total_ns=738322292
+info: pcs coefficient commit: path=expanded columns=156 setup_ns=42 extension_ns=175236166 retention_ns=4445167 merkle_ns=481475750 append_join_ns=31750 column_payload_bytes=896828928 coefficient_payload_bytes=224207232 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=156 blowup=2 identity_ns=68776542 lookup_and_control_ns=1041 seal_ns=735145959 total_ns=803923542
+info: pcs coefficient commit: path=expanded columns=148 setup_ns=42 extension_ns=173971458 retention_ns=4719417 merkle_ns=461804083 append_join_ns=29167 column_payload_bytes=918323200 coefficient_payload_bytes=229580800 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=148 blowup=2 identity_ns=70541166 lookup_and_control_ns=1459 seal_ns=716240666 total_ns=786783291
+info: pcs coefficient commit: path=expanded columns=148 setup_ns=0 extension_ns=178604375 retention_ns=3793792 merkle_ns=475031000 append_join_ns=30167 column_payload_bytes=917929984 coefficient_payload_bytes=229482496 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=148 blowup=2 identity_ns=70475666 lookup_and_control_ns=1125 seal_ns=733530459 total_ns=804007291
+info: pcs coefficient commit: path=expanded columns=154 setup_ns=0 extension_ns=176776458 retention_ns=5172375 merkle_ns=468378125 append_join_ns=31375 column_payload_bytes=926452736 coefficient_payload_bytes=231613184 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=154 blowup=2 identity_ns=71142041 lookup_and_control_ns=1459 seal_ns=726586750 total_ns=797730291
+info: pcs coefficient commit: path=expanded columns=139 setup_ns=42 extension_ns=176928750 retention_ns=3553166 merkle_ns=425753417 append_join_ns=16917 column_payload_bytes=885686272 coefficient_payload_bytes=221421568 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=139 blowup=2 identity_ns=67822416 lookup_and_control_ns=1292 seal_ns=679293833 total_ns=747117541
+info: pcs coefficient commit: path=expanded columns=140 setup_ns=0 extension_ns=172961417 retention_ns=3501583 merkle_ns=430194000 append_join_ns=18667 column_payload_bytes=900892160 coefficient_payload_bytes=225223040 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=140 blowup=2 identity_ns=69081042 lookup_and_control_ns=42 seal_ns=680778416 total_ns=749859542
+info: pcs coefficient commit: path=expanded columns=140 setup_ns=0 extension_ns=173543584 retention_ns=3266125 merkle_ns=428133875 append_join_ns=19791 column_payload_bytes=876058624 coefficient_payload_bytes=219014656 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=140 blowup=2 identity_ns=67100250 lookup_and_control_ns=1500 seal_ns=677092542 total_ns=744194334
+info: pcs coefficient commit: path=expanded columns=158 setup_ns=0 extension_ns=154532708 retention_ns=3421542 merkle_ns=466670416 append_join_ns=29375 column_payload_bytes=873127936 coefficient_payload_bytes=218281984 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=158 blowup=2 identity_ns=66897333 lookup_and_control_ns=1375 seal_ns=696716375 total_ns=763615083
+info: pcs coefficient commit: path=expanded columns=142 setup_ns=0 extension_ns=174599333 retention_ns=3306458 merkle_ns=427699875 append_join_ns=29959 column_payload_bytes=864608256 coefficient_payload_bytes=216152064 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=142 blowup=2 identity_ns=66236625 lookup_and_control_ns=1500 seal_ns=676673834 total_ns=742911959
+info: pcs coefficient commit: path=expanded columns=142 setup_ns=42 extension_ns=177955917 retention_ns=3346083 merkle_ns=433044917 append_join_ns=28958 column_payload_bytes=868278272 coefficient_payload_bytes=217069568 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=142 blowup=2 identity_ns=66742291 lookup_and_control_ns=2459 seal_ns=686218291 total_ns=752963041
+info: pcs coefficient commit: path=expanded columns=140 setup_ns=42 extension_ns=172016792 retention_ns=3308000 merkle_ns=432438333 append_join_ns=34125 column_payload_bytes=872472576 coefficient_payload_bytes=218118144 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=140 blowup=2 identity_ns=66772583 lookup_and_control_ns=2542 seal_ns=679747291 total_ns=746522458
+info: pcs coefficient commit: path=expanded columns=156 setup_ns=0 extension_ns=173234334 retention_ns=3332958 merkle_ns=468321708 append_join_ns=27875 column_payload_bytes=869785600 coefficient_payload_bytes=217446400 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=156 blowup=2 identity_ns=66687333 lookup_and_control_ns=1292 seal_ns=716493708 total_ns=783182375
+info: pcs coefficient commit: path=expanded columns=139 setup_ns=0 extension_ns=203918625 retention_ns=3318750 merkle_ns=428938625 append_join_ns=40083 column_payload_bytes=891740160 coefficient_payload_bytes=222935040 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=139 blowup=2 identity_ns=68259167 lookup_and_control_ns=1708 seal_ns=709658250 total_ns=777919125
+info: pcs coefficient commit: path=expanded columns=136 setup_ns=0 extension_ns=175472291 retention_ns=4130584 merkle_ns=431906458 append_join_ns=29208 column_payload_bytes=870137856 coefficient_payload_bytes=217534464 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=136 blowup=2 identity_ns=66636500 lookup_and_control_ns=84 seal_ns=683693458 total_ns=750330084
+info: pcs coefficient commit: path=expanded columns=135 setup_ns=0 extension_ns=200353667 retention_ns=3366000 merkle_ns=430894958 append_join_ns=33292 column_payload_bytes=889012224 coefficient_payload_bytes=222253056 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=135 blowup=2 identity_ns=68056667 lookup_and_control_ns=1000 seal_ns=708076958 total_ns=776134667
+info: pcs coefficient commit: path=expanded columns=156 setup_ns=41 extension_ns=180502667 retention_ns=4471250 merkle_ns=470701708 append_join_ns=58625 column_payload_bytes=875642880 coefficient_payload_bytes=218910720 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=156 blowup=2 identity_ns=67039292 lookup_and_control_ns=1417 seal_ns=728183458 total_ns=795224209
+info: pcs coefficient commit: path=expanded columns=156 setup_ns=41 extension_ns=174403125 retention_ns=3433084 merkle_ns=473356875 append_join_ns=62500 column_payload_bytes=874463232 coefficient_payload_bytes=218615808 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=156 blowup=2 identity_ns=67044583 lookup_and_control_ns=1042 seal_ns=723280083 total_ns=790325750
+info: pcs coefficient commit: path=expanded columns=154 setup_ns=0 extension_ns=177813209 retention_ns=3574750 merkle_ns=474917125 append_join_ns=46125 column_payload_bytes=877191168 coefficient_payload_bytes=219297792 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=154 blowup=2 identity_ns=67297416 lookup_and_control_ns=1875 seal_ns=730359959 total_ns=797659291
+info: pcs coefficient commit: path=expanded columns=142 setup_ns=0 extension_ns=181907125 retention_ns=3919292 merkle_ns=429663500 append_join_ns=32291 column_payload_bytes=868081664 coefficient_payload_bytes=217020416 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=142 blowup=2 identity_ns=66684500 lookup_and_control_ns=1875 seal_ns=686876292 total_ns=753562709
+info: pcs coefficient commit: path=expanded columns=135 setup_ns=0 extension_ns=205251334 retention_ns=3622750 merkle_ns=432370000 append_join_ns=16916 column_payload_bytes=903655424 coefficient_payload_bytes=225913856 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=135 blowup=2 identity_ns=68990333 lookup_and_control_ns=709 seal_ns=715469833 total_ns=784460875
+info: pcs coefficient commit: path=expanded columns=139 setup_ns=0 extension_ns=178103500 retention_ns=4424458 merkle_ns=437674209 append_join_ns=9416 column_payload_bytes=876380160 coefficient_payload_bytes=219095040 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=139 blowup=2 identity_ns=67249833 lookup_and_control_ns=1292 seal_ns=694491375 total_ns=761742500
+info: pcs coefficient commit: path=expanded columns=139 setup_ns=0 extension_ns=217080709 retention_ns=6294916 merkle_ns=436974500 append_join_ns=8500 column_payload_bytes=970226176 coefficient_payload_bytes=242556544 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=139 blowup=2 identity_ns=76245333 lookup_and_control_ns=1125 seal_ns=740321834 total_ns=816568292
+info: pcs coefficient commit: path=expanded columns=46 setup_ns=0 extension_ns=11823625 retention_ns=616875 merkle_ns=11897833 append_join_ns=29417 column_payload_bytes=135249920 coefficient_payload_bytes=33812480 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=46 blowup=2 identity_ns=10386708 lookup_and_control_ns=42 seal_ns=35762916 total_ns=46149666
+info: pcs coefficient commit: path=expanded columns=33 setup_ns=0 extension_ns=11031209 retention_ns=1242375 merkle_ns=12607125 append_join_ns=2958 column_payload_bytes=125841408 coefficient_payload_bytes=31460352 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=33 blowup=2 identity_ns=10428584 lookup_and_control_ns=2750 seal_ns=35315916 total_ns=45747334
+info: pcs coefficient commit: path=expanded columns=33 setup_ns=42 extension_ns=379292 retention_ns=21375 merkle_ns=302250 append_join_ns=20875 column_payload_bytes=1486848 coefficient_payload_bytes=371712 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=33 blowup=2 identity_ns=123084 lookup_and_control_ns=458 seal_ns=878750 total_ns=1002334
+info: pcs coefficient commit: path=expanded columns=33 setup_ns=0 extension_ns=6204792 retention_ns=268917 merkle_ns=5601333 append_join_ns=2958 column_payload_bytes=47198208 coefficient_payload_bytes=11799552 payload_is_allocator_live=false
+info: immutable fixed acquire: path=seal columns=33 blowup=2 identity_ns=3799125 lookup_and_control_ns=42 seal_ns=15987375 total_ns=19786584
+       33.24 real       249.34 user         1.40 sys
+          7366017024  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              468153  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  97  voluntary context switches
+               95586  involuntary context switches
+       2596401314203  instructions retired
+       1050922673804  cycles elapsed
+          7367825168  peak memory footprint
