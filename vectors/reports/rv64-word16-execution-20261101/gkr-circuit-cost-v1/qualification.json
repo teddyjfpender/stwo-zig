@@ -1,15 +1,14 @@
 {
   "schema": "rv64-shared-gkr-circuit-authority-qualification-v1",
   "base_commit": "fe3b29fc0",
-  "production_receiver_changed": false,
   "whole_recursive_proof": false,
   "whole_protocol_128_qualified": false,
   "gpu_qualified": false,
   "shared_numerical_authority": true,
   "proof_values_are_guessed_wires": true,
   "tests_passed": [
-    "test-riscv64-gkr-circuit ReleaseSafe (nine direct cases plus inherited MLE point cases)",
-    "test-riscv64-gkr-circuit ReleaseFast (nine direct cases plus inherited MLE point cases)",
+    "test-riscv64-gkr-circuit ReleaseSafe (nine direct cases plus inherited MLE/lane cases)",
+    "test-riscv64-gkr-circuit ReleaseFast (nine direct cases plus inherited MLE/lane cases)",
     "test-riscv64-logup-gkr-prototype ReleaseSafe",
     "test-riscv64-logup-gkr-prototype ReleaseFast",
     "test-riscv64-recursion-circuit ReleaseSafe",
@@ -30,7 +29,21 @@
     "No full recursive circuit proof created",
     "No native speedup or circuit-proving time claim",
     "Production shape and secure transcript changes remain unqualified",
-    "Last CLI cleanup removes a redundant native replay and unused loop index; rebuilt, final runtime repeat deferred during controlled ABBA quiet window",
-    "Existing reused native-channel circuit lacks all-eight-word >=2p draw rejection constraints despite its comment; real captured transcript agrees, universal rare-branch parity not qualified. Shared channel unchanged by this work."
-  ]
+    "Existing reused native-channel circuit lacks all-eight-word >=2p draw rejection constraints despite its comment; real captured transcript agrees, universal rare-branch parity not qualified. Shared channel unchanged by this work.",
+    "Captured family is historical12U16+4U8 before current LS32/LS7 inheritance; current4U16+4U8 capture rejected explicitly, not used as a current-main saving estimate"
+  ],
+  "final_cli_cleanup_replay_passed": true,
+  "exact_real_reprove": {
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "matches_original_qualified_bundle_byte_for_byte": true,
+    "producer": "current refactored source; fast6; historical captured witness; shared heavy lock",
+    "fresh_receiver_passed": true
+  },
+  "unsupported_capture_rejected_before_io": true,
+  "production_proof_suite_or_admission_changed": false,
+  "shared_numerical_verifier_refactored": true,
+  "circuit_lane_invalid_inverse_unsatisfied_instead_of_panic": true,
+  "prototype_test_target_minimum": 22,
+  "real_bundle_fixture": "real-ls20-tail18.proof.bin"
 }

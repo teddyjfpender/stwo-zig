@@ -111,6 +111,13 @@ fn verifyMain(a: std.mem.Allocator, variant: Air.Variant, proof_path: []const u8
     try emit(a, .{ .accepted = true, .protocol = "WGKR-LS-RANGE-v0", .variant = @tagName(variant), .statement = statement, .proof_bytes = bytes.len, .verify_wall_ns = timer.read(), .report = report });
 }
 
+/// Historical experiment has exactly12U16+4U8 physical query lanes. A new
+/// LS layout must get its own admitted capture mapping, never stale columns.
+pub fn captureSupported(comptime Layout: type) bool {
+    if (@hasDecl(Layout, "U8")) return Layout.U16.len == W.HI_LANES and Layout.U8.len == W.LO_LANES;
+    return false;
+}
+
 fn capture(a: std.mem.Allocator, request_path: []const u8, jobs_path: []const u8, out_path: []const u8) !void {
     const engine = @import("stwo_prover_engine");
     const Request = @import("../rv64_ethereum_request.zig");
@@ -121,51 +128,53 @@ fn capture(a: std.mem.Allocator, request_path: []const u8, jobs_path: []const u8
     const ProgramMetadata = @import("../word16_execution/program_metadata.zig");
     const X = @import("stwo_riscv_frontend").rv64_air.memory.load_store_v2;
     const Geometry = @import("../word16_execution/geometry.zig").Geometry;
-    var timer = try std.time.Timer.start();
-    const raw = try std.fs.cwd().readFileAlloc(a, request_path, 16384);
-    defer a.free(raw);
-    const config = try std.json.parseFromSlice(Request.Config, a, raw, .{});
-    defer config.deinit();
-    var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(config.value), .stack_size = 1024 * 1024, .backing_allocator = a });
-    defer pool.deinit();
-    var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
-    defer binding.deinit();
-    var image = try Image.Owner.init(a, config.value);
-    defer image.deinit();
-    var metadata_cache = try ProgramMetadata.Cache.init(a, 0);
-    defer metadata_cache.deinit();
-    var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
-    defer program.deinit();
-    var jobs = try std.fs.cwd().openDir(jobs_path, .{});
-    defer jobs.close();
-    var captured = try Capture.init(a, &image, &program, config.value, jobs, 1);
-    defer captured.deinit();
-    const decl = try Plan.cpus(a, &captured);
-    defer a.free(decl);
-    const g = decl[0].geometry;
-    const events = captured.advice.events[0];
-    const counts = try (Geometry{ .cpu_log = 5, .ls_log = g.ls_log, .ls_tail_log = g.ls_tail_log }).lsCounts(@intCast(events.len));
-    const statement = W.Statement.production(g.ls_log, g.ls_tail_log orelse 0);
-    var witness = try W.Witness.initZero(a, statement);
-    defer witness.deinit();
-    const spans = [_][]const X.native.Event{ events[0..counts.head], events[counts.head..] };
-    for (witness.instances[0..witness.count], 0..) |*inst, i| {
-        var source = try X.source.Source.init(a, spans[i], inst.log);
-        defer source.deinit();
-        const n = inst.rows();
-        for (X.layout.U16, 0..) |column, j| for (0..n) |p| {
-            inst.lanes[j][p] = source.main[column * n + p].v;
-        };
-        for (X.layout.U8, 0..) |column, j| for (0..n) |p| {
-            inst.lanes[W.HI_LANES + j][p] = source.main[column * n + p].v;
-        };
-    }
-    var mult = try witness.multiplicities(a);
-    defer mult.deinit(a);
-    if (mult.out_of_range != 0) return error.CapturedRangeValueOutOfRange;
-    var file = try std.fs.cwd().createFile(out_path, .{});
-    defer file.close();
-    try W.write(&witness, file);
-    try emit(a, .{ .batch = 0, .ls_events = events.len, .ls_head = counts.head, .ls_tail = counts.tail, .statement = statement, .range_queries = witness.cells(), .capture_ns = timer.read() });
+    if (comptime captureSupported(X.layout)) {
+        var timer = try std.time.Timer.start();
+        const raw = try std.fs.cwd().readFileAlloc(a, request_path, 16384);
+        defer a.free(raw);
+        const config = try std.json.parseFromSlice(Request.Config, a, raw, .{});
+        defer config.deinit();
+        var pool: engine.work_pool.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = try Request.effectiveWorkers(config.value), .stack_size = 1024 * 1024, .backing_allocator = a });
+        defer pool.deinit();
+        var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        var image = try Image.Owner.init(a, config.value);
+        defer image.deinit();
+        var metadata_cache = try ProgramMetadata.Cache.init(a, 0);
+        defer metadata_cache.deinit();
+        var program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
+        defer program.deinit();
+        var jobs = try std.fs.cwd().openDir(jobs_path, .{});
+        defer jobs.close();
+        var captured = try Capture.init(a, &image, &program, config.value, jobs, 1);
+        defer captured.deinit();
+        const decl = try Plan.cpus(a, &captured);
+        defer a.free(decl);
+        const g = decl[0].geometry;
+        const events = captured.advice.events[0];
+        const counts = try (Geometry{ .cpu_log = 5, .ls_log = g.ls_log, .ls_tail_log = g.ls_tail_log }).lsCounts(@intCast(events.len));
+        const statement = W.Statement.production(g.ls_log, g.ls_tail_log orelse 0);
+        var witness = try W.Witness.initZero(a, statement);
+        defer witness.deinit();
+        const spans = [_][]const X.native.Event{ events[0..counts.head], events[counts.head..] };
+        for (witness.instances[0..witness.count], 0..) |*inst, i| {
+            var source = try X.source.Source.init(a, spans[i], inst.log);
+            defer source.deinit();
+            const n = inst.rows();
+            for (X.layout.U16, 0..) |column, j| for (0..n) |p| {
+                inst.lanes[j][p] = source.main[column * n + p].v;
+            };
+            for (X.layout.U8, 0..) |column, j| for (0..n) |p| {
+                inst.lanes[W.HI_LANES + j][p] = source.main[column * n + p].v;
+            };
+        }
+        var mult = try witness.multiplicities(a);
+        defer mult.deinit(a);
+        if (mult.out_of_range != 0) return error.CapturedRangeValueOutOfRange;
+        var file = try std.fs.cwd().createFile(out_path, .{});
+        defer file.close();
+        try W.write(&witness, file);
+        try emit(a, .{ .batch = 0, .ls_events = events.len, .ls_head = counts.head, .ls_tail = counts.tail, .statement = statement, .range_queries = witness.cells(), .capture_ns = timer.read() });
+    } else return error.CaptureRequiresHistoricalLsRangeLayout;
 }

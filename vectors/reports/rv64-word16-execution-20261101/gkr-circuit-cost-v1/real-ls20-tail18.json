@@ -10,8 +10,8 @@
     "lo_log": 8
   },
   "proof_sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
-  "gkr_fragment_ns": 3369416,
-  "total_fragment_ns": 4838125,
+  "gkr_fragment_ns": 5148708,
+  "total_fragment_ns": 7242375,
   "after_gkr": {
     "gates": {
       "eq": 300,

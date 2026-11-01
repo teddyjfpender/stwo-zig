@@ -12,12 +12,14 @@ The mini-AIR's MLE point, row/lane weights, carry selector, anchors and weighted
 
 ## Actual graph evidence
 
-The real input is the previously qualified LS range witness captured from Ethereum packet0: LS log20 plus tail log18, U16 log16 and U8 log8,16 fractions per row. The original bundle's SHA256 is `d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255`. The oracle independently fresh-verifies that whole mini-AIR proof with receiver-selected q70/P26 geometry before building its circuit fragment.
+The real input is the previously qualified **historical, pre-LS32-inheritance** LS range witness captured from Ethereum packet0: LS log20 plus tail log18, U16 log16 and U8 log8,16 fractions per row. Current LS32/LS7 has4U16+4U8 queries and no old physical U8 map; this16-lane mini-family is not the current service lane's complete debt or saving estimate. Capture now refuses unsupported layouts explicitly instead of compiling stale columns or inventing a new mapping. Produce/verify of pinned historical witnesses remains supported. The original bundle's SHA256 is `d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255`. The oracle independently fresh-verifies that whole mini-AIR proof with receiver-selected q70/P26 geometry before building its circuit fragment.
 
 | Graph stage | Blake G gates | QM31-op rows | M31→u32 rows | Triple-XOR rows | Equality rows | Variables |
 |---|---:|---:|---:|---:|---:|---:|
 | GKR partial verifier, actual raw-Blake transcript | 83,040 | 25,280 | 5,520 | 8,304 | 300 | 372,595 |
 | Plus root fraction closure, terminal numerator checks, binding arithmetic/residuals and finalization | 83,440 | 42,107 | 5,576 | 8,344 | 1,171 | 389,787 |
+
+The circuit component authority assigns MAIN+INTER widths8(EQ),20(QM31ops),16(M31→u32),44(triple-XOR) and104(Blake-G). That converts the measured stages to9,597,856 and9,985,620 active cells respectively, before preprocessed/fixed providers or padding. The receipt includes the per-role calculation. Existing production registry padding to log23 for both QM31ops and Blake-G can mask small raw gate savings unless the admitted target also shrinks.
 
 The first stage emits exactly1,038 Blake compressions, matching the earlier numerical transcript count, rather than treating hash outputs as host constants. The second stage adds855 constrained inversions in total. QM31-op rows include packed pointwise operations used by hash conversion; they should not be read as a count of scalar extension multiplications. Operation counters are retained separately in the JSON.
 
@@ -49,6 +51,6 @@ zig build rv64-gkr-circuit-cost -Doptimize=ReleaseFast -j4
 zig-out/bin/rv64-gkr-circuit-cost PROOF.bin 20 18 16 8
 ```
 
-The last command requires the original qualified real bundle, identified above; it is not checked into this cost receipt. The module owns no worker pool, starts no prover processes and retains no global caches. The CLI uses a bounded16MiB input file and a caller-owned graph context; all scratch and artifact allocations are released at exit. Original worktrees are untouched.
+The receipt retains the381,800-byte original qualified real bundle as `real-ls20-tail18.proof.bin`, so the cost oracle and fresh native verification are reproducible without the41.9MB captured witness. A fresh producer run on that original witness under the shared heavy lock regenerated the exact same proof bytes and passed a separate receiver. The witness is intentionally retained outside source control. The module owns no worker pool, starts no prover processes and retains no global caches. The CLI uses a bounded16MiB input file and a caller-owned graph context; all scratch and artifact allocations are released at exit. Original worktrees are untouched.
 
 Next steps are a reviewed whole-protocol security architecture, a fixed production GKR shape/framing, a complete in-circuit binding/PCS join under that authority, and an equally secure classic-versus-GKR complete-leaf proving comparison. The negative isolated-family hashing result should inform that choice rather than be hidden behind native cell savings.

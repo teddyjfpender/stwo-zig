@@ -1,0 +1,41 @@
+{
+  "schema": "rv64-gkr-active-circuit-cells-v1",
+  "scope": "Active circuit MAIN+INTER cells only, no padding/preprocessed/fixed providers; not full leaf A/B",
+  "source_authority": "src/frontends/circuit/common/component_list.zig:component_facts",
+  "cells_per_row": {
+    "eq": 8,
+    "qm31_ops": 20,
+    "m31_to_u32": 16,
+    "triple_xor": 44,
+    "blake_g_gate": 104
+  },
+  "after_gkr": {
+    "by_role": {
+      "eq": 2400,
+      "qm31_ops": 505600,
+      "m31_to_u32": 88320,
+      "triple_xor": 365376,
+      "blake_g_gate": 8636160
+    },
+    "total": 9597856
+  },
+  "after_finalization": {
+    "by_role": {
+      "eq": 9368,
+      "qm31_ops": 842140,
+      "m31_to_u32": 89216,
+      "triple_xor": 367136,
+      "blake_g_gate": 8677760
+    },
+    "total": 9985620
+  },
+  "classic_ls_trace_leaf_saving_control": {
+    "q": 70,
+    "old_inter_width": 88,
+    "new_inter_width": 32,
+    "removed_leaf_compressions_upper_bound": 280,
+    "removed_blake_g_gates_upper_bound": 22400,
+    "removed_blake_g_cells_upper_bound": 2329600,
+    "limitations": "Does not include changed OODS/DEEP, FRI, classic arithmetic replaced, fixed providers or padding. q70 control is not whole128 qualification."
+  }
+}

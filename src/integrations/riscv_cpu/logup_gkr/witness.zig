@@ -1,7 +1,8 @@
-//! Range-query witness of the experimental LS-range family: 12 U16 lanes and
+//! Historical pre-LS32 range-query witness of the experimental LS family: 12 U16 lanes and
 //! 4 U8 lanes per LS row, stored per lane in bit-reversed circle-domain order
 //! (the same physical order as LS MAIN). Lane `j < 12` is `LOGICAL_U16[j]`,
-//! lane `12 + j` is `LOGICAL_U8[j]` (load_store_v2/layout.zig).
+//! lane `12 + j` is the historical `LOGICAL_U8[j]`. Current LS layouts may
+//! have less debt; capture must refuse incompatible mappings.
 const std = @import("std");
 
 pub const LANES: usize = 16;
