@@ -147,8 +147,18 @@ class Guards(unittest.TestCase):
 
     def test_unknown_profile_fails(self):
         rows = good_rows()
-        rows[0]["execution_profile"] = "ethereum_services_v3"
+        rows[0]["execution_profile"] = "ethereum_services_v9"
         self.assertFalse(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+
+
+class Admitted(unittest.TestCase):
+    def test_admitted_bulk_cost_added(self):
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 1.0, "keccak_cells_per_call": 0.0,
+                                "secp_cells_per_call": 0.0, "composition_fraction": 0.0},
+               "admitted_services": {"memcpy": {"cells_per_call": 100.0, "cells_per_byte": 2.0}}}
+        self.assertEqual(bench.committed_bits(cal, 10, 0, 0, 0, None, {"memcpy": {"calls": 2, "bytes": 16}}), 10 + 200 + 32)
+        with self.assertRaises(ValueError):
+            bench.admitted_cells(cal, {"memset": {"calls": 1, "bytes": 8}})
 
 
 class Candidates(unittest.TestCase):

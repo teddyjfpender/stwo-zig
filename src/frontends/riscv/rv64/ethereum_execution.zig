@@ -92,7 +92,8 @@ const Report = struct {
     sha256_calls: u64 = 0,
     bulk_memcpy_calls: u64 = 0,
     bulk_memset_calls: u64 = 0,
-    bulk_bytes: u64 = 0,
+    bulk_memcpy_bytes: u64 = 0,
+    bulk_memset_bytes: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -261,8 +262,13 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                 },
                 .bulk => |e| {
                     const copy = e.call.tag == rv.execution_profile.MEMCPY_TAG;
-                    if (copy) report.bulk_memcpy_calls += 1 else report.bulk_memset_calls += 1;
-                    report.bulk_bytes += e.packet.len;
+                    if (copy) {
+                        report.bulk_memcpy_calls += 1;
+                        report.bulk_memcpy_bytes += e.packet.len;
+                    } else {
+                        report.bulk_memset_calls += 1;
+                        report.bulk_memset_bytes += e.packet.len;
+                    }
                     report.service_ram_word_transitions += 3 + (if (copy) 2 else 1) * e.dst_before.len;
                     if (census) |*value| {
                         for (0..3) |k| {

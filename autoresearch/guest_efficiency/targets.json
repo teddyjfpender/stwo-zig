@@ -55,7 +55,8 @@
   "per_block_regression_limit": 0.02,
   "holdout_share": 0.5,
   "allowed_execution_profiles": [
-   "ethereum_services_v2"
+   "ethereum_services_v2",
+   "ethereum_services_v3"
   ],
   "holdout_noise_tolerance": 0.001,
   "note": "holdout_noise_tolerance absorbs rebuild drift (<0.1%); real improvements are far larger.",

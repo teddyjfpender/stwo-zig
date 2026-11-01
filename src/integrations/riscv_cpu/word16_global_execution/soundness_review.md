@@ -120,6 +120,36 @@ lift the CPU's native2n composition. Secp truths certify the specified modular
 RCB programs, not standalone ECDSA validity; the complete guest execution proves
 the surrounding recovery/validation and Ethereum behavior.
 
+## Admitted bulk memory (ethereum_services_v3)
+
+Tags 0x30001 (memcpy) and 0x30002 (memset) are admitted by three bridge
+components inside the issuing CPU proof (`desc`, `copy`, `set`;
+`src/frontends/riscv/rv64/air/delegations/bulk_memory`). Full argument, layout,
+masses and tests: `design/riscv-proving-stack/rv64-bulk-memory-service.md`.
+Obligations this receiver relies on:
+
+- The desc row consumes the CPU OWNER19 ECALL tuple (Boolean `active`), binding
+  `a0`, `a7`, epoch and the after tick `4r+4`; it emits one OWNER19 token whose
+  slot 0 (`0x424D0001/2`) is outside the opcode range. Body runs consume tokens
+  on Boolean start rows; local OWNER closure therefore pairs every bulk ECALL
+  with exactly one body run of exactly `len/8` rows (chain-end constraint).
+- Every packet read, source read and destination write is a RAM14 transition at
+  the ECALL's clock with ranged gaps. Strict predecessor order makes any alias
+  among packet, source and destination words unprovable (the executor refuses
+  it), and makes every read observe the latest earlier write.
+- Alignment and no-wrap follow from canonical aligned INIT addresses and the
+  absence of a top-limb carry; `len` limbs 2, 3 are constants 0.
+- Canonical limbs: memset writes `257*fill` with a ranged byte (anchored);
+  memcpy writes the consumed source token's limbs (new strictly decreasing edge
+  in the joint REG/RAM write induction). Bulk after ticks are `4r+4`.
+- Masses: RAM14 `6*calls + 4*copy_words + 2*set_words`, U16 per physical row,
+  bulk ECALLs counted as CPU steps; admitted in `services/protocol.zig::admitBulk`
+  and `services/wire.zig`.
+- v2 rosters mix, commit and serialize nothing new (bulk block present iff the
+  key has bulk components). The Ethereum driver's v3 work-packet route is not
+  yet qualified; the services fixture (`services/bulk_test.zig`) is the
+  accepting evidence.
+
 ## Ownership, storage and resource scope
 
 The canonical services coordinator transfers both CPU and crypto truth
