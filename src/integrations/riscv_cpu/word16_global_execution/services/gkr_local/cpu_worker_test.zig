@@ -52,7 +52,10 @@ pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: St
         failing.fail_index = std.math.maxInt(usize);
         return @splat(0);
     }
+    var timing = Worker.SealTiming{};
+    if (mode == .normal) worker.seal_timing = &timing;
     const stage = try worker.seal(a);
+    if (mode == .normal) try std.testing.expect(timing.main_commit_ns > 0 and timing.gkr_ns > 0);
     try std.testing.expectError(error.WideCpuPhase, worker.seal(a));
     if (mode != .unretired) {
         try worker.retireLocalMetadata();
