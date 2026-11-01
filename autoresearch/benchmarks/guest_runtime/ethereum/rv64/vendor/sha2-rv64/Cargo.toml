@@ -12,6 +12,8 @@ description = "Original SHA-256 implementation for the pinned RV64 guest depende
 default = ["std"]
 std = ["digest/std"]
 oid = ["digest/oid"]
+# Execution-only candidate ECALL (profile ethereum_services_v3_candidate); not admitted.
+stwo-candidate-sha256 = []
 
 [dependencies]
 digest = { version = "=0.10.7", default-features = false, features = ["core-api"] }

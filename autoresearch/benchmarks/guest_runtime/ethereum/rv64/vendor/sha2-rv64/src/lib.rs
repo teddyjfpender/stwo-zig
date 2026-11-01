@@ -99,6 +99,35 @@ fn small1(x: u32) -> u32 {
 
 // Constant indices let LLVM keep the rolling sixteen-word schedule in SSA,
 // while rotating round arguments avoids eight assignments in every round.
+#[cfg(all(feature = "stwo-candidate-sha256", target_arch = "riscv64"))]
+#[inline(never)]
+fn compress(state: &mut [u32; 8], block: &[u8]) {
+    // Execution-only candidate `sha256_compress` ECALL (tag 0x0003_0010).
+    // Packet: H0..H7 as little-endian u32 pairs in four u64 (H0 in the low half
+    // of word 0), then the 64 block bytes in stream order. The service updates
+    // the state words in place and preserves all registers.
+    debug_assert_eq!(block.len(), 64);
+    let mut packet = [0u64; 12];
+    for i in 0..4 {
+        packet[i] = u64::from(state[2 * i]) | (u64::from(state[2 * i + 1]) << 32);
+    }
+    for i in 0..8 {
+        let mut word = [0u8; 8];
+        word.copy_from_slice(&block[8 * i..8 * i + 8]);
+        packet[4 + i] = u64::from_le_bytes(word);
+    }
+    // SAFETY: the packet is live, 8-aligned and unique; the service reads 96
+    // bytes and writes the first 32 in place.
+    unsafe {
+        core::arch::asm!("ecall", in("a0") packet.as_mut_ptr(), in("a7") 0x0003_0010usize, options(nostack));
+    }
+    for i in 0..4 {
+        state[2 * i] = packet[i] as u32;
+        state[2 * i + 1] = (packet[i] >> 32) as u32;
+    }
+}
+
+#[cfg(not(all(feature = "stwo-candidate-sha256", target_arch = "riscv64")))]
 #[inline(never)]
 fn compress(state: &mut [u32; 8], block: &[u8]) {
     debug_assert_eq!(block.len(), 64);

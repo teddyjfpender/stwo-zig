@@ -19,6 +19,14 @@ secp-word-service = ["secp-service", "k256/stwo-projective-word-service"]
 # Lean ECDSA recovery: variable-time word-packet scalar multiplication and no
 # redundant re-verification of the recovered key. Same service ABI/tags as v2.
 secp-lean = ["secp-word-service", "k256/stwo-vartime", "dep:ecdsa", "ecdsa/stwo-skip-redundant-recovery-verify"]
+# EXECUTION-ONLY candidate services (profile ethereum_services_v3_candidate,
+# autoresearch/guest_efficiency/CONTEXT.md). Never part of an admitted guest;
+# the prover cannot prove these ECALLs. One family per feature so each can be
+# measured in isolation; `candidate-services` turns on all of them.
+candidate-mem = ["stwo-rv64-mem/candidate-services"]
+candidate-sha256 = ["dep:sha2", "sha2/stwo-candidate-sha256"]
+candidate-arith = ["dep:revm-interpreter", "revm-interpreter/stwo-candidate-arith"]
+candidate-services = ["candidate-mem", "candidate-sha256", "candidate-arith"]
 
 [dependencies]
 alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }
@@ -27,6 +35,9 @@ critical-section = { version = "1.2", features = ["restore-state-bool"] }
 k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
 ecdsa = { version = "=0.16.9", default-features = false, optional = true }
 revm-precompile = { version = "=42.0.1", default-features = false }
+# Optional direct edges only so candidate features can reach the vendored crates.
+sha2 = { version = "=0.10.9", default-features = false, optional = true }
+revm-interpreter = { version = "=42.0.0", default-features = false, optional = true }
 stwo-rv64-mem = { path = "../mem" }
 stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491", default-features = false }
 

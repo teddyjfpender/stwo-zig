@@ -1,0 +1,67 @@
+{
+ "block": 24628607,
+ "buckets": {
+  "default": {
+   "evm_interpreter": 36285005,
+   "mem_alloc": 21425958,
+   "mpt_rlp": 18006712,
+   "ssz_statement_sha256": 11290684,
+   "secp_ecdsa_glue": 11242062,
+   "keccak_glue": 3536373,
+   "other": 1336910,
+   "ssz_input": 1144044,
+   "unattributed": 6
+  },
+  "sha256": {
+   "evm_interpreter": 36283287,
+   "mem_alloc": 21551685,
+   "mpt_rlp": 17998238,
+   "secp_ecdsa_glue": 11242183,
+   "keccak_glue": 3536373,
+   "other": 1336937,
+   "ssz_input": 935134,
+   "ssz_statement_sha256": 354790,
+   "unattributed": 6
+  },
+  "mem": {
+   "evm_interpreter": 36272720,
+   "mpt_rlp": 18013034,
+   "ssz_statement_sha256": 11290684,
+   "secp_ecdsa_glue": 11242229,
+   "mem_alloc": 4519090,
+   "keccak_glue": 3536373,
+   "other": 1336910,
+   "ssz_input": 1144044,
+   "unattributed": 6
+  },
+  "arith": {
+   "evm_interpreter": 36159196,
+   "mem_alloc": 21517458,
+   "mpt_rlp": 18002848,
+   "ssz_statement_sha256": 11290684,
+   "secp_ecdsa_glue": 11242545,
+   "keccak_glue": 3536373,
+   "other": 1225177,
+   "ssz_input": 1144044,
+   "unattributed": 6
+  },
+  "all": {
+   "evm_interpreter": 36146261,
+   "mpt_rlp": 17997340,
+   "secp_ecdsa_glue": 11242368,
+   "mem_alloc": 4574816,
+   "keccak_glue": 3536373,
+   "other": 1225204,
+   "ssz_input": 935134,
+   "ssz_statement_sha256": 354790,
+   "unattributed": 6
+  }
+ },
+ "instructions": {
+  "default": 104267754,
+  "sha256": 93238633,
+  "mem": 87355090,
+  "arith": 104118331,
+  "all": 76012292
+ }
+}

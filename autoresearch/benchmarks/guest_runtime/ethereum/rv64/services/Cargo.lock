@@ -2978,7 +2978,9 @@ dependencies = [
  "critical-section",
  "ecdsa",
  "k256",
+ "revm-interpreter",
  "revm-precompile",
+ "sha2 0.10.9",
  "stateless-validator-reth",
  "stwo-rv64-mem",
 ]
