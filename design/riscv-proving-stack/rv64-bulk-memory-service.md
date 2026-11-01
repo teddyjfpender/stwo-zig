@@ -261,8 +261,14 @@ equations below p (section 4).
 - `svc/air_components.zig`, `worker.zig`, `pipeline.zig`, `execution.zig`,
   `wire.zig`, `collector.zig` (ledger replay of each bulk call; values come
   only from the chronological RAM ledger).
-- Frontend: `Profile.ethereum_services_v3`, `Tape.appendBulk`/`bulk_calls`,
-  `Prepared.captureForCombinedServicesV3`.
+- Frontend (on top of the shared v3 plumbing from `codex/rv64-guest-prover-sha256`):
+  `MEMCPY_TAG`/`MEMSET_TAG`, session dispatch arm and `ethereum_services/bulk_memory.zig`
+  executor, `Tape.appendBulk` (no payload section: the ECALL step's `lhs`/`rhs`
+  are the pointer and tag, so the tape wire is unchanged), boundary capture and
+  access census arms, the v3 capture whitelist, and the Ethereum plan's bulk logs.
+- Collector: bulk calls are counted from the CPU's own ECALL service records
+  (not from a tape list) and replayed on the chronological ledger; every value
+  the bridges use comes from that ledger, never from execution advice.
 
 **v2 byte identity.** With no bulk roster nothing new is mixed, serialized or
 committed: `beginCpu`, claim mixing, CPU proof columns, `bundle.json`
