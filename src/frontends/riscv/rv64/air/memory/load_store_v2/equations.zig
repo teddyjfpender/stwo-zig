@@ -38,7 +38,8 @@ pub fn emitWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []cons
 /// (random RAM challenges drawn after MAIN) forces the active-row multiset to
 /// equal the canonical public tuples. No range lookups remain, so the range16
 /// and range8 claims of these chips are constrained to zero here.
-pub fn emitBoundaryWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+pub const BOUNDARY_MAIN_CONSTRAINTS = 20;
+pub fn emitBoundaryMainFor(comptime F: type, f: []const F, m: []const F, pm: []const F, row_count: F, nonempty: F, out: *E.SinkFor(F)) void {
     const active = m[0];
     const first = f[1];
     const one = F.one();
@@ -48,6 +49,11 @@ pub fn emitBoundaryWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m
     out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(row_count)));
     for (m[1..L.BOUND_MAIN]) |value| out.emit(one.sub(active).mul(value));
     for ([_]usize{ R.layout.boundary.active, R.layout.boundary.readable, R.layout.boundary.writable }) |c| E.booleanFor(F, out, m[c]);
+}
+pub fn emitBoundaryWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    emitBoundaryMainFor(F, f, m, pm, row_count, nonempty, out);
+    const active = m[0];
+    const first = f[1];
     const scalar = @import("../../providers/scalar_range.zig");
     scalar.single(F, ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, f[2], claims.ram, out);
     out.emit(E.splatFor(F, claims.range16));

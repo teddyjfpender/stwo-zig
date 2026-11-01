@@ -72,12 +72,13 @@ pub const Unbound = struct {
     digest: [32]u8,
     peak_gkr_owned_bytes: usize,
     binding: @import("witness.zig").Witness,
+    binding_reserved_bytes: usize,
     pub fn prove(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype) !*Unbound {
         const plan = try Resource.Plan.forInstances(instances, limit);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
         errdefer a.destroy(self);
-        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined };
+        self.* = .{ .parent_allocator = a, .budget = Budget.init(a, limit), .plan = plan, .result = undefined, .digest = undefined, .peak_gkr_owned_bytes = 0, .binding = undefined, .binding_reserved_bytes = 0 };
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
         const challenges = Challenges.draw(&ch);
@@ -88,14 +89,29 @@ pub const Unbound = struct {
         try Closure.close(bounded, result.proof.output_claims_by_instance);
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
         const eta = ch.drawSecureFelt();
-        self.binding = try @import("witness.zig").Witness.init(bounded, instances, &inputs, &result.artifact, eta);
+        const binding_bytes = try std.math.add(usize, plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
+        try Resource.reserveExternal(&self.budget, binding_bytes);
+        errdefer Resource.releaseExternal(&self.budget, binding_bytes);
+        // Parent-owned planes are explicitly charged while local, then adopted
+        // by the existing worker/PCS allocator without a whole-witness copy.
+        self.binding = try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
         return self;
     }
+    pub fn takeBindingCommit(self: *Unbound, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
+        const commit = try self.binding.takeCommit(instances);
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
+        self.binding_reserved_bytes = 0;
+        // Storage remains live under its receiving worker's admission after this
+        // explicit transfer; releasing the local reservation is not an RSS drop.
+        return commit;
+    }
     pub fn deinit(self: *Unbound) void {
         const a = self.parent_allocator;
         self.binding.deinit();
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
         self.result.deinit(self.budget.allocator());
         std.debug.assert(self.budget.live_bytes == 0);
         a.destroy(self);

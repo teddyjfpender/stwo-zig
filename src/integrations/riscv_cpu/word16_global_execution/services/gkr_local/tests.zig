@@ -156,6 +156,8 @@ fn lifecycleAllocationCase(a: std.mem.Allocator) !void {
     defer child.deinit();
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
+    const owned = try child.takeBindingCommit(&instances);
+    defer owned.deinit(a);
 }
 test "local GKR owner and pending receiver clean up every allocation failure" {
     try std.testing.checkAllAllocationFailures(std.testing.allocator, lifecycleAllocationCase, .{});
@@ -293,4 +295,34 @@ test {
     _ = @import("manifest_test.zig");
     _ = @import("manifest_wire_test.zig");
     _ = @import("table_role_test.zig");
+}
+
+test "binding owned commit transfer is failure atomic and retains its parent allocator" {
+    const Child = @import("child.zig");
+    const a = std.testing.allocator;
+    const instances = [_]Frame.Instance{
+        .{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 },
+        .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
+    };
+    const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    var failing = std.testing.FailingAllocator.init(a, .{});
+    const parent = failing.allocator();
+    const child = try Child.Unbound.prove(parent, 1 << 20, scope, &instances, BalancedMetadata{});
+    defer child.deinit();
+    const original = child.binding.columns[0].ptr;
+    const reserved = child.budget.external_live_bytes;
+    try std.testing.expect(reserved > 0);
+    failing.fail_index = failing.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, child.takeBindingCommit(&instances));
+    try std.testing.expectEqual(original, child.binding.columns[0].ptr);
+    try std.testing.expectEqual(reserved, child.budget.external_live_bytes);
+    failing.fail_index = std.math.maxInt(usize);
+    const owned = try child.takeBindingCommit(&instances);
+    defer owned.deinit(parent);
+    try std.testing.expectEqual(original, owned.backings[0].ptr);
+    try std.testing.expectEqual(0, child.budget.external_live_bytes);
+    try std.testing.expectError(error.LocalGkrBindingUnavailable, child.takeBindingCommit(&instances));
+}
+test {
+    _ = @import("global_cpu_test.zig");
 }

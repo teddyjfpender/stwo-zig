@@ -76,6 +76,22 @@ pub const Witness = struct {
         }
         return .{ .allocator = a, .columns = out };
     }
+    /// Header allocation and all shape checks precede the transfer. On any
+    /// error the original witness remains owned and retryable. Both descriptors
+    /// and backing planes use this witness's parent allocator.
+    pub fn takeCommit(self: *Witness, instances: []const Frame.Instance) !@import("../../../word16_execution/main_ownership.zig").Commit {
+        if (self.columns.len == 0 or self.columns.len != instances.len) return error.LocalGkrBindingUnavailable;
+        for (self.columns, instances) |values, instance| if (values.len != 16 * try instance.rows()) return error.LocalGkrProjectionShape;
+        const headers = try self.allocator.alloc(engine.pcs.ColumnEvaluation, try std.math.mul(usize, 16, instances.len));
+        errdefer self.allocator.free(headers);
+        for (self.columns, instances, 0..) |values, instance, index| {
+            const rows = try instance.rows();
+            for (headers[16 * index ..][0..16], 0..) |*column, c| column.* = .{ .log_size = instance.row_log, .values = values[c * rows ..][0..rows] };
+        }
+        const backings = self.columns;
+        self.columns = &.{};
+        return .{ .columns = headers, .backings = backings };
+    }
     pub fn deinit(self: *Witness) void {
         for (self.columns) |v| self.allocator.free(v);
         self.allocator.free(self.columns);
