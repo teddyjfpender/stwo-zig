@@ -369,15 +369,7 @@ pub inline fn secureFromCoordinatesForField(comptime C: type, comptime F: type, 
     if (extensionDegree(C) == 4) return secureFromCoordinatesFor(F, values);
     if (F == PackedFields.PackedOmBase) return PackedFields.PackedOmSecure.fromCoordinates(values);
     if (comptime F == PackedFields.PackedOmSecure or isExternalLane(F)) return F.fromPartialEvals(values);
-    if (F == NativeO) {
-        var result = NativeO.zero();
-        inline for (0..8) |i| {
-            var basis = [_]M{M.zero()} ** 8;
-            basis[i] = M.one();
-            result = result.add(values[i].mul(NativeO.fromM31Array(basis)));
-        }
-        return result;
-    }
+    if (F == NativeO) return NativeO.fromPartialEvals(values);
     @compileError("unsupported RV64 degree-eight coordinate lane");
 }
 pub inline fn secureForField(comptime C: type, comptime F: type, coordinates: []const F, index: usize) SecureFor(F) {

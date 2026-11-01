@@ -237,3 +237,22 @@ test "OM31 packed lane products and masks preserve distinct rows and eighth coor
     try std.testing.expectError(error.InvalidRv64MaskShape, E.lane.secureSampleForField(O, O, masks, 0, 1, 0, 1));
     try std.testing.expectError(error.InvalidRv64MaskShape, masks.at(0, 8, 0));
 }
+
+test "OM31 shared packed basis remix preserves distinct polynomials in all sixteen rows" {
+    var native: [8][16]O = undefined;
+    var packets: [8]PS = undefined;
+    for (&native, &packets, 0..) |*values, *packet, column| {
+        for (values, 0..) |*v, row| v.* = dense(@intCast(71 + column * 997 + row * 1709));
+        packet.* = PS.fromLanes(values.*);
+    }
+    const actual = PS.fromPartialEvals(packets);
+    for (0..16) |row| {
+        var expected = O.zero();
+        for (0..8) |column| {
+            var basis = [_]M{M.zero()} ** 8;
+            basis[column] = M.one();
+            expected = expected.add(native[column][row].mul(O.fromM31Array(basis)));
+        }
+        try std.testing.expectEqualDeep(expected.toM31Array(), actual.lane(row).toM31Array());
+    }
+}
