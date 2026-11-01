@@ -142,8 +142,11 @@ fn stagedSpecs() [4]G.Spec {
             .ordinal = @intCast(i),
             .role = if (i == 0) .initial else if (i == 3) .terminal else .execution,
             .coverage = .{ .first_step = start, .steps = if (i == 1 or i == 2) 16 else 0, .epoch = epoch, .initial_pc = pc, .final_pc = next_pc, .initial_registers = before, .final_registers = after },
-            .schema = @splat(5), .statement = @splat(6),
-            .fixed = .{ .bytes = @splat(7) }, .fixed_logs = &.{ 5, 6 }, .main_logs = &.{ 5, 7 },
+            .schema = @splat(5),
+            .statement = @splat(6),
+            .fixed = .{ .bytes = @splat(7) },
+            .fixed_logs = &.{ 5, 6 },
+            .main_logs = &.{ 5, 7 },
             .positive_mass = .{ 2, 3, 4 },
         };
     }
@@ -229,7 +232,7 @@ test "Full global RAM plan rejects forged adjacency geometry and characteristic 
     s[3].coverage.final_registers[0] ^= 1;
     try std.testing.expectError(error.InvalidStagedGlobalBoundary, stagedCheck(&s, stagedAnchors()));
     s = stagedSpecs();
-    s[1].main_logs = &.{ 23 };
+    s[1].main_logs = &.{23};
     try std.testing.expectError(error.InvalidStagedGlobalGeometry, stagedCheck(&s, stagedAnchors()));
     s = stagedSpecs();
     s[1].fixed_logs = &.{};
