@@ -304,3 +304,73 @@ test "logup-gkr: capture refuses retired physical columns instead of silently re
     try std.testing.expect(!Main.captureSupported(Missing));
     try std.testing.expect(!Main.captureSupported(Narrow));
 }
+
+test "logup-gkr: packed, fused and chunked fast GKR kernels match the reference over sizes and pools" {
+    const a = std.testing.allocator;
+    const F = @import("fast_gkr.zig");
+    const lookups = @import("stwo_prover_engine").lookups;
+    const MleSecure = lookups.mle.Mle(QM31);
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x50414b44});
+    // Unequal sizes stagger instance activation; odd thread counts and a low
+    // grain give unaligned chunk boundaries (scalar heads/tails around the
+    // four-lane packed bodies) in every build, fold and fused-sum pass.
+    const sizes = [_]usize{ 1 << 11, 1 << 4, 1 << 10, 1 << 2 };
+    var dens: [4][]QM31 = undefined;
+    for (&dens, sizes) |*d, n| d.* = try draw.drawSecureFelts(a, n);
+    defer for (dens) |d| a.free(d);
+    const num2 = try draw.drawSecureFelts(a, sizes[2]);
+    defer a.free(num2);
+    var reference_layers: [4]lookups.gkr_prover.Layer = .{
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[0])) } },
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[1])) } },
+        .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(try a.dupe(QM31, num2)), .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[2])) } },
+        .{ .LogUpSingles = .{ .denominators = try MleSecure.initOwned(try a.dupe(QM31, dens[3])) } },
+    };
+    defer for (&reference_layers) |*l| l.deinit(a);
+    var ch_ref = P.Channel{};
+    var reference = try lookups.gkr_prover.proveBatch(a, &ch_ref, &reference_layers);
+    defer reference.deinit(a);
+    const expected = try P.encodeGkr(a, &reference.proof);
+    defer a.free(expected);
+    for ([_][2]usize{ .{ 1, 1 << 13 }, .{ 2, 8 }, .{ 3, 17 }, .{ 5, 64 }, .{ 7, 4 } }) |config| {
+        var inputs = [_]F.Input{
+            .{ .num = null, .den = try a.dupe(QM31, dens[0]) },
+            .{ .num = null, .den = try a.dupe(QM31, dens[1]) },
+            .{ .num = try a.dupe(QM31, num2), .den = try a.dupe(QM31, dens[2]) },
+            .{ .num = null, .den = try a.dupe(QM31, dens[3]) },
+        };
+        var ch_fast = P.Channel{};
+        var fast = try F.proveBatch(a, &ch_fast, &inputs, .{ .threads = config[0], .min_parallel = config[1] }, null);
+        defer fast.deinit(a);
+        const got = try P.encodeGkr(a, &fast.proof);
+        defer a.free(got);
+        try std.testing.expectEqualSlices(u8, expected, got);
+        try std.testing.expectEqualSlices(u8, &ch_ref.digestBytes(), &ch_fast.digestBytes());
+        try std.testing.expectEqualSlices(QM31, reference.artifact.ood_point, fast.artifact.ood_point);
+        for (reference.artifact.claims_to_verify_by_instance, fast.artifact.claims_to_verify_by_instance) |r, f| try std.testing.expectEqualSlices(QM31, r, f);
+    }
+}
+
+test "logup-gkr: parallel packed eq table equals the serial eq evaluations" {
+    const a = std.testing.allocator;
+    const F = @import("fast_gkr.zig");
+    var draw = P.Channel{};
+    draw.mixU32s(&.{0x45515442});
+    const y = try draw.drawSecureFelts(a, 12);
+    defer a.free(y);
+    for (0..y.len + 1) |len| {
+        // Reference: eq over y[1..] (MSB first) scaled by 1 - y[0].
+        const expected = if (len == 0) try a.dupe(QM31, &.{QM31.one()}) else blk: {
+            const t = try MP.genEqEvals(a, y[1..len]);
+            for (t) |*v| v.* = v.mul(QM31.one().sub(y[0]));
+            break :blk t;
+        };
+        defer a.free(expected);
+        for ([_][2]usize{ .{ 1, 1 << 13 }, .{ 3, 4 }, .{ 6, 16 } }) |config| {
+            const got = try F.testing.eqTableWith(a, config[0], config[1], y[0..len]);
+            defer a.free(got);
+            try std.testing.expectEqualSlices(QM31, expected, got);
+        }
+    }
+}
