@@ -14,6 +14,7 @@ const S = E.PackedFields.SecureForField(O);
 const P = engine.air.component_prover.ForField(O);
 const D = engine.air.accumulation.ForField(O);
 const B = @import("binding.zig");
+const Geo = @import("role_geometry.zig");
 const Partition = A.full.coset_evaluation.Evaluation;
 fn packedSecure(values: [][]const M, start: usize, row: usize) S {
     var coords: [8]F = undefined;
@@ -23,19 +24,24 @@ fn packedSecure(values: [][]const M, start: usize, row: usize) S {
 pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAccumulator, pool: ?*engine.work_pool.WorkPool) !void {
     try self.validate();
     const Component = @typeInfo(@TypeOf(self)).pointer.child;
-    const Scratch = struct { fixed: [Component.MAX_FIXED]F, main: [Component.MAX_MAIN]F, previous: [Component.MAX_MAIN]F, weights: [128]S };
+    const local_binding = comptime Geo.hasLocal(Component);
+    const max_inter = comptime Geo.maxInter(Component);
+    const aux_count = comptime if (local_binding) 10 else 0;
+    const Scratch = struct { fixed: [Component.MAX_FIXED]F, main: [Component.MAX_MAIN]F, previous: [Component.MAX_MAIN]F, inter: [max_inter]F, previous_inter: [max_inter]F, weights: [if (local_binding) 128 else 0]S };
     const shape = self.mainShape();
     if (shape.fixed > Component.MAX_FIXED or shape.main > Component.MAX_MAIN) return error.InvalidLocalGkrTrace;
-    const log = self.data.instance.row_log;
+    const log = Geo.logSize(self);
+    const inter_width = Geo.interWidth(self);
+    if (inter_width > max_inter) return error.InvalidLocalGkrTrace;
     const offsets = self.columnOffsets();
-    if (trace.polys.items.len < 3 or trace.polys.items[0].len < offsets[0] + shape.fixed or trace.polys.items[1].len < offsets[1] + shape.main or trace.polys.items[2].len < self.inter_offset + 16) return error.InvalidLocalGkrTrace;
+    if (trace.polys.items.len < 3 or trace.polys.items[0].len < offsets[0] + shape.fixed or trace.polys.items[1].len < offsets[1] + shape.main or trace.polys.items[2].len < self.inter_offset + inter_width) return error.InvalidLocalGkrTrace;
     const a = acc.allocator;
-    const rows = try self.data.instance.rows();
-    var aux: [10]engine.poly.circle.CircleCoefficients = undefined;
+    const rows: usize = @as(usize, 1) << @intCast(log);
+    var aux: [aux_count]engine.poly.circle.CircleCoefficients = undefined;
     var done: usize = 0;
     defer for (aux[0..done]) |*v| v.deinit(a);
     const native_domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
-    for (&aux, 0..) |*coefficient, column| {
+    if (comptime local_binding) for (&aux, 0..) |*coefficient, column| {
         const values = try a.alloc(M, rows);
         defer a.free(values);
         @memset(values, M.zero());
@@ -48,25 +54,27 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
         } else values[A.witness.physical(column - 8, log)] = M.one();
         coefficient.* = try engine.poly.circle.poly.interpolateFromEvaluation(a, try engine.poly.circle.evaluation.CircleEvaluation.init(native_domain, values));
         done += 1;
-    }
+    };
     const main_at = shape.fixed;
     const inter_at = main_at + shape.main;
-    const aux_at = inter_at + 16;
-    const total = aux_at + 10;
-    var columns: [Component.MAX_FIXED + Component.MAX_MAIN + 26]P.Poly = undefined;
+    const aux_at = inter_at + inter_width;
+    const total = aux_at + aux_count;
+    var columns: [Component.MAX_FIXED + Component.MAX_MAIN + max_inter + aux_count]P.Poly = undefined;
     @memcpy(columns[0..shape.fixed], trace.polys.items[0][offsets[0]..][0..shape.fixed]);
     @memcpy(columns[main_at..inter_at], trace.polys.items[1][offsets[1]..][0..shape.main]);
-    @memcpy(columns[inter_at..aux_at], trace.polys.items[2][self.inter_offset..][0..16]);
+    @memcpy(columns[inter_at..aux_at], trace.polys.items[2][self.inter_offset..][0..inter_width]);
     for (aux, 0..) |coefficient, c| columns[aux_at + c] = .{ .log_size = log, .values = &.{}, .coefficients = coefficient };
-    var previous: [Component.MAX_FIXED + Component.MAX_MAIN + 26]bool = @splat(false);
+    var previous: [Component.MAX_FIXED + Component.MAX_MAIN + max_inter + aux_count]bool = @splat(false);
     for (0..shape.main) |c| previous[main_at + c] = self.previousMain(c);
-    @memset(previous[inter_at + 8 .. inter_at + 16], true);
+    for (0..inter_width) |c| previous[inter_at + c] = Geo.previousInter(self, c);
     var evaluation = try Partition.initDegreeThree(a, columns[0..total], log, previous[0..total]);
     defer evaluation.deinit();
     const scratch = try a.create(Scratch);
     defer a.destroy(scratch);
     scratch.previous = @splat(F.zero());
-    for (scratch.weights[0..self.data.lane_count], self.data.lane_weights[0..self.data.lane_count]) |*v, x| v.* = S.splat(x);
+    if (comptime local_binding) {
+        for (scratch.weights[0..self.data.lane_count], self.data.lane_weights[0..self.data.lane_count]) |*v, x| v.* = S.splat(x);
+    }
     const outputs = try acc.columns(a, &.{.{ .log_size = log + 1, .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
@@ -87,25 +95,37 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
             var weighted = E.WeightedAccumulatorFor(F){ .powers = output.random_coeff_powers };
             var sink = E.SinkFor(F){ .weighted_accumulator = &weighted };
             try self.emitMainFor(F, scratch.fixed[0..shape.fixed], scratch.main[0..shape.main], scratch.previous[0..shape.main], &sink);
-            var projection = B.ProjectionFor(F){ .challenges = &self.data.challenges, .lane_weights = scratch.weights[0..self.data.lane_count], .terms = self.data.instance.terms };
-            self.emitLocalFor(F, scratch.fixed[0..shape.fixed], scratch.main[0..shape.main], &projection);
-            try projection.finish();
-            var next_coords: [8]F = undefined;
-            var prior_coords: [8]F = undefined;
-            for (0..8) |c| {
-                var next: [E.LANES]M = undefined;
-                var prior: [E.LANES]M = undefined;
-                for (&next, &prior, 0..) |*n, *p, lane| {
-                    const global = evaluation.globalRow(part, row + lane);
-                    const shifted = core.utils.offsetBitReversedCircleDomainIndex(global, log, log + 1, 2);
-                    if (shifted / rows != part) return error.InvalidLocalGkrNextMask;
-                    n.* = evaluation.current_values[inter_at + c][shifted % rows];
-                    p.* = evaluation.previous_values[inter_at + 8 + c][evaluation.previousRow(part, row + lane)];
+            for (scratch.inter[0..inter_width], scratch.previous_inter[0..inter_width], 0..) |*value, *prior, c| {
+                value.* = F.load(evaluation.current_values[inter_at + c].ptr + row);
+                prior.* = F.zero();
+                if (Geo.previousInter(self, c)) {
+                    var previous_lanes: [E.LANES]M = undefined;
+                    for (&previous_lanes, 0..) |*v, lane| v.* = evaluation.previous_values[inter_at + c][evaluation.previousRow(part, row + lane)];
+                    prior.* = F.fromLanes(previous_lanes);
                 }
-                next_coords[c] = F.fromLanes(next);
-                prior_coords[c] = F.fromLanes(prior);
             }
-            B.emitFor(F, .{ .eq = packedSecure(evaluation.current_values, inter_at, row), .eq_next2 = E.secureFromCoordinatesForField(O, F, next_coords), .prefix = packedSecure(evaluation.current_values, inter_at + 8, row), .prefix_previous = E.secureFromCoordinatesForField(O, F, prior_coords) }, .{ .first = S.fromBase(F.load(evaluation.current_values[aux_at + 8].ptr + row)), .second = S.fromBase(F.load(evaluation.current_values[aux_at + 9].ptr + row)), .carry = packedSecure(evaluation.current_values, aux_at, row), .eq0 = S.splat(self.data.point.eq0), .eq1 = S.splat(self.data.point.eq1) }, projection.combine(S.splat(self.data.eta)), S.splat(self.data.target_per_row), &sink);
+            if (comptime local_binding) {
+                var projection = B.ProjectionFor(F){ .challenges = &self.data.challenges, .lane_weights = scratch.weights[0..self.data.lane_count], .terms = self.data.instance.terms };
+                self.emitLocalFor(F, scratch.fixed[0..shape.fixed], scratch.main[0..shape.main], &projection);
+                try projection.finish();
+                var next_coords: [8]F = undefined;
+                var prior_coords: [8]F = undefined;
+                for (0..8) |c| {
+                    var next: [E.LANES]M = undefined;
+                    var prior: [E.LANES]M = undefined;
+                    for (&next, &prior, 0..) |*n, *p, lane| {
+                        const global = evaluation.globalRow(part, row + lane);
+                        const shifted = core.utils.offsetBitReversedCircleDomainIndex(global, log, log + 1, 2);
+                        if (shifted / rows != part) return error.InvalidLocalGkrNextMask;
+                        n.* = evaluation.current_values[inter_at + c][shifted % rows];
+                        p.* = evaluation.previous_values[inter_at + 8 + c][evaluation.previousRow(part, row + lane)];
+                    }
+                    next_coords[c] = F.fromLanes(next);
+                    prior_coords[c] = F.fromLanes(prior);
+                }
+                B.emitFor(F, .{ .eq = packedSecure(evaluation.current_values, inter_at, row), .eq_next2 = E.secureFromCoordinatesForField(O, F, next_coords), .prefix = packedSecure(evaluation.current_values, inter_at + 8, row), .prefix_previous = E.secureFromCoordinatesForField(O, F, prior_coords) }, .{ .first = S.fromBase(F.load(evaluation.current_values[aux_at + 8].ptr + row)), .second = S.fromBase(F.load(evaluation.current_values[aux_at + 9].ptr + row)), .carry = packedSecure(evaluation.current_values, aux_at, row), .eq0 = S.splat(self.data.point.eq0), .eq1 = S.splat(self.data.point.eq1) }, projection.combine(S.splat(self.data.eta)), S.splat(self.data.target_per_row), &sink);
+            }
+            if (comptime @hasDecl(Component, "emitGlobalFor")) try self.emitGlobalFor(F, scratch.fixed[0..shape.fixed], scratch.main[0..shape.main], scratch.inter[0..inter_width], scratch.previous_inter[0..inter_width], &sink);
             if (sink.count != self.nConstraints()) return error.LocalGkrProjectionShape;
             const result = weighted.accumulation.mulBase(inverse).coordinates();
             const start = evaluation.globalRow(part, row);
