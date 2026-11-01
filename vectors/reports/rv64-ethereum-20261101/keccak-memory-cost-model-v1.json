@@ -1,0 +1,233 @@
+{
+ "schema": "stwo.rv64.keccak-memory-cost-model.v1",
+ "date": "2026-11-01",
+ "scope": "Committed main+interaction cells (fixed excluded), 62 bits/cell at LDE incl. blowup 2, flat 4.51% composition, per autoresearch/guest_efficiency/calibration.json. Designs are ESTIMATES unless marked measured.",
+ "measured": {
+  "source": [
+   "/tmp/rv64-ls32-qualified-complete-v1/cost.json",
+   "/tmp/rv64-ls32-qualified-complete-v1/roster.json",
+   "basket.json gas_used"
+  ],
+  "block": 24628607,
+  "gas_used": 7372614,
+  "instructions": 104253913,
+  "keccak_f_calls": 32835,
+  "keccak_calls_per_kgas": 4.454,
+  "keccak_truth_cells_per_call": 72159.27,
+  "keccak_main_cells_per_call": 30705.2,
+  "keccak_interaction_cells_per_call": 41451.2,
+  "keccak_table_cells_per_call": 2.81,
+  "keccak_fixed_cells_per_call_excluded": 514.9,
+  "keccak_rows_used": 476122,
+  "keccak_rows_committed": 524288,
+  "keccak_padding_factor": 1.1012,
+  "keccak_padding_cells_per_call": 6631.0,
+  "keccak_logup_fraction_of_truth_cells": 0.5744,
+  "bridge_cells_per_call": 6164.0,
+  "bridge_main_per_call": 2235.3,
+  "bridge_inter_per_call": 3928.7,
+  "bridge_padding_factor": 1.3547,
+  "bridge_cells_per_instr_inside_cpu_coefficient": 1.941,
+  "cpu_cells_per_instr": 154.814,
+  "cpu_cells_per_instr_ex_bridge": 152.872,
+  "cpu_row_cells_per_instr": 87.5,
+  "ls_rows": 33457230,
+  "ls_fraction_of_instr": 0.3209,
+  "ls_row_cells_per_access": 112.19,
+  "ls_padding_factor": 1.0999,
+  "cells_per_load_store_incl_cpu_row": 199.7,
+  "keccak_glue_instr_per_call_baseline_guest": 107.7
+ },
+ "reference_guest": {
+  "instr_per_gas": 5.88,
+  "bits_per_gas_user_stated": 82204,
+  "keccak_cells_per_gas_user_stated": 290,
+  "implied_keccak_calls_per_kgas": 4.019,
+  "implied_secp_cells_per_gas": 68.3,
+  "model_bits_today_at_5_88": 83070
+ },
+ "assumptions": {
+  "ladder_fill": 0.97,
+  "aligned_dword_share_of_ls": 0.6,
+  "ls_nominal_width_today": 102,
+  "dword_chip_width": 68,
+  "dword_chip_width_with_trims": 58,
+  "subword_width_with_trims": 96,
+  "fused_dword_row_width": 89,
+  "state_bus_cells_on_remaining_cpu_rows": 2.2,
+  "bridge_u16_row_width": 118,
+  "sponge_bridge_cells_per_block": 2465,
+  "sponge_glue_instr_removed_per_call": 90.0,
+  "gkr_committed_extra_columns": 12,
+  "throughput_table_cells_per_proof": 10813440,
+  "keccak_truth_proofs": 2
+ },
+ "keccak_per_call_estimates": {
+  "K0 today (measured)": 72159,
+  "K1 ladder fill 97%": 67555,
+  "K2 27-row slot": 67181,
+  "K3 (a) 5-out chi + 3-pos xor5": 41071,
+  "K4 (a)+(b1)+ladder": 35884,
+  "K5 (b2) 3 perms/cell compact": 48272,
+  "K6 (f) GKR + (b1) + ladder": 26933
+ },
+ "bridge_per_call_estimates": {
+  "B0 today (measured)": 6164,
+  "B1 (c) u16 IO": 3996,
+  "B2 (d) direct RAM in Keccak row (vs K3)": 3481
+ },
+ "cpu_cells_per_instr_estimates": {
+  "M0 today (measured)": 152.87,
+  "M1 aligned-dword chip": 145.67,
+  "M1+M3 + range trims": 142.71,
+  "M1+M2+M3 fused dword LS/CPU": 133.92,
+  "bound: every access halved": 120.83
+ },
+ "table": [
+  {
+   "design": "today",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 78323,
+   "bits_per_gas_at_5_88": 83070,
+   "bits_per_gas_at_3_0": 54541,
+   "glue_instr_removed_per_call": 0.0,
+   "note": "measured coefficients"
+  },
+  {
+   "design": "K1 ladder",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 73719,
+   "bits_per_gas_at_5_88": 81870,
+   "bits_per_gas_at_3_0": 53342,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K3 (a)",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 47235,
+   "bits_per_gas_at_5_88": 74974,
+   "bits_per_gas_at_3_0": 46445,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K3 (a) + B1 (c)",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 45067,
+   "bits_per_gas_at_5_88": 74409,
+   "bits_per_gas_at_3_0": 45880,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K4 (a)+(b1)+ladder + B1",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 39880,
+   "bits_per_gas_at_5_88": 73058,
+   "bits_per_gas_at_3_0": 44529,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K5 (b2) 3 perms/cell + B1",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 52269,
+   "bits_per_gas_at_5_88": 76285,
+   "bits_per_gas_at_3_0": 47756,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K6 (f) GKR+(b1)+ladder + B1",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 30930,
+   "bits_per_gas_at_5_88": 70727,
+   "bits_per_gas_at_3_0": 42198,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K4 + (e) sponge",
+   "cpu_cells_per_instr_ex_bridge": 152.87,
+   "keccak_cells_per_call_incl_bridge": 39678,
+   "bits_per_gas_at_5_88": 69423,
+   "bits_per_gas_at_3_0": 40894,
+   "glue_instr_removed_per_call": 90.0,
+   "note": "glue removal estimated from baseline guest"
+  },
+  {
+   "design": "M1 aligned-dword chip",
+   "cpu_cells_per_instr_ex_bridge": 145.67,
+   "keccak_cells_per_call_incl_bridge": 78323,
+   "bits_per_gas_at_5_88": 80326,
+   "bits_per_gas_at_3_0": 53141,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "M1+M3 + range trims",
+   "cpu_cells_per_instr_ex_bridge": 142.71,
+   "keccak_cells_per_call_incl_bridge": 78323,
+   "bits_per_gas_at_5_88": 79196,
+   "bits_per_gas_at_3_0": 52564,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "M1+M2+M3 fused dword LS/CPU",
+   "cpu_cells_per_instr_ex_bridge": 133.92,
+   "keccak_cells_per_call_incl_bridge": 78323,
+   "bits_per_gas_at_5_88": 75847,
+   "bits_per_gas_at_3_0": 50856,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "bound: every access halved",
+   "cpu_cells_per_instr_ex_bridge": 120.83,
+   "keccak_cells_per_call_incl_bridge": 78323,
+   "bits_per_gas_at_5_88": 70861,
+   "bits_per_gas_at_3_0": 48312,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K4+B1 + M1+M3",
+   "cpu_cells_per_instr_ex_bridge": 142.71,
+   "keccak_cells_per_call_incl_bridge": 39880,
+   "bits_per_gas_at_5_88": 69185,
+   "bits_per_gas_at_3_0": 42553,
+   "glue_instr_removed_per_call": 0.0,
+   "note": ""
+  },
+  {
+   "design": "K4+(e) + M1+M3",
+   "cpu_cells_per_instr_ex_bridge": 142.71,
+   "keccak_cells_per_call_incl_bridge": 39678,
+   "bits_per_gas_at_5_88": 65788,
+   "bits_per_gas_at_3_0": 39156,
+   "glue_instr_removed_per_call": 90.0,
+   "note": ""
+  },
+  {
+   "design": "K6+(e) + M1+M2+M3 (everything)",
+   "cpu_cells_per_instr_ex_bridge": 133.92,
+   "keccak_cells_per_call_incl_bridge": 30396,
+   "bits_per_gas_at_5_88": 60227,
+   "bits_per_gas_at_3_0": 35236,
+   "glue_instr_removed_per_call": 90.0,
+   "note": ""
+  }
+ ],
+ "target_30000_at_3_0": {
+  "reached_by_any": false,
+  "required_cpu_cells_per_instr_if_keccak_36k": 83.3,
+  "required_cpu_cells_per_instr_if_keccak_30k": 91.4,
+  "required_cpu_cells_per_instr_if_keccak_zero": 131.6
+ },
+ "sensitivity_block_density": {
+  "keccak_calls_per_kgas": 4.454,
+  "today_bits_at_5_88": 85276
+ }
+}
