@@ -2,22 +2,23 @@
 
 Status: focused physical-proof qualification passes in ReleaseSafe and
 ReleaseFast. A real four-CPU/three-truth Ethereum prefix accepts in a fresh
-receiver. Complete-block qualification is the remaining promotion gate.
+receiver. The complete 104,253,913-instruction block also accepts in a fresh
+receiver with 25 CPU and 5 truth proofs.
 
 Base: `259f49ff8`. The earlier LS32 design/implementation commits were
 `567823623` / `d873812af`, recovered in this branch as `670fe8ebd` / `8d5b588cf`.
 The port preserves the newer MAIN70 affine b_low projection, public INIT/TERM
-MAIN14/INTER8 binding, DIV result anchors and the current nominal96 q70/P26/fold1 control suite. This does not qualify
-the requested128-bit whole-protocol production security target.
-LS INTER48 becomes32; the LS encoding identity becomes v6 and the complete core
-schema becomes7. Old schema6 bundles must not silently select the new shape.
+MAIN14/INTER8 binding, DIV result anchors and the current nominal 96-bit q70/P26/fold1 control suite. This does not qualify
+the requested 128-bit whole-protocol production security target.
+LS INTER48 becomes 32; the LS encoding identity becomes v6 and the complete core
+schema becomes 7. Old schema 6 bundles must not silently select the new shape.
 
 ## Every register writer and its source authority
 
 All paths below are relative to `src/frontends/riscv/rv64/air/` at this branch.
 The complete architectural effects list is `../decode.zig:76` (`effects`).
 The inventory regression enumerates every admitted opcode with `writes_rd`;
-there are52 RV64IM register-writing opcodes, grouped exhaustively below.
+there are 52 RV64IM register-writing opcodes, grouped exhaustively below.
 
 | Architectural writer | Routing source, file:line | Canonical result authority, file:line |
 |---|---|---|
@@ -26,7 +27,7 @@ there are52 RV64IM register-writing opcodes, grouped exhaustively below.
 | SLL, SRL, SRA, SLLI, SRLI, SRAI, SLLW, SRLW, SRAW, SLLIW, SRLIW, SRAIW | same immutable operation classification | `word16_v1/shift_word.zig:80` queries every limb/microshift; `shift_word.zig:84` retains quotient and signs; `shift_word.zig:109` binds C to chunk arithmetic; `shift_chunk_arithmetic.zig:83` combines disjoint bounded chunks. |
 | MUL, MULH, MULHSU, MULHU, MULW | `word16_execution/features.zig:90` onward | `delegations/multiplication/provider.zig:53` includes all RESULT bytes in unconditional BYTE membership; `degree3_provider.zig:10` enforces those queries and the function truth. |
 | DIV, DIVU, REM, REMU, DIVW, DIVUW, REMW, REMUW | same raw arithmetic routing | `delegations/division/word16_product/equations.zig:43` retains explicit C4 queries, even after the A/B query trim. Q/absB/product correctness additionally depends on the actual closed MUL/MULHU support facts. |
-| LB, LH, LW, LD, LBU, LHU, LWU | `word16_execution/features.zig:73` selects OWNER, not FUNCTION | `memory/load_store_v1/equations.zig:92` through106: C is earlier RAM-before limbs, a fixed-table byte plus signed fill, or0/65535. The earlier dependency is established by the joint time induction, not a hidden C range. |
+| LB, LH, LW, LD, LBU, LHU, LWU | `word16_execution/features.zig:73` selects OWNER, not FUNCTION | `memory/load_store_v1/equations.zig:92` through106: C is earlier RAM-before limbs, a fixed-table byte plus signed fill, or 0/65535. The earlier dependency is established by the joint time induction, not a hidden C range. |
 | **LUI** | **`word16_execution/features.zig:48`**: ALU ADD, x0 and ROM immediate | `word16_v1/alu.zig:58` and `:143`: sum limbs remain U16 checked. LUI is explicitly included; it is not an unlisted native shortcut. |
 | **AUIPC** | **`word16_execution/features.zig:53`**: ALU ADD, ROM PC and immediate | Same ALU sum anchors. PC/immediate limbs are independently derived by the immutable ROM (`features.zig:112`). |
 | JAL | `word16_execution/features.zig:59`: ALU ADD, PC+4 | ALU sum anchors. JAL's architectural C is **not** taken from the ROM link field. |
@@ -61,20 +62,20 @@ the CPU loop. Only RAM14/KIO/Wire are accumulated across the complete manifest.
 Named claim fields are additive ledger shares, not independent certificates.
 
 LS OWNER uses the same Boolean m[0] as the RAM transition. CPU OWNER weight is
-active-function and is Boolean. LS tick is OWNER-bound to4r+4; Keccak and secp
+active-function and is Boolean. LS tick is OWNER-bound to 4r+4; Keccak and secp
 copy their first-coordinate tick/epoch across continuations. SB selection parity
 and the byte replacement factor derive from the same one-hot offsets. A new
 writer must retain independent result anchors or reopen the joint induction.
 
 The dependency order is `(epoch, clock)`. REG reads go backward within a proof;
-load C at4r+3 depends on RAM at most4r in the same epoch or an earlier epoch;
-RAM stores at4r+4 depend on B at4r+2. A balanced interior alias chain cannot create
+load C at 4r+3 depends on RAM at most 4r in the same epoch or an earlier epoch;
+RAM stores at 4r+4 depend on B at 4r+2. A balanced interior alias chain cannot create
 its first ancestor. The actual negative-proof tests below guard precisely that.
 
 ## Actual proof tests
 
 - `memory/joint_write_proof_test.zig` commits a six-instruction LD→REG→SD chain.
-  The alias is limb1+=65536, limb2-=1; limb0 is left alone because its store-byte
+  The alias is limb 1 +=65536, limb 2 -=1; limb 0 is left alone because its store-byte
   split remains checked. Alias values propagate through CPU C/B/previous_rd,
   OWNER and LS before/after. Final RAM and register endpoints are restored to
   canonical public values. The test requires all local non-RAM debts to close,
@@ -101,17 +102,28 @@ its first ancestor. The actual negative-proof tests below guard precisely that.
 
 Both memory and combined-services LS32-filtered products pass in ReleaseSafe and
 ReleaseFast. The complete memory, LS circuit and execution circuit products also
-pass in ReleaseSafe. The exhaustive writer inventory asserts52 writers in both
+pass in ReleaseSafe. The exhaustive writer inventory asserts 52 writers in both
 modes. These tests include fresh physical proofs, rather than constructor-only
 rejection of invalid inputs.
 
-The schema7 prefix at `/tmp/rv64-ls32-qualified-prefix4-v1` covers16,777,212
+The schema 7 prefix at `/tmp/rv64-ls32-qualified-prefix4-v1` covers 16,777,212
 retirements with four CPU and three truth proofs. A separate receiver accepts.
-Against the compatible schema6 control
+Against the compatible schema 6 control
 `/tmp/rv64-wave2-final-legacy-prefix4-v1`, every CPU request, truth declaration,
 public memory word, cell digest and complete `cells.bin` agrees exactly. Proof
 and transcript bytes intentionally change with the encoding identity. The
 prefix reports incomplete coverage; acceptance is not full-block completion.
-These are functional control-profile results, not128-bit security qualification
-or a controlled performance comparison. Full-block results belong in the
-companion receipt once that gate has run.
+The complete block has the same exact semantic parity and 43-byte output as the
+current schema6 baseline. Native cells fall from 20,925,263,680 to 20,336,488,256:
+588,775,424 fewer interaction cells, a 2.814% whole-block reduction. Main and
+preprocessed cells are unchanged. The four-proof prefix saves 1.73%; savings
+depend on actual load/store occupancy rather than the old architectural estimate.
+
+These are functional control-profile results, not 128-bit security qualification
+or a controlled performance comparison. Other compilation and pre-push checks
+were active during the run; 168.49s wall and 144.47s proving must not be compared
+as a qualified speedup against the controlled baseline. Durable reports, exact
+semantic parity and provenance are in
+`vectors/reports/rv64-ls32-qualified-20261101/receipt.json`. The build occurred
+before the qualification commit with uncommitted tests/docs; the receipt states
+that provenance rather than claiming a clean-source binary.

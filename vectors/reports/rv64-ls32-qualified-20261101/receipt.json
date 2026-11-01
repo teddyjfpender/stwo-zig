@@ -1,0 +1,122 @@
+{
+  "kind": "LS32 functional and arithmetic-soundness qualification control",
+  "base_commit": "259f49ff8",
+  "design_port": "670fe8ebd",
+  "shape_port": "8d5b588cf",
+  "qualification_source": "13dc46668",
+  "core_schema": 7,
+  "ls_encoding": 6,
+  "ls_main": 70,
+  "ls_interaction": 32,
+  "boundary_main": 14,
+  "boundary_interaction": 8,
+  "security": {
+    "profile": "nominal96 q70/P26/fold1 control",
+    "production_target": "128-bit whole-protocol",
+    "production_security_qualified": false
+  },
+  "binary": {
+    "path": "/tmp/rv64-ls32-qualified-tools-v1/bin/rv64-word16-ethereum",
+    "sha256": "f53b848eaa42153a034053580ac1df92b7cb1879781ba389003730a09c06a8f9",
+    "provenance": "Built at8d5b588cf with uncommitted qualification test/doc additions subsequently committed13dc46668; later changes contain no linked production behavior changes. Not a clean-commit binary claim."
+  },
+  "prefix": {
+    "new": "/tmp/rv64-ls32-qualified-prefix4-v1",
+    "control": "/tmp/rv64-wave2-final-legacy-prefix4-v1",
+    "semantic_parity": {
+      "cpu_requests": true,
+      "truth_declarations": true,
+      "public_ram_words": true,
+      "cells_digest": true,
+      "cells_complete_bytes": true,
+      "active_fact_and_service_census": true
+    },
+    "native_cells": [
+      231268768,
+      1521737280,
+      1190261120
+    ],
+    "control_native_cells": [
+      231268768,
+      1521737280,
+      1242165632
+    ]
+  },
+  "complete": {
+    "new": "/tmp/rv64-ls32-qualified-complete-v1",
+    "control": "/tmp/rv64-opt-current-baseline-v1/runs/baseline-2x8-r1",
+    "semantic_parity": {
+      "cpu_requests": true,
+      "truth_declarations": true,
+      "public_ram_words": true,
+      "cells_digest": true,
+      "cells_complete_bytes": true,
+      "active_fact_and_service_census": true
+    },
+    "native_cells": [
+      1424594496,
+      10230620160,
+      8681273600
+    ],
+    "control_native_cells": [
+      1424594496,
+      10230620160,
+      9270049024
+    ],
+    "proof_bytes_parity_expected": false,
+    "completed": true,
+    "fresh_receiver_accepted": true
+  },
+  "attack_tests": {
+    "balanced_single_physical_verifies_closed_ram_rejects": true,
+    "balanced_two_shard_services_physical_verifies_aggregate_ram_rejects": true,
+    "services_reg_orphan_physical_verifies_closed_ram_local_cpu_rejects": true,
+    "equal_opposite_ledger_scope": "synthetic API check only; not claimed as physical proof",
+    "service_writers": "continuation clock and U8 query guards plus full mixed-services suite"
+  },
+  "gates": {
+    "memory_focused_safe": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-focused-memory-safe.log",
+      "sha256": "f58df89659010579baab30e168d9af9b934ac704234caad09abc7b0f4e7d4993"
+    },
+    "memory_focused_fast": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-focused-memory-fast.log",
+      "sha256": "f58df89659010579baab30e168d9af9b934ac704234caad09abc7b0f4e7d4993"
+    },
+    "services_focused_safe": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-focused-services-safe.log",
+      "sha256": "3d721ba7fd7a0b566da9b4e9b55705bb4743c7009fac7bbf3a57bf79b3d0d632"
+    },
+    "services_focused_fast": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-focused-services-fast.log",
+      "sha256": "769bc20d80fc0fbe50109077fd74944f6dc38486cfe525b7d756869b265bcf9c"
+    },
+    "memory_ls_execution_circuits_safe": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-memory-circuit-safe.log",
+      "sha256": "4678d7a665c7509d3bdf7366171d936901f5a06eb3f123ac32d32989d9e1dcea"
+    },
+    "all52_writers_safe": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-writer-inventory-safe.log",
+      "sha256": "227a85534f9d9a3803ca7cd7c2970dc5c958b1cc938cba2fb89ceac9702177e8"
+    },
+    "all52_writers_fast": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-writer-inventory-fast.log",
+      "sha256": "6180e7a3a9827244f62b80ed5e838d9d4485658ba27835ea1f720cb4edf13f29"
+    },
+    "schema6_rejection": {
+      "pass": true,
+      "error": "InvalidServicesWireRoster",
+      "exit_code": 1,
+      "control": "/tmp/rv64-wave2-final-legacy-prefix4-v1"
+    }
+  },
+  "timing_caveat": "Correctness and cell qualification only. Root compiler and pre-push checks overlapped; wall168.49s/prove144.47s are not a controlled performance comparison. Baseline itself varies7.5%.",
+  "hook_exception": "Commit/push used authorized exception. Ordinary push hook failed unrelated existing Metal environment gate: STWO_METAL_CORE_AOT_BUNDLE explicit authenticated bundle required."
+}

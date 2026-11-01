@@ -1,0 +1,56 @@
+{
+  "core_schema": 7,
+  "completed_ethereum_block": false,
+  "total_steps": 16777212,
+  "cpu_proofs": 4,
+  "truth_proofs": 3,
+  "memory_words": 750521,
+  "output": null,
+  "capture_ns": 2194524625,
+  "capture_cache_trim_ns": 8393959,
+  "capture_cache_released_bytes": 1607991296,
+  "cpu_fixed_witness_retired": true,
+  "coordinator_schedule": {
+    "lanes": 2,
+    "workers_per_lane": 8,
+    "lane_workers": [
+      8,
+      8
+    ],
+    "memory_cap_bytes": 0
+  },
+  "commit_batch_columns": 64,
+  "setup_ns": 1950495375,
+  "prove_ns": 15530920542,
+  "same_process_verify_ns": 280502417,
+  "publish_before_report_ns": 23654333,
+  "total_before_report_ns": 19988884209,
+  "retained_main": {
+    "live_bytes": 0,
+    "peak_reserved_bytes": 6087016448,
+    "total_bytes": 6087016448,
+    "limit_bytes": 137438953472
+  },
+  "fixed_native_cache": {
+    "limit_bytes": 268435456,
+    "retained_bytes": 181229952,
+    "native_backing_bytes": 181214336,
+    "groups": 121,
+    "hits": 428,
+    "duplicate_native_bytes_released": 738370048,
+    "observed_individual_owners": 549,
+    "observed_backing_owners": 0,
+    "observed_spans": 549,
+    "owner_leases": 5
+  },
+  "program_metadata_cache": {
+    "limit_bytes": 67108864,
+    "retained_bytes": 30951766,
+    "payload_bytes": 30951414,
+    "programs": 1,
+    "hits": 4,
+    "metadata_bytes_not_rebuilt": 123805656,
+    "duplicate_metadata_bytes_released": 0,
+    "owner_leases": 6
+  }
+}
