@@ -92,7 +92,8 @@ pub fn MleFor(comptime Secure: type, comptime F: type) type {
                 output: []Secure,
                 challenge: Secure,
                 pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
-                    for (first..end) |i| ctx.output[i] = lookup_utils.foldMleEvalsFor(Secure, F, ctx.challenge, ctx.input[i], ctx.input[i + ctx.output.len]);
+                    const tail = @import("packed_rows.zig").ForField(Secure).fold(F, ctx.input, ctx.output, ctx.challenge, first, end);
+                    for (tail..end) |i| ctx.output[i] = lookup_utils.foldMleEvalsFor(Secure, F, ctx.challenge, ctx.input[i], ctx.input[i + ctx.output.len]);
                 }
             };
             @import("row_work.zig").fill(half, Context{ .input = self.evals, .output = out, .challenge = assignment });

@@ -31,6 +31,7 @@ pub const GkrProverError = error{
 pub fn ForField(comptime Secure: type) type {
     return struct {
         const gkr_verifier_field = gkr_verifier_module.ForField(Secure);
+        const Packed = @import("packed_rows.zig").ForField(Secure);
         const MleBase = mle_mod.MleFor(Secure, M31);
         const MleSecure = mle_mod.MleFor(Secure, Secure);
         pub const EqEvals = struct {
@@ -506,9 +507,15 @@ pub fn ForField(comptime Secure: type) type {
         fn nextGrandProductLayer(allocator: std.mem.Allocator, layer: MleSecure) !Layer {
             const values = layer.evalsSlice();
             const out = try allocator.alloc(Secure, values.len / 2);
-            for (out, 0..) |*dst, i| {
-                dst.* = values[2 * i].mul(values[2 * i + 1]);
-            }
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const tail = Packed.nextProduct(ctx.input, ctx.output, first, end);
+                    for (tail..end) |i| ctx.output[i] = ctx.input[2 * i].mul(ctx.input[2 * i + 1]);
+                }
+            };
+            rows.fill(out.len, Context{ .input = values, .output = out });
             return .{ .GrandProduct = try MleSecure.initOwned(out) };
         }
 
@@ -539,26 +546,25 @@ pub fn ForField(comptime Secure: type) type {
             const next_denominators = try allocator.alloc(Secure, half_n);
             errdefer allocator.free(next_denominators);
 
-            if (numerators == .MleBase) {
-                const base = numerators.MleBase.evalsSlice();
-                for (0..half_n) |i| {
-                    const value = baseFraction(base[2 * i], den_values[2 * i]).add(baseFraction(base[2 * i + 1], den_values[2 * i + 1]));
-                    next_numerators[i] = value.numerator;
-                    next_denominators[i] = value.denominator;
+            const Context = struct {
+                nums: MleExpr,
+                dens: []const Secure,
+                out_n: []Secure,
+                out_d: []Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const tail = switch (ctx.nums) {
+                        .MleBase => |n| Packed.nextLogup(M31, n.evalsSlice(), ctx.dens, ctx.out_n, ctx.out_d, first, end),
+                        .MleSecure => |n| Packed.nextLogup(Secure, n.evalsSlice(), ctx.dens, ctx.out_n, ctx.out_d, first, end),
+                        .Constant => |v| if (v.eql(Secure.one())) Packed.nextLogup(void, &.{}, ctx.dens, ctx.out_n, ctx.out_d, first, end) else first,
+                    };
+                    for (tail..end) |i| {
+                        const value = if (ctx.nums == .MleBase) baseFraction(ctx.nums.MleBase.evalsSlice()[2 * i], ctx.dens[2 * i]).add(baseFraction(ctx.nums.MleBase.evalsSlice()[2 * i + 1], ctx.dens[2 * i + 1])) else fraction.Fraction(Secure, Secure).new(ctx.nums.at(2 * i), ctx.dens[2 * i]).add(fraction.Fraction(Secure, Secure).new(ctx.nums.at(2 * i + 1), ctx.dens[2 * i + 1]));
+                        ctx.out_n[i] = value.numerator;
+                        ctx.out_d[i] = value.denominator;
+                    }
                 }
-            } else for (0..half_n) |i| {
-                const a = fraction.Fraction(Secure, Secure).new(
-                    numerators.at(2 * i),
-                    den_values[2 * i],
-                );
-                const b = fraction.Fraction(Secure, Secure).new(
-                    numerators.at(2 * i + 1),
-                    den_values[2 * i + 1],
-                );
-                const res = a.add(b);
-                next_numerators[i] = res.numerator;
-                next_denominators[i] = res.denominator;
-            }
+            };
+            rows.fill(half_n, Context{ .nums = numerators, .dens = den_values, .out_n = next_numerators, .out_d = next_denominators });
 
             return .{ .LogUpGeneric = .{
                 .numerators = try MleSecure.initOwned(next_numerators),
@@ -589,11 +595,12 @@ pub fn ForField(comptime Secure: type) type {
             first: usize,
             end: usize,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const batch = Packed.sumProduct(eq_evals.evals.evalsSlice(), input_layer.evalsSlice(), n_terms, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const input = input_layer.evalsSlice();
-            for (first..end) |i| {
+            for (batch.end..end) |i| {
                 const inp_at_r0i0 = input[i * 2];
                 const inp_at_r0i1 = input[i * 2 + 1];
                 const inp_at_r1i0 = input[(n_terms + i) * 2];
@@ -644,13 +651,14 @@ pub fn ForField(comptime Secure: type) type {
             first: usize,
             end: usize,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const batch = Packed.sumLogup(F, eq_evals.evals.evalsSlice(), input_numerators.evalsSlice(), input_denominators.evalsSlice(), n_terms, lambda, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const numerators = input_numerators.evalsSlice();
             const denominators = input_denominators.evalsSlice();
 
-            for (first..end) |i| {
+            for (batch.end..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -737,13 +745,14 @@ pub fn ForField(comptime Secure: type) type {
             first: usize,
             end: usize,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const batch = Packed.sumLogup(void, eq_evals.evals.evalsSlice(), &.{}, input_denominators.evalsSlice(), n_terms, lambda, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const denominators = input_denominators.evalsSlice();
             const R = utils.Reciprocal(Secure);
 
-            for (first..end) |i| {
+            for (batch.end..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -790,9 +799,17 @@ pub fn ForField(comptime Secure: type) type {
 
             const eq0 = Secure.one().sub(y[0]);
             const eq1 = y[0];
-            for (tail_values, 0..) |v, i| {
-                out[i] = v.mul(eq0);
-                out[i + tail_values.len] = v.mul(eq1);
+            var at: usize = 0;
+            const p0 = Packed.splat(eq0);
+            const p1 = Packed.splat(eq1);
+            while (at + @import("packed_rows.zig").WIDTH <= tail_values.len) : (at += @import("packed_rows.zig").WIDTH) {
+                const v = Packed.load(tail_values, at, 1);
+                Packed.store(out, at, v.mul(p0));
+                Packed.store(out, at + tail_values.len, v.mul(p1));
+            }
+            for (at..tail_values.len) |i| {
+                out[i] = tail_values[i].mul(eq0);
+                out[i + tail_values.len] = tail_values[i].mul(eq1);
             }
 
             return try MleSecure.initOwned(out);
