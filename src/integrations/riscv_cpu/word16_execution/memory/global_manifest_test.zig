@@ -136,8 +136,10 @@ fn stagedSpecs() [4]G.Spec {
         const start: u64 = if (i < 2) 0 else if (i == 2) 16 else 32;
         const pc: u64 = if (i < 2) 0x1000 else if (i == 2) 0x1020 else 0x1040;
         const next_pc: u64 = if (i == 0) pc else if (i == 1) 0x1020 else 0x1040;
-        const before: G.Digest = @splat(@intCast(if (i < 2) 1 else if (i == 2) 2 else 3));
-        const after: G.Digest = @splat(@intCast(if (i == 0) 1 else if (i == 1) 2 else 3));
+        const before_byte: u8 = if (i < 2) 1 else if (i == 2) 2 else 3;
+        const after_byte: u8 = if (i == 0) 1 else if (i == 1) 2 else 3;
+        const before: G.Digest = @splat(before_byte);
+        const after: G.Digest = @splat(after_byte);
         item.* = .{
             .ordinal = @intCast(i),
             .role = if (i == 0) .initial else if (i == 3) .terminal else .execution,
