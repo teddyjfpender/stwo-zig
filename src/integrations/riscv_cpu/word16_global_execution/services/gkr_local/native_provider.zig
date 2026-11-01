@@ -42,12 +42,13 @@ pub const Provider = struct {
                     f[4] = O.fromBase(M.fromCanonical(@intFromBool(lane == 0)));
                     F.keccakBridgeFor(O, &f, &lift(m), sink);
                 },
-                .add, .double, .sha256, .arith256_mod => {
+                else => {
                     const s = (switch (family) {
                         .add => self.source.add,
                         .double => self.source.double,
                         .sha256 => self.source.sha256,
-                        else => self.source.arith256_mod,
+                        .arith256_mod => self.source.arith256_mod,
+                        else => self.source.curves[@intFromEnum(family) - @import("../types.zig").FIRST_CURVE],
                     }) orelse return error.MissingLocalGkrBridge;
                     const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(s.kind);
                     const coord = logical % coords;

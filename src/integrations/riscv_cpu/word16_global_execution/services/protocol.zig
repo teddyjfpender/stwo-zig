@@ -7,6 +7,8 @@ const K = A.crypto.keccak;
 const S = A.crypto.secp256k1;
 const H = A.crypto.sha256;
 const Ar = A.crypto.arith256;
+const Cv = A.crypto.curves;
+const CurveRoster = @import("../curves/roster.zig");
 const G = @import("../protocol.zig");
 const R = @import("roster.zig");
 const T = @import("types.zig");
@@ -176,6 +178,10 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
                 try Ar.layout.validateGeometry(t.calls, t.first_id, t.setup.log);
                 wire = try std.math.add(u64, wire, Ar.layout.WIRE_FRACTIONS * @as(u64, t.calls));
             },
+            .curve => |t| {
+                try CurveRoster.validateGeometry(t.setup.op, t.calls, t.first_id, t.setup.log);
+                wire = try std.math.add(u64, wire, CurveRoster.wireFractions(t.setup.op) * @as(u64, t.calls));
+            },
         }
         next[family] = try std.math.add(u64, next[family], truth.count());
     }
@@ -208,6 +214,15 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         ch.mixU32s(&.{ 0x57534134, 1, 5, 0x30021, @intFromEnum(T.Family.arith256_mod), r.calls[4], first[4], Ar.layout.PROGRAM_KIND, log });
         for (T.widths(.arith256_mod)) |width| ch.mixU32s(&.{@intCast(width)});
     } else if (r.calls[4] != 0) return error.InvalidCombinedBridgePresence;
+    // v3 curve/field bridges (families 5..11): same rule, one block each.
+    for (T.FIRST_CURVE..T.FAMILIES) |k| {
+        const family: T.Family = @enumFromInt(k);
+        if (s.bridges.at(family)) |log| {
+            const op = T.curveOp(family).?;
+            ch.mixU32s(&.{ 0x57534335, 1, 5, @intCast(Cv.spec.exec.tag(op)), @intCast(k), r.calls[k], first[k], @intFromEnum(op), log });
+            for (T.widths(family)) |width| ch.mixU32s(&.{@intCast(width)});
+        } else if (r.calls[k] != 0) return error.InvalidCombinedBridgePresence;
+    }
     // Bulk-memory extension: mixed only when present, so v2 transcripts are unchanged.
     if (s.bridges.bulk.any() or r.bulk.any()) {
         ch.mixU32s(&.{ 0x424d454d, 1, 0x30001, 0x30002, BM.types.TOKEN_COPY, BM.types.TOKEN_SET, @intCast(BM.types.MAX_BYTES) });
@@ -247,6 +262,10 @@ pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordina
         },
         .sha256 => |t| ch.mixU32s(&.{ 0x53484132, t.setup.log, H.layout.FIXED, H.layout.MAIN, H.layout.INTERACTION, H.layout.CONSTRAINTS, 35, H.layout.PROGRAM_KIND }),
         .arith256_mod => |t| ch.mixU32s(&.{ 0x41524d34, t.setup.log, Ar.layout.FIXED, Ar.layout.MAIN, Ar.layout.INTERACTION, Ar.layout.CONSTRAINTS, 35, Ar.layout.PROGRAM_KIND, Ar.layout.BYTE_QUERIES }),
+        .curve => |t| {
+            ch.mixU32s(&.{ 0x43525631, t.setup.log, 35 });
+            ch.mixU32s(&CurveRoster.geometryWords(t.setup.op));
+        },
     }
 }
 pub const Shared = struct { ram: A.memory.closed_ram.types.RamChallenges, kio: K.equations.Io, wire: S.equations.Wire };
@@ -270,7 +289,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     G.Old.digest(ch, manifest.digest);
     return G.Old.drawWithSharedRam(ch, common.ram);
 }
-pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges };
+pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges, sha256: S.equations.Wire, arith256_mod: Ar.equations.Challenges, curve: Cv.equations.Challenges };
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, ordinal: usize) !TruthDraw {
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534332, 1, 1, @intCast(ordinal), @intFromEnum(truth.family()) });
@@ -289,6 +308,11 @@ pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, 
         .arith256_mod => block: {
             ch.mixU32s(&.{ 0x41524231, 8 });
             break :block .{ .arith256_mod = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
+        },
+        // Local BYTE point, drawn after this truth's MAIN root is sealed.
+        .curve => block: {
+            ch.mixU32s(&.{ 0x43524231, 8 });
+            break :block .{ .curve = .{ .bytes = ch.drawSecureFelt(), .wire = common.wire } };
         },
     };
 }

@@ -27,6 +27,8 @@ pub const BulkShard = struct {
     }
 };
 const Native = @import("../../word16_execution/prepared.zig").Prepared;
+const TT = @import("types.zig");
+const CurveCalls = [TT.CURVES][]S.types.Call;
 const Old = @import("../collector.zig");
 const Cell = A.memory.closed_ram.types.Cell;
 pub const Advice = struct {
@@ -38,6 +40,8 @@ pub const Advice = struct {
     sha256: [][]S.types.Call,
     /// Admitted v3 arith256_mod packets per shard (empty for v2 tapes).
     arith256_mod: [][]S.types.Call,
+    /// Admitted v3 curve/field packets per shard, per op (curves.Op order).
+    curves: []CurveCalls,
     bulk: []BulkShard,
     /// Admitted Keccak-sponge calls per shard (empty unless v3).
     sponge: []SpongeShard,
@@ -54,11 +58,13 @@ pub const Advice = struct {
         for (self.secp) |cc| for (cc) |c| a.free(c);
         for (self.sha256) |c| a.free(c);
         for (self.arith256_mod) |c| a.free(c);
+        for (self.curves) |cc| for (cc) |c| a.free(c);
         a.free(self.events);
         a.free(self.keccak);
         a.free(self.secp);
         a.free(self.sha256);
         a.free(self.arith256_mod);
+        a.free(self.curves);
         a.free(self.initial);
         a.free(self.terminal);
     }
@@ -102,6 +108,8 @@ pub const Builder = struct {
         errdefer a.free(sha256);
         const arith = try a.alloc([]S.types.Call, self.shards.items.len);
         errdefer a.free(arith);
+        const curves = try a.alloc(CurveCalls, self.shards.items.len);
+        errdefer a.free(curves);
         const bulk = try a.alloc(BulkShard, self.shards.items.len);
         errdefer a.free(bulk);
         const sponge = try a.alloc(SpongeShard, self.shards.items.len);
@@ -110,6 +118,7 @@ pub const Builder = struct {
         for (self.shards.items, events, keccak, secp, sha256, arith, bulk, sponge) |shard, *e, *k, *s, *h, *r, *b, *z| {
             z.* = shard.sponge;
             r.* = shard.arith256_mod;
+            c.* = shard.curves;
             e.* = shard.events;
             k.* = shard.keccak;
             s.* = shard.secp;
@@ -133,6 +142,7 @@ const Shard = struct {
     secp: [2][]S.types.Call,
     sha256: []S.types.Call,
     arith256_mod: []S.types.Call,
+    curves: CurveCalls,
     bulk: BulkShard = .{},
     sponge: SpongeShard = .{},
     fn deinit(self: Shard, a: std.mem.Allocator) void {
@@ -141,6 +151,7 @@ const Shard = struct {
         for (self.secp) |calls| a.free(calls);
         a.free(self.sha256);
         a.free(self.arith256_mod);
+        for (self.curves) |c| a.free(c);
         self.bulk.deinit(a);
         self.sponge.deinit(a);
     }
@@ -180,6 +191,17 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const rr = try a.alloc(S.types.Call, tape.arith256_mod_calls.items.len);
     errdefer a.free(rr);
     var ri: usize = 0;
+    var curve_sizes: [TT.CURVES]usize = @splat(0);
+    for (tape.curve_calls.items) |call| curve_sizes[TT.curveIndex(call.op)] += 1;
+    var cc: CurveCalls = @splat(&.{});
+    var cc_made: usize = 0;
+    errdefer for (cc[0..cc_made]) |c| a.free(c);
+    for (&cc, curve_sizes) |*c, n| {
+        c.* = try a.alloc(S.types.Call, n);
+        cc_made += 1;
+    }
+    var curve_next: [TT.CURVES]usize = @splat(0);
+    var ui: usize = 0;
     var next: [2]usize = @splat(0);
     var mi: usize = 0;
     var ci: usize = 0;
@@ -268,7 +290,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
             ci += 1;
         }
     }
-    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len or ri != rr.len) return error.InvalidCombinedServiceRoster;
+    if (ki != kk.len or si != tape.secp_calls.items.len or hi != hh.len or ri != rr.len or ui != tape.curve_calls.items.len) return error.InvalidCombinedServiceRoster;
     const owned_words = try bulk_words.toOwnedSlice(a);
     errdefer a.free(owned_words);
     const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = owned_words };

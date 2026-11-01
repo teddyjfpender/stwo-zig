@@ -49,6 +49,9 @@ pub const Tape = struct {
     sha256_calls: std.ArrayList(ethereum.Sha256Call) = .empty,
     /// Admitted v3 arith256_mod calls; always empty below v3.
     arith256_mod_calls: std.ArrayList(ethereum.Arith256ModCall) = .empty,
+    /// Admitted v3 curve/field calls (all ops, chronological); empty below v3.
+    curve_calls: std.ArrayList(ethereum.CurveCall) = .empty,
+    last_curve_ids: [ethereum.curves.COUNT]?u64 = @splat(null),
     initial_pc: u64,
     initial_clock: u64,
     execution_profile: profile.Profile,
@@ -64,13 +67,14 @@ pub const Tape = struct {
         self.secp_calls.deinit(self.allocator);
         self.sha256_calls.deinit(self.allocator);
         self.arith256_mod_calls.deinit(self.allocator);
+        self.curve_calls.deinit(self.allocator);
         self.* = undefined;
     }
     pub fn steps(self: *const Tape) []const Step {
         return self.storage[0..self.len];
     }
     pub fn retainedBytes(self: *const Tape) usize {
-        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.sha256_calls.capacity * @sizeOf(ethereum.Sha256Call) + self.arith256_mod_calls.capacity * @sizeOf(ethereum.Arith256ModCall);
+        return self.storage.len * @sizeOf(Step) + self.memory_before.capacity * @sizeOf(u64) + self.service_calls.capacity * @sizeOf(services.Call) + self.secp_calls.capacity * @sizeOf(ethereum.SecpCall) + self.sha256_calls.capacity * @sizeOf(ethereum.Sha256Call) + self.arith256_mod_calls.capacity * @sizeOf(ethereum.Arith256ModCall) + self.curve_calls.capacity * @sizeOf(ethereum.CurveCall);
     }
     /// Start the adjacent batch with already allocated buffers. This does not
     /// establish a public continuation relation; the proof coordinator must bind
@@ -85,6 +89,8 @@ pub const Tape = struct {
         self.last_secp_ids = @splat(null);
         self.sha256_calls.clearRetainingCapacity();
         self.arith256_mod_calls.clearRetainingCapacity();
+        self.curve_calls.clearRetainingCapacity();
+        self.last_curve_ids = @splat(null);
     }
     /// Allocation and validation precede tape publication. The caller retains
     /// ownership of `record` on failure and may retry without executing again.
@@ -161,11 +167,12 @@ pub const Tape = struct {
             .sha256 => |call| try self.appendSha256(call),
             .arith256_mod => |call| try self.appendArith256Mod(call),
             .bulk => |e| try self.appendBulk(e.call),
+            .curve => |call| try self.appendCurve(call),
         }
     }
     /// Every service retirement recorded in this tape (all families).
     pub fn serviceCount(self: *const Tape) usize {
-        return self.service_calls.items.len + self.secp_calls.items.len + self.sha256_calls.items.len + self.arith256_mod_calls.items.len;
+        return self.service_calls.items.len + self.secp_calls.items.len + self.sha256_calls.items.len + self.arith256_mod_calls.items.len + self.curve_calls.items.len;
     }
     fn appendRecord(self: *Tape, record: machine.Retirement) !void {
         if (self.len == self.storage.len) return error.TapeFull;

@@ -26,6 +26,8 @@ pub const CompactRequest = struct {
     sha256_calls: u32 = 0,
     /// v3 arith256_mod calls; omitted from JSON when zero.
     arith256_mod_calls: u32 = 0,
+    /// v3 curve/field calls (families 5..11); omitted from JSON when all zero.
+    curve_calls: [T.CURVES]u32 = @splat(0),
     /// Bulk-memory rows (v3); omitted from JSON when zero.
     bulk: T.BulkCounts = .{},
     /// Keccak-sponge rows and first IO11 ID (v3); omitted from JSON when zero.
@@ -37,7 +39,7 @@ pub const CompactRequest = struct {
         return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all(), .bulk = self.bulk, .sponge = self.sponge };
     }
     pub fn all(self: @This()) [T.FAMILIES]u32 {
-        return self.calls ++ [2]u32{ self.sha256_calls, self.arith256_mod_calls };
+        return self.calls ++ [2]u32{ self.sha256_calls, self.arith256_mod_calls } ++ self.curve_calls;
     }
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
         try jws.beginObject();
@@ -69,6 +71,9 @@ pub const WireClaims = struct {
     extras: [3]T.ExtraClaims,
     sha256: ?T.ExtraClaims = null,
     arith256_mod: ?T.ExtraClaims = null,
+    /// Curve/field bridge claims (families 5..11); present iff the bridge is,
+    /// the whole field omitted when no curve bridge is present.
+    curves: [T.CURVES]?T.ExtraClaims = @splat(null),
     /// Bulk-memory claims (desc, copy, set); present iff the roster has bulk.
     bulk: ?[3]T.BulkClaims = null,
     /// Keccak-sponge claims (call, perm); present iff the roster has a sponge.
@@ -93,6 +98,10 @@ pub const WireClaims = struct {
             try jws.objectField("arith256_mod");
             try jws.write(extra);
         }
+        if (self.anyCurve()) {
+            try jws.objectField("curves");
+            try jws.write(self.curves);
+        }
         if (self.bulk) |b| {
             try jws.objectField("bulk");
             try jws.write(b);
@@ -104,6 +113,11 @@ pub const WireClaims = struct {
         try jws.endObject();
     }
 };
+fn serviceCalls(r: CompactRequest) u64 {
+    var n: u64 = @as(u64, r.bulk.calls) + r.ls_count;
+    for (r.all()) |c| n += c;
+    return n;
+}
 pub const CpuDeclaration = struct { geometry: Geo, bridges: T.Logs };
 pub const TruthDeclaration = struct {
     family: T.Family,
@@ -116,6 +130,7 @@ pub const TruthDeclaration = struct {
             .secp => |s| s.setup.logs,
             .sha256 => |h| .{ h.setup.log, 0 },
             .arith256_mod => |h| .{ h.setup.log, 0 },
+            .curve => |h| .{ h.setup.log, 0 },
         } };
     }
 };
@@ -271,6 +286,13 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, 4 * @as(u64, t.calls));
+        } else if (T.curveOp(t.family)) |op| {
+            const Cr = @import("../curves/roster.zig");
+            if (t.logs[0] > Cr.MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+            try Cr.validateGeometry(op, t.calls, t.first_id, t.logs[0]);
+            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
+            wire = try std.math.add(u64, wire, Cr.wireFractions(op) * @as(u64, t.calls));
         } else if (t.family == .arith256_mod) {
             if (t.logs[0] > @import("../arith256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
             try A.crypto.arith256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);

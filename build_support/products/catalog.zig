@@ -47,6 +47,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-global-memory", .description = "Diagnostic sealed-root two-phase RAM aggregate with physical verification", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-execution-prepared", .description = "One native CPU witness with grouped weighted provider geometry", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-combined-services", .description = "One CPU per shard joins all LE services with shared RAM and bounded truths", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-curves-truth", .description = "BN254/BLS12-381 curve and field truth AIRs: big-integer oracle, group law and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-arith256-truth", .description = "arith256_mod truth AIR: big-integer known answers, edge values and adversarial rows", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-v3-services", .description = "ethereum_services_v3 SHA-256 + arith256_mod + bulk memory in one bundle: fresh receiver and closure rejections", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-bulk-services", .description = "ethereum_services_v3 bulk-memory bridges: real CPU proofs, fresh wire receiver, closure rejections", .scope = .riscv_cpu },

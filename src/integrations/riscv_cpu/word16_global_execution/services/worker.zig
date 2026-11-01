@@ -158,6 +158,9 @@ pub const Worker = struct {
                 inline for (.{ "add", "double", "sha256", "arith256_mod" }, 1..) |name, k| if (@field(source, name)) |*b| {
                     extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
                 };
+                for (&source.curves, T.FIRST_CURVE..) |*c, k| if (c.*) |*b| {
+                    extras[k] = T.ExtraClaims.fromSecp(try b.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 }, source.core.range16.dictionary, source.core.range8.dictionary));
+                };
                 var bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero());
                 for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
                     out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
@@ -262,6 +265,10 @@ fn truthClaims(source: *R.TruthSource, draw: P.TruthDraw) ![3]Q {
         // BYTE chain closes to zero in-AIR; only the Wire35 claim is public.
         .arith256_mod => |*s| switch (draw) {
             .arith256_mod => |ch| .{ try s.source.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
+            else => error.InvalidCombinedTruthChallenge,
+        },
+        .curve => |*s| switch (draw) {
+            .curve => |ch| .{ try s.generateInteraction(ch), G.Q.zero(), G.Q.zero() },
             else => error.InvalidCombinedTruthChallenge,
         },
     };

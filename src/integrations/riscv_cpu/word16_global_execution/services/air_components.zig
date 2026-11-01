@@ -24,6 +24,7 @@ pub const Bridges = struct {
     double: ?B.component.Component = null,
     sha256: ?B.component.Component = null,
     arith256_mod: ?B.component.Component = null,
+    curves: [T.CURVES]?B.component.Component = @splat(null),
     bulk: [3]?BM.component.Component = @splat(null),
     sponge: [2]?KS.component.Component = @splat(null),
     /// Keccak-sponge components share the CPU proof's RAM14, OWNER19, AND and
@@ -61,6 +62,7 @@ pub const Bridges = struct {
                     .sha256 => out.sha256 = component,
                     .arith256_mod => out.arith256_mod = component,
                     .keccak => unreachable,
+                    else => out.curves[k - T.FIRST_CURVE] = component,
                 }
             }
         }
@@ -68,6 +70,7 @@ pub const Bridges = struct {
     }
     fn count(self: *const Bridges) usize {
         var n = @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null) + @intFromBool(self.arith256_mod != null);
+        for (self.curves) |c| n += @intFromBool(c != null);
         for (self.bulk) |b| n += @intFromBool(b != null);
         for (self.sponge) |b| n += @intFromBool(b != null);
         return n;
@@ -80,6 +83,10 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
     @memcpy(out[0..old.len], old);
     var at = old.len;
     inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(bridges, name)) |*c| {
+        out[at] = c.asProverComponent();
+        at += 1;
+    };
+    for (&bridges.curves) |*b| if (b.*) |*c| {
         out[at] = c.asProverComponent();
         at += 1;
     };
@@ -103,6 +110,10 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
         out[at] = c.asVerifierComponent();
         at += 1;
     };
+    for (&bridges.curves) |*b| if (b.*) |*c| {
+        out[at] = c.asVerifierComponent();
+        at += 1;
+    };
     for (&bridges.bulk) |*b| if (b.*) |*c| {
         out[at] = c.asVerifierComponent();
         at += 1;
@@ -118,6 +129,7 @@ pub const TruthComponents = union(enum) {
     secp: @import("../secp/execution.zig").TruthComponents,
     sha256: A.crypto.sha256.component.Component,
     arith256_mod: A.crypto.arith256.component.Component,
+    curve: @import("../curves/roster.zig").Component,
     pub fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
         return switch (truth) {
             .keccak => |t| switch (ch) {
@@ -142,6 +154,13 @@ pub const TruthComponents = union(enum) {
                 },
                 else => error.InvalidCombinedTruthChallenge,
             },
+            .curve => |t| switch (ch) {
+                .curve => |cc| block: {
+                    if (!claims[1].isZero() or !claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+                    break :block .{ .curve = @import("../curves/roster.zig").Component.init(t.setup.op, t.setup.log, t.calls, t.first_id, claims[0], cc) };
+                },
+                else => error.InvalidCombinedTruthChallenge,
+            },
         };
     }
     pub fn provers(self: *const TruthComponents, out: *[3]engine.air.component_prover.ComponentProver) []engine.air.component_prover.ComponentProver {
@@ -153,6 +172,10 @@ pub const TruthComponents = union(enum) {
                 return out[0..1];
             },
             .arith256_mod => |*c| {
+                out[0] = c.asProverComponent();
+                return out[0..1];
+            },
+            .curve => |*c| {
                 out[0] = c.asProverComponent();
                 return out[0..1];
             },
@@ -168,6 +191,10 @@ pub const TruthComponents = union(enum) {
                 return out[0..1];
             },
             .arith256_mod => |*c| {
+                out[0] = c.asVerifierComponent();
+                return out[0..1];
+            },
+            .curve => |*c| {
                 out[0] = c.asVerifierComponent();
                 return out[0..1];
             },

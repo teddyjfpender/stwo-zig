@@ -26,7 +26,16 @@ pub const Claims = struct {
 /// three 32-byte coordinates (state, message halves), only the state written.
 /// The arith256_mod packet (v3) is kind 4: five coordinates a, b, c, m, r,
 /// only the trailing r written (its before-value is still a Wire35 input).
-pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4 };
+/// Curve/field packets (v3, kinds 5..11 = curves.Op ordinals): inline
+/// 32-byte coordinates, the leading `curves.writtenCoords` written in place.
+pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4, bn254_g1_add = 5, bn254_g1_double = 6, bn254_fp2_mul = 7, bls12_381_fp2_mul = 8, arith384_mont = 9, bls12_381_g1_add = 10, bls12_381_g1_double = 11 };
+pub const Curves = @import("../../../../ethereum_services/curves.zig");
+pub fn curveOp(kind: Kind) ?Curves.Op {
+    return if (@intFromEnum(kind) >= 5) @enumFromInt(@intFromEnum(kind)) else null;
+}
+pub fn curveKind(op: Curves.Op) Kind {
+    return @enumFromInt(@intFromEnum(op));
+}
 pub fn kindOf(kind: P.Kind) Kind {
     return @enumFromInt(@intFromEnum(kind));
 }
@@ -39,20 +48,23 @@ pub fn tag(kind: Kind) u32 {
         .double => 0x20012,
         .sha256 => 0x30010,
         .arith256_mod => 0x30021,
+        else => @intCast(Curves.tag(curveOp(kind).?)),
     };
 }
 pub fn coordinates(kind: Kind) usize {
     return switch (kind) {
         .sha256 => 3,
         .arith256_mod => 5,
-        else => program(kind).inputs,
+        .add, .double => program(kind).inputs,
+        else => Curves.coords(curveOp(kind).?),
     };
 }
 /// Number of coordinates that the service overwrites (ADD/DOUBLE: X, Y, Z).
 pub fn written(kind: Kind) usize {
     return switch (kind) {
         .sha256, .arith256_mod => 1,
-        else => 3,
+        .add, .double => 3,
+        else => Curves.writtenCoords(curveOp(kind).?),
     };
 }
 /// Whether coordinate `coord` is overwritten: the leading `written` ones,
@@ -65,7 +77,9 @@ pub fn outputWire(kind: Kind, coord: usize) u32 {
     return switch (kind) {
         .sha256 => 3,
         .arith256_mod => 5,
-        else => program(kind).outputs[coord],
+        .add, .double => program(kind).outputs[coord],
+        // Curve/field truths produce written coordinate c as wire coords + c.
+        else => @intCast(coordinates(kind) + coord),
     };
 }
 pub fn validateGeometry(kind: Kind, calls: usize, first_id: u32, log: u32) !usize {

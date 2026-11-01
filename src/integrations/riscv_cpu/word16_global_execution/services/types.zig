@@ -5,10 +5,28 @@ const Q = A.evaluation.Q;
 /// ordinal, offset, column, claim and transcript word is unchanged when absent.
 /// Extension point: a further v3 family appends here with its own bridge.
 /// `arith256_mod` (v3, tag 0x30021) is family 4.
-pub const Family = enum(u8) { keccak = 0, add = 1, double = 2, sha256 = 3, arith256_mod = 4 };
-pub const FAMILIES = 5;
+/// Curve/field families 5..11 (v3) follow; family ordinal = Wire35 kind =
+/// bridge kind = curves.Op ordinal (BN254 G1 add/double, BN254 Fp2 mul,
+/// BLS12-381 Fp2 mul, arith384_mont, BLS12-381 G1 add/double).
+pub const Family = enum(u8) { keccak = 0, add = 1, double = 2, sha256 = 3, arith256_mod = 4, bn254_g1_add = 5, bn254_g1_double = 6, bn254_fp2_mul = 7, bls12_381_fp2_mul = 8, arith384_mont = 9, bls12_381_g1_add = 10, bls12_381_g1_double = 11 };
+pub const FAMILIES = 12;
 /// v3 families in transcript/claim order; each is mixed only when present.
-pub const V3 = [_]Family{ .sha256, .arith256_mod };
+pub const V3 = [_]Family{ .sha256, .arith256_mod, .bn254_g1_add, .bn254_g1_double, .bn254_fp2_mul, .bls12_381_fp2_mul, .arith384_mont, .bls12_381_g1_add, .bls12_381_g1_double };
+pub const CurveOp = A.crypto.curves.Op;
+pub const CURVES = A.crypto.curves.spec.COUNT;
+pub const FIRST_CURVE = 5;
+pub fn curveOp(family: Family) ?CurveOp {
+    return if (@intFromEnum(family) >= FIRST_CURVE) @enumFromInt(@intFromEnum(family)) else null;
+}
+pub fn curveIndex(op: CurveOp) usize {
+    return @intFromEnum(op) - FIRST_CURVE;
+}
+pub fn curveOpOfTag(tag: u64) ?CurveOp {
+    return A.crypto.curves.spec.opOfTag(tag);
+}
+pub fn curveFamily(op: CurveOp) Family {
+    return @enumFromInt(@intFromEnum(op));
+}
 pub const V2_FAMILIES = 3;
 pub const Logs = struct {
     keccak: ?u32 = null,
@@ -16,6 +34,13 @@ pub const Logs = struct {
     double: ?u32 = null,
     sha256: ?u32 = null,
     arith256_mod: ?u32 = null,
+    bn254_g1_add: ?u32 = null,
+    bn254_g1_double: ?u32 = null,
+    bn254_fp2_mul: ?u32 = null,
+    bls12_381_fp2_mul: ?u32 = null,
+    arith384_mont: ?u32 = null,
+    bls12_381_g1_add: ?u32 = null,
+    bls12_381_g1_double: ?u32 = null,
     /// Admitted bulk-memory bridges (v3), a separate block after the families.
     bulk: Bulk = .{},
     /// Admitted Keccak-256 sponge bridges (v3), a separate block after bulk.
@@ -28,7 +53,13 @@ pub const Logs = struct {
             .double => self.double,
             .sha256 => self.sha256,
             .arith256_mod => self.arith256_mod,
+            inline else => |f| @field(self, @tagName(f)),
         };
+    }
+    pub fn set(self: *@This(), family: Family, log: ?u32) void {
+        switch (family) {
+            inline else => |f| @field(self, @tagName(f)) = log,
+        }
     }
     /// v2 transport bytes are unchanged: the v3 field is omitted when absent.
     pub fn jsonStringify(self: @This(), jws: anytype) !void {
@@ -45,6 +76,10 @@ pub const Logs = struct {
             try jws.objectField("arith256_mod");
             try jws.write(log);
         }
+        inline for (.{ "bn254_g1_add", "bn254_g1_double", "bn254_fp2_mul", "bls12_381_fp2_mul", "arith384_mont", "bls12_381_g1_add", "bls12_381_g1_double" }) |name| if (@field(self, name)) |log| {
+            try jws.objectField(name);
+            try jws.write(log);
+        };
         if (self.bulk.any()) {
             try jws.objectField("bulk");
             try jws.write(self.bulk);
@@ -64,6 +99,7 @@ pub fn bridgeKind(family: Family) A.crypto.secp256k1.word16_bridge.types.Kind {
         .double => .double,
         .sha256 => .sha256,
         .arith256_mod => .arith256_mod,
+        else => A.crypto.secp256k1.word16_bridge.types.curveKind(curveOp(family).?),
     };
 }
 /// Packet RAM words per call (each contributes one before and one after term).

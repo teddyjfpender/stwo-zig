@@ -290,6 +290,11 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.before.len;
                     if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i >= @TypeOf(call).FIRST_WRITTEN);
                 },
+                .curve => |call| {
+                    report.curve_calls[ethereum.curves.index(call.op)] += 1;
+                    report.service_ram_word_transitions += call.wordCount();
+                    if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < call.writtenWords());
+                },
                 .sha256 => |call| {
                     report.sha256_calls += 1;
                     report.service_ram_word_transitions += call.before.len;

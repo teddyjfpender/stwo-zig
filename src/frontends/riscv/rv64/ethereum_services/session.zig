@@ -84,6 +84,33 @@ pub const Arith256ModCall = struct {
         return .{ .clock = self.clock, .pc = Word.fromInt(self.pc), .next_pc = Word.fromInt(self.pc +% 4), .immediate = Word.fromInt(0), .instruction = 0x73, .opcode = .ECALL, .rs1 = profile.POINTER_REGISTER, .rs2 = profile.TAG_REGISTER, .lhs = Word.fromInt(self.pointer), .rhs = Word.fromInt(self.tag()), .rd = 0, .previous_rd = Word.fromInt(0), .result = Word.fromInt(0), .writes_rd = false, .branch_taken = false, .memory = null };
     }
 };
+/// One admitted v3 curve/field call (curves.zig). The packet is
+/// `curves.words(op)` little-endian u64 words at a 32-byte aligned pointer;
+/// only the leading `curves.writtenWords(op)` words may change.
+pub const CurveCall = struct {
+    op: curves.Op,
+    /// One-based counter within this op; never guest-visible.
+    call_id: u64,
+    clock: u64,
+    pc: u64,
+    pointer: u64,
+    /// Words beyond wordCount() are zero.
+    before: [curves.MAX_WORDS]u64,
+    after: [curves.MAX_WORDS]u64,
+    pub fn wordCount(self: CurveCall) usize {
+        return curves.words(self.op);
+    }
+    pub fn writtenWords(self: CurveCall) usize {
+        return curves.writtenWords(self.op);
+    }
+    pub fn tag(self: CurveCall) u64 {
+        return curves.tag(self.op);
+    }
+    pub fn retirement(self: CurveCall) machine.Retirement {
+        const Word = @import("../word.zig").Word;
+        return .{ .clock = self.clock, .pc = Word.fromInt(self.pc), .next_pc = Word.fromInt(self.pc +% 4), .immediate = Word.fromInt(0), .instruction = 0x73, .opcode = .ECALL, .rs1 = profile.POINTER_REGISTER, .rs2 = profile.TAG_REGISTER, .lhs = Word.fromInt(self.pointer), .rhs = Word.fromInt(self.tag()), .rd = 0, .previous_rd = Word.fromInt(0), .result = Word.fromInt(0), .writes_rd = false, .branch_taken = false, .memory = null };
+    }
+};
 pub const Event = union(enum) {
     keccak: K.Call,
     secp: SecpCall,
@@ -99,6 +126,7 @@ pub const Event = union(enum) {
             .secp => |call| call.retirement(),
             .sha256 => |call| call.retirement(),
             .arith256_mod => |call| call.retirement(),
+            .curve => |call| call.retirement(),
         };
     }
 };
@@ -207,6 +235,31 @@ pub const Session = struct {
         cpu.pc +%= 4;
         cpu.retired += 1;
         self.arith256_mod_calls += 1;
+        return result;
+    }
+    /// All checks precede the atomic write of the leading words; a trap
+    /// (alignment, rights, CurveServiceDomain) changes nothing.
+    fn curve(self: *Session, op: curves.Op) Error!CurveCall {
+        const cpu = &self.keccak.base.cpu;
+        const mem = self.keccak.base.memory;
+        const count = &self.curve_calls[curves.index(op)];
+        if (count.* == std.math.maxInt(u64)) return error.ServiceCounterOverflow;
+        const pointer = cpu.read(profile.POINTER_REGISTER);
+        const n = curves.words(op);
+        // The Word16 bridge binds 32-byte coordinates (candidate ABI: 8-byte
+        // aligned pointer packets; the admitted packet is inline).
+        if (pointer & 31 != 0) return error.MisalignedAddress;
+        _ = try memory.endAddress(pointer, 8 * n);
+        try mem.mappings.check(pointer, 8 * n, .read);
+        try mem.mappings.check(pointer, 8 * curves.writtenWords(op), .write);
+        var before: [curves.MAX_WORDS]u64 = @splat(0);
+        for (before[0..n], 0..) |*word, i| word.* = try mem.load(pointer + 8 * i, 8);
+        const after = try curves.execute(op, before[0..n]);
+        try mem.storeWords(pointer, after[0..curves.writtenWords(op)]);
+        const result = CurveCall{ .op = op, .call_id = count.* + 1, .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer, .before = before, .after = after };
+        cpu.pc +%= 4;
+        cpu.retired += 1;
+        count.* += 1;
         return result;
     }
     fn projective(self: *Session) Error!SecpCall {

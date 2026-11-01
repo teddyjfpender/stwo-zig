@@ -84,6 +84,11 @@ const Stage1 = struct {
         var arith: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
         errdefer if (arith) |*s| s.deinit();
         if (cpu.setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, self.advice.arith256_mod[cpu.ordinal], cpu.first_ids[4], log);
+        var curves: [@import("types.zig").CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
+        errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
+        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, k| if (cpu.setup.bridges.at(@enumFromInt(k))) |log| {
+            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(k)), self.advice.curves[cpu.ordinal][k - @import("types.zig").FIRST_CURVE], cpu.first_ids[k], log);
+        };
         var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
         errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
         for (@import("types.zig").bulk_kinds, &bulk) |kind, *out| if (cpu.setup.bridges.bulk.at(kind)) |log| {
