@@ -101,11 +101,27 @@ test "two packet capture equals serial, held lease and budget fallback" {
     var parallel = try Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 2 });
     defer parallel.deinit();
     try same(&serial, &parallel);
+    const D = @import("capture_digest.zig");
+    const before = D.digest(image_owner.identity, &serial);
+    try std.testing.expectEqualDeep(before, D.digest(image_owner.identity, &parallel));
+    try std.testing.expectEqual(@as(u8, 2), parallel.capture_schedule.max_inflight_packets);
+    try std.testing.expectEqual(@as(u8, 2), parallel.capture_schedule.max_worker_shards);
+    try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes > 0);
+    try std.testing.expect(parallel.capture_schedule.max_single_packet_decoded_heap_bytes <= 512 << 20);
+    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(image_owner.identity, &parallel)));
+    parallel.native.items[0].cpu.?.metadata[0].values[0] ^= 1;
+    var altered_identity = image_owner.identity;
+    altered_identity[0] ^= 1;
+    try std.testing.expect(!std.mem.eql(u8, &before, &D.digest(altered_identity, &parallel)));
+
     var lease = try pool.acquire(try engine.work_pool.WorkerBudget.init(2));
     defer lease.deinit();
     var fallback = try Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 2, .max_inflight_packet_heap_bytes = 512 << 20 });
     defer fallback.deinit();
     try same(&serial, &fallback);
+    try std.testing.expectEqual(@as(u8, 1), fallback.capture_schedule.max_inflight_packets);
+    try std.testing.expectEqual(@as(u8, 1), fallback.capture_schedule.max_worker_shards);
     try std.testing.expectError(error.OutOfMemory, Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 2, .packet_heap_bytes = 1 }));
     try std.testing.expectError(error.EthereumCaptureWireBudgetExceeded, Capture.Owner.initWithOptions(a, &image_owner, &program, config, jobs, 0, .{ .pool = &pool, .max_inflight_packets = 2, .max_inflight_wire_bytes = 1 }));
 }

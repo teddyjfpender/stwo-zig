@@ -11,7 +11,15 @@ const Coverage = @import("../../word16_execution/coverage.zig");
 const Memory = @import("../../word16_execution/memory/statement.zig");
 const Collector = @import("../services/collector.zig");
 pub const Options = @import("capture_prefetch.zig").Options;
+pub const ScheduleStats = struct {
+    max_inflight_packets: u8 = 1,
+    max_worker_shards: u8 = 1,
+    decoded_packet_heap_limit_bytes: ?usize = null,
+    max_reserved_decoded_packet_heap_bytes: usize = 0,
+    max_single_packet_decoded_heap_bytes: usize = 0,
+};
 pub const Owner = struct {
+    capture_schedule: ScheduleStats = .{},
     allocator: std.mem.Allocator,
     native: std.ArrayList(*Native),
     advice: Collector.Advice,
