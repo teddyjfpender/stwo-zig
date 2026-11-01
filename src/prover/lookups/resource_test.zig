@@ -11,6 +11,9 @@ fn run(comptime S: type, comptime Channel: type, a: std.mem.Allocator, shapes: [
     return runPolicy(false, S, Channel, a, shapes, constrained);
 }
 fn runPolicy(comptime checkpointed: bool, comptime S: type, comptime Channel: type, a: std.mem.Allocator, shapes: []const Resource.Shape, constrained: bool) !Observation {
+    return runPolicyImpl(checkpointed, false, S, Channel, a, shapes, constrained);
+}
+fn runPolicyImpl(comptime checkpointed: bool, comptime owned_input: bool, comptime S: type, comptime Channel: type, a: std.mem.Allocator, shapes: []const Resource.Shape, constrained: bool) !Observation {
     const G = @import("gkr_prover.zig").ForField(S);
     const ML = @import("mle.zig");
     const plan = try Resource.ForField(S).Plan.forShapes(shapes);
@@ -18,9 +21,12 @@ fn runPolicy(comptime checkpointed: bool, comptime S: type, comptime Channel: ty
     const ba = budget.allocator();
     // Caller layer descriptors count under the same bound as actual adapters.
     const layers = try ba.alloc(G.Layer, shapes.len);
-    defer ba.free(layers);
+    var owns_inputs = true;
+    defer if (owns_inputs) ba.free(layers);
     var done: usize = 0;
-    defer for (layers[0..done]) |*layer| layer.deinit(ba);
+    defer if (owns_inputs) {
+        for (layers[0..done]) |*layer| layer.deinit(ba);
+    };
     for (shapes, layers) |shape, *layer| {
         const n = @as(usize, 1) << @intCast(shape.variables);
         const d = try ba.alloc(S, n);
@@ -42,8 +48,25 @@ fn runPolicy(comptime checkpointed: bool, comptime S: type, comptime Channel: ty
         };
         done += 1;
     }
+    // Independent verifier reference owners are outside the numerical budget.
+    // They are never passed to the consuming prover or counted as its scratch.
+    var references: []G.Layer = &.{};
+    var refs_done: usize = 0;
+    defer {
+        for (references[0..refs_done]) |*layer| layer.deinit(a);
+        a.free(references);
+    }
+    if (owned_input) {
+        references = try a.alloc(G.Layer, layers.len);
+        for (layers, references) |layer, *ref| {
+            ref.* = try layer.cloneOwned(a);
+            refs_done += 1;
+        }
+    }
+    const terminal_inputs = if (owned_input) references else layers;
     var channel = Channel.init();
-    const prover = if (checkpointed) G.proveBatchCheckpointed else G.proveBatch;
+    const prover = if (owned_input) G.proveBatchOwnedCheckpointed else if (checkpointed) G.proveBatchCheckpointed else G.proveBatch;
+    if (owned_input) owns_inputs = false;
     var timer = try std.time.Timer.start();
     var result = prover(ba, &channel, layers) catch |err| {
         if (constrained and budget.didExceedBudget()) {
@@ -59,17 +82,17 @@ fn runPolicy(comptime checkpointed: bool, comptime S: type, comptime Channel: ty
     try std.testing.expect(budget.peak_live_bytes <= plan.peak_bytes);
     if (checkpointed) {
         const V = @import("gkr_verifier.zig").ForField(S);
-        const gates = try a.alloc(V.Gate, layers.len);
+        const gates = try a.alloc(V.Gate, terminal_inputs.len);
         defer a.free(gates);
-        for (layers, gates) |layer, *gate| gate.* = if (layer == .GrandProduct) .GrandProduct else .LogUp;
+        for (terminal_inputs, gates) |layer, *gate| gate.* = if (layer == .GrandProduct) .GrandProduct else .LogUp;
         var fresh = Channel.init();
         var artifact = try V.partiallyVerifyBatch(a, gates, &result.proof, &fresh);
         defer artifact.deinit(a);
-        const expected = try a.alloc([]S, layers.len);
+        const expected = try a.alloc([]S, terminal_inputs.len);
         defer a.free(expected);
         var initialized: usize = 0;
         defer for (expected[0..initialized]) |values| a.free(values);
-        for (layers, expected) |layer, *values| {
+        for (terminal_inputs, expected) |layer, *values| {
             const point = artifact.ood_point[artifact.ood_point.len - layer.nVariables() ..];
             values.* = switch (layer) {
                 .GrandProduct => |x| try a.dupe(S, &.{try x.evalAtPoint(a, point)}),
@@ -218,4 +241,19 @@ test "fused adjacent LogUp and product reductions equal two original layers on d
             try std.testing.expectEqualDeep(second, fused);
         }
     }
+}
+
+fn consumeOom(a: std.mem.Allocator) !void {
+    _ = try runPolicyImpl(true, true, O, core.channel.raw_mod_m31.Om31Channel, a, &.{ .{ .kind = .multiplicities, .variables = 7 }, .{ .kind = .generic, .variables = 6 }, .{ .kind = .grand_product, .variables = 8 }, .{ .kind = .singles, .variables = 5 } }, false);
+}
+test "consuming checkpoint inputs retain exact borrowed proof and fresh terminal binding with every OOM" {
+    inline for (.{ Q, O }) |S| {
+        const Channel = if (S == Q) core.channel.raw_mod_m31.Qm31Channel else core.channel.raw_mod_m31.Om31Channel;
+        const shapes = [_]Resource.Shape{ .{ .kind = .multiplicities, .variables = 16 }, .{ .kind = .generic, .variables = 12 }, .{ .kind = .grand_product, .variables = 13 }, .{ .kind = .singles, .variables = 10 } };
+        const before = try runPolicyImpl(false, false, S, Channel, std.testing.allocator, &shapes, false);
+        const after = try runPolicyImpl(true, true, S, Channel, std.testing.allocator, &shapes, false);
+        try std.testing.expectEqual(before.digest, after.digest);
+        std.debug.print("GKR_CONSUMED fieldBytes={d} oldPeak={d} consumedPeak={d} ratio={d:.3} old_ns={d} consumed_ns={d}\n", .{ @sizeOf(S), before.peak, after.peak, @as(f64, @floatFromInt(before.peak)) / @as(f64, @floatFromInt(after.peak)), before.elapsed_ns, after.elapsed_ns });
+    }
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, consumeOom, .{});
 }

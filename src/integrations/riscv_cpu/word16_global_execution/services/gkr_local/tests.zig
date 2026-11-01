@@ -363,3 +363,35 @@ test {
 test {
     _ = @import("fixed_source_metadata_test.zig");
 }
+
+test "provider replay binding is byte exact to matrix binding and rejects altered final metadata row" {
+    const a = std.testing.allocator;
+    const Inputs = @import("inputs.zig").Inputs;
+    const Witness = @import("witness.zig").Witness;
+    const GP = @import("stwo_prover_engine").lookups.gkr_prover.ForField(O);
+    const instances = [_]Frame.Instance{
+        .{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 },
+        .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
+    };
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    const challenges = @import("challenges.zig").For(O).draw(&channel);
+    var inputs = try Inputs.init(a, &instances, &challenges, BalancedMetadata{});
+    defer inputs.deinit();
+    var result = try GP.proveBatch(a, &channel, inputs.layers);
+    defer result.deinit(a);
+    const eta = channel.drawSecureFelt();
+    var before = try Witness.init(a, &instances, &inputs, &result.artifact, eta);
+    defer before.deinit();
+    var after = try Witness.initFromProvider(a, a, &instances, &challenges, BalancedMetadata{}, &result.artifact, eta);
+    defer after.deinit();
+    try std.testing.expectEqualDeep(before.columns, after.columns);
+    const Changed = struct {
+        pub fn emit(_: @This(), instance: Frame.Instance, logical: usize, sink: *@import("inputs.zig").RowSink) !void {
+            const M = core.fields.m31.M31;
+            const weight = if (instance.origin.core == .alu) M.one() else M.one().neg();
+            const value = logical + @as(usize, @intFromBool(logical == 31 and instance.origin.core == .alu));
+            sink.emitBase(.range16, [1]M{M.fromCanonical(@intCast(value))}, weight);
+        }
+    };
+    try std.testing.expectError(error.UnboundLocalGkrInput, Witness.initFromProvider(a, a, &instances, &challenges, Changed{}, &result.artifact, eta));
+}

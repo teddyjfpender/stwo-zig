@@ -14,7 +14,7 @@ fn check(comptime F: type) !void {
     for (&weights) |*w| w.* = channel.drawSecureFelt();
     var packed_weights: [16]E.SecureFor(F) = undefined;
     for (&packed_weights, weights) |*w, x| w.* = E.splatFor(F, x);
-    const relations = std.enums.values(R.Relation);
+    const relations = comptime std.enums.values(R.Relation);
     var prepared = try P.For(F).init(a, relations, &ch, &weights);
     defer prepared.deinit();
     for (0..19) |iteration| {
@@ -62,4 +62,42 @@ fn lifecycle(allocator: std.mem.Allocator) !void {
 }
 test "prepared projection bounded owner releases every allocator failure" {
     try std.testing.checkAllAllocationFailures(a, lifecycle, .{});
+}
+
+test "metadata projection mode equals original terminal form in every namespace with padding and signed weights" {
+    var channel = core.channel.raw_mod_m31.Om31Channel.init();
+    const ch = @import("challenges.zig").For(O).draw(&channel);
+    const relations = comptime std.enums.values(R.Relation);
+    var weights: [16]O = undefined;
+    for (&weights) |*w| w.* = channel.drawSecureFelt();
+    var prepared = try P.For(O).init(a, relations, &ch, &weights);
+    defer prepared.deinit();
+    for (0..17) |row| {
+        var original = B.ProjectionFor(O){ .challenges = &ch, .lane_weights = &weights, .terms = relations.len };
+        var projected = prepared.projection();
+        var sink = @import("inputs.zig").RowSink{ .challenges = &ch, .projection = &projected };
+        inline for (relations, 0..) |relation, index| {
+            const arity = comptime relation.arity();
+            var tuple: [arity]M = undefined;
+            var secure: [arity]O = undefined;
+            for (&tuple, &secure, 0..) |*v, *s, j| {
+                v.* = M.fromCanonical(@intCast((row * 997 + index * 367 + j * 89) % 65536));
+                s.* = O.fromBase(v.*);
+            }
+            const weight = if ((row + index) % 3 == 0) M.zero() else M.fromCanonical(@intCast((row + index) % 19)).neg();
+            original.emit(relation, secure, O.fromBase(weight));
+            if (row % 2 == 0) sink.emitBase(relation, tuple, weight) else sink.emit(relation, secure, O.fromBase(weight));
+        }
+        try original.finish();
+        try projected.finish();
+        try std.testing.expect(!sink.invalid and sink.count == relations.len);
+        try std.testing.expectEqual(original.numerator, projected.numerator);
+        try std.testing.expectEqual(original.denominator, projected.denominator);
+    }
+    var projection = prepared.projection();
+    var bad = @import("inputs.zig").RowSink{ .challenges = &ch, .projection = &projection };
+    var noncanonical = [_]M{M.zero()} ** 30;
+    noncanonical[0].v = core.fields.m31.Modulus;
+    bad.emitBase(relations[0], noncanonical[0..relations[0].arity()], M.one());
+    try std.testing.expect(bad.invalid);
 }

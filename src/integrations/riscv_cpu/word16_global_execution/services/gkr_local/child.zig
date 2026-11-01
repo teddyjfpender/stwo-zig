@@ -117,7 +117,7 @@ pub const Unbound = struct {
         var inputs = try Inputs.init(bounded, instances, &challenges, provider);
         defer inputs.deinit();
         if (clock) |*timer| timing.?.inputs_ns = timer.lap();
-        var result = if (checkpointed) try GP.proveBatchCheckpointed(bounded, &ch, inputs.layers) else try GP.proveBatch(bounded, &ch, inputs.layers);
+        var result = if (checkpointed) try GP.proveBatchOwnedCheckpointed(bounded, &ch, inputs.takeLayers()) else try GP.proveBatch(bounded, &ch, inputs.layers);
         const numerical_peak_bytes = self.budget.peak_live_bytes;
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
@@ -129,7 +129,7 @@ pub const Unbound = struct {
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
-        self.binding = try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        self.binding = if (checkpointed) try @import("witness.zig").Witness.initFromProvider(a, bounded, instances, &challenges, provider, &result.artifact, eta) else try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
         if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;

@@ -42,16 +42,29 @@ pub fn ForField(comptime Secure: type) type {
             channel: anytype,
             input_layer_by_instance: []const Layer,
         ) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(false, allocator, channel, input_layer_by_instance);
+            return proveBatchImpl(false, false, allocator, channel, input_layer_by_instance);
         }
 
         /// Operational stride-two tree storage. Identical transcript and proof;
         /// missing levels are regenerated once from the retained lower level.
         /// Caller inputs remain immutable, with the original borrowed lifetime.
         pub fn proveBatchCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
-            return proveBatchImpl(true, allocator, channel, input_layer_by_instance);
+            return proveBatchImpl(true, false, allocator, channel, input_layer_by_instance);
         }
-        fn proveBatchImpl(comptime checkpointed: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+        /// Consumes heap descriptors and all owned input MLEs on success AND
+        /// failure. Used when terminal binding can replay narrow metadata.
+        pub fn proveBatchOwnedCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            return proveBatchImpl(true, true, allocator, channel, input_layer_by_instance);
+        }
+        fn proveBatchImpl(comptime checkpointed: bool, comptime owned_input: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            var input_transferred: usize = 0;
+            defer if (owned_input) {
+                for (input_layer_by_instance[input_transferred..]) |layer_value| {
+                    var layer = layer_value;
+                    layer.deinit(allocator);
+                }
+                allocator.free(input_layer_by_instance);
+            };
             if (input_layer_by_instance.len == 0) return GkrProverError.EmptyBatch;
 
             const n_instances = input_layer_by_instance.len;
@@ -89,7 +102,8 @@ pub fn ForField(comptime Secure: type) type {
 
             for (input_layer_by_instance, 0..) |input_layer, i| {
                 if (checkpointed) {
-                    const stored = try buildCheckpointed(allocator, input_layer);
+                    if (owned_input) input_transferred += 1;
+                    const stored = try buildCheckpointed(owned_input, allocator, input_layer);
                     layers_by_instance[i] = stored.layers;
                     present_by_instance[i] = stored.present;
                 } else layers_by_instance[i] = try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
@@ -327,7 +341,12 @@ pub fn ForField(comptime Secure: type) type {
             return .{ .proof = proof, .artifact = artifact };
         }
 
-        fn buildCheckpointed(a: std.mem.Allocator, input: Layer) !struct { layers: []Layer, present: []bool } {
+        fn buildCheckpointed(comptime owned_input: bool, a: std.mem.Allocator, input: Layer) !struct { layers: []Layer, present: []bool } {
+            var input_pending = owned_input;
+            errdefer if (input_pending) {
+                var value = input;
+                value.deinit(a);
+            };
             const count = input.nVariables() + 1;
             const layers = try a.alloc(Layer, count);
             errdefer a.free(layers);
@@ -337,8 +356,9 @@ pub fn ForField(comptime Secure: type) type {
             errdefer for (layers, present) |*layer, owns| {
                 if (owns) layer.deinit(a);
             };
-            layers[0] = input.borrowed();
+            layers[0] = if (owned_input) input else input.borrowed();
             present[0] = true;
+            input_pending = false;
             var current = layers[0];
             var height: usize = 0;
             while (height + 1 < count) {
