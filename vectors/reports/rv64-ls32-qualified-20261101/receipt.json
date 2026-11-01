@@ -115,6 +115,13 @@
       "error": "InvalidServicesWireRoster",
       "exit_code": 1,
       "control": "/tmp/rv64-wave2-final-legacy-prefix4-v1"
+    },
+    "full_services_and_ethereum_terminal_safe": {
+      "pass": true,
+      "log": "/tmp/rv64-ls32-services-terminal-safe.log",
+      "sha256": "7d09c74e7ad69d76817728027435c51a65d0b7955dc55614ad370aa77a75eac5",
+      "source_commit": "3a18df583",
+      "scope": "All23 combined-services tests and11 terminal receiver tests"
     }
   },
   "timing_caveat": "Correctness and cell qualification only. Root compiler and pre-push checks overlapped; wall168.49s/prove144.47s are not a controlled performance comparison. Baseline itself varies7.5%.",

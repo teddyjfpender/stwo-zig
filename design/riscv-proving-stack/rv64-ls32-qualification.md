@@ -102,7 +102,9 @@ its first ancestor. The actual negative-proof tests below guard precisely that.
 
 Both memory and combined-services LS32-filtered products pass in ReleaseSafe and
 ReleaseFast. The complete memory, LS circuit and execution circuit products also
-pass in ReleaseSafe. The exhaustive writer inventory asserts 52 writers in both
+pass in ReleaseSafe. The complete combined-services and Ethereum terminal
+products also pass in ReleaseSafe, including existing mixed K/ADD/DOUBLE and
+geometry/endpoint tests. The exhaustive writer inventory asserts 52 writers in both
 modes. These tests include fresh physical proofs, rather than constructor-only
 rejection of invalid inputs.
 
