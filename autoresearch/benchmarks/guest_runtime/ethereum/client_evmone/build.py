@@ -7,8 +7,14 @@ a cache directory, our patches are applied to a staged copy, and the ELF is
 compiled with `zig c++` (Zig 0.15.2: bundled libc++ headers, compiler-rt, RISC-V
 backend). Only the Python standard library is used.
 
-  python3 -I build.py --out DIR [--cache DIR] [--profile admitted|candidate]
+  python3 -I build.py --out DIR [--cache DIR] [--profile admitted|v3|candidate]
                       [--isa im|zba|zbb|zba_zbb] [--host] [--jobs 4] [--clean]
+
+`--profile v3` builds the ADMITTED ethereum_services_v3 guest: SHA-256
+compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
+ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
+head/tail and software fallback for overlap or mismatched alignment
+(`--v3-set` selects a subset of sha, arith, mem for ablations).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -272,7 +278,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--cache", default=None, help="pinned source checkouts (default OUT/cache)")
-    ap.add_argument("--profile", choices=("admitted", "candidate"), default="admitted")
+    ap.add_argument("--profile", choices=("admitted", "v3", "candidate"), default="admitted",
+                    help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
+                         "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
+    ap.add_argument("--v3-set", default="sha,arith,mem",
+                    help="admitted v3 service groups for --profile v3 (sha, arith, mem)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
@@ -312,7 +322,13 @@ def main(argv=None):
         staged = stage(cache, work)
     src = work / "src"
 
-    variant = "host" if a.host else a.profile if a.profile == "admitted" else "candidate-" + a.candidate_set.replace(",", "-")
+    v3_groups = a.v3_set.split(",")
+    for svc in v3_groups:
+        if svc not in ("sha", "arith", "mem"):
+            raise SystemExit(f"unknown admitted v3 service group {svc!r}")
+    v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)
+    variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"
+               else "candidate-" + a.candidate_set.replace(",", "-"))
     isa_suffix = "" if a.isa == "im" or a.host else "-" + a.isa
     variant += isa_suffix
     mcpu = "-mcpu=generic_rv64+m" + ISA_FEATURES[a.isa]
@@ -321,6 +337,12 @@ def main(argv=None):
     if "zbb" in a.isa and not a.host:
         # ziskethone's default for Zbb targets (zeg/bswap.hpp): plain __builtin_bswap64 -> rev8.
         defines.append("-DZEG_BSWAP_BUILTIN")
+    if a.profile == "v3":
+        if a.host:
+            raise SystemExit("--profile v3 is a guest build (the host build emulates services only for candidates)")
+        defines.append("-DADMITTED_V3")
+        for svc in v3_groups:
+            defines.append(f"-DADMITTED_{svc.upper()}")
     if a.eest:
         variant += "-eest"
         defines += ["-DZEG_FORK_FROM_INPUT", "-DSTWO_EEST_FORK_FROM_SCHEMA"]
@@ -365,8 +387,8 @@ def main(argv=None):
         exe = out / ("client-evmone-host-eest" if a.eest else "client-evmone-host")
         run(["zig", "c++", a.opt, "-g", *objs, "-o", exe])
     else:
-        tag = a.profile if a.profile == "admitted" or a.candidate_set == "mem,sha,arith" else \
-            "candidate-" + a.candidate_set.replace(",", "-")
+        tag = a.profile if a.profile == "admitted" or (a.profile == "candidate" and a.candidate_set == "mem,sha,arith") else \
+            v3_tag if a.profile == "v3" else "candidate-" + a.candidate_set.replace(",", "-")
         exe = out / f"client-evmone-{tag}{isa_suffix}{'-eest' if a.eest else ''}.elf"
         run(["zig", "c++", "-target", "riscv64-freestanding-none", mcpu, "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])

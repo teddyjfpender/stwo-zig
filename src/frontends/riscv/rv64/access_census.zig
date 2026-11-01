@@ -5,7 +5,7 @@ const std = @import("std");
 pub const CHUNK_BYTES = [_]u32{ 64, 128, 256, 512, 1024, 2048, 4096 };
 pub const MAX_BATCH_STEPS = 1 << 22;
 pub const OPCODE_COUNT = 65;
-pub const Service = enum { keccak, secp_add, secp_double };
+pub const Service = enum { keccak, secp_add, secp_double, sha256, arith256_mod };
 // Default native 256MiB mapping budget, with room for 256 partial-region edges.
 pub const MAX_PAGES = 65536 + 256;
 pub const MAX_CELLS = 256 * 1024 * 1024 / 8 + 256;
@@ -18,6 +18,8 @@ pub const Stats = struct {
     keccak_calls: u64,
     secp_add_calls: u64,
     secp_double_calls: u64,
+    sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
     access_events: u64,
     distinct_touched_cells: u64,
     distinct_written_cells: u64,
@@ -43,7 +45,7 @@ pub const Census = struct {
     total_steps: u64 = 0,
     steps: u32 = 0,
     opcode_counts: [OPCODE_COUNT]u64 = @splat(0),
-    service_counts: [3]u64 = @splat(0),
+    service_counts: [5]u64 = @splat(0),
     unclassified_instructions: u64 = 0,
     events: u64 = 0,
     touched: u64 = 0,
@@ -139,7 +141,7 @@ pub const Census = struct {
             const cell: usize = @intCast((entry.key_ptr.* & 4095) >> 3);
             page.changed[cell / 64] |= @as(u64, 1) << @intCast(cell % 64);
         }
-        var result = Stats{ .first_step = self.total_steps - self.steps, .end_step = self.total_steps, .instructions = self.steps, .opcode_counts = self.opcode_counts, .unclassified_instructions = self.unclassified_instructions, .keccak_calls = self.service_counts[0], .secp_add_calls = self.service_counts[1], .secp_double_calls = self.service_counts[2], .access_events = self.events, .distinct_touched_cells = self.touched, .distinct_written_cells = 0, .net_changed_cells = 0, .touched_chunks = @splat(0), .net_changed_chunks = @splat(0), .touched_internal_nodes = @splat(0), .net_changed_internal_nodes = @splat(0) };
+        var result = Stats{ .first_step = self.total_steps - self.steps, .end_step = self.total_steps, .instructions = self.steps, .opcode_counts = self.opcode_counts, .unclassified_instructions = self.unclassified_instructions, .keccak_calls = self.service_counts[0], .secp_add_calls = self.service_counts[1], .secp_double_calls = self.service_counts[2], .sha256_calls = self.service_counts[3], .arith256_mod_calls = self.service_counts[4], .access_events = self.events, .distinct_touched_cells = self.touched, .distinct_written_cells = 0, .net_changed_cells = 0, .touched_chunks = @splat(0), .net_changed_chunks = @splat(0), .touched_internal_nodes = @splat(0), .net_changed_internal_nodes = @splat(0) };
         self.page_keys.clearRetainingCapacity();
         var key_iterator = self.pages.keyIterator();
         while (key_iterator.next()) |key| self.page_keys.appendAssumeCapacity(key.*);

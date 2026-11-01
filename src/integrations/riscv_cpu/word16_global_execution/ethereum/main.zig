@@ -58,6 +58,7 @@ pub fn main() !void {
         defer dir.close();
         var loaded = try W.read(a, dir, .{ .max_total_steps = config.value.max_steps });
         defer loaded.deinit(a);
+        try admitProfile(config.value, loaded.cpu_declarations, loaded.truth_declarations);
         // Cheap schedule/genesis/completion admission precedes expensive keys.
         var trusted_program = try Program.initWithAuthorityAndMetadataCache(a, &image.authority, &metadata_cache);
         defer trusted_program.deinit();
@@ -85,6 +86,7 @@ pub fn main() !void {
     const truth_declarations = try Plan.truths(a, &captured);
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
+    try admitProfile(config.value, cpu_declarations, truth_declarations);
     if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite, .{ .native = &native_cache, .program = &metadata_cache });
     defer keys.deinit();
@@ -114,6 +116,17 @@ pub fn main() !void {
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
     try Driver.writeJson(a, dir, "report.json", .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .completed_ethereum_block = completed, .total_steps = expected.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .memory_words = captured.advice.initial.len, .output = output, .capture_ns = capture_ns, .capture_cache_trim_ns = trim_ns, .capture_cache_released_bytes = capture_cache_released, .cpu_fixed_witness_retired = !operational.keep_fixed_witness, .coordinator_schedule = schedule, .commit_batch_columns = operational.batch, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .publish_before_report_ns = timer.read() - publish_start, .total_before_report_ns = timer.read(), .retained_main = store.stats(), .fixed_native_cache = native_cache.snapshot(), .program_metadata_cache = metadata_cache.snapshot() });
     try std.posix.fsync(dir.fd);
+}
+/// Receiver policy: SHA-256, arith256_mod and bulk-memory bridges/truths
+/// exist only in the admitted v3 roster. A v2 request can never accept a
+/// proof that relies on them.
+pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, truths: []const W.TruthDeclaration) !void {
+    if (config.execution_profile == .ethereum_services_v3) return;
+    for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
+    for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
+    for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
+    for (truths) |d| if (d.family == .arith256_mod) return error.UnadmittedArith256Service;
+    for (cpus) |d| if (d.bridges.bulk.any()) return error.UnadmittedBulkMemoryService;
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });

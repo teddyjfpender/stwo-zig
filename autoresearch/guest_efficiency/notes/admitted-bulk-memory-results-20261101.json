@@ -1,0 +1,87 @@
+{
+ "schema": "stwo.rv64.guest-efficiency.admitted-bulk-memory.v1",
+ "date": "2026-11-01",
+ "profile": "ethereum_services_v3 (admitted memcpy 0x30001 / memset 0x30002)",
+ "guest": "services crate features keccak-service,secp-lean,admitted-mem; reference = same tree without admitted-mem on ethereum_services_v2",
+ "elf_sha256": {
+  "reference": "3d58173385f43105686084d8c092107ba9863a08e67be669934940cc21786b33",
+  "admitted_min16": "ad1eab61c7fcc9e35a891885b14b7ed7bd857ac9d2fac4bf8b35c5a228cdf3ed"
+ },
+ "guards": "all pass on all 15 blocks (exact outputs, determinism, per-block regression, holdout, profile)",
+ "reference": {
+  "scored": {
+   "instructions_per_gas": 13.181085435294007,
+   "committed_bits_per_gas": 151701.89101898408
+  },
+  "holdout": {
+   "instructions_per_gas": 11.163791884066496,
+   "committed_bits_per_gas": 128554.95412651537
+  },
+  "all": {
+   "instructions_per_gas": 12.782852025725951,
+   "committed_bits_per_gas": 147132.4600632685
+  },
+  "ok": true,
+  "promotable": true
+ },
+ "admitted_threshold_16": {
+  "scored": {
+   "instructions_per_gas": 12.897391458862389,
+   "committed_bits_per_gas": 150105.54133828753
+  },
+  "holdout": {
+   "instructions_per_gas": 10.921103143778868,
+   "committed_bits_per_gas": 127195.13630830035
+  },
+  "all": {
+   "instructions_per_gas": 12.507252882587101,
+   "committed_bits_per_gas": 145582.80407770132
+  },
+  "ok": true,
+  "promotable": true
+ },
+ "admitted_threshold_8": {
+  "scored": {
+   "instructions_per_gas": 12.923460871826988,
+   "committed_bits_per_gas": 150368.62343510735
+  },
+  "holdout": {
+   "instructions_per_gas": 10.943655336939837,
+   "committed_bits_per_gas": 127422.5463417595
+  },
+  "all": {
+   "instructions_per_gas": 12.53262796208013,
+   "committed_bits_per_gas": 145838.8441615182
+  },
+  "ok": true,
+  "promotable": true
+ },
+ "admitted_threshold_32": {
+  "scored": {
+   "instructions_per_gas": 12.903146660115496,
+   "committed_bits_per_gas": 150148.33278196206
+  },
+  "holdout": {
+   "instructions_per_gas": 10.925555415400021,
+   "committed_bits_per_gas": 127226.63817782742
+  },
+  "all": {
+   "instructions_per_gas": 12.512750872831209,
+   "committed_bits_per_gas": 145623.3668493997
+  },
+  "ok": true,
+  "promotable": true
+ },
+ "service_use_threshold_16_all_blocks": {
+  "memcpy": {
+   "calls": 3342073,
+   "bytes": 451474568
+  },
+  "memset": {
+   "calls": 1193370,
+   "bytes": 155935752
+  }
+ },
+ "candidate_comparison": "the unaligned memmove-safe candidate took 9.08M memcpy calls / 798 MB; the admitted aligned form takes 3.34M / 451 MB, the rest (mismatched src/dst alignment, < 16 bytes, overlap) stays in software",
+ "costs": "calibration.json admitted_services (measured layouts x 1/ln2 padding)"
+}

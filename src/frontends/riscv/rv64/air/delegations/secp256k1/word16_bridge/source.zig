@@ -8,7 +8,7 @@ const L = @import("layout.zig");
 const T = @import("types.zig");
 const P = @import("../program.zig");
 const M = core.fields.m31.M31;
-pub fn fixed(a: std.mem.Allocator, kind: P.Kind, log: u32) ![]M {
+pub fn fixed(a: std.mem.Allocator, kind: T.Kind, log: u32) ![]M {
     const n = try T.validateGeometry(kind, 0, 1, log);
     const out = try a.alloc(M, L.FIXED * n);
     @memset(out, M.zero());
@@ -22,23 +22,24 @@ pub fn fixed(a: std.mem.Allocator, kind: P.Kind, log: u32) ![]M {
         out[3 * n + p] = M.fromCanonical(@intCast(coord));
         out[4 * n + p] = M.fromCanonical(@intFromBool(coord == 0));
         out[5 * n + p] = M.fromCanonical(@intCast(row / coords));
-        out[6 * n + p] = M.fromCanonical(@intFromBool(coord < 3));
-        out[7 * n + p] = M.fromCanonical(if (coord < 3) P.get(kind).outputs[coord] else 0);
+        out[6 * n + p] = M.fromCanonical(@intFromBool(T.isWritten(kind, coord)));
+        out[7 * n + p] = M.fromCanonical(if (T.isWritten(kind, coord)) T.outputWire(kind, coord) else 0);
     }
     return out;
 }
-pub fn validate(kind: P.Kind, c: T.Call) !void {
+pub fn validate(kind: T.Kind, c: T.Call) !void {
     const words = 4 * T.coordinates(kind);
     if (c.epoch == 0 or c.tick == 0 or c.tick & 3 != 0 or c.pointer & 31 != 0 or c.pointer > std.math.maxInt(u64) - (8 * words - 1)) return error.InvalidWord16SecpCall;
     for (c.predecessors[0..words], c.before[0..words], c.after[0..words], 0..) |pred, before, after, lane| {
-        if (pred.value != before or pred.rights & 1 == 0 or (lane < 12 and pred.rights & 2 == 0) or (lane >= 12 and after != before) or pred.epoch > c.epoch or (pred.epoch == c.epoch and pred.tick >= c.tick)) return error.InvalidWord16SecpPredecessor;
+        if (pred.value != before or pred.rights & 1 == 0 or (T.isWritten(kind, lane / 4) and pred.rights & 2 == 0) or (!T.isWritten(kind, lane / 4) and after != before) or pred.epoch > c.epoch or (pred.epoch == c.epoch and pred.tick >= c.tick)) return error.InvalidWord16SecpPredecessor;
     }
 }
-pub fn nativeRow(kind: P.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
+pub fn nativeRow(kind: T.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
     var out: [L.MAIN]M = @splat(M.zero());
     const c = call orelse return out;
     out[L.ACTIVE] = M.one();
-    out[L.WRITE] = M.fromCanonical(@intFromBool(coord < 3));
+    const writes = T.isWritten(kind, coord);
+    out[L.WRITE] = M.fromCanonical(@intFromBool(writes));
     out[L.TICK] = M.fromCanonical(c.tick);
     out[L.EPOCH] = M.fromCanonical(c.epoch);
     out[L.LOW] = M.fromCanonical(@as(u16, @truncate(c.tick)));
@@ -48,7 +49,7 @@ pub fn nativeRow(kind: P.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
     R.trace.word(out[L.ADDRESS..], c.pointer + 32 * coord);
     for (0..4) |lane| {
         const index = 4 * coord + lane;
-        const old = LS.native.logicalRow(.{ .opcode = if (coord < 3) .SD else .LD, .a = c.pointer + 8 * index, .immediate = 0, .b = if (coord < 3) c.after[index] else 0, .c = if (coord < 3) 0 else c.before[index], .epoch = c.epoch, .tick = c.tick, .before = c.predecessors[index], .after = .{ .value = c.after[index], .epoch = c.epoch, .tick = c.tick, .rights = c.predecessors[index].rights } });
+        const old = LS.native.logicalRow(.{ .opcode = if (writes) .SD else .LD, .a = c.pointer + 8 * index, .immediate = 0, .b = if (writes) c.after[index] else 0, .c = if (writes) 0 else c.before[index], .epoch = c.epoch, .tick = c.tick, .before = c.predecessors[index], .after = .{ .value = c.after[index], .epoch = c.epoch, .tick = c.tick, .rights = c.predecessors[index].rights } });
         for ([_]usize{ 8, 10, 11, 24, 25, 26, 2, 27, 22, 23 }, [_]usize{ L.PREV_EPOCH, L.PREV_LOW, L.PREV_HIGH, L.GAP_EPOCH, L.GAP_LOW, L.GAP_HIGH, L.SAME, L.BORROW, L.READABLE, L.WRITABLE }) |from, to| out[to + lane] = old[from];
         for (0..8) |byte| {
             out[L.BEFORE + 8 * lane + byte] = M.fromCanonical(@as(u8, @truncate(c.before[index] >> @as(u6, @intCast(8 * byte)))));
@@ -61,12 +62,11 @@ pub fn nativeRow(kind: P.Kind, call: ?T.Call, coord: usize, id: u32) [L.MAIN]M {
         out[L.CARRY + i] = M.fromCanonical(carry);
     }
     for (0..11) |bit| out[L.ALIGN + bit] = M.fromCanonical(@as(u1, @truncate(c.pointer >> @as(u6, @intCast(bit + 5)))));
-    _ = kind;
     return out;
 }
 pub const Source = struct {
     allocator: std.mem.Allocator,
-    kind: P.Kind,
+    kind: T.Kind,
     log_size: u32,
     first_id: u32,
     calls: []T.Call,
@@ -76,13 +76,13 @@ pub const Source = struct {
     interaction: []M = &.{},
     counts16: []u64,
     counts8: []u64,
-    pub fn init(a: std.mem.Allocator, kind: P.Kind, calls: []const T.Call, first_id: u32, log: u32) !Source {
+    pub fn init(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32) !Source {
         return create(a, kind, calls, first_id, log, null);
     }
-    pub fn initWithMainBuffer(a: std.mem.Allocator, kind: P.Kind, calls: []const T.Call, first_id: u32, log: u32, main: []M) !Source {
+    pub fn initWithMainBuffer(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32, main: []M) !Source {
         return create(a, kind, calls, first_id, log, main);
     }
-    fn create(a: std.mem.Allocator, kind: P.Kind, calls: []const T.Call, first_id: u32, log: u32, buffer: ?[]M) !Source {
+    fn create(a: std.mem.Allocator, kind: T.Kind, calls: []const T.Call, first_id: u32, log: u32, buffer: ?[]M) !Source {
         const n = try T.validateGeometry(kind, calls.len, first_id, log);
         for (calls, 0..) |c, index| {
             try validate(kind, c);

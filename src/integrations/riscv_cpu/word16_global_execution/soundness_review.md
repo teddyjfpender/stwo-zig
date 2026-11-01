@@ -120,6 +120,56 @@ lift the CPU's native2n composition. Secp truths certify the specified modular
 RCB programs, not standalone ECDSA validity; the complete guest execution proves
 the surrounding recovery/validation and Ethereum behavior.
 
+### arith256_mod (v3 family 4)
+
+`ethereum_services_v3` admits `0x0003_0021`: r = (a*b + c) mod m, r = 0 when
+m = 0, on a 32-byte aligned 20-word packet (only r written). The Word16 bridge
+kind 4 binds five coordinates to RAM exactly as for secp/SHA-256; the truth
+(`air/delegations/arith256`, one row per call, degree 3, own PCS) proves
+`(1-z)(a*b+c) = q*m + r` over byte limbs with 48 two-coefficient groups and
+carries in [-2^14, 2^14), whose field residuals stay below 1.61e9 < p and are
+therefore integer equations; r < m is `m - r - 1 = d` with canonical d bytes
+and no final borrow; z = [m = 0] is forced by `z*Σm = 0`, `Σm*inv = active-z`.
+Operand and result bytes inherit U8 range from the bridge through Wire35; q, d
+and carry bytes use a local BYTE table whose challenge is drawn after the
+truth MAIN root and whose chain must close to zero (mass 237n < p). The truth
+also consumes the before-value of the r slot (wire 4) so that every bridge
+input tuple is matched. Adversarial tests cover wrong r, r >= m, wrapped q,
+m = 0 forgeries, non-canonical limbs, carry forgery, forged Wire35/RAM/OWNER
+data in real proofs, and absent/foreign bridges at a fresh receiver; the v2
+fixture bundle is byte-identical to the pre-v3 base. Not established: a
+block-scale proof with a guest using the tag, and recursion support. Details:
+`design/riscv-proving-stack/rv64-arith256-service.md`.
+## Admitted bulk memory (ethereum_services_v3)
+
+Tags 0x30001 (memcpy) and 0x30002 (memset) are admitted by three bridge
+components inside the issuing CPU proof (`desc`, `copy`, `set`;
+`src/frontends/riscv/rv64/air/delegations/bulk_memory`). Full argument, layout,
+masses and tests: `design/riscv-proving-stack/rv64-bulk-memory-service.md`.
+Obligations this receiver relies on:
+
+- The desc row consumes the CPU OWNER19 ECALL tuple (Boolean `active`), binding
+  `a0`, `a7`, epoch and the after tick `4r+4`; it emits one OWNER19 token whose
+  slot 0 (`0x424D0001/2`) is outside the opcode range. Body runs consume tokens
+  on Boolean start rows; local OWNER closure therefore pairs every bulk ECALL
+  with exactly one body run of exactly `len/8` rows (chain-end constraint).
+- Every packet read, source read and destination write is a RAM14 transition at
+  the ECALL's clock with ranged gaps. Strict predecessor order makes any alias
+  among packet, source and destination words unprovable (the executor refuses
+  it), and makes every read observe the latest earlier write.
+- Alignment and no-wrap follow from canonical aligned INIT addresses and the
+  absence of a top-limb carry; `len` limbs 2, 3 are constants 0.
+- Canonical limbs: memset writes `257*fill` with a ranged byte (anchored);
+  memcpy writes the consumed source token's limbs (new strictly decreasing edge
+  in the joint REG/RAM write induction). Bulk after ticks are `4r+4`.
+- Masses: RAM14 `6*calls + 4*copy_words + 2*set_words`, U16 per physical row,
+  bulk ECALLs counted as CPU steps; admitted in `services/protocol.zig::admitBulk`
+  and `services/wire.zig`.
+- v2 rosters mix, commit and serialize nothing new (bulk block present iff the
+  key has bulk components). The Ethereum driver's v3 work-packet route is not
+  yet qualified; the services fixture (`services/bulk_test.zig`) is the
+  accepting evidence.
+
 ## Ownership, storage and resource scope
 
 The canonical services coordinator transfers both CPU and crypto truth
@@ -177,3 +227,53 @@ protocol96-bit or128-bit guarantee. Lookup degree, actual masses, adaptive
 statement selection and unions across all relations/proofs require separate
 security analysis. Epoch16/tick24 and the characteristic guard remain explicit
 finite limits, not unbounded-execution claims.
+
+## SHA-256 compression (`ethereum_services_v3`)
+
+Design and evidence: `design/riscv-proving-stack/rv64-sha256-service.md`.
+
+SHA-256 is Wire35 program kind 3 and services `Family.sha256 = 3`, appended
+after the v2 roster. A v2 bundle is byte-identical with or without this code.
+
+- **Bridge.** The shared Word16 Wire35 bridge with kind `.sha256` binds:
+  - OWNER19 (ECALL, full64 `a0`, `a7 = 0x30010`, epoch, CPU tick);
+  - 32-byte alignment and non-wrapping word addresses;
+  - an authenticated RAM14 predecessor for each of the 12 words, all readable;
+  - write rights for words 0..3; words 4..11 are read-only, so their after
+    value equals the before value.
+
+  RAM adds 24 terms per call.
+- **Truth.** One compression per row, degree 3, native 2n, in its own PCS.
+  - Boolean registers for `W_0..63`, `A_{-4..63}` and `E_{-4..63}`, plus
+    exact carried 16-bit-half sums.
+  - Every half-sum is below `8·2^16 < p`, so each field equation is an integer
+    equation.
+  - Padding rows are honest zero-state compressions.
+  - Activity is a strict prefix of exactly `calls` rows, enforced through the
+    previous-row ACTIVE mask, FIRST/LAST and the public `calls`.
+- **Joins.** The truth consumes wires 0..2 (state and both message halves) and
+  produces wire 3, keyed by kind, call ID (`first_id + ROW`) and wire ID. The
+  bridge produces its BEFORE tuples and consumes coordinate 0's AFTER tuple.
+  Input bytes are linear forms over truth bits (the big-endian swap is in the
+  form). Output bytes inherit U8 canonicality from the bridge through Wire35
+  closure. The receiver adds every bridge and truth Wire35 claim into the one
+  global sum.
+- **Transcript.** The CPU spec mixes the SHA block only when the bridge is
+  present, and the CPU claim vector then grows by five claims. The truth
+  spec mixes its geometry and constraint count. Unused truth-claim slots must
+  be zero.
+- **Admission.**
+  - The ROM and CPU AIR are unchanged: a SHA tag closes OWNER only in a shard
+    whose admitted roster contains a SHA bridge.
+  - The Ethereum receiver rejects any SHA declaration unless the request's
+    `execution_profile` is v3.
+- **Tests** (beyond the unit/AIR suites): locally valid false new state →
+  Wire35 unclosed; forged block word consistent between bridge and truth →
+  RAM unclosed; wrong pointer → CPU local OWNER unclosed; missing-bridge
+  receiver → presence mismatch; a 4-shard real-block prefix accepted by a
+  fresh receiver.
+- **Open.**
+  - recursion support;
+  - a complete-block v3 qualification;
+  - binding the profile into the program identity rather than receiver policy;
+  - whole-protocol security accounting.

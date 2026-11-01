@@ -19,6 +19,7 @@ const Ethereum = @import("../ethereum/receiver.zig");
 const G = @import("../protocol.zig");
 const P = @import("protocol.zig");
 const R = @import("roster.zig");
+const T = @import("types.zig");
 const W = @import("worker.zig");
 const E = @import("execution.zig");
 const a = std.testing.allocator;
@@ -36,7 +37,7 @@ fn verifyPhysical(setup: *const R.CpuSetup, expected: P.Expected, bundle: *const
     var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, setup.key.suite.config());
     defer verifier.deinit(a);
     var channel = G.T.P.Channel{};
-    try P.beginCpu(&channel, setup, encoded.request, expected, 0, 0, .{ 1, 1, 1 });
+    try P.beginCpu(&channel, setup, encoded.request, expected, 0, 0, @as([T.FAMILIES]u32, @splat(1)));
     for (0..2) |tree| {
         const logs = try setup.logs(a, tree);
         defer a.free(logs);
@@ -49,7 +50,7 @@ fn verifyPhysical(setup: *const R.CpuSetup, expected: P.Expected, bundle: *const
     try std.testing.expect(encoded.claims.base.terminal.ram.eql(try B.boundary_source.expectedClaim(encoded.request.base.memory.terminal, false, common.ram)));
     try encoded.claims.local();
     try std.testing.expect(encoded.claims.ram().isZero());
-    channel.mixFelts(&encoded.claims.values());
+    encoded.claims.mix(&channel, setup);
     const logs = try setup.logs(a, 2);
     defer a.free(logs);
     try verifier.commit(a, proof.commitment_scheme_proof.commitments.items[2], logs, &channel);
@@ -124,7 +125,7 @@ fn run(mode: Mode) !void {
     const expected = P.Expected{ .admission = admission, .program_identity = program.identity, .total_steps = fixture.boundary.steps, .max_total_steps = 32, .final_pc = fixture.boundary.final_pc, .final_registers = fixture.boundary.final_registers };
     // Deliberately use the low-level worker, not the producer coordinator that
     // correctly rejects malformed public advice before constructing a proof.
-    var worker = try W.Worker.init(a, .{ .cpu = .{ .setup = setup, .request = request, .ordinal = 0, .first_step = 0, .first_ids = .{ 1, 1, 1 } } }, .{ .cpu = source });
+    var worker = try W.Worker.init(a, .{ .cpu = .{ .setup = setup, .request = request, .ordinal = 0, .first_step = 0, .first_ids = @as([T.FAMILIES]u32, @splat(1)) } }, .{ .cpu = source });
     owns_source = false;
     defer worker.deinit(a);
     const root = try worker.seal(a, expected, .{}, 0);

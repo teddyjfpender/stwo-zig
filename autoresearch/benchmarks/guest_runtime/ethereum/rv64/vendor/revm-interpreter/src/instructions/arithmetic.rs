@@ -69,6 +69,34 @@ mod stwo_candidate {
     }
 }
 
+/// ADMITTED `arith256_mod` service (tag 0x0003_0021, profile
+/// `ethereum_services_v3`): r = (a*b + c) mod m, r = 0 when m = 0. Same packet
+/// as the candidate (a, b, c, m, r as four LE u64 limbs) but 32-byte aligned,
+/// because the Word16 prover bridge binds five aligned 32-byte coordinates.
+/// Only MULMOD and ADDMOD route here; MUL/EXP stay in software (arith256 is
+/// not admitted).
+#[cfg(all(feature = "stwo-arith256-service", target_arch = "riscv64"))]
+mod stwo_service {
+    use primitives::U256;
+
+    #[repr(C, align(32))]
+    struct Packet([u64; 20]);
+
+    /// (a*b + c) mod m, 0 when m = 0.
+    #[inline(never)]
+    pub fn mul_add_mod(a: U256, b: U256, c: U256, m: U256) -> U256 {
+        let mut packet = Packet([0u64; 20]);
+        packet.0[0..4].copy_from_slice(a.as_limbs());
+        packet.0[4..8].copy_from_slice(b.as_limbs());
+        packet.0[8..12].copy_from_slice(c.as_limbs());
+        packet.0[12..16].copy_from_slice(m.as_limbs());
+        // SAFETY: the packet is live, 32-aligned and unique; the service reads
+        // 160 bytes and writes words 16..20 in place; registers are preserved.
+        unsafe { core::arch::asm!("ecall", in("a0") packet.0.as_mut_ptr(), in("a7") 0x0003_0021usize, options(nostack)) };
+        U256::from_limbs([packet.0[16], packet.0[17], packet.0[18], packet.0[19]])
+    }
+}
+
 /// Implements the ADD instruction - adds two values from stack.
 pub fn add<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([op1], op2, context.interpreter);
@@ -140,12 +168,17 @@ pub fn smod<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Pops three values from stack and pushes (a + b) % n.
 pub fn addmod<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([op1, op2], op3, context.interpreter);
-    #[cfg(all(feature = "stwo-candidate-arith", target_arch = "riscv64"))]
+    #[cfg(all(feature = "stwo-arith256-service", target_arch = "riscv64"))]
+    {
+        // (op1 * 1 + op2) mod n; the 257-bit sum is exact in the 512-bit service.
+        *op3 = stwo_service::mul_add_mod(op1, U256::from(1u64), op2, *op3);
+    }
+    #[cfg(all(feature = "stwo-candidate-arith", not(feature = "stwo-arith256-service"), target_arch = "riscv64"))]
     {
         // (op1 * 1 + op2) mod n; the 257-bit sum is exact in the 512-bit service.
         *op3 = stwo_candidate::mul_add_mod(op1, U256::from(1u64), op2, *op3);
     }
-    #[cfg(not(all(feature = "stwo-candidate-arith", target_arch = "riscv64")))]
+    #[cfg(not(all(any(feature = "stwo-candidate-arith", feature = "stwo-arith256-service"), target_arch = "riscv64")))]
     {
         *op3 = op1.add_mod(op2, *op3);
     }
@@ -157,11 +190,15 @@ pub fn addmod<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Pops three values from stack and pushes (a * b) % n.
 pub fn mulmod<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([op1, op2], op3, context.interpreter);
-    #[cfg(all(feature = "stwo-candidate-arith", target_arch = "riscv64"))]
+    #[cfg(all(feature = "stwo-arith256-service", target_arch = "riscv64"))]
+    {
+        *op3 = stwo_service::mul_add_mod(op1, op2, U256::ZERO, *op3);
+    }
+    #[cfg(all(feature = "stwo-candidate-arith", not(feature = "stwo-arith256-service"), target_arch = "riscv64"))]
     {
         *op3 = stwo_candidate::mul_add_mod(op1, op2, U256::ZERO, *op3);
     }
-    #[cfg(not(all(feature = "stwo-candidate-arith", target_arch = "riscv64")))]
+    #[cfg(not(all(any(feature = "stwo-candidate-arith", feature = "stwo-arith256-service"), target_arch = "riscv64")))]
     {
         *op3 = op1.mul_mod(op2, *op3);
     }

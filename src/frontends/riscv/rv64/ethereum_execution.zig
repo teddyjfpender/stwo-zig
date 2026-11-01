@@ -13,7 +13,10 @@ const cisa = @import("candidate_isa.zig");
 /// rejected with compact capture, RAM-boundary capture and access census.
 /// `ethereum_services_v3_candidate_isa` = v3_candidate plus the execution-only
 /// Zbb/Zba subset (candidate_isa.zig), same restrictions.
-const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa };
+/// `ethereum_services_v3` is ADMITTED (v2 + SHA-256 compression 0x0003_0010
+/// + arith256_mod 0x0003_0021 + aligned memcpy/memset 0x0003_0001/2)
+/// and supports compact capture for the prover.
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3 };
 const A = std.heap.smp_allocator;
 const OPCODE_NAMES = blk: {
     const fields = @typeInfo(rv.decode.Opcode).@"enum".fields;
@@ -48,6 +51,8 @@ const CaptureStats = struct {
     service_calls: u64 = 0,
     secp_add_calls: u64 = 0,
     secp_double_calls: u64 = 0,
+    sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
     peak_retained_bytes: usize = 0,
     step_bytes: usize = @sizeOf(rv.compact_tape.Step),
     legacy_retirement_bytes: usize = @sizeOf(rv.machine.Retirement),
@@ -58,7 +63,9 @@ const CaptureStats = struct {
         self.batches += 1;
         self.instructions += tape.len;
         self.ram_words += tape.memory_before.items.len;
-        self.service_calls += tape.service_calls.items.len + tape.secp_calls.items.len;
+        self.service_calls += tape.serviceCount();
+        self.sha256_calls += tape.sha256_calls.items.len;
+        self.arith256_mod_calls += tape.arith256_mod_calls.items.len;
         for (tape.secp_calls.items) |call| {
             if (call.kind == .add) self.secp_add_calls += 1 else self.secp_double_calls += 1;
         }
@@ -88,6 +95,12 @@ const Report = struct {
     keccak_calls: u64 = 0,
     secp_add_calls: u64 = 0,
     secp_double_calls: u64 = 0,
+    sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
+    bulk_memcpy_calls: u64 = 0,
+    bulk_memset_calls: u64 = 0,
+    bulk_memcpy_bytes: u64 = 0,
+    bulk_memset_bytes: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -159,7 +172,7 @@ fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.
             if (row == null) event.* = .{ .keccak = call };
             break :blk row;
         },
-        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => session.step(event),
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa, .ethereum_services_v3 => session.step(event),
     };
 }
 fn candidateInstruction(cpu: *rv.machine.Cpu, memory: anytype, report: *Report) bool {
@@ -180,7 +193,11 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     var loaded = try contract.load(A, c.symbols, bytes, input);
     defer loaded.deinit();
     const memory = &loaded.memory;
-    var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, if (c.execution_profile == .ethereum_services_v2 or is_candidate) .ethereum_services_v2 else .ethereum_services_v1);
+    var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, switch (c.execution_profile) {
+        .ethereum_services_v3 => .ethereum_services_v3,
+        .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
+        else => .ethereum_services_v1,
+    });
     const session = &service_session.keccak.base;
     defer service_session.deinit();
     var census: ?access.Census = if (c.census_batch_steps) |steps| try access.Census.init(A, steps) else null;
@@ -194,6 +211,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         .ethereum_services_v2 => .ethereum_services_v2,
         // Unreachable with a tape (rejected above); never reaches the prover.
         .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
+        .ethereum_services_v3 => .ethereum_services_v3,
     };
     var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
     defer if (tape) |*value| value.deinit();
@@ -258,16 +276,54 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.wordCount();
                     if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 12);
                 },
+                .arith256_mod => |call| {
+                    report.arith256_mod_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i >= @TypeOf(call).FIRST_WRITTEN);
+                },
+                .sha256 => |call| {
+                    report.sha256_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 4);
+                },
+                .bulk => |e| {
+                    const copy = e.call.tag == rv.execution_profile.MEMCPY_TAG;
+                    if (copy) {
+                        report.bulk_memcpy_calls += 1;
+                        report.bulk_memcpy_bytes += e.packet.len;
+                    } else {
+                        report.bulk_memset_calls += 1;
+                        report.bulk_memset_bytes += e.packet.len;
+                    }
+                    report.service_ram_word_transitions += 3 + @as(u64, if (copy) 2 else 1) * e.dst_before.len;
+                    if (census) |*value| {
+                        for (0..3) |k| {
+                            const w = memory.backing.load(e.call.pointer + 8 * k, 8).value;
+                            try value.observe(e.call.pointer + 8 * k, w, w, false);
+                        }
+                        for (e.dst_before, 0..) |before, j| {
+                            if (copy) {
+                                const w = memory.backing.load(e.packet.word1 + 8 * j, 8).value;
+                                try value.observe(e.packet.word1 + 8 * j, w, w, false);
+                            }
+                            try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                        }
+                    }
+                },
             }
             report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
             if (report.pc_profile) |*profile| {
                 const pc = retirement.pc.toInt();
                 if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
             }
-            if (census) |*value| try value.retireService(switch (event) {
-                .keccak => .keccak,
-                .secp => |call| if (call.kind == .add) .secp_add else .secp_double,
-            });
+            if (census) |*value| switch (event) {
+                // Bulk memory is counted as a plain ECALL retirement.
+                .bulk => try value.retireOpcode(@intFromEnum(rv.decode.Opcode.ECALL)),
+                .keccak => try value.retireService(.keccak),
+                .secp => |call| try value.retireService(if (call.kind == .add) .secp_add else .secp_double),
+                .sha256 => try value.retireService(.sha256),
+                .arith256_mod => try value.retireService(.arith256_mod),
+            };
             continue;
         }
         const row = optional_row.?;

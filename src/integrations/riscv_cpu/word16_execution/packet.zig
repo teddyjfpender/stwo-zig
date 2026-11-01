@@ -45,7 +45,7 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
     try file.seekTo(tape_start);
     var tape = try rv.compact_tape_wire.readTail(a, file, .{ .bytes = header.tape_bytes, .steps = @min(limits.steps, public.statement.steps) });
     errdefer tape.deinit();
-    if (try rv.compact_tape_wire.encodedBytes(&tape) != header.tape_bytes or tape.execution_profile != public.execution_profile or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != header.metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
+    if (try rv.compact_tape_wire.encodedBytes(&tape) != header.tape_bytes or tape.execution_profile != Request.tapeProfile(config) or !@import("../rv64_ethereum_batch.zig").tapeMatches(tape.execution_profile, public.execution_profile) or tape.len == 0 or tape.len != public.statement.steps or tape.initial_clock != header.metadata.first_step or tape.initial_pc != public.statement.initial_pc or tape.storage[tape.len - 1].next_pc != public.statement.final_pc or tape.service_calls.items.len != public.keccak_calls or tape.secp_calls.items.len != @as(u64, public.secp.add.calls) + public.secp.double.calls) return error.InvalidWorkPacketBoundary;
     for (tape.service_calls.items, 0..) |call, i| if (call.call_id != @as(u64, public.first_call_id) + i) return error.InvalidWorkPacketService;
     var secp_counts: [2]u32 = @splat(0);
     for (tape.secp_calls.items) |call| {
@@ -54,5 +54,9 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
         secp_counts[k] += 1;
     }
     if (!std.mem.eql(u32, &secp_counts, &public.secp.counts())) return error.InvalidWorkPacketService;
+    // v3 SHA-256 IDs are transport advice; the services receiver re-derives
+    // contiguous per-family spans from the admitted per-shard counts.
+    if (tape.sha256_calls.items.len > 1) for (tape.sha256_calls.items[1..], 1..) |call, i| if (call.call_id != tape.sha256_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
+    if (tape.arith256_mod_calls.items.len > 1) for (tape.arith256_mod_calls.items[1..], 1..) |call, i| if (call.call_id != tape.arith256_mod_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
     return .{ .metadata = header.metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = header.content_digest };
 }

@@ -5,6 +5,8 @@ const R = @import("../services/roster.zig");
 const W = @import("../services/wire.zig");
 const K = @import("../keccak/shared/roster.zig");
 const S = @import("../secp/roster.zig");
+const H = @import("../sha256/roster.zig");
+const Ar = @import("../arith256/roster.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
@@ -16,6 +18,8 @@ pub const Owner = struct {
     cpu_owners: std.ArrayList(*R.CpuSetup) = .{},
     keccak_owners: std.ArrayList(*K.TruthSetup) = .{},
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
+    sha256_owners: std.ArrayList(*H.TruthSetup) = .{},
+    arith256_owners: std.ArrayList(*Ar.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
         return initPolicy(a, image, cpu, truth, false, Suite.production(), .{});
     }
@@ -99,6 +103,40 @@ pub const Owner = struct {
                 }
                 out.* = .{ .secp = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
             },
+            .sha256 => {
+                if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                var found: ?*const H.TruthSetup = null;
+                for (self.sha256_owners.items) |s| if (s.log == d.logs[0]) {
+                    found = s;
+                    break;
+                };
+                if (found == null) {
+                    try self.sha256_owners.ensureUnusedCapacity(a, 1);
+                    const s = try a.create(H.TruthSetup);
+                    errdefer a.destroy(s);
+                    s.* = try H.TruthSetup.initWithSuite(a, d.logs[0], suite);
+                    self.sha256_owners.appendAssumeCapacity(s);
+                    found = s;
+                }
+                out.* = .{ .sha256 = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
+            },
+            .arith256_mod => {
+                if (d.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+                var found: ?*const Ar.TruthSetup = null;
+                for (self.arith256_owners.items) |s| if (s.log == d.logs[0]) {
+                    found = s;
+                    break;
+                };
+                if (found == null) {
+                    try self.arith256_owners.ensureUnusedCapacity(a, 1);
+                    const s = try a.create(Ar.TruthSetup);
+                    errdefer a.destroy(s);
+                    s.* = try Ar.TruthSetup.initWithSuite(a, d.logs[0], suite);
+                    self.arith256_owners.appendAssumeCapacity(s);
+                    found = s;
+                }
+                out.* = .{ .arith256_mod = .{ .setup = found.?, .first_id = d.first_id, .calls = d.calls } };
+            },
         };
         return self;
     }
@@ -116,6 +154,16 @@ pub const Owner = struct {
             s.deinit();
             a.destroy(s);
         }
+        for (self.sha256_owners.items) |s| {
+            s.deinit();
+            a.destroy(s);
+        }
+        self.sha256_owners.deinit(a);
+        for (self.arith256_owners.items) |s| {
+            s.deinit();
+            a.destroy(s);
+        }
+        self.arith256_owners.deinit(a);
         self.cpu_owners.deinit(a);
         self.keccak_owners.deinit(a);
         self.secp_owners.deinit(a);

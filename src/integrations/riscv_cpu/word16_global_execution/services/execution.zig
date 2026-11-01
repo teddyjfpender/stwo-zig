@@ -100,12 +100,12 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         }
         const ch = try P.drawCpu(&channel, &bundle.manifest, index);
         if (!encoded.claims.base.initial.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.initial, true, common.ram)) or !encoded.claims.base.terminal.ram.eql(try A.memory.load_store_v2.boundary_source.expectedClaim(encoded.request.base.memory.terminal, false, common.ram))) return error.GlobalBoundaryPhysicalClaimMismatch;
-        channel.mixFelts(&encoded.claims.values());
+        encoded.claims.mix(&channel, s);
         const logs = try s.logs(a, 2);
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var bc = try Components.init(&s.materials, encoded.request.base, ch, encoded.claims.base);
-        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras);
+        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk);
         const handles = try cpuVerifierHandles(a, &bc, &bb);
         defer a.free(handles);
         owns = false;
@@ -113,7 +113,7 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         try encoded.claims.local();
         ram = ram.add(encoded.claims.ram());
         io = io.add(encoded.claims.extras[0].truth);
-        wire_sum = wire_sum.add(encoded.claims.extras[1].truth).add(encoded.claims.extras[2].truth);
+        wire_sum = wire_sum.add(encoded.claims.wire());
     }
     for (truths, bundle.truths, 0..) |truth, encoded, k| {
         for (encoded.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
@@ -138,9 +138,10 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var components = try TruthComponents.init(truth, ch, encoded.claims);
-        const handles = components.verifiers();
+        var buffer: [3]core.air.components.Component = undefined;
+        const handles = components.verifiers(&buffer);
         owns = false;
-        try core.verifier.verify(G.T.P.Hasher, G.T.P.MerkleChannel, a, &handles, &channel, &verifier, proof);
+        try core.verifier.verify(G.T.P.Hasher, G.T.P.MerkleChannel, a, handles, &channel, &verifier, proof);
         for (encoded.claims) |q| if (truth.family() == .keccak) {
             io = io.add(q);
         } else {

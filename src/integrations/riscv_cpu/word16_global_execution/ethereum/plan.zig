@@ -45,6 +45,15 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
         if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
         if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
+        const sha256 = captured.advice.sha256[i].len;
+        if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
+        const arith = captured.advice.arith256_mod[i].len;
+        if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
+        // v3 bulk memory: one descriptor row per call, one body row per word.
+        const bulk = captured.advice.bulk[i].counts();
+        if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
+        if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
+        if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
         try g.validate();
     }
     return out;
@@ -63,7 +72,9 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     const max_keccak: u32 = ((1 << 18) / 29) * 2;
     var next: u32 = 1;
     while (next <= total[0]) {
-        const calls = @min(max_keccak, total[0] - next + 1);
+        // Explicit u32: @min with a comptime bound narrows to u15, and the row
+        // product below then wraps (latent: logs below 18 were under-sized).
+        const calls: u32 = @min(max_keccak, total[0] - next + 1);
         const log: u32 = if (calls > max_keccak / 2) 18 else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
         try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, 0 } });
         next = try std.math.add(u32, next, calls);
@@ -83,7 +94,34 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
             next = try std.math.add(u32, next, calls);
         }
     }
+    // SHA-256: one compression per row plus a padding row; bounded log13 spans.
+    var sha256: u32 = 0;
+    for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
+    const capacity: u32 = (@as(u32, 1) << @intCast(@import("../sha256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= sha256) {
+        const calls: u32 = @min(capacity, sha256 - next + 1);
+        try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // arith256_mod: one call per row plus a padding row (>= 256 rows for the
+    // local BYTE table); bounded log16 spans.
+    var arith: u32 = 0;
+    for (captured.advice.arith256_mod) |calls| arith = try std.math.add(u32, arith, @intCast(calls.len));
+    const arith_capacity: u32 = (@as(u32, 1) << @intCast(@import("../arith256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= arith) {
+        const calls: u32 = @min(arith_capacity, arith - next + 1);
+        try out.append(a, .{ .family = .arith256_mod, .first_id = next, .calls = calls, .logs = .{ try A.crypto.arith256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
     return out.toOwnedSlice(a);
+}
+test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
+    const calls: u32 = 3934;
+    const narrowed = @min(@as(u32, ((1 << 18) / 29) * 2), calls);
+    _ = narrowed;
+    try std.testing.expectEqual(@as(u32, 16), try A.crypto.keccak.layout.logSize(calls));
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

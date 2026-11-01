@@ -8,6 +8,13 @@
 // defines CANDIDATE_SERVICES plus CANDIDATE_MEM / CANDIDATE_SHA / CANDIDATE_ARITH per --candidate-set):
 //   0x0003_0001 memcpy, 0x0003_0002 memset, 0x0003_0003 memcmp,
 //   0x0003_0010 sha256_compress, 0x0003_0020 arith256, 0x0003_0021 arith256_mod
+// Admitted profile ethereum_services_v3 (build.py --profile v3 defines ADMITTED_V3 plus
+// ADMITTED_SHA / ADMITTED_ARITH / ADMITTED_MEM; the prover proves these):
+//   0x0003_0010 sha256_compress on a 32-byte aligned 12-word packet
+//   0x0003_0021 arith256_mod on a 32-byte aligned 20-word packet a, b, c, m, r
+//   0x0003_0001 memcpy / 0x0003_0002 memset on an 8-aligned packet dst, src|byte, len with
+//   dst/src 8-aligned, len a nonzero multiple of 8 up to 1 MiB, packet/src/dst disjoint
+//   (design/riscv-proving-stack/rv64-{sha256,arith256,bulk-memory}-service.md).
 // All registers are preserved; only the packet changes.
 //
 // Host builds (STWO_HOST) emulate every service in software so the same glue
@@ -45,6 +52,16 @@ struct alignas(32) SecpAddPacket { uint64_t w[24]; };
 struct alignas(32) SecpDoublePacket { uint64_t w[12]; };
 inline void secp_add(SecpAddPacket& p) noexcept { ecall(kSecpAddWords, p.w); }
 inline void secp_double(SecpDoublePacket& p) noexcept { ecall(kSecpDoubleWords, p.w); }
+
+#if defined(ADMITTED_V3)
+inline constexpr uint64_t kV3Memcpy = 0x00030001;
+inline constexpr uint64_t kV3Memset = 0x00030002;
+inline constexpr uint64_t kV3Sha256 = 0x00030010;
+inline constexpr uint64_t kV3Arith256Mod = 0x00030021;
+#if defined(CANDIDATE_SERVICES)
+#error "the admitted v3 build never contains candidate services"
+#endif
+#endif
 
 #if defined(CANDIDATE_SERVICES)
 // Execution-only candidate services (profile ethereum_services_v3_candidate).

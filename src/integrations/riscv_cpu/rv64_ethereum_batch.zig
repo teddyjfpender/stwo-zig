@@ -42,11 +42,19 @@ pub const Batch = struct {
     division_requests: u32 = 0,
     multiplication_requests: u32 = 0,
     calls: [3]u32 = @splat(0),
+    /// v3 SHA-256 calls (tape-only; the v2-decoded public statement is unchanged).
+    sha256_first: u32 = 1,
+    sha256_calls: u32 = 0,
+    /// v3 arith256_mod calls (tape-only, like SHA-256).
+    arith256_first: u32 = 1,
+    arith256_calls: u32 = 0,
+    /// v3 aligned memcpy/memset calls (no tape records; counted for telemetry).
+    bulk_calls: u32 = 0,
     state_policy: air.state_policy.Policy = .cyclic_v2,
 
     pub fn init(authority: *const Full.ProgramAuthority, tape: *const rv.compact_tape.Tape, capture: *const rv.boundary_capture.Capture, initial_registers: [32]u64, first_ids: [3]u32) !Batch {
         if (authority.profile != .ethereum_services_v1 and authority.profile != .ethereum_services_v2) return error.InvalidEthereumBatchProfile;
-        if (tape.execution_profile != authority.profile or tape.len != 0 or capture.steps != 0 or tape.initial_clock != capture.initial_clock or initial_registers[0] != 0) return error.InvalidEthereumBatchSeed;
+        if (!tapeMatches(tape.execution_profile, authority.profile) or tape.len != 0 or capture.steps != 0 or tape.initial_clock != capture.initial_clock or initial_registers[0] != 0) return error.InvalidEthereumBatchSeed;
         _ = try authority.program.lookup(tape.initial_pc);
         for (first_ids) |id| if (id == 0 or id >= Modulus) return error.InvalidEthereumBatchSeed;
         return .{ .authority = authority, .tape = tape, .capture = capture, .initial_registers = initial_registers, .initial_pc = tape.initial_pc, .initial_clock = tape.initial_clock, .first_ids = first_ids, .next_pc = tape.initial_pc };
@@ -55,7 +63,7 @@ pub const Batch = struct {
     /// Fallible tape/capture appends stay with the caller; on any failure abort
     /// this native batch instead of advancing execution with partial advice.
     pub fn observe(self: *Batch, record: rv.machine.Retirement) !void {
-        if (self.tape.execution_profile != self.authority.profile or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (!tapeMatches(self.tape.execution_profile, self.authority.profile) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
         if (self.steps >= rv.compact_tape.MAX_STEPS or record.clock != self.initial_clock + self.steps + 1 or record.pc.toInt() != self.next_pc) return error.InvalidEthereumBatchClock;
         const row = try self.authority.program.lookup(record.pc.toInt());
         const decoded = self.authority.program.decoded[row];
@@ -63,7 +71,22 @@ pub const Batch = struct {
         const inst = decoded.instruction;
         const effects = rv.execution_profile.effects(self.authority.profile, inst.opcode);
         var kind: ?usize = null;
-        if (inst.opcode == .ECALL) {
+        var sha256 = false;
+        var arith = false;
+        var bulk = false;
+        if (inst.opcode == .ECALL and rv.execution_profile.admitsV3(self.tape.execution_profile, record.rhs.toInt())) {
+            if (rv.execution_profile.isBulkTag(record.rhs.toInt())) {
+                // Bulk memory has no call ID or tape payload: the ECALL step
+                // (pointer, tag) is the call; RAM effects are in the capture.
+                bulk = true;
+            } else if (record.rhs.toInt() == rv.execution_profile.ARITH256_MOD_TAG) {
+                if (@as(u64, self.arith256_first) + self.arith256_calls >= Modulus) return error.InvalidEthereumBatchService;
+                arith = true;
+            } else {
+                if (@as(u64, self.sha256_first) + self.sha256_calls >= Modulus) return error.InvalidEthereumBatchService;
+                sha256 = true;
+            }
+        } else if (inst.opcode == .ECALL) {
             const tag = record.rhs.toInt();
             kind = if (tag == rv.execution_profile.KECCAK_TAG) 0 else switch (self.authority.profile) {
                 .ethereum_services_v1 => if (tag == rv.execution_profile.SECP_ADD_TAG) 1 else if (tag == rv.execution_profile.SECP_DOUBLE_TAG) 2 else return error.InvalidEthereumBatchService,
@@ -83,13 +106,20 @@ pub const Batch = struct {
             else => {},
         }
         if (kind) |k| self.calls[k] += 1;
+        if (sha256) self.sha256_calls += 1;
+        if (arith) self.arith256_calls += 1;
+        if (bulk) self.bulk_calls += 1;
         self.steps += 1;
         self.next_pc = record.next_pc.toInt();
     }
     /// Must run while final_memory still holds this batch's final image. Reads
     /// touched chunks once and reconstructs their before words from capture.
     pub fn finish(self: *const Batch, a: std.mem.Allocator, final_cpu: *const rv.machine.Cpu, final_memory: *const rv.memory.Memory, policy: *const R.policy.Policy, geometry: R.values.Geometry) !Finished {
-        if (self.tape.execution_profile != self.authority.profile or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (!tapeMatches(self.tape.execution_profile, self.authority.profile) or self.tape.initial_pc != self.initial_pc or self.tape.initial_clock != self.initial_clock or self.capture.initial_clock != self.initial_clock) return error.InvalidEthereumBatchSeed;
+        if (self.tape.sha256_calls.items.len != self.sha256_calls) return error.InvalidEthereumBatchBoundary;
+        for (self.tape.sha256_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.sha256_first) + i) return error.InvalidEthereumBatchService;
+        if (self.tape.arith256_mod_calls.items.len != self.arith256_calls) return error.InvalidEthereumBatchBoundary;
+        for (self.tape.arith256_mod_calls.items, 0..) |call, i| if (call.call_id != @as(u64, self.arith256_first) + i) return error.InvalidEthereumBatchService;
         if (self.steps == 0 or self.steps != self.tape.len or self.steps != self.capture.steps or final_cpu.retired != self.initial_clock + self.steps or final_cpu.pc != self.next_pc or final_cpu.regs[0] != 0 or self.tape.service_calls.items.len != self.calls[0] or self.tape.secp_calls.items.len != @as(u64, self.calls[1]) + self.calls[2]) return error.InvalidEthereumBatchBoundary;
         var actual: [3]u32 = @splat(0);
         for (self.tape.service_calls.items) |call| {
@@ -130,6 +160,11 @@ pub const Batch = struct {
         return .{ .allocator = a, .public = public, .captured = captured, .cells = cells, .memory_clocks = clocks, .openings = openings };
     }
 };
+/// A v3 tape runs under the v2-decoded ROM authority (identical ISA effects);
+/// every other profile must match exactly.
+pub fn tapeMatches(tape: rv.execution_profile.Profile, authority: rv.execution_profile.Profile) bool {
+    return tape == authority or (tape == .ethereum_services_v3 and authority == .ethereum_services_v2);
+}
 fn requestLog(count: u32) u32 {
     return @max(5, std.math.log2_int_ceil(u32, @max(1, count)));
 }

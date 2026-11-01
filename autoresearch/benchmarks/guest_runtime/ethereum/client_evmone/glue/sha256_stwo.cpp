@@ -100,7 +100,35 @@ inline void compress_kw(uint32_t st[8], const uint32_t* kw) {
     st[4] += uint32_t(e); st[5] += uint32_t(f); st[6] += uint32_t(g); st[7] += uint32_t(h);
 }
 
-#if defined(CANDIDATE_SHA)
+#if defined(ADMITTED_SHA)
+// Admitted v3 packet: 32-byte aligned; words 0..3 = H0..H7 as LE u32 pairs (H0 in
+// the low half of word 0, i.e. uint32_t state[8] in memory order), words 4..11 =
+// the 64-byte block in stream order. Only the state is written.
+struct alignas(32) ShaPacket {
+    uint32_t state[8];
+    uint64_t block[8];
+};
+inline void compress(uint32_t st[8], const uint8_t* block) {
+    ShaPacket p;
+    for (int i = 0; i < 8; ++i) p.state[i] = st[i];
+    if ((reinterpret_cast<uintptr_t>(block) & 7) == 0) {
+        const uint64_t* q = reinterpret_cast<const uint64_t*>(block);
+        for (int i = 0; i < 8; ++i) p.block[i] = q[i];
+    } else {
+        uint8_t* d = reinterpret_cast<uint8_t*>(p.block);
+        for (int i = 0; i < 64; ++i) d[i] = block[i];
+    }
+    stwo::ecall(stwo::kV3Sha256, &p);
+    for (int i = 0; i < 8; ++i) st[i] = p.state[i];
+}
+inline void compress_pad64(uint32_t st[8]) {
+    alignas(8) static constexpr uint8_t pad[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02, 0x00};
+    compress(st, pad);
+}
+#elif defined(CANDIDATE_SHA)
 struct alignas(8) ShaPacket {
     uint32_t state[8];
     uint8_t block[64];

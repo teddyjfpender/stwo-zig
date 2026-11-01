@@ -21,13 +21,54 @@ pub const Claims = struct {
         return .{ self.ram, self.owner, self.wire, self.range16, self.range8 };
     }
 };
-pub fn tag(kind: P.Kind) u32 {
-    return if (kind == .add) 0x20011 else 0x20012;
+/// Wire35 packet bridges. ADD/DOUBLE keep the secp program kinds 1/2; the
+/// SHA-256 compression packet (admitted by `ethereum_services_v3`) is kind 3:
+/// three 32-byte coordinates (state, message halves), only the state written.
+/// The arith256_mod packet (v3) is kind 4: five coordinates a, b, c, m, r,
+/// only the trailing r written (its before-value is still a Wire35 input).
+pub const Kind = enum(u8) { add = 1, double = 2, sha256 = 3, arith256_mod = 4 };
+pub fn kindOf(kind: P.Kind) Kind {
+    return @enumFromInt(@intFromEnum(kind));
 }
-pub fn coordinates(kind: P.Kind) usize {
-    return P.get(kind).inputs;
+fn program(kind: Kind) *const P.Program {
+    return P.get(@enumFromInt(@intFromEnum(kind)));
 }
-pub fn validateGeometry(kind: P.Kind, calls: usize, first_id: u32, log: u32) !usize {
+pub fn tag(kind: Kind) u32 {
+    return switch (kind) {
+        .add => 0x20011,
+        .double => 0x20012,
+        .sha256 => 0x30010,
+        .arith256_mod => 0x30021,
+    };
+}
+pub fn coordinates(kind: Kind) usize {
+    return switch (kind) {
+        .sha256 => 3,
+        .arith256_mod => 5,
+        else => program(kind).inputs,
+    };
+}
+/// Number of coordinates that the service overwrites (ADD/DOUBLE: X, Y, Z).
+pub fn written(kind: Kind) usize {
+    return switch (kind) {
+        .sha256, .arith256_mod => 1,
+        else => 3,
+    };
+}
+/// Whether coordinate `coord` is overwritten: the leading `written` ones,
+/// except arith256_mod whose single output r is the last coordinate.
+pub fn isWritten(kind: Kind, coord: usize) bool {
+    return if (kind == .arith256_mod) coord == 4 else coord < written(kind);
+}
+/// Wire35 ID of the after-value of written coordinate `coord`.
+pub fn outputWire(kind: Kind, coord: usize) u32 {
+    return switch (kind) {
+        .sha256 => 3,
+        .arith256_mod => 5,
+        else => program(kind).outputs[coord],
+    };
+}
+pub fn validateGeometry(kind: Kind, calls: usize, first_id: u32, log: u32) !usize {
     const n = try @import("../../../memory/load_store_v2/source.zig").sizeForLog(log);
     if (calls > (n - 1) / coordinates(kind) or first_id == 0 or first_id >= @import("stwo_core").fields.m31.Modulus or calls > @import("stwo_core").fields.m31.Modulus - first_id) return error.InvalidWord16SecpGeometry;
     if (L.U16.len * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus or L.U8.len * @as(u64, n) >= @import("stwo_core").fields.m31.Modulus) return error.Word16SecpMassBound;
