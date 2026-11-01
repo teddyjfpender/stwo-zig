@@ -114,6 +114,9 @@ pub fn ForField(comptime Secure: type) type {
                 /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
                 compact_polynomial_storage: bool = false,
                 compact_polynomial_min_log_size: u32 = 20,
+                /// Per-proof cap on wide aggregate numerator evaluations and their
+                /// conservative twiddle footprint; all metadata also uses allocator.
+                wide_quotient_group_byte_limit: ?usize = null,
                 /// Optional storage for retained LDE values only. Its owner must outlive
                 /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
                 retained_column_allocator: ?std.mem.Allocator = null,
@@ -583,7 +586,7 @@ pub fn ForField(comptime Secure: type) type {
                             // work-profile-plan:fri-protocol
                         }
 
-                        var provider = try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorder(
+                        var provider = if (comptime Secure == @import("stwo_core").fields.qm31.QM31) try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorder(
                             B,
                             allocator,
                             TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
@@ -592,6 +595,16 @@ pub fn ForField(comptime Secure: type) type {
                             random_coeff,
                             lifting_log_size,
                             fri_work_recorder,
+                        ) else try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorderAndByteLimit(
+                            B,
+                            allocator,
+                            TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
+                            sampled_points_owned,
+                            sampled_values_owned,
+                            random_coeff,
+                            lifting_log_size,
+                            fri_work_recorder,
+                            scheme.wide_quotient_group_byte_limit,
                         );
                         defer provider.deinit(allocator);
                         provider.setBackendResidencyHandles(residency_handles);
