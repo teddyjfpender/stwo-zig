@@ -261,8 +261,7 @@ pub fn ForField(comptime Secure: type) type {
                 switch (self.*) {
                     .GrandProduct => |*mle| try mle.foldOwnedSecure(allocator, x0),
                     .LogUpGeneric => |*inner| {
-                        try inner.numerators.foldOwnedSecure(allocator, x0);
-                        try inner.denominators.foldOwnedSecure(allocator, x0);
+                        try inner.numerators.foldOwnedSecurePair(&inner.denominators, allocator, x0);
                     },
                     .LogUpSingles => |*inner| try inner.denominators.foldOwnedSecure(allocator, x0),
                     .LogUpMultiplicities => {

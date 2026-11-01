@@ -126,6 +126,12 @@ pub fn MleFor(comptime Secure: type, comptime F: type) type {
             // Each output i reads only its own old prefix i and immutable
             // suffix i+half. Packed ranges never read another task's prefix.
             @import("row_work.zig").fill(half, Context{ .input = input, .output = input[0..half], .challenge = assignment });
+            try self.finishOwnedFold(allocator);
+        }
+
+        fn finishOwnedFold(self: *Self, allocator: std.mem.Allocator) !void {
+            const input = self.evals;
+            const half = input.len / 2;
             if (allocator.resize(input, half)) {
                 self.evals = input[0..half];
                 return;
@@ -133,6 +139,48 @@ pub fn MleFor(comptime Secure: type, comptime F: type) type {
             const output = try allocator.dupe(Secure, input[0..half]);
             allocator.free(input);
             self.evals = output;
+        }
+
+        /// One joined row wave for disjoint, exclusively owned numerator and
+        /// denominator planes. The packed/scalar half-split fold is unchanged.
+        /// On an allocation failure both owners remain valid for independent
+        /// deinit, but their lengths may differ and prefixes may be mutated.
+        /// Borrowed planes retain the immutable allocating fold path.
+        pub fn foldOwnedSecurePair(self: *Self, other: *Self, allocator: std.mem.Allocator, assignment: Secure) !void {
+            comptime if (F != Secure) @compileError("owned pair folding requires secure MLEs");
+            if (self.evals.len != other.evals.len or self.evals.len == 0 or !std.math.isPowerOfTwo(self.evals.len)) return error.PairShapeMismatch;
+            if (self == other) return error.AliasedMleOwners;
+            if (self.owns_evals or other.owns_evals) {
+                const bytes = std.math.mul(usize, self.evals.len, @sizeOf(Secure)) catch return error.InvalidOwnerRange;
+                const start_a = @intFromPtr(self.evals.ptr);
+                const start_b = @intFromPtr(other.evals.ptr);
+                const end_a = std.math.add(usize, start_a, bytes) catch return error.InvalidOwnerRange;
+                const end_b = std.math.add(usize, start_b, bytes) catch return error.InvalidOwnerRange;
+                if (start_a < end_b and start_b < end_a) return error.AliasedMleOwners;
+            }
+            if (self.evals.len == 1) return;
+            if (!self.owns_evals or !other.owns_evals) {
+                try self.foldOwnedSecure(allocator, assignment);
+                try other.foldOwnedSecure(allocator, assignment);
+                return;
+            }
+            const Context = struct {
+                inputs: [2][]const Secure,
+                outputs: [2][]Secure,
+                challenge: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    inline for (0..2) |plane| {
+                        const tail = @import("packed_rows.zig").ForField(Secure).fold(Secure, ctx.inputs[plane], ctx.outputs[plane], ctx.challenge, first, end);
+                        for (tail..end) |i| ctx.outputs[plane][i] = lookup_utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ctx.inputs[plane][i], ctx.inputs[plane][i + ctx.outputs[plane].len]);
+                    }
+                }
+            };
+            const half = self.evals.len / 2;
+            // Every output reads its own prefix and immutable suffix only;
+            // the checked disjoint plane owners exclude cross-plane races.
+            @import("row_work.zig").fill(half, Context{ .inputs = .{ self.evals, other.evals }, .outputs = .{ self.evals[0..half], other.evals[0..half] }, .challenge = assignment });
+            try self.finishOwnedFold(allocator);
+            try other.finishOwnedFold(allocator);
         }
 
         /// Returns `f(x_0) = sum_{x_1..x_{n-1}} g(x_0, x_1, ..., x_{n-1})`.

@@ -161,3 +161,86 @@ test "optional destructive oracle propagates its own error and consumes owner on
     try std.testing.expectError(error.InjectedInPlaceFailure, @import("sumcheck.zig").ForField(O).proveBatchOwned(Oracle, a, &.{O.fromBase(M.fromCanonical(3))}, oracles, O.one(), &ch));
     try std.testing.expectEqual(@as(usize, 1), released);
 }
+
+fn checkPair(comptime S: type) !void {
+    var pool: Pools.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 1024 * 1024 });
+    defer pool.deinit();
+    var binding = try Pools.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const r = dense(S, 97);
+    for ([_]usize{ 1, 2, 4, 12, 16 }) |log| {
+        const n = @as(usize, 1) << @intCast(log);
+        for ([_]bool{ false, true }) |held| {
+            var lease = if (held) try pool.acquire(try Pools.WorkerBudget.init(3)) else null;
+            defer if (lease) |*l| l.deinit();
+            var wrapper = NoResize{ .child = a };
+            const child = wrapper.allocator();
+            var first = try ML.MleFor(S, S).initOwned(try child.alloc(S, n));
+            defer first.deinit(child);
+            var second = try ML.MleFor(S, S).initOwned(try child.alloc(S, n));
+            defer second.deinit(child);
+            for (first.evals, second.evals, 0..) |*x, *y, i| {
+                x.* = dense(S, i);
+                y.* = dense(S, i + 211);
+            }
+            try first.foldOwnedSecurePair(&second, child, r);
+            for (first.evals, second.evals, 0..) |x, y, i| {
+                try std.testing.expectEqualDeep(dense(S, i).add(r.mul(dense(S, i + n / 2).sub(dense(S, i)))), x);
+                try std.testing.expectEqualDeep(dense(S, i + 211).add(r.mul(dense(S, i + 211 + n / 2).sub(dense(S, i + 211)))), y);
+            }
+        }
+    }
+}
+test "owned Q and OM paired folds preserve scalar authority pooled and held-lease paths" {
+    try checkPair(core.fields.qm31.QM31);
+    try checkPair(core.fields.om31.OM31);
+}
+test "paired folds reject unequal or aliased owners before any mutation" {
+    const S = core.fields.om31.OM31;
+    const T = ML.MleFor(S, S);
+    const caller = try a.alloc(S, 64);
+    defer a.free(caller);
+    for (caller, 0..) |*v, i| v.* = dense(S, i);
+    var left = try T.initBorrowed(caller[0..32]);
+    var right = try T.initBorrowed(caller[32..48]);
+    try std.testing.expectError(error.PairShapeMismatch, left.foldOwnedSecurePair(&right, a, S.one()));
+    right = try T.initBorrowed(caller[16..48]);
+    left.owns_evals = true; // Validation only: caller remains the real owner.
+    defer left.owns_evals = false;
+    try std.testing.expectError(error.AliasedMleOwners, left.foldOwnedSecurePair(&right, a, S.one()));
+    try std.testing.expectError(error.AliasedMleOwners, left.foldOwnedSecurePair(&left, a, S.one()));
+    for (caller, 0..) |v, i| try std.testing.expectEqualDeep(dense(S, i), v);
+}
+test "paired borrowed aliases are immutable and become separate owned outputs" {
+    const S = core.fields.om31.OM31;
+    const T = ML.MleFor(S, S);
+    const caller = try a.alloc(S, 32);
+    defer a.free(caller);
+    for (caller, 0..) |*v, i| v.* = dense(S, i);
+    var left = try T.initBorrowed(caller);
+    defer left.deinit(a);
+    var right = try T.initBorrowed(caller);
+    defer right.deinit(a);
+    try left.foldOwnedSecurePair(&right, a, dense(S, 97));
+    try std.testing.expect(left.owns_evals and right.owns_evals and left.evals.ptr != right.evals.ptr);
+    try std.testing.expectEqualDeep(left.evals, right.evals);
+    for (caller, 0..) |v, i| try std.testing.expectEqualDeep(dense(S, i), v);
+}
+fn pairLifecycle(allocator: std.mem.Allocator) !void {
+    const S = core.fields.om31.OM31;
+    var wrapper = NoResize{ .child = allocator };
+    const child = wrapper.allocator();
+    var left = try ML.MleFor(S, S).initOwned(try child.alloc(S, 32));
+    defer left.deinit(child);
+    var right = try ML.MleFor(S, S).initOwned(try child.alloc(S, 32));
+    defer right.deinit(child);
+    for (left.evals, right.evals, 0..) |*x, *y, i| {
+        x.* = dense(S, i);
+        y.* = dense(S, i + 211);
+    }
+    try left.foldOwnedSecurePair(&right, child, dense(S, 97));
+}
+test "paired owned nonresizable folds deinitialize both owners at every OOM boundary" {
+    try std.testing.checkAllAllocationFailures(a, pairLifecycle, .{});
+}
