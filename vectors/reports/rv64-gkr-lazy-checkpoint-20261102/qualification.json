@@ -1,0 +1,21 @@
+{
+  "schema": "rv64-gkr-lazy-checkpoint-v1",
+  "base": "63ab7e2c6",
+  "default_dense_unchanged": true,
+  "opt_in": "STWO_ZIG_GKR_TREE_CHECKPOINTS=2",
+  "tests": {
+    "resource_and_lazy_ReleaseSafe": 43,
+    "resource_and_lazy_ReleaseFast": 43,
+    "external_pinned_source_ReleaseFast": 34,
+    "baseline": "63ab7e2c6 corelookupsource; temporarywrapperremoved",
+    "Q_OM_all_four_kinds_mixed_height_proof_artifact_next_draw_exact": true,
+    "fresh_terminal_MLE": true,
+    "checkpoint_and_consuming_all_OOM": true,
+    "signed_padding_zero_denominator_constant_partial_simd_pooled_held_lease_clone_error_tests": true
+  },
+  "independent_review": "pipeline read-only PASS: tile mapping, callback lifetime, borrowed checkpoint bank custody, constant masks, failure atomic output allocation",
+  "resource": "16-term tiles, max144secureelements4608BOM stack; no full missingodd layer; only alreadyfolded outputs allocated",
+  "real_CPU0_pending": true,
+  "whole_protocol_128": false,
+  "full_block_performance_qualified": false
+}

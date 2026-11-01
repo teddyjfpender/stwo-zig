@@ -46,6 +46,12 @@ fn fresh(comptime S: type, input: anytype, proof: anytype) !void {
     try @import("verifier_kernel.zig").verifyTerminalInputs(S, &artifact, &expected, V.NativeChecks{});
 }
 pub fn exerciseWithBaseline(comptime S: type, comptime Baseline: type) !void {
+    return exercisePolicyWithBaseline(false, S, Baseline);
+}
+pub fn exerciseCheckpointWithBaseline(comptime S: type, comptime Baseline: type) !void {
+    return exercisePolicyWithBaseline(true, S, Baseline);
+}
+fn exercisePolicyWithBaseline(comptime checkpointed: bool, comptime S: type, comptime Baseline: type) !void {
     const G = New.ForField(S);
     const n = try a.alloc(M, 65536);
     defer a.free(n);
@@ -76,7 +82,7 @@ pub fn exerciseWithBaseline(comptime S: type, comptime Baseline: type) !void {
         var ch = startChannel(S);
         const input = layers(G, S, n, d, ns);
         timer.reset();
-        var result = try G.proveBatch(a, &ch, &input);
+        var result = if (checkpointed) try G.proveBatchCheckpointed(a, &ch, &input) else try G.proveBatch(a, &ch, &input);
         defer result.deinit(a);
         const ns_elapsed = timer.read();
         const bytes = try std.json.Stringify.valueAlloc(a, result.proof, .{});

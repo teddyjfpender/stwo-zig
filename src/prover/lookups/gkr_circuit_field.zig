@@ -304,6 +304,21 @@ pub fn ForField(comptime Secure: type) type {
                 }
             }
 
+            /// Borrows a retained checkpoint one reduction below the missing
+            /// input layer. Its owner and Eq table outlive the joined oracle.
+            pub fn intoReducedMultivariatePoly(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrProverError!GkrMultivariatePolyOracle {
+                const n = switch (self) {
+                    .GrandProduct => |x| x.evals.len,
+                    .LogUpSingles => |x| x.denominators.evals.len,
+                    inline .LogUpGeneric, .LogUpMultiplicities => |x| blk: {
+                        if (x.numerators.evals.len != x.denominators.evals.len) return error.InvalidLayerStructure;
+                        break :blk x.denominators.evals.len;
+                    },
+                };
+                if (n < 4 or !std.math.isPowerOfTwo(n)) return error.InvalidLayerStructure;
+                return .{ .input_layer = self.borrowed(), .eq_evals = eq_evals.borrowed(), .eq_fixed_var_correction = Secure.one(), .lambda = lambda, .reduce_input = true };
+            }
+
             /// Moves this internal layer; the immutable Eq owner must outlive
             /// the oracle and all sumcheck rounds. No input/table copy occurs.
             pub fn intoMultivariatePolyOwned(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrMultivariatePolyOracle {
@@ -333,6 +348,8 @@ pub fn ForField(comptime Secure: type) type {
             input_layer: Layer,
             eq_fixed_var_correction: Secure,
             lambda: Secure,
+            // Internal operational view only; no proof or Layer variant.
+            reduce_input: bool = false,
 
             pub fn deinit(self: *GkrMultivariatePolyOracle, allocator: std.mem.Allocator) void {
                 self.eq_evals.deinit(allocator);
@@ -348,12 +365,14 @@ pub fn ForField(comptime Secure: type) type {
                     .input_layer = try self.input_layer.cloneOwned(allocator),
                     .eq_fixed_var_correction = self.eq_fixed_var_correction,
                     .lambda = self.lambda,
+                    .reduce_input = self.reduce_input,
                 };
             }
 
             pub fn nVariables(self: GkrMultivariatePolyOracle) usize {
                 const in_vars = self.input_layer.nVariables();
-                return if (in_vars == 0) 0 else in_vars - 1;
+                const reduction: usize = if (self.reduce_input) 2 else 1;
+                return in_vars -| reduction;
             }
 
             pub fn isConstant(self: GkrMultivariatePolyOracle) bool {
@@ -371,7 +390,9 @@ pub fn ForField(comptime Secure: type) type {
                 const n_terms: usize = @as(usize, 1) << @intCast(n_variables - 1);
 
                 var eval_pair: [2]Secure = undefined;
-                switch (self.input_layer) {
+                if (self.reduce_input) {
+                    eval_pair = evalReducedSum(&self.eq_evals, self.input_layer, n_terms, self.lambda);
+                } else switch (self.input_layer) {
                     .GrandProduct => |mle| {
                         eval_pair = evalGrandProductSum(&self.eq_evals, &mle, n_terms);
                     },
@@ -437,7 +458,7 @@ pub fn ForField(comptime Secure: type) type {
                 return .{
                     .eq_evals = eq_owned,
                     .eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term),
-                    .input_layer = try self.input_layer.fixFirstVariable(allocator, challenge),
+                    .input_layer = if (self.reduce_input) try foldReducedLayer(allocator, self.input_layer, challenge) else try self.input_layer.fixFirstVariable(allocator, challenge),
                     .lambda = self.lambda,
                 };
             }
@@ -450,7 +471,12 @@ pub fn ForField(comptime Secure: type) type {
                 const n_variables = self.nVariables();
                 const z0 = self.eq_evals.ySlice()[self.eq_evals.ySlice().len - n_variables];
                 const eq_term = utils.eq(Secure, &.{challenge}, &.{z0}) catch return GkrProverError.ShapeMismatch;
-                try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
+                if (self.reduce_input) {
+                    const next = try foldReducedLayer(allocator, self.input_layer, challenge);
+                    self.input_layer.deinit(allocator);
+                    self.input_layer = next;
+                    self.reduce_input = false;
+                } else try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
                 self.eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term);
             }
 
@@ -459,6 +485,17 @@ pub fn ForField(comptime Secure: type) type {
                 allocator: std.mem.Allocator,
             ) GkrProverError!gkr_verifier_field.GkrMask {
                 if (!self.isConstant()) return GkrProverError.NotConstantPoly;
+                if (self.reduce_input) {
+                    if (self.input_layer.nVariables() != 2) return error.InvalidLayerStructure;
+                    var n: [2]Secure = undefined;
+                    var d: [2]Secure = undefined;
+                    reduceCheckpointRows(self.input_layer, 0, &n, &d);
+                    const cols = if (self.input_layer == .GrandProduct)
+                        try allocator.dupe([2]Secure, &.{n})
+                    else
+                        try allocator.dupe([2]Secure, &.{ n, d });
+                    return gkr_verifier_field.GkrMask.initOwned(cols);
+                }
 
                 return switch (self.input_layer) {
                     .GrandProduct => |mle| blk: {
@@ -501,6 +538,111 @@ pub fn ForField(comptime Secure: type) type {
                 };
             }
         };
+        const REDUCED_TILE = 16;
+        /// Compute only a bounded span of the missing layer. Packed reductions
+        /// are the original nextLayer kernels; scalar tails retain fraction.add.
+        fn reduceCheckpointRows(input: Layer, first: usize, n: []Secure, d: []Secure) void {
+            const count = n.len;
+            const source = 2 * first;
+            switch (input) {
+                .GrandProduct => |x| {
+                    const tail = Packed.nextProduct(x.evals[source..], n, 0, count);
+                    for (tail..count) |i| n[i] = x.evals[source + 2 * i].mul(x.evals[source + 2 * i + 1]);
+                },
+                inline .LogUpGeneric, .LogUpMultiplicities => |x| {
+                    const F = @TypeOf(x.numerators.evals[0]);
+                    const tail = Packed.nextLogup(F, x.numerators.evals[source..], x.denominators.evals[source..], n, d, 0, count);
+                    for (tail..count) |i| {
+                        const j = source + 2 * i;
+                        const value = if (F == M31)
+                            baseFraction(x.numerators.evals[j], x.denominators.evals[j]).add(baseFraction(x.numerators.evals[j + 1], x.denominators.evals[j + 1]))
+                        else
+                            fraction.Fraction(Secure, Secure).new(x.numerators.evals[j], x.denominators.evals[j]).add(fraction.Fraction(Secure, Secure).new(x.numerators.evals[j + 1], x.denominators.evals[j + 1]));
+                        n[i] = value.numerator;
+                        d[i] = value.denominator;
+                    }
+                },
+                .LogUpSingles => |x| {
+                    const tail = Packed.nextLogup(void, &.{}, x.denominators.evals[source..], n, d, 0, count);
+                    for (tail..count) |i| {
+                        const j = source + 2 * i;
+                        const value = utils.Reciprocal(Secure).new(x.denominators.evals[j]).add(utils.Reciprocal(Secure).new(x.denominators.evals[j + 1]));
+                        n[i] = value.numerator;
+                        d[i] = value.denominator;
+                    }
+                },
+            }
+        }
+        fn evalReducedSum(eq: *const EqEvals, input: Layer, terms: usize, lambda: Secure) [2]Secure {
+            const Context = struct {
+                eq: *const EqEvals,
+                input: Layer,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(ctx: @This(), first: usize, end: usize) [2]Secure {
+                    var ns: [4 * REDUCED_TILE]Secure = undefined;
+                    var ds: [4 * REDUCED_TILE]Secure = undefined;
+                    var es: [REDUCED_TILE]Secure = undefined;
+                    var sum = [2]Secure{ Secure.zero(), Secure.zero() };
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        reduceCheckpointRows(ctx.input, 2 * start, ns[0 .. 2 * count], ds[0 .. 2 * count]);
+                        reduceCheckpointRows(ctx.input, 2 * (ctx.terms + start), ns[2 * REDUCED_TILE ..][0 .. 2 * count], ds[2 * REDUCED_TILE ..][0 .. 2 * count]);
+                        @memcpy(es[0..count], ctx.eq.evals.evals[start..][0..count]);
+                        const local_eq = EqEvals{ .y = &.{}, .owns_y = false, .evals = .{ .evals = &es, .owns_evals = false } };
+                        const local_n = MleSecure{ .evals = &ns, .owns_evals = false };
+                        const local_d = MleSecure{ .evals = &ds, .owns_evals = false };
+                        const value = if (ctx.input == .GrandProduct)
+                            evalGrandProductSumRange(&local_eq, &local_n, REDUCED_TILE, 0, count)
+                        else
+                            evalLogupSumRange(Secure, &local_eq, &local_n, &local_d, REDUCED_TILE, ctx.lambda, 0, count);
+                        sum[0] = sum[0].add(value[0]);
+                        sum[1] = sum[1].add(value[1]);
+                        start += count;
+                    }
+                    return sum;
+                }
+            };
+            return rows.reduce(Secure, terms, Context{ .eq = eq, .input = input, .terms = terms, .lambda = lambda });
+        }
+        fn foldReducedLayer(a: std.mem.Allocator, input: Layer, challenge: Secure) !Layer {
+            const len = @as(usize, 1) << @intCast(input.nVariables() - 2);
+            const n = try a.alloc(Secure, len);
+            errdefer a.free(n);
+            const product = input == .GrandProduct;
+            const d: []Secure = if (product) &.{} else try a.alloc(Secure, len);
+            errdefer if (!product) a.free(d);
+            const Context = struct {
+                input: Layer,
+                n: []Secure,
+                d: []Secure,
+                challenge: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    var ns: [2 * REDUCED_TILE]Secure = undefined;
+                    var ds: [2 * REDUCED_TILE]Secure = undefined;
+                    var start = first;
+                    while (start < end) {
+                        const count: usize = @min(REDUCED_TILE, end - start);
+                        reduceCheckpointRows(ctx.input, start, ns[0..count], ds[0..count]);
+                        reduceCheckpointRows(ctx.input, ctx.n.len + start, ns[count..][0..count], ds[count..][0..count]);
+                        const out_n = ctx.n[start..][0..count];
+                        const tail_n = Packed.fold(Secure, ns[0 .. 2 * count], out_n, ctx.challenge, 0, count);
+                        for (tail_n..count) |i| out_n[i] = utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ns[i], ns[count + i]);
+                        if (ctx.input != .GrandProduct) {
+                            const out_d = ctx.d[start..][0..count];
+                            const tail_d = Packed.fold(Secure, ds[0 .. 2 * count], out_d, ctx.challenge, 0, count);
+                            for (tail_d..count) |i| out_d[i] = utils.foldMleEvalsFor(Secure, Secure, ctx.challenge, ds[i], ds[count + i]);
+                        }
+                        start += count;
+                    }
+                }
+            };
+            rows.fill(len, Context{ .input = input, .n = n, .d = d, .challenge = challenge });
+            if (product) return .{ .GrandProduct = try MleSecure.initOwned(n) };
+            return .{ .LogUpGeneric = .{ .numerators = try MleSecure.initOwned(n), .denominators = try MleSecure.initOwned(d) } };
+        }
+
         /// Computes `r(t) = sum_x eq((t, x), y[-k:]) * p(t, x)` from evaluations of
         /// `f(t) = sum_x eq(({0}^(n-k), 0, x), y) * p(t, x)`.
         pub fn correctSumAsPolyInFirstVariable(
