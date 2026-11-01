@@ -1,6 +1,6 @@
 # LS joint REG/RAM write induction (LS48 -> LS32 gate)
 
-Status: design gate (STEP 1) for removing the eight LS v2 U16 queries on the RAM
+Status: implemented (STEP 2, section 10). Design gate (STEP 1) for removing the eight LS v2 U16 queries on the RAM
 after-value limbs (logical columns 18-21) and the load result C (40-43). Base
 commit eac3b7c07. This is a source-level argument, not a machine-checked proof.
 It is conditional on the soundness of the physical STARKs and the randomized typed
@@ -252,3 +252,90 @@ changes: OWNER weight equals the Boolean RAM weight on LS rows, and every RAM
 producer's tick is `4r'+4` (or INIT 0). P5 is an inherited premise from the
 existing provider notes and was not re-audited in this gate. MUL/DIV ranges are
 not touched.
+
+## 10. Implementation (STEP 2) and deviations from section 8
+
+Implemented as planned in section 8, with the following concrete facts and the
+deviations marked.
+
+* **Encoding.** `ls2/layout.zig:19` `LOGICAL_U16 = {12, 24, 25, 68}`,
+  `LOGICAL_U8` unchanged; a comptime guard pins 10 fractions, 5 strict pairs and
+  `INTERACTION = 32`. `.ls` residuals 261 -> 257 (`ls2/layout.zig:51`). MAIN71,
+  `RELATION_U16/U8` metadata caches, OWNER/RAM reconstruction, boundary
+  components (BOUND_U16 on INIT/TERM limbs 14-17) are unchanged. Native fill,
+  histogram mass (`int/word16_execution/geometry.zig:72,79`) and the narrow
+  interaction (`ls2/interaction.zig:155-169`) are already parameterized by the
+  query list and needed no edit.
+* **Identity.** LS encoding identity string bumped to `encoding-v5 ... inter32 ...
+  10-affine-local-fractions/5-strict-pairs ... joint-REG-RAM-write-induction`
+  and its mix tag version 4 -> 5 (`ls2/encoding.zig:7,16`). **Deviation:** the
+  core execution `SCHEMA` is also bumped 5 -> 6
+  (`int/word16_execution/protocol.zig:16`), so a stale schema-5 bundle is now
+  rejected explicitly at the services wire roster
+  (`int/word16_global_execution/services/wire.zig:95`, observed
+  `InvalidServicesWireRoster` on the eac3b7c07 prefix4 outputs) instead of
+  failing later inside transcript verification. The LS96 -> LS48 change did not
+  bump SCHEMA; this one does because it changes the receiver's soundness premise.
+* **Historical material untouched.** `load_store_v1`, the LS48 qualification
+  JSON and the `vectors/reports` receipts are unchanged.
+  `rv64-ls-canonical-range-induction.md` only gains a superseded pointer.
+
+### Negative tests (gate 2)
+
+Local algebra (`int/word16_execution/memory/range_induction_test.zig`): every
+case satisfies all LS local residuals and every retained LS32 range query, then
+names the closure that excludes it.
+
+| Test | Forged coordinates | Excluded only by |
+|---|---|---|
+| noncanonical load alias (LD) | before/after/C limb0 `+65536`, limb1 `-1` | RAM before token (value limb) and OWNER C |
+| noncanonical store write (SD) | B and after limb2 `+65536`, limb3 `-1` | OWNER B (REG predecessor via CPU) |
+| false LB selected byte | selected_byte and C limb0 `+65536` | selection table truth (byte `< 256`) |
+| SB false selected byte / wide b_low | after limb outside u16; b_low `+256` | selection truth; retained U8 col 73 |
+
+Physical proofs (`int/word16_execution/memory/range_induction_proof_test.zig`):
+committed false MAIN, real PCS proof accepted by the bare physical verifier,
+fresh closed receiver `Execution.verify` returns `UnclosedExecutionRelations`.
+For the three new LS32 cases the test also recomputes the honest and forged LS
+ledger shares under the same challenges and asserts that range16 and range8
+shares are **identical** (the removed queries are blind) while exactly the
+listed debts move:
+
+| Test (fixture row) | Forgery | Moved shares |
+|---|---|---|
+| `load_c_alias` (LW, row 1) | before/after/C limb0 `+65536` | RAM, OWNER |
+| `store_after_alias` (SD, row 0) | B limb1 and after limb1 `+65536` | RAM, OWNER |
+| `lb_false_byte` (LB, row 2) | selected_byte and C limb0 `+65536` | OWNER, selection |
+
+The pre-existing `read_write_value` case was renamed: it is now rejected by
+RAM/OWNER/selection closure rather than by write ranges. The planned "wrong SB
+selected byte" physical case is local-only because the shared fixture has no SB
+row; the physical LB case exercises the same selection debt.
+
+### Shapes changed (recursion not updated)
+
+* Word16 LS head and tail components: INTER 48 -> 32, residuals 261 -> 257,
+  same MAIN71 and mask offsets. Every Word16 CPU proof loses 32 interaction
+  columns (16 per LS instance).
+* LS CircuitLane adapter qualification
+  (`int/tests/rv64_ls_circuit_lanes_test.zig`,
+  `int/tests/rv64_word16_execution_circuit_test.zig`) now sized from
+  `L.constraints(.ls)`; both pass. The diagnostic `int/word16_recursion/shape.zig`
+  reads shapes dynamically. `int/rv64_recursion` does not reference Word16 LS.
+  Any recursive Word16 verifier or pinned circuit/layout digest built against
+  LS48 must be regenerated.
+
+### Measured effect (Ethereum prefix4, 4 CPU + 3 truth proofs)
+
+Native cells (`cost.json`, interaction tree only changes): CPU interaction columns
+640/612/580/1296 -> 608/580/548/1264; interaction cells 1,267,334,272 ->
+1,215,429,760 (-51,904,512, -4.1%); all native cells 3,057,402,784 ->
+3,005,498,272 (-1.7%). Truth proofs unchanged. Fresh `verify-prefix` accepted.
+
+Interleaved runs on the shared machine (2 baseline, 3 LS32), summed over the
+seven proofs: `inter_ls + inter_ls_tail` 0.232 -> 0.159 s; interaction commit
+4.31 -> 4.20 s; composition 8.16 -> 8.07 s (within noise); peak footprint
+unchanged (16.31 GB). Wall 23.89/24.09 -> 23.41/23.69/23.32 s and user
+170 -> 157-160 s, but most of that difference is `proof_of_work` (1.67 -> 0.56 s
+summed), which depends on the transcript and is grinding luck, not an effect of
+this change. The structural gain is the 4.1% interaction-cell cut.
