@@ -395,3 +395,24 @@ test "provider replay binding is byte exact to matrix binding and rejects altere
     };
     try std.testing.expectError(error.UnboundLocalGkrInput, Witness.initFromProvider(a, a, &instances, &challenges, Changed{}, &result.artifact, eta));
 }
+
+test "owned checkpoint admission is checked source reserve and enforced exact allocator cap" {
+    const a = std.testing.allocator;
+    const Child = @import("child.zig");
+    const instances = [_]Frame.Instance{
+        .{ .origin = .{ .core = .alu }, .row_log = 5, .terms = 1, .fixed_offset = 0, .main_offset = 0 },
+        .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
+    };
+    const dense = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
+    const checkpointed = try Resource.Plan.forInstancesWithOwnedCheckpoints(&instances, std.math.maxInt(usize), true);
+    try std.testing.expect(checkpointed.peak_bytes < dense.peak_bytes);
+    try std.testing.expectEqual(@as(usize, 64 * 68), checkpointed.owned_layer_bytes);
+    try std.testing.expectError(error.LocalGkrBudgetExceeded, Resource.Plan.forInstancesWithOwnedCheckpoints(&instances, checkpointed.peak_bytes - 1, true));
+    const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
+    const child = try Child.Unbound.proveTimedWithCheckpoints(a, checkpointed.peak_bytes, scope, &instances, BalancedMetadata{}, true, null);
+    defer child.deinit();
+    try std.testing.expectEqual(checkpointed.peak_bytes, child.budget.limit);
+    try std.testing.expect(child.peak_gkr_owned_bytes <= checkpointed.peak_bytes);
+    var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
+    defer pending.deinit(a);
+}

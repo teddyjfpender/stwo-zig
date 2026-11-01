@@ -15,6 +15,10 @@ pub fn For(comptime F: type) type {
         entries: []Entry,
         coefficients: []S,
         padded: S,
+        pub fn maxBytesForTerms(terms: usize) !usize {
+            if (terms == 0 or terms > 128) return error.LocalGkrProjectionShape;
+            return std.math.add(usize, try std.math.mul(usize, terms, @sizeOf(Entry)), try std.math.mul(usize, try std.math.mul(usize, terms, R.MAX_ARITY), @sizeOf(S)));
+        }
         pub fn init(a: std.mem.Allocator, relations: []const R.Relation, ch: *const Ch, weights: []const O) !@This() {
             if (relations.len == 0 or relations.len > 128 or relations.len > weights.len or weights.len > 128 or !std.math.isPowerOfTwo(weights.len)) return error.LocalGkrProjectionShape;
             var count: usize = 0;
