@@ -366,7 +366,7 @@ def main(argv=None):
 
     v3_groups = a.v3_set.split(",")
     for svc in v3_groups:
-        if svc not in ("sha", "arith", "mem", "keccak", "umem"):
+        if svc not in ("sha", "arith", "mem", "keccak", "umem", "jumpdest"):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     if "umem" in v3_groups and "mem" not in v3_groups:
         raise SystemExit("v3 service group 'umem' needs 'mem'")

@@ -112,6 +112,9 @@ const Report = struct {
     bulk_memcmp_calls: u64 = 0,
     /// 8 x examined word pairs (the proof's compare rows).
     bulk_memcmp_bytes: u64 = 0,
+    /// Admitted JUMPDEST analyses (0x30040) and their code bytes.
+    jumpdest_calls: u64 = 0,
+    jumpdest_bytes: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -340,12 +343,17 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                             // Proof rows are the examined word pairs, not len.
                             report.bulk_memcmp_bytes += 8 * e.packet.examined;
                         },
+                        .jumpdest => {
+                            report.jumpdest_calls += 1;
+                            report.jumpdest_bytes += e.packet.len;
+                        },
                     }
                     const source = ethereum.bulk_memory.sourceWords(e.packet.word1, e.packet.len);
                     report.service_ram_word_transitions += switch (kind) {
                         .memcpy => 3 + words + source.count,
                         .memset => 3 + words,
                         .memcmp => 4 + 2 * e.packet.examined,
+                        .jumpdest => 3 + words + ethereum.bulk_memory.bitmapWords(e.packet.len),
                     };
                     if (census) |*value| {
                         for (0..3) |k| {
@@ -366,6 +374,13 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                                     try value.observe(source.base + 8 * j, w, w, false);
                                 };
                                 for (e.dst_before, 0..) |before, j| try value.observe(e.packet.dst + 8 * j, before, memory.backing.load(e.packet.dst + 8 * j, 8).value, true);
+                            },
+                            .jumpdest => {
+                                for (0..words) |j| {
+                                    const w = memory.backing.load(e.packet.dst + 8 * j, 8).value;
+                                    try value.observe(e.packet.dst + 8 * j, w, w, false);
+                                }
+                                for (e.dst_before, 0..) |before, j| try value.observe(e.packet.word1 + 8 * j, before, memory.backing.load(e.packet.word1 + 8 * j, 8).value, true);
                             },
                         }
                     }

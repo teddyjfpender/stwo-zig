@@ -40,7 +40,14 @@ pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range
     // Every body word belongs to one call of at most MAX_WORDS words.
     if ((r.bulk.copy_words != 0 or r.bulk.set_words != 0) and r.bulk.calls == 0) return error.InvalidCombinedBridgePresence;
     if (@as(u64, r.bulk.copy_words) + r.bulk.set_words > @as(u64, r.bulk.calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
-    const ram = 6 * @as(u64, r.bulk.calls) + 4 * @as(u64, r.bulk.copy_words) + 2 * @as(u64, r.bulk.set_words);
+    // JUMPDEST: every scan row belongs to one call of at most MAX_WORDS / 8
+    // rows; jdesc and jscan are present together, the table with them.
+    if ((r.bulk.jump_calls == 0) != (r.bulk.jump_rows == 0)) return error.InvalidCombinedBridgePresence;
+    if (@as(u64, r.bulk.jump_rows) > @as(u64, r.bulk.jump_calls) * (BM.types.MAX_WORDS / 8)) return error.InvalidCombinedServiceCount;
+    // RAM14: 6 per call (packet) + per scan row 16 (8 code reads) + 2 (bitmap write).
+    // OWNER19 (local): per call ECALL + token, per scan row token + 64 lookups,
+    // matched by the table's multiplicities: < 2^31 since rows <= 2^24.
+    const ram = 6 * @as(u64, r.bulk.calls) + 4 * @as(u64, r.bulk.copy_words) + 2 * @as(u64, r.bulk.set_words) + 6 * @as(u64, r.bulk.jump_calls) + 18 * @as(u64, r.bulk.jump_rows);
     return .{ .ram = ram, .range16 = range16 };
 }
 
@@ -110,7 +117,7 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        var service_calls: u64 = @as(u64, req.bulk.calls) + req.sponge.calls + req.base.memory.ls_count;
+        var service_calls: u64 = @as(u64, req.bulk.calls) + req.bulk.jump_calls + req.sponge.calls + req.base.memory.ls_count;
         for (req.calls) |c| service_calls += c;
         if (service_calls > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
@@ -228,7 +235,7 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     // Bulk-memory extension: mixed only when present, so v2 transcripts are unchanged.
     if (s.bridges.bulk.any() or r.bulk.any()) {
         ch.mixU32s(&.{ 0x424d454d, 1, 0x30001, 0x30002, BM.types.TOKEN_COPY, BM.types.TOKEN_SET, @intCast(BM.types.MAX_BYTES) });
-        for (T.bulk_kinds, 0..) |kind, k| {
+        for (T.bulk_kinds[0..T.MEM_KINDS], 0..) |kind, k| {
             ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
             if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
@@ -241,6 +248,16 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         for (T.sponge_kinds, 0..) |kind, k| {
             ch.mixU32s(&.{ @intCast(k), r.sponge.rows(kind), @intFromBool(s.bridges.sponge.at(kind) != null), s.bridges.sponge.at(kind) orelse 0, @intCast(KS.layout.constraints(kind)) });
             if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
+        }
+    }
+    // JUMPDEST extension: mixed only when present (every earlier transcript
+    // unchanged). Binds tag, tokens, length cap, the table size and every
+    // kind's rows, presence, log, constraint count and widths.
+    if (s.bridges.bulk.jump() or r.bulk.jump()) {
+        ch.mixU32s(&.{ 0x4a554d50, 1, @intCast(BM.types.JUMPDEST_TAG), BM.types.TOKEN_JD, BM.types.TOKEN_JD_TABLE, @intCast(BM.types.MAX_BYTES), @intCast(BM.types.TABLE_ENTRIES) });
+        for (T.jump_kinds, T.MEM_KINDS..) |kind, k| {
+            ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
+            if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
     }
 }

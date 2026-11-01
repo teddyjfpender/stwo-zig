@@ -98,8 +98,14 @@ pub const Capture = struct {
             .memcpy => 3 + words + @as(usize, @intCast(source.count)),
             .memset => 3 + words,
             .memcmp => 4 + 2 * @as(usize, @intCast(e.packet.examined)),
+            .jumpdest => 3 + words + @as(usize, @intCast(BM.bitmapWords(e.packet.len))),
         };
-        if (e.dst_before.len != (if (kind == .memcmp) 1 else words)) return error.InvalidBoundaryService;
+        const written: usize = switch (kind) {
+            .memcmp => 1,
+            .jumpdest => @intCast(BM.bitmapWords(e.packet.len)),
+            else => words,
+        };
+        if (e.dst_before.len != written) return error.InvalidBoundaryService;
         const transitions = try self.allocator.alloc(Transition, count);
         defer self.allocator.free(transitions);
         for (0..3) |k| {
@@ -131,6 +137,19 @@ pub const Capture = struct {
                     transitions[at] = .{ .address = s, .before = value, .after = value, .writable_required = false };
                     at += 1;
                 };
+            },
+            .jumpdest => {
+                for (0..words) |j| {
+                    const c = e.packet.dst + 8 * j;
+                    const value = memory.backing.load(c, 8).value;
+                    transitions[at] = .{ .address = c, .before = value, .after = value, .writable_required = false };
+                    at += 1;
+                }
+                for (e.dst_before, 0..) |before, j| {
+                    const b = e.packet.word1 + 8 * j;
+                    transitions[at] = .{ .address = b, .before = before, .after = memory.backing.load(b, 8).value, .writable_required = true };
+                    at += 1;
+                }
             },
         }
         std.debug.assert(at == count);

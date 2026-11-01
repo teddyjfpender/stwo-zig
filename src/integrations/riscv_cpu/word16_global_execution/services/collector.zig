@@ -15,10 +15,23 @@ pub const BulkShard = struct {
     calls: []BM.types.Call = &.{},
     words: []BM.types.Word = &.{},
     pub fn counts(self: BulkShard) @import("types.zig").BulkCounts {
-        var out = @import("types.zig").BulkCounts{ .calls = @intCast(self.calls.len) };
-        for (self.calls) |c| {
-            if (c.op == .copy) out.copy_words += c.count() else out.set_words += c.count();
-        }
+        var out = @import("types.zig").BulkCounts{};
+        for (self.calls) |c| switch (c.op) {
+            .copy => {
+                out.calls += 1;
+                out.copy_words += c.count();
+            },
+            .set => {
+                out.calls += 1;
+                out.set_words += c.count();
+            },
+            .jumpdest => {
+                out.jump_calls += 1;
+                out.jump_rows += c.bodyRows();
+            },
+            // memcmp is not admitted by this collector (bulkCall rejects it).
+            .cmp => unreachable,
+        };
         return out;
     }
     fn deinit(self: BulkShard, a: std.mem.Allocator) void {
@@ -165,7 +178,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const v3 = tape.execution_profile == .ethereum_services_v3;
     var bulk_records: usize = 0;
     if (v3) for (cpu.services.items) |rec| {
-        bulk_records += @intFromBool(rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG or rec.tag == Sponge.TAG);
+        bulk_records += @intFromBool(rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG or rec.tag == BM.types.JUMPDEST_TAG or rec.tag == Sponge.TAG);
     };
     if ((tape.execution_profile != .ethereum_services_v2 and !v3) or cpu.epoch != index + 1 or cpu.services.items.len != tape.serviceCount() + bulk_records) return error.InvalidCombinedServiceRoster;
     var bulk_calls: std.ArrayList(BM.types.Call) = .empty;
@@ -298,7 +311,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 cc[k][curve_next[k]] = call;
                 curve_next[k] += 1;
                 ui += 1;
-            } else if (v3 and (rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG)) {
+            } else if (v3 and (rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG or rec.tag == BM.types.JUMPDEST_TAG)) {
                 try bulkCall(a, ledger, rec.pointer, rec.tag, cpu.epoch, rec.tick, &bulk_calls, &bulk_words);
             } else return error.UnqualifiedCombinedServiceTag;
             ci += 1;
@@ -318,6 +331,7 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
 /// misalignment, bad lengths and missing rights before any ledger update.
 fn bulkCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, tag: u64, epoch: u16, tick: u24, calls: *std.ArrayList(BM.types.Call), words: *std.ArrayList(BM.types.Word)) !void {
     if (pointer & 7 != 0 or pointer > std.math.maxInt(u64) - 23) return error.InvalidCombinedServiceOwner;
+    if (tag == BM.types.JUMPDEST_TAG) return jumpdestCall(a, ledger, pointer, epoch, tick, calls, words);
     var call = BM.types.Call{ .op = if (tag == BM.types.MEMCPY_TAG) .copy else .set, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = undefined, .word1 = undefined, .len = undefined, .packet = undefined };
     for (0..3) |k| call.packet[k] = try get(ledger, pointer + 8 * k);
     call.dst = call.packet[0].value;
@@ -340,6 +354,39 @@ fn bulkCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, tag: u64, e
         if (call.op == .copy) ledger.states.getPtr(call.word1 + 8 * j).?.* = .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights };
         ledger.states.getPtr(call.dst + 8 * j).?.* = .{ .value = value, .epoch = epoch, .tick = tick, .rights = w.dst.rights };
     }
+    calls.appendAssumeCapacity(call);
+}
+/// Replays one admitted JUMPDEST analysis on the ledger: packet `code, len,
+/// bitmap`; the code words are read and the bitmap words written with the
+/// canonical analysis of the ledger's code values. Entries: code word
+/// predecessors (`src`), then bitmap word predecessors (`dst`).
+fn jumpdestCall(a: std.mem.Allocator, ledger: *Old.Ledger, pointer: u64, epoch: u16, tick: u24, calls: *std.ArrayList(BM.types.Call), words: *std.ArrayList(BM.types.Word)) !void {
+    var call = BM.types.Call{ .op = .jumpdest, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = undefined, .word1 = undefined, .len = undefined, .packet = @splat(.{ .value = 0, .rights = 0 }) };
+    for (0..3) |k| call.packet[k] = try get(ledger, pointer + 8 * k);
+    call.dst = call.packet[0].value;
+    call.len = call.packet[1].value;
+    call.word1 = call.packet[2].value;
+    if (call.len == 0 or call.len % 8 != 0 or call.len > BM.types.MAX_BYTES) return error.InvalidBulkMemoryLength;
+    const n = call.count();
+    const rows = call.bitmapWords();
+    const start = words.items.len;
+    try words.ensureUnusedCapacity(a, n + rows);
+    try calls.ensureUnusedCapacity(a, 1);
+    errdefer words.shrinkRetainingCapacity(start);
+    for (0..n) |j| words.appendAssumeCapacity(.{ .dst = .{ .value = 0, .rights = 0 }, .src = try get(ledger, call.dst +% 8 * j) });
+    for (0..rows) |r| words.appendAssumeCapacity(.{ .dst = try get(ledger, call.word1 +% 8 * r) });
+    try BM.types.validateCall(call, words.items[start..]);
+    const code = try a.alloc(u64, n);
+    defer a.free(code);
+    for (code, words.items[start..][0..n]) |*v, w| v.* = w.src.value;
+    const pending = try a.alloc(u8, rows);
+    defer a.free(pending);
+    const bitmap = try a.alloc(u64, rows);
+    defer a.free(bitmap);
+    BM.types.analyzeWords(code, pending, bitmap);
+    for (0..3) |k| ledger.states.getPtr(pointer + 8 * k).?.* = .{ .value = call.packet[k].value, .epoch = epoch, .tick = tick, .rights = call.packet[k].rights };
+    for (words.items[start..][0..n], 0..) |w, j| ledger.states.getPtr(call.dst + 8 * j).?.* = .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights };
+    for (words.items[start + n ..][0..rows], 0..) |w, r| ledger.states.getPtr(call.word1 + 8 * r).?.* = .{ .value = bitmap[r], .epoch = epoch, .tick = tick, .rights = w.dst.rights };
     calls.appendAssumeCapacity(call);
 }
 fn owner(pointer: u64, tick: u24, tape: *const front.rv64.compact_tape.Tape, captured_pointer: u64, clock: u64) !void {

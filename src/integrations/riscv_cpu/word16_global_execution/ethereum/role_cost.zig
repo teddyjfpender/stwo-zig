@@ -82,6 +82,10 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .desc => "bulk_desc",
             .copy => "bulk_copy",
             .set => "bulk_set",
+            .jdesc => "jumpdest_desc",
+            .jscan => "jumpdest_scan",
+            .jtab => "jumpdest_table",
+            .ucopy, .cdesc, .cmp => unreachable,
         }, log orelse 5, if (log != null) T.bulkWidths(kind) else .{ 0, 0, 0 }, bulk.rows(kind));
     }
     for (0..3) |tree| {

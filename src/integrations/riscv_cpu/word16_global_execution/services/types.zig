@@ -80,7 +80,7 @@ pub const Logs = struct {
             try jws.objectField(name);
             try jws.write(log);
         };
-        if (self.bulk.any()) {
+        if (self.bulk.anyKind()) {
             try jws.objectField("bulk");
             try jws.write(self.bulk);
         }
@@ -143,42 +143,101 @@ pub fn widths(family: Family) [3]usize {
 }
 
 /// Bulk-memory bridge logs: descriptor (one row per call), copy and set bodies
-/// (one row per word). Each present kind is one component of the CPU proof.
+/// (one row per word), then the JUMPDEST block (jdesc per call, jscan per 64
+/// code bytes, the jtab transition table). Each present kind is one component
+/// of the CPU proof, in this order. The memory block (`MEM_KINDS`) keeps its
+/// transcript, claims and JSON; the JUMPDEST block is mixed, serialized and
+/// committed only when present, so every earlier bundle is unchanged.
 pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
-pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set };
+pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set, .jdesc, .jscan, .jtab };
+pub const BULK_KINDS = bulk_kinds.len;
+pub const MEM_KINDS = 3;
+pub const jump_kinds = bulk_kinds[MEM_KINDS..];
 pub const Bulk = struct {
     desc: ?u32 = null,
     copy: ?u32 = null,
     set: ?u32 = null,
+    jdesc: ?u32 = null,
+    jscan: ?u32 = null,
+    jtab: ?u32 = null,
     pub fn at(self: @This(), kind: BulkKind) ?u32 {
         return switch (kind) {
             .desc => self.desc,
             .copy => self.copy,
             .set => self.set,
+            .jdesc => self.jdesc,
+            .jscan => self.jscan,
+            .jtab => self.jtab,
             // UNVERIFIED bulk-unaligned AIR kinds; the services lane does not
             // carry them yet (TODO bulk-unaligned track).
             .ucopy, .cdesc, .cmp => null,
         };
     }
+    /// The memory block (desc, copy, set) is present.
     pub fn any(self: @This()) bool {
         return self.desc != null or self.copy != null or self.set != null;
     }
+    /// The JUMPDEST block is present.
+    pub fn jump(self: @This()) bool {
+        return self.jdesc != null or self.jscan != null or self.jtab != null;
+    }
+    pub fn anyKind(self: @This()) bool {
+        return self.any() or self.jump();
+    }
+    /// Memory-block bytes are unchanged: JUMPDEST logs only when present.
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (.{ "desc", "copy", "set" }) |name| {
+            try jws.objectField(name);
+            try jws.write(@field(self, name));
+        }
+        inline for (.{ "jdesc", "jscan", "jtab" }) |name| if (@field(self, name)) |log| {
+            try jws.objectField(name);
+            try jws.write(log);
+        };
+        try jws.endObject();
+    }
 };
-/// Public bulk rows of one CPU proof: calls (descriptor rows) and words.
+/// Public bulk rows of one CPU proof: calls (descriptor rows) and words;
+/// JUMPDEST calls (jdesc rows) and scan rows (jscan; jtab has the fixed
+/// TABLE_ENTRIES rows whenever a call exists).
 pub const BulkCounts = struct {
     calls: u32 = 0,
     copy_words: u32 = 0,
     set_words: u32 = 0,
+    jump_calls: u32 = 0,
+    jump_rows: u32 = 0,
     pub fn rows(self: @This(), kind: BulkKind) u32 {
         return switch (kind) {
             .desc => self.calls,
             .copy => self.copy_words,
             .set => self.set_words,
+            .jdesc => self.jump_calls,
+            .jscan => self.jump_rows,
+            .jtab => if (self.jump_calls != 0) @intCast(A.crypto.bulk_memory.types.TABLE_ENTRIES) else 0,
             .ucopy, .cdesc, .cmp => 0,
         };
     }
     pub fn any(self: @This()) bool {
         return self.calls != 0 or self.copy_words != 0 or self.set_words != 0;
+    }
+    pub fn jump(self: @This()) bool {
+        return self.jump_calls != 0 or self.jump_rows != 0;
+    }
+    pub fn anyKind(self: @This()) bool {
+        return self.any() or self.jump();
+    }
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (.{ "calls", "copy_words", "set_words" }) |name| {
+            try jws.objectField(name);
+            try jws.write(@field(self, name));
+        }
+        if (self.jump()) inline for (.{ "jump_calls", "jump_rows" }) |name| {
+            try jws.objectField(name);
+            try jws.write(@field(self, name));
+        };
+        try jws.endObject();
     }
 };
 pub const BulkClaims = A.crypto.bulk_memory.types.Claims;

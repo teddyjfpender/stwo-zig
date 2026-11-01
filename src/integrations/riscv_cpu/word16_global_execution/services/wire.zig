@@ -49,7 +49,7 @@ pub const CompactRequest = struct {
         try jws.beginObject();
         inline for (std.meta.fields(@This())) |field| {
             if (comptime std.mem.eql(u8, field.name, "bulk")) {
-                if (self.bulk.any()) {
+                if (self.bulk.anyKind()) {
                     try jws.objectField(field.name);
                     try jws.write(self.bulk);
                 }
@@ -87,16 +87,19 @@ pub const WireClaims = struct {
     bulk: ?[3]T.BulkClaims = null,
     /// Keccak-sponge claims (call, perm); present iff the roster has a sponge.
     sponge: ?[2]T.SpongeClaims = null,
+    /// JUMPDEST claims (jdesc, jscan, jtab); present iff the roster has them.
+    jumpdest: ?[3]T.BulkClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk else null, .sponge = if (bridges.sponge.any()) c.sponge else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.MEM_KINDS].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null, .jumpdest = if (bridges.bulk.jump()) c.bulk[T.MEM_KINDS..].* else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = self.bulk orelse @splat(T.BulkClaims.zero()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
+        const zero: [3]T.BulkClaims = @splat(T.BulkClaims.zero());
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zero) ++ (self.jumpdest orelse zero), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -128,11 +131,15 @@ pub const WireClaims = struct {
             try jws.objectField("sponge");
             try jws.write(b);
         }
+        if (self.jumpdest) |b| {
+            try jws.objectField("jumpdest");
+            try jws.write(b);
+        }
         try jws.endObject();
     }
 };
 fn serviceCalls(r: CompactRequest) u64 {
-    var n: u64 = @as(u64, r.bulk.calls) + r.sponge.calls + r.ls_count;
+    var n: u64 = @as(u64, r.bulk.calls) + r.bulk.jump_calls + r.sponge.calls + r.ls_count;
     for (r.all()) |c| n += c;
     return n;
 }
@@ -220,6 +227,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.jumpdest != null) != cpu.declaration.bridges.bulk.jump()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
@@ -269,7 +277,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));
         ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
-        ram = try std.math.add(u64, ram, 6 * @as(u64, cpu.request.bulk.calls) + 4 * @as(u64, cpu.request.bulk.copy_words) + 2 * @as(u64, cpu.request.bulk.set_words));
+        ram = try std.math.add(u64, ram, 6 * @as(u64, cpu.request.bulk.calls) + 4 * @as(u64, cpu.request.bulk.copy_words) + 2 * @as(u64, cpu.request.bulk.set_words) + 6 * @as(u64, cpu.request.bulk.jump_calls) + 18 * @as(u64, cpu.request.bulk.jump_rows));
         const claims = cpu.claims.expand();
         try claims.canonical();
         for (claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {

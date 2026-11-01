@@ -14,7 +14,8 @@ pub const CpuClaims = struct {
     extras: [T.FAMILIES]T.ExtraClaims,
     /// Bulk-memory claims (desc, copy, set): RAM14, OWNER19, U16. Zero and
     /// omitted from the transcript (and wire, see WireClaims) when the CPU setup has no bulk component.
-    bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero()),
+    /// The JUMPDEST block (jdesc, jscan, jtab) follows in T.bulk_kinds order.
+    bulk: [T.BULK_KINDS]T.BulkClaims = @splat(T.BulkClaims.zero()),
     /// Keccak-sponge claims (call, perm): RAM14, OWNER19, IO11, AND, U16, U8.
     /// Zero and omitted from transcript and wire when the setup has no sponge.
     sponge: [2]T.SpongeClaims = @splat(T.SpongeClaims.zero()),
@@ -25,7 +26,12 @@ pub const CpuClaims = struct {
     }
     pub fn bulkValues(self: @This()) [9]Q {
         var out: [9]Q = undefined;
-        for (self.bulk, 0..) |c, k| out[3 * k ..][0..3].* = c.values();
+        for (self.bulk[0..T.MEM_KINDS], 0..) |c, k| out[3 * k ..][0..3].* = c.values();
+        return out;
+    }
+    pub fn jumpValues(self: @This()) [9]Q {
+        var out: [9]Q = undefined;
+        for (self.bulk[T.MEM_KINDS..], 0..) |c, k| out[3 * k ..][0..3].* = c.values();
         return out;
     }
     pub fn values(self: @This()) [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q {
@@ -62,11 +68,14 @@ pub const CpuClaims = struct {
         if (setup.bridges.bulk.any()) channel.mixFelts(&self.bulkValues());
         // Sponge block after bulk, only when present.
         if (setup.bridges.sponge.any()) channel.mixFelts(&self.spongeValues());
+        // JUMPDEST block after the sponge, only when present.
+        if (setup.bridges.bulk.jump()) channel.mixFelts(&self.jumpValues());
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);
         for (self.extras) |b| for (b.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
         for (self.bulkValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
+        for (self.jumpValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
         for (self.spongeValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
     }
     pub fn presence(self: @This(), setup: *const R.CpuSetup) !void {
@@ -92,6 +101,7 @@ pub const CpuClaims = struct {
         var sum = Q.zero();
         for (self.values()) |v| sum = sum.add(v);
         for (self.bulkValues()) |v| sum = sum.add(v);
+        for (self.jumpValues()) |v| sum = sum.add(v);
         for (self.spongeValues()) |v| sum = sum.add(v);
         sum = sum.sub(self.ram());
         for (self.extras) |c| sum = sum.sub(c.truth);
