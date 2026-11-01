@@ -19,6 +19,7 @@
 // header) agree with the re-execution.
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -274,22 +275,36 @@ evmc::bytes32 requests_hash(const Input& in) {
 }
 
 // ------------------------------------------------------- ZEG0 synthesis ----
+// The backing words are not pre-zeroed (most of the buffer is overwritten by
+// transaction and code bytes): bytes() zeroes its pad word, zeros() its range.
 struct Writer {
-    std::vector<uint64_t> words;  // 8-byte aligned backing
+    uint64_t* words = nullptr;  // 8-byte aligned backing, never freed
+    size_t cap = 0;             // bytes
     size_t n = 0;
-    void reserve(size_t bytes) { words.assign((bytes + 7) / 8 + 1, 0); }
-    uint8_t* at(size_t off) { return reinterpret_cast<uint8_t*>(words.data()) + off; }
-    void need(size_t k) {
-        if (n + k > words.size() * 8) fail("zeg0 writer overflow");
+    void reserve(size_t bytes) {
+        cap = ((bytes + 7) / 8 + 1) * 8;
+        words = static_cast<uint64_t*>(std::malloc(cap));
+        if (!words) fail("zeg0 writer: out of memory");
     }
-    void u64(uint64_t v) { need(8); std::memcpy(at(n), &v, 8); n += 8; }
+    uint8_t* at(size_t off) { return reinterpret_cast<uint8_t*>(words) + off; }
+    void need(size_t k) {
+        if (k > cap - n) fail("zeg0 writer overflow");
+    }
+    void u64(uint64_t v) { need(8); words[n / 8] = v; n += 8; }
     void bytes(const uint8_t* p, size_t k) {
         need(k + 8);
+        words[(n + k) / 8] = 0;  // the word holding the zero pad (n is 8-aligned)
         std::memcpy(at(n), p, k);
         n += k;
-        n = (n + 7) & ~size_t(7);  // zero pad (buffer is zero-filled)
+        n = (n + 7) & ~size_t(7);
     }
-    uint8_t* zeros(size_t k) { need(k); uint8_t* p = at(n); n += k; return p; }
+    uint8_t* zeros(size_t k) {
+        need(k);
+        uint8_t* p = at(n);
+        std::memset(p, 0, k);
+        n += k;
+        return p;
+    }
 };
 
 // Big-endian minimal integer from an RLP string into a right-aligned field.
@@ -609,7 +624,7 @@ extern uint8_t __output_data[];
 namespace {
 
 // Build ZEG0 sections 0-6 (everything except the StateRoot hints).
-std::vector<uint64_t> build_zeg0(const Input& in, size_t& out_len) {
+const uint64_t* build_zeg0(const Input& in, size_t& out_len) {
     // Size: magic+seed, consensus, txs, codes, headers.
     size_t total = 24 + 376 + 48 * (in.withdrawals.n / 44) + 8 + 8 + 8 + 64;
     for (size_t i = 0; i < in.txs.count; ++i) total += 16 + in.txs.at(i).n;
@@ -701,7 +716,7 @@ std::vector<uint64_t> build_zeg0(const Input& in, size_t& out_len) {
     }
     std::memcpy(ci + 0, recs + 88, 32);  // parent state root
     out_len = w.n;
-    return std::move(w.words);
+    return w.words;
 }
 
 void write_output(const H256& root, uint64_t chain_id, uint16_t schema_id) {
@@ -748,10 +763,10 @@ extern "C" void stwo_validate(const uint8_t* ssz, size_t len, uint8_t out_root[3
         g.store.add(s.p, s.n);
     }
     size_t zlen = 0;
-    std::vector<uint64_t> zeg0 = build_zeg0(in, zlen);
+    const uint64_t* zeg0 = build_zeg0(in, zlen);
     uint8_t block_hash[32];
     uint8_t unused[32];
-    const int rc = zeg::run(reinterpret_cast<const uint8_t*>(zeg0.data()), zlen, unused, block_hash);
+    const int rc = zeg::run(reinterpret_cast<const uint8_t*>(zeg0), zlen, unused, block_hash);
     if (rc != 0) fail("run: partial stage");
     // Execution, header, block hash and payload binding all passed.
     const H256 root = request_root(in);
