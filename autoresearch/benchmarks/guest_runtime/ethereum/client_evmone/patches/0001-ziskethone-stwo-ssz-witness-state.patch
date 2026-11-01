@@ -1,16 +1,18 @@
 diff --git a/cpp-guest/include/zeg/accounts.hpp b/cpp-guest/include/zeg/accounts.hpp
-index 9593d0e..7358719 100644
+index 9593d0e..d2e8f6c 100644
 --- a/cpp-guest/include/zeg/accounts.hpp
 +++ b/cpp-guest/include/zeg/accounts.hpp
-@@ -31,6 +31,7 @@
+@@ -30,7 +30,9 @@
+ #include <evmc/evmc.hpp>
  
  #include "zeg/trie_node.hpp"
++#include "zeg/zisk_dma.hpp"
  #include "zeg/seeded_hash.hpp"
 +#include "zeg/stwo_hooks.hpp"
  
  namespace zeg {
  
-@@ -174,8 +175,10 @@ public:
+@@ -174,8 +176,10 @@ public:
  
      // Non-fataling probe — true iff `addr` is in the table.
      bool contains(const evmc::address& addr) const noexcept {
@@ -22,8 +24,39 @@ index 9593d0e..7358719 100644
  
      // ----- per-tx warm/cold tracking (EIP-2929) -----
      //
+@@ -281,7 +285,7 @@ private:
+     };
+     struct AddressEq {
+         bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
+ 
+diff --git a/cpp-guest/include/zeg/contracts.hpp b/cpp-guest/include/zeg/contracts.hpp
+index eba163c..a32cfed 100644
+--- a/cpp-guest/include/zeg/contracts.hpp
++++ b/cpp-guest/include/zeg/contracts.hpp
+@@ -16,6 +16,8 @@
+ 
+ #include <evmc/evmc.hpp>
+ 
++#include "zeg/zisk_dma.hpp"
++
+ #include "zeg/seeded_hash.hpp"
+ #include "zeg/tx_arena.hpp"
+ 
+@@ -165,7 +167,7 @@ private:
+     };
+     struct KeccakEq {
+         bool operator()(const evmc::bytes32& x, const evmc::bytes32& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
+ 
 diff --git a/cpp-guest/include/zeg/storages.hpp b/cpp-guest/include/zeg/storages.hpp
-index 2a49846..f60abdc 100644
+index 2a49846..c697d82 100644
 --- a/cpp-guest/include/zeg/storages.hpp
 +++ b/cpp-guest/include/zeg/storages.hpp
 @@ -29,6 +29,7 @@
@@ -33,6 +66,15 @@ index 2a49846..f60abdc 100644
 +#include "zeg/stwo_hooks.hpp"
  
  namespace zeg {
+ 
+@@ -284,7 +285,7 @@ private:
+     };
+     struct AddressEq {
+         bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
  
 diff --git a/cpp-guest/include/zeg/stwo_hooks.hpp b/cpp-guest/include/zeg/stwo_hooks.hpp
 new file mode 100644
@@ -71,6 +113,83 @@ index 0000000..05758fb
 +bool stwo_tx_sender(uint64_t index, const evmc::bytes32& hash, const evmc::uint256be& r,
 +                    const evmc::uint256be& s, unsigned recid, evmc::address& out) noexcept;
 +}  // namespace zeg
+diff --git a/cpp-guest/include/zeg/zisk_dma.hpp b/cpp-guest/include/zeg/zisk_dma.hpp
+index 5c9a403..9cd4f8c 100644
+--- a/cpp-guest/include/zeg/zisk_dma.hpp
++++ b/cpp-guest/include/zeg/zisk_dma.hpp
+@@ -20,13 +20,70 @@
+ 
+ namespace zeg::zisk {
+ 
++#if defined(ZEG_STWO)
++// stwo RV64IM: evmc byte arrays have alignment 1, so fixed-size copies and
++// compares become libc calls with byte-alignment handling. When both operands
++// happen to be 8-byte aligned (table records and hash-map nodes are), use word
++// accesses instead. zisk_xmemcmp is only ever tested against 0 by its callers,
++// so the fast path returns 0 (equal) or 1 (different).
++namespace detail {
++typedef uint64_t __attribute__((may_alias)) u64a;
++typedef uint32_t __attribute__((may_alias)) u32a;
++inline bool aligned8(const void* a, const void* b) {
++    return ((reinterpret_cast<uintptr_t>(a) | reinterpret_cast<uintptr_t>(b)) & 7) == 0;
++}
++}  // namespace detail
++#endif
++
+ inline void zisk_memcpy(void* dst, const void* src, size_t size) { std::memcpy(dst, src, size); }
+ template <size_t Size>
+-inline void zisk_xmemcpy(void* dst, const void* src) { std::memcpy(dst, src, Size); }
++inline void zisk_xmemcpy(void* dst, const void* src) {
++#if defined(ZEG_STWO)
++    if constexpr (Size % 8 == 0 && Size <= 64) {
++        if (detail::aligned8(dst, src)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const detail::u64a*>(src);
++            for (size_t i = 0; i < Size / 8; ++i) d[i] = s[i];
++            return;
++        }
++    } else if constexpr (Size == 20) {
++        if (detail::aligned8(dst, src)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const detail::u64a*>(src);
++            d[0] = s[0];
++            d[1] = s[1];
++            *reinterpret_cast<detail::u32a*>(d + 2) = *reinterpret_cast<const detail::u32a*>(s + 2);
++            return;
++        }
++    }
++#endif
++    std::memcpy(dst, src, Size);
++}
+ 
+ inline int64_t zisk_memcmp(const void* a, const void* b, size_t size) { return std::memcmp(a, b, size); }
+ template <size_t Size>
+-inline int64_t zisk_xmemcmp(const void* a, const void* b) { return std::memcmp(a, b, Size); }
++inline int64_t zisk_xmemcmp(const void* a, const void* b) {
++#if defined(ZEG_STWO)
++    if constexpr (Size % 8 == 0 && Size <= 64) {
++        if (detail::aligned8(a, b)) {
++            const auto* x = static_cast<const detail::u64a*>(a);
++            const auto* y = static_cast<const detail::u64a*>(b);
++            uint64_t d = 0;
++            for (size_t i = 0; i < Size / 8; ++i) d |= x[i] ^ y[i];
++            return d != 0;
++        }
++    } else if constexpr (Size == 20) {
++        if (detail::aligned8(a, b)) {
++            const auto* x = static_cast<const detail::u64a*>(a);
++            const auto* y = static_cast<const detail::u64a*>(b);
++            const uint64_t d = (x[0] ^ y[0]) | (x[1] ^ y[1]) |
++                (*reinterpret_cast<const detail::u32a*>(x + 2) ^ *reinterpret_cast<const detail::u32a*>(y + 2));
++            return d != 0;
++        }
++    }
++#endif
++    return std::memcmp(a, b, Size);
++}
+ 
+ template <size_t Size, uint8_t Fill = 0>
+ inline void zisk_xmemset(void* dst) { std::memset(dst, Fill, Size); }
 diff --git a/cpp-guest/src/accounts.cpp b/cpp-guest/src/accounts.cpp
 index 5a753fa..98d562e 100644
 --- a/cpp-guest/src/accounts.cpp

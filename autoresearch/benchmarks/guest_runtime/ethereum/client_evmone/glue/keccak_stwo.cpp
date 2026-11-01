@@ -19,11 +19,16 @@ constexpr size_t kRateWords = kRate / 8;
 
 inline uint64_t ldw(const uint8_t* p) { return *reinterpret_cast<const uint64_t*>(p); }
 
-// XOR `words` LE words of `in` into the state (all words fully inside the input).
+// XOR (or, for the first block, store) `words` LE words of `in` into the
+// state; all words lie fully inside the input.
+template <bool kStore>
 inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words) {
     const unsigned off = reinterpret_cast<uintptr_t>(in) & 7;
     if (off == 0) {
-        for (size_t i = 0; i < words; ++i) st[i] ^= ldw(in + 8 * i);
+        for (size_t i = 0; i < words; ++i) {
+            const uint64_t w = ldw(in + 8 * i);
+            st[i] = kStore ? w : st[i] ^ w;
+        }
         return;
     }
     const unsigned sh = off * 8;
@@ -33,7 +38,8 @@ inline void absorb_words(uint64_t* st, const uint8_t* in, size_t words) {
     for (size_t i = 0; i < words; ++i) {
         // Bytes in+8i .. in+8i+7 lie in aligned words base+8i and base+8i+8.
         const uint64_t nxt = ldw(base + 8 * i + 8);
-        st[i] ^= (cur >> sh) | (nxt << rs);
+        const uint64_t w = (cur >> sh) | (nxt << rs);
+        st[i] = kStore ? w : st[i] ^ w;
         cur = nxt;
     }
 }
@@ -49,20 +55,33 @@ inline uint64_t tail_word(const uint8_t* p, size_t n) {
 }  // namespace
 
 extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
-    alignas(32) uint64_t st[25] = {};
+    alignas(32) uint64_t st[25];
+    bool first = true;
     while (size >= kRate) {
-        absorb_words(st, data, kRateWords);
+        if (first) {
+            absorb_words<true>(st, data, kRateWords);
+            for (size_t i = kRateWords; i < 25; ++i) st[i] = 0;
+            first = false;
+        } else {
+            absorb_words<false>(st, data, kRateWords);
+        }
         stwo::keccak_f(st);
         data += kRate;
         size -= kRate;
     }
     // Final block: whole words, the partial word with the 0x01 pad byte, 0x80.
     const size_t words = size / 8;
-    absorb_words(st, data, words);
     const size_t rem = size & 7;
     uint64_t last = uint64_t(0x01) << (8 * rem);
     if (rem) last |= tail_word(data + 8 * words, rem);
-    st[words] ^= last;
+    if (first) {
+        absorb_words<true>(st, data, words);
+        st[words] = last;
+        for (size_t i = words + 1; i < 25; ++i) st[i] = 0;
+    } else {
+        absorb_words<false>(st, data, words);
+        st[words] ^= last;
+    }
     st[kRateWords - 1] ^= uint64_t(0x80) << 56;
     stwo::keccak_f(st);
     union ethash_hash256 out;
