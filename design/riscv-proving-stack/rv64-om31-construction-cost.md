@@ -51,6 +51,16 @@ These are existing QM31-op rows, not M31 machine instructions or complete recurs
 
 An early benchmark attempt hardcoded sixteen lanes for the target-native vector and failed. ReleaseSafe localized the out-of-bounds access; the corrected benchmark uses PACK_WIDTH and the explicit16-row grouped test prevents conflating the two representations. That failed run contributes no measurement.
 
+## Qualified packed norm/cofactor followup
+
+A separate additive `invertScaledPacked` now uses native-width SIMD for both OM31 norm construction and final conjugate/cofactor multiplication, sharing the scalar API's validation and the existing optimized QM31 norm inverter. Direct canonical-coordinate gather/scatter avoids large by-value aggregate copies. Caller-owned scratch and active-plane size stay unchanged; the scalar candidate remains available as the control.
+
+Thirty tests pass in each of ReleaseSafe and ReleaseFast, including every native tail, high-limb cases, aliases, zero weights/denominators and an independent polynomial Frobenius check. At65,536 rows, three **shared-host** runs under canonical `lockf -k` produced these medians of12-iteration means: optimized QM31 **287,232 ns**, scalar OM31 **2,057,593 ns**, packed OM31 **946,878 ns**. That is2.17× lower time for this OM31 batch primitive, with the packed candidate still3.30× the optimized QM31 control. It is neither an inherent wider-field penalty nor a whole-prover speedup. Fixed measurement order and other active workloads limit the comparison.
+
+Every measured output satisfies the scaled inverse identity. The same100 active bytes/element remain, versus36 for the owned QM31 control; an owned norm-to-M31/cofactor design could reduce memory but is not implemented here. Raw runs and qualification are in `om31-packed-cost-v1`.
+
+Quadratic conjugation is independently checked to equal the p^4 Frobenius and to fix embedded QM31. Existing DEEP helpers use a QM31 involution fixing CM31; selecting the analogous OM31 involution would change that fixed subfield and needs explicit point/value/quotient authority review. No DEEP migration is implied by the arithmetic test.
+
 ## What a protocol migration must actually price
 
 | Layer | Work/traffic affected by adopting OM31 everywhere |

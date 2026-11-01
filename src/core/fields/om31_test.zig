@@ -210,3 +210,54 @@ test "om31: explicit16row groups preserve high-limb column-major products" {
         try std.testing.expect(scaled.lane(i).eql(x.lane(i).mulBase(bases[i])));
     }
 }
+
+test "om31: packed norm batches match scalar across every native tail and high limb" {
+    var prng = std.Random.DefaultPrng.init(0x504e4249);
+    for ([_]usize{ 0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 127, 1024 }) |n| {
+        const input = try a.alloc(O, n);
+        defer a.free(input);
+        const scalar = try a.alloc(O, n);
+        defer a.free(scalar);
+        const packed_output = try a.alloc(O, n);
+        defer a.free(packed_output);
+        const scratch = try a.alloc(Q, 2 * n);
+        defer a.free(scratch);
+        const scales = try a.alloc(M, n);
+        defer a.free(scales);
+        for (input, scales, 0..) |*x, *scale, i| {
+            x.* = if (i % 7 == 0) O.fromM31Array(@splat(M.fromCanonical(m31.Modulus - 1))) else random(prng.random());
+            scale.* = if (i % 5 == 0) M.zero() else M.fromCanonical(739);
+        }
+        try field.invertScaled(input, scalar, scratch, scales);
+        try field.invertScaledPacked(input, packed_output, scratch, scales);
+        for (input, scalar, packed_output, scales) |x, want, got, scale| {
+            try std.testing.expect(want.eql(got));
+            try std.testing.expect(oracleMul(x, got).eql(O.fromBase(scale)));
+        }
+    }
+}
+
+test "om31: packed batch rejects all aliases and zero before output mutation" {
+    var input = [_]O{O.one()} ** 8;
+    var out = [_]O{O.basis()} ** 8;
+    var scratch: [16]Q = undefined;
+    const scales = [_]M{M.one()} ** 8;
+    try std.testing.expectError(error.InvalidBatchGeometry, field.invertScaledPacked(&input, &input, &scratch, &scales));
+    const aliased_scratch: []Q = @as([*]Q, @ptrCast(&out))[0..16];
+    try std.testing.expectError(error.InvalidBatchGeometry, field.invertScaledPacked(&input, &out, aliased_scratch, &scales));
+    input[7] = O.zero();
+    try std.testing.expectError(error.DivisionByZero, field.invertScaledPacked(&input, &out, &scratch, &scales));
+    for (out) |x| try std.testing.expect(x.eql(O.basis()));
+}
+
+test "om31: quadratic conjugation equals p4 Frobenius and fixes embedded QM31" {
+    var prng = std.Random.DefaultPrng.init(0x46524f42);
+    for (0..4) |_| {
+        const x = random(prng.random());
+        const y = random(prng.random());
+        try std.testing.expect(oraclePow(x, @import("qm31.zig").P4).eql(x.conjugate()));
+        try std.testing.expect(x.conjugate().conjugate().eql(x));
+        try std.testing.expect(x.mul(y).conjugate().eql(x.conjugate().mul(y.conjugate())));
+        try std.testing.expect(O.fromInner(x.c0).conjugate().eql(O.fromInner(x.c0)));
+    }
+}

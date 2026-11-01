@@ -95,6 +95,8 @@ pub fn main() !void {
     defer allocator.free(inputO);
     const outQ = try allocator.alloc(Q, n);
     defer allocator.free(outQ);
+    const outPackedO = try allocator.alloc(O, n);
+    defer allocator.free(outPackedO);
     const outO = try allocator.alloc(O, n);
     defer allocator.free(outO);
     const workQ = try allocator.alloc(Q, n);
@@ -120,6 +122,7 @@ pub fn main() !void {
     var opacked: u64 = 0;
     var qinverse: u64 = 0;
     var oinverse: u64 = 0;
+    var opackedinverse: u64 = 0;
     const qcoef = PQ.splat(inputQ[0]);
     const ocoef = fields.packed_om31.splat(inputO[0]);
     var checksumQ = Q.zero();
@@ -154,6 +157,9 @@ pub fn main() !void {
         timer.reset();
         try fields.om31.invertScaled(inputO, outO, scratchO, scales);
         const oit = timer.read();
+        timer.reset();
+        try fields.om31.invertScaledPacked(inputO, outPackedO, scratchO, scales);
+        const opit = timer.read();
         if (iteration != 0) {
             qscalar += qt;
             oscalar += ot;
@@ -161,12 +167,14 @@ pub fn main() !void {
             opacked += opt;
             qinverse += qit;
             oinverse += oit;
+            opackedinverse += opit;
         }
     }
     for (inputQ, outQ, inputO, outO) |q, qi, o, oi| {
         if (!q.mul(qi).eql(Q.fromBase(M.fromCanonical(17))) or !o.mul(oi).eql(O.fromBase(M.fromCanonical(17)))) return error.InverseMismatch;
     }
-    const report = .{ .schema = "om31-additive-cost-v1", .whole_protocol_128 = false, .production_protocol_changed = false, .rows = n, .repetitions = repetitions, .warmups = 1, .native_simd_rows = m31.PACK_WIDTH, .grouped_rows = 16, .scope = "isolated native primitives and satisfied circuit arithmetic graphs; not whole prover/recursion timing", .scalar_recurrence_ns = .{ .qm31 = qscalar / repetitions, .om31 = oscalar / repetitions }, .packed_constant_secure_coefficient_times_base_ns = .{ .qm31 = qpacked / repetitions, .om31 = opacked / repetitions }, .scaled_batch_inverse_ns = .{ .qm31_optimized_owned = qinverse / repetitions, .om31_bounded_norm_scratch = oinverse / repetitions }, .batch_active_bytes_per_element = .{ .qm31_owned = 36, .om31_non_destructive_candidate = 100 }, .secure_bytes = .{ .qm31 = @sizeOf(Q), .om31 = @sizeOf(O) }, .checksums = .{ checksumQ.toM31Array(), checksumO.toM31Array() }, .circuit = .{ .qm31_multiply = try circuitCost(false, .multiply), .om31_multiply = try circuitCost(true, .multiply), .qm31_secure_by_base = try circuitCost(false, .secure_by_base), .om31_secure_by_base = try circuitCost(true, .secure_by_base), .qm31_inverse = try circuitCost(false, .inverse), .om31_inverse = try circuitCost(true, .inverse) } };
+    for (inputO, outPackedO) |o, inverse| if (!o.mul(inverse).eql(O.fromBase(M.fromCanonical(17)))) return error.PackedInverseMismatch;
+    const report = .{ .schema = "om31-additive-cost-v1", .whole_protocol_128 = false, .production_protocol_changed = false, .rows = n, .repetitions = repetitions, .warmups = 1, .native_simd_rows = m31.PACK_WIDTH, .grouped_rows = 16, .scope = "isolated native primitives and satisfied circuit arithmetic graphs; not whole prover/recursion timing", .scalar_recurrence_ns = .{ .qm31 = qscalar / repetitions, .om31 = oscalar / repetitions }, .packed_constant_secure_coefficient_times_base_ns = .{ .qm31 = qpacked / repetitions, .om31 = opacked / repetitions }, .scaled_batch_inverse_ns = .{ .qm31_optimized_owned = qinverse / repetitions, .om31_bounded_norm_scratch = oinverse / repetitions, .om31_packed_norm_scratch = opackedinverse / repetitions }, .batch_active_bytes_per_element = .{ .qm31_owned = 36, .om31_non_destructive_candidate = 100 }, .secure_bytes = .{ .qm31 = @sizeOf(Q), .om31 = @sizeOf(O) }, .checksums = .{ checksumQ.toM31Array(), checksumO.toM31Array() }, .circuit = .{ .qm31_multiply = try circuitCost(false, .multiply), .om31_multiply = try circuitCost(true, .multiply), .qm31_secure_by_base = try circuitCost(false, .secure_by_base), .om31_secure_by_base = try circuitCost(true, .secure_by_base), .qm31_inverse = try circuitCost(false, .inverse), .om31_inverse = try circuitCost(true, .inverse) } };
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{ .whitespace = .indent_2 });
     defer allocator.free(json);
     try std.fs.File.stdout().writeAll(json);

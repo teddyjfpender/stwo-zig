@@ -69,3 +69,28 @@ pub const PackedOM31x16 = struct {
         return @import("packed_om31.zig").lane(a.groups[index / m31.PACK_WIDTH], index % m31.PACK_WIDTH);
     }
 };
+
+/// Native-pack AoS transpose. These direct canonical coordinate loads avoid
+/// aggregate by-value stack copies on Zig0.15.2/AArch64 and need no alignment
+/// beyond the scalar field. Exactly PACK_WIDTH readable elements are required.
+pub inline fn loadNative(input: []const om31.OM31) PackedOM31 {
+    const std = @import("std");
+    std.debug.assert(input.len >= m31.PACK_WIDTH);
+    var c: [8]m31.PackedM31 = undefined;
+    inline for (0..m31.PACK_WIDTH) |i| {
+        c[0][i] = input[i].c0.c0.a.v;
+        c[1][i] = input[i].c0.c0.b.v;
+        c[2][i] = input[i].c0.c1.a.v;
+        c[3][i] = input[i].c0.c1.b.v;
+        c[4][i] = input[i].c1.c0.a.v;
+        c[5][i] = input[i].c1.c0.b.v;
+        c[6][i] = input[i].c1.c1.a.v;
+        c[7][i] = input[i].c1.c1.b.v;
+    }
+    return fromCoordinates(c);
+}
+pub inline fn storeNative(output: []om31.OM31, value: PackedOM31) void {
+    const std = @import("std");
+    std.debug.assert(output.len >= m31.PACK_WIDTH);
+    inline for (0..m31.PACK_WIDTH) |i| output[i] = lane(value, i);
+}
