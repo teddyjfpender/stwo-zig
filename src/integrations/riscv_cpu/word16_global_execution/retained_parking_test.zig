@@ -433,7 +433,7 @@ test "Failed parked remapping preserves empty sentinels and FD custody for exact
 
 test "MAIN prefetch byte ranges never round beyond the explicit per-worker cap" {
     const Hint = @import("retained_main_prefetch.zig");
-    const page = std.heap.page_size_min;
+    const page = std.heap.pageSize();
     try std.testing.expectEqual(@as(usize, 0), Hint.boundedLength(8 * page, page - 1));
     try std.testing.expectEqual(page, Hint.boundedLength(8 * page, 2 * page - 1));
     try std.testing.expectEqual(3 * page, Hint.boundedLength(3 * page, 8 * page));
@@ -456,10 +456,10 @@ test "MAIN prefetch preserves mapped and parked native values roots and bounded 
         const disabled = try store.prefetchMain(tree, 0);
         try std.testing.expectEqual(@as(usize, 0), disabled.advised_bytes);
         try std.testing.expectEqual(@as(usize, 0), store.stats().prefetch_calls);
-        const result = try store.prefetchMain(tree, std.heap.page_size_min);
+        const result = try store.prefetchMain(tree, std.heap.pageSize());
         if (@import("retained_main_prefetch.zig").supported) {
             try std.testing.expect(result.ready);
-            try std.testing.expect(result.requested_bytes <= std.heap.page_size_min);
+            try std.testing.expect(result.requested_bytes <= std.heap.pageSize());
             try std.testing.expect(result.advised_bytes <= result.requested_bytes);
         } else _ = try store.restore(tree);
         try std.testing.expectEqualDeep(root, tree.root());
