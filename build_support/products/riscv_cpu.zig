@@ -54,7 +54,7 @@ pub fn addProduct(context: Context) void {
         .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
         .{ "main-merkle-parking", "src/integrations/riscv_cpu/rv64_main_merkle_parking_test_root.zig", 17 },
         .{ "wide-fixed-setup", "src/integrations/riscv_cpu/rv64_wide_fixed_setup_test_root.zig", 6 },
-        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
+        .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 8 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
         .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 8 },
         .{ "full-capture", "src/integrations/riscv_cpu/rv64_full_capture_test_root.zig", 9 },
