@@ -236,6 +236,8 @@ def main(argv=None):
     ap.add_argument("--cache", default=None, help="pinned source checkouts (default OUT/cache)")
     ap.add_argument("--profile", choices=("admitted", "candidate"), default="admitted")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
+    ap.add_argument("--candidate-set", default="mem,sha,arith",
+                    help="candidate service groups for --profile candidate (mem, sha, arith, mul)")
     ap.add_argument("--opt", default="-O2")
     ap.add_argument("--secp", choices=("stwo", "evmone"), default="stwo",
                     help="stwo: recover on the admitted secp services; evmone: software reference")
@@ -266,10 +268,14 @@ def main(argv=None):
         staged = stage(cache, work)
     src = work / "src"
 
-    variant = "host" if a.host else a.profile
+    variant = "host" if a.host else a.profile if a.profile == "admitted" else "candidate-" + a.candidate_set.replace(",", "-")
     defines = list(DEFINES)
     if a.profile == "candidate":
         defines.append("-DCANDIDATE_SERVICES")
+        for svc in a.candidate_set.split(","):
+            if svc not in ("mem", "sha", "arith", "mul"):
+                raise SystemExit(f"unknown candidate service group {svc!r}")
+            defines.append(f"-DCANDIDATE_{svc.upper()}")
     if a.host:
         defines.append("-DSTWO_HOST")
         cxx = [a.opt, "-g", *COMMON_CXX, *defines, *includes(src)]
@@ -305,7 +311,9 @@ def main(argv=None):
         exe = out / "client-evmone-host"
         run(["zig", "c++", a.opt, "-g", *objs, "-o", exe])
     else:
-        exe = out / f"client-evmone-{a.profile}.elf"
+        tag = a.profile if a.profile == "admitted" or a.candidate_set == "mem,sha,arith" else \
+            "candidate-" + a.candidate_set.replace(",", "-")
+        exe = out / f"client-evmone-{tag}.elf"
         run(["zig", "c++", "-target", "riscv64-freestanding-none", "-mcpu=generic_rv64+m", "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
     if a.tests:

@@ -100,7 +100,7 @@ inline void compress_kw(uint32_t st[8], const uint32_t* kw) {
     st[4] += uint32_t(e); st[5] += uint32_t(f); st[6] += uint32_t(g); st[7] += uint32_t(h);
 }
 
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_SHA)
 struct alignas(8) ShaPacket {
     uint32_t state[8];
     uint8_t block[64];

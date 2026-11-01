@@ -4,7 +4,8 @@
 //   0x0001_0001 Keccak-f[1600] in place on 25 little-endian u64 lanes
 //   0x0002_0011 secp256k1 projective add, word packet (6 x 4 LE u64, 32-byte aligned)
 //   0x0002_0012 secp256k1 projective double, word packet (3 x 4 LE u64)
-// Candidate profile ethereum_services_v3_candidate (execution-only, -DCANDIDATE_SERVICES):
+// Candidate profile ethereum_services_v3_candidate (execution-only; build.py --profile candidate
+// defines CANDIDATE_SERVICES plus CANDIDATE_MEM / CANDIDATE_SHA / CANDIDATE_ARITH per --candidate-set):
 //   0x0003_0001 memcpy, 0x0003_0002 memset, 0x0003_0003 memcmp,
 //   0x0003_0010 sha256_compress, 0x0003_0020 arith256, 0x0003_0021 arith256_mod
 // All registers are preserved; only the packet changes.

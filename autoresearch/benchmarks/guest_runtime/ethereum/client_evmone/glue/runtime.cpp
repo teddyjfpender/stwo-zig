@@ -19,7 +19,7 @@
 
 // Candidate profile: bulk copies/fills/compares at or above this size go to the
 // execution-only memory services (CONTEXT.md); smaller ones stay software.
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_MEM)
 static constexpr size_t kCandMemMin = 32;
 #endif
 
@@ -177,25 +177,25 @@ int posix_memalign(void** out, size_t alignment, size_t size) {
 extern "C" {
 
 void* memcpy(void* dst, const void* src, size_t n) {
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }
 #endif
     return stwo_memcpy(dst, src, n);
 }
 void* memmove(void* dst, const void* src, size_t n) {
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memcpy(dst, src, n); return dst; }  // memmove-safe
 #endif
     return stwo_memmove(dst, src, n);
 }
 void* memset(void* dst, int c, size_t n) {
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) { stwo::cand_memset(dst, c, n); return dst; }
 #endif
     return stwo_memset(dst, c, n);
 }
 int memcmp(const void* a, const void* b, size_t n) {
-#if defined(CANDIDATE_SERVICES)
+#if defined(CANDIDATE_MEM)
     if (n >= kCandMemMin) return stwo::cand_memcmp(a, b, n);
 #endif
     return stwo_memcmp(a, b, n);

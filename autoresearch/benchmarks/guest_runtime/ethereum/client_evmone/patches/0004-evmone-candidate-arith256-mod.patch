@@ -1,12 +1,15 @@
 diff --git a/lib/evmone/instructions.hpp b/lib/evmone/instructions.hpp
-index bd7e4e0..f11bb89 100644
+index bd7e4e0..64e74a4 100644
 --- a/lib/evmone/instructions.hpp
 +++ b/lib/evmone/instructions.hpp
-@@ -9,6 +9,11 @@
+@@ -9,6 +9,14 @@
  #include "instructions_traits.hpp"
  #include "instructions_xmacro.hpp"
  #include <evmone_precompiles/keccak.hpp>
-+#if defined(CANDIDATE_SERVICES)
++#if defined(CANDIDATE_MUL)
++extern "C" void stwo_arith256_lo(const uint64_t a[4], const uint64_t b[4], uint64_t lo[4]) noexcept;
++#endif
++#if defined(CANDIDATE_ARITH)
 +// stwo candidate profile: arith256_mod service (client_evmone glue).
 +extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
 +    const uint64_t m[4], uint64_t r[4]) noexcept;
@@ -14,11 +17,24 @@ index bd7e4e0..f11bb89 100644
  
  #if defined(ZEG_ZISK)
  #include <zkvm_u256_le.h>  // ZisK's little-endian U256 ABI
-@@ -294,6 +299,13 @@ inline void addmod(StackTop stack) noexcept
+@@ -237,6 +245,12 @@ inline void mul(StackTop stack) noexcept
+     const auto& x = stack.pop();
+     auto& y = stack.top();
+     zkvm_u256_le_mul(zeg_u256::le(x), zeg_u256::le(y), zeg_u256::le(y));
++#elif defined(CANDIDATE_MUL)
++    {
++        const auto& x = stack.pop();
++        auto& y = stack.top();
++        stwo_arith256_lo(&x[0], &y[0], &y[0]);  // low 256 bits of x*y (candidate arith256)
++    }
+ #else
+     stack.top() *= stack.pop();
+ #endif
+@@ -294,6 +308,13 @@ inline void addmod(StackTop stack) noexcept
      auto& m = stack.top();
  #if defined(ZEG_ZISK)
      zkvm_u256_le_addmod(zeg_u256::le(x), zeg_u256::le(y), zeg_u256::le(m), zeg_u256::le(m));
-+#elif defined(CANDIDATE_SERVICES)
++#elif defined(CANDIDATE_ARITH)
 +    {
 +        const intx::uint256 one = 1;
 +        intx::uint256 r;
@@ -28,11 +44,11 @@ index bd7e4e0..f11bb89 100644
  #else
      m = m != 0 ? intx::addmod(x, y, m) : 0;
  #endif
-@@ -306,6 +318,13 @@ inline void mulmod(StackTop stack) noexcept
+@@ -306,6 +327,13 @@ inline void mulmod(StackTop stack) noexcept
      auto& m = stack[2];
  #if defined(ZEG_ZISK)
      zkvm_u256_le_mulmod(zeg_u256::le(x), zeg_u256::le(y), zeg_u256::le(m), zeg_u256::le(m));
-+#elif defined(CANDIDATE_SERVICES)
++#elif defined(CANDIDATE_ARITH)
 +    {
 +        const intx::uint256 zero = 0;
 +        intx::uint256 r;
@@ -43,14 +59,14 @@ index bd7e4e0..f11bb89 100644
      m = m != 0 ? intx::mulmod(x, y, m) : 0;
  #endif
 diff --git a/lib/evmone_precompiles/modarith.hpp b/lib/evmone_precompiles/modarith.hpp
-index 3a32afc..1e84ddc 100644
+index 3a32afc..ea6dfd1 100644
 --- a/lib/evmone_precompiles/modarith.hpp
 +++ b/lib/evmone_precompiles/modarith.hpp
 @@ -152,6 +152,14 @@ constexpr UintT modinv_scaled(const UintT& x, const UintT& scale, const UintT& m
  }
  
  /// The modular arithmetic operations using the Montgomery form of the values.
-+#if defined(CANDIDATE_SERVICES)
++#if defined(CANDIDATE_ARITH)
 +}  // namespace evmone::crypto
 +extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
 +    const uint64_t m[4], uint64_t r[4]) noexcept;
@@ -66,7 +82,7 @@ index 3a32afc..1e84ddc 100644
      /// This is done by using Montgomery multiplication mul(x, R²)
      /// what gives aR²R⁻¹ % mod = aR % mod.
 -    constexpr UintT to_mont(const UintT& x) const noexcept { return mul(x, r_squared_); }
-+#if defined(CANDIDATE_SERVICES)
++#if defined(CANDIDATE_ARITH)
 +    // stwo candidate profile: 256-bit moduli use the plain representation and
 +    // the arith256_mod service for products (constants still pass through
 +    // to_mont, so the representation stays consistent).
@@ -101,7 +117,7 @@ index 3a32afc..1e84ddc 100644
      /// The result (abR) is in Montgomery form.
      constexpr UintT mul(const UintT& x, const UintT& y) const noexcept
      {
-+#if defined(CANDIDATE_SERVICES)
++#if defined(CANDIDATE_ARITH)
 +        if constexpr (kPlain)
 +        {
 +            if (std::is_constant_evaluated())
