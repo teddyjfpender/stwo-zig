@@ -9,14 +9,14 @@ const M = core.fields.m31.M31;
 const Col = engine.pcs.ColumnEvaluation;
 
 const Anchors = G.ExecutionAnchors{
-    .initial_pc = 4096, .initial_registers = @splat(1),
-    .terminal_pc = 4104, .terminal_registers = @splat(3),
+    .initial_pc = 4096,
+    .initial_registers = @splat(1),
+    .terminal_pc = 4104,
+    .terminal_registers = @splat(3),
     .total_steps = 10,
 };
 fn context() G.Context {
-    return .{ .scope = .full_execution_unqualified, .execution = @splat(1),
-        .program = @splat(2), .image = @splat(3),
-        .policy = @splat(4), .opcode_map = @splat(5), .total_steps = 10 };
+    return .{ .scope = .full_execution_unqualified, .execution = @splat(1), .program = @splat(2), .image = @splat(3), .policy = @splat(4), .opcode_map = @splat(5), .total_steps = 10 };
 }
 fn inventory() [4]G.Spec {
     var result: [4]G.Spec = undefined;
@@ -26,15 +26,16 @@ fn inventory() [4]G.Spec {
         const finish: u64 = if (i == 0) 4096 else if (i == 1) 4100 else 4104;
         const before: u8 = if (i < 2) 1 else if (i == 2) 2 else 3;
         const after: u8 = if (i == 0) 1 else if (i == 1) 2 else 3;
-        entry.* = .{ .ordinal = @intCast(i),
+        entry.* = .{
+            .ordinal = @intCast(i),
             .role = if (i == 0) .initial else if (i == 3) .terminal else .execution,
-            .coverage = .{ .first_step = if (i < 2) 0 else if (i == 2) 5 else 10,
-                .steps = if (i == 1 or i == 2) 5 else 0, .epoch = epoch,
-                .initial_pc = pc, .final_pc = finish,
-                .initial_registers = @splat(before), .final_registers = @splat(after) },
-            .schema = @splat(0x17), .statement = @splat(0x18),
-            .fixed = .{ .bytes = @splat(0) }, .fixed_logs = &.{5},
-            .main_logs = &.{5}, .positive_mass = .{ 1, 2, 3 },
+            .coverage = .{ .first_step = if (i < 2) 0 else if (i == 2) 5 else 10, .steps = if (i == 1 or i == 2) 5 else 0, .epoch = epoch, .initial_pc = pc, .final_pc = finish, .initial_registers = @splat(before), .final_registers = @splat(after) },
+            .schema = @splat(0x17),
+            .statement = @splat(0x18),
+            .fixed = .{ .bytes = @splat(0) },
+            .fixed_logs = &.{5},
+            .main_logs = &.{5},
+            .positive_mass = .{ 1, 2, 3 },
         };
     }
     return result;
