@@ -119,6 +119,12 @@ fn openingCase(allocator: std.mem.Allocator) !void {
     var actual = try engine.pcs.coefficient_opening.testing.decommitHalf(H, allocator, tree, &queries);
     defer actual.deinit(allocator);
     try std.testing.expectEqualDeep(expected, actual);
+    var half_waves = try engine.pcs.coefficient_opening.testing.decommitHalfWaves(H, allocator, tree, &queries);
+    defer half_waves.deinit(allocator);
+    try std.testing.expectEqualDeep(expected, half_waves);
+    var full_queued = try engine.pcs.coefficient_opening.testing.decommitFullQueued(H, allocator, tree, &queries);
+    defer full_queued.deinit(allocator);
+    try std.testing.expectEqualDeep(expected, full_queued);
 }
 test "mixed compact and materialized pruned Merkle openings preserve all bytes and drain OOM" {
     try openingCase(a);
@@ -164,4 +170,33 @@ test "half-scratch native17 openings match serial and sixteen workers on256KiB s
     };
     defer actual.deinit(a);
     try std.testing.expectEqualDeep(expected, actual);
+    var full_queued = blk: {
+        var binding = try engine.work_pool.ScopedPoolBinding.init(&parallel);
+        defer binding.deinit();
+        break :blk try engine.pcs.coefficient_opening.testing.decommitFullQueued(H, a, tree, &queries);
+    };
+    defer full_queued.deinit(a);
+    try std.testing.expectEqualDeep(expected, full_queued);
+}
+
+test "queued openings over mixed heights match full-scratch waves under sixteen workers" {
+    const logs = [_]u32{ 18, 7, 12, 18, 9, 15, 6, 16, 18, 11, 14, 17, 8, 13, 10, 16, 18, 12 };
+    var tree = try makeTreeFor(a, &logs);
+    defer tree.deinit(a);
+    var queries: [70]usize = undefined;
+    for (&queries, 0..) |*q, i| q.* = (104729 * i + 31 * i * i) % (1 << 18);
+    std.sort.heap(usize, &queries, {}, std.sort.asc(usize));
+    var parallel: engine.work_pool.WorkPool = undefined;
+    try parallel.initInPlaceWithOptions(.{ .worker_count = 16, .stack_size = 256 * 1024 });
+    defer parallel.deinit();
+    var binding = try engine.work_pool.ScopedPoolBinding.init(&parallel);
+    defer binding.deinit();
+    var expected = try engine.pcs.coefficient_opening.testing.decommitFull(H, a, tree, &queries);
+    defer expected.deinit(a);
+    var actual = try engine.pcs.coefficient_opening.testing.decommitHalf(H, a, tree, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+    var full_queued = try engine.pcs.coefficient_opening.testing.decommitFullQueued(H, a, tree, &queries);
+    defer full_queued.deinit(a);
+    try std.testing.expectEqualDeep(expected, full_queued);
 }

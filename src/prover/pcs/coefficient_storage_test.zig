@@ -597,3 +597,130 @@ test "coefficient storage multiple source backings retain original allocations a
     try checkMultiBackingStream(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, checkMultiBackingStream, .{});
 }
+
+/// Column-serial reference for the pooled combined setup: column-outer,
+/// contribution-inner scaling with one serial batched FFT and one freshly
+/// computed twiddle tree per coefficient-basis view.
+fn referenceCombinedViews(
+    a: std.mem.Allocator,
+    flat_columns: []const Column,
+    indices: []const usize,
+    ranges: []const @import("quotient_row_executor.zig").ColumnContributionRange,
+    contributions: []const @import("quotient_row_executor.zig").ColumnContribution,
+    lifting_log_size: u32,
+) ![]@import("quotient_row_executor.zig").CombinedContributionView {
+    const View = @import("quotient_row_executor.zig").CombinedContributionView;
+    const twiddles = @import("../poly/twiddles.zig");
+    var views = std.ArrayList(View).empty;
+    errdefer {
+        for (views.items) |view| view.deinitCoordinates(a);
+        views.deinit(a);
+    }
+    var basis = std.ArrayList(bool).empty;
+    defer basis.deinit(a);
+    for (indices, ranges) |column_index, range| {
+        const column = flat_columns[column_index];
+        const source = column.coefficient_values orelse column.values;
+        const size = @as(usize, 1) << @intCast(column.log_size);
+        const coefficient_basis = column.coefficient_values != null;
+        for (contributions[range.start..][0..range.len]) |contribution| {
+            var found: ?usize = null;
+            for (views.items, basis.items, 0..) |view, b, i| {
+                if (view.batch_index == contribution.batch_index and view.coordinates[0].len == size and b == coefficient_basis) {
+                    found = i;
+                    break;
+                }
+            }
+            const created = found == null;
+            if (created) {
+                var coordinates: [4][]M = undefined;
+                for (&coordinates) |*coordinate| coordinate.* = try a.alloc(M, size);
+                try views.append(a, .{
+                    .coordinates = coordinates,
+                    .batch_index = contribution.batch_index,
+                    .shift_amt = @intCast(lifting_log_size - column.log_size + 1),
+                    .is_direct = column.log_size == lifting_log_size,
+                });
+                try basis.append(a, coefficient_basis);
+                found = views.items.len - 1;
+            }
+            const coefficients = contribution.value_coeff.toM31Array();
+            const view = views.items[found.?];
+            for (0..4) |coord| {
+                if (created) @memset(view.coordinates[coord], M.zero());
+                for (view.coordinates[coord][0..source.len], source) |*target, value| target.* = target.add(value.mul(coefficients[coord]));
+            }
+        }
+    }
+    for (views.items, basis.items) |view, coefficient_basis| {
+        if (!coefficient_basis) continue;
+        const log: u32 = @intCast(std.math.log2_int(usize, view.coordinates[0].len));
+        const domain = poly.CanonicCoset.new(log).circleDomain();
+        var transform = try twiddles.precomputeM31(a, domain.half_coset);
+        defer twiddles.deinitM31(a, &transform);
+        const borrowed = twiddles.TwiddleTree([]const M){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
+        try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, borrowed);
+    }
+    return views.toOwnedSlice(a);
+}
+
+test "pooled combined quotient setup matches column-serial reference on random columns" {
+    const a = std.testing.allocator;
+    const Executor = @import("quotient_row_executor.zig");
+    var prng = std.Random.DefaultPrng.init(0x5eed_9017);
+    const random = prng.random();
+    const lifting_log_size: u32 = 13;
+    // log size, coefficient length (0 = evaluation basis).
+    const shapes = [_][2]u32{
+        .{ 13, 1 << 12 }, .{ 12, 1 << 11 }, .{ 13, 1 << 12 }, .{ 12, 0 },
+        .{ 13, 1 << 10 }, .{ 3, 1 << 2 },   .{ 3, 0 },        .{ 12, 2 },
+        .{ 11, 1 << 11 }, .{ 13, 0 },       .{ 12, 1 << 11 }, .{ 13, 1 << 12 },
+    };
+    var columns: [shapes.len]Column = undefined;
+    var storage: [shapes.len][]M = undefined;
+    var initialized: usize = 0;
+    defer for (storage[0..initialized]) |values| a.free(values);
+    for (shapes, &columns, &storage) |shape, *column, *values| {
+        const len: usize = if (shape[1] == 0) @as(usize, 1) << @intCast(shape[0]) else shape[1];
+        values.* = try a.alloc(M, len);
+        initialized += 1;
+        for (values.*) |*value| value.* = M.fromCanonical(random.uintLessThan(u32, 0x7fff_ffff));
+        column.* = if (shape[1] == 0)
+            .{ .log_size = shape[0], .values = values.* }
+        else
+            .{ .log_size = shape[0], .values = &.{}, .coefficient_values = values.* };
+    }
+    var indices: [shapes.len]usize = undefined;
+    var ranges: [shapes.len]Executor.ColumnContributionRange = undefined;
+    var contributions = std.ArrayList(Executor.ColumnContribution).empty;
+    defer contributions.deinit(a);
+    for (&indices, &ranges, 0..) |*index, *range, i| {
+        index.* = i;
+        range.* = .{ .start = contributions.items.len, .len = 0 };
+        for (0..4) |batch| {
+            if ((i + batch) % 3 == 2) continue;
+            try contributions.append(a, .{ .batch_index = batch, .value_coeff = Q.fromU32Unchecked(
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+                random.uintLessThan(u32, 0x7fff_ffff),
+            ) });
+            range.len += 1;
+        }
+    }
+    const nonzero = [_]bool{true} ** shapes.len;
+    var actual = try planning.buildCombinedContributionPlan(a, &columns, &indices, &ranges, contributions.items, &nonzero, lifting_log_size);
+    defer actual.deinit(a);
+    const expected = try referenceCombinedViews(a, &columns, &indices, &ranges, contributions.items, lifting_log_size);
+    defer {
+        for (expected) |view| view.deinitCoordinates(a);
+        a.free(expected);
+    }
+    try std.testing.expectEqual(expected.len, actual.views.len);
+    for (expected, actual.views) |want, got| {
+        try std.testing.expectEqual(want.batch_index, got.batch_index);
+        try std.testing.expectEqual(want.shift_amt, got.shift_amt);
+        try std.testing.expectEqual(want.is_direct, got.is_direct);
+        for (want.coordinates, got.coordinates) |w, g| try std.testing.expectEqualSlices(M, w, g);
+    }
+}

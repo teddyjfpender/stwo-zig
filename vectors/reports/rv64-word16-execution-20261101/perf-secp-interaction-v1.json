@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "kind": "perf_receipt",
+  "item": "secp truth interaction generator: batch-inverted (BYTE inverse dictionary + 32-row Wire35 batch inversion) and row-chunk parallel under the scoped work pool",
+  "source_base": "87df8e6a5",
+  "branch": "codex/rv64-perf-secp-interaction",
+  "branch_commit": "39d522278",
+  "proof_semantics_change": false,
+  "workload": "prefix4 (4 CPU proofs + 3 truth proofs: physical-0004 non-secp truth, physical-0005 and physical-0006 secp truth)",
+  "harness": "lockf -k /private/tmp/stwo-rv64-perf-heavy.lock /usr/bin/time -l rv64-word16-ethereum produce <round5 request> <round5 jobs> <fresh dir> 4",
+  "baseline_binary": "/private/tmp/stwo-rv64-perf-baseline/zig-out/bin/rv64-word16-ethereum (87df8e6a5, ReleaseFast)",
+  "branch_binary": "/private/tmp/stwo-rv64-perf-secp-interaction/zig-out/bin/rv64-word16-ethereum (39d522278, ReleaseFast)",
+  "order": ["A1", "B1", "B2", "A2"],
+  "runs": [
+    {"label": "A1", "binary": "baseline", "wall_s": 26.13, "user_s": 176.67, "sys_s": 10.80, "peak_footprint_bytes": 17201038736, "max_rss_bytes": 23385112576, "byte_identical_to_baseline_prefix4": true, "secp_truth_interaction_generation_s": [0.745, 0.412]},
+    {"label": "B1", "binary": "branch",   "wall_s": 25.52, "user_s": 176.84, "sys_s": 10.30, "peak_footprint_bytes": 17158622288, "max_rss_bytes": 23384113152, "byte_identical_to_baseline_prefix4": true, "secp_truth_interaction_generation_s": [0.024, 0.013]},
+    {"label": "B2", "binary": "branch",   "wall_s": 25.58, "user_s": 177.69, "sys_s": 10.13, "peak_footprint_bytes": 17150790736, "max_rss_bytes": 23376314368, "byte_identical_to_baseline_prefix4": true, "secp_truth_interaction_generation_s": [0.025, 0.013]},
+    {"label": "A2", "binary": "baseline", "wall_s": 27.05, "user_s": 182.54, "sys_s": 10.25, "peak_footprint_bytes": 17190620552, "max_rss_bytes": 23415816192, "byte_identical_to_baseline_prefix4": true, "secp_truth_interaction_generation_s": [0.760, 0.431]}
+  ],
+  "byte_identity": {
+    "reference": "/private/tmp/stwo-rv64-perf-runs/baseline-prefix4.sha256",
+    "files": ["cpu-0.bin", "cpu-1.bin", "cpu-2.bin", "cpu-3.bin", "truth-0.bin", "truth-1.bin", "truth-2.bin", "bundle.json", "cells.bin"],
+    "all_runs_identical": true
+  },
+  "stage_deltas": {
+    "targeted_stage": "interaction_generation in physical-0005 + physical-0006 (secp truth proofs)",
+    "baseline_sum_s": {"A1": 1.157, "A2": 1.191, "mean": 1.174},
+    "branch_sum_s": {"B1": 0.037, "B2": 0.038, "mean": 0.0375},
+    "delta_s": -1.137,
+    "all_proofs_interaction_generation_sum_s": {"A1": 5.275, "B1": 4.257, "B2": 4.199, "A2": 5.311}
+  },
+  "wall_summary": {"baseline_mean_s": 26.59, "branch_mean_s": 25.55, "delta_s": -1.04, "a1_a2_spread_pct": 3.5},
+  "conclusion": "Byte-identical proofs in all four runs. The targeted stage drops from ~1.17 s to ~0.04 s summed over the two secp truth proofs (~31x). Prefix4 wall means are 26.59 s (A) vs 25.55 s (B), about -1.0 s, but A1/A2 spread is 3.5% (under the 5% noise flag, yet comparable to the delta) and the machine may be shared, so the wall gain is suggestive rather than established; user CPU is flat. Prefix4 contains only 3 truth proofs (2 secp), so this does not measure the full-block secp tail where interaction generation was reported at ~9.1 s (add) and ~3.6 s (double); the expected full-block saving should be re-measured on the full block."
+}
