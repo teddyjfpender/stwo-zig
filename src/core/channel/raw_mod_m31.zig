@@ -45,6 +45,15 @@ pub const Qm31Channel = struct {
     pub fn init() Qm31Channel {
         return .{ .inner = initInner(profile) };
     }
+    pub fn verifyPowNonce(self: Qm31Channel, n_bits: u32, nonce: u64) bool {
+        return self.inner.verifyPowNonce(n_bits, nonce);
+    }
+    pub fn grind(self: Qm31Channel, n_bits: u32) u64 {
+        return self.inner.grind(n_bits);
+    }
+    pub fn grindWithWorkerCount(self: Qm31Channel, n_bits: u32, workers: usize) u64 {
+        return self.inner.grindWithWorkerCount(n_bits, workers);
+    }
     pub fn digestBytes(self: Qm31Channel) [32]u8 {
         return self.inner.digestBytes();
     }
@@ -85,6 +94,15 @@ pub const Om31Channel = struct {
     pub const profile = om31_profile;
     pub fn init() Om31Channel {
         return .{ .inner = initInner(profile) };
+    }
+    pub fn verifyPowNonce(self: Om31Channel, n_bits: u32, nonce: u64) bool {
+        return self.inner.verifyPowNonce(n_bits, nonce);
+    }
+    pub fn grind(self: Om31Channel, n_bits: u32) u64 {
+        return self.inner.grind(n_bits);
+    }
+    pub fn grindWithWorkerCount(self: Om31Channel, n_bits: u32, workers: usize) u64 {
+        return self.inner.grindWithWorkerCount(n_bits, workers);
     }
     pub fn digestBytes(self: Om31Channel) [32]u8 {
         return self.inner.digestBytes();
