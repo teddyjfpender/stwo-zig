@@ -63,6 +63,13 @@ pub const Fixture = struct {
     pub fn initWithPolicy(a: std.mem.Allocator, inputs: []const K.trace.State, first_id: u32, log: u32, policy: K.equations.BatchPolicy) !Fixture {
         var trace = try K.trace.Trace.initWithLog(a, inputs, first_id, log);
         errdefer trace.deinit();
+        if (policy == .throughput_v1) {
+            var counts = try K.throughput_counts.Counts.fromTrace(a, &trace);
+            defer counts.deinit();
+            var chi = try K.tables.Trace.initPolicy(a, .chi, policy, counts.chi);
+            errdefer chi.deinit();
+            return .{ .batch_policy = policy, .trace = trace, .chi = chi, .xor5 = try K.tables.Trace.initPolicy(a, .xor5, policy, counts.xor5) };
+        }
         const counts = try K.interaction.Counts.fromTrace(&trace);
         var chi = try K.tables.Trace.init(a, .chi, &counts.chi);
         errdefer chi.deinit();
@@ -88,13 +95,13 @@ pub const Fixture = struct {
             1 => self.chi.main,
             2 => self.chi.interaction,
             else => unreachable,
-        }, 13);
+        }, self.batch_policy.tableLog(.chi));
         appendColumns(result[pf[tree] + tf[tree] ..], switch (tree) {
             0 => self.xor5.fixed,
             1 => self.xor5.main,
             2 => self.xor5.interaction,
             else => unreachable,
-        }, 10);
+        }, self.batch_policy.tableLog(.xor5));
         return result;
     }
 };
@@ -171,7 +178,7 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
     var channel = Channel{};
     config.mixInto(&channel);
     channel.mixU32s(&.{ 0x4b363456, 2, @intCast(count), first_id, selected_log, 4, 3 });
-    if (policy == .quartet_v3) policy.mix(&channel);
+    if (policy != .triple_v2) policy.mix(&channel);
     var scheme = try Scheme.init(a, config);
     var owns = true;
     defer if (owns) scheme.deinit(a);
@@ -201,9 +208,9 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
     try scheme.commit(a, inter, &channel);
     const interaction_commit_ns = phase.lap();
     const components = [_]Component{
-        .{ .kind = .permutation, .calls = @intCast(count), .first_call_id = first_id, .log_size = fixture.trace.log_size, .challenges = ch, .claim = claim, .stage_recorder = if (artifact != null) &component_recorders[0] else null },
-        .{ .kind = .chi, .log_size = 13, .challenges = ch, .claim = chi_claim, .stage_recorder = if (artifact != null) &component_recorders[1] else null, .offsets = .{ .fixed = L.FIXED, .main = L.MAIN, .interaction = interaction_count } },
-        .{ .kind = .xor5, .log_size = 10, .challenges = ch, .claim = xor_claim, .stage_recorder = if (artifact != null) &component_recorders[2] else null, .offsets = .{ .fixed = L.FIXED + 7, .main = L.MAIN + 1, .interaction = interaction_count + 4 } },
+        .{ .kind = .permutation, .calls = @intCast(count), .first_call_id = first_id, .log_size = fixture.trace.log_size, .challenges = ch, .claim = claim, .stage_recorder = if (artifact != null) &component_recorders[0] else null, .policy = tablePolicy(policy) },
+        .{ .kind = .chi, .log_size = policy.tableLog(.chi), .challenges = ch, .claim = chi_claim, .stage_recorder = if (artifact != null) &component_recorders[1] else null, .offsets = .{ .fixed = L.FIXED, .main = L.MAIN, .interaction = interaction_count }, .policy = tablePolicy(policy) },
+        .{ .kind = .xor5, .log_size = policy.tableLog(.xor5), .challenges = ch, .claim = xor_claim, .stage_recorder = if (artifact != null) &component_recorders[2] else null, .offsets = .{ .fixed = L.FIXED + 7, .main = L.MAIN + 1, .interaction = interaction_count + 4 }, .policy = tablePolicy(policy) },
     };
     const quartet = K.quartet_component.Component{ .base = components[0] };
     const permutation = if (policy == .quartet_v3) quartet.asProverComponent() else components[0].asProverComponent();
@@ -241,7 +248,11 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
         var stages = try recorder.snapshot(a);
         defer stages.deinit(a);
         const report = try std.json.Stringify.valueAlloc(a, .{
-            .schema = if (policy == .triple_v2) "rv64-keccak-primitive-fixture-v2" else "rv64-keccak-primitive-fixture-v3-quartet",
+            .schema = switch (policy) {
+                .triple_v2 => "rv64-keccak-primitive-fixture-v2",
+                .quartet_v3 => "rv64-keccak-primitive-fixture-v3-quartet",
+                .throughput_v1 => "rv64-keccak-primitive-fixture-throughput-v1",
+            },
             .cpu_ram_bridge = false,
             .main_released_before_challenges = release_main,
             .witness_metadata_bytes = metadata_bytes,
@@ -259,7 +270,7 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
             .permutation_mask_values = L.FIXED + 5 * L.STATE + L.PARITY + 2 * (L.MAIN - L.ACTIVE_A) + interaction_count + 4,
             .permutation_constraints = policy.constraints(),
             .maximum_degree = policy.degree(),
-            .source_bytes = 4 * ((L.FIXED + L.MAIN + interaction_count) * (@as(usize, 1) << @intCast(selected_log)) + 12 * (8192 + 1024)),
+            .source_bytes = 4 * ((L.FIXED + L.MAIN + interaction_count) * (@as(usize, 1) << @intCast(selected_log)) + 12 * ((@as(usize, 1) << @intCast(policy.tableLog(.chi))) + (@as(usize, 1) << @intCast(policy.tableLog(.xor5))))),
             .process_usage = usage,
         }, .{ .whitespace = .indent_2 });
         defer a.free(report);
@@ -267,15 +278,22 @@ fn produceAndVerifyPolicy(a: std.mem.Allocator, tamper: bool, count: usize, arti
     }
     if (comptime @import("builtin").is_test) std.crypto.hash.sha2.Sha256.hash(encoded, &gather_testing.last_digest, .{});
     try verifyEncodedPolicy(a, encoded, inputs, claims, config, tamper, first_id, selected_log, policy);
-    if (comptime @import("builtin").is_test) if (policy == .quartet_v3 and !tamper) {
+    if (comptime @import("builtin").is_test) if (policy != .triple_v2 and !tamper) {
         if (verifyEncodedPolicy(a, encoded, inputs, claims, config, false, first_id, selected_log, .triple_v2)) |_| return error.ExpectedLookupPolicyRejection else |_| {}
     };
     return fixed_root;
 }
 fn fillLogs(logs: []u32, permutation: usize, log: u32, table: usize) void {
+    fillLogsPolicy(logs, permutation, log, table, .triple_v2);
+}
+fn fillLogsPolicy(logs: []u32, permutation: usize, log: u32, table: usize, policy: K.equations.BatchPolicy) void {
     @memset(logs[0..permutation], log);
-    @memset(logs[permutation..][0..table], 13);
-    @memset(logs[permutation + table ..], 10);
+    @memset(logs[permutation..][0..table], policy.tableLog(.chi));
+    @memset(logs[permutation + table ..], policy.tableLog(.xor5));
+}
+/// Quartet keeps the compact tables through its own adapter; throughput owns them.
+fn tablePolicy(policy: K.equations.BatchPolicy) K.equations.BatchPolicy {
+    return if (policy == .throughput_v1) .throughput_v1 else .triple_v2;
 }
 fn verifyEncoded(a: std.mem.Allocator, encoded: []const u8, inputs: []const K.trace.State, claims: Claims, config: core.pcs.PcsConfig, tamper: bool, first_id: u32, selected_log: u32) !void {
     return verifyEncodedPolicy(a, encoded, inputs, claims, config, tamper, first_id, selected_log, .triple_v2);
@@ -297,16 +315,21 @@ fn verifyEncodedPolicy(a: std.mem.Allocator, encoded: []const u8, inputs: []cons
     // producer trace, counts, interaction or permutation witness is reused.
     const geometry = try K.trace.fixedColumnsForLog(a, selected_log);
     defer a.free(geometry);
-    const zero_chi: [8192]u64 = @splat(0);
-    const zero_xor: [1024]u64 = @splat(0);
-    var receiver_chi = try K.tables.Trace.init(a, .chi, &zero_chi);
+    const tables = tablePolicy(policy);
+    const zero_chi = try a.alloc(u64, @as(usize, 1) << @intCast(tables.tableLog(.chi)));
+    defer a.free(zero_chi);
+    @memset(zero_chi, 0);
+    const zero_xor = try a.alloc(u64, @as(usize, 1) << @intCast(tables.tableLog(.xor5)));
+    defer a.free(zero_xor);
+    @memset(zero_xor, 0);
+    var receiver_chi = try K.tables.Trace.initPolicy(a, .chi, tables, zero_chi);
     defer receiver_chi.deinit();
-    var receiver_xor = try K.tables.Trace.init(a, .xor5, &zero_xor);
+    var receiver_xor = try K.tables.Trace.initPolicy(a, .xor5, tables, zero_xor);
     defer receiver_xor.deinit();
     var receiver_fixed: [L.FIXED + 14]engine.pcs.ColumnEvaluation = undefined;
     appendColumns(receiver_fixed[0..L.FIXED], geometry, selected_log);
-    appendColumns(receiver_fixed[L.FIXED..][0..7], receiver_chi.fixed, 13);
-    appendColumns(receiver_fixed[L.FIXED + 7 ..], receiver_xor.fixed, 10);
+    appendColumns(receiver_fixed[L.FIXED..][0..7], receiver_chi.fixed, tables.tableLog(.chi));
+    appendColumns(receiver_fixed[L.FIXED + 7 ..], receiver_xor.fixed, tables.tableLog(.xor5));
     var fixed_scheme = try Scheme.init(a, config);
     defer fixed_scheme.deinit(a);
     var scratch_channel = Channel{};
@@ -319,23 +342,23 @@ fn verifyEncodedPolicy(a: std.mem.Allocator, encoded: []const u8, inputs: []cons
     var replay = Channel{};
     config.mixInto(&replay);
     replay.mixU32s(&.{ 0x4b363456, 2, @intCast(count), first_id, selected_log, 4, 3 });
-    if (policy == .quartet_v3) policy.mix(&replay);
+    if (policy != .triple_v2) policy.mix(&replay);
     const commitments = proof.commitment_scheme_proof.commitments.items;
-    const logs = try a.alloc(u32, interaction_count + 8);
+    const logs = try a.alloc(u32, @max(interaction_count + 8, L.MAIN + 2));
     defer a.free(logs);
-    fillLogs(logs[0 .. L.FIXED + 14], L.FIXED, selected_log, 7);
+    fillLogsPolicy(logs[0 .. L.FIXED + 14], L.FIXED, selected_log, 7, tables);
     try verifier.commit(a, commitments[0], logs[0 .. L.FIXED + 14], &replay);
-    fillLogs(logs[0 .. L.MAIN + 2], L.MAIN, selected_log, 1);
+    fillLogsPolicy(logs[0 .. L.MAIN + 2], L.MAIN, selected_log, 1, tables);
     try verifier.commit(a, commitments[1], logs[0 .. L.MAIN + 2], &replay);
     const fresh_ch = K.equations.Challenges.draw(&replay);
     const components = [_]Component{
-        .{ .kind = .permutation, .calls = @intCast(count), .first_call_id = first_id, .log_size = selected_log, .challenges = fresh_ch, .claim = claim },
-        .{ .kind = .chi, .log_size = 13, .challenges = fresh_ch, .claim = chi_claim, .offsets = .{ .fixed = L.FIXED, .main = L.MAIN, .interaction = interaction_count } },
-        .{ .kind = .xor5, .log_size = 10, .challenges = fresh_ch, .claim = xor_claim, .offsets = .{ .fixed = L.FIXED + 7, .main = L.MAIN + 1, .interaction = interaction_count + 4 } },
+        .{ .kind = .permutation, .calls = @intCast(count), .first_call_id = first_id, .log_size = selected_log, .challenges = fresh_ch, .claim = claim, .policy = tables },
+        .{ .kind = .chi, .log_size = tables.tableLog(.chi), .challenges = fresh_ch, .claim = chi_claim, .offsets = .{ .fixed = L.FIXED, .main = L.MAIN, .interaction = interaction_count }, .policy = tables },
+        .{ .kind = .xor5, .log_size = tables.tableLog(.xor5), .challenges = fresh_ch, .claim = xor_claim, .offsets = .{ .fixed = L.FIXED + 7, .main = L.MAIN + 1, .interaction = interaction_count + 4 }, .policy = tables },
     };
     try std.testing.expect(claim.add(chi_claim).add(xor_claim).eql(try expectedIo(inputs, first_id, fresh_ch)));
     replay.mixFelts(&.{ claim, chi_claim, xor_claim });
-    fillLogs(logs[0 .. interaction_count + 8], interaction_count, selected_log, 4);
+    fillLogsPolicy(logs[0 .. interaction_count + 8], interaction_count, selected_log, 4, tables);
     try verifier.commit(a, commitments[2], logs[0 .. interaction_count + 8], &replay);
     if (tamper) proof.commitment_scheme_proof.sampled_values.items[2][interaction_count - 4][1] = proof.commitment_scheme_proof.sampled_values.items[2][interaction_count - 4][1].add(Q.one());
     const quartet = K.quartet_component.Component{ .base = components[0] };
@@ -576,6 +599,11 @@ pub fn produceQuartetArtifact(a: std.mem.Allocator, directory: []const u8, count
 pub fn verifyQuartetArtifact(a: std.mem.Allocator, directory: []const u8, count: usize) !void {
     return verifyArtifactWithPolicy(a, directory, count, try L.logSize(count), .quartet_v3);
 }
+pub const throughput_testing = if (@import("builtin").is_test) struct {
+    pub fn prove(a: std.mem.Allocator, count: usize, first_id: u32, log: u32, tamper: bool) ![32]u8 {
+        return produceAndVerifyPolicy(a, tamper, count, null, first_id, log, true, .throughput_v1);
+    }
+} else struct {};
 pub const quartet_testing = if (@import("builtin").is_test) struct {
     pub fn digest(a: std.mem.Allocator, count: usize, first_id: u32, log: u32) ![32]u8 {
         _ = try prove(a, count, first_id, log, false);
