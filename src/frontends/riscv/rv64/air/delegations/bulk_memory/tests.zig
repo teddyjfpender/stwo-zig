@@ -251,3 +251,255 @@ test "bulk memory: known answers for copied and filled words" {
     try testing.expectEqual(@as(u32, 1), s.wit.set[3][L.set.remaining].v);
     try testing.expectEqual(@as(u32, 4), s.wit.copy[0][L.copy.remaining].v);
 }
+
+// ---------------------------------------------------------------------------
+// Adversarial cases. Row map of the standard scenario:
+// desc 0..4 = calls A..E; copy 0..3 = B, 4..5 = C, 6..7 = E; set 0..2 = A, 3 = D.
+
+const Fixture = struct {
+    a: std.mem.Allocator,
+    world: World,
+    wit: *Witness,
+    fn init(a: std.mem.Allocator) !Fixture {
+        const s = try setup(a);
+        return .{ .a = a, .world = s.world, .wit = s.wit };
+    }
+    fn deinit(self: *Fixture) void {
+        self.world.deinit();
+        self.a.destroy(self.wit);
+    }
+    fn check(self: *Fixture) !Verdict {
+        return verdict(self.a, &self.world, self.wit);
+    }
+};
+fn mm(v: u32) M {
+    return M.fromCanonical(v);
+}
+fn neg(v: u32) M {
+    return M.zero().sub(M.fromCanonical(v));
+}
+
+test "bulk memory adversarial: wrong copied word is rejected by RAM closure" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // The copied value column is shared by the src read and the dst write, so a
+    // wrong dst value is also a wrong src read: no produced token matches it.
+    fx.wit.copy[1][L.copy.value] = fx.wit.copy[1][L.copy.value].add(M.one());
+    const v = try fx.check();
+    try testing.expect(!accepted(v));
+    try testing.expectEqual(@as(usize, 0), v.local);
+    try testing.expect(!v.ram);
+    try testing.expect(v.owner);
+}
+
+test "bulk memory adversarial: wrong memset fill is rejected by the call token and RAM" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    for (0..3) |r| fx.wit.set[r][L.set.fill] = mm(0xAC);
+    const v = try fx.check();
+    try testing.expectEqual(@as(usize, 0), v.local);
+    try testing.expect(!v.owner and !v.ram);
+}
+
+test "bulk memory adversarial: skipped word fails the chain end or the token length" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    const honest_copy = fx.wit.copy;
+    // (a) Drop call B's last word: the chain ends at remaining = 2.
+    for (3..N - 1) |r| fx.wit.copy[r] = honest_copy[r + 1];
+    fx.wit.rows[1] -= 1;
+    const a = try fx.check();
+    try testing.expect(!accepted(a) and a.local != 0);
+    // (b) Also relabel remaining 3, 2, 1 so the chain is locally valid: the
+    // token still says 4 words and word 3 is never written.
+    for (0..3) |r| fx.wit.copy[r][L.copy.remaining] = mm(@intCast(3 - r));
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.owner and !b.ram);
+}
+
+test "bulk memory adversarial: extra write fails the chain end or has no token" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    const honest_copy = fx.wit.copy;
+    // (a) Continue call B with a fifth word (remaining 0): the chain must end at 1.
+    for (5..N) |r| fx.wit.copy[r] = honest_copy[r - 1];
+    fx.wit.copy[4] = Src.copyRow(fx.world.calls.items[1], 4, .{ .dst = .{ .value = 0, .rights = 3 }, .src = .{ .value = 0, .rights = 3 } });
+    fx.wit.copy[4][L.copy.remaining] = mm(0);
+    fx.wit.rows[1] += 1;
+    const a = try fx.check();
+    try testing.expect(!accepted(a) and a.local != 0);
+    // (b) A standalone one-word chain (start row) with a claimed public count:
+    // locally valid, but no descriptor emitted its token and memory changed.
+    fx.wit.copy = honest_copy;
+    var extra = Src.copyRow(fx.world.calls.items[4], 0, .{ .dst = .{ .value = 0, .rights = 3 }, .src = .{ .value = 0, .rights = 1 } });
+    extra[L.copy.remaining] = mm(1);
+    fx.wit.copy[8] = extra;
+    fx.wit.rows[1] = 9;
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.owner and !b.ram);
+}
+
+test "bulk memory adversarial: stale read before a prior write is rejected by RAM closure" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // Call C (epoch 2) reads 0x3000, written by call B at (1, 16). Forge the
+    // read to observe the initial image instead (a clock-valid cross-epoch gap).
+    const r = 4;
+    const k = L.copy.src_clock;
+    fx.wit.copy[r][k + L.clock.epoch] = mm(0);
+    fx.wit.copy[r][k + L.clock.low] = mm(0);
+    fx.wit.copy[r][k + L.clock.same] = mm(0);
+    fx.wit.copy[r][k + L.clock.gap16] = mm(1);
+    const stale = fx.world.initial.get(0x3000).?.value;
+    for (0..4) |i| fx.wit.copy[r][L.copy.value + i] = mm(@as(u16, @truncate(stale >> @as(u6, @intCast(16 * i)))));
+    const v = try fx.check();
+    try testing.expectEqual(@as(usize, 0), v.local);
+    try testing.expect(v.ranges and v.owner and !v.ram);
+}
+
+test "bulk memory adversarial: wrong clock order needs an out-of-range gap or breaks OWNER" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // (a) Predecessor at the call's own tick: the gap would be -1.
+    const r = 0;
+    const k = L.copy.dst_clock;
+    fx.wit.copy[r][k + L.clock.epoch] = fx.wit.copy[r][L.copy.epoch];
+    fx.wit.copy[r][k + L.clock.low] = fx.wit.copy[r][L.copy.tick_low];
+    fx.wit.copy[r][k + L.clock.high] = fx.wit.copy[r][L.copy.tick_high];
+    fx.wit.copy[r][k + L.clock.same] = mm(1);
+    fx.wit.copy[r][k + L.clock.gap16] = neg(1);
+    fx.wit.copy[r][k + L.clock.gap8] = mm(0);
+    const a = try fx.check();
+    try testing.expectEqual(@as(usize, 0), a.local);
+    try testing.expect(!a.ranges and !a.ram);
+    // (b) Move call B's accesses to a later CPU tick: the token/ECALL tick differs.
+    fx.wit.* = try honest(fx.a, &fx.world);
+    for (0..4) |row| {
+        fx.wit.copy[row][L.copy.tick_low] = mm(40);
+        if (fx.wit.copy[row][L.copy.dst_clock + L.clock.same].v == 1) fx.wit.copy[row][L.copy.dst_clock + L.clock.gap16] = fx.wit.copy[row][L.copy.dst_clock + L.clock.gap16].add(mm(24));
+        if (fx.wit.copy[row][L.copy.src_clock + L.clock.same].v == 1) fx.wit.copy[row][L.copy.src_clock + L.clock.gap16] = fx.wit.copy[row][L.copy.src_clock + L.clock.gap16].add(mm(24));
+    }
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.owner and !b.ram);
+}
+
+test "bulk memory adversarial: length that is not a multiple of eight needs an out-of-range quotient" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // Make call B's packet say len = 36 and forge q0 = 36/8 in the field.
+    const inv8 = try M.fromCanonical(8).inv();
+    fx.wit.desc[1][L.desc.len_q0] = M.fromCanonical(36).mul(inv8);
+    _ = try fx.world.states.put(0x1018 + 16, .{ .value = 36, .epoch = 1, .tick = 16, .rights = 3 });
+    _ = try fx.world.initial.put(0x1018 + 16, .{ .value = 36, .rights = 3 });
+    const v = try fx.check();
+    try testing.expect(!v.ranges);
+    // A len with a nonzero limb 2 cannot even be read: limbs 2 and 3 are constants 0.
+    try testing.expect(!accepted(v));
+}
+
+test "bulk memory adversarial: non-canonical limbs are rejected" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // (a) Copied value limb0 + 2^16, limb1 - 1: same integer, different tuple.
+    fx.wit.copy[6][L.copy.value] = fx.wit.copy[6][L.copy.value].add(mm(65536));
+    fx.wit.copy[6][L.copy.value + 1] = fx.wit.copy[6][L.copy.value + 1].sub(M.one());
+    const a = try fx.check();
+    try testing.expectEqual(@as(usize, 0), a.local);
+    try testing.expect(!a.ram);
+    // (b) memset fill byte 0x1AB (non-canonical byte split of limb0 0x1234 is
+    // impossible with both bytes < 256): the fill ranges fail.
+    fx.wit.* = try honest(fx.a, &fx.world);
+    const inv256 = try M.fromCanonical(256).inv();
+    fx.wit.desc[3][L.desc.fill_low] = mm(0x134);
+    fx.wit.desc[3][L.desc.fill_high] = M.fromCanonical(0x1234 - 0x134).mul(inv256);
+    fx.wit.set[3][L.set.fill] = mm(0x134);
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.ranges);
+}
+
+test "bulk memory adversarial: forged tag or packet field breaks OWNER or RAM" {
+    var fx = try Fixture.init(testing.allocator);
+    defer fx.deinit();
+    // memcpy executed as memset (set bit flipped): a7 limb mismatch.
+    fx.wit.desc[1][L.desc.set] = mm(1);
+    const a = try fx.check();
+    try testing.expect(!a.owner);
+    fx.wit.* = try honest(fx.a, &fx.world);
+    // Packet dst forged on the descriptor and every body row of call B.
+    fx.wit.desc[1][L.desc.dst + 1] = fx.wit.desc[1][L.desc.dst + 1].add(M.one());
+    for (0..4) |r| fx.wit.copy[r][L.copy.dst + 1] = fx.wit.copy[r][L.copy.dst + 1].add(M.one());
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(b.owner and !b.ram);
+}
+
+test "bulk memory adversarial: overlapping memcpy is rejected natively and by RAM order" {
+    const a = testing.allocator;
+    // Native admission refuses any alias among packet, src and dst words.
+    var w = World.init(a);
+    defer w.deinit();
+    try w.call(.copy, 0x1000, 1, 8, 0x2008, 0x2000, 16);
+    try testing.expectError(error.BulkMemoryOverlap, T.validateCall(w.calls.items[0], w.words.items));
+    // AIR: build the rows anyway. Both 0x2008 accesses share tick 8.
+    const wit = try a.create(Witness);
+    defer a.destroy(wit);
+    wit.* = undefined;
+    const call = w.calls.items[0];
+    for (&wit.desc, 0..) |*r, i| r.* = Src.descRow(if (i == 0) call else null);
+    for (&wit.copy, 0..) |*r, i| r.* = Src.copyRow(if (i < 2) call else null, i, if (i < 2) w.words.items[i] else .{ .dst = undefined });
+    for (&wit.set) |*r| r.* = Src.setRow(null, 0, .{ .dst = undefined });
+    wit.rows = .{ 1, 2, 0 };
+    // (a) Snapshot semantics: the 0x2008 read and write consume the same token.
+    const snapshot = try verdict(a, &w, wit);
+    try testing.expectEqual(@as(usize, 0), snapshot.local);
+    try testing.expect(!snapshot.ram);
+    // (b) Chain the write after the read at the same tick: gap -1 is out of range.
+    const k = L.copy.dst_clock;
+    wit.copy[0][k + L.clock.epoch] = mm(1);
+    wit.copy[0][k + L.clock.low] = mm(8);
+    wit.copy[0][k + L.clock.high] = mm(0);
+    wit.copy[0][k + L.clock.same] = mm(1);
+    wit.copy[0][k + L.clock.gap16] = neg(1);
+    const chained = try verdict(a, &w, wit);
+    try testing.expect(!chained.ranges and !accepted(chained));
+}
+
+test "bulk memory: constraint degrees are at most three" {
+    // Evaluate the residuals of a random point by polynomial-degree probing:
+    // each constraint restricted to a line t -> x + t*y must have degree <= 3.
+    const a = testing.allocator;
+    var fx = try Fixture.init(a);
+    defer fx.deinit();
+    const ch = challenges();
+    inline for (.{ L.Kind.desc, L.Kind.copy, L.Kind.set }) |kind| {
+        const W = comptime L.main(kind);
+        const I = comptime L.interaction(kind);
+        var samples: [5][128]Q = undefined;
+        var x: [3 + 2 * W + 2 * I]Q = undefined;
+        var y: [3 + 2 * W + 2 * I]Q = undefined;
+        for (&x, &y, 0..) |*xi, *yi, i| {
+            xi.* = q(@intCast(1000 + i));
+            yi.* = q(@intCast(5000 + i));
+        }
+        for (0..5) |t| {
+            var z: [3 + 2 * W + 2 * I]Q = undefined;
+            for (&z, x, y) |*zi, xi, yi| zi.* = xi.add(yi.mul(E.q(@intCast(t))));
+            var sink = E.Sink{ .values = &samples[t] };
+            Eq.emitFor(Q, kind, z[0..3], z[3..][0..W], z[3 + W ..][0..W], z[3 + 2 * W ..][0..I], z[3 + 2 * W + I ..][0..I], 7, .{ .ram = q(1), .owner = q(2), .range16 = q(3) }, ch, &sink);
+        }
+        // Fourth finite difference vanishes for degree <= 3.
+        for (0..L.constraints(kind)) |c| {
+            var d: [5]Q = undefined;
+            for (0..5) |t| d[t] = samples[t][c];
+            var level: usize = 5;
+            while (level > 1) : (level -= 1) for (0..level - 1) |i| {
+                d[i] = d[i + 1].sub(d[i]);
+            };
+            try testing.expect(d[0].isZero());
+        }
+    }
+}
