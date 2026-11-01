@@ -1,4 +1,4 @@
-# Path to the big jump (status 2026-11-01)
+# Path to the big jump (status 2026-11-01, checklist updated 20:15)
 
 Where the program stands, what limits each metric, and the order of work that
 gets both metrics down far enough to start the GPU port. Numbers are on the
@@ -57,3 +57,49 @@ reach the ~25,000-30,000 range.
 - New client: Ethereum execution spec tests (EEST) and differential runs against
   the reth guest; licences recorded (ziskethone Apache-2.0/MIT, evmone
   Apache-2.0, intx Apache-2.0, blst Apache-2.0) with their notices.
+
+## Checklist
+
+Ticked items are done and evidenced; each line names its branch or commit.
+Unticked items are in progress or not started. Keep this list current: tick an
+item only with its evidence.
+
+### Foundations
+- [x] Guarded harness: basket (12 scored + 3 holdout), guards G1-G6, frozen calibration, targets, scope, ledger, unit tests (PR #308, `8f75a38fa`, `3e2455379`)
+- [x] Execution contract admits 4 or 16 MiB input windows; pinned round-five guest unchanged (`8f75a38fa`)
+- [x] Architecture-first program: CONTEXT.md, PROGRAM.md, candidate-service ABI (`3e2455379`)
+- [x] Client input adapters for private input layouts (`89572e384`)
+- [x] Comparisons vs ZisK: committed work, guest steps on 15 identical blocks, capture throughput, segment size (PR #307)
+
+### Move A: client
+- [x] evmone-class client (ziskethone + evmone v0.24) on the RV64IM ABI, exact output on all 15 blocks: 8.32 instr/gas admitted (`client_evmone/`, merged `e832241ec`)
+- [x] Soundness fix: payload state root, receipts root and gas used checked against re-execution (`d79ebdd47`)
+- [x] Verified signature-recovery hints via input adapter, Keccak memo (`004878ebc`, `1549143bb`)
+- [x] Zero-parse input evaluated: at most 4-6% available, not pursued (notes/evmone-port.md)
+- [ ] Ethereum execution spec tests on both clients, host and guest tiers (branch `codex/rv64-guest-prover-eest`, in progress)
+- [ ] Port the Rust-lean techniques that apply (batch ECDSA vs supplied keys, witness node table, aligned MPT re-encode, register-resident dispatch) to the client
+- [ ] Interpreter tuned for RV64IM: dispatch, jump-table address, U256 fast paths, cached JUMPDEST bitmaps (target interpreter 1.9 -> ~1.0 instr/gas)
+
+### Move B: services
+- [x] Six candidate services in the execution tool with tests and cost estimates; measured per family on the Rust guest (`bca94c643`, merged `228a6a38a`)
+- [x] Candidate services measured on the evmone client: 5.65 instr/gas, 78,849 bits/gas (`519337489`)
+- [ ] **SHA-256 compression service in the prover**: admitted profile `ethereum_services_v3`, truth AIR, bridge, services lane, receiver, fixture proof (branch `codex/rv64-guest-prover-sha256`; truth AIR committed `6645e7e76`)
+- [ ] **Bulk-memory services in the prover** (aligned memcpy/memset, then memcmp) (branch `codex/rv64-guest-prover-bulk-memory`; bridge AIR committed `49576d8ce`)
+- [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
+- [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp)
+- [ ] BN254 and BLS12-381 operations as candidates, then services
+- [ ] Recursion-circuit support for each new service
+
+### Move C: hygiene
+- [x] Rust guest lean track: 9.93 instr/gas admitted, 12 measured commits (branch `codex/rv64-guest-rust-lean`, not merged; overlaps track C)
+- [x] Track C on the PR branch: -5.05% (`6dba79ad1`)
+
+### Prover cost (committed bits)
+- [x] Keccak and memory cost model: Keccak at bits parity with ZisK; CPU cells per instruction is the binding limit (branch `codex/rv64-keccak-memory-cost`, `7c9362a3d`)
+- [ ] Throughput-table Keccak AIR (-43% cells per call) and padding ladder
+- [ ] Load/store width histogram to validate the aligned 8-byte LS row assumption
+- [ ] CPU cells per instruction: row width, aligned 8-byte LS row, range trims (target ~91 cells per instruction)
+
+### Promotion gates
+- [ ] Word16 prefix proof of block 24,628,607 with a guest using the new services, fresh `verify-prefix`
+- [ ] Complete-block proof and fresh `verify` with the new guest; exact committed cells replace the proxy
