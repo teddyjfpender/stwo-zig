@@ -39,6 +39,8 @@ const Resources = struct {
     disk_bytes: usize,
     /// Explicit operational choice: small inventories may retain MAIN in RAM.
     park_main: bool = true,
+    /// Operational cache only; never changes live proof ownership or protocol.
+    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
@@ -46,6 +48,7 @@ const Resources = struct {
         if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or (self.park_main and self.disk_bytes == 0) or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
         try self.capture_options.validate();
         try self.schedule.validate();
+        if (self.recycler_cache_bytes > ReceiverBudget.RECYCLER_CACHE_BYTES) return error.UnsupportedRecyclerCacheLimit;
         try Schedule.validateOrder(self.stage2_order, self.stage2_order.len);
     }
     pub fn jsonStringify(self: Resources, writer: anytype) !void {
@@ -63,6 +66,10 @@ const Resources = struct {
             try writer.objectField("capture_options");
             try writer.write(self.capture_options);
         }
+        if (self.recycler_cache_bytes != ReceiverBudget.RECYCLER_CACHE_BYTES) {
+            try writer.objectField("recycler_cache_bytes");
+            try writer.write(self.recycler_cache_bytes);
+        }
         try writer.endObject();
     }
 };
@@ -75,11 +82,12 @@ const CandidateResources = struct {
     disk_bytes: usize,
     fixed_setup_bytes: usize,
     park_main: bool = true,
+    recycler_cache_bytes: usize = ReceiverBudget.RECYCLER_CACHE_BYTES,
     capture_options: CaptureOptions = .{},
     stage2_order: []const usize = &.{},
     schedule: Schedule.Policy,
     fn operational(self: CandidateResources) Resources {
-        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
+        return .{ .gkr_bytes = self.gkr_bytes, .global_bytes = self.global_bytes, .retained_frontend_bytes = self.retained_frontend_bytes, .disk_bytes = self.disk_bytes, .park_main = self.park_main, .recycler_cache_bytes = self.recycler_cache_bytes, .capture_options = self.capture_options, .stage2_order = self.stage2_order, .schedule = self.schedule };
     }
     fn validate(self: CandidateResources) !void {
         if (self.fixed_setup_bytes == 0) return error.MissingCandidateFixedSetupAdmission;
@@ -180,6 +188,7 @@ pub fn main() !void {
             resources = control_resource_owner.?.value;
         }
     }
+    if (resources) |limits| _ = recycler.setCap(limits.recycler_cache_bytes);
     const count = try std.fmt.parseUnsigned(u32, args[if (plan or capture_only) 4 else 5], 10);
     var jobs = try std.fs.cwd().openDir(args[3], .{});
     defer jobs.close();
@@ -311,4 +320,27 @@ test "explicit stage2 resource order remains owner-backed and serializes only wh
     defer a.free(encoded);
     try std.testing.expect(std.mem.indexOf(u8, encoded, "\"stage2_order\":[2,0,1]") != null);
     try std.testing.expectError(error.InvalidServiceOrder, Schedule.validateOrder(operational.stage2_order, 5));
+}
+
+test "explicit recycler cache ceiling remains an operational bounded option" {
+    const a = std.testing.allocator;
+    var limits = Resources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .park_main = false, .schedule = .{ .memory_cap_bytes = 5 } };
+    try limits.validate();
+    const old = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(old);
+    try std.testing.expect(std.mem.indexOf(u8, old, "recycler_cache_bytes") == null);
+    limits.recycler_cache_bytes = 0;
+    try limits.validate();
+    const encoded = try std.json.Stringify.valueAlloc(a, limits, .{});
+    defer a.free(encoded);
+    try std.testing.expect(std.mem.indexOf(u8, encoded, "\"recycler_cache_bytes\":0") != null);
+    const decoded = try std.json.parseFromSlice(Resources, a, encoded, .{});
+    defer decoded.deinit();
+    try decoded.value.validate();
+    try std.testing.expectEqual(@as(usize, 0), decoded.value.recycler_cache_bytes);
+    limits.recycler_cache_bytes = ReceiverBudget.RECYCLER_CACHE_BYTES + 1;
+    try std.testing.expectError(error.UnsupportedRecyclerCacheLimit, limits.validate());
+    const candidate = CandidateResources{ .gkr_bytes = 1, .global_bytes = 2, .retained_frontend_bytes = 3, .disk_bytes = 0, .fixed_setup_bytes = 6, .park_main = false, .recycler_cache_bytes = 1024, .schedule = .{ .memory_cap_bytes = 5 } };
+    try candidate.validate();
+    try std.testing.expectEqual(@as(usize, 1024), candidate.operational().recycler_cache_bytes);
 }
