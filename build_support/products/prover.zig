@@ -132,6 +132,12 @@ pub fn addProduct(context: Context) Result {
     protocol.addImports(coefficient_root);
     const coefficient_tests = context.b.addTest(.{ .root_module = coefficient_root, .filters = &.{"coefficient storage"} });
     context.b.step("test-stwo-prover-coefficient-storage", "Qualify compact polynomial commitments, quotients, openings and failure custody").dependOn(&context.b.addRunArtifact(coefficient_tests).step);
+    const gkr_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/gkr_resource_test_root.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(gkr_root);
+    const gkr_tests = context.b.addTest(.{ .root_module = gkr_root });
+    const gkr_run = context.b.addRunArtifact(gkr_tests);
+    context.b.step("test-stwo-prover-gkr-resource", "Qualify GKR mixed-instance memory bounds and allocation failures").dependOn(&gkr_run.step);
+    test_step.dependOn(&gkr_run.step);
     const pool_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/tests/work_pool_test.zig", .target = context.target, .optimize = context.optimize });
     protocol.addImports(pool_root);
     const pool_tests = context.b.addTest(.{ .root_module = pool_root });
