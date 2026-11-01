@@ -11,8 +11,8 @@ const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const CHUNK: usize = Support.CHUNK_ROWS;
 const LOG_CHUNK: u32 = std.math.log2_int(usize, CHUNK);
-const BLOCK: usize = CHUNK / 16;
-const LOG_BLOCK: u32 = LOG_CHUNK - 4;
+const BLOCK: usize = CHUNK / Prefix.GROUP_ROWS;
+const LOG_BLOCK: u32 = LOG_CHUNK - Prefix.GROUP_LOG_ROWS;
 comptime {
     std.debug.assert(CHUNK == @as(usize, 1) << LOG_CHUNK and BLOCK % @import("../evaluation.zig").LANES == 0);
 }
@@ -24,7 +24,7 @@ fn generateImpl(source: *S.Source, ch: P.Challenges, pool: ?*work.WorkPool, fail
     if (pool) |p| if (p.stackSize() < MIN_STACK_BYTES) return error.InvalidBinaryInteractionStack;
     const n = source.size();
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
-    // Line-complete groups (prefix_waves.lineGroupSegments) when the domain
+    // Relative-block-owned groups (prefix_waves.lineGroupSegments) when the domain
     // gives every worker several groups; otherwise round-robin chunks.
     const segment_log = if (pool) |p| Prefix.lineSegmentLog(source.log_size, LOG_CHUNK, LOG_BLOCK, p.workerCount()) else null;
     const units = if (segment_log) |log| Prefix.lineGroupCount(source.log_size, log) else chunks;
@@ -108,12 +108,12 @@ const Job = struct {
             self.summaries[chunk] = sums;
         }
     }
-    /// Row r of the group's 16 segments back to back: whole-line stores.
+    /// Group-owned relative blocks; preserve each segment's logical prefix.
     /// Each segment keeps its own logical running sums, as fillChunk does.
     fn fillGroup(self: *Job, group: usize) !void {
         const segments = Prefix.lineGroupSegments(self.log, self.segment_log, group);
         const size = @as(usize, 1) << @intCast(self.segment_log);
-        var sums: [16][2]Q = @splat(@splat(Q.zero()));
+        var sums: [Prefix.GROUP_ROWS][2]Q = @splat(@splat(Q.zero()));
         const denominators = self.scratch[0..CHUNK];
         const inverses = self.scratch[CHUNK..][0..CHUNK];
         var r0: usize = 0;

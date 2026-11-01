@@ -47,32 +47,41 @@ pub fn single(comptime Job: type, jobs: []Job, pool: ?*work.WorkPool) !void {
     defer lease.deinit();
     try wave(Job, &lease, jobs, null);
 }
-/// Line-complete grouping. The 16 logical rows sharing one physical (bit
-/// reversed circle-domain) cache line of 16 M31 differ exactly in logical
-/// bits log-5..log-2. With prefix segments of 2^segment_log rows, a group is
-/// the 16 segments spaced 2^(log-5-segment_log) apart; row r of all 16 lands
-/// in one line per column. Groups partition all segments; distinct groups
-/// never share a line.
-///
-/// Returns the segment log for a line-grouped walk, or null for the plain
-/// chunked walk: segments are at most 2^max_log, at least one 2^min_log
-/// block, and small enough to give every worker about four groups.
+/// Conservative relative-block policy: 32 M31 values = 128 bytes. This
+/// establishes ownership of relative blocks, not hardware cache lines: the
+/// allocator does not promise a 128-byte-aligned column base.
+pub const GROUP_LOG_ROWS: u32 = 5;
+pub const GROUP_ROWS: usize = 1 << GROUP_LOG_ROWS;
+/// Choose bounded prefix segments with approximately four groups per worker.
 pub fn lineSegmentLog(log: u32, max_log: u32, min_log: u32, workers_: usize) ?u32 {
-    if (log < min_log + 5) return null;
+    if (log < min_log + GROUP_LOG_ROWS + 1) return null;
     const spread: u32 = std.math.log2_int_ceil(usize, 4 * @max(1, workers_));
-    const fit = if (log >= 4 + spread) log - 4 - spread else 0;
-    const segment = @min(max_log, @min(fit, log - 5));
+    const fit = if (log >= GROUP_LOG_ROWS + spread) log - GROUP_LOG_ROWS - spread else 0;
+    const segment = @min(max_log, @min(fit, log - GROUP_LOG_ROWS - 1));
     return if (segment >= min_log) segment else null;
 }
 pub fn lineGroupCount(log: u32, segment_log: u32) usize {
-    std.debug.assert(log >= segment_log + 5);
-    return @as(usize, 1) << @intCast(log - segment_log - 4);
+    std.debug.assert(log >= segment_log + GROUP_LOG_ROWS + 1);
+    return @as(usize, 1) << @intCast(log - segment_log - GROUP_LOG_ROWS);
 }
-pub fn lineGroupSegments(log: u32, segment_log: u32, group: usize) [16]usize {
-    const q: u6 = @intCast(log - 5 - segment_log);
-    const low = group & ((@as(usize, 1) << q) - 1);
-    var segments: [16]usize = undefined;
-    for (&segments, 0..) |*segment, t| segment.* = ((group >> q) << (q + 4)) | (t << q) | low;
+/// Every group owns GROUP_ROWS segments and complete relative 128-byte blocks.
+/// For logical row `(segment << segment_log) | r`, bit-reversed circle order
+/// reverses the segment bits on even r and complements them on odd r. Vary the
+/// highest GROUP_LOG_ROWS-1 segment bits and pair the remaining low bits with
+/// their complement. Matching r and (2^segment_log-1-r) from those halves fill
+/// one complete physical block. Distinct groups cannot share a relative block.
+/// Rows need not be emitted in that paired order; each segment keeps its own
+/// logical prefix, which is corrected by the ordered summary scan.
+pub fn lineGroupSegments(log: u32, segment_log: u32, group: usize) [GROUP_ROWS]usize {
+    std.debug.assert(group < lineGroupCount(log, segment_log));
+    const q: std.math.Log2Int(usize) = @intCast(log - segment_log - (GROUP_LOG_ROWS - 1));
+    const mask = (@as(usize, 1) << q) - 1;
+    var segments: [GROUP_ROWS]usize = undefined;
+    for (&segments, 0..) |*segment, t| {
+        const high = t % (GROUP_ROWS / 2);
+        const low = if (t < GROUP_ROWS / 2) group else group ^ mask;
+        segment.* = (high << q) | low;
+    }
     return segments;
 }
 /// Worker count for `rows` split into `grain`-row units under `pool`.

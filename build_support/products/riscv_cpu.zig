@@ -87,7 +87,7 @@ pub fn addProduct(context: Context) void {
         .{ "word16-shift-source", "src/frontends/riscv/rv64_word16_shift_source_test_root.zig", 7 },
         .{ "word16-shift-packed-proof", "src/integrations/riscv_cpu/rv64_word16_shift_word_packed_proof_test_root.zig", 2 },
         .{ "word16-index-authority", "src/frontends/riscv/rv64_index_control_test_root.zig", 7 },
-        .{ "word16-parallel-interaction", "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig", 4 },
+        .{ "word16-parallel-interaction", "src/integrations/riscv_cpu/rv64_word16_parallel_interaction_test_root.zig", 5 },
         .{ "word16-index-control", "src/integrations/riscv_cpu/rv64_word16_index_control_test_root.zig", 9 },
         .{ "word16-alu-parallel-interaction", "src/frontends/riscv/rv64_alu_parallel_interaction_test_root.zig", 4 },
         .{ "word16-rom-lookup", "src/frontends/riscv/rv64_rom_lookup_test_root.zig", 4 },

@@ -13,8 +13,8 @@ const work = engine.work_pool;
 pub const MIN_STACK_BYTES = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
 const CHUNK: usize = 4096;
 const LOG_CHUNK: u32 = 12;
-const BLOCK: usize = CHUNK / 16;
-const LOG_BLOCK: u32 = LOG_CHUNK - 4;
+const BLOCK: usize = CHUNK / Prefix.GROUP_ROWS;
+const LOG_BLOCK: u32 = LOG_CHUNK - Prefix.GROUP_LOG_ROWS;
 const Prefix = @import("../../providers/prefix_waves.zig");
 comptime {
     std.debug.assert(CHUNK == @as(usize, 1) << LOG_CHUNK);
@@ -27,7 +27,7 @@ fn generateImpl(source: *S.Source, ch: T.Challenges, d16: []const Q, d8: []const
     if (pool) |p| if (p.stackSize() < MIN_STACK_BYTES) return error.InvalidLsInteractionStack;
     const n = try I.validateMetadata(source);
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
-    // Line-complete groups (prefix_waves.lineGroupSegments) when the domain
+    // Relative-block-owned groups (prefix_waves.lineGroupSegments) when the domain
     // gives every worker several groups; otherwise round-robin chunks.
     const segment_log = if (pool) |p| Prefix.lineSegmentLog(source.log_size, LOG_CHUNK, LOG_BLOCK, p.workerCount()) else null;
     const units = if (segment_log) |log| Prefix.lineGroupCount(source.log_size, log) else chunks;
@@ -125,12 +125,12 @@ const Job = struct {
             }
         }
     }
-    /// Row r of the group's 16 segments back to back: whole-line stores.
+    /// Group-owned relative blocks; preserve each segment's logical prefix.
     /// Each segment keeps its own logical running sums, as fillChunk does.
     fn fillGroup(self: *Job, group: usize) !void {
         const segments = Prefix.lineGroupSegments(self.source.log_size, self.segment_log, group);
         const size = @as(usize, 1) << @intCast(self.segment_log);
-        var sums: [16][5]Q = @splat(@splat(Q.zero()));
+        var sums: [Prefix.GROUP_ROWS][5]Q = @splat(@splat(Q.zero()));
         const product = self.scratch[0..CHUNK];
         const delta = self.scratch[CHUNK..][0..CHUNK];
         const owner = self.scratch[2 * CHUNK ..][0..CHUNK];
