@@ -13,9 +13,11 @@ pub const SECP_ADD_WORD_TAG: u64 = 0x00020011;
 pub const SECP_DOUBLE_WORD_TAG: u64 = 0x00020012;
 /// One SHA-256 compression; 32-byte aligned 12-u64 packet, state written.
 pub const SHA256_COMPRESS_TAG: u64 = 0x00030010;
-/// Admitted aligned bulk memory (ethereum_services_v3): packet dst, src|byte, len.
+/// Admitted bulk memory (ethereum_services_v3): packet dst, src|byte, len
+/// (memcpy/memset) or a, b, len, result (memcmp).
 pub const MEMCPY_TAG: u64 = 0x00030001;
 pub const MEMSET_TAG: u64 = 0x00030002;
+pub const MEMCMP_TAG: u64 = 0x00030003;
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;

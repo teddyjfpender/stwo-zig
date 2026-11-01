@@ -117,13 +117,13 @@ pub const Session = struct {
         if (row == null) event.* = .{ .keccak = call };
         return row;
     }
-    /// Admitted aligned memcpy/memset; every check precedes the atomic write.
+    /// Admitted memcpy/memset/memcmp; every check precedes the atomic write.
     fn bulk(self: *Session, kind: bulk_memory.Kind) Error!bulk_memory.Event {
         const cpu = &self.keccak.base.cpu;
         if (self.bulk_calls == std.math.maxInt(u64)) return error.ServiceCounterOverflow;
         const pointer = cpu.read(profile.POINTER_REGISTER);
         const packet = try bulk_memory.executeRecording(self.allocator, self.keccak.base.memory, kind, pointer, &self.bulk_before);
-        const call = bulk_memory.BulkCall{ .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer, .tag = if (kind == .memcpy) profile.MEMCPY_TAG else profile.MEMSET_TAG };
+        const call = bulk_memory.BulkCall{ .clock = cpu.retired + 1, .pc = cpu.pc, .pointer = pointer, .tag = bulk_memory.tagOf(kind) };
         cpu.pc +%= 4;
         cpu.retired += 1;
         self.bulk_calls += 1;
