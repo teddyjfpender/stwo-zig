@@ -6,8 +6,9 @@ const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 const Worker = @import("cpu_worker.zig");
 const Manifest = @import("manifest.zig");
-const a = std.testing.allocator;
-fn exercise(comptime shard: usize) !void {
+fn exercise(comptime shard: usize, comptime fail_seal: bool) !void {
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    const a = failing.allocator();
     var captured = try F.Captured.init(a);
     defer captured.deinit();
     var setup = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &F.WORDS }, try captured.native[shard].geometry(), if (shard == 0) .{ .keccak = 5 } else .{ .add = 5, .double = 5 });
@@ -39,14 +40,26 @@ fn exercise(comptime shard: usize) !void {
     var worker = try Worker.CpuWorker.init(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30);
     owns = false;
     defer worker.deinit(a);
+    if (fail_seal) {
+        failing.fail_index = failing.alloc_index;
+        try std.testing.expectError(error.OutOfMemory, worker.seal(a));
+        failing.fail_index = std.math.maxInt(usize);
+        return;
+    }
     const stage = try worker.seal(a);
     try std.testing.expectError(error.WideCpuPhase, worker.seal(a));
+    try worker.retireLocalMetadata();
+    try worker.retireLocalMetadata();
     try std.testing.expect(try worker.spillMain(&store) > 0);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
     try std.testing.expect(try worker.restoreMain(&store) > 0);
     try std.testing.expectEqualSlices(u8, &stage.main, &worker.scheme.trees.items[1].root());
     var pending = try Manifest.verifyAndSeal(a, @splat(0x91), &.{expected}, &.{stage});
     defer pending.deinit(a);
+    failing.fail_index = failing.alloc_index;
+    try std.testing.expectError(error.OutOfMemory, worker.complete(a, &pending, 0, 1 << 26));
+    failing.fail_index = std.math.maxInt(usize);
+    // An early stage-two allocation failure retains the phase and every owner.
     var encoded = try worker.complete(a, &pending, 0, 1 << 26);
     defer encoded.deinit(a);
     try std.testing.expectError(error.WideCpuPhase, worker.complete(a, &pending, 0, 1 << 26));
@@ -65,6 +78,10 @@ fn exercise(comptime shard: usize) !void {
     var wrong = expected;
     wrong.statement[0] ^= 1;
     try std.testing.expectError(error.WideCpuStatementMismatch, Worker.verifyCpu(a, &setup, request, wrong, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    const saved_mass = pending.entries[0].mass;
+    pending.entries[0].mass.ram += 1;
+    try std.testing.expectError(error.WideCpuManifestMismatch, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
+    pending.entries[0].mass = saved_mass;
     const save_main = pending.entries[0].scope.main;
     pending.entries[0].scope.main[0] ^= 1;
     try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded));
@@ -76,8 +93,12 @@ fn exercise(comptime shard: usize) !void {
 }
 
 test "actual CPU Keccak services shard local GKR and physical OM proof fresh verify" {
-    try exercise(0);
+    try exercise(0, false);
 }
 test "actual CPU ADD DOUBLE shard local GKR and physical OM proof fresh verify" {
-    try exercise(1);
+    try exercise(1, false);
+}
+
+test "CPU worker stage-one early OOM destroys its retained owners once" {
+    try exercise(0, true);
 }

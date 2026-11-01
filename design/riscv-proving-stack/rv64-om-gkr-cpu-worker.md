@@ -43,3 +43,17 @@ gates cover an eighth-coordinate public RAM claim, statement, physical root and
 truncated claim vector. The parking fixture checks unmapped residency and root
 preservation before restoration. No speed or complete-block claim follows from
 these tests. Full multiworker execution closure is the next integration gate.
+
+The worker also exposes `retireLocalMetadata()` after a successful seal. It is
+idempotent in that phase and frees local CPU/ROM/ALU/BINARY/SHIFT/JALR/MUL/DIV,
+tail, table and histogram owners. Only memory and bridge sources survive for
+global challenges. Explicit teardown state prevents re-reading or destroying
+retired owners. The qualification fixture invokes retirement before MAIN parking,
+then proves and freshly verifies both shards. Early stage-one allocation failure
+and retry after early stage-two allocation failure are exercised; this is not an
+exhaustive full-worker allocation-failure sweep. Component and numerical helper
+sweeps remain separate evidence.
+
+Fixture PCS settings (`pow_bits=0`, blowup log1,12queries) are deliberately small
+functional controls and carry no production128-bit claim. Production policy must
+supply and admit its independently reviewed PCS/security profile.
