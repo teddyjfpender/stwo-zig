@@ -22,6 +22,8 @@ test "v3 parking framed chunks have pool parity across segment boundaries and de
     defer tmp.cleanup();
     const file = try tmp.dir.createFile("chunks", .{ .read = true });
     defer file.close();
+    const read_only = try tmp.dir.openFile("chunks", .{});
+    defer read_only.close();
     for ([_]usize{ 1, 2, 4 }) |workers| {
         var pool: engine.work_pool.WorkPool = undefined;
         try pool.initInPlaceWithOptions(.{ .worker_count = workers });
@@ -33,6 +35,10 @@ test "v3 parking framed chunks have pool parity across segment boundaries and de
         defer a.free(reread);
         try std.testing.expectEqualSlices(u8, bytes, reread);
         try file.seekTo(0);
+        // Every helper must join and the leaf buffer must be freed even when
+        // several positioned writes fail concurrently. A subsequent retry works.
+        try std.testing.expectError(error.NotOpenForWriting, I.digest(a, read_only, &segments, bytes.len));
+        try std.testing.expectEqualDeep(serial, try I.digest(a, null, &segments, bytes.len));
     }
     bytes[128] ^= 1;
     try std.testing.expect(!std.mem.eql(u8, &serial, &try I.digest(a, null, &segments, bytes.len)));

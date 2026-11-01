@@ -1,0 +1,52 @@
+{
+  "source_commit": "5b864752a",
+  "base": "cb1792fb7",
+  "scope": "Internal unlinked fullyparked MAIN custody formatv3; coefficient-only format unchanged. No AIR, transcript, physical proof, guest or pool topology change.",
+  "integrity": {
+    "chunk_bytes": 4194304,
+    "max_chunks": 65536,
+    "max_segments": 65536,
+    "leaf": "Blake2s256(domain-v3-chunk || LE64(index,offset,length) || bytes)",
+    "root": "Blake2s256(domain-v3-ordered-root || LE64(payloadlength,chunkbytes,count) || ordered LE64(index)+leafdigest)",
+    "framing": "Header v3 binds original PCS root, exact column/native shapes and Merkle layer lengths. Chunking includes header and all coefficients/nodes, independent of segment boundaries. Segments must partition payload exactly; gaps, overlaps, overflow and incomplete coverage reject.",
+    "ownership": "Borrowed existing source slices read until joined completion; positioned writes disjoint. Only after all writes/hash/fsync succeed are original coefficient/node owners retired. Restore hashes readonlymapping before any descriptor publication."
+  },
+  "resources": {
+    "retained_extra_bytes": 0,
+    "ephemeral_heap": "OneHash32B per4MiB chunk plusSegment descriptor per original column/layer/header; validated before allocation and charged through caller allocator; no tuple/witness/payload copy.",
+    "scheduler": "Existing scoped row_work pool, max16shards/min1chunk, no hidden pool or callback allocation; no-pool/cooperative fallback serial. All jobs join before error/cleanup.",
+    "caps": "At most256GiBpayload and65536segments; scratchBytes explicitly preflights arrays. Current128GiBStore admission and actual~2GiBworker payload below limits."
+  },
+  "gates": [
+    {
+      "command": "zig build test-riscv64-main-merkle-parking -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 50,
+      "max_rss": "1G"
+    },
+    {
+      "command": "zig build test-riscv64-main-merkle-parking -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS",
+      "elapsed_s": 45,
+      "max_rss": "1G"
+    }
+  ],
+  "coverage": [
+    "Explicit testroot import makes new integrity tests reachable",
+    "17MiB multiplechunk cross-segment exact write/hash parity with1/2/4workers",
+    "Representation-independent source segments versus one mapped payload digest",
+    "Byte and chunk-position mutation change integrity root",
+    "Overlap/gap/truncated coverage and excessive metadata rejected before failingallocator invoked",
+    "Every digest allocation failure cleans up",
+    "Concurrent readonlyFD pwrite failures join and clean up; subsequent retry matchescontrol",
+    "Inherited Store header/coefficient/node/file-length tamper rejection before mapping publication",
+    "Inherited fullparked lifecycle all OOM, abort, external mapping/diskcaps",
+    "Actual CPU resident/fullparked physicalproof+claimSHA exact and freshreceiver accepted"
+  ],
+  "physical_proof_claims_sha256": [
+    "bdbbd96c95a15b0332d66d22765763f2a358d8b31a94a23f2c61b25ebcf4f1fa",
+    "75fa333bfba1eddf904f8ee730c175bc4d9f72247faaed3b52d367f0142cfaaf"
+  ],
+  "remaining_gate": "Actual production fullblock parking speed/peakmemory and fresh complete-block proof acceptance on root integrated source. No throughput claim from unit gates.",
+  "test_discovery_note": "Earlier witness binding dense test was not explicitly imported by original local testroot; old suitePASS alone did not prove its execution. Root now added explicit import and focused discovery gates. This parking suite explicitly imports integrity_test."
+}
