@@ -137,3 +137,45 @@ test "packed Word16 source publishes no inverse output on allocation or pole fai
     }
     try std.testing.expectError(error.InvalidPackedWordShiftPhase, request.generateInteraction(ch));
 }
+
+test "joined parallel packed SHIFT table interactions and dictionary equal the serial oracle at1 3 8workers" {
+    const a = std.testing.allocator;
+    const work = @import("stwo_prover_engine").work_pool;
+    const G = @import("shift_word_packed_table_interaction.zig");
+    var setup = try T.Setup.init(a);
+    defer setup.deinit();
+    const counts = try a.alloc(u64, T.SEMANTIC_FACTS);
+    defer a.free(counts);
+    for (counts, 0..) |*c, i| c.* = (i * 2654435761) % 7;
+    var oracle = try T.Request.init(a, &setup, counts);
+    defer oracle.deinit();
+    const expected = try oracle.generateInteractionSerial(challenges());
+    for ([_]usize{ 1, 3, 8 }) |workers| {
+        var pool: work.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = G.MIN_STACK_BYTES, .backing_allocator = a });
+        defer pool.deinit();
+        var request = try T.Request.init(a, &setup, counts);
+        defer request.deinit();
+        try std.testing.expect((try G.generate(&request, challenges(), &pool)).eql(expected));
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(oracle.interaction), std.mem.sliceAsBytes(request.interaction));
+        try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(oracle.dictionary), std.mem.sliceAsBytes(request.dictionary));
+        try std.testing.expectError(error.InvalidPackedWordShiftPhase, G.generate(&request, challenges(), &pool));
+        try std.testing.expectEqual(workers, pool.availableWorkers());
+    }
+    var pool: work.WorkPool = .{};
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4, .stack_size = G.MIN_STACK_BYTES, .backing_allocator = a });
+    defer pool.deinit();
+    var request = try T.Request.init(a, &setup, counts);
+    defer request.deinit();
+    for (0..3) |fail_index| {
+        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = fail_index });
+        request.allocator = failing.allocator();
+        try std.testing.expectError(error.OutOfMemory, G.generate(&request, challenges(), &pool));
+        request.allocator = a;
+        try std.testing.expectEqual(@as(usize, 0), request.interaction.len);
+    }
+    try std.testing.expectError(error.DivisionByZero, G.generate(&request, .{ .offset = Q.zero(), .coefficients = @splat(Q.zero()) }, &pool));
+    try std.testing.expectEqual(@as(usize, 0), request.interaction.len);
+    try std.testing.expectEqual(@as(usize, 4), pool.availableWorkers());
+    try std.testing.expect((try G.generate(&request, challenges(), &pool)).eql(expected));
+}

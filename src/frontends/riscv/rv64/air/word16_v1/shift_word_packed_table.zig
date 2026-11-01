@@ -116,58 +116,68 @@ pub const Request = struct {
         self.allocator.free(self.dictionary);
         self.* = undefined;
     }
+    /// Joined parallel generation under the scoped pool; one worker (or no
+    /// pool) runs the serial oracle below.
     pub fn generateInteraction(self: *Request, ch: Challenges) !Q {
+        return @import("shift_word_packed_table_interaction.zig").generate(self, ch, @import("stwo_prover_engine").work_pool.currentScopedPool());
+    }
+    /// Original serial generator; the independent numerical/physical oracle.
+    pub fn generateInteractionSerial(self: *Request, ch: Challenges) !Q {
         if (self.interaction.len != 0) return error.InvalidPackedWordShiftPhase;
         const a = self.allocator;
         const output = try a.alloc(M, INTERACTION * SIZE);
         errdefer a.free(output);
         const dictionary = try a.alloc(Q, SEMANTIC_FACTS);
         errdefer a.free(dictionary);
-        const scratch = try a.alloc(Q, 16384);
+        const scratch = try a.alloc(Q, CHUNK_SCRATCH);
         defer a.free(scratch);
-        const denoms = scratch[0..8192];
-        const products = scratch[8192..12288];
-        const inverses = scratch[12288..16384];
         const prepared = Prepared.init(ch);
         var sum = Q.zero();
         var start: usize = 0;
-        while (start < SIZE) : (start += 512) {
-            var begin: usize = 0;
-            while (begin < 512) : (begin += E.LANES) {
-                var fields: [FIXED]E.PackedBase = undefined;
-                for (&fields, 0..) |*field, c| {
-                    var lanes: [E.LANES]M = undefined;
-                    for (&lanes, 0..) |*v, lane| v.* = self.fixed[c * SIZE + physical(start + begin + lane, LOG)];
-                    field.* = E.PackedBase.fromLanes(lanes);
-                }
-                for (0..16) |r| {
-                    const d = prepared.denominatorFor(E.PackedBase, &fields, r);
-                    for (0..E.LANES) |lane| denoms[(begin + lane) * 16 + r] = d.lane(lane);
-                }
-            }
-            for (0..512) |i| for (0..8) |pair| {
-                products[8 * i + pair] = denoms[16 * i + 2 * pair].mul(denoms[16 * i + 2 * pair + 1]);
-            };
-            try core.fields.batchInverseInPlace(Q, products, inverses);
-            for (0..512) |i| {
-                const row = physical(start + i, LOG);
-                for (0..8) |pair| {
-                    const inverse = inverses[8 * i + pair];
-                    const inv_a = denoms[16 * i + 2 * pair + 1].mul(inverse);
-                    const inv_b = denoms[16 * i + 2 * pair].mul(inverse);
-                    dictionary[16 * (start + i) + 2 * pair] = inv_a;
-                    dictionary[16 * (start + i) + 2 * pair + 1] = inv_b;
-                    sum = sum.sub(inv_a.mulM31(self.main[(2 * pair) * SIZE + row])).sub(inv_b.mulM31(self.main[(2 * pair + 1) * SIZE + row]));
-                    for (inverse.toM31Array(), 0..) |v, c| output[(4 * pair + c) * SIZE + row] = v;
-                }
-                for (sum.toM31Array(), 0..) |v, c| output[(32 + c) * SIZE + row] = v;
-            }
-        }
+        while (start < SIZE) : (start += CHUNK_ROWS) try self.fillChunk(&prepared, start, scratch, dictionary, output, &sum);
         for (sum.toM31Array(), 0..) |v, c| for (0..SIZE) |row| {
             output[(32 + c) * SIZE + row] = output[(32 + c) * SIZE + row].sub(v);
         };
         self.interaction = output;
         self.dictionary = dictionary;
         return sum;
+    }
+    pub const CHUNK_ROWS: usize = 512;
+    pub const CHUNK_SCRATCH: usize = 16384;
+    /// One 512-row chunk: dictionary entries, inverse columns and running sum.
+    pub fn fillChunk(self: *const Request, prepared: *const Prepared, start: usize, scratch: []Q, dictionary: []Q, output: []M, sum: *Q) !void {
+        const denoms = scratch[0..8192];
+        const products = scratch[8192..12288];
+        const inverses = scratch[12288..16384];
+        var begin: usize = 0;
+        while (begin < 512) : (begin += E.LANES) {
+            var fields: [FIXED]E.PackedBase = undefined;
+            for (&fields, 0..) |*field, c| {
+                var lanes: [E.LANES]M = undefined;
+                for (&lanes, 0..) |*v, lane| v.* = self.fixed[c * SIZE + physical(start + begin + lane, LOG)];
+                field.* = E.PackedBase.fromLanes(lanes);
+            }
+            for (0..16) |r| {
+                const d = prepared.denominatorFor(E.PackedBase, &fields, r);
+                for (0..E.LANES) |lane| denoms[(begin + lane) * 16 + r] = d.lane(lane);
+            }
+        }
+        for (0..512) |i| for (0..8) |pair| {
+            products[8 * i + pair] = denoms[16 * i + 2 * pair].mul(denoms[16 * i + 2 * pair + 1]);
+        };
+        try core.fields.batchInverseInPlace(Q, products, inverses);
+        for (0..512) |i| {
+            const row = physical(start + i, LOG);
+            for (0..8) |pair| {
+                const inverse = inverses[8 * i + pair];
+                const inv_a = denoms[16 * i + 2 * pair + 1].mul(inverse);
+                const inv_b = denoms[16 * i + 2 * pair].mul(inverse);
+                dictionary[16 * (start + i) + 2 * pair] = inv_a;
+                dictionary[16 * (start + i) + 2 * pair + 1] = inv_b;
+                sum.* = sum.sub(inv_a.mulM31(self.main[(2 * pair) * SIZE + row])).sub(inv_b.mulM31(self.main[(2 * pair + 1) * SIZE + row]));
+                for (inverse.toM31Array(), 0..) |v, c| output[(4 * pair + c) * SIZE + row] = v;
+            }
+            for (sum.toM31Array(), 0..) |v, c| output[(32 + c) * SIZE + row] = v;
+        }
     }
 };

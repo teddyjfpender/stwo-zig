@@ -132,6 +132,8 @@ pub fn generateSerial(source: *S.Source, ch: T.Challenges, dict16: []const Q, di
 pub const ParallelSupport = struct {
     pub const selectionDictionary = buildSelectionDictionary;
     pub const fillChunk = fillChunkImpl;
+    pub const rowDenominators = denominators;
+    pub const fillRow = fillRowImpl;
 };
 fn fillChunkImpl(source: *const S.Source, ch: T.Challenges, dict16: []const Q, dict8: []const Q, selection: []const Q, output: []M, scratch: []Q, start: usize, prefix: *[5]Q) !void {
     const n = source.size();
@@ -144,29 +146,30 @@ fn fillChunkImpl(source: *const S.Source, ch: T.Challenges, dict16: []const Q, d
     denominators(source.metadata[start..][0..count], ch, product, delta, owner);
     try core.fields.batchInverseInPlace(Q, product, inv);
     try core.fields.batchInverseInPlace(Q, owner, invOwner);
-    for (0..count) |i| {
-        const logical = start + i;
-        const pos = R.trace.physical(logical, source.log_size);
-        const meta = source.metadata[logical];
-        R.trace.store(output, n, pos, 0, inv[i]);
-        prefix[0] = prefix[0].add(delta[i].mul(inv[i]).mulM31(meta.active()));
-        R.trace.store(output, n, pos, 4, prefix[0]);
-        prefix[1] = prefix[1].add(invOwner[i].mulM31(meta.active()));
-        var local: [L.LOCAL_FRACTIONS]Q = undefined;
-        local[0] = invOwner[i];
-        for (L.U16_CACHE, 0..) |cache, j| {
-            const inverse = dict16[meta.range16[cache]];
-            local[1 + j] = inverse;
-            prefix[2] = prefix[2].add(inverse);
-        }
-        for (L.U8_CACHE, 0..) |cache, j| {
-            const inverse = dict8[meta.range8[cache]];
-            local[1 + L.U16.len + j] = inverse;
-            prefix[3] = prefix[3].add(inverse);
-        }
-        local[L.LOCAL_FRACTIONS - 1] = selection[meta.selectionIndex()];
-        prefix[4] = prefix[4].add(local[L.LOCAL_FRACTIONS - 1]);
-        for (0..L.LOCAL_PAIRS) |pair| R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * pair, local[2 * pair].mul(local[2 * pair + 1]));
-        R.trace.store(output, n, pos, L.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
+    for (0..count) |i| fillRowImpl(source, dict16, dict8, selection, output, start + i, inv[i], delta[i], invOwner[i], prefix);
+}
+fn fillRowImpl(source: *const S.Source, dict16: []const Q, dict8: []const Q, selection: []const Q, output: []M, logical: usize, inv: Q, delta: Q, invOwner: Q, prefix: *[5]Q) void {
+    const n = source.size();
+    const pos = R.trace.physical(logical, source.log_size);
+    const meta = source.metadata[logical];
+    R.trace.store(output, n, pos, 0, inv);
+    prefix[0] = prefix[0].add(delta.mul(inv).mulM31(meta.active()));
+    R.trace.store(output, n, pos, 4, prefix[0]);
+    prefix[1] = prefix[1].add(invOwner.mulM31(meta.active()));
+    var local: [L.LOCAL_FRACTIONS]Q = undefined;
+    local[0] = invOwner;
+    for (L.U16_CACHE, 0..) |cache, j| {
+        const inverse = dict16[meta.range16[cache]];
+        local[1 + j] = inverse;
+        prefix[2] = prefix[2].add(inverse);
     }
+    for (L.U8_CACHE, 0..) |cache, j| {
+        const inverse = dict8[meta.range8[cache]];
+        local[1 + L.U16.len + j] = inverse;
+        prefix[3] = prefix[3].add(inverse);
+    }
+    local[L.LOCAL_FRACTIONS - 1] = selection[meta.selectionIndex()];
+    prefix[4] = prefix[4].add(local[L.LOCAL_FRACTIONS - 1]);
+    for (0..L.LOCAL_PAIRS) |pair| R.trace.store(output, n, pos, L.LOCAL_INVERSES + 4 * pair, local[2 * pair].mul(local[2 * pair + 1]));
+    R.trace.store(output, n, pos, L.LOCAL_PREFIX, prefix[1].add(prefix[2]).add(prefix[3]).add(prefix[4]));
 }

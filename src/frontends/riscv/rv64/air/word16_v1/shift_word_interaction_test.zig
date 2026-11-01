@@ -60,27 +60,36 @@ fn build(input: []const S.Fact, weights: ?[]const u32, log: u32) !S.Source {
 fn expectSame(expected: []const M, actual: []const M) !void {
     try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(expected), std.mem.sliceAsBytes(actual));
 }
-test "joined parallel SHIFT interactions equal the serial oracle byte for byte at1 2 3 8workers" {
-    const log: u32 = 14;
-    const n: usize = 1 << log;
-    for ([_]usize{ n, n - 4097, 5000, 1 }) |count| {
-        const input = try facts(count);
+const Case = struct { log: u32, count: usize, workers: []const usize };
+test "joined parallel SHIFT interactions equal the serial oracle byte for byte for chunked and line-grouped orders" {
+    // log14: round-robin chunks; log17: line-complete groups (also 1 worker).
+    const cases = [_]Case{
+        .{ .log = 14, .count = 1 << 14, .workers = &.{ 1, 2, 3, 8 } },
+        .{ .log = 14, .count = (1 << 14) - 4097, .workers = &.{ 1, 2, 3, 8 } },
+        .{ .log = 14, .count = 5000, .workers = &.{ 3, 8 } },
+        .{ .log = 14, .count = 1, .workers = &.{8} },
+        .{ .log = 17, .count = (1 << 17) - 4097, .workers = &.{ 2, 3, 8 } },
+        .{ .log = 17, .count = 70000, .workers = &.{ 5, 16 } },
+    };
+    for (cases) |case| {
+        const n: usize = @as(usize, 1) << @intCast(case.log);
+        const input = try facts(case.count);
         defer a.free(input);
-        const weights = try a.alloc(u32, count);
+        const weights = try a.alloc(u32, case.count);
         defer a.free(weights);
         for (weights, 0..) |*w, i| w.* = @intCast((i * 7) % 5);
         for ([_]bool{ false, true }) |weighted| {
             const w: ?[]const u32 = if (weighted) weights else null;
-            var oracle = try build(input, w, log);
+            var oracle = try build(input, w, case.log);
             defer oracle.deinit();
             var dictionaries = try Dictionaries.init(&oracle);
             defer dictionaries.deinit();
             const expected = try oracle.generateSerial(ch(), dictionaries.table.dictionary, dictionaries.range.dictionary);
-            for ([_]usize{ 1, 2, 3, 8 }) |workers| {
+            for (case.workers) |workers| {
                 var pool: work.WorkPool = .{};
                 try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = G.MIN_STACK_BYTES, .backing_allocator = a });
                 defer pool.deinit();
-                var source = try build(input, w, log);
+                var source = try build(input, w, case.log);
                 defer source.deinit();
                 const claims = try G.generate(&source, ch(), dictionaries.table.dictionary, dictionaries.range.dictionary, &pool);
                 try std.testing.expect(claims.shift.eql(expected.shift) and claims.range16.eql(expected.range16) and claims.function.eql(expected.function));

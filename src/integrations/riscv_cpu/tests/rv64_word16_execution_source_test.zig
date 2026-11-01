@@ -182,36 +182,38 @@ test "full CPU strict padding ROM pole invalid dictionary and OOM remain retryab
 test "full CPU joined native waves reproduce every serial interaction column and claim" {
     var fixture = try Fixture.init();
     defer fixture.deinit();
-    const log = 13;
-    var serial = try S.init(a, &fixture.program, fixture.public, 7, log, &fixture.tape);
-    defer serial.deinit();
-    var pool: engine.work_pool.WorkPool = .{};
-    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 262144 });
-    defer pool.deinit();
-    var parallel = blk: {
-        var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
-        defer binding.deinit();
-        break :blk try S.init(a, &fixture.program, fixture.public, 7, log, &fixture.tape);
-    };
-    defer parallel.deinit();
-    const ch = challenges();
-    var rom = try R.init(a, &fixture.program, serial.rom_counts);
-    defer rom.deinit();
-    _ = try rom.generate(ch.rom);
-    const r16 = try rangeDictionary(a, 65536, ch.range16);
-    defer a.free(r16);
-    const r8 = try rangeDictionary(a, 256, ch.range8);
-    defer a.free(r8);
-    const dict = I.Dictionaries{ .rom = rom.dictionary, .range16 = r16, .range8 = r8 };
-    const expected = try I.generate(&serial, ch, dict, null);
-    try std.testing.expectEqualSlices(M, serial.main, parallel.main);
-    try std.testing.expectEqualSlices(u64, serial.counts16, parallel.counts16);
-    try std.testing.expectEqualSlices(u64, serial.counts8, parallel.counts8);
-    parallel.releaseMain();
-    const actual = try I.generate(&parallel, ch, dict, &pool);
-    try std.testing.expect(actual.eql(expected));
-    try std.testing.expectEqualSlices(M, serial.interaction, parallel.interaction);
-    try checkRows(serial.main, parallel.interaction, log, fixture.public, actual, ch);
+    // log 13 keeps round-robin chunks; log 15 takes the line-complete groups.
+    inline for (.{ 13, 15 }) |log| {
+        var serial = try S.init(a, &fixture.program, fixture.public, 7, log, &fixture.tape);
+        defer serial.deinit();
+        var pool: engine.work_pool.WorkPool = .{};
+        try pool.initInPlaceWithOptions(.{ .worker_count = 3, .stack_size = 262144 });
+        defer pool.deinit();
+        var parallel = blk: {
+            var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+            defer binding.deinit();
+            break :blk try S.init(a, &fixture.program, fixture.public, 7, log, &fixture.tape);
+        };
+        defer parallel.deinit();
+        const ch = challenges();
+        var rom = try R.init(a, &fixture.program, serial.rom_counts);
+        defer rom.deinit();
+        _ = try rom.generate(ch.rom);
+        const r16 = try rangeDictionary(a, 65536, ch.range16);
+        defer a.free(r16);
+        const r8 = try rangeDictionary(a, 256, ch.range8);
+        defer a.free(r8);
+        const dict = I.Dictionaries{ .rom = rom.dictionary, .range16 = r16, .range8 = r8 };
+        const expected = try I.generate(&serial, ch, dict, null);
+        try std.testing.expectEqualSlices(M, serial.main, parallel.main);
+        try std.testing.expectEqualSlices(u64, serial.counts16, parallel.counts16);
+        try std.testing.expectEqualSlices(u64, serial.counts8, parallel.counts8);
+        parallel.releaseMain();
+        const actual = try I.generate(&parallel, ch, dict, &pool);
+        try std.testing.expect(actual.eql(expected));
+        try std.testing.expectEqualSlices(M, serial.interaction, parallel.interaction);
+        try checkRows(serial.main, parallel.interaction, log, fixture.public, actual, ch);
+    }
 }
 test "full source keeps store input distinct from immediate and service pointer distinct from tag" {
     const address: u64 = 0x8000000000000080;

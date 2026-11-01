@@ -18,33 +18,35 @@ fn requests(count: usize) ![]Mul.trace.Request {
     }
     return out;
 }
-test "joined parallel MUL degree3 interactions equal the serial oracle byte for byte at1 2 3 8workers" {
-    const log: u32 = 14;
+test "joined parallel MUL degree3 interactions equal the serial oracle byte for byte for chunked and line-grouped orders" {
     var channel = core.channel.blake2s.Blake2sChannel{};
     const ch = Mul.provider.Challenges.draw(&channel);
     const alpha = channel.drawSecureFelt();
-    for ([_]usize{ 1 << log, (1 << log) - 4097, 5051, 0 }) |count| {
-        const input = try requests(count);
-        defer a.free(input);
-        var oracle = try Mul.trace.Trace.initWithLog(a, input, log);
-        defer oracle.deinit();
-        try oracle.releaseMain();
-        const expected = try Mul.degree3_source.generateLegacySerial(&oracle, ch, alpha);
-        for ([_]usize{ 1, 2, 3, 8 }) |workers| {
-            var pool: work.WorkPool = .{};
-            try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = if (@import("builtin").mode == .Debug) 1 << 20 else 1 << 18, .backing_allocator = a });
-            defer pool.deinit();
-            var binding = try work.ScopedPoolBinding.init(&pool);
-            defer binding.deinit();
-            var trace = try Mul.trace.Trace.initWithLog(a, input, log);
-            defer trace.deinit();
-            try trace.releaseMain();
-            const claim = try Mul.degree3_source.generateLegacy(&trace, ch, alpha);
-            try std.testing.expect(claim.eql(expected));
-            try std.testing.expectEqual(L.INTERACTION << log, trace.interaction.len);
-            try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(oracle.interaction), std.mem.sliceAsBytes(trace.interaction));
-            try std.testing.expectEqual(@as(usize, 0), trace.request_metadata.len);
-            try std.testing.expectEqual(workers, pool.availableWorkers());
+    // log14: round-robin chunks; log17: line-complete groups.
+    inline for (.{ 14, 17 }) |log| {
+        for ([_]usize{ 1 << log, (1 << log) - 4097, 5051, 0 }) |count| {
+            const input = try requests(count);
+            defer a.free(input);
+            var oracle = try Mul.trace.Trace.initWithLog(a, input, log);
+            defer oracle.deinit();
+            try oracle.releaseMain();
+            const expected = try Mul.degree3_source.generateLegacySerial(&oracle, ch, alpha);
+            for ([_]usize{ 1, 2, 3, 8 }) |workers| {
+                var pool: work.WorkPool = .{};
+                try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = if (@import("builtin").mode == .Debug) 1 << 20 else 1 << 18, .backing_allocator = a });
+                defer pool.deinit();
+                var binding = try work.ScopedPoolBinding.init(&pool);
+                defer binding.deinit();
+                var trace = try Mul.trace.Trace.initWithLog(a, input, log);
+                defer trace.deinit();
+                try trace.releaseMain();
+                const claim = try Mul.degree3_source.generateLegacy(&trace, ch, alpha);
+                try std.testing.expect(claim.eql(expected));
+                try std.testing.expectEqual(L.INTERACTION << log, trace.interaction.len);
+                try std.testing.expectEqualSlices(u8, std.mem.sliceAsBytes(oracle.interaction), std.mem.sliceAsBytes(trace.interaction));
+                try std.testing.expectEqual(@as(usize, 0), trace.request_metadata.len);
+                try std.testing.expectEqual(workers, pool.availableWorkers());
+            }
         }
     }
 }

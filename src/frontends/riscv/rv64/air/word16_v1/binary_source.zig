@@ -311,21 +311,22 @@ pub const InteractionSupport = struct {
         const count: usize = @min(CHUNK, n - start);
         functionDenominators(metadata[start..][0..count], scratch[0..count], ch.function);
         try core.fields.batchInverseInPlace(Q, scratch[0..count], scratch[CHUNK..][0..count]);
-        for (0..count) |i| {
-            const logical = start + i;
-            const p = physical(logical, log);
-            const meta = metadata[logical];
-            for (0..4) |batch| {
-                const x = dictionary_values[meta.and_indices[2 * batch]];
-                const y = dictionary_values[meta.and_indices[2 * batch + 1]];
-                store(output, n, p, 4 * batch, x.mul(y));
-                sums[0] = sums[0].add(x).add(y);
-            }
-            const inverse = scratch[CHUNK + i];
-            store(output, n, p, 16, inverse);
-            sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
-            store(output, n, p, 20, sums[0].add(sums[1]));
+        for (0..count) |i| fillRow(metadata, log, dictionary_values, output, start + i, scratch[CHUNK + i], sums);
+    }
+    /// The single row writer: identical stores and running sums for every order.
+    pub fn fillRow(metadata: []const Metadata, log: u32, dictionary_values: []const Q, output: []M, logical: usize, inverse: Q, sums: *[2]Q) void {
+        const n = metadata.len;
+        const p = physical(logical, log);
+        const meta = metadata[logical];
+        for (0..4) |batch| {
+            const x = dictionary_values[meta.and_indices[2 * batch]];
+            const y = dictionary_values[meta.and_indices[2 * batch + 1]];
+            store(output, n, p, 4 * batch, x.mul(y));
+            sums[0] = sums[0].add(x).add(y);
         }
+        store(output, n, p, 16, inverse);
+        sums[1] = sums[1].sub(inverse.mulM31(M.fromCanonical(meta.multiplicity())));
+        store(output, n, p, 20, sums[0].add(sums[1]));
     }
     pub fn validate(self: *const Source) !void {
         const n = self.size();
