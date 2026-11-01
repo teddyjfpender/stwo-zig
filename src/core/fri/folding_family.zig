@@ -449,48 +449,31 @@ pub fn ForField(comptime Secure: type) type {
             return foldLineNWithWorkspace(allocator, eval, domain, alpha, workspace, FOLD_STEP);
         }
 
-        /// Performs a single in-place fold (halving) on a mutable evaluation buffer.
-        /// The buffer is compacted to its first half and then reallocated to the
-        /// smaller size.
-        fn foldLineInPlaceSingleStep(
-            allocator: std.mem.Allocator,
+        /// Performs one allocation-free prefix fold after workspace preflight.
+        /// The caller retains the original allocation and its original length.
+        fn foldLineInPlacePrefixStep(
             eval: []QM31,
             domain: line.LineDomain,
             alpha: QM31,
             workspace: *FoldLineWorkspace,
-        ) !FoldLineResult {
-            if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
-
+        ) !void {
             const folded_len = eval.len / 2;
-            try workspace.ensureCapacity(allocator, folded_len);
             const x_values = workspace.x_values[0..folded_len];
             const inv_x_values = workspace.inv_x_values[0..folded_len];
-
             fillBitReversedCosetCoordinate(x_values, domain.coset(), .x);
             try fields.batchInverseInPlace(M31, x_values, inv_x_values);
-
-            var i: usize = 0;
-            while (i < folded_len) : (i += 1) {
-                const inv_x = inv_x_values[i];
+            for (0..folded_len) |i| {
                 var f0 = eval[i * 2];
                 var f1 = eval[i * 2 + 1];
-                fft.ibutterfly(QM31, &f0, &f1, inv_x);
+                fft.ibutterfly(QM31, &f0, &f1, inv_x_values[i]);
                 eval[i] = f0.add(alpha.mul(f1));
             }
-
-            const resized = try allocator.realloc(eval, folded_len);
-            return .{
-                .domain = domain.double(),
-                .values = resized,
-            };
         }
 
-        /// Folds a line evaluation in place by `n_folds` sequential halvings,
-        /// shrinking the backing slice by a factor of 2^n_folds.
-        ///
-        /// Preconditions:
-        /// - `eval` is allocator-owned and mutable.
-        /// - `eval.len >= 2^n_folds` and is a power of two.
+        /// Folds an owned line buffer with one ownership transition at the end.
+        /// On failure the original allocation and original slice length remain
+        /// owned by the caller; its values may already have been prefix-folded.
+        /// No intermediate realloc can invalidate the caller's cleanup handle.
         pub fn foldLineInPlaceNWithWorkspace(
             allocator: std.mem.Allocator,
             eval: []QM31,
@@ -499,28 +482,25 @@ pub fn ForField(comptime Secure: type) type {
             workspace: *FoldLineWorkspace,
             n_folds: u32,
         ) !FoldLineResult {
-            var current_eval = eval;
+            if (n_folds == 0) return .{ .domain = domain, .values = eval };
+            if (eval.len < 2 or !std.math.isPowerOfTwo(eval.len) or
+                domain.size() != eval.len or n_folds > std.math.log2_int(usize, eval.len))
+                return error.InvalidEvaluationLength;
+            // All workspace growth precedes mutation. Later folds use prefixes
+            // of these buffers, and retain the same allocation throughout.
+            try workspace.ensureCapacity(allocator, eval.len / 2);
+            var active_len = eval.len;
             var current_domain = domain;
             var current_alpha = alpha;
-
-            var step: u32 = 0;
-            while (step < n_folds) : (step += 1) {
-                const result = try foldLineInPlaceSingleStep(
-                    allocator,
-                    current_eval,
-                    current_domain,
-                    current_alpha,
-                    workspace,
-                );
-                current_eval = result.values;
-                current_domain = result.domain;
+            for (0..n_folds) |_| {
+                try foldLineInPlacePrefixStep(eval[0..active_len], current_domain, current_alpha, workspace);
+                active_len /= 2;
+                current_domain = current_domain.double();
                 current_alpha = current_alpha.square();
             }
-
-            return .{
-                .domain = current_domain,
-                .values = current_eval,
-            };
+            // Allocator.realloc leaves the original allocation owned on error.
+            const resized = try allocator.realloc(eval, active_len);
+            return .{ .domain = current_domain, .values = resized };
         }
 
         /// Convenience wrapper that folds FOLD_STEP times in place.
