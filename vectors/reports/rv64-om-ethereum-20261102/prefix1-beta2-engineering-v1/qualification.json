@@ -1,0 +1,45 @@
+{
+  "scope": "First real Ethereum shard through explicit beta2 engineering profile, independently reconstructed receiver fixed authority; not whole-protocol128 qualification",
+  "source_commit": "25ef6f991",
+  "binary_sha256": "1e98e54a78754fb5d13166cea7bd322b479dfb22c174f05079bf3a79ded4618e",
+  "retirements": 4194303,
+  "cpu_proofs": 1,
+  "truth_proofs": 0,
+  "parameters": {
+    "field": "OM31",
+    "blowup_log": 2,
+    "queries": 256,
+    "pow_bits": 0,
+    "fold_step": 4
+  },
+  "security_qualified": false,
+  "prove_seconds": 14.664890667,
+  "process_wall_seconds": 17.3,
+  "user_seconds": 107.85,
+  "system_seconds": 7.02,
+  "max_rss_bytes": 18568118272,
+  "proof_bytes": 2304176,
+  "control_proof_bytes": 679424,
+  "fresh_process_accepted": true,
+  "receiver_source_validations": 1,
+  "receiver_source_coefficient_cells": 62842688,
+  "rejections": [
+    {
+      "case": "control_refuses_candidate",
+      "returncode": 1,
+      "error": "error: GlobalGkrManifestExecution"
+    },
+    {
+      "case": "candidate_refuses_prefix_completion",
+      "returncode": 1,
+      "error": "error: EthereumTerminalPcMismatch"
+    }
+  ],
+  "limitations": [
+    "Single shared-host measurement; not quiet repeated qualification",
+    "No comparison of proof bytes across profiles is a security certificate",
+    "Complete Ethereum block under this beta2 profile has not yet been proved",
+    "Conditional source-fact/theorem/ROM/outer-recursion certification still open; fail-closed policy unchanged",
+    "This engineering profile is explicitly receiver-selected, never chosen by producer metadata"
+  ]
+}
