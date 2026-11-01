@@ -1,0 +1,78 @@
+{
+  "base_commit": "344b50a910cdae66940764a935c34558cec65101",
+  "scope": "explicit candidate CLI and independent Ethereum terminal receiver, no real Ethereum packet benchmark",
+  "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+  "security_qualified": false,
+  "commands": {
+    "producer": "produce-candidate CONFIG JOBS NEW_OUT PREFIX_COUNT RESOURCE_JSON",
+    "fresh_prefix": "verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES",
+    "fresh_complete": "verify-candidate CONFIG OUT FIXED_SETUP_BYTES"
+  },
+  "operational_admission": "producer flat candidate resources require fixed_setup_bytes>0; fresh receiver explicit own positive budget",
+  "control_schema_unchanged": true,
+  "checks": [
+    {
+      "command": "zig build rv64-word16-ethereum-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "5d098d2c59dd7605260cd0109288fab1e9388a47950e1c70859257da32c19752"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseFast --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    },
+    {
+      "command": "zig build test-riscv64-truth-gkr -Doptimize=ReleaseSafe --summary all",
+      "pass": true,
+      "log_sha256": "feb2707e2a5d6b838a71c6da9c01962487c2fdb4d137adba3b67b87adabf683a"
+    }
+  ],
+  "remaining": [
+    "real first Ethereum packet candidate proof + fresh process receiver",
+    "real candidate full-block resource admission/qualification",
+    "source-derived Candidate.Facts/theorems and whole128 certificate",
+    "independent beta2 custody review queued with core agent"
+  ],
+  "describe_candidate": {
+    "profile": "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering",
+    "security_qualified": false,
+    "pcs": {
+      "pow_bits": 0,
+      "fri_config": {
+        "log_blowup_factor": 2,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 256,
+        "fold_step": 4
+      },
+      "lifting_log_size": null
+    },
+    "scope": "beta2 engineering candidate; no reviewed whole-protocol128 certificate",
+    "usage": "produce-candidate CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON (requires fixed_setup_bytes) | verify-candidate CONFIG OUT FIXED_SETUP_BYTES | verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES"
+  },
+  "describe_control": {
+    "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+    "security_qualified": false,
+    "pcs": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 4
+      },
+      "lifting_log_size": null
+    },
+    "usage": "produce-control CONFIG JOBS OUT PREFIX_COUNT RESOURCE_JSON | verify-control CONFIG OUT | verify-prefix-control CONFIG OUT | plan CONFIG JOBS PREFIX_COUNT"
+  },
+  "zero_verifier_budget_early_error": "error: MissingCandidateFixedSetupAdmission",
+  "cli_binary_sha256": "df47d78373d2999ba50da4dec74f4e33255c2511beb698bfd11d02b60273f4da",
+  "gates": [
+    "candidate/control JSON schema separation and unknown security selector refused",
+    "candidate zero immutable budget refused before CONFIG file I/O",
+    "honest authenticated43-byte terminal output accepted under control+candidate",
+    "prefix produces no Ethereum block output",
+    "wrong halt/outputlength/output/terminalPC rejected under both profiles",
+    "genesis authority and corrupt physical proof rejected",
+    "actual candidate all5proof fresh independent source authority/OOM/bodymutation gates retained"
+  ]
+}

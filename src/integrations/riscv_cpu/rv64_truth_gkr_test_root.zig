@@ -9,3 +9,6 @@ test {
 test {
     _ = @import("word16_global_execution/services/gkr_local/coordinator_beta2_test.zig");
 }
+test {
+    _ = @import("word16_global_execution/ethereum/gkr_main.zig");
+}
