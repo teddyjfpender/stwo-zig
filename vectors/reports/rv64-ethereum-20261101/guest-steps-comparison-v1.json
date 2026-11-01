@@ -1,0 +1,925 @@
+{
+ "schema": "stwo.rv64.ethereum-guest-steps-comparison.v1",
+ "date": "2026-11-01",
+ "scope": "execution only; no proving, no proof claims",
+ "sources": {
+  "zisk_eth_client": {
+   "repository": "https://github.com/0xPolygonHermez/zisk-eth-client",
+   "commit": "dfa27ff2e3544fb3c7467499415830d20de2218d",
+   "reth_elf_sha256": "d9d470a9999b7e20402fb5c1dd836576c2f584d0753ba5173d256c67c390bca3",
+   "ziskethone_elf_sha256": "9a38b2e8ca65a0392b46a12bc3a6b4da71f344d665b3a75d6983bf551c9cd548"
+  },
+  "ziskemu": {
+   "repository": "https://github.com/0xPolygonHermez/zisk",
+   "tag": "v1.4.0-alpha",
+   "commit": "64a1f1664184e76053686745d50c6b9aaa51b034",
+   "mode": "ziskemu -e ELF -i INPUT -X (STEPS line)"
+  },
+  "ziskethone_perf_notes": {
+   "repository": "https://github.com/0xPolygonHermez/ziskethone",
+   "commit": "1c3e8d1737c0269a50af24a6fdb26091a6eaee27",
+   "file": "docs/perf-notes.md",
+   "eight_block_set": "data_20260808, first block 25701329; only 25701329 and 25708403 are named in the repo",
+   "evmone_total_steps": 1676971663,
+   "evmone_dma_total_steps": 1433274221,
+   "zevm_total_steps": 1889678694,
+   "zevm_dma_total_steps": 1579912702,
+   "block_25701329_self_step_histogram_total": 234838799,
+   "heaviest_mainnet_blocks": "cold-account BALANCE/EXTCODEHASH blocks ~490M steps (README, 200M-gas killer set), block numbers not published"
+  }
+ },
+ "ours": {
+  "executor": "src/frontends/riscv/rv64 rv64-ethereum-execution (ReleaseFast), execution_profile ethereum_services_v2",
+  "pinned_elf": {
+   "path": "/private/tmp/stwo-rv64-guest-lean-artifacts/round5/ethereum-rv64-services-v2-lean.elf",
+   "sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+   "input_capacity_bytes": 4194304
+  },
+  "wide_input_elf": {
+   "sha256": "78eab8d3e6598dc09a79e9738c57a20cd3e6c528f2d6af8d66c2577d68abd85b",
+   "how": "same branch guest source (autoresearch/benchmarks/guest_runtime/ethereum/rv64/services, features keccak-service,secp-lean, nightly-2026-08-08) relinked with __input_end=0x01800000, stack 0x01C00000..0x02C00000, DATA origin 0x02C00000; executor INPUT_CAPACITY=16 MiB in a scratch copy",
+   "drift_vs_pinned_on_small_blocks": "within +-0.08% (rebuild from branch source is not byte-identical to round5 ELF; data addresses shift)"
+  },
+  "converter": "autoresearch/benchmarks/guest_runtime/projection with single-fixture pins removed (hash/size/block/inventory/root pins); still requires BPO2 fork window and empty execution requests; reproduces the pinned 24628607 canonical-input.ssz byte for byte"
+ },
+ "summary": {
+  "blocks": 15,
+  "blocks_completed_ours": 15,
+  "total_gas": 445399117,
+  "total_ours_instructions": 5995766734,
+  "ours_instructions_per_gas": 13.462,
+  "zisk_reth_blocks": 15,
+  "zisk_reth_total_steps": 2764945264,
+  "zisk_reth_steps_per_gas": 6.208,
+  "ours_over_zisk_reth_aggregate": 2.168,
+  "ziskethone_blocks": 3,
+  "ziskethone_total_steps": 186459195,
+  "ziskethone_steps_per_gas": 2.02,
+  "ours_over_ziskethone_aggregate": 7.881
+ },
+ "blocks": [
+  {
+   "block": 24626900,
+   "block_hash": "0x77e585829cdbb4734a92c2b367a66515f50d5117994b148a043156ee01639a41",
+   "transactions": 221,
+   "gas_used": 16338083,
+   "gas_limit": 60000000,
+   "timestamp": 1773143663,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24626900_221_16_zec_reth.bin",
+   "zisk_fixture_sha256": "a2e203a93576ee156c14448988e023bbc673830cfcd74ab5ec822e5d526ad9f1",
+   "canonical_input_bytes": 4670384,
+   "canonical_input_sha256": "d88875259189c21e0b3e6db6cdf0102d47c0ace4260cdd625f6c99e135e5594c",
+   "new_payload_request_root": "0x4b486741a31c73469538fbdf1bf63587f8776b22f72249afa639ce0b650754a6",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 217574707,
+    "instructions_per_gas": 13.317,
+    "verified_output": true,
+    "keccak_f_calls": 61761,
+    "secp_add_calls": 35756,
+    "secp_double_calls": 30448,
+    "wide_input_relink_instructions": 217574707,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 104851202,
+    "reth_validation_message": true,
+    "cost_total": 12583552660,
+    "block_hash": "0x77e585829cdbb4734a92c2b367a66515f50d5117994b148a043156ee01639a41",
+    "precompile_calls": {
+     "keccak": 60425,
+     "secp256k1_add": 31396,
+     "secp256k1_dbl": 30638,
+     "arith256_mod": 3347,
+     "dma_xmemcpy": 954151,
+     "dma_memcpy": 108260,
+     "dma_xmemset": 270885,
+     "dma_xmemcmp": 150496,
+     "dma_memcmp": 1929,
+     "dma_inputcpy": 751
+    },
+    "steps_per_gas": 6.418,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.075
+  },
+  {
+   "block": 24628590,
+   "block_hash": "0x864d2552328e80541e550eaac9dff2b4c66852744d5ad50515e1d9e3680efc0c",
+   "transactions": 478,
+   "gas_used": 49134719,
+   "gas_limit": 60000000,
+   "timestamp": 1773164099,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24628590_478_49_zec_reth.bin",
+   "zisk_fixture_sha256": "3bc9273026f2ca56b14afd0827a4d6f860c22a8b3d1704e405aaec706025ccb4",
+   "canonical_input_bytes": 12123601,
+   "canonical_input_sha256": "19200d19f5eb3ae0696e4c31144688b5115b4fe4b34b5f74794ae795e169e151",
+   "new_payload_request_root": "0xde8f8c365b68abd759b946db428e67df40b82c1c39aeb3c111cd5b42cb2f0568",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 629126569,
+    "instructions_per_gas": 12.804,
+    "verified_output": true,
+    "keccak_f_calls": 164183,
+    "secp_add_calls": 89379,
+    "secp_double_calls": 75920,
+    "wide_input_relink_instructions": 629126569,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 318012180,
+    "reth_validation_message": true,
+    "cost_total": 36239126280,
+    "block_hash": "0x864d2552328e80541e550eaac9dff2b4c66852744d5ad50515e1d9e3680efc0c",
+    "precompile_calls": {
+     "keccak": 160537,
+     "secp256k1_add": 78356,
+     "secp256k1_dbl": 76426,
+     "arith256_mod": 8529,
+     "dma_xmemcpy": 2700254,
+     "dma_memcpy": 294047,
+     "dma_xmemset": 990021,
+     "dma_xmemcmp": 484480,
+     "dma_memcmp": 3728,
+     "dma_inputcpy": 1946
+    },
+    "steps_per_gas": 6.472,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.978
+  },
+  {
+   "block": 24628595,
+   "block_hash": "0x60caa3e811254e28248033ab5b3349b08a026551c6dff7438f87e8c4f7c3bae3",
+   "transactions": 641,
+   "gas_used": 54230474,
+   "gas_limit": 60000000,
+   "timestamp": 1773164159,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24628595_641_54_zec_reth.bin",
+   "zisk_fixture_sha256": "e9afdaa8e9ae485a01b3fa94abcf19b1a51ba0f4bc21bccb54c4e8fa02233416",
+   "canonical_input_bytes": 13830191,
+   "canonical_input_sha256": "c67c66b786eb5808cabb330429be9c188d52d10755a732e5ac4b4497e4e79680",
+   "new_payload_request_root": "0x85f8f0212ae1228dfe1aebf870b99a9689e00b1520c4cc40fb4a4e3ea30e30a1",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 710501452,
+    "instructions_per_gas": 13.102,
+    "verified_output": true,
+    "keccak_f_calls": 184066,
+    "secp_add_calls": 109862,
+    "secp_double_calls": 93316,
+    "wide_input_relink_instructions": 710501452,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 346436700,
+    "reth_validation_message": true,
+    "cost_total": 39943099979,
+    "block_hash": "0x60caa3e811254e28248033ab5b3349b08a026551c6dff7438f87e8c4f7c3bae3",
+    "precompile_calls": {
+     "keccak": 180235,
+     "secp256k1_add": 96243,
+     "secp256k1_dbl": 93972,
+     "arith256_mod": 11139,
+     "dma_xmemcpy": 3205428,
+     "dma_memcpy": 340902,
+     "dma_xmemset": 1003565,
+     "dma_xmemcmp": 524203,
+     "dma_memcmp": 4871,
+     "dma_inputcpy": 2975
+    },
+    "steps_per_gas": 6.388,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.051
+  },
+  {
+   "block": 24628607,
+   "block_hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+   "transactions": 66,
+   "gas_used": 7372614,
+   "gas_limit": 60000000,
+   "timestamp": 1773164303,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24628607_66_7_zec_reth.bin",
+   "zisk_fixture_sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+   "canonical_input_bytes": 2700688,
+   "canonical_input_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+   "new_payload_request_root": "0xe63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030",
+   "ours": {
+    "elf": "round5-pinned",
+    "instructions": 104253913,
+    "instructions_per_gas": 14.141,
+    "verified_output": true,
+    "keccak_f_calls": 32835,
+    "secp_add_calls": 11496,
+    "secp_double_calls": 9768,
+    "wide_input_relink_instructions": 104250400,
+    "pinned_elf_instructions": 104253913
+   },
+   "zisk_reth_guest": {
+    "steps": 60289420,
+    "reth_validation_message": true,
+    "cost_total": 7182763578,
+    "block_hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+    "precompile_calls": {
+     "keccak": 32396,
+     "secp256k1_add": 10086,
+     "secp256k1_dbl": 9838,
+     "arith256_mod": 1319,
+     "dma_xmemcpy": 498160,
+     "dma_memcpy": 52333,
+     "dma_xmemset": 174414,
+     "dma_xmemcmp": 82176,
+     "dma_memcmp": 844,
+     "dma_inputcpy": 246
+    },
+    "steps_per_gas": 8.177,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.729
+  },
+  {
+   "block": 24628608,
+   "block_hash": "0x2fd7407d232b8b7fde2a8372b5e77fd65f815847b70d9cf25134b123f4a69e03",
+   "transactions": 146,
+   "gas_used": 12907474,
+   "gas_limit": 60000000,
+   "timestamp": 1773164315,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24628608_146_12_zec_reth.bin",
+   "zisk_fixture_sha256": "f0b91434c04e5ecdae229d735e07a8829c720f87a48906dffd6966761021671a",
+   "canonical_input_bytes": 3301016,
+   "canonical_input_sha256": "6df28ca447652c26b92bd6d9792e6fe71b2c69807e0427f7be0443e1652ecf6e",
+   "new_payload_request_root": "0xc92cbc26f2f8a5976259a8053763dc65a58f1071c7ab65b498f470159f827be1",
+   "ours": {
+    "elf": "round5-pinned",
+    "instructions": 151203451,
+    "instructions_per_gas": 11.714,
+    "verified_output": true,
+    "keccak_f_calls": 44203,
+    "secp_add_calls": 21774,
+    "secp_double_calls": 18524,
+    "wide_input_relink_instructions": 151125593,
+    "pinned_elf_instructions": 151203451
+   },
+   "zisk_reth_guest": {
+    "steps": 81410395,
+    "reth_validation_message": true,
+    "cost_total": 9617401161,
+    "block_hash": "0x2fd7407d232b8b7fde2a8372b5e77fd65f815847b70d9cf25134b123f4a69e03",
+    "precompile_calls": {
+     "keccak": 43498,
+     "secp256k1_add": 19038,
+     "secp256k1_dbl": 18660,
+     "arith256_mod": 2325,
+     "dma_xmemcpy": 711669,
+     "dma_memcpy": 76583,
+     "dma_xmemset": 234842,
+     "dma_xmemcmp": 126496,
+     "dma_memcmp": 1404,
+     "dma_inputcpy": 446
+    },
+    "steps_per_gas": 6.307,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.857
+  },
+  {
+   "block": 24628611,
+   "block_hash": "0x7eefb29f956090fd9736cc4d601dce87d6bab3d0c91ef75419867c023ac65526",
+   "transactions": 627,
+   "gas_used": 58862996,
+   "gas_limit": 60000000,
+   "timestamp": 1773164351,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24628611_627_58_zec_reth.bin",
+   "zisk_fixture_sha256": "7b9f1027298c9dad2d004ea7edbd2ffdff95a909a88fd16ef6a5a473669f1811",
+   "canonical_input_bytes": 14659255,
+   "canonical_input_sha256": "5fdf3cb86ebc2acc39d6b1ad20b03200137bf7304fdc4d2c8806217c8ef8616a",
+   "new_payload_request_root": "0x320c2fd183a93ba147d92e318d9b7773c767521cfbc4e08e473fbb1091244274",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 778082522,
+    "instructions_per_gas": 13.219,
+    "verified_output": true,
+    "keccak_f_calls": 194844,
+    "secp_add_calls": 106493,
+    "secp_double_calls": 90460,
+    "wide_input_relink_instructions": 778082522,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 370532834,
+    "reth_validation_message": true,
+    "cost_total": 42527766020,
+    "block_hash": "0x7eefb29f956090fd9736cc4d601dce87d6bab3d0c91ef75419867c023ac65526",
+    "precompile_calls": {
+     "keccak": 190333,
+     "secp256k1_add": 93271,
+     "secp256k1_dbl": 91054,
+     "arith256_mod": 10758,
+     "dma_xmemcpy": 3292021,
+     "dma_memcpy": 342741,
+     "dma_xmemset": 1079242,
+     "dma_xmemcmp": 558825,
+     "dma_memcmp": 4771,
+     "dma_inputcpy": 2954
+    },
+    "steps_per_gas": 6.295,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.1
+  },
+  {
+   "block": 24647140,
+   "block_hash": "0xac1a460b21353733e4cad69c455e7cc7a3a595408f2f15684f9f646ebc42b9b4",
+   "transactions": 60,
+   "gas_used": 7704951,
+   "gas_limit": 60000000,
+   "timestamp": 1773387983,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24647140_60_7_zec_reth.bin",
+   "zisk_fixture_sha256": "077391740e1ab3c5c340c4ca2a74812adf40f3e048100dd5544a087a207d3070",
+   "canonical_input_bytes": 2906420,
+   "canonical_input_sha256": "42324122194de736036e9c840b4df2fca8df7e92440d48a31e78db6ac23f2b36",
+   "new_payload_request_root": "0xfe93a8702bccb85177f08c999987d3f6ed9a55c57fdcb10342a11669974858a3",
+   "ours": {
+    "elf": "round5-pinned",
+    "instructions": 109139374,
+    "instructions_per_gas": 14.165,
+    "verified_output": true,
+    "keccak_f_calls": 34900,
+    "secp_add_calls": 14123,
+    "secp_double_calls": 12012,
+    "wide_input_relink_instructions": 109143165,
+    "pinned_elf_instructions": 109139374
+   },
+   "zisk_reth_guest": {
+    "steps": 58141998,
+    "reth_validation_message": true,
+    "cost_total": 7114745119,
+    "block_hash": "0xac1a460b21353733e4cad69c455e7cc7a3a595408f2f15684f9f646ebc42b9b4",
+    "precompile_calls": {
+     "keccak": 34318,
+     "secp256k1_add": 12424,
+     "secp256k1_dbl": 12107,
+     "arith256_mod": 1470,
+     "dma_xmemcpy": 496222,
+     "dma_memcpy": 53634,
+     "dma_xmemset": 147402,
+     "dma_xmemcmp": 74009,
+     "dma_memcmp": 802,
+     "dma_inputcpy": 324
+    },
+    "steps_per_gas": 7.546,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.877
+  },
+  {
+   "block": 24697070,
+   "block_hash": "0x9b2ef61d4977467464e32ce7911307e9c20e26cba817d4e5d6711ca5e6606df4",
+   "transactions": 270,
+   "gas_used": 17435221,
+   "gas_limit": 60000000,
+   "timestamp": 1773989939,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24697070_270_17_zec_reth.bin",
+   "zisk_fixture_sha256": "e55b161ca2478d2ab758ed36a85fa57eadf460b463c89369d3821eb158deaf3c",
+   "canonical_input_bytes": 4844185,
+   "canonical_input_sha256": "b38f15ea46317dad78b9f223bb866e6b2a22174ba6d3ed8f017842eeaf5e7e14",
+   "new_payload_request_root": "0xcc73313f45a8b0a26aac3ea84ef57e624ac6edd0679c14abaece166c71bf5b17",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 261016581,
+    "instructions_per_gas": 14.971,
+    "verified_output": true,
+    "keccak_f_calls": 63862,
+    "secp_add_calls": 41483,
+    "secp_double_calls": 35320,
+    "wide_input_relink_instructions": 261016581,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 118573137,
+    "reth_validation_message": true,
+    "cost_total": 13966685415,
+    "block_hash": "0x9b2ef61d4977467464e32ce7911307e9c20e26cba817d4e5d6711ca5e6606df4",
+    "precompile_calls": {
+     "keccak": 62529,
+     "secp256k1_add": 36428,
+     "secp256k1_dbl": 35551,
+     "arith256_mod": 5658,
+     "dma_xmemcpy": 1249532,
+     "dma_memcpy": 115876,
+     "dma_xmemset": 369989,
+     "dma_xmemcmp": 188020,
+     "dma_memcmp": 2277,
+     "dma_inputcpy": 1497
+    },
+    "steps_per_gas": 6.801,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.201
+  },
+  {
+   "block": 24697073,
+   "block_hash": "0x672c096e20c0fce13ec986d8fed3e483c9613a28b5cfe0b7f2e3d91f62f2c033",
+   "transactions": 308,
+   "gas_used": 22277128,
+   "gas_limit": 59999943,
+   "timestamp": 1773989987,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_24697073_308_22_zec_reth.bin",
+   "zisk_fixture_sha256": "43249e7bfdaef31b0c07ad3b8d4e1d2505655d1e67e581d6d62a4588e69f9b9a",
+   "canonical_input_bytes": 4403300,
+   "canonical_input_sha256": "70229a61e47533ec2f7f72ce256532c36c507e550a6aaf3889ffc31586fd3888",
+   "new_payload_request_root": "0x613501705955981054a902522c31c37d631ce098618a2f2bbb039f11cfd5da34",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 305609769,
+    "instructions_per_gas": 13.719,
+    "verified_output": true,
+    "keccak_f_calls": 66871,
+    "secp_add_calls": 57280,
+    "secp_double_calls": 48732,
+    "wide_input_relink_instructions": 305609769,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 110032109,
+    "reth_validation_message": true,
+    "cost_total": 13478730665,
+    "block_hash": "0x672c096e20c0fce13ec986d8fed3e483c9613a28b5cfe0b7f2e3d91f62f2c033",
+    "precompile_calls": {
+     "keccak": 64877,
+     "secp256k1_add": 50245,
+     "secp256k1_dbl": 49072,
+     "arith256_mod": 5713,
+     "dma_xmemcpy": 1264400,
+     "dma_memcpy": 128163,
+     "dma_xmemset": 252329,
+     "dma_xmemcmp": 167214,
+     "dma_memcmp": 2539,
+     "dma_inputcpy": 1952
+    },
+    "steps_per_gas": 4.939,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.777
+  },
+  {
+   "block": 25229951,
+   "block_hash": "0x9940a80e9190e89192a457a4019f701fb52fc632626b0f8699d213273c4629bb",
+   "transactions": 420,
+   "gas_used": 57944048,
+   "gas_limit": 60000000,
+   "timestamp": 1780406363,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_25229951_420_57_zec_reth.bin",
+   "zisk_fixture_sha256": "5a93e3d1b9f817abbfa0f0e3f8bcfcec86c3836b33e45654d30307a72a42c7ff",
+   "canonical_input_bytes": 10120290,
+   "canonical_input_sha256": "c7235c8d7205a8d90785ae6eabe0c19f189b7abd877a6f38d47a89b09bdb516b",
+   "new_payload_request_root": "0x3035ba8294fde3a83e654e014d9c6fa752ed2124e2d265518092495459979f0d",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 618896990,
+    "instructions_per_gas": 10.681,
+    "verified_output": true,
+    "keccak_f_calls": 141387,
+    "secp_add_calls": 69331,
+    "secp_double_calls": 58844,
+    "wide_input_relink_instructions": 618896990,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 315700337,
+    "reth_validation_message": true,
+    "cost_total": 34743725373,
+    "block_hash": "0x9940a80e9190e89192a457a4019f701fb52fc632626b0f8699d213273c4629bb",
+    "precompile_calls": {
+     "keccak": 138432,
+     "secp256k1_add": 60759,
+     "secp256k1_dbl": 59278,
+     "arith256_mod": 8818,
+     "dma_xmemcpy": 2671507,
+     "dma_memcpy": 250606,
+     "dma_xmemset": 1112670,
+     "dma_xmemcmp": 436269,
+     "dma_memcmp": 3328,
+     "dma_inputcpy": 2100
+    },
+    "steps_per_gas": 5.448,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.96
+  },
+  {
+   "block": 25229955,
+   "block_hash": "0xf12280078758f1d79b360acc2f7f05bed9b6cabcaf8a6a62f6f01264e32b5271",
+   "transactions": 305,
+   "gas_used": 39102791,
+   "gas_limit": 60000000,
+   "timestamp": 1780406411,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_25229955_305_39_zec_reth.bin",
+   "zisk_fixture_sha256": "4b96946145bcf42f43154071e346e689ffc2ca2e819393f52383e764ac6c82d7",
+   "canonical_input_bytes": 7846195,
+   "canonical_input_sha256": "d6f11615979cd27f2ac3616c59316ead10300b53e9f76318dcdc8131a3281ba7",
+   "new_payload_request_root": "0x288645eda2f97ce84e364b582563f45cec26700462a3284ef037bdebc94cf22f",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 517378514,
+    "instructions_per_gas": 13.231,
+    "verified_output": true,
+    "keccak_f_calls": 106761,
+    "secp_add_calls": 51297,
+    "secp_double_calls": 43568,
+    "wide_input_relink_instructions": 517378514,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 232207462,
+    "reth_validation_message": true,
+    "cost_total": 25892143522,
+    "block_hash": "0xf12280078758f1d79b360acc2f7f05bed9b6cabcaf8a6a62f6f01264e32b5271",
+    "precompile_calls": {
+     "keccak": 104430,
+     "secp256k1_add": 44927,
+     "secp256k1_dbl": 43891,
+     "arith256_mod": 8360,
+     "dma_xmemcpy": 2135171,
+     "dma_memcpy": 182503,
+     "dma_xmemset": 779848,
+     "dma_xmemcmp": 287998,
+     "dma_memcmp": 2529,
+     "dma_inputcpy": 2368
+    },
+    "steps_per_gas": 5.938,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 2.228
+  },
+  {
+   "block": 25229957,
+   "block_hash": "0x335f7029e8d55053c2041fe72a7d73e5c606278325d5b18ec692315d435b9317",
+   "transactions": 107,
+   "gas_used": 9768139,
+   "gas_limit": 60000000,
+   "timestamp": 1780406435,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_25229957_107_9_zec_reth.bin",
+   "zisk_fixture_sha256": "11a0d913dfac7bba98459712968068f1eacf16c4050d3e523d704d9fb151570b",
+   "canonical_input_bytes": 3041965,
+   "canonical_input_sha256": "7eb44aa15c82ade0a56cc616f5bf7bca6481cd8796f7ada838d8193dcd592c0b",
+   "new_payload_request_root": "0xf2b46b233a65ceb4ae27982171910748f89ed5271b9235eb94a4044504dda862",
+   "ours": {
+    "elf": "round5-pinned",
+    "instructions": 123511251,
+    "instructions_per_gas": 12.644,
+    "verified_output": true,
+    "keccak_f_calls": 37692,
+    "secp_add_calls": 18815,
+    "secp_double_calls": 16028,
+    "wide_input_relink_instructions": 123472726,
+    "pinned_elf_instructions": 123511251
+   },
+   "zisk_reth_guest": {
+    "steps": 61829664,
+    "reth_validation_message": true,
+    "cost_total": 7605009390,
+    "block_hash": "0x335f7029e8d55053c2041fe72a7d73e5c606278325d5b18ec692315d435b9317",
+    "precompile_calls": {
+     "keccak": 36990,
+     "secp256k1_add": 16505,
+     "secp256k1_dbl": 16140,
+     "arith256_mod": 1759,
+     "dma_xmemcpy": 559531,
+     "dma_memcpy": 62897,
+     "dma_xmemset": 147730,
+     "dma_xmemcmp": 81236,
+     "dma_memcmp": 1131,
+     "dma_inputcpy": 405
+    },
+    "steps_per_gas": 6.33,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": null,
+   "ours_over_zisk_reth": 1.998
+  },
+  {
+   "block": 26235156,
+   "block_hash": "0xa9533744986888244d786721fc0506984585de242dc3d4e0db6d8337abe75bc4",
+   "transactions": 91,
+   "gas_used": 5443474,
+   "gas_limit": 60000000,
+   "timestamp": 1792515695,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_26235156_91_5_zec_reth.bin",
+   "zisk_fixture_sha256": "164e87f73ce0cf4db975d8e5b148b6b40d828cdd412d7cf53aeca2c1e2a0123f",
+   "canonical_input_bytes": 1732378,
+   "canonical_input_sha256": "63597c3284218af074924e5ff5f263bd9cc189bd94b886fcd2034b9eddeaffb1",
+   "new_payload_request_root": "0x9661a4e4cdf6b5f38de836fe3295d334fdc8bb6869b92e0addc027e573f99391",
+   "ours": {
+    "elf": "round5-pinned",
+    "instructions": 79595147,
+    "instructions_per_gas": 14.622,
+    "verified_output": true,
+    "keccak_f_calls": 22419,
+    "secp_add_calls": 16541,
+    "secp_double_calls": 14028,
+    "wide_input_relink_instructions": 79574290,
+    "pinned_elf_instructions": 79595147
+   },
+   "zisk_reth_guest": {
+    "steps": 35721945,
+    "reth_validation_message": true,
+    "cost_total": 4566896577,
+    "block_hash": "0xa9533744986888244d786721fc0506984585de242dc3d4e0db6d8337abe75bc4",
+    "precompile_calls": {
+     "keccak": 21921,
+     "secp256k1_add": 14474,
+     "secp256k1_dbl": 14127,
+     "arith256_mod": 1488,
+     "dma_xmemcpy": 336872,
+     "dma_memcpy": 37970,
+     "dma_xmemset": 76661,
+     "dma_xmemcmp": 46916,
+     "dma_memcmp": 1019,
+     "dma_inputcpy": 357
+    },
+    "steps_per_gas": 6.562,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": {
+    "steps": 10011348,
+    "reth_validation_message": false,
+    "cost_total": 2161192617,
+    "block_hash": "0xa9533744986888244d786721fc0506984585de242dc3d4e0db6d8337abe75bc4",
+    "precompile_calls": {
+     "keccak": 19479,
+     "secp256k1_add": 14436,
+     "secp256k1_dbl": 14128,
+     "arith256_mod": 1674,
+     "dma_xmemcpy": 253694,
+     "dma_memcpy": 18958,
+     "dma_xmemset": 52652,
+     "dma_xmemcmp": 8501,
+     "dma_memcmp": 1003,
+     "dma_inputcpy": 683,
+     "arith256": 1912
+    },
+    "steps_per_gas": 1.839,
+    "block_hash_matches": true
+   },
+   "ours_over_zisk_reth": 2.228,
+   "ours_over_ziskethone": 7.95
+  },
+  {
+   "block": 26235159,
+   "block_hash": "0xef2d2364841157023002e46411735a80b93c21c68aaf3f5f45118d4aa6ce3ef3",
+   "transactions": 532,
+   "gas_used": 57734946,
+   "gas_limit": 59941408,
+   "timestamp": 1792515731,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_26235159_532_57_zec_reth.bin",
+   "zisk_fixture_sha256": "8469643b31ccd59bb5d85583561344410dd92d1d79d7028b1de195c424679602",
+   "canonical_input_bytes": 12224346,
+   "canonical_input_sha256": "7ab19063885304e8cf388e8503895be282f4227e9934070c7f3dcf2d5886d0e8",
+   "new_payload_request_root": "0xbf48e248f97c30d78d21bf6b1e77ec188c6e33a275d4292dd46f90778297e9ca",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 879612412,
+    "instructions_per_gas": 15.235,
+    "verified_output": true,
+    "keccak_f_calls": 168866,
+    "secp_add_calls": 95779,
+    "secp_double_calls": 81392,
+    "wide_input_relink_instructions": 879612412,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 361332170,
+    "reth_validation_message": true,
+    "cost_total": 40551991671,
+    "block_hash": "0xef2d2364841157023002e46411735a80b93c21c68aaf3f5f45118d4aa6ce3ef3",
+    "precompile_calls": {
+     "keccak": 164744,
+     "secp256k1_add": 83942,
+     "secp256k1_dbl": 81976,
+     "arith256_mod": 19219,
+     "dma_xmemcpy": 3515874,
+     "dma_memcpy": 314302,
+     "dma_xmemset": 1215127,
+     "dma_xmemcmp": 548868,
+     "dma_memcmp": 4107,
+     "dma_inputcpy": 4113
+    },
+    "steps_per_gas": 6.258,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": {
+    "steps": 117222289,
+    "reth_validation_message": false,
+    "cost_total": 18154814422,
+    "block_hash": "0xef2d2364841157023002e46411735a80b93c21c68aaf3f5f45118d4aa6ce3ef3",
+    "precompile_calls": {
+     "keccak": 141173,
+     "secp256k1_add": 83274,
+     "secp256k1_dbl": 81959,
+     "arith256_mod": 24728,
+     "dma_xmemcpy": 2710727,
+     "dma_memcpy": 172599,
+     "dma_xmemset": 780804,
+     "dma_xmemcmp": 106234,
+     "dma_memcmp": 8595,
+     "dma_inputcpy": 10541,
+     "arith256": 31914
+    },
+    "steps_per_gas": 2.03,
+    "block_hash_matches": true
+   },
+   "ours_over_zisk_reth": 2.434,
+   "ours_over_ziskethone": 7.504
+  },
+  {
+   "block": 26235168,
+   "block_hash": "0x07cddb3b33def263e86256977358a0313899e16a31aaae2e3444368e68da60c9",
+   "transactions": 260,
+   "gas_used": 29142059,
+   "gas_limit": 60000000,
+   "timestamp": 1792515839,
+   "zisk_fixture": "zisk-eth-client bin/guests/stateless-validator-reth/inputs/mainnet_26235168_260_29_zec_reth.bin",
+   "zisk_fixture_sha256": "540e91b0846b81d18d49268456f647c4853f2e5781c7a835c13c5af35b2946c2",
+   "canonical_input_bytes": 7256469,
+   "canonical_input_sha256": "0bf59a183eabc8b8fdd177b69e389aff41705742d89987a0f4b47530460a09ff",
+   "new_payload_request_root": "0xf1be347f029bcedb84175815a0f9a0dba90228bd6f27b08b97c67fbd3aaf5444",
+   "ours": {
+    "elf": "wide-input-relink",
+    "instructions": 510264082,
+    "instructions_per_gas": 17.51,
+    "verified_output": true,
+    "keccak_f_calls": 93942,
+    "secp_add_calls": 46823,
+    "secp_double_calls": 39892,
+    "wide_input_relink_instructions": 510264082,
+    "pinned_elf_instructions": null
+   },
+   "zisk_reth_guest": {
+    "steps": 189873711,
+    "reth_validation_message": true,
+    "cost_total": 22052716146,
+    "block_hash": "0x07cddb3b33def263e86256977358a0313899e16a31aaae2e3444368e68da60c9",
+    "precompile_calls": {
+     "keccak": 92092,
+     "secp256k1_add": 41042,
+     "secp256k1_dbl": 40120,
+     "arith256_mod": 25925,
+     "dma_xmemcpy": 2449103,
+     "dma_memcpy": 163829,
+     "dma_xmemset": 587074,
+     "dma_xmemcmp": 281191,
+     "dma_memcmp": 2202,
+     "dma_inputcpy": 5278
+    },
+    "steps_per_gas": 6.515,
+    "block_hash_matches": true
+   },
+   "zisk_ziskethone_guest": {
+    "steps": 59225558,
+    "reth_validation_message": false,
+    "cost_total": 9886550893,
+    "block_hash": "0x07cddb3b33def263e86256977358a0313899e16a31aaae2e3444368e68da60c9",
+    "precompile_calls": {
+     "keccak": 79786,
+     "secp256k1_add": 40704,
+     "secp256k1_dbl": 40115,
+     "arith256_mod": 26642,
+     "dma_xmemcpy": 1446558,
+     "dma_memcpy": 88138,
+     "dma_xmemset": 387467,
+     "dma_xmemcmp": 58399,
+     "dma_memcmp": 3627,
+     "dma_inputcpy": 7054,
+     "arith256": 13216
+    },
+    "steps_per_gas": 2.032,
+    "block_hash_matches": true
+   },
+   "ours_over_zisk_reth": 2.687,
+   "ours_over_ziskethone": 8.616
+  }
+ ],
+ "attribution_24628607": {
+  "method": "PC histogram self counts over STT_FUNC symbols, regex buckets by symbol name; inlined code counts under its caller",
+  "buckets": {
+   "evm_interpreter": {
+    "instructions": 36053921,
+    "fraction": 0.3458
+   },
+   "mem_alloc": {
+    "instructions": 21656939,
+    "fraction": 0.2077
+   },
+   "mpt_rlp": {
+    "instructions": 16612639,
+    "fraction": 0.1593
+   },
+   "ssz_statement_sha256": {
+    "instructions": 11290684,
+    "fraction": 0.1083
+   },
+   "secp_ecdsa_glue": {
+    "instructions": 11206917,
+    "fraction": 0.1075
+   },
+   "keccak_glue": {
+    "instructions": 3536373,
+    "fraction": 0.0339
+   },
+   "other": {
+    "instructions": 2752390,
+    "fraction": 0.0264
+   },
+   "ssz_input": {
+    "instructions": 1144044,
+    "fraction": 0.011
+   },
+   "unattributed": {
+    "instructions": 6,
+    "fraction": 0.0
+   }
+  },
+  "top_functions": [
+   {
+    "function": "memcpy",
+    "self_instructions": 13849477
+   },
+   {
+    "function": "sha2::sha256::compress256",
+    "self_instructions": 11221056
+   },
+   {
+    "function": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, rev",
+    "self_instructions": 8653701
+   },
+   {
+    "function": "revm_bytecode::legacy::analysis::analyze_legacy",
+    "self_instructions": 5883710
+   },
+   {
+    "function": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::resolve_digests::<alloy_primitives::bytes_::Bytes>",
+    "self_instructions": 5763666
+   },
+   {
+    "function": "<k256::arithmetic::field::FieldElement>::square",
+    "self_instructions": 4499352
+   },
+   {
+    "function": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache> as alloy_rlp::decode::Decodable>::decode",
+    "self_instructions": 3577709
+   },
+   {
+    "function": "k256::arithmetic::stwo_inverse::inv_mod_vartime",
+    "self_instructions": 3405717
+   },
+   {
+    "function": "native_keccak256",
+    "self_instructions": 3314241
+   },
+   {
+    "function": "memmove",
+    "self_instructions": 3049324
+   },
+   {
+    "function": "revm_interpreter::instructions::memory::mload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, rev",
+    "self_instructions": 2170130
+   },
+   {
+    "function": "memset",
+    "self_instructions": 1496942
+   },
+   {
+    "function": "revm_interpreter::instructions::memory::mstore::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, re",
+    "self_instructions": 1437184
+   },
+   {
+    "function": "<indexmap::map::IndexMap<alloy_primitives::bits::fixed::FixedBytes<32>, alloy_primitives::bytes_::Bytes, alloy_primitives::map::fixed::FbBuildHasher<32>>>::inse",
+    "self_instructions": 1379609
+   },
+   {
+    "function": "__rustc::__rust_alloc",
+    "self_instructions": 1355738
+   }
+  ]
+ },
+ "caveats": [
+  "Different clients: ours is reth stateless-validator + revm (Rust, RV64IM) consuming SSZ StatelessInput; ZisK reth guest is reth/revm on ZisK; ziskethone is C++ evmone. Same blocks, same witness.",
+  "ZisK STEPS count ZisK ops after transpilation, not RISC-V instructions; ZisK guests are compiled with Zbb/bitmanip and DMA memcpy/memset/memcmp ops, so one step can replace several RV64IM instructions; atomics expand to several steps.",
+  "Precompile weight differs: our keccak-f and secp add/double are one retirement each, as are ZisK keccak/secp256k1_add/dbl/arith256_mod; sha256 is software on our side.",
+  "Our guest also computes the SSZ new_payload_request hash_tree_root in software sha256 (~10.8% on 24628607); ZisK guests commit the block hash instead.",
+  "Steps are a proxy: proving cost per step differs by system (ZisK MAIN cost 68/step; ours per Word16 AIR shape)."
+ ]
+}
