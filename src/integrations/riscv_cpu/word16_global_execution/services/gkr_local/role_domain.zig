@@ -75,21 +75,10 @@ pub fn evaluate(self: anytype, trace: *const P.Trace, acc: *D.DomainEvaluationAc
     var aux: [aux_count]engine.poly.circle.CircleCoefficients = undefined;
     var done: usize = 0;
     defer for (aux[0..done]) |*v| v.deinit(a);
-    const native_domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
-    if (comptime local_binding) for (&aux, 0..) |*coefficient, column| {
-        const values = try a.alloc(M, rows);
-        defer a.free(values);
-        @memset(values, M.zero());
-        if (column < 8) {
-            for (0..rows) |logical| {
-                const t: usize = @ctz(~(logical / 2));
-                const q = if (logical % 2 == 0) self.data.point.hc0[t] else self.data.point.hc1[t];
-                values[A.witness.physical(logical, log)] = q.toM31Array()[column];
-            }
-        } else values[A.witness.physical(column - 8, log)] = M.one();
-        coefficient.* = try engine.poly.circle.poly.interpolateFromEvaluation(a, try engine.poly.circle.evaluation.CircleEvaluation.init(native_domain, values));
-        done += 1;
-    };
+    if (comptime local_binding) {
+        aux = try @import("public_aux.zig").init(a, &self.data.point, log, active_pool);
+        done = aux_count;
+    }
     const main_at = shape.fixed;
     const inter_at = main_at + shape.main;
     const aux_at = inter_at + inter_width;
