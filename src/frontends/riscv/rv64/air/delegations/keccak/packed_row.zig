@@ -25,16 +25,22 @@ pub const PackedRow = struct {
         }
         return out;
     }
+    pub inline fn stateCell(self: *const PackedRow, i: usize) M {
+        const bit: u6 = @intCast(i % 64);
+        return M.fromCanonical(@intCast(((self.state_a[i / 64] >> bit) & 1) | (((self.state_b[i / 64] >> bit) & 1) << 3)));
+    }
+    pub inline fn parityCell(self: *const PackedRow, i: usize) M {
+        const bit: u6 = @intCast(i % 64);
+        return M.fromCanonical(@intCast(((self.parity_a[i / 64] >> bit) & 1) | (((self.parity_b[i / 64] >> bit) & 1) << 3)));
+    }
     pub fn expand(self: *const PackedRow) ![L.MAIN]M {
         if (self.id >= core.fields.m31.Modulus or self.flags > 3) return error.InvalidKeccakMetadata;
         var row: [L.MAIN]M = undefined;
         for (row[0..L.STATE], 0..) |*v, i| {
-            const bit: u6 = @intCast(i % 64);
-            v.* = M.fromCanonical(@intCast(((self.state_a[i / 64] >> bit) & 1) | (((self.state_b[i / 64] >> bit) & 1) << 3)));
+            v.* = self.stateCell(i);
         }
         for (row[L.STATE..L.ACTIVE_A], 0..) |*v, i| {
-            const bit: u6 = @intCast(i % 64);
-            v.* = M.fromCanonical(@intCast(((self.parity_a[i / 64] >> bit) & 1) | (((self.parity_b[i / 64] >> bit) & 1) << 3)));
+            v.* = self.parityCell(i);
         }
         row[L.ACTIVE_A] = M.fromCanonical(self.flags & 1);
         row[L.ACTIVE_B] = M.fromCanonical((self.flags >> 1) & 1);

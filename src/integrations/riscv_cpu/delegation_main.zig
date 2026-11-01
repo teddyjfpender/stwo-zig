@@ -1,5 +1,6 @@
 //! Package-root ownership for a registered nested delegation CLI.
 pub const main = switch (@import("delegation_entry").id) {
+    .keccak_source_profile => @import("delegations/keccak/source_profile_main.zig").main,
     .keccak_pair2n_fixture => @import("delegations/keccak/pair2n_main.zig").main,
     .keccak_fixture => @import("delegations/keccak/fixture_main.zig").main,
     .keccak_verify => @import("delegations/keccak/verify_main.zig").main,

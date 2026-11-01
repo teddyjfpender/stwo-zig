@@ -1,5 +1,7 @@
 //! One final column-major witness; pure paired semantics reuse the old authority.
 const std = @import("std");
+const engine = @import("stwo_prover_engine");
+pub const source_render = @import("source_render.zig");
 const Storage = @import("../main_storage.zig");
 const core = @import("stwo_core");
 const M = core.fields.m31.M31;
@@ -9,6 +11,13 @@ const authority = @import("../../../../air/guest_precompile/keccakf_authority.zi
 const physical = @import("../../witness.zig").physical;
 pub const State = authority.State;
 pub const PackedRow = @import("packed_row.zig").PackedRow;
+pub const BuildProfile = struct {
+    fixed_ns: u64 = 0,
+    metadata_ns: u64 = 0,
+    zero_ns: u64 = 0,
+    render_ns: u64 = 0,
+    render_workers: usize = 1,
+};
 pub const Trace = struct {
     allocator: std.mem.Allocator,
     log_size: u32,
@@ -27,37 +36,48 @@ pub const Trace = struct {
         return initWithLogAndMainAllocator(a, a, inputs, first_call_id, log);
     }
     pub fn initWithLogAndMainAllocator(a: std.mem.Allocator, main_allocator: std.mem.Allocator, inputs: []const State, first_call_id: u32, log: u32) !Trace {
-        return build(a, .{ .owned = main_allocator }, inputs, first_call_id, log);
+        return build(a, .{ .owned = main_allocator }, inputs, first_call_id, log, .{ .pool = engine.work_pool.currentScopedPool() });
     }
     pub fn initWithMainBuffer(a: std.mem.Allocator, inputs: []const State, first_call_id: u32, log: u32, main: []M) !Trace {
-        return build(a, .{ .borrowed = main }, inputs, first_call_id, log);
+        return build(a, .{ .borrowed = main }, inputs, first_call_id, log, .{ .pool = engine.work_pool.currentScopedPool() });
     }
-    fn build(a: std.mem.Allocator, storage: Storage.Buffer, inputs: []const State, first_call_id: u32, log: u32) !Trace {
+    /// Native source-only attribution; the optional clock never enters AIR/FS.
+    pub fn initWithLogProfiled(a: std.mem.Allocator, inputs: []const State, first_call_id: u32, log: u32, profile: *BuildProfile) !Trace {
+        profile.* = .{};
+        return build(a, .{ .owned = a }, inputs, first_call_id, log, .{ .pool = engine.work_pool.currentScopedPool(), .profile = profile });
+    }
+    pub const BuildOptions = struct { pool: ?*engine.work_pool.WorkPool = null, profile: ?*BuildProfile = null };
+    pub fn initWithOptions(a: std.mem.Allocator, inputs: []const State, first_call_id: u32, log: u32, options: BuildOptions) !Trace {
+        return build(a, .{ .owned = a }, inputs, first_call_id, log, options);
+    }
+    fn build(a: std.mem.Allocator, storage: Storage.Buffer, inputs: []const State, first_call_id: u32, log: u32, options: BuildOptions) !Trace {
+        const profile = options.profile;
+        if (profile) |p| p.* = .{};
         try L.validateGeometry(inputs.len, first_call_id, log);
         const n = @as(usize, 1) << @intCast(log);
         try storage.validate(L.MAIN * n);
         if (storage == .borrowed) try Storage.exclude(&.{.{ .values = storage.borrowed, .cells = L.MAIN * n }}, std.mem.sliceAsBytes(inputs));
+        var clock = if (profile != null) try std.time.Timer.start() else null;
         const fixed = try fixedColumnsForLog(a, log);
+        if (profile) |p| p.fixed_ns += clock.?.lap();
         errdefer a.free(fixed);
         const metadata = try a.alloc(PackedRow, try std.math.mul(usize, try std.math.divCeil(usize, inputs.len, 2), L.ROWS_PER_PAIR));
         errdefer a.free(metadata);
-        const main = try storage.acquire(L.MAIN * n);
-        errdefer storage.release(main);
-        @memset(main, M.zero());
+        if (clock) |*c| _ = c.lap();
         var i: usize = 0;
         while (i < inputs.len) : (i += 2) {
             const slot = try witness.buildSlot(inputs[i], if (i + 1 < inputs.len) inputs[i + 1] else null);
             for (slot.rows, 0..) |row, group| {
                 const logical = i / 2 * L.ROWS_PER_PAIR + group;
                 metadata[logical] = PackedRow.fromNative(&row, @intCast(@as(u64, first_call_id) + i));
-                const r = physical(logical, log);
-                for (row.state, 0..) |v, c| main[c * n + r] = M.fromCanonical(v);
-                for (row.parity, 0..) |v, c| main[(L.STATE + c) * n + r] = M.fromCanonical(v);
-                main[L.ACTIVE_A * n + r] = M.one();
-                main[L.ACTIVE_B * n + r] = M.fromCanonical(@intFromBool(i + 1 < inputs.len));
-                main[L.BASE_ID * n + r] = M.fromCanonical(@intCast(@as(u64, first_call_id) + i));
             }
         }
+        if (profile) |p| p.metadata_ns += clock.?.lap();
+        const main = try storage.acquire(L.MAIN * n);
+        errdefer storage.release(main);
+        if (clock) |*c| _ = c.lap();
+        try source_render.renderProfiled(metadata, main, log, options.pool, if (profile) |p| &p.render_workers else null);
+        if (profile) |p| p.render_ns += clock.?.lap();
         return .{ .allocator = a, .log_size = log, .calls = @intCast(inputs.len), .first_call_id = first_call_id, .fixed = fixed, .main = main, .main_allocator = storage.allocator(), .owns_main = storage == .owned, .metadata = metadata };
     }
     pub fn deinit(self: *Trace) void {

@@ -127,6 +127,7 @@ pub const steps = [_]Step{
     .{ .name = "rv64-secp-fixture", .description = "Build durable projective secp256k1 proof qualification", .scope = .riscv_cpu },
     .{ .name = "rv64-keccak-pair2n-fixture", .description = "Standalone strict-pair degree3 Keccak q70 fixture", .scope = .riscv_cpu },
     .{ .name = "rv64-keccak-fixture", .description = "Build durable Keccak primitive proof qualification", .scope = .riscv_cpu },
+    .{ .name = "rv64-keccak-source-profile", .description = "Attribute bounded native Keccak source construction and lookup counts", .scope = .riscv_cpu },
     .{ .name = "rv64-distributed-functional-fixture", .description = "Build durable experimental distributed public-facts proof control", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-weighted-binary", .description = "Build fresh-process weighted BINARY diagnostic", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-binary-fixture", .description = "Build durable diagnostic Word16 binary proof control", .scope = .riscv_cpu },

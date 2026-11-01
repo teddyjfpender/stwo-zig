@@ -1,4 +1,5 @@
 test {
+    _ = @import("../../tests/rv64_keccak_source_tile_test.zig");
     _ = @import("../../tests/rv64_keccak_bridge_lane_test.zig");
     _ = @import("../../tests/rv64_keccak_lane_test.zig");
     _ = @import("../../tests/rv64_keccak_interaction_parallel_test.zig");
