@@ -128,3 +128,113 @@ test "Global manifest owns expected inventory with balanced exhaustive allocatio
     claims[0].c0.a.v = core.fields.m31.Modulus;
     try std.testing.expectError(error.NoncanonicalGlobalClaim, G.validateClaims(claims));
 }
+
+fn stagedSpecs() [4]G.Spec {
+    var s: [4]G.Spec = undefined;
+    for (&s, 0..) |*item, i| {
+        const epoch: u16 = @intCast(if (i == 3) 2 else i);
+        const start: u64 = if (i < 2) 0 else if (i == 2) 16 else 32;
+        const pc: u64 = if (i < 2) 0x1000 else if (i == 2) 0x1020 else 0x1040;
+        const next_pc: u64 = if (i == 0) pc else if (i == 1) 0x1020 else 0x1040;
+        const before: G.Digest = @splat(@intCast(if (i < 2) 1 else if (i == 2) 2 else 3));
+        const after: G.Digest = @splat(@intCast(if (i == 0) 1 else if (i == 1) 2 else 3));
+        item.* = .{
+            .ordinal = @intCast(i),
+            .role = if (i == 0) .initial else if (i == 3) .terminal else .execution,
+            .coverage = .{ .first_step = start, .steps = if (i == 1 or i == 2) 16 else 0, .epoch = epoch, .initial_pc = pc, .final_pc = next_pc, .initial_registers = before, .final_registers = after },
+            .schema = @splat(5), .statement = @splat(6),
+            .fixed = .{ .bytes = @splat(7) }, .fixed_logs = &.{ 5, 6 }, .main_logs = &.{ 5, 7 },
+            .positive_mass = .{ 2, 3, 4 },
+        };
+    }
+    return s;
+}
+fn stagedContext() G.Context {
+    var c = context();
+    c.scope = .full_execution_unqualified;
+    c.total_steps = 32;
+    return c;
+}
+fn stagedAnchors() G.ExecutionAnchors {
+    return .{ .initial_pc = 0x1000, .initial_registers = @splat(1), .terminal_pc = 0x1040, .terminal_registers = @splat(3), .total_steps = 32 };
+}
+fn stagedCheck(specs: []const G.Spec, anchors: G.ExecutionAnchors) !void {
+    try G.validateStagedExecutionPlan(.{ .context = stagedContext(), .specs = specs }, anchors);
+}
+
+test "Full global RAM plan validates independent genesis terminal and contiguous epochs without activating proofs" {
+    var s = stagedSpecs();
+    try stagedCheck(&s, stagedAnchors());
+    var c = stagedContext();
+    c.scope = .boundary_diagnostic;
+    try std.testing.expectError(error.InvalidStagedGlobalScope, G.validateStagedExecutionPlan(.{ .context = c, .specs = &s }, stagedAnchors()));
+    var receipts_: [4]G.Receipt = undefined;
+    for (&receipts_, s) |*r, item| r.* = .{ .ordinal = item.ordinal, .spec_digest = G.specDigest(item), .fixed = item.fixed, .main = .{ .bytes = @splat(9) } };
+    // The staged validator is not the accepting protocol. Do not let passing
+    // this metadata preflight turn on production/global proof publication.
+    try std.testing.expectError(error.UnqualifiedGlobalExecution, G.Manifest.init(a, .{ .context = stagedContext(), .specs = &s }, &receipts_));
+    try std.testing.expectError(error.InvalidStagedGlobalRoster, stagedCheck(s[0..3], stagedAnchors()));
+    var anchors = stagedAnchors();
+    anchors.terminal_pc ^= 4;
+    try std.testing.expectError(error.InvalidStagedGlobalTerminal, stagedCheck(&s, anchors));
+    anchors = stagedAnchors();
+    anchors.terminal_registers[0] ^= 1;
+    try std.testing.expectError(error.InvalidStagedGlobalTerminal, stagedCheck(&s, anchors));
+    anchors = stagedAnchors();
+    anchors.total_steps = 31;
+    try std.testing.expectError(error.InvalidStagedGlobalCoverage, stagedCheck(&s, anchors));
+}
+
+test "Full global RAM plan rejects omitted duplicate reordered zero-step and gapped workers" {
+    var s = stagedSpecs();
+    s[1].ordinal = 2;
+    try std.testing.expectError(error.InvalidStagedGlobalRoster, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[2].role = .initial;
+    try std.testing.expectError(error.InvalidStagedGlobalRoster, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].coverage.epoch = 0;
+    try std.testing.expectError(error.InvalidStagedGlobalRoster, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[2].coverage.first_step += 1;
+    try std.testing.expectError(error.InvalidStagedGlobalCoverage, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[2].coverage.first_step -= 1;
+    try std.testing.expectError(error.InvalidStagedGlobalCoverage, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].coverage.steps = 0;
+    try std.testing.expectError(error.InvalidStagedGlobalCoverage, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].coverage.steps = G.MAX_EXECUTION_STEPS_PER_SHARD + 1;
+    try std.testing.expectError(error.InvalidStagedGlobalCoverage, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[0].coverage.steps = 1;
+    try std.testing.expectError(error.InvalidStagedGlobalBoundary, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[3].coverage.steps = 1;
+    try std.testing.expectError(error.InvalidStagedGlobalBoundary, stagedCheck(&s, stagedAnchors()));
+}
+
+test "Full global RAM plan rejects forged adjacency geometry and characteristic claims" {
+    var s = stagedSpecs();
+    s[2].coverage.initial_pc ^= 4;
+    try std.testing.expectError(error.InvalidStagedGlobalAdjacency, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[2].coverage.initial_registers[0] ^= 1;
+    try std.testing.expectError(error.InvalidStagedGlobalAdjacency, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[0].coverage.final_pc ^= 4;
+    try std.testing.expectError(error.InvalidStagedGlobalBoundary, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[3].coverage.final_registers[0] ^= 1;
+    try std.testing.expectError(error.InvalidStagedGlobalBoundary, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].main_logs = &.{ 23 };
+    try std.testing.expectError(error.InvalidStagedGlobalGeometry, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].fixed_logs = &.{};
+    try std.testing.expectError(error.InvalidStagedGlobalGeometry, stagedCheck(&s, stagedAnchors()));
+    s = stagedSpecs();
+    s[1].positive_mass[2] = core.fields.m31.Modulus - 1;
+    try std.testing.expectError(error.GlobalCharacteristicBound, stagedCheck(&s, stagedAnchors()));
+}
