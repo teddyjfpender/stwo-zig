@@ -26,7 +26,7 @@ fn append(out: *[Model.MAX_AUDIT_EVENTS]Model.Event, count: *usize, event: Model
     count.* += 1;
 }
 fn serviceWord(pointer: u64, lane: usize) !u64 {
-    return std.math.add(u64, pointer, @as(u64, @intCast(lane)) * 8) catch error.InvalidGlobalServicePointer;
+    return std.math.add(u64, pointer, @as(u64, @intCast(lane)) * 8) catch return error.InvalidGlobalServicePointer;
 }
 
 /// Tests the selected 14-coordinate global RAM transition semantics against
