@@ -20,6 +20,11 @@ pub fn firstCall(requests: []const Request, index: usize, family: usize) !u32 {
 }
 pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [2]*const R.TruthSetup, requests: []const Request, expected: Expected) ![2]u32 {
     if (setups.len == 0 or setups.len > 65533 or setups.len != requests.len) return error.InvalidSecpInventory;
+    for (setups) |s| {
+        try s.materials.suite.requireProduction();
+        try s.key.suite.requireProduction();
+    }
+    for (truths) |t| try t.key.suite.requireProduction();
     const mats = try a.alloc(*const @import("../../word16_execution/setup.zig").Materials, setups.len);
     defer a.free(mats);
     const rr = try a.alloc(G.Old.Request, setups.len);

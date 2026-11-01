@@ -24,9 +24,12 @@ pub fn main() !void {
     const args = raw_args[0..operational.count];
     if (args.len == 2 and std.mem.eql(u8, args[1], "describe")) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .core_claims = P.CORE_CLAIM_COUNT, .cpu_claims_with_services = P.CPU_CLAIM_COUNT, .pcs_config = @import("../protocol.zig").T.P.config() });
     if (args.len < 4) return error.ExpectedModeConfigAndDirectory;
-    const verify = std.mem.eql(u8, args[1], "verify");
-    const prefix = std.mem.eql(u8, args[1], "verify-prefix");
-    const produce = std.mem.eql(u8, args[1], "produce");
+    const fold4 = std.mem.endsWith(u8, args[1], "-fold4");
+    const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
+    const suite = if (fold4) Suite.experimentalFold4() else Suite.production();
+    const verify = std.mem.eql(u8, args[1], "verify") or std.mem.eql(u8, args[1], "verify-fold4");
+    const prefix = std.mem.eql(u8, args[1], "verify-prefix") or std.mem.eql(u8, args[1], "verify-prefix-fold4");
+    const produce = std.mem.eql(u8, args[1], "produce") or std.mem.eql(u8, args[1], "produce-fold4");
     const plan = std.mem.eql(u8, args[1], "plan");
     if (!verify and !prefix and !produce and !plan) return error.InvalidWord16EthereumMode;
     if ((verify or prefix) and args.len != 4) return error.VerifierNeedsNoExecutionPackets;
@@ -53,7 +56,7 @@ pub fn main() !void {
         var trusted_program = try Program.initWithAuthority(a, &image.authority);
         defer trusted_program.deinit();
         _ = try Receiver.expected(&image, trusted_program.identity, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
-        var keys = if (operational.keep_fixed_witness) try Keys.init(a, &image, loaded.cpu_declarations, loaded.truth_declarations) else try Keys.initRetiring(a, &image, loaded.cpu_declarations, loaded.truth_declarations);
+        var keys = try Keys.initWithSuite(a, &image, loaded.cpu_declarations, loaded.truth_declarations, !operational.keep_fixed_witness, suite);
         defer keys.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verify(a, &image, &keys, &loaded.bundle, config.value.max_steps, config.value.batch_steps, verify);
@@ -77,7 +80,7 @@ pub fn main() !void {
     defer a.free(truth_declarations);
     if (truth_declarations.len > (W.Limits{}).max_truths) return error.TooManyEthereumTruths;
     if (plan) return emit(a, .{ .core_schema = @import("../../word16_execution/protocol.zig").SCHEMA, .scope = "producer advice and bounded geometry only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu_declarations, .truth = truth_declarations, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
-    var keys = if (operational.keep_fixed_witness) try Keys.init(a, &image, cpu_declarations, truth_declarations) else try Keys.initRetiring(a, &image, cpu_declarations, truth_declarations);
+    var keys = try Keys.initWithSuite(a, &image, cpu_declarations, truth_declarations, !operational.keep_fixed_witness, suite);
     defer keys.deinit();
     const expected = P.Expected{ .admission = Driver.admission(&image), .program_identity = program.identity, .total_steps = captured.total_steps, .max_total_steps = config.value.max_steps, .final_pc = captured.final_pc, .final_registers = captured.final_registers };
     // Full completion is explicit. Prefix fixtures can never accidentally

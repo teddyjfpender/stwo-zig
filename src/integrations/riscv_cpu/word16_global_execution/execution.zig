@@ -65,7 +65,7 @@ const Worker = struct {
     }
 };
 fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup) !P.Receipt {
-    if (!std.meta.eql(scheme.config, P.T.P.config()) or scheme.revision_config != null) return error.GlobalPcsSuiteMismatch;
+    if (!std.meta.eql(scheme.config, setup.materials.suite.config()) or scheme.revision_config != null) return error.GlobalPcsSuiteMismatch;
     var roots = try scheme.roots(a);
     defer roots.deinit(a);
     if (roots.items.len != 2) return error.InvalidGlobalStage1;
@@ -74,7 +74,7 @@ fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup)
         const logs = try setup.materials.logs(a, tree);
         defer a.free(logs);
         if (logs.len != scheme.trees.items[tree].columns.len) return error.GlobalStage1GeometryMismatch;
-        for (logs, scheme.trees.items[tree].columns) |log, col| if (col.log_size != log + P.T.P.config().fri_config.log_blowup_factor) return error.GlobalStage1GeometryMismatch;
+        for (logs, scheme.trees.items[tree].columns) |log, col| if (col.log_size != log + setup.materials.suite.config().fri_config.log_blowup_factor) return error.GlobalStage1GeometryMismatch;
     }
     return .{ .fixed = .{ .bytes = roots.items[0] }, .main = .{ .bytes = roots.items[1] } };
 }
@@ -159,10 +159,10 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const P.Setup, expected: P.
         var owns = true;
         defer if (owns) proof.deinit(a);
         const pcs = &proof.commitment_scheme_proof;
-        if (!std.meta.eql(pcs.config, P.T.P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.GlobalPcsSuiteMismatch;
+        if (!std.meta.eql(pcs.config, setup.materials.suite.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.GlobalPcsSuiteMismatch;
         const roots = pcs.commitments.items;
         if (!std.mem.eql(u8, &roots[0], &setup.fixed_root.value) or !std.mem.eql(u8, &roots[0], &bundle.manifest.roots[index].fixed.bytes) or !std.mem.eql(u8, &roots[1], &bundle.manifest.roots[index].main.bytes)) return error.GlobalStage1RootMismatch;
-        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(P.T.P.Hasher, P.T.P.MerkleChannel).init(a, P.T.P.config());
+        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(P.T.P.Hasher, P.T.P.MerkleChannel).init(a, setup.materials.suite.config());
         defer verifier.deinit(a);
         var channel = P.T.P.Channel{};
         var before: u64 = 0;

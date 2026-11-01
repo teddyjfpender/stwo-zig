@@ -110,6 +110,10 @@ pub const TruthSetup = struct {
     key: Key,
     pub const WIDTHS = [3]usize{ K.layout.FIXED + 14, K.layout.MAIN + 2, K.layout.INTERACTION + 8 };
     pub fn init(a: std.mem.Allocator, log: u32) !TruthSetup {
+        return initWithSuite(a, log, Key.Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, log: u32, suite: Key.Suite) !TruthSetup {
+        try suite.validate();
         if (log > 21) return error.SharedTruthGeometryBudget;
         try K.layout.validateGeometry(0, 1, log);
         const fixed = try K.trace.fixedColumnsForLog(a, log);
@@ -121,7 +125,7 @@ pub const TruthSetup = struct {
         var self = TruthSetup{ .allocator = a, .log = log, .fixed = fixed, .chi = chi, .xor5 = xor, .key = undefined };
         const cols = try self.fixedColumns(a);
         defer a.free(cols);
-        self.key = try Key.seal(a, cols);
+        self.key = try Key.sealWithSuite(a, cols, suite);
         return self;
     }
     pub fn deinit(self: *TruthSetup) void {

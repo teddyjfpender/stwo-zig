@@ -23,6 +23,10 @@ pub fn firstCall(requests: []const Request, index: usize) !u32 {
 }
 fn admitCpu(a: std.mem.Allocator, setups: []const *const R.CpuSetup, requests: []const Request, expected: Expected) !u32 {
     if (setups.len == 0 or setups.len >= 65535 or setups.len != requests.len) return error.InvalidSharedTruthInventory;
+    for (setups) |s| {
+        try s.materials.suite.requireProduction();
+        try s.key.suite.requireProduction();
+    }
     const mats = try a.alloc(*const @import("../../../word16_execution/setup.zig").Materials, setups.len);
     defer a.free(mats);
     const rr = try a.alloc(P.Old.Request, setups.len);
@@ -64,12 +68,14 @@ pub fn validateSpans(truths: []const Truth, calls: u32) !void {
 pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truth: *const R.TruthSetup, requests: []const Request, expected: Expected) !u32 {
     const calls = try admitCpu(a, setups, requests, expected);
     try validateSpans(&.{.{ .setup = truth, .first_id = 1, .calls = calls }}, calls);
+    try truth.key.suite.requireProduction();
     return calls;
 }
 pub fn admitBounded(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const Truth, requests: []const Request, expected: Expected) !u32 {
     if (truths.len > 65535 or setups.len > 65535 - truths.len) return error.InvalidSharedTruthInventory;
     const calls = try admitCpu(a, setups, requests, expected);
     try validateSpans(truths, calls);
+    for (truths) |t| try t.setup.key.suite.requireProduction();
     return calls;
 }
 pub fn beginCpu(ch: *P.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: Expected, index: usize, first_step: u64, first_id: u32) !void {

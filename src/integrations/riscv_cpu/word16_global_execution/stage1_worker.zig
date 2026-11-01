@@ -31,7 +31,8 @@ pub const Stage1Worker = struct {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, source.allocator)) return error.PreparedAllocatorMismatch;
         if (source.materials != &setup.materials or source.cpu.program != &setup.materials.program) return error.PreparedSetupMismatch;
         if (ordinal >= 65535 or source.cpu.epoch != ordinal + 1 or !std.mem.eql(u8, &setup.materials.program.identity, &expected.program_identity)) return error.GlobalWorkerContextMismatch;
-        var scheme = try P.T.Scheme.init(a, P.T.P.config());
+        try setup.materials.suite.validate();
+        var scheme = try P.T.Scheme.init(a, setup.materials.suite.config());
         errdefer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
         var channel = P.T.P.Channel{};
@@ -125,7 +126,7 @@ pub const Stage1Worker = struct {
     }
 };
 fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup) !P.Receipt {
-    if (!std.meta.eql(scheme.config, P.T.P.config()) or scheme.revision_config != null) return error.GlobalPcsSuiteMismatch;
+    if (!std.meta.eql(scheme.config, setup.materials.suite.config()) or scheme.revision_config != null) return error.GlobalPcsSuiteMismatch;
     var roots = try scheme.roots(a);
     defer roots.deinit(a);
     if (roots.items.len != 2) return error.InvalidGlobalStage1;
@@ -134,7 +135,7 @@ fn checkStage1(a: std.mem.Allocator, scheme: *P.T.Scheme, setup: *const P.Setup)
         const logs = try setup.materials.logs(a, tree);
         defer a.free(logs);
         if (logs.len != scheme.trees.items[tree].columns.len) return error.GlobalStage1GeometryMismatch;
-        for (logs, scheme.trees.items[tree].columns) |log, col| if (col.log_size != log + P.T.P.config().fri_config.log_blowup_factor) return error.GlobalStage1GeometryMismatch;
+        for (logs, scheme.trees.items[tree].columns) |log, col| if (col.log_size != log + setup.materials.suite.config().fri_config.log_blowup_factor) return error.GlobalStage1GeometryMismatch;
     }
     return .{ .fixed = .{ .bytes = roots.items[0] }, .main = .{ .bytes = roots.items[1] } };
 }

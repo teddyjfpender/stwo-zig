@@ -101,7 +101,8 @@ pub fn validateDivisionClass(geometry: @import("geometry.zig").Geometry, request
 pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
     try validateDivisionClass(materials.geometry, request.division_requests, Q.zero());
     try validateLsTailClass(materials.geometry, request.memory.ls_count, zeroMemoryClaim());
-    T.P.config().mixInto(channel);
+    try materials.suite.validate();
+    materials.suite.config().mixInto(channel);
     channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, CLAIM_COUNT, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);

@@ -34,6 +34,7 @@ pub const Admission = struct {
         if (ls_count > steps or words > ls_count or words >= @as(u64, 1) << @intCast(geometry.initialLog()) or words >= @as(u64, 1) << @intCast(geometry.terminalLog())) return error.InvalidExecutionMemoryCount;
     }
     pub fn validate(self: Admission, setup: *const Mat.Setup, request: P.Request) !void {
+        try setup.materials.suite.validate();
         try self.validateGeometry(setup.materials.geometry, request);
     }
     /// Cheap public admission precedes statement-specific fixed-key allocation.
@@ -113,7 +114,7 @@ fn provePreparedWithOwnership(a: std.mem.Allocator, setup: *const Mat.Setup, adm
         defer stage.end();
         try admission.validate(setup, request);
     }
-    var scheme = try T.Scheme.init(a, T.P.config());
+    var scheme = try T.Scheme.init(a, setup.materials.suite.config());
     var owns = true;
     defer if (owns) scheme.deinit(a);
     scheme.setCompactPolynomialStorage(5);
@@ -184,9 +185,9 @@ pub fn verifyProfiled(a: std.mem.Allocator, setup: *const Mat.Setup, admission: 
     var owns = true;
     defer if (owns) proof.deinit(a);
     const pcs = &proof.commitment_scheme_proof;
-    if (!std.meta.eql(pcs.config, T.P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.InvalidWord16ExecutionProof;
+    if (!std.meta.eql(pcs.config, setup.materials.suite.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.InvalidWord16ExecutionProof;
     if (!std.mem.eql(u8, &pcs.commitments.items[0], &setup.fixed_root.value)) return error.UnexpectedWord16ExecutionFixedRoot;
-    var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(T.P.Hasher, T.P.MerkleChannel).init(a, T.P.config());
+    var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(T.P.Hasher, T.P.MerkleChannel).init(a, setup.materials.suite.config());
     defer verifier.deinit(a);
     var channel = T.P.Channel{};
     try P.mix(&channel, setup, encoded.request, admission.image_identity);

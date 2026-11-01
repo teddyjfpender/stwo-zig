@@ -28,6 +28,12 @@ pub fn firstIds(requests: []const Request, index: usize) ![3]u32 {
 }
 pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, requests: []const Request, expected: Expected) ![3]u32 {
     if (setups.len == 0 or setups.len > 65535 or truths.len > 65535 - setups.len or setups.len != requests.len) return error.InvalidCombinedInventory;
+    const suite = setups[0].materials.suite;
+    try suite.validate();
+    for (setups) |s| {
+        if (!s.materials.suite.eql(suite) or !s.key.suite.eql(suite)) return error.MixedWord16PcsSuites;
+    }
+    for (truths) |t| if (!t.key().suite.eql(suite)) return error.MixedWord16PcsSuites;
     const mats = try a.alloc(*const @import("../../word16_execution/setup.zig").Materials, setups.len);
     defer a.free(mats);
     const rr = try a.alloc(G.Old.Request, setups.len);
@@ -99,7 +105,7 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
     }
 }
 pub fn beginTruth(ch: *G.T.P.Channel, truth: R.Truth, expected: Expected, ordinal: usize) void {
-    G.T.P.config().mixInto(ch);
+    truth.key().suite.config().mixInto(ch);
     ch.mixU32s(&.{ 0x57534345, 1, 1, @intCast(ordinal), @intFromEnum(truth.family()), truth.first(), truth.count(), 3 });
     G.Old.digest(ch, expected.program_identity);
     G.Old.digest(ch, expected.admission.image_identity);

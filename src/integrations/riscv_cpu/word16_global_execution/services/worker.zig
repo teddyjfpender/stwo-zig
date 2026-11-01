@@ -94,7 +94,8 @@ pub const Worker = struct {
     failed: bool = false,
     pub fn init(a: std.mem.Allocator, descriptor: Descriptor, source: Source) !Worker {
         if ((descriptor == .cpu) != (source == .cpu)) return error.ServiceWorkerKindMismatch;
-        var scheme = try G.T.Scheme.init(a, G.T.P.config());
+        try descriptor.key().suite.validate();
+        var scheme = try G.T.Scheme.init(a, descriptor.key().suite.config());
         scheme.setCompactPolynomialStorage(5);
         return .{ .descriptor = descriptor, .source = source, .scheme = scheme };
     }
@@ -109,7 +110,7 @@ pub const Worker = struct {
         self.retireSource();
     }
     pub fn actual(self: *Worker, a: std.mem.Allocator) !G.Receipt {
-        if (!std.meta.eql(self.scheme.config, G.T.P.config()) or self.scheme.revision_config != null) return error.CombinedPcsSuiteMismatch;
+        if (!std.meta.eql(self.scheme.config, self.descriptor.key().suite.config()) or self.scheme.revision_config != null) return error.CombinedPcsSuiteMismatch;
         var roots = try self.scheme.roots(a);
         defer roots.deinit(a);
         if (roots.items.len != 2 or !std.mem.eql(u8, &roots.items[0], &self.descriptor.key().root)) return error.CombinedStage1Mismatch;
@@ -117,7 +118,7 @@ pub const Worker = struct {
             const logs = try self.descriptor.logs(a, tree);
             defer a.free(logs);
             if (logs.len != self.scheme.trees.items[tree].columns.len) return error.CombinedStage1Mismatch;
-            for (logs, self.scheme.trees.items[tree].columns) |log, column| if (column.log_size != log + G.T.P.config().fri_config.log_blowup_factor) return error.CombinedStage1Mismatch;
+            for (logs, self.scheme.trees.items[tree].columns) |log, column| if (column.log_size != log + self.descriptor.key().suite.config().fri_config.log_blowup_factor) return error.CombinedStage1Mismatch;
         }
         return .{ .fixed = .{ .bytes = roots.items[0] }, .main = .{ .bytes = roots.items[1] } };
     }

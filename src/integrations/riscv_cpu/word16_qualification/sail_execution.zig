@@ -8,6 +8,7 @@ const Program = @import("../word16_execution/program.zig").Program;
 const Prepared = @import("../word16_execution/prepared.zig").Prepared;
 const Source = @import("../word16_execution/sources.zig").Source;
 const Setup = @import("../word16_execution/setup.zig").Setup;
+const Suite = @import("../word16_execution/pcs_suite.zig").Suite;
 const Coverage = @import("../word16_execution/coverage.zig");
 const G = @import("../word16_execution/geometry.zig");
 const E = @import("../word16_execution/execution.zig");
@@ -23,6 +24,10 @@ fn programFromImage(a: std.mem.Allocator, image: *Image.Owner) !Program {
     return Program.initWithProfile(a, raw.value(), .rv64im);
 }
 pub fn prove(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void {
+    return proveWithSuite(a, image, path, Suite.production());
+}
+pub fn proveWithSuite(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, suite: Suite) !void {
+    try suite.validate();
     var timer = try std.time.Timer.start();
     var capture = try Capture.run(a, image);
     defer capture.deinit();
@@ -43,7 +48,7 @@ pub fn prove(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void 
     const shapes = G.shapes(&program, geometry);
     owns_program = false;
     const setup_start = timer.read();
-    var setup = try Setup.initOwnedProgram(a, program, geometry);
+    var setup = try Setup.initOwnedProgramWithSuite(a, program, geometry, suite);
     defer setup.deinit();
     const setup_ns = timer.read() - setup_start;
     const source = try Source.fromPrepared(a, &setup.materials, image.admission().image, &prepared);
@@ -66,6 +71,10 @@ pub fn prove(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void 
     try Output.stdout(a, report);
 }
 pub fn verify(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void {
+    return verifyWithSuite(a, image, path, Suite.production());
+}
+pub fn verifyWithSuite(a: std.mem.Allocator, image: *Image.Owner, path: []const u8, suite: Suite) !void {
+    try suite.validate();
     var timer = try std.time.Timer.start();
     var dir = try std.fs.cwd().openDir(path, .{});
     defer dir.close();
@@ -89,7 +98,7 @@ pub fn verify(a: std.mem.Allocator, image: *Image.Owner, path: []const u8) !void
     var owns_program = true;
     defer if (owns_program) program.deinit();
     owns_program = false;
-    var setup = try Setup.initOwnedProgram(a, program, b.geometry);
+    var setup = try Setup.initOwnedProgramWithSuite(a, program, b.geometry, suite);
     defer setup.deinit();
     const bytes = try dir.readFileAlloc(a, "proof.bin", 64 * 1024 * 1024);
     defer a.free(bytes);

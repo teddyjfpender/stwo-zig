@@ -131,6 +131,13 @@ pub const Case = struct {
         return initMutation(a, .none);
     }
     pub fn initMutation(a: std.mem.Allocator, mutation: Mutation) !Case {
+        return initMutationWithSuite(a, mutation, @import("../../word16_execution/pcs_suite.zig").Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, suite: @import("../../word16_execution/pcs_suite.zig").Suite) !Case {
+        return initMutationWithSuite(a, .none, suite);
+    }
+    fn initMutationWithSuite(a: std.mem.Allocator, mutation: Mutation, suite: @import("../../word16_execution/pcs_suite.zig").Suite) !Case {
+        try suite.validate();
         var captured = try Captured.init(a);
         defer captured.deinit();
         if (mutation == .wrong_pointer) captured.advice.keccak[0][0].pointer += 8;
@@ -157,23 +164,23 @@ pub const Case = struct {
         }
         const s0 = try a.create(R.CpuSetup);
         errdefer a.destroy(s0);
-        s0.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try captured.native[0].geometry(), .{ .keccak = 5 });
+        s0.* = try R.CpuSetup.initProgramWithSuite(a, .{ .base = 4096, .words = &WORDS }, try captured.native[0].geometry(), .{ .keccak = 5 }, suite);
         errdefer s0.deinit();
         const s1 = try a.create(R.CpuSetup);
         errdefer a.destroy(s1);
-        s1.* = try R.CpuSetup.initProgram(a, .{ .base = 4096, .words = &WORDS }, try captured.native[1].geometry(), .{ .add = 5, .double = 5 });
+        s1.* = try R.CpuSetup.initProgramWithSuite(a, .{ .base = 4096, .words = &WORDS }, try captured.native[1].geometry(), .{ .add = 5, .double = 5 }, suite);
         errdefer s1.deinit();
         const kt = try a.create(KR.TruthSetup);
         errdefer a.destroy(kt);
-        kt.* = try KR.TruthSetup.init(a, 5);
+        kt.* = try KR.TruthSetup.initWithSuite(a, 5, suite);
         errdefer kt.deinit();
         const at = try a.create(SR.TruthSetup);
         errdefer a.destroy(at);
-        at.* = try SR.TruthSetup.init(a, .add, .{ try S.layout.logSize(.product, &S.program.add, 1), try S.layout.logSize(.linear, &S.program.add, 1) });
+        at.* = try SR.TruthSetup.initWithSuite(a, .add, .{ try S.layout.logSize(.product, &S.program.add, 1), try S.layout.logSize(.linear, &S.program.add, 1) }, suite);
         errdefer at.deinit();
         const dt = try a.create(SR.TruthSetup);
         errdefer a.destroy(dt);
-        dt.* = try SR.TruthSetup.init(a, .double, .{ try S.layout.logSize(.product, &S.program.double, 1), try S.layout.logSize(.linear, &S.program.double, 1) });
+        dt.* = try SR.TruthSetup.initWithSuite(a, .double, .{ try S.layout.logSize(.product, &S.program.double, 1), try S.layout.logSize(.linear, &S.program.double, 1) }, suite);
         errdefer dt.deinit();
         const truth = [_]R.Truth{ .{ .keccak = .{ .setup = kt, .first_id = 1, .calls = 1 } }, .{ .secp = .{ .setup = at, .first_id = 1, .calls = 1 } }, .{ .secp = .{ .setup = dt, .first_id = 1, .calls = 1 } } };
         const bundle = try E.produce(a, &.{ s0, s1 }, &truth, &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expectedFor(captured.program.identity));

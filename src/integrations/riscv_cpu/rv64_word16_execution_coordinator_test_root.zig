@@ -1,4 +1,5 @@
 test {
+    _ = @import("word16_execution/pcs_suite_test.zig");
     _ = @import("word16_execution/cpu_zero_induction_proof_test.zig");
     _ = @import("word16_execution/shift_read_induction_proof_test.zig");
     _ = @import("word16_execution/alu_read_induction_proof_test.zig");

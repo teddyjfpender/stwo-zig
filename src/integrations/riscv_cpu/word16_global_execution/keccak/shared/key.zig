@@ -2,12 +2,19 @@
 const std = @import("std");
 const engine = @import("stwo_prover_engine");
 const P = @import("../../protocol.zig");
+const SuiteType = @import("../../../word16_execution/pcs_suite.zig").Suite;
 pub const Key = struct {
+    pub const Suite = SuiteType;
+    suite: Suite = Suite.production(),
     allocator: std.mem.Allocator,
     root: [32]u8,
     tree: P.T.Scheme.CommittedTree,
     pub fn seal(a: std.mem.Allocator, columns: []const engine.pcs.ColumnEvaluation) !Key {
-        var scheme = try P.T.Scheme.init(a, P.T.P.config());
+        return sealWithSuite(a, columns, Suite.production());
+    }
+    pub fn sealWithSuite(a: std.mem.Allocator, columns: []const engine.pcs.ColumnEvaluation, suite: Suite) !Key {
+        try suite.validate();
+        var scheme = try P.T.Scheme.init(a, suite.config());
         defer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
         var ch = P.T.P.Channel{};
@@ -15,10 +22,11 @@ pub const Key = struct {
         var roots = try scheme.roots(a);
         defer roots.deinit(a);
         try scheme.trees.items[0].share(a);
-        return .{ .allocator = a, .root = roots.items[0], .tree = scheme.trees.pop().? };
+        return .{ .allocator = a, .suite = suite, .root = roots.items[0], .tree = scheme.trees.pop().? };
     }
     pub fn append(self: *const Key, a: std.mem.Allocator, scheme: *P.T.Scheme, ch: *P.T.P.Channel) !void {
-        if (scheme.trees.items.len != 0 or scheme.pending_commit != null or !std.meta.eql(scheme.config, P.T.P.config()) or scheme.revision_config != null) return error.InvalidSharedTruthFixedPhase;
+        try self.suite.validate();
+        if (scheme.trees.items.len != 0 or scheme.pending_commit != null or !std.meta.eql(scheme.config, self.suite.config()) or scheme.revision_config != null) return error.InvalidSharedTruthFixedPhase;
         var tree = self.tree.retainShared();
         errdefer tree.deinit(self.allocator);
         try scheme.appendCommittedTree(a, tree, ch);

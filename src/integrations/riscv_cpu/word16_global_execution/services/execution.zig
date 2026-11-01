@@ -47,9 +47,9 @@ pub fn produceWithOptions(a: std.mem.Allocator, setups: []const *const R.CpuSetu
     return @import("pipeline.zig").produce(a, setups, truths, prepared, advice, expected, options);
 }
 
-fn checkRoots(proof: anytype, key: [32]u8, manifest: *const G.Manifest, index: usize) !void {
+fn checkRoots(proof: anytype, key: [32]u8, suite: @import("../../word16_execution/pcs_suite.zig").Suite, manifest: *const G.Manifest, index: usize) !void {
     const pcs = &proof.commitment_scheme_proof;
-    if (!std.meta.eql(pcs.config, G.T.P.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.CombinedPcsSuiteMismatch;
+    if (!std.meta.eql(pcs.config, suite.config()) or pcs.revision_config != null or pcs.commitments.items.len != 4) return error.CombinedPcsSuiteMismatch;
     const roots = pcs.commitments.items;
     if (!std.mem.eql(u8, &roots[0], &key) or !std.mem.eql(u8, &roots[0], &manifest.roots[index].fixed.bytes) or !std.mem.eql(u8, &roots[1], &manifest.roots[index].main.bytes)) return error.CombinedStage1Mismatch;
 }
@@ -85,8 +85,8 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
         var owns = true;
         defer if (owns) proof.deinit(a);
-        try checkRoots(proof, s.key.root, &bundle.manifest, index);
-        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, G.T.P.config());
+        try checkRoots(proof, s.key.root, s.key.suite, &bundle.manifest, index);
+        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, s.key.suite.config());
         defer verifier.deinit(a);
         var channel = G.T.P.Channel{};
         var before: u64 = 0;
@@ -121,8 +121,8 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         var proof = try wire.decodeProofBytesBinary(a, encoded.bytes);
         var owns = true;
         defer if (owns) proof.deinit(a);
-        try checkRoots(proof, truth.key().root, &bundle.manifest, setups.len + k);
-        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, G.T.P.config());
+        try checkRoots(proof, truth.key().root, truth.key().suite, &bundle.manifest, setups.len + k);
+        var verifier = try core.pcs.verifier.CommitmentSchemeVerifier(G.T.P.Hasher, G.T.P.MerkleChannel).init(a, truth.key().suite.config());
         defer verifier.deinit(a);
         var channel = G.T.P.Channel{};
         P.beginTruth(&channel, truth, expected, k);

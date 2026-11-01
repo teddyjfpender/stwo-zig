@@ -5,6 +5,7 @@ const R = @import("../services/roster.zig");
 const W = @import("../services/wire.zig");
 const K = @import("../keccak/shared/roster.zig");
 const S = @import("../secp/roster.zig");
+const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
 const Image = @import("../../word16_execution/expected_image.zig");
 pub const Owner = struct {
     allocator: std.mem.Allocator,
@@ -14,12 +15,16 @@ pub const Owner = struct {
     keccak_owners: std.ArrayList(*K.TruthSetup) = .{},
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, false);
+        return initPolicy(a, image, cpu, truth, false, Suite.production());
     }
     pub fn initRetiring(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, true);
+        return initPolicy(a, image, cpu, truth, true, Suite.production());
     }
-    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool) !Owner {
+    pub fn initWithSuite(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite) !Owner {
+        return initPolicy(a, image, cpu, truth, retire, suite);
+    }
+    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite) !Owner {
+        try suite.validate();
         const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
         const truths = a.alloc(R.Truth, truth.len) catch |err| {
             a.free(cpus);
@@ -40,7 +45,7 @@ pub const Owner = struct {
             try self.cpu_owners.ensureUnusedCapacity(a, 1);
             const s = try a.create(R.CpuSetup);
             errdefer a.destroy(s);
-            s.* = try R.CpuSetup.initWithAuthority(a, &image.authority, d.geometry, d.bridges);
+            s.* = try R.CpuSetup.initWithAuthorityAndSuite(a, &image.authority, d.geometry, d.bridges, suite);
             errdefer s.deinit();
             if (retire) try s.releaseFixedWitness();
             self.cpu_owners.appendAssumeCapacity(s);
@@ -57,7 +62,7 @@ pub const Owner = struct {
                     try self.keccak_owners.ensureUnusedCapacity(a, 1);
                     const s = try a.create(K.TruthSetup);
                     errdefer a.destroy(s);
-                    s.* = try K.TruthSetup.init(a, d.logs[0]);
+                    s.* = try K.TruthSetup.initWithSuite(a, d.logs[0], suite);
                     self.keccak_owners.appendAssumeCapacity(s);
                     found = s;
                 }
@@ -74,7 +79,7 @@ pub const Owner = struct {
                     try self.secp_owners.ensureUnusedCapacity(a, 1);
                     const s = try a.create(S.TruthSetup);
                     errdefer a.destroy(s);
-                    s.* = try S.TruthSetup.init(a, kind, d.logs);
+                    s.* = try S.TruthSetup.initWithSuite(a, kind, d.logs, suite);
                     self.secp_owners.appendAssumeCapacity(s);
                     found = s;
                 }

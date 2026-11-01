@@ -6,9 +6,11 @@ pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--inspect-proof")) return @import("word16_qualification/csp_execution.zig").stdout(a, try @import("word16_execution/pcs_metrics.zig").inspectFile(a, args[2]));
     if (args.len != 4) return error.ExpectedProveOrVerifyConfigDirectory;
-    const proving = std.mem.eql(u8, args[1], "--prove");
-    if (!proving and !std.mem.eql(u8, args[1], "--verify")) return error.ExpectedProveOrVerifyConfigDirectory;
+    const experiment = std.mem.eql(u8, args[1], "--prove-fold4") or std.mem.eql(u8, args[1], "--verify-fold4");
+    const proving = std.mem.eql(u8, args[1], "--prove") or std.mem.eql(u8, args[1], "--prove-fold4");
+    if (!proving and !std.mem.eql(u8, args[1], "--verify") and !std.mem.eql(u8, args[1], "--verify-fold4")) return error.ExpectedProveOrVerifyConfigDirectory;
     const raw = try std.fs.cwd().readFileAlloc(a, args[2], 16384);
     defer a.free(raw);
     const parsed = try std.json.parseFromSlice(Image.Config, a, raw, .{});
@@ -21,5 +23,7 @@ pub fn main() !void {
     defer pool.deinit();
     var binding = try Work.ScopedPoolBinding.init(&pool);
     defer binding.deinit();
-    if (proving) try Execution.prove(a, &image, args[3]) else try Execution.verify(a, &image, args[3]);
+    const Suite = @import("word16_execution/pcs_suite.zig").Suite;
+    const suite = if (experiment) Suite.experimentalFold4() else Suite.production();
+    if (proving) try Execution.proveWithSuite(a, &image, args[3], suite) else try Execution.verifyWithSuite(a, &image, args[3], suite);
 }

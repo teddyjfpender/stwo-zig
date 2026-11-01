@@ -108,6 +108,8 @@ fn validateInventory(inventory: Inventory, requests: []const Old.Request, expect
     var mass: u64 = 0;
     for (requests, 0..) |r, index| {
         const materials = inventory.at(index);
+        try materials.suite.validate();
+        if (!materials.suite.eql(inventory.at(0).suite)) return error.MixedWord16PcsSuites;
         try materials.geometry.validate();
         try r.cpu.validate(materials.geometry.cpu_log);
         if (r.cpu.steps > expected.admission.max_prefix_steps) return error.ExecutionPrefixBudgetExceeded;

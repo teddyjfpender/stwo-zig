@@ -20,12 +20,18 @@ pub const CpuSetup = struct {
     fixed: [3][]M,
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
-        var m = try Mat.Materials.init(a, program, g);
+        return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
+    }
+    pub fn initProgramWithSuite(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite) !CpuSetup {
+        var m = try Mat.Materials.initWithSuite(a, program, g, suite);
         errdefer m.deinit();
         return seal(a, m, bridges);
     }
     pub fn initWithAuthority(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
-        var m = try Mat.Materials.initWithAuthority(a, authority, g);
+        return initWithAuthorityAndSuite(a, authority, g, bridges, Mat.Suite.production());
+    }
+    pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite) !CpuSetup {
+        var m = try Mat.Materials.initWithAuthorityAndSuite(a, authority, g, suite);
         errdefer m.deinit();
         return seal(a, m, bridges);
     }
@@ -40,7 +46,7 @@ pub const CpuSetup = struct {
         }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
-        self.key = try Key.seal(a, columns);
+        self.key = try Key.sealWithSuite(a, columns, m.suite);
         return self;
     }
     /// The complete sealed key retains independent coefficient/tree ownership.

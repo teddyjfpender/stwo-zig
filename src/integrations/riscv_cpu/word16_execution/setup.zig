@@ -14,7 +14,9 @@ pub const Role = G.Role;
 pub const Shape = G.Shape;
 const M = core.fields.m31.M31;
 const Column = engine.pcs.ColumnEvaluation;
+pub const Suite = @import("pcs_suite.zig").Suite;
 pub const Materials = struct {
+    suite: Suite = Suite.production(),
     allocator: std.mem.Allocator,
     geometry: Geometry,
     fixed_retired: bool = false,
@@ -40,18 +42,26 @@ pub const Materials = struct {
     shift_table: B.shift_word_packed_experiment.table.Setup,
     and_table: air.providers.tables.Setup,
     pub fn init(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry) !Materials {
+        return initWithSuite(a, expected, geometry, Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, expected: air.program.setup.Program, geometry: Geometry, suite: Suite) !Materials {
+        try suite.validate();
         try geometry.validate();
         var program = try Program.init(a, expected);
         errdefer program.deinit();
-        return fromProgram(a, program, geometry);
+        return fromProgram(a, program, geometry, suite);
     }
     pub fn initWithAuthority(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry) !Materials {
+        return initWithAuthorityAndSuite(a, authority, geometry, Suite.production());
+    }
+    pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite) !Materials {
+        try suite.validate();
         try geometry.validate();
         var program = try Program.initWithAuthority(a, authority);
         errdefer program.deinit();
-        return fromProgram(a, program, geometry);
+        return fromProgram(a, program, geometry, suite);
     }
-    fn fromProgram(a: std.mem.Allocator, program: Program, geometry: Geometry) !Materials {
+    fn fromProgram(a: std.mem.Allocator, program: Program, geometry: Geometry, suite: Suite) !Materials {
         const cpu = try W.fixed.cpu(a, geometry.cpu_log);
         errdefer a.free(cpu);
         const boundary = try W.fixed.boundary(a);
@@ -92,7 +102,7 @@ pub const Materials = struct {
         errdefer shifts.deinit();
         var and_ = try air.providers.tables.Setup.init(a, .byte_and);
         errdefer and_.deinit();
-        return .{ .allocator = a, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
+        return .{ .allocator = a, .suite = suite, .geometry = geometry, .program = program, .cpu_fixed = cpu, .boundary_fixed = boundary, .alu_fixed = alu, .alu_tail_fixed = alu_tail, .binary_fixed = binary, .binary_tail_fixed = binary_tail, .shift_fixed = shift, .shift_tail_fixed = shift_tail, .jalr_fixed = jalr, .division_fixed = division, .multiplication_fixed = multiplication, .range16_fixed = range16, .range8_fixed = range8, .ls_fixed = ls, .ls_tail_fixed = ls_tail, .memory_boundary_fixed = memory_boundary, .memory_terminal_fixed = memory_terminal, .selection_fixed = selection, .shift_table = shifts, .and_table = and_ };
     }
     /// Retire only original matrices not used by native request generators.
     /// All phase/shape checks precede mutation; the sealed key stays unchanged.
@@ -192,18 +202,29 @@ pub const Setup = struct {
     fixed_root: T.CommitmentRoot,
     fixed_tree: T.Scheme.CommittedTree,
     pub fn init(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry) !Setup {
-        var materials = try Materials.init(a, program, geometry);
+        return initWithSuite(a, program, geometry, Suite.production());
+    }
+    pub fn initWithSuite(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, suite: Suite) !Setup {
+        var materials = try Materials.initWithSuite(a, program, geometry, suite);
         errdefer materials.deinit();
         return seal(a, materials);
     }
     /// Consumes the already decoded program on success AND failure.
     pub fn initOwnedProgram(a: std.mem.Allocator, program: Program, geometry: Geometry) !Setup {
+        return initOwnedProgramWithSuite(a, program, geometry, Suite.production());
+    }
+    pub fn initOwnedProgramWithSuite(a: std.mem.Allocator, program: Program, geometry: Geometry, suite: Suite) !Setup {
+        suite.validate() catch |err| {
+            var owned = program;
+            owned.deinit();
+            return err;
+        };
         geometry.validate() catch |err| {
             var owned = program;
             owned.deinit();
             return err;
         };
-        var materials = Materials.fromProgram(a, program, geometry) catch |err| {
+        var materials = Materials.fromProgram(a, program, geometry, suite) catch |err| {
             var owned = program;
             owned.deinit();
             return err;
@@ -212,14 +233,17 @@ pub const Setup = struct {
         return seal(a, materials);
     }
     pub fn initWithAuthority(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry) !Setup {
-        var materials = try Materials.initWithAuthority(a, authority, geometry);
+        return initWithAuthorityAndSuite(a, authority, geometry, Suite.production());
+    }
+    pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite) !Setup {
+        var materials = try Materials.initWithAuthorityAndSuite(a, authority, geometry, suite);
         errdefer materials.deinit();
         return seal(a, materials);
     }
     fn seal(a: std.mem.Allocator, materials: Materials) !Setup {
         const columns = try materials.fixedColumns(a);
         defer a.free(columns);
-        var scheme = try T.Scheme.init(a, T.P.config());
+        var scheme = try T.Scheme.init(a, materials.suite.config());
         defer scheme.deinit(a);
         scheme.setCompactPolynomialStorage(5);
         var channel = T.P.Channel{};
@@ -232,7 +256,7 @@ pub const Setup = struct {
     /// A separate request transcript receives a retained immutable tree lease.
     /// The setup allocator must outlive all leases; no request channel is cached.
     pub fn appendFixed(self: *const Setup, a: std.mem.Allocator, scheme: *T.Scheme, channel: *T.P.Channel) !void {
-        if (scheme.trees.items.len != 0 or scheme.pending_commit != null or !std.meta.eql(scheme.config, T.P.config())) return error.InvalidExecutionFixedPhase;
+        if (scheme.trees.items.len != 0 or scheme.pending_commit != null or !std.meta.eql(scheme.config, self.materials.suite.config())) return error.InvalidExecutionFixedPhase;
         var lease = self.fixed_tree.retainShared();
         errdefer lease.deinit(self.materials.allocator);
         try scheme.appendCommittedTree(a, lease, channel);
