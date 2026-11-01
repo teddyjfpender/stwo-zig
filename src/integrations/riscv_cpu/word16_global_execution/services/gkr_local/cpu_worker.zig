@@ -229,6 +229,8 @@ pub const CpuWorker = struct {
         try pending.checkPhysicalRoots(index, self.expected.fixed, root);
         if (index != self.expected.ordinal or !std.mem.eql(u8, &pending.entries[index].scope.statement, &self.expected.statement)) return error.WideCpuStatementMismatch;
         const local = &(pending.entries[index].local orelse return error.WideCpuLocalRequired);
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "CPU global classic interactions");
+        defer generation.end();
         const witnesses = try a.alloc(?Classic.Witness, self.plan.slots.len);
         defer a.free(witnesses);
         @memset(witnesses, null);
@@ -246,6 +248,7 @@ pub const CpuWorker = struct {
             remaining -= bytes;
             @memcpy(claims[slot.claim_offset..][0..n], w.*.?.claimSlice());
         }
+        generation.end();
         try publicClaims(self.request, &self.plan, pending.shared, claims);
         var set = try Components.Set.init(a, self.setup, self.request, self.first, &self.plan, local, pending.shared, claims);
         defer set.deinit();

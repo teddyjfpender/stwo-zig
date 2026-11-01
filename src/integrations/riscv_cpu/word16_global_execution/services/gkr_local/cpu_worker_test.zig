@@ -66,6 +66,9 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     owns = false;
     var owns_worker = true;
     defer if (owns_worker) worker.deinit(a);
+    var native_profile = @import("stwo_prover_api").stage_profile.Recorder.init(a, "rv64", "CPU-worker-stage-scope");
+    defer native_profile.deinit();
+    if (mode == .normal) worker.native_recorder = &native_profile;
     if (mode == .early_seal) {
         failing.fail_index = failing.alloc_index;
         try std.testing.expectError(error.OutOfMemory, worker.seal(a));
@@ -147,6 +150,17 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
     // An early stage-two allocation failure retains the phase and every owner.
     var encoded = try worker.complete(a, &pending, 0, 1 << 26);
     defer encoded.deinit(a);
+    if (mode == .normal) {
+        var profile = try native_profile.snapshot(a);
+        defer profile.deinit(a);
+        var found: usize = 0;
+        for (profile.stages) |stage_node| if (std.mem.eql(u8, stage_node.id, "interaction_generation")) {
+            found += 1;
+            try std.testing.expect(stage_node.children == null);
+        };
+        try std.testing.expectEqual(@as(usize, 1), found);
+        try std.testing.expectEqual(@as(usize, 0), native_profile.stack.items.len);
+    }
     try std.testing.expectError(error.WideCpuPhase, worker.complete(a, &pending, 0, 1 << 26));
     if (shard == 0 and mode == .normal) {
         var bad = config;

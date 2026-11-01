@@ -145,6 +145,8 @@ pub const TruthWorker = struct {
         try admit(frames, global_budget);
         self.started = true;
         errdefer self.failed = true;
+        var generation = try @import("stwo_prover_api").stage_profile.StageScope.begin(self.native_recorder, "interaction_generation", "Truth local and global classic interactions");
+        defer generation.end();
         const local = TF.ChallengesFor(O).draw(&self.channel);
         const metadata = try Metadata.Provider.initClassic(&self.source, frames);
         var gm = try GM.Provider.init(a, &self.source, global_budget);
@@ -166,6 +168,7 @@ pub const TruthWorker = struct {
             globals[1] = try GW.generate(a, &gm, frames[1].role, &gch, global_budget);
             gd = 2;
         }
+        generation.end();
         const claims = try a.alloc(O, 5);
         errdefer a.free(claims);
         for (locals, 0..) |v, i| claims[i] = v.claims[0];
