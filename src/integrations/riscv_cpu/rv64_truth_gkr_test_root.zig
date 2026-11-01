@@ -1,4 +1,5 @@
 test {
+    _ = @import("word16_global_execution/services/gkr_local/resident_layout.zig");
     _ = @import("word16_global_execution/ethereum/gkr_receiver_test.zig");
     _ = @import("word16_global_execution/services/gkr_local/bundle_wire_test.zig");
     _ = @import("word16_global_execution/services/gkr_local/coordinator_test.zig");

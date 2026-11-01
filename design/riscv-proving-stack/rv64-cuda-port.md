@@ -42,35 +42,63 @@ equations do not by themselves qualify kernel scheduling or memory safety;
 register pressure, spills and intermediate lifetimes must also be measured,
 particularly for the wide Keccak/secp components.
 
-## 3. Memory plan, one 2^22-step batch on a 32 GB 5090
+## 3. Actual OM31 resident contracts (2026-11-02)
 
-The arithmetic below assumes 271 effective base-field columns at n, including
-125 CPU columns. This is a provisional model, not the final chip geometry.
-One column at n = 2^22 costs **16,777,216 bytes**. GB here means 10^9 bytes.
-The original 5 GB estimate undercounted these buffers by approximately four.
+The previous 5 GB and corrected 18.821 GB estimates used provisional 271-cell
+geometry and QM31. They are historical estimates, not admission authority for
+the current OM31 local-GKR frontend. OM31 has eight M31 coordinates (32 bytes).
+CPU composition split 1 commits 16 base columns; Keccak truth split 2 commits
+32. CPU and truth remain separate PCS proofs. Beta changes commitment LDE
+height; the composition cosets follow each proof's own constraint degree.
 
-| Buffer | Decimal GB | Basis |
-| --- | ---: | --- |
-| CPU main + interaction + fixed at n | 2.097 | 125 x 2^22 x 4 B |
-| Remaining family/table columns at equivalent n | 2.449 | (271 - 125) x 2^22 x 4 B |
-| Extended evaluations at 2n | 9.093 | 271 x 2^23 x 4 B |
-| Coefficients retained at n | 4.547 | 271 x 2^22 x 4 B |
-| One composition evaluation at 2n | 0.134 | 2^23 QM31 values, 16 B each |
-| Inverse tables, scratch, FRI layers | >= 0.500 | provisional allowance; measure by lifetime |
-| **Separate-buffer subtotal** | **>= 18.821** | excludes additional service-provider work and device overhead |
+The shape diagnostic now emits a machine-readable contract directly from
+`Cpu.Plan.interLogs`, actual setup MAIN/FIXED logs, classic truth component
+widths, and the existing PCS residency estimator. Run:
 
-Source and coefficient ownership can overlap or transfer, so this subtotal is
-not an irreducible peak. Eliminating the entire 4.547 GB source copy would leave
-about 14.275 GB under these assumptions. Neither figure includes independently
-sized Keccak/secp providers, extra table padding, all commitment-tree buffers,
-AOT/runtime allocations, or simultaneous composition intermediates. Those must
-enter the allocation-lifetime ledger before admitting a batch to a 32 GB GPU.
-Two batches in flight are **not** established by this model.
+```sh
+zig build rv64-om-retention-plan -Doptimize=ReleaseFast
+zig-out/bin/rv64-om-retention-plan ROSTER.json 20 1
+zig-out/bin/rv64-om-retention-plan ROSTER.json 20 2
+```
 
-For comparison, 533 effective columns cost 8.942 GB at n, 17.884 GB at 2n,
-and another 8.942 GB for independent coefficients: 35.769 GB before scratch and
-providers. Ownership reuse can reduce that peak; a claimed 19 GB route requires
-its own measured lifetime plan.
+The pinned full-block roster has 25 CPU and five truth proofs. Values below
+are **GiB (2^30 bytes)** and exclude separately shared immutable FIXED and
+unmodeled source-query/runtime/extra PCS scratch. These are buffer contracts,
+not device measurements or sufficient GPU admission bounds.
+
+| Compact coefficient-resident target | Beta 1 | Beta 2 |
+| --- | ---: | ---: |
+| All sealed MAIN coefficients/pruned nodes + bindings/known metadata | 54.75 | 55.46 |
+| Largest CPU GKR seal with compact MAIN | 25.95 | 25.98 |
+| That CPU's independently shared FIXED, full-retention bound | 1.14 | 2.07 |
+| Keccak truth INTER commit, separate raw/coefficient owners + bounded tile | 12.76 | 12.94 |
+| Keccak truth composition, one shared role/coset buffer | 14.52 | 14.43 |
+| Keccak log-18, 64-column LDE tile (MiB) | 128 | 256 |
+
+This target follows the CPU's existing compact representation: retain
+coefficients and pruned nodes, stream at most 64 columns through commitment,
+then release that LDE tile. Composition expands one component/coset on demand;
+current/previous/next masks share its storage. DEEP keeps one secure aggregate
+and bounded expansion workspace, then hands off to FRI. There is no new
+cross-phase expansion cache. GPU equivalents are still unimplemented.
+
+The contrasting policy that retains every MAIN LDE across the manifest needs
+142.69 GiB at beta 1 or 231.53 GiB at beta 2 before FIXED. Under that policy,
+a beta-2 Keccak INTER commit alone exceeds 40 GiB. It must not silently replace
+the compact target in a device budget. The compact inventory can fit in the
+aggregate capacity of four 32 GiB devices, but this does **not** establish a
+per-device schedule: a live GKR task must coexist with earlier sealed owners.
+Explicit per-device queued-state and transient leases remain necessary.
+
+[Source contract](../../src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/resident_layout.zig)
+provides checked geometry and represented-buffer budget rejection, with
+separate source/coefficient/LDE/node owners and recursive opening exposure.
+[Receipts and kernel inventory](../../vectors/reports/rv64-resident-layout-contract-20261102/summary.json)
+pin the full roster at both betas. CUDA currently has M31 transform/hash
+primitives, but its constraint, OODS/DEEP and FRI secure-field ABIs are QM31.
+OM31 local GKR, classic interactions and full RV64 device AIR/PCS kernels need
+explicit eight-coordinate implementations and qualification. No GPU run or
+whole-protocol security claim follows from this ledger.
 
 ## 4. Throughput projection
 
