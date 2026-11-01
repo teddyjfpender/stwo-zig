@@ -131,7 +131,7 @@ pub fn keccakBridgeFor(comptime F: type, fixed: []const F, main: []const F, sink
     for (C.layout.U16) |c| sink.emit(.range16, [1]F{main[c]}, F.one());
     for (C.layout.U8) |c| sink.emit(.range8, [1]F{main[c]}, F.one());
 }
-pub fn secpBridgeFor(comptime F: type, kind: A.crypto.secp256k1.program.Kind, fixed: []const F, main: []const F, sink: anytype) void {
+pub fn secpBridgeFor(comptime F: type, kind: A.crypto.secp256k1.word16_bridge.types.Kind, fixed: []const F, main: []const F, sink: anytype) void {
     const C = A.crypto.secp256k1.word16_bridge;
     sink.emit(.owner, C.equations.ownerTuple(F, kind, main), main[0].mul(fixed[4]).neg());
     for (C.layout.U16) |c| sink.emit(.range16, [1]F{main[c]}, F.one());

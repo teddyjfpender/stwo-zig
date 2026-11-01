@@ -45,6 +45,8 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (k != 0) d.bridges.keccak = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, 25, k)));
         if (add != 0) d.bridges.add = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.add), add)));
         if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
+        const sha256 = captured.advice.sha256[i].len;
+        if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
         try g.validate();
     }
     return out;
@@ -82,6 +84,16 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
             try out.append(a, .{ .family = @enumFromInt(family), .first_id = next, .calls = calls, .logs = logs });
             next = try std.math.add(u32, next, calls);
         }
+    }
+    // SHA-256: one compression per row plus a padding row; bounded log13 spans.
+    var sha256: u32 = 0;
+    for (captured.advice.sha256) |calls| sha256 = try std.math.add(u32, sha256, @intCast(calls.len));
+    const capacity: u32 = (@as(u32, 1) << @intCast(@import("../sha256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= sha256) {
+        const calls = @min(capacity, sha256 - next + 1);
+        try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
     }
     return out.toOwnedSlice(a);
 }

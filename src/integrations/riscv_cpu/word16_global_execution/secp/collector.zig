@@ -74,14 +74,14 @@ pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *
             } else {
                 const record = cpu.services.items[ci];
                 const captured = tape.secp_calls.items[ci];
-                if (record.tag != B.types.tag(captured.kind) or captured.packet_format != .little_endian_words_v2 or captured.pointer != record.pointer or captured.clock <= tape.initial_clock or captured.clock - tape.initial_clock > tape.len or 4 * (captured.clock - tape.initial_clock) != record.tick or record.epoch != cpu.epoch) return error.InvalidCapturedSecpOwner;
+                if (record.tag != B.types.tag(B.types.kindOf(captured.kind)) or captured.packet_format != .little_endian_words_v2 or captured.pointer != record.pointer or captured.clock <= tape.initial_clock or captured.clock - tape.initial_clock > tape.len or 4 * (captured.clock - tape.initial_clock) != record.tick or record.epoch != cpu.epoch) return error.InvalidCapturedSecpOwner;
                 if (captured.pointer & 31 != 0 or captured.pointer > std.math.maxInt(u64) - (8 * captured.wordCount() - 1)) return error.InvalidCapturedSecpOwner;
                 var call: B.types.Call = .{ .pointer = captured.pointer, .epoch = cpu.epoch, .tick = record.tick, .before = captured.before, .after = captured.after, .predecessors = @splat(.{ .value = 0, .rights = 0 }) };
                 for (0..captured.wordCount()) |lane| {
                     const address = captured.pointer + 8 * lane;
                     call.predecessors[lane] = try get(&ledger, address);
                 }
-                try B.source.validate(captured.kind, call);
+                try B.source.validate(B.types.kindOf(captured.kind), call);
                 for (0..captured.wordCount()) |lane| ledger.states.getPtr(captured.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
                 const family = @intFromEnum(captured.kind) - 1;
                 cc[family][next[family]] = call;

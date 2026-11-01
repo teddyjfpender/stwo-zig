@@ -14,6 +14,9 @@ std = ["digest/std"]
 oid = ["digest/oid"]
 # Execution-only candidate ECALL (profile ethereum_services_v3_candidate); not admitted.
 stwo-candidate-sha256 = []
+# ADMITTED `sha256_compress` service (profile ethereum_services_v3): the same
+# ECALL and packet, with the 32-byte packet alignment the prover bridge binds.
+stwo-sha256-service = []
 
 [dependencies]
 digest = { version = "=0.10.7", default-features = false, features = ["core-api"] }

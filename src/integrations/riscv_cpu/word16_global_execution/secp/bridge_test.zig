@@ -70,7 +70,7 @@ test "Secp coordinate bridge native RAM permissions owner tags and exact Wire35 
     defer a.free(d16);
     const d8 = try dict(a, 256, ch.range8);
     defer a.free(d8);
-    for ([_]Secp.program.Kind{ .add, .double }) |kind| {
+    for ([_]K.types.Kind{ .add, .double }) |kind| {
         var s = try K.source.Source.init(a, kind, &.{call()}, 7, 5);
         defer s.deinit();
         const claims = try s.generate(ch, d16, d8);
@@ -81,10 +81,10 @@ test "Secp coordinate bridge native RAM permissions owner tags and exact Wire35 
         const owner = K.equations.ownerTuple(Q, kind, &row);
         try std.testing.expect(owner[9].eql(Q.fromBase(M.fromCanonical(@as(u16, @truncate(K.types.tag(kind)))))));
         var f: [K.layout.FIXED]Q = @splat(Q.zero());
-        f[7] = Q.fromBase(M.fromCanonical(Secp.program.get(kind).outputs[0]));
+        f[7] = Q.fromBase(M.fromCanonical(Secp.program.get(@enumFromInt(@intFromEnum(kind))).outputs[0]));
         var bytes: [32]u8 = undefined;
         for (0..4) |i| std.mem.writeInt(u64, bytes[8 * i ..][0..8], call().before[i], .little);
-        try std.testing.expectEqualSlices(Q, &Secp.equations.externalTuple(Secp.program.get(kind), 7, 0, std.mem.readInt(u256, &bytes, .little)), &K.equations.wireTuple(Q, kind, &f, &row, false));
+        try std.testing.expectEqualSlices(Q, &Secp.equations.externalTuple(Secp.program.get(@enumFromInt(@intFromEnum(kind))), 7, 0, std.mem.readInt(u256, &bytes, .little)), &K.equations.wireTuple(Q, kind, &f, &row, false));
     }
 }
 test "Secp bridge borrowed MAIN release retains exact interactions for empty odd and padded calls" {
