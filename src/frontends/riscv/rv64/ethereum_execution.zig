@@ -7,10 +7,13 @@ const ethereum = @import("ethereum_services/session.zig");
 const access = @import("access_census.zig");
 const frequent = @import("frequent_operations.zig");
 const candidate = @import("ethereum_services/candidate_services.zig");
+const cisa = @import("candidate_isa.zig");
 /// `ethereum_services_v3_candidate` = admitted v2 services plus execution-only
 /// candidate services (candidate_services.zig). Never proof-relevant: it is
 /// rejected with compact capture, RAM-boundary capture and access census.
-const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate };
+/// `ethereum_services_v3_candidate_isa` = v3_candidate plus the execution-only
+/// Zbb/Zba subset (candidate_isa.zig), same restrictions.
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa };
 const A = std.heap.smp_allocator;
 const OPCODE_NAMES = blk: {
     const fields = @typeInfo(rv.decode.Opcode).@"enum".fields;
@@ -111,6 +114,7 @@ const Report = struct {
     ram_boundary_capture: ?BoundaryStats = null,
     frequent_operations: ?frequent.Summary = null,
     candidate_service_calls: ?candidate.Counts = null,
+    candidate_isa_counts: ?cisa.Counts = null,
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(A);
@@ -155,12 +159,22 @@ fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.
             if (row == null) event.* = .{ .keccak = call };
             break :blk row;
         },
-        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate => session.step(event),
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => session.step(event),
     };
+}
+fn candidateInstruction(cpu: *rv.machine.Cpu, memory: anytype, report: *Report) bool {
+    const word = memory.fetch(cpu.pc) catch return false;
+    _ = cisa.step(cpu, word, &report.candidate_isa_counts.?) orelse return false;
+    if (report.pc_profile) |*profile| {
+        const pc = cpu.pc -% 4;
+        if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+    }
+    return true;
 }
 fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTPUT_BYTES]u8) !Report {
     if (c.pc_profile) |range| if (range.end <= range.start or range.start & 3 != 0 or range.end & 3 != 0 or range.end - range.start > 8 * 1024 * 1024) return error.InvalidPcProfileRange;
-    const is_candidate = c.execution_profile == .ethereum_services_v3_candidate;
+    const is_isa = c.execution_profile == .ethereum_services_v3_candidate_isa;
+    const is_candidate = c.execution_profile == .ethereum_services_v3_candidate or is_isa;
     if (is_candidate and (c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries)) return error.CandidateProfileIsExecutionOnly;
     var setup_timer = try std.time.Timer.start();
     var loaded = try contract.load(A, c.symbols, bytes, input);
@@ -179,7 +193,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         .ethereum_services_v1 => .ethereum_services_v1,
         .ethereum_services_v2 => .ethereum_services_v2,
         // Unreachable with a tape (rejected above); never reaches the prover.
-        .ethereum_services_v3_candidate => .ethereum_services_v2,
+        .ethereum_services_v3_candidate, .ethereum_services_v3_candidate_isa => .ethereum_services_v2,
     };
     var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
     defer if (tape) |*value| value.deinit();
@@ -190,6 +204,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     report.execution_profile = c.execution_profile;
     report.access_census_batch_steps = c.census_batch_steps;
     if (is_candidate) report.candidate_service_calls = .{};
+    if (is_isa) report.candidate_isa_counts = .{};
     if (tape != null) report.compact_capture = .{};
     if (boundaries != null) report.ram_boundary_capture = .{};
     if (c.pc_profile) |range| {
@@ -210,6 +225,8 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         };
         var event: ethereum.Event = undefined;
         const optional_row = profileStep(&service_session, c.execution_profile, &event) catch |first| {
+            // Admitted decode rejected the word (no state change): try the candidate ISA.
+            if (is_isa and first == error.IllegalInstruction and candidateInstruction(&session.cpu, memory, &report)) continue;
             const err = if (is_candidate and first == error.UnsupportedService) blk: {
                 // Admitted services declined the tag; the CPU/memory are unchanged.
                 if (candidate.step(A, &session.cpu, memory, &report.candidate_service_calls.?)) |_| {
@@ -297,4 +314,5 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
 }
 test {
     _ = candidate;
+    _ = @import("candidate_isa_test.zig");
 }
