@@ -18,6 +18,8 @@ pub const RetentionPlan = struct {
     global_output_bytes: usize = 0,
     gkr_peak_bytes: usize = 0,
     main_merkle_bytes: usize = 0,
+    main_merkle_node_bytes: usize = 0,
+    main_merkle_descriptor_bytes: usize = 0,
     local_proof_reserve_bytes: usize = 0,
     owner_header_bytes: usize = 0,
     global_scratch_bytes: usize = 0,
@@ -53,7 +55,9 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
     const merkle_log = try std.math.add(u32, max_log, config.fri_config.log_blowup_factor);
     if (merkle_log > 30) return error.InvalidRetentionGeometry;
     const nodes = try std.math.sub(usize, try mul(@as(usize, 1) << @intCast(merkle_log), 2), 1);
-    out.main_merkle_bytes = try add(try mul(nodes, @sizeOf(W.H.Hash)), try mul(merkle_log + 1, @sizeOf([]W.H.Hash)));
+    out.main_merkle_node_bytes = try mul(nodes, @sizeOf(W.H.Hash));
+    out.main_merkle_descriptor_bytes = try mul(merkle_log + 1, @sizeOf([]W.H.Hash));
+    out.main_merkle_bytes = try add(out.main_merkle_node_bytes, out.main_merkle_descriptor_bytes);
     // Includes column/coefficient/backing descriptors and a conservative header
     // allowance for worker/component owners; value planes are counted separately.
     out.owner_header_bytes = try add(@sizeOf(R.Sources) + 65536, try mul(logs.len, 256));
