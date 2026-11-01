@@ -32,7 +32,7 @@ pub fn ramRow(comptime F: type, m: []const F, lane: usize) [28]F {
     row[27] = m[L.BORROW + lane];
     return row;
 }
-pub fn ownerTuple(comptime F: type, kind: P.Kind, m: []const F) [19]F {
+pub fn ownerTuple(comptime F: type, kind: T.Kind, m: []const F) [19]F {
     var t: [19]F = @splat(F.zero());
     t[0] = E.qFor(F, @intFromEnum(Decode.Opcode.ECALL));
     @memcpy(t[1..5], m[L.POINTER..][0..4]);
@@ -42,7 +42,7 @@ pub fn ownerTuple(comptime F: type, kind: P.Kind, m: []const F) [19]F {
     t[18] = m[L.TICK];
     return t;
 }
-pub fn wireTuple(comptime F: type, kind: P.Kind, f: []const F, m: []const F, after: bool) [35]F {
+pub fn wireTuple(comptime F: type, kind: T.Kind, f: []const F, m: []const F, after: bool) [35]F {
     var t: [35]F = undefined;
     t[0] = E.qFor(F, @intFromEnum(kind));
     t[1] = m[L.CALL_ID];
@@ -52,7 +52,7 @@ pub fn wireTuple(comptime F: type, kind: P.Kind, f: []const F, m: []const F, aft
 }
 /// Per-lane direct transition separated from global RAM inverses, so the
 /// original legacy interleaving can remain byte-for-byte unchanged.
-pub fn emitLaneTransitionMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), lane_index: usize, out: *E.SinkFor(F)) void {
+pub fn emitLaneTransitionMainFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), lane_index: usize, out: *E.SinkFor(F)) void {
     const row = ramRow(F, m, lane_index);
     const prev = ramRow(F, pm, lane_index);
     if (comptime E.isExternalLane(F)) {
@@ -87,14 +87,14 @@ pub fn emitTailMainFor(comptime F: type, f: []const F, m: []const F, pm: []const
 }
 /// MAIN-only bridge authority. Local OWNER/range GKR and genuine wide RAM/
 /// Wire arguments must close separately under the same authenticated MAIN.
-pub fn emitMainFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+pub fn emitMainFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, span: E.CallSpanFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     for (0..4) |lane_index| {
         emitLaneTransitionMainFor(F, kind, f, m, pm, span, lane_index, out);
         emitReadableMainFor(F, m, lane_index, out);
     }
     emitTailMainFor(F, f, m, pm, span, out);
 }
-pub fn emitFor(comptime F: type, kind: P.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+pub fn emitFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
     const active = m[L.ACTIVE];
     const Sec = E.SecureFor(F);
     var ram_term = Sec.zero();

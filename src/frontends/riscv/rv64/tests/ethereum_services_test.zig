@@ -140,3 +140,51 @@ test "Ethereum services v2: LE word packets are explicit and versions reject eac
     try std.testing.expectError(error.UnsupportedService, v1.step(&event));
     try std.testing.expectEqual(@as(u64, 0), v1.keccak.base.cpu.retired);
 }
+
+fn shaPacket(mem: *memory.Memory) ![12]u64 {
+    var out: [12]u64 = undefined;
+    for (&out, 0..) |*v, i| v.* = try mem.load(0x2fe0 + 8 * i, 8);
+    return out;
+}
+test "Ethereum services v3: admitted SHA-256 compression updates only the state and v2 keeps trapping" {
+    var mem = try setup(a, true);
+    defer mem.deinit();
+    const before = try shaPacket(&mem);
+    // v2 never admits the v3 tag; nothing changes on the trap.
+    var v2 = try eth.Session.initWithProfile(a, cpu(profile.SHA256_COMPRESS_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v2);
+    defer v2.deinit();
+    var event: eth.Event = undefined;
+    try std.testing.expectError(error.UnsupportedService, v2.step(&event));
+    try std.testing.expectEqualDeep(before, try shaPacket(&mem));
+    var v3 = try eth.Session.initWithProfile(a, cpu(profile.SHA256_COMPRESS_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v3);
+    defer v3.deinit();
+    try std.testing.expect((try v3.step(&event)) == null);
+    try std.testing.expect(event == .sha256);
+    const call = event.sha256;
+    try std.testing.expectEqual(@as(u64, 1), call.call_id);
+    try std.testing.expectEqualDeep(before, call.before);
+    try std.testing.expectEqualSlices(u64, &eth.sha256.compressPacket(before), call.after[0..4]);
+    try std.testing.expectEqualSlices(u64, call.before[4..], call.after[4..]);
+    try std.testing.expectEqualDeep(call.after, try shaPacket(&mem));
+    try std.testing.expectEqual(profile.SHA256_COMPRESS_TAG, call.retirement().rhs.toInt());
+    // v3 still serves the v2 services.
+    v3.keccak.base.cpu.regs[17] = profile.SECP_DOUBLE_WORD_TAG;
+    try std.testing.expect((try v3.step(&event)) == null);
+    try std.testing.expect(event == .secp and event.secp.packet_format == .little_endian_words_v2);
+}
+test "Ethereum services v3: misaligned or read-only SHA-256 packets trap without publication" {
+    var mem = try setup(a, false);
+    defer mem.deinit();
+    var session = try eth.Session.initWithProfile(a, cpu(profile.SHA256_COMPRESS_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v3);
+    defer session.deinit();
+    var event: eth.Event = undefined;
+    const before = try shaPacket(&mem);
+    try std.testing.expectError(error.AccessDenied, session.step(&event));
+    session.keccak.base.cpu.regs[10] = 0x2fe8;
+    try std.testing.expectError(error.MisalignedAddress, session.step(&event));
+    try std.testing.expectEqualDeep(before, try shaPacket(&mem));
+    try std.testing.expectEqual(@as(u64, 0), session.keccak.base.cpu.retired);
+}
+test {
+    _ = eth.sha256;
+}

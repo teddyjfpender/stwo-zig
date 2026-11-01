@@ -1,18 +1,25 @@
 //! Concrete execution ABI identities. This does not alter ordinary RV64IM decode.
 const isa = @import("decode.zig");
-pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2 };
+/// `ethereum_services_v3` = v2 (Keccak-f, LE-word secp ADD/DOUBLE) plus the
+/// admitted v3 service tags below. ISA decode and ECALL effects are identical
+/// to v2; a tag is admitted only by a matching proof bridge (OWNER19 closure).
+/// Extension point: further v3 tags (e.g. bulk memory 0x0003_0001/2) add a
+/// constant here, a session dispatch arm, a tape section and a services family.
+pub const Profile = enum { rv64im, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3 };
 pub const KECCAK_TAG: u64 = 0x00010001;
 pub const SECP_ADD_TAG: u64 = 0x00020001;
 pub const SECP_DOUBLE_TAG: u64 = 0x00020002;
 pub const SECP_ADD_WORD_TAG: u64 = 0x00020011;
 pub const SECP_DOUBLE_WORD_TAG: u64 = 0x00020012;
+/// One SHA-256 compression; 32-byte aligned 12-u64 packet, state written.
+pub const SHA256_COMPRESS_TAG: u64 = 0x00030010;
 pub const SecpPacketFormat = enum { big_endian_bytes_v1, little_endian_words_v2 };
 pub const POINTER_REGISTER: u5 = 10;
 pub const TAG_REGISTER: u5 = 17;
 pub fn hasServices(profile: Profile) bool {
     return switch (profile) {
         .rv64im => false,
-        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2 => true,
+        .keccak_service_v1, .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3 => true,
     };
 }
 pub fn decode(profile: Profile, raw: u32) isa.Error!isa.Instruction {
@@ -34,4 +41,12 @@ pub fn admitted(profile: Profile, op: isa.Opcode) bool {
         .ECALL => hasServices(profile),
         else => true,
     };
+}
+/// Profiles whose secp packets use the LE-word v2 format.
+pub fn secpWords(profile: Profile) bool {
+    return profile == .ethereum_services_v2 or profile == .ethereum_services_v3;
+}
+/// Admitted v3-only service tags (the ROM-independent service roster).
+pub fn admitsV3(profile: Profile, tag: u64) bool {
+    return profile == .ethereum_services_v3 and tag == SHA256_COMPRESS_TAG;
 }
