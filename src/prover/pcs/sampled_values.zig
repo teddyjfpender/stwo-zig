@@ -436,12 +436,23 @@ fn largestTreeIndex(
     trees: anytype,
     sampled_points: [][][]CirclePointQM31,
 ) usize {
+    return largestTreeIndexForStorage(trees, sampled_points, !std.process.hasEnvVarConstant("STWO_ZIG_LEGACY_SAMPLED_TREE_SCHEDULE"));
+}
+
+fn largestTreeIndexForStorage(trees: anytype, sampled_points: [][][]CirclePointQM31, retained_coefficients: bool) usize {
     var primary_tree: usize = 0;
     var primary_cost: usize = 0;
     for (trees, sampled_points, 0..) |tree, tree_points, tree_idx| {
         var cost: usize = 0;
-        for (tree.columns, tree_points) |column, points| {
-            const column_cost = std.math.mul(usize, column.values.len, points.len) catch
+        for (tree.columns, tree_points, 0..) |column, points, column_index| {
+            // Compact trees deliberately drop LDE values. Their coefficient
+            // evaluations still cost O(n): measuring the released values made
+            // large MAIN/INTER trees score zero and stranded them on one core.
+            const rows = if (retained_coefficients and tree.coefficients != null)
+                tree.coefficients.?[column_index].coeffs.len
+            else
+                column.values.len;
+            const column_cost = std.math.mul(usize, rows, points.len) catch
                 std.math.maxInt(usize);
             cost = std.math.add(usize, cost, column_cost) catch std.math.maxInt(usize);
         }
@@ -1003,6 +1014,7 @@ pub const testing = if (builtin.is_test) struct {
     pub const finishCoefficientWork = Root.finishCoefficientWork;
     pub const finishBarycentricWork = Root.finishBarycentricWork;
     pub const parallelEvaluationPool = Root.parallelEvaluationPool;
+    pub const largestTreeIndexForStorage = Root.largestTreeIndexForStorage;
     pub const mergeBackendCoefficientExecution = Root.mergeBackendCoefficientExecution;
     pub const evaluateBarycentricTreesWithBackend = Root.evaluateBarycentricTreesWithBackend;
 } else struct {};
