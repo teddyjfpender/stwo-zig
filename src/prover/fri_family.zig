@@ -7,8 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const circle_domain = @import("stwo_core").poly.circle.domain;
 const queries_mod = @import("stwo_core").queries;
 const vcs_lifted_verifier = @import("stwo_core").vcs_lifted.verifier;
-const fri_lazy_commit = @import("pcs/fri_lazy_commit.zig");
-const quotient_ops = @import("pcs/quotient_ops.zig");
+
 const shell_work_profile = @import("pcs/shell_work_profile.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
 const M31 = m31.M31;
@@ -16,6 +15,8 @@ const M31 = m31.M31;
 pub fn ForField(comptime Secure: type) type {
     return struct {
         const QM31 = Secure;
+        const fri_lazy_commit = @import("pcs/fri_lazy_commit.zig").ForField(Secure);
+        const quotient_ops = @import("pcs/quotient_ops.zig").ForField(Secure);
         const DEGREE = @typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len;
         const core_fri = @import("stwo_core").fri.ForField(Secure);
         const secure_column = struct {

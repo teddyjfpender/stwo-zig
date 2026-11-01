@@ -1032,3 +1032,8 @@ pub const testing = if (builtin.is_test) struct {
     pub const mergeBackendCoefficientExecution = Root.mergeBackendCoefficientExecution;
     pub const evaluateBarycentricTreesWithBackend = Root.evaluateBarycentricTreesWithBackend;
 } else struct {};
+
+pub fn ForField(comptime S: type) type {
+    if (S == QM31) return @This();
+    return @import("sampled_values_field.zig").ForField(S);
+}

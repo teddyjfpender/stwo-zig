@@ -160,3 +160,23 @@ test "prover pcs: streaming sampled-value mixing matches flattening path" {
         actual_logging.channel.digestBytes()[0..],
     );
 }
+
+pub fn ForField(comptime S: type) type {
+    if (S == QM31) return @This();
+    return struct {
+        pub fn mixIntoChannel(a: std.mem.Allocator, channel: anytype, values: TreeVec([][]S)) !void {
+            var count: usize = 0;
+            for (values.items) |tree| for (tree) |column| {
+                count = try std.math.add(usize, count, column.len);
+            };
+            const flat = try a.alloc(S, count);
+            defer a.free(flat);
+            var at: usize = 0;
+            for (values.items) |tree| for (tree) |column| {
+                @memcpy(flat[at..][0..column.len], column);
+                at += column.len;
+            };
+            channel.mixFelts(flat);
+        }
+    };
+}
