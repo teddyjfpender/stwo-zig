@@ -4,7 +4,8 @@ const std = @import("std");
 const pools = @import("../work_pool.zig");
 pub const MAX_SHARDS = 16;
 pub const MIN_ROWS_PER_SHARD = 4096;
-fn run(count: usize, context: anytype) usize {
+pub const RangeOptions = struct { max_shards: usize = MAX_SHARDS, min_rows_per_shard: usize = MIN_ROWS_PER_SHARD };
+fn run(count: usize, context: anytype, options: RangeOptions) usize {
     const Context = @TypeOf(context.*);
     const Job = struct {
         context: *Context,
@@ -23,7 +24,11 @@ fn run(count: usize, context: anytype) usize {
         context.runRange(0, 0, count);
         return 1;
     }
-    const shards: usize = @min(MAX_SHARDS, @min(pool.availableWorkers(), count / MIN_ROWS_PER_SHARD));
+    if (options.min_rows_per_shard == 0 or options.max_shards == 0) {
+        context.runRange(0, 0, count);
+        return 1;
+    }
+    const shards: usize = @min(@min(MAX_SHARDS, options.max_shards), @min(pool.availableWorkers(), count / options.min_rows_per_shard));
     if (shards < 2) {
         context.runRange(0, 0, count);
         return 1;
@@ -59,7 +64,7 @@ pub fn reduce(comptime S: type, count: usize, algorithm: anytype) [2]S {
         }
     };
     var context = Context{ .algorithm = algorithm };
-    const shards = run(count, &context);
+    const shards = run(count, &context, .{});
     var sum = [2]S{ S.zero(), S.zero() };
     for (context.partial[0..shards]) |part| {
         sum[0] = sum[0].add(part[0]);
@@ -75,10 +80,15 @@ pub fn fill(count: usize, algorithm: anytype) void {
         }
     };
     var context = Context{ .algorithm = algorithm };
-    _ = run(count, &context);
+    _ = run(count, &context, .{});
 }
 /// Maximum stack payload of the scheduler records and partial reductions.
 /// Pool-owned helper stacks/submission slots already exist and are leased.
 pub fn scratchBytes(comptime S: type) usize {
     return MAX_SHARDS * (4 * @sizeOf(usize) + 2 * @sizeOf(S)) + @sizeOf(pools.WorkLease) + @sizeOf(std.Thread.WaitGroup) + 512;
+}
+
+/// Borrowed context must outlive the joined callbacks; each ordinal is unique.
+pub fn forEachRange(count: usize, context: anytype, options: RangeOptions) usize {
+    return run(count, context, options);
 }
