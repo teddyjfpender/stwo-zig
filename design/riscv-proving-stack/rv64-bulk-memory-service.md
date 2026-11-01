@@ -1,4 +1,4 @@
-# RV64 admitted bulk-memory services (aligned memcpy / memset)
+# RV64 admitted bulk-memory services (memcpy any source alignment, memset, memcmp)
 
 Status: implemented on `codex/rv64-guest-prover-bulk-memory`; AIR, services
 lane and services fixture qualified (section 8). Profile `ethereum_services_v3`.
@@ -194,6 +194,91 @@ So the lemma extends with one new strictly decreasing edge; no circularity.
 Removing the shared value columns (e.g. giving the dst write its own unranged
 value columns) would break this — such a change must re-open the lemma.
 
+## 4b. Extension: unaligned memcpy and memcmp (2026-11-02)
+
+ABI additions (executor `ethereum_services/bulk_memory.zig`, same checks as
+section 1 otherwise):
+
+| Tag | Packet at `a0` | Effect |
+|---|---|---|
+| `0x0003_0001` memcpy, `src & 7 != 0` | `dst, src, len` | as memcpy; `dst` 8-aligned, the `len/8 + 1` aligned source words holding a copied byte are readable and disjoint from packet and destination |
+| `0x0003_0003` memcmp | `a, b, len, result` | `result := -1/0/1` (memcmp sign of the first differing byte in address order); `a`, `b` 8-aligned, `len` a nonzero multiple of 8, ranges disjoint; only word pairs up to the first difference are read by the proof |
+
+Kinds (`bm/layout.zig`; measured cells in section 8b):
+
+| Kind | Rows | MAIN | INTER | Constraints | Fractions/row |
+|---|---|---:|---:|---:|---|
+| `ucopy` | 1 + `len/8` per unaligned memcpy | 56 | 60 | 134 | 4 RAM14, 1 OWNER19, 18 U16 |
+| `cdesc` | 1 per memcmp | 61 | 68 | 117 | 8 RAM14, 3 OWNER19, 16 U16 |
+| `cmp` | 1 per examined word pair | 59 | 52 | 148 | 4 RAM14, 2 OWNER19, 13 U16 |
+
+An unaligned memcpy keeps the `desc` row (same token `TOKEN_COPY`); its body
+run is `ucopy`. memcmp has its own descriptor `cdesc` (ECALL `a7 = 0x30003`)
+emitting `TOKEN_CMP = [0x424D0003, E, TL, TH, a, b, N]` and consuming
+`TOKEN_CMP_RESULT = [0x424D0004, E, TL, TH, neg, pos]` from the body's last row.
+
+**B8 Unaligned copy run.** Row 0 of a run (lead, `start = 1`) consumes the token
+`[TOKEN_COPY, E, TL, TH, dst, src0 + shift, remaining - 1]` and only reads
+aligned source word 0; row `r >= 1` reads source word `r` (address `src0 + 8r`)
+and writes destination word `r - 1` (address `dst + 8 (r - 1)`: the
+destination step is `8 (1 - start')`, carries forced 0 on the lead row). The
+shift is a one-hot `sel_1..7` summing to `active`, constant along the run, so
+`shift in 1..7`. The token's source limb 0 is `src0 + shift`, matched against
+the packet's canonical `src` (B2); since only 8-aligned addresses exist in the
+RAM history (B4), `src0` is the aligned word and `shift = src & 7` exactly; an
+aligned `src` cannot be taken by `ucopy` (it would need `src0 = src - shift`
+unaligned) and an unaligned one cannot be taken by `copy`. Written limb `i` is
+`sum_k sel_k * (b0 + 256 b1)` with `b0, b1` bytes `2i + k`, `2i + k + 1` of
+`prev ++ cur` (previous and current source word bytes), which is exactly
+`shifted(prev, cur, shift)`, i.e. destination bytes `j = 8(r-1) .. 8r-1` are
+source bytes `src + j`. Run length: `remaining` falls by 1 per row and ends
+at 1 (as B3), so the run has `N + 1` rows and writes words `0..N-1`, none
+skipped or repeated. The lead row writes nothing (dst RAM weight `active - start`).
+
+**B9 Zero-length calls.** `len = 0` passes the packet decomposition (`q0 = l1 = 0`).
+For `ucopy` a lead-only run (`remaining = 1`, `N = 0`) is excluded by
+`start' * (1 - c) = 0` (the row after a lead row is a continuation). For
+memcmp, `N = 0` would start the run at `remaining = 0`, which never reaches 1,
+so the run could only end on a claimed difference after reading words of
+unbounded index, a forged non-zero result for an empty compare. The `cdesc` row
+proves `N != 0` with an inverse column (`active (N * len_inv - 1) = 0`).
+Both are adversarial tests that close every relation and fail exactly that one
+constraint ("zero-length memcmp", "zero-length unaligned memcpy"). memcpy and
+memset with `len = 0` were already unprovable (no run reaches `remaining = 1`
+from 0).
+
+**B10 memcmp.** Each `cmp` row reads word `j` of `a` and of `b` (`after = before`,
+same columns, `R = 1`, writable bit preserved) at `a + 8j`, `b + 8j` with the
+call clock; `remaining` falls by one per row. Booleans `last`, `diff`, `is_one`
+with `is_one = [remaining = 1]` (inverse gadget, `(remaining - 1) is_one = 0`)
+and `last <=> diff or is_one` (`last (1 - diff)(1 - is_one) = 0`,
+`diff (1 - last) = 0`, `is_one (1 - last) = 0`); a non-last active row is
+followed by a continuation, a last row is not. Rows with `diff = 0` have all
+four limbs equal. On the `diff` row a one-hot `limbsel` picks limb `k` with
+all limbs `< k` equal; `alo + 256 ahi` and `blo + 256 bhi` are the selected
+limbs (low bytes U8 by two U16 facts, high bytes U16 and `< 256` because the
+limb is the canonical RAM value, section 4 B7 / joint induction 11.3); `hb`
+selects the byte with `hb (alo - blo) = 0`; `da`, `db` are the selected bytes
+and `gap = (1 - 2 lt)(da - db) - 1` is U16, so `da != db` and `lt = [da < db]`
+over the integers. Hence the selected byte is the first differing byte in
+address order of the first differing word, and the run stops exactly there or
+at the last word. The result token carries `(neg, pos) = (lt, diff - lt)`;
+`cdesc` writes `(pos + 65535 neg, 65535 neg, 65535 neg, 65535 neg)` (= -1, 0,
+or 1 as u64; `neg pos = 0`) to packet word 3 (rights 3). Tokens are bound to
+the call clock, so a result cannot move between calls. Consequences: forged
+equal (a `diff = 0` row on unequal words fails word equality), early stop
+(`last` without a difference before `remaining = 1` fails locally; claiming a
+difference on equal bytes needs `gap = -1`), late stop (past `remaining = 1`
+fails `is_one => last`), wrong sign (negative gap), wrong length (token `N` or
+packet read). Only the examined prefix is read; the executor's requirement that
+both full ranges be readable and disjoint is a superset (execution and
+provability coincide for wrapper calls).
+
+**B11 Canonical writes.** ucopy writes are case (c) of
+[rv64-ls-joint-write-induction.md](rv64-ls-joint-write-induction.md)
+section 11: bytes of src before tokens of the same call with strictly smaller
+tau; the cdesc result write is independently anchored. cmp only reads.
+
 ## 5. Adversarial and known-answer tests
 
 `bm/tests.zig` (`zig build test-riscv64-word16-bulk-memory`): a scenario of five
@@ -222,6 +307,30 @@ rejects it:
 | forged packet `dst` | RAM14 (packet read) |
 | overlapping memcpy | native admission; AIR: RAM14 or U16 (gap −1) |
 | degree > 3 | finite-difference check |
+
+Extension (scenario 2: three unaligned copies, shifts 3/5/7, chained and from a
+read-only source; three memcmp: equal, first difference in limb 2 high byte
+with `a < b`, difference at byte 0 with `a > b`):
+
+| Forgery | Rejected by |
+|---|---|
+| wrong shift (whole run re-executed) | OWNER19 token src + RAM14 |
+| shift changed on one row | local selector continuity |
+| wrong written limb | local shift equation |
+| wrong source byte (consistent output) | RAM14 (src read) |
+| non-canonical byte split | U16 |
+| skipped word (chain shortened / remaining relabelled) | local chain end / OWNER19 + RAM14 |
+| lead row writing, destination not advancing | local |
+| zero-length unaligned memcpy (lead row only) | local lead-row rule only |
+| memcmp flipped `lt` | U16 (negative gap) |
+| descriptor result differing from body | OWNER19 (result token) |
+| later limb chosen, `hb` on a low-byte difference | local |
+| early stop claiming a difference / claiming 0 | U16 (gap −1) / local |
+| skipped differing word, running past the length | local |
+| forged equal result (single word, all relations closed) | local word equality only |
+| body length differing from descriptor / descriptor length forged too | OWNER19 / RAM14 (packet read) |
+| zero-length memcmp claiming a difference (all relations closed) | local `len * len_inv = 1` only |
+| memcmp result token without a descriptor | OWNER19 + RAM14 |
 
 Executor (`ethereum_services/bulk_memory.zig`): length 0, 12, 2^20+8,
 misaligned dst/src, both overlap directions, packet aliasing dst or src,

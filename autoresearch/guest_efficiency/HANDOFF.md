@@ -46,16 +46,17 @@ top bit of the SHA count word; one `admitted_services` cost table in
 ## In-flight tracks (pushed WIP; agents may still be adding commits)
 
 ### Keccak sponge service in the prover
-Branch `codex/rv64-guest-prover-keccak-sponge` (head `936505bbf`). Has: admitted
+Branch `codex/rv64-ge-sponge` (supersedes `codex/rv64-guest-prover-keccak-sponge` `936505bbf`). Has: admitted
 executor (tag `0x30130`, v3), two-component Word16 sponge bridge,
 `delegations/keccak_sponge/` (layout, equations, source, interaction, tests),
 services roster wiring, `services/sponge_fixture.zig`, `sponge_test.zig`,
 design doc `rv64-keccak-sponge-service.md`. Candidate measured: client Keccak
 glue 0.43 -> 0.08 instr/gas.
-- [ ] TODO finish and run truth/bridge tests: known answers vs Keccak-256 for many lengths and alignments; adversarial (skipped block, wrong XOR, reordered blocks, forged final state, length mismatch).
-- [ ] TODO services fixture proof with a fresh receiver; v2 and SHA-only v3 bundles byte-identical.
-- [ ] TODO route the evmone client's Keccak (>64-byte inputs) to the admitted sponge; harness on all 15 blocks; measured cells per call and per block into `admitted_services`.
-- [ ] TODO Ethereum driver: sponge in the v3 work-packet route; prefix and complete-block proof.
+- [x] Truth/bridge tests: 23 lengths x 8 alignments vs Keccak-256; adversarial skipped block, wrong XOR, reordered blocks, forged final state, length mismatch, padding, digest-write forgery (`test-riscv64-keccak-sponge`, 19 tests, 2026-11-02, branch `codex/rv64-ge-sponge`).
+- [x] Services fixture proof with a fresh receiver (`test-riscv64-word16-sponge-services`); v2 bundle = golden (7 files, be49c88c) and SHA-only v3 = pre-sponge base b25175ff6 (identical, cross-verified); regression suites pass. Joint write induction: sponge writer case in `rv64-keccak-sponge-service.md` 4.1.
+- [x] evmone Keccak > 64 bytes routed to the sponge (`--v3-set sha,arith,mem,keccak`); 15 blocks, all guards, exact: on merged head 73977eb2a scored 4.538 -> 4.215 instr/gas, 64,578 -> 61,773 bits/gas (pre-merge client 4.778 -> 4.426, 67,192 -> 64,114); glue 0.465 -> 0.108; `admitted_services.keccak_sponge` 1,409.3/call + (2,100.3 + 72,159.3)/permutation, confirmed by a produced roster.json.
+- [x] Ethereum driver: sponge through nativeprepare / packet admission / produce / verify-prefix (1-packet prefix of block 26,235,156 accepted; v2 request rejects). Block driver compiles again (role_cost/telemetry/plan).
+- [ ] TODO (coordinator) block 24,628,607 prefix4 and complete proofs with the sponge guest: commands in `handover/prover-keccak-sponge.md`.
 - [ ] TODO (next lever) throughput-table Keccak AIR from `rv64-keccak-and-memory-cost-reduction.md` (-43% cells per permutation).
 
 ### BN254 and BLS12-381 services in the prover
@@ -77,10 +78,10 @@ AIR changes (layout, equations, source, types, tests), guest mem crate and
 evmone runtime routing, boundary capture changes. Aligned-only saves just
 -2.15% on the Rust guest vs -12% for the candidate; only 3.34M of 9.08M copies
 qualified.
-- [ ] TODO measure fallback reasons (mismatched alignment, overlap, short) and record them.
-- [ ] TODO unaligned body row (two aligned source words, byte shift 1..7) keeping canonical limbs and the joint REG/RAM write induction; adversarial tests (wrong shift, wrong byte, skipped word).
-- [ ] TODO memcmp rows with a sound first-difference argument; adversarial tests (wrong result, early-stop forgery).
-- [ ] TODO fixture proof with fresh receiver; byte identity; harness on Rust guest and evmone v3 client; measured costs.
+- [x] measure fallback reasons (mismatched alignment, overlap, short) and record them (handover section 1: 57% of copies mismatched alignment, overlap 0.004%).
+- [x] unaligned body row (two aligned source words, byte shift 1..7) keeping canonical limbs and the joint REG/RAM write induction; adversarial tests (wrong shift, wrong byte, skipped word, zero length). `codex/rv64-ge-bulk`; `test-riscv64-word16-bulk-memory` passes; argument B8/B11 in rv64-bulk-memory-service.md.
+- [x] memcmp rows with a sound first-difference argument; adversarial tests (wrong result, early-stop forgery, forged equal, length mismatch, zero length); B9/B10 in rv64-bulk-memory-service.md. Fix: memcmp len = 0 was forgeable (now a cdesc length inverse).
+- [x] fixture proof with fresh receiver (`services/bulk_ext_fixture.zig`, `test-riscv64-word16-bulk-services`); byte identity, basket and costs: see handover/prover-bulk-unaligned.md section 7.
 
 ### Recursion for v3 services
 Branch `codex/rv64-guest-prover-recursion-v3` (head `2836da9c9`). Has: plan
@@ -178,20 +179,21 @@ as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover
 
 | Track | Handover | Branch head | One-line state |
 |---|---|---|---|
-| Keccak sponge | [handover/prover-keccak-sponge.md](handover/prover-keccak-sponge.md) | `fb253bde8` | AIR + services lane verified with real STARKs and a fresh receiver (23 lengths x 8 alignments, 8 adversarial); regression suites, byte identity, driver hooks and evmone option not run; costs estimated (~1,074 cells/call + 1,661/block) |
+| Keccak sponge | [handover/prover-keccak-sponge.md](handover/prover-keccak-sponge.md) | branch `codex/rv64-ge-sponge` | resumed 2026-11-02: regression + byte identity pass, write-induction case written, evmone routing measured (merged head scored 4.215 instr/gas, 61,773 bits/gas), measured cells, 1-packet prefix proof verified; block 24,628,607 proofs pending (coordinator) |
 | BN254 / BLS12-381 | [handover/prover-curves.md](handover/prover-curves.md) | `e15fb991a` | one truth AIR for 7 ops, verified vs independent big-int; measured truth cells (BN254 add 2,036, dbl 1,884, Fp2 1,126; BLS Fp2 2,088, add 3,460, dbl 3,502; arith384_mont 1,256) + 378 per 32-byte coordinate; one quotient-tamper test unresolved; lane/receiver/driver wiring not compiled on the track branch; packets now inline 32-byte aligned |
-| Unaligned memcpy / memcmp | [handover/prover-bulk-unaligned.md](handover/prover-bulk-unaligned.md) | `6806dec8c` | measured: 57% of copies (4.52M calls) have mismatched alignment; executor and Rust guest routing pass (-4.9% instr/gas, exact); AIR rows written, tests not confirmed green; not wired into the lane. Routing is gated off on this branch (`776015b65`) so guests stay provable |
+| Unaligned memcpy / memcmp | [handover/prover-bulk-unaligned.md](handover/prover-bulk-unaligned.md) | `6806dec8c` (resumed: `codex/rv64-ge-bulk`) | RESUMED 2026-11-02: AIR + services lane verified with real STARKs and a fresh receiver; two zero-length forgeries fixed; v2/v3 byte identity; evmone v3 with umem default 4.525 instr/gas, 64,978 bits/gas (charged), all guards pass; RAM-writer induction re-established (joint-induction note section 11). Previous state: measured: 57% of copies (4.52M calls) have mismatched alignment; executor and Rust guest routing pass (-4.9% instr/gas, exact); AIR rows written, tests not confirmed green; not wired into the lane. Routing is gated off on this branch (`776015b65`) so guests stay provable |
 | Recursion for v3 | [handover/prover-recursion-v3.md](handover/prover-recursion-v3.md) | `701ee5f0b` | correction: no Word16 services bundle (v2 or v3) can be wrapped/folded yet; needs a CPU-with-bridges leaf and a services root closing RAM14/KIO11/Wire35. Circuit evaluators built for SHA-256, arith256_mod, bridge, bulk; SHA leaf ~37% of the 2^23 budget on a fixture; 10/12 tests last run |
 | Interpreter pass 2 | [handover/client-interpreter2.md](handover/client-interpreter2.md) | `68a0867d3` | negative result: translated segments cut dispatch 1.117 -> 0.836/gas but translation cost more (all-blocks 6.566 -> 6.834); not kept (~4.5 executions per unique opcode); patch parked in `client_evmone/patches/wip/` (not applied); 3-way differential fuzzer added |
 | evmone EEST bugs | [handover/client-eest-fixes.md](handover/client-eest-fixes.md) | `365f1b165` | BLS G2 crash fixed (blst 0002, 40 -> 0 failures); table sizing fixed (host 200/200, guest 307/309); 7702 depth fixed by the same change; BLS MSM step budget not started; full host re-run and new receipt pending |
 
 ### Flags that need an owner
 
-- **Soundness: joint REG/RAM write induction.** `test-riscv64-word16-memory`
-  fails because its guard now counts 7 RAM-writing services instead of 4; its
-  comment says adding a writer requires reopening the soundness argument. Bulk
-  memory, the sponge and the curve services write RAM: re-establish the
-  induction argument (canonical limbs per writer) before treating them as sound.
+- **Soundness: joint REG/RAM write induction.** RESOLVED on `codex/rv64-ge-bulk`:
+  argument re-established for every roster RAM writer in
+  `design/riscv-proving-stack/rv64-ls-joint-write-induction.md` section 11
+  (generic W1-W5 + per-writer table; sponge/curves owners may append). The
+  guard now pins roster fields, bridge kinds, bulk kinds and sponge kinds by
+  name (`joint_write_invariants_test.zig`, "services RAM writer inventory").
 - **Candidate-profile output mismatch.** The interpreter track saw the
   candidate-profile baseline fail exact output with no interpreter change;
   uninvestigated. Re-check the candidate basket at the current head.
@@ -257,8 +259,9 @@ as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover
     (`-DADMITTED_UMEM`, ELF `-v3-sha-arith-mem-umem`); default v3 is
     aligned-only again. The executor still admits 0x0003_0003 and unaligned
     sources (execution-only; no verified client issues them).
-    - [ ] TODO (bulk-unaligned track): prove unaligned memcpy and memcmp in
-      the bulk AIR and the services collector, then make `umem` default.
+    - [x] (bulk-unaligned track): unaligned memcpy and memcmp proved in the
+      bulk AIR and services collector; `umem` is the default v3 set on
+      `codex/rv64-ge-bulk` (aligned-only: `--v3-set sha,arith,mem`).
     `test_bench.py`: 40 tests OK.
   - Services lane (curves merge dropped hunks): curve request/claims fields
     in `services/wire.zig` (request `curve_calls` omitted from JSON when zero,
@@ -266,9 +269,9 @@ as an UNVERIFIED final checkpoint ("Merge UNVERIFIED final checkpoint + handover
     FAMILIES-wide call vector in `pipeline.zig`, call-count bound in
     `protocol.zig`, each union-merged with the sponge code. Gated WIP gaps,
     each with a TODO for its track:
-    - [ ] TODO (bulk-unaligned): services-lane `Bulk.at`/`BulkCounts.rows`
-      return none for the new `ucopy`/`cdesc`/`cmp` AIR kinds; the collector
-      still rejects memcmp. Wire them in with their own claims and tests.
+    - [x] (bulk-unaligned): `ucopy`/`cdesc`/`cmp` wired through the services
+      lane with their own claims (`bulk_ext`), counts and tests; the collector
+      replays memcmp and unaligned copies.
     - [ ] TODO (curves): `ethereum/keys.zig` rejects curve truth families with
       `UnsupportedServicesTruthFamily` (Ethereum work-packet route not wired);
       `services/owned_truth_test.zig` marks `.curve` unreachable (its fixture

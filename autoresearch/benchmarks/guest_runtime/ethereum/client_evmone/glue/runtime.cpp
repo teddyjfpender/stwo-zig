@@ -16,6 +16,7 @@
 #include <new>
 
 #include "services.hpp"
+#include "mem_functions.hpp"
 
 // Candidate profile: bulk copies/fills/compares at or above this size go to the
 // execution-only memory services (CONTEXT.md); smaller ones stay software.
@@ -33,13 +34,13 @@ static constexpr size_t kCandMemMin = 32;
 // never traps.
 #if defined(ADMITTED_MEM)
 #if !defined(STWO_ADMITTED_COPY_MIN)
-#define STWO_ADMITTED_COPY_MIN 16
+#define STWO_ADMITTED_COPY_MIN 64
 #endif
 #if !defined(STWO_ADMITTED_UCOPY_MIN)
 #define STWO_ADMITTED_UCOPY_MIN 16
 #endif
 #if !defined(STWO_ADMITTED_SET_MIN)
-#define STWO_ADMITTED_SET_MIN 16
+#define STWO_ADMITTED_SET_MIN 64
 #endif
 #if !defined(STWO_ADMITTED_CMP_MIN)
 #define STWO_ADMITTED_CMP_MIN 8
@@ -64,41 +65,35 @@ inline void v3_fill_words(uint8_t* d, uint8_t byte, size_t n) noexcept {
     }
     v3_bulk(stwo::kV3Memset, reinterpret_cast<uint64_t>(d), byte, n);
 }
-// Returns false (caller copies in software) for overlapping ranges, calls below
-// the threshold, or no whole destination word. Byte-disjoint ranges never share
-// a service word: the destination body is word-aligned.
-inline bool v3_copy(void* dst, const void* src, size_t n) noexcept {
+static_assert(STWO_ADMITTED_COPY_MIN >= 15 && STWO_ADMITTED_UCOPY_MIN >= 15 && STWO_ADMITTED_SET_MIN >= 15,
+              "thresholds below 15 bytes may leave no whole destination word");
+// Service copy/fill of n >= 15 bytes (split_copy/split_fill in
+// mem_functions.hpp). Byte-disjoint ranges never share a service word: the
+// destination body is word-aligned.
+__attribute__((noinline)) void v3_copy_run(uint8_t* dp, const uint8_t* sp, size_t n) noexcept {
+    split_copy(dp, sp, n, [](uint8_t* d, const uint8_t* s, size_t len) { v3_copy_words(d, s, len); });
+}
+__attribute__((noinline)) void v3_set_run(uint8_t* dp, int c, size_t n) noexcept {
+    split_fill(dp, c, n, [](uint8_t* d, uint8_t byte, size_t len) { v3_fill_words(d, byte, len); });
+}
+// Returns false (caller copies in software) for overlapping ranges or calls
+// below the threshold.
+__attribute__((always_inline)) inline bool v3_copy(void* dst, const void* src, size_t n) noexcept {
     const uintptr_t d = reinterpret_cast<uintptr_t>(dst), s = reinterpret_cast<uintptr_t>(src);
 #if defined(ADMITTED_UMEM)
-    // UNVERIFIED (bulk-unaligned track): unaligned-source memcpy is not yet
-    // proved by the bulk-memory AIR; opt in with --v3-set ...,umem.
+    // Unaligned-source memcpy: bulk-memory `ucopy` rows (rv64-bulk-memory-service.md B8).
     const size_t min = ((d ^ s) & 7) == 0 ? STWO_ADMITTED_COPY_MIN : STWO_ADMITTED_UCOPY_MIN;
 #else
     if (((d ^ s) & 7) != 0) return false;
     const size_t min = STWO_ADMITTED_COPY_MIN;
 #endif
     if (n < min || (d < s + n && s < d + n)) return false;
-    const size_t head = (0 - d) & 7;
-    if (n < head + 8) return false;
-    const size_t body = (n - head) & ~size_t(7);
-    uint8_t* dp = static_cast<uint8_t*>(dst);
-    const uint8_t* sp = static_cast<const uint8_t*>(src);
-    for (size_t i = 0; i < head; ++i) dp[i] = sp[i];
-    v3_copy_words(dp + head, sp + head, body);
-    for (size_t i = head + body; i < n; ++i) dp[i] = sp[i];
+    v3_copy_run(static_cast<uint8_t*>(dst), static_cast<const uint8_t*>(src), n);
     return true;
 }
-inline bool v3_set(void* dst, int c, size_t n) noexcept {
+__attribute__((always_inline)) inline bool v3_set(void* dst, int c, size_t n) noexcept {
     if (n < STWO_ADMITTED_SET_MIN) return false;
-    const uintptr_t d = reinterpret_cast<uintptr_t>(dst);
-    const size_t head = (0 - d) & 7;
-    const size_t body = (n - head) & ~size_t(7);
-    if (body == 0) return false;
-    uint8_t* dp = static_cast<uint8_t*>(dst);
-    const uint8_t byte = static_cast<uint8_t>(c);
-    for (size_t i = 0; i < head; ++i) dp[i] = byte;
-    v3_fill_words(dp + head, byte, body);
-    for (size_t i = head + body; i < n; ++i) dp[i] = byte;
+    v3_set_run(static_cast<uint8_t*>(dst), c, n);
     return true;
 }
 // memcmp body through the service when a and b are 8-aligned and disjoint;
@@ -273,9 +268,6 @@ int posix_memalign(void** out, size_t alignment, size_t size) {
 }
 
 // ----- memory functions (implementations in mem_functions.hpp) -----------
-}  // extern "C"
-#include "mem_functions.hpp"
-extern "C" {
 
 void* memcpy(void* dst, const void* src, size_t n) {
 #if defined(ADMITTED_MEM)
@@ -306,8 +298,7 @@ void* memset(void* dst, int c, size_t n) {
 }
 int memcmp(const void* a, const void* b, size_t n) {
 #if defined(ADMITTED_UMEM)
-    // UNVERIFIED (bulk-unaligned track): the Word16 services collector does
-    // not yet accept memcmp (0x0003_0003); opt in with --v3-set ...,umem.
+    // memcmp 0x0003_0003: bulk-memory `cdesc`/`cmp` rows (rv64-bulk-memory-service.md B10).
     int r;
     if (v3_compare(a, b, n, &r)) return r;
 #endif

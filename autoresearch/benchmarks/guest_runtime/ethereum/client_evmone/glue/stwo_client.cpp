@@ -24,6 +24,7 @@
 #include <vector>
 
 #include <evmc/evmc.hpp>
+#include <evmone_precompiles/keccak.h>
 
 #include "zeg/accounts.hpp"
 #include "zeg/binary_format.hpp"
@@ -277,6 +278,9 @@ evmc::bytes32 requests_hash(const Input& in) {
 // ------------------------------------------------------- ZEG0 synthesis ----
 // The backing words are not pre-zeroed (most of the buffer is overwritten by
 // transaction and code bytes): bytes() zeroes its pad word, zeros() its range.
+}  // namespace (reopened below)
+extern "C" union ethash_hash256 stwo_keccak256_copy(uint8_t* dst, const uint8_t* src, size_t size) noexcept;
+namespace {
 struct Writer {
     uint64_t* words = nullptr;  // 8-byte aligned backing, never freed
     size_t cap = 0;             // bytes
@@ -296,6 +300,17 @@ struct Writer {
         words[(n + k) / 8] = 0;  // the word holding the zero pad (n is 8-aligned)
         std::memcpy(at(n), p, k);
         n += k;
+        n = (n + 7) & ~size_t(7);
+    }
+    // Contract record (patch 0025): u64 size | keccak256(code) | code | zero pad,
+    // hashed while it is copied (one pass over the misaligned witness bytes).
+    void code(const uint8_t* p, size_t k) {
+        need(8 + 32 + k + 8);
+        words[n / 8] = k;
+        n += 8;
+        const ethash_hash256 h = stwo_keccak256_copy(at(n + 32), p, k);
+        std::memcpy(at(n), h.bytes, 32);
+        n += 32 + k;
         n = (n + 7) & ~size_t(7);
     }
     uint8_t* zeros(size_t k) {
@@ -657,7 +672,7 @@ const uint64_t* build_zeg0(const Input& in, size_t& out_len) {
     // Size: magic+seed, consensus, txs, codes, headers.
     size_t total = 24 + 376 + 48 * (in.withdrawals.n / 44) + 8 + 8 + 8 + 64;
     for (size_t i = 0; i < in.txs.count; ++i) total += 16 + in.txs.at(i).n;
-    for (size_t i = 0; i < in.codes.count; ++i) total += 16 + in.codes.at(i).n;
+    for (size_t i = 0; i < in.codes.count; ++i) total += 48 + in.codes.at(i).n;
     total += 768 * in.headers.count;
     Writer w;
     w.reserve(total);
@@ -737,8 +752,7 @@ const uint64_t* build_zeg0(const Input& in, size_t& out_len) {
     w.u64(in.codes.count);
     for (size_t i = 0; i < in.codes.count; ++i) {
         const Span c = in.codes.at(i);
-        w.u64(c.n);
-        w.bytes(c.p, c.n);
+        w.code(c.p, c.n);
     }
     // Section 6: previous blocks, index 0 = parent (highest number first).
     const size_t nh = in.headers.count;

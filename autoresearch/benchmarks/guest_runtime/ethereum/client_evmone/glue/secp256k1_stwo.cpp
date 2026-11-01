@@ -232,6 +232,15 @@ inline U256 sc_mul(const U256& a, const U256& b) {
 // ---- points via services ----
 struct Proj {
     U256 x, y, z;
+    Proj() = default;
+    constexpr Proj(const U256& a, const U256& b, const U256& c) : x(a), y(b), z(c) {}
+    // 96-byte copies would be memcpy calls on RV64 (12 words exceed LLVM's
+    // inline-store limit); force the 12 aligned word moves inline.
+    Proj(const Proj& o) noexcept { __builtin_memcpy_inline(this, &o, sizeof(Proj)); }
+    Proj& operator=(const Proj& o) noexcept {
+        __builtin_memcpy_inline(this, &o, sizeof(Proj));
+        return *this;
+    }
 };
 
 alignas(32) stwo::SecpAddPacket g_acc;  // accumulator in w[0..12], operand in w[12..24]

@@ -1,0 +1,29 @@
+--- a/cpp-guest/src/contracts.cpp	2026-11-02 00:17:16
++++ b/cpp-guest/src/contracts.cpp	2026-11-02 00:17:23
+@@ -27,13 +27,26 @@
+     hash_reserve_empty(index_, count);  // not .reserve(): see zeg/hash_reserve.hpp
+     for (uint64_t i = 0; i < count; ++i) {
+         const uint64_t size = read_u64_le(cursor);
++#if defined(ZEG_STWO)
++        // stwo: the guest's own input synthesis (client_evmone glue, build_zeg0)
++        // hashes each code while copying it out of the SSZ witness and writes
++        // the digest ahead of the code: u64 size | keccak256(code) | code | pad.
++        evmc::bytes32 hash;
++        const uint8_t* digest = cursor;
++        advance_checked(cursor, sizeof(hash.bytes));
++        std::memcpy(hash.bytes, digest, sizeof(hash.bytes));
+         const uint8_t* code = cursor;
+         advance_checked(cursor, size);
+         align_to_u64(cursor, size);
++#else
++        const uint8_t* code = cursor;
++        advance_checked(cursor, size);
++        align_to_u64(cursor, size);
+ 
+         const auto digest = ethash::keccak256(code, size);
+         evmc::bytes32 hash;
+         std::memcpy(hash.bytes, digest.bytes, sizeof(hash.bytes));
++#endif
+ 
+         contracts_.push_back(Contract{hash, code, size});
+         index_.emplace(hash, contracts_.size() - 1);

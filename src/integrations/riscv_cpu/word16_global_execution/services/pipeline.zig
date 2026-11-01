@@ -206,7 +206,7 @@ pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P
     for (&curves, T.FIRST_CURVE..) |*out, fam| if (setup.bridges.at(@enumFromInt(fam))) |log| {
         out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, T.bridgeKind(@enumFromInt(fam)), advice.curves[ordinal][fam - T.FIRST_CURVE], first_ids[fam], log);
     };
-    var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
+    var bulk: [T.bulk_kinds.len]?A.crypto.bulk_memory.source.Source = @splat(null);
     errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
     for (T.bulk_kinds, &bulk) |kind, *out| if (setup.bridges.bulk.at(kind)) |log| {
         const shard = advice.bulk[ordinal];

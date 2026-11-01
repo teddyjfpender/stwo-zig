@@ -87,6 +87,13 @@ test "wide route fails closed on every v3 bridge, call, bulk/sponge row and trut
     }
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .copy = 5 } }));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .sponge = .{ .perm = 5 } }));
+    // Unaligned memcpy / memcmp extension kinds are v3 bulk too.
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .ucopy = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .cdesc = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.bridges(.{ .bulk = .{ .cmp = 5 } }));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .ucopy_rows = 1 }, .{}));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_calls = 1 }, .{}));
+    try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .cmp_words = 1 }, .{}));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{ .calls = 1 }, .{}));
     try std.testing.expectError(error.GkrV3ServiceUnsupported, Scope.calls(@splat(0), .{}, .{ .perms = 1 }));
 

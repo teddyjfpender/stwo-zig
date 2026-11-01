@@ -169,6 +169,17 @@ Obligations this receiver relies on:
   key has bulk components). The Ethereum driver's v3 work-packet route is not
   yet qualified; the services fixture (`services/bulk_test.zig`) is the
   accepting evidence.
+- Extension (2026-11-02): memcpy with any source alignment (`ucopy` body rows,
+  one lead row reading source word 0 then one row per destination word built
+  from two source words at a one-hot byte shift) and memcmp 0x30003 (`cdesc`
+  descriptor writing the -1/0/1 result word, `cmp` rows up to the first
+  differing word with a strict first-difference byte argument). Zero-length
+  calls are excluded (`cdesc` length inverse, no lead-only ucopy run). The
+  extension block is mixed, committed and serialized only when present
+  (`bulk_ext` claims, extension request counts omitted when zero), so
+  aligned-only bundles are unchanged. Arguments B8-B11 in the bulk design
+  doc; canonical writes in `rv64-ls-joint-write-induction.md` section 11.
+  Evidence: `services/bulk_ext_fixture.zig` (real STARKs, fresh receiver).
 
 ## Ownership, storage and resource scope
 

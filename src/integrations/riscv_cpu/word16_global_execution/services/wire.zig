@@ -85,18 +85,21 @@ pub const WireClaims = struct {
     curves: [T.CURVES]?T.ExtraClaims = @splat(null),
     /// Bulk-memory claims (desc, copy, set); present iff the roster has bulk.
     bulk: ?[3]T.BulkClaims = null,
+    /// Bulk extension claims (ucopy, cdesc, cmp); present iff the roster has
+    /// an extension kind, omitted otherwise (aligned-only bytes unchanged).
+    bulk_ext: ?[3]T.BulkClaims = null,
     /// Keccak-sponge claims (call, perm); present iff the roster has a sponge.
     sponge: ?[2]T.SpongeClaims = null,
     fn from(c: E.CpuClaims, bridges: T.Logs) @This() {
         var curves: [T.CURVES]?T.ExtraClaims = @splat(null);
         for (&curves, T.FIRST_CURVE..) |*out, k| out.* = if (bridges.at(@enumFromInt(k)) != null) c.extras[k] else null;
-        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk else null, .sponge = if (bridges.sponge.any()) c.sponge else null };
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (bridges.sha256 != null) c.extras[3] else null, .arith256_mod = if (bridges.arith256_mod != null) c.extras[4] else null, .curves = curves, .bulk = if (bridges.bulk.any()) c.bulk[0..T.BULK_BASE].* else null, .bulk_ext = if (bridges.bulk.anyExtension()) c.bulk[T.BULK_BASE..].* else null, .sponge = if (bridges.sponge.any()) c.sponge else null };
     }
     fn expand(self: @This()) E.CpuClaims {
         var extras: [T.FAMILIES]T.ExtraClaims = undefined;
         extras[0..5].* = self.extras ++ [2]T.ExtraClaims{ self.sha256 orelse T.ExtraClaims.zero(), self.arith256_mod orelse T.ExtraClaims.zero() };
         for (extras[T.FIRST_CURVE..], self.curves) |*out, c| out.* = c orelse T.ExtraClaims.zero();
-        return .{ .base = self.base, .extras = extras, .bulk = self.bulk orelse @splat(T.BulkClaims.zero()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
+        return .{ .base = self.base, .extras = extras, .bulk = (self.bulk orelse zeroBulk()) ++ (self.bulk_ext orelse zeroBulk()), .sponge = self.sponge orelse @splat(T.SpongeClaims.zero()) };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curves) |c| if (c != null) return true;
@@ -124,6 +127,10 @@ pub const WireClaims = struct {
             try jws.objectField("bulk");
             try jws.write(b);
         }
+        if (self.bulk_ext) |b| {
+            try jws.objectField("bulk_ext");
+            try jws.write(b);
+        }
         if (self.sponge) |b| {
             try jws.objectField("sponge");
             try jws.write(b);
@@ -131,8 +138,11 @@ pub const WireClaims = struct {
         try jws.endObject();
     }
 };
+fn zeroBulk() [T.BULK_BASE]T.BulkClaims {
+    return @splat(T.BulkClaims.zero());
+}
 fn serviceCalls(r: CompactRequest) u64 {
-    var n: u64 = @as(u64, r.bulk.calls) + r.sponge.calls + r.ls_count;
+    var n: u64 = r.bulk.ecalls() + r.sponge.calls + r.ls_count;
     for (r.all()) |c| n += c;
     return n;
 }
@@ -210,6 +220,7 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
+        if ((cpu.claims.bulk_ext != null) != cpu.declaration.bridges.bulk.anyExtension()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
         const claims = cpu.claims.expand();
@@ -299,7 +310,8 @@ pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, l
         ram = try std.math.add(u64, ram, 58 * @as(u64, cpu.request.sponge.calls) + 36 * @as(u64, cpu.request.sponge.perms));
         ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
-        ram = try std.math.add(u64, ram, 6 * @as(u64, cpu.request.bulk.calls) + 4 * @as(u64, cpu.request.bulk.copy_words) + 2 * @as(u64, cpu.request.bulk.set_words));
+        try P.bulkCounts(cpu.request.bulk);
+        ram = try std.math.add(u64, ram, cpu.request.bulk.ram());
         if (cpu.proof.bytes == 0 or cpu.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;
         proof_bytes = try std.math.add(u64, proof_bytes, cpu.proof.bytes);
     }

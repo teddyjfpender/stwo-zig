@@ -2,7 +2,8 @@
 //! (CPU bridges and truths for Keccak, secp256k1 ADD and DOUBLE). Its CPU
 //! roles, global layouts, masses, statements and truth components enumerate
 //! exactly those three families. Every v3 extension of the classic services
-//! route (SHA-256, arith256_mod, curve/field families, bulk memory, Keccak
+//! route (SHA-256, arith256_mod, curve/field families, bulk memory incl. the
+//! unaligned ucopy/cdesc/cmp kinds, Keccak
 //! sponge) is rejected here, at each admission boundary, instead of being
 //! silently dropped or mis-typed as a secp bridge. Lifting this requires
 //! porting each v3 family into the GKR roles and global authorities.
