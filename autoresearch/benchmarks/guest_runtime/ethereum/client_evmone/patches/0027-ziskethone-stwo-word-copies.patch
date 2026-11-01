@@ -1,6 +1,6 @@
 diff -ru a/cpp-guest/src/accounts.cpp b/cpp-guest/src/accounts.cpp
---- a/cpp-guest/src/accounts.cpp	2026-11-02 00:41:54
-+++ b/cpp-guest/src/accounts.cpp	2026-11-02 00:42:12
+--- a/cpp-guest/src/accounts.cpp	2026-11-02 01:06:03
++++ b/cpp-guest/src/accounts.cpp	2026-11-02 01:06:03
 @@ -1,4 +1,5 @@
  #include "zeg/accounts.hpp"
 +#include "zeg/zisk_dma.hpp"
@@ -77,8 +77,8 @@ diff -ru a/cpp-guest/src/accounts.cpp b/cpp-guest/src/accounts.cpp
      m.last_tx_idx     = tx_idx;
  }
 diff -ru a/cpp-guest/src/ssz.cpp b/cpp-guest/src/ssz.cpp
---- a/cpp-guest/src/ssz.cpp	2026-11-02 00:41:54
-+++ b/cpp-guest/src/ssz.cpp	2026-11-02 00:42:12
+--- a/cpp-guest/src/ssz.cpp	2026-11-02 01:05:53
++++ b/cpp-guest/src/ssz.cpp	2026-11-02 01:06:03
 @@ -7,6 +7,7 @@
  
  #include "zeg/fatal.hpp"
@@ -100,9 +100,21 @@ diff -ru a/cpp-guest/src/ssz.cpp b/cpp-guest/src/ssz.cpp
      return sha256_bytes32(buf, sizeof(buf));
  }
  
+@@ -60,7 +61,10 @@
+         const std::size_t half = (n + 1) / 2;
+         for (std::size_t i = 0; i < half; ++i) {
+             const Chunk& right = 2 * i + 1 < n ? level[2 * i + 1] : zero_hash(d);
+-            level[i] = hash(level[2 * i], right);
++            // stwo: the digest lands in an 8-aligned local, then word-copies
++            // into the (heap, 8-aligned) level instead of a memcpy call.
++            alignas(8) const Chunk h = hash(level[2 * i], right);
++            zeg::zisk::zisk_xmemcpy<32>(level[i].bytes, h.bytes);
+         }
+         n = half;
+     }
 diff -ru a/cpp-guest/src/storages.cpp b/cpp-guest/src/storages.cpp
---- a/cpp-guest/src/storages.cpp	2026-11-02 00:41:54
-+++ b/cpp-guest/src/storages.cpp	2026-11-02 00:42:12
+--- a/cpp-guest/src/storages.cpp	2026-11-02 01:06:03
++++ b/cpp-guest/src/storages.cpp	2026-11-02 01:06:03
 @@ -23,9 +23,10 @@
                          const evmc::bytes32& value) {
      const size_t idx = originals_.size();

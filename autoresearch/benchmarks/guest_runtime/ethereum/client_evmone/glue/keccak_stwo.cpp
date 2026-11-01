@@ -105,7 +105,10 @@ struct MemoEntry {
 MemoEntry* g_memo = nullptr;
 }  // namespace
 
-extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
+// no_builtin("memcpy"): the aligned first-block absorb (st[i] = word i) would
+// otherwise become a 136-byte memcpy call.
+extern "C" __attribute__((no_builtin("memcpy"))) union ethash_hash256 ethash_keccak256(const uint8_t* data,
+                                                                                        size_t size) noexcept {
     alignas(32) uint64_t st[25];
 #if defined(ADMITTED_KECCAK)
     // Admitted Keccak-256 sponge (ethereum_services_v3, tag 0x0003_0130):
@@ -198,7 +201,8 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
 // with the bytes after the last one in dst's final word set to zero: one pass
 // over a misaligned source instead of a funnel-shift copy plus a hash of the
 // copy (build_zeg0's contract codes). Same digest as ethash_keccak256(src, size).
-extern "C" union ethash_hash256 stwo_keccak256_copy(uint8_t* dst, const uint8_t* data, size_t size) noexcept {
+extern "C" __attribute__((no_builtin("memcpy"))) union ethash_hash256 stwo_keccak256_copy(
+    uint8_t* dst, const uint8_t* data, size_t size) noexcept {
 #if defined(ADMITTED_KECCAK) || defined(CANDIDATE_KECCAK)
     const bool service = size > 64;  // the sponge service hashes the aligned copy
 #else
