@@ -45,9 +45,8 @@ fn fresh(comptime S: type, input: anytype, proof: anytype) !void {
     }
     try @import("verifier_kernel.zig").verifyTerminalInputs(S, &artifact, &expected, V.NativeChecks{});
 }
-fn exercise(comptime S: type) !void {
+pub fn exerciseWithBaseline(comptime S: type, comptime Baseline: type) !void {
     const G = New.ForField(S);
-    const Baseline = if (@hasDecl(@import("root"), "baseline")) @import("root").baseline.ForField(S) else G;
     const n = try a.alloc(M, 65536);
     defer a.free(n);
     const d = try a.alloc(S, 65536);
@@ -89,10 +88,10 @@ fn exercise(comptime S: type) !void {
     }
 }
 test "Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding" {
-    try exercise(core.fields.qm31.QM31);
+    try exerciseWithBaseline(core.fields.qm31.QM31, New.ForField(core.fields.qm31.QM31));
 }
 test "OM mixed-gate scoped row kernels preserve complete proof transcript and fresh binding" {
-    try exercise(core.fields.om31.OM31);
+    try exerciseWithBaseline(core.fields.om31.OM31, New.ForField(core.fields.om31.OM31));
 }
 test "row kernels fall back without a nested lease and use bounded stack payload" {
     const O = core.fields.om31.OM31;

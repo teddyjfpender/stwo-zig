@@ -3,8 +3,8 @@
   "base_commit": "171de6ab8",
   "upstream_source_commit": "826591c6c",
   "upstream_authorities": [
-    "crates/prover/src/prover/backend/simd/lookups/gkr.rs",
-    "crates/prover/src/prover/backend/simd/lookups/mle.rs"
+    "src/prover/backend/simd/lookups/gkr.rs",
+    "src/prover/backend/simd/lookups/mle.rs"
   ],
   "changes": [
     "native-pack GrandProduct/LogUp r(0)/r(2) oracle reductions",
@@ -21,7 +21,7 @@
   "qualification": {
     "ReleaseSafe": "test-native-cpu-gkr-rows PASS",
     "ReleaseFast": "test-native-cpu-gkr-rows PASS",
-    "prechange_source_capture": "32/32 PASS; pinned171de6ab8 archive; exact fullQ/OM4gate mixed-height proof bytes and nextdraw, independent fresh terminal binding at1/2/4/8workers",
+    "prechange_source_capture": "CORRECTION: original32-test capture used implicit @import(root) baseline selection, which selected the test runner and therefore new source. Numerical oracle/ordinary gates valid; true old-source parity superseded by explicit38-test capture in ../rv64-gkr-cubic-20261101.",
     "independent_numerical_oracle": "all4gate formulas, M31 zero/signed/count weights, secure weights, unaligned starts and short/partial packs",
     "allocation_failure": "existing full lifecycle allocation-failure tests retained and pass"
   },
@@ -42,7 +42,7 @@
     }
   },
   "limits": [
-    "Small completeGKR fixture approximatelyflat atoneworker despite hotkernel gains; do not extrapolate micro speedup to block",
+    "The original small fixture control used the implicit-root capture flaw; it is not a valid prechange performance comparison. See corrected explicit capture.",
     "Production prefix/fullblock measurements pending root integration",
     "This is SIMD arithmetic reuse, not a cryptographic/protocol change or GPU qualification",
     "Scalar tails and point/native verification remain",
