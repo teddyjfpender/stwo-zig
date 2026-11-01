@@ -16,20 +16,28 @@ commit API makes one retained coefficient copy at sealing; this implementation
 does **not** claim zero-copy coefficient sharing with the original β1 key.
 Whole-key cache hits reuse the sealed tree and do not extend/hash it again.
 
-A Profile explicitly contains receiver-owned protocol identity and log blowup.
-Only β1/β2 are admitted, with no default. The cache hashes protocol identity,
-rate, ordered coefficient logs and canonical coefficient bytes. Each hit also
+An immutable CommitmentDescriptor contains only the log blowup; the exact
+prefixed-Blake hash schema and absence of lifting/revision are pinned by the
+module. Only β1/β2 are admitted, with no default. The cache hashes that immutable
+commitment schema, rate, ordered coefficient logs and canonical coefficient bytes.
+Secure field, q, PoW, FRI fold, protocol/request identity and statement are
+excluded: they do not change this M31 tree. Each hit also
 compares the actual coefficient values/logs, so a caller-supplied digest or an
 independently reconstructed key is not blindly trusted. Column order and native
 heights are part of identity. Request state, execution witness and transcript
 are absent from this cache.
 
-`WideFixedKey.append` checks independently expected profile, identity and root,
-the empty PCS phase, matching blowup and absence of revision/lifting overrides.
+`WideFixedKey.append` checks independently expected immutable descriptor,
+identity and root, the empty PCS phase, matching blowup and absence of
+revision/lifting overrides. A separate receiver-owned expected PCS configuration
+must match the actual destination config exactly, including q/PoW/fold.
 It appends the same field-neutral tree into Q or OM PCS. A stale β1 root, wrong
-protocol identity or β1 destination refuses before changing the destination.
+immutable identity or β1 destination refuses before changing the destination.
 The embedding receiver must still derive its expected key independently and
-bind the candidate protocol and target root before dependent MAIN commitments.
+admit and bind the actual security/protocol profile and target root before
+dependent MAIN commitments. The helper does not infer those from the cache
+identity. Changing q/PoW/fold reuses the tree while the request transcript remains
+different; an incorrect expected config still refuses.
 
 ## Bounded ownership
 
@@ -63,13 +71,14 @@ request for more memory is hidden in the helper.
 ```
 var cache = try Fixed.Cache.init(allocator, fixed_setup_byte_cap);
 defer cache.deinit();
-const profile = Fixed.Profile{ .protocol = receiver_protocol_identity, .log_blowup = 2 };
-var cpu = try cache.acquireFromKey(&cpu_setup.key, profile);
+const descriptor = Fixed.CommitmentDescriptor{ .log_blowup = 2 };
+var cpu = try cache.acquireFromKey(&cpu_setup.key, descriptor);
 defer cpu.deinit();
-var truth = try cache.acquireFromKey(truth_spec.key(), profile);
+var truth = try cache.acquireFromKey(truth_spec.key(), descriptor);
 defer truth.deinit();
 try cpu.key.append(allocator, &om_scheme, &raw_om_channel,
-    profile, independently_expected_key_identity, independently_expected_fixed_root);
+    descriptor, independently_expected_key_identity, independently_expected_fixed_root,
+    receiver_admitted_pcs_config);
 ```
 
 Call both acquisitions before retiring the source key itself; original fixed
@@ -81,12 +90,12 @@ are subsequent integration gates. A helper root test is not that milestone.
 
 ## Qualification
 
-Five reachable tests pass in ReleaseSafe and ReleaseFast. They cover native
+Six reachable tests pass in ReleaseSafe and ReleaseFast. They cover native
 fixed heights 5/6, cache hits across independently sealed source keys, independently
-rebuilt β2 roots, protocol/order-sensitive identity, wrong-profile/stale-root/rate
+rebuilt β2 roots, order-sensitive immutable identity, wrong-descriptor/stale-root/rate
 refusal, exact β1 legacy root and root-mix transcript parity, source release,
-cache/key teardown before final OM PCS destruction, hard caps and exhaustive
-allocation-failure injection over the complete construction/append lifecycle.
+cache/key teardown before final OM PCS destruction, hard caps separate exact request-config checks with same-tree reuse across q/PoW/fold,
+and exhaustive allocation-failure injection over the complete construction/append lifecycle.
 
 The fixture β1 root is
 `c2eb2765ea8e37e118efdc02ec69db837d938cc1c121b335186bf1f76f6b1bcd`;
