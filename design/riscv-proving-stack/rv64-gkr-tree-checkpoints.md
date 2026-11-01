@@ -37,3 +37,25 @@ is an operational storage choice only; proof/config/profile bytes do not change.
 binding peaks for either path. Existing conservative admission stays unchanged.
 Actual services child/lifecycle Safe passes with stride2, Fast with default dense.
 Production default is not promoted by these fixtures.
+
+## Real first-shard stride-two experiment
+
+Pinned source efe66efe9; same binary, q70/P26/OM31/fold4,16 workers, one resident
+CPU0 shard of4,194,303 instructions. Dense/stride2/stride2/dense fresh processes
+used the shared heavy-proof lock; unrelated host workloads were not controlled.
+All four durable files (physical proof, child stage-one file, bundle and cells)
+are byte-identical across all four runs, and every independent receiver accepts.
+
+| CPU0 measure | Dense | Stride2 |
+|---|---:|---:|
+| Numerical requested allocation peak |12.616GB |8.847GB |
+| Process peak RSS |18.259GB |15.232GB |
+| Mean source+prove |8.481s |8.887s |
+| Mean numerical phase |1.722s |2.123s |
+
+The numerical peak improves1.426× and whole-process RSS about1.199×. Raw input
+planes are still4.542GB in both experiments. Missing-level regeneration costs
+about23% more numerical time; total proving is4.8% slower in this sample, within
+prior approximately7.5% host variation. This is a measured memory/time tradeoff,
+not a whole-prover1.5× gain or a reason to promote the default. Consuming leaves
+and metadata-only terminal binding remain a separately qualified next slice.
