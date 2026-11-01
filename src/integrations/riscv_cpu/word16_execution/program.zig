@@ -9,15 +9,17 @@ const Full = @import("../rv64_full.zig");
 const Execution = front.rv64.execution_profile;
 const M = core.fields.m31.M31;
 pub const Entry = X.features.Entry;
+pub const Metadata = @import("program_metadata.zig");
 pub const MAX_LOG = 22;
 pub const Program = struct {
     allocator: std.mem.Allocator,
     words: []const u32,
     addresses: []const u64,
-    entries: []Entry,
-    word_rows: []u32,
-    row_to_entry: []u32,
-    row_taken: []bool,
+    entries: []const Entry,
+    word_rows: []const u32,
+    row_to_entry: []const u32,
+    row_taken: []const bool,
+    metadata_lease: ?Metadata.Lease = null,
     fixed: []M,
     fixed_retired: bool = false,
     log_size: u32,
@@ -42,6 +44,35 @@ pub const Program = struct {
     /// Only the new feature cache/ROM is owned here; raw arrays are not copied.
     pub fn initWithAuthority(a: std.mem.Allocator, expected: *const Full.ProgramAuthority) !Program {
         return build(a, expected.words, expected.program.addresses, false, expected.profile, expected);
+    }
+    /// Reuse only owned decoded metadata. Raw views ALWAYS come from this
+    /// independently derived authority and retain the existing image lifetime.
+    pub fn initWithAuthorityAndMetadataCache(a: std.mem.Allocator, expected: *const Full.ProgramAuthority, metadata_cache: *const Metadata.Cache) !Program {
+        if (expected.words.len == 0 or expected.words.len != expected.program.addresses.len) return error.InvalidExecutionProgram;
+        const input = Metadata.Input{ .words = expected.words, .addresses = expected.program.addresses, .profile = expected.profile };
+        if (try metadata_cache.lookup(input)) |found| {
+            var lease = found;
+            errdefer lease.deinit();
+            const data = lease.view();
+            const fixed = try fixedFromEntries(a, data.entries, data.word_rows, data.log_size, null);
+            return .{ .allocator = a, .words = expected.words, .addresses = expected.program.addresses, .entries = data.entries, .word_rows = data.word_rows, .row_to_entry = data.row_to_entry, .row_taken = data.row_taken, .metadata_lease = lease, .fixed = fixed, .log_size = data.log_size, .identity = lease.identity(), .opcodes = data.opcodes, .profile = expected.profile, .contiguous = data.contiguous, .owns_raw = false };
+        }
+        var program = try initWithAuthority(a, expected);
+        errdefer program.deinit();
+        var owned_input = input;
+        owned_input.identity = program.identity;
+        if (try metadata_cache.adopt(owned_input, program.metadataView(), a)) |lease| {
+            const data = lease.view();
+            program.entries = data.entries;
+            program.word_rows = data.word_rows;
+            program.row_to_entry = data.row_to_entry;
+            program.row_taken = data.row_taken;
+            program.metadata_lease = lease;
+        }
+        return program;
+    }
+    pub fn metadataView(self: *const Program) Metadata.Data {
+        return .{ .entries = self.entries, .word_rows = self.word_rows, .row_to_entry = self.row_to_entry, .row_taken = self.row_taken, .log_size = self.log_size, .opcodes = self.opcodes, .contiguous = self.contiguous };
     }
     fn build(a: std.mem.Allocator, words: []const u32, addresses: []const u64, owns_raw: bool, profile: Execution.Profile, cache: ?*const Full.ProgramAuthority) !Program {
         if (words.len == 0 or words.len != addresses.len) return error.InvalidExecutionProgram;
@@ -83,16 +114,22 @@ pub const Program = struct {
         const row_taken = try a.alloc(bool, count);
         errdefer a.free(row_taken);
         const log_size: u32 = @intCast(@max(X.layout.MIN_LOG, std.math.log2_int_ceil(usize, count)));
+        const fixed = try fixedFromEntries(a, entries, word_rows, log_size, .{ .row_to_entry = row_to_entry, .row_taken = row_taken });
+        return .{ .allocator = a, .words = words, .addresses = addresses, .entries = entries, .word_rows = word_rows, .row_to_entry = row_to_entry, .row_taken = row_taken, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult(), .opcodes = opcodes, .profile = profile, .contiguous = front.rv64_air.word16_cpu.rom.contiguousAddresses(addresses), .owns_raw = owns_raw };
+    }
+    const MutableMaps = struct { row_to_entry: []u32, row_taken: []bool };
+    fn fixedFromEntries(a: std.mem.Allocator, entries: []const Entry, word_rows: []const u32, log_size: u32, maps: ?MutableMaps) ![]M {
         const n: usize = @as(usize, 1) << @intCast(log_size);
         const fixed = try a.alloc(M, X.layout.rom.FIXED * n);
-        errdefer a.free(fixed);
         @memset(fixed, M.zero());
         for (entries, word_rows, 0..) |entry, first, i| {
             const rows: usize = if (entry.hasTakenEdge()) 2 else 1;
             for (0..rows) |edge| {
                 const logical = first + edge;
-                row_to_entry[logical] = @intCast(i);
-                row_taken[logical] = edge != 0;
+                if (maps) |out| {
+                    out.row_to_entry[logical] = @intCast(i);
+                    out.row_taken[logical] = edge != 0;
+                }
                 const tuple = entry.romTuple(edge != 0);
                 const position = X.layout.physical(logical, log_size);
                 for (tuple, 0..) |value, column| fixed[column * n + position] = value;
@@ -100,7 +137,7 @@ pub const Program = struct {
         }
         fixed[X.layout.rom.FIRST * n + X.layout.physical(0, log_size)] = M.one();
         fixed[X.layout.rom.LAST * n + X.layout.physical(n - 1, log_size)] = M.one();
-        return .{ .allocator = a, .words = words, .addresses = addresses, .entries = entries, .word_rows = word_rows, .row_to_entry = row_to_entry, .row_taken = row_taken, .fixed = fixed, .log_size = log_size, .identity = hash.finalResult(), .opcodes = opcodes, .profile = profile, .contiguous = front.rv64_air.word16_cpu.rom.contiguousAddresses(addresses), .owns_raw = owns_raw };
+        return fixed;
     }
     pub fn size(self: *const Program) usize {
         return @as(usize, 1) << @intCast(self.log_size);
@@ -154,13 +191,21 @@ pub const Program = struct {
     }
     pub fn deinit(self: *Program) void {
         self.allocator.free(self.fixed);
-        self.allocator.free(self.row_taken);
-        self.allocator.free(self.row_to_entry);
-        self.allocator.free(self.word_rows);
-        self.allocator.free(self.entries);
-        if (self.owns_raw) {
-            self.allocator.free(self.addresses);
-            self.allocator.free(self.words);
+        if (self.metadata_lease) |*lease| {
+            if (self.owns_raw) {
+                self.allocator.free(self.addresses);
+                self.allocator.free(self.words);
+            }
+            lease.deinit();
+        } else {
+            self.allocator.free(self.row_taken);
+            self.allocator.free(self.row_to_entry);
+            self.allocator.free(self.word_rows);
+            self.allocator.free(self.entries);
+            if (self.owns_raw) {
+                self.allocator.free(self.addresses);
+                self.allocator.free(self.words);
+            }
         }
         self.* = undefined;
     }

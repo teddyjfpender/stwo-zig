@@ -11,9 +11,10 @@ pub fn main() !void {
     const a = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(a);
     defer std.process.argsFree(a, args);
-    if (args.len < 3 or args.len > 5) return error.ExpectedTrustedConfigAndBundle;
+    if (args.len < 3 or args.len > 6) return error.ExpectedTrustedConfigAndBundle;
     var retire = false;
     var cache_bytes: ?usize = null;
+    var metadata_bytes: ?usize = null;
     for (args[3..]) |arg| {
         if (std.mem.eql(u8, arg, "--retire-fixed-witness")) {
             if (retire) return error.InvalidAuditOption;
@@ -23,10 +24,17 @@ pub fn main() !void {
             const mib = try std.fmt.parseInt(usize, arg[25..], 10);
             if (mib == 0 or mib > 4096) return error.InvalidAuditOption;
             cache_bytes = try std.math.mul(usize, mib, 1024 * 1024);
+        } else if (std.mem.startsWith(u8, arg, "--program-metadata-cache-mib=")) {
+            if (metadata_bytes != null) return error.InvalidAuditOption;
+            const mib = try std.fmt.parseInt(usize, arg[29..], 10);
+            if (mib == 0 or mib > 4096) return error.InvalidAuditOption;
+            metadata_bytes = try std.math.mul(usize, mib, 1024 * 1024);
         } else return error.InvalidAuditOption;
     }
     var native_cache = try NativeCache.Cache.init(a, cache_bytes orelse 0);
     defer native_cache.deinit();
+    var metadata_cache = try Program.Metadata.Cache.init(a, metadata_bytes orelse 0);
+    defer metadata_cache.deinit();
     const config_raw = try std.fs.cwd().readFileAlloc(a, args[1], 16384);
     defer a.free(config_raw);
     const config = try std.json.parseFromSlice(R.Config, a, config_raw, .{});
@@ -61,7 +69,7 @@ pub fn main() !void {
     var image = try Image.Owner.init(a, config.value);
     defer image.deinit();
     var timer = try std.time.Timer.start();
-    var keys = if (cache_bytes != null) try Keys.initWithNativeCache(a, &image, cpus, truths, &native_cache) else try Keys.init(a, &image, cpus, truths);
+    var keys = try Keys.initWithSuiteAndCaches(a, &image, cpus, truths, false, @import("word16_execution/pcs_suite.zig").Suite.production(), .{ .native = if (cache_bytes != null) &native_cache else null, .program = if (metadata_bytes != null) &metadata_cache else null });
     defer keys.deinit();
     const setup_ns = timer.read();
     if (cache_bytes != null) {
@@ -70,6 +78,11 @@ pub fn main() !void {
         if (stats.groups == 0 or stats.native_backing_bytes == 0) return error.NativeCacheNoAdoptedPayload;
         if (keys.cpu_owners.items.len > 1 and (stats.hits == 0 or stats.duplicate_native_bytes_released == 0)) return error.NativeCacheNoUsefulDeduplication;
     }
+    if (metadata_bytes != null) {
+        const stats = metadata_cache.snapshot();
+        if (stats.programs == 0 or stats.payload_bytes == 0) return error.ProgramMetadataCacheNotUsed;
+        if (keys.cpu_owners.items.len > 1 and (stats.hits == 0 or stats.metadata_bytes_not_rebuilt == 0)) return error.ProgramMetadataCacheNoUsefulDeduplication;
+    }
     if (retire) for (keys.cpu_owners.items) |setup| try setup.releaseFixedWitness();
     const roots = (parsed.value.object.get("roots") orelse return error.MissingCommitmentRoots).array.items;
     if (roots.len != keys.cpus.len + keys.truths.len) return error.RootInventoryMismatch;
@@ -77,7 +90,7 @@ pub fn main() !void {
     for (keys.truths, keys.cpus.len..) |truth, i| try checkRoot(a, roots[i], truth.key().root);
     var account = Audit.Accountant{ .allocator = a };
     defer account.deinit();
-    const records = try a.alloc(Audit.Record, keys.cpu_owners.items.len + keys.keccak_owners.items.len + keys.secp_owners.items.len + 1 + @intFromBool(cache_bytes != null));
+    const records = try a.alloc(Audit.Record, keys.cpu_owners.items.len + keys.keccak_owners.items.len + keys.secp_owners.items.len + 1 + @intFromBool(cache_bytes != null) + @intFromBool(metadata_bytes != null));
     defer a.free(records);
     var at: usize = 0;
     if (cache_bytes != null) {
@@ -89,6 +102,18 @@ pub fn main() !void {
             .metadata => try account.addAddress(&record, "headers", allocation.address, allocation.bytes),
         };
         if (record.payload.total() != native_cache.snapshot().retained_bytes) return error.NativeCacheAuditMismatch;
+        records[at] = record;
+        at += 1;
+    }
+    if (metadata_bytes != null) {
+        var record = Audit.Record{ .kind = "shared_program_metadata", .index = 0 };
+        const allocations = try metadata_cache.ownedAllocations(a);
+        defer a.free(allocations);
+        for (allocations) |allocation| switch (allocation.kind) {
+            .program_metadata => try account.addAddress(&record, "program_metadata", allocation.address, allocation.bytes),
+            .metadata => try account.addAddress(&record, "headers", allocation.address, allocation.bytes),
+        };
+        if (record.payload.total() != metadata_cache.snapshot().retained_bytes) return error.ProgramMetadataCacheAuditMismatch;
         records[at] = record;
         at += 1;
     }
@@ -111,7 +136,7 @@ pub fn main() !void {
     try account.add(&registry, "headers", keys.keccak_owners.items.ptr[0..keys.keccak_owners.capacity]);
     try account.add(&registry, "headers", keys.secp_owners.items.ptr[0..keys.secp_owners.capacity]);
     records[at] = registry;
-    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "live unique setup allocation payloads; excludes allocator rounding, trusted Image, proof data, witnesses, mapped advice and RSS", .fixed_witness_retired = retire, .native_coefficient_cache = if (cache_bytes != null) native_cache.snapshot() else null, .no_vm_or_tape_or_main_witness = true, .all_fixed_roots_match_retained_bundle = true, .cpu_setups = keys.cpu_owners.items.len, .keccak_setups = keys.keccak_owners.items.len, .secp_setups = keys.secp_owners.items.len, .feature_entry_size = @sizeOf(Program.Entry), .setup_ns = setup_ns, .owned_payload = account.totals, .owned_payload_total = account.totals.total(), .records = records }, .{ .whitespace = .indent_2 });
+    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "live unique setup allocation payloads; excludes allocator rounding, trusted Image, proof data, witnesses, mapped advice and RSS", .fixed_witness_retired = retire, .program_metadata_cache = if (metadata_bytes != null) metadata_cache.snapshot() else null, .native_coefficient_cache = if (cache_bytes != null) native_cache.snapshot() else null, .no_vm_or_tape_or_main_witness = true, .all_fixed_roots_match_retained_bundle = true, .cpu_setups = keys.cpu_owners.items.len, .keccak_setups = keys.keccak_owners.items.len, .secp_setups = keys.secp_owners.items.len, .feature_entry_size = @sizeOf(Program.Entry), .setup_ns = setup_ns, .owned_payload = account.totals, .owned_payload_total = account.totals.total(), .records = records }, .{ .whitespace = .indent_2 });
     defer a.free(output);
     try std.fs.File.stdout().writeAll(output);
 }

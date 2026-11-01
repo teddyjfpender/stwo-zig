@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "status": "qualified opt-in owned Program metadata sharing; no fullblock peak or controlled timing claim",
+  "base": "87df8e6a5ac1d0bfd9aca7099d3556faf602a5c3",
+  "source_scope": "CPU47/LS71/Suite-aware, native cache retained unchanged; retained bundle originally CPU50 f4f9cc5ab, all30 fixed roots independently match current key reconstruction",
+  "authority": "Only canonical independently decoded entries/maps are adopted. Prelookup exact raw words/full64 PCs/profile/features; each Program raw view borrows its current expected authority, never an earlier image. First adoption independently verifies canonical Entry semantics, edge maps, opcode mask, contiguous geometry and Program digest. Request geometry/counts/endpoints and Suite are absent from metadata cache identity. Each setup still owns its admitted Suite and rebuilt fixed ROM matrix.",
+  "config": {
+    "path": "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/request.json",
+    "sha256": "dea36b719c405f70d1c9f945f167c08d8d80900706e4ef986c4b85ab17aa65ad"
+  },
+  "retained_bundle": {
+    "path": "/tmp/rv64-ethereum-full-current-foundation-v1/bundle.json",
+    "sha256": "1eda5e3e7c96406efc57ae71b4f8a59f991f40dd105b1fa2d72c3975c33285dc"
+  },
+  "tool": {
+    "path": "/tmp/rv64-program-metadata-final-tools-v1/bin/rv64-word16-setup-ownership",
+    "sha256": "d76b0e2b4b196c67515bbfdc0c231bd443136d57e20b83f33cb85fdda098345f"
+  },
+  "tool_build": {
+    "path": "/tmp/rv64-program-metadata-final-tool-build.log",
+    "sha256": "4edb9e56b66cfd2774f7a5eebcf49a53d758f6ca9123f8add201f709c0a3525b"
+  },
+  "audit_tool_same_hash_before_after_final_floor_update": true,
+  "source_sha256": {
+    "build_support/products/catalog.zig": "c90746e18f785c940111cc10c29189b991af7d1ebc2fd41655dac86f403a233c",
+    "build_support/products/riscv_cpu.zig": "17ee449ea06527f3ff36a2c4c629a4aa205a9046b10d130278e7264f9b95198e",
+    "src/integrations/riscv_cpu/rv64_word16_program_metadata_test_root.zig": "52dca066cf9d159ca04e594d2bb829b63f83f327358bb02e59a1635e3063d3d1",
+    "src/integrations/riscv_cpu/rv64_word16_setup_ownership_main.zig": "724c237d66d7f2bbbbc7486702e5cb2af44e346511b4beb05897b78026d99872",
+    "src/integrations/riscv_cpu/word16_execution/program.zig": "aaf0ef0971b0ac572a4be6459b0433a77b1eb46366a17343c135ec446158fc31",
+    "src/integrations/riscv_cpu/word16_execution/program_metadata.zig": "20cb08ec23d29b8f70a946b577e03cecaa6af275254211e480ed1746747a6623",
+    "src/integrations/riscv_cpu/word16_execution/program_metadata_test.zig": "37f70555e66a66492fd9027b193bffd6f0c0bbc3d7c7307a77cf856ad7c5a0cd",
+    "src/integrations/riscv_cpu/word16_execution/setup.zig": "4fc8bffc5bcd28fa6f20b66c080c933c8b361a87f225fc67df5103414dda7feb",
+    "src/integrations/riscv_cpu/word16_global_execution/ethereum/keys.zig": "c5a04334db418e16a630d99089bed3607bcdac1f23759f4d1e048beb0c704004",
+    "src/integrations/riscv_cpu/word16_global_execution/services/roster.zig": "e2949c0af584c3f6babc2dc0b4beb97321a71bc7151e97844d21c81458a51be4"
+  },
+  "dependency_sha256": {
+    "src/integrations/riscv_cpu/word16_execution/fixed_native_cache.zig": "2c669e325be1d9d3cd3dadca47383d27aa0e2cc411cd75ed3e7f0c3c36a52842",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/key.zig": "0afa391cd4f1ab46b0ea166f6145d69c0cb21e0c85b1ea040e6c2ebd9251fd06",
+    "src/integrations/riscv_cpu/word16_execution/pcs_suite.zig": "cc8d9d920fe20e1000c5293a7613550de24459e4f5a55923ffb6ac6ab0ccf8b9"
+  },
+  "gates": [
+    {
+      "command": "zig build test-riscv64-word16-program-metadata -Doptimize=ReleaseSafe -j2 --summary all",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/rv64-program-metadata-floor13-safe.log",
+        "sha256": "afdf815c4df192a5d13f616a43965d8ee17ec483e08a43456a63a63a924e3649"
+      },
+      "program_runtime_count": 13,
+      "native_runtime_count": null
+    },
+    {
+      "command": "zig build test-riscv64-word16-program-metadata test-riscv64-word16-fixed-native-cache -Doptimize=ReleaseFast -j2 --summary all",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/rv64-program-metadata-floor13-fast.log",
+        "sha256": "45a1e21334a5ea9bcff1dcc5094a599ae07a736a83eaeb08a698332de188699c"
+      },
+      "program_runtime_count": 13,
+      "native_runtime_count": 14
+    },
+    {
+      "command": "zig build test-riscv64-word16-program-metadata test-riscv64-word16-fixed-native-cache -Doptimize=ReleaseSafe -j2 --summary all",
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/rv64-program-metadata-final-safe.log",
+        "sha256": "e2e7f866bc21b590a17e53d50068f57bc5c36a83b95d643edf54087cfa21878b"
+      },
+      "program_runtime_count": 13,
+      "native_runtime_count": 14,
+      "note": "Program floor was then12; actual13 runtime metadata verified independently, final floor13 Safe gate also passes."
+    }
+  ],
+  "runtime_metadata": {
+    "path": "/tmp/rv64-program-metadata-final-runtime.json",
+    "sha256": "2bf2cc2c5d25494ffd05848c65cdb9cb985b76b62c33d45f09bdf45945ce3c58"
+  },
+  "proof_controls": {
+    "complete_q70_F1_and_F4_proofs": true,
+    "cached_uncached_all_proof_bytes_equal": true,
+    "all_physical_claims_equal": true,
+    "fresh_retired_fixed_receiver_accepts": true,
+    "proof_hashes": "not persisted; direct complete bytes and typed claims equality asserted in test",
+    "same_current_source_controls_only": true,
+    "no_CPU50_to_CPU47_proof_compatibility_claim": true
+  },
+  "key_only_control": {
+    "artifact": {
+      "path": "/tmp/rv64-program-metadata-25keys-control-v1.json",
+      "sha256": "91fe5b834dc1ff95ec29a789197c1b5f1bda55d1efd1c06aa4f7f0030595ec49"
+    },
+    "time": {
+      "path": "/tmp/rv64-program-metadata-25keys-control-v1.time",
+      "sha256": "f5ffc3a360e9dce8529aa98d46f3ae0ce1423d34174d24fce9c44c35c5d5eb07"
+    },
+    "process_observation": {
+      "wall_seconds": 13.65,
+      "user_seconds": 43.77,
+      "system_seconds": 9.77,
+      "maximum_rss_bytes": 8999632896,
+      "peak_memory_footprint_bytes": 9004228816
+    },
+    "all30_fixed_roots_exact": true,
+    "cpu_keys": 25,
+    "keccak_keys": 1,
+    "secp_keys": 3,
+    "program_metadata_cache": null,
+    "native_cache": {
+      "limit_bytes": 268435456,
+      "retained_bytes": 213719808,
+      "native_backing_bytes": 213693824,
+      "groups": 202,
+      "hits": 3385,
+      "duplicate_native_bytes_released": 5373034368,
+      "observed_individual_owners": 3587,
+      "observed_backing_owners": 0,
+      "observed_spans": 3587,
+      "owner_leases": 26
+    },
+    "owned_payload": {
+      "original_fixed": 287344896,
+      "program_metadata": 773785350,
+      "coefficients": 291137920,
+      "retained_evaluations": 0,
+      "merkle": 923270240,
+      "auxiliary": 39936,
+      "headers": 312312
+    },
+    "owned_payload_total": 2275890654,
+    "uncovered_coefficient_bytes": 0
+  },
+  "key_only_shared": {
+    "artifact": {
+      "path": "/tmp/rv64-program-metadata-25keys-shared-v1.json",
+      "sha256": "f0726b0473522b1d5f851f51bf82293aac35d8769f864805ceb5e8d729ecca22"
+    },
+    "time": {
+      "path": "/tmp/rv64-program-metadata-25keys-shared-v1.time",
+      "sha256": "9514b6d7c8ce3ebd1b1168456556843fafdef5eefb1c22e259d24171e717c341"
+    },
+    "process_observation": {
+      "wall_seconds": 12.57,
+      "user_seconds": 42.98,
+      "system_seconds": 10.08,
+      "maximum_rss_bytes": 8157478912,
+      "peak_memory_footprint_bytes": 8161697448
+    },
+    "all30_fixed_roots_exact": true,
+    "cpu_keys": 25,
+    "keccak_keys": 1,
+    "secp_keys": 3,
+    "program_metadata_cache": {
+      "limit_bytes": 67108864,
+      "retained_bytes": 30951766,
+      "payload_bytes": 30951414,
+      "programs": 1,
+      "hits": 24,
+      "metadata_bytes_not_rebuilt": 742833936,
+      "duplicate_metadata_bytes_released": 0,
+      "owner_leases": 26
+    },
+    "native_cache": {
+      "limit_bytes": 268435456,
+      "retained_bytes": 213719808,
+      "native_backing_bytes": 213693824,
+      "groups": 202,
+      "hits": 3385,
+      "duplicate_native_bytes_released": 5373034368,
+      "observed_individual_owners": 3587,
+      "observed_backing_owners": 0,
+      "observed_spans": 3587,
+      "owner_leases": 26
+    },
+    "owned_payload": {
+      "original_fixed": 287344896,
+      "program_metadata": 30951414,
+      "coefficients": 291137920,
+      "retained_evaluations": 0,
+      "merkle": 923270240,
+      "auxiliary": 39936,
+      "headers": 312664
+    },
+    "owned_payload_total": 1533057070,
+    "uncovered_coefficient_bytes": 0
+  },
+  "retained_payload_saved_bytes": 742833584,
+  "metadata_payload_bytes_not_rebuilt": 742833936,
+  "commands": {
+    "control": "/usr/bin/time -l TOOL CONFIG BUNDLE --retire-fixed-witness --fixed-native-cache-mib=256",
+    "shared": "/usr/bin/time -l TOOL CONFIG BUNDLE --retire-fixed-witness --fixed-native-cache-mib=256 --program-metadata-cache-mib=64"
+  },
+  "qualification_scope": [
+    "Actual SMP and mixed allocators; source managed-budget owner can die before final metadata lease.",
+    "Concurrent publish and forced duplicate adoption consume four arrays once.",
+    "Every Program allocation failure and a cache-hit fixed-matrix allocation failure drain ownership and permit retry.",
+    "High64 sparse/max aligned PCs, invalid words, padding and branch maps retain exact semantics; raw/profile/address/identity misses cannot alias.",
+    "64MiB metadata and256MiB native caches bounded requested allocations; allocator rounding excluded.",
+    "Original fixed retirement occurs after full key construction in this audit, unlike early canonical producer retirement.",
+    "No VM/Tape/MAIN witness/new fullblock proof in audit. Timings overlap engineering; no controlled setup-speed or fullblock RSS claim."
+  ],
+  "policy_checks": {
+    "unit_tests": 31,
+    "unit_command": "python3 -m unittest scripts.tests.test_source_conformance",
+    "unit_log": {
+      "path": "/tmp/rv64-program-metadata-conformance-unit.log",
+      "sha256": "ba6887c839fd62d0d74f95670637be4fc6efe27f2efe3d8cfb08899f9d2d05bb"
+    },
+    "full_repository_gate_passed": false,
+    "full_repository_gate_log": {
+      "path": "/tmp/rv64-program-metadata-conformance.log",
+      "sha256": "c9e7a1952652766049d3705fe32beecab16bf0b4fb9344edfb3f8e2300a80e50"
+    },
+    "full_repository_gate_note": "97 existing repository size/ownership findings. The touched riscv_cpu product file already has518 lines at base (ceiling500), and the additive target makes519; no baseline or unrelated files changed. New metadata production/test files have no reported findings."
+  }
+}

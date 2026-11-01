@@ -6,6 +6,7 @@ const W = @import("../services/wire.zig");
 const K = @import("../keccak/shared/roster.zig");
 const S = @import("../secp/roster.zig");
 const Suite = @import("../../word16_execution/pcs_suite.zig").Suite;
+const ImmutableCaches = @import("../../word16_execution/setup.zig").ImmutableCaches;
 const NativeCache = @import("../../word16_execution/fixed_native_cache.zig");
 const Image = @import("../../word16_execution/expected_image.zig");
 pub const Owner = struct {
@@ -16,13 +17,13 @@ pub const Owner = struct {
     keccak_owners: std.ArrayList(*K.TruthSetup) = .{},
     secp_owners: std.ArrayList(*S.TruthSetup) = .{},
     pub fn init(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, false, Suite.production(), null);
+        return initPolicy(a, image, cpu, truth, false, Suite.production(), .{});
     }
     pub fn initRetiring(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration) !Owner {
-        return initPolicy(a, image, cpu, truth, true, Suite.production(), null);
+        return initPolicy(a, image, cpu, truth, true, Suite.production(), .{});
     }
     pub fn initWithSuite(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite) !Owner {
-        return initPolicy(a, image, cpu, truth, retire, suite, null);
+        return initPolicy(a, image, cpu, truth, retire, suite, .{});
     }
     pub fn initWithNativeCache(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, cache: *const NativeCache.Cache) !Owner {
         return initWithSuiteAndNativeCache(a, image, cpu, truth, false, Suite.production(), cache);
@@ -31,9 +32,12 @@ pub const Owner = struct {
         return initWithSuiteAndNativeCache(a, image, cpu, truth, true, Suite.production(), cache);
     }
     pub fn initWithSuiteAndNativeCache(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, cache: *const NativeCache.Cache) !Owner {
-        return initPolicy(a, image, cpu, truth, retire, suite, cache);
+        return initWithSuiteAndCaches(a, image, cpu, truth, retire, suite, .{ .native = cache });
     }
-    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, cache: ?*const NativeCache.Cache) !Owner {
+    pub fn initWithSuiteAndCaches(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
+        return initPolicy(a, image, cpu, truth, retire, suite, caches);
+    }
+    fn initPolicy(a: std.mem.Allocator, image: *const Image.Owner, cpu: []const W.CpuDeclaration, truth: []const W.TruthDeclaration, retire: bool, suite: Suite, caches: ImmutableCaches) !Owner {
         try suite.validate();
         const cpus = try a.alloc(*const R.CpuSetup, cpu.len);
         const truths = a.alloc(R.Truth, truth.len) catch |err| {
@@ -55,7 +59,7 @@ pub const Owner = struct {
             try self.cpu_owners.ensureUnusedCapacity(a, 1);
             const s = try a.create(R.CpuSetup);
             errdefer a.destroy(s);
-            s.* = if (cache) |owner| try R.CpuSetup.initWithAuthorityAndSuiteAndNativeCache(a, &image.authority, d.geometry, d.bridges, suite, owner) else try R.CpuSetup.initWithAuthorityAndSuite(a, &image.authority, d.geometry, d.bridges, suite);
+            s.* = try R.CpuSetup.initWithAuthorityAndSuiteAndCaches(a, &image.authority, d.geometry, d.bridges, suite, caches);
             errdefer s.deinit();
             if (retire) try s.releaseFixedWitness();
             self.cpu_owners.appendAssumeCapacity(s);
