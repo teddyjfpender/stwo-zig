@@ -47,6 +47,34 @@ pub fn single(comptime Job: type, jobs: []Job, pool: ?*work.WorkPool) !void {
     defer lease.deinit();
     try wave(Job, &lease, jobs, null);
 }
+/// Line-complete grouping. The 16 logical rows sharing one physical (bit
+/// reversed circle-domain) cache line of 16 M31 differ exactly in logical
+/// bits log-5..log-2. With prefix segments of 2^segment_log rows, a group is
+/// the 16 segments spaced 2^(log-5-segment_log) apart; row r of all 16 lands
+/// in one line per column. Groups partition all segments; distinct groups
+/// never share a line.
+///
+/// Returns the segment log for a line-grouped walk, or null for the plain
+/// chunked walk: segments are at most 2^max_log, at least one 2^min_log
+/// block, and small enough to give every worker about four groups.
+pub fn lineSegmentLog(log: u32, max_log: u32, min_log: u32, workers_: usize) ?u32 {
+    if (log < min_log + 5) return null;
+    const spread: u32 = std.math.log2_int_ceil(usize, 4 * @max(1, workers_));
+    const fit = if (log >= 4 + spread) log - 4 - spread else 0;
+    const segment = @min(max_log, @min(fit, log - 5));
+    return if (segment >= min_log) segment else null;
+}
+pub fn lineGroupCount(log: u32, segment_log: u32) usize {
+    std.debug.assert(log >= segment_log + 5);
+    return @as(usize, 1) << @intCast(log - segment_log - 4);
+}
+pub fn lineGroupSegments(log: u32, segment_log: u32, group: usize) [16]usize {
+    const q: u6 = @intCast(log - 5 - segment_log);
+    const low = group & ((@as(usize, 1) << q) - 1);
+    var segments: [16]usize = undefined;
+    for (&segments, 0..) |*segment, t| segment.* = ((group >> q) << (q + 4)) | (t << q) | low;
+    return segments;
+}
 /// Worker count for `rows` split into `grain`-row units under `pool`.
 pub fn workers(pool: ?*work.WorkPool, rows: usize, grain: usize) usize {
     const units = @max(1, std.math.divCeil(usize, rows, grain) catch unreachable);
