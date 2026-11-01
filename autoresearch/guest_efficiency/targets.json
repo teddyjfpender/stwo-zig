@@ -55,13 +55,15 @@
   "per_block_regression_limit": 0.02,
   "holdout_share": 0.5,
   "allowed_execution_profiles": [
-   "ethereum_services_v2"
+   "ethereum_services_v2",
+   "ethereum_services_v3"
   ],
   "holdout_noise_tolerance": 0.001,
   "note": "holdout_noise_tolerance absorbs rebuild drift (<0.1%); real improvements are far larger.",
   "candidate_execution_profiles": [
    "ethereum_services_v3_candidate"
   ],
-  "candidate_note": "Candidate profiles add execution-only services (CONTEXT.md). They score with estimated costs and are never promotable until the prover admits the service."
+  "candidate_note": "Candidate profiles add execution-only services (CONTEXT.md). They score with estimated costs and are never promotable until the prover admits the service.",
+  "v3_note": "ethereum_services_v3 = v2 + ADMITTED SHA-256 compression (tag 0x0003_0010), proven by the Word16 services lane (design/riscv-proving-stack/rv64-sha256-service.md). Costed by calibration coefficients.sha256_cells_per_call."
  }
 }

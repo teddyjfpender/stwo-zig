@@ -20,7 +20,8 @@
   "cpu_cells_per_instruction": 154.81355455694023,
   "keccak_cells_per_call": 72159.27004720572,
   "secp_cells_per_call": 18934.597441685477,
-  "composition_fraction": 0.045135955755284445
+  "composition_fraction": 0.045135955755284445,
+  "sha256_cells_per_call": 12150.900036088055
  },
  "frozen": true,
  "caveats": [
@@ -29,5 +30,13 @@
   "Promotion requires the exact tier (Word16 plan/prove cost.json), not this proxy."
  ],
  "candidate_services": {},
- "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them."
+ "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them.",
+ "sha256_derivation": {
+  "status": "MEASURED on an admitted ethereum_services_v3 Word16 prefix proof (block 24,628,607, 4 CPU shards, 2,771 of the block's 2,772 compressions), freshly verified with verify-prefix",
+  "truth": "SHA-256 truth MAIN+INTERACTION = 7,409+8 columns x 4096 rows (log12, padded for 2,771 calls) = 30,380,032 cells (cost.json truth[3])",
+  "bridges": "Wire35 bridge rows (3 per call, MAIN 134 + INTER 244 columns) inside the CPU proofs: shard0 log13 (2,663 calls) 3,096,576 cells + shard1 log9 (108 calls) 193,536 cells (roster.json sha256_bridge)",
+  "cells_per_call": "(30,380,032 + 3,096,576 + 193,536) / 2,771 = 12,150.9 (nominal unpadded: 7,417 truth + 1,134 bridge = 8,551)",
+  "excludes": "the ECALL's own CPU row (already costed per instruction) and the shared U16/U8 range-table multiplicities",
+  "design": "design/riscv-proving-stack/rv64-sha256-service.md"
+ }
 }

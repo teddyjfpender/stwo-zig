@@ -147,8 +147,18 @@ class Guards(unittest.TestCase):
 
     def test_unknown_profile_fails(self):
         rows = good_rows()
-        rows[0]["execution_profile"] = "ethereum_services_v3"
+        rows[0]["execution_profile"] = "ethereum_services_v4"
         self.assertFalse(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+
+    def test_admitted_v3_profile_passes_and_costs_sha256(self):
+        rows = good_rows()
+        rows[0]["execution_profile"] = "ethereum_services_v3"
+        self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
+        self.assertIn("ethereum_services_v3", POLICY["allowed_execution_profiles"])
+        base = bench.committed_bits(CAL, 1000, 0, 0, 0)
+        more = bench.committed_bits(CAL, 1000, 0, 0, 0, None, 10)
+        c = CAL["coefficients"]
+        self.assertAlmostEqual(more - base, 10 * c["sha256_cells_per_call"] * c["bits_per_cell_at_lde"] * (1 + c["composition_fraction"]))
 
 
 class Candidates(unittest.TestCase):

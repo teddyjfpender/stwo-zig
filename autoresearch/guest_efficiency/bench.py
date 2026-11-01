@@ -76,12 +76,18 @@ def candidate_cells(calibration: dict, candidate_calls: dict | None) -> float:
 
 
 def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
-                   candidate_calls: dict | None = None) -> float:
-    """Frozen linear proxy for committed witness bits at the LDE (see calibration.json)."""
+                   candidate_calls: dict | None = None, sha256: int = 0) -> float:
+    """Frozen linear proxy for committed witness bits at the LDE (see calibration.json).
+
+    sha256 counts ADMITTED ethereum_services_v3 SHA-256 compressions, costed by
+    the measured coefficients.sha256_cells_per_call (see its derivation)."""
     c = calibration["coefficients"]
+    if sha256 and "sha256_cells_per_call" not in c:
+        raise ValueError("admitted sha256 calls need coefficients.sha256_cells_per_call in calibration.json")
     cells = (c["cpu_cells_per_instruction"] * instructions
              + c["keccak_cells_per_call"] * keccak
              + c["secp_cells_per_call"] * (secp_add + secp_double)
+             + c.get("sha256_cells_per_call", 0.0) * sha256
              + candidate_cells(calibration, candidate_calls))
     return c["bits_per_cell_at_lde"] * cells * (1.0 + c["composition_fraction"])
 
@@ -93,11 +99,11 @@ def aggregate(rows: list[dict], calibration: dict) -> dict:
         raise ValueError("aggregate needs at least one row with positive gas")
     tot = collections.Counter()
     for r in rows:
-        for k in ("instructions", "keccak_f_calls", "secp_add_calls", "secp_double_calls", "loads", "stores"):
+        for k in ("instructions", "keccak_f_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "loads", "stores"):
             tot[k] += int(r.get(k) or 0)
     bits = sum(committed_bits(calibration, r["instructions"], r.get("keccak_f_calls", 0),
                               r.get("secp_add_calls", 0), r.get("secp_double_calls", 0),
-                              r.get("candidate_service_calls")) for r in rows)
+                              r.get("candidate_service_calls"), r.get("sha256_calls", 0) or 0) for r in rows)
     return {
         "blocks": len(rows),
         "gas_used": gas,
@@ -383,10 +389,11 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "execution_profile": cfg["execution_profile"],
            "instructions": e.get("instructions"), "keccak_f_calls": e.get("keccak_calls", 0),
            "secp_add_calls": e.get("secp_add_calls", 0), "secp_double_calls": e.get("secp_double_calls", 0),
+           "sha256_calls": e.get("sha256_calls", 0),
            "loads": e.get("loads"), "stores": e.get("stores"),
            "candidate_service_calls": e.get("candidate_service_calls") or None}
     if repeat > 1:
-        keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "verified_output")
+        keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row

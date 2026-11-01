@@ -65,7 +65,9 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     const max_keccak: u32 = ((1 << 18) / 29) * 2;
     var next: u32 = 1;
     while (next <= total[0]) {
-        const calls = @min(max_keccak, total[0] - next + 1);
+        // Explicit u32: @min with a comptime bound narrows to u15, and the row
+        // product below then wraps (latent: logs below 18 were under-sized).
+        const calls: u32 = @min(max_keccak, total[0] - next + 1);
         const log: u32 = if (calls > max_keccak / 2) 18 else @intCast(std.math.log2_int_ceil(u32, @max(32, ((calls + 1) / 2) * 29)));
         try out.append(a, .{ .family = .keccak, .first_id = next, .calls = calls, .logs = .{ log, 0 } });
         next = try std.math.add(u32, next, calls);
@@ -91,11 +93,17 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     const capacity: u32 = (@as(u32, 1) << @intCast(@import("../sha256/roster.zig").MAX_LOG)) - 1;
     next = 1;
     while (next <= sha256) {
-        const calls = @min(capacity, sha256 - next + 1);
+        const calls: u32 = @min(capacity, sha256 - next + 1);
         try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
         next = try std.math.add(u32, next, calls);
     }
     return out.toOwnedSlice(a);
+}
+test "keccak truth plan sizes prefixes below the log18 bound without u15 wrap" {
+    const calls: u32 = 3934;
+    const narrowed = @min(@as(u32, ((1 << 18) / 29) * 2), calls);
+    _ = narrowed;
+    try std.testing.expectEqual(@as(u32, 16), try A.crypto.keccak.layout.logSize(calls));
 }
 test "two-instance planner reduces physical rows only and respects reserved LS rows" {
     try std.testing.expectEqualDeep(Ladder{ .head = 20, .tail = 18 }, try ladder(1200000, 1));

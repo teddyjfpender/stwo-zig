@@ -40,17 +40,20 @@ pub fn check(file: std.fs.File, h: H.Header, steps: u32, limits: H.Limits) !void
     try file.seekTo(tape_start);
     var tape: [TapeWire.HEADER_BYTES]u8 = undefined;
     try IO.exact(file, &tape);
-    if (!std.mem.eql(u8, tape[0..8], TapeWire.MAGIC) or get32(tape[12..16]) != steps or get32(tape[28..32]) != 0) return error.InvalidWorkPacketSection;
+    // The formerly reserved word is the v3 SHA-256 record count (zero below v3).
+    const v3 = get32(tape[8..12]) == @intFromEnum(@import("stwo_riscv_frontend").rv64.execution_profile.Profile.ethereum_services_v3);
+    const sha256 = get32(tape[28..32]);
+    if (!std.mem.eql(u8, tape[0..8], TapeWire.MAGIC) or get32(tape[12..16]) != steps or (!v3 and sha256 != 0)) return error.InvalidWorkPacketSection;
     const memory = get32(tape[16..20]);
     const keccak = get32(tape[20..24]);
     const secp = get32(tape[24..28]);
-    if (memory > steps or keccak > steps or secp > steps - keccak) return error.WorkPacketResourceLimit;
-    const encoded_tape = try std.math.add(usize, TapeWire.HEADER_BYTES, try sumWidths(&.{ steps, memory, keccak, secp }, &.{ 48, 8, 432, 424 }));
+    if (memory > steps or keccak > steps or secp > steps - keccak or sha256 > steps - keccak - secp) return error.WorkPacketResourceLimit;
+    const encoded_tape = try std.math.add(usize, TapeWire.HEADER_BYTES, try sumWidths(&.{ steps, memory, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 }));
     if (encoded_tape != h.tape_bytes) return error.InvalidWorkPacketSection;
     // Tape's sparse ordinary-memory ArrayList uses geometric growth; service
     // arrays use precise capacity. No unused native execution capacity is read.
     const memory_capacity: usize = if (memory == 0) 0 else @max(8, try std.math.mul(usize, memory, 2));
-    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp }, &.{ 48, 8, 432, 424 });
+    const tape_bytes = try sumWidths(&.{ steps, memory_capacity, keccak, secp, sha256 }, &.{ 48, 8, 432, 424, 224 });
     const peak = try std.math.add(usize, try std.math.add(usize, base, graph_bytes), @max(graph_temporary, tape_bytes));
     if (try std.math.add(usize, peak, 512 * 1024) > limits.allocation_bytes) return error.WorkPacketResourceLimit;
 }
