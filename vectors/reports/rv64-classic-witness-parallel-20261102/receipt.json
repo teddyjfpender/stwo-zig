@@ -1,0 +1,34 @@
+{
+  "schema": "rv64-classic-witness-parallel-v1",
+  "base": "8ef688d85",
+  "source_scope": "sharedCPUglobal/truthclassic interaction producer; no proof/transcriptchange",
+  "qualification": {
+    "focusedSafe": "8/8PASS",
+    "focusedFast": "8/8PASS",
+    "physicalSafe": "5proofsexactpinneddigest+freshcompleteglobalclosurePASS",
+    "physicalFast": "5proofsexactpinneddigest+freshcompleteglobalclosurePASS",
+    "pinned_sha256": "eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386",
+    "independent_review": "PASS: generation/tileownership, strictpackedbatchinverse, recordedprefixcuts, joinedcleanup; resourcecap subsequentlytightenedwithsharedadmissionauthority"
+  },
+  "resources": {
+    "shared_authority": "Classic.scratchByteUpperBound",
+    "total_parallel_tiles": "<=former serial min(rows,256)*terms*(2*sizeof(OM31)+sizeof(Numerator)); outer64MiBcap",
+    "chunk_alignment": "nativepack; physicaljobranges32M31rows=relative128B",
+    "output_planes": "existinginverseandprefixonly; prefixreusedforrowcontributions",
+    "metadata": "boundedstackhelperrecords+partialclaims+4KiBcorrectiontile; poolstacksseparate",
+    "admission": "runtime,CPUretention,truthretention,truthworkeradmit sharecheckedceiling; alloutputs+maxlocal/global scratch+secpGMdescriptors coexist",
+    "hard_allocator_test": "actualrequestedpeak<=exactoutput+sharedscratch; live0afterrelease"
+  },
+  "performance": "UNMEASURED atsourcecommit; kernelA/Bapprovedaftercommitunderheavylock; actualwholeblockprofilepending",
+  "baseline_target": {
+    "firstKeccak_interaction_seconds": 64.175,
+    "secondKeccak_interaction_seconds": 62.264,
+    "scope": "parentreal402s2x8fullblockbeforethisslice; notcontrolledA/B"
+  },
+  "limits": [
+    "Explicitimmutableinternalprovideroptinonly; statefulprovidersserial",
+    "NoRSS/device-memory/security128claim",
+    "Kernelmicrodoesnotqualifywholeblockspeed",
+    "Derivedprefixownerusesactualschedulerendcuts"
+  ]
+}

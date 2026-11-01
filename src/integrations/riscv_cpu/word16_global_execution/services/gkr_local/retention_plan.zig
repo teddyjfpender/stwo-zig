@@ -96,7 +96,7 @@ pub fn forCpu(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request
         const layout = Global.layout(slot.origin);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(layout.width(), n), 4));
         const terms = (layout.ram_queries + 1) / 2 + (layout.other_queries + 1) / 2;
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try mul(try mul(@min(n, 256), terms), 2 * @sizeOf(W.O) + @sizeOf(Classic.Numerator)));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(slot.log, terms));
     }
     out.global_metadata_bytes = try add(out.global_metadata_bytes, try mul(try add(request.base.memory.initial.len, request.base.memory.terminal.len), @sizeOf(A.memory.closed_ram.types.Cell)));
     if (try add(out.global_output_bytes, out.global_scratch_bytes) > global_limit) return error.ClassicWitnessBudgetExceeded;

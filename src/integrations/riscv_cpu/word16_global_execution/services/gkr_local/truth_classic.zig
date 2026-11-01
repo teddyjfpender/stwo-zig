@@ -10,6 +10,26 @@ const T = @import("truth_fractions.zig");
 const Frame = @import("truth_frame.zig");
 const Meta = @import("truth_metadata.zig");
 const Classic = @import("classic_witness.zig");
+fn scale(comptime F: type, value: E.SecureFor(F), weight: anytype) E.SecureFor(F) {
+    return if (@TypeOf(weight) == M) value.mulM31(weight) else E.mulBaseFor(F, value, weight);
+}
+/// One rational numerator authority for native generation and AIR emission.
+/// Cross-products are reused; public/base weights never become full secure
+/// multiplications merely because the denominator is an extension value.
+fn products(comptime F: type, d: [3]E.SecureFor(F), w: anytype, width: usize) struct { d: E.SecureFor(F), n: E.SecureFor(F) } {
+    const Secure = E.SecureFor(F);
+    return switch (width) {
+        1 => .{ .d = d[0], .n = if (@TypeOf(w[0]) == M) Secure.fromBase(w[0]) else E.liftFor(F, w[0]) },
+        2 => .{ .d = d[0].mul(d[1]), .n = scale(F, d[1], w[0]).add(scale(F, d[0], w[1])) },
+        3 => blk: {
+            const p01 = d[0].mul(d[1]);
+            const p02 = d[0].mul(d[2]);
+            const p12 = d[1].mul(d[2]);
+            break :blk .{ .d = p01.mul(d[2]), .n = scale(F, p12, w[0]).add(scale(F, p02, w[1])).add(scale(F, p01, w[2])) };
+        },
+        else => unreachable,
+    };
+}
 pub fn packing(role: Frame.Role) usize {
     return switch (role) {
         .keccak => 3,
@@ -43,18 +63,9 @@ pub fn SinkFor(comptime F: type) type {
         invalid: bool = false,
         fn flush(self: *Self) void {
             const inverse = E.secureForField(O, F, self.current, 8 * self.batches);
-            var denominator = S.one();
-            for (self.d[0..self.width]) |d| denominator = denominator.mul(d);
-            var numerator = S.zero();
-            for (0..self.width) |i| {
-                var term = E.liftFor(F, self.w[i]);
-                for (0..self.width) |j| {
-                    if (i != j) term = term.mul(self.d[j]);
-                }
-                numerator = numerator.add(term);
-            }
-            self.out.emit(inverse.mul(denominator).sub(S.one()));
-            self.contribution = self.contribution.add(inverse.mul(numerator));
+            const value = products(F, self.d, self.w, self.width);
+            self.out.emit(inverse.mul(value.d).sub(S.one()));
+            self.contribution = self.contribution.add(inverse.mul(value.n));
             self.batches += 1;
             self.fill = 0;
             self.d = @splat(S.one());
@@ -98,18 +109,9 @@ const Fill = struct {
             self.invalid = true;
             return;
         }
-        var denominator = O.one();
-        for (self.ds[0..self.width]) |d| denominator = denominator.mul(d);
-        var numerator = O.zero();
-        for (0..self.width) |i| {
-            var term = O.fromBase(self.ws[i]);
-            for (0..self.width) |j| {
-                if (i != j) term = term.mul(self.ds[j]);
-            }
-            numerator = numerator.add(term);
-        }
-        self.d[self.count] = denominator;
-        self.n[self.count] = .{ .secure = numerator };
+        const value = products(O, self.ds, self.ws, self.width);
+        self.d[self.count] = value.d;
+        self.n[self.count] = .{ .secure = value.n };
         self.count += 1;
         self.fill = 0;
         self.ds = @splat(O.one());
@@ -124,6 +126,8 @@ const Fill = struct {
     }
 };
 const Provider = struct {
+    /// Validated metadata and challenge inputs are immutable; fill allocates nothing.
+    pub const PARALLEL_SAFE = true;
     metadata: *const Meta.Provider,
     challenges: *const T.ChallengesFor(O),
     instance: Frame.Instance,
