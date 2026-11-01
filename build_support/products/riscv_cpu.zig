@@ -90,7 +90,7 @@ pub fn addProduct(context: Context) void {
         .{ "work-packet", "src/integrations/riscv_cpu/rv64_work_packet_test_root.zig", 8 },
         .{ "word16-cpu", "src/integrations/riscv_cpu/rv64_word16_cpu_test_root.zig", 3 },
         .{ "word16-weighted-binary", "src/integrations/riscv_cpu/rv64_word16_weighted_binary_test_root.zig", 4 },
-        .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 12 },
+        .{ "word16-binary-source", "src/frontends/riscv/rv64_word16_binary_source_test_root.zig", 13 },
         .{ "word16-weighted-alu", "src/integrations/riscv_cpu/rv64_word16_weighted_alu_test_root.zig", 4 },
         .{ "word16-execution", "src/integrations/riscv_cpu/rv64_word16_execution_test_root.zig", 19 },
         .{ "word16-execution-source", "src/integrations/riscv_cpu/rv64_word16_execution_source_test_root.zig", 7 },

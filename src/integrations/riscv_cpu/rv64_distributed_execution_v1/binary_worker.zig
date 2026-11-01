@@ -61,7 +61,7 @@ pub const Materials = struct {
 };
 pub fn schema() T.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("rv64.distributed.binary-worker.v2.main42.inter24.merged-debt.and65536.function13");
+    hash.update("rv64.distributed.binary-worker.v3.derived-payload.merged-debt.and65536.function13");
     hash.update(&P.encoding.identity());
     return hash.finalResult();
 }

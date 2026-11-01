@@ -312,3 +312,39 @@ test "merged BINARY prefix authenticates precisely the combined debt and all str
     P.emitFor(Q, &main, &inter, &previous, Q.one(), Q.one(), claims, pole, &sink);
     try std.testing.expect(!residuals[P.CONSTRAINTS - 3].isZero());
 }
+
+test "derived BINARY payload projection roundtrips arbitrary extension rows with packed physical residual parity" {
+    try std.testing.expectEqual(@as(usize, 29), P.MAIN);
+    var channel = @import("stwo_core").channel.blake2s.Blake2sChannel{};
+    const N = P.MAIN + 2 * P.INTERACTION;
+    var data: [16][N]Q = undefined;
+    var packed_values: [N]E.PackedSecure = undefined;
+    for (&packed_values, 0..) |*value, c| {
+        var lanes: [16]Q = undefined;
+        for (&lanes, 0..) |*lane, index| {
+            lane.* = channel.drawSecureFelt();
+            data[index][c] = lane.*;
+        }
+        value.* = E.PackedSecure.fromLanes(lanes);
+    }
+    const ch = challenges();
+    const claims = P.Claims{ .and_ = channel.drawSecureFelt(), .function = channel.drawSecureFelt() };
+    var packed_residuals: [P.CONSTRAINTS]E.PackedSecure = undefined;
+    var packed_sink = E.PackedSink{ .values = &packed_residuals };
+    P.emitFor(E.PackedSecure, packed_values[0..P.MAIN], packed_values[P.MAIN..][0..P.INTERACTION], packed_values[P.MAIN + P.INTERACTION ..], E.PackedSecure.one(), E.PackedSecure.zero(), claims, ch, &packed_sink);
+    try std.testing.expectEqual(P.CONSTRAINTS, packed_sink.count);
+    for (data, 0..) |values, lane| {
+        const row = P.rowFromColumnsFor(Q, &values);
+        try std.testing.expectEqualSlices(Q, values[0..B.LOCAL_MAIN], &P.rowToColumnsFor(Q, row));
+        var local: [B.CONSTRAINTS]Q = undefined;
+        var local_sink = E.Sink{ .values = &local };
+        B.emitFor(Q, &row, &local_sink);
+        // Exact substitution identities even for invalid selectors and bytes.
+        for (local[5..18]) |v| try std.testing.expect(v.isZero());
+        var residuals: [P.CONSTRAINTS]Q = undefined;
+        var sink = E.Sink{ .values = &residuals };
+        P.emitFor(Q, values[0..P.MAIN], values[P.MAIN..][0..P.INTERACTION], values[P.MAIN + P.INTERACTION ..], Q.one(), Q.zero(), claims, ch, &sink);
+        try std.testing.expectEqual(P.CONSTRAINTS, sink.count);
+        for (residuals, packed_residuals) |expected, actual| try std.testing.expect(expected.eql(actual.lane(lane)));
+    }
+}

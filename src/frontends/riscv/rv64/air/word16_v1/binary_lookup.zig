@@ -7,7 +7,7 @@ const Tables = @import("../providers/tables.zig");
 pub const MAIN = B.LOCAL_MAIN + 1; // final column is committed fact multiplicity.
 pub const INTERACTION = 24; // Four AND pair inverses, FUNCTION inverse, one merged prefix.
 pub const encoding = @import("binary_encoding.zig");
-pub const CONSTRAINTS = B.CONSTRAINTS + 8;
+pub const CONSTRAINTS = B.PROJECTED_CONSTRAINTS + 8;
 const FunctionBus = @import("function_bus.zig");
 pub const FunctionChallenges = FunctionBus.Challenges;
 pub const Challenges = struct { and_: Tables.Challenges, function: FunctionChallenges };
@@ -37,6 +37,7 @@ pub fn rowFromColumnsFor(comptime F: type, values: []const F) B.RowFor(F) {
     var row: B.RowFor(F) = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(B.RowFor(F))) |field| {
+        if (comptime std.mem.eql(u8, field.name, "payload")) continue;
         if (@typeInfo(field.type) == .array) {
             const n = @typeInfo(field.type).array.len;
             @memcpy(&@field(row, field.name), values[cursor..][0..n]);
@@ -47,12 +48,14 @@ pub fn rowFromColumnsFor(comptime F: type, values: []const F) B.RowFor(F) {
         }
     }
     std.debug.assert(cursor == B.LOCAL_MAIN);
+    B.derivePayloadFor(F, &row);
     return row;
 }
 pub fn rowToColumnsFor(comptime F: type, row: B.RowFor(F)) [B.LOCAL_MAIN]F {
     var values: [B.LOCAL_MAIN]F = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(B.RowFor(F))) |field| {
+        if (comptime std.mem.eql(u8, field.name, "payload")) continue;
         if (@typeInfo(field.type) == .array) {
             const n = @typeInfo(field.type).array.len;
             @memcpy(values[cursor..][0..n], &@field(row, field.name));
@@ -72,7 +75,7 @@ pub const emitFunctionFor = FunctionBus.emitFor;
 pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: []const F, first: F, last: F, claims: ClaimsFor(E.ConstFor(F)), ch: ChallengesFor(E.ConstFor(F)), sink: anytype) void {
     const S = E.SecureFor(F);
     const row = rowFromColumnsFor(F, main);
-    B.emitFor(F, &row, sink);
+    B.emitProjectedFor(F, &row, sink);
     const multiplicity = main[B.LOCAL_MAIN];
     sink.emit(F.one().sub(row.active).mul(multiplicity));
     var contribution = S.zero();

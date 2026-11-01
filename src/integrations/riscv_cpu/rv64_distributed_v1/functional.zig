@@ -69,7 +69,7 @@ fn schema(role: T.Role) T.Digest {
     hash.update(if (role == .public_consumer)
         "rv64.distributed.functional13.public-roster.main14.fixed34.v1"
     else
-        "rv64.distributed.functional13.binary42.inter24.merged-debt.and65536.v2");
+        "rv64.distributed.functional13.binary-derived-payload.merged-debt.and65536.v3");
     if (role != .public_consumer) hash.update(&B.encoding.identity());
     return hash.finalResult();
 }

@@ -62,7 +62,7 @@ pub const Fixture = struct {
                 expected[13 * N + physical] = M.one();
                 main[B.LOCAL_MAIN * N + physical] = M.one();
             }
-            if (bad and i == 1) row.payload[9] = row.payload[9].add(Q.one());
+            if (bad and i == 1) row.ab[0] = row.ab[0].add(Q.one());
             const values = P.rowToColumnsFor(Q, row);
             for (values, 0..) |v, j| main[j * N + physical] = try v.tryIntoM31();
             for (0..8) |j| {
@@ -200,15 +200,14 @@ pub fn produceWithAttack(a: std.mem.Allocator, attack: Attack) !Encoded {
         // Only fixed AND membership can reject this false truth-table fact.
         const r = phys(0);
         if (attack == .and_fact) {
-            f.main[33 * N + r] = f.main[33 * N + r].add(M.one());
-            f.main[9 * N + r] = f.main[9 * N + r].add(M.one());
+            f.main[B.columns.ab * N + r] = f.main[B.columns.ab * N + r].add(M.one());
             f.expected[9 * N + r] = f.expected[9 * N + r].add(M.one());
         } else {
             // Preserve the reconstructed U16 operand modulo M31 while making
             // byte0 negative and byte1 larger. Only separate tuple-coordinate
             // membership proves byte canonicality; a packed sum would alias.
-            f.main[17 * N + r] = f.main[17 * N + r].sub(M.fromCanonical(256));
-            f.main[18 * N + r] = f.main[18 * N + r].add(M.one());
+            f.main[B.columns.a * N + r] = f.main[B.columns.a * N + r].sub(M.fromCanonical(256));
+            f.main[(B.columns.a + 1) * N + r] = f.main[(B.columns.a + 1) * N + r].add(M.one());
         }
         var values: [P.MAIN]Q = undefined;
         for (&values, 0..) |*v, c| v.* = Q.fromBase(f.main[c * N + r]);
@@ -220,7 +219,8 @@ pub fn produceWithAttack(a: std.mem.Allocator, attack: Attack) !Encoded {
     } else if (attack == .cross_family) {
         // Same private inputs/results, but claim an ALU ADD identity (0) for
         // this AND fact (16). Manifest roles alone would not separate them.
-        f.main[phys(0)] = M.zero();
+        // The physical opcode is derived and cannot be overwritten. Forge
+        // only the public consumer and force its claim onto the BINARY proof.
         f.expected[phys(0)] = M.zero();
     }
     var scheme = try Scheme.init(a, CONFIG);
@@ -235,7 +235,7 @@ pub fn produceWithAttack(a: std.mem.Allocator, attack: Attack) !Encoded {
     }
     const ch = draw(&channel);
     const actual = try f.generate(ch);
-    if (attack != .output and !actual[1].add(actual[2]).isZero()) return error.InvalidFunctionClosureOracle;
+    if (attack != .output and attack != .cross_family and !actual[1].add(actual[2]).isZero()) return error.InvalidFunctionClosureOracle;
     const claims = [_]Q{ actual[3].neg(), actual[2].neg(), actual[2], actual[3] };
     channel.mixFelts(&claims);
     const columns = try f.columns(2);

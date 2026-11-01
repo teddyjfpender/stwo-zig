@@ -4,9 +4,18 @@
 const E = @import("../evaluation.zig");
 const operations = @import("operations.zig");
 pub const PAYLOAD = 13;
-pub const LOCAL_MAIN = 41; // payload13, active1, selectors3, byte auxiliaries24.
-pub const CONSTRAINTS = 42;
+pub const LOCAL_MAIN = 28; // active1, selectors3, byte auxiliaries24; payload is derived.
+pub const CONSTRAINTS = 42; // Logical diagnostic authority, including payload equalities.
+pub const PROJECTED_CONSTRAINTS = CONSTRAINTS - PAYLOAD;
 pub const AND_REQUESTS = 8;
+pub const columns = struct {
+    pub const active = 0;
+    pub const selectors = 1;
+    pub const a = 4;
+    pub const b = 12;
+    pub const ab = 20;
+    pub const multiplicity = LOCAL_MAIN;
+};
 
 pub fn RowFor(comptime F: type) type {
     return struct {
@@ -19,28 +28,16 @@ pub fn RowFor(comptime F: type) type {
     };
 }
 
-/// One authority for arbitrary secure OODS points and native packed lanes.
-/// Integer soundness additionally requires all andTuple memberships. Their
-/// three coordinates separately authenticate A/B/AND bytes, avoiding an
-/// unbounded packed-byte alias. All reconstructed limbs are then <=65535;
-/// the largest intermediate a+b is 131070, well below the M31 modulus.
-pub fn emitFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
-    const one = F.one();
-    const two = E.qFor(F, 2);
+/// Exact projection of the thirteen former committed payload copies. These
+/// expressions are affine for op/A/B and quadratic for C. FUNCTION retains a
+/// strict single inverse, so its complete residual remains degree three.
+pub fn derivePayloadFor(comptime F: type, row: *RowFor(F)) void {
     const radix = E.qFor(F, 256);
-    var selected = F.zero();
-    for (row.selectors) |s| {
-        sink.emit(s.mul(s.sub(one)));
-        selected = selected.add(s);
-    }
-    sink.emit(selected.sub(row.active));
-    sink.emit(row.active.mul(row.active.sub(one)));
-    sink.emit(row.payload[0].sub(row.active.mul(E.qFor(F, 16))).sub(row.selectors[1]).sub(row.selectors[2].mul(two)));
+    const two = E.qFor(F, 2);
+    row.payload[0] = row.active.mul(E.qFor(F, 16)).add(row.selectors[1]).add(row.selectors[2].mul(two));
     for (0..4) |limb| {
-        sink.emit(row.payload[1 + limb].sub(row.a[2 * limb]).sub(row.a[2 * limb + 1].mul(radix)));
-        sink.emit(row.payload[5 + limb].sub(row.b[2 * limb]).sub(row.b[2 * limb + 1].mul(radix)));
-    }
-    for (0..4) |limb| {
+        row.payload[1 + limb] = row.a[2 * limb].add(row.a[2 * limb + 1].mul(radix));
+        row.payload[5 + limb] = row.b[2 * limb].add(row.b[2 * limb + 1].mul(radix));
         var expected = F.zero();
         for (0..2) |j| {
             const i = 2 * limb + j;
@@ -50,11 +47,49 @@ pub fn emitFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
                 .add(row.selectors[2].mul(sum.sub(row.ab[i].mul(two))));
             expected = expected.add(if (j == 0) byte else byte.mul(radix));
         }
-        sink.emit(row.payload[9 + limb].sub(expected));
+        row.payload[9 + limb] = expected;
     }
+}
+
+/// One authority for arbitrary secure OODS points and native packed lanes.
+/// Integer soundness additionally requires all andTuple memberships. Their
+/// three coordinates separately authenticate A/B/AND bytes, avoiding an
+/// unbounded packed-byte alias. All reconstructed limbs are then <=65535;
+/// the largest intermediate a+b is 131070, well below the M31 modulus.
+fn emitSelectorsFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
+    const one = F.one();
+    var selected = F.zero();
+    for (row.selectors) |s| {
+        sink.emit(s.mul(s.sub(one)));
+        selected = selected.add(s);
+    }
+    sink.emit(selected.sub(row.active));
+    sink.emit(row.active.mul(row.active.sub(one)));
+}
+
+pub fn emitFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
+    emitSelectorsFor(F, row, sink);
+    var derived = row.*;
+    derivePayloadFor(F, &derived);
+    sink.emit(row.payload[0].sub(derived.payload[0]));
+    for (0..4) |limb| {
+        sink.emit(row.payload[1 + limb].sub(derived.payload[1 + limb]));
+        sink.emit(row.payload[5 + limb].sub(derived.payload[5 + limb]));
+    }
+    for (0..4) |limb| sink.emit(row.payload[9 + limb].sub(derived.payload[9 + limb]));
+    emitPaddingFor(F, row, sink);
+}
+
+/// Physical rows have no independent payload. Do not evaluate or accumulate
+/// thirteen identically zero residuals after the exact substitution.
+pub fn emitProjectedFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
+    emitSelectorsFor(F, row, sink);
+    emitPaddingFor(F, row, sink);
+}
+fn emitPaddingFor(comptime F: type, row: *const RowFor(F), sink: anytype) void {
     // Unconditional padding requests are (0,0,0). Including them in the
     // admitted AND mass avoids an extra active factor in degree4 batching.
-    const inactive = one.sub(row.active);
+    const inactive = F.one().sub(row.active);
     for (row.a) |value| sink.emit(inactive.mul(value));
     for (row.b) |value| sink.emit(inactive.mul(value));
     for (row.ab) |value| sink.emit(inactive.mul(value));
