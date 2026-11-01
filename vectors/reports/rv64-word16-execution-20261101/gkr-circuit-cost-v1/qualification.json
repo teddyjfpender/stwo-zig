@@ -30,6 +30,7 @@
     "No full recursive circuit proof created",
     "No native speedup or circuit-proving time claim",
     "Production shape and secure transcript changes remain unqualified",
-    "Last CLI cleanup removes a redundant native replay and unused loop index; rebuilt, final runtime repeat deferred during controlled ABBA quiet window"
+    "Last CLI cleanup removes a redundant native replay and unused loop index; rebuilt, final runtime repeat deferred during controlled ABBA quiet window",
+    "Existing reused native-channel circuit lacks all-eight-word >=2p draw rejection constraints despite its comment; real captured transcript agrees, universal rare-branch parity not qualified. Shared channel unchanged by this work."
   ]
 }
