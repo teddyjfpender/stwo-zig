@@ -178,6 +178,52 @@ pub fn requireSingleDrawAlgebraicBudget(extension_degree: u8, max_total_degree: 
     if (required > field_size) return error.SingleDrawAlgebraicBudgetInsufficient;
 }
 
+/// Arithmetic-only conditional union model for multiple algebraic challenges.
+/// Each term is the maximum polynomial degree and number of conditionally
+/// uniform draws across ALL admitted proofs of one argument type. Terms must
+/// include each argument exactly once, including an explicit zero/not-used
+/// declaration. These declarations are not producer-supplied protocol facts.
+///
+/// Assumptions: each checked polynomial is nonzero after earlier transcript
+/// inputs are fixed, and each relevant draw is uniform in the full extension
+/// field under those conditions. Merely applying this union formula does NOT
+/// prove those assumptions for Fiat-Shamir, LogUp, GKR, FRI, recursion or
+/// adversarially selected witnesses. In particular, no 128-bit certificate
+/// can be obtained from this model alone.
+pub const ConditionalTerm = struct {
+    argument: Argument,
+    applicable: bool = true,
+    max_degree: u64,
+    draws: u64,
+};
+pub const ConditionalEstimate = struct {
+    total_degree_weight: u512,
+    field_size: u512,
+    requested_bits: u16,
+};
+pub fn requireConditionalAlgebraicBudget(extension_degree: u8, terms: []const ConditionalTerm, required_bits: u16) !ConditionalEstimate {
+    if (extension_degree == 0 or extension_degree > 16 or required_bits == 0 or required_bits > 256)
+        return error.InvalidAlgebraicBudget;
+    if (terms.len != ARGUMENT_COUNT) return error.MissingAlgebraicArguments;
+    var seen: [ARGUMENT_COUNT]bool = @splat(false);
+    var weighted: u512 = 0;
+    for (terms) |term| {
+        const index = @intFromEnum(term.argument);
+        if (seen[index]) return error.DuplicateAlgebraicArgument;
+        seen[index] = true;
+        if (term.applicable) {
+            if (term.max_degree == 0 or term.draws == 0) return error.InvalidConditionalTerm;
+            weighted += @as(u512, term.max_degree) * term.draws;
+        } else if (term.max_degree != 0 or term.draws != 0) return error.InvalidConditionalTerm;
+    }
+    for (seen) |present| if (!present) return error.MissingAlgebraicArguments;
+    if (weighted == 0) return error.EmptyAlgebraicBudget;
+    var field_size: u512 = 1;
+    for (0..extension_degree) |_| field_size *= 2147483647;
+    if (weighted << @intCast(required_bits) > field_size) return error.ConditionalAlgebraicBudgetInsufficient;
+    return .{ .total_degree_weight = weighted, .field_size = field_size, .requested_bits = required_bits };
+}
+
 /// Certificate IDs are receiver-owned code authority, never inferred from a
 /// bundle's numeric budget. There is intentionally no qualified128 registry
 /// entry. Adding one requires protocol, formal-bound and recursion review.
