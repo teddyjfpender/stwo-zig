@@ -16,7 +16,9 @@ fn parity(a: std.mem.Allocator, fold: u32, mixed: bool) !void {
     try std.testing.expectEqualSlices(u8, expected, actual);
     const decoded = try Codec.decodeProofBytesBinary(a, actual);
     if (mixed) try Base.verifyMixed(a, decoded, fold) else try Base.verifyFold(a, decoded, fold);
-    std.debug.print("OM31_COMPACT_PARITY fold={d} mixed={} bytes={d}\n", .{ fold, mixed, actual.len });
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(actual, &digest, .{});
+    std.debug.print("OM31_COMPACT_PARITY fold={d} mixed={} bytes={d} sha256={x}\n", .{ fold, mixed, actual.len, digest });
 }
 test "OM31 compact full STARK preserves durable bytes and fresh verification fold1 fold4 mixed" {
     for ([_]u32{ 1, 4 }) |fold| {
@@ -51,7 +53,9 @@ test "OM31 hybrid retained and compact mixed-height inputs preserve bytes" {
         try std.testing.expectEqualSlices(u8, expected, actual);
         const decoded = try Codec.decodeProofBytesBinary(A, actual);
         try Base.verifyMixed(A, decoded, fold);
-        std.debug.print("OM31_HYBRID_PARITY fold={d} bytes={d}\n", .{ fold, actual.len });
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(actual, &digest, .{});
+        std.debug.print("OM31_HYBRID_PARITY fold={d} bytes={d} sha256={x}\n", .{ fold, actual.len, digest });
     }
 }
 
