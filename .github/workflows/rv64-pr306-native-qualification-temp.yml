@@ -21,3 +21,7 @@ jobs:
         run: zig build test-riscv64-word16-combined-services -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="native Word16 certificate"
       - name: Verify complete Ethereum terminal certificate
         run: zig build test-riscv64-word16-ethereum-terminal -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="complete native Word16"
+      - name: Verify real staged RAM PCS precommit admission
+        run: zig build test-riscv64-word16-global-memory -Doptimize=ReleaseSafe -j2 -Driscv-test-filter="staged global RAM precommit"
+      - name: Verify conditional 128-bit algebraic-policy accounting
+        run: zig build test-riscv64-security-policy -Doptimize=ReleaseSafe -j2
