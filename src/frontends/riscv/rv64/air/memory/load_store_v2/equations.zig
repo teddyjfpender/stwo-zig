@@ -17,27 +17,27 @@ pub fn ownerTupleForLogical(comptime F: type, m: []const F) [19]F {
     return tuple;
 }
 pub fn emitFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+    emitWithPublicFor(F, kind, f, m, pm, i, pi, E.qFor(F, rows), E.qFor(F, @intFromBool(rows != 0)), claims, ch, out);
+}
+pub fn emitWithPublicFor(comptime F: type, kind: L.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     if (kind == .ls) {
-        emitLsFor(F, f, m, pm, i, pi, rows, claims, ch, out);
+        emitLsWithPublicFor(F, f, m, pm, i, pi, row_count, nonempty, claims, ch, out);
     } else if (kind == .selection) {
-        V1.authority.emitFor(F, .selection, f, m, pm, i, pi, 0, null, claims, T.project(ch), out);
+        V1.authority.selectionFor(F, f, m, i, pi, claims.selection, ch.selection, out);
     } else if (kind == .range16 or kind == .range8) {
-        R.equations.emitFor(F, if (kind == .range16) .range16 else .range8, f, m, pm, i, pi, 0, null, baseClaims(claims), baseChallenges(ch), out);
+        @import("../../providers/scalar_range.zig").rangeFor(F, f, m, i, pi, if (kind == .range16) claims.range16 else claims.range8, if (kind == .range16) ch.range16 else ch.range8, out);
     } else {
         const active = m[0];
         const first = f[1];
-        const nonempty = E.qFor(F, @intFromBool(rows != 0));
         out.emit(first.mul(active.sub(nonempty)));
         out.emit(f[2].mul(active));
         out.emit(F.one().sub(first).mul(active).mul(F.one().sub(pm[0])));
-        out.emit(F.one().sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));
+        out.emit(F.one().sub(first).mul(active.sub(pm[0])).mul(f[0].sub(row_count)));
         for (m[1..14]) |value| out.emit(F.one().sub(active).mul(value));
         R.equations.boundaryLocalFor(F, m, pm, first, nonempty, out);
         const scalar = @import("../../providers/scalar_range.zig");
         scalar.single(F, ch.ram.denominatorFor(F, R.equations.ramTuple(F, if (kind == .initial) .initial else .terminal, m, false)), if (kind == .initial) active.neg() else active, E.secureFor(F, i, 0), E.secureFor(F, i, 4), E.secureFor(F, pi, 4), first, f[2], claims.ram, out);
         R.equations.rangesFor(F, m, i, pi, &L.BOUND_U16, 8, first, f[2], claims.range16, ch.range16, out);
-        // Canonical tuple coordinates come from the independently anchored
-        // RAM14 public multiset. There is no boundary U8 lookup debt.
         out.emit(E.splatFor(F, claims.range8));
     }
 }
@@ -51,10 +51,13 @@ pub fn baseClaims(c: T.Claims) R.types.Claims {
 /// The same LS residual authority over native or external arithmetic lanes.
 /// Typed non-mask inputs are wires for a Circuit lane, Q for native lanes.
 pub fn emitLsFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, rows: u32, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
+    emitLsWithPublicFor(F, f, m, pm, i, pi, E.qFor(F, rows), E.qFor(F, @intFromBool(rows != 0)), claims, ch, out);
+}
+pub fn emitLsWithPublicFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, row_count: F, nonempty: F, claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const logical = L.projection.expandFor(F, m);
     var previous: [L.projection.LOGICAL_MAIN]F = @splat(F.zero());
     previous[0] = pm[0];
-    V1.equations.emitLocalFor(F, f, &logical, &previous, rows, out);
+    V1.equations.emitLocalWithPublicFor(F, f, &logical, &previous, row_count, nonempty, out);
     R.equations.transitionRamFor(F, logical[0..28], i, pi, f[1], f[2], claims.ram, ch.ram, out);
     @import("local_lookup.zig").emitFor(F, f, &logical, i, pi, claims, ch, out);
     out.emit(logical[3].sub(logical[12]).sub(logical[13].mul(E.qFor(F, 65536))));

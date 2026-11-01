@@ -37,10 +37,13 @@ pub fn emitFor(comptime F: type, f: []const F, m: []const F, pm: []const F, i: [
 /// Shared local RAM/LS arithmetic; lookup encodings are separate authorities.
 /// The original emitFor preserves its exact residual order through this seam.
 pub fn emitLocalFor(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+    emitLocalWithPublicFor(F, f, m, pm, E.qFor(F, rows), E.qFor(F, @intFromBool(rows != 0)), out);
+}
+pub fn emitLocalWithPublicFor(comptime F: type, f: []const F, m: []const F, pm: []const F, row_count: F, nonempty: F, out: *E.SinkFor(F)) void {
     @setEvalBranchQuota(1000000);
     const one = F.one();
     const active = m[0];
-    R.transitionLocalFor(F, f, m[0..28], pm[0..28], rows, out);
+    R.transitionLocalWithPublicFor(F, f, m[0..28], pm[0..28], row_count, nonempty, out);
     for (m[28..]) |value| out.emit(one.sub(active).mul(value));
     var flag_sum = F.zero();
     var load = F.zero();

@@ -43,7 +43,7 @@ fn bind(comptime F: type, f: []const F, m: []const F, p: *const T.PublicRows, ou
         out.emit(m[c].sub(wanted));
     }
 }
-pub fn rangesFor(comptime F: type, m: []const F, i: []const F, prev: []const F, comptime indices: []const usize, start: usize, first: F, last: F, claim: T.Q, ch: S.Challenges, out: *E.SinkFor(F)) void {
+pub fn rangesFor(comptime F: type, m: []const F, i: []const F, prev: []const F, comptime indices: []const usize, start: usize, first: F, last: F, claim: E.ConstFor(F), ch: S.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const Q = E.SecureFor(F);
     var sum = Q.zero();
     for (0..(indices.len + 1) / 2) |batch| {
@@ -117,16 +117,20 @@ pub fn boundaryLocalFor(comptime F: type, m: []const F, pm: []const F, first: F,
 /// Shared bounded-integer clock, permission and unit-activity authority.
 /// Caller supplies the unchanged 28-coordinate physical RAM prefix.
 pub fn transitionLocalFor(comptime F: type, f: []const F, m: []const F, pm: []const F, rows: u32, out: *E.SinkFor(F)) void {
+    transitionLocalWithPublicFor(F, f, m, pm, E.qFor(F, rows), E.qFor(F, @intFromBool(rows != 0)), out);
+}
+/// Count/nonempty come from the admitted statement; external callers supply wires.
+pub fn transitionLocalWithPublicFor(comptime F: type, f: []const F, m: []const F, pm: []const F, row_count: F, nonempty: F, out: *E.SinkFor(F)) void {
     const first = f[1];
     const last = f[2];
     const active = m[0];
     const one = F.one();
     for ([_]usize{ 0, 1, 2, 22, 23, 27 }) |c| E.booleanFor(F, out, m[c]);
     for (m[1..]) |v| out.emit(one.sub(active).mul(v));
-    out.emit(first.mul(active.sub(E.qFor(F, @intFromBool(rows != 0)))));
+    out.emit(first.mul(active.sub(nonempty)));
     out.emit(last.mul(active));
     out.emit(one.sub(first).mul(active).mul(one.sub(pm[0])));
-    out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(E.qFor(F, rows))));
+    out.emit(one.sub(first).mul(active.sub(pm[0])).mul(f[0].sub(row_count)));
     const same = m[2];
     const cross = one.sub(same);
     out.emit(active.mul(same).mul(m[8].sub(m[9])));

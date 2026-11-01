@@ -28,6 +28,6 @@ pub fn single(comptime F: type, denominator: E.SecureFor(F), weight: F, inverse:
     prefix(F, E.mulBaseFor(F, inverse, weight), current, previous, first, last, claim, sink);
 }
 
-pub fn rangeFor(comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, claim: E.ConstFor(F), challenges: Challenges, sink: *E.SinkFor(F)) void {
+pub fn rangeFor(comptime F: type, fixed: []const F, main: []const F, current: []const F, previous: []const F, claim: E.ConstFor(F), challenges: ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
     single(F, challenges.denominatorFor(F, fixed[0]), main[0].neg(), E.secureFor(F, current, 0), E.secureFor(F, current, 4), E.secureFor(F, previous, 4), fixed[1], fixed[2], claim, sink);
 }

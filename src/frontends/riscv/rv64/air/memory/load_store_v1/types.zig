@@ -12,13 +12,16 @@ pub const OwnerChallenges = struct {
         return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
     }
 };
-pub const SelectionChallenges = struct {
-    offset: Q,
-    coefficients: [5]Q,
-    pub fn denominatorFor(self: @This(), comptime F: type, tuple: [5]F) E.SecureFor(F) {
-        return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
-    }
-};
+pub fn SelectionChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [5]C,
+        pub fn denominatorFor(self: @This(), comptime F: type, tuple: [5]F) E.SecureFor(F) {
+            return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
+        }
+    };
+}
+pub const SelectionChallenges = SelectionChallengesFor(Q);
 pub const Challenges = struct { ram: R.RamChallenges, owner: OwnerChallenges, range16: S.Challenges, range8: S.Challenges, selection: SelectionChallenges };
 pub const Claims = struct {
     ram: Q,

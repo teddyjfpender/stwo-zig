@@ -33,17 +33,9 @@ pub fn isLoadStore(opcode: decode.Opcode) bool {
         else => false,
     };
 }
-pub fn SelectionChallengesFor(comptime C: type) type {
-    return struct {
-        offset: C,
-        coefficients: [5]C,
-        pub fn denominatorFor(self: @This(), comptime F: type, tuple: [5]F) E.SecureFor(F) {
-            return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
-        }
-    };
-}
+pub const SelectionChallengesFor = Legacy.SelectionChallengesFor;
 pub fn ChallengesFor(comptime C: type) type {
-    return struct { ram: R.RamChallengesFor(C), owner: OwnerChallengesFor(C), range16: Range.ChallengesFor(C), range8: Range.ChallengesFor(C), selection: if (C == Q) Legacy.SelectionChallenges else SelectionChallengesFor(C) };
+    return struct { ram: R.RamChallengesFor(C), owner: OwnerChallengesFor(C), range16: Range.ChallengesFor(C), range8: Range.ChallengesFor(C), selection: SelectionChallengesFor(C) };
 }
 pub const Challenges = ChallengesFor(Q);
 pub fn ClaimsFor(comptime C: type) type {
