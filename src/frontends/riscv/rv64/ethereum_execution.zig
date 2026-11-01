@@ -13,7 +13,8 @@ const cisa = @import("candidate_isa.zig");
 /// rejected with compact capture, RAM-boundary capture and access census.
 /// `ethereum_services_v3_candidate_isa` = v3_candidate plus the execution-only
 /// Zbb/Zba subset (candidate_isa.zig), same restrictions.
-/// `ethereum_services_v3` is ADMITTED (v2 + SHA-256 compression 0x0003_0010)
+/// `ethereum_services_v3` is ADMITTED (v2 + SHA-256 compression 0x0003_0010
+/// + arith256_mod 0x0003_0021 + aligned memcpy/memset 0x0003_0001/2)
 /// and supports compact capture for the prover.
 const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate, ethereum_services_v3_candidate_isa, ethereum_services_v3 };
 const A = std.heap.smp_allocator;
@@ -51,6 +52,7 @@ const CaptureStats = struct {
     secp_add_calls: u64 = 0,
     secp_double_calls: u64 = 0,
     sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
     peak_retained_bytes: usize = 0,
     step_bytes: usize = @sizeOf(rv.compact_tape.Step),
     legacy_retirement_bytes: usize = @sizeOf(rv.machine.Retirement),
@@ -63,6 +65,7 @@ const CaptureStats = struct {
         self.ram_words += tape.memory_before.items.len;
         self.service_calls += tape.serviceCount();
         self.sha256_calls += tape.sha256_calls.items.len;
+        self.arith256_mod_calls += tape.arith256_mod_calls.items.len;
         for (tape.secp_calls.items) |call| {
             if (call.kind == .add) self.secp_add_calls += 1 else self.secp_double_calls += 1;
         }
@@ -93,6 +96,7 @@ const Report = struct {
     secp_add_calls: u64 = 0,
     secp_double_calls: u64 = 0,
     sha256_calls: u64 = 0,
+    arith256_mod_calls: u64 = 0,
     service_ram_word_transitions: u64 = 0,
     status: Status,
     verified_output: bool = false,
@@ -268,6 +272,11 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                     report.service_ram_word_transitions += call.wordCount();
                     if (census) |*value| for (call.before[0..call.wordCount()], call.after[0..call.wordCount()], 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i < 12);
                 },
+                .arith256_mod => |call| {
+                    report.arith256_mod_calls += 1;
+                    report.service_ram_word_transitions += call.before.len;
+                    if (census) |*value| for (call.before, call.after, 0..) |before, after, i| try value.observe(call.pointer + 8 * i, before, after, i >= @TypeOf(call).FIRST_WRITTEN);
+                },
                 .sha256 => |call| {
                     report.sha256_calls += 1;
                     report.service_ram_word_transitions += call.before.len;
@@ -283,6 +292,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
                 .keccak => .keccak,
                 .secp => |call| if (call.kind == .add) .secp_add else .secp_double,
                 .sha256 => .sha256,
+                .arith256_mod => .arith256_mod,
             });
             continue;
         }

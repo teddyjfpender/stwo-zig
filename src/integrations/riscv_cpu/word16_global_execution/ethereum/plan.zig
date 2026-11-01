@@ -47,6 +47,8 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (double != 0) d.bridges.double = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.double), double)));
         const sha256 = captured.advice.sha256[i].len;
         if (sha256 != 0) d.bridges.sha256 = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256), sha256)));
+        const arith = captured.advice.arith256_mod[i].len;
+        if (arith != 0) d.bridges.arith256_mod = try Coverage.minimalPrefixLog(@intCast(try std.math.mul(usize, A.crypto.secp256k1.word16_bridge.types.coordinates(.arith256_mod), arith)));
         try g.validate();
     }
     return out;
@@ -95,6 +97,17 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
     while (next <= sha256) {
         const calls: u32 = @min(capacity, sha256 - next + 1);
         try out.append(a, .{ .family = .sha256, .first_id = next, .calls = calls, .logs = .{ try A.crypto.sha256.layout.logSize(calls), 0 } });
+        next = try std.math.add(u32, next, calls);
+    }
+    // arith256_mod: one call per row plus a padding row (>= 256 rows for the
+    // local BYTE table); bounded log16 spans.
+    var arith: u32 = 0;
+    for (captured.advice.arith256_mod) |calls| arith = try std.math.add(u32, arith, @intCast(calls.len));
+    const arith_capacity: u32 = (@as(u32, 1) << @intCast(@import("../arith256/roster.zig").MAX_LOG)) - 1;
+    next = 1;
+    while (next <= arith) {
+        const calls: u32 = @min(arith_capacity, arith - next + 1);
+        try out.append(a, .{ .family = .arith256_mod, .first_id = next, .calls = calls, .logs = .{ try A.crypto.arith256.layout.logSize(calls), 0 } });
         next = try std.math.add(u32, next, calls);
     }
     return out.toOwnedSlice(a);

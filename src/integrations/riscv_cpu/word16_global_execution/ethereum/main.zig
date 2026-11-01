@@ -123,6 +123,8 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     if (config.execution_profile == .ethereum_services_v3) return;
     for (cpus) |d| if (d.bridges.sha256 != null) return error.UnadmittedSha256Service;
     for (truths) |d| if (d.family == .sha256) return error.UnadmittedSha256Service;
+    for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
+    for (truths) |d| if (d.family == .arith256_mod) return error.UnadmittedArith256Service;
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });
