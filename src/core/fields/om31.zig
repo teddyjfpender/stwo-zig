@@ -64,6 +64,24 @@ pub fn Quadratic(comptime F: type, comptime Ops: type) type {
         pub fn mulBase(a: Self, b: anytype) Self {
             return .{ .c0 = Ops.scale(a.c0, b), .c1 = Ops.scale(a.c1, b) };
         }
+        /// Four quartic remixes and the outer fixed-u map preserve the exact
+        /// eight-coordinate basis for native, packed and circuit authorities.
+        pub fn fromPartialEvals(evaluations: [8]Self) Self {
+            var lower0: [4]F = undefined;
+            var lower1: [4]F = undefined;
+            var upper0: [4]F = undefined;
+            var upper1: [4]F = undefined;
+            inline for (0..4) |i| {
+                lower0[i] = evaluations[i].c0;
+                lower1[i] = evaluations[i].c1;
+                upper0[i] = evaluations[4 + i].c0;
+                upper1[i] = evaluations[4 + i].c1;
+            }
+            return .{
+                .c0 = F.fromPartialEvals(lower0).add(Ops.mulByU(F.fromPartialEvals(upper1))),
+                .c1 = F.fromPartialEvals(lower1).add(F.fromPartialEvals(upper0)),
+            };
+        }
     };
 }
 pub const NativeOps = struct {
@@ -171,20 +189,9 @@ pub const OM31 = struct {
     /// Reconstructs evaluations of the eight M31 coordinate polynomials.
     /// Use the same four-coordinate linear map as QM31, then the outer v map.
     pub fn fromPartialEvals(evaluations: [8]Self) Self {
-        var lower0: [4]Q = undefined;
-        var lower1: [4]Q = undefined;
-        var upper0: [4]Q = undefined;
-        var upper1: [4]Q = undefined;
-        inline for (0..4) |i| {
-            lower0[i] = evaluations[i].c0;
-            lower1[i] = evaluations[i].c1;
-            upper0[i] = evaluations[4 + i].c0;
-            upper1[i] = evaluations[4 + i].c1;
-        }
-        return .{
-            .c0 = Q.fromPartialEvals(lower0).add(NativeOps.mulByU(Q.fromPartialEvals(upper1))),
-            .c1 = Q.fromPartialEvals(lower1).add(Q.fromPartialEvals(upper0)),
-        };
+        var values: [8]A = undefined;
+        inline for (0..8) |i| values[i] = arithmetic(evaluations[i]);
+        return wrap(A.fromPartialEvals(values));
     }
 
     pub fn toM31Array(a: Self) [8]M31 {

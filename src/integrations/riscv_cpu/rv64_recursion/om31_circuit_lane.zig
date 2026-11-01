@@ -35,14 +35,11 @@ pub const Lane = struct {
         return .{ .c0 = q.Lane.fromQm31(input), .c1 = q.Lane.zero() };
     }
     pub fn fromPartialEvals(input: [8]Lane) Lane {
-        var out = zero();
-        inline for (0..8) |i| {
-            var basis = [_]M31{M31.zero()} ** 8;
-            basis[i] = M31.one();
-            out = out.add(input[i].mul(fromOm31(O.fromM31Array(basis))));
-        }
-        return out;
+        var values: [8]A = undefined;
+        inline for (0..8) |i| values[i] = arithmetic(input[i]);
+        return wrap(A.fromPartialEvals(values));
     }
+
     fn arithmetic(x: Lane) A {
         return .{ .c0 = x.c0, .c1 = x.c1 };
     }

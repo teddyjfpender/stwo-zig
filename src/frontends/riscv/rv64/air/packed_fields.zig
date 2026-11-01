@@ -113,14 +113,15 @@ pub const PackedOmSecure = struct {
     }
     /// Coordinates may already be extension-valued at OODS points.
     pub fn fromPartialEvals(x: [8]@This()) @This() {
-        var out = zero();
-        inline for (0..8) |i| {
-            var basis = [_]M{M.zero()} ** 8;
-            basis[i] = M.one();
-            out = out.add(x[i].mul(splat(O.fromM31Array(basis))));
+        var out: @This() = undefined;
+        inline for (0..PACKS) |i| {
+            var input: [8]wide.PackedOM31 = undefined;
+            inline for (0..8) |j| input[j] = x[j].packs[i];
+            out.packs[i] = wide.PackedOM31.fromPartialEvals(input);
         }
         return out;
     }
+
     pub fn coordinates(x: @This()) [8]PackedOmBase {
         var out: [8]PackedOmBase = undefined;
         inline for (0..PACKS) |i| {
