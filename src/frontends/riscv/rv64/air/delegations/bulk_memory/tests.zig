@@ -66,24 +66,52 @@ const World = struct {
         return self.states.get(address).?;
     }
     fn call(self: *World, op: T.Op, pointer: u64, epoch: u16, tick: u24, dst: u64, word1: u64, len: u64) !void {
-        for ([_]u64{ dst, word1, len }, 0..) |v, k| if (!self.states.contains(pointer + 8 * k)) try self.image(pointer + 8 * k, v);
-        var c = T.Call{ .op = op, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = dst, .word1 = word1, .len = len, .packet = undefined };
-        for (0..3) |k| {
-            c.packet[k] = try self.get(pointer + 8 * k);
-            try self.states.put(pointer + 8 * k, .{ .value = c.packet[k].value, .epoch = epoch, .tick = tick, .rights = c.packet[k].rights });
-        }
+        const pw: usize = if (op == .cmp) 4 else 3;
+        for ([_]u64{ dst, word1, len, 0x5EED }, 0..) |v, k| if (k < pw and !self.states.contains(pointer + 8 * k)) try self.image(pointer + 8 * k, v);
+        var c = T.Call{ .op = op, .pointer = pointer, .epoch = epoch, .tick = tick, .dst = dst, .word1 = word1, .len = len, .packet = @splat(.{ .value = 0, .rights = 0 }) };
+        for (0..pw) |k| c.packet[k] = try self.get(pointer + 8 * k);
         var fresh: std.ArrayList(T.Word) = .{};
         defer fresh.deinit(self.a);
-        for (0..c.count()) |j| {
-            var w = T.Word{ .dst = try self.get(dst + 8 * j) };
-            if (op == .copy) w.src = try self.get(word1 + 8 * j);
-            try fresh.append(self.a, w);
+        const n = c.count();
+        switch (op) {
+            .set => for (0..n) |j| try fresh.append(self.a, .{ .dst = try self.get(dst + 8 * j) }),
+            .copy => if (c.shift() == 0) {
+                for (0..n) |j| try fresh.append(self.a, .{ .dst = try self.get(dst + 8 * j), .src = try self.get(word1 + 8 * j) });
+            } else {
+                const base = word1 & ~@as(u64, 7);
+                for (0..n + 1) |r| try fresh.append(self.a, .{ .dst = if (r == 0) .{ .value = 0, .rights = 0 } else try self.get(dst + 8 * (r - 1)), .src = try self.get(base + 8 * r) });
+            },
+            .cmp => {
+                var j: usize = 0;
+                while (j < n) : (j += 1) {
+                    const w = T.Word{ .dst = try self.get(dst + 8 * j), .src = try self.get(word1 + 8 * j) };
+                    try fresh.append(self.a, w);
+                    c.result = T.compareWords(w.dst.value, w.src.value);
+                    if (c.result != 0) break;
+                }
+                c.examined = @intCast(fresh.items.len);
+            },
         }
-        for (fresh.items, 0..) |w, j| {
-            const value = if (op == .copy) w.src.value else @as(u64, c.fill()) * 0x0101010101010101;
-            if (op == .copy) try self.states.put(word1 + 8 * j, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
-            try self.states.put(dst + 8 * j, .{ .value = value, .epoch = epoch, .tick = tick, .rights = w.dst.rights });
+        // Every access of the call moves to the call's clock.
+        for (0..pw) |k| {
+            const after: u64 = if (k == 3) @bitCast(@as(i64, c.result)) else c.packet[k].value;
+            try self.states.put(pointer + 8 * k, .{ .value = after, .epoch = epoch, .tick = tick, .rights = c.packet[k].rights });
         }
+        for (fresh.items, 0..) |w, r| switch (op) {
+            .set => try self.states.put(dst + 8 * r, .{ .value = @as(u64, c.fill()) * 0x0101010101010101, .epoch = epoch, .tick = tick, .rights = w.dst.rights }),
+            .copy => if (c.shift() == 0) {
+                try self.states.put(word1 + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
+                try self.states.put(dst + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.dst.rights });
+            } else {
+                const base = word1 & ~@as(u64, 7);
+                try self.states.put(base + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
+                if (r != 0) try self.states.put(dst + 8 * (r - 1), .{ .value = T.shifted(fresh.items[r - 1].src.value, w.src.value, c.shift()), .epoch = epoch, .tick = tick, .rights = w.dst.rights });
+            },
+            .cmp => {
+                try self.states.put(dst + 8 * r, .{ .value = w.dst.value, .epoch = epoch, .tick = tick, .rights = w.dst.rights });
+                try self.states.put(word1 + 8 * r, .{ .value = w.src.value, .epoch = epoch, .tick = tick, .rights = w.src.rights });
+            },
+        };
         try self.calls.append(self.a, c);
         try self.words.appendSlice(self.a, fresh.items);
     }
@@ -147,11 +175,21 @@ const Witness = struct {
     desc: [N][L.desc.MAIN]M,
     copy: [N][L.copy.MAIN]M,
     set: [N][L.set.MAIN]M,
-    rows: [3]u32,
+    ucopy: [N][L.ucopy.MAIN]M,
+    cdesc: [N][L.cdesc.MAIN]M,
+    cmp: [N][L.cmp.MAIN]M,
+    rows: [6]u32,
 };
+/// All rows padding (zero) and no active rows.
+fn emptyWitness(wit: *Witness) void {
+    inline for (L.kinds) |kind| for (&@field(wit, @tagName(kind))) |*r| {
+        r.* = @splat(M.zero());
+    };
+    wit.rows = @splat(0);
+}
 fn honest(a: std.mem.Allocator, w: *World) !Witness {
     var out: Witness = undefined;
-    inline for (.{ L.Kind.desc, L.Kind.copy, L.Kind.set }, 0..) |kind, k| {
+    inline for (L.kinds, 0..) |kind, k| {
         var s = try Src.Source.init(a, kind, w.calls.items, w.words.items, LOG);
         defer s.deinit();
         out.rows[k] = s.rows;
@@ -168,7 +206,7 @@ fn verdict(a: std.mem.Allocator, w: *World, wit: *Witness) !Verdict {
     var owner = try w.cpuOwner(ch);
     var f: [N][3]M = undefined;
     for (&f, 0..) |*r, i| r.* = .{ M.fromCanonical(@intCast(i)), M.fromCanonical(@intFromBool(i == 0)), M.fromCanonical(@intFromBool(i == N - 1)) };
-    inline for (.{ L.Kind.desc, L.Kind.copy, L.Kind.set }, 0..) |kind, k| {
+    inline for (L.kinds, 0..) |kind, k| {
         const rows = &@field(wit, @tagName(kind));
         var provider = Rows(kind){ .items = rows };
         const built = try B.interaction.generateRows(kind, a, LOG, N, &provider, Rows(kind).get, ch);
@@ -176,7 +214,7 @@ fn verdict(a: std.mem.Allocator, w: *World, wit: *Witness) !Verdict {
         ram = ram.add(built.claims.ram);
         owner = owner.add(built.claims.owner);
         const width = L.interaction(kind);
-        var residuals: [128]Q = undefined;
+        var residuals: [192]Q = undefined;
         for (0..N) |r| {
             const prev = (r + N - 1) % N;
             var fq: [3]Q = undefined;
@@ -447,12 +485,12 @@ test "bulk memory adversarial: overlapping memcpy is rejected natively and by RA
     // AIR: build the rows anyway. Both 0x2008 accesses share tick 8.
     const wit = try a.create(Witness);
     defer a.destroy(wit);
-    wit.* = undefined;
+    emptyWitness(wit);
     const call = w.calls.items[0];
     for (&wit.desc, 0..) |*r, i| r.* = Src.descRow(if (i == 0) call else null);
     for (&wit.copy, 0..) |*r, i| r.* = Src.copyRow(if (i < 2) call else null, i, if (i < 2) w.words.items[i] else .{ .dst = undefined });
-    for (&wit.set) |*r| r.* = Src.setRow(null, 0, .{ .dst = undefined });
-    wit.rows = .{ 1, 2, 0 };
+    wit.rows[0] = 1;
+    wit.rows[1] = 2;
     // (a) Snapshot semantics: the 0x2008 read and write consume the same token.
     const snapshot = try verdict(a, &w, wit);
     try testing.expectEqual(@as(usize, 0), snapshot.local);
@@ -475,10 +513,10 @@ test "bulk memory: constraint degrees are at most three" {
     var fx = try Fixture.init(a);
     defer fx.deinit();
     const ch = challenges();
-    inline for (.{ L.Kind.desc, L.Kind.copy, L.Kind.set }) |kind| {
+    inline for (L.kinds) |kind| {
         const W = comptime L.main(kind);
         const I = comptime L.interaction(kind);
-        var samples: [5][128]Q = undefined;
+        var samples: [5][192]Q = undefined;
         var x: [3 + 2 * W + 2 * I]Q = undefined;
         var y: [3 + 2 * W + 2 * I]Q = undefined;
         for (&x, &y, 0..) |*xi, *yi, i| {
@@ -502,4 +540,270 @@ test "bulk memory: constraint degrees are at most three" {
             try testing.expect(d[0].isZero());
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Unaligned memcpy (`ucopy`) and memcmp (`cdesc` + `cmp`). Scenario 2 row map:
+// desc 0..2 = B, C, G; ucopy 0..3 = B (shift 3, 3 words), 4..6 = C (shift 5,
+// 2 words, reads B's output), 7..8 = G (shift 7, read-only source);
+// cdesc 0..2 = D, E, F; cmp 0..1 = D (equal, 2 words), 2..3 = E (first
+// difference in word 1, byte 5: limb 2 high byte, a < b), 4 = F (word 0,
+// byte 0, a > b).
+
+fn scenario2(w: *World) !void {
+    for (0..2) |j| {
+        const v = 0x1122_3344_5566_7788 +% 0x0101_0101_0101_0101 * @as(u64, j);
+        try w.image(0x4000 + 8 * j, v);
+        try w.image(0x4100 + 8 * j, v);
+    }
+    for (0..3) |j| {
+        const v = 0x0F1E_2D3C_4B5A_6978 *% (@as(u64, j) + 3);
+        try w.image(0x4200 + 8 * j, v);
+        try w.image(0x4300 + 8 * j, if (j == 1) v +% (@as(u64, 1) << 40) & ~@as(u64, 0) else v ^ (if (j == 2) @as(u64, 0xFF) else 0));
+    }
+    try w.image(0x4400, 0x0000_0000_0000_00F0);
+    try w.image(0x4500, 0xFFFF_FFFF_FFFF_FF0F);
+    try w.call(.copy, 0x1000, 1, 8, 0x3000, 0x2003, 24);
+    try w.call(.copy, 0x1040, 1, 12, 0x3100, 0x3005, 16);
+    try w.call(.cmp, 0x1080, 1, 16, 0x4000, 0x4100, 16);
+    try w.call(.cmp, 0x10C0, 1, 20, 0x4200, 0x4300, 24);
+    try w.call(.cmp, 0x1100, 2, 4, 0x4400, 0x4500, 8);
+    try w.call(.copy, 0x1140, 2, 8, 0x6100, 0x5007, 8);
+}
+const Fixture2 = struct {
+    a: std.mem.Allocator,
+    world: World,
+    wit: *Witness,
+    fn init(a: std.mem.Allocator) !Fixture2 {
+        var w = World.init(a);
+        errdefer w.deinit();
+        try scenario2(&w);
+        const wit = try a.create(Witness);
+        wit.* = try honest(a, &w);
+        return .{ .a = a, .world = w, .wit = wit };
+    }
+    fn deinit(self: *Fixture2) void {
+        self.world.deinit();
+        self.a.destroy(self.wit);
+    }
+    fn check(self: *Fixture2) !Verdict {
+        return verdict(self.a, &self.world, self.wit);
+    }
+    fn reset(self: *Fixture2) !void {
+        self.wit.* = try honest(self.a, &self.world);
+    }
+};
+
+test "bulk memory: unaligned copy and memcmp scenario satisfies every constraint and closes every relation" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    try testing.expectEqual([6]u32{ 3, 0, 0, 4 + 3 + 2, 3, 2 + 2 + 1 }, fx.wit.rows);
+    try testing.expectEqual(Verdict{}, try fx.check());
+}
+
+test "bulk memory: known answers for unaligned copies and memcmp results" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    const w = &fx.world;
+    // Byte-level reference of B: dst[i] = initial byte at 0x2003 + i.
+    for (0..24) |i| {
+        const s = w.initial.get((0x2003 + i) & ~@as(u64, 7)).?.value;
+        const d = w.states.get((0x3000 + i) & ~@as(u64, 7)).?.value;
+        try testing.expectEqual(@as(u8, @truncate(s >> @intCast(8 * ((0x2003 + i) & 7)))), @as(u8, @truncate(d >> @intCast(8 * (i & 7)))));
+    }
+    // C copies B's output: byte i of 0x3100.. = byte 5 + i of 0x3000..
+    for (0..16) |i| {
+        const s = w.states.get((0x3005 + i) & ~@as(u64, 7)).?.value;
+        const d = w.states.get((0x3100 + i) & ~@as(u64, 7)).?.value;
+        try testing.expectEqual(@as(u8, @truncate(s >> @intCast(8 * ((0x3005 + i) & 7)))), @as(u8, @truncate(d >> @intCast(8 * (i & 7)))));
+    }
+    const calls = w.calls.items;
+    try testing.expectEqual(@as(i2, 0), calls[2].result);
+    try testing.expectEqual(@as(u32, 2), calls[2].examined);
+    try testing.expectEqual(@as(i2, -1), calls[3].result);
+    try testing.expectEqual(@as(u32, 2), calls[3].examined);
+    try testing.expectEqual(@as(i2, 1), calls[4].result);
+    try testing.expectEqual(@as(u64, std.math.maxInt(u64)), w.states.get(0x10C0 + 24).?.value);
+    try testing.expectEqual(@as(u64, 1), w.states.get(0x1100 + 24).?.value);
+    try testing.expectEqual(@as(u64, 0), w.states.get(0x1080 + 24).?.value);
+    // AIR rows: E's differing row selects limb 2, high byte, lt.
+    const e = fx.wit.cmp[3];
+    try testing.expectEqual(@as(u32, 1), e[L.cmp.limbsel + 2].v);
+    try testing.expectEqual(@as(u32, 1), e[L.cmp.hb].v);
+    try testing.expectEqual(@as(u32, 1), e[L.cmp.lt].v);
+    try testing.expectEqual(@as(u32, 1), fx.wit.ucopy[0][L.ucopy.sel + 2].v);
+    try testing.expectEqual(@as(u32, 1), fx.wit.ucopy[7][L.ucopy.sel + 6].v);
+}
+
+test "bulk memory adversarial: unaligned copy with a wrong shift breaks the call token" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    // Run B re-executed at shift 4 (locally consistent: sel and every written
+    // limb recomputed): the token src = aligned + 4 differs from the packet's.
+    for (0..4) |r| {
+        fx.wit.ucopy[r][L.ucopy.sel + 2] = M.zero();
+        fx.wit.ucopy[r][L.ucopy.sel + 3] = M.one();
+    }
+    for (1..4) |r| {
+        const prev = fx.world.words.items[r - 1].src.value;
+        const cur = fx.world.words.items[r].src.value;
+        const v = T.shifted(prev, cur, 4);
+        for (0..4) |i| fx.wit.ucopy[r][L.ucopy.out + i] = mm(@as(u16, @truncate(v >> @intCast(16 * i))));
+    }
+    const v = try fx.check();
+    try testing.expectEqual(@as(usize, 0), v.local);
+    try testing.expect(v.ranges and !v.owner and !v.ram);
+    // Shift changed on one continuation row only: local selector continuity.
+    try fx.reset();
+    fx.wit.ucopy[2][L.ucopy.sel + 2] = M.zero();
+    fx.wit.ucopy[2][L.ucopy.sel + 3] = M.one();
+    try testing.expect((try fx.check()).local != 0);
+}
+
+test "bulk memory adversarial: unaligned copy with a wrong byte is rejected" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    // (a) Wrong written limb only: the shift equation fails locally.
+    fx.wit.ucopy[2][L.ucopy.out + 1] = fx.wit.ucopy[2][L.ucopy.out + 1].add(M.one());
+    const a = try fx.check();
+    try testing.expect(a.local != 0);
+    // (b) Wrong source byte with a consistent written word: the source read
+    // matches no produced token.
+    try fx.reset();
+    fx.wit.ucopy[2][L.ucopy.bytes + 6] = fx.wit.ucopy[2][L.ucopy.bytes + 6].add(M.one());
+    fx.wit.ucopy[2][L.ucopy.bytes + 6] = M.fromCanonical(fx.wit.ucopy[2][L.ucopy.bytes + 6].v & 0xff);
+    for ([_]usize{ 2, 3 }) |r| {
+        const sh: u3 = 3;
+        var bytes_prev: u64 = 0;
+        var bytes_cur: u64 = 0;
+        for (0..8) |b| {
+            bytes_prev |= @as(u64, fx.wit.ucopy[r - 1][L.ucopy.bytes + b].v) << @intCast(8 * b);
+            bytes_cur |= @as(u64, fx.wit.ucopy[r][L.ucopy.bytes + b].v) << @intCast(8 * b);
+        }
+        const v = T.shifted(bytes_prev, bytes_cur, sh);
+        for (0..4) |i| fx.wit.ucopy[r][L.ucopy.out + i] = mm(@as(u16, @truncate(v >> @intCast(16 * i))));
+    }
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(b.ranges and b.owner and !b.ram);
+    // (c) Non-canonical byte split of a correct limb (lo + 256, hi - 1): the
+    // limb and RAM agree, but the low byte is out of range.
+    try fx.reset();
+    const r = 1;
+    fx.wit.ucopy[r][L.ucopy.bytes + 2] = fx.wit.ucopy[r][L.ucopy.bytes + 2].add(mm(256));
+    fx.wit.ucopy[r][L.ucopy.bytes + 3] = fx.wit.ucopy[r][L.ucopy.bytes + 3].sub(M.one());
+    const c = try fx.check();
+    try testing.expect(!c.ranges and !accepted(c));
+}
+
+test "bulk memory adversarial: unaligned copy skipped or extra words are rejected" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    const honest_rows = fx.wit.ucopy;
+    // (a) Drop B's last row: the run ends at remaining = 2.
+    for (3..N - 1) |r| fx.wit.ucopy[r] = honest_rows[r + 1];
+    fx.wit.rows[3] -= 1;
+    try testing.expect((try fx.check()).local != 0);
+    // (b) Also relabel remaining so the run is locally valid: the token's N
+    // differs and destination word 2 is never written.
+    for (0..3) |r| fx.wit.ucopy[r][L.ucopy.remaining] = mm(@intCast(3 - r));
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.owner and !b.ram);
+    // (c) The lead row also writes (start = 0 on row 0 is a continuation of padding).
+    fx.wit.ucopy = honest_rows;
+    fx.wit.rows[3] = 9;
+    fx.wit.ucopy[0][L.ucopy.start] = M.zero();
+    try testing.expect((try fx.check()).local != 0);
+    // (d) The destination does not advance after word 0 (same word twice).
+    fx.wit.ucopy = honest_rows;
+    for (0..4) |i| fx.wit.ucopy[2][L.ucopy.dst + i] = fx.wit.ucopy[1][L.ucopy.dst + i];
+    try testing.expect((try fx.check()).local != 0);
+}
+
+test "bulk memory adversarial: memcmp with a wrong result is rejected" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    // (a) E claims a > b at its first difference (lt flipped): the gap is negative.
+    fx.wit.cmp[3][L.cmp.lt] = M.zero();
+    const d = @as(i64, fx.wit.cmp[3][L.cmp.da].v) - @as(i64, fx.wit.cmp[3][L.cmp.db].v);
+    fx.wit.cmp[3][L.cmp.gap] = if (d - 1 >= 0) mm(@intCast(d - 1)) else neg(@intCast(1 - d));
+    fx.wit.cdesc[1][L.cdesc.neg] = M.zero();
+    fx.wit.cdesc[1][L.cdesc.pos] = M.one();
+    _ = try fx.world.states.put(0x10C0 + 24, .{ .value = 1, .epoch = 1, .tick = 20, .rights = 3 });
+    const a = try fx.check();
+    try testing.expectEqual(@as(usize, 0), a.local);
+    try testing.expect(!a.ranges);
+    // (b) The descriptor writes 0 for E while the body reports -1.
+    try fx.reset();
+    _ = try fx.world.states.put(0x10C0 + 24, .{ .value = 0, .epoch = 1, .tick = 20, .rights = 3 });
+    fx.wit.cdesc[1][L.cdesc.neg] = M.zero();
+    const b = try fx.check();
+    try testing.expectEqual(@as(usize, 0), b.local);
+    try testing.expect(!b.owner);
+    // (c) A later limb chosen as the first difference while an earlier byte
+    // differs: E's row picks limb 3 instead of limb 2.
+    try fx.reset();
+    _ = try fx.world.states.put(0x10C0 + 24, .{ .value = std.math.maxInt(u64), .epoch = 1, .tick = 20, .rights = 3 });
+    const row = &fx.wit.cmp[3];
+    row[L.cmp.limbsel + 2] = M.zero();
+    row[L.cmp.limbsel + 3] = M.one();
+    try testing.expect((try fx.check()).local != 0);
+    // (d) The first difference placed in the high byte while the low bytes
+    // differ (F: byte 0 differs).
+    try fx.reset();
+    fx.wit.cmp[4][L.cmp.hb] = M.one();
+    try testing.expect((try fx.check()).local != 0);
+}
+
+test "bulk memory adversarial: memcmp early or late stops are rejected" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    // (a) D stops after its first (equal) word claiming a difference: no byte
+    // differs, the gap would be -1.
+    const r0 = &fx.wit.cmp[0];
+    r0[L.cmp.last] = M.one();
+    r0[L.cmp.diff] = M.one();
+    r0[L.cmp.limbsel] = M.one();
+    r0[L.cmp.alo] = M.fromCanonical(r0[L.cmp.va].v & 0xff);
+    r0[L.cmp.ahi] = M.fromCanonical(r0[L.cmp.va].v >> 8);
+    r0[L.cmp.blo] = r0[L.cmp.alo];
+    r0[L.cmp.bhi] = r0[L.cmp.ahi];
+    r0[L.cmp.da] = r0[L.cmp.alo];
+    r0[L.cmp.db] = r0[L.cmp.blo];
+    r0[L.cmp.gap] = neg(1);
+    for (1..N - 1) |r| fx.wit.cmp[r] = fx.wit.cmp[r + 1];
+    fx.wit.rows[5] -= 1;
+    const a = try fx.check();
+    try testing.expect(!accepted(a) and !a.ranges);
+    // (b) D stops early with result 0 (last without a difference before remaining = 1).
+    try fx.reset();
+    fx.wit.cmp[0][L.cmp.last] = M.one();
+    for (1..N - 1) |r| fx.wit.cmp[r] = fx.wit.cmp[r + 1];
+    fx.wit.rows[5] -= 1;
+    try testing.expect((try fx.check()).local != 0);
+    // (c) E skips its differing word: diff = 0 on unequal words.
+    try fx.reset();
+    const e = &fx.wit.cmp[3];
+    inline for (.{ L.cmp.diff, L.cmp.limbsel + 2, L.cmp.hb, L.cmp.lt, L.cmp.alo, L.cmp.ahi, L.cmp.blo, L.cmp.bhi, L.cmp.da, L.cmp.db, L.cmp.gap }) |col| e[col] = M.zero();
+    try testing.expect((try fx.check()).local != 0);
+    // (d) D runs past its length: a third row at remaining 0 (is_one = 1 on
+    // row 1 forces it to be last).
+    try fx.reset();
+    const honest_rows = fx.wit.cmp;
+    for (3..N) |r| fx.wit.cmp[r] = honest_rows[r - 1];
+    fx.wit.cmp[1][L.cmp.last] = M.zero();
+    fx.wit.cmp[2] = Src.cmpRow(fx.world.calls.items[2], 2, .{ .dst = .{ .value = 7, .rights = 3 }, .src = .{ .value = 9, .rights = 3 } });
+    fx.wit.rows[5] += 1;
+    try testing.expect((try fx.check()).local != 0);
+}
+
+test "bulk memory adversarial: memcmp result token without a descriptor or call is rejected" {
+    var fx = try Fixture2.init(testing.allocator);
+    defer fx.deinit();
+    // F's descriptor dropped (memcmp executed as nothing): OWNER and RAM fail.
+    fx.wit.cdesc[2] = Src.cdescRow(null);
+    fx.wit.rows[4] = 2;
+    const v = try fx.check();
+    try testing.expect(!v.owner and !v.ram);
 }

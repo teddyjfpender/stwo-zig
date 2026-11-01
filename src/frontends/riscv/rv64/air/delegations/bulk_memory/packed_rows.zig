@@ -22,9 +22,9 @@ pub fn evaluate(component: *const C.Component, columns: []const []const M, start
     var begin = start;
     while (begin < end) : (begin += LANES) {
         const count = @min(LANES, end - begin);
-        var values: [128]F = undefined;
-        var pm: [64]F = @splat(F.zero());
-        var pi: [64]F = @splat(F.zero());
+        var values: [192]F = undefined;
+        var pm: [96]F = @splat(F.zero());
+        var pi: [96]F = @splat(F.zero());
         for (columns, 0..) |column, i| values[i] = load(column, begin, count);
         var indices: [LANES]usize = undefined;
         for (indices[0..count], 0..) |*index, i| index.* = core.utils.previousBitReversedCircleDomainIndex(begin + i, component.log_size, component.log_size + 1);
