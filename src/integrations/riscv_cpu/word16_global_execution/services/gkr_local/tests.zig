@@ -336,3 +336,6 @@ test {
 test {
     _ = @import("cpu_worker_test.zig");
 }
+test {
+    _ = @import("domain_pool_test.zig");
+}
