@@ -176,3 +176,9 @@ pub const word16_index_control = struct {
 pub const word16_execution = @import("word16_execution/mod.zig");
 
 pub const native_output_pages = @import("native_output_pages.zig");
+
+/// Additive MAIN-only authorities for an explicitly wide, GKR-closed route.
+pub const main_only = struct {
+    pub const authority = @import("main_only/authority.zig");
+    pub const component = @import("main_only/component.zig");
+};

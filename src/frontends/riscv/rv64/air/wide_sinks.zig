@@ -1,6 +1,7 @@
 //! Explicit degree-eight accumulators; legacy QM31 sink types remain unchanged.
 const std = @import("std");
 const lane = @import("lane.zig");
+const core = @import("stwo_core");
 pub fn Weighted(comptime C: type, comptime S: type) type {
     return struct { powers: []const C, accumulation: S = S.zero() };
 }
@@ -8,7 +9,7 @@ pub fn Sink(comptime C: type, comptime B: type, comptime S: type) type {
     return struct {
         values: ?[]S = null,
         count: usize = 0,
-        accumulator: ?*lane.PointAccumulator(S) = null,
+        accumulator: ?*(if (C == S) core.air.accumulation.ForField(C).PointEvaluationAccumulator else lane.PointAccumulator(S)) = null,
         weighted_accumulator: ?*Weighted(C, S) = null,
         scale: ?S = null,
         pub fn zeros(self: *@This(), n: usize) void {
