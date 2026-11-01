@@ -75,20 +75,53 @@ def candidate_cells(calibration: dict, candidate_calls: dict | None) -> float:
     return cells
 
 
+# ADMITTED ethereum_services_v3 services: calibration.json admitted_services key ->
+# (execution-report call field, execution-report byte field or None).
+ADMITTED_REPORT_FIELDS = {
+    "sha256_compress": ("sha256_calls", None),
+    "arith256_mod": ("arith256_mod_calls", None),
+    "memcpy": ("bulk_memcpy_calls", "bulk_memcpy_bytes"),
+    "memset": ("bulk_memset_calls", "bulk_memset_bytes"),
+}
+
+
+def admitted_usage(report: dict) -> dict | None:
+    """Per-service admitted usage from one execution report (None when no admitted v3 call ran)."""
+    out = {}
+    for name, (calls_key, bytes_key) in ADMITTED_REPORT_FIELDS.items():
+        calls = int(report.get(calls_key) or 0)
+        if calls:
+            out[name] = {"calls": calls, "bytes": int(report.get(bytes_key) or 0) if bytes_key else 0}
+    return out or None
+
+
+def admitted_cells(calibration: dict, admitted_calls: dict | None) -> float:
+    """Measured cells for admitted (provable) v3 services (calibration.json admitted_services)."""
+    if not admitted_calls:
+        return 0.0
+    table = calibration.get("admitted_services", {})
+    cells = 0.0
+    for name, use in admitted_calls.items():
+        if name not in table:
+            raise ValueError(f"admitted service {name!r} has no measured cost in calibration.json")
+        cost = table[name]
+        cells += cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+    return cells
+
+
 def committed_bits(calibration: dict, instructions: int, keccak: int, secp_add: int, secp_double: int,
-                   candidate_calls: dict | None = None, sha256: int = 0) -> float:
+                   candidate_calls: dict | None = None, admitted_calls: dict | None = None) -> float:
     """Frozen linear proxy for committed witness bits at the LDE (see calibration.json).
 
-    sha256 counts ADMITTED ethereum_services_v3 SHA-256 compressions, costed by
-    the measured coefficients.sha256_cells_per_call (see its derivation)."""
+    admitted_calls holds ADMITTED ethereum_services_v3 usage per service
+    ({name: {"calls", "bytes"}}, see admitted_usage), costed by the measured
+    calibration.json admitted_services table (each entry cites its derivation)."""
     c = calibration["coefficients"]
-    if sha256 and "sha256_cells_per_call" not in c:
-        raise ValueError("admitted sha256 calls need coefficients.sha256_cells_per_call in calibration.json")
     cells = (c["cpu_cells_per_instruction"] * instructions
              + c["keccak_cells_per_call"] * keccak
              + c["secp_cells_per_call"] * (secp_add + secp_double)
-             + c.get("sha256_cells_per_call", 0.0) * sha256
-             + candidate_cells(calibration, candidate_calls))
+             + candidate_cells(calibration, candidate_calls)
+             + admitted_cells(calibration, admitted_calls))
     return c["bits_per_cell_at_lde"] * cells * (1.0 + c["composition_fraction"])
 
 
@@ -103,7 +136,7 @@ def aggregate(rows: list[dict], calibration: dict) -> dict:
             tot[k] += int(r.get(k) or 0)
     bits = sum(committed_bits(calibration, r["instructions"], r.get("keccak_f_calls", 0),
                               r.get("secp_add_calls", 0), r.get("secp_double_calls", 0),
-                              r.get("candidate_service_calls"), r.get("sha256_calls", 0) or 0) for r in rows)
+                              r.get("candidate_service_calls"), r.get("admitted_service_calls")) for r in rows)
     return {
         "blocks": len(rows),
         "gas_used": gas,
@@ -391,9 +424,11 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "secp_add_calls": e.get("secp_add_calls", 0), "secp_double_calls": e.get("secp_double_calls", 0),
            "sha256_calls": e.get("sha256_calls", 0),
            "loads": e.get("loads"), "stores": e.get("stores"),
-           "candidate_service_calls": e.get("candidate_service_calls") or None}
+           "candidate_service_calls": e.get("candidate_service_calls") or None,
+           "admitted_service_calls": admitted_usage(e)}
     if repeat > 1:
-        keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "verified_output")
+        keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "arith256_mod_calls",
+                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row

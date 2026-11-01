@@ -4,20 +4,27 @@ const Q = A.evaluation.Q;
 /// Families 0..2 are the v2 roster; `sha256` (v3) is appended so every v2
 /// ordinal, offset, column, claim and transcript word is unchanged when absent.
 /// Extension point: a further v3 family appends here with its own bridge.
-pub const Family = enum(u8) { keccak = 0, add = 1, double = 2, sha256 = 3 };
-pub const FAMILIES = 4;
+/// `arith256_mod` (v3, tag 0x30021) is family 4.
+pub const Family = enum(u8) { keccak = 0, add = 1, double = 2, sha256 = 3, arith256_mod = 4 };
+pub const FAMILIES = 5;
+/// v3 families in transcript/claim order; each is mixed only when present.
+pub const V3 = [_]Family{ .sha256, .arith256_mod };
 pub const V2_FAMILIES = 3;
 pub const Logs = struct {
     keccak: ?u32 = null,
     add: ?u32 = null,
     double: ?u32 = null,
     sha256: ?u32 = null,
+    arith256_mod: ?u32 = null,
+    /// Admitted bulk-memory bridges (v3), a separate block after the families.
+    bulk: Bulk = .{},
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
             .add => self.add,
             .double => self.double,
             .sha256 => self.sha256,
+            .arith256_mod => self.arith256_mod,
         };
     }
     /// v2 transport bytes are unchanged: the v3 field is omitted when absent.
@@ -31,6 +38,14 @@ pub const Logs = struct {
             try jws.objectField("sha256");
             try jws.write(log);
         }
+        if (self.arith256_mod) |log| {
+            try jws.objectField("arith256_mod");
+            try jws.write(log);
+        }
+        if (self.bulk.any()) {
+            try jws.objectField("bulk");
+            try jws.write(self.bulk);
+        }
         try jws.endObject();
     }
 };
@@ -41,6 +56,7 @@ pub fn bridgeKind(family: Family) A.crypto.secp256k1.word16_bridge.types.Kind {
         .add => .add,
         .double => .double,
         .sha256 => .sha256,
+        .arith256_mod => .arith256_mod,
     };
 }
 /// Packet RAM words per call (each contributes one before and one after term).
@@ -81,4 +97,44 @@ pub const ExtraClaims = struct {
 };
 pub fn widths(family: Family) [3]usize {
     return if (family == .keccak) A.crypto.keccak.word16_bridge.layout.widths(.bridge) else A.crypto.secp256k1.word16_bridge.layout.widths(.bridge);
+}
+
+/// Bulk-memory bridge logs: descriptor (one row per call), copy and set bodies
+/// (one row per word). Each present kind is one component of the CPU proof.
+pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
+pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set };
+pub const Bulk = struct {
+    desc: ?u32 = null,
+    copy: ?u32 = null,
+    set: ?u32 = null,
+    pub fn at(self: @This(), kind: BulkKind) ?u32 {
+        return switch (kind) {
+            .desc => self.desc,
+            .copy => self.copy,
+            .set => self.set,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.desc != null or self.copy != null or self.set != null;
+    }
+};
+/// Public bulk rows of one CPU proof: calls (descriptor rows) and words.
+pub const BulkCounts = struct {
+    calls: u32 = 0,
+    copy_words: u32 = 0,
+    set_words: u32 = 0,
+    pub fn rows(self: @This(), kind: BulkKind) u32 {
+        return switch (kind) {
+            .desc => self.calls,
+            .copy => self.copy_words,
+            .set => self.set_words,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.calls != 0 or self.copy_words != 0 or self.set_words != 0;
+    }
+};
+pub const BulkClaims = A.crypto.bulk_memory.types.Claims;
+pub fn bulkWidths(kind: BulkKind) [3]usize {
+    return A.crypto.bulk_memory.layout.widths(kind);
 }

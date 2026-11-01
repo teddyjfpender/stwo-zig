@@ -61,8 +61,116 @@ mod candidate {
     }
 }
 
+/// ADMITTED bulk-memory services (profile `ethereum_services_v3`,
+/// design/riscv-proving-stack/rv64-bulk-memory-service.md). The prover admits
+/// only the aligned word form: packet `dst, src|byte, len` at an 8-aligned
+/// pointer, `dst`/`src` 8-aligned, `len` a nonzero multiple of 8 and at most
+/// 1 MiB, and the packet, source and destination words pairwise disjoint. The
+/// wrappers below copy the unaligned head and tail inline, split bodies into
+/// 1 MiB chunks and fall back to software for overlap or mismatched alignment,
+/// so the executor never traps on a wrapper call.
+#[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
+mod admitted {
+    const fn parse(value: Option<&str>, default: usize) -> usize {
+        let Some(text) = value else { return default };
+        let bytes = text.as_bytes();
+        if bytes.len() == 3 && bytes[0] == b'o' && bytes[1] == b'f' && bytes[2] == b'f' {
+            return usize::MAX;
+        }
+        let mut i = 0;
+        let mut n = 0usize;
+        while i < bytes.len() {
+            assert!(bytes[i].is_ascii_digit(), "threshold must be decimal");
+            n = n * 10 + (bytes[i] - b'0') as usize;
+            i += 1;
+        }
+        n
+    }
+    /// Minimum total length routed to the service (bytes); `off` disables.
+    pub const COPY_MIN: usize = parse(option_env!("STWO_ADMITTED_COPY_MIN"), 16);
+    pub const SET_MIN: usize = parse(option_env!("STWO_ADMITTED_SET_MIN"), 16);
+    pub const MEMCPY: usize = 0x0003_0001;
+    pub const MEMSET: usize = 0x0003_0002;
+    const MAX: usize = 1 << 20;
+
+    #[inline(always)]
+    unsafe fn call(packet: &mut [u64; 3], tag: usize) {
+        unsafe { core::arch::asm!("ecall", in("a0") packet.as_mut_ptr(), in("a7") tag, options(nostack)) };
+    }
+    /// `d`, `s` 8-aligned, `n` a nonzero multiple of 8, ranges disjoint.
+    #[inline(always)]
+    pub unsafe fn copy_words(mut d: *mut u8, mut s: *const u8, mut n: usize) {
+        while n > MAX {
+            unsafe { call(&mut [d as u64, s as u64, MAX as u64], MEMCPY) };
+            d = unsafe { d.add(MAX) };
+            s = unsafe { s.add(MAX) };
+            n -= MAX;
+        }
+        unsafe { call(&mut [d as u64, s as u64, n as u64], MEMCPY) };
+    }
+    /// `d` 8-aligned, `n` a nonzero multiple of 8.
+    #[inline(always)]
+    pub unsafe fn fill_words(mut d: *mut u8, byte: u8, mut n: usize) {
+        while n > MAX {
+            unsafe { call(&mut [d as u64, byte as u64, MAX as u64], MEMSET) };
+            d = unsafe { d.add(MAX) };
+            n -= MAX;
+        }
+        unsafe { call(&mut [d as u64, byte as u64, n as u64], MEMSET) };
+    }
+    /// Copies `n` bytes through the service when both pointers share their
+    /// alignment and the ranges are disjoint; returns false otherwise.
+    #[inline(always)]
+    pub unsafe fn copy(dest: *mut u8, src: *const u8, n: usize) -> bool {
+        let (d, s) = (dest as usize, src as usize);
+        if n < COPY_MIN || (d ^ s) & 7 != 0 || (d < s + n && s < d + n) {
+            return false;
+        }
+        let head = d.wrapping_neg() & 7;
+        let body = (n - head) & !7;
+        if body == 0 {
+            return false;
+        }
+        unsafe {
+            for i in 0..head {
+                *dest.add(i) = *src.add(i);
+            }
+            copy_words(dest.add(head), src.add(head), body);
+            for i in head + body..n {
+                *dest.add(i) = *src.add(i);
+            }
+        }
+        true
+    }
+    #[inline(always)]
+    pub unsafe fn set(dest: *mut u8, byte: u8, n: usize) -> bool {
+        if n < SET_MIN {
+            return false;
+        }
+        let head = (dest as usize).wrapping_neg() & 7;
+        let body = (n - head) & !7;
+        if body == 0 {
+            return false;
+        }
+        unsafe {
+            for i in 0..head {
+                *dest.add(i) = byte;
+            }
+            fill_words(dest.add(head), byte, body);
+            for i in head + body..n {
+                *dest.add(i) = byte;
+            }
+        }
+        true
+    }
+}
+
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    #[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
+    if admitted::COPY_MIN != usize::MAX && unsafe { admitted::copy(dest, src, n) } {
+        return dest;
+    }
     #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
     if candidate::COPY_ON && n >= candidate::COPY_MIN {
         unsafe { candidate::call(&mut [dest as u64, src as u64, n as u64], candidate::MEMCPY) };
@@ -74,6 +182,11 @@ pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    // The admitted service requires disjoint ranges; overlapping moves stay in software.
+    #[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
+    if admitted::COPY_MIN != usize::MAX && unsafe { admitted::copy(dest, src, n) } {
+        return dest;
+    }
     // The candidate service is memmove-safe for any overlap.
     #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
     if candidate::COPY_ON && n >= candidate::COPY_MIN {
@@ -119,6 +232,10 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memset(dest: *mut u8, value: i32, n: usize) -> *mut u8 {
+    #[cfg(all(feature = "admitted-bulk", target_arch = "riscv64"))]
+    if admitted::SET_MIN != usize::MAX && unsafe { admitted::set(dest, value as u8, n) } {
+        return dest;
+    }
     #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
     if candidate::SET_ON && n >= candidate::SET_MIN {
         unsafe { candidate::call(&mut [dest as u64, value as u8 as u64, n as u64], candidate::MEMSET) };

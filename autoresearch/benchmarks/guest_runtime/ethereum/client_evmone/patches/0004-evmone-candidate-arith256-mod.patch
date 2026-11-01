@@ -9,7 +9,7 @@ index bd7e4e0..64e74a4 100644
 +#if defined(CANDIDATE_MUL)
 +extern "C" void stwo_arith256_lo(const uint64_t a[4], const uint64_t b[4], uint64_t lo[4]) noexcept;
 +#endif
-+#if defined(CANDIDATE_ARITH)
++#if (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +// stwo candidate profile: arith256_mod service (client_evmone glue).
 +extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
 +    const uint64_t m[4], uint64_t r[4]) noexcept;
@@ -34,7 +34,7 @@ index bd7e4e0..64e74a4 100644
      auto& m = stack.top();
  #if defined(ZEG_ZISK)
      zkvm_u256_le_addmod(zeg_u256::le(x), zeg_u256::le(y), zeg_u256::le(m), zeg_u256::le(m));
-+#elif defined(CANDIDATE_ARITH)
++#elif (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +    {
 +        const intx::uint256 one = 1;
 +        intx::uint256 r;
@@ -48,7 +48,7 @@ index bd7e4e0..64e74a4 100644
      auto& m = stack[2];
  #if defined(ZEG_ZISK)
      zkvm_u256_le_mulmod(zeg_u256::le(x), zeg_u256::le(y), zeg_u256::le(m), zeg_u256::le(m));
-+#elif defined(CANDIDATE_ARITH)
++#elif (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +    {
 +        const intx::uint256 zero = 0;
 +        intx::uint256 r;
@@ -66,7 +66,7 @@ index 3a32afc..ea6dfd1 100644
  }
  
  /// The modular arithmetic operations using the Montgomery form of the values.
-+#if defined(CANDIDATE_ARITH)
++#if (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +}  // namespace evmone::crypto
 +extern "C" void stwo_arith256_mod(const uint64_t a[4], const uint64_t b[4], const uint64_t c[4],
 +    const uint64_t m[4], uint64_t r[4]) noexcept;
@@ -82,7 +82,7 @@ index 3a32afc..ea6dfd1 100644
      /// This is done by using Montgomery multiplication mul(x, R²)
      /// what gives aR²R⁻¹ % mod = aR % mod.
 -    constexpr UintT to_mont(const UintT& x) const noexcept { return mul(x, r_squared_); }
-+#if defined(CANDIDATE_ARITH)
++#if (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +    // stwo candidate profile: 256-bit moduli use the plain representation and
 +    // the arith256_mod service for products (constants still pass through
 +    // to_mont, so the representation stays consistent).
@@ -117,7 +117,7 @@ index 3a32afc..ea6dfd1 100644
      /// The result (abR) is in Montgomery form.
      constexpr UintT mul(const UintT& x, const UintT& y) const noexcept
      {
-+#if defined(CANDIDATE_ARITH)
++#if (defined(CANDIDATE_ARITH) || defined(ADMITTED_ARITH))
 +        if constexpr (kPlain)
 +        {
 +            if (std::is_constant_evaluated())

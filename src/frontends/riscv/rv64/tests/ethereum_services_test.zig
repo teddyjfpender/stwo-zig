@@ -185,6 +185,58 @@ test "Ethereum services v3: misaligned or read-only SHA-256 packets trap without
     try std.testing.expectEqualDeep(before, try shaPacket(&mem));
     try std.testing.expectEqual(@as(u64, 0), session.keccak.base.cpu.retired);
 }
+fn arithPacket(mem: *memory.Memory) ![20]u64 {
+    var out: [20]u64 = undefined;
+    for (&out, 0..) |*v, i| v.* = try mem.load(0x2fe0 + 8 * i, 8);
+    return out;
+}
+fn limbs(words: []const u64) u256 {
+    return eth.arith256.limbs(words);
+}
+test "Ethereum services v3: admitted arith256_mod writes only r and v2 keeps trapping" {
+    var mem = try setup(a, true);
+    defer mem.deinit();
+    // m = 0 for the second call is set below; first call uses setup's words.
+    const before = try arithPacket(&mem);
+    var v2 = try eth.Session.initWithProfile(a, cpu(profile.ARITH256_MOD_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v2);
+    defer v2.deinit();
+    var event: eth.Event = undefined;
+    try std.testing.expectError(error.UnsupportedService, v2.step(&event));
+    try std.testing.expectEqualDeep(before, try arithPacket(&mem));
+    var v3 = try eth.Session.initWithProfile(a, cpu(profile.ARITH256_MOD_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v3);
+    defer v3.deinit();
+    try std.testing.expect((try v3.step(&event)) == null);
+    try std.testing.expect(event == .arith256_mod);
+    const call = event.arith256_mod;
+    try std.testing.expectEqual(@as(u64, 1), call.call_id);
+    try std.testing.expectEqualDeep(before, call.before);
+    const expected = eth.arith256.mulAddMod(limbs(before[0..4]), limbs(before[4..8]), limbs(before[8..12]), limbs(before[12..16]));
+    try std.testing.expect(expected != 0);
+    try std.testing.expectEqual(expected, limbs(call.after[16..20]));
+    try std.testing.expectEqualSlices(u64, call.before[0..16], call.after[0..16]);
+    try std.testing.expectEqualDeep(call.after, try arithPacket(&mem));
+    try std.testing.expectEqual(profile.ARITH256_MOD_TAG, call.retirement().rhs.toInt());
+    // m = 0 gives r = 0.
+    for (0..4) |i| try mem.storeWords(0x2fe0 + 8 * (12 + i), &.{0});
+    try std.testing.expect((try v3.step(&event)) == null);
+    try std.testing.expectEqual(@as(u64, 2), event.arith256_mod.call_id);
+    try std.testing.expectEqual(@as(u256, 0), limbs(event.arith256_mod.after[16..20]));
+    try std.testing.expectEqual(@as(u256, 0), limbs((try arithPacket(&mem))[16..20]));
+}
+test "Ethereum services v3: misaligned or read-only arith256_mod packets trap without publication" {
+    var mem = try setup(a, false);
+    defer mem.deinit();
+    var session = try eth.Session.initWithProfile(a, cpu(profile.ARITH256_MOD_TAG), &mem, .{ .cache_entries = 1 }, .ethereum_services_v3);
+    defer session.deinit();
+    var event: eth.Event = undefined;
+    const before = try arithPacket(&mem);
+    try std.testing.expectError(error.AccessDenied, session.step(&event));
+    session.keccak.base.cpu.regs[10] = 0x2fe8;
+    try std.testing.expectError(error.MisalignedAddress, session.step(&event));
+    try std.testing.expectEqualDeep(before, try arithPacket(&mem));
+    try std.testing.expectEqual(@as(u64, 0), session.keccak.base.cpu.retired);
+}
 test {
     _ = eth.sha256;
+    _ = eth.arith256;
 }

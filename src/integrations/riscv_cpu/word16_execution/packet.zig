@@ -57,5 +57,6 @@ pub fn read(a: std.mem.Allocator, file: std.fs.File, image: *const Image.Owner, 
     // v3 SHA-256 IDs are transport advice; the services receiver re-derives
     // contiguous per-family spans from the admitted per-shard counts.
     if (tape.sha256_calls.items.len > 1) for (tape.sha256_calls.items[1..], 1..) |call, i| if (call.call_id != tape.sha256_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
+    if (tape.arith256_mod_calls.items.len > 1) for (tape.arith256_mod_calls.items[1..], 1..) |call, i| if (call.call_id != tape.arith256_mod_calls.items[0].call_id + i) return error.InvalidWorkPacketService;
     return .{ .metadata = header.metadata, .public = public, .tape = tape, .opcode_counts = counts, .content_digest = header.content_digest };
 }

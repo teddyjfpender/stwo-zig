@@ -1,0 +1,20 @@
+diff --git a/lib/evmone/baseline_execution.cpp b/lib/evmone/baseline_execution.cpp
+index 0670536..9817e8e 100644
+--- a/lib/evmone/baseline_execution.cpp
++++ b/lib/evmone/baseline_execution.cpp
+@@ -82,7 +82,14 @@ inline evmc_status_code check_requirements(const CostTable& cost_table, int64_t&
+ 
+     if constexpr (!instr::has_const_gas_cost(Op) || instr::gas_costs[EVMC_FRONTIER][Op] > 0)
+     {
+-        if (INTX_UNLIKELY((gas_left -= gas_cost) < 0))
++        gas_left -= gas_cost;
++#if defined(__riscv)
++        // stwo RV64IM: test the decremented value. Otherwise LLVM rewrites the test
++        // as `gas < cost` on the old value, which costs a constant load and a register
++        // move per instruction (4 instructions instead of addi + bltz).
++        asm("" : "+r"(gas_left));
++#endif
++        if (INTX_UNLIKELY(gas_left < 0))
+             return EVMC_OUT_OF_GAS;
+     }
+ 

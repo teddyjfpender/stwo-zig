@@ -15,6 +15,7 @@ fn generate(src: *R.TruthSource, ch: P.TruthDraw) ![3]G.Q {
         .keccak => |*s| .{ try A.crypto.keccak.interaction.generate(&s.permutation, ch.keccak), try s.chi.generateInteraction(ch.keccak), try s.xor5.generateInteraction(ch.keccak) },
         .secp => |*s| .{ try s.batch.product.generateInteraction(ch.secp), try s.batch.linear.generateInteraction(ch.secp), try s.bytes.generateInteraction(ch.secp.bytes) },
         .sha256 => |*s| .{ try s.source.generateInteraction(ch.sha256), G.Q.zero(), G.Q.zero() },
+        .arith256_mod => |*s| .{ try s.source.generateInteraction(ch.arith256_mod), G.Q.zero(), G.Q.zero() },
     };
 }
 fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
@@ -30,6 +31,7 @@ fn setAllocator(src: *R.TruthSource, allocator: std.mem.Allocator) void {
             v.bytes.allocator = allocator;
         },
         .sha256 => |*v| v.source.allocator = allocator,
+        .arith256_mod => |*v| v.source.allocator = allocator,
     }
 }
 fn proveMode(c: *const F.Case, advice: *const @import("collector.zig").Advice, index: usize, store: *@import("../retained_main_store.zig").Store, owned: bool) ![]u8 {
@@ -157,6 +159,11 @@ test "Truth ownership transfer allocation failure borrowed phase and aliased buf
                 s.bytes.main = saved;
             },
             .sha256 => |*s| {
+                s.source.owns_main = false;
+                try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
+                s.source.owns_main = true;
+            },
+            .arith256_mod => |*s| {
                 s.source.owns_main = false;
                 try std.testing.expectError(error.InvalidTruthBufferOwner, src.takeMain());
                 s.source.owns_main = true;

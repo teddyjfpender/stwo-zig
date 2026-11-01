@@ -78,4 +78,52 @@ Admitted: level L1 (8.61) reached. Candidate: level L2 (6.38) passed.
   and bulk memory (already candidates), arith256_mod (pays on this client), and
   by measured share Keccak absorb (0.43), JUMPDEST bitmap (0.30), BLS12-381 (0.46).
 
+## Trie, receipts and state track (branch `codex/rv64-guest-client-trie-state`)
+
+Rust-lean techniques ported to the client's witness trie, receipts and
+ziskethone's state tables. Admitted profile with the input adapter, all 15
+blocks exact, all guards pass (ledger lines `A_client_trie_state`):
+
+| Step | scored instr/gas | scored bits/gas | all instr/gas |
+|---|---:|---:|---:|
+| start (`b7ab408e3`) | 8.317 | 101,192 | 8.045 |
+| witness node table, in-place digests, tagged witness items, run-copy re-encode (`294c1b153`) | 7.874 | 96,752 | 7.615 |
+| lazy branch children, packed leaf paths, no ZEG0 zero-fill (`fbd90327e`) | 7.746 | 95,472 | 7.493 |
+| word-wise seeded hash and fixed-size compares (`b4f3f14f3`) | 7.592 | 93,925 | 7.341 |
+| single-buffer signing pre-image (`40b1ee025`) | 7.518 | 93,183 | 7.269 |
+| evmc word equality, Keccak lanes without memset (`09fa419bb`) | 7.448 | 92,479 | 7.199 |
+| bit-iterated re-encode, word leaf compares, SWAR calldata count (`22f1b9871`) | 7.387 | 91,866 | 7.140 |
+| evmc host trampolines without argument copies (`5147287d4`) | 7.261 | 90,607 | 7.015 |
+| open-addressing account/storage row index (`0046938cb`) | 7.201 | 89,997 | 6.955 |
+| word bloom OR, word storage-key construction (`e39f2bbd8`) | 7.160 | 89,590 | 6.916 |
+| lazy branch scan, SWAR key unpack (`cdafa2151`) | **7.140** | **89,387** | 6.896 |
+
+Candidate profile (mem+sha+arith, nominal costs) at `cdafa2151`: scored 4.706
+instr/gas, 68,856 bits/gas (from 5.653 / 78,849).
+
+Buckets (all blocks, admitted, instr/gas), start -> end: witness trie / MPT /
+receipts 0.825 -> 0.388; state tables + host 0.569 -> 0.430; memory functions
++ heap 1.010 -> 0.697; other 0.179 -> 0.037; "EVM interpreter" 1.921 -> 1.796
+(that bucket's regex includes the evmc::internal host trampolines, which are
+host glue). The rest is unchanged.
+
+Lessons:
+
+- Every alignment-1 evmc array access is a byte loop on RV64IM: struct copies
+  (the host trampolines copied 52 bytes per SLOAD), `load64le` compares,
+  memcpy-to-word hashing. Funnel loads of the aligned words that hold the
+  bytes cost ~8 instructions per word instead of ~25.
+- Branch re-encoding should reuse the witness encoding: copying the runs of
+  unchanged child items cut the encoder's memcpy calls from 1.11M to 0.29M.
+- A loop over 16 branch positions to find one or two modified ones costs more
+  than the copies; iterate set bits (de Bruijn index, no ctz on RV64IM).
+- The signing-hash pre-image built from ~10 temporary vectors per
+  transaction was the largest "other" item (vector insert 0.083/gas).
+- Not pursued / small: lazy branch scanning gained only 0.008/gas (the
+  rolled scan loop costs more per child than the unrolled one it replaced);
+  presizing the flat index from the gas-limit hint would zero megabytes per
+  block for a rehash cost of ~0.005/gas.
+- Batch ECDSA verification against the supplied keys was already in place
+  (glue/secp256k1_stwo.cpp); nothing to port.
+
 Attribution to ZisK's ziskethone (Apache-2.0/MIT) and evmone (Apache-2.0).

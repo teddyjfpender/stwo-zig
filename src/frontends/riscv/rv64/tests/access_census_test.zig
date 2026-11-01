@@ -25,7 +25,7 @@ fn serviceAllocationCase(allocator: std.mem.Allocator) !void {
     defer c.deinit();
     c.retireService(.secp_add) catch |err| {
         try std.testing.expectEqual(@as(u64, 0), c.total_steps);
-        try std.testing.expectEqualDeep([4]u64{ 0, 0, 0, 0 }, c.service_counts);
+        try std.testing.expectEqualDeep([5]u64{ 0, 0, 0, 0, 0 }, c.service_counts);
         return err;
     };
     const rows = try c.finish();

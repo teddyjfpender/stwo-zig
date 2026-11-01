@@ -12,27 +12,57 @@ pub const CpuClaims = struct {
     base: G.Old.Claims,
     /// Families in T.Family order; an absent bridge's claims are zero.
     extras: [T.FAMILIES]T.ExtraClaims,
-    pub fn values(self: @This()) [P.CPU_CLAIM_COUNT_V3]Q {
-        var out: [P.CPU_CLAIM_COUNT_V3]Q = undefined;
+    /// Bulk-memory claims (desc, copy, set): RAM14, OWNER19, U16. Zero and
+    /// omitted from the transcript (and wire, see WireClaims) when the CPU setup has no bulk component.
+    bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero()),
+    pub fn bulkValues(self: @This()) [9]Q {
+        var out: [9]Q = undefined;
+        for (self.bulk, 0..) |c, k| out[3 * k ..][0..3].* = c.values();
+        return out;
+    }
+    pub fn values(self: @This()) [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q {
+        var out: [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q = undefined;
         out[0..P.CORE_CLAIM_COUNT].* = self.base.values();
         for (self.extras, 0..) |extra, k| out[P.CORE_CLAIM_COUNT + 5 * k ..][0..5].* = extra.values();
         return out;
     }
-    /// Transcript length: v2 shards (no SHA-256 bridge) mix exactly the v2
-    /// vector; presence() separately forces every absent claim to zero.
-    pub fn count(sha256: bool) usize {
-        return if (sha256) P.CPU_CLAIM_COUNT_V3 else P.CPU_CLAIM_COUNT;
+    /// Transcript length: v2 shards (no v3 bridge) mix exactly the v2
+    /// vector, then five claims per PRESENT v3 bridge in T.V3 order;
+    /// presence() separately forces every absent claim to zero.
+    pub fn count(setup: *const R.CpuSetup) usize {
+        var n: usize = P.CPU_CLAIM_COUNT;
+        for (T.V3) |f| n += if (setup.bridges.at(f) != null) @as(usize, 5) else 0;
+        return n;
     }
     pub fn mix(self: @This(), channel: anytype, setup: *const R.CpuSetup) void {
         const all = self.values();
-        channel.mixFelts(all[0..count(setup.bridges.sha256 != null)]);
+        // ONE mixFelts call over the v2 vector followed by the claims of each
+        // present v3 family in T.V3 order (a channel mix is not
+        // concatenation-invariant, so splitting it would change SHA-only
+        // transcripts relative to the pre-arith encoding).
+        var buffer: [P.CORE_CLAIM_COUNT + 5 * T.FAMILIES]Q = undefined;
+        @memcpy(buffer[0..P.CPU_CLAIM_COUNT], all[0..P.CPU_CLAIM_COUNT]);
+        var n: usize = P.CPU_CLAIM_COUNT;
+        for (T.V3) |f| if (setup.bridges.at(f) != null) {
+            const k = @intFromEnum(f);
+            @memcpy(buffer[n..][0..5], all[P.CORE_CLAIM_COUNT + 5 * k ..][0..5]);
+            n += 5;
+        };
+        channel.mixFelts(buffer[0..n]);
+        // Bulk block last and only when present: v2, SHA-only and
+        // arith-only transcripts are unchanged.
+        if (setup.bridges.bulk.any()) channel.mixFelts(&self.bulkValues());
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);
         for (self.extras) |b| for (b.values()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
+        for (self.bulkValues()) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalSecpClaim;
     }
     pub fn presence(self: @This(), setup: *const R.CpuSetup) !void {
         for (self.extras, 0..) |c, k| if (setup.bridges.at(@enumFromInt(k)) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+        for (T.bulk_kinds, self.bulk) |kind, c| if (setup.bridges.bulk.at(kind) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
     }
@@ -40,18 +70,22 @@ pub const CpuClaims = struct {
         const base = G.Old.ramClaim(self.base);
         var sum = base;
         for (self.extras) |c| sum = sum.add(c.ram);
+        for (self.bulk) |c| sum = sum.add(c.ram);
         return sum;
     }
     pub fn local(self: @This()) !void {
         var sum = Q.zero();
         for (self.values()) |v| sum = sum.add(v);
+        for (self.bulkValues()) |v| sum = sum.add(v);
         sum = sum.sub(self.ram());
         for (self.extras) |c| sum = sum.sub(c.truth);
         if (!sum.isZero()) return error.UnclosedCombinedCpuRelations;
     }
-    /// Shared Wire35 debt of this shard: ADD, DOUBLE and SHA-256 bridges.
+    /// Shared Wire35 debt of this shard: every non-Keccak bridge.
     pub fn wire(self: @This()) Q {
-        return self.extras[1].truth.add(self.extras[2].truth).add(self.extras[3].truth);
+        var sum = Q.zero();
+        for (self.extras[1..]) |c| sum = sum.add(c.truth);
+        return sum;
     }
 };
 pub const CpuEncoded = struct {

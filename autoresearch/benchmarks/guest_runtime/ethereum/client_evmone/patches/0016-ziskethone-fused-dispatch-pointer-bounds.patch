@@ -1,0 +1,41 @@
+diff --git a/cpp-guest/zisk/evm/fused_dispatch.inl b/cpp-guest/zisk/evm/fused_dispatch.inl
+index 1df7f30..21f4db0 100644
+--- a/cpp-guest/zisk/evm/fused_dispatch.inl
++++ b/cpp-guest/zisk/evm/fused_dispatch.inl
+@@ -130,13 +130,16 @@ template <Opcode Op>
+     int64_t& gas, ExecutionState& state, const uint8_t* code) noexcept
+ {
+     const auto* p = pos.code_it;
+-    const auto height = pos.stack_end - stack_bottom;
++    // Stack-height tests as pointer compares against stack_bottom (+ a constant): the
++    // dispatch keeps those bounds in registers, so no height subtraction and shift is
++    // computed on every entry, including the common no-fusion exit.
++    const auto* const top = pos.stack_end;
+ 
+     // JUMP lands on a validated JUMPDEST by definition: charge both (8+1) and
+     // skip the JUMPDEST dispatch entirely.
+     if constexpr (Op == OP_JUMP)
+     {
+-        if (height < 1)
++        if (top <= stack_bottom)
+             return false;
+         const auto& dst = pos.stack_end[-1];
+         if ((dst[3] | dst[2] | dst[1]) != 0 || !zeg_jump(pos, gas, state, code, dst[0], 8 + 1))
+@@ -148,7 +151,7 @@ template <Opcode Op>
+     {
+         // PUSH2 + JUMP: the target never touches the stack (push then pop).
+         if (Op == OP_PUSH2 && p[3] == OP_JUMP)
+-            return height < StackSpace::limit &&
++            return top < stack_bottom + StackSpace::limit &&
+                    zeg_jump(pos, gas, state, code, (uint64_t{p[1]} << 8) | p[2], 3 + 8 + 1);
+ 
+         // Everything else is "<test> PUSH2 <dst> JUMPI": test the words the test
+@@ -165,7 +168,7 @@ template <Opcode Op>
+             return false;
+         // A one-word test is followed by a push, which overflows a full stack:
+         // that case stays generic. A two-word test frees a slot first.
+-        if (height < pops || (pops == 1 && height >= StackSpace::limit))
++        if (top < stack_bottom + pops || (pops == 1 && top >= stack_bottom + StackSpace::limit))
+             return false;
+         if (!zeg_branch(pos, gas, state, code, p + at, zeg_test<Op>(pos.stack_end, p), cost))
+             return false;

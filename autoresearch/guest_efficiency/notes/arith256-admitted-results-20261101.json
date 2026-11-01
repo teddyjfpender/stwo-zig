@@ -1,0 +1,95 @@
+{
+ "schema": "stwo.rv64.guest-efficiency.admitted-arith256-results.v1",
+ "date": "2026-11-01",
+ "what": "Rust guest (services crate, keccak-service+secp-lean) with and without the admitted arith256-service feature (MULMOD/ADDMOD via ECALL 0x0003_0021, 32-byte aligned packet); MUL/EXP stay in software. Same tree, same executor.",
+ "build": "RUSTFLAGS='-C link-arg=-Tlinker-wide.ld' cargo +nightly-2026-08-08 build --locked --release -j 4 --features keccak-service,secp-lean[,arith256-service] --target riscv64i-stwo.json -Z json-target-spec -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem",
+ "reference": {
+  "elf_sha256": "be6d92b1870de2b937b60dbd2bb9ab16a814d7f7a0ddc7050adb7904b1bc14aa",
+  "profile": "ethereum_services_v2",
+  "metrics": {
+   "scored": {
+    "blocks": 12,
+    "gas_used": 357472990,
+    "instructions": 4711977176,
+    "instructions_per_gas": 13.18135162043991,
+    "committed_bits_per_gas": 151704.56130190103,
+    "committed_bits_per_instruction": 11509.029246034033,
+    "keccak_f_calls_per_kgas": 3.2881757024495752,
+    "secp_calls_per_kgas": 3.3405656746262142,
+    "memory_ops_per_gas": 3.809685182088862
+   },
+   "holdout": {
+    "blocks": 3,
+    "gas_used": 87926127,
+    "instructions": 981631745,
+    "instructions_per_gas": 11.164278224150598,
+    "committed_bits_per_gas": 128559.83293225784,
+    "committed_bits_per_instruction": 11515.28386798502,
+    "keccak_f_calls_per_kgas": 2.765480617609826,
+    "secp_calls_per_kgas": 2.9606899437296947,
+    "memory_ops_per_gas": 3.250042413445551
+   },
+   "all": {
+    "blocks": 15,
+    "gas_used": 445399117,
+    "instructions": 5693608921,
+    "instructions_per_gas": 12.783161671602505,
+    "committed_bits_per_gas": 147135.56633011767,
+    "committed_bits_per_instruction": 11510.107601703565,
+    "keccak_f_calls_per_kgas": 3.1849905979943824,
+    "secp_calls_per_kgas": 3.2655745026993395,
+    "memory_ops_per_gas": 3.6992062447218546
+   }
+  }
+ },
+ "arith256_service": {
+  "elf_sha256": "aeea1919574ca99265e602957380803024033bdb8e8c8c78aeab746557b21bbe",
+  "profile": "ethereum_services_v3",
+  "metrics": {
+   "scored": {
+    "blocks": 12,
+    "gas_used": 357472990,
+    "instructions": 4678564231,
+    "instructions_per_gas": 13.087881775347558,
+    "committed_bits_per_gas": 150791.53127904682,
+    "committed_bits_per_instruction": 11521.461904024758,
+    "keccak_f_calls_per_kgas": 3.2881757024495752,
+    "secp_calls_per_kgas": 3.3405656746262142,
+    "memory_ops_per_gas": 3.7984264517439486
+   },
+   "holdout": {
+    "blocks": 3,
+    "gas_used": 87926127,
+    "instructions": 981155569,
+    "instructions_per_gas": 11.158862586998742,
+    "committed_bits_per_gas": 128509.01521686361,
+    "committed_bits_per_instruction": 11516.318461219356,
+    "keccak_f_calls_per_kgas": 2.765480617609826,
+    "secp_calls_per_kgas": 2.9606899437296947,
+    "memory_ops_per_gas": 3.2495021985899597
+   },
+   "all": {
+    "blocks": 15,
+    "gas_used": 445399117,
+    "instructions": 5659719800,
+    "instructions_per_gas": 12.707074585421775,
+    "committed_bits_per_gas": 146392.74542073748,
+    "committed_bits_per_instruction": 11520.570249008135,
+    "keccak_f_calls_per_kgas": 3.1849905979943824,
+    "secp_calls_per_kgas": 3.2655745026993395,
+    "memory_ops_per_gas": 3.69006345380788
+   }
+  },
+  "arith256_mod_calls_all": 35077,
+  "guards": {
+   "G1_complete_basket": true,
+   "G2_exact_output": true,
+   "G3_determinism": true,
+   "G4_per_block_regression": true,
+   "G5_holdout_generalises": true,
+   "G6_execution_profile": true
+  },
+  "promotable": true
+ },
+ "cost_entry": "calibration.json admitted_services.arith256_mod = 4,009.3 cells/call (2,779 exact layout cells x 1/ln 2 padding)"
+}
