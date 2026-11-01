@@ -1,0 +1,11 @@
+{
+  "schema": "rv64-active-packed-om-air-v1",
+  "scope": "Actual frontend PackedOmSecure multiply and pointer weighted-base accumulator; no transcript/geometry/protocol changes",
+  "tests": {
+    "independent_scalar_fields": "ReleaseSafe and ReleaseFast PASS",
+    "complete_two_cpu_keccak_add_double_fresh_receiver": "ReleaseSafe and ReleaseFast PASS"
+  },
+  "performance_qualified": false,
+  "whole_protocol_128": false,
+  "actual_service_artifact_parity_pending": true
+}
