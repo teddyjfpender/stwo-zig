@@ -770,7 +770,70 @@ mod tests {
 
     mod cached {
         use super::*;
-        use crate::CachedTrie;
+        use crate::{CachedTrie, PrehashedNodes};
+
+        /// stwo: tries resolved from a `PrehashedNodes` table keep unresolved
+        /// digests as references into its buffers; reads, writes, removals
+        /// and roots must match a trie resolved from an IndexMap and the
+        /// alloy HashBuilder reference.
+        #[test]
+        fn prehashed_table_resolution_matches_reference() {
+            let leaves: Vec<(B256, Bytes)> =
+                (0..N).map(|i| (keccak256(i.to_be_bytes()), alloy_rlp::encode(i).into())).collect();
+            let mut full = CachedTrie::default();
+            for (k, v) in &leaves {
+                full.insert(k, v.clone());
+            }
+            let root = full.hash();
+            let nodes = full.rlp_nodes();
+            for keep in [nodes.len(), nodes.len() * 3 / 4, nodes.len() / 2] {
+                // a partial witness: some subtrees stay digests
+                let mut table = PrehashedNodes::with_capacity(keep);
+                let mut map = B256IndexMap::<Bytes>::default();
+                for rlp in nodes.iter().take(keep) {
+                    table.insert(keccak256(rlp), rlp.clone());
+                    map.insert(keccak256(rlp), rlp.clone());
+                }
+                let mut a = CachedTrie::from_prehashed_nodes(root, &table).unwrap();
+                let mut b = CachedTrie::from_prehashed_nodes(root, &map).unwrap();
+                assert_eq!(a.hash(), root);
+                assert_eq!(a, b);
+                for (k, _) in &leaves {
+                    assert_eq!(a.try_get(k).ok(), b.try_get(k).ok());
+                }
+                let c = a.clone();
+                assert_eq!(c, b);
+                // modify: overwrite every 3rd resolvable key, remove every 5th
+                let mut expected: Vec<(B256, Bytes)> = leaves.clone();
+                for (i, (k, _)) in leaves.iter().enumerate() {
+                    if a.try_get(k).is_err() {
+                        continue;
+                    }
+                    if i % 3 == 0 {
+                        let v: Bytes = alloy_rlp::encode(i as u64 + 1000).into();
+                        a.insert(k, v.clone());
+                        b.insert(k, v.clone());
+                        expected[i].1 = v;
+                    }
+                }
+                for (i, (k, _)) in leaves.iter().enumerate() {
+                    if i % 5 == 0 && a.try_get(k).is_ok() {
+                        let ra = a.try_remove(k);
+                        let rb = b.try_remove(k);
+                        assert_eq!(ra.is_ok(), rb.is_ok());
+                        if ra.is_err() {
+                            break; // an unresolved sibling is needed; both refuse
+                        }
+                        expected.retain(|(kk, _)| kk != k);
+                    }
+                }
+                assert_eq!(a.hash(), b.hash());
+                if keep == nodes.len() {
+                    assert_eq!(a.hash(), trie_root(expected.iter()));
+                }
+                assert_eq!(c.hash_slow(), root);
+            }
+        }
 
         #[test]
         fn index_trie() {

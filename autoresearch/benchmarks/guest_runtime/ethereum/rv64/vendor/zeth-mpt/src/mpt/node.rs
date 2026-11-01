@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::{
-    children::{Children, Entry},
+    children::{ChildView, Children, Entry},
     memoize::Memoization,
     nibbles::NibbleSlice,
 };
@@ -95,7 +95,11 @@ impl<M: Memoization> Node<M> {
                     // SAFETY: `key` is a `NibbleSlice` and thus only contains values < 0xf
                     let child = unsafe { children.get_unchecked(nib) };
                     match child {
-                        Some(node) => return node.get(tail),
+                        Some(ChildView::Node(node)) => return node.get(tail),
+                        // the witness omitted this node
+                        Some(ChildView::Digest(_)) => {
+                            return Err(alloy_rlp::Error::Custom("MPT: unresolved node access"))
+                        }
                         None => None,
                     }
                 }
@@ -288,7 +292,11 @@ impl<M: Memoization> Node<M> {
             Node::Leaf(..) => 1,
             Node::Extension(_, child, ..) => 1 + child.size(),
             Node::Branch(children, ..) => {
-                1 + children.iter().filter_map(Option::as_deref).map(Node::size).sum::<usize>()
+                1 + children
+                    .iter()
+                    .filter_map(|c| c.and_then(|v| v.node()))
+                    .map(Node::size)
+                    .sum::<usize>()
             }
         }
     }

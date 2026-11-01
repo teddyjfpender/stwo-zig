@@ -15,6 +15,14 @@ use alloy_primitives::{map::B256IndexMap, Bytes, B256};
 pub trait NodeSource {
     /// Returns the RLP encoding whose Keccak-256 digest is `digest`, if present.
     fn node_rlp(&self, digest: &B256) -> Option<&[u8]>;
+
+    /// stwo: whether the returned encodings stay valid and unchanged for the
+    /// whole life of every trie resolved from this source, so a trie may keep
+    /// pointers to the digests inside them instead of copies.
+    #[inline]
+    fn bytes_outlive_tries(&self) -> bool {
+        false
+    }
 }
 
 impl<T: AsRef<[u8]>> NodeSource for B256IndexMap<T> {
@@ -123,6 +131,16 @@ impl NodeSource for PrehashedNodes {
     #[inline]
     fn node_rlp(&self, digest: &B256) -> Option<&[u8]> {
         self.get(digest).map(|b| b.as_ref())
+    }
+
+    /// The table is append-only and `Bytes` buffers never move, so its
+    /// encodings live as long as the table. Tries resolved from it reference
+    /// those buffers: **the table (or a clone sharing its buffers) must
+    /// outlive every such trie**. The stateless guest keeps both in one
+    /// `SparseState` that is never dropped.
+    #[inline]
+    fn bytes_outlive_tries(&self) -> bool {
+        true
     }
 }
 

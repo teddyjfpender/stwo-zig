@@ -14,7 +14,7 @@
 
 use super::{
     source::NodeSource,
-    children::Children,
+    children::{ChildView, Children},
     memoize::Memoization,
     node::Node,
 };
@@ -61,10 +61,14 @@ impl<M: Memoization> Node<M> {
 
                 for (i, child) in children.iter().enumerate() {
                     match child {
-                        Some(node) => {
+                        Some(ChildView::Node(node)) => {
                             let node_ref = NodeRef::from_node(node);
                             payload_length += node_ref.length();
                             child_refs[i] = node_ref;
+                        }
+                        Some(ChildView::Digest(digest)) => {
+                            payload_length += DIGEST_RLP_LENGTH;
+                            child_refs[i] = NodeRef::Digest(digest);
                         }
                         None => payload_length += 1,
                     }
@@ -127,7 +131,11 @@ impl<M: Memoization> Node<M> {
                 Node::Branch(children, _) => {
                     let mut list = Vec::with_capacity(17);
                     for child in children.iter() {
-                        let node_ref = child.as_ref().map_or(NodeRef::Empty, |c| rec(c, nodes));
+                        let node_ref = match child {
+                            None => NodeRef::Empty,
+                            Some(ChildView::Node(c)) => rec(c, nodes),
+                            Some(ChildView::Digest(d)) => NodeRef::Digest(d),
+                        };
                         list.push(node_ref);
                     }
                     list.push(NodeRef::Empty);
@@ -205,24 +213,41 @@ impl<M: Memoization> Node<M> {
                 // stwo: digest children (nearly all of them, and nearly all
                 // absent from the witness) are probed inline instead of
                 // through a recursive call each.
-                for slot in children.slots_mut().iter_mut() {
-                    let Some(child) = slot else { continue };
-                    match &**child {
+                for i in 0..16 {
+                    if let Some(digest) = children.digest_ref(i) {
+                        let Some(bytes) = rlp_by_digest.node_rlp(digest) else { continue };
+                        if bytes.len() == 33 && bytes[0] == 0xa0 {
+                            continue;
+                        }
+                        let rlp_node = RlpNode::from_digest(digest);
+                        let mut node = alloc::boxed::Box::new(Node::Null);
+                        node.decode_exact_into(bytes, rlp_by_digest.bytes_outlive_tries())?;
+                        node.cache_set(rlp_node);
+                        node.resolve_digests(rlp_by_digest)?;
+                        // a branch never holds a Null child (as `Entry` enforces)
+                        if matches!(*node, Node::Null) {
+                            children.clear_slot(i);
+                        } else {
+                            children.set_owned(i, node);
+                        }
+                        continue;
+                    }
+                    let Some(child) = children.owned_mut(i) else { continue };
+                    match &*child {
                         Node::Digest(digest) => {
                             let Some(bytes) = rlp_by_digest.node_rlp(digest) else { continue };
                             if bytes.len() == 33 && bytes[0] == 0xa0 {
                                 continue;
                             }
                             let rlp_node = RlpNode::from_digest(digest);
-                            child.decode_exact_into(bytes)?;
+                            child.decode_exact_into(bytes, rlp_by_digest.bytes_outlive_tries())?;
                             child.cache_set(rlp_node);
                             child.resolve_digests(rlp_by_digest)?;
                         }
                         _ => child.resolve_digests(rlp_by_digest)?,
                     }
-                    // a branch never holds a Null child (as `Entry` enforces)
-                    if matches!(**child, Node::Null) {
-                        *slot = None;
+                    if matches!(*child, Node::Null) {
+                        children.clear_slot(i);
                     }
                 }
             }
@@ -233,7 +258,7 @@ impl<M: Memoization> Node<M> {
                     // place instead of through a temporary and a second move)
                     if !(bytes.len() == 33 && bytes[0] == 0xa0) {
                         let rlp_node = RlpNode::from_digest(digest);
-                        self.decode_exact_into(bytes)?;
+                        self.decode_exact_into(bytes, rlp_by_digest.bytes_outlive_tries())?;
                         self.cache_set(rlp_node);
                         self.resolve_digests(rlp_by_digest)?;
                     }
@@ -259,7 +284,7 @@ impl<M: Memoization> Decodable for Node<M> {
     #[inline]
     fn decode(buf: &mut &[u8]) -> alloy_rlp::Result<Self> {
         let mut node = Node::Null;
-        node.decode_into(buf)?;
+        node.decode_into(buf, false)?;
         Ok(node)
     }
 }
@@ -268,16 +293,20 @@ impl<M: Memoization> Node<M> {
     /// stwo: decodes a whole encoding straight into `self` (a boxed child
     /// being resolved), avoiding the moves of a 176-byte node through
     /// `Result` temporaries. Errors like `alloy_rlp::decode_exact`.
-    fn decode_exact_into(&mut self, bytes: &[u8]) -> alloy_rlp::Result<()> {
+    ///
+    /// With `persistent` (the bytes outlive the trie, see
+    /// `NodeSource::bytes_outlive_tries`) digest children are stored as
+    /// references into `bytes` instead of boxed copies.
+    fn decode_exact_into(&mut self, bytes: &[u8], persistent: bool) -> alloy_rlp::Result<()> {
         let mut buf = bytes;
-        self.decode_into(&mut buf)?;
+        self.decode_into(&mut buf, persistent)?;
         if !buf.is_empty() {
             return Err(alloy_rlp::Error::UnexpectedLength);
         }
         Ok(())
     }
 
-    fn decode_into(&mut self, buf: &mut &[u8]) -> alloy_rlp::Result<()> {
+    fn decode_into(&mut self, buf: &mut &[u8], persistent: bool) -> alloy_rlp::Result<()> {
         // stwo: walk the list payload into a fixed 17-slot array instead of
         // collecting a heap `Vec<&[u8]>` per node (`Header::decode_raw`).
         let header = Header::decode(buf)?;
@@ -328,7 +357,13 @@ impl<M: Memoization> Node<M> {
                             // child in a witness: construct it inside its
                             // allocation instead of decoding recursively into
                             // a 176-byte temporary and moving it twice.
-                            children.insert(i as u8, boxed_digest(&child_rlp[1..]));
+                            if persistent {
+                                // SAFETY: `persistent` guarantees the bytes
+                                // outlive the trie; the slot is empty.
+                                unsafe { children.insert_digest_ref(i as u8, child_rlp[1..].as_ptr()) };
+                            } else {
+                                children.insert(i as u8, boxed_digest(&child_rlp[1..]));
+                            }
                         } else {
                             children.insert(i as u8, Node::decode(&mut &child_rlp[..])?.into());
                         }
@@ -451,24 +486,46 @@ impl WordBuf {
         unsafe { *self.w.get_unchecked_mut(n >> 3) |= (b as u64) << ((n & 7) * 8) };
     }
 
-    /// Writes `0xa0 || d` (33 bytes) at byte position `n`; `d` is 8-aligned.
+    /// Writes `0xa0 || d` (33 bytes) at byte position `n`, `d` at any
+    /// alignment: an unaligned digest (a reference into a witness buffer) is
+    /// read as the five aligned words overlapping it and funnel-shifted.
     #[inline(always)]
     fn put_digest(&mut self, n: usize, d: &[u8; 32]) {
         debug_assert!(n + 33 <= 8 * 67);
-        let p = d.as_ptr().cast::<u64>();
-        // SAFETY: `d` is 8-aligned (checked by the caller); n + 33 < 8 * 68
+        let p = d.as_ptr();
+        let off = (p as usize) & 7;
+        // SAFETY: every word read overlaps the 32 digest bytes, so it lies in
+        // the same allocation's pages; volatile keeps the compiler from
+        // reasoning about the bytes outside the digest.
+        let (d0, d1, d2, d3) = unsafe {
+            if off == 0 {
+                let w = p.cast::<u64>();
+                let x = |i: usize| u64::from_le(w.add(i).read());
+                (x(0), x(1), x(2), x(3))
+            } else {
+                let w = p.sub(off).cast::<u64>();
+                let sh = (off * 8) as u32;
+                let x = |i: usize| u64::from_le(core::ptr::read_volatile(w.add(i)));
+                let (a0, a1, a2, a3, a4) = (x(0), x(1), x(2), x(3), x(4));
+                (
+                    (a0 >> sh) | (a1 << (64 - sh)),
+                    (a1 >> sh) | (a2 << (64 - sh)),
+                    (a2 >> sh) | (a3 << (64 - sh)),
+                    (a3 >> sh) | (a4 << (64 - sh)),
+                )
+            }
+        };
+        // the 33 bytes as four words plus one byte, shifted by the 0xa0
+        let v = [
+            0xa0 | (d0 << 8),
+            (d0 >> 56) | (d1 << 8),
+            (d1 >> 56) | (d2 << 8),
+            (d2 >> 56) | (d3 << 8),
+        ];
+        let k = n >> 3;
+        let sh = ((n & 7) * 8) as u32;
+        // SAFETY: n + 33 < 8 * 68
         unsafe {
-            let x = |i: usize| u64::from_le(p.add(i).read());
-            let (d0, d1, d2, d3) = (x(0), x(1), x(2), x(3));
-            // the 33 bytes as four words plus one byte, shifted by the 0xa0
-            let v = [
-                0xa0 | (d0 << 8),
-                (d0 >> 56) | (d1 << 8),
-                (d1 >> 56) | (d2 << 8),
-                (d2 >> 56) | (d3 << 8),
-            ];
-            let k = n >> 3;
-            let sh = ((n & 7) * 8) as u32;
             let w = self.w.as_mut_ptr().add(k);
             *w |= v[0] << sh;
             let carry = |x: u64| (x >> 1) >> (63 - sh);
@@ -495,13 +552,15 @@ impl<M: Memoization> Node<M> {
     fn branch_rlp_node(children: &Children<M>) -> Option<RlpNode> {
         let mut payload = 1usize;
         for child in children.iter() {
-            payload += match child.as_deref() {
+            payload += match child {
                 None => 1,
-                Some(Node::Digest(_)) => DIGEST_RLP_LENGTH,
-                Some(Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache)) => {
-                    cache.get()?.length()
+                Some(ChildView::Digest(_)) | Some(ChildView::Node(Node::Digest(_))) => {
+                    DIGEST_RLP_LENGTH
                 }
-                Some(Node::Null) => return None,
+                Some(ChildView::Node(
+                    Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache),
+                )) => cache.get()?.length(),
+                Some(ChildView::Node(Node::Null)) => return None,
             };
         }
         let mut buf = WordBuf { w: [0; 68] };
@@ -526,14 +585,16 @@ impl<M: Memoization> Node<M> {
             }
         };
         for child in children.iter() {
-            let digest = match child.as_deref() {
+            let digest = match child {
                 None => {
                     buf.put_byte(n, EMPTY_STRING_CODE);
                     n += 1;
                     continue;
                 }
-                Some(Node::Digest(d)) => &d.0,
-                Some(Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache)) => {
+                Some(ChildView::Digest(d)) | Some(ChildView::Node(Node::Digest(d))) => &d.0,
+                Some(ChildView::Node(
+                    Node::Leaf(.., cache) | Node::Extension(.., cache) | Node::Branch(.., cache),
+                )) => {
                     let r = cache.get()?;
                     if !r.is_digest() {
                         put_bytes(&mut buf, &mut n, &r.bytes[..r.len as usize]);
@@ -541,16 +602,10 @@ impl<M: Memoization> Node<M> {
                     }
                     &r.bytes
                 }
-                Some(Node::Null) => return None,
+                Some(ChildView::Node(Node::Null)) => return None,
             };
-            if (digest.as_ptr() as usize) & 7 == 0 {
-                buf.put_digest(n, digest);
-                n += DIGEST_RLP_LENGTH;
-            } else {
-                buf.put_byte(n, 0xa0);
-                n += 1;
-                put_bytes(&mut buf, &mut n, digest);
-            }
+            buf.put_digest(n, digest);
+            n += DIGEST_RLP_LENGTH;
         }
         buf.put_byte(n, EMPTY_STRING_CODE);
         n += 1;
