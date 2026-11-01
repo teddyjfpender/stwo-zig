@@ -42,11 +42,41 @@ and a cheaper CPU row (~91 cells per instruction).
 | 4 | BN254 and BLS12-381 operations (add, double/mul, field ops) as candidates, then services | guest + prover | -0.6 to -0.7 instr/gas on blocks using those precompiles |
 | 5 | Interpreter: evmone tuned for RV64IM (dispatch, jump-table address, U256 fast paths, JUMPDEST bitmaps cached per code hash) | guest | interpreter 1.9 -> ~1.0 |
 | 6 | Throughput-table Keccak AIR (-43% cells per call) and padding ladder | prover | -8,000 to -9,000 bits/gas |
+| 6b | **Instruction-set extension, candidate first** (Zbb/Zba subset, then wider 256-bit ops) | guest + prover | the only identified route below ~3 instr/gas (see "The Zbb gap" below) |
 | 7 | **CPU cells per instruction** (row width, LS row for aligned 8-byte accesses, range trims) | prover | the only route to <30,000 bits/gas at ~3 instr/gas |
 
 Items 1-4 together: client from 8.3 to roughly 3.5-4.5 instructions/gas
 (est.). With item 5: roughly 2.5-3. Items 6-7 decide whether committed bits
 reach the ~25,000-30,000 range.
+
+## The Zbb gap and how to measure it
+
+Everything on the service and client list lands the client around 3-3.5
+instructions/gas (est.). ziskethone reaches 2.02 on ZisK, whose guests are
+compiled with Zbb bit-manipulation and use single-step DMA and a wide precompile
+set. Our executor and CPU AIR are plain RV64IM, so every rotate (3
+instructions), byte swap (~15), count-leading-zeros (a loop), `andn`, min/max or
+shift-and-add costs several instructions. The EVM interpreter, Keccak glue,
+U256 arithmetic and trie nibble handling are full of these idioms.
+
+To find out how much of the gap Zbb explains before building any AIR:
+
+1. **Candidate ISA profile.** The execution tool decodes and executes the Zbb/Zba
+   subset only under a candidate profile (admitted decode and the prover are
+   untouched), counting each as one retired instruction.
+2. **Rebuild with the extension enabled** (`-march=rv64im_zba_zbb` for C++,
+   `-C target-feature=+zba,+zbb` for Rust) and run the basket. Per-extension
+   builds (Zba only, Zbb only, both) isolate each effect.
+3. **Price it.** Each new instruction needs CPU-AIR support; estimate cells per
+   row for a new instruction family (similar to the ALU/BINARY/SHIFT chips) so
+   committed bits per gas are scored, not just instruction counts.
+4. **Attribute the remainder.** Compare buckets after Zbb with ziskethone's per
+   bucket costs (its `docs/perf-notes.md`) and with ZisK's DMA/precompile call
+   counts on the same blocks (`guest-steps-comparison-v1.json` records them), so
+   the rest of the gap to 2.02 is split into ISA, services and client code.
+5. **Static check.** Count instruction idioms in the current ELF that map to Zbb
+   (rotate pairs, byte-swap sequences, `and`+`not`) to confirm the measured
+   saving is where it should be.
 
 ## Gates for every step
 
@@ -77,8 +107,8 @@ item only with its evidence.
 - [x] Verified signature-recovery hints via input adapter, Keccak memo (`004878ebc`, `1549143bb`)
 - [x] Zero-parse input evaluated: at most 4-6% available, not pursued (notes/evmone-port.md)
 - [ ] Ethereum execution spec tests on both clients, host and guest tiers (branch `codex/rv64-guest-prover-eest`, in progress)
-- [ ] Port the Rust-lean techniques that apply (batch ECDSA vs supplied keys, witness node table, aligned MPT re-encode, register-resident dispatch) to the client
-- [ ] Interpreter tuned for RV64IM: dispatch, jump-table address, U256 fast paths, cached JUMPDEST bitmaps (target interpreter 1.9 -> ~1.0 instr/gas)
+- [ ] Port the Rust-lean techniques that apply (batch ECDSA vs supplied keys, witness node table, aligned MPT re-encode) to the client's trie and state code (branch `codex/rv64-guest-client-trie-state`, in progress)
+- [ ] Interpreter tuned for RV64IM: dispatch, jump-table address, U256 fast paths, cached JUMPDEST bitmaps (target interpreter 1.9 -> ~1.0 instr/gas) (branch `codex/rv64-guest-client-interpreter`, in progress)
 
 ### Move B: services
 - [x] Six candidate services in the execution tool with tests and cost estimates; measured per family on the Rust guest (`bca94c643`, merged `228a6a38a`)
@@ -86,9 +116,15 @@ item only with its evidence.
 - [ ] **SHA-256 compression service in the prover**: admitted profile `ethereum_services_v3`, truth AIR, bridge, services lane, receiver, fixture proof (branch `codex/rv64-guest-prover-sha256`; truth AIR committed `6645e7e76`)
 - [ ] **Bulk-memory services in the prover** (aligned memcpy/memset, then memcmp) (branch `codex/rv64-guest-prover-bulk-memory`; bridge AIR committed `49576d8ce`)
 - [ ] Guests routed to the admitted services; harness on `ethereum_services_v3` with measured costs in calibration.json
-- [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp)
-- [ ] BN254 and BLS12-381 operations as candidates, then services
+- [ ] arith256_mod service in the prover (MULMOD/ADDMOD/modexp) (branch `codex/rv64-guest-prover-arith256`, in progress)
+- [ ] BN254, BLS12-381 and Keccak-sponge operations as candidates, measured on the client (branch `codex/rv64-guest-candidate-curves`, in progress); then services
 - [ ] Recursion-circuit support for each new service
+
+### Move D: instruction-set extension (candidate first)
+- [ ] Candidate ISA profile in the execution tool: Zbb subset (`andn`, `orn`, `xnor`, `clz`/`ctz`/`cpop` and `w` forms, `max`/`min`/`maxu`/`minu`, `sext.b`/`sext.h`, `zext.h`, `rol`/`ror`/`rori` and `w` forms, `orc.b`, `rev8`) plus Zba (`sh1add`/`sh2add`/`sh3add` and `.uw` forms, `add.uw`, `slli.uw`), execution-only, admitted decode untouched
+- [ ] Client and Rust guest rebuilt with `-march=rv64im_zba_zbb` / `+zba,+zbb`; per-extension measurement on the basket with an estimated cost per new instruction
+- [ ] Gap report: which buckets shrink, how far the result is from ziskethone's 2.02, and which remaining ZisK advantages (DMA ops, precompiles, ISA) explain the rest
+- [ ] Proposal for the instructions that pay: CPU AIR changes, cost per row, soundness, recursion impact
 
 ### Move C: hygiene
 - [x] Rust guest lean track: 9.93 instr/gas admitted, 12 measured commits (branch `codex/rv64-guest-rust-lean`, not merged; overlaps track C)
