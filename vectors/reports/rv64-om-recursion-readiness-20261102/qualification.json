@@ -21,5 +21,6 @@
     }
   ],
   "profile_gate": "Actual complete newOM services accepting recursive leaf remains unimplemented. OldQM cost/leaf codec is not reused as if it accepted the new profile.",
-  "representation_caveat": "Literal OM multiplication/addition/subtraction counts include zero/constant operations; actual circuit lowering may fold them. Kernel transcript counts exclude scope/challenges/receipt/eta/manifest, binding andPCS. Source-contract beta is not independently decoded from physicalSTARK configuration by this tool."
+  "representation_caveat": "Literal OM multiplication/addition/subtraction counts include zero/constant operations; actual circuit lowering may fold them. Kernel transcript counts exclude scope/challenges/receipt/eta/manifest, binding andPCS. Source-contract beta is not independently decoded from physicalSTARK configuration by this tool.",
+  "independent_review": "Core-agent source math review PASS; literal OM/Horner/Eq/mask/transcript/closure counts independently derived. Added closure.zig authority pin from review."
 }

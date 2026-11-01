@@ -9,6 +9,7 @@ from pathlib import Path
 P = (1 << 31) - 1
 ROOT = Path(__file__).resolve().parents[1]
 AUTHORITIES = {
+    'src/integrations/riscv_cpu/word16_global_execution/services/gkr_local/closure.zig': 'cbaea4ea44d07ffe2bcb59dd0087f88b36429406eff25665849f1bd523c29ba8',
     'src/prover/lookups/verifier_kernel.zig': '4047f640e8293e508fe1c6239e5db3b66bcba65b6668190263290577450adb11',
     'src/prover/lookups/utils.zig': 'a65c6e609dad7c9bad7f323131ec312bb7ecbab7fb6eaa50c438194f00673fb4',
     'src/core/channel/raw_mod_m31.zig': 'a45bc12b7580611d519523dd451cb2f0d7ee1d6e1d3842708c813ceb4cb754f7',
