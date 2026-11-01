@@ -34,6 +34,11 @@ pub fn finish() builder.context.Error!void {
     if (failure) |err| return err;
 }
 
+/// Report a latched error without ending the current emission.
+pub fn check() builder.context.Error!void {
+    if (failure) |err| return err;
+}
+
 fn ctx() *Context {
     return active orelse @panic("circuit lane used outside begin/finish");
 }

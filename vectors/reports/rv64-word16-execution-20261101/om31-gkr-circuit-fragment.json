@@ -1,0 +1,45 @@
+{
+  "schema": "rv64-om31-gkr-circuit-fragment-v1",
+  "qualification": "experimental numerical circuit fragment; not production receiver or whole-protocol128 certificate",
+  "dependencies": [
+    "1ff7ac054",
+    "d38590907",
+    "7ae333220",
+    "881bfd0d8"
+  ],
+  "gate": "zig build test-riscv64-gkr-circuit -Doptimize={ReleaseSafe,ReleaseFast} -j2 --summary all",
+  "tests": 27,
+  "safe": "PASS",
+  "fast": "PASS",
+  "two_logup_fixture": {
+    "rows": [
+      8,
+      4
+    ],
+    "variables": 18596,
+    "blake_g_gates": 3760,
+    "qm31_operation_gates": 2844,
+    "guesses": 98,
+    "root_denominator_nonzero_checks": 2
+  },
+  "coverage": [
+    "actual OM31 native proof replay",
+    "all four GKR layer kinds",
+    "mixed heights",
+    "raw-mod OM31 Blake/counter parity",
+    "all8 coordinate proof/input/terminal mutations",
+    "projective root pole rejection",
+    "same-topology guessed zero inverse rejection",
+    "lane allocation failure sweep",
+    "legacy QM31 controls"
+  ],
+  "open_gates": [
+    "verifier-admitted production topology",
+    "authenticated terminal column binding",
+    "full services integration",
+    "wide PCS/DEEP/FRI circuit",
+    "recursive outer proof",
+    "whole-protocol128 budget"
+  ],
+  "performance_claim": null
+}
