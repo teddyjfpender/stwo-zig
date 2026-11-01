@@ -5,8 +5,11 @@ const E = @import("../evaluation.zig");
 const Ops = @import("operations.zig");
 const Arithmetic = @import("shift_chunk_arithmetic.zig");
 const Table = @import("shift_word_table.zig");
-pub const LOCAL_MAIN = 52;
+/// payload[0] (global opcode) is derived from the selectors; A/B/C remain committed.
+pub const LOCAL_MAIN = 51;
+/// Logical diagnostic authority, including the payload[0] substitution identity.
 pub const CONSTRAINTS = 27;
+pub const PROJECTED_CONSTRAINTS = CONSTRAINTS - 1;
 pub const TABLE_QUERIES = 5;
 pub const RANGE_QUERIES = 5;
 pub const nativeResult = Arithmetic.nativeResult;
@@ -29,7 +32,10 @@ pub fn rowFromColumnsFor(comptime F: type, values: []const F) RowFor(F) {
     var row: RowFor(F) = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(RowFor(F))) |field| {
-        if (field.type == [5][4]F) {
+        if (comptime std.mem.eql(u8, field.name, "payload")) {
+            row.payload[1..13].* = values[cursor..][0..12].*;
+            cursor += 12;
+        } else if (field.type == [5][4]F) {
             for (&row.table_outputs) |*tuple| {
                 tuple.* = values[cursor..][0..4].*;
                 cursor += 4;
@@ -44,13 +50,17 @@ pub fn rowFromColumnsFor(comptime F: type, values: []const F) RowFor(F) {
         }
     }
     std.debug.assert(cursor == LOCAL_MAIN);
+    row.payload[0] = Arithmetic.busIdFor(F, &row);
     return row;
 }
 pub fn rowToColumnsFor(comptime F: type, row: *const RowFor(F)) [LOCAL_MAIN]F {
     var values: [LOCAL_MAIN]F = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(RowFor(F))) |field| {
-        if (field.type == [5][4]F) {
+        if (comptime std.mem.eql(u8, field.name, "payload")) {
+            @memcpy(values[cursor..][0..12], row.payload[1..13]);
+            cursor += 12;
+        } else if (field.type == [5][4]F) {
             for (row.table_outputs) |tuple| {
                 @memcpy(values[cursor..][0..4], &tuple);
                 cursor += 4;
@@ -83,8 +93,18 @@ pub fn rangeValueFor(comptime F: type, r: *const RowFor(F), query: usize) F {
     };
     return limb.mul(E.qFor(F, 2)).sub(r.sign[query - 2].mul(E.qFor(F, 65536)));
 }
+/// Logical diagnostic: also binds a row's payload[0] to the selector opcode.
 pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     Arithmetic.emitHeadFor(F, 16, r, sink);
+    emitTailFor(F, r, sink);
+}
+/// Physical rows: payload[0] is derived by rowFromColumnsFor, so its binding
+/// identity is omitted. C stays committed: resultFor is already degree three.
+pub fn emitProjectedFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
+    Arithmetic.emitHeadProjectedFor(F, 16, r, sink);
+    emitTailFor(F, r, sink);
+}
+fn emitTailFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     Arithmetic.emitSignsFor(F, r, sink);
     for (0..4) |i| sink.emit(r.payload[9 + i].sub(Arithmetic.resultFor(F, 16, r, i)));
 }

@@ -27,20 +27,37 @@ fn rightOutside(comptime F: type, r: anytype, destination: usize, offset: usize,
     return value;
 }
 
+/// Global FUNCTION opcode, affine in the Boolean family-local selectors.
+pub fn busIdFor(comptime F: type, r: anytype) F {
+    var bus_id = F.zero();
+    for (r.selectors, 0..) |selector, i| bus_id = bus_id.add(selector.mul(constant(F, Ops.busIdFor(.shift, @intCast(i)))));
+    return bus_id;
+}
+fn constant(comptime F: type, value: u32) F {
+    if (F == @import("stwo_core").fields.m31.M31) return F.fromCanonical(value);
+    return E.qFor(F, value);
+}
+/// Byte-interface head: binds a committed payload[0] to the selector opcode.
 pub fn emitHeadFor(comptime F: type, comptime chunk_bits: u5, r: anytype, sink: anytype) void {
+    emitHeadInternal(F, chunk_bits, r, sink, true);
+}
+/// Head for layouts whose payload[0] is DERIVED as busIdFor (no committed copy):
+/// the binding residual would be identically zero and is not emitted.
+pub fn emitHeadProjectedFor(comptime F: type, comptime chunk_bits: u5, r: anytype, sink: anytype) void {
+    emitHeadInternal(F, chunk_bits, r, sink, false);
+}
+fn emitHeadInternal(comptime F: type, comptime chunk_bits: u5, r: anytype, sink: anytype, comptime bind_opcode: bool) void {
     comptime std.debug.assert(chunk_bits == 8 or chunk_bits == 16);
     const chunks: usize = 64 / @as(usize, chunk_bits);
     const one = F.one();
     var active = F.zero();
-    var bus_id = F.zero();
-    for (r.selectors, 0..) |selector, i| {
+    for (r.selectors) |selector| {
         sink.emit(selector.mul(selector.sub(one)));
         active = active.add(selector);
-        bus_id = bus_id.add(selector.mul(E.qFor(F, Ops.busIdFor(.shift, @intCast(i)))));
     }
     sink.emit(r.active.mul(r.active.sub(one)));
     sink.emit(active.sub(r.active));
-    sink.emit(r.payload[0].sub(bus_id));
+    if (bind_opcode) sink.emit(r.payload[0].sub(busIdFor(F, r)));
     var offset_sum = F.zero();
     var offset_index = F.zero();
     for (r.offset, 0..) |flag, i| {

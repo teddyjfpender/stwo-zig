@@ -1,0 +1,2 @@
+test-riscv64-word16-provider-ladder mode=test-riscv64-word16-execution-prepared rc=1 secs=0 :: error: Expected -Doptimize to be of type builtin.OptimizeMode. error:   access the help menu with 'zig build -h' error: the following build command failed with exit code 1: 
+DONE

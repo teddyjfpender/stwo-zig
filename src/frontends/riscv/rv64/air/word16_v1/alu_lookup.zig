@@ -1,4 +1,4 @@
-//! D3/2n ALU: twelve U16 memberships, six strict pair inverses, one JOINT prefix
+//! D3/2n ALU (main47, derived op/C payload): twelve U16 memberships, six strict pair inverses, one JOINT prefix
 //! for ranges and the shared affine function13 relation. No integer product-of-limbs AIR.
 const std = @import("std");
 const E = @import("../evaluation.zig");
@@ -7,7 +7,7 @@ const Bus = @import("function_bus.zig");
 const Ranges = @import("../providers/scalar_range.zig");
 pub const MAIN = A.encoding.MAIN;
 pub const INTERACTION = A.encoding.INTERACTION;
-pub const CONSTRAINTS = A.CONSTRAINTS + A.RANGE_QUERIES / 2 + 4;
+pub const CONSTRAINTS = A.PROJECTED_CONSTRAINTS + A.RANGE_QUERIES / 2 + 4;
 pub const FUNCTION_INVERSE = A.encoding.FUNCTION_INVERSE;
 pub const PREFIX = A.encoding.PREFIX;
 pub const Challenges = struct { range16: Ranges.Challenges, function: Bus.Challenges };
@@ -22,12 +22,17 @@ pub fn ChallengesFor(comptime C: type) type {
     return struct { range16: struct { offset: C, coefficient: C }, function: struct { offset: C, coefficients: [13]C } };
 }
 
+/// Physical MAIN commits only A/B of the payload. op and C are derived at
+/// every native, packed, OODS and external-circuit evaluation.
 pub fn rowFromColumnsFor(comptime F: type, values: []const F) A.RowFor(F) {
     std.debug.assert(values.len >= A.LOCAL_MAIN);
     var row: A.RowFor(F) = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(A.RowFor(F))) |field| {
-        if (@typeInfo(field.type) == .array) {
+        if (comptime std.mem.eql(u8, field.name, "payload")) {
+            @memcpy(row.payload[A.COMMITTED_PAYLOAD_START..A.COMMITTED_PAYLOAD_END], values[cursor..][0 .. A.COMMITTED_PAYLOAD_END - A.COMMITTED_PAYLOAD_START]);
+            cursor += A.COMMITTED_PAYLOAD_END - A.COMMITTED_PAYLOAD_START;
+        } else if (@typeInfo(field.type) == .array) {
             const n = @typeInfo(field.type).array.len;
             @memcpy(&@field(row, field.name), values[cursor..][0..n]);
             cursor += n;
@@ -37,13 +42,17 @@ pub fn rowFromColumnsFor(comptime F: type, values: []const F) A.RowFor(F) {
         }
     }
     std.debug.assert(cursor == A.LOCAL_MAIN);
+    A.derivePayloadFor(F, &row);
     return row;
 }
 pub fn rowToColumnsFor(comptime F: type, row: A.RowFor(F)) [A.LOCAL_MAIN]F {
     var values: [A.LOCAL_MAIN]F = undefined;
     var cursor: usize = 0;
     inline for (std.meta.fields(A.RowFor(F))) |field| {
-        if (@typeInfo(field.type) == .array) {
+        if (comptime std.mem.eql(u8, field.name, "payload")) {
+            @memcpy(values[cursor..][0 .. A.COMMITTED_PAYLOAD_END - A.COMMITTED_PAYLOAD_START], row.payload[A.COMMITTED_PAYLOAD_START..A.COMMITTED_PAYLOAD_END]);
+            cursor += A.COMMITTED_PAYLOAD_END - A.COMMITTED_PAYLOAD_START;
+        } else if (@typeInfo(field.type) == .array) {
             const n = @typeInfo(field.type).array.len;
             @memcpy(values[cursor..][0..n], &@field(row, field.name));
             cursor += n;
@@ -52,12 +61,13 @@ pub fn rowToColumnsFor(comptime F: type, row: A.RowFor(F)) [A.LOCAL_MAIN]F {
             cursor += 1;
         }
     }
+    std.debug.assert(cursor == A.LOCAL_MAIN);
     return values;
 }
 pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: []const F, first: F, last: F, claims: ClaimsFor(E.ConstFor(F)), ch: ChallengesFor(E.ConstFor(F)), sink: anytype) void {
     const S = E.SecureFor(F);
     const row = rowFromColumnsFor(F, main);
-    A.emitFor(F, &row, sink);
+    A.emitProjectedFor(F, &row, sink);
     const multiplicity = main[A.LOCAL_MAIN];
     sink.emit(F.one().sub(row.active).mul(multiplicity));
     var contribution = S.zero();

@@ -30,10 +30,10 @@ test "SHIFT28 joint polynomial is genuinely cubic at arbitrary extension points 
         var input: [N]Q = undefined;
         for (&input, 0..) |*v, c| v.* = dense(@intCast(5 * c)).add(dense(@intCast(7 * c + 9)).mul(E.q(@intCast(t))));
         values.* = evaluate(&input, ch, claims);
-        var original: [A.CONSTRAINTS]Q = undefined;
+        var original: [A.PROJECTED_CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &original };
-        A.emitFor(Q, &A.rowFromColumnsFor(Q, input[0..P.MAIN]), &sink);
-        try std.testing.expectEqualSlices(Q, &original, values[0..A.CONSTRAINTS]);
+        A.emitProjectedFor(Q, &A.rowFromColumnsFor(Q, input[0..P.MAIN]), &sink);
+        try std.testing.expectEqualSlices(Q, &original, values[0..A.PROJECTED_CONSTRAINTS]);
     }
     var cubic = false;
     for (0..P.CONSTRAINTS) |c| {
@@ -80,7 +80,28 @@ test "SHIFT28 authenticates only combined physical claim and rejects unweighted 
     var pole = ch;
     pole.function.offset = Q.zero();
     const bad = evaluate(&input, pole, .{ .shift = shift_claim, .range16 = range_claim, .function = Q.zero() });
-    for (bad[0 .. A.CONSTRAINTS + 1 + P.encoding.PAIRS]) |value| try std.testing.expect(value.isZero());
-    try std.testing.expect(bad[A.CONSTRAINTS + 1 + P.encoding.PAIRS].eql(Q.one().neg()));
-    for (bad[A.CONSTRAINTS + 2 + P.encoding.PAIRS ..]) |value| try std.testing.expect(value.isZero());
+    for (bad[0 .. A.PROJECTED_CONSTRAINTS + 1 + P.encoding.PAIRS]) |value| try std.testing.expect(value.isZero());
+    try std.testing.expect(bad[A.PROJECTED_CONSTRAINTS + 1 + P.encoding.PAIRS].eql(Q.one().neg()));
+    for (bad[A.PROJECTED_CONSTRAINTS + 2 + P.encoding.PAIRS ..]) |value| try std.testing.expect(value.isZero());
+}
+
+test "derived SHIFT opcode roundtrips arbitrary extension rows and its logical identity vanishes" {
+    try std.testing.expectEqual(@as(usize, 52), P.MAIN);
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    for (0..8) |_| {
+        var values: [P.MAIN]Q = undefined;
+        for (&values) |*v| v.* = channel.drawSecureFelt();
+        const row = A.rowFromColumnsFor(Q, &values);
+        try std.testing.expectEqualSlices(Q, values[0..A.LOCAL_MAIN], &A.rowToColumnsFor(Q, &row));
+        var logical: [A.CONSTRAINTS]Q = undefined;
+        var logical_sink = E.Sink{ .values = &logical };
+        A.emitFor(Q, &row, &logical_sink);
+        var projected: [A.PROJECTED_CONSTRAINTS]Q = undefined;
+        var projected_sink = E.Sink{ .values = &projected };
+        A.emitProjectedFor(Q, &row, &projected_sink);
+        // Six selector Booleans, active Boolean, selector sum, then the opcode identity.
+        try std.testing.expect(logical[8].isZero());
+        try std.testing.expectEqualSlices(Q, logical[0..8], projected[0..8]);
+        try std.testing.expectEqualSlices(Q, logical[9..], projected[8..]);
+    }
 }

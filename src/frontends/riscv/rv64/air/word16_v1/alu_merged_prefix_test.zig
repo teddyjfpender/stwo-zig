@@ -29,10 +29,10 @@ test "ALU32 joint polynomial is genuinely cubic at arbitrary extension points an
         var input: [N]Q = undefined;
         for (&input, 0..) |*v, c| v.* = dense(@intCast(5 * c)).add(dense(@intCast(7 * c + 9)).mul(E.q(@intCast(t))));
         values.* = evaluate(&input, ch, claims);
-        var original: [A.CONSTRAINTS]Q = undefined;
+        var original: [A.PROJECTED_CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &original };
-        A.emitFor(Q, &P.rowFromColumnsFor(Q, input[0..P.MAIN]), &sink);
-        try std.testing.expectEqualSlices(Q, &original, values[0..A.CONSTRAINTS]);
+        A.emitProjectedFor(Q, &P.rowFromColumnsFor(Q, input[0..P.MAIN]), &sink);
+        try std.testing.expectEqualSlices(Q, &original, values[0..A.PROJECTED_CONSTRAINTS]);
     }
     var cubic = false;
     for (0..P.CONSTRAINTS) |c| {
@@ -73,7 +73,31 @@ test "ALU32 authenticates only combined physical claim and rejects unweighted po
     var pole = ch;
     pole.function.offset = Q.zero();
     const bad = evaluate(&input, pole, .{ .range16 = range_claim, .function = Q.zero() });
-    for (bad[0 .. A.CONSTRAINTS + 1 + A.RANGE_QUERIES / 2]) |value| try std.testing.expect(value.isZero());
-    try std.testing.expect(bad[A.CONSTRAINTS + 1 + A.RANGE_QUERIES / 2].eql(Q.one().neg()));
-    for (bad[A.CONSTRAINTS + 2 + A.RANGE_QUERIES / 2 ..]) |value| try std.testing.expect(value.isZero());
+    for (bad[0 .. A.PROJECTED_CONSTRAINTS + 1 + A.RANGE_QUERIES / 2]) |value| try std.testing.expect(value.isZero());
+    try std.testing.expect(bad[A.PROJECTED_CONSTRAINTS + 1 + A.RANGE_QUERIES / 2].eql(Q.one().neg()));
+    for (bad[A.PROJECTED_CONSTRAINTS + 2 + A.RANGE_QUERIES / 2 ..]) |value| try std.testing.expect(value.isZero());
+}
+
+test "derived ALU payload projection roundtrips arbitrary extension rows and logical substitution identities vanish" {
+    try std.testing.expectEqual(@as(usize, 47), P.MAIN);
+    try std.testing.expectEqual(@as(usize, 48), A.PROJECTED_CONSTRAINTS);
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    for (0..8) |_| {
+        var values: [P.MAIN]Q = undefined;
+        for (&values) |*v| v.* = channel.drawSecureFelt();
+        const row = P.rowFromColumnsFor(Q, &values);
+        try std.testing.expectEqualSlices(Q, values[0..A.LOCAL_MAIN], &P.rowToColumnsFor(Q, row));
+        var logical: [A.CONSTRAINTS]Q = undefined;
+        var logical_sink = E.Sink{ .values = &logical };
+        A.emitFor(Q, &row, &logical_sink);
+        var projected: [A.PROJECTED_CONSTRAINTS]Q = undefined;
+        var projected_sink = E.Sink{ .values = &projected };
+        A.emitProjectedFor(Q, &row, &projected_sink);
+        // Logical order: 12 selector/active, op identity, 32 limb, 4 zero/less, C identities4, inactive8.
+        try std.testing.expect(logical[12].isZero());
+        for (logical[41..45]) |v| try std.testing.expect(v.isZero());
+        try std.testing.expectEqualSlices(Q, logical[0..12], projected[0..12]);
+        try std.testing.expectEqualSlices(Q, logical[13..41], projected[12..40]);
+        try std.testing.expectEqualSlices(Q, logical[45..], projected[40..]);
+    }
 }

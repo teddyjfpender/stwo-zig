@@ -36,7 +36,7 @@ test "inactive packed-table Word16 SHIFT D3 proves strict table U16 and FUNCTION
     var noncanonical = encoded;
     noncanonical.claims[4].c0.a.v = @import("stwo_core").fields.m31.Modulus;
     try std.testing.expectError(error.NonCanonicalShiftClaim, F.verify(a, noncanonical, false));
-    inline for (.{ .result, .table, .quotient_alias, .sign_alias }) |attack| {
+    inline for (.{ .result, .table, .quotient_alias, .sign_alias, .opcode }) |attack| {
         if (F.produce(a, attack)) |forged| {
             a.free(forged.bytes);
             return error.ExpectedShiftForgeryRejection;

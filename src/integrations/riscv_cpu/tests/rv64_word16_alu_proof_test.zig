@@ -15,7 +15,7 @@ test "experimental Word16 ALU D3 proves complete paired U16/function closures in
     balanced.claims[1] = balanced.claims[1].sub(@import("stwo_core").fields.qm31.QM31.one());
     balanced.claims[2] = balanced.claims[2].add(@import("stwo_core").fields.qm31.QM31.one());
     if (F.verify(a, balanced, false)) |_| return error.ExpectedBalancedClaimRejection else |_| {}
-    inline for (.{ .result, .carry, .sign_range, .sum_zero_range }) |attack| {
+    inline for (.{ .result, .carry, .sign_range, .sum_zero_range, .noncanonical_result }) |attack| {
         if (F.produce(a, attack)) |forged| {
             a.free(forged.bytes);
             return error.ExpectedAluForgeryRejection;

@@ -61,7 +61,6 @@ pub const Source = struct {
             X.features.put(&row, 8, fact.c);
             X.features.put(&row, 12, fact.a +% fact.b);
             row[J.ACTIVE] = M.one();
-            row[J.WEIGHT] = M.one();
         }
         return row;
     }

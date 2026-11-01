@@ -15,7 +15,7 @@ const Native = X.source;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const N = 32;
-pub const Attack = enum { none, result, table, quotient_alias, sign_alias };
+pub const Attack = enum { none, result, table, quotient_alias, sign_alias, opcode };
 fn row(i: usize) S.RowFor(Q) {
     return switch (i) {
         0 => S.witness(.sll, 1, 1),
@@ -77,6 +77,17 @@ pub const Fixture = struct {
             if (i == 0 and attack == .table) {
                 r.table_outputs[0][0] = rv.evaluation.q(3);
                 r.payload[9] = rv.evaluation.q(3);
+            }
+            if (i == 0 and attack == .opcode) {
+                // Encoding v4 derives payload[0] from the selectors. Relabel the
+                // SLL fact as SRL(33) the only way still expressible: flip the
+                // committed selectors. The consumer roster carries the same
+                // derived opcode, so FUNCTION balances; only the committed C
+                // residual of the remaining SHIFT polynomial rejects it.
+                r.selectors[0] = Q.zero();
+                r.selectors[1] = Q.one();
+                r.payload[0] = S.rowFromColumnsFor(Q, &S.rowToColumnsFor(Q, &r)).payload[0];
+                if (!r.payload[0].eql(rv.evaluation.q(33))) return error.InvalidShiftOpcodeForgery;
             }
             if (i == 6 and attack == .quotient_alias) {
                 r.payload[5] = Q.one();

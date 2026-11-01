@@ -1,0 +1,4 @@
+error: Expected -Doptimize to be of type builtin.OptimizeMode.
+error:   access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/2e346c039780d092173ab16a8b817d34/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /private/tmp/stwo-rv64-perf2-air-small-trims .zig-cache /Users/theodorepender/.cache/zig --seed 0x956be61f -Za1eb0b82f4373c6d test-riscv64-test-riscv64-word16-provider-ladder -Doptimize=test-riscv64-word16-execution-prepared --summary all

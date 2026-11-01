@@ -76,7 +76,7 @@ pub const Geometry = struct {
     }
     pub fn range8Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
-        total = try std.math.add(u64, total, LS.U8.len * self.lsRows());
+        total = try std.math.add(u64, total, LS.U8_QUERIES * self.lsRows());
         return total;
     }
 };
@@ -115,7 +115,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .binary_tail => if (geometry.binary_tail_log != null) .{ 2, B.binary_lookup.MAIN, B.binary_lookup.INTERACTION } else .{ 0, 0, 0 },
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },
             .shift_tail => if (geometry.shift_tail_log != null) .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
-            .jalr => .{ 2, 18, 12 },
+            .jalr => .{ front.rv64_air.word16_execution.jalr_equations.FIXED, front.rv64_air.word16_execution.jalr_equations.MAIN, front.rv64_air.word16_execution.jalr_equations.INTERACTION },
             .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.word16_product.layout.FIXED, A.division.word16_product.layout.MAIN, A.division.word16_product.layout.INTERACTION },
             .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
