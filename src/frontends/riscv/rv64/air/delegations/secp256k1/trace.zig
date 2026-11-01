@@ -2,6 +2,7 @@
 const std = @import("std");
 const Storage = @import("../main_storage.zig");
 const core = @import("stwo_core");
+const engine = @import("stwo_prover_engine");
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 const L = @import("layout.zig");
@@ -125,6 +126,15 @@ pub const Trace = struct {
         self.main = &.{};
     }
     pub fn generateInteraction(self: *Trace, ch: E.Challenges) !Q {
+        return self.generateInteractionWithPool(ch, engine.work_pool.currentScopedPool());
+    }
+    /// Batch-inverted, row-chunk parallel recipe (see interaction.zig).
+    pub fn generateInteractionWithPool(self: *Trace, ch: E.Challenges, pool: ?*engine.work_pool.WorkPool) !Q {
+        return @import("interaction.zig").generate(self, ch, pool);
+    }
+    /// Serial scalar recipe retained as the exact equivalence authority for
+    /// tests; production uses generateInteraction.
+    pub fn generateInteractionReference(self: *Trace, ch: E.Challenges) !Q {
         if (self.interaction.len != 0) return error.SecpInteractionAlreadyGenerated;
         try self.validateMetadata();
         const n = self.size();

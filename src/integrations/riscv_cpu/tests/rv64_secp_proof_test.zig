@@ -147,3 +147,51 @@ test "projective programs crosscheck independent standard secp256k1 points and a
 test "projective empty roster closes and proves without changing provider presence" {
     try F.proveAndVerify(std.testing.allocator, &P.add, &.{}, false);
 }
+test "batch-inverted parallel secp interaction equals the serial scalar reference value-for-value" {
+    const a = std.testing.allocator;
+    const in = inputs();
+    const ch = challenges();
+    const stack: usize = if (@import("builtin").mode == .Debug) 1024 * 1024 else 256 * 1024;
+    for ([_]*const P.Program{ &P.add, &P.double }) |program| for ([_]L.Kind{ .product, .linear }) |kind| for ([_]usize{ 0, 1, 3 }) |calls| {
+        const minimum = try L.logSize(kind, program, @max(1, calls));
+        // Minimum and one-larger geometry: the latter is half zero padding.
+        for ([_]u32{ minimum, minimum + 1 }) |log| {
+            var oracle = try S.trace.Trace.initWithLog(a, kind, program, in[0..calls], 41, log);
+            defer oracle.deinit();
+            const expected = try oracle.generateInteractionReference(ch);
+            for ([_]usize{ 1, 3, 7, 16 }) |workers| {
+                var pool: engine.work_pool.WorkPool = undefined;
+                try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = stack, .backing_allocator = a });
+                defer pool.deinit();
+                var trace = try S.trace.Trace.initWithLog(a, kind, program, in[0..calls], 41, log);
+                defer trace.deinit();
+                // The production recipe reads only retained lookup metadata.
+                try trace.releaseMain();
+                const actual = try trace.generateInteractionWithPool(ch, &pool);
+                try std.testing.expect(actual.eql(expected));
+                try std.testing.expectEqualSlices(M, oracle.interaction, trace.interaction);
+                try std.testing.expectError(error.SecpInteractionAlreadyGenerated, trace.generateInteractionWithPool(ch, &pool));
+            }
+            var serial = try S.trace.Trace.initWithLog(a, kind, program, in[0..calls], 41, log);
+            defer serial.deinit();
+            try std.testing.expect((try serial.generateInteractionWithPool(ch, null)).eql(expected));
+            try std.testing.expectEqualSlices(M, oracle.interaction, serial.interaction);
+        }
+    };
+}
+test "batch-inverted secp interaction keeps scalar division-by-zero rejection" {
+    const a = std.testing.allocator;
+    const in = inputs();
+    var ch = challenges();
+    // z equal to a byte value that every padding row looks up.
+    ch.bytes = Q.zero();
+    for ([_]L.Kind{ .product, .linear }) |kind| {
+        var oracle = try S.trace.Trace.init(a, kind, &P.add, &in, 37);
+        defer oracle.deinit();
+        try std.testing.expectError(error.DivisionByZero, oracle.generateInteractionReference(ch));
+        var trace = try S.trace.Trace.init(a, kind, &P.add, &in, 37);
+        defer trace.deinit();
+        try std.testing.expectError(error.DivisionByZero, trace.generateInteractionWithPool(ch, null));
+        try std.testing.expectEqual(@as(usize, 0), trace.interaction.len);
+    }
+}
