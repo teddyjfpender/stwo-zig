@@ -55,8 +55,58 @@ index eba163c..a32cfed 100644
          }
      };
  
+diff --git a/cpp-guest/include/zeg/seeded_hash.hpp b/cpp-guest/include/zeg/seeded_hash.hpp
+index 53d77cf..2937f1b 100644
+--- a/cpp-guest/include/zeg/seeded_hash.hpp
++++ b/cpp-guest/include/zeg/seeded_hash.hpp
+@@ -57,6 +57,38 @@ struct HashSeed {
+ // Hash `nbytes` of `key` (nbytes <= 64) as little-endian 64-bit words, the
+ // final partial word zero-padded. One multiply + add per word; no key byte is
+ // ignored, so collisions cannot be forced without the seed.
++#if defined(ZEG_STWO)
++// stwo RV64IM: misaligned loads trap and the keys are alignment-1 byte arrays,
++// so memcpy-to-word becomes eight byte loads. Same words, read as aligned
++// words or a funnel of the aligned words holding the bytes (never a word
++// without a key byte); the hash value is unchanged.
++namespace detail_hash {
++typedef uint64_t __attribute__((may_alias)) u64a;
++inline uint64_t ld_le(const uint8_t* p, size_t k) noexcept {
++    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
++    const u64a* a = reinterpret_cast<const u64a*>(p - off);
++    uint64_t w = a[0] >> (off * 8);
++    if (off + k > 8) w |= a[1] << (64 - off * 8);
++    return k == 8 ? w : w & ((uint64_t(1) << (8 * k)) - 1);
++}
++}  // namespace detail_hash
++
++inline uint64_t hash_bytes(const HashSeed& s, const void* key, size_t nbytes) noexcept {
++    const uint8_t* p = static_cast<const uint8_t*>(key);
++    uint64_t h = s.c;
++    const size_t full = nbytes >> 3;
++    size_t i = 0;
++    if ((reinterpret_cast<uintptr_t>(p) & 7) == 0) {
++        const detail_hash::u64a* w = reinterpret_cast<const detail_hash::u64a*>(p);
++        for (; i < full; ++i) h += s.a[i] * w[i];
++    } else {
++        for (; i < full; ++i) h += s.a[i] * detail_hash::ld_le(p + (i << 3), 8);
++    }
++    const size_t rem = nbytes & 7;
++    if (rem) h += s.a[i] * detail_hash::ld_le(p + (full << 3), rem);
++    return h;
++}
++#else
+ inline uint64_t hash_bytes(const HashSeed& s, const void* key, size_t nbytes) noexcept {
+     const uint8_t* p = static_cast<const uint8_t*>(key);
+     uint64_t h = s.c;
+@@ -75,5 +107,6 @@ inline uint64_t hash_bytes(const HashSeed& s, const void* key, size_t nbytes) no
+     }
+     return h;
+ }
++#endif  // ZEG_STWO
+ 
+ }  // namespace zeg
 diff --git a/cpp-guest/include/zeg/storages.hpp b/cpp-guest/include/zeg/storages.hpp
-index 2a49846..c697d82 100644
+index 2a49846..33ff29e 100644
 --- a/cpp-guest/include/zeg/storages.hpp
 +++ b/cpp-guest/include/zeg/storages.hpp
 @@ -29,6 +29,7 @@
@@ -76,6 +126,17 @@ index 2a49846..c697d82 100644
          }
      };
  
+@@ -306,8 +307,8 @@ private:
+     std::unordered_map<Key, size_t, KeyHash, KeyEq> index_;
+     // Last `find` and its answer (opcodes look a slot up twice in a row);
+     // reserve/append invalidate it.
+-    mutable evmc::address last_addr_{};
+-    mutable evmc::bytes32 last_pos_{};
++    alignas(8) mutable evmc::address last_addr_{};
++    alignas(8) mutable evmc::bytes32 last_pos_{};
+     mutable size_t        last_idx_ = 0;
+     mutable uint64_t      last_valid_ = 0;  // u64: byte flags are costly on ZisK
+     // address -> its storage indices (see slots_of).
 diff --git a/cpp-guest/include/zeg/stwo_hooks.hpp b/cpp-guest/include/zeg/stwo_hooks.hpp
 new file mode 100644
 index 0000000..78945e5
@@ -119,10 +180,10 @@ index 0000000..78945e5
 +                    const evmc::uint256be& s, unsigned recid, evmc::address& out) noexcept;
 +}  // namespace zeg
 diff --git a/cpp-guest/include/zeg/zisk_dma.hpp b/cpp-guest/include/zeg/zisk_dma.hpp
-index 5c9a403..9cd4f8c 100644
+index 5c9a403..eec4c5a 100644
 --- a/cpp-guest/include/zeg/zisk_dma.hpp
 +++ b/cpp-guest/include/zeg/zisk_dma.hpp
-@@ -20,13 +20,70 @@
+@@ -20,13 +20,105 @@
  
  namespace zeg::zisk {
  
@@ -130,13 +191,24 @@ index 5c9a403..9cd4f8c 100644
 +// stwo RV64IM: evmc byte arrays have alignment 1, so fixed-size copies and
 +// compares become libc calls with byte-alignment handling. When both operands
 +// happen to be 8-byte aligned (table records and hash-map nodes are), use word
-+// accesses instead. zisk_xmemcmp is only ever tested against 0 by its callers,
-+// so the fast path returns 0 (equal) or 1 (different).
++// accesses instead; otherwise assemble words with funnel shifts (aligned
++// destination for copies). zisk_xmemcmp is only ever tested against 0 by its
++// callers, so these paths return 0 (equal) or 1 (different).
 +namespace detail {
 +typedef uint64_t __attribute__((may_alias)) u64a;
 +typedef uint32_t __attribute__((may_alias)) u32a;
 +inline bool aligned8(const void* a, const void* b) {
 +    return ((reinterpret_cast<uintptr_t>(a) | reinterpret_cast<uintptr_t>(b)) & 7) == 0;
++}
++// Little-endian word of the k (1..8) bytes at p, any alignment, upper bytes
++// zero. Funnel of the aligned words holding them (RV64IM traps on misaligned
++// loads; this avoids the byte loop or libc call LLVM emits otherwise).
++inline uint64_t ldu(const void* p, size_t k) {
++    const unsigned off = reinterpret_cast<uintptr_t>(p) & 7;
++    const auto* a = reinterpret_cast<const u64a*>(static_cast<const uint8_t*>(p) - off);
++    uint64_t w = a[0] >> (off * 8);
++    if (off + k > 8) w |= a[1] << (64 - off * 8);
++    return k == 8 ? w : w & ((uint64_t(1) << (8 * k)) - 1);
 +}
 +}  // namespace detail
 +#endif
@@ -153,6 +225,12 @@ index 5c9a403..9cd4f8c 100644
 +            for (size_t i = 0; i < Size / 8; ++i) d[i] = s[i];
 +            return;
 +        }
++        if (detail::aligned8(dst, dst)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const uint8_t*>(src);
++            for (size_t i = 0; i < Size / 8; ++i) d[i] = detail::ldu(s + 8 * i, 8);
++            return;
++        }
 +    } else if constexpr (Size == 20) {
 +        if (detail::aligned8(dst, src)) {
 +            auto* d = static_cast<detail::u64a*>(dst);
@@ -160,6 +238,14 @@ index 5c9a403..9cd4f8c 100644
 +            d[0] = s[0];
 +            d[1] = s[1];
 +            *reinterpret_cast<detail::u32a*>(d + 2) = *reinterpret_cast<const detail::u32a*>(s + 2);
++            return;
++        }
++        if (detail::aligned8(dst, dst)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const uint8_t*>(src);
++            d[0] = detail::ldu(s, 8);
++            d[1] = detail::ldu(s + 8, 8);
++            *reinterpret_cast<detail::u32a*>(d + 2) = static_cast<uint32_t>(detail::ldu(s + 16, 4));
 +            return;
 +        }
 +    }
@@ -180,6 +266,11 @@ index 5c9a403..9cd4f8c 100644
 +            for (size_t i = 0; i < Size / 8; ++i) d |= x[i] ^ y[i];
 +            return d != 0;
 +        }
++        const auto* x = static_cast<const uint8_t*>(a);
++        const auto* y = static_cast<const uint8_t*>(b);
++        uint64_t d = 0;
++        for (size_t i = 0; i < Size / 8; ++i) d |= detail::ldu(x + 8 * i, 8) ^ detail::ldu(y + 8 * i, 8);
++        return d != 0;
 +    } else if constexpr (Size == 20) {
 +        if (detail::aligned8(a, b)) {
 +            const auto* x = static_cast<const detail::u64a*>(a);
@@ -188,6 +279,11 @@ index 5c9a403..9cd4f8c 100644
 +                (*reinterpret_cast<const detail::u32a*>(x + 2) ^ *reinterpret_cast<const detail::u32a*>(y + 2));
 +            return d != 0;
 +        }
++        const auto* x = static_cast<const uint8_t*>(a);
++        const auto* y = static_cast<const uint8_t*>(b);
++        const uint64_t d = (detail::ldu(x, 8) ^ detail::ldu(y, 8)) | (detail::ldu(x + 8, 8) ^ detail::ldu(y + 8, 8)) |
++            (detail::ldu(x + 16, 4) ^ detail::ldu(y + 16, 4));
++        return d != 0;
 +    }
 +#endif
 +    return std::memcmp(a, b, Size);

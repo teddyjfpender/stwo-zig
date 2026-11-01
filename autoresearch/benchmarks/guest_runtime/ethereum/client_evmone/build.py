@@ -210,7 +210,7 @@ def compile_one(job):
 
 def run_tests(src: Path, out: Path, work: Path, a) -> None:
     """Host tests: memory-function fuzz, secp256k1 differential vs evmone, witness trie
-    differential vs a reference MPT encoder."""
+    differential vs a reference MPT encoder, ziskethone word paths (hash, compare, copy)."""
     tdir = work / "obj-tests"
     tdir.mkdir(parents=True, exist_ok=True)
     glue = HERE / "glue"
@@ -236,6 +236,10 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
         tobjs.append(o)
     run(["zig", "c++", a.opt, *tobjs, "-o", tdir / "trie_differential"])
     run([tdir / "trie_differential", "600"])
+    wobj = tdir / "zeg_words_test.o"
+    run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
+    run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
+    run([tdir / "zeg_words_test"])
 
 
 def main(argv=None):
