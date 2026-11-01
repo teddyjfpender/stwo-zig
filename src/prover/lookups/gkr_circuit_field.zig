@@ -7,6 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const gkr_verifier_module = @import("gkr_verifier.zig");
 const mle_mod = @import("mle.zig");
 const utils = @import("utils.zig");
+const rows = @import("row_work.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -538,7 +539,14 @@ pub fn ForField(comptime Secure: type) type {
             const next_denominators = try allocator.alloc(Secure, half_n);
             errdefer allocator.free(next_denominators);
 
-            for (0..half_n) |i| {
+            if (numerators == .MleBase) {
+                const base = numerators.MleBase.evalsSlice();
+                for (0..half_n) |i| {
+                    const value = baseFraction(base[2 * i], den_values[2 * i]).add(baseFraction(base[2 * i + 1], den_values[2 * i + 1]));
+                    next_numerators[i] = value.numerator;
+                    next_denominators[i] = value.denominator;
+                }
+            } else for (0..half_n) |i| {
                 const a = fraction.Fraction(Secure, Secure).new(
                     numerators.at(2 * i),
                     den_values[2 * i],
@@ -563,11 +571,29 @@ pub fn ForField(comptime Secure: type) type {
             input_layer: *const MleSecure,
             n_terms: usize,
         ) [2]Secure {
+            const Context = struct {
+                eq: *const EqEvals,
+                input: *const MleSecure,
+                terms: usize,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalGrandProductSumRange(self.eq, self.input, self.terms, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .input = input_layer, .terms = n_terms });
+        }
+
+        fn evalGrandProductSumRange(
+            eq_evals: *const EqEvals,
+            input_layer: *const MleSecure,
+            n_terms: usize,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
             var eval_at_0 = Secure.zero();
             var eval_at_2 = Secure.zero();
 
             const input = input_layer.evalsSlice();
-            for (0..n_terms) |i| {
+            for (first..end) |i| {
                 const inp_at_r0i0 = input[i * 2];
                 const inp_at_r0i1 = input[i * 2 + 1];
                 const inp_at_r1i0 = input[(n_terms + i) * 2];
@@ -595,13 +621,36 @@ pub fn ForField(comptime Secure: type) type {
             n_terms: usize,
             lambda: Secure,
         ) [2]Secure {
+            const Context = struct {
+                eq: *const EqEvals,
+                num: *const mle_mod.MleFor(Secure, F),
+                den: *const MleSecure,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalLogupSumRange(F, self.eq, self.num, self.den, self.terms, self.lambda, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .num = input_numerators, .den = input_denominators, .terms = n_terms, .lambda = lambda });
+        }
+
+        fn evalLogupSumRange(
+            comptime F: type,
+            eq_evals: *const EqEvals,
+            input_numerators: *const mle_mod.MleFor(Secure, F),
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
             var eval_at_0 = Secure.zero();
             var eval_at_2 = Secure.zero();
 
             const numerators = input_numerators.evalsSlice();
             const denominators = input_denominators.evalsSlice();
 
-            for (0..n_terms) |i| {
+            for (first..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -668,13 +717,33 @@ pub fn ForField(comptime Secure: type) type {
             n_terms: usize,
             lambda: Secure,
         ) [2]Secure {
+            const Context = struct {
+                eq: *const EqEvals,
+                den: *const MleSecure,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalLogupSinglesSumRange(self.eq, self.den, self.terms, self.lambda, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .den = input_denominators, .terms = n_terms, .lambda = lambda });
+        }
+
+        fn evalLogupSinglesSumRange(
+            eq_evals: *const EqEvals,
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
             var eval_at_0 = Secure.zero();
             var eval_at_2 = Secure.zero();
 
             const denominators = input_denominators.evalsSlice();
             const R = utils.Reciprocal(Secure);
 
-            for (0..n_terms) |i| {
+            for (first..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -738,9 +807,15 @@ pub fn ForField(comptime Secure: type) type {
             return out;
         }
 
-        fn baseFraction(n: M31, d: Secure) (if (Secure == QM31) fraction.Fraction(M31, Secure) else fraction.Fraction(Secure, Secure)) {
-            if (Secure == QM31) return .{ .numerator = n, .denominator = d };
-            return .{ .numerator = Secure.fromBase(n), .denominator = d };
+        const BaseFraction = struct {
+            numerator: M31,
+            denominator: Secure,
+            fn add(self: @This(), rhs: @This()) fraction.Fraction(Secure, Secure) {
+                return .{ .numerator = rhs.denominator.mulM31(self.numerator).add(self.denominator.mulM31(rhs.numerator)), .denominator = self.denominator.mul(rhs.denominator) };
+            }
+        };
+        fn baseFraction(n: M31, d: Secure) BaseFraction {
+            return .{ .numerator = n, .denominator = d };
         }
     };
 }

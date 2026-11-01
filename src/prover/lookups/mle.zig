@@ -87,12 +87,15 @@ pub fn MleFor(comptime Secure: type, comptime F: type) type {
         ) !MleFor(Secure, Secure) {
             const half = self.evals.len / 2;
             const out = try allocator.alloc(Secure, half);
-            for (0..half) |i| {
-                // Pass F directly so foldMleEvals can use the M31-specialized
-                // small-big multiply path when F=M31, avoiding premature
-                // promotion to Secure.
-                out[i] = lookup_utils.foldMleEvalsFor(Secure, F, assignment, self.evals[i], self.evals[i + half]);
-            }
+            const Context = struct {
+                input: []const F,
+                output: []Secure,
+                challenge: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    for (first..end) |i| ctx.output[i] = lookup_utils.foldMleEvalsFor(Secure, F, ctx.challenge, ctx.input[i], ctx.input[i + ctx.output.len]);
+                }
+            };
+            @import("row_work.zig").fill(half, Context{ .input = self.evals, .output = out, .challenge = assignment });
             return try MleFor(Secure, Secure).initOwned(out);
         }
 
