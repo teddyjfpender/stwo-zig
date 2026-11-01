@@ -30,9 +30,11 @@ const Resources = struct {
     global_bytes: usize,
     retained_frontend_bytes: usize,
     disk_bytes: usize,
+    /// Explicit operational choice: small inventories may retain MAIN in RAM.
+    park_main: bool = true,
     schedule: Schedule.Policy,
     fn validate(self: Resources) !void {
-        if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or self.disk_bytes == 0 or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
+        if (self.gkr_bytes == 0 or self.global_bytes == 0 or self.retained_frontend_bytes == 0 or (self.park_main and self.disk_bytes == 0) or self.schedule.memory_cap_bytes == 0) return error.MissingWideResourceAdmission;
         try self.schedule.validate();
     }
 };
@@ -119,15 +121,15 @@ pub fn main() !void {
     try std.fs.cwd().makeDir(args[4]);
     var dir = try std.fs.cwd().openDir(args[4], .{});
     defer dir.close();
-    var store = try Store.initFullyParked(args[4], operational.disk_bytes);
-    defer store.deinit();
+    var store: ?Store = if (operational.park_main) try Store.initFullyParked(args[4], operational.disk_bytes) else null;
+    defer if (store) |*value| value.deinit();
     const setup_ns = timer.read() - capture_ns;
     var observations = try @import("observations.zig").Owner.init(a, keys.cpus.len + keys.truths.len);
     defer observations.deinit();
     const worker_timings = try a.alloc(C.WorkerTiming, keys.cpus.len + keys.truths.len);
     defer a.free(worker_timings);
     const prove_start = timer.read();
-    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = 32, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = &store, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule });
+    var bundle = try C.produce(a, keys.cpus, keys.truths, captured.native.items, &captured.advice, expected, try config(), .{ .max_workers = if (operational.park_main) 32 else 8, .max_retained_frontend_bytes = operational.retained_frontend_bytes, .gkr_budget = operational.gkr_bytes, .global_budget = operational.global_bytes, .retained_store = if (store) |*value| value else null, .worker_timings = worker_timings, .native_profiles = if (request.value.profile_stages) observations.pointers else &.{}, .schedule = operational.schedule });
     defer bundle.deinit(a);
     const prove_ns = timer.read() - prove_start;
     if (request.value.profile_stages) {
@@ -138,7 +140,7 @@ pub fn main() !void {
     const output = try Receiver.verify(a, &image, &keys, &bundle, request.value.max_steps, request.value.batch_steps, completed, try config());
     const verify_ns = timer.read() - verify_start;
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
-    try Driver.writeJson(a, dir, "report.json", .{ .profile = PROFILE, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = store.stats() });
+    try Driver.writeJson(a, dir, "report.json", .{ .profile = PROFILE, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
