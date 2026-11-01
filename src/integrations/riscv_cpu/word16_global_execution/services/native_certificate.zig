@@ -1,9 +1,9 @@
 //! Canonical native multi-proof statement for future Word16 recursion.
- //!
- //! This object is made ONLY after the current complete mixed-services native
- //! receiver accepts every CPU and truth STARK and closes the typed relations.
- //! It is a SHA-256 commitment to accepted proofs, public boundaries and
- //! admission. It is NOT a recursively verified STARK or settlement proof.
+//!
+//! This object is made ONLY after the current complete mixed-services native
+//! receiver accepts every CPU and truth STARK and closes the typed relations.
+//! It is a SHA-256 commitment to accepted proofs, public boundaries and
+//! admission. It is NOT a recursively verified STARK or settlement proof.
 const std = @import("std");
 const Hash = std.crypto.hash.sha2.Sha256;
 const E = @import("execution.zig");
@@ -35,7 +35,7 @@ fn blob(h: *Hash, bytes: []const u8) void {
 fn digest(h: *Hash, value: Digest) void {
     h.update(&value);
 }
-fn value(h: *Hash, q: Q) void {
+fn claimValue(h: *Hash, q: Q) void {
     for (q.toM31Array()) |v| int(h, u32, v.v);
 }
 fn registerFile(h: *Hash, regs: [32]u64) void {
@@ -93,7 +93,7 @@ fn nativeStatement(expected: P.Expected, setups: []const *const R.CpuSetup, trut
         cells(&h, req.memory.initial);
         cells(&h, req.memory.terminal);
         for (item.request.calls) |calls| int(&h, u32, calls);
-        for (item.claims.values()) |claim| value(&h, claim);
+        for (item.claims.values()) |claim| claimValue(&h, claim);
         blob(&h, item.bytes);
     }
     for (truths, bundle.truths, 0..) |truth, item, i| {
@@ -103,7 +103,7 @@ fn nativeStatement(expected: P.Expected, setups: []const *const R.CpuSetup, trut
         int(&h, u32, truth.first());
         int(&h, u32, truth.count());
         digest(&h, truth.key().root);
-        for (item.claims) |claim| value(&h, claim);
+        for (item.claims) |claim| claimValue(&h, claim);
         blob(&h, item.bytes);
     }
     var result: Digest = undefined;
