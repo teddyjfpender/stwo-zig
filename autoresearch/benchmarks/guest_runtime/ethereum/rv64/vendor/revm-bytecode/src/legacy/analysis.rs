@@ -25,7 +25,10 @@ pub(crate) fn analyze_legacy(bytecode: Bytes) -> (JumpTable, Bytes) {
         let advance = ADVANCE[last_byte as usize];
         if advance == 0 {
             // SAFETY: Jumps are max length of the code
-            unsafe { jumps.set_unchecked(iterator.offset_from_unsigned(start), true) }
+            let pc = unsafe { iterator.offset_from_unsigned(start) };
+            // The map has one LSB-first bit per byte. Mutating the backing byte
+            // avoids BitVec's general bit-address machinery on RV64IM.
+            jumps.as_raw_mut_slice()[pc >> 3] |= 1 << (pc & 7);
             iterator = unsafe { iterator.add(1) };
         } else {
             // A trailing PUSH can advance the iterator past the end of the
