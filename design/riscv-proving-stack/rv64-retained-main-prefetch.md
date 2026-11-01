@@ -60,3 +60,12 @@ This changes no AIR, geometry, statement, public execution profile or proof
 bytes. It does not qualify the requested whole-protocol 128-bit security target;
 the existing nominal 96-bit control remains a control. No hard-memory or guaranteed
 asynchronous-I/O claim is made.
+
+
+Both complete retained-parking products pass in ReleaseSafe/ReleaseFast with a
+27-test floor, retaining all original allocation-failure/lifetime gates. The
+runtime-page followup also passes focused bounds tests in both modes. Exact
+source, byte caps, hint counters, stage times and fresh-prefix results are pinned
+in `vectors/reports/rv64-word16-execution-20261101/retained-main-prefetch-prefix-v1.json`.
+The combined current-source full sweep belongs to the integration workstream;
+this receipt does not claim that pending measurement already ran.

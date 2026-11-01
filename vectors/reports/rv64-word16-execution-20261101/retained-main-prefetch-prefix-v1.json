@@ -1,0 +1,268 @@
+{
+  "schema": "rv64-retained-main-prefetch-prefix-qualification-v1",
+  "base": "9ded605ae",
+  "parking_foundation_merge": "d9f1a4ee6",
+  "source": "39a17bcf5",
+  "runtime_page_followup": "77c6d5ac5",
+  "default_enabled": false,
+  "option": "--prefetch-retained-main-bytes=N",
+  "cap_scope": "Per-current-worker address range,0disabled,nonzero one actual host page through4GiB; rounded down by actual std.heap.pageSize(). Not global residency/cache quota.",
+  "profile": "AIR/public/native proof profile unchanged; nominal96 control only,not whole-protocol128-bit qualification",
+  "build_provenance": "Binary built fromd9f1a4ee6 plus uncommitted implementation subsequently committed39a17bcf5. Test-only parser fixture corrected after build; runtime-page followup77c6d5ac5 does not change M5 host16KiB behavior. Not a clean-source binary claim.",
+  "binary_sha256": "d1d6dc980926d9a3b83f41f2d91d3ee6839c7ab2796a943af83e0d14ff3da1bb",
+  "counter_semantics": "advised_bytes count ranges accepted by successful madvise(WILLNEED) calls, not completed I/O or resident pages; advice failures are nonfatal and separately counted.",
+  "ownership": "Current exclusive worker only; Store-local numeric owner registry and mutex guard mapping lifetime. Parked mappings restored early and not redundantly restored later. No next-worker access or process-global cache.",
+  "receiver_rejects_producer_option": {
+    "exit": 1,
+    "error": "ProvingOptionInReceiver",
+    "option": "--prefetch-retained-main-bytes=0"
+  },
+  "prefix_rows": [
+    {
+      "label": "control2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-main-prefetch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-main-prefetch-prefix4-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-main-prefetch-prefix4-v1/control2x8-r0",
+        "4"
+      ],
+      "all11_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "steps": 16777212,
+      "completed": false,
+      "process": {
+        "wall_seconds": 24.19,
+        "user_seconds": 178.88,
+        "sys_seconds": 9.18,
+        "max_rss_bytes": 22315040768,
+        "minor_faults": 4491334,
+        "major_faults": 371467,
+        "voluntary_switches": 5117,
+        "involuntary_switches": 103309,
+        "instructions_retired": 1964858256545,
+        "cycles_elapsed": 697373546786,
+        "peak_footprint_bytes": 16237480344,
+        "prove_seconds": 18.816504125
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 6087016448,
+        "parking_enabled": false,
+        "prefetch_calls": 0,
+        "prefetch_requested_bytes": 0,
+        "prefetch_advised_bytes": 0,
+        "prefetch_failed_calls": 0,
+        "prefetch_unsupported_calls": 0
+      },
+      "prefetch_stages": []
+    },
+    {
+      "label": "prefetch1G2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-main-prefetch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-main-prefetch-prefix4-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-main-prefetch-prefix4-v1/prefetch1G2x8-r0",
+        "4",
+        "--prefetch-retained-main-bytes=1073741824"
+      ],
+      "all11_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "steps": 16777212,
+      "completed": false,
+      "process": {
+        "wall_seconds": 24.83,
+        "user_seconds": 185.62,
+        "sys_seconds": 9.52,
+        "max_rss_bytes": 22306455552,
+        "minor_faults": 4592318,
+        "major_faults": 371522,
+        "voluntary_switches": 5930,
+        "involuntary_switches": 94396,
+        "instructions_retired": 1965096301222,
+        "cycles_elapsed": 702516707134,
+        "peak_footprint_bytes": 16229009984,
+        "prove_seconds": 18.92033625
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 6087016448,
+        "parking_enabled": false,
+        "prefetch_calls": 7,
+        "prefetch_requested_bytes": 4429365248,
+        "prefetch_advised_bytes": 4429365248,
+        "prefetch_failed_calls": 0,
+        "prefetch_unsupported_calls": 0
+      },
+      "prefetch_stages": [
+        {
+          "file": "physical-0000.stages.json",
+          "seconds": 0.002992
+        },
+        {
+          "file": "physical-0001.stages.json",
+          "seconds": 0.006549
+        },
+        {
+          "file": "physical-0002.stages.json",
+          "seconds": 0.003909
+        },
+        {
+          "file": "physical-0003.stages.json",
+          "seconds": 0.003572
+        },
+        {
+          "file": "physical-0004.stages.json",
+          "seconds": 0.00026
+        },
+        {
+          "file": "physical-0005.stages.json",
+          "seconds": 0.000231
+        },
+        {
+          "file": "physical-0006.stages.json",
+          "seconds": 0.000158
+        }
+      ]
+    },
+    {
+      "label": "parked-prefetch1G2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-main-prefetch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-main-prefetch-prefix4-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-main-prefetch-prefix4-v1/parked-prefetch1G2x8-r0",
+        "4",
+        "--park-retained-main",
+        "--prefetch-retained-main-bytes=1073741824"
+      ],
+      "all11_artifacts_identical": true,
+      "fresh_receiver": {
+        "mode": "verify-prefix",
+        "exit_code": 0,
+        "accepted": true
+      },
+      "steps": 16777212,
+      "completed": false,
+      "process": {
+        "wall_seconds": 22.95,
+        "user_seconds": 180.19,
+        "sys_seconds": 11.13,
+        "max_rss_bytes": 18919686144,
+        "minor_faults": 5183113,
+        "major_faults": 0,
+        "voluntary_switches": 554,
+        "involuntary_switches": 80365,
+        "instructions_retired": 1971927530302,
+        "cycles_elapsed": 708970690553,
+        "peak_footprint_bytes": 16227237704,
+        "prove_seconds": 17.455388417
+      },
+      "retained_main": {
+        "live_bytes": 0,
+        "peak_reserved_bytes": 6087016448,
+        "total_bytes": 6087016448,
+        "limit_bytes": 137438953472,
+        "live_mapped_bytes": 0,
+        "peak_mapped_bytes": 3014344704,
+        "parking_enabled": true,
+        "prefetch_calls": 7,
+        "prefetch_requested_bytes": 4429365248,
+        "prefetch_advised_bytes": 4429365248,
+        "prefetch_failed_calls": 0,
+        "prefetch_unsupported_calls": 0
+      },
+      "prefetch_stages": [
+        {
+          "file": "physical-0000.stages.json",
+          "seconds": 0.048854
+        },
+        {
+          "file": "physical-0001.stages.json",
+          "seconds": 0.024248
+        },
+        {
+          "file": "physical-0002.stages.json",
+          "seconds": 0.031954
+        },
+        {
+          "file": "physical-0003.stages.json",
+          "seconds": 0.036713
+        },
+        {
+          "file": "physical-0004.stages.json",
+          "seconds": 0.001742
+        },
+        {
+          "file": "physical-0005.stages.json",
+          "seconds": 0.003156
+        },
+        {
+          "file": "physical-0006.stages.json",
+          "seconds": 0.000642
+        }
+      ]
+    }
+  ],
+  "gates": {
+    "full_parking_safe": {
+      "pass": true,
+      "log_sha256": "1b2a55eb0e56989d4cf1988ae5899200165b252a7ccab546bdd966a1e47f0e36",
+      "minimum_runtime_test_floor": 27
+    },
+    "full_parking_fast": {
+      "pass": true,
+      "log_sha256": "f1e26ebfbf752a287fab7c4a9b69fb0fd2dc89bd4da6a0ec4eec9841dec58755",
+      "minimum_runtime_test_floor": 27
+    },
+    "focused_safe": {
+      "pass": true,
+      "log_sha256": "226d4f1bdfc5da2a10038760bb1c4031fc9a7753c9a4d4c214fd698c6d96a178"
+    },
+    "runtime_page_safe": {
+      "pass": true,
+      "log_sha256": "9990040d214c139c5cf7bdfd7ed0a668e9c47a49b9357f84f53ea1fe97d4728c"
+    },
+    "runtime_page_fast": {
+      "pass": true,
+      "log_sha256": "2b6beb049faaf193d9870754694fcca6f951a78683e97e7743fe6a22e5316165"
+    }
+  },
+  "performance": "Functional prefix qualification only; multiple compilers/tests active, no throughput or host-memory improvement claim. Root owns single combined-source queue/prefetch full-block sweep.",
+  "fault_semantics": "Harness maps Darwin /usr/bin/time page reclaims to minor and page faults to major. These are whole-process OS counters across all mappings/files, not isolated retained-MAIN file I/O. Minor is not synonymous with anonymous allocation and major is not solely retained MAIN. Overlapping per-stage process counts are not additive."
+}
