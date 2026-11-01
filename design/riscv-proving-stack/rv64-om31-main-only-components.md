@@ -55,3 +55,22 @@ constraints inside one role component preserves a single MAIN commitment.
 Service bridges/truths, boundary/ROM/range providers, authenticated GKR
 terminal expressions, the complete wide proof driver and the whole-protocol
 128-bit budget remain separate integration gates.
+
+## Actual wide prover qualification
+
+The follow-up `main_only/domain.zig` now supplies the real OM31 prover adapter.
+It borrows the existing bounded2n column/coset evaluator and the exact predecessor
+column declaration above. Direct equations run over the explicitly tagged
+packed-M31 lane, and the existing native packed-OM31 kernels accumulate random
+weights into exactly eight output columns. Domain and OODS paths call the same
+MAIN authority. No scalar QM31 composition path or legacy interaction witness
+is substituted.
+
+A real 32-row ALU trace, with different operands, carries, signs and inverses
+across rows, is committed and proved through the actual OM31 PCS and FRI engine.
+A newly constructed core OM31 receiver accepts it. MAIN and composition samples
+both have nonzero high extension halves, ruling out the constant-zero special
+case. Mutating a high-half opening or an arithmetic result is rejected. This
+qualifies actual arithmetic-fragment proving; local range/FUNCTION GKR closure
+is still required before these facts can count toward an execution proof. Test
+parameters are a small fixture configuration, not a 128-bit production profile.
