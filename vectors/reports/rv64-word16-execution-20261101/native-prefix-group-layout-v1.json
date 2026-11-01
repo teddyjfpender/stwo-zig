@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "kind": "native_prefix_relative_block_layout_qualification",
+  "source_base": "8261bc7c0",
+  "source_fix_commit": "f283477c6",
+  "production_equations_transcript_columns_changed": false,
+  "finding": {
+    "old_group_rows": 16,
+    "claimed_property": "Each group completes a64B physical line; groups never share lines",
+    "counterexample": {
+      "log": 12,
+      "segment_log": 6,
+      "group": 0,
+      "row": 0,
+      "physical_indices": [
+        0,
+        32,
+        16,
+        48,
+        8,
+        40,
+        24,
+        56,
+        4,
+        36,
+        20,
+        52,
+        12,
+        44,
+        28,
+        60
+      ]
+    },
+    "semantic_impact": "No row-coverage or field-value discrepancy found; locality claim was false."
+  },
+  "fix": {
+    "group_rows": 32,
+    "relative_block_bytes": 128,
+    "mapping": "Vary high4 segment bits and pair remaining low bits g with their complement; pair row r with2^segment_log-1-r.",
+    "caller_block_rows": "CHUNK/GROUP_ROWS",
+    "segment_minimum": "At least one whole caller inversion block",
+    "scope": "Relative block ownership only. Allocator base128B alignment and hardware cache-line ownership are not guaranteed.",
+    "local_hw_cachelinesize": 128
+  },
+  "regression": {
+    "target": "test-riscv64-word16-parallel-interaction",
+    "minimum_tests": 5,
+    "supported_geometry_cases": 118,
+    "log_range": [
+      5,
+      23
+    ],
+    "workers": [
+      1,
+      2,
+      3,
+      5,
+      8,
+      16,
+      32
+    ],
+    "chunk_logs": [
+      10,
+      12
+    ],
+    "checks": [
+      "exact segment partition",
+      "complete relative128B blocks against actual core permutation",
+      "distinct group ownership",
+      "segment minimum and block divisibility"
+    ],
+    "rows": "All offsets through log14;32 reproducible offsets plus endpoints above log14.",
+    "independent_python": "Full-row log12/segment6,log15/segment7,log17/segment8 mappings pass."
+  },
+  "checks": {
+    "safe": {
+      "path": "/tmp/rv64-prefix-layout-safe-v1.log",
+      "sha256": "967a24e612fcac310ff643149f1e0f3bf26b52e36e2bac3a135c6cb8fa7300e0",
+      "summary": "Build Summary: 12/12 steps succeeded\ntest-riscv64-word16-parallel-interaction success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:2G\ntest-riscv64-word16-execution-source success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 7s MaxRSS:655M\ntest-riscv64-word16-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G\ntest-riscv64-word16-binary-native-fill success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G\ntest-riscv64-word16-shift-source success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 10s MaxRSS:639M\ntest-riscv64-multiplication-degree3 success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 39s MaxRSS:1G"
+    },
+    "fast": {
+      "path": "/tmp/rv64-prefix-layout-fast-v1.log",
+      "sha256": "ecd44f67b7b8d088280126846e30a4876831af63d8837a347e815c2f8972fd99",
+      "summary": "Build Summary: 12/12 steps succeeded\ntest-riscv64-word16-parallel-interaction success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 34s MaxRSS:1G\ntest-riscv64-word16-execution-source success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 8s MaxRSS:597M\ntest-riscv64-word16-memory success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:5G\ntest-riscv64-word16-binary-native-fill success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:3G\ntest-riscv64-word16-shift-source success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 10s MaxRSS:566M\ntest-riscv64-multiplication-degree3 success\n+- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 36s MaxRSS:1G"
+    }
+  },
+  "review": "design/riscv-proving-stack/rv64-native-prefix-group-review.md",
+  "proof_parity": "Root integration performs real prefix proof byte parity and fresh receiver separately. Not claimed by this unit qualification.",
+  "performance_claim": null
+}
