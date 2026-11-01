@@ -82,7 +82,7 @@ pub const Source = struct {
     fn initInternal(a: std.mem.Allocator, events: []const Event, log: u32, buffers: ?MainBuffers, pool: ?*engine.work_pool.WorkPool, fail_after: ?usize) !Source {
         const n = try sizeForLog(log);
         if (events.len >= n) return error.LsCapacityExceeded;
-        _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ L.U16.len * @as(u64, @intCast(n)), L.U8.len * @as(u64, @intCast(n)), @as(u64, @intCast(n)) });
+        _ = try @import("../../word16_v1/function_bus.zig").admitPositiveMass(&.{ L.U16.len * @as(u64, @intCast(n)), L.U8_QUERIES * @as(u64, @intCast(n)), @as(u64, @intCast(n)) });
         if (buffers) |b| {
             if (b.main.len != L.MAIN * n) return error.InvalidLsMain;
             const x = @intFromPtr(b.main.ptr);

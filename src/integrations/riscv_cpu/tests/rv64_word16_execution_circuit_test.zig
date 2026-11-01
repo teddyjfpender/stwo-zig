@@ -29,7 +29,7 @@ const Masks = struct {
         const widths: [3]usize = switch (self.mode) {
             .cpu => .{ 3, X.layout.main.COUNT, 40 },
             .rom => .{ 32, 1, 8 },
-            .jalr => .{ 2, 18, 12 },
+            .jalr => .{ X.jalr_equations.FIXED, X.jalr_equations.MAIN, X.jalr_equations.INTERACTION },
         };
         if (tree > 2 or c >= widths[tree]) return error.InvalidMask;
         const previous = switch (self.mode) {

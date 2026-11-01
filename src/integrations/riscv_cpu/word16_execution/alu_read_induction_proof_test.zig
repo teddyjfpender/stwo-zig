@@ -50,7 +50,11 @@ test "valid physical ALU proof with half-field noncanonical reads fails the clos
     const request = source.request();
     const m = source.alu.main;
     const pos = for (0..n) |physical| {
-        if (m[ALU.equations.LOCAL_MAIN * n + physical].v != 0 and m[physical].v == 0 and m[4 * n + physical].v == 0 and m[8 * n + physical].v == 0 and m[12 * n + physical].v == 0) break physical;
+        var probe: [ALU.lookup.MAIN]Q = undefined;
+        for (&probe, 0..) |*v, column| v.* = Q.fromBase(m[column * n + physical]);
+        const candidate = ALU.lookup.rowFromColumnsFor(Q, &probe);
+        // op/C are derived from committed selectors and auxiliaries.
+        if (m[ALU.equations.LOCAL_MAIN * n + physical].v != 0 and candidate.payload[0].isZero() and candidate.payload[4].isZero() and candidate.payload[8].isZero() and candidate.payload[12].isZero()) break physical;
     } else return error.MissingAddFact;
     var values: [ALU.lookup.MAIN]Q = undefined;
     for (&values, 0..) |*v, column| v.* = Q.fromBase(m[column * n + pos]);

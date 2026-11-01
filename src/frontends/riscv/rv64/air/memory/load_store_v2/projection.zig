@@ -1,9 +1,11 @@
-//! Concrete MAIN71 storage and affine virtual coordinates for the shared LS authority.
+//! Concrete MAIN70 storage and affine virtual coordinates for the shared LS authority.
 const std = @import("std");
 const Specs = @import("../../memory_constraints.zig");
 const E = @import("../../evaluation.zig");
 pub const LOGICAL_MAIN = 79;
-pub const REMOVED = [_]usize{ 1, 3, 4, 44, 45, 46, 47, 48 };
+/// Retired logical columns, each an exact affine expression of stored ones.
+/// 73 (b_low) = b0 - 256*b_high; both bytes keep their U8 memberships.
+pub const REMOVED = [_]usize{ 1, 3, 4, 44, 45, 46, 47, 48, 73 };
 pub const STORED = blk: {
     @setEvalBranchQuota(100000);
     var stored: [LOGICAL_MAIN - REMOVED.len]usize = undefined;
@@ -55,6 +57,8 @@ pub fn expandFor(comptime F: type, physical: []const F) [LOGICAL_MAIN]F {
     logical[44] = logical[4].add(offset);
     for (1..4) |j| logical[44 + j] = logical[4 + j];
     logical[48] = opcode;
+    // b_low: the U8 query ranges this affine expression directly.
+    logical[73] = logical[36].sub(logical[74].mul(q(F, 256)));
     return logical;
 }
 

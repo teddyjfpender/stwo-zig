@@ -38,8 +38,8 @@ fn repair(main: []const M, inter: []M, ch: X.types.Challenges) !X.types.Claims {
             inv[1 + j] = try ch.range16.denominatorFor(Q, m[column]).inv();
             claims.range16 = claims.range16.add(inv[1 + j]);
         }
-        for (X.layout.U8, 0..) |column, j| {
-            inv[1 + X.layout.U16.len + j] = try ch.range8.denominatorFor(Q, m[column]).inv();
+        for (X.layout.LOGICAL_U8, 0..) |column, j| {
+            inv[1 + X.layout.U16.len + j] = try ch.range8.denominatorFor(Q, expanded[column]).inv();
             claims.range8 = claims.range8.add(inv[1 + X.layout.U16.len + j]);
         }
         inv[inv.len - 1] = try ch.selection.denominatorFor(Q, V.equations.selectionTuple(Q, &expanded)).inv();
@@ -51,7 +51,7 @@ fn repair(main: []const M, inter: []M, ch: X.types.Challenges) !X.types.Claims {
     R.trace.center(inter, n, X.layout.LOCAL_PREFIX, claims.owner.add(claims.range16).add(claims.range8).add(claims.selection));
     return claims;
 }
-const Attack = enum { upper_store_b, read_clock, read_write_value, future_epoch, reversed_tick, ghost_cycle };
+const Attack = enum { upper_store_b, read_clock, read_write_value, future_epoch, reversed_tick, ghost_cycle, store_byte_split };
 fn attack(kind: Attack) !void {
     var fixture = try @import("../../tests/rv64_word16_execution_fixture.zig").Fixture.init(a);
     defer fixture.deinit();
@@ -61,7 +61,7 @@ fn attack(kind: Attack) !void {
     var source = try Sources.Source.init(a, &setup.materials, admission.image, fixture.boundary, 1, &fixture.tape);
     defer source.deinit();
     const request = source.request();
-    const pos = R.trace.physical(if (kind == .upper_store_b) 3 else if (kind == .future_epoch or kind == .ghost_cycle) 0 else 1, 5);
+    const pos = R.trace.physical(if (kind == .upper_store_b or kind == .store_byte_split) 3 else if (kind == .future_epoch or kind == .ghost_cycle) 0 else 1, 5);
     const m = try @import("projection_test_support.zig").expandMatrix(a, source.memory.ls.main, n);
     defer a.free(m);
     switch (kind) {
@@ -100,6 +100,16 @@ fn attack(kind: Attack) !void {
             m[26 * n + pos] = M.zero();
             m[27 * n + pos] = M.zero();
         },
+        .store_byte_split => {
+            // Row 3 is SH x4=17: B0=17=b_low+256*b_high with b_high=0. b_low is
+            // no longer committed (encoding v5): it is the affine B0-256*b_high.
+            // Forge b_high=1. Every local LS/RAM residual still vanishes (SH does
+            // not read b_low), but the derived b_low is 17-256 mod p, so only
+            // the retained U8 membership of the affine expression rejects.
+            try std.testing.expectEqual(@as(u32, 17), m[V.layout.b * n + pos].v);
+            try std.testing.expectEqual(@as(u32, 0), m[V.layout.b_high * n + pos].v);
+            m[V.layout.b_high * n + pos] = M.one();
+        },
         .read_write_value => {
             for ([_]usize{ 14, 18, 40 }) |column| {
                 m[column * n + pos] = m[column * n + pos].add(M.fromCanonical(65536));
@@ -109,6 +119,29 @@ fn attack(kind: Attack) !void {
         },
     }
     @import("projection_test_support.zig").projectMatrix(m, source.memory.ls.main, n);
+    if (kind == .store_byte_split) {
+        // The forged physical row satisfies every local LS polynomial.
+        var row: [X.layout.MAIN]Q = undefined;
+        for (&row, 0..) |*v, column| v.* = Q.fromBase(source.memory.ls.main[column * n + pos]);
+        const logical = X.layout.projection.expandFor(Q, &row);
+        try std.testing.expect(logical[V.layout.b_low].eql(Q.fromBase(M.fromCanonical(17)).sub(Q.fromBase(M.fromCanonical(256)))));
+        var previous: [X.layout.projection.LOGICAL_MAIN]Q = @splat(Q.zero());
+        const prior = R.trace.physical(2, 5);
+        previous[0] = Q.fromBase(source.memory.ls.main[prior]);
+        var residuals: [256]Q = undefined;
+        var sink = A.evaluation.Sink{ .values = &residuals };
+        const fixed = [_]Q{ Q.zero(), Q.zero(), Q.zero() };
+        V.equations.emitLocalWithPublicFor(Q, &fixed, &logical, &previous, Q.fromBase(M.fromCanonical(4)), Q.one(), &sink);
+        for (residuals[0..sink.count]) |v| try std.testing.expect(v.isZero());
+        // Rebalance the shared U8 table for every representable forged query:
+        // b_high 0->1, and withdraw the honest b_low=17. The derived b_low
+        // 17-256 has no table row, so no multiplicity assignment can close it.
+        const counts = @constCast(source.range8.counts);
+        counts[0] -= 1;
+        counts[1] += 1;
+        counts[17] -= 1;
+        for ([_]usize{ 0, 1, 17 }) |value| source.range8.main[R.trace.physical(value, 8)] = M.fromCanonical(@intCast(counts[value]));
+    }
     const actual = try a.dupe(M, source.memory.ls.main);
     defer a.free(actual);
     var scheme = try P.T.Scheme.init(a, P.T.P.config());
@@ -165,4 +198,8 @@ test "actual valid physical proof with reversed tick predecessor fails retained 
 
 test "actual valid physical proof with orphan RAM history cycle fails retained chronology and complete boundary closure" {
     try attack(.ghost_cycle);
+}
+
+test "actual valid physical proof with noncanonical derived store byte split fails retained U8 closure" {
+    try attack(.store_byte_split);
 }

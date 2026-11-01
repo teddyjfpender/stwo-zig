@@ -16,8 +16,10 @@ pub const BOUND_U16 = [_]usize{ 14, 15, 16, 17 };
 pub const LOGICAL_U16 = [_]usize{ 12, 18, 19, 20, 21, 24, 25, 40, 41, 42, 43, 68 };
 pub const LOGICAL_U8 = [_]usize{ 13, 26, 73, 74 };
 pub const U16 = projection.columns(&LOGICAL_U16);
-pub const U8 = projection.columns(&LOGICAL_U8);
-pub const LOCAL_FRACTIONS = 2 + U16.len + U8.len;
+/// U8 queries include the retired affine b_low (logical 73), so they have no
+/// physical-column map; evaluate them on projection.expandFor rows.
+pub const U8_QUERIES = LOGICAL_U8.len;
+pub const LOCAL_FRACTIONS = 2 + U16.len + U8_QUERIES;
 pub const LOCAL_PAIRS = (LOCAL_FRACTIONS + 1) / 2;
 // Narrow native caches still retain every RAM/OWNER coordinate. Removing a
 // lookup must never remove the metadata needed after MAIN ownership transfer.

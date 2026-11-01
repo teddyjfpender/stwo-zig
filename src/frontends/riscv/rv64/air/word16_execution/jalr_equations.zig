@@ -4,12 +4,13 @@
 const E = @import("../evaluation.zig");
 const T = @import("types.zig");
 const M = @import("stwo_core").fields.m31.M31;
-pub const MAIN = 18;
+/// A[4], B[4], C[4], SUM[4], ACTIVE. The former WEIGHT column was constrained
+/// equal to ACTIVE; the unit Boolean ACTIVE is now the multiplicity itself.
+pub const MAIN = 17;
 pub const INTERACTION = 12;
 pub const FIXED = 2;
-pub const CONSTRAINTS = 6;
+pub const CONSTRAINTS = 5;
 pub const ACTIVE = 16;
-pub const WEIGHT = 17;
 pub fn tuple(comptime F: type, operation: u32, a: []const F, b: []const F, c: []const F) [13]F {
     var out: [13]F = undefined;
     out[0] = T.literal(F, operation);
@@ -39,15 +40,15 @@ pub fn contributionFor(comptime F: type, ds: DenominatorsFor(F), weight: F, inve
     return E.mulBaseFor(F, ds.add.add(ds.and_).mul(inverse_pair).sub(inverse_request), weight);
 }
 pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, current: []const F, previous: []const F, claim: E.ConstFor(F), ch: T.FunctionChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
+    // Boolean ACTIVE is the only multiplicity: no signed or non-unit weights.
     E.booleanFor(F, sink, row[ACTIVE]);
-    sink.emit(row[WEIGHT].sub(row[ACTIVE]));
     const ds = denominatorsFor(F, row, ch);
     const inverse_request = E.secureFor(F, current, 0);
     const inverse_pair = E.secureFor(F, current, 4);
     sink.emit(ds.request.mul(inverse_request).sub(E.SecureFor(F).one()));
     sink.emit(ds.add.mul(ds.and_).mul(inverse_pair).sub(E.SecureFor(F).one()));
     const sum = E.secureFor(F, current, 8);
-    sink.emit(sum.sub(E.secureFor(F, previous, 8)).add(E.mulBaseFor(F, E.splatFor(F, claim), fixed[0])).sub(contributionFor(F, ds, row[WEIGHT], inverse_request, inverse_pair)));
+    sink.emit(sum.sub(E.secureFor(F, previous, 8)).add(E.mulBaseFor(F, E.splatFor(F, claim), fixed[0])).sub(contributionFor(F, ds, row[ACTIVE], inverse_request, inverse_pair)));
     sink.emit(E.mulBaseFor(F, sum, fixed[1]));
 }
 fn dot(ch: T.FunctionChallenges, values: [13]M) E.Q {

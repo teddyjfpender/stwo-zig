@@ -11,7 +11,7 @@ const U = X.range_source;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
 pub const N = 32;
-pub const Attack = enum { none, result, carry, sign_range, sum_zero_range };
+pub const Attack = enum { none, result, carry, sign_range, sum_zero_range, noncanonical_result };
 fn row(i: usize) !A.RowFor(Q) {
     return switch (i) {
         0 => A.witness(.add, 0xffffffffffffffff, 1),
@@ -70,8 +70,31 @@ pub const Fixture = struct {
         for (0..N) |i| {
             var r = if (i == 6 and attack == .sum_zero_range) try A.witness(.eq, 65536, 1) else try row(i);
             const honest = r;
-            if (i == 0 and attack == .result) r.payload[9] = r.payload[9].add(Q.one());
+            if (i == 0 and attack == .result) {
+                // C is derived (encoding v5): a false result must forge the
+                // committed SUM auxiliary. The roster carries the same false
+                // C, so FUNCTION balances and only the limb equation rejects.
+                r.sum[0] = r.sum[0].add(Q.one());
+                A.derivePayloadFor(Q, &r);
+            }
             if (i == 0 and attack == .carry) r.carry[0] = rv.evaluation.q(2);
+            if (i == 0 and attack == .noncanonical_result) {
+                // ADD(2^64-1,1): forge the non-canonical limb split
+                // C=(65536,65535,65535,65535)=2^64 with every carry zero. Every
+                // local residual vanishes and the derived C limbs follow; the
+                // removed committed C copy offered no range, so only the
+                // retained U16 membership of SUM[0]=65536 can reject it.
+                r.sum = .{ rv.evaluation.q(65536), rv.evaluation.q(65535), rv.evaluation.q(65535), rv.evaluation.q(65535) };
+                r.carry = @splat(Q.zero());
+                r.sign[2] = Q.one();
+                r.low[2] = rv.evaluation.q(32767);
+                A.derivePayloadFor(Q, &r);
+                if (!r.payload[9].eql(rv.evaluation.q(65536))) return error.InvalidAluNoncanonicalOracle;
+                var residuals: [A.CONSTRAINTS]Q = undefined;
+                var sink = rv.evaluation.Sink{ .values = &residuals };
+                A.emitFor(Q, &r, &sink);
+                for (residuals) |v| if (!v.isZero()) return error.InvalidAluNoncanonicalOracle;
+            }
             if (i == 4 and attack == .sign_range) {
                 r.sign[0] = Q.one();
                 r.low[0] = rv.evaluation.q(32768).neg();
@@ -102,6 +125,13 @@ pub const Fixture = struct {
             for (r.payload, 0..) |v, c| roster[i][c] = try v.tryIntoM31();
             roster[i][13] = try r.active.tryIntoM31();
             for (0..A.RANGE_QUERIES) |query| {
+                if (attack == .noncanonical_result and i == 0) {
+                    // Count every representable forged query, so the single
+                    // unmatched U16 debt is exactly the non-canonical SUM[0].
+                    const forged = (try A.rangeValueFor(Q, &r, query).tryIntoM31()).v;
+                    if (forged < U.SIZE) counts[forged] += 1;
+                    continue;
+                }
                 const value = (try A.rangeValueFor(Q, &honest, query).tryIntoM31()).v;
                 if (value >= U.SIZE) return error.InvalidAluNativeRange;
                 counts[value] += 1;

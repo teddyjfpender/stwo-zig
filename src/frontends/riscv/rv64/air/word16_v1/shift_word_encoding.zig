@@ -1,7 +1,7 @@
 //! One concrete interaction encoding; no new runtime representation policy.
 const std = @import("std");
 const Channel = @import("stwo_core").channel.blake2s.Blake2sChannel;
-pub const VERSION: u32 = 3;
+pub const VERSION: u32 = 4;
 const S = @import("shift_word.zig");
 pub const MAIN = S.LOCAL_MAIN + 1;
 pub const UNIT_QUERIES = S.TABLE_QUERIES + S.RANGE_QUERIES;
@@ -14,8 +14,8 @@ pub const PREFIX = FUNCTION_INVERSE + 4;
 pub const INTERACTION = PREFIX + 4;
 pub fn identity() [32]u8 {
     var h = std.crypto.hash.sha2.Sha256.init(.{});
-    h.update("stwo-rv64/word16-shift/encoding-v3/canonical-FUNCTION-inputs/SHIFT5-U16five-cross-family-strict-pairs/joint-prefix/FUNCTION13-multiplicity-only/D3");
-    for ([_]u32{ VERSION, MAIN, INTERACTION, S.TABLE_QUERIES, S.RANGE_QUERIES, 13, 3 }) |v| {
+    h.update("stwo-rv64/word16-shift/encoding-v4/main52/derived-affine-opcode/canonical-FUNCTION-inputs/SHIFT5-U16five-cross-family-strict-pairs/joint-prefix/FUNCTION13-multiplicity-only/D3");
+    for ([_]u32{ VERSION, MAIN, INTERACTION, S.TABLE_QUERIES, S.RANGE_QUERIES, S.PROJECTED_CONSTRAINTS, 13, 3 }) |v| {
         var bytes: [4]u8 = undefined;
         std.mem.writeInt(u32, &bytes, v, .little);
         h.update(&bytes);
@@ -23,7 +23,7 @@ pub fn identity() [32]u8 {
     return h.finalResult();
 }
 pub fn mix(ch: *Channel) void {
-    ch.mixU32s(&.{ 0x5348454e, VERSION, MAIN, INTERACTION, S.TABLE_QUERIES, S.RANGE_QUERIES, 3 });
+    ch.mixU32s(&.{ 0x5348454e, VERSION, MAIN, INTERACTION, S.TABLE_QUERIES, S.RANGE_QUERIES, S.PROJECTED_CONSTRAINTS, 3 });
     const d = identity();
     var words: [8]u32 = undefined;
     for (&words, 0..) |*w, i| w.* = std.mem.readInt(u32, d[4 * i ..][0..4], .little);

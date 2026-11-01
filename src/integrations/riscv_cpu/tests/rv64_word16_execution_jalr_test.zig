@@ -32,10 +32,10 @@ fn audit(source: *const Source, claim: Q, ch: X.types.FunctionChallenges) !void 
             current[c] = Q.fromBase(source.interaction[c * source.size() + pos]);
             prior[c] = Q.fromBase(source.interaction[c * source.size() + previous]);
         }
-        var residuals: [6]Q = undefined;
+        var residuals: [J.CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &residuals };
-        J.emitFor(Q, &.{ E.q(@intFromBool(logical == 0)), E.q(@intFromBool(logical + 1 == source.size())) }, &toQ(18, source.rowValues(logical)), &current, &prior, claim, ch, &sink);
-        try std.testing.expectEqual(@as(usize, 6), sink.count);
+        J.emitFor(Q, &.{ E.q(@intFromBool(logical == 0)), E.q(@intFromBool(logical + 1 == source.size())) }, &toQ(J.MAIN, source.rowValues(logical)), &current, &prior, claim, ch, &sink);
+        try std.testing.expectEqual(@as(usize, 5), sink.count);
         for (residuals) |v| try std.testing.expect(v.isZero());
     }
 }
@@ -74,41 +74,41 @@ test "unit JALR native source survives main retirement and all allocation failur
     try std.testing.expect(clean.claim == null and clean.interaction.len == 0);
     _ = try clean.generate(ch);
 }
-test "unit JALR six residuals are cubic and packed lanes equal full QM31" {
+test "unit JALR five residuals are cubic and packed lanes equal full QM31" {
     const ch = challenge();
     var channel = core.channel.blake2s.Blake2sChannel{};
     const claim = channel.drawSecureFelt();
-    var constant: [4][18]Q = undefined;
-    var slope: [4][18]Q = undefined;
+    var constant: [4][J.MAIN]Q = undefined;
+    var slope: [4][J.MAIN]Q = undefined;
     for (&constant, &slope) |*x, *y| for (x, y) |*v, *w| {
         v.* = channel.drawSecureFelt();
         w.* = channel.drawSecureFelt();
     };
-    var results: [5][6]Q = undefined;
+    var results: [5][J.CONSTRAINTS]Q = undefined;
     for (0..5) |point| {
-        var data: [4][18]Q = undefined;
+        var data: [4][J.MAIN]Q = undefined;
         for (&data, constant, slope) |*x, y, z| {
             for (x, y, z) |*v, c, s| v.* = c.add(s.mulM31(M.fromCanonical(@intCast(point))));
         }
         var sink = E.Sink{ .values = &results[point] };
         J.emitFor(Q, data[0][0..2], &data[1], data[2][0..12], data[3][0..12], claim, ch, &sink);
     }
-    for (0..6) |i| try std.testing.expect(results[4][i].sub(results[3][i].mulM31(M.fromCanonical(4))).add(results[2][i].mulM31(M.fromCanonical(6))).sub(results[1][i].mulM31(M.fromCanonical(4))).add(results[0][i]).isZero());
-    var native: [4][18][16]M = undefined;
-    var simd: [4][18]E.PackedBase = undefined;
+    for (0..J.CONSTRAINTS) |i| try std.testing.expect(results[4][i].sub(results[3][i].mulM31(M.fromCanonical(4))).add(results[2][i].mulM31(M.fromCanonical(6))).sub(results[1][i].mulM31(M.fromCanonical(4))).add(results[0][i]).isZero());
+    var native: [4][J.MAIN][16]M = undefined;
+    var simd: [4][J.MAIN]E.PackedBase = undefined;
     for (&native, &simd) |*x, *y| for (x, y) |*lanes, *v| {
         for (lanes) |*lane| lane.* = channel.drawSecureFelt().toM31Array()[0];
         v.* = E.PackedBase.fromLanes(lanes.*);
     };
-    var got: [6]E.PackedSecure = undefined;
+    var got: [J.CONSTRAINTS]E.PackedSecure = undefined;
     var sink = E.PackedSink{ .values = &got };
     J.emitFor(E.PackedBase, simd[0][0..2], &simd[1], simd[2][0..12], simd[3][0..12], claim, ch, &sink);
     for (0..16) |lane| {
-        var data: [4][18]Q = undefined;
+        var data: [4][J.MAIN]Q = undefined;
         for (&data, native) |*x, y| {
             for (x, y) |*v, lanes| v.* = Q.fromBase(lanes[lane]);
         }
-        var expected: [6]Q = undefined;
+        var expected: [J.CONSTRAINTS]Q = undefined;
         var out = E.Sink{ .values = &expected };
         J.emitFor(Q, data[0][0..2], &data[1], data[2][0..12], data[3][0..12], claim, ch, &out);
         for (expected, got) |v, w| try std.testing.expect(v.eql(w.lane(lane)));
@@ -117,15 +117,15 @@ test "unit JALR six residuals are cubic and packed lanes equal full QM31" {
     _ = c.asProverComponent();
     _ = c.asVerifierComponent();
 }
-fn row(av: u64, bv: u64, cv: u64, sum: u64, weight: Q) [18]Q {
-    var native: [18]M = @splat(M.zero());
+/// MAIN17: the multiplicity is ACTIVE itself (former WEIGHT column retired).
+fn row(av: u64, bv: u64, cv: u64, sum: u64, weight: Q) [J.MAIN]Q {
+    var native: [J.MAIN]M = @splat(M.zero());
     X.features.put(&native, 0, av);
     X.features.put(&native, 4, bv);
     X.features.put(&native, 8, cv);
     X.features.put(&native, 12, sum);
-    var out = toQ(18, native);
-    out[16] = Q.one();
-    out[17] = weight;
+    var out = toQ(J.MAIN, native);
+    out[J.ACTIVE] = weight;
     return out;
 }
 test "signed composite marginal forgery closes global FUNCTION claims but the unit polynomial rejects it" {
@@ -133,7 +133,7 @@ test "signed composite marginal forgery closes global FUNCTION claims but the un
     // Net FN10 requests are FALSE (0+0)->2 and (1+1)->0. With signed
     // composite weights, ADD and AND marginals nevertheless contain only TRUE
     // facts. Acyclic operation IDs alone do not make this join sound.
-    const rows = [_][18]Q{ row(0, 0, 2, 0, Q.one()), row(1, 1, 0, 0, Q.one()), row(1, 1, 2, 0, Q.one().neg()), row(1, 1, 2, 2, Q.one()) };
+    const rows = [_][J.MAIN]Q{ row(0, 0, 2, 0, Q.one()), row(1, 1, 0, 0, Q.one()), row(1, 1, 2, 0, Q.one().neg()), row(1, 1, 2, 2, Q.one()) };
     var inter: [4][12]Q = undefined;
     var contributions: [4]Q = undefined;
     var claim = Q.zero();
@@ -143,7 +143,7 @@ test "signed composite marginal forgery closes global FUNCTION claims but the un
         const pair = try ds.add.mul(ds.and_).inv();
         for (inv.toM31Array(), 0..) |v, c| inter[i][c] = Q.fromBase(v);
         for (pair.toM31Array(), 0..) |v, c| inter[i][4 + c] = Q.fromBase(v);
-        contributions[i] = J.contributionFor(Q, ds, r[17], inv, pair);
+        contributions[i] = J.contributionFor(Q, ds, r[J.ACTIVE], inv, pair);
         claim = claim.add(contributions[i]);
     }
     var prefix = claim.neg();
@@ -159,13 +159,12 @@ test "signed composite marginal forgery closes global FUNCTION claims but the un
     global = global.sub(try ch.denominatorFor(Q, J.and_(Q, &good0)).inv()).sub(try ch.denominatorFor(Q, J.and_(Q, &good1)).inv());
     try std.testing.expect(global.isZero());
     for (rows, 0..) |r, i| {
-        var residuals: [6]Q = undefined;
+        var residuals: [J.CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &residuals };
         J.emitFor(Q, &.{ E.q(@intFromBool(i == 0)), E.q(@intFromBool(i == 3)) }, &r, &inter[i], &inter[(i + 3) % 4], claim, ch, &sink);
-        for (residuals, 0..) |value, index| if (index == 1 and i == 2) {
-            try std.testing.expect(value.eql(E.q(2).neg()));
+        // The signed row needs ACTIVE=-1: the Boolean residual is (-1)(-2)=2.
+        for (residuals, 0..) |value, index| if (index == 0 and i == 2) {
+            try std.testing.expect(value.eql(E.q(2)));
         } else try std.testing.expect(value.isZero());
-        // The old proposed inactive*weight guard would be zero on every row.
-        try std.testing.expect(Q.one().sub(r[16]).mul(r[17]).isZero());
     }
 }

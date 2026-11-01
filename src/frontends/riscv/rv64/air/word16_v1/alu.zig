@@ -7,10 +7,35 @@ const WordAdd = @import("word_add.zig");
 pub const encoding = @import("alu_encoding.zig");
 pub const LOCAL_MAIN = encoding.LOCAL_MAIN;
 pub const MAIN = LOCAL_MAIN;
+/// Logical diagnostic authority, including the five payload substitution
+/// identities (op and C[4]). Physical rows emit PROJECTED_CONSTRAINTS.
 pub const CONSTRAINTS = encoding.LOCAL_CONSTRAINTS;
+pub const DERIVED_PAYLOAD = 5;
+pub const PROJECTED_CONSTRAINTS = CONSTRAINTS - DERIVED_PAYLOAD;
 pub const RANGE_QUERIES = encoding.RANGE_QUERIES;
+/// Committed payload coordinates: A[4] and B[4] only (payload[1..9]).
+pub const COMMITTED_PAYLOAD_START = 1;
+pub const COMMITTED_PAYLOAD_END = 9;
+/// Committed column indices after payload derivation (main47 = local46 + multiplicity).
+pub const columns = struct {
+    pub const a = 0;
+    pub const b = 4;
+    pub const active = 8;
+    pub const selectors = 9;
+    pub const sum = 19;
+    pub const difference = 23;
+    pub const carry = 27;
+    pub const borrow = 31;
+    pub const zero = 35;
+    pub const inverse = 36;
+    pub const sign = 37;
+    pub const low = 41;
+    pub const signed_less = 45;
+    pub const multiplicity = LOCAL_MAIN;
+};
 pub fn RowFor(comptime F: type) type {
     return struct {
+        /// op, A[4], B[4], C[4]. Only A/B are committed; op and C are derived.
         payload: [13]F,
         active: F,
         selectors: [10]F,
@@ -27,22 +52,58 @@ pub fn RowFor(comptime F: type) type {
     };
 }
 
+/// Exact projection of the five former committed payload copies. op is affine
+/// in the selectors; C[i] is selector times committed auxiliary, so quadratic.
+/// FUNCTION keeps a strict single inverse: inverse*D_function-1 has degree 3.
+pub fn derivePayloadFor(comptime F: type, r: *RowFor(F)) void {
+    const one = F.one();
+    var operation = F.zero();
+    for (r.selectors, 0..) |s, i| operation = operation.add(s.mul(constant(F, @intCast(i))));
+    r.payload[0] = operation;
+    const equal = r.zero;
+    const predicates = [6]F{ r.signed_less, r.borrow[3], equal, one.sub(equal), one.sub(r.signed_less), one.sub(r.borrow[3]) };
+    for (0..4) |i| {
+        const addw = if (i < 2) r.sum[i] else r.sign[2].mul(constant(F, 65535));
+        const subw = if (i < 2) r.difference[i] else r.sign[3].mul(constant(F, 65535));
+        var output = r.selectors[0].mul(r.sum[i]).add(r.selectors[1].mul(r.difference[i]))
+            .add(r.selectors[2].mul(addw)).add(r.selectors[3].mul(subw));
+        if (i == 0) for (predicates, 0..) |predicate, j| {
+            output = output.add(r.selectors[4 + j].mul(predicate));
+        };
+        r.payload[9 + i] = output;
+    }
+}
+/// Native base rows (M31) share the same derivation as every arithmetic lane.
+fn constant(comptime F: type, value: u32) F {
+    if (F == @import("stwo_core").fields.m31.M31) return F.fromCanonical(value);
+    return E.qFor(F, value);
+}
+
 /// All limb equations have absolute integer magnitude <2^18 once U16
 /// memberships and boolean carries hold. Thus an M31 equality cannot wrap
 /// into a different integer carry. This bound does not apply to U16 products.
+/// Logical diagnostic: retains the payload substitution identities (53).
 pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
+    emitInternal(F, r, sink, true);
+}
+/// Physical rows have no independent op/C payload. Do not evaluate or
+/// accumulate five identically zero residuals after the exact substitution.
+pub fn emitProjectedFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
+    emitInternal(F, r, sink, false);
+}
+fn emitInternal(comptime F: type, r: *const RowFor(F), sink: anytype, comptime logical: bool) void {
     const one = F.one();
     const radix = E.qFor(F, 65536);
+    var derived = r.*;
+    derivePayloadFor(F, &derived);
     var selected = F.zero();
-    var operation = F.zero();
-    for (r.selectors, 0..) |s, i| {
+    for (r.selectors) |s| {
         sink.emit(s.mul(s.sub(one)));
         selected = selected.add(s);
-        operation = operation.add(s.mul(E.qFor(F, @intCast(i))));
     }
     sink.emit(r.active.mul(r.active.sub(one)));
     sink.emit(selected.sub(r.active));
-    sink.emit(r.payload[0].sub(operation));
+    if (logical) sink.emit(r.payload[0].sub(derived.payload[0]));
     for (r.carry) |value| sink.emit(value.mul(value.sub(one)));
     for (r.borrow) |value| sink.emit(value.mul(value.sub(one)));
     const signed_limbs = [4]F{ r.payload[4], r.payload[8], r.sum[1], r.difference[1] };
@@ -63,19 +124,8 @@ pub fn emitFor(comptime F: type, r: *const RowFor(F), sink: anytype) void {
     sink.emit(r.zero.mul(r.zero.sub(one)));
     sink.emit(r.zero.mul(difference_sum));
     sink.emit(difference_sum.mul(r.inverse).add(r.zero).sub(one));
-    const equal = r.zero;
     sink.emit(r.signed_less.sub(signedLessFor(F, r.sign[0], r.sign[1], r.borrow[3])));
-    const predicates = [6]F{ r.signed_less, r.borrow[3], equal, one.sub(equal), one.sub(r.signed_less), one.sub(r.borrow[3]) };
-    for (0..4) |i| {
-        const addw = if (i < 2) r.sum[i] else r.sign[2].mul(E.qFor(F, 65535));
-        const subw = if (i < 2) r.difference[i] else r.sign[3].mul(E.qFor(F, 65535));
-        var output = r.selectors[0].mul(r.sum[i]).add(r.selectors[1].mul(r.difference[i]))
-            .add(r.selectors[2].mul(addw)).add(r.selectors[3].mul(subw));
-        if (i == 0) for (predicates, 0..) |predicate, j| {
-            output = output.add(r.selectors[4 + j].mul(predicate));
-        };
-        sink.emit(r.payload[9 + i].sub(output));
-    }
+    if (logical) for (0..4) |i| sink.emit(r.payload[9 + i].sub(derived.payload[9 + i]));
     const inactive = one.sub(r.active);
     for (r.payload[1..9]) |value| sink.emit(inactive.mul(value));
 }

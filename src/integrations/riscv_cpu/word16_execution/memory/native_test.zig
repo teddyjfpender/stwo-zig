@@ -118,7 +118,8 @@ test "LS source after MAIN retirement preserves checked legacy claims and projec
     for (0..n) |logical| {
         const pos = R.trace.physical(logical, 5);
         for (X.layout.U16) |column| r16 = r16.add(dict.q16[main[column * n + pos].v]);
-        for (X.layout.U8) |column| r8 = r8.add(dict.q8[main[column * n + pos].v]);
+        const expanded = expandRow(main, n, pos);
+        for (X.layout.LOGICAL_U8) |column| r8 = r8.add(dict.q8[expanded[column].v]);
     }
     try std.testing.expect(r16.eql(got.range16));
     try std.testing.expect(r8.eql(got.range8));
@@ -129,7 +130,8 @@ test "LS source after MAIN retirement preserves checked legacy claims and projec
         var inverses: [X.layout.LOCAL_FRACTIONS]Q = undefined;
         inverses[0] = loadSecure(legacy.interaction, n, pos, 8);
         for (X.layout.U16, 0..) |column, j| inverses[1 + j] = dict.q16[main[column * n + pos].v];
-        for (X.layout.U8, 0..) |column, j| inverses[1 + X.layout.U16.len + j] = dict.q8[main[column * n + pos].v];
+        const expanded = expandRow(main, n, pos);
+        for (X.layout.LOGICAL_U8, 0..) |column, j| inverses[1 + X.layout.U16.len + j] = dict.q8[expanded[column].v];
         inverses[inverses.len - 1] = loadSecure(legacy.interaction, n, pos, 108);
         running = running.add(inverses[0].mulM31(main[pos]));
         for (inverses[1..]) |inverse| running = running.add(inverse);
@@ -390,4 +392,11 @@ test "LS48 arbitrary PackedSecure residuals agree with sixteen independent QM31 
         X.equations.emitLsFor(Q, scalar[0][0..3], &scalar[1], &scalar[2], scalar[3][0..X.layout.INTERACTION], scalar[4][0..X.layout.INTERACTION], 7, claims, ch, &out);
         for (reference, result) |expected, actual| try std.testing.expect(expected.eql(actual.lane(lane)));
     }
+}
+
+/// U8 queries include the affine b_low coordinate, which has no MAIN column.
+fn expandRow(main: []const M, n: usize, pos: usize) [X.layout.projection.LOGICAL_MAIN]M {
+    var physical: [X.layout.MAIN]M = undefined;
+    for (&physical, 0..) |*v, column| v.* = main[column * n + pos];
+    return X.layout.projection.expandFor(M, &physical);
 }

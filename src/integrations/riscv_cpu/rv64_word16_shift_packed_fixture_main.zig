@@ -42,7 +42,7 @@ pub fn main() !void {
             .source_cells = (2 + X.lookup.MAIN + X.lookup.INTERACTION + 34 + 14 + 8) * 32 + (X.table.FIXED + X.table.MAIN + X.table.INTERACTION) * 65536 + 12 * 65536,
             .source_bytes = 4 * ((2 + X.lookup.MAIN + X.lookup.INTERACTION + 34 + 14 + 8) * 32 + (X.table.FIXED + X.table.MAIN + X.table.INTERACTION) * 65536 + 12 * 65536),
             .trace_oods_masks = 2 + X.lookup.MAIN + X.lookup.INTERACTION + 4 + 34 + 14 + 8 + 4 + X.table.FIXED + X.table.MAIN + X.table.INTERACTION + 4 + 3 + 1 + 8 + 4,
-            .shift = .{ .log = 5, .fixed = 2, .main = 53, .interaction = X.lookup.INTERACTION },
+            .shift = .{ .log = 5, .fixed = 2, .main = X.lookup.MAIN, .interaction = X.lookup.INTERACTION },
             .shift_table = .{ .log = 16, .fixed = 18, .main = 16, .interaction = 36 },
             .public_consumer = .{ .log = 5, .fixed = 34, .main = 14, .interaction = 8 },
             .u16 = .{ .log = 16, .fixed = 3, .main = 1, .interaction = 8 },

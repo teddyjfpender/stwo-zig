@@ -88,7 +88,7 @@ pub const Fill = struct {
             const family: usize = if (i < U16) 0 else if (i < U16 + U8) 1 else 2;
             totals[family] = std.math.add(u64, totals[family], c) catch return error.InvalidLsNativeFillMass;
         }
-        if (totals[0] != L.U16.len * n or totals[1] != L.U8.len * n or totals[2] != n) return error.InvalidLsNativeFillMass;
+        if (totals[0] != L.U16.len * n or totals[1] != L.U8_QUERIES * n or totals[2] != n) return error.InvalidLsNativeFillMass;
         @memcpy(c16, merged[0..U16]);
         @memcpy(c8, merged[U16..][0..U8]);
         @memcpy(selection, merged[U16 + U8 ..]);

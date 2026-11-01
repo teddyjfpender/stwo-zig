@@ -10,7 +10,7 @@ pub const encoding = @import("shift_word_encoding.zig");
 pub const INTERACTION = encoding.INTERACTION;
 pub const FUNCTION_INVERSE = encoding.FUNCTION_INVERSE;
 pub const PREFIX = encoding.PREFIX;
-pub const CONSTRAINTS = S.CONSTRAINTS + encoding.PAIRS + 4;
+pub const CONSTRAINTS = S.PROJECTED_CONSTRAINTS + encoding.PAIRS + 4;
 pub const Challenges = struct { shift: Table.Challenges, range16: Range.Challenges, function: Bus.Challenges };
 pub const Claims = struct { shift: E.Q, range16: E.Q, function: E.Q };
 pub fn ChallengesFor(comptime C: type) type {
@@ -33,7 +33,7 @@ pub fn unitDenominatorFor(comptime F: type, row: *const S.RowFor(F), query: usiz
 pub fn emitFor(comptime F: type, main: []const F, current: []const F, previous: []const F, first: F, last: F, claims: ClaimsFor(E.ConstFor(F)), ch: ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) void {
     const Secure = E.SecureFor(F);
     const row = S.rowFromColumnsFor(F, main);
-    S.emitFor(F, &row, sink);
+    S.emitProjectedFor(F, &row, sink);
     const multiplicity = main[S.LOCAL_MAIN];
     sink.emit(F.one().sub(row.active).mul(multiplicity));
     var contribution = Secure.zero();
