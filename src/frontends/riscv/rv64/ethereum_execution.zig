@@ -40,6 +40,27 @@ const Config = struct {
     compact_capture_batch_steps: ?u32 = null,
     capture_ram_boundaries: bool = false,
     frequent_operation_limit: ?usize = null,
+    /// Diagnostic only: per-opcode load/store byte-offset histogram. Observes
+    /// retired rows; never changes execution or any other report field.
+    ls_histogram: bool = false,
+};
+/// Load/store opcodes in decode order LB..SD.
+const LS_FIRST = @intFromEnum(rv.decode.Opcode.LB);
+const LS_COUNT = @intFromEnum(rv.decode.Opcode.SD) - LS_FIRST + 1;
+const LsHistogram = struct {
+    opcode_names: [LS_COUNT][]const u8 = blk: {
+        var names: [LS_COUNT][]const u8 = undefined;
+        for (&names, 0..) |*n, i| n.* = OPCODE_NAMES[LS_FIRST + i];
+        break :blk names;
+    },
+    /// [opcode][address & 7]: byte offset of the access inside its 8-byte word.
+    word_offset: [LS_COUNT][8]u64 = @splat(@splat(0)),
+    /// Accesses not naturally aligned (address % width != 0); the memory layer traps these, so expected 0.
+    misaligned: [LS_COUNT]u64 = @splat(0),
+    /// Accesses whose base register is sp (x2): stack spills/reloads.
+    sp_based: [LS_COUNT]u64 = @splat(0),
+    /// Loads whose rd is x0 (discarded) per opcode.
+    rd_zero: [LS_COUNT]u64 = @splat(0),
 };
 const PcRange = struct { start: u64, end: u64 };
 const PcProfile = struct { start: u64, end: u64, counts: []u64, outside: u64 = 0 };
@@ -139,6 +160,7 @@ const Report = struct {
     frequent_operations: ?frequent.Summary = null,
     candidate_service_calls: ?candidate.Counts = null,
     candidate_isa_counts: ?cisa.Counts = null,
+    ls_histogram: ?LsHistogram = null,
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(A);
@@ -231,6 +253,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     defer if (boundaries) |*value| value.deinit();
     var report = Report{ .status = .step_limit, .pc = loaded.info.entry, .instructions = 0, .opcode_counts = @splat(0), .loads = 0, .stores = 0, .allocated_pages = 0, .setup_ns = setup_timer.read(), .execution_ns = 0, .elf_sha256 = undefined, .input_sha256 = undefined };
     report.execution_profile = c.execution_profile;
+    if (c.ls_histogram) report.ls_histogram = .{};
     report.access_census_batch_steps = c.census_batch_steps;
     if (is_candidate) report.candidate_service_calls = .{};
     if (is_isa) report.candidate_isa_counts = .{};
@@ -398,6 +421,14 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         if (row.memory) |effect| {
             if (effect.write) report.stores += 1 else report.loads += 1;
             const address = effect.address.toInt();
+            if (report.ls_histogram) |*h| {
+                const op = @as(usize, @intFromEnum(row.opcode)) -% LS_FIRST;
+                if (op >= LS_COUNT) return error.LsHistogramNonMemoryOpcode;
+                h.word_offset[op][@intCast(address & 7)] += 1;
+                if (address % effect.width != 0) h.misaligned[op] += 1;
+                if (row.rs1 == 2) h.sp_based[op] += 1;
+                if (!effect.write and row.rd == 0) h.rd_zero[op] += 1;
+            }
             if (census) |*value| {
                 try value.observe(address, effect.before_word.toInt(), effect.after_word.toInt(), effect.write);
                 try value.retireOpcode(@intFromEnum(row.opcode));
