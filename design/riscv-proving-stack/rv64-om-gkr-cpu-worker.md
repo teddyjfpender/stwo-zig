@@ -77,3 +77,9 @@ RSS. Scheduler admission must retain an independently justified transient lease
 a bound on total physical memory. Parked abort and later stage-one OOM tests
 verify that registry owners, mappings and reservations all unwind without a
 restore or stale owner pointer.
+
+The final Safe/Fast parity gate runs both CPU service shards twice: an unretired
+control and the retired/trimmed, parked/restored worker. Their physical proof
+bytes plus all canonical physical claims hash identically, and both variants
+freshly verify. This qualifies the ownership changes under the same OM profile;
+it does not claim identity across protocol/schema changes or full-block speed.

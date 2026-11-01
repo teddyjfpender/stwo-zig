@@ -6,8 +6,8 @@ const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 const Worker = @import("cpu_worker.zig");
 const Manifest = @import("manifest.zig");
-const Mode = enum { normal, early_seal, parked_abort, later_worker_oom };
-fn exercise(comptime shard: usize, comptime mode: Mode) !void {
+const Mode = enum { normal, unretired, early_seal, parked_abort, later_worker_oom };
+fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
     const a = failing.allocator();
     var captured = try F.Captured.init(a);
@@ -48,23 +48,25 @@ fn exercise(comptime shard: usize, comptime mode: Mode) !void {
         failing.fail_index = failing.alloc_index;
         try std.testing.expectError(error.OutOfMemory, worker.seal(a));
         failing.fail_index = std.math.maxInt(usize);
-        return;
+        return @splat(0);
     }
     const stage = try worker.seal(a);
     try std.testing.expectError(error.WideCpuPhase, worker.seal(a));
-    try worker.retireLocalMetadata();
-    try worker.retireLocalMetadata();
-    const memory_after = &worker.source.core.memory;
-    var advice_bytes = std.mem.sliceAsBytes(memory_after.statement.initial).len + std.mem.sliceAsBytes(memory_after.statement.terminal).len;
-    advice_bytes += std.mem.sliceAsBytes(memory_after.ls.metadata).len;
-    if (memory_after.ls_tail) |tail| advice_bytes += std.mem.sliceAsBytes(tail.metadata).len;
-    advice_bytes += std.mem.sliceAsBytes(memory_after.initial.metadata).len + std.mem.sliceAsBytes(memory_after.terminal.metadata).len;
-    inline for (.{ "keccak", "add", "double" }) |name| if (@field(worker.source, name)) |bridge| {
-        advice_bytes += std.mem.sliceAsBytes(bridge.calls).len;
-        try std.testing.expectEqual(@as(usize, 0), bridge.fixed.len + bridge.counts16.len + bridge.counts8.len);
-    };
-    try std.testing.expectEqual(retention.global_metadata_bytes, advice_bytes);
-    try std.testing.expectEqual(@as(usize, 0), memory_after.ls.fixed.len + memory_after.ls.counts16.len + memory_after.ls.counts8.len + memory_after.ls.selection_counts.len + memory_after.selection.fixed.len + memory_after.counts16.len + memory_after.counts8.len);
+    if (mode != .unretired) {
+        try worker.retireLocalMetadata();
+        try worker.retireLocalMetadata();
+        const memory_after = &worker.source.core.memory;
+        var advice_bytes = std.mem.sliceAsBytes(memory_after.statement.initial).len + std.mem.sliceAsBytes(memory_after.statement.terminal).len;
+        advice_bytes += std.mem.sliceAsBytes(memory_after.ls.metadata).len;
+        if (memory_after.ls_tail) |tail| advice_bytes += std.mem.sliceAsBytes(tail.metadata).len;
+        advice_bytes += std.mem.sliceAsBytes(memory_after.initial.metadata).len + std.mem.sliceAsBytes(memory_after.terminal.metadata).len;
+        inline for (.{ "keccak", "add", "double" }) |name| if (@field(worker.source, name)) |bridge| {
+            advice_bytes += std.mem.sliceAsBytes(bridge.calls).len;
+            try std.testing.expectEqual(@as(usize, 0), bridge.fixed.len + bridge.counts16.len + bridge.counts8.len);
+        };
+        try std.testing.expectEqual(retention.global_metadata_bytes, advice_bytes);
+        try std.testing.expectEqual(@as(usize, 0), memory_after.ls.fixed.len + memory_after.ls.counts16.len + memory_after.ls.counts8.len + memory_after.ls.selection_counts.len + memory_after.selection.fixed.len + memory_after.counts16.len + memory_after.counts8.len);
+    }
     var coefficient_bytes: usize = 0;
     for (worker.scheme.trees.items[1].coefficients.?) |c| coefficient_bytes += std.mem.sliceAsBytes(c.coefficients()).len;
     try std.testing.expectEqual(retention.coefficient_bytes, coefficient_bytes);
@@ -105,7 +107,7 @@ fn exercise(comptime shard: usize, comptime mode: Mode) !void {
         try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
         try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
         try std.testing.expect(store.parking.head == null and store.owners == null);
-        return;
+        return @splat(0);
     }
     try std.testing.expect(try worker.restoreMain(&store) > 0);
     try std.testing.expectEqualSlices(u8, &stage.main, &worker.scheme.trees.items[1].root());
@@ -145,22 +147,36 @@ fn exercise(comptime shard: usize, comptime mode: Mode) !void {
     try std.testing.expectError(error.InvalidWideCpuClaims, Worker.verifyCpu(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &short));
     // This is a shard proof; the absent truth/other shard debts remain explicit.
     try std.testing.expectError(error.UnclosedGlobalGkrRam, pending.checkGlobalClosure(&.{accepted}));
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update(encoded.bytes);
+    for (encoded.claims) |claim| for (claim.toM31Array()) |coordinate| {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, coordinate.v, .little);
+        hash.update(&bytes);
+    };
+    var digest: [32]u8 = undefined;
+    hash.final(&digest);
+    return digest;
 }
 
 test "actual CPU Keccak services shard local GKR and physical OM proof fresh verify" {
-    try exercise(0, .normal);
+    const retired = try exercise(0, .normal);
+    const control = try exercise(0, .unretired);
+    try std.testing.expectEqualSlices(u8, &control, &retired);
 }
 test "actual CPU ADD DOUBLE shard local GKR and physical OM proof fresh verify" {
-    try exercise(1, .normal);
+    const retired = try exercise(1, .normal);
+    const control = try exercise(1, .unretired);
+    try std.testing.expectEqualSlices(u8, &control, &retired);
 }
 
 test "CPU worker stage-one early OOM destroys its retained owners once" {
-    try exercise(0, .early_seal);
+    _ = try exercise(0, .early_seal);
 }
 
 test "CPU parked worker abort tears down FD registry and store without restore" {
-    try exercise(0, .parked_abort);
+    _ = try exercise(0, .parked_abort);
 }
 test "later CPU stage-one OOM unwinds prior parked worker without stale owners" {
-    try exercise(0, .later_worker_oom);
+    _ = try exercise(0, .later_worker_oom);
 }
