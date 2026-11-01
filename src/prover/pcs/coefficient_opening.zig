@@ -1,5 +1,6 @@
 //! Selective openings from coefficient-backed host commitments. Scratch is one
-//! bounded LDE batch plus queried leaf blocks, independent of commitment width.
+//! bounded coefficient-window batch plus queried leaf blocks, independent of
+//! commitment width.
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const poly = @import("../poly/circle/mod.zig");
@@ -14,7 +15,7 @@ pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: 
     return decommitForBackend(void, H, a, tree, queries);
 }
 
-/// Host openings default to half-scratch pruned expansion with per-worker
+/// Host openings default to coefficient-sized pruned windows with per-worker
 /// scratch reuse and a column work queue. STWO_ZIG_FULL_SCRATCH_OPENING=1
 /// restores the previous full-scratch wave schedule for A/B comparison.
 pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
@@ -463,7 +464,7 @@ const Expansion = struct {
 
 fn scratchLength(column: Column, half: bool) usize {
     const n = @as(usize, 1) << @intCast(column.log_size);
-    return if (half and column.log_size > 5 and column.coefficient_values.?.len == n / 2) n / 2 else n;
+    return if (half) transforms.selectedCoefficientScratchLength(column.coefficient_values.?.len, column.log_size) else n;
 }
 
 /// Project and canonicalize once per native height, not once per column.

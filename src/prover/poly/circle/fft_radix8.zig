@@ -28,8 +28,10 @@ fn run(
 ) void {
     std.debug.assert(log_size < @bitSizeOf(usize));
     if (windowed) {
-        std.debug.assert(values.len * 2 == @as(usize, 1) << @intCast(log_size));
-        std.debug.assert(row_offset == 0 or row_offset == values.len);
+        const full_size = @as(usize, 1) << @intCast(log_size);
+        std.debug.assert(values.len != 0 and std.math.isPowerOfTwo(values.len) and values.len <= full_size);
+        std.debug.assert(row_offset % values.len == 0 and row_offset <= full_size - values.len);
+        std.debug.assert(stage < std.math.log2_int(usize, values.len));
         std.debug.assert(!inverse_transform and !normalize and !duplicate_upper_from_lower);
     } else std.debug.assert(values.len == @as(usize, 1) << @intCast(log_size));
     const pair_count = values.len / 2;
@@ -133,7 +135,7 @@ pub fn forward(
     run(values, log_size, highest_stage, twiddles, false, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false, false, 0);
 }
 
-/// Same radix-8 authority on one contiguous half of the full transform.
+/// Same radix-8 authority on an aligned power-of-two window of the transform.
 /// The values use local addresses; twiddle groups retain full-domain indices.
 pub fn forwardWindow(values: []M31, full_log_size: u32, highest_stage: u32, twiddles: []const M31, row_offset: usize) void {
     run(values, full_log_size, highest_stage, twiddles, false, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false, true, row_offset);
