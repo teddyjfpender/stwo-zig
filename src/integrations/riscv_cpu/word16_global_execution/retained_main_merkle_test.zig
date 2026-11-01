@@ -182,3 +182,27 @@ test "fully parked mappings reserve and release the same SharedHostBudget cap" {
     alive = false;
     try std.testing.expectEqual(@as(usize, 0), budget.snapshot().live_bytes);
 }
+test "fully parked pruned node shape preserves reconstructed Merkle openings exactly" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try tmp.dir.realpathAlloc(a, ".");
+    defer a.free(path);
+    var store = try Store.initFullyParked(path, 1 << 20);
+    defer store.deinit();
+    var s = try scheme(a);
+    defer s.deinit(a);
+    const tree = &s.trees.items[0];
+    tree.commitment.pruneBottomLayers(3);
+    const plan = try store.parkingPlan(tree);
+    try std.testing.expectEqual(@as(usize, 992), plan.merkle_bytes);
+    const positions = [_]usize{ 127, 0, 65, 3, 0 };
+    var before = try tree.decommit(a, &positions);
+    defer before.deinit(a);
+    _ = try store.spill(a, tree);
+    _ = try store.restore(tree);
+    for (tree.commitment.layers[5..]) |layer| try std.testing.expectEqual(@as(usize, 0), layer.len);
+    var after = try tree.decommit(a, &positions);
+    defer after.deinit(a);
+    try std.testing.expectEqualDeep(before.queried_values, after.queried_values);
+    try std.testing.expectEqualDeep(before.decommitment, after.decommitment);
+}
