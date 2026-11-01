@@ -149,17 +149,35 @@ pub const Component = struct {
         }
         return Air.MaskPoints.initOwned(trees);
     }
-    /// Samples callback supplies original MAIN/fixed values and all exact shifts.
+    /// Large packed row buffers have a single explicit owner. Domain workers
+    /// allocate these on their admitted allocator, never on1MiB helper stacks.
+    pub fn Workspace(comptime F: type) type {
+        return struct {
+            fixed: [K.layout.FIXED]F,
+            main: [K.layout.MAIN]F,
+            current: [5336]F,
+            previous: [5336]F,
+            shifted: [4][K.layout.STATE]F,
+            header: [3]F,
+        };
+    }
+    /// Point/circuit callers retain their existing wrapper. The constraint
+    /// body and emission order are shared with heap-workspace domain callers.
     pub fn emitFor(self: *const @This(), comptime F: type, samples: anytype, sink: *E.SinkFor(F)) !void {
+        var workspace: Workspace(F) = undefined;
+        return self.emitForWithWorkspace(F, samples, sink, &workspace);
+    }
+    pub fn emitForWithWorkspace(self: *const @This(), comptime F: type, samples: anytype, sink: *E.SinkFor(F), workspace: *Workspace(F)) !void {
         const width = self.widths();
-        var fixed: [K.layout.FIXED]F = undefined;
+        const fixed = &workspace.fixed;
+        const main = &workspace.main;
+        const current = &workspace.current;
+        const previous = &workspace.previous;
         for (fixed[0..width[0]], 0..) |*v, c| v.* = try samples.get(0, c, 0);
-        var main: [K.layout.MAIN]F = undefined;
         for (main[0..width[1]], 0..) |*v, c| v.* = try samples.get(1, c, 0);
-        var current: [5336]F = undefined;
-        var previous: [5336]F = @splat(F.zero());
         for (current[0..width[2]], 0..) |*v, c| {
             v.* = try samples.get(2, c, 0);
+            previous[c] = F.zero();
             if (self.shifts(2, c).len > 1) previous[c] = try samples.get(2, c, -1);
         }
         const first = fixed[self.firstColumn()];
@@ -167,14 +185,14 @@ pub const Component = struct {
         var local = Local.SinkFor(F){ .challenges = &self.local, .current = current[0..self.localWidth()], .out = sink, .width = Local.packing(self.kind) };
         switch (self.kind) {
             .keccak => {
-                var shifted: [4][K.layout.STATE]F = undefined;
+                const shifted = &workspace.shifted;
                 const offsets_ = [_]i32{ -2, -1, 1, 2 };
-                for (&shifted, offsets_) |*state, shift| {
+                for (shifted, offsets_) |*state, shift| {
                     for (state, 0..) |*v, c| v.* = try samples.get(1, c, shift);
                 }
-                var header: [3]F = undefined;
-                for (&header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
-                const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = &header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
+                const header = &workspace.header;
+                for (header, 0..) |*v, c| v.* = try samples.get(1, K.layout.ACTIVE_A + c, -1);
+                const row = K.equations.RowFor(F){ .fixed = fixed[0..K.layout.FIXED], .main = main[0..K.layout.MAIN], .previous_header = header, .state_minus_two = &shifted[0], .state_minus_one = &shifted[1], .state_plus_one = &shifted[2], .state_plus_two = &shifted[3] };
                 K.equations.emitDirectFor(F, row, .{ .calls = self.calls, .first_id = self.first_id }, sink, true);
                 TF.keccakFor(F, row, &local);
                 try local.finish(self.instance(), previous[0..self.localWidth()], first, last, self.claim);

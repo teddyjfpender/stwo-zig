@@ -1,0 +1,8 @@
+1/6 rv64_truth_parallel_test_root.test_0...OK
+2/6 word16_global_execution.services.gkr_local.truth_parallel_test.test.truth packed domain whole service proof parity across bounded1MiB pool and serial...TRUTH_DOMAIN_CAPTURE bundle_sha256=eaa04370373513f54f8c7435f1453983681413dfd978f56026f363ed8fa9f386 proofs=5 fresh_global_closed=true
+OK
+3/6 logup_gkr.mle_point.test.logup-gkr mle point: eq column satisfies anchors and carry recurrence...OK
+4/6 logup_gkr.mle_point.test.logup-gkr mle point: any single eq cell mutation violates the constraints...OK
+5/6 logup_gkr.mle_point.test.logup-gkr mle point: succinct carry quotient and anchors match interpolation...OK
+6/6 logup_gkr.mle_point.test.logup-gkr mle point: degenerate coordinates are rejected...OK
+All 6 tests passed.

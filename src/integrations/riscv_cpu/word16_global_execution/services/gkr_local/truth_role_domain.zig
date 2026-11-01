@@ -11,6 +11,26 @@ const P = engine.air.component_prover.ForField(O);
 const D = engine.air.accumulation.ForField(O);
 const Evaluation = A.full.coset_evaluation.Evaluation;
 const Component = @import("truth_role.zig").Component;
+const RowWork = engine.lookups.row_work;
+pub const MAX_ROW_WORKSPACE_BYTES: usize = 32 << 20;
+pub const MIN_BLOCKS_PER_TASK: usize = 64;
+pub const RowWorkspace = Component.Workspace(F);
+pub const WorkspacePlan = struct {
+    jobs: usize,
+    bytes: usize,
+    pub fn allocate(self: WorkspacePlan, allocator: std.mem.Allocator) ![]RowWorkspace {
+        if (self.jobs == 0 or self.jobs > RowWork.MAX_SHARDS or self.bytes != try std.math.mul(usize, self.jobs, @sizeOf(RowWorkspace)) or self.bytes > MAX_ROW_WORKSPACE_BYTES) return error.WideTruthRowScratchBudgetExceeded;
+        return allocator.alloc(RowWorkspace, self.jobs);
+    }
+    pub fn init(rows: usize, available_workers: usize) !WorkspacePlan {
+        if (rows == 0 or rows % E.LANES != 0) return error.InvalidWideTruthTrace;
+        const blocks = rows / E.LANES;
+        const jobs = @max(1, @min(RowWork.MAX_SHARDS, @min(available_workers, blocks / MIN_BLOCKS_PER_TASK)));
+        const bytes = try std.math.mul(usize, jobs, @sizeOf(RowWorkspace));
+        if (bytes > MAX_ROW_WORKSPACE_BYTES) return error.WideTruthRowScratchBudgetExceeded;
+        return .{ .jobs = jobs, .bytes = bytes };
+    }
+};
 const Samples = struct {
     owner: *const Component,
     evaluation: *const Evaluation,
@@ -62,25 +82,58 @@ pub fn evaluate(self: *const Component, trace: *const P.Trace, acc: *D.DomainEva
     previous[native_total] = false;
     var evaluation = if (self.compositionLogSplit() == 1) try Evaluation.initDegreeThree(a, columns, self.log_size, previous) else try Evaluation.init(a, columns, self.log_size, previous);
     defer evaluation.deinit();
+    const pool = engine.work_pool.currentScopedPool();
+    const workers = if (pool) |p| if (engine.work_pool.cooperative.current() == null) p.availableWorkers() else 1 else 1;
+    const plan = try WorkspacePlan.init(evaluation.size, workers);
+    const workspaces = try plan.allocate(a);
+    defer a.free(workspaces);
     const outputs = try acc.columns(a, &.{.{ .log_size = self.log_size + self.compositionLogSplit(), .n_cols = self.nConstraints() }});
     defer a.free(outputs);
     var output = outputs[0];
     for (0..@as(usize, 1) << @intCast(self.compositionLogSplit())) |part| {
-        try evaluation.evaluatePartWithPool(part, engine.work_pool.currentScopedPool());
+        try evaluation.evaluatePartWithPool(part, pool);
         const inverse = F.fromBase(try evaluation.denominatorInverse(part));
-        var row: usize = 0;
-        while (row < evaluation.size) : (row += E.LANES) {
-            var weighted = E.WeightedAccumulatorFor(F){ .powers = output.random_coeff_powers };
+        const first = evaluation.globalRow(part, 0);
+        const fresh = if (output.next_fresh_index) |next| next == first else false;
+        var failures: [RowWork.MAX_SHARDS]?anyerror = @splat(null);
+        var context = Rows{ .owner = self, .evaluation = &evaluation, .output = &output, .workspaces = workspaces, .failures = &failures, .part = part, .inverse = inverse, .fresh = fresh };
+        const active = RowWork.forEachRange(evaluation.size / E.LANES, &context, .{ .max_shards = plan.jobs, .min_rows_per_shard = MIN_BLOCKS_PER_TASK });
+        // All helpers and their fixed pool submissions are joined. Select the
+        // first ordinal error without dropping any still-running workspace.
+        for (failures[0..active]) |failure| if (failure) |err| {
+            output.next_fresh_index = null;
+            return err;
+        };
+        output.next_fresh_index = if (fresh) first + evaluation.size else null;
+    }
+}
+const Rows = struct {
+    owner: *const Component,
+    evaluation: *const Evaluation,
+    output: *const D.ColumnAccumulator,
+    workspaces: []RowWorkspace,
+    failures: *[RowWork.MAX_SHARDS]?anyerror,
+    part: usize,
+    inverse: F,
+    fresh: bool,
+    pub fn runRange(self: *Rows, index: usize, first: usize, end: usize) void {
+        self.evaluateRange(index, first, end) catch |err| {
+            self.failures[index] = err;
+        };
+    }
+    fn evaluateRange(self: *Rows, index: usize, first: usize, end: usize) !void {
+        const workspace = &self.workspaces[index];
+        for (first..end) |block| {
+            const row = block * E.LANES;
+            var weighted = E.WeightedAccumulatorFor(F){ .powers = self.output.random_coeff_powers };
             var sink = E.SinkFor(F){ .weighted_accumulator = &weighted };
-            try self.emitFor(F, Samples{ .owner = self, .evaluation = &evaluation, .part = part, .row = row }, &sink);
-            if (sink.count != self.nConstraints()) return error.WideTruthConstraintCount;
-            const result = weighted.accumulation.mulBase(inverse).coordinates();
-            const start = evaluation.globalRow(part, row);
-            const fresh = if (output.next_fresh_index) |next| next == start else false;
-            output.next_fresh_index = if (fresh) start + E.LANES else null;
-            for (output.col.columns, result) |column, v| {
-                if (fresh) v.store(column.ptr + start) else F.load(column.ptr + start).add(v).store(column.ptr + start);
+            try self.owner.emitForWithWorkspace(F, Samples{ .owner = self.owner, .evaluation = self.evaluation, .part = self.part, .row = row }, &sink, workspace);
+            if (sink.count != self.owner.nConstraints()) return error.WideTruthConstraintCount;
+            const result = weighted.accumulation.mulBase(self.inverse).coordinates();
+            const start = self.evaluation.globalRow(self.part, row);
+            for (self.output.col.columns, result) |column, value| {
+                if (self.fresh) value.store(column.ptr + start) else F.load(column.ptr + start).add(value).store(column.ptr + start);
             }
         }
     }
-}
+};
