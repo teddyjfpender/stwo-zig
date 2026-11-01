@@ -355,3 +355,7 @@ test {
 test {
     _ = @import("source_bounds_test.zig");
 }
+
+test {
+    _ = @import("../../ethereum/receiver_budget.zig");
+}
