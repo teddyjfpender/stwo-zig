@@ -14,6 +14,7 @@ pub const Configure = types.Configure;
 /// consume this exact list.
 pub const steps = [_]Step{
     .{ .name = "test-native-cpu-om31", .description = "Qualify wide STARKs, mixed heights and fresh proof-file receivers", .scope = .native_cpu },
+    .{ .name = "test-native-cpu-wide-sampling", .description = "Qualify bounded shared wide sampled-point bases and ownership", .scope = .native_cpu },
     .{ .name = "test-native-cpu-gkr-rows", .description = "Qualify bounded pooled GKR row kernels and transcript parity", .scope = .native_cpu },
     .{ .name = "test-stwo-core-om31-deep", .description = "Qualify explicit wide DEEP authority", .scope = .core },
     .{ .name = "test-stwo-core-om31-fri", .description = "Qualify explicit wide FRI authority", .scope = .core },
