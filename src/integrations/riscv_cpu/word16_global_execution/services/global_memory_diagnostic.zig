@@ -62,11 +62,16 @@ pub fn auditCaptured(advice: *const Collected, image: Memory.Image) !Report {
             const d = try LS.native.describe(e.opcode);
             try append(&events, &count, .{
                 .address = (e.a +% e.immediate) & ~@as(u64, 7),
-                .previous_epoch = e.before.epoch, .previous_tick = e.before.tick,
-                .epoch = e.epoch, .tick = e.tick,
-                .before = e.before.value, .after = e.after.value,
-                .rights = e.before.rights, .access = if (d.write) .write else .read,
-                .origin = .load_store, .origin_ordinal = @intCast(i),
+                .previous_epoch = e.before.epoch,
+                .previous_tick = e.before.tick,
+                .epoch = e.epoch,
+                .tick = e.tick,
+                .before = e.before.value,
+                .after = e.after.value,
+                .rights = e.before.rights,
+                .access = if (d.write) .write else .read,
+                .origin = .load_store,
+                .origin_ordinal = @intCast(i),
             });
             ls_count += 1;
         }
@@ -77,18 +82,24 @@ pub fn auditCaptured(advice: *const Collected, image: Memory.Image) !Report {
                 if (call.before[lane] != prev.value) return error.InconsistentCapturedServiceBefore;
                 try append(&events, &count, .{
                     .address = try serviceWord(call.pointer, lane),
-                    .previous_epoch = prev.epoch, .previous_tick = prev.tick,
-                    .epoch = call.epoch, .tick = call.tick,
-                    .before = call.before[lane], .after = call.after[lane],
-                    .rights = prev.rights, .access = .read_write,
-                    .origin = .keccak, .origin_ordinal = @intCast(call_index),
+                    .previous_epoch = prev.epoch,
+                    .previous_tick = prev.tick,
+                    .epoch = call.epoch,
+                    .tick = call.tick,
+                    .before = call.before[lane],
+                    .after = call.after[lane],
+                    .rights = prev.rights,
+                    .access = .read_write,
+                    .origin = .keccak,
+                    .origin_ordinal = @intCast(call_index),
                 });
                 keccak_count += 1;
             }
         }
         for (curves, 0..) |calls, kind_index| {
             const kind: Secp.program.Kind = if (kind_index == 0) .add else .double;
-            const words = Secp.word16_bridge.types.coordinates(kind);
+            // Projective inputs count 256-bit field elements; the RAM bus uses four 64-bit words per element.
+            const words = Secp.word16_bridge.types.coordinates(kind) * 4;
             for (calls, 0..) |call, call_index| {
                 if (call.epoch != epoch) return error.InvalidGlobalDiagnosticEpoch;
                 for (0..words) |lane| {
@@ -96,11 +107,16 @@ pub fn auditCaptured(advice: *const Collected, image: Memory.Image) !Report {
                     if (call.before[lane] != prev.value) return error.InconsistentCapturedServiceBefore;
                     try append(&events, &count, .{
                         .address = try serviceWord(call.pointer, lane),
-                        .previous_epoch = prev.epoch, .previous_tick = prev.tick,
-                        .epoch = call.epoch, .tick = call.tick,
-                        .before = call.before[lane], .after = call.after[lane],
-                        .rights = prev.rights, .access = .read_write,
-                        .origin = .secp256k1, .origin_ordinal = @intCast(call_index),
+                        .previous_epoch = prev.epoch,
+                        .previous_tick = prev.tick,
+                        .epoch = call.epoch,
+                        .tick = call.tick,
+                        .before = call.before[lane],
+                        .after = call.after[lane],
+                        .rights = prev.rights,
+                        .access = .read_write,
+                        .origin = .secp256k1,
+                        .origin_ordinal = @intCast(call_index),
                     });
                     secp_count += 1;
                 }

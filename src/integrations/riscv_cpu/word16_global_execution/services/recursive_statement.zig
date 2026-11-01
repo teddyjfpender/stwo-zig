@@ -50,11 +50,17 @@ pub fn fromPublicCpu(expected: P.Expected, encoded: Cpu, ordinal: usize, first_s
     const end = std.math.add(u64, first_step, cpu.steps) catch return error.Word16SpanOverflow;
     if (end > expected.total_steps) return error.InvalidWord16SpanSteps;
     return .{
-        .program = expected.program_identity, .image = expected.admission.image_identity,
-        .first_epoch = @intCast(ordinal + 1), .end_epoch_exclusive = @intCast(ordinal + 2),
-        .first_step = first_step, .steps = cpu.steps, .cpu_count = 1,
-        .first_pc = cpu.initial_pc, .final_pc = cpu.final_pc,
-        .first_registers = cpu.initial_registers, .final_registers = cpu.final_registers,
+        .program = expected.program_identity,
+        .image = expected.admission.image_identity,
+        .first_epoch = @intCast(ordinal + 1),
+        .end_epoch_exclusive = @intCast(ordinal + 2),
+        .first_step = first_step,
+        .steps = cpu.steps,
+        .cpu_count = 1,
+        .first_pc = cpu.initial_pc,
+        .final_pc = cpu.final_pc,
+        .first_registers = cpu.initial_registers,
+        .final_registers = cpu.final_registers,
         .ram = encoded.claims.ram(),
         .keccak_io = encoded.claims.extras[0].truth,
         .secp_wire = encoded.claims.extras[1].truth.add(encoded.claims.extras[2].truth),
@@ -75,14 +81,7 @@ pub fn fold(left: FoldedSpan, right: FoldedSpan) !FoldedSpan {
         return error.Word16FoldNonadjacent;
     const steps = std.math.add(u64, left.steps, right.steps) catch return error.Word16SpanOverflow;
     const count = std.math.add(u32, left.cpu_count, right.cpu_count) catch return error.Word16SpanOverflow;
-    return .{ .program = left.program, .image = left.image,
-        .first_epoch = left.first_epoch, .end_epoch_exclusive = right.end_epoch_exclusive,
-        .first_step = left.first_step, .steps = steps, .cpu_count = count,
-        .first_pc = left.first_pc, .final_pc = right.final_pc,
-        .first_registers = left.first_registers, .final_registers = right.final_registers,
-        .ram = left.ram.add(right.ram),
-        .keccak_io = left.keccak_io.add(right.keccak_io),
-        .secp_wire = left.secp_wire.add(right.secp_wire) };
+    return .{ .program = left.program, .image = left.image, .first_epoch = left.first_epoch, .end_epoch_exclusive = right.end_epoch_exclusive, .first_step = left.first_step, .steps = steps, .cpu_count = count, .first_pc = left.first_pc, .final_pc = right.final_pc, .first_registers = left.first_registers, .final_registers = right.final_registers, .ram = left.ram.add(right.ram), .keccak_io = left.keccak_io.add(right.keccak_io), .secp_wire = left.secp_wire.add(right.secp_wire) };
 }
 /// Pure final statement conditions. It assumes truth public claims have already
 /// been authenticated against their actual separately verified STARKs.
@@ -90,7 +89,8 @@ pub fn closePublic(expected: P.Expected, span: FoldedSpan, truths: []const R.Tru
     if (!std.mem.eql(u8, &span.program, &expected.program_identity) or
         !std.mem.eql(u8, &span.image, &expected.admission.image_identity))
         return error.Word16RootIdentityMismatch;
-    if (span.first_epoch != 1 or span.end_epoch_exclusive != span.cpu_count + 1 or
+    const expected_end_epoch = std.math.add(u32, span.cpu_count, 1) catch return error.Word16RootIncompleteExecution;
+    if (span.first_epoch != 1 or span.end_epoch_exclusive != expected_end_epoch or
         span.first_step != 0 or span.steps != expected.total_steps or
         span.steps > expected.max_total_steps or
         span.first_pc != expected.admission.initial_pc or
