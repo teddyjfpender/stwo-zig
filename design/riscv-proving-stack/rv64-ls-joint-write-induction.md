@@ -360,3 +360,104 @@ unchanged (16.31 GB). Wall 23.89/24.09 -> 23.41/23.69/23.32 s and user
 170 -> 157-160 s, but most of that difference is `proof_of_work` (1.67 -> 0.56 s
 summed), which depends on the transcript and is grinding luck, not an effect of
 this change. The structural gain is the 4.1% interaction-cell cut.
+
+## 11. RAM writers beyond LS: the services roster (2026-11-02)
+
+Sections 1-10 cover LS, the Keccak permutation bridge and the secp bridge. The
+services roster (`int/word16_global_execution/services/roster.zig::Sources`)
+now also carries SHA-256, arith256_mod, seven curve/field kinds, six bulk-memory
+kinds and the two Keccak-sponge components, all of which produce RAM14 tokens
+inside the CPU proof. This section re-establishes the lemma of section 4 for
+every one of them. It is written per writer so that a new writer appends one
+case; the regression guard
+`int/word16_execution/memory/joint_write_invariants_test.zig` ("services RAM
+writer inventory") pins the roster fields, the bridge kinds, the bulk kinds and
+the sponge kinds and must be updated together with this section.
+
+### 11.1 Obligations of a RAM writer (generic)
+
+A component that produces RAM14 tokens keeps the lemma iff it meets W1-W5.
+Each is a source-level fact about its equations; the "Why" column of 11.2 cites
+where each writer meets it.
+
+* **W1 Written limbs.** Every value limb of every produced (after) token is
+  either (a) independently anchored: an integer combination of range-checked
+  columns with a bound `<= 65535` over the integers (e.g. `b0 + 256 b1` with
+  both bytes U8, or `257 * fill` with `fill < 256`, or affine in Boolean
+  columns), or (b) equal to a value limb of a token the same row (or the same
+  call) *consumes* with strictly smaller `tau` (a strictly decreasing edge),
+  or (c) a combination of (a) and (b) whose bound needs only I() of tokens
+  with strictly smaller `tau`.
+* **W2 Tick.** The after clock `(E, TL, TH)` of every produced token is the
+  issuing ECALL's OWNER19-bound clock: consumed once per call with the CPU's
+  `(epoch, 4r+4)`, `TL` U16 and `TH` U8 so the split is canonical, and copied
+  unchanged by every continuation row of the call (a continuation row's
+  predecessor is active). This is P1 for the writer.
+* **W3 Strict predecessor.** Every consumed before token is a full RAM14 tuple
+  with its own clock block and a ranged gap equation giving
+  `(e_b, t_b) <lex (E, T)` over the integers (P2); before clocks are canonical
+  because they equal produced clocks (P1, INIT).
+* **W4 Rights and addresses.** A transition keeps address and rights: the same
+  columns (or the same constants) appear in the before and after tuple; a
+  written word has `R = W = 1` in both tuples; a read has `R = 1`. Addresses
+  are affine in canonical limbs plus Boolean carries with no carry out of the
+  top limb.
+* **W5 Weights.** The RAM weight of each transition is a Boolean column (row
+  `active`, a lane/slot selector or a product of Boolean columns), unit per
+  access, and is the same activity that consumes the call's OWNER token, so a
+  row cannot supply RAM writes without being tied to an ECALL (P4 analogue).
+  ECALL OWNER tuples carry `C = 0`, so no service writes a register (REG side
+  unchanged).
+
+Under W1-W5 a writer adds only edges "after (e,4r+4) -> before `<lex`
+(e,4r+4)" (strictly decreasing by W3) or none, so the strong induction of
+section 4 goes through unchanged.
+
+### 11.2 Writer cases (roster order)
+
+| Roster field | Component / equations | W1 written limbs | W2 tick | W4/W5 |
+|---|---|---|---|---|
+| `keccak` | Keccak word16 bridge (`air/delegations/keccak/word16_bridge/equations.zig`) | (a) `after = AFTER_BYTES[2c] + 256 AFTER_BYTES[2c+1]`, bytes U8 (`layout.zig` U8 list); limbs also U16 | lane-0 OWNER binds m[3]/m[9]; lanes copy (section 2, P1) | `write = active`, R = W = 1; weight `active` |
+| `add`, `double`, `sha256`, `arith256_mod`, `curves[7]` | one shared CPU-side bridge, the secp word16 bridge `S` (`air/delegations/secp256k1/word16_bridge/equations.zig`), instantiated per `S.types.Kind` (add 1 .. bls12_381_g1_double 11); the truth AIRs (`delegations/{sha256,arith256,curves}`) touch only Wire35, never RAM | (a) `row[18+c] = AFTER[2c] + 256 AFTER[2c+1]`, every BEFORE/AFTER byte U8 (`layout.zig` U8 list); unwritten coordinates have `write = 0`, forcing `after = before` (b) | coordinate-0 OWNER tuple binds EPOCH/TICK, `TICK = LOW + 2^16 HIGH`, LOW U16, HIGH U8; continuation rows copy pointer/clock/call id | R/W columns shared by both tuples, `write => W = 1`; weight `active`, write flag `active * fixed(isWritten)` |
+| `bulk[desc]` | `air/delegations/bulk_memory` desc | (b) packet reads only: `after = before` (same columns) | ECALL OWNER tuple, `TL` U16, `TH` U8 (bulk B1) | R = 1, W column shared; weight `active` |
+| `bulk[copy]` | aligned copy body | (b) dst `after` = src `before` value columns (shared); src read `after = before` (bulk B7, edge E5) | token clock, continuation equality (bulk B2) | dst R = W = 1 constants; weight `active` |
+| `bulk[set]` | memset body | (a) `257 * fill`, `fill < 256` ranged on the desc row and carried by the token | as copy | as copy |
+| `bulk[ucopy]` | unaligned copy body | (c) dst limb `i` = `b0 + 256 b1` where `b0, b1` are bytes of the src before tokens of this row and the previous row of the same run; even bytes U8 (two U16 facts), odd bytes `< 2^16` by U16 and `< 256` because `lo + 256 hi` is the canonical before limb (I of a token with strictly smaller tau). Src read `after = before` (b). (bulk B10) | as copy | dst weight `active - start` (Boolean: start => active), R = W = 1 constants; src weight `active` |
+| `bulk[cdesc]` | memcmp descriptor | packet reads (b); result word (a): limbs `(pos + 65535 neg, 65535 neg, 65535 neg, 65535 neg)` with `neg, pos` Boolean and `neg * pos = 0`, so each limb is in {0, 1, 65535} | ECALL OWNER tuple (as desc) | result write R = W = 1 constants; weight `active` |
+| `bulk[cmp]` | memcmp body | (b) reads only: `after = before` for both operands | token clock, continuation equality | R = 1, W column shared; weight `active` |
+| `sponge_plan`, `sponge[call]` | `air/delegations/keccak_sponge` call row | state lanes: `after = limbsOfBytes(new)`, `new` bytes consumed as IO11 direction-1 tuples whose only producer is the Keccak truth (bytes are sums of Boolean bits), so canonical after global IO11 closure (a, cross-component anchor; sponge doc S6/S7); packet reads (b) | ECALL OWNER tuple, `tick_low` U16, `tick_high` U8 | state R = W = 1 constants; packet W column shared; weight `a` |
+| `sponge[perm]` | sponge permutation rows | reads only (b): message windows `after = before` | first row consumes the call token carrying the call clock; continuations copy | R = 1, W column shared; weight `read[j]` Boolean and only on active rows |
+
+`core` is the CPU + LS + boundary source (sections 1-10). `sponge_plan` is the
+owned plan of the two sponge sources, not a component.
+
+### 11.3 Notes and premises made explicit
+
+* **IH-dependent byte bound (ucopy writes; cmp byte splits on reads).**
+  Splitting a limb `L = lo + 256 hi` with `lo` U8 and only `hi < 2^16` gives
+  `hi < 256` only if `L < 2^16`, i.e. only from I() of the consumed token.
+  For a *write* (ucopy) this is case (c): the dependency is on src before
+  tokens of the same call, `<lex (E, T)` by W3, so the edge is strictly
+  decreasing. For reads (cmp) it is a consumer-side use of the lemma, not a
+  producer case. Dropping the canonical-limb premise (e.g. giving a ucopy byte
+  its own unconstrained high byte) breaks the ucopy case.
+* **Cross-component anchors.** The sponge's written state relies on global
+  IO11 closure and on the Keccak truth being the only direction-1 producer;
+  LINK tuples use direction 2. This is an anchor outside the CPU proof and is
+  valid in the same accepting contexts (section 7) that close IO11.
+* **Sponge clock columns.** Sponge before-clock limbs and the call epoch are
+  not range-checked locally; the gap equations rely on the consumed token's
+  clock being canonical (P1, INIT) and on the OWNER-bound CPU epoch. This is
+  P2 as stated, listed here because the bulk and secp bridges range the same
+  columns.
+* **Zero-length calls.** A memcmp descriptor proves `len / 8 != 0` (inverse
+  column) and an unaligned-copy lead row is never the whole run: a zero-word
+  run cannot reach `remaining = 1`, and a memcmp run that never reaches it could
+  otherwise end on a forged difference after reading words outside the
+  operands (bulk B9). This is a semantic (W1-independent) fact recorded here
+  because it is the only constraint added during this re-check.
+
+Verdict: the lemma of section 4 holds for every writer in the roster at
+`codex/rv64-ge-bulk`; no writer has an unanchored written limb or a tick not
+bound to `4r+4`. The only constraints added by this re-check are the two
+zero-length rules for the new bulk kinds.

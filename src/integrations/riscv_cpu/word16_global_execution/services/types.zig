@@ -1,4 +1,5 @@
 //! One explicit LE-word service inventory; no ISA/profile enumeration changes.
+const std = @import("std");
 const A = @import("stwo_riscv_frontend").rv64_air;
 const Q = A.evaluation.Q;
 /// Families 0..2 are the v2 roster; `sha256` (v3) is appended so every v2
@@ -142,43 +143,96 @@ pub fn widths(family: Family) [3]usize {
     return if (family == .keccak) A.crypto.keccak.word16_bridge.layout.widths(.bridge) else A.crypto.secp256k1.word16_bridge.layout.widths(.bridge);
 }
 
-/// Bulk-memory bridge logs: descriptor (one row per call), copy and set bodies
-/// (one row per word). Each present kind is one component of the CPU proof.
+/// Bulk-memory bridge logs: memcpy/memset descriptors (one row per call),
+/// aligned copy and set bodies (one row per word), unaligned copy bodies (one
+/// row per source word), memcmp descriptors and memcmp bodies (one row per
+/// examined word pair). Each present kind is one component of the CPU proof.
+/// The first three kinds are the original (aligned) block; the last three are
+/// the extension block, which is mixed, committed and serialized only when
+/// present so aligned-only bundles stay byte-identical.
 pub const BulkKind = A.crypto.bulk_memory.layout.Kind;
-pub const bulk_kinds = [_]BulkKind{ .desc, .copy, .set };
+pub const bulk_kinds = A.crypto.bulk_memory.layout.kinds;
+pub const BULK_BASE = 3;
 pub const Bulk = struct {
     desc: ?u32 = null,
     copy: ?u32 = null,
     set: ?u32 = null,
+    ucopy: ?u32 = null,
+    cdesc: ?u32 = null,
+    cmp: ?u32 = null,
     pub fn at(self: @This(), kind: BulkKind) ?u32 {
         return switch (kind) {
-            .desc => self.desc,
-            .copy => self.copy,
-            .set => self.set,
-            // UNVERIFIED bulk-unaligned AIR kinds; the services lane does not
-            // carry them yet (TODO bulk-unaligned track).
-            .ucopy, .cdesc, .cmp => null,
+            inline else => |k| @field(self, @tagName(k)),
         };
     }
     pub fn any(self: @This()) bool {
-        return self.desc != null or self.copy != null or self.set != null;
+        inline for (bulk_kinds) |k| if (self.at(k) != null) return true;
+        return false;
+    }
+    /// Any extension kind (unaligned copy, memcmp) present.
+    pub fn anyExtension(self: @This()) bool {
+        inline for (bulk_kinds[BULK_BASE..]) |k| if (self.at(k) != null) return true;
+        return false;
+    }
+    /// Aligned-only rosters serialize exactly as before the extension.
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (bulk_kinds, 0..) |k, i| if (i < BULK_BASE or self.at(k) != null) {
+            try jws.objectField(@tagName(k));
+            try jws.write(self.at(k));
+        };
+        try jws.endObject();
     }
 };
-/// Public bulk rows of one CPU proof: calls (descriptor rows) and words.
+/// Public bulk rows of one CPU proof: memcpy/memset calls (descriptor rows),
+/// aligned body words, unaligned body rows, memcmp calls and memcmp rows.
 pub const BulkCounts = struct {
     calls: u32 = 0,
     copy_words: u32 = 0,
     set_words: u32 = 0,
+    /// Unaligned memcpy body rows: destination words plus one lead row per call.
+    ucopy_rows: u32 = 0,
+    cmp_calls: u32 = 0,
+    /// memcmp body rows: word pairs examined up to the first difference.
+    cmp_words: u32 = 0,
     pub fn rows(self: @This(), kind: BulkKind) u32 {
         return switch (kind) {
             .desc => self.calls,
             .copy => self.copy_words,
             .set => self.set_words,
-            .ucopy, .cdesc, .cmp => 0,
+            .ucopy => self.ucopy_rows,
+            .cdesc => self.cmp_calls,
+            .cmp => self.cmp_words,
         };
     }
     pub fn any(self: @This()) bool {
-        return self.calls != 0 or self.copy_words != 0 or self.set_words != 0;
+        inline for (bulk_kinds) |k| if (self.rows(k) != 0) return true;
+        return false;
+    }
+    pub fn anyExtension(self: @This()) bool {
+        inline for (bulk_kinds[BULK_BASE..]) |k| if (self.rows(k) != 0) return true;
+        return false;
+    }
+    /// RAM14 fractions (each access a consume/produce pair, at most): desc 6,
+    /// copy 4, set 2, ucopy 4, cdesc 8 (three packet reads, result write),
+    /// cmp 4 per row.
+    pub fn ram(self: @This()) u64 {
+        var n: u64 = 0;
+        inline for (bulk_kinds) |k| n += @as(u64, A.crypto.bulk_memory.layout.ramCount(k)) * self.rows(k);
+        return n;
+    }
+    /// memcpy/memset and memcmp ECALLs (each one CPU step).
+    pub fn ecalls(self: @This()) u64 {
+        return @as(u64, self.calls) + self.cmp_calls;
+    }
+    /// Extension counts are omitted when zero (aligned-only bytes unchanged).
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(@This()), 0..) |f, i| if (i < BULK_BASE or @field(self, f.name) != 0) {
+            try jws.objectField(f.name);
+            try jws.write(@field(self, f.name));
+        };
+        try jws.endObject();
     }
 };
 pub const BulkClaims = A.crypto.bulk_memory.types.Claims;

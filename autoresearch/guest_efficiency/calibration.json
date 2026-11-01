@@ -54,6 +54,18 @@
    "cells_per_byte": 8.45650054481849,
    "status": "MEASURED on a complete-block Word16 proof of block 24,628,607 with the admitted evmone v3 guest (client_evmone build.py --profile v3; 9 CPU + 6 truth proofs, freshly verified with `verify`); cells are exact padded MAIN+INTERACTION from cost.json/roster.json, fixed columns excluded",
    "derivation": "desc rows as memcpy (154.3 per call); set rows: 22,413,312 cells / 2,650,424 filled bytes (331,303 words) = 8.457 per byte. Layout tier: 161.6 per call, 8.656 per byte."
+  },
+  "memcpy_unaligned": {
+   "cells_per_call": 321.6358791555175,
+   "cells_per_byte": 20.91907809288997,
+   "status": "LAYOUT TIER from the proven component widths of the bulk-extension services fixture (services/bulk_ext_fixture.zig, real CPU STARKs, fresh receiver; test-riscv64-word16-bulk-services); not yet measured on a complete-block proof (desc share is the complete-block measurement of memcpy)",
+   "derivation": "desc row as memcpy (154.3 per call, MEASURED complete block 24,628,607) + one ucopy lead row per call; ucopy row MAIN 56 + INTER 60 = 116 cells x 1/ln 2 average padding = 167.35 per row; per byte (bytes = len) 167.35 / 8 = 20.92. design/riscv-proving-stack/rv64-bulk-memory-service.md section 4b."
+  },
+  "memcmp": {
+   "cells_per_call": 186.10766027467628,
+   "cells_per_byte": 20.017393692334366,
+   "status": "LAYOUT TIER from the proven component widths of the bulk-extension services fixture (services/bulk_ext_fixture.zig, real CPU STARKs, fresh receiver; test-riscv64-word16-bulk-services); not yet measured on a complete-block proof",
+   "derivation": "cdesc row MAIN 61 + INTER 68 = 129 cells x 1/ln 2 = 186.1 per call; cmp row MAIN 59 + INTER 52 = 111 cells x 1/ln 2 = 160.1 per examined word pair, charged per examined byte (report bytes = 8 x examined words): 20.02. design/riscv-proving-stack/rv64-bulk-memory-service.md section 4b."
   }
  },
  "admitted_services_note": "Cells per call and per byte for ADMITTED ethereum_services_v3 services, measured on whole-block proofs (never estimates); every entry states its status and derivation. bench.py ADMITTED_REPORT_FIELDS maps each entry to the execution-report fields it is applied to (sha256_calls, arith256_mod_calls, bulk_{memcpy,memset}_{calls,bytes})."
