@@ -81,7 +81,7 @@ must be qualified separately. Full 25-shard memory evaluation is a follow-up.
 Exact source/tool/input and gate/artifact pins are recorded in
 `vectors/reports/rv64-word16-execution-20261101/retained-main-parking-v1.json`.
 
-## Current LS7 integration (qualification in progress)
+## Current LS7 optional integration qualification
 
 The isolated port starts at `fe3b29fc0`. It preserves the current N-lane scheduler,
 per-lane worker budgets and admission estimates, 64-column streaming commitments,
@@ -100,5 +100,27 @@ kernel file cache. An oversized proof may be admitted alone. Parking does not
 turn this soft scheduling cap into a hard host-memory guarantee.
 
 The historical schema4 receipt above remains evidence for the recovered source,
-not a current-shape result. Fresh LS7 tests/prefix receipts will be pinned
-separately before promoting this optional path.
+not a current-shape result. Fresh LS7 qualification is pinned separately below.
+
+
+Both ReleaseSafe and ReleaseFast parking products pass their 22-test floor.
+The existing schedule sweep freshly verifies four schema7 prefix configurations;
+each retains all11 expected proof/public artifacts byte-for-byte. All cover
+16,777,212 instructions with four CPU and three truth proofs, without claiming
+complete-block coverage.
+
+| Current-shape observation | Mapped2x8 | Parked2x8 | Parked1x16 | Parked2x8,4GiB admission |
+|---|---:|---:|---:|---:|
+| Peak reserved native backing | 6.087GB | 6.087GB | 6.087GB | 6.087GB |
+| Peak retained mapped bytes | 6.087GB | 3.014GB | 1.593GB | 1.593GB |
+| Darwin peak charged footprint | 16.237GB | 16.236GB | 12.108GB | 11.992GB |
+| Wall observation | 22.36s | 22.92s | 31.69s | 38.78s |
+
+GB denotes decimal bytes; the admission flag uses binary GiB. Parking halves
+retained mapped bytes at two lanes but does **not** lower charged peak footprint
+in this prefix. The single-lane/admission configurations lower footprint by
+serializing work, so they do not establish a parking-only memory multiplier.
+Other compilations were active; these are functional and accounting observations,
+not controlled throughput comparisons. Parking stays off by default. Exact
+provenance, receipts and hard-storage versus soft-admission limits are in
+`vectors/reports/rv64-word16-execution-20261101/retained-main-parking-ls7-v1.json`.
