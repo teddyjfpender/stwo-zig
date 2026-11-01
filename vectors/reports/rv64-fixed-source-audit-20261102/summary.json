@@ -1,0 +1,326 @@
+{
+  "cpu_workers": 25,
+  "physical_proofs": 30,
+  "whole_setup_identities": 29,
+  "cpu_ordered_log_classes": 25,
+  "used_only_ordered_log_classes": 23,
+  "used_only_duplicate_worker_groups": [
+    [
+      12,
+      13,
+      21
+    ]
+  ],
+  "categories_cpu_reference_totals": {
+    "geometry_schedule": {
+      "native_bytes": 2017009664,
+      "unused_native_bytes": 210354176,
+      "columns": 918
+    },
+    "guest_program": {
+      "native_bytes": 3355443200,
+      "unused_native_bytes": 0,
+      "columns": 800
+    },
+    "universal_selectors": {
+      "native_bytes": 108800,
+      "unused_native_bytes": 0,
+      "columns": 850
+    },
+    "universal_table": {
+      "native_bytes": 209792000,
+      "unused_native_bytes": 0,
+      "columns": 875
+    },
+    "provider_program_schedule": {
+      "native_bytes": 4767744,
+      "unused_native_bytes": 0,
+      "columns": 144
+    }
+  },
+  "roles_cpu_reference_totals": {
+    "cpu": {
+      "native_bytes": 1258291200,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        22
+      ],
+      "instances": 25
+    },
+    "rom": {
+      "native_bytes": 3355443200,
+      "unused_native_bytes": 0,
+      "columns": 800,
+      "logs": [
+        20
+      ],
+      "instances": 25
+    },
+    "boundary": {
+      "native_bytes": 108800,
+      "unused_native_bytes": 0,
+      "columns": 850,
+      "logs": [
+        5
+      ],
+      "instances": 25
+    },
+    "alu": {
+      "native_bytes": 81788928,
+      "unused_native_bytes": 81788928,
+      "columns": 50,
+      "logs": [
+        17,
+        18,
+        19,
+        20
+      ],
+      "instances": 25
+    },
+    "binary": {
+      "native_bytes": 51904512,
+      "unused_native_bytes": 51904512,
+      "columns": 50,
+      "logs": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "instances": 25
+    },
+    "shift": {
+      "native_bytes": 43515904,
+      "unused_native_bytes": 43515904,
+      "columns": 50,
+      "logs": [
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "instances": 25
+    },
+    "jalr": {
+      "native_bytes": 6946816,
+      "unused_native_bytes": 6946816,
+      "columns": 50,
+      "logs": [
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "instances": 25
+    },
+    "multiplication": {
+      "native_bytes": 29638656,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        11,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "instances": 25
+    },
+    "shift_table": {
+      "native_bytes": 117964800,
+      "unused_native_bytes": 0,
+      "columns": 450,
+      "logs": [
+        16
+      ],
+      "instances": 25
+    },
+    "and_table": {
+      "native_bytes": 32768000,
+      "unused_native_bytes": 0,
+      "columns": 125,
+      "logs": [
+        16
+      ],
+      "instances": 25
+    },
+    "range16": {
+      "native_bytes": 19660800,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        16
+      ],
+      "instances": 25
+    },
+    "range8": {
+      "native_bytes": 76800,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        8
+      ],
+      "instances": 25
+    },
+    "ls": {
+      "native_bytes": 333447168,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        19,
+        20,
+        21
+      ],
+      "instances": 25
+    },
+    "initial": {
+      "native_bytes": 25175040,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        5,
+        21
+      ],
+      "instances": 25
+    },
+    "terminal": {
+      "native_bytes": 25175040,
+      "unused_native_bytes": 0,
+      "columns": 75,
+      "logs": [
+        5,
+        21
+      ],
+      "instances": 25
+    },
+    "selection": {
+      "native_bytes": 39321600,
+      "unused_native_bytes": 0,
+      "columns": 150,
+      "logs": [
+        16
+      ],
+      "instances": 25
+    },
+    "ls_tail": {
+      "native_bytes": 108134400,
+      "unused_native_bytes": 0,
+      "columns": 60,
+      "logs": [
+        15,
+        16,
+        18,
+        19
+      ],
+      "instances": 20
+    },
+    "alu_tail": {
+      "native_bytes": 9601024,
+      "unused_native_bytes": 9601024,
+      "columns": 30,
+      "logs": [
+        12,
+        14,
+        15,
+        16,
+        17
+      ],
+      "instances": 15
+    },
+    "binary_tail": {
+      "native_bytes": 10944512,
+      "unused_native_bytes": 10944512,
+      "columns": 40,
+      "logs": [
+        13,
+        14,
+        15,
+        17,
+        18
+      ],
+      "instances": 20
+    },
+    "shift_tail": {
+      "native_bytes": 5652480,
+      "unused_native_bytes": 5652480,
+      "columns": 30,
+      "logs": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        18
+      ],
+      "instances": 15
+    },
+    "division": {
+      "native_bytes": 104448,
+      "unused_native_bytes": 0,
+      "columns": 51,
+      "logs": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "instances": 17
+    },
+    "keccak_bridge": {
+      "native_bytes": 26689536,
+      "unused_native_bytes": 0,
+      "columns": 132,
+      "logs": [
+        11,
+        12,
+        13,
+        14,
+        16,
+        17,
+        18
+      ],
+      "instances": 22
+    },
+    "add_bridge": {
+      "native_bytes": 3309568,
+      "unused_native_bytes": 0,
+      "columns": 72,
+      "logs": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "instances": 9
+    },
+    "double_bridge": {
+      "native_bytes": 1458176,
+      "unused_native_bytes": 0,
+      "columns": 72,
+      "logs": [
+        9,
+        10,
+        11,
+        12,
+        14
+      ],
+      "instances": 9
+    }
+  },
+  "all_unique29_source_cells": 1416141376,
+  "actual_source_cache_observed_planes": 3732,
+  "request_value_fixed_columns": 0,
+  "caveat": "reference byte totals already share payloads after coefficient interning; not additional resident-memory savings or a proof/security certificate"
+}

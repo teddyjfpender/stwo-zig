@@ -9,6 +9,7 @@ const P = @import("../protocol.zig");
 const Wire = @import("../wire.zig");
 const RP = @import("retention_plan.zig");
 const Resident = @import("resident_layout.zig");
+const FixedSource = @import("fixed_source_metadata.zig");
 const TP = @import("truth_retention.zig");
 const W = @import("worker_protocol.zig");
 const KR = @import("../../keccak/shared/roster.zig");
@@ -83,8 +84,16 @@ pub fn main() !void {
     defer a.free(plans);
     const resident = try a.alloc(Resident.Contract, plans.len);
     defer a.free(resident);
+    const fixed_source = try a.alloc(FixedSource.Report, plans.len);
+    var fixed_done: usize = 0;
+    defer {
+        for (fixed_source[0..fixed_done]) |*value| value.deinit();
+        a.free(fixed_source);
+    }
     var totals = Totals{};
     for (data.cpus, 0..) |entry, i| {
+        fixed_source[i] = try FixedSource.cpu(a, rom_log, entry.declaration);
+        fixed_done += 1;
         var setup: R.CpuSetup = undefined;
         setup.materials.geometry = entry.declaration.geometry;
         setup.materials.program.log_size = rom_log;
@@ -105,6 +114,8 @@ pub fn main() !void {
         resident[i] = try Resident.forCpu(a, &setup, request, config);
     }
     for (data.truths, 0..) |entry, i| {
+        fixed_source[data.cpus.len + i] = try FixedSource.truth(a, entry.declaration);
+        fixed_done += 1;
         const t = entry.declaration;
         var k: KR.TruthSetup = undefined;
         var s: SR.TruthSetup = undefined;
@@ -132,7 +143,7 @@ pub fn main() !void {
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
     const request_copy_bytes = 2 * @as(u64, data.memory_words) * @sizeOf(A.memory.closed_ram.types.Cell) + data.cpus.len * @sizeOf(P.Request);
-    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "shape-only admission model; no witness, setup or proof constructed; declarations are NOT verification authority", .bundle_sha256 = std.fmt.bytesToHex(digest, .lower), .rom_log = rom_log, .blowup = blowup, .cpu_workers = data.cpus.len, .truth_workers = data.truths.len, .totals = totals, .coordinator_request_copy_bytes = request_copy_bytes, .manifest_reserve_bytes = @import("manifest_wire.zig").MAX_BYTES, .fully_parked_frontend_total_bytes = totals.fully_parked_retained_bytes + request_copy_bytes + @import("manifest_wire.zig").MAX_BYTES, .physical_native_cells = .{ .fixed = totals.legacy_fixed_bytes / 4, .main = totals.coefficient_bytes / 4, .new_interaction = totals.new_interaction_bytes / 4, .old_interaction = totals.legacy_interaction_bytes / 4, .new_main_inter = (totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_main_inter = (totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .new_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .scope = "native M31 committed cells, excluding GKR working facts/planes andLDE; immutableFIXEDreferences counted perproof for baseline parity, not rehash work" }, .merkle_model = "main_merkle_node_bytes is unpruned bound; host_streaming_node_bytes follows current CpuBackend streaming compactForQueries bottom4 pruning at committedlog>=20; runtime parkingPlan/counter remains measurement authority", .outside_model = "immutable setup, original capture/advice inventory, source-construction and PCS transient scratch, allocator/kernel/RSS; mapping length is NOT RSS", .workers = plans, .resident_layout_contracts = resident, .resident_scope = "explicit retained-coefficients + own-height LDE + full-nodes policy; FIXED independently shared; excludes allocator/kernel/source metadata and PCS extra scratch; not GPU admission or kernel qualification" }, .{ .whitespace = .indent_2 });
+    const output = try std.json.Stringify.valueAlloc(a, .{ .scope = "shape-only admission model; no witness, setup or proof constructed; declarations are NOT verification authority", .bundle_sha256 = std.fmt.bytesToHex(digest, .lower), .rom_log = rom_log, .blowup = blowup, .cpu_workers = data.cpus.len, .truth_workers = data.truths.len, .totals = totals, .coordinator_request_copy_bytes = request_copy_bytes, .manifest_reserve_bytes = @import("manifest_wire.zig").MAX_BYTES, .fully_parked_frontend_total_bytes = totals.fully_parked_retained_bytes + request_copy_bytes + @import("manifest_wire.zig").MAX_BYTES, .physical_native_cells = .{ .fixed = totals.legacy_fixed_bytes / 4, .main = totals.coefficient_bytes / 4, .new_interaction = totals.new_interaction_bytes / 4, .old_interaction = totals.legacy_interaction_bytes / 4, .new_main_inter = (totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_main_inter = (totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .new_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.new_interaction_bytes) / 4, .old_with_perproof_fixed = (totals.legacy_fixed_bytes + totals.coefficient_bytes + totals.legacy_interaction_bytes) / 4, .scope = "native M31 committed cells, excluding GKR working facts/planes andLDE; immutableFIXEDreferences counted perproof for baseline parity, not rehash work" }, .merkle_model = "main_merkle_node_bytes is unpruned bound; host_streaming_node_bytes follows current CpuBackend streaming compactForQueries bottom4 pruning at committedlog>=20; runtime parkingPlan/counter remains measurement authority", .outside_model = "immutable setup, original capture/advice inventory, source-construction and PCS transient scratch, allocator/kernel/RSS; mapping length is NOT RSS", .workers = plans, .resident_layout_contracts = resident, .fixed_source_metadata = fixed_source, .resident_scope = "explicit retained-coefficients + own-height LDE + full-nodes policy; FIXED independently shared; excludes allocator/kernel/source metadata and PCS extra scratch; not GPU admission or kernel qualification" }, .{ .whitespace = .indent_2 });
     defer a.free(output);
     try std.fs.File.stdout().writeAll(output);
     try std.fs.File.stdout().writeAll("\n");
