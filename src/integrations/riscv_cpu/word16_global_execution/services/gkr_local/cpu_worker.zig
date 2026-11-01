@@ -111,6 +111,9 @@ fn releaseLsLocals(source: anytype) void {
 fn releaseBridgeLocals(source: anytype) void {
     inline for (.{ "fixed", "counts16", "counts8" }) |name| releaseSlice(source.allocator, &@field(source, name));
 }
+/// Optional caller-owned diagnostics. gkr_ns includes metadata projection and
+/// durable terminal-binding construction; these times never enter a transcript.
+pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0 };
 pub const CpuWorker = struct {
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
@@ -129,6 +132,7 @@ pub const CpuWorker = struct {
     consumed: bool = false,
     owns_scheme: bool = true,
     local_metadata_retired: bool = false,
+    seal_timing: ?*SealTiming = null,
     pub fn init(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, source: R.Sources, expected: Manifest.ExpectedWorker, config: W.PcsConfig, first: [3]u32, gkr_budget: usize) !CpuWorker {
         try validate(a, setup, request, expected, first, config);
         const instances = try @import("roster.zig").fromSetup(a, setup);
@@ -184,13 +188,17 @@ pub const CpuWorker = struct {
     pub fn seal(self: *CpuWorker, a: std.mem.Allocator) !Manifest.StageOne {
         if (!@import("stwo_riscv_frontend").rv64_air.memory.ownership.same(a, self.allocator)) return error.WideCpuAllocatorMismatch;
         if (self.sealed or self.consumed) return error.WideCpuPhase;
+        var clock: ?std.time.Timer = if (self.seal_timing != null) try std.time.Timer.start() else null;
+        if (self.seal_timing) |output| output.* = .{};
         // Failure consumes the worker: owned commitment consumes storage on errors too.
         self.consumed = true;
         try W.appendFixed(a, &self.setup.key, self.expected.fixed, &self.scheme, &self.channel);
         const main = try self.source.takeMain(self.setup);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, null, &self.channel);
         const root = self.scheme.trees.items[1].root();
+        if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
         self.child = try Child.Unbound.prove(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source });
+        if (clock) |*timer| self.seal_timing.?.gkr_ns = timer.read();
         self.sealed = true;
         self.consumed = false;
         return .{ .main = root, .local = .{ .proof = &self.child.?.result.proof, .receipt_digest = self.child.?.digest } };
