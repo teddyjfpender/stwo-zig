@@ -166,8 +166,13 @@ inline size_t child_item_len(uint8_t b) { return kChildLen.len[b]; }
 
 // --------------------------------------------------------- decoded node ----
 // raw[off[i]] is the RLP item of child i (branch: i < 16, off[16] = the
-// empty value item; extension: off[0]). res[i] caches the resolved child
-// when bit i of `resolved` is set (kMissing = digest not in the witness).
+// empty value item; extension: off[0]). Branch items are scanned lazily:
+// off[0..scanned] are known, and the rest of the node (including its empty
+// value item and exact length) is checked once the scan reaches 16 -- before
+// any re-encoding uses the node. Lookups only scan up to the child they
+// follow; the node bytes are authenticated by their hash either way.
+// res[i] caches the resolved child when bit i of `resolved` is set
+// (kMissing = digest not in the witness).
 // Leaf/extension paths stay hex-prefix encoded in the witness: `hp` points
 // at the flag byte, nibble i of the path is hp_nibble(hp, i + skip) with
 // skip = 1 for odd lengths and 2 for even ones.
@@ -176,8 +181,9 @@ struct DNode {
     uint32_t raw_len;
     uint8_t kind;  // 0 leaf, 1 extension, 2 branch
     uint8_t plen;
-    uint16_t off[17];
+    mutable uint16_t off[17];
     mutable uint16_t resolved;
+    mutable uint8_t scanned;
     const uint8_t* hp;
     const uint8_t* value;  // leaf payload
     uint32_t vlen;
@@ -250,25 +256,8 @@ DNode* decode_dnode(const uint8_t* p, size_t n) {
         d->kind = 2;
         d->plen = 0;
         d->resolved = 0;
-        // Unrolled scan; `bad` accumulates any truncation or invalid item.
-        bool bad = false;
-#define STWO_SCAN_CHILD(i)                                   \
-        {                                                    \
-            bad |= q >= end;                                 \
-            const size_t l = bad ? 1 : child_item_len(*q);   \
-            bad |= l == 0;                                   \
-            d->off[i] = static_cast<uint16_t>(q - p);        \
-            q += l;                                          \
-        }
-        STWO_SCAN_CHILD(0) STWO_SCAN_CHILD(1) STWO_SCAN_CHILD(2) STWO_SCAN_CHILD(3)
-        STWO_SCAN_CHILD(4) STWO_SCAN_CHILD(5) STWO_SCAN_CHILD(6) STWO_SCAN_CHILD(7)
-        STWO_SCAN_CHILD(8) STWO_SCAN_CHILD(9) STWO_SCAN_CHILD(10) STWO_SCAN_CHILD(11)
-        STWO_SCAN_CHILD(12) STWO_SCAN_CHILD(13) STWO_SCAN_CHILD(14) STWO_SCAN_CHILD(15)
-#undef STWO_SCAN_CHILD
-        if (bad) stwo_fatal("trie: bad child reference");
-        // The value slot must be the empty string and close the node.
-        if (q + 1 != end || *q != 0x80) stwo_fatal("trie: bad branch value");
-        d->off[16] = static_cast<uint16_t>(q - p);
+        d->scanned = 0;
+        d->off[0] = static_cast<uint16_t>(q - p);
         return d;
     }
     const Item first = decode(q, end);
@@ -292,12 +281,34 @@ DNode* decode_dnode(const uint8_t* p, size_t n) {
         d->kind = 1;
         d->off[0] = static_cast<uint16_t>(c - p);
         d->resolved = 0;
+        d->scanned = 0;
     }
     d->raw = p;
     d->raw_len = static_cast<uint32_t>(n);
     d->plen = static_cast<uint8_t>(pn);
     d->hp = first.payload;
     return d;
+}
+
+// Extend a branch's child offsets so that off[i] is known (i <= 16).
+__attribute__((noinline)) void scan_more(const DNode* d, unsigned i) {
+    const uint8_t* p = d->raw;
+    const size_t end = d->raw_len;
+    unsigned s = d->scanned;
+    size_t o = d->off[s];
+    while (s < i) {
+        if (o >= end) stwo_fatal("trie: bad node arity");
+        const size_t l = child_item_len(p[o]);
+        if (l == 0) stwo_fatal("trie: bad child reference");
+        o += l;
+        d->off[++s] = static_cast<uint16_t>(o);
+    }
+    d->scanned = static_cast<uint8_t>(s);
+    // The value slot must be the empty string and close the node.
+    if (s == 16 && (o + 1 != end || p[o] != 0x80)) stwo_fatal("trie: bad branch value");
+}
+inline void scan_to(const DNode* d, unsigned i) {
+    if (i > d->scanned) scan_more(d, i);
 }
 
 // Resolve child item `c` (witness bytes) to a decoded node: nullptr when the
@@ -315,6 +326,7 @@ const DNode* resolve_item(const NodeStore& store, const uint8_t* c) {
 // Child `i` of decoded node `d` (cached). nullptr = empty, kMissing = missing.
 inline const DNode* follow(const NodeStore& store, const DNode* d, unsigned i) {
     if (d->resolved >> i & 1) return d->res[i];
+    scan_to(d, i);
     const DNode* r = resolve_item(store, d->raw + d->off[i]);
     d->res[i] = r;
     d->resolved = static_cast<uint16_t>(d->resolved | (1u << i));
@@ -481,6 +493,7 @@ Node* own_dnode(const DNode* d) {
     Node* m;
     if (d->kind == 2) {
         m = alloc_node(Node::Branch);
+        scan_to(d, 16);  // re-encoding needs every offset and the checked tail
         m->src = d;  // children read through get_child until assigned
     } else if (d->kind == 1) {
         m = alloc_node(Node::Ext);
@@ -838,10 +851,28 @@ size_t encode(Node* n, uint8_t* out, const NodeStore& store) {
     return b.n;
 }
 
+// 64 nibbles of a 32-byte key (8-aligned, as H256 keys are; `nib` too):
+// each 4 key bytes become 8 nibble bytes by spreading the bytes into 16-bit
+// lanes and splitting each lane's byte (high nibble first, little-endian).
 void unpack(const uint8_t key[32], uint8_t nib[64]) {
-    for (int i = 0; i < 32; ++i) {
-        nib[2 * i] = key[i] >> 4;
-        nib[2 * i + 1] = key[i] & 0x0f;
+    typedef uint64_t __attribute__((may_alias)) u64a;
+    if (((reinterpret_cast<uintptr_t>(key) | reinterpret_cast<uintptr_t>(nib)) & 7) != 0) {
+        for (int i = 0; i < 32; ++i) {
+            nib[2 * i] = key[i] >> 4;
+            nib[2 * i + 1] = key[i] & 0x0f;
+        }
+        return;
+    }
+    const u64a* k = reinterpret_cast<const u64a*>(key);
+    u64a* o = reinterpret_cast<u64a*>(nib);
+    for (int w = 0; w < 4; ++w) {
+        const uint64_t v = k[w];
+        for (int h = 0; h < 2; ++h) {
+            uint64_t x = (v >> (32 * h)) & 0xffffffffull;
+            x = (x | (x << 16)) & 0x0000ffff0000ffffull;
+            x = (x | (x << 8)) & 0x00ff00ff00ff00ffull;
+            o[2 * w + h] = ((x >> 4) & 0x000f000f000f000full) | ((x & 0x000f000f000f000full) << 8);
+        }
     }
 }
 
@@ -860,14 +891,14 @@ MutableTrie::MutableTrie(const NodeStore& store, const H256& root) noexcept : st
 
 void MutableTrie::put(const uint8_t key[32], const uint8_t* value, size_t len) {
     uint8_t* v = static_cast<uint8_t*>(arena_alloc(len ? len : 1));
-    for (size_t i = 0; i < len; ++i) v[i] = value[i];
-    uint8_t nib[64];
+    std::memcpy(v, value, len);
+    alignas(8) uint8_t nib[64];
     unpack(key, nib);
     root_ = insert(root_, nib, key, 0, v, len, store_);
 }
 
 void MutableTrie::remove(const uint8_t key[32]) {
-    uint8_t nib[64];
+    alignas(8) uint8_t nib[64];
     unpack(key, nib);
     bool changed;
     root_ = stwo::remove(root_, nib, key, 0, store_, changed);
