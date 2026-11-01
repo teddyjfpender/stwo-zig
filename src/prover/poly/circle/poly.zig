@@ -59,6 +59,15 @@ pub const CircleCoefficients = struct {
     }
 
     /// Evaluates the polynomial at one secure-field point.
+    /// Explicit secure-field evaluation without changing this M31 polynomial owner.
+    pub fn evalAtPointFor(self: CircleCoefficients, comptime Secure: type, point: circle.CirclePoint(Secure)) Secure {
+        if (Secure == QM31) return self.evalAtPoint(point);
+        const E = point_evaluation.ForField(Secure);
+        var factors: [circle.M31_CIRCLE_LOG_ORDER]Secure = undefined;
+        const used = E.fillEvalFactorsForPoint(point, self.log_size, &factors);
+        return E.evalAtPointIterative(self.coeffs, used, self.log_size);
+    }
+
     pub fn evalAtPoint(self: CircleCoefficients, point: CirclePointQM31) QM31 {
         if (self.log_size == 0) return QM31.fromBase(self.coeffs[0]);
 

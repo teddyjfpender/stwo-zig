@@ -1,0 +1,817 @@
+//! Stateful PCS commitment, opening, and proof orchestration.
+
+const std = @import("std");
+const builtin = @import("builtin");
+const backend_merkle = @import("stwo_backend_contracts").merkle_ops;
+const circle = @import("stwo_core").circle;
+const m31 = @import("stwo_core").fields.m31;
+const qm31 = @import("stwo_core").fields.qm31;
+const verifier_types = @import("stwo_core").verifier_types;
+const vcs_verifier = @import("stwo_core").vcs_lifted.verifier;
+const canonic = @import("stwo_core").poly.circle.canonic;
+const prover_circle = @import("../poly/circle/mod.zig");
+const twiddle_source_mod = @import("../poly/twiddle_source.zig");
+const work_pool = @import("../work_pool.zig");
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
+const work_profile = prover_api.work_profile;
+const commitment_tree = @import("commitment_tree.zig");
+const commit_polys = @import("commit_polys.zig");
+const column_preparation = @import("columns/preparation.zig");
+const deferred_commit = @import("deferred_commit.zig");
+const column_storage = @import("columns/storage.zig");
+const pow_search = @import("proof_of_work.zig");
+const tree_builders = @import("tree_builders.zig");
+const commit_dispatch = @import("commit_dispatch.zig");
+const backed_columns = @import("backed_columns.zig");
+const scheme_decommit = @import("scheme_decommit.zig");
+const scheme_views = @import("scheme_views.zig");
+const shell_work_profile = @import("shell_work_profile.zig");
+pub const revision_lifting = @import("revision_lifting.zig");
+
+const M31 = m31.M31;
+const PcsConfig = @import("stwo_core").pcs.PcsConfig;
+const Revision = @import("stwo_core").protocol_revision.Revision;
+const TreeVec = @import("stwo_core").pcs.TreeVec;
+const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
+const TwiddleSource = twiddle_source_mod.TwiddleSource;
+const M31TwiddleTower = @import("../poly/twiddle_tower.zig").M31TwiddleTower;
+
+pub fn ForField(comptime Secure: type) type {
+    return struct {
+        const QM31 = Secure;
+        const DEGREE = @typeInfo(@TypeOf(Secure.zero().toM31Array())).array.len;
+        const pcs_core = @import("stwo_core").pcs.ForField(Secure);
+        const core_fri = @import("stwo_core").fri.ForField(Secure);
+        const prover_fri = @import("../fri.zig").ForField(Secure);
+        pub const quotient_ops = @import("quotient_ops.zig").ForField(Secure);
+        const sampled_value_evaluation = @import("sampled_values.zig").ForField(Secure);
+        const sampled_value_transcript = @import("sampled_value_transcript.zig").ForField(Secure);
+        const CirclePointQM31 = circle.CirclePoint(Secure);
+        pub const CommitmentSchemeError = error{
+            ShapeMismatch,
+            InvalidPreprocessedTree,
+        };
+
+        const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
+        const ColumnSource = @import("column_source.zig").ColumnSource;
+
+        pub const ColumnEvaluation = commitment_tree.ColumnEvaluation;
+
+        pub fn CommitmentTreeProver(comptime H: type) type {
+            return commitment_tree.CommitmentTreeProver(H);
+        }
+
+        pub fn TreeDecommitmentResult(comptime H: type) type {
+            return struct {
+                queried_values: TreeVec([][]M31),
+                decommitments: TreeVec(vcs_verifier.MerkleDecommitmentLifted(H)),
+                aux: TreeVec(vcs_verifier.MerkleDecommitmentLiftedAux(H)),
+
+                const Self = @This();
+
+                pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+                    self.queried_values.deinitDeep(allocator);
+                    for (self.decommitments.items) |*d| d.deinit(allocator);
+                    self.decommitments.deinit(allocator);
+                    for (self.aux.items) |*a| a.deinit(allocator);
+                    self.aux.deinit(allocator);
+                    self.* = undefined;
+                }
+            };
+        }
+
+        /// The PCS prover. `MC` fixes the protocol revision (`Revision.of`):
+        ///
+        /// - `stwo_7b211ed` (every Native and Cairo lane): each tree is as tall as its
+        ///   largest column and `config` defines the whole protocol. Nothing below
+        ///   changes for it.
+        /// - `proving_5a7c5ed` (channel profiles, `vcs_lifted.channel_profile`): the
+        ///   scheme needs its `PcsConfigV2` (`initRevision`, or `setRevisionConfig`
+        ///   before the first commitment when the heights follow a claim). Tree `i`
+        ///   is committed at `PcsConfigV2.treeHeight(i)` (`revision_lifting`), the
+        ///   proof domain is the last tree's height, and the FRI grind runs at
+        ///   `fri_config.pow_bits`. `config` then holds
+        ///   `Revision.legacyView` of that configuration, which is what the shared
+        ///   code (blowup, folding, PoW bits) reads.
+        pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: type) type {
+            comptime backend_merkle.assertMerkleOps(B, H);
+            const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
+            const FriBackend = if (Secure == @import("stwo_core").fields.qm31.QM31) B else struct {
+                pub const MerkleTree = B.MerkleTree;
+                pub const commitMerkle = B.commitMerkle;
+                pub const reuses_constant_merkle_parents = if (@hasDecl(B, "reuses_constant_merkle_parents")) B.reuses_constant_merkle_parents else false;
+            };
+            return struct {
+                pub const CommittedTree = BackendCommitmentTree;
+                pub const revision = Revision.of(MC);
+                /// The committed-tree type; a shared tree (`share`/`retainShared`)
+                /// may be appended to any scheme of the same backend and hasher.
+                pub const CommitmentTree = BackendCommitmentTree;
+                trees: std.ArrayListUnmanaged(BackendCommitmentTree),
+                config: PcsConfig,
+                coefficient_retention_policy: CoefficientRetentionPolicy,
+                /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
+                compact_polynomial_storage: bool = false,
+                compact_polynomial_min_log_size: u32 = 20,
+                /// Optional storage for retained LDE values only. Its owner must outlive
+                /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
+                retained_column_allocator: ?std.mem.Allocator = null,
+                /// Optional scratch storage for typed AIR quotient-domain values.
+                /// Its owner must outlive proving and all prepared evaluators.
+                quotient_values_allocator: ?std.mem.Allocator = null,
+                /// Reuse lifted prefixes by default for full-width BLAKE3 commitments.
+                reuse_bounded_merkle_tail: bool = H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher or
+                    @import("../vcs_lifted/blake2_stream4.zig").supports(H),
+                /// Execution-only opt-in for adopting backends; keeps source and
+                /// coefficient storage in the same aligned arena.
+                pack_owned_source_by_log: bool = false,
+                twiddle_source: TwiddleSource,
+                pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
+                shell_preopening_audit: shell_work_profile.PreOpeningAudit,
+                /// `proving_5a7c5ed` commitment heights (`revision_lifting`). Null
+                /// commits every tree at its largest column, the Native and Cairo
+                /// lanes' rule; `config` then defines the whole protocol.
+                revision_config: ?revision_lifting.PcsConfigV2 = null,
+
+                const Self = @This();
+
+                pub fn init(allocator: std.mem.Allocator, config: PcsConfig) !Self {
+                    return initWithTwiddleSource(config, TwiddleSource.initOwned(allocator));
+                }
+                /// A `proving_5a7c5ed` scheme whose heights are known up front.
+                pub fn initRevision(allocator: std.mem.Allocator, config: revision_lifting.PcsConfigV2) !Self {
+                    var scheme = try init(allocator, Revision.proving_5a7c5ed.legacyView(config));
+                    errdefer scheme.deinit(allocator);
+                    try scheme.setRevisionConfig(config);
+                    return scheme;
+                }
+                /// `initRevision` with twiddles borrowed from a long-lived tower, so
+                /// consecutive proofs share one precompute. Twiddles are canonical,
+                /// so the proof is unchanged.
+                pub fn initRevisionWithTwiddleTower(config: revision_lifting.PcsConfigV2, tower: *const M31TwiddleTower) !Self {
+                    var scheme = initWithTwiddleTower(Revision.proving_5a7c5ed.legacyView(config), tower);
+                    try scheme.setRevisionConfig(config);
+                    return scheme;
+                }
+                pub fn initWithTwiddleTower(config: PcsConfig, tower: *const M31TwiddleTower) Self {
+                    return initWithTwiddleSource(config, TwiddleSource.initBorrowed(tower));
+                }
+                fn initWithTwiddleSource(config: PcsConfig, twiddle_source: TwiddleSource) Self {
+                    return .{
+                        .trees = .{},
+                        .config = config,
+                        .coefficient_retention_policy = .always,
+                        .twiddle_source = twiddle_source,
+                        .pending_commit = null,
+                        .shell_preopening_audit = .{},
+                    };
+                }
+
+                /// Arms the cold shell audit before the first profiled commitment.
+                /// Starting after a tree exists (or is pending) remains observable and
+                /// makes final publication fail closed.
+                pub fn beginShellWorkProfile(self: *Self, work_recorder: ?*work_profile.Recorder(true)) void {
+                    const active = work_recorder orelse return;
+                    self.shell_preopening_audit.begin(
+                        self.trees.items.len,
+                        self.pending_commit != null,
+                    );
+                    if (!self.shell_preopening_audit.complete) active.markIncomplete();
+                }
+
+                pub fn observePreOpeningRootMix(self: *Self, ordinal: usize, root: []const u8) void {
+                    self.shell_preopening_audit.observeRootMixed(ordinal, root);
+                }
+
+                pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+                    deferred_commit.discard(self, allocator);
+                    for (self.trees.items) |*tree| tree.deinit(allocator);
+                    self.trees.deinit(allocator);
+                    self.twiddle_source.deinit(allocator);
+                    self.* = undefined;
+                }
+
+                /// Sets the `proving_5a7c5ed` configuration: FRI and PoW run from
+                /// `config.fri_config` and tree `i` is committed at
+                /// `config.liftingLogSize(i)`. Must precede the first commitment, as
+                /// the heights shape every root; the caller mixes the configuration
+                /// (`Revision.proving_5a7c5ed.mixConfig`). Only a Merkle channel of
+                /// that revision (a channel profile) takes one.
+                pub fn setRevisionConfig(
+                    self: *Self,
+                    config: revision_lifting.PcsConfigV2,
+                ) error{ RevisionAfterCommit, RevisionRequiresChannelProfile }!void {
+                    if (comptime revision != .proving_5a7c5ed) return error.RevisionRequiresChannelProfile;
+                    if (self.trees.items.len != 0 or self.pending_commit != null) return error.RevisionAfterCommit;
+                    self.config = Revision.proving_5a7c5ed.legacyView(config);
+                    self.revision_config = config;
+                }
+
+                /// The height choke point every commit path appends through. A
+                /// `proving_5a7c5ed` scheme without its configuration fails closed
+                /// instead of committing at the largest column.
+                pub fn liftCommittedTree(self: *Self, allocator: std.mem.Allocator, tree: *BackendCommitmentTree) !void {
+                    if (comptime revision != .proving_5a7c5ed) return;
+                    const config = self.revision_config orelse return error.MissingRevisionConfig;
+                    try revision_lifting.liftCommittedTree(B, H, config, allocator, tree, self.trees.items.len);
+                }
+
+                /// `max_log_degree_bound` of upstream `prove_ex` for a revision
+                /// scheme; null for the existing lanes, whose bound follows the
+                /// composition split.
+                pub fn revisionMaskLogSize(self: Self, include_all_preprocessed_columns: bool) !?u32 {
+                    const config = self.revision_config orelse return null;
+                    if (self.trees.items.len <= PREPROCESSED_TRACE_IDX) return CommitmentSchemeError.InvalidPreprocessedTree;
+                    return try revision_lifting.maskLogSize(
+                        config,
+                        try self.proofLiftingLogSize(),
+                        self.trees.items[PREPROCESSED_TRACE_IDX].commitment.maxLogSize(),
+                        include_all_preprocessed_columns,
+                    );
+                }
+
+                pub fn setCompactPolynomialStorage(self: *Self, minimum_log_size: u32) void {
+                    self.compact_polynomial_min_log_size = @max(1, minimum_log_size);
+                    self.compact_polynomial_storage = true;
+                    self.coefficient_retention_policy = .always;
+                }
+
+                pub fn setStorePolynomialsCoefficients(self: *Self) void {
+                    self.coefficient_retention_policy = .always;
+                }
+
+                /// Selects whether committed evaluation columns retain a second,
+                /// coefficient-form copy until the opening phase.
+                ///
+                /// `.never` bounds commitment residency at the cost of evaluating
+                /// sampled values from the committed extended-domain columns. This
+                /// does not change commitments, Fiat-Shamir inputs, or proof bytes.
+                pub fn setCoefficientRetentionPolicy(
+                    self: *Self,
+                    policy: CoefficientRetentionPolicy,
+                ) void {
+                    self.coefficient_retention_policy = policy;
+                }
+
+                /// Execution-only storage selection. The default allocation and protocol
+                /// are unchanged. Selected storage currently requires `.never` coefficients.
+                pub fn setRetainedColumnAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+                    self.retained_column_allocator = allocator;
+                }
+
+                /// Execution-only opt-in; no commitment or transcript parameter changes.
+                pub fn setQuotientValuesAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+                    self.quotient_values_allocator = allocator;
+                }
+
+                const CommitOps = @import("commit_ops.zig").CommitOps(B, H, MC, Self);
+                pub const commit = CommitOps.commit;
+                pub const commitOwned = CommitOps.commitOwned;
+                pub const commitOwnedWithRecorder = CommitOps.commitOwnedWithRecorder;
+                pub const commitOwnedWithRecorderAndBacking = CommitOps.commitOwnedWithRecorderAndBacking;
+                pub const commitOwnedPreparedWithRecorderAndBacking = CommitOps.commitOwnedPreparedWithRecorderAndBacking;
+                pub const commitPolys = CommitOps.commitPolys;
+                pub const commitPolysWithRecorder = CommitOps.commitPolysWithRecorder;
+                pub const treeBuilder = CommitOps.treeBuilder;
+                pub const streamingTreeBuilder = CommitOps.streamingTreeBuilder;
+                pub const commitBorrowedStreaming = CommitOps.commitBorrowedStreaming;
+                pub const commitBorrowedStreamingWithRecorder = CommitOps.commitBorrowedStreamingWithRecorder;
+                pub const commitOwnedStreaming = CommitOps.commitOwnedStreaming;
+                pub const commitOwnedStreamingWithRecorder = CommitOps.commitOwnedStreamingWithRecorder;
+                pub const commitOwnedStreamingWithRecorderAndBacking = CommitOps.commitOwnedStreamingWithRecorderAndBacking;
+                pub fn roots(self: *Self, allocator: std.mem.Allocator) !TreeVec(H.Hash) {
+                    try deferred_commit.resolveObserved(self, allocator);
+                    return scheme_views.roots(H, self.*, allocator);
+                }
+
+                /// Returns committed columns as prover-air `Poly` views.
+                ///
+                /// The returned wrappers borrow underlying column storage from the commitment scheme.
+                pub fn polynomials(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                ) !TreeVec([]const @import("../air/component_prover.zig").Poly) {
+                    return scheme_views.polynomials(self, allocator);
+                }
+
+                pub fn trace(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                ) !@import("../air/component_prover.zig").Trace {
+                    return scheme_views.trace(self, allocator);
+                }
+
+                pub fn backendResidencyHandles(self: Self, allocator: std.mem.Allocator) ![]?*anyopaque {
+                    return scheme_views.backendResidencyHandles(B, H, self, allocator);
+                }
+
+                pub fn columnLogSizes(self: Self, allocator: std.mem.Allocator) !TreeVec([]u32) {
+                    return scheme_views.columnLogSizes(self, allocator);
+                }
+
+                pub fn buildQueryPositionsTree(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    query_positions: []const usize,
+                    lifting_log_size: u32,
+                ) !TreeVec([]usize) {
+                    return scheme_views.buildQueryPositionsTree(
+                        self,
+                        allocator,
+                        query_positions,
+                        lifting_log_size,
+                    );
+                }
+
+                pub fn decommitByTreePositions(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    query_positions_tree: TreeVec([]const usize),
+                ) !TreeDecommitmentResult(H) {
+                    return scheme_decommit.decommit(
+                        H,
+                        TreeDecommitmentResult(H),
+                        self,
+                        allocator,
+                        query_positions_tree,
+                    );
+                }
+
+                /// Proves points for committed trees after exact tree/column shape
+                /// validation and per-column log-size folding.
+                pub fn proveValues(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    channel: anytype,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    return self.proveValuesWithRecorder(allocator, sampled_points, null, channel);
+                }
+
+                pub fn proveValuesWithRecorder(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    recorder: ?*stage_profile.Recorder,
+                    channel: anytype,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    var ignored_phase: prover_api.ProvePhase = .openings;
+                    return self.proveValuesWithRecorderAndPhase(
+                        allocator,
+                        sampled_points,
+                        recorder,
+                        channel,
+                        &ignored_phase,
+                    );
+                }
+
+                pub fn proveValuesWithRecorderAndPhase(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    recorder: ?*stage_profile.Recorder,
+                    channel: anytype,
+                    diagnostic_phase: *prover_api.ProvePhase,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    var scheme = self;
+                    var owns_scheme = true;
+                    errdefer if (owns_scheme) scheme.deinit(allocator);
+                    var sampled_points_owned = sampled_points;
+                    var owns_sampled_points = true;
+                    errdefer if (owns_sampled_points) sampled_points_owned.deinitDeep(allocator);
+
+                    try work_pool.observeProofPoolStageForTest(
+                        .openings,
+                        work_pool.getGlobalPool(),
+                    );
+
+                    const lifting_log_size = try scheme.proofLiftingLogSize();
+                    const sampled_values = blk: {
+                        var sampled_value_eval_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "sampled_value_evaluation",
+                            "Sampled-value evaluation",
+                        );
+                        defer sampled_value_eval_stage.end();
+                        break :blk try scheme.evaluateSampledValuesAndRelease(
+                            allocator,
+                            sampled_points_owned,
+                            lifting_log_size,
+                            recorder,
+                        );
+                    };
+
+                    // The downstream method consumes both owners on success and error.
+                    owns_scheme = false;
+                    owns_sampled_points = false;
+                    diagnostic_phase.* = .fri;
+                    return scheme.proveValuesFromSamplesWithRecorderAndPhase(
+                        allocator,
+                        sampled_points_owned,
+                        sampled_values,
+                        recorder,
+                        channel,
+                        diagnostic_phase,
+                    );
+                }
+
+                /// Proves precomputed point evaluations after exact tree/column shape
+                /// validation; values must match the committed columns.
+                pub fn proveValuesFromSamples(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    sampled_values: TreeVec([][]QM31),
+                    channel: anytype,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    return self.proveValuesFromSamplesWithRecorder(
+                        allocator,
+                        sampled_points,
+                        sampled_values,
+                        null,
+                        channel,
+                    );
+                }
+
+                pub fn proveValuesFromSamplesWithRecorder(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    sampled_values: TreeVec([][]QM31),
+                    recorder: ?*stage_profile.Recorder,
+                    channel: anytype,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    var ignored_phase: prover_api.ProvePhase = .openings;
+                    return self.proveValuesFromSamplesWithRecorderAndPhase(
+                        allocator,
+                        sampled_points,
+                        sampled_values,
+                        recorder,
+                        channel,
+                        &ignored_phase,
+                    );
+                }
+
+                pub fn proveValuesFromSamplesWithRecorderAndPhase(
+                    self: Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    sampled_values: TreeVec([][]QM31),
+                    recorder: ?*stage_profile.Recorder,
+                    channel: anytype,
+                    diagnostic_phase: *prover_api.ProvePhase,
+                ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+                    var scheme = self;
+                    defer scheme.deinit(allocator);
+                    var sampled_points_owned = sampled_points;
+                    defer sampled_points_owned.deinitDeep(allocator);
+                    var sampled_values_owned = sampled_values;
+                    errdefer sampled_values_owned.deinitDeep(allocator);
+
+                    const work_recorder = if (recorder) |active|
+                        active.workCaptureRecorder()
+                    else
+                        null;
+                    if (work_recorder) |work| {
+                        try work.expectProducer(.pcs_transcript_shell);
+                        // work-profile-plan:pcs-transcript-shell
+                    }
+
+                    if (scheme.trees.items.len != sampled_points_owned.items.len) {
+                        return CommitmentSchemeError.ShapeMismatch;
+                    }
+                    if (scheme.trees.items.len != sampled_values_owned.items.len) {
+                        return CommitmentSchemeError.ShapeMismatch;
+                    }
+
+                    var sampled_column_count: usize = 0;
+                    var sampled_value_count: usize = 0;
+                    for (scheme.trees.items, sampled_points_owned.items, sampled_values_owned.items) |tree, tree_points, tree_values| {
+                        if (tree.columns.len != tree_points.len) return CommitmentSchemeError.ShapeMismatch;
+                        if (tree.columns.len != tree_values.len) return CommitmentSchemeError.ShapeMismatch;
+                        sampled_column_count = std.math.add(
+                            usize,
+                            sampled_column_count,
+                            tree_values.len,
+                        ) catch return CommitmentSchemeError.ShapeMismatch;
+                        for (tree_values) |column_values| {
+                            sampled_value_count = std.math.add(
+                                usize,
+                                sampled_value_count,
+                                column_values.len,
+                            ) catch return CommitmentSchemeError.ShapeMismatch;
+                        }
+                    }
+
+                    var shell_audit: ?shell_work_profile.Audit = if (work_recorder != null)
+                        shell_work_profile.Audit.init(
+                            @TypeOf(channel.*),
+                            H,
+                            MC,
+                            scheme.trees.items.len,
+                            sampled_column_count,
+                            sampled_value_count,
+                            &scheme.shell_preopening_audit,
+                        ) catch blk: {
+                            work_recorder.?.markIncomplete();
+                            break :blk null;
+                        }
+                    else
+                        null;
+
+                    {
+                        var sampled_value_mix_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "sampled_value_channel_mix",
+                            "Sampled-value channel mix",
+                        );
+                        defer sampled_value_mix_stage.end();
+                        try sampled_value_transcript.mixIntoChannel(allocator, channel, sampled_values_owned);
+                    }
+                    if (shell_audit) |*audit| {
+                        audit.observeSampledValuesMixed() catch work_recorder.?.markIncomplete();
+                    }
+
+                    const random_coeff = channel.drawSecureFelt();
+                    if (shell_audit) |*audit| {
+                        audit.observeCoefficientDrawn() catch work_recorder.?.markIncomplete();
+                    }
+
+                    const lifting_log_size = try scheme.proofLiftingLogSize();
+                    const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
+
+                    diagnostic_phase.* = .fri;
+                    var fri_root_mix_capture = shell_work_profile.FriRootMixCapture{};
+                    var fri_prover = blk: {
+                        var fri_quotient_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "fri_quotient_build_and_commit",
+                            "FRI quotient build + commit (lazy)",
+                        );
+                        defer fri_quotient_stage.end();
+
+                        const borrowed_columns_items = try allocator.alloc([]const ColumnEvaluation, scheme.trees.items.len);
+                        defer allocator.free(borrowed_columns_items);
+                        for (scheme.trees.items, 0..) |tree, i| {
+                            borrowed_columns_items[i] = tree.columns;
+                        }
+
+                        var residency_storage: ?[]*anyopaque = null;
+                        defer if (residency_storage) |handles| allocator.free(handles);
+                        var residency_handles: []const *anyopaque = &.{};
+                        if (comptime B != void and @hasDecl(B, "quotientResidencyHandle")) {
+                            const handles = try allocator.alloc(*anyopaque, scheme.trees.items.len);
+                            residency_storage = handles;
+                            var resident_count: usize = 0;
+                            for (scheme.trees.items) |tree| {
+                                if (B.quotientResidencyHandle(H, tree.commitment)) |handle| {
+                                    handles[resident_count] = handle;
+                                    resident_count += 1;
+                                }
+                            }
+                            residency_handles = handles[0..resident_count];
+                        }
+
+                        const fri_work_recorder = work_recorder;
+                        if (fri_work_recorder) |work| {
+                            try work.expectProducer(.quotient_sample_preparation);
+                            // work-profile-plan:quotient-sample-preparation
+                            try work.expectProducer(.quotient_row_execution);
+                            // work-profile-plan:quotient-row-execution
+                            try work.expectProducer(.fri_protocol);
+                            // work-profile-plan:fri-protocol
+                        }
+
+                        var provider = try quotient_ops.LazyQuotientProvider.initForBackendWithWorkRecorder(
+                            B,
+                            allocator,
+                            TreeVec([]const ColumnEvaluation).initOwned(borrowed_columns_items),
+                            sampled_points_owned,
+                            sampled_values_owned,
+                            random_coeff,
+                            lifting_log_size,
+                            fri_work_recorder,
+                        );
+                        defer provider.deinit(allocator);
+                        provider.setBackendResidencyHandles(residency_handles);
+
+                        var result = try prover_fri.FriProver(FriBackend, H, MC).commitLazyWithWorkRecorderAndRootMixCapture(
+                            allocator,
+                            channel,
+                            scheme.config.fri_config,
+                            domain,
+                            &provider,
+                            fri_work_recorder,
+                            if (shell_audit != null) &fri_root_mix_capture else null,
+                        );
+                        errdefer result.deinit(allocator);
+                        break :blk result;
+                    };
+                    var owns_fri_prover = true;
+                    errdefer if (owns_fri_prover) fri_prover.deinit(allocator);
+                    if (shell_audit) |*audit| {
+                        const fri_layer_count = std.math.add(
+                            usize,
+                            fri_prover.inner_layers.len,
+                            1,
+                        ) catch 0;
+                        if (fri_root_mix_capture.receipt) |root_mix_receipt| {
+                            audit.observeFriCommitted(
+                                fri_layer_count,
+                                root_mix_receipt,
+                            ) catch work_recorder.?.markIncomplete();
+                        } else work_recorder.?.markIncomplete();
+                    }
+
+                    diagnostic_phase.* = .finalize;
+                    const proof_of_work = blk: {
+                        var proof_of_work_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "proof_of_work",
+                            "Proof of work",
+                        );
+                        defer proof_of_work_stage.end();
+                        const nonce = try pow_search.grindForBackend(
+                            B,
+                            channel,
+                            scheme.config.pow_bits,
+                        );
+                        channel.mixU64(nonce);
+                        break :blk nonce;
+                    };
+                    if (shell_audit) |*audit| {
+                        audit.observeProofOfWorkMixed(
+                            scheme.config.pow_bits,
+                            proof_of_work,
+                        ) catch work_recorder.?.markIncomplete();
+                    }
+
+                    diagnostic_phase.* = .fri;
+                    var fri_decommit = blk: {
+                        var fri_decommit_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "fri_decommit",
+                            "FRI decommit",
+                        );
+                        defer fri_decommit_stage.end();
+                        // decommit consumes all layers on success and error.
+                        owns_fri_prover = false;
+                        break :blk try fri_prover.decommit(allocator, channel);
+                    };
+                    errdefer fri_decommit.deinit(allocator);
+                    if (shell_audit) |*audit| {
+                        audit.observeFriDecommitted(
+                            fri_decommit.unsorted_query_locations.len,
+                            fri_decommit.query_positions.len,
+                        ) catch work_recorder.?.markIncomplete();
+                    }
+
+                    diagnostic_phase.* = .openings;
+                    var trace_decommit = blk: {
+                        var trace_decommit_stage = try stage_profile.StageScope.begin(
+                            recorder,
+                            "trace_decommit",
+                            "Trace decommit",
+                        );
+                        defer trace_decommit_stage.end();
+                        var query_positions_tree = try scheme.buildQueryPositionsTree(
+                            allocator,
+                            fri_decommit.query_positions,
+                            lifting_log_size,
+                        );
+                        defer query_positions_tree.deinitDeep(allocator);
+
+                        const query_positions_const = try allocator.alloc([]const usize, query_positions_tree.items.len);
+                        defer allocator.free(query_positions_const);
+                        for (query_positions_tree.items, 0..) |positions, i| {
+                            query_positions_const[i] = positions;
+                        }
+
+                        break :blk try scheme.decommitByTreePositions(
+                            allocator,
+                            TreeVec([]const usize).initOwned(query_positions_const),
+                        );
+                    };
+                    errdefer trace_decommit.deinit(allocator);
+                    if (shell_audit) |*audit| {
+                        audit.observeTraceDecommitted(
+                            trace_decommit.decommitments.items.len,
+                        ) catch work_recorder.?.markIncomplete();
+                    }
+
+                    diagnostic_phase.* = .finalize;
+                    var commitments = try scheme.roots(allocator);
+                    errdefer commitments.deinit(allocator);
+                    if (shell_audit) |*audit| {
+                        audit.observeCommitmentRootsMaterialized(commitments.items.len) catch
+                            work_recorder.?.markIncomplete();
+                    }
+
+                    // `query_positions` are only needed for prover-side decommit orchestration.
+                    allocator.free(fri_decommit.query_positions);
+                    fri_decommit.query_positions = &[_]usize{};
+
+                    const result: pcs_core.ExtendedCommitmentSchemeProof(H) = .{
+                        .proof = .{
+                            .config = scheme.config,
+                            .commitments = commitments,
+                            .sampled_values = sampled_values_owned,
+                            .decommitments = trace_decommit.decommitments,
+                            .queried_values = trace_decommit.queried_values,
+                            .proof_of_work = proof_of_work,
+                            .fri_proof = fri_decommit.fri_proof.proof,
+                            .revision_config = scheme.revision_config,
+                        },
+                        .aux = .{
+                            .unsorted_query_locations = fri_decommit.unsorted_query_locations,
+                            .trace_decommitment = trace_decommit.aux,
+                            .fri = fri_decommit.fri_proof.aux,
+                        },
+                    };
+                    if (shell_audit) |*audit| {
+                        const receipt = audit.finish(result.proof.commitments.items.len) catch {
+                            work_recorder.?.markIncomplete();
+                            return result;
+                        };
+                        receipt.validate() catch {
+                            work_recorder.?.markIncomplete();
+                            return result;
+                        };
+                        work_recorder.?.recordCompletedDelta(.{
+                            .site = .pcs_transcript_shell,
+                            .producer = work_profile.boundaryForSite(.pcs_transcript_shell),
+                            .source_mask = .{ .bits = work_profile.SourceMask.one(.field_additions).bits |
+                                work_profile.SourceMask.one(.field_multiplications).bits |
+                                work_profile.SourceMask.one(.field_inversions).bits },
+                        }) catch {
+                            work_recorder.?.markIncomplete();
+                            return result;
+                        };
+                        if (comptime builtin.is_test)
+                            shell_work_profile.testing.observeAcceptedReceipt(receipt);
+                        // work-profile-complete:pcs-transcript-shell
+                    }
+                    return result;
+                }
+
+                pub fn appendCommittedTree(
+                    self: *Self,
+                    allocator: std.mem.Allocator,
+                    tree: BackendCommitmentTree,
+                    channel: anytype,
+                ) !void {
+                    return tree_builders.appendCommittedTree(MC, self, allocator, tree, channel);
+                }
+
+                fn maxLogSize(columns: []const ColumnEvaluation) u32 {
+                    var max_size: u32 = 0;
+                    for (columns) |column| max_size = @max(max_size, column.log_size);
+                    return max_size;
+                }
+
+                /// The final composition tree sets the proof domain. Earlier trees may
+                /// contain larger columns when those columns are left unsampled. A
+                /// revision scheme proves at the final tree's committed height
+                /// (upstream `prove_values`), which lifting may place above its columns.
+                pub fn proofLiftingLogSize(self: Self) !u32 {
+                    if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
+                    const final_tree = self.trees.items[self.trees.items.len - 1];
+                    if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+                    if (self.revision_config != null) return final_tree.commitment.maxLogSize();
+                    return maxLogSize(final_tree.columns);
+                }
+
+                fn evaluateSampledValuesAndRelease(
+                    self: *Self,
+                    allocator: std.mem.Allocator,
+                    sampled_points: TreeVec([][]CirclePointQM31),
+                    lifting_log_size: u32,
+                    recorder: ?*stage_profile.Recorder,
+                ) !TreeVec([][]QM31) {
+                    const work_recorder = if (recorder) |active|
+                        active.workCaptureRecorder()
+                    else
+                        null;
+                    return sampled_value_evaluation.evaluateAndReleaseWithWorkRecorder(
+                        B,
+                        H,
+                        allocator,
+                        self.trees.items,
+                        sampled_points,
+                        lifting_log_size,
+                        work_recorder,
+                    );
+                }
+            };
+        }
+
+        pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
+            return tree_builders.TreeBuilder(B, H, MC, CommitmentSchemeProver(B, H, MC));
+        }
+
+        pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
+            return tree_builders.StreamingTreeBuilder(B, H, MC, CommitmentSchemeProver(B, H, MC));
+        }
+    };
+}
