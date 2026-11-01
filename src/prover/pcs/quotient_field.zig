@@ -174,6 +174,13 @@ pub fn ForField(comptime S: type) type {
                     // bounded cross-row batch inverse. Zero-weight poles are
                     // never omitted and no challenge is redrawn on failure.
                     try self.workspace.prepareDenominatorInversesForRowsBatchMajor(self.scratch_points[0..count], self.scratch_denominators[0..cells], self.scratch_inverses[0..cells]);
+                    if (S == core.fields.om31.OM31) {
+                        var output: [DEGREE][]M = undefined;
+                        for (&output, coordinates) |*target, plane| target.* = plane[offset..][0..count];
+                        try @import("wide_row_finalize.zig").finalizeRows(&self.constants, self.groups.groups, start + offset, self.scratch_points[0..count], self.scratch_inverses[0..cells], &output);
+                        offset += count;
+                        continue;
+                    }
                     for (0..count) |r| {
                         const position = start + offset + r;
                         const point = self.scratch_points[r];
