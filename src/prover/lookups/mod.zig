@@ -6,3 +6,5 @@ pub const sumcheck = @import("sumcheck.zig");
 pub const utils = @import("utils.zig");
 
 pub const resource = @import("resource.zig");
+
+pub const row_work = @import("row_work.zig");
