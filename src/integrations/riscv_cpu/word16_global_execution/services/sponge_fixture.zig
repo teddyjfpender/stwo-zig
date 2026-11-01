@@ -52,7 +52,7 @@ pub const WORDS = [_]u32{
 pub const SHARD0_STEPS: u32 = 6;
 pub const STEPS: u32 = WORDS.len;
 pub const CPU_LOG: u32 = 5;
-pub const BOUNDARY_LOG: u32 = 7;
+pub const BOUNDARY_LOG: u32 = 8;
 const marker: u8 = 0;
 
 pub fn messageByte(i: u64) u8 {
