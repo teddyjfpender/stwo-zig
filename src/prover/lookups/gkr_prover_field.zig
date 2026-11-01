@@ -55,25 +55,25 @@ pub fn ForField(comptime Secure: type) type {
                 n_layers = @max(n_layers, n_layers_by_instance[i]);
             }
 
+            const next_layer_idx = try allocator.alloc(usize, n_instances);
+            defer allocator.free(next_layer_idx);
+            @memset(next_layer_idx, 0);
             const layers_by_instance = try allocator.alloc([]Layer, n_instances);
             var layers_initialized: usize = 0;
             defer {
                 var i: usize = 0;
                 while (i < layers_initialized) : (i += 1) {
-                    for (layers_by_instance[i]) |*layer| layer.deinit(allocator);
+                    for (layers_by_instance[i][0..next_layer_idx[i]]) |*layer| layer.deinit(allocator);
                     allocator.free(layers_by_instance[i]);
                 }
                 allocator.free(layers_by_instance);
             }
 
             for (input_layer_by_instance, 0..) |input_layer, i| {
-                layers_by_instance[i] = try gkr_circuit_field.buildLayers(allocator, input_layer);
+                layers_by_instance[i] = try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
+                next_layer_idx[i] = layers_by_instance[i].len;
                 layers_initialized += 1;
             }
-
-            const next_layer_idx = try allocator.alloc(usize, n_instances);
-            defer allocator.free(next_layer_idx);
-            for (layers_by_instance, 0..) |layers, i| next_layer_idx[i] = layers.len;
 
             var output_claims_by_instance = try allocator.alloc(?[]Secure, n_instances);
             defer {
@@ -119,10 +119,11 @@ pub fn ForField(comptime Secure: type) type {
                 var instance: usize = 0;
                 while (instance < n_instances) : (instance += 1) {
                     if (n_layers_by_instance[instance] == n_remaining_layers) {
-                        const output_layer = try popNextLayer(
+                        var output_layer = try popNextLayer(
                             layers_by_instance[instance],
                             &next_layer_idx[instance],
                         );
+                        defer output_layer.deinit(allocator);
                         const output_values = try output_layer.outputLayerValues(allocator);
                         errdefer allocator.free(output_values);
                         try replaceOwnedSlice(
@@ -167,7 +168,7 @@ pub fn ForField(comptime Secure: type) type {
                             layers_by_instance[instance],
                             &next_layer_idx[instance],
                         );
-                        var oracle = try layer.intoMultivariatePoly(allocator, instance_lambda, &eq_evals);
+                        var oracle = layer.intoMultivariatePolyOwned(instance_lambda, &eq_evals);
                         sumcheck_oracles.append(allocator, oracle) catch |err| {
                             oracle.deinit(allocator);
                             return err;
@@ -180,11 +181,11 @@ pub fn ForField(comptime Secure: type) type {
                     }
                 }
 
-                var sumcheck_result = sumcheck_field.proveBatch(
+                var sumcheck_result = sumcheck_field.proveBatchOwned(
                     GkrMultivariatePolyOracle,
                     allocator,
                     sumcheck_claims.items,
-                    sumcheck_oracles.items,
+                    try sumcheck_oracles.toOwnedSlice(allocator),
                     sumcheck_alpha,
                     channel,
                 ) catch |err| switch (err) {
