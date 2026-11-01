@@ -90,10 +90,16 @@ fn produceTrace(a: std.mem.Allocator, invalid: bool) !E.ExtendedProof {
     return produceTraceWithFold(a, invalid, 1);
 }
 pub fn produceTraceWithFold(a: std.mem.Allocator, invalid: bool, fold: u32) !E.ExtendedProof {
+    return produceTraceWithStorage(a, invalid, fold, false, null);
+}
+pub fn produceTraceWithStorage(a: std.mem.Allocator, invalid: bool, fold: u32, compact: bool, byte_limit: ?usize) !E.ExtendedProof {
     const cfg = try configWithFold(fold);
     var channel = C.init();
     cfg.mixInto(&channel);
     var scheme = try E.init(a, cfg);
+    scheme.compact_polynomial_storage = compact;
+    scheme.compact_polynomial_min_log_size = 0;
+    scheme.wide_quotient_group_byte_limit = byte_limit;
     var owns = true;
     errdefer if (owns) scheme.deinit(a);
     try scheme.commit(a, &.{}, &channel);
@@ -197,11 +203,17 @@ test "OM31 STARK complete fold4 profile verifies through wide lazy PCS" {
     try verifyFold(A, proof.proof, 4);
 }
 
-fn mixed(a: std.mem.Allocator, fold: u32) !void {
+pub fn produceMixedWithStorage(a: std.mem.Allocator, fold: u32, compact: bool, byte_limit: ?usize) !E.ExtendedProof {
+    return produceMixedWithStorageThreshold(a, fold, compact, byte_limit, 0);
+}
+pub fn produceMixedWithStorageThreshold(a: std.mem.Allocator, fold: u32, compact: bool, byte_limit: ?usize, minimum_log: u32) !E.ExtendedProof {
     const cfg = try configWithFold(fold);
     var channel = C.init();
     cfg.mixInto(&channel);
     var scheme = try E.init(a, cfg);
+    scheme.compact_polynomial_storage = compact;
+    scheme.compact_polynomial_min_log_size = minimum_log;
+    scheme.wide_quotient_group_byte_limit = byte_limit;
     var owns = true;
     errdefer if (owns) scheme.deinit(a);
     try scheme.commit(a, &.{}, &channel);
@@ -213,20 +225,31 @@ fn mixed(a: std.mem.Allocator, fold: u32) !void {
     const roles = [_]Air{ .{ .log = 5, .main_index = 0 }, .{ .log = 6, .main_index = 1 } };
     const components = [_]P.ComponentProver{ Air.Adapter.asProverComponent(&roles[0]), Air.Adapter.asProverComponent(&roles[1]) };
     owns = false;
-    var proof = try E.prove(a, &components, &channel, scheme, .{});
-    defer proof.aux.deinit(a);
+    return E.prove(a, &components, &channel, scheme, .{});
+}
+
+pub fn verifyMixed(a: std.mem.Allocator, proof: core.proof.ForField(S).StarkProof(H), fold: u32) !void {
+    const cfg = try configWithFold(fold);
+    const roles = [_]Air{ .{ .log = 5, .main_index = 0 }, .{ .log = 6, .main_index = 1 } };
+    var owned_proof = proof;
     var owned = true;
-    defer if (owned) proof.proof.deinit(a);
+    defer if (owned) owned_proof.deinit(a);
     var fresh = C.init();
     cfg.mixInto(&fresh);
     var receiver = try CP.verifier.CommitmentSchemeVerifier(H, MC).init(a, cfg);
     defer receiver.deinit(a);
-    try receiver.commit(a, proof.proof.commitment_scheme_proof.commitments.items[0], &.{}, &fresh);
-    try receiver.commit(a, proof.proof.commitment_scheme_proof.commitments.items[1], &.{ 5, 6 }, &fresh);
+    try receiver.commit(a, proof.commitment_scheme_proof.commitments.items[0], &.{}, &fresh);
+    try receiver.commit(a, proof.commitment_scheme_proof.commitments.items[1], &.{ 5, 6 }, &fresh);
     const verify_components = [_]K.Component{ Air.Adapter.asVerifierComponent(&roles[0]), Air.Adapter.asVerifierComponent(&roles[1]) };
     owned = false;
-    try core.verifier.ForField(S).verify(H, MC, a, &verify_components, &fresh, &receiver, proof.proof);
+    try core.verifier.ForField(S).verify(H, MC, a, &verify_components, &fresh, &receiver, proof);
 }
+fn mixed(a: std.mem.Allocator, fold: u32) !void {
+    var proof = try produceMixedWithStorage(a, fold, false, null);
+    defer proof.aux.deinit(a);
+    try verifyMixed(a, proof.proof, fold);
+}
+
 test "OM31 STARK mixed log5 log6 MAIN baseline folds samples per column" {
     try mixed(A, 1);
     try mixed(A, 4);
