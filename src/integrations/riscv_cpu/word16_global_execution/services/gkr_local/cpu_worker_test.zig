@@ -38,6 +38,8 @@ fn exercise(comptime shard: usize, comptime mode: Mode) !void {
     defer a.free(spill_path);
     var store = try @import("../../retained_main_store.zig").Store.initParked(spill_path, 128 << 20);
     defer store.deinit();
+    const retention = try @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1 << 26);
+    try std.testing.expectError(error.ClassicWitnessBudgetExceeded, @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1));
     var worker = try Worker.CpuWorker.init(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30);
     owns = false;
     var owns_worker = true;
@@ -52,6 +54,28 @@ fn exercise(comptime shard: usize, comptime mode: Mode) !void {
     try std.testing.expectError(error.WideCpuPhase, worker.seal(a));
     try worker.retireLocalMetadata();
     try worker.retireLocalMetadata();
+    const memory_after = &worker.source.core.memory;
+    var advice_bytes = std.mem.sliceAsBytes(memory_after.statement.initial).len + std.mem.sliceAsBytes(memory_after.statement.terminal).len;
+    advice_bytes += std.mem.sliceAsBytes(memory_after.ls.metadata).len;
+    if (memory_after.ls_tail) |tail| advice_bytes += std.mem.sliceAsBytes(tail.metadata).len;
+    advice_bytes += std.mem.sliceAsBytes(memory_after.initial.metadata).len + std.mem.sliceAsBytes(memory_after.terminal.metadata).len;
+    inline for (.{ "keccak", "add", "double" }) |name| if (@field(worker.source, name)) |bridge| {
+        advice_bytes += std.mem.sliceAsBytes(bridge.calls).len;
+        try std.testing.expectEqual(@as(usize, 0), bridge.fixed.len + bridge.counts16.len + bridge.counts8.len);
+    };
+    try std.testing.expectEqual(retention.global_metadata_bytes, advice_bytes);
+    try std.testing.expectEqual(@as(usize, 0), memory_after.ls.fixed.len + memory_after.ls.counts16.len + memory_after.ls.counts8.len + memory_after.ls.selection_counts.len + memory_after.selection.fixed.len + memory_after.counts16.len + memory_after.counts8.len);
+    var coefficient_bytes: usize = 0;
+    for (worker.scheme.trees.items[1].coefficients.?) |c| coefficient_bytes += std.mem.sliceAsBytes(c.coefficients()).len;
+    try std.testing.expectEqual(retention.coefficient_bytes, coefficient_bytes);
+    var merkle_bytes: usize = 0;
+    for (worker.scheme.trees.items[1].commitment.layers) |layer| merkle_bytes += std.mem.sliceAsBytes(layer).len;
+    try std.testing.expect(merkle_bytes <= retention.main_merkle_bytes);
+    var binding_bytes: usize = 0;
+    for (worker.child.?.binding.columns) |column| binding_bytes += std.mem.sliceAsBytes(column).len;
+    try std.testing.expectEqual(retention.binding_bytes, binding_bytes);
+    try std.testing.expectEqual(retention.resident_retained_bytes, retention.parked_retained_bytes + retention.coefficient_bytes);
+
     try std.testing.expect(try worker.spillMain(&store) > 0);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
     if (mode == .parked_abort or mode == .later_worker_oom) {
