@@ -1,9 +1,13 @@
-# Optional truth-first service dispatch
+# Rejected truth-first service dispatch experiment
 
-This recovers the useful scheduling idea from `92f244fec` onto current LS7
+The isolated `codex/rv64-truth-dispatch-qualified` branch recovers the scheduling idea from `92f244fec` onto LS7
 `fe3b29fc0`, without replacing the scheduler or owned CPU/truth worker. It is
 producer-only, explicitly enabled with `--truths-first`, and **off by default**.
 No AIR, proof suite, public statement, transcript or geometry changes.
+
+The integration branch retains this report and its receipts only. It does not
+include the experimental `--truths-first` runtime option or dispatch source.
+The measurements below reject adopting that experiment.
 
 The producer builds one permutation: truth workers sorted by declared MAIN plus
 INTERACTION cells descending, ties by their original ordinal, followed by CPU
