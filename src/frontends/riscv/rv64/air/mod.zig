@@ -15,6 +15,7 @@ pub const operations = @import("operations.zig");
 pub const control_policy = @import("control_policy.zig");
 pub const encoding = @import("encoding.zig");
 pub const full = struct {
+    pub const coset_evaluation = @import("full/coset_evaluation.zig");
     pub const packed_frame = @import("full/packed_frame.zig");
     pub const packed_control_constraints = @import("full/packed_control_constraints.zig");
     pub const parallel = @import("full/parallel.zig");
