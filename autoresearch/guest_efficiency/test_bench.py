@@ -228,6 +228,15 @@ class AdmittedScheme(unittest.TestCase):
                                                         "memcpy": {"calls": 1, "bytes": 64}})
         self.assertIsNone(bench.admitted_usage({"sha256_calls": 0}))
 
+    def test_sponge_usage_and_cost_per_permutation(self):
+        report = {"keccak_sponge_calls": 2, "keccak_sponge_bytes": 300, "keccak_sponge_permutations": 4}
+        self.assertEqual(bench.admitted_usage(report),
+                         {"keccak_sponge": {"calls": 2, "bytes": 300, "permutations": 4}})
+        cal = {"coefficients": {"bits_per_cell_at_lde": 1, "cpu_cells_per_instruction": 1.0, "keccak_cells_per_call": 0.0,
+                                "secp_cells_per_call": 0.0, "composition_fraction": 0.0},
+               "admitted_services": {"keccak_sponge": {"cells_per_call": 10.0, "cells_per_permutation": 1000.0}}}
+        self.assertEqual(bench.committed_bits(cal, 5, 0, 0, 0, None, bench.admitted_usage(report)), 5 + 20 + 4000)
+
     def test_all_three_services_cost_additively(self):
         c = CAL["coefficients"]
         t = CAL["admitted_services"]

@@ -299,7 +299,24 @@ Services (`zig build test-riscv64-word16-sponge-services
 
 ## 6. Cost
 
-See section 8 for measured numbers.
+Measured geometry (2026-11-02), complete block 26,235,156 with the evmone v3
+guest routing Keccak-256 inputs > 64 bytes to the sponge (`build.py --profile
+v3 --v3-set sha,arith,mem,keccak`; `rv64-ethereum-proof nativeprepare`, 5
+packets; `rv64-word16-ethereum plan`): 4,731 calls, 19,562 permutations.
+Exact padded MAIN+INTERACTION cells (widths × 2^log, as cost.json computes):
+
+| Component | Rows (logs over 4 shards) | Cells | Per unit | Nominal |
+|---|---|---:|---:|---:|
+| call | 12/5/5/11 → 6,208 | 6,667,392 | 1,409.3 / call | 1,074 |
+| perm | 14/5/7/13 → 24,736 | 41,086,496 | 2,100.3 / permutation | 1,661 |
+| Keccak-f truth (shared) | log18 + log16 over 20,994 IDs | 1,480,785,920 | 70,533.8 / ID | |
+
+`calibration.json` `admitted_services.keccak_sponge`: 1,409.3 per call and
+2,100.3 + 72,159.3 (frozen Keccak truth coefficient) per permutation.
+Basket (15 blocks, all guards, exact outputs): provable v3 scored 4.778 →
+4.426 instr/gas, 67,192 → 64,114 bits/gas; Keccak glue 0.465 → 0.108
+instr/gas (`notes/keccak-sponge-admitted-results-20261102.json`). Not yet
+confirmed by a produced proof's cost.json.
 
 ## 7. Integration
 

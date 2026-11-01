@@ -76,22 +76,27 @@ def candidate_cells(calibration: dict, candidate_calls: dict | None) -> float:
 
 
 # ADMITTED ethereum_services_v3 services: calibration.json admitted_services key ->
-# (execution-report call field, execution-report byte field or None).
+# (execution-report call field, execution-report byte field or None[,
+#  execution-report permutation field]). The Keccak-256 sponge is costed per
+# call (call row) and per permutation (perm row + Keccak-f truth).
 ADMITTED_REPORT_FIELDS = {
     "sha256_compress": ("sha256_calls", None),
     "arith256_mod": ("arith256_mod_calls", None),
     "memcpy": ("bulk_memcpy_calls", "bulk_memcpy_bytes"),
     "memset": ("bulk_memset_calls", "bulk_memset_bytes"),
+    "keccak_sponge": ("keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations"),
 }
 
 
 def admitted_usage(report: dict) -> dict | None:
     """Per-service admitted usage from one execution report (None when no admitted v3 call ran)."""
     out = {}
-    for name, (calls_key, bytes_key) in ADMITTED_REPORT_FIELDS.items():
+    for name, (calls_key, bytes_key, *perms_key) in ADMITTED_REPORT_FIELDS.items():
         calls = int(report.get(calls_key) or 0)
         if calls:
             out[name] = {"calls": calls, "bytes": int(report.get(bytes_key) or 0) if bytes_key else 0}
+            if perms_key:
+                out[name]["permutations"] = int(report.get(perms_key[0]) or 0)
     return out or None
 
 
@@ -105,7 +110,8 @@ def admitted_cells(calibration: dict, admitted_calls: dict | None) -> float:
         if name not in table:
             raise ValueError(f"admitted service {name!r} has no measured cost in calibration.json")
         cost = table[name]
-        cells += cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+        cells += (cost["cells_per_call"] * int(use.get("calls", 0)) + cost.get("cells_per_byte", 0.0) * int(use.get("bytes", 0))
+                  + cost.get("cells_per_permutation", 0.0) * int(use.get("permutations", 0)))
     return cells
 
 
@@ -428,7 +434,8 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "admitted_service_calls": admitted_usage(e)}
     if repeat > 1:
         keys = ("instructions", "keccak_calls", "secp_add_calls", "secp_double_calls", "sha256_calls", "arith256_mod_calls",
-                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes", "verified_output")
+                "bulk_memcpy_calls", "bulk_memcpy_bytes", "bulk_memset_calls", "bulk_memset_bytes",
+                "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
     return row
