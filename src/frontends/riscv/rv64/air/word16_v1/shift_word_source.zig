@@ -217,7 +217,13 @@ pub const Source = struct {
         for (columns_, 0..) |*column, i| column.* = .{ .log_size = self.log_size, .values = data[i * n ..][0..n] };
         return columns_;
     }
+    /// Joined parallel generation under the scoped pool; one worker (or no
+    /// pool) runs the original serial oracle below.
     pub fn generate(self: *Source, ch: P.Challenges, shift_dictionary: []const Q, range_dictionary: []const Q) !P.Claims {
+        return @import("shift_word_interaction.zig").generate(self, ch, shift_dictionary, range_dictionary, engine.work_pool.currentScopedPool());
+    }
+    /// Original serial generator; the independent numerical and physical oracle.
+    pub fn generateSerial(self: *Source, ch: P.Challenges, shift_dictionary: []const Q, range_dictionary: []const Q) !P.Claims {
         const n = self.size();
         if (self.interaction.len != 0 or self.metadata.len != n or self.fact_count > n) return error.InvalidShiftSourcePhase;
         var function_mass: u64 = 0;
@@ -300,8 +306,12 @@ fn checkProducts(denominator: E.PackedSecure, values: [E.LANES]Q) !void {
 }
 fn validateDictionaries(ch: P.Challenges, shift: []const Q, range: []const Q) !void {
     const prepared = PackedTable.Prepared.init(ch.shift);
-    var start: usize = 0;
-    while (start < 65536) : (start += E.LANES) {
+    try validateDictionaryRange(ch, &prepared, shift, range, 0, 65536);
+}
+fn validateDictionaryRange(ch: P.Challenges, prepared: *const PackedTable.Prepared, shift: []const Q, range: []const Q, first: usize, last: usize) !void {
+    std.debug.assert(first % E.LANES == 0 and last % E.LANES == 0 and last <= 65536);
+    var start: usize = first;
+    while (start < last) : (start += E.LANES) {
         var fields: [16]E.PackedBase = undefined;
         for (&fields, 0..) |*field, c| {
             var lanes: [E.LANES]M = undefined;
@@ -330,6 +340,32 @@ fn functionDenominators(metadata: []const Metadata, output: []Q, ch: Bus.Challen
         for (0..E.LANES) |lane| output[start + lane] = values.lane(lane);
     }
 }
+
+/// Shared pure helpers for the joined parallel generator.
+pub const InteractionSupport = struct {
+    pub const CHUNK_ROWS = CHUNK;
+    pub const validateRange = validateDictionaryRange;
+    pub const denominators = functionDenominators;
+    pub const table = tableIndex;
+    pub const range = rangeIndex;
+    pub const dot = countDot;
+    pub const put = store;
+    /// Every pre-row serial check, in the serial order.
+    pub fn precheck(self: *const Source, shift_dictionary: []const Q, range_dictionary: []const Q) !void {
+        const n = self.size();
+        if (self.interaction.len != 0 or self.metadata.len != n or self.fact_count > n) return error.InvalidShiftSourcePhase;
+        var function_mass: u64 = 0;
+        for (self.metadata, 0..) |meta, i| {
+            const weight = meta.multiplicity();
+            if (weight >= core.fields.m31.Modulus or (i >= self.fact_count and weight != 0)) return error.InvalidShiftMetadata;
+            function_mass += weight;
+            if (function_mass >= core.fields.m31.Modulus) return error.InvalidShiftMetadata;
+        }
+        if (function_mass != self.function_mass) return error.InvalidShiftMetadata;
+        if (shift_dictionary.len != Table.SIZE or range_dictionary.len != 65536 or self.shift_counts.len != Table.SIZE or self.range16_counts.len != 65536) return error.InvalidShiftDictionary;
+        if (try Bus.admitPositiveMass(self.shift_counts) != S.TABLE_QUERIES * n or try Bus.admitPositiveMass(self.range16_counts) != S.RANGE_QUERIES * n) return error.InvalidShiftMetadata;
+    }
+};
 
 /// One existing native row authority for scalar and joined physical formatters.
 pub const NativeSupport = struct {

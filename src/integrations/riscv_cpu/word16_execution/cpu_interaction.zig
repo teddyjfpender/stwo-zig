@@ -30,7 +30,7 @@ fn denominators(ch: X.types.Challenges, row: []const M, index: usize, epoch: u16
     result.owner = dot(ch.owner, X.tuples.owner(M, &fixed, row, M.fromCanonical(epoch)));
     return result;
 }
-fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries) !Q {
+fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries, pool: ?*work.WorkPool) !Q {
     if (source.interaction.len != 0 or source.metadata.len != source.public.steps) return error.InvalidExecutionInteractionPhase;
     if (dict.rom.len != source.program.size() or dict.range16.len != 65536 or dict.range8.len != 256) return error.InvalidExecutionDictionary;
     for (dict.range16, 0..) |inverse, i| {
@@ -42,11 +42,7 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries) !
         if (!d.mul(inverse).eql(Q.one())) return error.InvalidExecutionDictionary;
     }
     if (source.program.fixed_retired) {
-        for (0..source.program.size()) |logical| {
-            const tuple = try source.program.tupleAt(logical);
-            const p = X.layout.physical(logical, source.program.log_size);
-            if (!dot(ch.rom, tuple).mul(dict.rom[p]).eql(Q.one())) return error.InvalidExecutionDictionary;
-        }
+        try validateRetiredRom(source.program, ch.rom, dict.rom, pool);
     } else {
         try source.program.validateFixedWitness();
         for (dict.rom, 0..) |inverse, p| {
@@ -60,8 +56,44 @@ fn validate(source: *const Source, ch: X.types.Challenges, dict: Dictionaries) !
     if (padding_denominator.isZero()) return error.DivisionByZero;
     return padding_denominator.inv();
 }
+/// Physical-range ROM dictionary check; any failing row rejects the whole
+/// dictionary exactly as the serial logical walk did (same error set).
+const RomCheckJob = struct {
+    program: *const Program,
+    ch: RomChallenges,
+    rom: []const Q,
+    first: usize,
+    last: usize,
+    failure: ?anyerror = null,
+    pub fn run(self: *RomCheckJob) void {
+        self.execute() catch |err| {
+            self.failure = err;
+        };
+    }
+    fn execute(self: *RomCheckJob) !void {
+        const log = self.program.log_size;
+        for (self.first..self.last) |p| {
+            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(p, log), log);
+            const tuple = try self.program.tupleAt(logical);
+            if (!dot(self.ch, tuple).mul(self.rom[p]).eql(Q.one())) return error.InvalidExecutionDictionary;
+        }
+    }
+};
+const Program = @import("program.zig").Program;
+const RomChallenges = @FieldType(X.types.Challenges, "rom");
+fn validateRetiredRom(program: *const Program, ch: RomChallenges, rom: []const Q, pool: ?*work.WorkPool) !void {
+    const n = program.size();
+    if (rom.len != n) return error.InvalidExecutionDictionary;
+    const workers = Prefix.workers(pool, n, 4096);
+    var jobs: [work.MAX_WORKERS]RomCheckJob = undefined;
+    for (jobs[0..workers], 0..) |*job, i| job.* = .{ .program = program, .ch = ch, .rom = rom, .first = n * i / workers, .last = n * (i + 1) / workers };
+    try Prefix.single(RomCheckJob, jobs[0..workers], pool);
+}
+pub const testing = if (@import("builtin").is_test) struct {
+    pub const validateRom = validateRetiredRom;
+} else struct {};
 pub fn generate(source: *Source, ch: X.types.Challenges, dictionaries: Dictionaries, pool: ?*work.WorkPool) !Q {
-    const padding_rom = try validate(source, ch, dictionaries);
+    const padding_rom = try validate(source, ch, dictionaries, pool);
     if (pool) |active| if (active.stackSize() < (if (@import("builtin").mode == .Debug) @as(usize, 1048576) else 262144)) return error.InvalidExecutionInteractionStack;
     const n = source.size();
     const chunks = std.math.divCeil(usize, n, CHUNK) catch unreachable;
