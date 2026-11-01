@@ -53,6 +53,11 @@ impl<W: InterpreterTypes, H: Host + ?Sized> Instruction<W, H> {
         }
     }
 
+    #[inline(always)]
+    pub(crate) fn is_function(self, f: fn(InstructionContext<'_, H, W>) -> InstructionExecResult) -> bool {
+        core::ptr::fn_addr_eq(self.fn_, f)
+    }
+
     /// Executes the instruction with the given context.
     #[inline(always)]
     pub fn execute(self, ctx: InstructionContext<'_, H, W>) -> InstructionExecResult {

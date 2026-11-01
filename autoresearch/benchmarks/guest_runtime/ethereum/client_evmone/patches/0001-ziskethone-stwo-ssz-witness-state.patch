@@ -1,0 +1,396 @@
+diff --git a/cpp-guest/include/zeg/accounts.hpp b/cpp-guest/include/zeg/accounts.hpp
+index 9593d0e..d2e8f6c 100644
+--- a/cpp-guest/include/zeg/accounts.hpp
++++ b/cpp-guest/include/zeg/accounts.hpp
+@@ -30,7 +30,9 @@
+ #include <evmc/evmc.hpp>
+ 
+ #include "zeg/trie_node.hpp"
++#include "zeg/zisk_dma.hpp"
+ #include "zeg/seeded_hash.hpp"
++#include "zeg/stwo_hooks.hpp"
+ 
+ namespace zeg {
+ 
+@@ -174,8 +176,10 @@ public:
+ 
+     // Non-fataling probe — true iff `addr` is in the table.
+     bool contains(const evmc::address& addr) const noexcept {
+-        return index_.find(addr) != index_.end();
++        if (index_.find(addr) != index_.end()) return true;
++        return stwo_lazy_load_account(const_cast<Accounts&>(*this), addr);
+     }
++    void set_storage_empty_at(size_t idx, bool empty) noexcept { leaf_[idx].storage_empty = empty; }
+ 
+     // ----- per-tx warm/cold tracking (EIP-2929) -----
+     //
+@@ -281,7 +285,7 @@ private:
+     };
+     struct AddressEq {
+         bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
+ 
+diff --git a/cpp-guest/include/zeg/contracts.hpp b/cpp-guest/include/zeg/contracts.hpp
+index eba163c..a32cfed 100644
+--- a/cpp-guest/include/zeg/contracts.hpp
++++ b/cpp-guest/include/zeg/contracts.hpp
+@@ -16,6 +16,8 @@
+ 
+ #include <evmc/evmc.hpp>
+ 
++#include "zeg/zisk_dma.hpp"
++
+ #include "zeg/seeded_hash.hpp"
+ #include "zeg/tx_arena.hpp"
+ 
+@@ -165,7 +167,7 @@ private:
+     };
+     struct KeccakEq {
+         bool operator()(const evmc::bytes32& x, const evmc::bytes32& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
+ 
+diff --git a/cpp-guest/include/zeg/storages.hpp b/cpp-guest/include/zeg/storages.hpp
+index 2a49846..c697d82 100644
+--- a/cpp-guest/include/zeg/storages.hpp
++++ b/cpp-guest/include/zeg/storages.hpp
+@@ -29,6 +29,7 @@
+ #include "zeg/zisk_dma.hpp"
+ #include "zeg/trie_node.hpp"
+ #include "zeg/seeded_hash.hpp"
++#include "zeg/stwo_hooks.hpp"
+ 
+ namespace zeg {
+ 
+@@ -284,7 +285,7 @@ private:
+     };
+     struct AddressEq {
+         bool operator()(const evmc::address& x, const evmc::address& y) const noexcept {
+-            return std::memcmp(x.bytes, y.bytes, sizeof(x.bytes)) == 0;
++            return zeg::zisk::zisk_xmemcmp<sizeof(x.bytes)>(x.bytes, y.bytes) == 0;
+         }
+     };
+ 
+diff --git a/cpp-guest/include/zeg/stwo_hooks.hpp b/cpp-guest/include/zeg/stwo_hooks.hpp
+new file mode 100644
+index 0000000..78945e5
+--- /dev/null
++++ b/cpp-guest/include/zeg/stwo_hooks.hpp
+@@ -0,0 +1,36 @@
++// Hooks for the stwo RV64 port (patch-added; implemented in client_evmone/glue).
++// The stwo guest reads the canonical SSZ StatelessInput, whose witness is a set
++// of trie nodes without key preimages, so the Accounts/Storages tables are
++// filled lazily: a lookup miss walks the witness trie from the authenticated
++// parent state root and appends the row (present or proven-absent value).
++#pragma once
++#include <evmc/evmc.hpp>
++
++namespace zeg {
++class Accounts;
++class Storages;
++class ConsensusInfo;
++class Transactions;
++class PreviousBlocks;
++struct BlockHeader;
++
++// Append a row for `addr` if its trie path is in the witness; false if the
++// path leaves the witness (the key is then unproven and only warmable).
++bool stwo_lazy_load_account(Accounts& accounts, const evmc::address& addr) noexcept;
++bool stwo_lazy_load_storage(Storages& storages, const evmc::address& addr,
++                            const evmc::bytes32& position) noexcept;
++// Called by run() in place of the ZEG0 StateRoot section.
++void stwo_state_begin(Accounts& accounts, Storages& storages, const ConsensusInfo& consensus,
++                      const PreviousBlocks& previous_blocks);
++evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages);
++// Binds the re-executed block to the SSZ payload: every payload field is
++// checked against `header` (inputs and execution results alike) and the block
++// hash, before the request root is emitted.
++void stwo_after_block(const Transactions& transactions, const BlockHeader& header,
++                      const evmc::bytes32& block_hash);
++// Sender of transaction `index` from the input's public-key hint; false if no
++// usable hint (the caller recovers instead). Signatures are verified in batch
++// before any output is produced.
++bool stwo_tx_sender(uint64_t index, const evmc::bytes32& hash, const evmc::uint256be& r,
++                    const evmc::uint256be& s, unsigned recid, evmc::address& out) noexcept;
++}  // namespace zeg
+diff --git a/cpp-guest/include/zeg/zisk_dma.hpp b/cpp-guest/include/zeg/zisk_dma.hpp
+index 5c9a403..9cd4f8c 100644
+--- a/cpp-guest/include/zeg/zisk_dma.hpp
++++ b/cpp-guest/include/zeg/zisk_dma.hpp
+@@ -20,13 +20,70 @@
+ 
+ namespace zeg::zisk {
+ 
++#if defined(ZEG_STWO)
++// stwo RV64IM: evmc byte arrays have alignment 1, so fixed-size copies and
++// compares become libc calls with byte-alignment handling. When both operands
++// happen to be 8-byte aligned (table records and hash-map nodes are), use word
++// accesses instead. zisk_xmemcmp is only ever tested against 0 by its callers,
++// so the fast path returns 0 (equal) or 1 (different).
++namespace detail {
++typedef uint64_t __attribute__((may_alias)) u64a;
++typedef uint32_t __attribute__((may_alias)) u32a;
++inline bool aligned8(const void* a, const void* b) {
++    return ((reinterpret_cast<uintptr_t>(a) | reinterpret_cast<uintptr_t>(b)) & 7) == 0;
++}
++}  // namespace detail
++#endif
++
+ inline void zisk_memcpy(void* dst, const void* src, size_t size) { std::memcpy(dst, src, size); }
+ template <size_t Size>
+-inline void zisk_xmemcpy(void* dst, const void* src) { std::memcpy(dst, src, Size); }
++inline void zisk_xmemcpy(void* dst, const void* src) {
++#if defined(ZEG_STWO)
++    if constexpr (Size % 8 == 0 && Size <= 64) {
++        if (detail::aligned8(dst, src)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const detail::u64a*>(src);
++            for (size_t i = 0; i < Size / 8; ++i) d[i] = s[i];
++            return;
++        }
++    } else if constexpr (Size == 20) {
++        if (detail::aligned8(dst, src)) {
++            auto* d = static_cast<detail::u64a*>(dst);
++            const auto* s = static_cast<const detail::u64a*>(src);
++            d[0] = s[0];
++            d[1] = s[1];
++            *reinterpret_cast<detail::u32a*>(d + 2) = *reinterpret_cast<const detail::u32a*>(s + 2);
++            return;
++        }
++    }
++#endif
++    std::memcpy(dst, src, Size);
++}
+ 
+ inline int64_t zisk_memcmp(const void* a, const void* b, size_t size) { return std::memcmp(a, b, size); }
+ template <size_t Size>
+-inline int64_t zisk_xmemcmp(const void* a, const void* b) { return std::memcmp(a, b, Size); }
++inline int64_t zisk_xmemcmp(const void* a, const void* b) {
++#if defined(ZEG_STWO)
++    if constexpr (Size % 8 == 0 && Size <= 64) {
++        if (detail::aligned8(a, b)) {
++            const auto* x = static_cast<const detail::u64a*>(a);
++            const auto* y = static_cast<const detail::u64a*>(b);
++            uint64_t d = 0;
++            for (size_t i = 0; i < Size / 8; ++i) d |= x[i] ^ y[i];
++            return d != 0;
++        }
++    } else if constexpr (Size == 20) {
++        if (detail::aligned8(a, b)) {
++            const auto* x = static_cast<const detail::u64a*>(a);
++            const auto* y = static_cast<const detail::u64a*>(b);
++            const uint64_t d = (x[0] ^ y[0]) | (x[1] ^ y[1]) |
++                (*reinterpret_cast<const detail::u32a*>(x + 2) ^ *reinterpret_cast<const detail::u32a*>(y + 2));
++            return d != 0;
++        }
++    }
++#endif
++    return std::memcmp(a, b, Size);
++}
+ 
+ template <size_t Size, uint8_t Fill = 0>
+ inline void zisk_xmemset(void* dst) { std::memset(dst, Fill, Size); }
+diff --git a/cpp-guest/src/accounts.cpp b/cpp-guest/src/accounts.cpp
+index 5a753fa..98d562e 100644
+--- a/cpp-guest/src/accounts.cpp
++++ b/cpp-guest/src/accounts.cpp
+@@ -13,7 +13,6 @@ void Accounts::reserve(uint64_t count) {
+     // Pre-size the backing buffer to exactly `count` records and fill with
+     // zero (so the unused storage_root gap + any pad bytes are defined).
+     // Fixed size => no realloc => stable View pointers.
+-    record_store_.assign(count * kRecordSize, 0);
+     capacity_ = count;
+     originals_.reserve(count);
+     mods_.reserve(count);
+@@ -26,10 +25,9 @@ size_t Accounts::append(const evmc::address&   address,
+                         const evmc::uint256be& balance,
+                         const evmc::bytes32&   code_hash) {
+     const size_t idx = originals_.size();
+-    if (idx >= capacity_) {
+-        fatal("Accounts::append: more rows than reserve() allowed (numberOfAccounts overflow)");
+-    }
+-    uint8_t* rec = record_store_.data() + idx * kRecordSize;
++    // stwo: rows are appended lazily, so the count is unknown up front; each
++    // record gets its own (never freed) allocation and View pointers stay valid.
++    uint8_t* rec = static_cast<uint8_t*>(::operator new(kRecordSize));
+     std::memcpy(rec + View::kAddressOffset,  address.bytes,   sizeof(address.bytes));
+     std::memcpy(rec + View::kBalanceOffset,  balance.bytes,   sizeof(balance.bytes));
+     std::memcpy(rec + View::kNonceOffset,    &nonce,          sizeof(nonce));
+@@ -98,7 +96,10 @@ const NodeR* Accounts::update_value(size_t idx,
+ }
+ 
+ size_t Accounts::index_of(const evmc::address& addr) const {
+-    const auto it = index_.find(addr);
++    auto it = index_.find(addr);
++    if (it == index_.end() && stwo_lazy_load_account(const_cast<Accounts&>(*this), addr)) {
++        it = index_.find(addr);
++    }
+     if (it == index_.end()) {
+         // Every account the block loads is a row (an empty leaf if it doesn't
+         // exist); one without is unproven, so halt.
+diff --git a/cpp-guest/src/run.cpp b/cpp-guest/src/run.cpp
+index b8e670b..54e1305 100644
+--- a/cpp-guest/src/run.cpp
++++ b/cpp-guest/src/run.cpp
+@@ -32,6 +32,7 @@
+ #include "zeg/stream.hpp"
+ #include "zeg/state_root.hpp"
+ #include "zeg/storages.hpp"
++#include "zeg/stwo_hooks.hpp"
+ #include "zeg/system_addresses.hpp"
+ #include "zeg/transactions.hpp"
+ #include "zeg/zisk_state_db.hpp"
+@@ -255,7 +256,10 @@ int run(const uint8_t* input, size_t len, uint8_t out[32], uint8_t block_hash_ou
+     if (std::getenv("ZEG_DUMP_SROOT_OFFSET") != nullptr) {
+         std::fprintf(stderr, "SROOT_OFFSET=%zu\n", (size_t)(cursor - file_base));
+     }
+-    zeg::StateRoot state_root(cursor, accounts, storages);
++    // stwo: the canonical SSZ input carries no StateRoot section. The tables
++    // are filled lazily from the witness trie rooted at the parent state root
++    // (authenticated by the parent header's hash), see zeg/stwo_hooks.hpp.
++    zeg::stwo_state_begin(accounts, storages, consensus, previous_blocks);
+     // StateRoot is the final input section: the cursor must now sit exactly at
+     // the input end. Trailing bytes mean a malformed / over-long input — reject
+     // rather than silently ignore them (the per-section readers only guard their
+@@ -263,9 +267,7 @@ int run(const uint8_t* input, size_t len, uint8_t out[32], uint8_t block_hash_ou
+     if (cursor != input + len) {
+         zeg::fatal("run: input has trailing bytes after the final section");
+     }
+-    if (state_root.old_state_root() != consensus.parent_hash()) {
+-        zeg::fatal("pre-execution state root mismatch");
+-    }
++
+     zeg::heap_mark("state_root");
+ 
+     // 5. Construct the state DB. ZiskStateDB borrows the five
+@@ -337,13 +339,13 @@ int run(const uint8_t* input, size_t len, uint8_t out[32], uint8_t block_hash_ou
+     //    `cursor`. The value is no longer verified here against a
+     //    prover-supplied root; instead it feeds step 7' as the
+     //    `state_root` field of the reconstructed header.
+-    const evmc::bytes32 new_state_root = state_root.calculate_new_state_root();
++    const evmc::bytes32 new_state_root = zeg::stwo_state_new_root(accounts, storages);
+     zeg::heap_mark("new_root");
+ 
+     // DEBUG: in `none` mode no mutations were applied — the new walk
+     // must reproduce the pre-execution root byte-for-byte.
+     if (skip_exec) {
+-        if (new_state_root != state_root.old_state_root()) {
++        if (new_state_root != consensus.parent_hash()) {
+             zeg::fatal("ZEG_STAGE=none: new_state_root != old_state_root");
+         }
+         std::fprintf(stderr, "ZEG_STAGE=none OK — new == old\n");
+@@ -467,6 +469,10 @@ int run(const uint8_t* input, size_t len, uint8_t out[32], uint8_t block_hash_ou
+         }
+     }
+ 
++    // stwo: bind the computed block to the SSZ payload (block hash, versioned
++    // hashes) before the public output is taken from the input request root.
++    zeg::stwo_after_block(transactions, header, execution_block_hash);
++
+ #if defined(ZEG_PUBLIC_OUTPUT_BLOCK_HASH)
+     // 8. ZEG_PUBLIC_OUTPUT=block_hash: no EIP-8025; the block hash is the output.
+     std::memcpy(out, execution_block_hash.bytes, 32);
+diff --git a/cpp-guest/src/storages.cpp b/cpp-guest/src/storages.cpp
+index d50b367..88ab1bf 100644
+--- a/cpp-guest/src/storages.cpp
++++ b/cpp-guest/src/storages.cpp
+@@ -10,7 +10,6 @@
+ namespace zeg {
+ 
+ void Storages::reserve(uint64_t count) {
+-    record_store_.assign(count * kRecordSize, 0);
+     capacity_ = count;
+     originals_.reserve(count);
+     mods_.reserve(count);
+@@ -23,10 +22,7 @@ size_t Storages::append(const evmc::address& address,
+                         const evmc::bytes32& position,
+                         const evmc::bytes32& value) {
+     const size_t idx = originals_.size();
+-    if (idx >= capacity_) {
+-        fatal("Storages::append: more rows than reserve() allowed (numberOfStorages overflow)");
+-    }
+-    uint8_t* rec = record_store_.data() + idx * kRecordSize;
++    uint8_t* rec = static_cast<uint8_t*>(::operator new(kRecordSize));  // stwo: lazy rows
+     std::memcpy(rec + View::kAddressOffset,  address.bytes,  sizeof(address.bytes));
+     std::memcpy(rec + View::kPositionOffset, position.bytes, sizeof(position.bytes));
+     std::memcpy(rec + View::kValueOffset,    value.bytes,    sizeof(value.bytes));
+@@ -80,7 +76,11 @@ size_t Storages::find(const evmc::address& addr,
+         zeg::zisk::zisk_xmemcmp<sizeof(addr.bytes)>(last_addr_.bytes, addr.bytes) == 0) {
+         return last_idx_;
+     }
+-    const auto it = index_.find(Key{addr, position});
++    auto it = index_.find(Key{addr, position});
++    if (it == index_.end() &&
++        stwo_lazy_load_storage(const_cast<Storages&>(*this), addr, position)) {
++        it = index_.find(Key{addr, position});
++    }
+     const size_t idx = it == index_.end() ? npos : it->second;
+     zeg::zisk::zisk_xmemcpy<sizeof(position.bytes)>(last_pos_.bytes, position.bytes);
+     zeg::zisk::zisk_xmemcpy<sizeof(addr.bytes)>(last_addr_.bytes, addr.bytes);
+@@ -91,7 +91,11 @@ size_t Storages::find(const evmc::address& addr,
+ 
+ size_t Storages::index_of(const evmc::address& addr,
+                           const evmc::bytes32& position) const {
+-    const auto it = index_.find(Key{addr, position});
++    auto it = index_.find(Key{addr, position});
++    if (it == index_.end() &&
++        stwo_lazy_load_storage(const_cast<Storages&>(*this), addr, position)) {
++        it = index_.find(Key{addr, position});
++    }
+     if (it == index_.end()) {
+         std::fprintf(stderr, "DBG missing storage slot addr=0x");
+         for (int i = 0; i < 20; ++i) std::fprintf(stderr, "%02x", addr.bytes[i]);
+@@ -105,7 +109,7 @@ size_t Storages::index_of(const evmc::address& addr,
+ 
+ bool Storages::contains(const evmc::address& addr,
+                         const evmc::bytes32& position) const noexcept {
+-    return index_.find(Key{addr, position}) != index_.end();
++    return find(addr, position) != npos;
+ }
+ 
+ evmc::bytes32 Storages::value(const evmc::address& addr,
+diff --git a/cpp-guest/src/transactions.cpp b/cpp-guest/src/transactions.cpp
+index 50a7eda..937cc19 100644
+--- a/cpp-guest/src/transactions.cpp
++++ b/cpp-guest/src/transactions.cpp
+@@ -1,4 +1,5 @@
+ #include "zeg/transactions.hpp"
++#include "zeg/stwo_hooks.hpp"
+ 
+ #include <cstring>
+ #include <utility>
+@@ -224,7 +225,7 @@ evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
+ // Recover the sender of `v` from its (r, s, v/y_parity) signature over the
+ // signing hash. Aborts via zeg::fatal on any failure (a tx inside a block
+ // must carry a recoverable signature).
+-evmc::address recover_sender(const Transactions::View& v) {
++evmc::address recover_sender(const Transactions::View& v, uint64_t index) {
+     const evmc::bytes32 z = compute_signing_hash(v);
+ 
+     // Recovery id: legacy pre-EIP-155 v in {27, 28} -> v - 27;
+@@ -251,6 +252,11 @@ evmc::address recover_sender(const Transactions::View& v) {
+     }
+ 
+     evmc::address sender;
++    // stwo: the canonical input's public key for this tx (verified later in
++    // one batch, see zeg/stwo_hooks.hpp); falls back to recovery.
++    if (stwo_tx_sender(index, z, v.r(), v.s(), recid, sender)) {
++        return sender;
++    }
+     if (!ecrecover_address(z, v.r(), v.s(), recid, sender)) {
+         fatal("Transactions: sender recovery failed");
+     }
+@@ -599,7 +605,7 @@ Transactions::Transactions(const uint8_t*& cursor) {
+ 
+         v.envelope_         = {env, env_size};
+         v.transaction_hash_ = keccak256_bytes32(env, env_size);
+-        v.sender_           = recover_sender(v);
++        v.sender_           = recover_sender(v, i);
+ 
+         rlp_list_payload_size_ +=
+             v.type_ == Type::Legacy ? env_size : rlp::item_size(env_size);

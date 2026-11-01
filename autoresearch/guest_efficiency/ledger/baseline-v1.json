@@ -1,0 +1,278 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-baseline.v1",
+ "date": "2026-11-01",
+ "branch": "codex/rv64-guest-efficiency",
+ "base_commit": "1e13af3ab",
+ "elf": {
+  "sha256": "37fbf8fdde6b58d8d82da267c890b7c9978575c5225671b1504d7b1efc9eeb91",
+  "profile": "ethereum-services-v2-lean",
+  "input_window_mib": 16
+ },
+ "executor_sha256": "5498d42362b03937eacc47115415bdc06f33bd75ae7a629e69db209ec739401b",
+ "metrics": {
+  "scored": {
+   "blocks": 12,
+   "gas_used": 357472990,
+   "instructions": 4962092321,
+   "instructions_per_gas": 13.881027265864198,
+   "committed_bits_per_gas": 158723.48009622897,
+   "committed_bits_per_instruction": 11434.562951011338,
+   "keccak_f_calls_per_kgas": 3.2881757024495752,
+   "secp_calls_per_kgas": 3.3405656746262142,
+   "memory_ops_per_gas": 4.104863270928525
+  },
+  "holdout": {
+   "blocks": 3,
+   "gas_used": 87926127,
+   "instructions": 1033704890,
+   "instructions_per_gas": 11.75651567138855,
+   "committed_bits_per_gas": 134500.96662228717,
+   "committed_bits_per_instruction": 11440.546704634418,
+   "keccak_f_calls_per_kgas": 2.765480617609826,
+   "secp_calls_per_kgas": 2.9606899437296947,
+   "memory_ops_per_gas": 3.5093933911134285
+  },
+  "all": {
+   "blocks": 15,
+   "gas_used": 445399117,
+   "instructions": 5995797211,
+   "instructions_per_gas": 13.461627969504933,
+   "committed_bits_per_gas": 153941.71983968807,
+   "committed_bits_per_instruction": 11435.594579527624,
+   "keccak_f_calls_per_kgas": 3.1849905979943824,
+   "secp_calls_per_kgas": 3.2655745026993395,
+   "memory_ops_per_gas": 3.9873117126094346
+  }
+ },
+ "guards": [
+  {
+   "guard": "G1_complete_basket",
+   "ok": true
+  },
+  {
+   "guard": "G2_exact_output",
+   "ok": true
+  },
+  {
+   "guard": "G3_determinism",
+   "ok": true
+  },
+  {
+   "guard": "G4_per_block_regression",
+   "ok": true
+  },
+  {
+   "guard": "G5_holdout_generalises",
+   "ok": true
+  },
+  {
+   "guard": "G6_execution_profile",
+   "ok": true
+  }
+ ],
+ "rows": [
+  {
+   "block": 24626900,
+   "set": "scored",
+   "gas_used": 16338083,
+   "instructions": 217584230,
+   "instructions_per_gas": 13.317610762535605,
+   "keccak_f_calls": 61761,
+   "secp_add_calls": 35756,
+   "secp_double_calls": 30448,
+   "loads": 38846069,
+   "stores": 25999054,
+   "verified_output": true
+  },
+  {
+   "block": 24628590,
+   "set": "scored",
+   "gas_used": 49134719,
+   "instructions": 629057892,
+   "instructions_per_gas": 12.80271679176592,
+   "keccak_f_calls": 164183,
+   "secp_add_calls": 89379,
+   "secp_double_calls": 75920,
+   "loads": 115617268,
+   "stores": 76286360,
+   "verified_output": true
+  },
+  {
+   "block": 24628595,
+   "set": "scored",
+   "gas_used": 54230474,
+   "instructions": 710529872,
+   "instructions_per_gas": 13.102040598059313,
+   "keccak_f_calls": 184066,
+   "secp_add_calls": 109862,
+   "secp_double_calls": 93316,
+   "loads": 129595288,
+   "stores": 86030836,
+   "verified_output": true
+  },
+  {
+   "block": 24628607,
+   "set": "scored",
+   "gas_used": 7372614,
+   "instructions": 104245051,
+   "instructions_per_gas": 14.139496656138515,
+   "keccak_f_calls": 32835,
+   "secp_add_calls": 11496,
+   "secp_double_calls": 9768,
+   "loads": 20423503,
+   "stores": 13033214,
+   "verified_output": true
+  },
+  {
+   "block": 24628608,
+   "set": "scored",
+   "gas_used": 12907474,
+   "instructions": 151146441,
+   "instructions_per_gas": 11.709993837678851,
+   "keccak_f_calls": 44203,
+   "secp_add_calls": 21774,
+   "secp_double_calls": 18524,
+   "loads": 28724273,
+   "stores": 18843313,
+   "verified_output": true
+  },
+  {
+   "block": 24628611,
+   "set": "scored",
+   "gas_used": 58862996,
+   "instructions": 778275905,
+   "instructions_per_gas": 13.22181944323731,
+   "keccak_f_calls": 194844,
+   "secp_add_calls": 106493,
+   "secp_double_calls": 90460,
+   "loads": 140220616,
+   "stores": 91001114,
+   "verified_output": true
+  },
+  {
+   "block": 24647140,
+   "set": "holdout",
+   "gas_used": 7704951,
+   "instructions": 109123058,
+   "instructions_per_gas": 14.162719269726699,
+   "keccak_f_calls": 34900,
+   "secp_add_calls": 14123,
+   "secp_double_calls": 12012,
+   "loads": 20325239,
+   "stores": 13070520,
+   "verified_output": true
+  },
+  {
+   "block": 24697070,
+   "set": "scored",
+   "gas_used": 17435221,
+   "instructions": 260980443,
+   "instructions_per_gas": 14.968576710326758,
+   "keccak_f_calls": 63862,
+   "secp_add_calls": 41483,
+   "secp_double_calls": 35320,
+   "loads": 46486156,
+   "stores": 31150389,
+   "verified_output": true
+  },
+  {
+   "block": 24697073,
+   "set": "holdout",
+   "gas_used": 22277128,
+   "instructions": 305607761,
+   "instructions_per_gas": 13.718454237009366,
+   "keccak_f_calls": 66871,
+   "secp_add_calls": 57280,
+   "secp_double_calls": 48732,
+   "loads": 49544759,
+   "stores": 33624511,
+   "verified_output": true
+  },
+  {
+   "block": 25229951,
+   "set": "holdout",
+   "gas_used": 57944048,
+   "instructions": 618974071,
+   "instructions_per_gas": 10.682271818496353,
+   "keccak_f_calls": 141387,
+   "secp_add_calls": 69331,
+   "secp_double_calls": 58844,
+   "loads": 115628730,
+   "stores": 76373610,
+   "verified_output": true
+  },
+  {
+   "block": 25229955,
+   "set": "scored",
+   "gas_used": 39102791,
+   "instructions": 517309852,
+   "instructions_per_gas": 13.229486662473786,
+   "keccak_f_calls": 106761,
+   "secp_add_calls": 51297,
+   "secp_double_calls": 43568,
+   "loads": 91599531,
+   "stores": 60181480,
+   "verified_output": true
+  },
+  {
+   "block": 25229957,
+   "set": "scored",
+   "gas_used": 9768139,
+   "instructions": 123476692,
+   "instructions_per_gas": 12.64075910467695,
+   "keccak_f_calls": 37692,
+   "secp_add_calls": 18815,
+   "secp_double_calls": 16028,
+   "loads": 22378145,
+   "stores": 14778405,
+   "verified_output": true
+  },
+  {
+   "block": 26235156,
+   "set": "scored",
+   "gas_used": 5443474,
+   "instructions": 79572369,
+   "instructions_per_gas": 14.617938654616518,
+   "keccak_f_calls": 22419,
+   "secp_add_calls": 16541,
+   "secp_double_calls": 14028,
+   "loads": 13638550,
+   "stores": 9287980,
+   "verified_output": true
+  },
+  {
+   "block": 26235159,
+   "set": "scored",
+   "gas_used": 57734946,
+   "instructions": 879606368,
+   "instructions_per_gas": 15.23525055345163,
+   "keccak_f_calls": 168866,
+   "secp_add_calls": 95779,
+   "secp_double_calls": 81392,
+   "loads": 151402276,
+   "stores": 98209455,
+   "verified_output": true
+  },
+  {
+   "block": 26235168,
+   "set": "scored",
+   "gas_used": 29142059,
+   "instructions": 510307206,
+   "instructions_per_gas": 17.511020961147597,
+   "keccak_f_calls": 93942,
+   "secp_add_calls": 46823,
+   "secp_double_calls": 39892,
+   "loads": 87544570,
+   "stores": 56099902,
+   "verified_output": true
+  }
+ ],
+ "pinned_legacy_check": {
+  "elf_sha256": "8acf838564982ce3c6cd25087ab3ef37ccab033a2328f7fcb92953c80d87bd2e",
+  "input_window_mib": 4,
+  "block": 24628607,
+  "instructions": 104253913,
+  "verified_output": true,
+  "note": "modified executor contract loads the pinned round-five guest unchanged"
+ }
+}

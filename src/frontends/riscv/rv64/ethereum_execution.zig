@@ -6,7 +6,11 @@ const services = @import("service_session.zig");
 const ethereum = @import("ethereum_services/session.zig");
 const access = @import("access_census.zig");
 const frequent = @import("frequent_operations.zig");
-const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2 };
+const candidate = @import("ethereum_services/candidate_services.zig");
+/// `ethereum_services_v3_candidate` = admitted v2 services plus execution-only
+/// candidate services (candidate_services.zig). Never proof-relevant: it is
+/// rejected with compact capture, RAM-boundary capture and access census.
+const Profile = enum { software, keccak_service_v1, ethereum_services_v1, ethereum_services_v2, ethereum_services_v3_candidate };
 const A = std.heap.smp_allocator;
 const OPCODE_NAMES = blk: {
     const fields = @typeInfo(rv.decode.Opcode).@"enum".fields;
@@ -106,6 +110,7 @@ const Report = struct {
     compact_capture: ?CaptureStats = null,
     ram_boundary_capture: ?BoundaryStats = null,
     frequent_operations: ?frequent.Summary = null,
+    candidate_service_calls: ?candidate.Counts = null,
 };
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(A);
@@ -121,7 +126,7 @@ pub fn main() !void {
     var expected: [contract.OUTPUT_BYTES]u8 = undefined;
     _ = try std.fmt.hexToBytes(&expected, c.expected_output);
     const bytes = try std.fs.cwd().readFileAlloc(a, c.elf, 32 * 1024 * 1024);
-    const input = try std.fs.cwd().readFileAlloc(a, c.input, contract.INPUT_CAPACITY - 4);
+    const input = try std.fs.cwd().readFileAlloc(a, c.input, contract.INPUT_CAPACITY_MAX - 4);
     const elf_hash = try checkedHash(bytes, c.elf_sha256);
     const input_hash = try checkedHash(input, c.input_sha256);
     var report = try run(c, bytes, input, expected);
@@ -150,16 +155,18 @@ fn profileStep(session: *ethereum.Session, execution: Profile, event: *ethereum.
             if (row == null) event.* = .{ .keccak = call };
             break :blk row;
         },
-        .ethereum_services_v1, .ethereum_services_v2 => session.step(event),
+        .ethereum_services_v1, .ethereum_services_v2, .ethereum_services_v3_candidate => session.step(event),
     };
 }
 fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTPUT_BYTES]u8) !Report {
     if (c.pc_profile) |range| if (range.end <= range.start or range.start & 3 != 0 or range.end & 3 != 0 or range.end - range.start > 8 * 1024 * 1024) return error.InvalidPcProfileRange;
+    const is_candidate = c.execution_profile == .ethereum_services_v3_candidate;
+    if (is_candidate and (c.compact_capture_batch_steps != null or c.census_batch_steps != null or c.capture_ram_boundaries)) return error.CandidateProfileIsExecutionOnly;
     var setup_timer = try std.time.Timer.start();
     var loaded = try contract.load(A, c.symbols, bytes, input);
     defer loaded.deinit();
     const memory = &loaded.memory;
-    var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, if (c.execution_profile == .ethereum_services_v2) .ethereum_services_v2 else .ethereum_services_v1);
+    var service_session = try ethereum.Session.initWithProfile(A, rv.machine.Cpu.init(loaded.info.entry, c.symbols.stack_top), memory, .{ .max_retirements = c.max_steps, .cache_entries = c.cache_entries }, if (c.execution_profile == .ethereum_services_v2 or is_candidate) .ethereum_services_v2 else .ethereum_services_v1);
     const session = &service_session.keccak.base;
     defer service_session.deinit();
     var census: ?access.Census = if (c.census_batch_steps) |steps| try access.Census.init(A, steps) else null;
@@ -171,6 +178,8 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
         .keccak_service_v1 => .keccak_service_v1,
         .ethereum_services_v1 => .ethereum_services_v1,
         .ethereum_services_v2 => .ethereum_services_v2,
+        // Unreachable with a tape (rejected above); never reaches the prover.
+        .ethereum_services_v3_candidate => .ethereum_services_v2,
     };
     var tape: ?rv.compact_tape.Tape = if (c.compact_capture_batch_steps) |steps| try rv.compact_tape.Tape.init(A, steps, session.cpu.pc, 0, execution_profile) else null;
     defer if (tape) |*value| value.deinit();
@@ -180,6 +189,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     var report = Report{ .status = .step_limit, .pc = loaded.info.entry, .instructions = 0, .opcode_counts = @splat(0), .loads = 0, .stores = 0, .allocated_pages = 0, .setup_ns = setup_timer.read(), .execution_ns = 0, .elf_sha256 = undefined, .input_sha256 = undefined };
     report.execution_profile = c.execution_profile;
     report.access_census_batch_steps = c.census_batch_steps;
+    if (is_candidate) report.candidate_service_calls = .{};
     if (tape != null) report.compact_capture = .{};
     if (boundaries != null) report.ram_boundary_capture = .{};
     if (c.pc_profile) |range| {
@@ -199,7 +209,18 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
             }
         };
         var event: ethereum.Event = undefined;
-        const optional_row = profileStep(&service_session, c.execution_profile, &event) catch |err| {
+        const optional_row = profileStep(&service_session, c.execution_profile, &event) catch |first| {
+            const err = if (is_candidate and first == error.UnsupportedService) blk: {
+                // Admitted services declined the tag; the CPU/memory are unchanged.
+                if (candidate.step(A, &session.cpu, memory, &report.candidate_service_calls.?)) |_| {
+                    report.opcode_counts[@intFromEnum(rv.decode.Opcode.ECALL)] += 1;
+                    if (report.pc_profile) |*profile| {
+                        const pc = session.cpu.pc -% 4;
+                        if (pc >= profile.start and pc < profile.end) profile.counts[@intCast((pc - profile.start) / 4)] += 1 else profile.outside += 1;
+                    }
+                    continue;
+                } else |second| break :blk second;
+            } else first;
             report.status = if (err == error.StepLimit) .step_limit else .trap;
             report.stop_error = @errorName(err);
             report.stopped_instruction = if (memory.load(session.cpu.pc, 4)) |word| @intCast(word) else |_| null;
@@ -273,4 +294,7 @@ fn run(c: Config, bytes: []const u8, input: []const u8, expected: [contract.OUTP
     if (tape) |*value| report.compact_capture.?.account(value);
     if (boundaries) |*value| report.ram_boundary_capture.?.account(value);
     return report;
+}
+test {
+    _ = candidate;
 }

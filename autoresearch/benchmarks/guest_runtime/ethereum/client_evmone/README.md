@@ -1,0 +1,129 @@
+# client_evmone: ziskethone + evmone on the stwo RV64IM guest ABI
+
+A C++ stateless Ethereum client for the RV64 guest (track A, move A of
+`autoresearch/guest_efficiency/PROGRAM.md`). It runs ziskethone's block
+pipeline and state DB with evmone v0.24's baseline interpreter, reads the same
+canonical SSZ `StatelessInput` as the Rust guest and writes the identical
+43-byte output. Exact on all 15 basket blocks, admitted and candidate profiles.
+
+## Licences and third-party sources
+
+No third-party source is committed. `build.py` fetches pinned public sources
+into a cache directory and applies the patches in `patches/`:
+
+| Source | Commit | Licence |
+|---|---|---|
+| ziskethone `https://github.com/0xPolygonHermez/ziskethone` | `1c3e8d1737c0269a50af24a6fdb26091a6eaee27` | Apache-2.0 OR MIT |
+| evmone `https://github.com/ethereum/evmone` | `2a4decd05b7e088b2da0e1f1924f8968e14e3586` (v0.24.0) | Apache-2.0 |
+| intx `https://github.com/chfast/intx` | `0306b495820a5259563e5055f0a8b726b9ae4e0b` (v0.15.0) | Apache-2.0 |
+| blst `https://github.com/supranational/blst` | `54e6e55674722fc2797ebb4bbb71b26d881eb4b8` (v0.3.17, evmone's pin) | Apache-2.0 |
+
+ziskethone's own evmone patch stack (02-16, from the fetched tree) is applied
+first; its `ZEG_ZISK`-gated hunks are inactive here. Licence review by legal is
+still required before any of this code is vendored (PROGRAM.md).
+
+Everything under `glue/`, `tests/`, `adapter.py`, `build.py`, `patches/` and
+`linker-wide-cxx.ld` is ours.
+
+## Build
+
+```sh
+B=autoresearch/benchmarks/guest_runtime/ethereum/client_evmone
+python3 -I $B/build.py --out OUT                         # OUT/client-evmone-admitted.elf
+python3 -I $B/build.py --out OUT --profile candidate     # + candidate services (mem,sha,arith)
+python3 -I $B/build.py --out OUT --profile candidate --candidate-set mem,sha   # subsets
+python3 -I $B/build.py --out OUT --host --tests          # native build + host tests
+```
+
+Toolchain: `zig c++` 0.15.2 only (bundled libc++ headers and compiler-rt,
+`-target riscv64-linux-musl -mcpu=generic_rv64+m`, linked `-nostdlib` against
+`linker-wide-cxx.ld`). `--jobs` defaults to 4. Writes `build-manifest-*.json`
+(commits, applied patches, defines, ELF sha256).
+
+## Score
+
+```sh
+python3 -I autoresearch/guest_efficiency/bench.py run --elf OUT/client-evmone-admitted.elf \
+  --executor EXEC --cache CACHE --out RUN --set all --client evmone \
+  --input-adapter "python3 -I $B/adapter.py --host-binary OUT/client-evmone-host"
+```
+
+The adapter is optional (the guest also accepts the plain canonical SSZ).
+
+## Guest ABI mapping
+
+| Item | Here |
+|---|---|
+| Entry | `glue/start.S`: `gp`, `sp = __stack_top`, run `.init_array`, `stwo_guest_main` |
+| Input | `u32` length + canonical schema-prefixed SSZ at `__input_start` (or the adapter container, below) |
+| Output | 43 bytes at `__output_data` (request root, 1, chain id LE, schema id LE), `__output_len = 43`, `__halt_flag = 1`, then spin |
+| Failure | illegal instruction (`.word 0`), no output (the Rust guest panics the same way) |
+| Linker | `linker-wide-cxx.ld` = `rv64/linker-wide.ld` plus `.init_array` inside `.data`; memory map and symbols unchanged |
+| Keccak-f | `0x0001_0001` in `glue/keccak_stwo.cpp` (replaces evmone's `keccak.c`) |
+| secp256k1 | `0x0002_0011/0012` word packets, complete RCB formulas, in `glue/secp256k1_stwo.cpp` |
+| Candidate | `0x0003_0001-0003` bulk memory (runtime), `0x0003_0010` SHA-256 compress, `0x0003_0021` arith256_mod (MULMOD, ADDMOD, 256-bit `ModArith` in plain form), optional `0x0003_0020` arith256 for MUL |
+
+## Design
+
+- **Input.** The non-state ZEG0 sections ziskethone expects (consensus info,
+  transactions, contracts, ancestor headers) are synthesized from the SSZ
+  payload and witness (`glue/stwo_client.cpp`). The SSZ witness carries trie
+  nodes without key preimages, so the state is not pre-walked: the account and
+  storage tables are filled lazily (patch 0001 hooks) by walking the witness
+  trie from the parent state root (`glue/witness_trie.cpp`). The parent header
+  is bound by the payload's `parent_hash`.
+- **Binding.** After execution every `ExecutionPayloadV3` field is compared
+  with the re-executed header, the computed block hash with the payload's,
+  versioned hashes with the blob transactions, and the request lists through
+  `requests_hash`. The output root is the SSZ `hash_tree_root` of the input
+  request (`NewPayloadRequestElectraFulu`, progressive containers and lists).
+- **State root.** A mutable MPT over the decoded witness: clean subtrees are
+  tagged references to witness nodes (no allocation, re-emitted from the
+  original RLP), owned nodes are modified in place, only dirty paths are
+  re-hashed.
+- **Senders.** The SSZ public key of each transaction gives the sender at
+  once; all signatures are checked in one batch (batched inversions, GLV
+  endomorphism, 4-bit Straus over the secp services). Verification with the
+  y-parity check pins the unique recovered key, so it equals recovery.
+- **Adapter (`adapter.py`).** Untrusted: runs the native host build and appends
+  hints for every full recovery (key, `R.y`, `s^-1`). The guest checks
+  `s*w = 1`, `R` on the curve with the right parity and `(zw)G + (rw)Q = R`
+  projectively before using a hint, otherwise recovers in full. Container:
+  `"STW1" | u64 ssz_len | SSZ | pad8 | u64 n | n x 232-byte records`.
+- **RV64IM specifics.** Misaligned accesses trap, so memory functions use
+  aligned words only (`glue/mem_functions.hpp`); SHA-256 uses duplicated-word
+  rotations; intx big-endian conversions go byte-wise (patch 0003); blst uses
+  64-bit limbs with `__int128` products (patch 0002); size-class free-list
+  heap (`glue/runtime.cpp`).
+
+## Tests
+
+`build.py --host --tests` runs `tests/mem_fuzz.cpp` (400k randomized checks of
+the memory functions) and `tests/secp_differential.cpp` (stwo recovery vs
+evmone's reference on random and edge-case signatures; hinted verification
+accepts true keys and rejects negated keys, wrong recid and wrong hash).
+`tests/tamper.py HOST BLOCK_DIR` mutates inputs: targeted payload, header and
+transaction mutations must abort, random bit flips must abort or reproduce the
+exact output.
+
+## Known gaps
+
+- **EEST not run.** ziskethone's EEST flow needs per-fixture witnesses from
+  reth (`eest-witness-gen`); generating SSZ inputs for EEST was out of reach
+  here. Evidence so far: 15 exact mainnet blocks on guest and host, the tests
+  above, and the differential against the Rust guest's output on the basket.
+- **Forks.** Only the `ElectraFulu` request shape (Prague, Osaka, BPO1, BPO2,
+  mainnet schedule, chain id 1). Amsterdam (`Gloas`) inputs are rejected.
+- **Hash-map seed.** ziskethone's seeded table hash uses the payload's block
+  hash; a block author could grind it to slow lookups (cost, not soundness).
+- **Lazy rows.** Table vectors are pre-sized from the gas limit; a block with
+  far more probes than that reallocates them (correct for the code paths
+  exercised, not audited for every reference held across a load).
+- **EIP-161 corner.** A pre-existing empty account that is touched but not
+  modified is not deleted (none exist on mainnet since 2016).
+- **Heap.** 212 MiB window; ziskethone's JUMPDEST analysis cache reserves
+  85 MiB of it (1152 slots, sized for full call depth).
+- **Candidate costs** are the sibling track's nominal estimates
+  (`codex/rv64-guest-candidate-services`, `proposals/candidate-service-costs.json`);
+  this repository's `calibration.json` has none, so candidate runs used a
+  scratch copy of the harness with those entries.

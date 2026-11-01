@@ -1,0 +1,33 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-calibration.v1",
+ "what": "Linear proxy for committed witness bits at the LDE (blowup 2), excluding fixed trees, as used in vectors/reports/rv64-ethereum-20261101/committed-work-comparison-v1.json. bits = 62 * (cpu_cells_per_instruction*instructions + keccak_cells_per_call*keccak_f_calls + secp_cells_per_call*(secp_add_calls+secp_double_calls)) * (1 + composition_fraction).",
+ "calibration_run": {
+  "block": 24628607,
+  "cost_json": "/tmp/rv64-ls32-qualified-complete-v1/cost.json",
+  "schema": "Word16 core schema 7 (LS32), 25 CPU + 5 truth proofs",
+  "instructions": 104253913,
+  "keccak_f_calls": 32835,
+  "secp_add_calls": 11496,
+  "secp_double_calls": 9768,
+  "cpu_main_plus_interaction_cells": 16139918848,
+  "keccak_truth_main_plus_interaction_cells": 2369349632,
+  "secp_truth_main_plus_interaction_cells": 402625280,
+  "composition_lde_bits": 52923596800,
+  "reproduces_lde_bits_excl_fixed": 1225461009920
+ },
+ "coefficients": {
+  "bits_per_cell_at_lde": 62,
+  "cpu_cells_per_instruction": 154.81355455694023,
+  "keccak_cells_per_call": 72159.27004720572,
+  "secp_cells_per_call": 18934.597441685477,
+  "composition_fraction": 0.045135955755284445
+ },
+ "frozen": true,
+ "caveats": [
+  "Frozen at prover schema 7 so the guest score does not move when the prover changes; recalibrate only by explicit ledger epoch.",
+  "Linear in instruction count: ignores instruction mix (loads/stores vs ALU), fact de-duplication and power-of-two padding of truth proofs.",
+  "Promotion requires the exact tier (Word16 plan/prove cost.json), not this proxy."
+ ],
+ "candidate_services": {},
+ "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them."
+}

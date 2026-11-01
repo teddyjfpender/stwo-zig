@@ -1,0 +1,298 @@
+{
+ "schema": "stwo.rv64.guest-efficiency-candidate-results.v1",
+ "date": "2026-11-01",
+ "executor": "bench.py build-exec from branch codex/rv64-guest-candidate-services (profile ethereum_services_v3_candidate)",
+ "cost_file": "autoresearch/guest_efficiency/proposals/candidate-service-costs.json (nominal)",
+ "reference": "default = this branch built with no candidate features (same as build.py --guest-profile ethereum-services-v2-lean --input-window-mib 16), run on the candidate profile",
+ "build": "scratch build_candidate_elf.sh: cargo +nightly-2026-08-08 build --locked --release -j 4 --features keccak-service,secp-lean[,candidate-*] --target riscv64i-stwo.json -Z json-target-spec -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem, RUSTFLAGS='-C link-arg=-Tlinker-wide.ld', in rv64/services",
+ "variants": {
+  "default": {
+   "features": "(none)",
+   "elf_sha256": "cdfa884a874c9918140f7a8a5318f76419b57c8505a083fc037534ec79193fce",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 13.8796,
+     "committed_bits_per_gas": 158710
+    },
+    "holdout": {
+     "instructions_per_gas": 11.7568,
+     "committed_bits_per_gas": 134504
+    },
+    "all": {
+     "instructions_per_gas": 13.4606,
+     "committed_bits_per_gas": 153931
+    }
+   },
+   "candidate_service_calls_all_blocks": {}
+  },
+  "only-memcpy": {
+   "features": "candidate-mem, STWO_CANDIDATE_SET_MIN=off STWO_CANDIDATE_CMP_MIN=off",
+   "elf_sha256": "7b6c639d43653d2410ddfb9bfa1c232ed5c69432ac5169ad8920acec7b36798f",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 12.2073,
+     "committed_bits_per_gas": 148752
+    },
+    "holdout": {
+     "instructions_per_gas": 10.3232,
+     "committed_bits_per_gas": 125953
+    },
+    "all": {
+     "instructions_per_gas": 11.8354,
+     "committed_bits_per_gas": 144251
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 9077229,
+     "bytes": 797748966
+    }
+   }
+  },
+  "only-memset": {
+   "features": "candidate-mem, COPY=off CMP=off",
+   "elf_sha256": "cfc36da5908f0c9dded6552f984df9b03f319799806322fbdacd4ea36a350032",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 13.7463,
+     "committed_bits_per_gas": 158092
+    },
+    "holdout": {
+     "instructions_per_gas": 11.6399,
+     "committed_bits_per_gas": 133958
+    },
+    "all": {
+     "instructions_per_gas": 13.3305,
+     "committed_bits_per_gas": 153328
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "memset": {
+     "calls": 1257905,
+     "bytes": 159431751
+    }
+   }
+  },
+  "only-memcmp": {
+   "features": "candidate-mem, COPY=off SET=off",
+   "elf_sha256": "a22564ffeb5d73e455b2b25b489e8cecc1141b1b35f792dff79deffe57e6c7c2",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 13.6999,
+     "committed_bits_per_gas": 157550
+    },
+    "holdout": {
+     "instructions_per_gas": 11.6193,
+     "committed_bits_per_gas": 133634
+    },
+    "all": {
+     "instructions_per_gas": 13.2891,
+     "committed_bits_per_gas": 152828
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcmp": {
+     "calls": 1726245,
+     "bytes": 17529099
+    }
+   }
+  },
+  "mem": {
+   "features": "candidate-mem (thresholds 0)",
+   "elf_sha256": "5b130a8b15cf7ef69d3c13ff393d42fe1215d739d0a8246f84ddfa0161313ee6",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 11.8941,
+     "committed_bits_per_gas": 146973
+    },
+    "holdout": {
+     "instructions_per_gas": 10.0687,
+     "committed_bits_per_gas": 124537
+    },
+    "all": {
+     "instructions_per_gas": 11.5338,
+     "committed_bits_per_gas": 142544
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 9077229,
+     "bytes": 797748966
+    },
+    "memset": {
+     "calls": 1257906,
+     "bytes": 159431767
+    },
+    "memcmp": {
+     "calls": 1726815,
+     "bytes": 17532681
+    }
+   }
+  },
+  "sha256": {
+   "features": "candidate-sha256",
+   "elf_sha256": "cc2a3bf622333ec331f5eb3b2a25b31dd608dcde6c96dd42a02a13cf8aaa1861",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 12.0921,
+     "committed_bits_per_gas": 141303
+    },
+    "holdout": {
+     "instructions_per_gas": 10.1577,
+     "committed_bits_per_gas": 118931
+    },
+    "all": {
+     "instructions_per_gas": 11.7102,
+     "committed_bits_per_gas": 136886
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "sha256_compress": {
+     "calls": 196254,
+     "bytes": 12560256
+    }
+   }
+  },
+  "arith": {
+   "features": "candidate-arith",
+   "elf_sha256": "d117d54706e991cc80a7df69bd0cbce9877318fde827119ab61d35a5f2804a7f",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": false,
+   "failed_guards": [
+    "G5_holdout_generalises"
+   ],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 13.7785,
+     "committed_bits_per_gas": 157791
+    },
+    "holdout": {
+     "instructions_per_gas": 11.7485,
+     "committed_bits_per_gas": 134466
+    },
+    "all": {
+     "instructions_per_gas": 13.3778,
+     "committed_bits_per_gas": 153186
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "arith256": {
+     "calls": 60216,
+     "bytes": 0
+    },
+    "arith256_mod": {
+     "calls": 35077,
+     "bytes": 0
+    }
+   }
+  },
+  "all": {
+   "features": "candidate-services",
+   "elf_sha256": "96b19ce21f598874e2e73356a46f8bec3f1466ea26aedb132721d17f3e6599d9",
+   "executor_sha256": "413378030219a86dc41adc82739d6096a75783a8b7659d656bbeaf1fb6a8d564",
+   "guards_ok": true,
+   "failed_guards": [],
+   "metrics": {
+    "scored": {
+     "instructions_per_gas": 9.986,
+     "committed_bits_per_gas": 128534
+    },
+    "holdout": {
+     "instructions_per_gas": 8.4446,
+     "committed_bits_per_gas": 108837
+    },
+    "all": {
+     "instructions_per_gas": 9.6817,
+     "committed_bits_per_gas": 124646
+    }
+   },
+   "candidate_service_calls_all_blocks": {
+    "memcpy": {
+     "calls": 9308670,
+     "bytes": 804606382
+    },
+    "memset": {
+     "calls": 1214556,
+     "bytes": 158760816
+    },
+    "memcmp": {
+     "calls": 1728786,
+     "bytes": 17532182
+    },
+    "sha256_compress": {
+     "calls": 196254,
+     "bytes": 12560256
+    },
+    "arith256": {
+     "calls": 60216,
+     "bytes": 0
+    },
+    "arith256_mod": {
+     "calls": 35077,
+     "bytes": 0
+    }
+   }
+  }
+ },
+ "mem_threshold_sweep_same_threshold_all_three": {
+  "0": {
+   "scored_instructions_per_gas": 11.8941,
+   "scored_committed_bits_per_gas": 146973
+  },
+  "1": {
+   "scored_instructions_per_gas": 11.9199,
+   "scored_committed_bits_per_gas": 147216
+  },
+  "8": {
+   "scored_instructions_per_gas": 11.9649,
+   "scored_committed_bits_per_gas": 147534
+  },
+  "16": {
+   "scored_instructions_per_gas": 11.9794,
+   "scored_committed_bits_per_gas": 147651
+  },
+  "32": {
+   "scored_instructions_per_gas": 12.1164,
+   "scored_committed_bits_per_gas": 148629
+  },
+  "64": {
+   "scored_instructions_per_gas": 12.9409,
+   "scored_committed_bits_per_gas": 154346
+  },
+  "128": {
+   "scored_instructions_per_gas": 13.3933,
+   "scored_committed_bits_per_gas": 156787
+  },
+  "256": {
+   "scored_instructions_per_gas": 13.5722,
+   "scored_committed_bits_per_gas": 157576
+  },
+  "1024": {
+   "scored_instructions_per_gas": 13.716,
+   "scored_committed_bits_per_gas": 158432
+  }
+ },
+ "mem_length_test_overhead": {
+  "note": "candidate-mem with all thresholds 2^40 (length test compiled, never taken)",
+  "scored_instructions_per_gas": 13.9618,
+  "scored_committed_bits_per_gas": 159534
+ }
+}
