@@ -52,5 +52,13 @@
     "fullblock_RSS": false,
     "GPU": false,
     "wholeprotocol128": false
-  }
+  },
+  "node_model_correction": {
+    "unpruned_model_not_measured_savings": true,
+    "native_owned_streaming_prunes_bottom_layers": 4,
+    "log22_beta1_retained_nodes": 33554400,
+    "log22_beta2_retained_nodes": 67108832,
+    "source": "src/prover/pcs/tree_builders.zig: native compactForQueries call; vcs_lifted/prover.zig prune4 atlog>=20"
+  },
+  "followup_regression": "explicit pruned3tiny tree, exactqueriedvalues+authwitness before/after parking, 2focusedSafe/Fast"
 }

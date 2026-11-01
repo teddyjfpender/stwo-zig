@@ -70,9 +70,16 @@ clean OS file pages may remain cached after ordinary writes/unmapping.
 |β1: Merkle log 23|536,870,880 bytes|32 bytes plus metadata|
 |β2: Merkle log 24|1,073,741,792 bytes|32 bytes plus metadata|
 
-For 25 such full CPU trees, node payload alone is approximately 12.5 GiB/25 GiB.
-These are shape calculations, not full-block RSS measurements. Pruned trees
-persist only their actual retained nonempty layers; the API counts them directly.
+For 25 such **unpruned** trees, node payload alone is approximately 12.5 GiB/25 GiB.
+These are conservative shape calculations, not full-block RSS measurements.
+Crucially, the actual native OwnedStreaming MAIN path calls compactForQueries
+(tree_builders.zig), which drops four bottom layers at log≥20. If that qualified
+path is used, trace log 22 β1 retains 33,554,400 bytes (about 32 MiB), and β2 retains
+67,108,832 bytes (about 64 MiB). Thus a full-tree admission model may overestimate
+represented MAIN nodes by 16×; do not claim the unpruned model as measured savings.
+Parking persists/counts only actual nonempty layers, preserving the pruned shape.
+The follow-up focused regression explicitly prunes a tiny tree and verifies
+identical reconstructed Merkle openings before/after parking.
 
 Integrity checking streams the full payload at write/restore. It does not rebuild
 Merkle nodes, but adds hashing/I/O and may fault all file pages. No speedup is
