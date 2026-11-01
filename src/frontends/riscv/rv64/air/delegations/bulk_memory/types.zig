@@ -104,18 +104,31 @@ pub fn shifted(lo: u64, hi: u64, r: u3) u64 {
     return (lo >> s) | (hi << @intCast(64 - @as(u7, s)));
 }
 
-pub const Challenges = struct { ram: R.types.RamChallenges, owner: Owner.OwnerChallenges, range16: Scalar.Challenges };
-pub const Claims = struct {
-    ram: Q,
-    owner: Q,
-    range16: Q,
-    pub fn zero() @This() {
-        return .{ .ram = Q.zero(), .owner = Q.zero(), .range16 = Q.zero() };
-    }
-    pub fn values(self: @This()) [3]Q {
-        return .{ self.ram, self.owner, self.range16 };
-    }
-};
+/// Challenges and claims over constant lane C (QM31 natively, a circuit
+/// wire lane for recursion); the native aliases are unchanged.
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { ram: R.types.RamChallengesFor(C), owner: Owner.OwnerChallengesFor(C), range16: Scalar.ChallengesFor(C) };
+}
+pub const Challenges = ChallengesFor(Q);
+pub fn ClaimsFor(comptime C: type) type {
+    return struct {
+        ram: C,
+        owner: C,
+        range16: C,
+        pub fn zero() @This() {
+            return .{ .ram = C.zero(), .owner = C.zero(), .range16 = C.zero() };
+        }
+        pub fn values(self: @This()) [3]C {
+            return .{ self.ram, self.owner, self.range16 };
+        }
+    };
+}
+pub const Claims = ClaimsFor(Q);
+/// The public active-row count: a native integer, or a lane wire together
+/// with its `rows != 0` Boolean wire for an external lane.
+pub fn RowsFor(comptime C: type) type {
+    return if (E.isExternalLane(C)) struct { rows: C, nonempty: C } else u32;
+}
 
 /// `rows` active rows must leave at least one inactive row (wrap-around guard).
 pub fn validateGeometry(kind: @import("layout.zig").Kind, rows: u64, log: u32) !usize {

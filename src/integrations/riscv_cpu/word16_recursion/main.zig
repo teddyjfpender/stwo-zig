@@ -87,8 +87,9 @@ pub fn main() !void {
         }
         const ch = try P.drawTruth(&channel, &bundle.manifest, truth, k);
         var components = try Adapters.TruthComponents.init(truth, ch, encoded.claims);
-        const handles = components.verifiers();
-        rows[keys.cpus.len + k] = .{ .ordinal = keys.cpus.len + k, .kind = @tagName(truth.family()), .shape = try Describe.describe(report_allocator, &handles, suite.config(), &proof), .serialized = try Metrics.inspect(a, encoded.bytes) };
+        var buffer: [3]core.air.components.Component = undefined;
+        const handles = components.verifiers(&buffer);
+        rows[keys.cpus.len + k] = .{ .ordinal = keys.cpus.len + k, .kind = @tagName(truth.family()), .shape = try Describe.describe(report_allocator, handles, suite.config(), &proof), .serialized = try Metrics.inspect(a, encoded.bytes) };
     }
     const json = try std.json.Stringify.valueAlloc(report_allocator, .{ .scope = "Native-verified Word16 proof metadata; no recursive circuit, gates, acceptance or security estimate", .native_full_or_prefix_verified = true, .completed_ethereum_block = full, .recursive_proof_verified = false, .circuit_built = false, .gate_counts_measured = false, .suite = suite.config(), .physical_proofs = rows }, .{ .whitespace = .indent_2 });
     try std.fs.File.stdout().writeAll(json);

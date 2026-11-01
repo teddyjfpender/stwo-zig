@@ -6,6 +6,7 @@ const E = @import("../../evaluation.zig");
 const L = @import("layout.zig");
 const Eq = @import("equations.zig");
 const geometry = @import("../../geometry.zig");
+const point_lane = @import("../../lane.zig");
 const points = @import("../../../../air/component_point_support.zig");
 const support = @import("../../../../air/memory_commitment/hash_component_prepared_support.zig");
 const M = core.fields.m31.M31;
@@ -91,38 +92,48 @@ pub const Component = struct {
         };
         return core.air.components.MaskPoints.initOwned(try a.dupe([][]Point, &masks));
     }
-    const MaskView = struct {
-        mask: *const core.air.components.MaskValues,
-        offsets: [3]usize,
-        pub fn fixed(self: *const MaskView, c: usize) Q {
-            return self.mask.items[0][self.offsets[0] + c][0];
-        }
-        pub fn main(self: *const MaskView, c: usize) Q {
-            return self.mask.items[1][self.offsets[1] + c][0];
-        }
-        pub fn previousActive(self: *const MaskView) Q {
-            return self.mask.items[1][self.offsets[1] + L.ACTIVE][1];
-        }
-        pub fn interaction(self: *const MaskView, c: usize) Q {
-            return self.mask.items[2][self.offsets[2] + c][0];
-        }
-        pub fn previousInteraction(self: *const MaskView, c: usize) Q {
-            return self.mask.items[2][self.offsets[2] + c][1];
-        }
-    };
+    /// Lazy mask view over any lane's sampled-value accessor. Every column
+    /// count is validated by `evaluatePointFor` before the view is read.
+    fn MaskViewFor(comptime Lane: type, comptime Masks: type) type {
+        return struct {
+            masks: Masks,
+            offsets: [3]usize,
+            pub fn fixed(self: *const @This(), c: usize) Lane {
+                return self.masks.at(0, self.offsets[0] + c, 0) catch unreachable;
+            }
+            pub fn main(self: *const @This(), c: usize) Lane {
+                return self.masks.at(1, self.offsets[1] + c, 0) catch unreachable;
+            }
+            pub fn previousActive(self: *const @This()) Lane {
+                return self.masks.at(1, self.offsets[1] + L.ACTIVE, 1) catch unreachable;
+            }
+            pub fn interaction(self: *const @This(), c: usize) Lane {
+                return self.masks.at(2, self.offsets[2] + c, 0) catch unreachable;
+            }
+            pub fn previousInteraction(self: *const @This(), c: usize) Lane {
+                return self.masks.at(2, self.offsets[2] + c, 1) catch unreachable;
+            }
+        };
+    }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const core.air.components.MaskValues, acc: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         try self.validate();
         if (mask.items.len < 3) return error.InvalidArith256Mask;
-        for (self.widths(), 0..) |width, tree| {
-            if (mask.items[tree].len < self.offsets[tree] + width) return error.InvalidArith256Mask;
-            for (mask.items[tree][self.offsets[tree]..][0..width], 0..) |samples, c| {
-                if (samples.len != @as(usize, if (previousMask(tree, c)) 2 else 1)) return error.InvalidArith256Mask;
-            }
-        }
-        var sink = E.Sink{ .values = null, .accumulator = acc, .scale = try geometry.denominatorInverse(point, global_log, self.log_size) };
-        const view = MaskView{ .mask = mask, .offsets = self.offsets };
-        Eq.emit(Q, &view, self.public, self.claim, self.challenges, &sink);
-        std.debug.assert(sink.count == self.nConstraints());
+        var sink = E.Sink{ .values = null, .accumulator = acc };
+        try self.evaluatePointFor(Q, point, global_log, point_lane.NativeMasks{ .values = mask }, self.public, self.claim, self.challenges, &sink);
+    }
+    /// The one point authority for every lane. Circuit callers supply the
+    /// call span, the claim and the BYTE/Wire35 challenges as lane values.
+    pub fn evaluatePointFor(self: *const Component, comptime Lane: type, point: geometry.PointFor(Lane), global_log: u32, masks: anytype, public: E.CallSpanFor(E.ConstFor(Lane)), claim: E.ConstFor(Lane), challenges: Eq.ChallengesFor(E.ConstFor(Lane)), sink: *E.SinkFor(Lane)) !void {
+        if (comptime !E.isExternalLane(Lane)) try self.validate();
+        for (self.widths(), 0..) |width, tree| for (0..width) |c| {
+            const n = masks.count(tree, self.offsets[tree] + c) catch return error.InvalidArith256Mask;
+            if (n != @as(usize, if (previousMask(tree, c)) 2 else 1)) return error.InvalidArith256Mask;
+        };
+        sink.scale = try geometry.denominatorInverseFor(Lane, point, global_log, self.log_size);
+        const view = MaskViewFor(Lane, @TypeOf(masks)){ .masks = masks, .offsets = self.offsets };
+        const before = sink.count;
+        Eq.emit(Lane, &view, public, claim, challenges, sink);
+        std.debug.assert(sink.count - before == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
         return self.evaluateDomain(trace, acc, null);

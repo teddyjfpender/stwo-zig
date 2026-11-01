@@ -94,13 +94,15 @@ pub fn emitMainFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, p
     }
     emitTailMainFor(F, f, m, pm, span, out);
 }
-pub fn emitFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, calls: u32, first_id: u32, claims: T.Claims, ch: T.Challenges, out: *E.SinkFor(F)) void {
+/// The complete bridge authority over any lane: claims, challenges and the
+/// call span are constant-lane values (QM31 natively, wires in a circuit).
+pub fn emitFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, span: E.CallSpanFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), ch: T.ChallengesFor(E.ConstFor(F)), out: *E.SinkFor(F)) void {
     const active = m[L.ACTIVE];
     const Sec = E.SecureFor(F);
     var ram_term = Sec.zero();
     for (0..4) |lane| {
         const row = ramRow(F, m, lane);
-        emitLaneTransitionMainFor(F, kind, f, m, pm, .{ .calls = calls, .first_id = first_id }, lane, out);
+        emitLaneTransitionMainFor(F, kind, f, m, pm, span, lane, out);
         const d = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, false));
         const e = ch.ram.denominatorFor(F, R.equations.ramTuple(F, .transition, &row, true));
         const inv = E.secureFor(F, i, L.RAM + 4 * lane);
@@ -109,7 +111,7 @@ pub fn emitFor(comptime F: type, kind: T.Kind, f: []const F, m: []const F, pm: [
         emitReadableMainFor(F, m, lane, out);
     }
     S.prefix(F, ram_term, E.secureFor(F, i, 16), E.secureFor(F, pi, 16), f[1], f[2], claims.ram, out);
-    emitTailMainFor(F, f, m, pm, .{ .calls = calls, .first_id = first_id }, out);
+    emitTailMainFor(F, f, m, pm, span, out);
     S.single(F, ch.owner.denominatorFor(F, ownerTuple(F, kind, m)), active.mul(f[4]).neg(), E.secureFor(F, i, L.OWNER), E.secureFor(F, i, L.OWNER + 4), E.secureFor(F, pi, L.OWNER + 4), f[1], f[2], claims.owner, out);
     const d = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, false), true);
     const e = E.denominatorFor(F, ch.wire.offset, &ch.wire.coefficients, &wireTuple(F, kind, f, m, true), true);
