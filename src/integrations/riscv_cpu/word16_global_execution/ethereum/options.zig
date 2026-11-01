@@ -17,6 +17,7 @@ pub const Options = struct {
     native_cache_set: bool = false,
     program_metadata_cache_bytes: usize = 64 << 20,
     metadata_cache_set: bool = false,
+    park_retained_main: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -56,6 +57,9 @@ pub const Options = struct {
                 const prefix = "--program-metadata-cache-bytes=";
                 out.program_metadata_cache_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
                 if (out.program_metadata_cache_bytes > 1 << 30 or (out.program_metadata_cache_bytes != 0 and out.program_metadata_cache_bytes < 4096)) return error.InvalidProgramMetadataBudget;
+            } else if (std.mem.eql(u8, arg, "--park-retained-main")) {
+                if (out.park_retained_main) return error.DuplicateOperationalOption;
+                out.park_retained_main = true;
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
@@ -86,7 +90,7 @@ pub const Options = struct {
         return policy;
     }
     pub fn producerOnly(self: Options) bool {
-        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set;
+        return self.jobs != null or self.batch_set or self.keep_capture_cache or self.lane_workers_len != 0 or self.memory_cap_set or self.park_retained_main;
     }
 };
 test "operational jobs and batch parsing cannot silently broaden the worker budget" {
@@ -167,4 +171,15 @@ test "lane list jobs up to four and memory cap are explicit producer-only schedu
     try std.testing.expectError(error.InvalidServiceSchedule, (try Options.parse(&mismatch)).schedule(16));
     var zero = [_][:0]u8{ @constCast("tool"), @constCast("--lane-workers=8,0") };
     try std.testing.expectError(error.InvalidServiceSchedule, Options.parse(&zero));
+}
+
+test "retained MAIN parking is an explicit producer-only operational opt-in" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("produce") };
+    try std.testing.expect(!(try Options.parse(&defaults)).park_retained_main);
+    var enabled = [_][:0]u8{ @constCast("tool"), @constCast("produce"), @constCast("--park-retained-main") };
+    const options = try Options.parse(&enabled);
+    try std.testing.expect(options.park_retained_main and options.producerOnly());
+    try std.testing.expectEqual(@as(usize, 2), options.count);
+    var duplicate = [_][:0]u8{ @constCast("tool"), @constCast("--park-retained-main"), @constCast("--park-retained-main") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&duplicate));
 }
