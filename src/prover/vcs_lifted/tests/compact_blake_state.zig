@@ -148,3 +148,52 @@ test "vcs_lifted 96 byte split batches add no Blake compression compared with ra
         try std.testing.expectEqual(@as(u64, if (H.domainPrefixBytes() == 0) 20 else 24), raw_counts.scalar);
     }
 }
+
+fn nativeTreeCase(allocator: std.mem.Allocator, comptime H: type, tail: bool) !void {
+    const P = engine.vcs_lifted.prover.MerkleProverLifted(H);
+    const widths = [_]usize{ 17, 33, 1, 17, 2 };
+    const logs = [_]u32{ 1, 2, 4, 6, 10 };
+    const total = 70;
+    var columns: [total][]const M = undefined;
+    var initialized: usize = 0;
+    defer for (columns[0..initialized]) |values| allocator.free(values);
+    for (logs, widths) |log, width| for (0..width) |_| {
+        const values = try allocator.alloc(M, @as(usize, 1) << @intCast(log));
+        for (values, 0..) |*value, row| value.* = M.fromCanonical(@intCast(initialized * 101 + row * 17));
+        columns[initialized] = values;
+        initialized += 1;
+    };
+    var oracle = try P.testing.commitWithWorkerOverride(allocator, &columns, 1);
+    defer oracle.deinit(allocator);
+    const sorted = try P.sortColumnsByLogSizeAsc(allocator, &columns);
+    defer allocator.free(sorted);
+    var stream = P.StreamingCommitter.initCompactBlake(allocator);
+    var alive = true;
+    defer if (alive) stream.deinit();
+    const split: usize = if (tail) 50 else total;
+    var offset: usize = 0;
+    while (offset < split) {
+        const end = @min(split, offset + 7);
+        try stream.addColumns(sorted[offset..end]);
+        offset = end;
+    }
+    try std.testing.expectEqual(@as(usize, 0), stream.leaf_hashers.len);
+    try std.testing.expect(stream.native_states != null);
+    var actual = if (tail) try stream.finalizeLiftedTail(sorted[split..]) else try stream.finalize();
+    alive = false;
+    defer actual.deinit(allocator);
+    try std.testing.expectEqual(oracle.layers.len, actual.layers.len);
+    for (oracle.layers, actual.layers) |expected, got| try std.testing.expectEqualSlices(H.Hash, expected, got);
+}
+test "vcs_lifted compact native constructor matches raw tree for incremental and mixed-height cached tail" {
+    inline for (.{ core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher, core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher }) |H| {
+        try nativeTreeCase(a, H, false);
+        try nativeTreeCase(a, H, true);
+    }
+}
+fn nativeTreeAllocation(allocator: std.mem.Allocator) !void {
+    try nativeTreeCase(allocator, core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher, true);
+}
+test "vcs_lifted compact native stream and cached-tail owners clean every allocation failure" {
+    try std.testing.checkAllAllocationFailures(a, nativeTreeAllocation, .{});
+}

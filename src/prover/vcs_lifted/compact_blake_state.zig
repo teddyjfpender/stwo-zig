@@ -114,6 +114,41 @@ pub fn Array(comptime H: type) type {
             _ = Work.forEachRange(self.states.len, &update_job, .{});
             self.metadata = update_job.after;
         }
+        pub fn finalizeTailInto(self: *const Self, columns: []const Column, final_log: u32, output: []H.Hash) !void {
+            if (columns.len == 0 or final_log >= @bitSizeOf(usize) or output.len != @as(usize, 1) << @intCast(final_log)) return error.InvalidColumnSize;
+            const base_log: u32 = @intCast(std.math.log2_int(usize, self.states.len));
+            if (final_log < base_log) return error.InvalidColumnSize;
+            var previous_log = base_log;
+            for (columns) |column| {
+                if (column.log_size < previous_log or column.log_size > final_log or column.values.len != @as(usize, 1) << @intCast(column.log_size)) return error.InvalidColumnSize;
+                previous_log = column.log_size;
+            }
+            const Tail = struct {
+                source: *const Self,
+                columns: []const Column,
+                base_log: u32,
+                final_log: u32,
+                output: []H.Hash,
+                pub fn runRange(job: *@This(), _: usize, begin: usize, end: usize) void {
+                    const range = .{ .tail_columns = job.columns, .base_log_size = job.base_log, .final_log_size = job.final_log, .leaves = job.output, .start = begin, .end = end };
+                    if (@import("bounded_blake2_tail.zig").finalizeWithSource(H, &range, job.source) != null) return;
+                    // Tiny native domains cannot form the four-row cache. Keep
+                    // the original scalar message law with one stack H only.
+                    const base_shift: std.math.Log2Int(usize) = @intCast(job.final_log - job.base_log + 1);
+                    for (begin..end) |row| {
+                        var value = job.source.get(((row >> base_shift) << 1) + (row & 1));
+                        for (job.columns) |column| {
+                            const shift: std.math.Log2Int(usize) = @intCast(job.final_log - column.log_size + 1);
+                            const index = ((row >> shift) << 1) + (row & 1);
+                            value.updateLeaf(column.values[index..][0..1]);
+                        }
+                        job.output[row] = value.finalize();
+                    }
+                }
+            };
+            var tail = Tail{ .source = self, .columns = columns, .base_log = base_log, .final_log = final_log, .output = output };
+            _ = Work.forEachRange(output.len, &tail, .{});
+        }
         pub fn finalizeInto(self: *const Self, output: []H.Hash) !void {
             if (output.len != self.states.len) return error.InvalidColumnSize;
             const Final = struct {
