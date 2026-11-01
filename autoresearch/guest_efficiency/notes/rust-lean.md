@@ -14,7 +14,7 @@ Block 24,628,607 instruction counts unless noted; scored = basket metric.
 - `llvm-objdump` with RISC-V support: rustup `llvm-tools` of nightly-2026-03-04.
 - Per-PC counts (`--keep-profiles`) + disassembly show the actual loops.
 
-## Kept (cumulative 104.26M -> 75.17M, scored 13.880 -> 10.266)
+## Kept (cumulative 104.26M -> 72.11M, scored 13.880 -> 9.925)
 
 | change | block delta |
 |---|---|
@@ -27,6 +27,13 @@ Block 24,628,607 instruction counts unless noted; scored = basket metric.
 | jumpdest analysis: sentinel-terminated scan (5 instr/opcode) | 84.71 -> 83.13 |
 | ECDSA: batch *verification* against the supplied public keys (no sqrt; one s-inversion and one Z-inversion per block) | 83.13 -> 76.34 |
 | revm: inline dispatch of 38 hot opcodes behind a mainnet-table guard | 76.34 -> 75.17 |
+| Keccak glue: first block assigned, volatile zero lanes (no memset) | 75.17 -> 74.43 |
+| revm: register-resident loop (ip/gas/stack len in locals) for stack/jump/ALU ops | 74.43 -> 73.19 |
+| zeth-mpt: unresolved children as tagged references into witness bytes | 73.19 -> 72.11 |
+
+Final `--set all` (ELF sha256 52378ad0...): scored 9.925 instr/gas (118,986 bits/gas),
+holdout 8.360 (100,380), all 9.616 (115,313); all guards pass, promotable.
+Final attribution: notes/rust-lean-final-attribution-24628607.json.
 
 ## Lessons
 
@@ -47,7 +54,26 @@ Block 24,628,607 instruction counts unless noted; scored = basket metric.
 - A `match` dispatch only wins if it lowers to a dense jump table (cover
   0x00..0xff) and the bodies inline (`#[inline(always)]` on MLOAD/MSTORE/...).
 
-## Next candidates (measured shares at 75.17M)
+## Transfer to the C++ (evmone-class) client
+
+- Witness node table: hash each witness node once into an open-addressing
+  table keyed by digest prefix with the 32-bit tag beside the index; probe
+  every branch child inline; keep unresolved children as pointers into the
+  witness bytes (no per-child allocation or copy).
+- MPT re-encode: build modified branch encodings in an aligned u64 word
+  buffer, digests moved as four aligned words, hash straight from it.
+- Register-resident EVM loop: ip, gas and stack length in locals for the hot
+  stack/jump/ALU opcodes, sync only around complex opcodes; dense 0x00..0xff
+  dispatch table. evmone's own loop already resembles this; check its
+  RV64IM codegen for jump-table rematerialization.
+- Keccak init: assign the first absorbed block, zero only capacity lanes,
+  volatile stores so the compiler does not reintroduce memset.
+- Also client-independent: ECDSA batch verification against supplied keys
+  (no sqrt, one inversion per block per kind), SHA-256 compress with
+  doubled-word rotates and a constant padding-block schedule, sentinel
+  jumpdest scan, big-endian limb loads without LLVM's generic byte swap.
+
+## Next candidates (measured shares at 75.17M; superseded by the wrap-up)
 
 - EVM loop with stack pointer, ip and gas in locals for the hot opcodes
   (~17 dispatch instructions per op today; ~430k ops).
@@ -55,3 +81,6 @@ Block 24,628,607 instruction counts unless noted; scored = basket metric.
   witness bytes): decode is ~6.6M incl. allocation.
 - Keccak glue: first block absorbed by assignment, no 200-byte memset.
 - secp: wNAF with a precomputed G table to cut service adds.
+
+- Open at wrap-up: resolve_digests hit compare calls memcmp on an unaligned
+  digest (~0.8M, 204 instr/call): compare as funnel-read words instead.
