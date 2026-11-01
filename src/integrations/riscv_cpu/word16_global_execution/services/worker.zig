@@ -171,6 +171,13 @@ pub const Worker = struct {
         self.started = true;
         errdefer self.failed = true;
         const recorder = options.recorder(ordinal);
+        var main_ready = false;
+        if (options.prefetch_main_bytes != 0) if (self.retained_store) |store| {
+            var prefetch = try Profile.StageScope.begin(recorder, "retained_main_prefetch", "Advise current stable MAIN before interaction generation");
+            defer prefetch.end();
+            const result = try store.prefetchMain(&self.scheme.trees.items[1], options.prefetch_main_bytes);
+            main_ready = result.ready;
+        };
         const draw: Draw = switch (self.descriptor) {
             .cpu => |c| .{ .cpu = .{ .local = try P.drawCpu(&self.channel, manifest, c.ordinal), .shared = try P.shared(manifest) } },
             .truth => |t| .{ .truth = try P.drawTruth(&self.channel, manifest, t.value, t.ordinal) },
@@ -188,11 +195,11 @@ pub const Worker = struct {
         const inter = try self.source.take(self.descriptor, 2);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, options.commit_batch_columns, recorder, &self.channel);
         inter_stage.end();
-        if (self.retained_store) |store| {
+        if (!main_ready) if (self.retained_store) |store| {
             var restore = try Profile.StageScope.begin(recorder, "retained_main_restore", "Restore parked sealed native MAIN coefficients");
             defer restore.end();
             _ = try store.restore(&self.scheme.trees.items[1]);
-        }
+        };
         var components = try Air.init(self.descriptor, draw, claims);
         const handles = try components.provers(a);
         defer a.free(handles);

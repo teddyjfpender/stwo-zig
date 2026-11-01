@@ -430,3 +430,101 @@ test "Failed parked remapping preserves empty sentinels and FD custody for exact
     _ = try store.restore(tree);
     try std.testing.expectEqualSlices(M, values, tree.coefficients.?[0].coeffs);
 }
+
+test "MAIN prefetch byte ranges never round beyond the explicit per-worker cap" {
+    const Hint = @import("retained_main_prefetch.zig");
+    const page = std.heap.page_size_min;
+    try std.testing.expectEqual(@as(usize, 0), Hint.boundedLength(8 * page, page - 1));
+    try std.testing.expectEqual(page, Hint.boundedLength(8 * page, 2 * page - 1));
+    try std.testing.expectEqual(3 * page, Hint.boundedLength(3 * page, 8 * page));
+    try std.testing.expectEqual(@as(usize, 0), Hint.boundedLength(0, std.math.maxInt(usize)));
+}
+test "MAIN prefetch preserves mapped and parked native values roots and bounded accounting" {
+    for ([_]bool{ false, true }) |park| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const path = try pathFor(tmp);
+        defer a.free(path);
+        var store = if (park) try Store.initParked(path, 64 << 20) else try Store.init(path, 64 << 20);
+        defer store.deinit();
+        var s = try scheme(a);
+        defer s.deinit(a);
+        const tree = &s.trees.items[0];
+        const root = tree.root();
+        const first = tree.coefficients.?[0].coefficients()[7];
+        _ = try store.spill(a, tree);
+        const disabled = try store.prefetchMain(tree, 0);
+        try std.testing.expectEqual(@as(usize, 0), disabled.advised_bytes);
+        try std.testing.expectEqual(@as(usize, 0), store.stats().prefetch_calls);
+        const result = try store.prefetchMain(tree, std.heap.page_size_min);
+        if (@import("retained_main_prefetch.zig").supported) {
+            try std.testing.expect(result.ready);
+            try std.testing.expect(result.requested_bytes <= std.heap.page_size_min);
+            try std.testing.expect(result.advised_bytes <= result.requested_bytes);
+        } else _ = try store.restore(tree);
+        try std.testing.expectEqualDeep(root, tree.root());
+        try std.testing.expect(first.eql(tree.coefficients.?[0].coefficients()[7]));
+        const stats = store.stats();
+        try std.testing.expectEqual(@as(usize, 1), stats.prefetch_calls);
+        try std.testing.expectEqual(result.advised_bytes, stats.prefetch_advised_bytes);
+        try std.testing.expectEqual(result.requested_bytes, stats.prefetch_requested_bytes);
+    }
+}
+test "MAIN prefetch rejects foreign owner contexts and changed retained views before advice" {
+    if (!@import("retained_main_prefetch.zig").supported) return error.SkipZigTest;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const path = try pathFor(tmp);
+    defer a.free(path);
+    var store = try Store.init(path, 64 << 20);
+    defer store.deinit();
+    var foreign = try Store.init(path, 64 << 20);
+    defer foreign.deinit();
+    var s = try scheme(a);
+    defer s.deinit(a);
+    const tree = &s.trees.items[0];
+    _ = try store.spill(a, tree);
+    try std.testing.expectError(error.ForeignRetainedMainOwner, foreign.prefetchMain(tree, 1 << 20));
+    const token = tree.backing_teardown.?;
+    tree.backing_teardown.?.context = @ptrFromInt(1);
+    const bad_context = store.prefetchMain(tree, 1 << 20);
+    tree.backing_teardown = token;
+    try std.testing.expectError(error.ForeignRetainedMainOwner, bad_context);
+    const retained = tree.columns[0].coefficient_values;
+    tree.columns[0].coefficient_values = &.{};
+    const bad_view = store.prefetchMain(tree, 1 << 20);
+    tree.columns[0].coefficient_values = retained;
+    try std.testing.expectError(error.RetainedMainShapeMismatch, bad_view);
+    try std.testing.expectEqual(@as(usize, 0), store.stats().prefetch_calls);
+    _ = try store.prefetchMain(tree, 1 << 20);
+}
+test "MAIN prefetch current-worker overlap preserves every mixed physical proof and fresh receiver" {
+    var expected = try F.Case.init(a);
+    defer expected.deinit();
+    for ([_]bool{ false, true }) |park| {
+        var captured = try F.Captured.init(a);
+        defer captured.deinit();
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        const path = try pathFor(tmp);
+        defer a.free(path);
+        var store = if (park) try Store.initParked(path, 1 << 30) else try Store.init(path, 1 << 30);
+        defer store.deinit();
+        var bundle = try E.produceWithOptions(a, &expected.keys(), &expected.truths(), &.{ &captured.native[0], &captured.native[1] }, &captured.advice, expected.expected(), .{ .retained_main = &store, .prefetch_main_bytes = 256 << 20, .schedule = .{ .lanes = 2, .workers_per_lane = 2 }, .consume_memory_events = true });
+        defer bundle.deinit(a);
+        try E.verify(a, &expected.keys(), &expected.truths(), expected.expected(), &bundle);
+        try std.testing.expectEqualDeep(expected.bundle.manifest.digest, bundle.manifest.digest);
+        for (expected.bundle.cpus, bundle.cpus) |x, y| {
+            try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+            try std.testing.expectEqualDeep(x.claims, y.claims);
+            try std.testing.expectEqualDeep(x.request, y.request);
+        }
+        for (expected.bundle.truths, bundle.truths) |x, y| {
+            try std.testing.expectEqualSlices(u8, x.bytes, y.bytes);
+            try std.testing.expectEqualDeep(x.claims, y.claims);
+        }
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
+        try std.testing.expectEqual(@as(usize, 5), store.stats().prefetch_calls);
+        try std.testing.expect(store.stats().prefetch_advised_bytes <= 5 * @as(usize, 256 << 20));
+    }
+}
