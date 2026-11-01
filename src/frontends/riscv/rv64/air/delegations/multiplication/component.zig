@@ -103,7 +103,7 @@ pub fn ComponentFor(comptime Lane: type) type {
         /// four columns (i >= L.INTERACTION - 4).
         pub fn evaluateQuotientsAtPointFor(self: *const Self, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, sink: *E.SinkFor(F)) !void {
             comptime if (E.ConstFor(F) != Lane) @compileError("multiplication component lane mismatch");
-            if (self.log_size < 5 or self.log_size > 22) return error.InvalidRv64MaskShape;
+            if (self.log_size < 5 or self.log_size > @import("degree3_layout.zig").MAX_LOG) return error.InvalidRv64MaskShape;
             var geometry_values: [L.FIXED]F = undefined;
             for (&geometry_values, 0..) |*value, i| value.* = try lane.sample(F, masks, 0, self.fixed_offset + i, 0, 1);
             var physical: [L.MAIN]F = undefined;
@@ -219,7 +219,7 @@ pub fn ComponentFor(comptime Lane: type) type {
             }
         }
         fn checkShape(self: *const Self, fixed: usize, main: usize, interaction: usize) !void {
-            if (self.log_size < 5 or self.log_size > 22 or self.count > (@as(usize, 1) << @intCast(self.log_size)) or fixed < try points.checkedEnd(self.fixed_offset, L.FIXED) or main < try points.checkedEnd(self.main_offset, L.MAIN) or interaction < try points.checkedEnd(self.interaction_offset, L.INTERACTION)) return error.InvalidRv64MultiplicationShape;
+            if (self.log_size < 5 or self.log_size > @import("degree3_layout.zig").MAX_LOG or self.count > (@as(usize, 1) << @intCast(self.log_size)) or fixed < try points.checkedEnd(self.fixed_offset, L.FIXED) or main < try points.checkedEnd(self.main_offset, L.MAIN) or interaction < try points.checkedEnd(self.interaction_offset, L.INTERACTION)) return error.InvalidRv64MultiplicationShape;
         }
     };
 }

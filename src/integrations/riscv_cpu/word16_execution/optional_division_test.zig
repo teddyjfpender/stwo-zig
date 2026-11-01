@@ -61,7 +61,7 @@ fn geometry(omit: bool) Mat.Geometry {
     return .{ .cpu_log = 5, .omit_empty_division = omit };
 }
 
-test "Empty DIV shape removes all fixed main interaction and component samples while legacy class remains default" {
+test "Empty DIV shape removes all fixed main interaction and component samples while present class remains default" {
     var legacy = try Mat.Materials.init(a, .{ .base = 4096, .words = &WORDS }, geometry(false));
     defer legacy.deinit();
     var omitted = try Mat.Materials.init(a, .{ .base = 4096, .words = &WORDS }, geometry(true));
@@ -72,7 +72,7 @@ test "Empty DIV shape removes all fixed main interaction and component samples w
     try std.testing.expectEqual(@as(usize, 16), Mat.G.componentCount(&omitted.shapes()));
     const before = try Mat.G.cells(&legacy.shapes());
     const after = try Mat.G.cells(&omitted.shapes());
-    const D = front.rv64_air.arithmetic.division.layout;
+    const D = front.rv64_air.arithmetic.division.word16_product.layout;
     try std.testing.expectEqual(@as(u64, D.FIXED * 32), before.fixed - after.fixed);
     try std.testing.expectEqual(@as(u64, D.MAIN * 32), before.main - after.main);
     try std.testing.expectEqual(@as(u64, D.INTERACTION * 32), before.interaction - after.interaction);
@@ -94,14 +94,14 @@ test "Omitted DIV proves fresh with exact semantics, canonical zero claim and ow
     try std.testing.expect(proof.claims.division.isZero());
     const old_samples = try sampledCounts(old.bytes);
     const omitted_samples = try sampledCounts(proof.bytes);
-    // Pin the physical DIV withdrawal, independently of unrelated LS/ALU
-    // encoding widths: fixed3, main1135 plus one previous mask, interaction8
-    // plus four previous-prefix coordinates, and no composition change.
-    for (old_samples, omitted_samples, [_]usize{ 3, 1136, 12, 0 }) |normal, absent, removed| {
+    // Pin physical withdrawal of the new provider, independently of LS/ALU:
+    // fixed3, main82 plus previous count, interaction76 plus previous prefix.
+    const D = front.rv64_air.arithmetic.division.word16_product.layout;
+    for (old_samples, omitted_samples, [_]usize{ D.FIXED, D.MAIN + 1, D.INTERACTION + 4, 0 }) |normal, absent, removed| {
         try std.testing.expectEqual(removed, normal - absent);
     }
 
-    try std.testing.expectEqual(@as(usize, 1151), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
+    try std.testing.expectEqual(@as(usize, 166), (old_samples[0] + old_samples[1] + old_samples[2]) - (omitted_samples[0] + omitted_samples[1] + omitted_samples[2]));
     try std.testing.expect(proof.bytes.len < old.bytes.len);
     try std.testing.expect(!std.mem.eql(u8, proof.bytes, old.bytes));
     var fresh = try Mat.Setup.init(a, .{ .base = 4096, .words = &WORDS }, geometry(true));
@@ -156,7 +156,7 @@ test "Omitted unused DIV retains its allocation owner through every setup constr
 // Independent low-level physical verification deliberately omits only the
 // aggregate FUNCTION closure. This private test helper grants no execution
 // acceptance and is never exported by the production receiver.
-fn verifyPhysicalFragment(setup: *const Mat.Setup, trust: E.Admission, fragment: E.Encoded) !void {
+pub fn verifyPhysicalFragment(setup: *const Mat.Setup, trust: E.Admission, fragment: E.Encoded) !void {
     var proof = try wire.decodeProofBytesBinary(a, fragment.bytes);
     var owns = true;
     defer if (owns) proof.deinit(a);

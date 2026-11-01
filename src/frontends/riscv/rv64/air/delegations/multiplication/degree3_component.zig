@@ -84,7 +84,7 @@ pub fn ComponentFor(comptime Lane: type) type {
         }
         pub fn evaluateQuotientsAtPointFor(self: *const Self, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, sink: *E.SinkFor(F)) !void {
             comptime if (E.ConstFor(F) != Lane) @compileError("MUL degree3 lane mismatch");
-            if (self.log_size < 5 or self.log_size > 22) return error.InvalidRv64MaskShape;
+            if (self.log_size < 5 or self.log_size > L.MAX_LOG) return error.InvalidRv64MaskShape;
             var fixed: [L.FIXED]F = undefined;
             var main: [L.MAIN]F = undefined;
             var current: [L.INTERACTION]F = undefined;

@@ -24,7 +24,7 @@ pub const Components = struct {
     shift: B.shift_word_packed_experiment.component.Component,
     shift_tail: B.shift_word_packed_experiment.component.Component,
     jalr: X.jalr_component.Component,
-    division: A.arithmetic.division.degree3_component.Component,
+    division: A.arithmetic.division.word16_product.component.Component,
     multiplication: A.arithmetic.multiplication.degree3_component.Component,
     shift_table: B.shift_word_packed_experiment.table_component.Component,
     and_table: B.binary_component.Component,
@@ -37,6 +37,7 @@ pub const Components = struct {
     selection: A.memory.load_store_v2.component.Component,
 
     pub fn init(materials: *const Mat.Materials, request: P.Request, ch: P.Draw, claims: P.Claims) !Components {
+        try P.validateArithmeticRequests(materials.geometry, request);
         try P.validateDivisionClass(materials.geometry, request.division_requests, claims.division);
         try P.validateLsTailClass(materials.geometry, request.memory.ls_count, claims.ls_tail);
         try P.validateProviderTailClaims(materials.geometry, claims);
@@ -79,7 +80,7 @@ pub const Components = struct {
                 .shift => result.shift = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift },
                 .shift_tail => result.shift_tail = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = .{ .function = old_ch.function, .range16 = old_ch.range16, .shift = ch.shift_ }, .claims = claims.shift_tail },
                 .jalr => result.jalr = .{ .log_size = shape.log, .offsets = shape.offsets, .challenges = ch.cpu.function, .claim = claims.jalr },
-                .division => result.division = .{ .base = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function), .claim = claims.division } },
+                .division => result.division = .{ .log_size = shape.log, .count = request.division_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.division(ch.cpu.function, ch.cpu.range16), .claim = claims.division },
                 .multiplication => result.multiplication = .{ .log_size = shape.log, .count = request.multiplication_requests, .fixed_offset = shape.offsets[0], .main_offset = shape.offsets[1], .interaction_offset = shape.offsets[2], .challenges = AB.multiplication(ch.cpu.function), .claim = claims.multiplication, .byte_alpha = ch.cpu.range8.offset },
                 .shift_table => result.shift_table = .{ .offsets = shape.offsets, .prepared = B.shift_word_packed_experiment.table.Prepared.init(ch.shift_), .claim = claims.shift_table },
                 .ls, .ls_tail, .initial, .terminal, .selection => {

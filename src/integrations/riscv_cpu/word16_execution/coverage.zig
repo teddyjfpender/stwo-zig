@@ -45,6 +45,12 @@ pub fn minimalLog(count: u32) !u32 {
     if (count > 1 << 22) return error.ExecutionCapacityExceeded;
     return @intCast(@max(5, std.math.log2_int_ceil(u32, @max(1, count))));
 }
+/// CPU MUL requests plus two unsigned support requests per DIV.
+pub fn minimalMultiplicationLog(count: u32) !u32 {
+    const max_log = @import("stwo_riscv_frontend").rv64_air.arithmetic.multiplication.degree3_layout.MAX_LOG;
+    if (count > @as(u32, 1) << @intCast(max_log)) return error.ExecutionCapacityExceeded;
+    return @intCast(@max(5, std.math.log2_int_ceil(u32, @max(1, count))));
+}
 /// Prefix authorities require at least one inactive row; pure truth-fact
 /// providers instead admit a completely occupied capacity via minimalLog.
 pub fn minimalPrefixLog(count: u32) !u32 {

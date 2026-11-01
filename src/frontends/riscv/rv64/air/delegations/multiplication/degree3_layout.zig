@@ -11,3 +11,6 @@ pub const INTERACTION = PREFIX + 4;
 pub const ARITHMETIC_CONSTRAINTS = Old.CONSTRAINTS - Old.BATCHES;
 pub const CONSTRAINTS = ARITHMETIC_CONSTRAINTS + BYTE_PAIRS + 3;
 pub const MAX_DEGREE = 3;
+
+/// Two unsigned support facts per DIV can require twice the CPU capacity.
+pub const MAX_LOG = 23;

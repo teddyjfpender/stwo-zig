@@ -60,8 +60,8 @@ pub fn inspect(a: std.mem.Allocator, components: *const C, source: *const S) !?F
                 .shift_table => components.shift_table.emitFor(Q, fs, ms, is, pis, &sink),
                 .jalr => components.jalr.emitFor(Q, fs, ms, pms, is, pis, &sink),
                 .division => {
-                    const D = A.arithmetic.division;
-                    D.provider.evaluate(fs[0..3].*, ms[0..D.layout.MAIN], is[0..D.layout.INTERACTION], pis[0..D.layout.INTERACTION], pms[D.layout.COUNT], components.division.base.count, components.division.base.challenges, components.division.base.claim, &sink);
+                    const D = A.arithmetic.division.word16_product;
+                    D.lookup.emitFor(Q, fs, ms, pms[D.layout.COUNT], Eval.q(components.division.count), is, Q.fromPartialEvals(pis[D.layout.PREFIX..][0..4].*), components.division.claim, components.division.challenges, &sink);
                 },
                 .multiplication => {
                     const M = A.arithmetic.multiplication;

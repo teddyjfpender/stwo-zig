@@ -30,7 +30,7 @@ pub const Source = struct {
     shift: B.shift_word_packed_experiment.source.Source,
     tails: Tail.Tails = .{},
     jalr: J.Source,
-    division: A.arithmetic.division.trace.Trace,
+    division: A.arithmetic.division.word16_product.source.Source,
     multiplication: A.arithmetic.multiplication.trace.Trace,
     memory: Memory.Prepared,
     and_table: A.providers.tables.Request,
@@ -82,6 +82,7 @@ pub const Source = struct {
             if (value.ls_tail) |tail| if (tail.rows != ls_counts.tail or tail.log_size != g.ls_tail_log.?) return error.PreparedMemoryGeometryMismatch;
         }
         if (g.omit_empty_division and prepared.division.len != 0) return error.OmittedDivisionRequests;
+        if (prepared.division.len > (@as(usize, 1) << @intCast(g.division_log)) or prepared.multiplication.len > (@as(usize, 1) << @intCast(g.multiplication_log))) return error.ArithmeticRequestCapacity;
         // A captured CPU materializes exactly once at the final Program owner;
         // projection failure preserves Prepared's narrow CPU/family advice.
         {
@@ -123,7 +124,7 @@ pub const Source = struct {
         var division = blk: {
             var stage = try Profile.StageScope.begin(recorder, "source_division", "DIV witness");
             defer stage.end();
-            break :blk try A.arithmetic.division.trace.Trace.initWithLog(a, prepared.division, g.division_log);
+            break :blk try A.arithmetic.division.word16_product.source.Source.initWithLog(a, prepared.division, g.division_log);
         };
         errdefer division.deinit();
         var multiplication = blk: {
@@ -160,6 +161,7 @@ pub const Source = struct {
         if (tails.alu) |tail| try addCounts(c16, tail.range16_counts);
         if (tails.shift) |tail| try addCounts(c16, tail.range16_counts);
         try addCounts(c16, memory.counts16);
+        if (!g.omit_empty_division) try addCounts(c16, division.counts16);
         try addCounts(c8, &multiplication.byte_counts);
         try addCounts(c8, memory.counts8);
         count_stage.end();
@@ -313,7 +315,7 @@ pub const Source = struct {
         } else block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_division", "DIV REM interactions");
             defer stage.end();
-            break :block try self.division.generateInteraction(AB.division(ch.cpu.function));
+            break :block try self.division.generateInteraction(AB.division(ch.cpu.function, ch.cpu.range16));
         };
         const multiplication = block: {
             var stage = try Profile.StageScope.begin(recorder, "inter_multiplication", "MUL interactions");

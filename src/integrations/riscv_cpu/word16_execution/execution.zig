@@ -45,7 +45,7 @@ pub const Admission = struct {
         if (request.epoch != 1 or request.memory.epoch != request.epoch) return error.UnqualifiedCrossBatchMemoryScope;
         if (request.cpu.initial_pc != self.initial_pc or !std.mem.eql(u64, &request.cpu.initial_registers, &self.initial_registers)) return error.UntrustedWord16InitialCpu;
         try request.memory.validate(self.image);
-        if (request.division_requests > @as(u32, 1) << @intCast(geometry.division_log) or request.multiplication_requests > @as(u32, 1) << @intCast(geometry.multiplication_log)) return error.ArithmeticRequestCapacity;
+        try P.validateArithmeticRequests(geometry, request);
     }
 };
 pub const Encoded = struct {

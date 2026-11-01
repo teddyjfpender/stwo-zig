@@ -86,7 +86,7 @@ pub const Materials = struct {
         errdefer a.free(shift_tail);
         const jalr = try B.binary_source.fixedForLog(a, geometry.jalr_log);
         errdefer a.free(jalr);
-        const division: []M = if (geometry.omit_empty_division) &.{} else try air.arithmetic.division.trace.fixedColumns(a, 0, geometry.division_log);
+        const division: []M = if (geometry.omit_empty_division) &.{} else try air.arithmetic.division.word16_product.source.fixedColumnsForLog(a, geometry.division_log);
         errdefer a.free(division);
         const multiplication = try air.arithmetic.multiplication.trace.fixedColumnsForLog(a, geometry.multiplication_log);
         errdefer a.free(multiplication);

@@ -111,6 +111,10 @@ pub const Prepared = struct {
             53...56, 58...61 => try df.append(a, .{ .opcode = @enumFromInt(f.operation), .a = f.a, .b = f.b, .result = f.c }),
             else => return error.UnroutedWord16Function,
         };
+        const raw_mul_count: u32 = @intCast(mf.items.len);
+        // These are provider obligations, not retired MUL instructions.
+        // The same normalized operands authority is used by the DIV witness.
+        for (df.items) |request| try mf.appendSlice(a, &try A.arithmetic.division.word16_product.witness.support(request));
         const jalr_log = options.jalr_log orelse try Coverage.minimalLog(@intCast(jf.items.len));
         var jalr = try J.Source.init(a, jf.items, jalr_log);
         errdefer jalr.deinit();
@@ -139,11 +143,11 @@ pub const Prepared = struct {
         // Every provider fact is now independently owned. Avoid retaining a
         // second copy until all execution shards have sealed their MAIN.
         cpu.releaseFunctionFacts();
-        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = @intCast(multiplication.len), .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
+        return .{ .allocator = a, .program_identity = program.identity, .cpu = cpu, .jalr = jalr, .alu = alu, .binary = binary, .shift = shift, .shift_weights = shift_weights, .division = division, .multiplication = multiplication, .raw_counts = .{ .alu = @intCast(af.items.len), .binary = @intCast(bf.items.len), .shift = raw_shift_count, .jalr = @intCast(jf.items.len), .division = @intCast(division.len), .multiplication = raw_mul_count, .memory = @intCast(cpu.memory.items.len), .service = @intCast(cpu.services.items.len) }, .unique_memory_words = @intCast(words.count()) };
     }
     pub fn geometry(self: *const Prepared) !G.Geometry {
         const cpu = self.cpu orelse return error.PreparedExecutionConsumed;
-        return .{ .cpu_log = cpu.log_size, .alu_log = try Coverage.minimalLog(@intCast(self.alu.facts.len)), .binary_log = try Coverage.minimalLog(@intCast(self.binary.facts.len)), .shift_log = try Coverage.minimalLog(@intCast(self.shift.len)), .jalr_log = (self.jalr orelse return error.PreparedExecutionConsumed).log_size, .division_log = try Coverage.minimalLog(@intCast(self.division.len)), .multiplication_log = try Coverage.minimalLog(@intCast(self.multiplication.len)), .ls_log = try Coverage.minimalPrefixLog(self.raw_counts.memory), .boundary_log = try Coverage.minimalPrefixLog(self.unique_memory_words) };
+        return .{ .cpu_log = cpu.log_size, .alu_log = try Coverage.minimalLog(@intCast(self.alu.facts.len)), .binary_log = try Coverage.minimalLog(@intCast(self.binary.facts.len)), .shift_log = try Coverage.minimalLog(@intCast(self.shift.len)), .jalr_log = (self.jalr orelse return error.PreparedExecutionConsumed).log_size, .division_log = try Coverage.minimalLog(@intCast(self.division.len)), .multiplication_log = try Coverage.minimalMultiplicationLog(@intCast(self.multiplication.len)), .ls_log = try Coverage.minimalPrefixLog(self.raw_counts.memory), .boundary_log = try Coverage.minimalPrefixLog(self.unique_memory_words) };
     }
     /// Explicit optional physical class. Ordinary geometry() keeps the legacy
     /// present provider and exact historical proof bytes by default.

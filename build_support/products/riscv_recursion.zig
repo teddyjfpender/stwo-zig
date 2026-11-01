@@ -33,6 +33,7 @@ pub fn addProduct(context: circuit_product.Context, product: graph.Product) void
         .{ .name = "test-riscv64-multiplication-degree3-circuit", .source = "src/integrations/riscv_cpu/rv64_multiplication_degree3_circuit_test_root.zig" },
         .{ .name = "test-riscv64-keccak-pair2n-circuit", .source = "src/integrations/riscv_cpu/rv64_keccak_pair2n_circuit_test_root.zig" },
         .{ .name = "test-riscv64-division-degree3-circuit", .source = "src/integrations/riscv_cpu/rv64_division_degree3_circuit_test_root.zig" },
+        .{ .name = "test-riscv64-division-product-circuit", .source = "src/integrations/riscv_cpu/rv64_division_product_circuit_test_root.zig" },
         .{ .name = "test-riscv64-word16-execution-circuit", .source = "src/integrations/riscv_cpu/rv64_word16_execution_circuit_test_root.zig" },
     }) |spec| {
         const tests = context.b.addTest(.{ .root_module = createRoot(context, product, spec.source) });

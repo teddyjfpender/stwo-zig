@@ -8,3 +8,5 @@ pub const cpu = @import("cpu.zig");
 pub const cpu_bus = @import("cpu_bus.zig");
 
 pub const degree3_component = @import("degree3_component.zig");
+
+pub const word16_product = @import("word16_product/mod.zig");

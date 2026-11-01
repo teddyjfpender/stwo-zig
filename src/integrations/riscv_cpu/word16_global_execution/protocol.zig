@@ -118,7 +118,7 @@ fn validateInventory(inventory: Inventory, requests: []const Old.Request, expect
         if (!std.mem.eql(u8, &materials.program.identity, &expected.program_identity)) return error.GlobalExecutionProgramMismatch;
         _ = materials.geometry.lsCounts(r.memory.ls_count) catch return error.GlobalMemoryCapacity;
         if (r.memory.initial.len >= @as(usize, 1) << @intCast(materials.geometry.initialLog()) or r.memory.terminal.len >= @as(usize, 1) << @intCast(materials.geometry.terminalLog())) return error.GlobalMemoryCapacity;
-        if (r.division_requests > @as(u32, 1) << @intCast(materials.geometry.division_log) or r.multiplication_requests > @as(u32, 1) << @intCast(materials.geometry.multiplication_log)) return error.GlobalArithmeticCapacity;
+        @import("../word16_execution/protocol.zig").validateArithmeticRequests(materials.geometry, r) catch return error.GlobalArithmeticCapacity;
         if (index == 0) {
             if (r.cpu.initial_pc != expected.admission.initial_pc or !std.mem.eql(u64, &r.cpu.initial_registers, &expected.admission.initial_registers)) return error.UntrustedGlobalGenesis;
         } else {

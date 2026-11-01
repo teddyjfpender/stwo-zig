@@ -54,7 +54,7 @@ pub fn row(request: Request) ![L.MAIN]M {
     return result;
 }
 pub fn fixedColumnsForLog(a: std.mem.Allocator, log: u32) ![]M {
-    if (log < 5 or log > 22) return error.InvalidRv64MultiplicationShape;
+    if (log < 5 or log > @import("degree3_layout.zig").MAX_LOG) return error.InvalidRv64MultiplicationShape;
     const n = @as(usize, 1) << @intCast(log);
     const data = try a.alloc(M, L.FIXED * n);
     @memset(data, M.zero());
@@ -88,7 +88,7 @@ pub const Trace = struct {
         return initStorage(a, requests, log, main);
     }
     fn initStorage(a: std.mem.Allocator, requests: []const Request, log: u32, borrowed: ?[]M) !Trace {
-        if (log < 5 or log > 22 or requests.len > (@as(usize, 1) << @intCast(log))) return error.InvalidRv64MultiplicationShape;
+        if (log < 5 or log > @import("degree3_layout.zig").MAX_LOG or requests.len > (@as(usize, 1) << @intCast(log))) return error.InvalidRv64MultiplicationShape;
         const n = @as(usize, 1) << @intCast(log);
         for (requests) |request| _ = try L.opcodeIndex(request.opcode);
         if (borrowed) |main| {

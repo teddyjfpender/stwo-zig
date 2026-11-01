@@ -34,7 +34,7 @@ pub const Source = struct {
 /// Updates the original legacy main owner in place; no matrix or metadata copy.
 /// On failure the prior owner is intact and can retry.
 pub fn generateLegacy(b: *Old.Trace, ch: P.Challenges, alpha: Q) !Q {
-    if (b.log_size < 5 or b.log_size > 22) return error.InvalidRv64MultiplicationShape;
+    if (b.log_size < 5 or b.log_size > L.MAX_LOG) return error.InvalidRv64MultiplicationShape;
     if (b.interaction.len != 0 or b.request_metadata.len != b.count) return error.InvalidRv64MultiplicationPhase;
     const n = b.domainSize();
     if (b.count > n) return error.InvalidRv64MultiplicationShape;

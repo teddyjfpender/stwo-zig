@@ -36,14 +36,15 @@ pub const Geometry = struct {
     }
     pub fn validate(self: Geometry) !void {
         if (self.omit_empty_division and self.division_log != 5) return error.InvalidOmittedDivisionGeometry;
-        for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.multiplication_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        for ([_]u32{ self.cpu_log, self.alu_log, self.binary_log, self.shift_log, self.jalr_log, self.division_log, self.ls_log, self.boundary_log, self.initialLog(), self.terminalLog() }) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
+        if (self.multiplication_log < 5 or self.multiplication_log > A.multiplication.degree3_layout.MAX_LOG) return error.InvalidExecutionGeometry;
         for ([_]?u32{ self.ls_tail_log, self.alu_tail_log, self.binary_tail_log, self.shift_tail_log }) |optional| {
             if (optional) |log| if (log < 5 or log > 22) return error.InvalidExecutionGeometry;
         }
         _ = try B.function_bus.admitPositiveMass(&.{try self.range16Mass()});
         _ = try B.function_bus.admitPositiveMass(&.{3 * rows(self.cpu_log) + 32});
         _ = try B.function_bus.admitPositiveMass(&.{try self.range8Mass()});
-        _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log)});
+        _ = try B.function_bus.admitPositiveMass(&.{rows(self.cpu_log) + 2 * rows(self.jalr_log) + (if (self.omit_empty_division) @as(u64, 0) else 2 * rows(self.division_log))});
         _ = try B.function_bus.admitPositiveMass(&.{8 * familyRows(self.binary_log, self.binary_tail_log)});
         _ = try B.function_bus.admitPositiveMass(&.{B.shift_word_packed_experiment.equations.TABLE_QUERIES * familyRows(self.shift_log, self.shift_tail_log)});
     }
@@ -69,7 +70,9 @@ pub const Geometry = struct {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), B.alu_experiment.equations.RANGE_QUERIES * familyRows(self.alu_log, self.alu_tail_log));
         total = try std.math.add(u64, total, B.shift_word_packed_experiment.equations.RANGE_QUERIES * familyRows(self.shift_log, self.shift_tail_log));
         total = try std.math.add(u64, total, LS.U16.len * self.lsRows());
-        return std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
+        total = try std.math.add(u64, total, LS.BOUND_U16.len * (rows(self.initialLog()) + rows(self.terminalLog())));
+        if (!self.omit_empty_division) total = try std.math.add(u64, total, A.division.word16_product.layout.RANGE_QUERIES * rows(self.division_log));
+        return total;
     }
     pub fn range8Mass(self: Geometry) !u64 {
         var total = try std.math.add(u64, 3 * rows(self.cpu_log), A.multiplication.layout.BYTE_QUERIES * rows(self.multiplication_log));
@@ -113,7 +116,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
             .shift => .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION },
             .shift_tail => if (geometry.shift_tail_log != null) .{ 2, B.shift_word_packed_experiment.lookup.MAIN, B.shift_word_packed_experiment.lookup.INTERACTION } else .{ 0, 0, 0 },
             .jalr => .{ 2, 18, 12 },
-            .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.layout.FIXED, A.division.layout.MAIN, A.division.layout.INTERACTION },
+            .division => if (geometry.omit_empty_division) .{ 0, 0, 0 } else .{ A.division.word16_product.layout.FIXED, A.division.word16_product.layout.MAIN, A.division.word16_product.layout.INTERACTION },
             .multiplication => .{ A.multiplication.layout.FIXED, A.multiplication.layout.MAIN, A.multiplication.degree3_layout.INTERACTION },
             .shift_table => .{ 18, 16, 36 },
             .and_table => .{ 5, 1, 8 },

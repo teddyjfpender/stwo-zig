@@ -1,5 +1,5 @@
-//! Exact affine change of basis: FUNCTION13 Word16 limbs to the already
-//! qualified arithmetic byte bus25. No adapter rows, columns or new equations.
+//! DIV consumes FUNCTION13 directly. MUL retains the exact affine projection
+//! into its qualified byte bus25, with no adapter rows or new equations.
 const std = @import("std");
 const core = @import("stwo_core");
 const front = @import("stwo_riscv_frontend");
@@ -17,8 +17,8 @@ fn coefficients(ch: @FieldType(F.types.Challenges, "function")) [25]Q {
     };
     return result;
 }
-pub fn division(ch: @FieldType(F.types.Challenges, "function")) A.arithmetic.division.provider.Challenges {
-    return .{ .offset = ch.offset, .coefficients = coefficients(ch) };
+pub fn division(ch: @FieldType(F.types.Challenges, "function"), range16: @FieldType(F.types.Challenges, "range16")) A.arithmetic.division.word16_product.lookup.Challenges {
+    return .{ .function = .{ .offset = ch.offset, .coefficients = ch.coefficients }, .range16 = .{ .offset = range16.offset, .coefficient = range16.coefficient } };
 }
 pub fn multiplication(ch: @FieldType(F.types.Challenges, "function")) A.arithmetic.multiplication.provider.Challenges {
     return .{ .offset = ch.offset, .coefficients = coefficients(ch) };
@@ -39,7 +39,7 @@ test "Word16 arithmetic basis preserves all raw opcode identities and every full
                 for (0..4) |j| tuple[1 + 4 * w + j] = M.fromCanonical(@as(u16, @truncate(v >> @as(u6, @intCast(16 * j)))));
             }
             for (ch.coefficients, tuple) |coef, v| native = native.sub(coef.mulM31(v));
-            const projected = if (Family == A.arithmetic.division) division(ch).denominator(&old) else multiplication(ch).denominator(&old);
+            const projected = if (Family == A.arithmetic.division) (A.arithmetic.division.provider.Challenges{ .offset = ch.offset, .coefficients = coefficients(ch) }).denominator(&old) else multiplication(ch).denominator(&old);
             try std.testing.expect(native.eql(projected));
         };
     }

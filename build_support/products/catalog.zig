@@ -49,6 +49,8 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-multiplication-degree3-circuit", .description = "Qualify strict-pair MUL and BYTE CircuitLane authority", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-multiplication-degree3", .description = "Qualify strict-pair MUL degree3 native2n provider", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-division-degree3", .description = "Qualify independently sized degree3 DIV native2n authority", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-division-product-circuit", .description = "Qualify external-wire narrow DIV point constraints", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-word16-division-product", .description = "Qualify narrow DIV arithmetic using typed MUL support", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-chips", .description = "Check experimental Word16 chip authorities", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-binary-proof", .description = "Prove diagnostic closed Word16 binary chip", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-packet-control", .description = "Prove detached packet jobs out of order and verify complete root chain", .scope = .riscv_cpu },

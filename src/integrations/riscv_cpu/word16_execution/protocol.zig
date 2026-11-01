@@ -11,7 +11,7 @@ const Memory = @import("memory/statement.zig");
 const Q = core.fields.qm31.QM31;
 const M = core.fields.m31.M31;
 /// One canonical full-core schema: native degree3/split1, MUL200 interaction.
-pub const SCHEMA: u32 = 4;
+pub const SCHEMA: u32 = 5;
 pub const CLAIM_LS_TAIL: usize = 33;
 pub const CLAIM_ALU_TAIL = CLAIM_LS_TAIL + 5;
 pub const CLAIM_BINARY_TAIL = CLAIM_ALU_TAIL + 2;
@@ -98,12 +98,22 @@ pub fn validateDivisionClass(geometry: @import("geometry.zig").Geometry, request
     }
 }
 
+/// Unit MUL truth rows include two unsigned product obligations per DIV.
+/// This bound is independent of native instruction census hints.
+pub fn validateArithmeticRequests(geometry: @import("geometry.zig").Geometry, request: Request) !void {
+    try geometry.validate();
+    if (request.division_requests > request.cpu.steps or @as(u64, request.multiplication_requests) > 2 * @as(u64, request.cpu.steps) or
+        request.division_requests > (@as(u32, 1) << @intCast(geometry.division_log)) or
+        request.multiplication_requests > (@as(u32, 1) << @intCast(geometry.multiplication_log))) return error.ArithmeticRequestCapacity;
+}
+
 pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig").Materials, request: Request, image_identity: [32]u8) !void {
+    try validateArithmeticRequests(materials.geometry, request);
     try validateDivisionClass(materials.geometry, request.division_requests, Q.zero());
     try validateLsTailClass(materials.geometry, request.memory.ls_count, zeroMemoryClaim());
     try materials.suite.validate();
     materials.suite.config().mixInto(channel);
-    channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, 53, 40, 30, 19, CLAIM_COUNT, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION });
+    channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, X.layout.main.COUNT, X.layout.inter.COUNT, X.layout.rom.COUNT, 19, CLAIM_COUNT, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION, A.arithmetic.division.word16_product.layout.MAIN, A.arithmetic.division.word16_product.layout.INTERACTION });
     digest(channel, X.features.identity());
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
