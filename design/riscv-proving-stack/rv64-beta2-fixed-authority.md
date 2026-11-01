@@ -28,7 +28,18 @@ The complete fixture uses the exact numeric `om31_security_candidate.config()` p
 
 The engineering route admits an explicit supported beta2 configuration; it does not yet derive and bind all of `Candidate.Facts` from the complete source constraint/lookup roster, instantiate the applicable security reductions or install a reviewed certificate. `requireWholeProtocolPromotion` continues to reject even when every review flag is true. The explicit engineering tag is deliberately distinct from the final candidate security identity.
 
-The Ethereum CLI still selects the unchanged beta1 control. A beta2 CLI command must create its authority set from receiver-owned ELF/program/image/setup, keep the new identity explicit in transport, apply source-derived geometry/count/mass admission before costly setup, and obtain real prefix/full-block qualification with a bounded setup plan. No selector should be added to the resource JSON.
+The Ethereum CLI keeps its unchanged beta1 control commands. Explicit engineering commands now select pinned beta2/q256/P0/fold4:
+
+```
+rv64-word16-ethereum-gkr describe-candidate
+rv64-word16-ethereum-gkr produce-candidate CONFIG JOBS NEW_OUT PREFIX_COUNT RESOURCES.json
+rv64-word16-ethereum-gkr verify-prefix-candidate CONFIG OUT FIXED_SETUP_BYTES
+rv64-word16-ethereum-gkr verify-candidate CONFIG OUT FIXED_SETUP_BYTES
+```
+
+Candidate producer resources add a mandatory positive `fixed_setup_bytes` to the flat operational JSON. The control resource schema and report projection stay unchanged. The fresh candidate receiver takes its own positive immutable-setup budget and reconstructs trusted ELF/image/setup, cache and ordered set; it needs no execution packets. Neither resource JSON nor a bundle can select a security profile. Candidate reports use a distinct engineering label and `security_qualified=false`; `candidate-fixed-setup.json` records the cache budget/peak, unique source validations and logical coefficient cells. That file is a report, never receiver authority.
+
+Actual terminal fixtures exercise both control and candidate paths, including the authenticated43-byte output, early prefixes, incorrect halt/length/output/terminalPC, genesis and corrupted physical proof. Real candidate Ethereum prefix/full-block qualification and source-derived full candidate scope/mass admission before expensive setup remain open. The setup budget bounds the new beta2 cache and sealing scratch, not original trusted setup construction or complete process RSS.
 
 Initial source setup still constructs and retains its legacy beta1 key before the beta2 cache derives a new tree from retained coefficients. Fixed rows are not reconstructed and immutable beta2 sealing is cached, but this is not a claim that setup memory or startup work is optimal. A future coefficient-only source/setup authority should avoid constructing an unused beta1 tree, while retaining independent receiver reconstruction and layout validation.
 
