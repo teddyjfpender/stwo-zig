@@ -451,7 +451,7 @@ index d50b367..88ab1bf 100644
  
  evmc::bytes32 Storages::value(const evmc::address& addr,
 diff --git a/cpp-guest/src/transactions.cpp b/cpp-guest/src/transactions.cpp
-index 50a7eda..937cc19 100644
+index 50a7eda..3901d7a 100644
 --- a/cpp-guest/src/transactions.cpp
 +++ b/cpp-guest/src/transactions.cpp
 @@ -1,4 +1,5 @@
@@ -460,7 +460,110 @@ index 50a7eda..937cc19 100644
  
  #include <cstring>
  #include <utility>
-@@ -224,7 +225,7 @@ evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
+@@ -99,6 +100,94 @@ Bytes encode_to(const Transactions::View& v) {
+ // effect.
+ // ============================================================================
+ 
++#if defined(ZEG_STWO)
++// stwo RV64IM: the pre-image below is built from ~10 temporary vectors per
++// transaction with the call data copied three times. This version writes the
++// same bytes once into one buffer: fields in order, then the list header (and
++// type byte) in front. The pre-image is byte-identical (same field encoders:
++// rlp::write_u64/write_u256/write_string match encode_u64/encode_u256/encode).
++evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
++    using Type = Transactions::Type;
++    const auto data = v.data();
++    const Type type = v.type();
++    std::span<const uint8_t> raw1{}, raw2{};
++    std::size_t raw = 0;
++    if (type != Type::Legacy) {
++        raw1 = v.access_list_rlp();
++        if (type == Type::Blob) raw2 = v.blob_versioned_hashes_rlp();
++        else if (type == Type::SetCode) raw2 = v.authorization_list_rlp();
++        else if (type == Type::Osaka) raw2 = v.initcodes_rlp();
++        raw = raw1.size() + raw2.size();
++    }
++    // 6 bytes of room for the type byte and list header; <= 9 integer fields
++    // of <= 33 bytes; the to field <= 21; data <= 5 + len.
++    const std::size_t cap = 6 + 9 * 33 + 21 + 5 + data.size() + raw;
++    alignas(8) uint8_t local[1024];
++    uint8_t* heap = cap > sizeof(local) ? new uint8_t[cap] : nullptr;
++    uint8_t* buf = heap ? heap : local;
++    uint8_t* const p = buf + 6;
++    uint8_t* q = p;
++    auto put_u64 = [&q](uint64_t x) { q += rlp::write_u64(q, x); };
++    auto put_u256 = [&q](const evmc::uint256be& x) { q += rlp::write_u256(q, x); };
++    auto put_raw = [&q](std::span<const uint8_t> r) {
++        if (!r.empty()) std::memcpy(q, r.data(), r.size());
++        q += r.size();
++    };
++    auto put_to = [&q, &v]() {
++        if (v.to() == nullptr) *q++ = 0x80;
++        else q += rlp::write_string(q, v.to()->bytes, 20);
++    };
++    auto put_data = [&q, &data]() { q += rlp::write_string(q, data.data(), data.size()); };
++    uint8_t type_byte = 0;
++    if (type == Type::Legacy) {
++        put_u64(v.nonce());
++        put_u256(v.gas_price());
++        put_u64(v.gas_limit());
++        put_to();
++        put_u256(v.value());
++        put_data();
++        if (v.v_or_y_parity() >= 35) {  // EIP-155: chain_id, 0, 0
++            put_u64(v.chain_id());
++            *q++ = 0x80;
++            *q++ = 0x80;
++        }
++    } else {
++        put_u64(v.chain_id());
++        put_u64(v.nonce());
++        if (type == Type::AccessList) {
++            put_u256(v.gas_price());
++        } else {
++            put_u256(v.max_priority_fee_per_gas());
++            put_u256(v.max_fee_per_gas());
++        }
++        put_u64(v.gas_limit());
++        put_to();
++        put_u256(v.value());
++        put_data();
++        put_raw(raw1);
++        switch (type) {
++            case Type::AccessList: type_byte = 0x01; break;
++            case Type::DynamicFee: type_byte = 0x02; break;
++            case Type::Blob:
++                put_u256(v.max_fee_per_blob_gas());
++                put_raw(raw2);
++                type_byte = 0x03;
++                break;
++            case Type::SetCode: put_raw(raw2); type_byte = 0x04; break;
++            case Type::Osaka: put_raw(raw2); type_byte = 0x05; break;
++            default: fatal("Transactions: unknown type in signing hash");
++        }
++    }
++    uint8_t hdr[5];
++    const std::size_t hn = rlp::detail::make_header<0xc0, 0xf7>(hdr, static_cast<std::size_t>(q - p));
++    uint8_t* start = p - hn;
++    std::memcpy(start, hdr, hn);
++    if (type != Type::Legacy) *--start = type_byte;
++    const evmc::bytes32 h = keccak256_bytes32(start, static_cast<std::size_t>(q - start));
++    delete[] heap;
++    return h;
++}
++#else
+ evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
+     using rlp::encode;
+     using rlp::encode_list;
+@@ -210,6 +299,7 @@ evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
+ 
+     return keccak256_bytes32(preimage.data(), preimage.size());
+ }
++#endif  // ZEG_STWO
+ 
+ // ============================================================================
+ // Sender recovery (file-local).
+@@ -224,7 +314,7 @@ evmc::bytes32 compute_signing_hash(const Transactions::View& v) {
  // Recover the sender of `v` from its (r, s, v/y_parity) signature over the
  // signing hash. Aborts via zeg::fatal on any failure (a tx inside a block
  // must carry a recoverable signature).
@@ -469,7 +572,7 @@ index 50a7eda..937cc19 100644
      const evmc::bytes32 z = compute_signing_hash(v);
  
      // Recovery id: legacy pre-EIP-155 v in {27, 28} -> v - 27;
-@@ -251,6 +252,11 @@ evmc::address recover_sender(const Transactions::View& v) {
+@@ -251,6 +341,11 @@ evmc::address recover_sender(const Transactions::View& v) {
      }
  
      evmc::address sender;
@@ -481,7 +584,7 @@ index 50a7eda..937cc19 100644
      if (!ecrecover_address(z, v.r(), v.s(), recid, sender)) {
          fatal("Transactions: sender recovery failed");
      }
-@@ -599,7 +605,7 @@ Transactions::Transactions(const uint8_t*& cursor) {
+@@ -599,7 +694,7 @@ Transactions::Transactions(const uint8_t*& cursor) {
  
          v.envelope_         = {env, env_size};
          v.transaction_hash_ = keccak256_bytes32(env, env_size);
