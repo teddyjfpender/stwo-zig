@@ -39,9 +39,12 @@ pub const CpuSetup = struct {
         return initWithAuthorityAndSuiteAndNativeCache(a, authority, g, bridges, Mat.Suite.production(), cache);
     }
     pub fn initWithAuthorityAndSuiteAndNativeCache(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite, cache: *const Mat.NativeCache.Cache) !CpuSetup {
-        var m = try Mat.Materials.initWithAuthorityAndSuite(a, authority, g, suite);
+        return initWithAuthorityAndSuiteAndCaches(a, authority, g, bridges, suite, .{ .native = cache });
+    }
+    pub fn initWithAuthorityAndSuiteAndCaches(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite, caches: Mat.ImmutableCaches) !CpuSetup {
+        var m = try Mat.Materials.initWithAuthorityAndSuiteAndMetadataCache(a, authority, g, suite, caches.program);
         errdefer m.deinit();
-        return sealWithCache(a, m, bridges, cache);
+        return sealWithCache(a, m, bridges, caches.native);
     }
     fn seal(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs) !CpuSetup {
         return sealWithCache(a, m, bridges, null);

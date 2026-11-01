@@ -16,6 +16,8 @@ const M = core.fields.m31.M31;
 const Column = engine.pcs.ColumnEvaluation;
 pub const Suite = @import("pcs_suite.zig").Suite;
 pub const NativeCache = @import("fixed_native_cache.zig");
+pub const ProgramMetadata = @import("program_metadata.zig");
+pub const ImmutableCaches = struct { native: ?*const NativeCache.Cache = null, program: ?*const ProgramMetadata.Cache = null };
 pub const Materials = struct {
     suite: Suite = Suite.production(),
     allocator: std.mem.Allocator,
@@ -56,9 +58,12 @@ pub const Materials = struct {
         return initWithAuthorityAndSuite(a, authority, geometry, Suite.production());
     }
     pub fn initWithAuthorityAndSuite(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite) !Materials {
+        return initWithAuthorityAndSuiteAndMetadataCache(a, authority, geometry, suite, null);
+    }
+    pub fn initWithAuthorityAndSuiteAndMetadataCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, cache: ?*const ProgramMetadata.Cache) !Materials {
         try suite.validate();
         try geometry.validate();
-        var program = try Program.initWithAuthority(a, authority);
+        var program = if (cache) |owner| try Program.initWithAuthorityAndMetadataCache(a, authority, owner) else try Program.initWithAuthority(a, authority);
         errdefer program.deinit();
         return fromProgram(a, program, geometry, suite);
     }
@@ -245,9 +250,12 @@ pub const Setup = struct {
         return initWithAuthorityAndSuiteAndNativeCache(a, authority, geometry, Suite.production(), cache);
     }
     pub fn initWithAuthorityAndSuiteAndNativeCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, cache: *const NativeCache.Cache) !Setup {
-        var materials = try Materials.initWithAuthorityAndSuite(a, authority, geometry, suite);
+        return initWithAuthorityAndSuiteAndCaches(a, authority, geometry, suite, .{ .native = cache });
+    }
+    pub fn initWithAuthorityAndSuiteAndCaches(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, caches: ImmutableCaches) !Setup {
+        var materials = try Materials.initWithAuthorityAndSuiteAndMetadataCache(a, authority, geometry, suite, caches.program);
         errdefer materials.deinit();
-        return sealWithCache(a, materials, cache);
+        return sealWithCache(a, materials, caches.native);
     }
     pub fn initWithNativeCache(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, cache: *const NativeCache.Cache) !Setup {
         return initWithSuiteAndNativeCache(a, program, geometry, Suite.production(), cache);
