@@ -32,8 +32,13 @@ pub const Source = struct {
     }
 };
 /// Updates the original legacy main owner in place; no matrix or metadata copy.
-/// On failure the prior owner is intact and can retry.
+/// On failure the prior owner is intact and can retry. Joined parallel under
+/// the scoped pool; one worker (or no pool) runs the serial oracle below.
 pub fn generateLegacy(b: *Old.Trace, ch: P.Challenges, alpha: Q) !Q {
+    return @import("degree3_interaction.zig").generate(b, ch, alpha, @import("stwo_prover_engine").work_pool.currentScopedPool());
+}
+/// Original serial generator; the independent numerical and physical oracle.
+pub fn generateLegacySerial(b: *Old.Trace, ch: P.Challenges, alpha: Q) !Q {
     if (b.log_size < 5 or b.log_size > L.MAX_LOG) return error.InvalidRv64MultiplicationShape;
     if (b.interaction.len != 0 or b.request_metadata.len != b.count) return error.InvalidRv64MultiplicationPhase;
     const n = b.domainSize();

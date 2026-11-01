@@ -6,7 +6,7 @@ const Program = @import("program.zig").Program;
 const X = @import("stwo_riscv_frontend").rv64_air.word16_execution;
 const M = core.fields.m31.M31;
 const Q = core.fields.qm31.QM31;
-const CHUNK: usize = 4096;
+pub const CHUNK: usize = 4096;
 pub const Source = struct {
     allocator: std.mem.Allocator,
     program: *const Program,
@@ -58,7 +58,13 @@ pub const Source = struct {
         for (cols, 0..) |*col, i| col.* = .{ .log_size = self.program.log_size, .values = data[i * n ..][0..n] };
         return cols;
     }
+    /// Joined parallel generation under the scoped pool; one worker (or no
+    /// pool) runs the original serial oracle below.
     pub fn generate(self: *Source, ch: @FieldType(X.types.Challenges, "rom")) !Q {
+        return @import("rom_interaction.zig").generate(self, ch, engine.work_pool.currentScopedPool());
+    }
+    /// Original serial generator; the independent numerical and physical oracle.
+    pub fn generateSerial(self: *Source, ch: @FieldType(X.types.Challenges, "rom")) !Q {
         if (self.interaction.len != 0 or self.dictionary.len != 0) return error.InvalidExecutionRomPhase;
         const a = self.allocator;
         const n = self.program.size();

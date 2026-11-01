@@ -31,6 +31,27 @@ fn runImpl(comptime K: usize, comptime Job: type, jobs: []Job, summaries: [][K]Q
     if (jobs[0].failure) |err| return err;
     return totals;
 }
+/// One joined wave of independent jobs (no prefix scan). Job contract:
+/// pub run() void and failure: ?anyerror. Jobs are joined before any failure is
+/// reported; the first failing job in index order supplies the error.
+pub fn single(comptime Job: type, jobs: []Job, pool: ?*work.WorkPool) !void {
+    if (jobs.len == 0 or jobs.len > work.MAX_WORKERS) return error.InvalidNativePrefixGeometry;
+    if (jobs.len == 1) {
+        jobs[0].run();
+        if (jobs[0].failure) |err| return err;
+        return;
+    }
+    const active = pool orelse return error.InvalidNativePrefixGeometry;
+    if (jobs.len > active.workerCount()) return error.InvalidNativePrefixGeometry;
+    var lease = try active.acquire(try work.WorkerBudget.init(jobs.len));
+    defer lease.deinit();
+    try wave(Job, &lease, jobs, null);
+}
+/// Worker count for `rows` split into `grain`-row units under `pool`.
+pub fn workers(pool: ?*work.WorkPool, rows: usize, grain: usize) usize {
+    const units = @max(1, std.math.divCeil(usize, rows, grain) catch unreachable);
+    return if (pool) |p| @max(1, @min(p.workerCount(), units)) else 1;
+}
 fn scan(comptime K: usize, comptime Job: type, jobs: []Job, summaries: [][K]Q, rows: usize) ![K]Q {
     var totals: [K]Q = @splat(Q.zero());
     for (summaries) |*summary| {
