@@ -92,6 +92,7 @@ pub const Worker = struct {
     sealed: bool = false,
     started: bool = false,
     failed: bool = false,
+    retained_store: ?*@import("../retained_main_store.zig").Store = null,
     pub fn init(a: std.mem.Allocator, descriptor: Descriptor, source: Source) !Worker {
         if ((descriptor == .cpu) != (source == .cpu)) return error.ServiceWorkerKindMismatch;
         try descriptor.key().suite.validate();
@@ -138,6 +139,7 @@ pub const Worker = struct {
             var spill = try Profile.StageScope.begin(options.recorder(ordinal), "retained_main_spill", "Retain sealed native MAIN coefficients");
             defer spill.end();
             _ = try store.spill(a, &self.scheme.trees.items[1]);
+            self.retained_store = store;
         }
         self.sealed = true;
         return receipt;
@@ -186,6 +188,11 @@ pub const Worker = struct {
         const inter = try self.source.take(self.descriptor, 2);
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, inter.columns, inter.backings, options.commit_batch_columns, recorder, &self.channel);
         inter_stage.end();
+        if (self.retained_store) |store| {
+            var restore = try Profile.StageScope.begin(recorder, "retained_main_restore", "Restore parked sealed native MAIN coefficients");
+            defer restore.end();
+            _ = try store.restore(&self.scheme.trees.items[1]);
+        }
         var components = try Air.init(self.descriptor, draw, claims);
         const handles = try components.provers(a);
         defer a.free(handles);

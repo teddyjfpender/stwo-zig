@@ -6,10 +6,15 @@ const engine = @import("stwo_prover_engine");
 const P = @import("protocol.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const Tree = P.T.Scheme.CommittedTree;
+const Parking = @import("retained_main_parking.zig");
 const ALIGNMENT: std.mem.Alignment = .fromByteUnits(64);
 pub const Store = struct {
     backing: engine.file_backed_allocator.FileBackedAllocator,
     limit: usize,
+    park: bool = false,
+    parking: Parking.Registry = .{},
+    mapped: std.atomic.Value(usize) = .init(0),
+    peak_mapped: std.atomic.Value(usize) = .init(0),
     reserved: std.atomic.Value(usize) = .init(0),
     peak: std.atomic.Value(usize) = .init(0),
     total: std.atomic.Value(usize) = .init(0),
@@ -17,15 +22,37 @@ pub const Store = struct {
         if (limit == 0) return error.InvalidRetainedMainLimit;
         return .{ .backing = try engine.file_backed_allocator.FileBackedAllocator.init(path), .limit = limit };
     }
+    pub fn initParked(path: []const u8, limit: usize) !Store {
+        var self = try init(path, limit);
+        self.park = true;
+        return self;
+    }
     pub fn deinit(self: *Store) void {
         std.debug.assert(self.reserved.load(.acquire) == 0);
+        std.debug.assert(self.mapped.load(.acquire) == 0 and self.parking.head == null);
         self.backing.deinit();
         self.* = undefined;
     }
-    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize } {
-        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit };
+    pub fn stats(self: *const Store) struct { live_bytes: usize, peak_reserved_bytes: usize, total_bytes: usize, limit_bytes: usize, live_mapped_bytes: usize, peak_mapped_bytes: usize, parking_enabled: bool } {
+        return .{ .live_bytes = self.reserved.load(.acquire), .peak_reserved_bytes = self.peak.load(.acquire), .total_bytes = self.total.load(.acquire), .limit_bytes = self.limit, .live_mapped_bytes = self.mapped.load(.acquire), .peak_mapped_bytes = self.peak_mapped.load(.acquire), .parking_enabled = self.park };
     }
-    fn reserve(self: *Store, size: usize) !void {
+    pub fn addMapped(self: *Store, size: usize) void {
+        const next = self.mapped.fetchAdd(size, .acq_rel) + size;
+        var peak = self.peak_mapped.load(.acquire);
+        while (peak < next) peak = self.peak_mapped.cmpxchgWeak(peak, next, .acq_rel, .acquire) orelse break;
+    }
+    pub fn removeMapped(self: *Store, size: usize) void {
+        const before = self.mapped.fetchSub(size, .acq_rel);
+        std.debug.assert(before >= size);
+    }
+    pub fn restore(self: *Store, tree: *Tree) !usize {
+        if (!self.park) {
+            if (Parking.hasParkedOwner(tree)) return error.ForeignRetainedMainOwner;
+            return 0;
+        }
+        return Parking.restore(self, tree);
+    }
+    pub fn reserve(self: *Store, size: usize) !void {
         var old = self.reserved.load(.acquire);
         while (true) {
             const next = std.math.add(usize, old, size) catch return error.RetainedMainBudgetExceeded;
@@ -41,7 +68,8 @@ pub const Store = struct {
             return;
         }
     }
-    /// Caller has exclusive tree/worker access; this is failure-atomic, not
+    /// a is the tree original owner allocator. No borrowed native/poly views
+    /// may survive this ownership mutation. Caller has exclusive tree/worker access; this is failure-atomic, not
     /// concurrent mutation. All fallible work precedes ownership transfer.
     /// Failure leaves the tree,
     /// sealed roots, channel and existing coefficients untouched and retryable.
@@ -49,16 +77,25 @@ pub const Store = struct {
         if (!tree.compact_polynomials or tree.shared_owner != null or tree.backing_teardown != null) return error.UnsupportedRetainedMainTree;
         const coefficients = tree.coefficients orelse return error.MissingCompactCoefficients;
         if (coefficients.len == 0 or coefficients.len != tree.columns.len) return error.RetainedMainShapeMismatch;
+        if (tree.coefficient_backing_buffers) |buffers| for (buffers, 0..) |buffer, i| {
+            if (buffer.len != 0) _ = try endAddress(buffer);
+            for (buffers[0..i]) |prior| if (try overlaps(buffer, prior)) return error.UnsupportedRetainedMainAlias;
+        };
         var words: usize = 0;
-        for (coefficients, tree.columns) |coefficient, column| {
+        for (coefficients, tree.columns, 0..) |coefficient, column, i| {
             const values = coefficient.coefficients();
             const retained = column.coefficient_values orelse return error.RetainedMainShapeMismatch;
             if (values.len < 32 or !std.math.isPowerOfTwo(values.len) or coefficient.log_size != std.math.log2_int(usize, values.len) or column.values.len != 0 or retained.len != values.len or retained.ptr != values.ptr) return error.RetainedMainShapeMismatch;
-            if (!coefficient.owns_coeffs and !contained(values, tree.coefficient_backing_buffers)) return error.UnsupportedRetainedMainBorrow;
+            _ = try endAddress(values);
+            for (coefficients[0..i]) |prior| if (try overlaps(values, prior.coefficients())) return error.UnsupportedRetainedMainAlias;
+            if (coefficient.owns_coeffs) {
+                for (tree.coefficient_backing_buffers orelse &.{}) |buffer| if (try overlaps(values, buffer)) return error.UnsupportedRetainedMainAlias;
+            } else if (!contained(values, tree.coefficient_backing_buffers)) return error.UnsupportedRetainedMainBorrow;
             words = try std.math.add(usize, words, values.len);
         }
         const bytes = try std.math.mul(usize, words, @sizeOf(M));
-        const rounded = std.mem.alignBackward(usize, try std.math.add(usize, bytes, std.heap.pageSize() - 1), std.heap.pageSize());
+        const rounded = try engine.file_backed_allocator.ReservedFile.roundedLength(bytes);
+        if (self.park) return Parking.spill(self, a, tree, words, rounded);
         try self.reserve(rounded);
         errdefer _ = self.reserved.fetchSub(rounded, .acq_rel);
         const owner = try a.create(Owner);
@@ -96,6 +133,7 @@ pub const Store = struct {
             tree.coefficient_backing_buffers = null;
         }
         tree.backing_teardown = engine.pcs.BackingTeardownToken.init(owner, rounded, Owner.release);
+        self.addMapped(rounded);
         _ = self.total.fetchAdd(rounded, .acq_rel);
         return rounded;
     }
@@ -109,6 +147,7 @@ const Owner = struct {
         const self: *Owner = @ptrCast(@alignCast(context.?));
         std.debug.assert(bytes == self.reserved_bytes);
         self.store.backing.allocator().free(self.arena);
+        self.store.removeMapped(self.reserved_bytes);
         const before = self.store.reserved.fetchSub(self.reserved_bytes, .acq_rel);
         std.debug.assert(before >= self.reserved_bytes);
         self.allocator.destroy(self);
@@ -123,4 +162,12 @@ fn contained(values: []const M, buffers: ?[][]M) bool {
         if (first <= start and end <= last) return true;
     }
     return false;
+}
+
+fn endAddress(values: []const M) !usize {
+    return std.math.add(usize, @intFromPtr(values.ptr), try std.math.mul(usize, values.len, @sizeOf(M)));
+}
+fn overlaps(left: []const M, right: []const M) !bool {
+    if (left.len == 0 or right.len == 0) return false;
+    return @intFromPtr(left.ptr) < try endAddress(right) and @intFromPtr(right.ptr) < try endAddress(left);
 }

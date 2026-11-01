@@ -23,6 +23,7 @@ pub const Stage1Worker = struct {
     sealed: ?Sealed = null,
     phase: Phase = .prepared,
     owns_scheme: bool = true,
+    retained_store: ?*@import("retained_main_store.zig").Store = null,
     /// Consumes Source on success AND error. Setup must remain at its stable
     /// final address through completion/deinit. No challenge is drawn here.
     pub fn init(a: std.mem.Allocator, setup: *const P.Setup, owned_source: S.Source, expected: P.Expected, ordinal: usize, first_step: u64) !Stage1Worker {
@@ -69,6 +70,7 @@ pub const Stage1Worker = struct {
         const before = try checkStage1(self.allocator, &self.scheme, self.setup);
         if (!std.meta.eql(before, self.sealed.?.roots)) return error.GlobalStage1RootMismatch;
         const bytes = try store.spill(self.allocator, &self.scheme.trees.items[1]);
+        self.retained_store = store;
         // No allocation or fallible work follows the ownership transfer.
         std.debug.assert(std.mem.eql(u8, &before.fixed.bytes, &self.scheme.trees.items[0].root()));
         std.debug.assert(std.mem.eql(u8, &before.main.bytes, &self.scheme.trees.items[1].root()));
@@ -107,6 +109,7 @@ pub const Stage1Worker = struct {
         const interaction = try source.takeInteractionForCommit();
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, interaction.columns, interaction.backings, 8, null, &self.channel);
         source.releaseCommittedInteraction();
+        if (self.retained_store) |store| _ = try store.restore(&self.scheme.trees.items[1]);
         var components = try Components.init(&self.setup.materials, self.request, ch, claims);
         const handles = try components.provers(a);
         defer a.free(handles);
