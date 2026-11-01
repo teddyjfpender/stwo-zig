@@ -8,12 +8,21 @@ const Manifest = @import("manifest.zig");
 const a = std.testing.allocator;
 const O = P.O;
 fn run(truth: R.Truth, source: R.TruthSource) !void {
-    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, 1, 12) };
+    return runProfile(truth, source, false);
+}
+fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void {
+    const Fixed = @import("fixed_authority.zig");
+    const config = P.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.ForField(O).FriConfig.init(0, if (beta2) 2 else 1, 12) };
+    var cache: ?Fixed.Fixed.Cache = if (beta2) try Fixed.Fixed.Cache.init(a, 1 << 30) else null;
+    defer if (cache) |*owner| owner.deinit();
+    var fixed: ?Fixed.Binding = if (cache) |*owner| try Fixed.Binding.acquire(owner, truth.key(), config) else null;
+    defer if (fixed) |*binding| binding.deinit();
+    const fixed_ptr: ?*const Fixed.Binding = if (fixed) |*binding| binding else null;
     const expected = Manifest.ExpectedWorker{ .kind = switch (truth) {
         .keccak => .keccak,
         .secp => |t| if (t.setup.kind == .add) .secp_add else .secp_double,
-    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatement(truth, config, @splat(17)), .fixed = truth.key().root, .local_instances = null };
-    var worker = W.TruthWorker.init(a, truth, source, expected, config, 64 * 1024 * 1024) catch |err| {
+    }, .global_relations = .{ .ram = false, .kio = truth == .keccak, .wire = truth == .secp }, .mass = try W.truthMass(truth), .ordinal = 0, .statement = W.truthStatementWithAuthority(truth, config, @splat(17), fixed_ptr), .fixed = if (fixed_ptr) |binding| binding.root() else truth.key().root, .local_instances = null };
+    var worker = W.TruthWorker.initWithAuthority(a, truth, source, expected, config, 64 * 1024 * 1024, fixed_ptr) catch |err| {
         var s = source;
         s.deinit();
         return err;
@@ -34,9 +43,9 @@ fn run(truth: R.Truth, source: R.TruthSource) !void {
     var rejecting = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
     var bad = config;
     bad.pow_bits = 33;
-    try std.testing.expectError(error.UnsupportedWideServicesConfig, W.verifyTruth(rejecting.allocator(), truth, expected, &pending, 0, bad, &encoded));
+    try std.testing.expectError(error.UnsupportedWideServicesConfig, W.verifyTruthWithAuthority(rejecting.allocator(), truth, expected, &pending, 0, bad, &encoded, fixed_ptr));
     try std.testing.expectEqual(@as(usize, 0), rejecting.alloc_index);
-    const claims = try W.verifyTruth(a, truth, expected, &pending, 0, config, &encoded);
+    const claims = try W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, fixed_ptr);
     try std.testing.expect(claims.ram.isZero());
     if (truth == .keccak) {
         try std.testing.expect(claims.kio.eql(encoded.claims[3]));
@@ -49,15 +58,15 @@ fn run(truth: R.Truth, source: R.TruthSource) !void {
     var coordinates = global.toM31Array();
     coordinates[7] = coordinates[7].add(core.fields.m31.M31.one());
     encoded.claims[3] = O.fromM31Array(coordinates);
-    if (W.verifyTruth(a, truth, expected, &pending, 0, config, &encoded)) |_| return error.MutatedPureGlobalDebtAccepted else |_| {}
+    if (W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, fixed_ptr)) |_| return error.MutatedPureGlobalDebtAccepted else |_| {}
     encoded.claims[3] = global;
     const old = encoded.claims[0];
     encoded.claims[0] = old.add(O.one());
-    try std.testing.expectError(error.UnclosedWideTruthLocalClaims, W.verifyTruth(a, truth, expected, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.UnclosedWideTruthLocalClaims, W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, fixed_ptr));
     encoded.claims[0] = old;
     const wrong = entries[0].scope.main;
     entries[0].scope.main[0] ^= 1;
-    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, W.verifyTruth(a, truth, expected, &pending, 0, config, &encoded));
+    try std.testing.expectError(error.GlobalGkrPhysicalRootMismatch, W.verifyTruthWithAuthority(a, truth, expected, &pending, 0, config, &encoded, fixed_ptr));
     entries[0].scope.main = wrong;
     try std.testing.expectError(error.InvalidWideTruthPhase, worker.complete(a, &pending, 0, 64 * 1024 * 1024));
 }
@@ -133,4 +142,18 @@ test "parked truth spill OOM is retryable and sealed abort releases unmapped coe
     }
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_bytes);
     try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+}
+
+test "beta2 K and ADD truth physical proofs separately close local claims and authenticate globals" {
+    var ksetup = try @import("../../keccak/shared/roster.zig").TruthSetup.init(a, 5);
+    defer ksetup.deinit();
+    try runProfile(.{ .keccak = .{ .setup = &ksetup, .first_id = 3, .calls = 2 } }, try @import("truth_test.zig").keccakSource(), true);
+    const source = try @import("truth_test.zig").secpSource(.canonical_inputs);
+    var ssetup = @import("../../secp/roster.zig").TruthSetup.init(a, .add, .{ source.secp.batch.product.log_size, source.secp.batch.linear.log_size }) catch |err| {
+        var owner = source;
+        owner.deinit();
+        return err;
+    };
+    defer ssetup.deinit();
+    try runProfile(.{ .secp = .{ .setup = &ssetup, .first_id = 5, .calls = 1 } }, source, true);
 }

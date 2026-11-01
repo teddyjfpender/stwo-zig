@@ -90,6 +90,14 @@ pub const WideFixedKey = struct {
         if (!std.meta.eql(descriptor, self.descriptor) or !std.mem.eql(u8, &id, &self.identity)) return error.FixedSetupIdentityMismatch;
         if (!std.mem.eql(u8, &root, &self.root)) return error.FixedSetupRootMismatch;
     }
+    /// Independently establish authority from the trusted original setup. A
+    /// producer's root/identity alone cannot select another program/table key.
+    pub fn requireSource(self: *const WideFixedKey, source: anytype) !void {
+        const coefficients = try sourceCoefficients(source);
+        const expected = try coefficientIdentity(coefficients, self.descriptor);
+        try self.require(self.descriptor, expected, self.root);
+        if (!coefficientsEqual(coefficients, self.tree.coefficients orelse return error.MissingFixedSetupCoefficients)) return error.FixedSetupDigestCollision;
+    }
     /// Append one shared field-neutral tree to Q or OM PCS. The returned tree
     /// lease retains its own allocator lifetime even after cache/key release.
     pub fn append(self: *const WideFixedKey, a: std.mem.Allocator, scheme: anytype, channel: anytype, descriptor: CommitmentDescriptor, id: [32]u8, root: [32]u8, expected_config: core.pcs.PcsConfig) !void {
@@ -192,11 +200,16 @@ pub const Cache = struct {
     /// Truth: cache.acquireFromKey(truth.key(), descriptor).
     /// The source key remains live until this synchronous call returns.
     pub fn acquireFromKey(self: *const Cache, source: anytype, descriptor: CommitmentDescriptor) !Lease {
-        try source.suite.validate();
-        const coefficients = source.tree.coefficients orelse return error.MissingFixedSetupCoefficients;
-        if (coefficients.len != source.tree.columns.len) return error.InvalidFixedSetupCoefficientShape;
-        const source_blowup = source.suite.config().fri_config.log_blowup_factor;
-        for (coefficients, source.tree.columns) |c, column| if (c.log_size > 28 or c.log_size + source_blowup != column.log_size) return error.InvalidFixedSetupCoefficientShape;
+        const coefficients = try sourceCoefficients(source);
         return self.acquireCoefficients(coefficients, descriptor);
     }
 };
+
+fn sourceCoefficients(source: anytype) ![]const Coefficient {
+    try source.suite.validate();
+    const coefficients = source.tree.coefficients orelse return error.MissingFixedSetupCoefficients;
+    if (coefficients.len != source.tree.columns.len) return error.InvalidFixedSetupCoefficientShape;
+    const source_blowup = source.suite.config().fri_config.log_blowup_factor;
+    for (coefficients, source.tree.columns) |c, column| if (c.log_size > 28 or c.log_size + source_blowup != column.log_size) return error.InvalidFixedSetupCoefficientShape;
+    return coefficients;
+}
