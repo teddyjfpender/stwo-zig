@@ -16,7 +16,7 @@ const Q = A.evaluation.Q;
 const M = core.fields.m31.M31;
 const a = std.testing.allocator;
 const n: usize = 32;
-fn repair(main: []const M, inter: []M, public: X.types.Inputs, ch: X.types.Challenges) !Q {
+pub fn repair(main: []const M, inter: []M, public: X.types.Inputs, ch: X.types.Challenges) !Q {
     var claim = Q.zero();
     for (0..n) |logical| {
         const pos = R.trace.physical(logical, 5);

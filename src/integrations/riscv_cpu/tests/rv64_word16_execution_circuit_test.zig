@@ -70,7 +70,7 @@ test "full CPU circuit point evaluator binds every challenge claim public count 
     const public = X.types.Inputs{ .steps = 1, .initial_pc = .{ 0x1000, 0, 0, 0 }, .final_pc = .{ 0x1004, 0, 0, 0 }, .epoch = 3 };
     const native = X.component.Component{ .log_size = 6, .offsets = .{ 0, 0, 0 }, .public = public, .claim = claim, .challenges = ch };
     const point = core.circle.secureFieldPointFromRandomSeed(channel.drawSecureFelt());
-    var expected: [55]Q = undefined;
+    var expected: [X.equations.CONSTRAINTS]Q = undefined;
     var native_sink = E.Sink{ .values = &expected };
     try native.evaluateQuotientsAtPointFor(Q, point, 7, masks, &native_sink);
     for (0..2) |mutation| {
@@ -83,7 +83,7 @@ test "full CPU circuit point evaluator binds every challenge claim public count 
         for (&pubw.final_pc, public.final_pc) |*v, q| v.* = try wire(&ctx, E.q(q));
         const component = X.component.ComponentFor(F){ .log_size = 6, .offsets = .{ 0, 0, 0 }, .public = pubw, .claim = try wire(&ctx, claim), .challenges = try lift(&ctx, ch) };
         const p = front.rv64_air.geometry.PointFor(F){ .x = try wire(&ctx, point.x), .y = try wire(&ctx, point.y) };
-        var result: [55]F = undefined;
+        var result: [X.equations.CONSTRAINTS]F = undefined;
         var sink = E.SinkFor(F){ .values = &result };
         LaneModule.begin(&ctx);
         var active = true;
@@ -93,7 +93,7 @@ test "full CPU circuit point evaluator binds every challenge claim public count 
         try component.evaluateQuotientsAtPointFor(F, p, 7, CircuitMasks{ .ctx = &ctx, .native = masks }, &sink);
         try LaneModule.finish();
         active = false;
-        try std.testing.expectEqual(@as(usize, 55), sink.count);
+        try std.testing.expectEqual(@as(usize, X.equations.CONSTRAINTS), sink.count);
         if (mutation == 0) try std.testing.expect(ctx.get(sink.scale.?.v).eql(native_sink.scale.?));
         for (result, expected) |value, wanted| try ctx.eq(value.v, try ctx.constant(wanted));
         try ctx.finalize(false);

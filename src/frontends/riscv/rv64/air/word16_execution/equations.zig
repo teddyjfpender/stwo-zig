@@ -7,7 +7,7 @@ const U = @import("tuples.zig");
 const M = @import("stwo_core").fields.m31.M31;
 const Q = E.Q;
 const m = L.main;
-pub const CONSTRAINTS = 55;
+pub const CONSTRAINTS = 52;
 pub fn DenominatorsFor(comptime F: type) type {
     const S = E.SecureFor(F);
     return struct { before: [3]S, after: [3]S, function: S, rom: S, affine: [7]S };
@@ -78,8 +78,7 @@ pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main
             else => unreachable,
         };
         for (0..4) |limb| sink.emit(one.sub(enabled).mul(row[start + limb]));
-        sink.emit(row[m.previous_clock + slot].add(row[m.gap16 + slot]).add(E.qFor(F, 65536).mul(row[m.gap8 + slot])).sub(U.tick(F, fixed[0], @intCast(slot)).sub(one)));
-        sink.emit(one.sub(enabled).mul(row[m.previous_clock + slot]));
+        sink.emit(one.sub(enabled).mul(U.previousClock(F, fixed[0], row, @intCast(slot))));
     }
     const weights = weightsFor(F, row);
     E.booleanFor(F, sink, weights.function);

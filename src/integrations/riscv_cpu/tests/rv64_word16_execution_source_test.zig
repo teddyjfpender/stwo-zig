@@ -73,10 +73,10 @@ fn checkRows(main: []const M, inter: []const M, log: u32, public: X.types.Bounda
         const current = gather(inter, n, p, 40);
         const previous = gather(inter, n, prev, 40);
         const fixed = [_]Q{ X.types.literal(Q, @intCast(logical)), X.types.literal(Q, @intFromBool(logical == 0)), X.types.literal(Q, @intFromBool(logical == n - 1)) };
-        var residuals: [55]Q = undefined;
+        var residuals: [X.equations.CONSTRAINTS]Q = undefined;
         var sink = front.rv64_air.evaluation.Sink{ .values = &residuals };
         X.equations.emitFor(Q, &fixed, &row, &prior, &current, &previous, try X.types.inputs(public, 7, log), claim, ch, &sink);
-        try std.testing.expectEqual(@as(usize, 55), sink.count);
+        try std.testing.expectEqual(@as(usize, X.equations.CONSTRAINTS), sink.count);
         for (residuals) |r| try std.testing.expect(r.isZero());
     }
 }
@@ -95,9 +95,9 @@ test "full execution source preserves architectural aliases normalized JALR and 
     try std.testing.expectEqual(@as(usize, 0), source.memory.items.len);
     try std.testing.expectEqual(@as(usize, 0), source.services.items.len);
     const alias = try source.row(1);
-    try std.testing.expectEqual(@as(u32, 3), alias[X.layout.main.previous_clock].v);
-    try std.testing.expectEqual(@as(u32, 5), alias[X.layout.main.previous_clock + 1].v);
-    try std.testing.expectEqual(@as(u32, 6), alias[X.layout.main.previous_clock + 2].v);
+    try std.testing.expectEqual(@as(u32, 3), X.tuples.previousClock(M, M.one(), &alias, 0).v);
+    try std.testing.expectEqual(@as(u32, 5), X.tuples.previousClock(M, M.one(), &alias, 1).v);
+    try std.testing.expectEqual(@as(u32, 6), X.tuples.previousClock(M, M.one(), &alias, 2).v);
     var total16: u64 = 0;
     var total8: u64 = 0;
     var totalRom: u64 = 0;

@@ -165,7 +165,7 @@ test "full CPU all65 raw encodings and cached independent decode have identical 
 }
 
 test "CPU zero flags are affine enabled complements for every opcode and register-zero combination" {
-    try std.testing.expectEqual(@as(usize, 50), L.main.COUNT);
+    try std.testing.expectEqual(@as(usize, 47), L.main.COUNT);
     for (std.enums.values(isa.Opcode)) |opcode| {
         for (0..8) |mask| {
             const entry = X.Entry.fromInstruction(0, 0x1000, .{ .opcode = opcode, .rs1 = if (mask & 1 == 0) 0 else 1, .rs2 = if (mask & 2 == 0) 0 else 2, .rd = if (mask & 4 == 0) 0 else 3, .imm = 8 });
@@ -185,4 +185,25 @@ test "CPU zero flags are affine enabled complements for every opcode and registe
         try std.testing.expectEqual(M.zero(), padding[L.main.enabled + slot]);
         try std.testing.expectEqual(M.one(), tuple[L.rom.zero + slot]);
     }
+}
+
+test "derived register predecessor clocks roundtrip canonical extrema aliases and terminal padding" {
+    const entry = X.Entry.fromDecoded(0x001080b3, 0x1000);
+    for ([_]u32{ 0, 1, 15, 16383, 65535, (1 << 22) - 2 }) |index| {
+        for ([_]bool{ false, true }) |latest| {
+            const clocks: [3]u32 = if (latest) .{ 4 * index, 4 * index + 1, 4 * index + 2 } else .{ 0, 0, 0 };
+            const row = try X.row.active(entry, index, 0x1004, .{ .a = 7, .b = 7, .c = 14, .previous_rd = 7 }, clocks);
+            const fixed = [_]M{ M.fromCanonical(index), M.zero(), M.zero() };
+            for (clocks, 0..) |clock, slot| {
+                try std.testing.expectEqual(clock, X.tuples.previousClock(M, fixed[0], &row, @intCast(slot)).v);
+                const before = X.tuples.register(M, &fixed, &row, slot, false);
+                try std.testing.expectEqual(clock, before[5].v);
+                const after = X.tuples.register(M, &fixed, &row, slot, true);
+                try std.testing.expectEqual(4 * index + @as(u32, @intCast(slot)) + 1, after[5].v);
+            }
+        }
+    }
+    const last: u32 = (1 << 22) - 1;
+    const row = try X.row.padding(last, 0x1004);
+    for (0..3) |slot| try std.testing.expectEqual(M.zero(), X.tuples.previousClock(M, M.fromCanonical(last), &row, @intCast(slot)));
 }

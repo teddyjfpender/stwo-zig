@@ -20,7 +20,6 @@ pub fn active(entry: Feature.Entry, index: u32, next_pc: u64, values: Values, cl
         out[L.main.enabled + slot] = M.fromCanonical(@intFromBool(id != 0));
         const tick = 4 * index + @as(u32, @intCast(slot)) + 1;
         if (clocks[slot] >= tick or (id == 0 and clocks[slot] != 0)) return error.InvalidExecutionClock;
-        out[L.main.previous_clock + slot] = M.fromCanonical(clocks[slot]);
         const gap = tick - clocks[slot] - 1;
         out[L.main.gap16 + slot] = M.fromCanonical(@as(u16, @truncate(gap)));
         out[L.main.gap8 + slot] = M.fromCanonical(gap >> 16);

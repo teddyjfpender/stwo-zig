@@ -25,9 +25,9 @@ test "full CPU component native adapters bind exact D3 geometry and masks" {
     const c = component();
     _ = c.asProverComponent();
     _ = c.asVerifierComponent();
-    try std.testing.expectEqual(@as(usize, 55), c.nConstraints());
-    for (0..55) |index| try std.testing.expectEqual(@as(u8, 3), try c.constraintDegreeBound(index));
-    try std.testing.expectError(error.InvalidConstraintIndex, c.constraintDegreeBound(55));
+    try std.testing.expectEqual(@as(usize, X.equations.CONSTRAINTS), c.nConstraints());
+    for (0..X.equations.CONSTRAINTS) |index| try std.testing.expectEqual(@as(u8, 3), try c.constraintDegreeBound(index));
+    try std.testing.expectError(error.InvalidConstraintIndex, c.constraintDegreeBound(X.equations.CONSTRAINTS));
     var logs = try c.traceLogDegreeBounds(std.testing.allocator);
     defer logs.deinitDeep(std.testing.allocator);
     const indices = try c.preprocessedColumnIndices(std.testing.allocator);
@@ -67,7 +67,7 @@ test "full CPU packed complete weighted kernel equals scalar including prior mas
         for (column, 0..) |*v, row| v.* = M.fromCanonical(@intCast(1 + i * n + row));
         view.* = column;
     }
-    var powers: [55]Q = undefined;
+    var powers: [X.equations.CONSTRAINTS]Q = undefined;
     for (&powers, 0..) |*v, i| v.* = Q.fromU32Unchecked(@intCast(i + 3), 7, 11, 13);
     const inv = [_]M{ M.fromCanonical(3), M.fromCanonical(5) };
     var expected: [4][n]M = @splat(@splat(M.zero()));

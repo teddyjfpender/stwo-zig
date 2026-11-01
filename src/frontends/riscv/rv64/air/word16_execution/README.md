@@ -6,7 +6,7 @@ close against the independently admitted ROM, local register boundary, range,
 FUNCTION and OWNER providers. EBREAK does not retire. Ordinary trapping ECALL
 has a different execution meaning and is not admitted by this authority.
 
-The CPU has 3 fixed, 50 main and 40 interaction columns, with 55 residuals of
+The CPU has 3 fixed, 47 main and 40 interaction columns, with 52 residuals of
 maximum degree 3. The ROM table has 32 fixed, 1 main and 8 interaction columns,
 with 4 residuals of degree at most 2. The optional nonzero-immediate JALR
 composite has 2 fixed, 18 main and 12 interaction columns and 6 degree-3
@@ -62,11 +62,28 @@ previous RD; predecessor-clock disabling remains explicit. Register bus weights
 still equal enabled. ROM and REG debts must close together: a local proof with
 an unauthenticated enable flag is insufficient.
 
-This substitution preserves degree three, all55 residuals, full64 PCs and the
+The zero-flag substitution preserved the original55 residuals, full64 PCs and the
 existing40 interaction columns. It changes the MAIN encoding and proof
 transcript, so the feature-authority domain is explicitly full64.v2; old proof
 bytes are not parity fixtures for this encoding. No independently supplied
 Boolean hint, range lookup or new runtime profile is introduced.
+
+## Derived predecessor clocks
+
+A register predecessor time is `4*row+slot-gap16-65536*gap8`. It is the exact
+substitution of the former committed-clock/gap equality, not a new clock-range
+assumption. Three MAIN columns and three identity residuals disappear. ROM,
+local REG, public boundaries, fixed after-times and gap range closure still
+establish chronological consistency. A canonical gap can produce a negative
+field predecessor locally; the complete REG relation must reject that orphan.
+The disabled-register guard remains explicit and forces predecessor time zero.
+
+All REG tuples, native clocks and range query values remain identical on honest
+rows. Full64 PCs,40 interaction columns and the24-bit clock cap are unchanged.
+The deliberate encoding domain is full64.v3; old proof bytes are not new-shape
+fixtures. A retained false-witness test repairs all interactions and ranges,
+verifies the actual physical STARK, and requires a pristine closed receiver to
+reject precisely the remaining REG predecessor debt.
 
 ## JALR composition and the signed-marginal attack
 
@@ -95,7 +112,7 @@ binds the normalization, tuple schema and opcode map.
 
 Focused native tests exercise all 65 decoded opcode classes, raw/cached decode
 parity, full64 wrapping, x0 and source aliasing, branch/link bindings, native
-witness residuals, strict unused poles, all55 dense-Q degree checks and packed
+witness residuals, strict unused poles, all52 dense-Q degree checks and packed
 per-residual parity. ROM and JALR tests check their own degree metadata, native
 claims, source release/one-shot/OOM behavior and scalar/packed domain parity.
 Actual external circuit point adapters for CPU, ROM and JALR compare against

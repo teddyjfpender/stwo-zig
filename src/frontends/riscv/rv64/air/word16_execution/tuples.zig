@@ -6,6 +6,11 @@ const m = L.main;
 pub fn tick(comptime F: type, index: F, slot: u32) F {
     return index.mul(T.literal(F, 4)).add(T.literal(F, slot + 1));
 }
+/// Exact substitution of the old clock-gap equality. REG closure, canonical
+/// boundaries and fixed after-times still establish chronological induction.
+pub fn previousClock(comptime F: type, index: F, row: []const F, slot: u32) F {
+    return tick(F, index, slot).sub(F.one()).sub(row[m.gap16 + slot]).sub(T.literal(F, 65536).mul(row[m.gap8 + slot]));
+}
 pub fn function(comptime F: type, row: []const F) [13]F {
     var out: [13]F = undefined;
     out[0] = row[m.operation];
@@ -26,7 +31,7 @@ pub fn register(comptime F: type, fixed: []const F, row: []const F, slot: usize,
         2 => if (after) m.c else m.previous_rd,
         else => unreachable,
     };
-    return .{ row[m.registers + slot], row[start], row[start + 1], row[start + 2], row[start + 3], if (after) tick(F, fixed[0], @intCast(slot)) else row[m.previous_clock + slot] };
+    return .{ row[m.registers + slot], row[start], row[start + 1], row[start + 2], row[start + 3], if (after) tick(F, fixed[0], @intCast(slot)) else previousClock(F, fixed[0], row, @intCast(slot)) };
 }
 pub fn rom(comptime F: type, row: []const F) [30]F {
     var out: [30]F = undefined;
