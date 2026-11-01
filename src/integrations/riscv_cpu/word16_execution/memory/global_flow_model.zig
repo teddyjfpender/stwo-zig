@@ -57,7 +57,7 @@ pub fn audit(initial: []const Word, terminal: []const Word, events: []const Even
             event.previous_epoch > execution_epochs or
             !earlier(event.previous_epoch, event.previous_tick, event.epoch, event.tick))
             return error.InvalidMemoryTime;
-        if (event.before != event.after and event.rights & 2 == 0)
+        if (event.before != event.after and (event.rights & 2) == 0)
             return error.UnauthorizedMemoryWrite;
         var admitted = false;
         for (initial) |first| if (first.address == event.address) {
