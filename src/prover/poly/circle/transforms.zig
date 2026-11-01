@@ -68,15 +68,21 @@ fn bottomLayersRange(
     end: usize,
     comptime inverse_transform: bool,
 ) void {
-    const t01s = layerTwiddles(twiddles, line_log_size, 1)[first / 4 .. end / 4];
-    const t2s = layerTwiddles(twiddles, line_log_size, 2)[first / 8 .. end / 8];
+    return bottomLayersRangeAt(values, line_log_size, twiddles, layer_count, first, end, inverse_transform, 0);
+}
+
+fn bottomLayersRangeAt(values: []M31, line_log_size: u32, twiddles: []const M31, layer_count: u32, first: usize, end: usize, comptime inverse_transform: bool, row_offset: usize) void {
+    const global_first = first + row_offset;
+    const global_end = end + row_offset;
+    const t01s = layerTwiddles(twiddles, line_log_size, 1)[global_first / 4 .. global_end / 4];
+    const t2s = layerTwiddles(twiddles, line_log_size, 2)[global_first / 8 .. global_end / 8];
     const kernel3 = if (inverse_transform) fft_kernels.fftBottomThreeLayersInverseM31 else fft_kernels.fftBottomThreeLayersForwardM31;
     const kernel4 = if (inverse_transform) fft_kernels.fftBottomFourLayersInverseM31 else fft_kernels.fftBottomFourLayersForwardM31;
     const kernel5 = if (inverse_transform) fft_kernels.fftBottomFiveLayersInverseM31 else fft_kernels.fftBottomFiveLayersForwardM31;
     switch (layer_count) {
         3 => kernel3(values[first..end], t2s, t01s),
-        4 => kernel4(values[first..end], layerTwiddles(twiddles, line_log_size, 3)[first / 16 .. end / 16], t2s, t01s),
-        5 => kernel5(values[first..end], layerTwiddles(twiddles, line_log_size, 4)[first / 32 .. end / 32], layerTwiddles(twiddles, line_log_size, 3)[first / 16 .. end / 16], t2s, t01s),
+        4 => kernel4(values[first..end], layerTwiddles(twiddles, line_log_size, 3)[global_first / 16 .. global_end / 16], t2s, t01s),
+        5 => kernel5(values[first..end], layerTwiddles(twiddles, line_log_size, 4)[global_first / 32 .. global_end / 32], layerTwiddles(twiddles, line_log_size, 3)[global_first / 16 .. global_end / 16], t2s, t01s),
         else => unreachable,
     }
 }
@@ -289,14 +295,18 @@ pub fn evaluateSelectedBufferWithTwiddles(
         return;
     }
     if (double) @memcpy(values[coefficient_count..], values[0..coefficient_count]) else @memset(values[coefficient_count..], M31.zero());
-    var stage = log - 1 - @as(u32, @intFromBool(double));
+    selectedTail(false, values, log, tree, positions, 0, log - 1 - @as(u32, @intFromBool(double)));
+}
+
+fn selectedTail(comptime windowed: bool, values: []M31, log: u32, tree: M31TwiddleTree, positions: []const usize, row_offset: usize, first_stage: u32) void {
+    var stage = first_stage;
     while (stage >= 5) {
         // Before pruning becomes useful, retain the fused radix-8 full passes.
         // This covers the dense frontier without turning packed FFTs scalar.
-        if (stage >= 7 and (values.len >> @intCast(stage - 1)) <= 64 and
+        if (stage >= 7 and ((@as(usize, 1) << @intCast(log)) >> @intCast(stage - 1)) <= 64 and
             fft_kernels.canFuseThreeLayersPacked(stage - 2))
         {
-            fft_kernels.fftThreeLayersForwardPackedM31(values, log, stage, tree.twiddles);
+            if (windowed) radix8.forwardWindow(values, log, stage, tree.twiddles, row_offset) else fft_kernels.fftThreeLayersForwardPackedM31(values, log, stage, tree.twiddles);
             stage -= 3;
             continue;
         }
@@ -306,7 +316,7 @@ pub fn evaluateSelectedBufferWithTwiddles(
             const block = position >> @intCast(stage + 1);
             if (previous != null and previous.? == block) continue;
             previous = block;
-            fft_kernels.fftLayerLoopForwardM31(values, stage, block, tw[block]);
+            fft_kernels.fftLayerLoopForwardM31(values, stage, block - (row_offset >> @intCast(stage + 1)), tw[block]);
         }
         stage -= 1;
     }
@@ -316,8 +326,49 @@ pub fn evaluateSelectedBufferWithTwiddles(
         const block = position >> 5;
         if (previous != null and previous.? == block) continue;
         previous = block;
-        bottomLayersRange(values, log - 1, tree.twiddles, 5, block * 32, (block + 1) * 32, false);
+        bottomLayersRangeAt(values, log - 1, tree.twiddles, 5, block * 32 - row_offset, (block + 1) * 32 - row_offset, false, row_offset);
     }
+}
+
+/// Exact sparse outputs, retaining only one native-sized half-window for the
+/// common 2x extension. The degenerate top layer duplicates the coefficients;
+/// each half then follows the SAME selected butterfly/twiddle authority above.
+/// Other blowups and tiny domains retain the old full-buffer control path.
+/// Positions must be sorted, may repeat, and outputs preserve that exact order.
+pub fn evaluateSelectedCoefficientsWithTwiddles(coefficients: []const M31, scratch: []M31, domain: CircleDomain, tree: M31TwiddleTree, positions: []const usize, out: []M31) PolyError!void {
+    const n = domain.size();
+    if (coefficients.len == 0 or !std.math.isPowerOfTwo(coefficients.len) or coefficients.len > n or out.len != positions.len or
+        !domain.half_coset.isDoublingOf(tree.root_coset) or tree.twiddles.len != tree.root_coset.size() or
+        tree.itwiddles.len != tree.twiddles.len) return PolyError.InvalidLength;
+    const half = coefficients.len == n / 2 and domain.logSize() > 5;
+    if (scratch.len != (if (half) n / 2 else n)) return PolyError.InvalidLength;
+    for (positions, 0..) |position, i| if (position >= n or (i != 0 and position < positions[i - 1])) return PolyError.InvalidLength;
+    if (overlaps(coefficients, scratch) or overlaps(coefficients, out) or overlaps(scratch, out)) return PolyError.InvalidLength;
+    if (positions.len == 0) return;
+    if (!half) {
+        @memcpy(scratch[0..coefficients.len], coefficients);
+        try evaluateSelectedBufferWithTwiddles(scratch, coefficients.len, domain, tree, positions);
+        for (positions, out) |position, *value| value.* = scratch[position];
+        return;
+    }
+    var split: usize = 0;
+    while (split < positions.len and positions[split] < scratch.len) : (split += 1) {}
+    const bounds = [_]usize{ 0, split, positions.len };
+    for (0..2) |part| {
+        const first = bounds[part];
+        const end = bounds[part + 1];
+        if (first == end) continue;
+        const offset = part * scratch.len;
+        @memcpy(scratch, coefficients);
+        selectedTail(true, scratch, domain.logSize(), tree, positions[first..end], offset, domain.logSize() - 2);
+        for (positions[first..end], out[first..end]) |position, *value| value.* = scratch[position - offset];
+    }
+}
+fn overlaps(x: []const M31, y: []const M31) bool {
+    if (x.len == 0 or y.len == 0) return false;
+    const xe = std.math.add(usize, @intFromPtr(x.ptr), std.math.mul(usize, x.len, @sizeOf(M31)) catch return true) catch return true;
+    const ye = std.math.add(usize, @intFromPtr(y.ptr), std.math.mul(usize, y.len, @sizeOf(M31)) catch return true) catch return true;
+    return @intFromPtr(x.ptr) < ye and @intFromPtr(y.ptr) < xe;
 }
 
 /// Interpolates one evaluation buffer into coefficients in place.

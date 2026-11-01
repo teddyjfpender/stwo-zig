@@ -23,9 +23,15 @@ fn run(
     first_unit: usize,
     end_unit: usize,
     comptime ranged: bool,
+    comptime windowed: bool,
+    row_offset: usize,
 ) void {
     std.debug.assert(log_size < @bitSizeOf(usize));
-    std.debug.assert(values.len == @as(usize, 1) << @intCast(log_size));
+    if (windowed) {
+        std.debug.assert(values.len * 2 == @as(usize, 1) << @intCast(log_size));
+        std.debug.assert(row_offset == 0 or row_offset == values.len);
+        std.debug.assert(!inverse_transform and !normalize and !duplicate_upper_from_lower);
+    } else std.debug.assert(values.len == @as(usize, 1) << @intCast(log_size));
     const pair_count = values.len / 2;
     std.debug.assert(twiddles.len >= pair_count);
     std.debug.assert(!normalize or inverse_transform);
@@ -82,7 +88,7 @@ fn run(
                     (@as(usize, 1) << @intCast(log_size - substage));
 
                 inline for (0..block_count) |block| {
-                    const raw_twiddle = twiddles[twiddle_offset + group * block_count + block];
+                    const raw_twiddle = twiddles[twiddle_offset + (if (windowed) group + (row_offset >> @intCast(lowest_stage + 3)) else group) * block_count + block];
                     const twiddle: m31.Vec4u32 = @splat(
                         if (inverse_transform and normalize and step == 2)
                             raw_twiddle.mul(normalization).v
@@ -124,7 +130,13 @@ pub fn forward(
     highest_stage: u32,
     twiddles: []const M31,
 ) void {
-    run(values, log_size, highest_stage, twiddles, false, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false);
+    run(values, log_size, highest_stage, twiddles, false, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false, false, 0);
+}
+
+/// Same radix-8 authority on one contiguous half of the full transform.
+/// The values use local addresses; twiddle groups retain full-domain indices.
+pub fn forwardWindow(values: []M31, full_log_size: u32, highest_stage: u32, twiddles: []const M31, row_offset: usize) void {
+    run(values, full_log_size, highest_stage, twiddles, false, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false, true, row_offset);
 }
 
 pub fn forwardFromDuplicatedHalf(
@@ -133,7 +145,7 @@ pub fn forwardFromDuplicatedHalf(
     highest_stage: u32,
     twiddles: []const M31,
 ) void {
-    run(values, log_size, highest_stage, twiddles, false, false, M31.one(), true, 0, values.len / (8 * m31.VEC_WIDTH), false);
+    run(values, log_size, highest_stage, twiddles, false, false, M31.one(), true, 0, values.len / (8 * m31.VEC_WIDTH), false, false, 0);
 }
 
 pub fn inverse(
@@ -142,7 +154,7 @@ pub fn inverse(
     lowest_stage: u32,
     itwiddles: []const M31,
 ) void {
-    run(values, log_size, lowest_stage, itwiddles, true, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false);
+    run(values, log_size, lowest_stage, itwiddles, true, false, M31.one(), false, 0, values.len / (8 * m31.VEC_WIDTH), false, false, 0);
 }
 
 pub fn inverseNormalized(
@@ -152,7 +164,7 @@ pub fn inverseNormalized(
     itwiddles: []const M31,
     normalization: M31,
 ) void {
-    run(values, log_size, lowest_stage, itwiddles, true, true, normalization, false, 0, values.len / (8 * m31.VEC_WIDTH), false);
+    run(values, log_size, lowest_stage, itwiddles, true, true, normalization, false, 0, values.len / (8 * m31.VEC_WIDTH), false, false, 0);
 }
 
 /// Splits independent radix tuples, including lanes within one giant group.
@@ -181,7 +193,7 @@ pub fn withPool(
             while (true) {
                 const first = work.cursor.fetchAdd(1024, .monotonic);
                 if (first >= work.end) return;
-                run(work.values, work.log_size, work.stage, work.twiddles, inverse_transform, normalize, work.normalization, duplicate_upper_from_lower, first, @min(first + 1024, work.end), true);
+                run(work.values, work.log_size, work.stage, work.twiddles, inverse_transform, normalize, work.normalization, duplicate_upper_from_lower, first, @min(first + 1024, work.end), true, false, 0);
             }
         }
     };

@@ -14,7 +14,12 @@ pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: 
 }
 
 pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+    return decommitImpl(B, H, a, tree, queries, std.process.hasEnvVarConstant("STWO_ZIG_HALF_SCRATCH_OPENING"));
+}
+
+fn decommitImpl(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize, half_requested: bool) !traversal.DecommitmentResult(H) {
     const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
+    const use_half = !native_expansion and half_requested;
     const max_log = tree.commitment.maxLogSize();
     const size = @as(usize, 1) << @intCast(max_log);
     for (queries, 0..) |query, i| {
@@ -36,6 +41,12 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
             try leaves.ensureUnusedCapacity(a, block_size);
             for (start..start + block_size) |position| leaves.appendAssumeCapacity(position);
         }
+    }
+    const plans: []?PositionPlan = if (use_half) try a.alloc(?PositionPlan, max_log + 1) else &.{};
+    @memset(plans, null);
+    defer {
+        for (plans) |*plan| if (plan.*) |*value| value.deinit(a);
+        a.free(plans);
     }
     const hashers = try a.alloc(H, leaves.items.len);
     defer a.free(hashers);
@@ -75,7 +86,7 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
             try column.validateRetained();
             if (column.log_size > max_log) return error.InvalidColumnSize;
             const required = if (column.coefficient_values != null)
-                try std.math.mul(usize, @as(usize, 1) << @intCast(column.log_size), @sizeOf(M31))
+                try std.math.mul(usize, scratchLength(column, use_half), @sizeOf(M31))
             else
                 0;
             if (end != next and try std.math.add(usize, bytes, required) > batch_byte_limit) break;
@@ -89,10 +100,11 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
         defer for (jobs[0..initialized_jobs]) |job| {
             if (!native_expansion and job.column.coefficient_values != null) a.free(job.values);
             a.free(job.positions);
+            a.free(job.selected);
         };
         for (indices[next..end], jobs[0 .. end - next]) |index, *job| {
             const column = tree.columns[index];
-            const positions = if (!native_expansion and column.coefficient_values != null) blk: {
+            const positions = if (!use_half and !native_expansion and column.coefficient_values != null) blk: {
                 const out = try a.alloc(usize, try std.math.add(usize, queries.len, leaves.items.len));
                 const shift: std.math.Log2Int(usize) = @intCast(max_log - column.log_size + 1);
                 for (queries, out[0..queries.len]) |position, *target| target.* = ((position >> shift) << 1) + (position & 1);
@@ -101,10 +113,17 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
                 break :blk out;
             } else &.{};
             errdefer a.free(positions);
-            job.* = .{ .column = column, .positions = positions, .values = if (column.coefficient_values != null)
-                if (native_expansion) &.{} else try a.alloc(M31, @as(usize, 1) << @intCast(column.log_size))
+            const plan: ?*const PositionPlan = if (use_half and column.coefficient_values != null) blk: {
+                if (plans[column.log_size] == null) plans[column.log_size] = try PositionPlan.init(a, max_log, column.log_size, queries, leaves.items);
+                break :blk &plans[column.log_size].?;
+            } else null;
+            const scratch: []M31 = if (column.coefficient_values != null)
+                if (native_expansion) &.{} else try a.alloc(M31, scratchLength(column, use_half))
             else
-                @constCast(column.values), .transform = .{ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles } };
+                @constCast(column.values);
+            errdefer if (!native_expansion and column.coefficient_values != null) a.free(scratch);
+            const selected: []M31 = if (plan) |p| try a.alloc(M31, p.positions.len) else &.{};
+            job.* = .{ .column = column, .positions = positions, .values = scratch, .selected = selected, .plan = plan, .transform = .{ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles } };
             initialized_jobs += 1;
         }
         if (native_expansion) {
@@ -149,10 +168,16 @@ pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocat
         // column order after the bounded worker wave has joined.
         for (indices[next..end], jobs[0..initialized_jobs]) |index, job| {
             const shift: std.math.Log2Int(usize) = @intCast(max_log - job.column.log_size + 1);
-            for (queries, values[index]) |position, *value| value.* = job.values[((position >> shift) << 1) + (position & 1)];
-            for (leaves.items, hashers) |position, *hasher| {
-                const at = ((position >> shift) << 1) + (position & 1);
-                hasher.updateLeaf(job.values[at..][0..1]);
+            for (queries, values[index], 0..) |position, *value, i| value.* = if (job.plan) |plan|
+                job.selected[plan.query_indices[i]]
+            else
+                job.values[((position >> shift) << 1) + (position & 1)];
+            for (leaves.items, hashers, 0..) |position, *hasher, i| {
+                const source = if (job.plan) |plan| job.selected[plan.leaf_indices[i]..][0..1] else blk: {
+                    const at = ((position >> shift) << 1) + (position & 1);
+                    break :blk job.values[at..][0..1];
+                };
+                hasher.updateLeaf(source);
             }
         }
         next = end;
@@ -211,6 +236,8 @@ const Expansion = struct {
     values: []M31,
     transform: twiddles.TwiddleTree([]const M31),
     positions: []const usize,
+    selected: []M31,
+    plan: ?*const PositionPlan,
     failure: ?anyerror = null,
     fn run(self: *@This()) void {
         self.evaluate() catch |err| {
@@ -220,6 +247,7 @@ const Expansion = struct {
     fn evaluate(self: *@This()) !void {
         const coefficients = self.column.coefficient_values orelse return;
         const domain = poly.CanonicCoset.new(self.column.log_size).circleDomain();
+        if (self.plan) |plan| return @import("../poly/circle/transforms.zig").evaluateSelectedCoefficientsWithTwiddles(coefficients, self.values, domain, self.transform, plan.positions, self.selected);
         @memcpy(self.values[0..coefficients.len], coefficients);
         try @import("../poly/circle/transforms.zig").evaluateSelectedBufferWithTwiddles(
             self.values,
@@ -230,3 +258,61 @@ const Expansion = struct {
         );
     }
 };
+
+fn scratchLength(column: Column, half: bool) usize {
+    const n = @as(usize, 1) << @intCast(column.log_size);
+    return if (half and column.log_size > 5 and column.coefficient_values.?.len == n / 2) n / 2 else n;
+}
+
+/// Project and canonicalize once per native height, not once per column.
+const PositionPlan = struct {
+    storage: []usize,
+    positions: []const usize,
+    query_indices: []usize,
+    leaf_indices: []usize,
+    fn init(a: std.mem.Allocator, max_log: u32, log: u32, queries: []const usize, leaves: []const usize) !PositionPlan {
+        const shift: std.math.Log2Int(usize) = @intCast(max_log - log + 1);
+        const storage = try a.alloc(usize, try std.math.add(usize, queries.len, leaves.len));
+        errdefer a.free(storage);
+        for (queries, storage[0..queries.len]) |position, *out| out.* = ((position >> shift) << 1) + (position & 1);
+        for (leaves, storage[queries.len..]) |position, *out| out.* = ((position >> shift) << 1) + (position & 1);
+        std.sort.heap(usize, storage, {}, std.sort.asc(usize));
+        var count: usize = 0;
+        for (storage) |position| if (count == 0 or storage[count - 1] != position) {
+            storage[count] = position;
+            count += 1;
+        };
+        const positions = storage[0..count];
+        const query_indices = try a.alloc(usize, queries.len);
+        errdefer a.free(query_indices);
+        const leaf_indices = try a.alloc(usize, leaves.len);
+        errdefer a.free(leaf_indices);
+        for (queries, query_indices) |position, *out| out.* = locate(positions, ((position >> shift) << 1) + (position & 1));
+        for (leaves, leaf_indices) |position, *out| out.* = locate(positions, ((position >> shift) << 1) + (position & 1));
+        return .{ .storage = storage, .positions = positions, .query_indices = query_indices, .leaf_indices = leaf_indices };
+    }
+    fn locate(positions: []const usize, value: usize) usize {
+        var low: usize = 0;
+        var high = positions.len;
+        while (low < high) {
+            const mid = low + (high - low) / 2;
+            if (positions[mid] < value) low = mid + 1 else high = mid;
+        }
+        std.debug.assert(low < positions.len and positions[low] == value);
+        return low;
+    }
+    fn deinit(self: *PositionPlan, a: std.mem.Allocator) void {
+        a.free(self.storage);
+        a.free(self.query_indices);
+        a.free(self.leaf_indices);
+        self.* = undefined;
+    }
+};
+pub const testing = if (@import("builtin").is_test) struct {
+    pub fn decommitFull(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+        return decommitImpl(void, H, a, tree, queries, false);
+    }
+    pub fn decommitHalf(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+        return decommitImpl(void, H, a, tree, queries, true);
+    }
+} else struct {};

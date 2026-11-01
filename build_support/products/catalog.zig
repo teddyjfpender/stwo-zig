@@ -15,6 +15,7 @@ pub const Configure = types.Configure;
 pub const steps = [_]Step{
     .{ .name = "rv64-ethereum-reprove", .description = "Benchmark one retained batch against a freshly verified Ethereum chain", .scope = .riscv_cpu },
     .{ .name = "rv64-ethereum-proof", .description = "Prove pinned Ethereum execution with private authenticated RAM", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-selective-openings", .description = "Qualify exact sparse half-window coefficient openings", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-authenticated-execution", .description = "Prove RV64 CPU and private authenticated RAM in one PCS", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-full-proof", .description = "Prove and verify a complete single RV64 execution", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-full-capture", .description = "Test full execution journal and request binding", .scope = .riscv_cpu },
