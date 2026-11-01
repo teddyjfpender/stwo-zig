@@ -24,6 +24,9 @@ pub const WorkerTiming = struct {
     seal_native_and_gkr_ns: u64 = 0,
     main_commit_ns: u64 = 0,
     gkr_ns: u64 = 0,
+    inputs_ns: u64 = 0,
+    numerical_ns: u64 = 0,
+    binding_ns: u64 = 0,
     metadata_retire_ns: u64 = 0,
     spill_ns: u64 = 0,
     restore_ns: u64 = 0,
@@ -151,6 +154,9 @@ const Run = struct {
                 timing.?.seal_native_and_gkr_ns = clock.lap();
                 timing.?.main_commit_ns = cpu_timing.main_commit_ns;
                 timing.?.gkr_ns = cpu_timing.gkr_ns;
+                timing.?.inputs_ns = cpu_timing.inputs_ns;
+                timing.?.numerical_ns = cpu_timing.numerical_ns;
+                timing.?.binding_ns = cpu_timing.binding_ns;
                 timing.?.actual_main_merkle_bytes = try mainNodes(&self.workers[index].?.cpu.scheme);
             }
             try self.workers[index].?.cpu.retireLocalMetadata();

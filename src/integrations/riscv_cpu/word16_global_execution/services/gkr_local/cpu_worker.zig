@@ -113,7 +113,7 @@ fn releaseBridgeLocals(source: anytype) void {
 }
 /// Optional caller-owned diagnostics. gkr_ns includes metadata projection and
 /// durable terminal-binding construction; these times never enter a transcript.
-pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0 };
+pub const SealTiming = struct { main_commit_ns: u64 = 0, gkr_ns: u64 = 0, inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
 pub const CpuWorker = struct {
     allocator: std.mem.Allocator,
     setup: *const R.CpuSetup,
@@ -197,7 +197,13 @@ pub const CpuWorker = struct {
         try self.scheme.commitOwnedStreamingWithRecorderAndBacking(a, main.columns, main.backings, 64, null, &self.channel);
         const root = self.scheme.trees.items[1].root();
         if (clock) |*timer| self.seal_timing.?.main_commit_ns = timer.lap();
-        self.child = try Child.Unbound.prove(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source });
+        var phase_timing = Child.PhaseTiming{};
+        self.child = try Child.Unbound.proveTimed(a, self.gkr_budget, .{ .statement = self.expected.statement, .fixed = self.expected.fixed, .main = root, .ordinal = self.expected.ordinal }, self.instances, @import("native_provider.zig").Provider{ .source = &self.source }, if (self.seal_timing != null) &phase_timing else null);
+        if (self.seal_timing) |timing| {
+            timing.inputs_ns = phase_timing.inputs_ns;
+            timing.numerical_ns = phase_timing.numerical_ns;
+            timing.binding_ns = phase_timing.binding_ns;
+        }
         if (clock) |*timer| self.seal_timing.?.gkr_ns = timer.read();
         self.sealed = true;
         self.consumed = false;
