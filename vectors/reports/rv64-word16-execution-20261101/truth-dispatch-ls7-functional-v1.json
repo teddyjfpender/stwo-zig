@@ -49,6 +49,6 @@
       "log_sha256": "7d09c74e7ad69d76817728027435c51a65d0b7955dc55614ad370aa77a75eac5"
     }
   },
-  "full_block_abba": "In progress, performance promotion held pending actual results.",
+  "full_block_abba": "Complete: all4 full blocks all34 artifacts identical and fresh verified. No default promotion; see truth-dispatch-ls7-full-abba-v1.json.",
   "memory": "Per-proof estimates remain indexed by semantic ordinal. The admission cap is soft, not an allocation/RSS limit."
 }
