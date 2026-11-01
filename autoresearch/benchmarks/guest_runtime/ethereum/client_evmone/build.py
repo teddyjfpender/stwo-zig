@@ -14,7 +14,8 @@ backend). Only the Python standard library is used.
 compression (32-byte aligned packet), arith256_mod for MULMOD/ADDMOD, 256-bit
 ModArith and 256-bit odd-modulus modexp, and aligned memcpy/memset with inline
 head/tail and software fallback for overlap or mismatched alignment
-(`--v3-set` selects a subset of sha, arith, mem for ablations).
+(`--v3-set` selects a subset of sha, arith, mem for ablations; add `keccak`
+for the admitted Keccak-256 sponge, ELF suffix `-v3-...-keccak`).
 
 `--isa` other than `im` targets candidate Zba/Zbb instructions (execution-only
 profile `ethereum_services_v3_candidate_isa`; never admitted) and appends
@@ -282,7 +283,7 @@ def main(argv=None):
                     help="admitted = ethereum_services_v2; v3 = admitted ethereum_services_v3 "
                          "(SHA-256, arith256_mod, aligned bulk memory); candidate = execution-only")
     ap.add_argument("--v3-set", default="sha,arith,mem",
-                    help="admitted v3 service groups for --profile v3 (sha, arith, mem)")
+                    help="admitted v3 service groups for --profile v3 (sha, arith, mem, keccak = Keccak-256 sponge)")
     ap.add_argument("--host", action="store_true", help="native debug build with emulated services")
     ap.add_argument("--candidate-set", default="mem,sha,arith",
                     help="candidate service groups for --profile candidate (mem, sha, arith, mul, "
@@ -324,7 +325,7 @@ def main(argv=None):
 
     v3_groups = a.v3_set.split(",")
     for svc in v3_groups:
-        if svc not in ("sha", "arith", "mem"):
+        if svc not in ("sha", "arith", "mem", "keccak"):
             raise SystemExit(f"unknown admitted v3 service group {svc!r}")
     v3_tag = "v3" if sorted(v3_groups) == ["arith", "mem", "sha"] else "v3-" + "-".join(v3_groups)
     variant = ("host" if a.host else a.profile if a.profile == "admitted" else v3_tag if a.profile == "v3"

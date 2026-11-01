@@ -90,7 +90,26 @@ const Stage1 = struct {
             const shard = self.advice.bulk[cpu.ordinal];
             out.* = try A.crypto.bulk_memory.source.Source.init(a, kind, shard.calls, shard.words, log);
         };
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk };
+        // Keccak sponge: one shared plan (calls, words, permutation states) and
+        // the call/perm sources built from it.
+        var plan: ?*A.crypto.keccak_sponge.source.Plan = null;
+        errdefer if (plan) |p| {
+            p.deinit(a);
+            a.destroy(p);
+        };
+        var sponge: [2]?A.crypto.keccak_sponge.source.Source = @splat(null);
+        errdefer for (&sponge) |*b| if (b.*) |*s| s.deinit();
+        if (cpu.setup.bridges.sponge.any()) {
+            const shard = self.advice.sponge[cpu.ordinal];
+            const p = try a.create(A.crypto.keccak_sponge.source.Plan);
+            errdefer a.destroy(p);
+            p.* = try A.crypto.keccak_sponge.source.Plan.init(a, shard.calls, shard.words);
+            plan = p;
+            for (@import("types.zig").sponge_kinds, &sponge) |kind, *out| if (cpu.setup.bridges.sponge.at(kind)) |log| {
+                out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
+            };
+        }
+        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
         // Locals own all fields until this final fallible operation succeeds.
         try source.mergeRanges();
         return source;
@@ -110,7 +129,7 @@ const Stage2 = struct {
 pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, native: []const *Native, advice: *const Advice, expected: P.Expected, options: Options) !Statement.Bundle {
     try options.validate(setups.len + truths.len);
     if (options.consume_memory_events and !A.memory.ownership.same(a, advice.allocator)) return error.IncompatibleServiceAdviceAllocator;
-    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len or setups.len != advice.bulk.len) return error.InvalidCombinedInventory;
+    if (setups.len != native.len or setups.len != advice.events.len or setups.len != advice.keccak.len or setups.len != advice.secp.len or setups.len != advice.sha256.len or setups.len != advice.arith256_mod.len or setups.len != advice.bulk.len or setups.len != advice.sponge.len) return error.InvalidCombinedInventory;
     const requests = try a.alloc(P.Request, setups.len);
     defer a.free(requests);
     const first_steps = try a.alloc(u64, setups.len);
@@ -120,8 +139,15 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         first.* = step;
         step = try std.math.add(u64, step, cpu.public.steps);
-        r.* = .{ .bulk = advice.bulk[i].counts(), .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
     }
+    // Sponge permutation IDs follow every Keccak-f call of the bundle.
+    var next_sponge: u64 = 1;
+    for (advice.keccak) |calls| next_sponge += calls.len;
+    for (requests) |*r| if (r.sponge.any()) {
+        r.sponge.first_id = std.math.cast(u32, next_sponge) orelse return error.CombinedLookupMassExceeded;
+        next_sponge += r.sponge.perms;
+    };
     _ = try P.admit(a, setups, truths, requests, expected);
     const count = setups.len + truths.len;
     const workers = try a.alloc(?W.Worker, count);

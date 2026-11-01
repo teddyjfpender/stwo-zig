@@ -18,6 +18,9 @@ pub const Logs = struct {
     arith256_mod: ?u32 = null,
     /// Admitted bulk-memory bridges (v3), a separate block after the families.
     bulk: Bulk = .{},
+    /// Admitted Keccak-256 sponge bridges (v3), a separate block after bulk.
+    /// The sponge uses the Keccak IO11 bus, so it takes no Family ordinal.
+    sponge: Sponge = .{},
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
@@ -45,6 +48,10 @@ pub const Logs = struct {
         if (self.bulk.any()) {
             try jws.objectField("bulk");
             try jws.write(self.bulk);
+        }
+        if (self.sponge.any()) {
+            try jws.objectField("sponge");
+            try jws.write(self.sponge);
         }
         try jws.endObject();
     }
@@ -137,4 +144,43 @@ pub const BulkCounts = struct {
 pub const BulkClaims = A.crypto.bulk_memory.types.Claims;
 pub fn bulkWidths(kind: BulkKind) [3]usize {
     return A.crypto.bulk_memory.layout.widths(kind);
+}
+
+/// Keccak-sponge bridge logs: call rows (one per ECALL) and permutation rows.
+pub const SpongeKind = A.crypto.keccak_sponge.layout.Kind;
+pub const sponge_kinds = [_]SpongeKind{ .call, .perm };
+pub const Sponge = struct {
+    call: ?u32 = null,
+    perm: ?u32 = null,
+    pub fn at(self: @This(), kind: SpongeKind) ?u32 {
+        return switch (kind) {
+            .call => self.call,
+            .perm => self.perm,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.call != null or self.perm != null;
+    }
+};
+/// Public sponge rows of one CPU proof: calls and permutations.
+pub const SpongeCounts = struct {
+    calls: u32 = 0,
+    perms: u32 = 0,
+    /// IO11 ID of this shard's first sponge permutation: after every
+    /// Keccak-f call of the whole bundle and every earlier shard's sponge
+    /// permutations (receiver-checked in protocol.admit).
+    first_id: u32 = 0,
+    pub fn rows(self: @This(), kind: SpongeKind) u32 {
+        return switch (kind) {
+            .call => self.calls,
+            .perm => self.perms,
+        };
+    }
+    pub fn any(self: @This()) bool {
+        return self.calls != 0 or self.perms != 0;
+    }
+};
+pub const SpongeClaims = A.crypto.keccak_sponge.types.Claims;
+pub fn spongeWidths(kind: SpongeKind) [3]usize {
+    return A.crypto.keccak_sponge.layout.widths(kind);
 }

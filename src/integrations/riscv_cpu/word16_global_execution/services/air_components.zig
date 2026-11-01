@@ -8,6 +8,10 @@ const B = S.word16_bridge;
 const K = A.crypto.keccak;
 const KB = K.word16_bridge;
 const BM = A.crypto.bulk_memory;
+const KS = A.crypto.keccak_sponge;
+pub fn spongeChallenges(ch: G.Old.Draw, common: P.Shared) KS.types.Challenges {
+    return .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .and_ = ch.and_, .range16 = ch.memory.range16, .range8 = ch.memory.range8 };
+}
 const T = @import("types.zig");
 const G = @import("../protocol.zig");
 const P = @import("protocol.zig");
@@ -21,6 +25,17 @@ pub const Bridges = struct {
     sha256: ?B.component.Component = null,
     arith256_mod: ?B.component.Component = null,
     bulk: [3]?BM.component.Component = @splat(null),
+    sponge: [2]?KS.component.Component = @splat(null),
+    /// Keccak-sponge components share the CPU proof's RAM14, OWNER19, AND and
+    /// range challenges and the bundle's Keccak IO11 challenge.
+    pub fn withSponge(self: Bridges, setup: *const R.CpuSetup, counts: T.SpongeCounts, ch: G.Old.Draw, common: P.Shared, claims: [2]T.SpongeClaims) Bridges {
+        var out = self;
+        for (T.sponge_kinds, 0..) |kind, k| {
+            const log = setup.bridges.sponge.at(kind) orelse continue;
+            out.sponge[k] = .{ .kind = kind, .log_size = log, .rows = counts.rows(kind), .first_id = counts.first_id, .offsets = .{ setup.spongeOffset(kind, 0), setup.spongeOffset(kind, 1), setup.spongeOffset(kind, 2) }, .claims = claims[k], .challenges = spongeChallenges(ch, common) };
+        }
+        return out;
+    }
     /// Bulk-memory components share the CPU proof's RAM14, OWNER19 and U16 challenges.
     pub fn withBulk(self: Bridges, setup: *const R.CpuSetup, counts: T.BulkCounts, ch: G.Old.Draw, claims: [3]T.BulkClaims) Bridges {
         var out = self;
@@ -54,6 +69,7 @@ pub const Bridges = struct {
     fn count(self: *const Bridges) usize {
         var n = @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null) + @intFromBool(self.arith256_mod != null);
         for (self.bulk) |b| n += @intFromBool(b != null);
+        for (self.sponge) |b| n += @intFromBool(b != null);
         return n;
     }
 };
@@ -71,6 +87,10 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
         out[at] = c.asProverComponent();
         at += 1;
     };
+    for (&bridges.sponge) |*b| if (b.*) |*c| {
+        out[at] = c.asProverComponent();
+        at += 1;
+    };
     return out;
 }
 pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]core.air.components.Component {
@@ -84,6 +104,10 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
         at += 1;
     };
     for (&bridges.bulk) |*b| if (b.*) |*c| {
+        out[at] = c.asVerifierComponent();
+        at += 1;
+    };
+    for (&bridges.sponge) |*b| if (b.*) |*c| {
         out[at] = c.asVerifierComponent();
         at += 1;
     };

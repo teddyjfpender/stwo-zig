@@ -47,7 +47,7 @@ pub fn check(file: std.fs.File, h: H.Header, public: CPU.Public, authority: *con
             .ECALL => {
                 const tag = std.mem.readInt(u64, step[16..24], .little);
                 if (rv.execution_profile.admitsV3(tape_profile, tag)) {
-                    if (rv.execution_profile.isBulkTag(tag)) bulk += 1 else if (tag == rv.execution_profile.ARITH256_MOD_TAG) arith += 1 else sha256 += 1;
+                    if (rv.execution_profile.isPayloadFreeTag(tag)) bulk += 1 else if (tag == rv.execution_profile.ARITH256_MOD_TAG) arith += 1 else sha256 += 1;
                 } else {
                     const kind: usize = if (tag == rv.execution_profile.KECCAK_TAG) 0 else switch (public.execution_profile) {
                         .ethereum_services_v1 => if (tag == rv.execution_profile.SECP_ADD_TAG) 1 else if (tag == rv.execution_profile.SECP_DOUBLE_TAG) 2 else return error.InvalidWorkPacketService,

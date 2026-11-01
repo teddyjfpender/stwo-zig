@@ -58,7 +58,12 @@ pub fn secpWords(profile: Profile) bool {
 /// Admitted v3-only service tags (the ROM-independent service roster):
 /// SHA-256 compression, arith256_mod and aligned memcpy/memset.
 pub fn admitsV3(profile: Profile, tag: u64) bool {
-    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isBulkTag(tag));
+    return profile == .ethereum_services_v3 and (tag == SHA256_COMPRESS_TAG or tag == ARITH256_MOD_TAG or isPayloadFreeTag(tag));
+}
+/// v3 tags whose ECALL step is the whole tape record (no payload section):
+/// bulk memory and the Keccak sponge; provers replay them on the RAM ledger.
+pub fn isPayloadFreeTag(tag: u64) bool {
+    return isBulkTag(tag) or tag == KECCAK_SPONGE_TAG;
 }
 pub fn isBulkTag(tag: u64) bool {
     return tag == MEMCPY_TAG or tag == MEMSET_TAG;

@@ -277,3 +277,50 @@ after the v2 roster. A v2 bundle is byte-identical with or without this code.
   - a complete-block v3 qualification;
   - binding the profile into the program identity rather than receiver policy;
   - whole-protocol security accounting.
+
+## Keccak-256 sponge (`ethereum_services_v3`, tag 0x30130)
+
+Full argument: `design/riscv-proving-stack/rv64-keccak-sponge-service.md` §4.
+
+- **Shape.** Two bridge components in the issuing CPU proof (`call`: one row
+  per ECALL; `perm`: one row per permutation, a contiguous run per call). The
+  permutations are proven by the unchanged Keccak-f truth over the shared
+  IO11 bus. Not a `Family`: a roster block after bulk memory.
+- **IDs.** Sponge permutations take IO11 IDs after every Keccak-f call, shard
+  by shard. Each request carries `sponge.first_id`; `admit` checks every
+  first ID and requires Keccak truth spans to cover `1 .. K + S` exactly.
+  A permutation row's ID is `first_id + fixed row index`.
+- **Joins.** Call row: OWNER ECALL consume, token emit, 4 packet reads and 25
+  state read+writes (RAM14, R = W = 1 constants), IO11 link `(id, 2, l, old)`
+  emit (weight `active − fresh`) and last-output `(id + q + fin − 1, 1, l, new)`
+  consume. Perm row: token consume on the first row, message word reads
+  (RAM14, read-flag thermometer continued across rows, exactly `W` words),
+  input `(id, 0, l, pre ⊕ msg)` and previous output / link consume, XOR via
+  the core byte-AND table (`pre + msg − 2·and`). Direction 2 is never produced
+  by the truth, so links only meet links.
+- **Length and padding.** `len = 136q + r` (ranged), `rb` counter per row,
+  thermometer mask; the finalizing last row carries `Σ mask = r`, `0x01` at
+  the first masked position and `0x80` at byte 135; non-final rows are full.
+  This fixes the run length to `q + fin` over the integers.
+- **Canonicality.** Even window bytes of in-mask positions are AND-checked
+  through `msg`, odd bytes U8-checked, so every limb that feeds an absorbed
+  byte decomposes canonically. Truth bytes are bit sums; call-row old/new
+  bytes inherit canonicality through the IO11 tuples they meet. Writes are the
+  25 state words with truth-anchored values: no new circular edge in the joint
+  write induction.
+- **Transcript.** A sponge block in `beginCpu` and twelve CPU claims, both
+  only when present; the receiver adds sponge IO11 claims to the global IO
+  sum. v2, SHA-only, arith-only and bulk transcripts are unchanged.
+- **Admission.** Executor and AIR agree: len < 2^20, no empty non-final call,
+  state rights 3, packet/state/message words disjoint, flags < 4. The
+  Ethereum receiver rejects sponge declarations unless the request is v3.
+- **Tests.** AIR: honest scenario and 23 lengths × 8 alignments close against
+  an honest truth; wrong XOR, wrong byte, skipped/reordered blocks, forged
+  final state, length mismatch, forged padding, nonzero fresh state and a
+  non-canonical tail split are rejected; degree ≤ 3. Services: real STARKs,
+  fresh receiver over the wire, split truth spans; wrong truth input → IO11
+  unclosed; forged and stale message words → RAM unclosed.
+- **Open.**
+  - recursion support (no om31/circuit role for the sponge components);
+  - a real-block v3 qualification with an admitted sponge guest;
+  - whole-protocol security accounting.
