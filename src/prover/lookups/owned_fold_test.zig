@@ -244,3 +244,69 @@ fn pairLifecycle(allocator: std.mem.Allocator) !void {
 test "paired owned nonresizable folds deinitialize both owners at every OOM boundary" {
     try std.testing.checkAllAllocationFailures(a, pairLifecycle, .{});
 }
+
+fn multiplicityOwnedLifecycle(comptime S: type, allocator: std.mem.Allocator, borrowed_num: bool) !void {
+    const Layer = G.ForField(S).Layer;
+    var wrapper = NoResize{ .child = allocator };
+    const child = wrapper.allocator();
+    const n = try child.alloc(M, 32);
+    var owns_base = true;
+    defer if (owns_base) child.free(n);
+    const d = try child.alloc(S, 32);
+    var layer = Layer{ .LogUpMultiplicities = .{
+        .numerators = if (borrowed_num) try ML.MleFor(S, M).initBorrowed(n) else try ML.MleFor(S, M).initOwned(n),
+        .denominators = try ML.MleFor(S, S).initOwned(d),
+    } };
+    if (!borrowed_num) owns_base = false;
+    defer layer.deinit(child);
+    for (n, d, 0..) |*x, *y, i| {
+        x.* = if (i % 3 == 0) M.zero() else if (i % 3 == 1) M.one().neg() else M.fromCanonical(@intCast(i));
+        y.* = dense(S, i + 211);
+    }
+    const r = dense(S, 97);
+    try layer.fixFirstVariableInPlace(child, r);
+    try std.testing.expectEqual(std.meta.Tag(Layer).LogUpGeneric, std.meta.activeTag(layer));
+    const inner = layer.LogUpGeneric;
+    for (inner.numerators.evals, inner.denominators.evals, 0..) |x, y, i| {
+        const lo = if (i % 3 == 0) M.zero() else if (i % 3 == 1) M.one().neg() else M.fromCanonical(@intCast(i));
+        const j = i + 16;
+        const hi = if (j % 3 == 0) M.zero() else if (j % 3 == 1) M.one().neg() else M.fromCanonical(@intCast(j));
+        try std.testing.expectEqualDeep(S.fromBase(lo).add(r.mulM31(hi.sub(lo))), x);
+        try std.testing.expectEqualDeep(dense(S, i + 211).add(r.mul(dense(S, i + 227).sub(dense(S, i + 211)))), y);
+    }
+    if (borrowed_num) for (n, 0..) |x, i| {
+        const expected = if (i % 3 == 0) M.zero() else if (i % 3 == 1) M.one().neg() else M.fromCanonical(@intCast(i));
+        try std.testing.expectEqualDeep(expected, x);
+    };
+}
+fn ownedNumLifecycle(allocator: std.mem.Allocator) !void {
+    try multiplicityOwnedLifecycle(core.fields.om31.OM31, allocator, false);
+}
+fn borrowedNumLifecycle(allocator: std.mem.Allocator) !void {
+    try multiplicityOwnedLifecycle(core.fields.om31.OM31, allocator, true);
+}
+test "multiplicity owned denominator lift preserves Q OM scalar fractions and caller base inputs" {
+    try multiplicityOwnedLifecycle(core.fields.qm31.QM31, a, false);
+    try multiplicityOwnedLifecycle(core.fields.om31.OM31, a, false);
+    try multiplicityOwnedLifecycle(core.fields.om31.OM31, a, true);
+}
+test "multiplicity owned denominator lift cleans every allocation failure with both base ownerships" {
+    try std.testing.checkAllAllocationFailures(a, ownedNumLifecycle, .{});
+    try std.testing.checkAllAllocationFailures(a, borrowedNumLifecycle, .{});
+}
+test "multiplicity fold rejects unequal and overlapping owned planes before mutation" {
+    const S = core.fields.om31.OM31;
+    const Layer = G.ForField(S).Layer;
+    const n = try a.alloc(M, 32);
+    defer a.free(n);
+    const d = try a.alloc(S, 32);
+    defer a.free(d);
+    for (d, 0..) |*v, i| v.* = dense(S, i);
+    var wrong = Layer{ .LogUpMultiplicities = .{ .numerators = try ML.MleFor(S, M).initBorrowed(n[0..16]), .denominators = try ML.MleFor(S, S).initOwned(d) } };
+    // Validation only; outer scope retains the real owners.
+    try std.testing.expectError(error.PairShapeMismatch, wrong.fixFirstVariableInPlace(a, S.one()));
+    const overlapping: [*]M = @ptrCast(d.ptr);
+    wrong.LogUpMultiplicities.numerators = try ML.MleFor(S, M).initBorrowed(overlapping[0..32]);
+    try std.testing.expectError(error.AliasedMleOwners, wrong.fixFirstVariableInPlace(a, S.one()));
+    for (d, 0..) |v, i| try std.testing.expectEqualDeep(dense(S, i), v);
+}
