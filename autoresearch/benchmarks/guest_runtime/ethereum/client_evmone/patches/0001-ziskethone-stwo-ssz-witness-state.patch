@@ -78,10 +78,10 @@ index 2a49846..c697d82 100644
  
 diff --git a/cpp-guest/include/zeg/stwo_hooks.hpp b/cpp-guest/include/zeg/stwo_hooks.hpp
 new file mode 100644
-index 0000000..05758fb
+index 0000000..78945e5
 --- /dev/null
 +++ b/cpp-guest/include/zeg/stwo_hooks.hpp
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,36 @@
 +// Hooks for the stwo RV64 port (patch-added; implemented in client_evmone/glue).
 +// The stwo guest reads the canonical SSZ StatelessInput, whose witness is a set
 +// of trie nodes without key preimages, so the Accounts/Storages tables are
@@ -96,6 +96,7 @@ index 0000000..05758fb
 +class ConsensusInfo;
 +class Transactions;
 +class PreviousBlocks;
++struct BlockHeader;
 +
 +// Append a row for `addr` if its trie path is in the witness; false if the
 +// path leaves the witness (the key is then unproven and only warmable).
@@ -106,7 +107,11 @@ index 0000000..05758fb
 +void stwo_state_begin(Accounts& accounts, Storages& storages, const ConsensusInfo& consensus,
 +                      const PreviousBlocks& previous_blocks);
 +evmc::bytes32 stwo_state_new_root(Accounts& accounts, Storages& storages);
-+void stwo_after_block(const Transactions& transactions, const evmc::bytes32& block_hash);
++// Binds the re-executed block to the SSZ payload: every payload field is
++// checked against `header` (inputs and execution results alike) and the block
++// hash, before the request root is emitted.
++void stwo_after_block(const Transactions& transactions, const BlockHeader& header,
++                      const evmc::bytes32& block_hash);
 +// Sender of transaction `index` from the input's public-key hint; false if no
 +// usable hint (the caller recovers instead). Signatures are verified in batch
 +// before any output is produced.
@@ -229,7 +234,7 @@ index 5a753fa..98d562e 100644
          // Every account the block loads is a row (an empty leaf if it doesn't
          // exist); one without is unproven, so halt.
 diff --git a/cpp-guest/src/run.cpp b/cpp-guest/src/run.cpp
-index b8e670b..178ec45 100644
+index b8e670b..54e1305 100644
 --- a/cpp-guest/src/run.cpp
 +++ b/cpp-guest/src/run.cpp
 @@ -32,6 +32,7 @@
@@ -285,7 +290,7 @@ index b8e670b..178ec45 100644
  
 +    // stwo: bind the computed block to the SSZ payload (block hash, versioned
 +    // hashes) before the public output is taken from the input request root.
-+    zeg::stwo_after_block(transactions, execution_block_hash);
++    zeg::stwo_after_block(transactions, header, execution_block_hash);
 +
  #if defined(ZEG_PUBLIC_OUTPUT_BLOCK_HASH)
      // 8. ZEG_PUBLIC_OUTPUT=block_hash: no EIP-8025; the block hash is the output.

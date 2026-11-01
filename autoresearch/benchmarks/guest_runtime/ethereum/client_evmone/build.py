@@ -208,6 +208,27 @@ def compile_one(job):
     return None
 
 
+def run_tests(src: Path, out: Path, work: Path, a) -> None:
+    """Host tests: memory-function fuzz and secp256k1 differential vs evmone."""
+    tdir = work / "obj-tests"
+    tdir.mkdir(parents=True, exist_ok=True)
+    glue = HERE / "glue"
+    run(["zig", "c++", "-O1", "-fno-builtin", "-std=c++20", f"-I{glue}", HERE / "tests" / "mem_fuzz.cpp",
+         "-o", tdir / "mem_fuzz"])
+    run([tdir / "mem_fuzz"])
+    flags = [a.opt, "-g", *COMMON_CXX, *DEFINES, "-DSTWO_HOST", *includes(src)]
+    units = [(glue / "secp256k1_stwo.cpp", ["-DSTWO_SECP_NO_EVMONE_API"]), (glue / "host_services.cpp", []),
+             (glue / "keccak_stwo.cpp", []), (src / "evmone" / "lib" / "evmone_precompiles" / "secp256k1.cpp", []),
+             (HERE / "tests" / "secp_differential.cpp", [])]
+    objs = []
+    for f, extra in units:
+        o = tdir / (f.name + ".o")
+        run(["zig", "c++", *flags, *extra, "-c", f, "-o", o])
+        objs.append(o)
+    run(["zig", "c++", a.opt, *objs, "-o", tdir / "secp_differential"])
+    run([tdir / "secp_differential", "3000"])
+
+
 def main(argv=None):
     global ZIG_LIBCXX
     ap = argparse.ArgumentParser()
@@ -220,6 +241,8 @@ def main(argv=None):
                     help="stwo: recover on the admitted secp services; evmone: software reference")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--clean", action="store_true")
+    ap.add_argument("--tests", action="store_true",
+                    help="build and run the host tests (memory fuzz, secp differential vs evmone)")
     ap.add_argument("--no-stage", action="store_true", help="reuse the staged, patched sources")
     a = ap.parse_args(argv)
     out = Path(a.out).resolve()
@@ -232,6 +255,8 @@ def main(argv=None):
         raise SystemExit("cannot locate zig lib dir")
     zig_version = subprocess.run(["zig", "version"], capture_output=True, text=True, check=True).stdout.strip()
 
+    if a.tests and not a.host:
+        raise SystemExit("--tests needs --host")
     pinned = fetch(cache)
     work = out / "work"
     if a.clean and work.exists():
@@ -283,6 +308,8 @@ def main(argv=None):
         exe = out / f"client-evmone-{a.profile}.elf"
         run(["zig", "c++", "-target", "riscv64-freestanding-none", "-mcpu=generic_rv64+m", "-nostdlib",
              "-static", "-T", LINKER_SCRIPT, "-Wl,--gc-sections", "-Wl,-z,stack-size=0", *objs, "-o", exe])
+    if a.tests:
+        run_tests(src, out, work, a)
     digest = hashlib.sha256(exe.read_bytes()).hexdigest()
     manifest = {
         "schema": "stwo.rv64.client-evmone-build.v1",

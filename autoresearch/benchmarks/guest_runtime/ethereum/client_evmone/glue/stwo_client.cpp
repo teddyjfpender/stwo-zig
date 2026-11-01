@@ -26,6 +26,7 @@
 
 #include "zeg/accounts.hpp"
 #include "zeg/binary_format.hpp"
+#include "zeg/block_header.hpp"
 #include "zeg/consensus_info.hpp"
 #include "zeg/fork_schedule.hpp"
 #include "zeg/previous_blocks.hpp"
@@ -546,8 +547,29 @@ bool stwo_tx_sender(uint64_t index, const evmc::bytes32& hash, const evmc::uint2
     return stwo_secp_hint_sender(hash.bytes, r.bytes, s.bytes, recid, in.public_keys.p + 65 * index, out.bytes);
 }
 
-void stwo_after_block(const Transactions& transactions, const evmc::bytes32& block_hash) {
+void stwo_after_block(const Transactions& transactions, const BlockHeader& h,
+                      const evmc::bytes32& block_hash) {
     const Input& in = *g.in;
+    // Every ExecutionPayloadV3 field must equal the re-executed header: the
+    // execution results (state/receipts root, bloom, gas, blob gas) are taken
+    // from the computation, so the payload's claims must be compared here.
+    auto eq = [](const uint8_t* a, const uint8_t* b, size_t n) { return std::memcmp(a, b, n) == 0; };
+    if (!eq(h.parent_hash.bytes, pl_parent_hash(in), 32)) fail("payload parent_hash mismatch");
+    if (!eq(h.coinbase.bytes, pl_fee_recipient(in), 20)) fail("payload fee_recipient mismatch");
+    if (!eq(h.state_root.bytes, pl_state_root(in), 32)) fail("payload state_root mismatch");
+    if (!eq(h.receipts_root.bytes, pl_receipts_root(in), 32)) fail("payload receipts_root mismatch");
+    if (!eq(h.logs_bloom.data(), pl_logs_bloom(in), 256)) fail("payload logs_bloom mismatch");
+    if (!eq(h.prev_randao.bytes, pl_prev_randao(in), 32)) fail("payload prev_randao mismatch");
+    if (h.number != pl_number(in) || h.gas_limit != pl_gas_limit(in) || h.gas_used != pl_gas_used(in) ||
+        h.timestamp != pl_timestamp(in) || h.blob_gas_used != pl_blob_gas_used(in) ||
+        h.excess_blob_gas != pl_excess_blob_gas(in))
+        fail("payload integer field mismatch");
+    if (h.extra_data.size() != in.extra_data.n || !eq(h.extra_data.data(), in.extra_data.p, in.extra_data.n))
+        fail("payload extra_data mismatch");
+    for (int i = 0; i < 32; ++i)
+        if (h.base_fee_per_gas.bytes[i] != pl_base_fee_le(in)[31 - i]) fail("payload base_fee mismatch");
+    if (!eq(h.parent_beacon_block_root.bytes, in.parent_beacon_block_root, 32)) fail("parent beacon root mismatch");
+    if (!eq(h.requests_hash.bytes, requests_hash(in).bytes, 32)) fail("requests hash mismatch");
     // Every hinted sender's signature must verify (batch), else no output.
     stwo_secp_verify_pending();
     if (in.public_keys.n / 65 != transactions.size()) fail("public key count != transaction count");

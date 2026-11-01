@@ -481,6 +481,9 @@ extern "C" bool stwo_secp_hint_sender(const uint8_t z_be[32], const uint8_t r_be
     return true;
 }
 
+// Test hook: drop deferred signatures (the guest itself aborts on failure).
+extern "C" void stwo_secp_reset_pending() { g_pending_n = 0; }
+
 // Verifies every deferred signature; aborts the guest on any failure.
 extern "C" void stwo_secp_verify_pending() {
     const size_t n = g_pending_n;
@@ -536,6 +539,8 @@ extern "C" int secp256k1_ecdsa_recover(const uint64_t* z, const uint64_t* r, con
 }
 
 // ---- evmone API (ECRECOVER precompile) ----
+// (Omitted by the host differential test, which links evmone's reference.)
+#if !defined(STWO_SECP_NO_EVMONE_API)
 #include <evmone_precompiles/secp256k1.hpp>
 
 namespace evmone::crypto::secp256k1 {
@@ -566,3 +571,4 @@ std::optional<evmc::address> ecrecover(std::span<const uint8_t, 32> hash, std::s
 }
 
 }  // namespace evmone::crypto::secp256k1
+#endif  // STWO_SECP_NO_EVMONE_API
