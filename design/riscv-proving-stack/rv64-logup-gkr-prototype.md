@@ -1,9 +1,14 @@
 # LogUp-GKR prototype: LS scalar-range lookups with committed-column binding
 
-Status: design gate (STEP 1). Nothing here is implemented, measured, or
-qualified. The default Word16 protocol, its receivers, `catalog.zig` and the
-`word16_cpu/boundary*` files are not touched by this work. Written against
-`eac3b7c07` (`codex/rv64-arith-memory`).
+Status: the original STEP 1 design below was written against `eac3b7c07`.
+The recovered implementation now has an explicitly selected experimental
+mini-AIR/tool for STEP 2a and Safe/Fast adversarial tests. It has not joined
+the production LS owner/RAM protocol (STEP 2b), and has no recursive receiver.
+The default Word16 protocol and receivers remain unchanged. The build catalog
+now exposes the prototype and its dedicated test suite; implementation and
+resource limitations are documented in
+`src/integrations/riscv_cpu/logup_gkr/README.md`. Estimates below are historical
+design hypotheses, not measured speedups.
 
 Upstream reference, read only and not executed: starkware-libs/stwo at
 `826591c6c` (2026-08-13), `crates/stwo/src/prover/lookups/*` and

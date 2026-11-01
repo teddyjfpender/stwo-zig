@@ -24,8 +24,11 @@ pub fn main() !void {
     }
     if (std.mem.eql(u8, args[1], "produce")) {
         if (args.len < 5 or args.len > 7) return error.ExpectedVariantWitnessOutput;
-        const choice: P.GkrProverChoice = if (args.len >= 6 and std.mem.eql(u8, args[5], "reference")) .reference else .fast;
-        const threads = if (args.len == 7) try std.fmt.parseUnsigned(usize, args[6], 10) else try std.Thread.getCpuCount();
+        const choice: P.GkrProverChoice = if (args.len < 6 or std.mem.eql(u8, args[5], "fast")) .fast else if (std.mem.eql(u8, args[5], "reference")) .reference else return error.InvalidGkrProver;
+        // Standalone prototype owns a private pool: conservative default and
+        // explicit bounded parallelism, independent of production workers.
+        const threads = if (args.len == 7) try std.fmt.parseUnsigned(usize, args[6], 10) else 1;
+        if (threads == 0 or threads > @import("fast_gkr.zig").MAX_THREADS) return error.InvalidGkrThreads;
         return produce(a, try parseVariant(args[2]), args[3], args[4], choice, threads);
     }
     if (std.mem.eql(u8, args[1], "verify")) {
