@@ -1,0 +1,3 @@
+The immutable fixed-key identity hashes the same canonical little-endian stream as before. On little-endian hosts M31's statically checked single-u32 representation permits one update per coefficient plane instead of one per four-byte cell. Big-endian encoding retains the explicit scalar path.
+
+ReleaseSafe and ReleaseFast fixed-setup suites pass, including the independent historical scalar framing oracle, mixed heights and ordering, near-modulus/zero/dense values, invalid empty inputs, actual beta1/beta2 root fixtures, source validation, allocator ownership and all allocation failures. No source validation, domain tag, identity ordering, proof parameter or root authority changes. Actual whole-inventory setup performance is pending measurement; no FFT or whole128 claim.
