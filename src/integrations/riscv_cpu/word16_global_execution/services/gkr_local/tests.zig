@@ -359,3 +359,7 @@ test {
 test {
     _ = @import("../../ethereum/receiver_budget.zig");
 }
+
+test {
+    _ = @import("fixed_source_metadata_test.zig");
+}
