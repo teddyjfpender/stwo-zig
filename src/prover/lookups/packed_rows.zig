@@ -117,6 +117,17 @@ pub fn ForField(comptime S: type) type {
             }
             return .{ .values = .{ sum(s0), sum(s2) }, .end = i };
         }
+        /// Rank-two weighted LogUp gate. Grouping λ*a with nA avoids the
+        /// standalone a*b product: four secure products including Eq instead
+        /// of five for generic numerators; base leaves save one base product.
+        /// This changes only arithmetic scheduling, not the scalar authority.
+        inline fn weightedLogupGate(comptime F: type, na: if (F == m.M31) m.PackedM31 else P, nb: if (F == m.M31) m.PackedM31 else P, a: P, b: P, lambda: P) P {
+            const promoted = if (F == m.M31)
+                if (S == Q) P.fromBase(na) else po.fromCoordinates(.{ na, @splat(0), @splat(0), @splat(0), @splat(0), @splat(0), @splat(0), @splat(0) })
+            else
+                na;
+            return promoted.add(lambda.mul(a)).mul(b).add(cross(F, nb, a));
+        }
         pub fn sumLogup(comptime F: type, eq: []const S, nums: []const F, dens: []const S, terms: usize, lambda: S, first: usize, end: usize) SumResult {
             var s0 = splat(S.zero());
             var s2 = splat(S.zero());
@@ -129,11 +140,11 @@ pub fn ForField(comptime S: type) type {
                 const b1 = load(dens, 2 * (terms + i) + 1, 2);
                 const a2 = a1.add(a1).sub(a);
                 const b2 = b1.add(b1).sub(b);
-                const n0 = if (F == void) a.add(b) else cross(F, numerator(F, nums, 2 * i, 2), b).add(cross(F, numerator(F, nums, 2 * i + 1, 2), a));
-                const n2 = if (F == void) a2.add(b2) else cross(F, numTwo(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * (terms + i), 2)), b2).add(cross(F, numTwo(F, numerator(F, nums, 2 * i + 1, 2), numerator(F, nums, 2 * (terms + i) + 1, 2)), a2));
+                const gate0 = if (F == void) a.add(b).add(l.mul(a.mul(b))) else weightedLogupGate(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * i + 1, 2), a, b, l);
+                const gate2 = if (F == void) a2.add(b2).add(l.mul(a2.mul(b2))) else weightedLogupGate(F, numTwo(F, numerator(F, nums, 2 * i, 2), numerator(F, nums, 2 * (terms + i), 2)), numTwo(F, numerator(F, nums, 2 * i + 1, 2), numerator(F, nums, 2 * (terms + i) + 1, 2)), a2, b2, l);
                 const e = load(eq, i, 1);
-                s0 = s0.add(e.mul(n0.add(l.mul(a.mul(b)))));
-                s2 = s2.add(e.mul(n2.add(l.mul(a2.mul(b2)))));
+                s0 = s0.add(e.mul(gate0));
+                s2 = s2.add(e.mul(gate2));
             }
             return .{ .values = .{ sum(s0), sum(s2) }, .end = i };
         }

@@ -138,3 +138,26 @@ test "optional packed GKR kernel microbenchmark" {
     try bench(core.fields.qm31.QM31);
     try bench(core.fields.om31.OM31);
 }
+
+test "weighted packed LogUp gate preserves zeros negative multiplicities and exact cancellation" {
+    inline for (.{ core.fields.qm31.QM31, core.fields.om31.OM31 }) |S| {
+        const K = Kernels.ForField(S);
+        const terms = 4 * Kernels.WIDTH;
+        var d: [4 * terms]S = undefined;
+        var n: [4 * terms]S = undefined;
+        var b: [4 * terms]M = undefined;
+        var eq: [terms]S = undefined;
+        const lambda = dense(S, 531);
+        for (&d, &n, &b, 0..) |*denominator, *numerator, *base, i| {
+            denominator.* = if (i % 5 == 0) S.zero() else dense(S, i + 31);
+            numerator.* = if (i % 2 == 0) lambda.mul(denominator.*).neg() else S.one().neg();
+            base.* = if (i % 3 == 0) M.zero() else if (i % 3 == 1) M.one().neg() else M.fromCanonical(core.fields.m31.Modulus - 2);
+        }
+        for (&eq, 0..) |*v, i| v.* = if (i % 3 == 0) S.zero() else dense(S, i + 913);
+        for ([_]S{ S.zero(), S.one(), lambda }) |l| inline for (.{ M, S }) |F| {
+            const numerator: []const F = if (F == M) &b else &n;
+            const result = K.sumLogup(F, &eq, numerator, &d, terms, l, 1, terms - 1);
+            try std.testing.expectEqualDeep(scalarLogup(S, F, &eq, numerator, &d, terms, l, 1, result.end), result.values);
+        };
+    }
+}
