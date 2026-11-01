@@ -69,6 +69,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-word16-division-product", .description = "Qualify narrow DIV arithmetic using typed MUL support", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-chips", .description = "Check experimental Word16 chip authorities", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-word16-binary-proof", .description = "Prove diagnostic closed Word16 binary chip", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-capture-prefetch", .description = "Qualify bounded ordered Ethereum packet capture prefetch", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-packet-control", .description = "Prove detached packet jobs out of order and verify complete root chain", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-closed-load-store", .description = "Prove experimental closed Word16 load/store and RAM ownership", .scope = .riscv_cpu },
     .{ .name = "rv64-load-store-fixture", .description = "Build durable experimental closed Word16 load/store proof", .scope = .riscv_cpu },
