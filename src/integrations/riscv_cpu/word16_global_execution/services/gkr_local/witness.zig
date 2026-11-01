@@ -48,6 +48,28 @@ pub fn eqIntoWithOptions(data: []M, rows: usize, point: []const O, options: Work
         len *= 2;
     }
 }
+// Each row's lane values are contiguous. Reduce native packs directly, keeping
+// the original scalar tail for short families; no extra projected plane or
+// ownership transition is needed. Field addition is exact, so regrouping lanes
+// preserves the authenticated scalar projection.
+fn projectLanes(weights: []const O, numerators: []const M, denominators: []const O) struct { n: O, d: O } {
+    const Packed = engine.lookups.packed_rows.ForField(O);
+    var pn = Packed.splat(O.zero());
+    var pd = Packed.splat(O.zero());
+    var i: usize = 0;
+    while (i + engine.lookups.packed_rows.WIDTH <= weights.len) : (i += engine.lookups.packed_rows.WIDTH) {
+        const w = Packed.load(weights, i, 1);
+        pn = pn.add(w.mulBase(Packed.base(numerators, i, 1)));
+        pd = pd.add(w.mul(Packed.load(denominators, i, 1)));
+    }
+    var n = Packed.sum(pn);
+    var d = Packed.sum(pd);
+    for (weights[i..], numerators[i..], denominators[i..]) |weight, numerator, denominator| {
+        n = n.add(weight.mulM31(numerator));
+        d = d.add(weight.mul(denominator));
+    }
+    return .{ .n = n, .d = d };
+}
 // Projection fills physical rows contiguously. Prefix wave one uses logical
 // ranges, then a joined carry wave adjusts disjoint physical slots in place.
 fn projectAndPrefix(data: []M, rows: usize, row_log: u32, lanes: usize, weights: []const O, numerators: []const M, denominators: []const O, eta: O, uniform: O, options: Work.RangeOptions) !void {
@@ -66,14 +88,10 @@ fn projectAndPrefix(data: []M, rows: usize, row_log: u32, lanes: usize, weights:
         shards: usize = 1,
         pub fn runRange(self: *@This(), _: usize, start: usize, end: usize) void {
             for (start..end) |p| {
-                var n = O.zero();
-                var d = O.zero();
-                for (self.weights, 0..) |weight, lane| {
-                    const at = p * self.lanes + lane;
-                    n = n.add(weight.mulM31(self.numerators[at]));
-                    d = d.add(weight.mul(self.denominators[at]));
-                }
-                set(self.data, self.rows, 8, p, get(self.data, self.rows, 0, p).mul(n.add(self.eta.mul(d))).sub(self.uniform));
+                const start_lane = p * self.lanes;
+                const end_lane = start_lane + self.lanes;
+                const projection = projectLanes(self.weights, self.numerators[start_lane..end_lane], self.denominators[start_lane..end_lane]);
+                set(self.data, self.rows, 8, p, get(self.data, self.rows, 0, p).mul(projection.n.add(self.eta.mul(projection.d))).sub(self.uniform));
             }
         }
         pub fn prefixRange(self: *@This(), ordinal: usize, start: usize, end: usize) void {
@@ -209,20 +227,26 @@ test "bounded Eq projection and two-wave prefix match serial authority in every 
         }
         len *= 2;
     }
-    const n = try a.alloc(M, 2 * rows);
+    const lanes = 8;
+    const n = try a.alloc(M, lanes * rows);
     defer a.free(n);
-    const d = try a.alloc(O, 2 * rows);
+    const d = try a.alloc(O, lanes * rows);
     defer a.free(d);
     for (n, d, 0..) |*nv, *dv, i| {
         nv.* = M.fromCanonical(@intCast(i % 101));
         dv.* = denseTestValue(i % 313);
     }
     const eta = denseTestValue(31);
-    const weights = [_]O{ denseTestValue(14), denseTestValue(15) };
+    var weights: [lanes]O = undefined;
+    for (&weights, 0..) |*weight, lane| weight.* = denseTestValue(14 + lane);
     var total = O.zero();
     for (0..rows) |p| {
-        const nsum = weights[0].mulM31(n[2 * p]).add(weights[1].mulM31(n[2 * p + 1]));
-        const dsum = weights[0].mul(d[2 * p]).add(weights[1].mul(d[2 * p + 1]));
+        var nsum = O.zero();
+        var dsum = O.zero();
+        for (weights, 0..) |weight, lane| {
+            nsum = nsum.add(weight.mulM31(n[lanes * p + lane]));
+            dsum = dsum.add(weight.mul(d[lanes * p + lane]));
+        }
         const contribution = get(serial, rows, 0, p).mul(nsum.add(eta.mul(dsum)));
         set(serial, rows, 8, p, contribution);
         total = total.add(contribution);
@@ -243,8 +267,30 @@ test "bounded Eq projection and two-wave prefix match serial authority in every 
         var binding = try Pools.ScopedPoolBinding.init(&pool);
         defer binding.deinit();
         try eqIntoWithOptions(parallel, rows, &point, .{});
-        try projectAndPrefix(parallel, rows, log, 2, &weights, n, d, eta, uniform, .{});
+        try projectAndPrefix(parallel, rows, log, lanes, &weights, n, d, eta, uniform, .{});
         try std.testing.expectEqualSlices(M, serial, parallel);
-        try std.testing.expectError(error.UnboundLocalGkrInput, projectAndPrefix(parallel, rows, log, 2, &weights, n, d, eta, uniform.add(O.one()), .{}));
+        try std.testing.expectError(error.UnboundLocalGkrInput, projectAndPrefix(parallel, rows, log, lanes, &weights, n, d, eta, uniform.add(O.one()), .{}));
+    }
+}
+
+test "packed local binding projection matches independent scalar lanes including tails" {
+    var weights: [129]O = undefined;
+    var numerators: [129]M = undefined;
+    var denominators: [129]O = undefined;
+    for (&weights, &numerators, &denominators, 0..) |*w, *n, *d, i| {
+        w.* = denseTestValue(i + 17);
+        n.* = M.fromCanonical(@intCast((i * 19) % 103));
+        d.* = denseTestValue(i + 79);
+    }
+    for ([_]usize{ 1, 2, 3, 4, 5, 8, 13, 32, 128, 129 }) |count| {
+        var n = O.zero();
+        var d = O.zero();
+        for (weights[0..count], numerators[0..count], denominators[0..count]) |w, nv, dv| {
+            n = n.add(w.mulM31(nv));
+            d = d.add(w.mul(dv));
+        }
+        const actual = projectLanes(weights[0..count], numerators[0..count], denominators[0..count]);
+        try std.testing.expectEqual(n, actual.n);
+        try std.testing.expectEqual(d, actual.d);
     }
 }

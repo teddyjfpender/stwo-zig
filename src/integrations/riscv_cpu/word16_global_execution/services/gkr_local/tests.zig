@@ -343,3 +343,8 @@ test {
 test {
     _ = @import("prepared_projection_test.zig");
 }
+
+// Keep binding-kernel tests explicitly reachable under focused test filters.
+test {
+    _ = @import("witness.zig");
+}
