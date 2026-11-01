@@ -110,9 +110,17 @@ test "host reference cannot authenticate CPU or service origin without physical 
 test "global RAM reference distinguishes read permission from no-change write permission" {
     const readonly = [_]M.Word{.{ .address = 0x3000, .value = 42, .rights = 1 }};
     const read = [_]M.Event{.{
-        .address = 0x3000, .previous_epoch = 0, .previous_tick = 0,
-        .epoch = 1, .tick = 4, .before = 42, .after = 42,
-        .rights = 1, .access = .read, .origin = .load_store, .origin_ordinal = 0,
+        .address = 0x3000,
+        .previous_epoch = 0,
+        .previous_tick = 0,
+        .epoch = 1,
+        .tick = 4,
+        .before = 42,
+        .after = 42,
+        .rights = 1,
+        .access = .read,
+        .origin = .load_store,
+        .origin_ordinal = 0,
     }};
     try M.audit(&readonly, &readonly, &read, 1);
     var impossible = read;
