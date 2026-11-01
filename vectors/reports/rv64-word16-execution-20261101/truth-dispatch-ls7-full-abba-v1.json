@@ -1,0 +1,263 @@
+{
+  "schema": "rv64-optional-truth-dispatch-ls7-full-abba-v1",
+  "source": "bd4bf19fa",
+  "receipt_parent": "74c5313fd",
+  "base": "fe3b29fc0",
+  "default_enabled": false,
+  "protocol": "core schema7 LSencoding6, nominal96 q70/P26/fold1 control; not whole-protocol128-bit qualification",
+  "binary_sha256": "79634774d8b5f3c8b96e18dcf90cc3ff25f9d577f5c7e94586eb3159991853f6",
+  "provenance": "Same frozen binary as functional/prefix qualification; built fromfe3b29fc0 plus uncommitted source subsequently committedbd4bf19fa. Main production code held stable during measurement.",
+  "all_four_complete_blocks_qualified": true,
+  "cases": [
+    {
+      "label": "A0-manifest2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/A0-manifest2x8-r0",
+        "0"
+      ],
+      "completed": true,
+      "all34_artifacts_identical": true,
+      "fresh_receiver_accepted": true,
+      "wall_seconds": 153.05,
+      "prove_seconds": 131.412136,
+      "peak_footprint_bytes": 29069059816,
+      "timing_scope": "excluded: boundary compiler/test overlaps initial run",
+      "phase_accounting": {
+        "stage1": {
+          "sum_worker_seconds": 69.984269497,
+          "span_seconds": 35.07757675,
+          "occupied_lane_efficiency": 0.997564198858178,
+          "lane_finish_seconds": [
+            34.906873875,
+            35.07757675
+          ],
+          "truth_task_seconds": [
+            4.057302,
+            3.424766708,
+            2.630986959,
+            0.021913958,
+            1.305411334
+          ]
+        },
+        "stage2": {
+          "sum_worker_seconds": 191.974045834,
+          "span_seconds": 96.303735375,
+          "occupied_lane_efficiency": 0.9967113169933987,
+          "lane_finish_seconds": [
+            95.670503209,
+            96.303735375
+          ],
+          "truth_task_seconds": [
+            15.297665583,
+            15.024227416,
+            2.8468345,
+            0.353832208,
+            1.007971
+          ]
+        }
+      }
+    },
+    {
+      "label": "B0-truths2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/B0-truths2x8-r0",
+        "0",
+        "--truths-first"
+      ],
+      "completed": true,
+      "all34_artifacts_identical": true,
+      "fresh_receiver_accepted": true,
+      "wall_seconds": 158.37,
+      "prove_seconds": 136.519137917,
+      "peak_footprint_bytes": 39979796840,
+      "timing_scope": "excluded: boundary compiler/test overlaps initial run",
+      "phase_accounting": {
+        "stage1": {
+          "sum_worker_seconds": 65.727810583,
+          "span_seconds": 33.668381041,
+          "occupied_lane_efficiency": 0.9761058974436475,
+          "lane_finish_seconds": [
+            32.059609416,
+            33.668381041
+          ],
+          "truth_task_seconds": [
+            3.283320458,
+            2.870401333,
+            2.034650959,
+            0.015066292,
+            0.928430708
+          ]
+        },
+        "stage2": {
+          "sum_worker_seconds": 200.941490915,
+          "span_seconds": 102.821125041,
+          "occupied_lane_efficiency": 0.9771410828021695,
+          "lane_finish_seconds": [
+            98.120543791,
+            102.821125041
+          ],
+          "truth_task_seconds": [
+            18.773289166,
+            17.268397667,
+            2.969581458,
+            0.374887833,
+            1.1534575
+          ]
+        }
+      }
+    },
+    {
+      "label": "B1-truths2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/B1-truths2x8-r0",
+        "0",
+        "--truths-first"
+      ],
+      "completed": true,
+      "all34_artifacts_identical": true,
+      "fresh_receiver_accepted": true,
+      "wall_seconds": 163.6,
+      "prove_seconds": 142.529109583,
+      "peak_footprint_bytes": 39963199656,
+      "timing_scope": "team activity quiet; external background CPU remains; single observation",
+      "phase_accounting": {
+        "stage1": {
+          "sum_worker_seconds": 69.844242999,
+          "span_seconds": 35.82914825,
+          "occupied_lane_efficiency": 0.9746846689133895,
+          "lane_finish_seconds": [
+            34.015273625,
+            35.82914825
+          ],
+          "truth_task_seconds": [
+            3.346469,
+            2.933850792,
+            2.018980334,
+            0.014003416,
+            0.927583375
+          ]
+        },
+        "stage2": {
+          "sum_worker_seconds": 208.738950124,
+          "span_seconds": 106.669979541,
+          "occupied_lane_efficiency": 0.9784334403278312,
+          "lane_finish_seconds": [
+            102.069137208,
+            106.669979541
+          ],
+          "truth_task_seconds": [
+            20.233854167,
+            19.445994541,
+            3.112846125,
+            0.384523375,
+            1.1700595
+          ]
+        }
+      }
+    },
+    {
+      "label": "A1-manifest2x8",
+      "command": [
+        "lockf",
+        "-k",
+        "/private/tmp/stwo-rv64-perf-heavy.lock",
+        "/usr/bin/time",
+        "-l",
+        "/tmp/rv64-truth-dispatch-tools-v1/bin/rv64-word16-ethereum",
+        "produce",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/request-w16.json",
+        "/tmp/stwo-rv64-ethereum-round5-native-jobs-v1/jobs",
+        "/tmp/rv64-truth-dispatch-complete-abba-v1/A1-manifest2x8-r0",
+        "0"
+      ],
+      "completed": true,
+      "all34_artifacts_identical": true,
+      "fresh_receiver_accepted": true,
+      "wall_seconds": 159.79,
+      "prove_seconds": 138.570987458,
+      "peak_footprint_bytes": 27888410664,
+      "timing_scope": "team activity quiet; external background CPU remains; single observation",
+      "phase_accounting": {
+        "stage1": {
+          "sum_worker_seconds": 69.208989414,
+          "span_seconds": 34.841321417,
+          "occupied_lane_efficiency": 0.9932027058570617,
+          "lane_finish_seconds": [
+            34.841321417,
+            34.367835709
+          ],
+          "truth_task_seconds": [
+            3.7407545,
+            3.321953666,
+            2.612724084,
+            0.021626334,
+            1.397169708
+          ]
+        },
+        "stage2": {
+          "sum_worker_seconds": 206.522521707,
+          "span_seconds": 103.699330417,
+          "occupied_lane_efficiency": 0.9957755796325934,
+          "lane_finish_seconds": [
+            103.699330417,
+            102.823359875
+          ],
+          "truth_task_seconds": [
+            16.962145916,
+            16.213410208,
+            3.216570834,
+            0.422536458,
+            1.034735875
+          ]
+        }
+      }
+    }
+  ],
+  "interference": {
+    "A0_B0": "Existing AIR boundary memory Safe compiler44167/test44381 was already running; both early runs excluded from throughput comparison.",
+    "air_agent_reported_test_end_utc": "2026-11-01T09:29:52Z",
+    "gkr_agent_report": "No active compiler/prover/graph process at quiet request.",
+    "cpu_monitor_path": "/tmp/rv64-truth-dispatch-cpu-observations-v1.jsonl",
+    "cpu_monitor_sha256": "d63ebea31859aa9e126e2f810a10227188cc025dd44957c24023d99bc9e1fe4c",
+    "monitor_first_utc": "2026-11-01T09:28:25.339962+00:00",
+    "monitor_last_utc": "2026-11-01T09:38:28.800336+00:00",
+    "monitor_scope": "Ten-second deltas of process CPU time, command names without arguments; top15 active processes. Not a whole-machine isolation guarantee.",
+    "quiet_cutoff_samples": 49,
+    "compiler_or_other_test_samples_after_cutoff": [],
+    "sweep_finished_utc": "2026-11-01T09:37:59+00:00",
+    "external_cpu": "Browser, desktop and OS background processes remain visible in local monitor; no fully idle-machine claim."
+  },
+  "decision": {
+    "promote_default": false,
+    "reason": "No measured throughput improvement; quiet-team B1 163.60s versus A1 159.79s is2.38% slower, within prior7.5% observed baseline spread. No regression/speedup qualification from single clean samples. Observed footprint39.963GB versus27.888GB is43.3% higher.",
+    "architecture": "Manifest order is already nearly perfectly occupied across two lanes: A1 stage2 worker sum206.523s versus span103.699s (~99.58% occupied-lane efficiency). This measures job scheduling, not CPU-core utilization. Priority reordering does not remove encoded work. Wider truths run while CPU commitments remain retained; memory observations are consistent with higher concurrent pressure, not a proven isolated causal diagnosis.",
+    "additional_runs": "No positive-performance promotion sought; no further matched runs warranted on this evidence."
+  }
+}

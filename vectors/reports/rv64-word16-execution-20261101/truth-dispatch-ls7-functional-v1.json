@@ -1,0 +1,54 @@
+{
+  "schema": "rv64-optional-truth-dispatch-ls7-functional-v1",
+  "base": "fe3b29fc0",
+  "source": "bd4bf19fa",
+  "recovered_idea": "92f244fec",
+  "default_enabled": false,
+  "new_scheduler": false,
+  "operational_option": "--truths-first",
+  "suite": "Current nominal96 q70/P26/fold1 control; not128-bit whole-protocol qualification",
+  "driver_sha256": "79634774d8b5f3c8b96e18dcf90cc3ff25f9d577f5c7e94586eb3159991853f6",
+  "build_provenance": "Built fromfe3b29fc0 plus uncommitted dispatch implementation subsequently committedbd4bf19fa. No clean-commit binary claim.",
+  "prefix": {
+    "all11_artifacts_identical": true,
+    "all_fresh_verified": true,
+    "coverage_steps": 16777212,
+    "complete_block": false
+  },
+  "receiver_option_rejection": {
+    "error": "ProvingOptionInReceiver",
+    "exit": 1
+  },
+  "gates": {
+    "truths_physical_safe": {
+      "pass": true,
+      "log_sha256": "5e5faebb2529ef29ecb8d3473cdd45096e32e4ab087f59b65a780ec9431f1ff9"
+    },
+    "truths_physical_fast": {
+      "pass": true,
+      "log_sha256": "3d721ba7fd7a0b566da9b4e9b55705bb4743c7009fac7bbf3a57bf79b3d0d632"
+    },
+    "ordering_safe": {
+      "pass": true,
+      "log_sha256": "32e6b7893ddcfad95f06437cddc7f7282297424cbad5efb5b582940d95e63d9e"
+    },
+    "ordering_fast": {
+      "pass": true,
+      "log_sha256": "28945ed2347aac1e0224fae73ab1dd7af60fbe12982e7636f7ea939ed137dbcc"
+    },
+    "options_safe": {
+      "pass": true,
+      "log_sha256": "04d7f1d8cde1bcb201942fbb71effd8e94a2e0fdae4424d3b4d0aa4bb72a65ab"
+    },
+    "options_fast": {
+      "pass": true,
+      "log_sha256": "a498a774ee4f51c792707edb823ad065121b168751bbc36b88100669627f4191"
+    },
+    "full_services_terminal_safe": {
+      "pass": true,
+      "log_sha256": "7d09c74e7ad69d76817728027435c51a65d0b7955dc55614ad370aa77a75eac5"
+    }
+  },
+  "full_block_abba": "Complete: all4 full blocks all34 artifacts identical and fresh verified. No default promotion; see truth-dispatch-ls7-full-abba-v1.json.",
+  "memory": "Per-proof estimates remain indexed by semantic ordinal. The admission cap is soft, not an allocation/RSS limit."
+}
