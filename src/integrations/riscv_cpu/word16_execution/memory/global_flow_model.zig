@@ -60,6 +60,15 @@ pub fn audit(initial: []const Word, terminal: []const Word, events: []const Even
             event.previous_epoch > execution_epochs or
             !earlier(event.previous_epoch, event.previous_tick, event.epoch, event.tick))
             return error.InvalidMemoryTime;
+        var admitted = false;
+        for (initial) |first| if (first.address == event.address) {
+            if (event.rights != first.rights) return error.MemoryPolicyMismatch;
+            admitted = true;
+            break;
+        };
+        if (!admitted) return error.MissingMemoryGenesis;
+        // Confirm policy against the independently expected image *before*
+        // interpreting an opcode's declared read/write access requirements.
         if ((event.access == .read or event.access == .read_write) and (event.rights & 1) == 0)
             return error.UnauthorizedMemoryRead;
         if ((event.access == .write or event.access == .read_write) and (event.rights & 2) == 0)
@@ -68,13 +77,6 @@ pub fn audit(initial: []const Word, terminal: []const Word, events: []const Even
             return error.InvalidReadOnlyMemoryEffect;
         if (event.before != event.after and (event.rights & 2) == 0)
             return error.UnauthorizedMemoryWrite;
-        var admitted = false;
-        for (initial) |first| if (first.address == event.address) {
-            if (event.rights != first.rights) return error.MemoryPolicyMismatch;
-            admitted = true;
-            break;
-        };
-        if (!admitted) return error.MissingMemoryGenesis;
         for (events[0..i]) |prior| {
             if (prior.address == event.address and prior.epoch == event.epoch and prior.tick == event.tick)
                 return error.DuplicateMemoryTime;
