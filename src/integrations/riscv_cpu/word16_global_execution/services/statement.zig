@@ -10,12 +10,22 @@ const Source = @import("../../word16_execution/sources.zig");
 const Q = G.Q;
 pub const CpuClaims = struct {
     base: G.Old.Claims,
-    extras: [3]T.ExtraClaims,
-    pub fn values(self: @This()) [P.CPU_CLAIM_COUNT]Q {
-        var out: [P.CPU_CLAIM_COUNT]Q = undefined;
+    /// Families in T.Family order; an absent bridge's claims are zero.
+    extras: [T.FAMILIES]T.ExtraClaims,
+    pub fn values(self: @This()) [P.CPU_CLAIM_COUNT_V3]Q {
+        var out: [P.CPU_CLAIM_COUNT_V3]Q = undefined;
         out[0..P.CORE_CLAIM_COUNT].* = self.base.values();
         for (self.extras, 0..) |extra, k| out[P.CORE_CLAIM_COUNT + 5 * k ..][0..5].* = extra.values();
         return out;
+    }
+    /// Transcript length: v2 shards (no SHA-256 bridge) mix exactly the v2
+    /// vector; presence() separately forces every absent claim to zero.
+    pub fn count(sha256: bool) usize {
+        return if (sha256) P.CPU_CLAIM_COUNT_V3 else P.CPU_CLAIM_COUNT;
+    }
+    pub fn mix(self: @This(), channel: anytype, setup: *const R.CpuSetup) void {
+        const all = self.values();
+        channel.mixFelts(all[0..count(setup.bridges.sha256 != null)]);
     }
     pub fn canonical(self: @This()) !void {
         try Source.validateCanonicalClaims(self.base);
@@ -38,6 +48,10 @@ pub const CpuClaims = struct {
         sum = sum.sub(self.ram());
         for (self.extras) |c| sum = sum.sub(c.truth);
         if (!sum.isZero()) return error.UnclosedCombinedCpuRelations;
+    }
+    /// Shared Wire35 debt of this shard: ADD, DOUBLE and SHA-256 bridges.
+    pub fn wire(self: @This()) Q {
+        return self.extras[1].truth.add(self.extras[2].truth).add(self.extras[3].truth);
     }
 };
 pub const CpuEncoded = struct {

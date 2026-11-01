@@ -1,19 +1,59 @@
 //! One explicit LE-word service inventory; no ISA/profile enumeration changes.
 const A = @import("stwo_riscv_frontend").rv64_air;
 const Q = A.evaluation.Q;
-pub const Family = enum(u8) { keccak = 0, add = 1, double = 2 };
+/// Families 0..2 are the v2 roster; `sha256` (v3) is appended so every v2
+/// ordinal, offset, column, claim and transcript word is unchanged when absent.
+/// Extension point: a further v3 family appends here with its own bridge.
+pub const Family = enum(u8) { keccak = 0, add = 1, double = 2, sha256 = 3 };
+pub const FAMILIES = 4;
+pub const V2_FAMILIES = 3;
 pub const Logs = struct {
     keccak: ?u32 = null,
     add: ?u32 = null,
     double: ?u32 = null,
+    sha256: ?u32 = null,
     pub fn at(self: @This(), family: Family) ?u32 {
         return switch (family) {
             .keccak => self.keccak,
             .add => self.add,
             .double => self.double,
+            .sha256 => self.sha256,
         };
     }
+    /// v2 transport bytes are unchanged: the v3 field is omitted when absent.
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (.{ "keccak", "add", "double" }) |name| {
+            try jws.objectField(name);
+            try jws.write(@field(self, name));
+        }
+        if (self.sha256) |log| {
+            try jws.objectField("sha256");
+            try jws.write(log);
+        }
+        try jws.endObject();
+    }
 };
+/// Wire35 bridge kind of a non-Keccak family.
+pub fn bridgeKind(family: Family) A.crypto.secp256k1.word16_bridge.types.Kind {
+    return switch (family) {
+        .keccak => unreachable,
+        .add => .add,
+        .double => .double,
+        .sha256 => .sha256,
+    };
+}
+/// Packet RAM words per call (each contributes one before and one after term).
+pub fn words(family: Family) u64 {
+    return if (family == .keccak) 25 else 4 * A.crypto.secp256k1.word16_bridge.types.coordinates(bridgeKind(family));
+}
+/// Bridge-side Wire35 terms per call: every input coordinate plus outputs.
+pub fn bridgeWires(family: Family) u64 {
+    if (family == .keccak) return 0;
+    const T = A.crypto.secp256k1.word16_bridge.types;
+    const kind = bridgeKind(family);
+    return T.coordinates(kind) + T.written(kind);
+}
 pub const ExtraClaims = struct {
     ram: Q,
     owner: Q,

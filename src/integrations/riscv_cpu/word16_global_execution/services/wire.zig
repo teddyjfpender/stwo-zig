@@ -20,12 +20,55 @@ pub const CompactRequest = struct {
     multiplication_requests: u32,
     memory_epoch: u16,
     ls_count: u32,
+    /// v2 families (Keccak, ADD, DOUBLE).
     calls: [3]u32,
+    /// v3 SHA-256 calls; omitted from JSON when zero (v2 bytes unchanged).
+    sha256_calls: u32 = 0,
     fn from(r: P.Request) @This() {
-        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls };
+        return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3] };
     }
     fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
-        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.calls };
+        return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all() };
+    }
+    pub fn all(self: @This()) [T.FAMILIES]u32 {
+        return self.calls ++ [1]u32{self.sha256_calls};
+    }
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        inline for (std.meta.fields(@This())) |field| {
+            if (comptime !std.mem.eql(u8, field.name, "sha256_calls")) {
+                try jws.objectField(field.name);
+                try jws.write(@field(self, field.name));
+            } else if (self.sha256_calls != 0) {
+                try jws.objectField(field.name);
+                try jws.write(self.sha256_calls);
+            }
+        }
+        try jws.endObject();
+    }
+};
+/// Transport claims: the v2 vector plus an optional v3 SHA-256 bridge entry.
+pub const WireClaims = struct {
+    base: G.Old.Claims,
+    extras: [3]T.ExtraClaims,
+    sha256: ?T.ExtraClaims = null,
+    fn from(c: E.CpuClaims, present: bool) @This() {
+        return .{ .base = c.base, .extras = c.extras[0..3].*, .sha256 = if (present) c.extras[3] else null };
+    }
+    fn expand(self: @This()) E.CpuClaims {
+        return .{ .base = self.base, .extras = self.extras ++ [1]T.ExtraClaims{self.sha256 orelse T.ExtraClaims.zero()} };
+    }
+    pub fn jsonStringify(self: @This(), jws: anytype) !void {
+        try jws.beginObject();
+        try jws.objectField("base");
+        try jws.write(self.base);
+        try jws.objectField("extras");
+        try jws.write(self.extras);
+        if (self.sha256) |extra| {
+            try jws.objectField("sha256");
+            try jws.write(extra);
+        }
+        try jws.endObject();
     }
 };
 pub const CpuDeclaration = struct { geometry: Geo, bridges: T.Logs };
@@ -38,11 +81,12 @@ pub const TruthDeclaration = struct {
         return .{ .family = t.family(), .first_id = t.first(), .calls = t.count(), .logs = switch (t) {
             .keccak => |k| .{ k.setup.log, 0 },
             .secp => |s| s.setup.logs,
+            .sha256 => |h| .{ h.setup.log, 0 },
         } };
     }
 };
 const File = struct { bytes: u64, sha256: [32]u8 };
-const Cpu = struct { declaration: CpuDeclaration, request: CompactRequest, claims: E.CpuClaims, proof: File };
+const Cpu = struct { declaration: CpuDeclaration, request: CompactRequest, claims: WireClaims, proof: File };
 const Truth = struct { declaration: TruthDeclaration, claims: [3]G.Q, proof: File };
 pub const Metadata = struct { schema: u32 = 1, core_schema: u32 = G.Old.SCHEMA, cpus: []const Cpu, truths: []const Truth, specs: []const [32]u8, roots: []const G.Receipt, seal: [32]u8, memory_words: u32, cells_sha256: [32]u8 };
 pub const Loaded = struct {
@@ -94,7 +138,7 @@ fn rowSum(g: Geo) !u64 {
 pub fn validate(m: Metadata, limits: Limits) !void {
     if (m.schema != 1 or m.core_schema != G.Old.SCHEMA or m.cpus.len == 0 or m.cpus.len > limits.max_cpus or m.truths.len > limits.max_truths or m.cpus.len > 65535 or m.truths.len > 65535 - m.cpus.len or m.specs.len != m.cpus.len + m.truths.len or m.roots.len != m.specs.len) return error.InvalidServicesWireRoster;
     if (m.memory_words > limits.max_memory_words or m.memory_words > 1 << 22) return error.InvalidMemorySidecarCount;
-    var totals: [3]u64 = @splat(0);
+    var totals: [T.FAMILIES]u64 = @splat(0);
     var sum_steps: u64 = 0;
     var proof_bytes: u64 = 0;
     var native_rows: u64 = 0;
@@ -103,7 +147,9 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         const g = cpu.declaration.geometry;
         try g.validate();
         try cpu.request.cpu.validate(g.cpu_log);
-        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
+        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or @as(u64, cpu.request.calls[0]) + cpu.request.calls[1] + cpu.request.calls[2] + cpu.request.sha256_calls + cpu.request.ls_count > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
+        const calls = cpu.request.all();
+        if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
         _ = try g.lsCounts(cpu.request.ls_count);
         if (g.omit_empty_division and cpu.request.division_requests != 0) return error.InvalidServicesWireRequest;
@@ -111,27 +157,29 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         native_rows = try std.math.add(u64, native_rows, try rowSum(g));
         var mass16 = try g.range16Mass();
         var mass8 = try g.range8Mass();
-        for (0..3) |k| {
+        for (0..T.FAMILIES) |k| {
             const f: T.Family = @enumFromInt(k);
             const log = cpu.declaration.bridges.at(f);
-            if ((log != null) != (cpu.request.calls[k] != 0) or totals[k] >= core.fields.m31.Modulus - 1) return error.InvalidServicesWireRequest;
+            if ((log != null) != (calls[k] != 0) or totals[k] >= core.fields.m31.Modulus - 1) return error.InvalidServicesWireRequest;
             if (log) |l| {
                 if (k == 0) {
-                    _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(cpu.request.calls[k], @intCast(1 + totals[k]), l);
+                    _ = try A.crypto.keccak.word16_bridge.types.validateGeometry(calls[k], @intCast(1 + totals[k]), l);
                 } else {
-                    _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(@enumFromInt(k), cpu.request.calls[k], @intCast(1 + totals[k]), l);
+                    _ = try A.crypto.secp256k1.word16_bridge.types.validateGeometry(T.bridgeKind(f), calls[k], @intCast(1 + totals[k]), l);
                 }
                 const n = @as(u64, 1) << @intCast(l);
                 native_rows = try std.math.add(u64, native_rows, n);
                 mass16 = try std.math.add(u64, mass16, (if (k == 0) @as(u64, A.crypto.keccak.word16_bridge.layout.U16.len) else A.crypto.secp256k1.word16_bridge.layout.U16.len) * n);
                 mass8 = try std.math.add(u64, mass8, (if (k == 0) @as(u64, A.crypto.keccak.word16_bridge.layout.U8.len) else A.crypto.secp256k1.word16_bridge.layout.U8.len) * n);
             }
-            totals[k] = try std.math.add(u64, totals[k], cpu.request.calls[k]);
+            totals[k] = try std.math.add(u64, totals[k], calls[k]);
         }
         if (mass16 >= core.fields.m31.Modulus or mass8 >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
-        ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count) + 50 * @as(u64, cpu.request.calls[0]) + 48 * @as(u64, cpu.request.calls[1]) + 24 * @as(u64, cpu.request.calls[2]));
-        try cpu.claims.canonical();
-        for (cpu.claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {
+        ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
+        for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
+        const claims = cpu.claims.expand();
+        try claims.canonical();
+        for (claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {
             for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
         };
         if (cpu.proof.bytes == 0 or cpu.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;
@@ -139,9 +187,10 @@ pub fn validate(m: Metadata, limits: Limits) !void {
     }
     if (m.memory_words >= (@as(u64, 1) << @intCast(m.cpus[0].declaration.geometry.initialLog())) or m.memory_words >= (@as(u64, 1) << @intCast(m.cpus[m.cpus.len - 1].declaration.geometry.terminalLog()))) return error.InvalidServicesWireBoundary;
     if (sum_steps > limits.max_total_steps or ram >= core.fields.m31.Modulus or 50 * totals[0] >= core.fields.m31.Modulus) return error.ServicesWireBudget;
-    var next: [3]u64 = @splat(1);
+    var next: [T.FAMILIES]u64 = @splat(1);
     var previous: u8 = 0;
-    var wire: u64 = 9 * totals[1] + 6 * totals[2];
+    var wire: u64 = 0;
+    for (1..T.FAMILIES) |k| wire = try std.math.add(u64, wire, T.bridgeWires(@enumFromInt(k)) * totals[k]);
     for (m.truths) |truth| {
         const t = truth.declaration;
         const k = @intFromEnum(t.family);
@@ -151,6 +200,12 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             if (t.logs[0] > 21 or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
             try A.crypto.keccak.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
             native_rows = try std.math.add(u64, native_rows, (@as(u64, 1) << @intCast(t.logs[0])) + 8192 + 1024);
+        } else if (t.family == .sha256) {
+            if (t.logs[0] > @import("../sha256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
+            try A.crypto.sha256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
+            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+            native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
+            wire = try std.math.add(u64, wire, 4 * @as(u64, t.calls));
         } else {
             const S = A.crypto.secp256k1;
             const program = S.program.get(@enumFromInt(k));
@@ -175,7 +230,7 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, setups: []const *const R.Cpu
     defer a.free(cpus);
     for (setups, bundle.cpus, cpus, 0..) |setup, c, *out, index| {
         if ((index != 0 and c.request.base.memory.initial.len != 0) or (index + 1 != setups.len and c.request.base.memory.terminal.len != 0)) return error.InvalidServicesWireBoundary;
-        out.* = .{ .declaration = .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .request = CompactRequest.from(c.request), .claims = c.claims, .proof = .{ .bytes = c.bytes.len, .sha256 = hash(c.bytes) } };
+        out.* = .{ .declaration = .{ .geometry = setup.materials.geometry, .bridges = setup.bridges }, .request = CompactRequest.from(c.request), .claims = WireClaims.from(c.claims, setup.bridges.sha256 != null), .proof = .{ .bytes = c.bytes.len, .sha256 = hash(c.bytes) } };
     }
     const tt = try a.alloc(Truth, truths.len);
     defer a.free(tt);
@@ -233,7 +288,7 @@ pub fn read(a: std.mem.Allocator, dir: std.fs.Dir, limits: Limits) !Loaded {
     errdefer for (cpus[0..cpu_done]) |p| a.free(p.bytes);
     for (m.cpus, cpus, decl, 0..) |c, *out, *d, index| {
         d.* = c.declaration;
-        out.* = .{ .bytes = try readProof(a, dir, false, index, c.proof), .request = c.request.expand(if (index == 0) cells.initial else &.{}, if (index + 1 == m.cpus.len) cells.terminal else &.{}), .claims = c.claims };
+        out.* = .{ .bytes = try readProof(a, dir, false, index, c.proof), .request = c.request.expand(if (index == 0) cells.initial else &.{}, if (index + 1 == m.cpus.len) cells.terminal else &.{}), .claims = c.claims.expand() };
         cpu_done += 1;
     }
     const tt = try a.alloc(E.TruthEncoded, m.truths.len);

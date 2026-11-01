@@ -17,23 +17,29 @@ pub const Bridges = struct {
     keccak: ?KB.component.Component = null,
     add: ?B.component.Component = null,
     double: ?B.component.Component = null,
-    pub fn init(setup: *const R.CpuSetup, calls: [3]u32, first: [3]u32, ch: G.Old.Draw, common: P.Shared, claims: [3]T.ExtraClaims) Bridges {
+    sha256: ?B.component.Component = null,
+    pub fn init(setup: *const R.CpuSetup, calls: [T.FAMILIES]u32, first: [T.FAMILIES]u32, ch: G.Old.Draw, common: P.Shared, claims: [T.FAMILIES]T.ExtraClaims) Bridges {
         var out = Bridges{};
-        for (0..3) |k| {
+        for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
             const log = setup.bridges.at(family) orelse continue;
             const offsets = [3]usize{ setup.offset(family, 0), setup.offset(family, 1), setup.offset(family, 2) };
             if (k == 0) {
                 out.keccak = .{ .kind = .bridge, .log_size = log, .rows = calls[0], .first_id = first[0], .offsets = offsets, .claims = claims[0].toK(), .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .io = common.kio, .range16 = ch.memory.range16, .range8 = ch.memory.range8 } };
             } else {
-                const component = B.component.Component{ .kind = @enumFromInt(k), .log_size = log, .rows = calls[k], .first_id = first[k], .offsets = offsets, .claims = claims[k].toSecp(), .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 } };
-                if (k == 1) out.add = component else out.double = component;
+                const component = B.component.Component{ .kind = T.bridgeKind(family), .log_size = log, .rows = calls[k], .first_id = first[k], .offsets = offsets, .claims = claims[k].toSecp(), .challenges = .{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .wire = common.wire, .range16 = ch.memory.range16, .range8 = ch.memory.range8 } };
+                switch (family) {
+                    .add => out.add = component,
+                    .double => out.double = component,
+                    .sha256 => out.sha256 = component,
+                    .keccak => unreachable,
+                }
             }
         }
         return out;
     }
     fn count(self: *const Bridges) usize {
-        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null);
+        return @intFromBool(self.keccak != null) + @as(usize, @intFromBool(self.add != null)) + @intFromBool(self.double != null) + @intFromBool(self.sha256 != null);
     }
 };
 pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const Bridges) ![]engine.air.component_prover.ComponentProver {
@@ -42,7 +48,7 @@ pub fn cpuHandles(a: std.mem.Allocator, base: *const Components, bridges: *const
     const out = try a.alloc(engine.air.component_prover.ComponentProver, old.len + bridges.count());
     @memcpy(out[0..old.len], old);
     var at = old.len;
-    inline for (.{ "keccak", "add", "double" }) |name| if (@field(bridges, name)) |*c| {
+    inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(bridges, name)) |*c| {
         out[at] = c.asProverComponent();
         at += 1;
     };
@@ -54,7 +60,7 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
     const out = try a.alloc(core.air.components.Component, old.len + bridges.count());
     @memcpy(out[0..old.len], old);
     var at = old.len;
-    inline for (.{ "keccak", "add", "double" }) |name| if (@field(bridges, name)) |*c| {
+    inline for (.{ "keccak", "add", "double", "sha256" }) |name| if (@field(bridges, name)) |*c| {
         out[at] = c.asVerifierComponent();
         at += 1;
     };
@@ -63,6 +69,7 @@ pub fn cpuVerifierHandles(a: std.mem.Allocator, base: *const Components, bridges
 pub const TruthComponents = union(enum) {
     keccak: [3]K.component.Component,
     secp: @import("../secp/execution.zig").TruthComponents,
+    sha256: A.crypto.sha256.component.Component,
     pub fn init(truth: R.Truth, ch: P.TruthDraw, claims: [3]Q) !TruthComponents {
         return switch (truth) {
             .keccak => |t| switch (ch) {
@@ -73,18 +80,35 @@ pub const TruthComponents = union(enum) {
                 .secp => |sc| .{ .secp = @import("../secp/execution.zig").TruthComponents.initSpan(t.setup, t.first_id, t.calls, sc, claims) },
                 else => error.InvalidCombinedTruthChallenge,
             },
+            .sha256 => |t| switch (ch) {
+                .sha256 => |wire_ch| block: {
+                    if (!claims[1].isZero() or !claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
+                    break :block .{ .sha256 = .{ .log_size = t.setup.log, .public = .{ .calls = t.calls, .first_id = t.first_id }, .claim = claims[0], .wire = wire_ch } };
+                },
+                else => error.InvalidCombinedTruthChallenge,
+            },
         };
     }
-    pub fn provers(self: *const TruthComponents) [3]engine.air.component_prover.ComponentProver {
-        return switch (self.*) {
-            .keccak => |*c| .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
-            .secp => |*c| c.provers(),
-        };
+    pub fn provers(self: *const TruthComponents, out: *[3]engine.air.component_prover.ComponentProver) []engine.air.component_prover.ComponentProver {
+        switch (self.*) {
+            .keccak => |*c| out.* = .{ c[0].asProverComponent(), c[1].asProverComponent(), c[2].asProverComponent() },
+            .secp => |*c| out.* = c.provers(),
+            .sha256 => |*c| {
+                out[0] = c.asProverComponent();
+                return out[0..1];
+            },
+        }
+        return out;
     }
-    pub fn verifiers(self: *const TruthComponents) [3]core.air.components.Component {
-        return switch (self.*) {
-            .keccak => |*c| .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
-            .secp => |*c| c.verifiers(),
-        };
+    pub fn verifiers(self: *const TruthComponents, out: *[3]core.air.components.Component) []core.air.components.Component {
+        switch (self.*) {
+            .keccak => |*c| out.* = .{ c[0].asVerifierComponent(), c[1].asVerifierComponent(), c[2].asVerifierComponent() },
+            .secp => |*c| out.* = c.verifiers(),
+            .sha256 => |*c| {
+                out[0] = c.asVerifierComponent();
+                return out[0..1];
+            },
+        }
+        return out;
     }
 };
