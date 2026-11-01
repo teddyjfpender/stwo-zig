@@ -41,6 +41,17 @@ pub const Inventory = struct {
         // exact total/final endpoint authority. It does not verify proofs.
         if (fixed) |authority| try authority.require(setups, truths, config) else try validateConfig(config);
         _ = try P.admit(a, setups, truths, requests, expected);
+        if (fixed != null) {
+            const Wire = @import("../wire.zig");
+            const declarations = try a.alloc(Wire.CpuDeclaration, setups.len);
+            defer a.free(declarations);
+            const truth_declarations = try a.alloc(Wire.TruthDeclaration, truths.len);
+            defer a.free(truth_declarations);
+            for (setups, declarations) |setup, *d| d.* = .{ .geometry = setup.materials.geometry, .bridges = setup.bridges };
+            for (truths, truth_declarations) |truth, *d| d.* = Wire.TruthDeclaration.from(truth);
+            var source_bounds = try @import("source_bounds.zig").derive(a, setups[0].materials.program.log_size, declarations, truth_declarations, requests);
+            defer source_bounds.deinit();
+        }
         const count = try std.math.add(usize, setups.len, truths.len);
         const workers = try a.alloc(Manifest.ExpectedWorker, count);
         errdefer a.free(workers);

@@ -72,6 +72,12 @@ pub const Shape = struct {
         if (tree == 2 and ((col >= self.localWidth() - 8 and col < self.localWidth()) or col >= self.widths()[2] - 8)) return &.{ 0, -1 };
         return &.{0};
     }
+    pub fn globalQueries(self: *const @This()) usize {
+        return switch (self.kind) {
+            .keccak, .product, .linear => (self.widths()[2] - self.localWidth()) / E.extensionDegree(O) - 1,
+            else => 0,
+        };
+    }
     pub fn maxSamples(self: *const @This()) usize {
         var maximum: usize = 0;
         for (self.widths(), 0..) |width, tree| for (0..width) |column| {

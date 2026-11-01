@@ -62,6 +62,30 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
         try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.CpuWorker.init(a, &setup, request, source, expected, bad, .{ 1, 1, 1 }, 2 << 30));
         try std.testing.expectEqual(allocations_before, failing.alloc_index);
     }
+    {
+        const Authority = @import("mass_authority.zig");
+        const Globals = @import("global_cpu.zig");
+        var counts = @import("mass_authority_test_support.zig").Counter{};
+        var plan = try @import("cpu_components.zig").Plan.init(a, &setup);
+        defer plan.deinit();
+        const fixed_columns = try setup.fixedColumns(a);
+        defer a.free(fixed_columns);
+        const main_columns = try source.columns(a, &setup, 1);
+        defer a.free(main_columns);
+        for (plan.slots) |slot| {
+            if (Globals.layout(slot.origin).width() == 0) continue;
+            const descriptor = try @import("shape_metadata.zig").forOrigin(slot.origin);
+            var fixed_row: [34]@import("stwo_core").fields.m31.M31 = undefined;
+            var main_row: [134]@import("stwo_core").fields.m31.M31 = undefined;
+            const rows = @as(usize, 1) << @intCast(slot.log);
+            for (0..rows) |row| {
+                for (fixed_row[0..descriptor.widths[0]], fixed_columns[slot.fixed_offset..][0..descriptor.widths[0]]) |*v, column| v.* = column.values[row];
+                for (main_row[0..descriptor.widths[1]], main_columns[slot.main_offset..][0..descriptor.widths[1]]) |*v, column| v.* = column.values[row];
+                try Globals.queriesFor(@import("stwo_core").fields.m31.M31, slot.origin, fixed_row[0..descriptor.widths[0]], main_row[0..descriptor.widths[1]], &counts);
+            }
+        }
+        try std.testing.expectEqualDeep(try Authority.cpu(request), counts.totals);
+    }
     var worker = try Worker.CpuWorker.initWithAuthority(a, &setup, request, source, expected, config, .{ 1, 1, 1 }, 2 << 30, fixed_ptr);
     owns = false;
     var owns_worker = true;

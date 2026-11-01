@@ -26,6 +26,7 @@ const Recycler = @import("../../rv64_large_block_recycler.zig").LargeBlockRecycl
 const FixedAuthority = @import("../services/gkr_local/fixed_authority.zig");
 const FixedSet = @import("../services/gkr_local/fixed_authority_set.zig").Set;
 const Candidate = @import("../../word16_execution/om31_security_candidate.zig");
+const SourceBounds = @import("../services/gkr_local/source_bounds.zig");
 const CANDIDATE_PROFILE = "experimental-om31-local-gkr-beta2-q256-p0-fold4-engineering";
 const PROFILE = "experimental-om31-local-gkr-q70-p26-fold4";
 /// Operational admission only. These limits never enter statement authority.
@@ -141,6 +142,8 @@ pub fn main() !void {
         var loaded = try W.read(a, dir, .{ .max_total_steps = request.value.max_steps });
         defer loaded.deinit(a);
         _ = try Admission.expectedFromRequests(&image, program.identity, loaded.bundle.requests, request.value.max_steps, request.value.batch_steps, verify);
+        var source_bounds: ?SourceBounds.Report = if (candidate) try SourceBounds.derive(a, program.log_size, loaded.cpu_declarations, loaded.truth_declarations, loaded.bundle.requests) else null;
+        defer if (source_bounds) |*value| value.deinit();
         var keys = try Keys.initWithSuiteAndCaches(a, &image, loaded.cpu_declarations, loaded.truth_declarations, true, Suite.experimentalFold4(), caches);
         defer keys.deinit();
         var fixed_cache: ?FixedAuthority.Fixed.Cache = if (candidate) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
@@ -149,7 +152,7 @@ pub fn main() !void {
         defer if (fixed_set) |*owner| owner.deinit();
         const setup_ns = timer.read();
         const output = try Receiver.verifyWithAuthority(a, &image, &keys, &loaded.bundle, request.value.max_steps, request.value.batch_steps, verify, pcs, if (fixed_set) |*authority| authority else null);
-        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
+        if (fixed_cache) |*owner| return emit(a, .{ .profile = selected_profile, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells, .source_shape = source_bounds.?.shape, .source_lookup_only_conditional_degrees = source_bounds.?.conditional_degrees });
         return emit(a, .{ .profile = PROFILE, .security_qualified = false, .accepted = true, .completed_ethereum_block = verify, .output = output, .cpu_proofs = loaded.bundle.cpus.len, .truth_proofs = loaded.bundle.truths.len, .load_and_setup_ns = setup_ns, .verify_ns = timer.read() - setup_ns });
     }
     var resources: ?Resources = null;
@@ -193,6 +196,15 @@ pub fn main() !void {
     if (plan) return emit(a, .{ .profile = PROFILE, .security_qualified = false, .scope = "geometry advice only; no proof or acceptance", .total_steps = captured.total_steps, .cpu = cpu, .truths = truths, .memory_words = captured.advice.initial.len, .capture_ns = capture_ns });
     const operational = resources.?;
     try Schedule.validateOrder(operational.stage2_order, try std.math.add(usize, cpu.len, truths.len));
+    var source_bounds: ?SourceBounds.Report = null;
+    defer if (source_bounds) |*value| value.deinit();
+    if (candidate) {
+        _ = try SourceBounds.validateInventory(cpu.len, truths.len);
+        const requests = try a.alloc(P.Request, captured.native.items.len);
+        defer a.free(requests);
+        for (requests, 0..) |*value, i| value.* = try C.requestView(captured.native.items, &captured.advice, i);
+        source_bounds = try SourceBounds.derive(a, program.log_size, cpu, truths, requests);
+    }
     var keys = try Keys.initWithSuiteAndCaches(a, &image, cpu, truths, true, Suite.experimentalFold4(), caches);
     defer keys.deinit();
     var fixed_cache: ?FixedAuthority.Fixed.Cache = if (candidate) try FixedAuthority.Fixed.Cache.init(a, fixed_setup_bytes) else null;
@@ -228,6 +240,7 @@ pub fn main() !void {
     try W.write(a, dir, keys.cpus, keys.truths, &bundle);
     try Driver.writeJson(a, dir, "report.json", .{ .profile = selected_profile, .security_qualified = false, .completed_ethereum_block = completed, .total_steps = captured.total_steps, .cpu_proofs = bundle.cpus.len, .truth_proofs = bundle.truths.len, .output = output, .resources = operational, .capture_ns = capture_ns, .packet_import_ns = packet_import_ns, .capture_selection = captured.capture_schedule, .capture_cache_released_bytes = capture_cache_released, .setup_ns = setup_ns, .prove_ns = prove_ns, .same_process_verify_ns = verify_ns, .workers = worker_timings, .total_before_report_ns = timer.read(), .retained_main = if (store) |*value| value.stats() else null });
     if (fixed_cache) |*owner| try Driver.writeJson(a, dir, "candidate-fixed-setup.json", .{ .profile = selected_profile, .security_qualified = false, .config = pcs, .fixed_setup = owner.snapshot(), .source_validations = fixed_set.?.source_validations, .source_coefficient_cells = fixed_set.?.source_coefficient_cells });
+    if (source_bounds) |*value| try Driver.writeJson(a, dir, "candidate-source-bounds.json", .{ .profile = selected_profile, .security_qualified = false, .shape = value.shape, .cpu_scopes = value.cpu_scopes, .truth_scopes = value.truth_scopes, .global_signed = value.global_signed, .global_denominator_slots = value.global_denominator_slots, .lookup_only_conditional_degrees = value.conditional_degrees, .transcript_round_bound_qualified = value.transcript_round_bound_qualified, .secp_polynomial_error_budget_qualified = value.secp_polynomial_error_budget_qualified });
     try std.posix.fsync(dir.fd);
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {

@@ -94,6 +94,14 @@ fn freeRequests(a: std.mem.Allocator, requests: []P.Request) void {
     }
     a.free(requests);
 }
+/// Borrowed request metadata for pre-key admission. Public cell arrays remain
+/// owned by advice; callers must not pass these views to freeRequests.
+pub fn requestView(native: []const *Native, advice: *const Advice, i: usize) !P.Request {
+    if (i >= native.len or native.len != advice.events.len or native.len != advice.keccak.len or native.len != advice.secp.len) return error.InvalidCombinedInventory;
+    const n = native[i];
+    const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
+    return .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == native.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+}
 fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Advice) ![]P.Request {
     const requests = try a.alloc(P.Request, native.len);
     errdefer a.free(requests);
@@ -102,16 +110,19 @@ fn requestsFrom(a: std.mem.Allocator, native: []const *Native, advice: *const Ad
         a.free(r.base.memory.initial);
         a.free(r.base.memory.terminal);
     };
-    for (native, requests, 0..) |n, *r, i| {
-        const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
-        const initial = try a.dupe(A.memory.closed_ram.types.Cell, if (i == 0) advice.initial else &.{});
+    for (requests, 0..) |*r, i| {
+        var request = try requestView(native, advice, i);
+        const initial = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.initial);
         errdefer a.free(initial);
-        const terminal = try a.dupe(A.memory.closed_ram.types.Cell, if (i + 1 == native.len) advice.terminal else &.{});
-        r.* = .{ .calls = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len) }, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = initial, .terminal = terminal, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        const terminal = try a.dupe(A.memory.closed_ram.types.Cell, request.base.memory.terminal);
+        request.base.memory.initial = initial;
+        request.base.memory.terminal = terminal;
+        r.* = request;
         done += 1;
     }
     return requests;
 }
+
 const Worker = union(enum) {
     cpu: CPU.CpuWorker,
     truth: Truth.TruthWorker,

@@ -41,6 +41,18 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     shared.wire = A.crypto.secp256k1.equations.WireFor(O).draw(&channel);
     var entries = [_]Manifest.Entry{.{ .kind = expected.kind, .global_relations = expected.global_relations, .mass = expected.mass, .scope = .{ .ordinal = 0, .statement = expected.statement, .fixed = expected.fixed, .main = stage.main }, .local = null }};
     const pending = Manifest.PendingManifest{ .entries = &entries, .digest = @splat(29), .shared = shared };
+    {
+        const Authority = @import("mass_authority.zig");
+        var counts = @import("mass_authority_test_support.zig").Counter{};
+        var metadata = try @import("truth_global_metadata.zig").Provider.init(a, &worker.source, 64 << 20);
+        defer metadata.deinit();
+        const shapes = try @import("truth_components.zig").shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
+        for (shapes) |shape| {
+            if (shape.kind != .keccak and shape.kind != .product and shape.kind != .linear) continue;
+            for (0..@as(usize, 1) << @intCast(shape.log_size)) |row| try metadata.emit(shape.kind, row, &counts);
+        }
+        try std.testing.expectEqualDeep(try Authority.truth(@import("../wire.zig").TruthDeclaration.from(truth)), counts.totals);
+    }
     var local_channel = worker.channel;
     const local_challenges = @import("truth_fractions.zig").ChallengesFor(O).draw(&local_channel);
     var encoded = try worker.complete(a, &pending, 0, 64 * 1024 * 1024);
