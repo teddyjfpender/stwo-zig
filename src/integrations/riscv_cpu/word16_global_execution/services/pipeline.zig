@@ -121,7 +121,17 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     const roots = try a.alloc(G.Receipt, count);
     defer a.free(roots);
     var stage1 = Stage1{ .allocator = a, .setups = setups, .truths = truths, .native = native, .advice = advice, .expected = expected, .options = options, .requests = requests, .first_steps = first_steps, .workers = workers, .specs = specs, .roots = roots };
-    try Schedule.run(Stage1, a, &stage1, count, options.schedule, Stage1.execute);
+    const estimates = try memoryEstimates(a, setups, truths, options.schedule.memory_cap_bytes != 0);
+    defer a.free(estimates);
+    const traces = try a.alloc(Schedule.Trace, if (options.directory != null) 2 * count else 0);
+    defer a.free(traces);
+    @memset(traces, .{});
+    const run_options = struct {
+        fn of(e: []const u64, t: []Schedule.Trace, phase: usize, n: usize) Schedule.RunOptions {
+            return .{ .estimates = e, .trace = if (t.len == 0) &.{} else t[phase * n .. (phase + 1) * n] };
+        }
+    }.of;
+    try Schedule.runWithOptions(Stage1, a, &stage1, count, options.schedule, run_options(estimates, traces, 0, count), Stage1.execute);
     // The only manifest/challenge barrier. No stage2 task exists before join.
     for (workers) |worker| if (worker == null) return error.MissingSealedServiceWorker;
     var manifest = try G.Manifest.init(a, specs, roots);
@@ -131,7 +141,8 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     @memset(results, null);
     defer for (results) |*slot| if (slot.*) |*result| result.deinit(a);
     var stage2 = Stage2{ .allocator = a, .workers = workers, .manifest = &manifest, .options = options, .results = results };
-    try Schedule.run(Stage2, a, &stage2, count, options.schedule, Stage2.execute);
+    try Schedule.runWithOptions(Stage2, a, &stage2, count, options.schedule, run_options(estimates, traces, 1, count), Stage2.execute);
+    if (options.directory) |dir| try writeTrace(a, dir, options.schedule, traces, count);
     for (results) |result| if (result == null) return error.MissingCompletedServiceWorker;
     const cpus = try a.alloc(Statement.CpuEncoded, setups.len);
     errdefer a.free(cpus);
@@ -140,4 +151,33 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
     for (encoded_truths, results[setups.len..]) |*out, result| out.* = result.?.truth;
     @memset(results, null); // atomic ownership publication, no fallible work remains.
     return .{ .manifest = manifest, .cpus = cpus, .truths = encoded_truths };
+}
+
+/// Declared-geometry estimate of one proof's transient trace bytes: every
+/// committed column's base cells (M31, 4 bytes) twice, for coefficients plus
+/// one evaluation pass. A coarse admission heuristic only, never authority.
+pub fn memoryEstimate(a: std.mem.Allocator, setup: anytype) !u64 {
+    var cells: u64 = 0;
+    for (0..3) |tree| {
+        const logs = try setup.logs(a, tree);
+        defer a.free(logs);
+        for (logs) |log| {
+            if (log > 30) return error.InvalidCostGeometry;
+            cells = try std.math.add(u64, cells, @as(u64, 1) << @intCast(log));
+        }
+    }
+    return std.math.mul(u64, cells, 8);
+}
+fn memoryEstimates(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []const R.Truth, enabled: bool) ![]u64 {
+    if (!enabled) return a.alloc(u64, 0);
+    const out = try a.alloc(u64, setups.len + truths.len);
+    errdefer a.free(out);
+    for (setups, out[0..setups.len]) |setup, *e| e.* = try memoryEstimate(a, setup);
+    for (truths, out[setups.len..]) |*truth, *e| e.* = try memoryEstimate(a, truth);
+    return out;
+}
+fn writeTrace(a: std.mem.Allocator, dir: std.fs.Dir, policy: Schedule.Policy, traces: []const Schedule.Trace, count: usize) !void {
+    const bytes = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .scope = "operational lane trace only; ns are relative to each phase start; estimates are declared-geometry heuristics", .policy = policy, .stage1 = traces[0..count], .stage2 = traces[count .. 2 * count] }, .{ .whitespace = .indent_2 });
+    defer a.free(bytes);
+    try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "schedule.json", bytes);
 }
