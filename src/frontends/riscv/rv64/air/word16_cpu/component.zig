@@ -122,6 +122,23 @@ pub const Component = struct {
         }
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const Air.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
+        if (self.kind == .boundary or self.kind == .range16 or self.kind == .range8) {
+            const adapter = @import("boundary_component.zig").Component{
+                .kind = switch (self.kind) {
+                    .boundary => .boundary,
+                    .range16 => .range16,
+                    .range8 => .range8,
+                    else => unreachable,
+                },
+                .log_size = self.log_size,
+                .offsets = self.offsets,
+                .public = if (self.kind == .boundary) self.public else null,
+                .claim = self.claim,
+                .challenges = .{ .register = self.challenges.register, .range16 = self.challenges.range16, .range8 = self.challenges.range8 },
+            };
+            adapter.evaluateConstraintQuotientsAtPoint(point, mask, accumulator, global_log) catch |err| return if (err == error.InvalidRv64MaskShape) error.InvalidWord16CpuMask else err;
+            return;
+        }
         if (mask.items.len < 3) return error.InvalidWord16CpuMask;
         var values: [MAX_COLUMNS]Q = undefined;
         var previous_main: [Profile.MAX_MAIN]Q = @splat(Q.zero());

@@ -4,13 +4,16 @@ const E = @import("../evaluation.zig");
 const Profile = @import("profile.zig");
 const Function = @import("../word16_v1/function_bus.zig");
 pub const FunctionChallenges = Function.Challenges;
-pub const RegisterChallenges = struct {
-    offset: E.Q,
-    coefficients: [6]E.Q,
-    pub fn denominatorFor(self: @This(), comptime F: type, tuple: [6]F) E.SecureFor(F) {
-        return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
-    }
-};
+pub fn RegisterChallengesFor(comptime C: type) type {
+    return struct {
+        offset: C,
+        coefficients: [6]C,
+        pub fn denominatorFor(self: @This(), comptime F: type, tuple: [6]F) E.SecureFor(F) {
+            return E.denominatorFor(F, self.offset, &self.coefficients, &tuple, true);
+        }
+    };
+}
+pub const RegisterChallenges = RegisterChallengesFor(E.Q);
 pub const RomChallenges = struct {
     offset: E.Q,
     coefficients: [16]E.Q,

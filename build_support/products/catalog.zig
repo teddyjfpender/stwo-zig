@@ -26,6 +26,7 @@ pub const steps = [_]Step{
     .{ .name = "test-riscv64-keccak-cpu", .description = "Prove joined RV64 CPU Keccak service and RAM", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ethereum-chain", .description = "Check serialized Ethereum proof receipts and expected authority continuity", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion", .description = "Check the RV64 recursion leaf transcript walkers and statement helpers", .scope = .riscv_cpu },
+    .{ .name = "test-riscv64-register-boundary-lanes", .description = "Qualify dynamic register boundary and scalar provider point arithmetic", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-ls-circuit-lanes", .description = "Qualify typed LS boundary and selection point arithmetic", .scope = .riscv_cpu },
     .{ .name = "test-riscv64-recursion-circuit", .description = "Test the RV64 recursion leaf statement against the circuit builder", .scope = .riscv_cpu },
     .{ .name = "rv64-word16-recursion-shape", .description = "Inspect bounded native-verified Word16 shape and opening costs without recursive acceptance", .scope = .riscv_cpu },

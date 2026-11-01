@@ -156,6 +156,7 @@ pub const word16_cpu = struct {
     pub const equations = @import("word16_cpu/equations.zig");
     pub const rom = @import("word16_cpu/rom.zig");
     pub const boundary = @import("word16_cpu/boundary.zig");
+    pub const boundary_component = @import("word16_cpu/boundary_component.zig");
     pub const fixed = @import("word16_cpu/fixed.zig");
     pub const table = @import("word16_cpu/table.zig");
     pub const trace = @import("word16_cpu/trace.zig");
