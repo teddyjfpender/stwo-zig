@@ -42,8 +42,12 @@ pub const Provider = struct {
                     f[4] = O.fromBase(M.fromCanonical(@intFromBool(lane == 0)));
                     F.keccakBridgeFor(O, &f, &lift(m), sink);
                 },
-                .add, .double => {
-                    const s = (if (family == .add) self.source.add else self.source.double) orelse return error.MissingLocalGkrBridge;
+                .add, .double, .sha256 => {
+                    const s = (switch (family) {
+                        .add => self.source.add,
+                        .double => self.source.double,
+                        else => self.source.sha256,
+                    }) orelse return error.MissingLocalGkrBridge;
                     const coords = A.crypto.secp256k1.word16_bridge.types.coordinates(s.kind);
                     const coord = logical % coords;
                     const index = logical / coords;

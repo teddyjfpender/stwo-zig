@@ -9,6 +9,7 @@ pub fn emitFor(comptime F: type, origin: Frame.Origin, fixed: []const F, main: [
             .keccak => Fns.keccakBridgeFor(F, fixed, main, sink),
             .add => Fns.secpBridgeFor(F, .add, fixed, main, sink),
             .double => Fns.secpBridgeFor(F, .double, fixed, main, sink),
+            .sha256 => Fns.secpBridgeFor(F, .sha256, fixed, main, sink),
         },
         .core => |role| switch (role) {
             .cpu => Fns.cpuFor(F, fixed, main, epoch, sink),

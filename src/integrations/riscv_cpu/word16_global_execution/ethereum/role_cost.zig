@@ -6,7 +6,7 @@ const G = @import("../../word16_execution/geometry.zig");
 const Prepared = @import("../../word16_execution/prepared.zig").Prepared;
 const R = @import("../services/roster.zig");
 const T = @import("../services/types.zig");
-pub const COUNT = G.ROLE_COUNT + 3;
+pub const COUNT = G.ROLE_COUNT + 4;
 pub const Row = struct {
     role: []const u8,
     present: bool,
@@ -26,7 +26,7 @@ pub fn row(name: []const u8, log: u32, widths: [3]usize, active: ?u64) !Row {
     for (widths, &cells) |width, *out| out.* = try std.math.mul(u64, width, rows);
     return .{ .role = name, .present = present, .log = log, .columns = widths, .native_rows = rows, .active_rows = active, .padding_rows = if (active) |n| rows - n else null, .native_cells = cells };
 }
-pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u32, initial: usize, terminal: usize, calls: [3]usize) ![COUNT]Row {
+pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u32, initial: usize, terminal: usize, calls: [4]usize) ![COUNT]Row {
     const g = setup.materials.geometry;
     const alu = try G.factCounts(prepared.alu.facts.len, g.alu_log, g.alu_tail_log);
     const binary = try G.factCounts(prepared.binary.facts.len, g.binary_log, g.binary_tail_log);
@@ -55,12 +55,13 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
         };
         out.* = try row(@tagName(shape.role), shape.log, shape.widths, active);
     }
-    for (0..3) |i| {
+    for (0..T.FAMILIES) |i| {
         const family: T.Family = @enumFromInt(i);
         const words: u64 = switch (family) {
             .keccak => 25,
             .add => A.crypto.secp256k1.word16_bridge.types.coordinates(.add),
             .double => A.crypto.secp256k1.word16_bridge.types.coordinates(.double),
+            .sha256 => A.crypto.secp256k1.word16_bridge.types.coordinates(.sha256),
         };
         const log = setup.bridges.at(family);
         const active = try std.math.mul(u64, calls[i], words);
@@ -68,6 +69,7 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .keccak => "keccak_bridge",
             .add => "add_bridge",
             .double => "double_bridge",
+            .sha256 => "sha256_bridge",
         }, log orelse 5, if (log != null) T.widths(family) else .{ 0, 0, 0 }, active);
     }
     for (0..3) |tree| {
