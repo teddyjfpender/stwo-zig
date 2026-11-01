@@ -33,6 +33,11 @@ pub fn PointFor(comptime F: type) type {
 /// coordinate doubled `local_log - 1` times. QM31 keeps the native path.
 pub fn denominatorInverseFor(comptime F: type, point: PointFor(F), global_log: u32, local_log: u32) !F {
     if (F == Q) return denominatorInverse(point, global_log, local_log);
+    if (F == core.fields.om31.OM31) {
+        if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
+        const local = point.repeatedDouble(global_log - local_log);
+        return try core.constraints.cosetVanishing(F, canonic.CanonicCoset.new(local_log).coset(), local).inv();
+    }
     comptime lane.assertExternalLane(F);
     if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
     const coset = canonic.CanonicCoset.new(local_log).coset();
@@ -88,4 +93,16 @@ test "unequal domains preserve predecessor points and quotient denominators" {
         try std.testing.expect(local.y.eql(Q.fromBase(expected.y)));
         try std.testing.expect((try denominatorInverse(point, global_log, local_log)).eql(Q.fromBase(inverses[index >> local_log])));
     }
+}
+
+/// Explicit native/wire point helpers; native QM31 keeps its original path.
+pub fn localPointFor(comptime F: type, point: PointFor(F), global_log: u32, local_log: u32) !PointFor(F) {
+    if (F == Q) return localPoint(point, global_log, local_log);
+    if (local_log == 0 or global_log < local_log or global_log >= core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidRv64MaskGeometry;
+    return point.repeatedDouble(global_log - local_log);
+}
+pub fn previousPointFor(comptime F: type, point: PointFor(F), global_log: u32) PointFor(F) {
+    if (F == Q) return previousPoint(point, global_log);
+    const step = canonic.CanonicCoset.new(global_log).coset().step;
+    return point.sub(.{ .x = F.fromBase(step.x), .y = F.fromBase(step.y) });
 }

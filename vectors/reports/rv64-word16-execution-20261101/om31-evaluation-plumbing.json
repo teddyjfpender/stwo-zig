@@ -1,0 +1,25 @@
+{
+  "schema": "rv64-om31-evaluation-plumbing-v1",
+  "qualification": "additive helper/native-wire-SIMD arithmetic, not wide component or whole-protocol128 qualification",
+  "base": "f0fb6bf43",
+  "gates": [
+    {"command": "zig build test-riscv64-gkr-circuit test-riscv64-simd-fields -Doptimize=ReleaseSafe -j2 --summary all", "status": "PASS", "circuit_tests": 33, "legacy_simd_tests": 7},
+    {"command": "zig build test-riscv64-gkr-circuit test-riscv64-simd-fields -Doptimize=ReleaseFast -j2 --summary all", "status": "PASS", "circuit_tests": 33, "legacy_simd_tests": 7}
+  ],
+  "coverage": [
+    "original thinCPU activity/data, ALU local and LS local residuals nativeOM31 vs actual circuitOM31 all8 coordinates",
+    "same residual authorities packedM31 base and packedOM31 secure packets vs nativeOM31",
+    "production fullCPU original REG/FUNCTION/ROM/OWNER/range tuple and denominator authority nativeOM31 vs actual circuitOM31 all8 coordinates",
+    "16 distinct packed rows, mixed base products and eight-coordinate roundtrips",
+    "eight-column sampled-mask storage bounds and high-half preservation",
+    "weighted packedOM31 accumulation with base/secure residuals, scale and skipped zero",
+    "native integer/public types vs external circuit wire types",
+    "nativeOM31/circuitOM31 vanishing inverse parity",
+    "inherited actual OM31 GKR fragment mutation/failure and legacy QM31 controls"
+  ],
+  "default_qm31_type_changes": false,
+  "component_interaction_layout_changes": false,
+  "legacy_four_coordinate_helpers_reject_wide_lanes": true,
+  "open_gates": ["explicit8-coordinate production component layouts", "matching physical global claims and metadata", "widePCS/DEEP/FRI integration", "production recursive topology", "whole-protocol128 budget"],
+  "performance_claim": null
+}
