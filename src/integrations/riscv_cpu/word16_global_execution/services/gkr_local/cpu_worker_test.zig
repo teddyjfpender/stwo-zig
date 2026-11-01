@@ -169,6 +169,31 @@ pub fn exerciseProfile(comptime shard: usize, comptime mode: Mode, comptime stor
         try std.testing.expectError(error.UnsupportedWideServicesConfig, Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, bad, &encoded, fixed_ptr));
         try std.testing.expectEqual(allocations_before, failing.alloc_index);
     }
+    {
+        const Components = @import("cpu_components.zig");
+        const Metadata = @import("shape_metadata.zig");
+        var physical = try Components.Set.init(a, &setup, request, .{ 1, 1, 1 }, &worker.plan, &pending.entries[0].local.?, pending.shared, encoded.claims);
+        defer physical.deinit();
+        var global_log: u32 = 0;
+        for (worker.plan.slots) |slot| global_log = @max(global_log, slot.log);
+        var channel = core.channel.raw_mod_m31.Om31Channel.init();
+        const point = try core.circle.randomSecureFieldPointFor(O, &channel);
+        for (physical.items, worker.plan.slots) |*item, slot| {
+            const descriptor = try Metadata.forOrigin(slot.origin);
+            switch (item.*) {
+                inline else => |*component| {
+                    try std.testing.expectEqual(descriptor.constraints, component.nConstraints());
+                    var bounds = try component.traceLogDegreeBounds(a);
+                    defer bounds.deinitDeep(a);
+                    for (bounds.items, descriptor.widths) |tree, width| try std.testing.expectEqual(width, tree.len);
+                    var masks = try component.maskPoints(a, point, global_log);
+                    defer masks.deinitDeep(a);
+                    for (masks.items) |tree| for (tree) |column| try std.testing.expect(column.len <= descriptor.max_samples);
+                    for (0..component.nConstraints()) |i| try std.testing.expect(try component.constraintDegreeBound(i) <= descriptor.degree);
+                },
+            }
+        }
+    }
     const accepted = try Worker.verifyCpuWithAuthority(a, &setup, request, expected, .{ 1, 1, 1 }, &pending, 0, config, &encoded, fixed_ptr);
     try std.testing.expect(!accepted.ram.isZero());
     var initial_claim: usize = undefined;

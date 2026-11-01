@@ -41,6 +41,8 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     shared.wire = A.crypto.secp256k1.equations.WireFor(O).draw(&channel);
     var entries = [_]Manifest.Entry{.{ .kind = expected.kind, .global_relations = expected.global_relations, .mass = expected.mass, .scope = .{ .ordinal = 0, .statement = expected.statement, .fixed = expected.fixed, .main = stage.main }, .local = null }};
     const pending = Manifest.PendingManifest{ .entries = &entries, .digest = @splat(29), .shared = shared };
+    var local_channel = worker.channel;
+    const local_challenges = @import("truth_fractions.zig").ChallengesFor(O).draw(&local_channel);
     var encoded = try worker.complete(a, &pending, 0, 64 * 1024 * 1024);
     defer encoded.deinit(a);
     var profile = try native_profile.snapshot(a);
@@ -57,6 +59,23 @@ fn runProfile(truth: R.Truth, source: R.TruthSource, comptime beta2: bool) !void
     bad.pow_bits = 33;
     try std.testing.expectError(error.UnsupportedWideServicesConfig, W.verifyTruthWithAuthority(rejecting.allocator(), truth, expected, &pending, 0, bad, &encoded, fixed_ptr));
     try std.testing.expectEqual(@as(usize, 0), rejecting.alloc_index);
+    {
+        const Components = @import("truth_components.zig");
+        const descriptors = try Components.shapesForDeclaration(@import("../wire.zig").TruthDeclaration.from(truth));
+        const physical = try Components.Components.init(truth, local_challenges, pending.shared, encoded.claims);
+        var global_log: u32 = 0;
+        for (descriptors) |shape| global_log = @max(global_log, shape.log_size);
+        var channel_for_point = P.Channel.init();
+        const point = try core.circle.randomSecureFieldPointFor(O, &channel_for_point);
+        for (physical.items, descriptors) |component, descriptor| {
+            try std.testing.expectEqualDeep(descriptor.widths(), component.widths());
+            try std.testing.expectEqual(descriptor.nConstraints(), component.nConstraints());
+            var masks = try component.maskPoints(a, point, global_log);
+            defer masks.deinitDeep(a);
+            for (masks.items) |tree| for (tree) |column| try std.testing.expect(column.len <= descriptor.maxSamples());
+            for (0..component.nConstraints()) |i| try std.testing.expect(try component.constraintDegreeBound(i) <= descriptor.maxDegree());
+        }
+    }
     var decoded = try P.decodePhysical(a, encoded.bytes);
     defer decoded.deinit(a);
     decoded.commitment_scheme_proof.config.fri_config.n_queries += 1;

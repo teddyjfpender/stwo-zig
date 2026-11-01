@@ -5,6 +5,7 @@ const A = @import("stwo_riscv_frontend").rv64_air;
 const O = core.fields.om31.OM31;
 const Point = core.circle.CirclePoint(O);
 const Air = core.air.components.ForField(O);
+pub const MAX_SAMPLES_PER_COLUMN: usize = 2;
 pub fn hasLocal(comptime Component: type) bool {
     return if (@hasDecl(Component, "LOCAL_GKR")) Component.LOCAL_GKR else true;
 }

@@ -18,6 +18,23 @@ const B = @import("binding.zig");
 const Fns = @import("fractions.zig");
 pub const Kind = enum { rom, boundary, range16, range8, and_table, shift_table, selection };
 pub const Boundary = struct { value: A.word16_cpu.public.Public, cpu_log: u32 };
+pub fn kindForRole(role: @import("../../../word16_execution/geometry.zig").Role) !Kind {
+    return std.meta.stringToEnum(Kind, @tagName(role)) orelse error.LocalGkrRoleMismatch;
+}
+pub fn mainShapeFor(kind: Kind) Main.Shape {
+    return switch (kind) {
+        .rom => .{ .fixed = 32, .main = 1, .constraints = 1, .max_degree = 2 },
+        .boundary => .{ .fixed = 34, .main = 0, .constraints = 0 },
+        .range16, .range8 => .{ .fixed = 3, .main = 1, .constraints = 0 },
+        .and_table => .{ .fixed = 5, .main = 1, .constraints = 0 },
+        .shift_table => .{ .fixed = 18, .main = 16, .constraints = 0 },
+        .selection => .{ .fixed = 6, .main = 2, .constraints = 0 },
+    };
+}
+pub fn constraintCount(kind: Kind) usize {
+    return mainShapeFor(kind).constraints + B.CONSTRAINTS;
+}
+pub const MAX_DEGREE: u8 = 3;
 pub const Component = struct {
     pub const MAX_FIXED = 34;
     pub const MAX_MAIN = 16;
@@ -26,14 +43,7 @@ pub const Component = struct {
     inter_offset: usize,
     boundary: ?Boundary = null,
     pub fn mainShape(self: *const @This()) Main.Shape {
-        return switch (self.kind) {
-            .rom => .{ .fixed = 32, .main = 1, .constraints = 1, .max_degree = 2 },
-            .boundary => .{ .fixed = 34, .main = 0, .constraints = 0 },
-            .range16, .range8 => .{ .fixed = 3, .main = 1, .constraints = 0 },
-            .and_table => .{ .fixed = 5, .main = 1, .constraints = 0 },
-            .shift_table => .{ .fixed = 18, .main = 16, .constraints = 0 },
-            .selection => .{ .fixed = 6, .main = 2, .constraints = 0 },
-        };
+        return mainShapeFor(self.kind);
     }
     pub fn columnOffsets(self: *const @This()) [2]usize {
         return .{ self.data.instance.fixed_offset, self.data.instance.main_offset };
@@ -63,7 +73,7 @@ pub const Component = struct {
         }
     }
     pub fn nConstraints(self: *const @This()) usize {
-        return self.mainShape().constraints + B.CONSTRAINTS;
+        return constraintCount(self.kind);
     }
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.data.instance.row_log + 1;
@@ -73,22 +83,12 @@ pub const Component = struct {
     }
     pub fn constraintDegreeBound(self: *const @This(), index: usize) !u8 {
         if (index >= self.nConstraints()) return error.InvalidConstraintIndex;
-        return 3;
+        return MAX_DEGREE;
     }
     pub fn validate(self: *const @This()) !void {
         const instance = self.data.instance;
         if (instance.origin != .core) return error.LocalGkrRoleMismatch;
-        const expected: Kind = switch (instance.origin.core) {
-            .rom => .rom,
-            .boundary => .boundary,
-            .range16 => .range16,
-            .range8 => .range8,
-            .and_table => .and_table,
-            .shift_table => .shift_table,
-            .selection => .selection,
-            else => return error.LocalGkrRoleMismatch,
-        };
-        _ = try instance.variables();
+        const expected = try kindForRole(instance.origin.core);
         if (expected != self.kind or instance.terms != @import("roster.zig").terms(instance.origin.core) or self.data.point.n != instance.row_log or self.data.lane_count != @as(usize, 1) << @intCast(try instance.laneLog())) return error.LocalGkrRoleMismatch;
         if ((self.kind == .boundary) != (self.boundary != null)) return error.InvalidLocalGkrPublicBoundary;
         if (self.boundary) |p| try p.value.validate(p.cpu_log);

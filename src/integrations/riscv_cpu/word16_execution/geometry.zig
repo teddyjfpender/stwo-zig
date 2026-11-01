@@ -102,6 +102,11 @@ pub fn componentCount(actual: []const Shape) usize {
     return count;
 }
 pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
+    return shapesForProgramLog(program.log_size, geometry);
+}
+/// Pure descriptor authority; no program rows, setup commitments or witnesses
+/// are allocated. The receiver supplies the trusted program ROM log.
+pub fn shapesForProgramLog(program_log: u32, geometry: Geometry) [ROLE_COUNT]Shape {
     var result: [ROLE_COUNT]Shape = undefined;
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
@@ -129,7 +134,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
         };
         const log = switch (role) {
             .cpu => geometry.cpu_log,
-            .rom => program.log_size,
+            .rom => program_log,
             .alu => geometry.alu_log,
             .alu_tail => geometry.alu_tail_log orelse 5,
             .binary => geometry.binary_log,

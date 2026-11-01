@@ -19,6 +19,23 @@ const Frame = @import("frame.zig");
 const B = @import("binding.zig");
 const Fns = @import("fractions.zig");
 const Ch = @import("challenges.zig").For(O);
+pub const MAX_DEGREE: u8 = 3;
+pub fn mainRole(role: @import("../../../word16_execution/geometry.zig").Role) !Main.Role {
+    return switch (role) {
+        .cpu => .cpu,
+        .alu, .alu_tail => .alu,
+        .binary, .binary_tail => .binary,
+        .shift, .shift_tail => .shift,
+        .ls, .ls_tail => .ls,
+        .jalr => .jalr,
+        .multiplication => .mul,
+        .division => .div,
+        else => error.LocalGkrRoleMismatch,
+    };
+}
+pub fn constraintCount(role: Main.Role, origin: Frame.Origin) usize {
+    return Main.shape(role).constraints + B.CONSTRAINTS + @import("global_cpu.zig").layout(origin).constraints();
+}
 pub const Data = struct {
     instance: Frame.Instance,
     point: MP.MleEvalPointFor(O),
@@ -94,7 +111,7 @@ pub const Component = struct {
         try @import("global_cpu.zig").emitFor(F, self.data.instance.origin, g.shared, g.claims, fixed, main, current[16..], previous[16..], sink);
     }
     pub fn nConstraints(self: *const @This()) usize {
-        return self.main.nConstraints() + B.CONSTRAINTS + @import("global_cpu.zig").layout(self.data.instance.origin).constraints();
+        return constraintCount(self.main.role(), self.data.instance.origin);
     }
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.main.log_size + 1;
@@ -104,7 +121,7 @@ pub const Component = struct {
     }
     pub fn constraintDegreeBound(self: *const @This(), i: usize) !u8 {
         if (i >= self.nConstraints()) return error.InvalidConstraintIndex;
-        return 3;
+        return MAX_DEGREE;
     }
     pub fn validate(self: *const @This()) !void {
         try self.main.validate();
@@ -114,17 +131,7 @@ pub const Component = struct {
         if (self.global) |g| try globals.validateClaims(self.data.instance.origin, g.claims);
 
         if (self.data.instance.row_log != self.main.log_size or self.data.point.n != self.main.log_size or self.data.instance.origin != .core) return error.LocalGkrRoleMismatch;
-        const expected: Main.Role = switch (self.data.instance.origin.core) {
-            .cpu => .cpu,
-            .alu, .alu_tail => .alu,
-            .binary, .binary_tail => .binary,
-            .shift, .shift_tail => .shift,
-            .ls, .ls_tail => .ls,
-            .jalr => .jalr,
-            .multiplication => .mul,
-            .division => .div,
-            else => return error.LocalGkrRoleMismatch,
-        };
+        const expected = try mainRole(self.data.instance.origin.core);
         if (expected != self.main.role() or self.data.instance.main_offset != self.main.offsets[1] or self.data.instance.fixed_offset != self.main.offsets[0] or self.data.instance.terms != @import("roster.zig").terms(self.data.instance.origin.core)) return error.LocalGkrRoleMismatch;
         if (self.data.lane_count != @as(usize, 1) << @intCast(try self.data.instance.laneLog())) return error.LocalGkrRoleMismatch;
     }
