@@ -70,11 +70,10 @@ pub fn beginMaterials(ch: *T.P.Channel, materials: *const Materials, request: Ol
 }
 
 pub fn draw(ch: *T.P.Channel, manifest: *const Manifest, ordinal: usize) !Old.Draw {
+    const ram = try manifest.ram();
     ch.mixU32s(&.{ 0x57475332, 1, @intCast(ordinal) });
     Old.digest(ch, manifest.digest);
-    var out = Old.draw(ch);
-    out.memory.ram = try manifest.ram();
-    return out;
+    return Old.drawWithSharedRam(ch, ram);
 }
 const Materials = @FieldType(Setup, "materials");
 const Inventory = union(enum) {

@@ -105,9 +105,7 @@ pub fn drawCpu(ch: *P.T.P.Channel, manifest: *const Manifest, index: usize) !P.O
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x574b5453, 2, 0, @intCast(index) });
     P.Old.digest(ch, manifest.digest);
-    var out = P.Old.draw(ch);
-    out.memory.ram = common.ram;
-    return out;
+    return P.Old.drawWithSharedRam(ch, common.ram);
 }
 pub fn drawTruth(ch: *P.T.P.Channel, manifest: *const Manifest) !K.equations.Challenges {
     const common = try shared(manifest);
@@ -145,9 +143,7 @@ pub fn drawCpuFor(mode: Mode, ch: *P.T.P.Channel, manifest: *const Manifest, ind
     const common = try sharedFor(mode, manifest);
     ch.mixU32s(&.{ 0x574b5453, 3, 0, @intCast(index) });
     P.Old.digest(ch, manifest.digest);
-    var out = P.Old.draw(ch);
-    out.memory.ram = common.ram;
-    return out;
+    return P.Old.drawWithSharedRam(ch, common.ram);
 }
 pub fn drawTruthFor(mode: Mode, ch: *P.T.P.Channel, manifest: *const Manifest, ordinal: usize) !K.equations.Challenges {
     if (mode == .single_v2) return drawTruth(ch, manifest);

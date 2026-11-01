@@ -119,7 +119,20 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
     digest(channel, request.memory.digest());
 }
 
+/// Closed/genesis draw retains its historical transcript byte for byte.
 pub fn draw(channel: *T.P.Channel) Draw {
+    return drawInternal(channel, null);
+}
+pub const SHARED_RAM_DRAW_TAG: u32 = 0x57535244;
+pub const SHARED_RAM_DRAW_REVISION: u32 = 1;
+const RamChallenges = @FieldType(A.memory.load_store_v2.types.Challenges, "ram");
+/// Global authorities derive RAM from their complete checked Manifest before
+/// entering this core helper. Worker/request APIs never accept a loose alpha.
+pub fn drawWithSharedRam(channel: *T.P.Channel, ram: RamChallenges) Draw {
+    return drawInternal(channel, ram);
+}
+fn drawInternal(channel: *T.P.Channel, shared_ram: ?RamChallenges) Draw {
+    if (shared_ram != null) channel.mixU32s(&.{ SHARED_RAM_DRAW_TAG, SHARED_RAM_DRAW_REVISION, 14 });
     channel.mixU32s(&.{ 0x57465247, 6 });
     const register = relation(@FieldType(X.types.Challenges, "register"), channel);
     channel.mixU32s(&.{ 0x5746464e, 13 });
@@ -136,8 +149,10 @@ pub fn draw(channel: *T.P.Channel) Draw {
     const and_ = A.providers.tables.Challenges.draw(channel);
     channel.mixU32s(&.{ 0x57465348, 6, B.shift_word_packed_experiment.table.SEMANTIC_TAG });
     const shift_ = A.providers.tables.Challenges.draw(channel);
-    channel.mixU32s(&.{ 0x57465241, 14 });
-    const ram = relation(@FieldType(A.memory.load_store_v2.types.Challenges, "ram"), channel);
+    const ram = shared_ram orelse local: {
+        channel.mixU32s(&.{ 0x57465241, 14 });
+        break :local relation(RamChallenges, channel);
+    };
     channel.mixU32s(&.{ 0x57465345, 5 });
     const selection = relation(@FieldType(A.memory.load_store_v2.types.Challenges, "selection"), channel);
     return .{ .cpu = .{ .register = register, .function = function, .rom = rom, .owner = owner, .range16 = range16, .range8 = range8 }, .and_ = and_, .shift_ = shift_, .memory = .{ .ram = ram, .owner = owner, .range16 = .{ .offset = range16.offset, .coefficient = range16.coefficient }, .range8 = .{ .offset = range8.offset, .coefficient = range8.coefficient }, .selection = selection } };

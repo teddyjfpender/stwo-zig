@@ -1,0 +1,699 @@
+{
+  "schema": "rv64-global-shared-ram-draw-v1",
+  "base_commit": "28c29e5f5db7fd725dfe8cb7e0bd01592b9a978a",
+  "scope": "Intentional global FS revision; Core.draw closed/genesis default and legacy protocols unchanged. No Worker/E/source/geometry/math/wire API changes.",
+  "global_revision": {
+    "tag": "WSRD",
+    "tag_u32": "0x57535244",
+    "revision": 1,
+    "ram_tuple_width": 14,
+    "removed_unused_secure_draws_per_cpu": 15
+  },
+  "authority": "All5global wrappers derive RAM internally from complete checked Manifest before Core.drawWithSharedRam. No caller-supplied alpha added to Worker/request/CLI APIs. One private core draw body.",
+  "gates": {
+    "ReleaseSafe": {
+      "rv64_word16_global_execution_test_root": 18,
+      "rv64_word16_keccak_shared_test_root": 9,
+      "rv64_word16_secp_bridge_test_root": 10,
+      "rv64_word16_combined_services_test_root": 21,
+      "rv64_word16_keccak_bridge_test_root": 13,
+      "rv64_word16_execution_coordinator_test_root": 22
+    },
+    "ReleaseFast": {
+      "rv64_word16_global_execution_test_root": 18,
+      "rv64_word16_keccak_shared_test_root": 9,
+      "rv64_word16_secp_bridge_test_root": 10,
+      "rv64_word16_combined_services_test_root": 21,
+      "rv64_word16_keccak_bridge_test_root": 13,
+      "rv64_word16_execution_coordinator_test_root": 22
+    },
+    "conformance": 31,
+    "fmt_diff": "PASS",
+    "closed_sequence": "Frozen old sequence allfields+following16secure draws exact at4seeds",
+    "shared_sequence": "Exact skip-localRAM oracle; draw-and-discard countermodel selection stream differs",
+    "manifest_mutations": "All5callers reject changed/incompleteManifest before caller-channel advancement"
+  },
+  "runtime_metadata": {
+    "rv64_word16_global_execution_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/bb1cdf09e6ab59cbff128b5db15e0c19/test",
+        "runtime_count": 18,
+        "names": [
+          "rv64_word16_global_execution_test_root.test_0",
+          "word16_global_execution.draw_test.test.closed core draw preserves frozen historical fields and complete following channel sequence",
+          "word16_global_execution.draw_test.test.shared core draw omits exactly the unused local RAM relation and pins explicit revision",
+          "word16_global_execution.draw_test.test.every global authority derives shared RAM from complete manifest before core draw and rejects mutation",
+          "word16_global_execution.wire_test.test.global wire v2 streams beyond full cell blocks and rejects tampering headers truncation overwrite",
+          "word16_global_execution.wire_test.test.global wire read cleans every allocation failure",
+          "word16_global_execution.wire_test.test.actual two CPU proof transport preserves bytes and physical claims reject tampering",
+          "word16_global_execution.worker_test.test.Owned worker seals MAIN before root-only manifest and rejects context changes before FS resume",
+          "word16_global_execution.worker_test.test.Worker failed seal publishes no descriptor and drains single-owner allocation failures",
+          "word16_global_execution.adversarial_test.test.global execution binds actual stage1 roots physical claims and complete ordered inventory",
+          "word16_global_execution.adversarial_test.test.global execution independently admits genesis policy program budget epoch and continuation",
+          "word16_global_execution.adversarial_test.test.real locally valid load-to-x0 fork proofs fail only global RAM closure",
+          "word16_global_execution.execution_test.test.Actual two CPU shards share RAM across store load with one trusted INIT and final TEARDOWN",
+          "word16_global_execution.execution_test.test.Independent INIT TERM domains physically prove cross shard RAM and default geometry keys stay exact",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/81d40cd1ab5e70b06ab1877d18b9511d/test",
+        "runtime_count": 18,
+        "names": [
+          "rv64_word16_global_execution_test_root.test_0",
+          "word16_global_execution.draw_test.test.closed core draw preserves frozen historical fields and complete following channel sequence",
+          "word16_global_execution.draw_test.test.shared core draw omits exactly the unused local RAM relation and pins explicit revision",
+          "word16_global_execution.draw_test.test.every global authority derives shared RAM from complete manifest before core draw and rejects mutation",
+          "word16_global_execution.wire_test.test.global wire v2 streams beyond full cell blocks and rejects tampering headers truncation overwrite",
+          "word16_global_execution.wire_test.test.global wire read cleans every allocation failure",
+          "word16_global_execution.wire_test.test.actual two CPU proof transport preserves bytes and physical claims reject tampering",
+          "word16_global_execution.worker_test.test.Owned worker seals MAIN before root-only manifest and rejects context changes before FS resume",
+          "word16_global_execution.worker_test.test.Worker failed seal publishes no descriptor and drains single-owner allocation failures",
+          "word16_global_execution.adversarial_test.test.global execution binds actual stage1 roots physical claims and complete ordered inventory",
+          "word16_global_execution.adversarial_test.test.global execution independently admits genesis policy program budget epoch and continuation",
+          "word16_global_execution.adversarial_test.test.real locally valid load-to-x0 fork proofs fail only global RAM closure",
+          "word16_global_execution.execution_test.test.Actual two CPU shards share RAM across store load with one trusted INIT and final TEARDOWN",
+          "word16_global_execution.execution_test.test.Independent INIT TERM domains physically prove cross shard RAM and default geometry keys stay exact",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      }
+    ],
+    "rv64_word16_keccak_shared_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/bfd6cabb0ee9e258f61904d535ba6ee2/test",
+        "runtime_count": 9,
+        "names": [
+          "rv64_word16_keccak_shared_test_root.test_0",
+          "word16_global_execution.keccak.shared.execution_test.test.Two actual CPU RAM shards join one independent execution wide K truth proof",
+          "word16_global_execution.keccak.shared.execution_test.test.Physically valid false K output and false cross shard genesis reject shared truth closure",
+          "word16_global_execution.keccak.shared.execution_test.test.Shared truth requires every physical root role call span and claim binding",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded K truth roster joins four actual proofs with fresh independent keys",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth admission rejects duplicate overlapping missing and gapped spans before proofs",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth receiver rejects missing duplicated swapped roots spans and physical claims",
+          "word16_global_execution.keccak.shared.bounded_test.test.Four physical proofs reject valid false K output and reset predecessor across bounded truths",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/600f7f448accdaf1495f1660840ddbb1/test",
+        "runtime_count": 9,
+        "names": [
+          "rv64_word16_keccak_shared_test_root.test_0",
+          "word16_global_execution.keccak.shared.execution_test.test.Two actual CPU RAM shards join one independent execution wide K truth proof",
+          "word16_global_execution.keccak.shared.execution_test.test.Physically valid false K output and false cross shard genesis reject shared truth closure",
+          "word16_global_execution.keccak.shared.execution_test.test.Shared truth requires every physical root role call span and claim binding",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded K truth roster joins four actual proofs with fresh independent keys",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth admission rejects duplicate overlapping missing and gapped spans before proofs",
+          "word16_global_execution.keccak.shared.bounded_test.test.Bounded truth receiver rejects missing duplicated swapped roots spans and physical claims",
+          "word16_global_execution.keccak.shared.bounded_test.test.Four physical proofs reject valid false K output and reset predecessor across bounded truths",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      }
+    ],
+    "rv64_word16_secp_bridge_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/aef1a205340e9438e1c60411c29de8cb/test",
+        "runtime_count": 10,
+        "names": [
+          "rv64_word16_secp_bridge_test_root.test_0",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge native RAM permissions owner tags and exact Wire35 bytes",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge borrowed MAIN release retains exact interactions for empty odd and padded calls",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge authority preserves every packed native residual and dense arbitrary QM31 cubic bound",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge allocation failures strict wire poles and retry retain packet metadata",
+          "word16_global_execution.secp.execution_test.test.Actual CPU SD ADD ADDI DOUBLE join independently sized RCB truth and global RAM proofs",
+          "word16_global_execution.secp.execution_test.test.Actual valid local secp proofs reject false output and fabricated cross epoch predecessor",
+          "word16_global_execution.secp.execution_test.test.Actual CPU owner debt rejects substituted pointer and substituted service kind",
+          "word16_global_execution.secp.execution_test.test.Secp receiver binds complete expected roots typed roles and every physical claim",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/48c6352b098e0d8f8a83a37cb71269cb/test",
+        "runtime_count": 10,
+        "names": [
+          "rv64_word16_secp_bridge_test_root.test_0",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge native RAM permissions owner tags and exact Wire35 bytes",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge borrowed MAIN release retains exact interactions for empty odd and padded calls",
+          "word16_global_execution.secp.bridge_test.test.Secp coordinate bridge authority preserves every packed native residual and dense arbitrary QM31 cubic bound",
+          "word16_global_execution.secp.bridge_test.test.Secp bridge allocation failures strict wire poles and retry retain packet metadata",
+          "word16_global_execution.secp.execution_test.test.Actual CPU SD ADD ADDI DOUBLE join independently sized RCB truth and global RAM proofs",
+          "word16_global_execution.secp.execution_test.test.Actual valid local secp proofs reject false output and fabricated cross epoch predecessor",
+          "word16_global_execution.secp.execution_test.test.Actual CPU owner debt rejects substituted pointer and substituted service kind",
+          "word16_global_execution.secp.execution_test.test.Secp receiver binds complete expected roots typed roles and every physical claim",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      }
+    ],
+    "rv64_word16_combined_services_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/a06789e17f48fd2042e66bbc8673221e/test",
+        "runtime_count": 21,
+        "names": [
+          "rv64_word16_combined_services_test_root.test_0",
+          "word16_global_execution.services.schedule_test.test.Two service lanes own disjoint pools and join callbacks on success failure and reuse",
+          "word16_global_execution.services.schedule_test.test.Concurrent two-phase services preserve all proof bytes claims manifest and fresh verification",
+          "word16_global_execution.services.schedule_test.test.Consistently rekeyed declaration and resealed manifest still reject the old physical proof",
+          "word16_global_execution.services.collector_test.test.Streaming collector and retired capture records preserve every physical proof and global obligation",
+          "word16_global_execution.services.collector_test.test.Streaming collector cleans every allocation failure including final boundary handoff",
+          "word16_global_execution.services.collector_test.test.Partially mutated chronological ledger is poisoned on append failure",
+          "word16_global_execution.services.collector_test.test.Retired capture records cannot silently fall back to a closed memory constructor",
+          "word16_global_execution.services.owned_truth_test.test.Owned K ADD DOUBLE truth MAIN INTER and mapped coefficients preserve complete expected proofs",
+          "word16_global_execution.services.owned_truth_test.test.Truth ownership transfer allocation failure borrowed phase and aliased buffers leave ownership intact",
+          "word16_global_execution.services.hash_accounting_test.test.native-height prefixed BLAKE2 leaf compression ledger matches backend counters",
+          "word16_global_execution.services.wire_test.test.Combined compact transport preserves all physical proofs and cleans every read allocation failure",
+          "word16_global_execution.services.execution_test.test.One CPU proof per shard joins K ADD DOUBLE shared RAM and independently sized truths",
+          "word16_global_execution.services.execution_test.test.Actual valid mixed local proofs reject cross family RAM reset and false K or secp output",
+          "word16_global_execution.services.execution_test.test.Combined receiver rejects free absent debts missing roots and wrong typed spans",
+          "word16_global_execution.services.execution_test.test.Combined mapped CPU and all truth MAIN preserve every proof manifest and wire with refusal cleanup",
+          "word16_global_execution.services.execution_test.test.All physical stage recorders preserve proof authority and retain process usage",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/0814b7bb8ffa8f856fb4afb79b0e7dae/test",
+        "runtime_count": 21,
+        "names": [
+          "rv64_word16_combined_services_test_root.test_0",
+          "word16_global_execution.services.schedule_test.test.Two service lanes own disjoint pools and join callbacks on success failure and reuse",
+          "word16_global_execution.services.schedule_test.test.Concurrent two-phase services preserve all proof bytes claims manifest and fresh verification",
+          "word16_global_execution.services.schedule_test.test.Consistently rekeyed declaration and resealed manifest still reject the old physical proof",
+          "word16_global_execution.services.collector_test.test.Streaming collector and retired capture records preserve every physical proof and global obligation",
+          "word16_global_execution.services.collector_test.test.Streaming collector cleans every allocation failure including final boundary handoff",
+          "word16_global_execution.services.collector_test.test.Partially mutated chronological ledger is poisoned on append failure",
+          "word16_global_execution.services.collector_test.test.Retired capture records cannot silently fall back to a closed memory constructor",
+          "word16_global_execution.services.owned_truth_test.test.Owned K ADD DOUBLE truth MAIN INTER and mapped coefficients preserve complete expected proofs",
+          "word16_global_execution.services.owned_truth_test.test.Truth ownership transfer allocation failure borrowed phase and aliased buffers leave ownership intact",
+          "word16_global_execution.services.hash_accounting_test.test.native-height prefixed BLAKE2 leaf compression ledger matches backend counters",
+          "word16_global_execution.services.wire_test.test.Combined compact transport preserves all physical proofs and cleans every read allocation failure",
+          "word16_global_execution.services.execution_test.test.One CPU proof per shard joins K ADD DOUBLE shared RAM and independently sized truths",
+          "word16_global_execution.services.execution_test.test.Actual valid mixed local proofs reject cross family RAM reset and false K or secp output",
+          "word16_global_execution.services.execution_test.test.Combined receiver rejects free absent debts missing roots and wrong typed spans",
+          "word16_global_execution.services.execution_test.test.Combined mapped CPU and all truth MAIN preserve every proof manifest and wire with refusal cleanup",
+          "word16_global_execution.services.execution_test.test.All physical stage recorders preserve proof authority and retain process usage",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure"
+        ]
+      }
+    ],
+    "rv64_word16_keccak_bridge_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/3db031b6a70fef9ffd0bdce7d350f072/test",
+        "runtime_count": 13,
+        "names": [
+          "rv64_word16_keccak_bridge_test_root.test_0",
+          "word16_global_execution.keccak.bridge_test.test.Word16 Keccak bridge ordered epochs rights pointer and native residuals",
+          "word16_global_execution.keccak.bridge_test.test.Word16 Keccak main release and borrowed parity with empty and padded calls",
+          "word16_global_execution.keccak.bridge_test.test.One bridge authority preserves every packed native residual and dense arbitrary QM31 cubic bound",
+          "word16_global_execution.keccak.bridge_test.test.Bridge allocation failures strict pole rollback and main-independent retry",
+          "word16_global_execution.keccak.bridge_test.test.Narrow batched bridge generator matches scalar physical interactions across full chunk and high IDs",
+          "word16_global_execution.keccak.bridge_test.test.Bridge dictionary covers exactly used padding poles and publishes nothing on failures",
+          "word16_global_execution.keccak.execution_test.test.Actual two CPU shards Keccak IO and global RAM join through one first INIT and final TERM",
+          "word16_global_execution.keccak.execution_test.test.Actual physically proved K output forgery and cross shard predecessor reset reject",
+          "word16_global_execution.keccak.execution_test.test.Service inventory fixed roots claims and pristine genesis remain receiver bound",
+          "word16_global_execution.keccak.execution_test.test.Rootless material transcript authority preserves existing setup wrappers exactly",
+          "word16_global_execution.keccak.execution_test.test.Service receiver geometry characteristic bound is checked without allocating large traces",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/d90ba314f78eb36841dc5aab999059bf/test",
+        "runtime_count": 13,
+        "names": [
+          "rv64_word16_keccak_bridge_test_root.test_0",
+          "word16_global_execution.keccak.bridge_test.test.Word16 Keccak bridge ordered epochs rights pointer and native residuals",
+          "word16_global_execution.keccak.bridge_test.test.Word16 Keccak main release and borrowed parity with empty and padded calls",
+          "word16_global_execution.keccak.bridge_test.test.One bridge authority preserves every packed native residual and dense arbitrary QM31 cubic bound",
+          "word16_global_execution.keccak.bridge_test.test.Bridge allocation failures strict pole rollback and main-independent retry",
+          "word16_global_execution.keccak.bridge_test.test.Narrow batched bridge generator matches scalar physical interactions across full chunk and high IDs",
+          "word16_global_execution.keccak.bridge_test.test.Bridge dictionary covers exactly used padding poles and publishes nothing on failures",
+          "word16_global_execution.keccak.execution_test.test.Actual two CPU shards Keccak IO and global RAM join through one first INIT and final TERM",
+          "word16_global_execution.keccak.execution_test.test.Actual physically proved K output forgery and cross shard predecessor reset reject",
+          "word16_global_execution.keccak.execution_test.test.Service inventory fixed roots claims and pristine genesis remain receiver bound",
+          "word16_global_execution.keccak.execution_test.test.Rootless material transcript authority preserves existing setup wrappers exactly",
+          "word16_global_execution.keccak.execution_test.test.Service receiver geometry characteristic bound is checked without allocating large traces",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb"
+        ]
+      }
+    ],
+    "rv64_word16_execution_coordinator_test_root": [
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/a579b39c698161952f26adf9e66b42b1/test",
+        "runtime_count": 22,
+        "names": [
+          "rv64_word16_execution_coordinator_test_root.test_0",
+          "word16_execution.alu_read_induction_proof_test.test.valid physical ALU proof with half-field noncanonical reads fails the closed canonical CPU FUNCTION relation",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution program derives all immutable edges and binds invalid raw words",
+          "tests.rv64_word16_execution_program_test.test.full program reuses admitted immutable decoded authority without copying raw arrays",
+          "tests.rv64_word16_execution_program_test.test.full program lookup preserves sparse high64 aliases wrapping and branch alignment",
+          "tests.rv64_word16_execution_program_test.test.full program owner unwinds every allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution immutable material roster matches all physical fixed columns",
+          "tests.rv64_word16_execution_program_test.test.full execution complete fixed key leases preserve root and fresh transcript",
+          "tests.rv64_word16_execution_program_test.test.full execution concrete component roster matches every immutable physical shape",
+          "tests.rv64_word16_execution_image_test.test.pristine expected image retains pinned ELF input and zero memory without Poseidon cache",
+          "tests.rv64_word16_execution_image_test.test.pristine image pin terminal and all allocation failures reject without native execution",
+          "tests.rv64_word16_execution_image_test.test.new execution packet path reads tape without legacy graph and rejects corruption",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native fixture directly seals tape with pristine image intact",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native program closes seventeen physical chips and verifies fresh",
+          "tests.rv64_word16_execution_image_test.test.execution receiver binds independently configured prefix budgets before fixed setup",
+          "tests.rv64_word16_execution_image_test.test.execution memory count preflight rejects overcapacity before sidecar allocation",
+          "tests.rv64_word16_execution_image_test.test.joined execution proofs are exact with serial and1 4 16worker multichunk LS prefixes",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb",
+          "word16_execution.memory.boundary_anchor_test.test.valid full proof with balanced noncanonical boundary ghosts is rejected by independent RAM tuple authority"
+        ]
+      },
+      {
+        "binary": ".zig-cache/products/riscv_cpu/o/c31b996a1e8b85ebf36b17efb6bc4667/test",
+        "runtime_count": 22,
+        "names": [
+          "rv64_word16_execution_coordinator_test_root.test_0",
+          "word16_execution.alu_read_induction_proof_test.test.valid physical ALU proof with half-field noncanonical reads fails the closed canonical CPU FUNCTION relation",
+          "word16_execution.cells_wire.test.public RAM sidecar streams full blocks without losing high limbs",
+          "word16_execution.cells_wire.test.public RAM sidecar rejects noncanonical clock and rights",
+          "word16_execution.cells_wire.test.public RAM sidecar read cleans every partial allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution program derives all immutable edges and binds invalid raw words",
+          "tests.rv64_word16_execution_program_test.test.full program reuses admitted immutable decoded authority without copying raw arrays",
+          "tests.rv64_word16_execution_program_test.test.full program lookup preserves sparse high64 aliases wrapping and branch alignment",
+          "tests.rv64_word16_execution_program_test.test.full program owner unwinds every allocation failure",
+          "tests.rv64_word16_execution_program_test.test.full execution immutable material roster matches all physical fixed columns",
+          "tests.rv64_word16_execution_program_test.test.full execution complete fixed key leases preserve root and fresh transcript",
+          "tests.rv64_word16_execution_program_test.test.full execution concrete component roster matches every immutable physical shape",
+          "tests.rv64_word16_execution_image_test.test.pristine expected image retains pinned ELF input and zero memory without Poseidon cache",
+          "tests.rv64_word16_execution_image_test.test.pristine image pin terminal and all allocation failures reject without native execution",
+          "tests.rv64_word16_execution_image_test.test.new execution packet path reads tape without legacy graph and rejects corruption",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native fixture directly seals tape with pristine image intact",
+          "tests.rv64_word16_execution_image_test.test.full execution mixed native program closes seventeen physical chips and verifies fresh",
+          "tests.rv64_word16_execution_image_test.test.execution receiver binds independently configured prefix budgets before fixed setup",
+          "tests.rv64_word16_execution_image_test.test.execution memory count preflight rejects overcapacity before sidecar allocation",
+          "tests.rv64_word16_execution_image_test.test.joined execution proofs are exact with serial and1 4 16worker multichunk LS prefixes",
+          "word16_execution.arithmetic_bus.test.Word16 arithmetic basis preserves all raw opcode identities and every full64 limb",
+          "word16_execution.memory.boundary_anchor_test.test.valid full proof with balanced noncanonical boundary ghosts is rejected by independent RAM tuple authority"
+        ]
+      }
+    ]
+  },
+  "actual_artifact_qualification": {
+    "scope": "functional q70/P26 fixture processes; concurrent engineering; no performance claim",
+    "cases": [
+      {
+        "name": "combined",
+        "tool_sha256": "142e158d8e35a818ef0ef36f4f101e33f9b8ef77aa18c7b563b8934c21ce131d",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/combined",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-combined-services-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/combined",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 18022415250
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-combined-services-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/combined",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 81969167
+        },
+        "files": {
+          "bundle.json": {
+            "bytes": 67263,
+            "sha256": "b93c4d7a6eae3808350b75b63d05f751178d57ef95297922953a7d90385460bf"
+          },
+          "cells.bin": {
+            "bytes": 1166,
+            "sha256": "c4162b246a36d660bea83c219f6bde1cf157f3b26221abbba944734d46662556"
+          },
+          "cpu-0.bin": {
+            "bytes": 951840,
+            "sha256": "83126a02646f2c6e7f1ee1c2461e0dfe518c5483438c20a07558df95a1c7b015"
+          },
+          "cpu-1.bin": {
+            "bytes": 1129216,
+            "sha256": "296c798e043aaead89aaaccfd001a180cc3da6b717e646ca5e8608d6ade25faf"
+          },
+          "truth-0.bin": {
+            "bytes": 1617800,
+            "sha256": "82404ee5a05bbf0c1c260a332d30e31c2d896e5ddb2470e95562d5811012bdf7"
+          },
+          "truth-1.bin": {
+            "bytes": 366840,
+            "sha256": "dcb597ffabf55fb12ddfb3e92e92e28925dcd005cd978fcf20f3a5106f2d3b91"
+          },
+          "truth-2.bin": {
+            "bytes": 364632,
+            "sha256": "5d4115bf31f59cdbc9b87723fab829b53ce89e4f85d2aa6efdd54e19a0f8a0e7"
+          }
+        }
+      },
+      {
+        "name": "shared-k",
+        "tool_sha256": "ca3d8db1ad1e80c99491d96a930328baab77ed1eafcf402c6b98d42893315205",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/shared-k",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-shared-keccak-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/shared-k",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 6654912250
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-shared-keccak-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/shared-k",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 87355333
+        },
+        "files": {
+          "accounting.json": {
+            "bytes": 962,
+            "sha256": "ab025bb544934e55f866101e96c3aa4ddd8aba027c66fae082cf0c749080f119"
+          },
+          "cpu0.bin": {
+            "bytes": 955296,
+            "sha256": "f94d855e222f585002d82e69f3bd3da3123791660ad85a4e88b7df45d4a9b978"
+          },
+          "cpu1.bin": {
+            "bytes": 946272,
+            "sha256": "73ae40e2817a7e88c92fdae49f4765929e1ddf0a5d57a4ba69fcc3f372aa5951"
+          },
+          "metadata.json": {
+            "bytes": 57289,
+            "sha256": "884854d31b38a44540932145704959fa9d333cc162483445723574b84d717a6a"
+          },
+          "truth.bin": {
+            "bytes": 1620200,
+            "sha256": "52caf233b7435b3c2f346679ddad27f2ff30aa39678376d2f6681cfeabf43bdf"
+          }
+        }
+      },
+      {
+        "name": "bounded-k",
+        "tool_sha256": "ca3d8db1ad1e80c99491d96a930328baab77ed1eafcf402c6b98d42893315205",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/bounded-k",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-shared-keccak-fixture",
+            "produce-bounded",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/bounded-k",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 8169975875
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-shared-keccak-fixture",
+            "verify-bounded",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/bounded-k",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 96624583
+        },
+        "files": {
+          "cpu0.bin": {
+            "bytes": 950496,
+            "sha256": "70ba20360605f88a642c785a6d2f3ccc646293e8e833a2e3a5f9c1fcecf7d0aa"
+          },
+          "cpu1.bin": {
+            "bytes": 956144,
+            "sha256": "b793f9e8b64a038b23665edd85ec4cec8ad112205323ea618fb5d46f2a18aa5f"
+          },
+          "metadata.json": {
+            "bytes": 59708,
+            "sha256": "3445c8275126ea4ec854de9a6aa09498c5409ca02770cf9f73dbf0879882e496"
+          },
+          "truth0.bin": {
+            "bytes": 1622408,
+            "sha256": "722e78249eb08c0c301411801e7e445db6ca4834924bacb9c320f3bcc891ba96"
+          },
+          "truth1.bin": {
+            "bytes": 1615336,
+            "sha256": "58f76bb5d7ba0861d838af27385f1a39e99bd1d49b3b0f8e65b08e3403b3c167"
+          }
+        }
+      },
+      {
+        "name": "secp",
+        "tool_sha256": "63d05515ef96b43a6d29f5caab8be4e288e94c9980a449b6b8c670730ed07729",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/secp",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-global-secp-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/secp",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 11126835041
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-global-secp-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/secp",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 65641042
+        },
+        "files": {
+          "add.bin": {
+            "bytes": 365304,
+            "sha256": "0b09e72eff7103311caf60079948cc23714ab8d851bc72ed24b025ad18a94f19"
+          },
+          "cpu0.bin": {
+            "bytes": 1129280,
+            "sha256": "b9ab682244c56883180d46c68194969a47f0759a224557f50b1b1fa39bd5b21f"
+          },
+          "cpu1.bin": {
+            "bytes": 1129184,
+            "sha256": "889dfa42fedd0e3537662d2c6947302dd51d93499d7ea9ef7fb78688a6826162"
+          },
+          "double.bin": {
+            "bytes": 355584,
+            "sha256": "752fb6054848778dd3de86fe4bd96946e7702b68bd530b775654722685be7883"
+          },
+          "metadata.json": {
+            "bytes": 63446,
+            "sha256": "df3c060e61bfdb63d65ae298f899ddd535ac136d73ee140f4cc3a9f8345d3e9f"
+          }
+        }
+      },
+      {
+        "name": "nonshared-k",
+        "tool_sha256": "651c210ce566bac86e92e0dcdfc16738c539050e730bfccf538e10c60f0d69f6",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/nonshared-k",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-global-keccak-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/nonshared-k",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 3178590792
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-word16-global-keccak-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/nonshared-k",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 73155042
+        },
+        "files": {
+          "metadata.json": {
+            "bytes": 57545,
+            "sha256": "1633fad263be28535ff617b3171176db0a4d207592915c217c61402b3fed3899"
+          },
+          "proof0.bin": {
+            "bytes": 2441632,
+            "sha256": "90575f23fec7915b56f20deecdeff76459959ef63a74c576c3509644c4980773"
+          },
+          "proof1.bin": {
+            "bytes": 2440160,
+            "sha256": "a525acdae4658d8225a4b2eb7980fc52f031b877d728ceffc248b6732ffb5448"
+          }
+        }
+      },
+      {
+        "name": "legacy-ls",
+        "tool_sha256": "15aabfad6fa8acd0cb257cc15a5450b9be80ab4e120accf2225219290d7d7dd0",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-ls",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-load-store-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-ls"
+          ],
+          "returncode": 0,
+          "process_ns": 495077458
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-load-store-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-ls"
+          ],
+          "returncode": 0,
+          "process_ns": 23573750
+        },
+        "files": {
+          "claims.json": {
+            "bytes": 3615,
+            "sha256": "e748739f8707d15306da1e00eb5319dc4507aee4c7427dbb79a6ab6bb47dcc42"
+          },
+          "producer.json": {
+            "bytes": 818,
+            "sha256": "9828b438f2d15ac1c7f558573884c95dbe4d53c743b2635d2cd31e17336be1f5"
+          },
+          "proof.bin": {
+            "bytes": 433488,
+            "sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664"
+          },
+          "receiver.json": {
+            "bytes": 179,
+            "sha256": "8099a41c7629310f12071c49a5c54838e7beb5dce2386e51b6cbc3a7552daba9"
+          }
+        }
+      },
+      {
+        "name": "legacy-k5",
+        "tool_sha256": "877b1bca1b40baa0ae2f6174a5505f95598996fa0de2d52e5cf4539eb57f5e55",
+        "directory": "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-k5",
+        "produce": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-keccak-fixture",
+            "produce",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-k5",
+            "5",
+            "1"
+          ],
+          "returncode": 0,
+          "process_ns": 11186639792
+        },
+        "verify": {
+          "command": [
+            "/tmp/rv64-shared-ram-draw-tools/bin/rv64-keccak-fixture",
+            "verify",
+            "/tmp/rv64-shared-ram-draw-artifacts-v1/legacy-k5",
+            "5",
+            "16"
+          ],
+          "returncode": 0,
+          "process_ns": 23233541
+        },
+        "files": {
+          "claims.json": {
+            "bytes": 708,
+            "sha256": "22fef659f0ac65b0fbd3067809dc09898a73e4dd9ac4152f8cac8601ef6449ea"
+          },
+          "producer.json": {
+            "bytes": 5005,
+            "sha256": "aa0d4c4b9d6d5e45ad1e9bd361615819987b57a3d7d51d52a5c774651db7fe24"
+          },
+          "proof.bin": {
+            "bytes": 1621800,
+            "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68"
+          }
+        }
+      }
+    ],
+    "new-rejects-old": {
+      "returncode": 1,
+      "stderr": "error: OodsNotMatching\n"
+    },
+    "old-rejects-new": {
+      "returncode": 1,
+      "stderr": "error: OodsNotMatching\n"
+    },
+    "complete": true
+  },
+  "old_new_combined": {
+    "baseline": "/tmp/rv64-shared-ram-draw-old-combined-v1",
+    "candidate": "/tmp/rv64-shared-ram-draw-artifacts-v1/combined",
+    "stage1_fixed_main_roots_specs_seal": "EXACT",
+    "declarations_requests_cells": "EXACT",
+    "all3shared_truth_proofs": "EXACT",
+    "cpu0_cpu1_proofs": "INTENTIONALLY DIFFERENT",
+    "all_ram_claim_paths_exact": [
+      "cpu[0].claims.base.ls.ram",
+      "cpu[0].claims.base.initial.ram",
+      "cpu[0].claims.base.terminal.ram",
+      "cpu[0].claims.base.ls_tail.ram",
+      "cpu[0].claims.extras[0].ram",
+      "cpu[0].claims.extras[1].ram",
+      "cpu[0].claims.extras[2].ram",
+      "cpu[1].claims.base.ls.ram",
+      "cpu[1].claims.base.initial.ram",
+      "cpu[1].claims.base.terminal.ram",
+      "cpu[1].claims.base.ls_tail.ram",
+      "cpu[1].claims.extras[0].ram",
+      "cpu[1].claims.extras[1].ram",
+      "cpu[1].claims.extras[2].ram"
+    ],
+    "opposite_revision_receiver_result": "OodsNotMatching both directions"
+  },
+  "legacy_controls": {
+    "closed_ls": {
+      "bytes": 433488,
+      "sha256": "9124b54a04df4b3de6fe184e905fe283438211b827b3e85ae39938b030e0e664",
+      "fresh_receiver": "PASS"
+    },
+    "keccak5": {
+      "bytes": 1621800,
+      "sha256": "64793a3f3bc966a95ef82c7e40da72c1653aef43fed62071904ea51c2a790c68",
+      "fresh_receiver": "PASS"
+    }
+  },
+  "source_sha256": {
+    "build_support/products/riscv_cpu.zig": "7bc841e3ff18179b840097152c29aec6bad4f1deae2270b534f9acc32fbced97",
+    "src/integrations/riscv_cpu/rv64_word16_global_execution_test_root.zig": "75c24ed32d49a4d94070528974a1c4fb15aa3058a12db2c5cc3b471110cea6ab",
+    "src/integrations/riscv_cpu/word16_execution/protocol.zig": "9b9bf5970c530fccffae5822f29b36b12834f52c8c4acc9a2ece55e9383f2bd0",
+    "src/integrations/riscv_cpu/word16_global_execution/draw_test.zig": "3ee660a1da2749adc0439655f85ddd5d62a131919a62dcf21dadf65892324075",
+    "src/integrations/riscv_cpu/word16_global_execution/keccak/shared/protocol.zig": "e33095fbfde802f01f1c5c1d497dc9ac6a87f58555da930a347598491c4b20f2",
+    "src/integrations/riscv_cpu/word16_global_execution/protocol.zig": "05b963eaa9f041642015210933f95680a6ec2c078c8eb6a293d29f80c05d17fb",
+    "src/integrations/riscv_cpu/word16_global_execution/secp/protocol.zig": "3a2128f2fd42727053d5b93387387b4879015dad0322bbde208ca30f08cc6b30",
+    "src/integrations/riscv_cpu/word16_global_execution/services/protocol.zig": "3263a92256794a69f57b49847c2aadd1b286e473bcfc87f2fe74775606ccc064"
+  },
+  "logs": {
+    "safe": "/tmp/rv64-shared-ram-draw-integrated-safe.log",
+    "fast": "/tmp/rv64-shared-ram-draw-integrated-fast.log",
+    "candidate_tools": "/tmp/rv64-shared-ram-draw-tools-build.log",
+    "old_tool": "/tmp/rv64-shared-ram-draw-old-build.log"
+  },
+  "limits": [
+    "No speedup claim; functional timings ran amid concurrent engineering.",
+    "Synthetic draw tests check dispatch/transcript invariants; accepting qualification comes from physical proof/fresh receivers.",
+    "Shared truth proof transcripts remain unchanged intentionally; only CPU local draw is revised.",
+    "No new global recursion or same-AIR Rust qualification is claimed.",
+    "The separate closed dummy draw for cost-accounting component geometry remains unchanged."
+  ]
+}

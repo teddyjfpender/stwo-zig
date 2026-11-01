@@ -97,9 +97,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534532, 1, 0, @intCast(index) });
     G.Old.digest(ch, manifest.digest);
-    var out = G.Old.draw(ch);
-    out.memory.ram = common.ram;
-    return out;
+    return G.Old.drawWithSharedRam(ch, common.ram);
 }
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, kind: S.program.Kind) !S.equations.Challenges {
     const common = try shared(manifest);

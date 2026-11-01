@@ -133,9 +133,7 @@ pub fn drawCpu(ch: *G.T.P.Channel, manifest: *const Manifest, index: usize) !G.O
     const common = try shared(manifest);
     ch.mixU32s(&.{ 0x57534332, 1, 0, @intCast(index) });
     G.Old.digest(ch, manifest.digest);
-    var out = G.Old.draw(ch);
-    out.memory.ram = common.ram;
-    return out;
+    return G.Old.drawWithSharedRam(ch, common.ram);
 }
 pub const TruthDraw = union(enum) { keccak: K.equations.Challenges, secp: S.equations.Challenges };
 pub fn drawTruth(ch: *G.T.P.Channel, manifest: *const Manifest, truth: R.Truth, ordinal: usize) !TruthDraw {
