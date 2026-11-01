@@ -6,6 +6,8 @@ This is an arithmetic/cost prototype, not a128-bit proof profile. No production 
 
 Let p=2^31−1, CM31=M31[i]/(i²+1), QM31=CM31[u]/(u²−(2+i)). Define OM31=QM31[v]/(v²−u). Scalar elements are a+bv with two QM31 coefficients, eight canonical M31 coordinates and32 serialized bytes. The order is p^8, slightly below2^248. It is not an integer field modulo2^248.
 
+Degree8 is the smallest proper extension retaining QM31 as a subfield. This does not assert that it is the cheapest entirely new field representation.
+
 The new quadratic is irreducible:
 
 1. Norm_QM31/CM31(u)=−(2+i).
@@ -45,7 +47,7 @@ The circuit oracle guesses all arithmetic inputs, evaluates the shared quadratic
 | Secure×base |1|2|0|
 | Inversion via inner norm |1|8|1 in either case|
 
-These are existing QM31-op rows, not M31 machine instructions or complete recursive proving time. No Blake gates appear in this arithmetic fragment. Full-graph counters include input/output binding diagnostics and are stored in the receipts. Using a wider inner arithmetic representation does not automatically strengthen an outer proof that still uses QM31 challenges.
+These are existing QM31-op rows, not M31 machine instructions or complete recursive proving time. No Blake gates appear in this arithmetic fragment. Full-graph counters include input/output binding diagnostics and are stored in the receipts. Using a wider inner arithmetic representation does not automatically strengthen an outer proof that still uses QM31 challenges. A dedicated eight-coordinate multiplication AIR gate could avoid the nine-row expansion of this existing-QM31 adapter, but would change circuit authority, bus payloads and topology and needs separate qualification.
 
 An early benchmark attempt hardcoded sixteen lanes for the target-native vector and failed. ReleaseSafe localized the out-of-bounds access; the corrected benchmark uses PACK_WIDTH and the explicit16-row grouped test prevents conflating the two representations. That failed run contributes no measurement.
 
@@ -61,7 +63,23 @@ An early benchmark attempt hardcoded sixteen lanes for the target-native vector 
 | Fiat–Shamir |A raw256-bit hash can supply eight M31 coordinates with canonical rejection, but every sampler, retry rule, domain tag and transcript dependency must match the receiver/circuit. The current raw native circuit sampler's rare retry mismatch remains a required open gate; a nonretry rejection guard is only intermediate, not full native parity.|
 | Recursion |Every wider arithmetic check must be represented efficiently, and every outer proof's algebraic/hash error must meet the same whole-protocol target. The measured9/2/8-row costs make this a material architecture decision, not a free field typedef.|
 
-For scale only: if a control had9.3G interaction cells among21.5G total cells, widening those planes alone would add9.3G cells before considering composition/FRI, wider scratch, query parameters or optimizations. That is a conditional traffic illustration, not a measurement of current LS7 geometry. Production cost must be generated from the current physical roster.
+The current full-block source roster is now pinned from the423a135cb combined binary's `0-legacy/cost.json` in the queue/prefetch sweep:25CPU proofs,5canonical-secp/Keccak truth proofs and104,253,913 retirements. This is the **planned physical geometry**; the sweep's independent proof/receiver receipts establish run qualification separately. The small generator and input cost file are retained in `om31-current-roster-cost-v1`.
+
+| Current physical planes | QM31 control cells | OM31 coordinate-width model cells |
+|---|---:|---:|
+| CPU MAIN |9,029,950,720|unchanged|
+| CPU INTER |7,109,968,128|14,219,936,256|
+| Truth MAIN |1,200,669,440|unchanged|
+| Truth INTER |1,510,234,112|3,020,468,224|
+| Total MAIN+INTER |18,850,822,400|27,471,024,640|
+| Fixed cells, summed per proof |1,424,594,496|unchanged|
+| Composition coordinates, separately |853,606,400|1,707,212,800|
+
+Thus doubling only secure interaction planes adds8,620,202,240 cells:45.73% over MAIN+INTER, or42.51% over fixed+MAIN+INTER. MAIN and fixed data do not double. Composition is a separate source-derived model: the CPU route declares split1 and both current truth authorities split2; the same mask heights give8→16 CPU composition columns and16→32 truth columns. Including fixed, MAIN, INTER and composition gives21,129,023,296→30,602,831,936 cells in this unchanged-geometry model.
+
+FRI is kept separate: at current blowup2/fold1 geometry, the summed initial domains contain211,558,400 secure values. Their payload is3,384,934,400 bytes at QM31 and6,769,868,800 bytes at OM31. A geometric upper bound over all fold1 value layers is twice those payloads; this is not a retained-lifetime or peak-memory claim. Widening native INTER also adds34,480,808,960 bytes across the block before LDE, while the corresponding blowup2 INTER LDE planes add68,961,617,920 bytes of plane volume. These summed volumes do not say all data is resident or copied together.
+
+The generated model also keeps the lifted-leaf tax explicit: current INTER contributes92,473,458,688 leaf words before commitment blowup, versus184,946,917,376 at double width. Small-log provider columns are lifted during leaf hashing, so this is different from native committed-cell volume. Fixed setup reuse and proof-specific lifetimes must be accounted independently. Secure payload doubling is also not identical to doubling all opening hash work: a fold1 leaf containing two QM31 values grows32→64 bytes and can still fit one Blake block, while authentication-path hashes stay fixed-width. None of these unchanged-q70 geometry figures constitutes a full128-bit construction or measured proving slowdown.
 
 ## Wider field versus repetition
 
