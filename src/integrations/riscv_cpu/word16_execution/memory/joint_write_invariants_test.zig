@@ -146,7 +146,16 @@ test "LS32 register writer inventory includes ROM ALU LUI AUIPC JAL JALR and all
         try std.testing.expectEqual(@as(u32, 65535), tuple[4] + tuple[5]);
     }
 }
-fn compareBridge(comptime B: type, comptime kind: ?A.crypto.secp256k1.program.Kind) !void {
+/// Secp/SHA Word16 bridges take a typed call span; the Keccak bridge keeps
+/// its scalar (calls, first ID) arguments.
+fn emitBridge(comptime B: type, comptime kind: ?A.crypto.secp256k1.word16_bridge.types.Kind, fixed: []const Q, current: []const Q, previous: []const Q, inter: []const Q, ch: B.types.Challenges, sink: *E.Sink) void {
+    if (kind) |k| {
+        B.equations.emitFor(Q, k, fixed, current, previous, inter, inter, .{ .calls = 1, .first_id = 1 }, B.types.Claims.zero(), ch, sink);
+    } else {
+        B.equations.emitFor(Q, .bridge, fixed, current, previous, inter, inter, 1, 1, B.types.Claims.zero(), ch, sink);
+    }
+}
+fn compareBridge(comptime B: type, comptime kind: ?A.crypto.secp256k1.word16_bridge.types.Kind) !void {
     const zero = Q.zero();
     const ch: B.types.Challenges = if (kind != null) .{ .ram = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .owner = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .wire = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .range16 = .{ .offset = Q.one(), .coefficient = Q.one() }, .range8 = .{ .offset = Q.one(), .coefficient = Q.one() } } else .{ .ram = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .owner = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .io = .{ .offset = Q.one(), .coefficients = @splat(zero) }, .range16 = .{ .offset = Q.one(), .coefficient = Q.one() }, .range8 = .{ .offset = Q.one(), .coefficient = Q.one() } };
     const call = B.types.Call{ .pointer = 0x8000, .epoch = 1, .tick = 4, .before = @splat(0), .after = @splat(0), .predecessors = @splat(.{ .value = 0, .rights = 3 }) };
@@ -163,7 +172,7 @@ fn compareBridge(comptime B: type, comptime kind: ?A.crypto.secp256k1.program.Ki
     var forged: [B.layout.CONSTRAINTS]Q = undefined;
     const inter: [B.layout.INTERACTION]Q = @splat(zero);
     var hs = E.Sink{ .values = &honest };
-    B.equations.emitFor(Q, if (kind) |k| k else .bridge, &fixed, &current, &previous, &inter, &inter, 1, 1, B.types.Claims.zero(), ch, &hs);
+    emitBridge(B, kind, &fixed, &current, &previous, &inter, ch, &hs);
     var changed = current;
     if (kind != null) {
         changed[B.layout.TICK] = changed[B.layout.TICK].add(Q.one());
@@ -173,7 +182,7 @@ fn compareBridge(comptime B: type, comptime kind: ?A.crypto.secp256k1.program.Ki
         changed[12] = changed[12].add(Q.one());
     }
     var fs = E.Sink{ .values = &forged };
-    B.equations.emitFor(Q, if (kind) |k| k else .bridge, &fixed, &changed, &previous, &inter, &inter, 1, 1, B.types.Claims.zero(), ch, &fs);
+    emitBridge(B, kind, &fixed, &changed, &previous, &inter, ch, &fs);
     try std.testing.expectEqual(hs.count, fs.count);
     try std.testing.expect(hasNewResidual(honest[0..hs.count], forged[0..fs.count]));
     const start = if (kind != null) B.layout.AFTER else B.layout.AFTER_BYTES;

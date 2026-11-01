@@ -6,6 +6,7 @@ const L = @import("layout.zig");
 const T = @import("types.zig");
 const Eq = @import("equations.zig");
 const geometry = @import("../../../geometry.zig");
+const lane = @import("../../../lane.zig");
 const points = @import("../../../../../air/component_point_support.zig");
 const support = @import("../../../../../air/memory_commitment/hash_component_prepared_support.zig");
 const M = core.fields.m31.M31;
@@ -54,7 +55,7 @@ pub const Component = struct {
         return 3;
     }
     pub fn emitFor(self: *const Component, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
-        Eq.emitFor(F, self.kind, f, m, pm, i, pi, self.rows, self.first_id, self.claims, self.challenges, sink);
+        Eq.emitFor(F, self.kind, f, m, pm, i, pi, .{ .calls = self.rows, .first_id = self.first_id }, self.claims, self.challenges, sink);
     }
     pub fn traceLogDegreeBounds(self: *const Component, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
         _ = try T.validateGeometry(self.kind, self.rows, self.first_id, self.log_size);
@@ -93,26 +94,33 @@ pub const Component = struct {
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const core.air.components.MaskValues, acc: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidWord16SecpMask;
+        var sink = E.Sink{ .values = null, .accumulator = acc };
+        try self.evaluatePointFor(Q, point, global_log, lane.NativeMasks{ .values = mask }, .{ .calls = self.rows, .first_id = self.first_id }, self.claims, self.challenges, &sink);
+    }
+    /// The one point authority for every lane (QM31 natively, circuit wires
+    /// for recursion). Span, claims and challenges are explicit constant-lane
+    /// values; only the kind, log size and column offsets come from `self`.
+    pub fn evaluatePointFor(self: *const Component, comptime F: type, point: geometry.PointFor(F), global_log: u32, masks: anytype, span: E.CallSpanFor(E.ConstFor(F)), claims: T.ClaimsFor(E.ConstFor(F)), challenges: T.ChallengesFor(E.ConstFor(F)), sink: *E.SinkFor(F)) !void {
         const widths_ = self.widths();
-        var data: [512]Q = undefined;
-        var pm: [134]Q = @splat(Q.zero());
-        var pi: [244]Q = @splat(Q.zero());
+        var data: [L.FIXED + L.MAIN + L.INTERACTION]F = undefined;
+        var pm: [L.MAIN]F = @splat(F.zero());
+        var pi: [L.INTERACTION]F = @splat(F.zero());
         var at: usize = 0;
-        for (widths_, 0..) |width, tree| {
-            if (mask.items[tree].len < self.offsets[tree] + width) return error.InvalidWord16SecpMask;
-            for (mask.items[tree][self.offsets[tree]..][0..width], 0..) |samples, c| {
-                const prev = if (tree == 1) L.previousMainFor(.bridge, c) else tree == 2 and L.previousInterFor(.bridge, c);
-                if (samples.len != @as(usize, if (prev) 2 else 1)) return error.InvalidWord16SecpMask;
-                data[at] = samples[0];
-                at += 1;
-                if (prev) {
-                    if (tree == 1) pm[c] = samples[1] else pi[c] = samples[1];
-                }
+        for (widths_, 0..) |width, tree| for (0..width) |c| {
+            const prev = if (tree == 1) L.previousMainFor(.bridge, c) else tree == 2 and L.previousInterFor(.bridge, c);
+            const n = masks.count(tree, self.offsets[tree] + c) catch return error.InvalidWord16SecpMask;
+            if (n != @as(usize, if (prev) 2 else 1)) return error.InvalidWord16SecpMask;
+            data[at] = try masks.at(tree, self.offsets[tree] + c, 0);
+            at += 1;
+            if (prev) {
+                const previous = try masks.at(tree, self.offsets[tree] + c, 1);
+                if (tree == 1) pm[c] = previous else pi[c] = previous;
             }
-        }
-        var sink = E.Sink{ .values = null, .accumulator = acc, .scale = try geometry.denominatorInverse(point, global_log, self.log_size) };
-        self.emitFor(Q, data[0..widths_[0]], data[widths_[0]..][0..widths_[1]], pm[0..widths_[1]], data[widths_[0] + widths_[1] ..][0..widths_[2]], pi[0..widths_[2]], &sink);
-        std.debug.assert(sink.count == self.nConstraints());
+        };
+        sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
+        const before = sink.count;
+        Eq.emitFor(F, self.kind, data[0..widths_[0]], data[widths_[0]..][0..widths_[1]], pm[0..widths_[1]], data[widths_[0] + widths_[1] ..][0..widths_[2]], pi[0..widths_[2]], span, claims, challenges, sink);
+        std.debug.assert(sink.count - before == self.nConstraints());
     }
     pub fn evaluateConstraintQuotientsOnDomain(self: *const Component, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
         return self.evaluateDomain(trace, acc, null);

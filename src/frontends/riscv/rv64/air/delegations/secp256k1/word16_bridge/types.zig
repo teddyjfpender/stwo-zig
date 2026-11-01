@@ -7,20 +7,29 @@ const P = @import("../program.zig");
 const L = @import("layout.zig");
 pub const Q = E.Q;
 pub const Call = struct { pointer: u64, epoch: u16, tick: u24, before: [24]u64, after: [24]u64, predecessors: [24]R.types.State };
-pub const Challenges = struct { ram: R.types.RamChallenges, owner: Owner.OwnerChallenges, wire: @import("../equations.zig").Wire, range16: S.Challenges, range8: S.Challenges };
-pub const Claims = struct {
-    ram: Q,
-    owner: Q,
-    wire: Q,
-    range16: Q,
-    range8: Q,
-    pub fn zero() @This() {
-        return .{ .ram = Q.zero(), .owner = Q.zero(), .wire = Q.zero(), .range16 = Q.zero(), .range8 = Q.zero() };
-    }
-    pub fn values(self: @This()) [5]Q {
-        return .{ self.ram, self.owner, self.wire, self.range16, self.range8 };
-    }
-};
+/// Challenges over constant lane C (QM31 natively, a circuit wire lane for
+/// recursion). The native layout is unchanged: `Challenges = ChallengesFor(Q)`.
+pub fn ChallengesFor(comptime C: type) type {
+    return struct { ram: R.types.RamChallengesFor(C), owner: Owner.OwnerChallengesFor(C), wire: @import("../equations.zig").WireFor(C), range16: S.ChallengesFor(C), range8: S.ChallengesFor(C) };
+}
+pub const Challenges = ChallengesFor(Q);
+/// The five physical claims over constant lane C, in transcript order.
+pub fn ClaimsFor(comptime C: type) type {
+    return struct {
+        ram: C,
+        owner: C,
+        wire: C,
+        range16: C,
+        range8: C,
+        pub fn zero() @This() {
+            return .{ .ram = C.zero(), .owner = C.zero(), .wire = C.zero(), .range16 = C.zero(), .range8 = C.zero() };
+        }
+        pub fn values(self: @This()) [5]C {
+            return .{ self.ram, self.owner, self.wire, self.range16, self.range8 };
+        }
+    };
+}
+pub const Claims = ClaimsFor(Q);
 /// Wire35 packet bridges. ADD/DOUBLE keep the secp program kinds 1/2; the
 /// SHA-256 compression packet (admitted by `ethereum_services_v3`) is kind 3:
 /// three 32-byte coordinates (state, message halves), only the state written.
