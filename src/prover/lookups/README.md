@@ -67,3 +67,10 @@ immutability, run with `owner_memory_test.zig` using the same focused command
 above. The bounded standalone `src/prover/gkr_memory_probe_root.zig` reports
 requested allocator-live bytes, proof/transcript hashes and fresh terminal
 binding; it does not measure RSS or a complete production batch.
+
+`resource.ForField(S).Plan` bounds requested numerical live bytes from typed
+shapes before allocation. The services planner separately includes the binding
+phase and preserves external parent backing reservations. See
+[the admission derivation](../../../design/riscv-proving-stack/rv64-gkr-requested-memory-bound.md).
+The hard allocator remains authoritative. The bound excludes RSS/allocator
+metadata, stacks, externally owned transcripts and embedding PCS/recursion.

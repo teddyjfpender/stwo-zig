@@ -1,0 +1,42 @@
+1/34 gkr_resource_test_root.test_0...OK
+2/34 lookups.resource_test.test.GKR bound covers actual mixed-height all-kind allocations and every OOM...OK
+3/34 lookups.resource_test.test.GKR bound covers Q and OM single/multiple/mixed small and large matrices...GKR_ADMISSION single vars=1 OM peak=1472 plan=33040; Q peak=1184 plan=32912
+GKR_ADMISSION single vars=2 OM peak=2192 plan=61984; Q peak=1712 plan=61728
+GKR_ADMISSION single vars=8 OM peak=30416 plan=440320; Q peak=16832 plan=423936
+GKR_ADMISSION single vars=14 OM peak=1641536 plan=3272704; Q peak=854512 plan=2224128
+GKR_ADMISSION single vars=16 OM peak=6556848 plan=10235904; Q peak=3410528 plan=6041600
+GKR_ADMISSION mixed vars=16,14,15,12 OM peak=11147864 plan=17997824
+GKR_ADMISSION twelve vars=8 OM peak=322344 plan=1228800
+OK
+4/34 lookups.resource_test.test.GKR plan rejects malformed and overflowing shape counts...OK
+5/34 lookups.resource_test.test.hard numerical cap reports resource OutOfMemory rather than malformed proof...OK
+6/34 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+7/34 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+8/34 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+9/34 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+10/34 lookups.mle.test.mle: init validates power-of-two length...OK
+11/34 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+12/34 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+13/34 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+14/34 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+15/34 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+16/34 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+17/34 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+18/34 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+19/34 host_budget_allocator.test.shared host budget nested owner survives backing release and every allocation failure...OK
+20/34 host_budget_allocator.test.shared host budget nested descendants and external lease preserve backing chain...OK
+21/34 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+22/34 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+23/34 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+24/34 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+25/34 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+26/34 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+27/34 lookups.utils.test.lookups utils: lagrange interpolation...OK
+28/34 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+29/34 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+30/34 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+31/34 lookups.utils.test.lookups utils: horner and random linear combination...OK
+32/34 lookups.utils.test.lookups utils: eq kernel...OK
+33/34 lookups.utils.test.lookups utils: fold mle evals...OK
+34/34 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+All 34 tests passed.
