@@ -112,3 +112,24 @@ test "security policy bounded profile parameters reject malformed candidates" {
     p.queries = 0;
     try std.testing.expectError(error.InvalidSecurityProfile, P.requireCandidate128Conditions(p));
 }
+
+test "single-draw M31 field-size bound refuses nominal 128 bits for QM31 even at degree one" {
+    // (2^31-1)^4 is strictly below 2^124; increasing query PoW does
+    // not strengthen the independent algebraic field draw.
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1, 128));
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1, 124));
+    try P.requireSingleDrawAlgebraicBudget(4, 1, 123);
+    // A degree-eight extension is a mathematical candidate, not a reviewed
+    // protocol: the receiver-owned certificate gate still rejects whole128.
+    try P.requireSingleDrawAlgebraicBudget(8, 1 << 24, 132);
+    try std.testing.expectError(error.NoReviewedWholeProtocol128Certificate, P.requireClaim(candidate(), .none, .whole_protocol_128));
+}
+test "single-draw algebraic budget scales by actual polynomial degree and rejects nonsensical bounds" {
+    try std.testing.expectError(error.SingleDrawAlgebraicBudgetInsufficient, P.requireSingleDrawAlgebraicBudget(4, 1 << 24, 123));
+    try P.requireSingleDrawAlgebraicBudget(4, 1 << 24, 99);
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(0, 1, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(4, 0, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(4, 1, 0));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(17, 1, 128));
+    try std.testing.expectError(error.InvalidAlgebraicBudget, P.requireSingleDrawAlgebraicBudget(8, 1, 257));
+}
