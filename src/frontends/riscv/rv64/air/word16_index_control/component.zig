@@ -166,11 +166,9 @@ pub const Component = struct {
             a.free(owned);
         }
         var evaluations: [MAX_COLUMNS][]const M = undefined;
-        for (polys[0..total], evaluations[0..total]) |poly, *values| values.* = try support.evaluationValues(a, poly, eval_log, n, owned, &initialized);
+        for (polys[0..total], evaluations[0..total]) |poly, *values| values.* = try @import("../providers/domain_transform.zig").reserve(a, poly, eval_log, n, owned, &initialized);
         if (owned_count != 0) {
-            var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
-            defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try @import("../providers/domain_transform.zig").evaluate(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles), pool);
+            try @import("../providers/domain_transform.zig").expand(a, owned, polys[0..total], eval_log, domain, pool);
         }
         const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
         defer a.free(inverses);

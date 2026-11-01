@@ -129,11 +129,9 @@ pub const Component = struct {
         }
         const evals = try a.alloc([]const M, total);
         defer a.free(evals);
-        for (polys, evals) |poly, *values| values.* = try support.evaluationValues(a, poly, eval_log, size, owned, &initialized);
+        for (polys, evals) |poly, *values| values.* = try @import("providers/domain_transform.zig").reserve(a, poly, eval_log, size, owned, &initialized);
         if (owned.len != 0) {
-            var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
-            defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("providers/domain_transform.zig").expand(a, owned, polys, eval_log, domain, null);
         }
         var inverses: [1 << L.EXPANSION]M = undefined;
         for (&inverses, 0..) |*inverse, i| inverse.* = try core.constraints.cosetVanishing(M, canonic.CanonicCoset.new(self.log_size).coset(), domain.at(core.utils.bitReverseIndex(i, L.EXPANSION))).inv();

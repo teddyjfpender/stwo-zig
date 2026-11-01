@@ -7,6 +7,7 @@ test {
     _ = @import("rv64/air/full/packed_frame_test.zig");
     _ = @import("rv64/air/full/tests/prepared_view_test.zig");
     _ = @import("rv64/air/providers/tests/compact_hash_source_test.zig");
+    _ = @import("rv64/air/providers/tests/domain_transform_test.zig");
     _ = @import("rv64/air/full/component.zig");
     _ = @import("rv64/air/full/frame.zig");
     _ = @import("rv64/air/full/tests/coset_evaluation_test.zig");

@@ -111,11 +111,9 @@ pub const Component = struct {
             a.free(owned);
         }
         var values: [17][]const M = undefined;
-        for (polys, &values) |poly, *v| v.* = try support.evaluationValues(a, poly, 12, n, owned, &initialized);
+        for (polys, &values) |poly, *v| v.* = try @import("../providers/domain_transform.zig").reserve(a, poly, 12, n, owned, &initialized);
         if (owned_count != 0) {
-            var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
-            defer engine.poly.twiddles.deinitM31(a, &twiddles);
-            try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+            try @import("../providers/domain_transform.zig").expand(a, owned, &polys, 12, domain, null);
         }
         const inv = try geometry.denominatorInverses(a, 11, 12);
         defer a.free(inv);

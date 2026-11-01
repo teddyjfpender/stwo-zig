@@ -114,11 +114,9 @@ pub fn ComponentFor(comptime Lane: type) type {
                 a.free(owned);
             }
             var evaluations: [12][]const M = undefined;
-            for (polys, &evaluations) |poly, *values| values.* = try support.evaluationValues(a, poly, eval_log, size, owned, &initialized);
+            for (polys, &evaluations) |poly, *values| values.* = try @import("./domain_transform.zig").reserve(a, poly, eval_log, size, owned, &initialized);
             if (owned.len != 0) {
-                var twiddles = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
-                defer engine.poly.twiddles.deinitM31(a, &twiddles);
-                try engine.poly.circle.poly.evaluateBuffersWithTwiddles(owned, domain, engine.poly.twiddles.TwiddleTree([]const M).init(twiddles.root_coset, twiddles.twiddles, twiddles.itwiddles));
+                try @import("./domain_transform.zig").expand(a, owned, &polys, eval_log, domain, null);
             }
             const inverses = try geometry.denominatorInverses(a, self.log_size, eval_log);
             defer a.free(inverses);

@@ -5,6 +5,7 @@ test {
     _ = @import("rv64/air/memory/ownership_test.zig");
     _ = @import("rv64/air/memory/terminal_air_test.zig");
     _ = @import("rv64/air/providers/tests/compact_hash_source_test.zig");
+    _ = @import("rv64/air/providers/tests/domain_transform_test.zig");
     _ = @import("rv64/air/memory/graph_air_test.zig");
     _ = @import("rv64/air/memory/openings_test.zig");
     _ = @import("rv64/air/providers/tests/degree_metadata_test.zig");
