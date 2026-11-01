@@ -36,7 +36,8 @@ test "global RAM reference rejects double-event time alias and predecessor fork"
     changed[2].previous_epoch = 3;
     try std.testing.expectError(error.InvalidMemoryTime, M.audit(&initial, &terminal, &changed, 2));
     changed = events;
-    changed[2].previous_tick = 5;
+    changed[2].previous_epoch = 2;
+    changed[2].previous_tick = 4;
     try std.testing.expectError(error.InvalidMemoryTime, M.audit(&initial, &terminal, &changed, 2));
 }
 
@@ -53,11 +54,14 @@ test "global RAM reference rejects stale predecessor, wrong terminal, orphan and
     changed = events;
     changed[2].address = 0x1004;
     try std.testing.expectError(error.UnalignedMemoryEvent, M.audit(&initial, &terminal, &changed, 2));
-    changed = events;
-    changed[2].before = 10;
-    changed[2].previous_epoch = 1;
-    changed[2].previous_tick = 8;
-    try std.testing.expectError(error.UnreachableMemoryEvent, M.audit(&initial, &terminal, &changed, 2));
+    // A second valid-time fragment that cannot descend to the genesis must
+    // not disappear merely because all honest terminal values still match.
+    var with_orphan: [5]M.Event = undefined;
+    @memcpy(with_orphan[0..4], &events);
+    with_orphan[4] = events[2];
+    with_orphan[4].previous_tick = 5;
+    with_orphan[4].tick = 3;
+    try std.testing.expectError(error.UnreachableMemoryEvent, M.audit(&initial, &terminal, &with_orphan, 2));
 }
 
 test "global RAM reference rejects double genesis, wrong rights and unauthorized writes" {
@@ -71,7 +75,10 @@ test "global RAM reference rejects double genesis, wrong rights and unauthorized
     readonly[1].rights = 1;
     var readonly_terminal = terminal;
     readonly_terminal[1].rights = 1;
-    try std.testing.expectError(error.UnauthorizedMemoryWrite, M.audit(&readonly, &readonly_terminal, &events, 2));
+    var readonly_events = events;
+    readonly_events[1].rights = 1;
+    readonly_events[3].rights = 1;
+    try std.testing.expectError(error.UnauthorizedMemoryWrite, M.audit(&readonly, &readonly_terminal, &readonly_events, 2));
     changed = events;
     changed[1].rights = 1;
     try std.testing.expectError(error.UnauthorizedMemoryWrite, M.audit(&initial, &terminal, &changed, 2));
