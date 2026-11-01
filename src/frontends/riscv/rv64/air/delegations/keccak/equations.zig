@@ -5,7 +5,8 @@ pub const Q = core.fields.qm31.QM31;
 pub const BatchPolicy = @import("batch_policy.zig").Policy;
 const L = @import("layout.zig");
 const V = @import("../../evaluation.zig");
-const tuples = @import("../../../../air/guest_precompile/keccakf_lookup_tuples.zig");
+pub const lookup_tuple_authority = @import("../../../../air/guest_precompile/keccakf_lookup_tuples.zig");
+const tuples = lookup_tuple_authority;
 pub const LookupFor = @import("../../providers/tables.zig").ChallengesFor;
 pub const Lookup = LookupFor(Q);
 pub fn IoFor(comptime C: type) type {
@@ -18,7 +19,12 @@ pub fn IoFor(comptime C: type) type {
             for (&result.coefficients) |*coefficient| coefficient.* = channel.drawSecureFelt();
             return result;
         }
-        pub fn denominator(self: @This(), tuple: *const [L.IO_ARITY]Q) Q {
+        pub fn denominatorBase(self: @This(), tuple: *const [L.IO_ARITY]M) C {
+            var result = self.offset;
+            for (tuple, self.coefficients) |value, coefficient| result = result.sub(coefficient.mulM31(value));
+            return result;
+        }
+        pub fn denominator(self: @This(), tuple: *const [L.IO_ARITY]C) C {
             var result = self.offset;
             for (tuple, self.coefficients) |value, coefficient| result = result.sub(value.mul(coefficient));
             return result;
@@ -33,7 +39,7 @@ pub fn ChallengesFor(comptime C: type) type {
         xor5: LookupFor(C),
         io: IoFor(C),
         pub fn draw(channel: anytype) @This() {
-            return .{ .chi = Lookup.draw(channel), .xor5 = Lookup.draw(channel), .io = Io.draw(channel) };
+            return .{ .chi = LookupFor(C).draw(channel), .xor5 = LookupFor(C).draw(channel), .io = IoFor(C).draw(channel) };
         }
     };
 }
@@ -57,21 +63,36 @@ pub fn RowFor(comptime F: type) type {
 pub fn lookupDenominator(row: Row, ch: Challenges, event: usize) Q {
     return lookupDenominatorFor(Q, row, ch, event);
 }
+/// Shared raw tuple authority for classic and GKR local arguments.
+pub fn lookupTupleFor(comptime F: type, row: RowFor(F), event: usize) [6]F {
+    return if (event < L.STATE) tuples.chi(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], row.state_plus_one, row.fixed[2..26], event) else tuples.xor5(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], event - L.STATE);
+}
 pub fn lookupDenominatorFor(comptime F: type, row: RowFor(F), ch: ChallengesFor(V.ConstFor(F)), event: usize) V.SecureFor(F) {
-    if (event < L.STATE) return V.denominatorFor(F, ch.chi.offset, &ch.chi.coefficients, &tuples.chi(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], row.state_plus_one, row.fixed[2..26], event), true);
-    return V.denominatorFor(F, ch.xor5.offset, &ch.xor5.coefficients, &tuples.xor5(F, row.main[0..L.STATE], row.main[L.STATE..L.ACTIVE_A], event - L.STATE), true);
+    if (event < L.STATE) return V.denominatorFor(F, ch.chi.offset, &ch.chi.coefficients, &lookupTupleFor(F, row, event), true);
+    return V.denominatorFor(F, ch.xor5.offset, &ch.xor5.coefficients, &lookupTupleFor(F, row, event), true);
 }
 pub fn ioTuple(row: Row, lane: usize) [L.IO_ARITY]Q {
     return ioTupleFor(Q, row, lane);
 }
+fn MainCells(comptime F: type) type {
+    return struct {
+        values: []const F,
+        pub inline fn at(self: @This(), index: usize) F {
+            return self.values[index];
+        }
+    };
+}
 pub fn ioTupleFor(comptime F: type, row: RowFor(F), lane: usize) [L.IO_ARITY]F {
+    return ioTupleAccessors(F, MainCells(F){ .values = row.main }, row.fixed, lane);
+}
+pub fn ioTupleAccessors(comptime F: type, main: anytype, fixed: []const F, lane: usize) [L.IO_ARITY]F {
     var tuple: [L.IO_ARITY]F = undefined;
-    tuple[0] = row.main[L.BASE_ID].add(row.fixed[1]).add(row.fixed[28]);
-    tuple[1] = row.fixed[27].add(row.fixed[28]);
+    tuple[0] = main.at(L.BASE_ID).add(fixed[1]).add(fixed[28]);
+    tuple[1] = fixed[27].add(fixed[28]);
     tuple[2] = if (F == M) M.fromCanonical(@intCast(lane)) else V.qFor(F, @intCast(lane));
     for (0..8) |byte| {
         var value = F.zero();
-        for (0..8) |bit| value = value.add(row.main[64 * lane + 8 * byte + bit].mul(if (F == M) M.fromCanonical(@as(u32, 1) << @as(u5, @intCast(bit))) else V.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
+        for (0..8) |bit| value = value.add(main.at(64 * lane + 8 * byte + bit).mul(if (F == M) M.fromCanonical(@as(u32, 1) << @as(u5, @intCast(bit))) else V.qFor(F, @as(u32, 1) << @as(u5, @intCast(bit)))));
         tuple[3 + byte] = value;
     }
     return tuple;
@@ -88,8 +109,12 @@ pub fn ioActive(row: Row) Q {
     return ioActiveFor(Q, row);
 }
 pub fn ioActiveFor(comptime F: type, row: RowFor(F)) F {
-    return row.main[L.ACTIVE_A].mul(row.fixed[0].add(row.fixed[27])).add(row.main[L.ACTIVE_B].mul(row.fixed[1].add(row.fixed[28])));
+    return ioActiveAccessors(F, MainCells(F){ .values = row.main }, row.fixed);
 }
+pub fn ioActiveAccessors(comptime F: type, main: anytype, fixed: []const F) F {
+    return main.at(L.ACTIVE_A).mul(fixed[0].add(fixed[27])).add(main.at(L.ACTIVE_B).mul(fixed[1].add(fixed[28])));
+}
+
 /// Triple batching gives degree four. Cross-column stitching needs only the
 /// final secure column at the predecessor point and one transcript-bound claim.
 pub fn emit(row: Row, interaction: []const Q, previous_final: Q, claim: Q, ch: Challenges, public: Public, sink: anytype) void {
