@@ -33,6 +33,7 @@ pub const Capture = struct {
     }
     pub fn appendEvent(self: *Capture, event: Event, memory: *Memory) !void {
         if (event == .bulk) return self.appendBulk(event.bulk, memory);
+        if (event == .sponge) return self.appendSponge(event.sponge, memory);
         var transitions: [25]Transition = undefined;
         var count: usize = 0;
         const clock = switch (event) {
@@ -61,7 +62,7 @@ pub const Capture = struct {
                 }
                 break :blk call.clock;
             },
-            .bulk => unreachable,
+            .bulk, .sponge => unreachable,
             .sha256 => |call| blk: {
                 count = call.before.len;
                 if (call.pointer & 31 != 0 or call.pointer > std.math.maxInt(u64) - (8 * count - 1)) return error.InvalidBoundaryService;
@@ -123,6 +124,29 @@ pub const Capture = struct {
             },
         }
         std.debug.assert(at == count);
+        try self.publish(e.call.clock, transitions, memory);
+    }
+    /// Packet and message words are reads; the 25 state words go from the
+    /// recorded before-values to current memory (ethereum_services/keccak_sponge).
+    fn appendSponge(self: *Capture, e: @import("ethereum_services/keccak_sponge.zig").Event, memory: *Memory) !void {
+        const p = e.packet;
+        const words = p.words();
+        const transitions = try self.allocator.alloc(Transition, 4 + 25 + words);
+        defer self.allocator.free(transitions);
+        for (0..4) |k| {
+            const address = e.call.pointer + 8 * k;
+            const value = memory.backing.load(address, 8).value;
+            transitions[k] = .{ .address = address, .before = value, .after = value, .writable_required = false };
+        }
+        for (0..25) |l| {
+            const address = p.state + 8 * l;
+            transitions[4 + l] = .{ .address = address, .before = e.state_before[l], .after = memory.backing.load(address, 8).value, .writable_required = true };
+        }
+        for (0..words) |j| {
+            const address = p.base() + 8 * j;
+            const value = memory.backing.load(address, 8).value;
+            transitions[29 + j] = .{ .address = address, .before = value, .after = value, .writable_required = false };
+        }
         try self.publish(e.call.clock, transitions, memory);
     }
     fn publish(self: *Capture, clock: u64, transitions: []const Transition, memory: *Memory) !void {

@@ -13,6 +13,7 @@ pub const PROFILE_V3 = "rv64im-ethereum-services-v3";
 pub const sha256 = @import("sha256.zig");
 pub const arith256 = @import("arith256.zig");
 pub const bulk_memory = @import("bulk_memory.zig");
+pub const keccak_sponge = @import("keccak_sponge.zig");
 pub const SecpCall = struct {
     kind: secp256k1.Kind,
     packet_format: profile.SecpPacketFormat = .big_endian_bytes_v1,
@@ -89,8 +90,10 @@ pub const Event = union(enum) {
     sha256: Sha256Call,
     arith256_mod: Arith256ModCall,
     bulk: bulk_memory.Event,
+    sponge: keccak_sponge.Event,
     pub fn retirement(self: Event) machine.Retirement {
         return switch (self) {
+            .sponge => |e| e.call.retirement(),
             .bulk => |e| e.call.retirement(),
             .keccak => |call| call.retirement(),
             .secp => |call| call.retirement(),
@@ -99,7 +102,7 @@ pub const Event = union(enum) {
         };
     }
 };
-pub const Error = K.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap };
+pub const Error = K.Error || keccak_sponge.Error || error{ InvalidProjectiveInputCount, BulkMemoryLength, BulkMemoryOverlap };
 pub const Session = struct {
     keccak: K.Session,
     execution_profile: profile.Profile = .ethereum_services_v1,
@@ -108,6 +111,7 @@ pub const Session = struct {
     sha256_calls: u64 = 0,
     arith256_mod_calls: u64 = 0,
     bulk_calls: u64 = 0,
+    sponge_calls: u64 = 0,
     allocator: std.mem.Allocator = undefined,
     /// Destination words before the latest bulk call (Event.bulk.dst_before).
     bulk_before: std.ArrayList(u64) = .empty,
@@ -134,6 +138,10 @@ pub const Session = struct {
                 event.* = .{ .bulk = try self.bulk(kind) };
                 return null;
             };
+            if (self.execution_profile == .ethereum_services_v3 and tag == profile.KECCAK_SPONGE_TAG) {
+                event.* = .{ .sponge = try self.sponge() };
+                return null;
+            }
             if (profile.admitsV3(self.execution_profile, tag)) {
                 event.* = if (tag == profile.ARITH256_MOD_TAG) .{ .arith256_mod = try self.mulAddMod() } else if (tag == profile.SHA256_COMPRESS_TAG) .{ .sha256 = try self.compress() } else unreachable;
                 return null;

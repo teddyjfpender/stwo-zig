@@ -54,6 +54,10 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
         if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
         if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+        // v3 Keccak sponge: one call row per ECALL, one row per permutation.
+        const sponge = captured.advice.sponge[i].counts();
+        if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
+        if (sponge.perms != 0) d.bridges.sponge.perm = @max(5, try Coverage.minimalPrefixLog(sponge.perms));
         try g.validate();
     }
     return out;
@@ -65,6 +69,8 @@ pub fn truths(a: std.mem.Allocator, captured: *const Capture) ![]W.TruthDeclarat
         total[1] = try std.math.add(u32, total[1], @intCast(s[0].len));
         total[2] = try std.math.add(u32, total[2], @intCast(s[1].len));
     }
+    // Keccak-sponge permutations follow the Keccak-f calls in the IO11 ID space.
+    for (captured.advice.sponge) |z| total[0] = try std.math.add(u32, total[0], @intCast(z.inputs.len));
     var out: std.ArrayList(W.TruthDeclaration) = .{};
     errdefer out.deinit(a);
     // Two Keccak permutations share each29-row slot. A bounded log18 shape

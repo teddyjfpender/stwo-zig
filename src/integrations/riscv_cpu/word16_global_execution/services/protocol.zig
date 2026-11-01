@@ -17,7 +17,7 @@ pub const CORE_CLAIM_COUNT = G.Old.CLAIM_COUNT;
 pub const CPU_CLAIM_COUNT = CORE_CLAIM_COUNT + 15;
 /// A shard with the v3 SHA-256 bridge appends its five claims.
 pub const CPU_CLAIM_COUNT_V3 = CORE_CLAIM_COUNT + 20;
-pub const Request = struct { base: G.Old.Request, calls: [T.FAMILIES]u32, bulk: T.BulkCounts = .{} };
+pub const Request = struct { base: G.Old.Request, calls: [T.FAMILIES]u32, bulk: T.BulkCounts = .{}, sponge: T.SpongeCounts = .{} };
 const BM = A.crypto.bulk_memory;
 /// Admitted bulk-memory geometry and masses of one CPU proof. RAM14 gains
 /// 6 fractions per call (three packet reads), 4 per copied and 2 per filled
@@ -40,6 +40,40 @@ pub fn admitBulk(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range
     if (@as(u64, r.bulk.copy_words) + r.bulk.set_words > @as(u64, r.bulk.calls) * BM.types.MAX_WORDS) return error.InvalidCombinedServiceCount;
     const ram = 6 * @as(u64, r.bulk.calls) + 4 * @as(u64, r.bulk.copy_words) + 2 * @as(u64, r.bulk.set_words);
     return .{ .ram = ram, .range16 = range16 };
+}
+
+const KS = A.crypto.keccak_sponge;
+/// Admitted Keccak-sponge geometry and masses of one CPU proof. RAM14 gains
+/// 58 fractions per call (4 packet reads, 25 state read+writes) and at most 36
+/// per permutation (18 message word reads); U16/U8 gain their unconditional
+/// per-row counts; IO11 gains 50 per call (links, final output) and 50 per
+/// permutation (input, previous output).
+pub fn admitSponge(setup: *const R.CpuSetup, r: Request) !struct { ram: u64, range16: u64, range8: u64, io: u64 } {
+    const logs = setup.bridges.sponge;
+    var range16: u64 = 0;
+    var range8: u64 = 0;
+    for (T.sponge_kinds) |kind| {
+        const rows = r.sponge.rows(kind);
+        const log = logs.at(kind);
+        if ((log != null) != (rows != 0)) return error.InvalidCombinedBridgePresence;
+        if (log) |l| {
+            _ = try KS.types.validateGeometry(kind, rows, l);
+            range16 = try std.math.add(u64, range16, @as(u64, KS.layout.range16Count(kind)) << @intCast(l));
+            range8 = try std.math.add(u64, range8, @as(u64, KS.layout.range8Count(kind)) << @intCast(l));
+        }
+    }
+    // Every call has at least one and at most 7711 (2^20 / 136 + 1) permutations.
+    if (r.sponge.perms < r.sponge.calls or @as(u64, r.sponge.perms) > @as(u64, r.sponge.calls) * (KS.types.Native.MAX_LEN / 136 + 1)) return error.InvalidCombinedServiceCount;
+    if (r.sponge.any() and r.sponge.first_id == 0) return error.InvalidCombinedTruthSpan;
+    if (!r.sponge.any() and r.sponge.first_id != 0) return error.InvalidCombinedBridgePresence;
+    // AND table consumers: BINARY (8 per physical row) plus 136 per sponge
+    // permutation row; their total mass stays below p.
+    if (logs.perm) |l| {
+        const g = setup.materials.geometry;
+        const binary_rows = (@as(u64, 1) << @intCast(g.binary_log)) + (if (g.binary_tail_log) |t| @as(u64, 1) << @intCast(t) else 0);
+        if (8 * binary_rows + (@as(u64, KS.layout.andCount(.perm)) << @intCast(l)) >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+    }
+    return .{ .ram = 58 * @as(u64, r.sponge.calls) + 36 * @as(u64, r.sponge.perms), .range16 = range16, .range8 = range8, .io = 50 * (@as(u64, r.sponge.calls) + r.sponge.perms) };
 }
 
 pub fn firstIds(requests: []const Request, index: usize) ![T.FAMILIES]u32 {
@@ -69,13 +103,18 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     defer a.free(rr);
     var totals: [T.FAMILIES]u64 = @splat(0);
     var ram: u64 = 0;
+    var sponge_io: u64 = 0;
+    var sponge_perms: u64 = 0;
     for (setups, requests, mats, rr) |setup, req, *m, *old| {
         m.* = &setup.materials;
         old.* = req.base;
-        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.calls[3] + req.calls[4] + req.bulk.calls + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
+        if (@as(u64, req.calls[0]) + req.calls[1] + req.calls[2] + req.calls[3] + req.calls[4] + req.bulk.calls + req.sponge.calls + req.base.memory.ls_count > req.base.cpu.steps) return error.InvalidCombinedServiceCount;
         const bulk = try admitBulk(setup, req);
-        var mass16 = try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16);
-        var mass8 = try setup.materials.geometry.range8Mass();
+        const sponge = try admitSponge(setup, req);
+        sponge_io = try std.math.add(u64, sponge_io, sponge.io);
+        sponge_perms = try std.math.add(u64, sponge_perms, req.sponge.perms);
+        var mass16 = try std.math.add(u64, try std.math.add(u64, try setup.materials.geometry.range16Mass(), bulk.range16), sponge.range16);
+        var mass8 = try std.math.add(u64, try setup.materials.geometry.range8Mass(), sponge.range8);
         for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
             const log = setup.bridges.at(family);
@@ -97,11 +136,23 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
         ram = try std.math.add(u64, ram, 2 * @as(u64, req.base.memory.ls_count));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * req.calls[k]);
         ram = try std.math.add(u64, ram, bulk.ram);
+        ram = try std.math.add(u64, ram, sponge.ram);
     }
     try G.validateMaterials(mats, rr, expected);
     ram = try std.math.add(u64, ram, rr[0].memory.initial.len + rr[rr.len - 1].memory.terminal.len);
     if (ram >= core.fields.m31.Modulus) return error.GlobalRamCharacteristicBound;
     if (50 * totals[0] >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+    // Sponge permutations take Keccak-f truth IDs after every Keccak-f call,
+    // in shard order; each shard's first ID is part of its public request.
+    {
+        var next_sponge: u64 = totals[0] + 1;
+        for (requests) |req| if (req.sponge.any()) {
+            if (req.sponge.first_id != next_sponge) return error.InvalidCombinedTruthSpan;
+            next_sponge += req.sponge.perms;
+        };
+        const io_mass = 100 * (totals[0] + sponge_perms) + sponge_io;
+        if (io_mass >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
+    }
     var next: [T.FAMILIES]u64 = @splat(1);
     var previous: u8 = 0;
     var wire: u64 = 0;
@@ -130,8 +181,10 @@ pub fn admit(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: []
     }
     if (wire >= core.fields.m31.Modulus) return error.CombinedLookupMassExceeded;
     var out: [T.FAMILIES]u32 = undefined;
-    for (next, totals, &out) |n, total, *o| {
-        if (n != total + 1 or total > std.math.maxInt(u32)) return error.InvalidCombinedTruthSpan;
+    for (next, totals, 0..) |n, total, k| {
+        const o = &out[k];
+        const covered = if (k == 0) total + sponge_perms else total;
+        if (n != covered + 1 or total > std.math.maxInt(u32)) return error.InvalidCombinedTruthSpan;
         o.* = @intCast(total);
     }
     return out;
@@ -161,6 +214,16 @@ pub fn beginCpu(ch: *G.T.P.Channel, s: *const R.CpuSetup, r: Request, expected: 
         for (T.bulk_kinds, 0..) |kind, k| {
             ch.mixU32s(&.{ @intCast(k), r.bulk.rows(kind), @intFromBool(s.bridges.bulk.at(kind) != null), s.bridges.bulk.at(kind) orelse 0, @intCast(BM.layout.constraints(kind)) });
             if (s.bridges.bulk.at(kind) != null) for (T.bulkWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
+        }
+    }
+    // Keccak-sponge extension: mixed only when present (v2/SHA/arith/bulk
+    // transcripts unchanged). Binds tag, token, link direction, length cap,
+    // calls, permutations, the first IO11 ID and every geometry.
+    if (s.bridges.sponge.any() or r.sponge.any()) {
+        ch.mixU32s(&.{ 0x4b53504e, 1, @intCast(KS.types.TAG), KS.types.TOKEN, KS.types.LINK, @intCast(KS.types.Native.MAX_LEN), r.sponge.calls, r.sponge.perms, r.sponge.first_id });
+        for (T.sponge_kinds, 0..) |kind, k| {
+            ch.mixU32s(&.{ @intCast(k), r.sponge.rows(kind), @intFromBool(s.bridges.sponge.at(kind) != null), s.bridges.sponge.at(kind) orelse 0, @intCast(KS.layout.constraints(kind)) });
+            if (s.bridges.sponge.at(kind) != null) for (T.spongeWidths(kind)) |width| ch.mixU32s(&.{@intCast(width)});
         }
     }
 }

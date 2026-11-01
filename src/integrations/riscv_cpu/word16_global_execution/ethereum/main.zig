@@ -127,6 +127,7 @@ pub fn admitProfile(config: Request.Config, cpus: []const W.CpuDeclaration, trut
     for (cpus) |d| if (d.bridges.arith256_mod != null) return error.UnadmittedArith256Service;
     for (truths) |d| if (d.family == .arith256_mod) return error.UnadmittedArith256Service;
     for (cpus) |d| if (d.bridges.bulk.any()) return error.UnadmittedBulkMemoryService;
+    for (cpus) |d| if (d.bridges.sponge.any()) return error.UnadmittedKeccakSpongeService;
 }
 fn emit(a: std.mem.Allocator, value: anytype) !void {
     const json = try std.json.Stringify.valueAlloc(a, value, .{ .whitespace = .indent_2 });

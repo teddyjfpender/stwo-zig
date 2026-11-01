@@ -69,7 +69,7 @@ const Air = union(enum) {
     truth: Adapters.TruthComponents,
     fn init(descriptor: Descriptor, draw: Draw, claims: Claims) !Air {
         return switch (descriptor) {
-            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk) } },
+            .cpu => |c| .{ .cpu = .{ .base = try Components.init(&c.setup.materials, c.request.base, draw.cpu.local, claims.cpu.base), .bridges = Adapters.Bridges.init(c.setup, c.request.calls, c.first_ids, draw.cpu.local, draw.cpu.shared, claims.cpu.extras).withBulk(c.setup, c.request.bulk, draw.cpu.local, claims.cpu.bulk).withSponge(c.setup, c.request.sponge, draw.cpu.local, draw.cpu.shared, claims.cpu.sponge) } },
             .truth => |t| .{ .truth = try Adapters.TruthComponents.init(t.value, draw.truth, claims.truth) },
         };
     }
@@ -162,7 +162,11 @@ pub const Worker = struct {
                 for (&source.bulk, &bulk) |*b, *out| if (b.*) |*s| {
                     out.* = try s.generate(.{ .ram = ch.memory.ram, .owner = ch.cpu.owner, .range16 = ch.memory.range16 }, source.core.range16.dictionary);
                 };
-                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk };
+                var sponge: [2]T.SpongeClaims = @splat(T.SpongeClaims.zero());
+                for (&source.sponge, &sponge) |*b, *out| if (b.*) |*s| {
+                    out.* = try s.generate(Adapters.spongeChallenges(ch, common), source.core.range16.dictionary, source.core.range8.dictionary);
+                };
+                const claims = S.CpuClaims{ .base = base, .extras = extras, .bulk = bulk, .sponge = sponge };
                 try claims.presence(self.descriptor.cpu.setup);
                 break :block .{ .cpu = claims };
             },

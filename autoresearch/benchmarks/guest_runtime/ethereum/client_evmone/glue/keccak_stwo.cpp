@@ -103,6 +103,29 @@ MemoEntry* g_memo = nullptr;
 
 extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
     alignas(32) uint64_t st[25];
+#if defined(ADMITTED_KECCAK)
+    // Admitted Keccak-256 sponge (ethereum_services_v3, tag 0x0003_0130):
+    // absorb, pad and permute in the service. Inputs of at most 64 bytes keep
+    // the memoized Keccak-f path below. The admitted call takes len < 2^20, so
+    // longer inputs absorb whole-block chunks first (no finalize), then the
+    // tail with finalize. st and the packet are word-disjoint from the input.
+    if (size > 64) {
+        constexpr uint64_t kChunk = 7710 * kRate;  // < 2^20, whole blocks
+        uint64_t flags = 2;                         // fresh
+        while (size > kChunk) {
+            alignas(8) uint64_t pk[4] = {reinterpret_cast<uintptr_t>(st), reinterpret_cast<uintptr_t>(data), kChunk, flags};
+            stwo::ecall(0x00030130, pk);
+            data += kChunk;
+            size -= kChunk;
+            flags = 0;
+        }
+        alignas(8) uint64_t pk[4] = {reinterpret_cast<uintptr_t>(st), reinterpret_cast<uintptr_t>(data), size, flags | 1};
+        stwo::ecall(0x00030130, pk);
+        union ethash_hash256 out;
+        for (int i = 0; i < 4; ++i) out.word64s[i] = st[i];
+        return out;
+    }
+#endif
 #if defined(CANDIDATE_KECCAK)
     // Candidate keccak_sponge: absorb, pad and permute in one call. Inputs of
     // at most 64 bytes keep the memoized admitted path below.

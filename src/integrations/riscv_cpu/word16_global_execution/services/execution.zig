@@ -105,14 +105,14 @@ pub fn verify(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: [
         defer a.free(logs);
         try verifier.commit(a, roots[2], logs, &channel);
         var bc = try Components.init(&s.materials, encoded.request.base, ch, encoded.claims.base);
-        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk);
+        var bb = Bridges.init(s, encoded.request.calls, try P.firstIds(requests, index), ch, common, encoded.claims.extras).withBulk(s, encoded.request.bulk, ch, encoded.claims.bulk).withSponge(s, encoded.request.sponge, ch, common, encoded.claims.sponge);
         const handles = try cpuVerifierHandles(a, &bc, &bb);
         defer a.free(handles);
         owns = false;
         try core.verifier.verify(G.T.P.Hasher, G.T.P.MerkleChannel, a, handles, &channel, &verifier, proof);
         try encoded.claims.local();
         ram = ram.add(encoded.claims.ram());
-        io = io.add(encoded.claims.extras[0].truth);
+        io = io.add(encoded.claims.io());
         wire_sum = wire_sum.add(encoded.claims.wire());
     }
     for (truths, bundle.truths, 0..) |truth, encoded, k| {

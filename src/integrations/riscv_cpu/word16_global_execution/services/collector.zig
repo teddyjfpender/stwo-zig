@@ -7,6 +7,8 @@ const LS = A.memory.load_store_v2;
 const K = A.crypto.keccak.word16_bridge;
 const S = A.crypto.secp256k1.word16_bridge;
 const BM = A.crypto.bulk_memory;
+const Sponge = @import("sponge_collector.zig");
+pub const SpongeShard = Sponge.Shard;
 /// Admitted bulk-memory calls of one CPU proof (chronological) and the RAM
 /// predecessors of every touched data word, concatenated in call order.
 pub const BulkShard = struct {
@@ -37,12 +39,16 @@ pub const Advice = struct {
     /// Admitted v3 arith256_mod packets per shard (empty for v2 tapes).
     arith256_mod: [][]S.types.Call,
     bulk: []BulkShard,
+    /// Admitted Keccak-sponge calls per shard (empty unless v3).
+    sponge: []SpongeShard,
     initial: []Cell,
     terminal: []Cell,
     pub fn deinit(self: *Advice) void {
         const a = self.allocator;
         for (self.bulk) |b| b.deinit(a);
         a.free(self.bulk);
+        for (self.sponge) |b| b.deinit(a);
+        a.free(self.sponge);
         for (self.events) |e| a.free(e);
         for (self.keccak) |c| a.free(c);
         for (self.secp) |cc| for (cc) |c| a.free(c);
@@ -98,8 +104,11 @@ pub const Builder = struct {
         errdefer a.free(arith);
         const bulk = try a.alloc(BulkShard, self.shards.items.len);
         errdefer a.free(bulk);
+        const sponge = try a.alloc(SpongeShard, self.shards.items.len);
+        errdefer a.free(sponge);
         const boundaries = try self.ledger.boundaries();
-        for (self.shards.items, events, keccak, secp, sha256, arith, bulk) |shard, *e, *k, *s, *h, *r, *b| {
+        for (self.shards.items, events, keccak, secp, sha256, arith, bulk, sponge) |shard, *e, *k, *s, *h, *r, *b, *z| {
+            z.* = shard.sponge;
             r.* = shard.arith256_mod;
             e.* = shard.events;
             k.* = shard.keccak;
@@ -108,7 +117,7 @@ pub const Builder = struct {
             b.* = shard.bulk;
         }
         self.finished = true;
-        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .initial = boundaries.initial, .terminal = boundaries.terminal };
+        return .{ .allocator = a, .events = events, .keccak = keccak, .secp = secp, .sha256 = sha256, .arith256_mod = arith, .bulk = bulk, .sponge = sponge, .initial = boundaries.initial, .terminal = boundaries.terminal };
     }
 };
 pub fn collect(a: std.mem.Allocator, prepared: []const *Native, tapes: []const *const front.rv64.compact_tape.Tape, image: @import("../../word16_execution/memory/statement.zig").Image) !Advice {
@@ -125,6 +134,7 @@ const Shard = struct {
     sha256: []S.types.Call,
     arith256_mod: []S.types.Call,
     bulk: BulkShard = .{},
+    sponge: SpongeShard = .{},
     fn deinit(self: Shard, a: std.mem.Allocator) void {
         a.free(self.events);
         a.free(self.keccak);
@@ -132,6 +142,7 @@ const Shard = struct {
         a.free(self.sha256);
         a.free(self.arith256_mod);
         self.bulk.deinit(a);
+        self.sponge.deinit(a);
     }
 };
 fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const front.rv64.compact_tape.Tape, index: usize) !Shard {
@@ -143,13 +154,15 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const v3 = tape.execution_profile == .ethereum_services_v3;
     var bulk_records: usize = 0;
     if (v3) for (cpu.services.items) |rec| {
-        bulk_records += @intFromBool(rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG);
+        bulk_records += @intFromBool(rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG or rec.tag == Sponge.TAG);
     };
     if ((tape.execution_profile != .ethereum_services_v2 and !v3) or cpu.epoch != index + 1 or cpu.services.items.len != tape.serviceCount() + bulk_records) return error.InvalidCombinedServiceRoster;
     var bulk_calls: std.ArrayList(BM.types.Call) = .empty;
     errdefer bulk_calls.deinit(a);
     var bulk_words: std.ArrayList(BM.types.Word) = .empty;
     errdefer bulk_words.deinit(a);
+    var sponge: Sponge.Builder = .{};
+    defer sponge.deinit(a);
     var sizes: [2]usize = @splat(0);
     for (tape.secp_calls.items) |call| sizes[@intFromEnum(call.kind) - 1] += 1;
     const ee = try a.alloc(LS.native.Event, cpu.memory.items.len);
@@ -247,6 +260,8 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
                 for (0..words) |lane| ledger.states.getPtr(rec.pointer + 8 * lane).?.* = .{ .value = call.after[lane], .epoch = call.epoch, .tick = call.tick, .rights = call.predecessors[lane].rights };
                 rr[ri] = call;
                 ri += 1;
+            } else if (v3 and rec.tag == Sponge.TAG) {
+                try sponge.replay(a, ledger, rec.pointer, cpu.epoch, rec.tick, get);
             } else if (v3 and (rec.tag == BM.types.MEMCPY_TAG or rec.tag == BM.types.MEMSET_TAG)) {
                 try bulkCall(a, ledger, rec.pointer, rec.tag, cpu.epoch, rec.tick, &bulk_calls, &bulk_words);
             } else return error.UnqualifiedCombinedServiceTag;
@@ -257,7 +272,9 @@ fn one(a: std.mem.Allocator, ledger: *Old.Ledger, native: *Native, tape: *const 
     const owned_words = try bulk_words.toOwnedSlice(a);
     errdefer a.free(owned_words);
     const bulk = BulkShard{ .calls = try bulk_calls.toOwnedSlice(a), .words = owned_words };
-    return .{ .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .bulk = bulk };
+    errdefer bulk.deinit(a);
+    const sponge_shard = try sponge.finish(a);
+    return .{ .sponge = sponge_shard,  .events = ee, .keccak = kk, .secp = ss, .sha256 = hh, .arith256_mod = rr, .bulk = bulk };
 }
 /// Replays one admitted bulk call on the ledger: the packet words are read,
 /// then every data word is read (src) and written (dst) at the CPU step's tick.

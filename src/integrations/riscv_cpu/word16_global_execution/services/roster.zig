@@ -7,6 +7,7 @@ const A = front.rv64_air;
 const K = A.crypto.keccak.word16_bridge;
 const S = A.crypto.secp256k1.word16_bridge;
 const BM = A.crypto.bulk_memory;
+const KS = A.crypto.keccak_sponge;
 const Mat = @import("../../word16_execution/setup.zig");
 const Core = @import("../../word16_execution/sources.zig");
 const Commit = @import("../../word16_execution/main_ownership.zig").Commit;
@@ -23,6 +24,8 @@ pub const CpuSetup = struct {
     fixed: [T.FAMILIES][]M,
     /// Bulk-memory fixed columns (desc, copy, set), after every family.
     bulk_fixed: [3][]M = @splat(&.{}),
+    /// Keccak-sponge fixed columns (call, perm), after the bulk block.
+    sponge_fixed: [2][]M = @splat(&.{}),
     key: Key,
     pub fn initProgram(a: std.mem.Allocator, program: A.program.setup.Program, g: Mat.Geometry, bridges: T.Logs) !CpuSetup {
         return initProgramWithSuite(a, program, g, bridges, Mat.Suite.production());
@@ -72,6 +75,15 @@ pub const CpuSetup = struct {
             }
             bulk_done += 1;
         }
+        var sponge_done: usize = 0;
+        errdefer for (self.sponge_fixed[0..sponge_done]) |f| a.free(f);
+        for (T.sponge_kinds, 0..) |kind, k| {
+            if (bridges.sponge.at(kind)) |log| {
+                _ = try KS.types.validateGeometry(kind, 0, log);
+                self.sponge_fixed[k] = try KS.source.fixed(a, log);
+            }
+            sponge_done += 1;
+        }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
         self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
@@ -88,11 +100,16 @@ pub const CpuSetup = struct {
             self.materials.allocator.free(data.*);
             data.* = &.{};
         }
+        for (&self.sponge_fixed) |*data| {
+            self.materials.allocator.free(data.*);
+            data.* = &.{};
+        }
     }
     pub fn deinit(self: *CpuSetup) void {
         self.key.deinit();
         for (self.fixed) |f| self.materials.allocator.free(f);
         for (self.bulk_fixed) |f| self.materials.allocator.free(f);
+        for (self.sponge_fixed) |f| self.materials.allocator.free(f);
         self.materials.deinit();
     }
     pub fn total(self: *const CpuSetup, tree: usize) usize {
@@ -123,10 +140,26 @@ pub const CpuSetup = struct {
         };
         return n;
     }
-    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+    fn bulkEnd(self: *const CpuSetup, tree: usize) usize {
         var n = self.familyEnd(tree);
         for (T.bulk_kinds) |k| if (self.bridges.bulk.at(k) != null) {
             n += T.bulkWidths(k)[tree];
+        };
+        return n;
+    }
+    /// Sponge components follow the bulk block in kind order (call, perm).
+    pub fn spongeOffset(self: *const CpuSetup, kind: T.SpongeKind, tree: usize) usize {
+        var n = self.bulkEnd(tree);
+        for (T.sponge_kinds) |k| {
+            if (k == kind) break;
+            if (self.bridges.sponge.at(k) != null) n += T.spongeWidths(k)[tree];
+        }
+        return n;
+    }
+    pub fn columnCount(self: *const CpuSetup, tree: usize) usize {
+        var n = self.bulkEnd(tree);
+        for (T.sponge_kinds) |k| if (self.bridges.sponge.at(k) != null) {
+            n += T.spongeWidths(k)[tree];
         };
         return n;
     }
@@ -141,6 +174,9 @@ pub const CpuSetup = struct {
         };
         for (T.bulk_kinds, 0..) |kind, k| if (self.bridges.bulk.at(kind)) |log| {
             append(out, &at, self.bulk_fixed[k], log);
+        };
+        for (T.sponge_kinds, 0..) |kind, k| if (self.bridges.sponge.at(kind)) |log| {
+            append(out, &at, self.sponge_fixed[k], log);
         };
         return out;
     }
@@ -160,6 +196,11 @@ pub const CpuSetup = struct {
             @memset(out[at..][0..width], log);
             at += width;
         };
+        for (T.sponge_kinds) |kind| if (self.bridges.sponge.at(kind)) |log| {
+            const width = T.spongeWidths(kind)[tree];
+            @memset(out[at..][0..width], log);
+            at += width;
+        };
         return out;
     }
 };
@@ -171,7 +212,15 @@ pub const Sources = struct {
     sha256: ?S.source.Source = null,
     arith256_mod: ?S.source.Source = null,
     bulk: [3]?BM.source.Source = @splat(null),
+    /// Keccak-sponge plan (owned) and its call/perm sources.
+    sponge_plan: ?*KS.source.Plan = null,
+    sponge: [2]?KS.source.Source = @splat(null),
     pub fn deinit(self: *Sources) void {
+        for (&self.sponge) |*b| if (b.*) |*s| s.deinit();
+        if (self.sponge_plan) |plan| {
+            plan.deinit(self.core.allocator);
+            self.core.allocator.destroy(plan);
+        }
         if (self.keccak) |*s| s.deinit();
         if (self.add) |*s| s.deinit();
         if (self.double) |*s| s.deinit();
@@ -227,6 +276,14 @@ pub const Sources = struct {
                 append(out, &at, data, log);
             } else if (self.bulk[k] != null) return error.UnexpectedCombinedServiceSource;
         }
+        for (T.sponge_kinds, 0..) |kind, k| {
+            if (setup.bridges.sponge.at(kind)) |log| {
+                const s = self.sponge[k] orelse return error.MissingCombinedServiceSource;
+                const data = if (tree == 1) s.main else s.interaction;
+                if (s.kind != kind or data.len != T.spongeWidths(kind)[tree] * (@as(usize, 1) << @intCast(log))) return error.InvalidCombinedServiceSource;
+                append(out, &at, data, log);
+            } else if (self.sponge[k] != null) return error.UnexpectedCombinedServiceSource;
+        }
         return out;
     }
     pub fn mergeRanges(self: *Sources) !void {
@@ -236,6 +293,10 @@ pub const Sources = struct {
         if (self.sha256) |*s| try merge(&self.core, s.counts16, s.counts8);
         if (self.arith256_mod) |*s| try merge(&self.core, s.counts16, s.counts8);
         for (&self.bulk) |*b| if (b.*) |*s| try merge(&self.core, s.counts16, s.counts8);
+        for (&self.sponge) |*b| if (b.*) |*s| {
+            try merge(&self.core, s.counts16, s.counts8);
+            if (s.counts_and.len != 0) try mergeAnd(&self.core, s.counts_and);
+        };
     }
     pub fn releaseMain(self: *Sources) !void {
         try self.core.releaseMain();
@@ -245,6 +306,7 @@ pub const Sources = struct {
         if (self.sha256) |*s| s.releaseMain();
         if (self.arith256_mod) |*s| s.releaseMain();
         for (&self.bulk) |*b| if (b.*) |*s| s.releaseMain();
+        for (&self.sponge) |*b| if (b.*) |*s| s.releaseMain();
     }
     /// Preflight all allocations and cross-family spans before moving anything.
     /// After core's own success-only handoff, only infallible slice moves remain.
@@ -268,6 +330,9 @@ pub const Sources = struct {
         for (T.bulk_kinds) |kind| if (setup.bridges.bulk.at(kind) != null) {
             count += 1;
         };
+        for (T.sponge_kinds) |kind| if (setup.bridges.sponge.at(kind) != null) {
+            count += 1;
+        };
         const backings = try a.alloc([]M, count);
         errdefer a.free(backings);
         inline for (.{ "keccak", "add", "double", "sha256", "arith256_mod" }) |name| if (@field(self, name)) |*s| {
@@ -275,6 +340,14 @@ pub const Sources = struct {
         };
         for (&self.bulk) |*b| if (b.*) |*s| {
             if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
+        };
+        for (&self.sponge) |*b| if (b.*) |*s| {
+            if ((tree == 1 and (!s.owns_main or s.interaction.len != 0)) or !A.memory.ownership.same(a, s.allocator)) return error.InvalidCombinedMainOwner;
+            const data = if (tree == 1) s.main else s.interaction;
+            const end = try spanEnd(data);
+            for (headers[0..setup.total(tree)]) |c| {
+                if (overlap(data, try spanEnd(c.values), c.values, end)) return error.AliasedCombinedMain;
+            }
         };
         for (0..T.FAMILIES) |k| {
             const family: T.Family = @enumFromInt(k);
@@ -331,6 +404,17 @@ pub const Sources = struct {
             }
             at += 1;
         };
+        for (&self.sponge) |*b| if (b.*) |*s| {
+            if (tree == 1) {
+                backings[at] = s.main;
+                s.main = &.{};
+                s.owns_main = false;
+            } else {
+                backings[at] = s.interaction;
+                s.interaction = &.{};
+            }
+            at += 1;
+        };
         return .{ .columns = headers, .backings = backings };
     }
 };
@@ -339,6 +423,20 @@ fn spanEnd(data: []const M) !usize {
 }
 fn overlap(data: []const M, other_end: usize, other: []const M, end: usize) bool {
     return data.len != 0 and other.len != 0 and @intFromPtr(data.ptr) < other_end and @intFromPtr(other.ptr) < end;
+}
+/// Keccak-sponge byte-AND lookups join the CPU proof's canonical AND table:
+/// the table's multiplicities grow by the sponge counts (mass kept below p).
+fn mergeAnd(base: *Core.Source, extra: []const u64) !void {
+    const table = &base.and_table;
+    if (table.interaction.len != 0 or table.main.len != 65536 or extra.len != 65536) return error.InvalidCombinedRangePhase;
+    var mass: u64 = 0;
+    for (extra, 0..) |x, row| {
+        const p = A.witness.physical(row, 16);
+        const total = try std.math.add(u64, table.main[p].v, x);
+        mass = try std.math.add(u64, mass, total);
+        if (mass >= core.fields.m31.Modulus) return error.CombinedRangeMassExceeded;
+        table.main[p] = M.fromCanonical(@intCast(total));
+    }
 }
 fn merge(base: *Core.Source, c16: []const u64, c8: []const u64) !void {
     if (base.range16.interaction.len != 0 or base.range8.interaction.len != 0 or base.range16.main.len != 65536 or base.range8.main.len != 256) return error.InvalidCombinedRangePhase;
@@ -415,6 +513,19 @@ pub const TruthSource = union(enum) {
                         }
                     }
                     offset += cc.len;
+                }
+                // Keccak-sponge permutations follow every Keccak-f call in the
+                // shared IO11 ID space (shard order, then permutation order).
+                for (advice.sponge) |shard| {
+                    const lo = @max(begin, offset);
+                    const hi = @min(end, offset + shard.inputs.len);
+                    if (lo < hi) {
+                        for (shard.inputs[lo - offset .. hi - offset]) |state| {
+                            inputs[written] = state;
+                            written += 1;
+                        }
+                    }
+                    offset += shard.inputs.len;
                 }
                 if (written != t.calls) return error.InvalidCombinedTruthSpan;
                 break :block .{ .keccak = try @import("../keccak/shared/roster.zig").TruthSource.initSpan(a, inputs, t.first_id, t.setup.log) };

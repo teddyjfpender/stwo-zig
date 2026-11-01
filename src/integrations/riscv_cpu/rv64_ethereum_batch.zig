@@ -75,7 +75,7 @@ pub const Batch = struct {
         var arith = false;
         var bulk = false;
         if (inst.opcode == .ECALL and rv.execution_profile.admitsV3(self.tape.execution_profile, record.rhs.toInt())) {
-            if (rv.execution_profile.isBulkTag(record.rhs.toInt())) {
+            if (rv.execution_profile.isPayloadFreeTag(record.rhs.toInt())) {
                 // Bulk memory has no call ID or tape payload: the ECALL step
                 // (pointer, tag) is the call; RAM effects are in the capture.
                 bulk = true;
