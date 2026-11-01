@@ -15,14 +15,71 @@ extern crate std;
 
 use core::ptr;
 
+/// Execution-only candidate services (profile `ethereum_services_v3_candidate`,
+/// autoresearch/guest_efficiency/CONTEXT.md). Off by default: the admitted
+/// guest never contains these ECALLs. Calls of at least the threshold length go
+/// to the service. The measured optimum is 0 for all three (every call, no
+/// length test): a 1..1024-byte sweep on the 15-block basket lowered both
+/// instructions/gas and committed bits/gas monotonically as the threshold fell,
+/// even at the high end of the estimated service cost
+/// (proposals/candidate-service-costs.md, proposals/bulk-memory.md). The
+/// thresholds can be overridden at build time for sweeps
+/// (`STWO_CANDIDATE_{COPY,SET,CMP}_MIN=<bytes>|off`).
+#[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
+mod candidate {
+    const fn parse(value: Option<&str>, default: usize) -> usize {
+        let Some(text) = value else { return default };
+        let bytes = text.as_bytes();
+        // "off" disables a family at compile time (no length test emitted).
+        if bytes.len() == 3 && bytes[0] == b'o' && bytes[1] == b'f' && bytes[2] == b'f' {
+            return usize::MAX;
+        }
+        let mut i = 0;
+        let mut n = 0usize;
+        while i < bytes.len() {
+            assert!(bytes[i].is_ascii_digit(), "threshold must be decimal");
+            n = n * 10 + (bytes[i] - b'0') as usize;
+            i += 1;
+        }
+        n
+    }
+    pub const COPY_MIN: usize = parse(option_env!("STWO_CANDIDATE_COPY_MIN"), 0);
+    pub const SET_MIN: usize = parse(option_env!("STWO_CANDIDATE_SET_MIN"), 0);
+    pub const CMP_MIN: usize = parse(option_env!("STWO_CANDIDATE_CMP_MIN"), 0);
+    pub const COPY_ON: bool = COPY_MIN != usize::MAX;
+    pub const SET_ON: bool = SET_MIN != usize::MAX;
+    pub const CMP_ON: bool = CMP_MIN != usize::MAX;
+    pub const MEMCPY: usize = 0x0003_0001;
+    pub const MEMSET: usize = 0x0003_0002;
+    pub const MEMCMP: usize = 0x0003_0003;
+
+    /// `a0` = 8-aligned packet, `a7` = tag; all registers preserved. Default
+    /// asm memory effects keep packet stores before and loads after the call.
+    #[inline(always)]
+    pub unsafe fn call<const N: usize>(packet: &mut [u64; N], tag: usize) {
+        unsafe { core::arch::asm!("ecall", in("a0") packet.as_mut_ptr(), in("a7") tag, options(nostack)) };
+    }
+}
+
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
+    if candidate::COPY_ON && n >= candidate::COPY_MIN {
+        unsafe { candidate::call(&mut [dest as u64, src as u64, n as u64], candidate::MEMCPY) };
+        return dest;
+    }
     unsafe { copy_forward(dest, src, n) };
     dest
 }
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    // The candidate service is memmove-safe for any overlap.
+    #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
+    if candidate::COPY_ON && n >= candidate::COPY_MIN {
+        unsafe { candidate::call(&mut [dest as u64, src as u64, n as u64], candidate::MEMCPY) };
+        return dest;
+    }
     if (dest as usize).wrapping_sub(src as usize) >= n {
         unsafe { copy_forward(dest, src, n) };
     } else {
@@ -38,6 +95,11 @@ pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mu
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memset(dest: *mut u8, value: i32, n: usize) -> *mut u8 {
+    #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
+    if candidate::SET_ON && n >= candidate::SET_MIN {
+        unsafe { candidate::call(&mut [dest as u64, value as u8 as u64, n as u64], candidate::MEMSET) };
+        return dest;
+    }
     let byte = value as u8;
     let mut d = dest;
     let mut n = n;
@@ -79,6 +141,12 @@ pub unsafe extern "C" fn memset(dest: *mut u8, value: i32, n: usize) -> *mut u8 
 
 #[cfg_attr(target_arch = "riscv64", unsafe(no_mangle))]
 pub unsafe extern "C" fn memcmp(a: *const u8, b: *const u8, n: usize) -> i32 {
+    #[cfg(all(feature = "candidate-services", target_arch = "riscv64"))]
+    if candidate::CMP_ON && n >= candidate::CMP_MIN {
+        let mut packet = [a as u64, b as u64, n as u64, 0];
+        unsafe { candidate::call(&mut packet, candidate::MEMCMP) };
+        return packet[3] as i64 as i32;
+    }
     let mut a = a;
     let mut b = b;
     let mut n = n;

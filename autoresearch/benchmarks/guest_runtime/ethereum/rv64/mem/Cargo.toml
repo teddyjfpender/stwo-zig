@@ -10,4 +10,8 @@ path = "src/lib.rs"
 
 [workspace]
 
+[features]
+# Execution-only candidate ECALL services; never part of an admitted guest.
+candidate-services = []
+
 [dependencies]
