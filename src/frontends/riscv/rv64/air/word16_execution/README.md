@@ -6,7 +6,7 @@ close against the independently admitted ROM, local register boundary, range,
 FUNCTION and OWNER providers. EBREAK does not retire. Ordinary trapping ECALL
 has a different execution meaning and is not admitted by this authority.
 
-The CPU has 3 fixed, 53 main and 40 interaction columns, with 55 residuals of
+The CPU has 3 fixed, 50 main and 40 interaction columns, with 55 residuals of
 maximum degree 3. The ROM table has 32 fixed, 1 main and 8 interaction columns,
 with 4 residuals of degree at most 2. The optional nonzero-immediate JALR
 composite has 2 fixed, 18 main and 12 interaction columns and 6 degree-3
@@ -50,6 +50,23 @@ induction anchors predecessor clocks and values. These are joint proof
 obligations; local CPU residuals alone are not an independent canonicality
 proof. Register clocks reset per independently admitted batch, and PC/all
 register values must be linked between batches by the receiving protocol.
+
+## Affine zero-register flags
+
+The three zero-register flags are `1-enabled`, not independent committed
+columns. An active row authenticates that complement against the immutable
+ROM's Boolean zero flags and architectural register IDs. The local guard
+`(1-active)*enabled=0` makes every disabled padding slot have `enabled=0`.
+The unchanged zero-value constraints become `(1-enabled)*value=0` for A, B and
+previous RD; predecessor-clock disabling remains explicit. Register bus weights
+still equal enabled. ROM and REG debts must close together: a local proof with
+an unauthenticated enable flag is insufficient.
+
+This substitution preserves degree three, all55 residuals, full64 PCs and the
+existing40 interaction columns. It changes the MAIN encoding and proof
+transcript, so the feature-authority domain is explicitly full64.v2; old proof
+bytes are not parity fixtures for this encoding. No independently supplied
+Boolean hint, range lookup or new runtime profile is introduced.
 
 ## JALR composition and the signed-marginal attack
 

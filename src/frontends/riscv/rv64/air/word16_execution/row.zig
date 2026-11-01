@@ -17,7 +17,6 @@ pub fn active(entry: Feature.Entry, index: u32, next_pc: u64, values: Values, cl
     out[L.main.operation] = M.fromCanonical(entry.operation);
     for (entry.ids, 0..) |id, slot| {
         out[L.main.registers + slot] = M.fromCanonical(id);
-        out[L.main.zero + slot] = M.fromCanonical(@intFromBool(id == 0));
         out[L.main.enabled + slot] = M.fromCanonical(@intFromBool(id != 0));
         const tick = 4 * index + @as(u32, @intCast(slot)) + 1;
         if (clocks[slot] >= tick or (id == 0 and clocks[slot] != 0)) return error.InvalidExecutionClock;
@@ -44,7 +43,6 @@ fn base(index: u32, pc: u64, next_pc: u64) Main {
     Feature.put(&out, L.main.pc, pc);
     Feature.put(&out, L.main.next_pc, next_pc);
     for (0..3) |slot| {
-        out[L.main.zero + slot] = M.one();
         const gap = 4 * index + @as(u32, @intCast(slot));
         out[L.main.gap16 + slot] = M.fromCanonical(@as(u16, @truncate(gap)));
         out[L.main.gap8 + slot] = M.fromCanonical(gap >> 16);

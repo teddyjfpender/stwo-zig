@@ -103,7 +103,7 @@ pub fn shapes(program: *const P, geometry: Geometry) [ROLE_COUNT]Shape {
     var offsets: [3]usize = @splat(0);
     for (std.enums.values(Role), &result) |role, *shape| {
         const widths: [3]usize = switch (role) {
-            .cpu => .{ 3, 53, 40 },
+            .cpu => .{ 3, front.rv64_air.word16_execution.layout.main.COUNT, front.rv64_air.word16_execution.layout.inter.COUNT },
             .rom => .{ 32, 1, 8 },
             .boundary => .{ 34, 0, 8 },
             .alu => .{ 2, B.alu_experiment.lookup.MAIN, B.alu_experiment.lookup.INTERACTION },

@@ -24,10 +24,10 @@ fn lift(ctx: *Context, ch: X.types.Challenges) !X.types.ChallengesFor(F) {
 const Mode = enum { cpu, rom, jalr };
 const Masks = struct {
     mode: Mode = .cpu,
-    data: [5][53]Q,
+    data: [5][X.layout.main.COUNT]Q,
     pub fn count(self: Masks, tree: usize, c: usize) !usize {
         const widths: [3]usize = switch (self.mode) {
-            .cpu => .{ 3, 53, 40 },
+            .cpu => .{ 3, X.layout.main.COUNT, 40 },
             .rom => .{ 32, 1, 8 },
             .jalr => .{ 2, 18, 12 },
         };

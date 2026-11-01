@@ -135,7 +135,7 @@ pub fn put(out: []M, at: usize, value: u64) void {
 pub fn identity() [32]u8 {
     const std = @import("std");
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("rv64.word16-execution.full64.v1:main53/inter40/D3;FUNCTION13:old-ALU0..9,JALR10-nonzero-I,JALR0-AND16,BIN16..18,SHIFT32..37,raw-MUL-DIV49..61;OWNER19:raw-LS28..38,ECALL63;epoch16/tick24;normalized-static-RHS;ROM30-link-and-taken");
+    hash.update("rv64.word16-execution.full64.v2:main50/inter40/D3;zero=1-enabled;FUNCTION13:old-ALU0..9,JALR10-nonzero-I,JALR0-AND16,BIN16..18,SHIFT32..37,raw-MUL-DIV49..61;OWNER19:raw-LS28..38,ECALL63;epoch16/tick24;normalized-static-RHS;ROM30-link-and-taken");
     for (std.enums.values(isa.Opcode)) |op| for ([_]i64{ 0, -16 }) |immediate| {
         const entry = Entry.fromInstruction(0, 0, .{ .opcode = op, .rs1 = 1, .rs2 = 2, .rd = 3, .imm = immediate });
         const fields = [_]u8{ @intFromEnum(op), @intFromBool(entry.valid), entry.operation, entry.ids[0], entry.ids[1], entry.ids[2], @intFromBool(entry.use_immediate), @intFromBool(entry.branch), @intFromBool(entry.use_pc), @intFromBool(entry.dynamic_next), @intFromBool(entry.function) };

@@ -163,3 +163,26 @@ test "full CPU all65 raw encodings and cached independent decode have identical 
     }
     try std.testing.expect(!std.meta.eql(X.features.identity(), @as([32]u8, @splat(0))));
 }
+
+test "CPU zero flags are affine enabled complements for every opcode and register-zero combination" {
+    try std.testing.expectEqual(@as(usize, 50), L.main.COUNT);
+    for (std.enums.values(isa.Opcode)) |opcode| {
+        for (0..8) |mask| {
+            const entry = X.Entry.fromInstruction(0, 0x1000, .{ .opcode = opcode, .rs1 = if (mask & 1 == 0) 0 else 1, .rs2 = if (mask & 2 == 0) 0 else 2, .rd = if (mask & 4 == 0) 0 else 3, .imm = 8 });
+            if (!entry.valid) continue;
+            const row = try X.row.active(entry, 0, if (entry.dynamic_next) 0x1008 else entry.staticNext(false), .{ .a = if (entry.ids[0] == 0) 0 else 7, .b = if (entry.ids[1] == 0) 0 else 11, .c = if (entry.dynamic_next) 0x1004 else 0, .previous_rd = if (entry.ids[2] == 0) 0 else 9 }, .{ 0, 0, 0 });
+            const tuple = X.tuples.rom(M, &row);
+            try std.testing.expectEqualSlices(M, &entry.romTuple(false), &tuple);
+            for (entry.ids, 0..) |id, slot| {
+                try std.testing.expectEqual(@as(u32, @intFromBool(id != 0)), row[L.main.enabled + slot].v);
+                try std.testing.expectEqual(M.one().sub(row[L.main.enabled + slot]), tuple[L.rom.zero + slot]);
+            }
+        }
+    }
+    const padding = try X.row.padding(31, 0x1004);
+    const tuple = X.tuples.rom(M, &padding);
+    for (0..3) |slot| {
+        try std.testing.expectEqual(M.zero(), padding[L.main.enabled + slot]);
+        try std.testing.expectEqual(M.one(), tuple[L.rom.zero + slot]);
+    }
+}

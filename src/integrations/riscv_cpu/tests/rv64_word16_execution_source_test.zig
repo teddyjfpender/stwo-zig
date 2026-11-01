@@ -68,8 +68,8 @@ fn checkRows(main: []const M, inter: []const M, log: u32, public: X.types.Bounda
     for (0..n) |logical| {
         const p = X.layout.physical(logical, log);
         const prev = X.layout.physical((logical + n - 1) % n, log);
-        const row = gather(main, n, p, 53);
-        const prior = gather(main, n, prev, 53);
+        const row = gather(main, n, p, X.layout.main.COUNT);
+        const prior = gather(main, n, prev, X.layout.main.COUNT);
         const current = gather(inter, n, p, 40);
         const previous = gather(inter, n, prev, 40);
         const fixed = [_]Q{ X.types.literal(Q, @intCast(logical)), X.types.literal(Q, @intFromBool(logical == 0)), X.types.literal(Q, @intFromBool(logical == n - 1)) };

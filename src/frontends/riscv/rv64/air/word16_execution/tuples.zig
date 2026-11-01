@@ -39,7 +39,7 @@ pub fn rom(comptime F: type, row: []const F) [30]F {
     }
     out[L.rom.operation] = row[m.operation];
     @memcpy(out[L.rom.registers..][0..3], row[m.registers..][0..3]);
-    @memcpy(out[L.rom.zero..][0..3], row[m.zero..][0..3]);
+    for (0..3) |slot| out[L.rom.zero + slot] = F.one().sub(row[m.enabled + slot]);
     @memcpy(out[L.rom.flags..][0..5], row[m.use_immediate..][0..5]);
     out[L.rom.taken] = row[m.branch].mul(row[m.c]);
     return out;

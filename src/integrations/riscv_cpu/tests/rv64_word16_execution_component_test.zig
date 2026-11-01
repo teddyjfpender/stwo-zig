@@ -42,19 +42,19 @@ fn scalar(c: *const C.Component, columns: []const []const M, inverses: []const M
     const n = columns[0].len;
     for (0..n) |row| {
         var values: [C.COLUMNS]Q = undefined;
-        var pm: [53]Q = @splat(Q.zero());
+        var pm: [X.layout.main.COUNT]Q = @splat(Q.zero());
         var pi: [40]Q = @splat(Q.zero());
         for (columns, 0..) |column, i| values[i] = Q.fromBase(column[row]);
         const prior = core.utils.previousBitReversedCircleDomainIndex(row, c.log_size, c.log_size + 1);
-        for (0..53) |i| if (L.previousMain(i)) {
+        for (0..X.layout.main.COUNT) |i| if (L.previousMain(i)) {
             pm[i] = Q.fromBase(columns[3 + i][prior]);
         };
         for (0..40) |i| if (L.previousInter(i)) {
-            pi[i] = Q.fromBase(columns[56 + i][prior]);
+            pi[i] = Q.fromBase(columns[3 + L.main.COUNT + i][prior]);
         };
         var acc = E.WeightedAccumulator{ .powers = out.random_coeff_powers };
         var sink = E.Sink{ .values = null, .weighted_accumulator = &acc };
-        c.emitFor(Q, values[0..3], values[3..56], &pm, values[56..96], &pi, &sink);
+        c.emitFor(Q, values[0..3], values[3..][0..L.main.COUNT], &pm, values[3 + L.main.COUNT ..][0..L.inter.COUNT], &pi, &sink);
         out.accumulate(row, acc.accumulation.mulM31(inverses[row >> @intCast(c.log_size)]));
     }
 }

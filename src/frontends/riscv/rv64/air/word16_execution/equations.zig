@@ -67,14 +67,17 @@ pub fn emitFor(comptime F: type, fixed: []const F, row: []const F, previous_main
     }
     for (0..3) |slot| {
         const enabled = row[m.enabled + slot];
-        sink.emit(enabled.sub(active.mul(one.sub(row[m.zero + slot]))));
+        // ROM authenticates 1-enabled as the instruction's zero-register flag
+        // on active rows. Padding has enabled=0. No independent zero witness
+        // is needed, and no additional Boolean/range provider is introduced.
+        sink.emit(one.sub(active).mul(enabled));
         const start: usize = switch (slot) {
             0 => m.a,
             1 => m.b,
             2 => m.previous_rd,
             else => unreachable,
         };
-        for (0..4) |limb| sink.emit(row[m.zero + slot].mul(row[start + limb]));
+        for (0..4) |limb| sink.emit(one.sub(enabled).mul(row[start + limb]));
         sink.emit(row[m.previous_clock + slot].add(row[m.gap16 + slot]).add(E.qFor(F, 65536).mul(row[m.gap8 + slot])).sub(U.tick(F, fixed[0], @intCast(slot)).sub(one)));
         sink.emit(one.sub(enabled).mul(row[m.previous_clock + slot]));
     }

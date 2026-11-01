@@ -27,15 +27,15 @@ test "full CPU55 residuals are cubic over dense full-extension coordinates" {
     var channel = core.channel.blake2s.Blake2sChannel{};
     const ch = challenges(&channel);
     const claim = channel.drawSecureFelt();
-    var constants: [5][53]Q = undefined;
-    var slopes: [5][53]Q = undefined;
+    var constants: [5][X.layout.main.COUNT]Q = undefined;
+    var slopes: [5][X.layout.main.COUNT]Q = undefined;
     for (&constants, &slopes) |*a, *b| for (a, b) |*x, *y| {
         x.* = channel.drawSecureFelt();
         y.* = channel.drawSecureFelt();
     };
     var result: [5][55]Q = undefined;
     for (0..5) |point| {
-        var data: [5][53]Q = undefined;
+        var data: [5][X.layout.main.COUNT]Q = undefined;
         for (&data, constants, slopes) |*row, a, b| {
             for (row, a, b) |*v, c, s| v.* = c.add(s.mulM31(M.fromCanonical(@intCast(point))));
         }
@@ -57,8 +57,8 @@ test "full CPU mixed packed lanes and native denominator/contribution projection
     const ch = challenges(&channel);
     const claim = channel.drawSecureFelt();
     const B = E.PackedBase;
-    var data: [5][53][16]M = undefined;
-    var simd: [5][53]B = undefined;
+    var data: [5][X.layout.main.COUNT][16]M = undefined;
+    var simd: [5][X.layout.main.COUNT]B = undefined;
     for (&data, &simd) |*a, *b| for (a, b) |*lanes, *v| {
         for (lanes) |*lane| lane.* = channel.drawSecureFelt().toM31Array()[0];
         v.* = B.fromLanes(lanes.*);
@@ -68,12 +68,12 @@ test "full CPU mixed packed lanes and native denominator/contribution projection
     Eq.emitFor(B, simd[0][0..3], &simd[1], &simd[2], simd[3][0..40], simd[4][0..40], inputs(), claim, ch, &sink);
     try std.testing.expectEqual(@as(usize, 55), sink.count);
     for (0..16) |lane| {
-        var native: [5][53]M = undefined;
+        var native: [5][X.layout.main.COUNT]M = undefined;
         for (&native, data) |*a, b| {
             for (a, b) |*v, lanes| v.* = lanes[lane];
         }
-        var q: [5][53]Q = undefined;
-        for (native, &q) |a, *b| b.* = toQ(53, a);
+        var q: [5][X.layout.main.COUNT]Q = undefined;
+        for (native, &q) |a, *b| b.* = toQ(X.layout.main.COUNT, a);
         var residuals: [55]Q = undefined;
         var out = E.Sink{ .values = &residuals };
         Eq.emitFor(Q, q[0][0..3], &q[1], &q[2], q[3][0..40], q[4][0..40], inputs(), claim, ch, &out);
@@ -89,7 +89,7 @@ test "full CPU mixed packed lanes and native denominator/contribution projection
 test "full CPU native witness satisfies all55 equations and rejects ghosts wrapped clocks and unused poles" {
     var channel = core.channel.blake2s.Blake2sChannel{};
     const ch = challenges(&channel);
-    var main: [32][53]M = undefined;
+    var main: [32][X.layout.main.COUNT]M = undefined;
     var fixed: [32][3]M = undefined;
     var inter: [32][40]M = undefined;
     var contributions: [32]Q = undefined;
@@ -115,20 +115,20 @@ test "full CPU native witness satisfies all55 equations and rejects ghosts wrapp
         const prior = (row + 31) % 32;
         var residuals: [55]Q = undefined;
         var sink = E.Sink{ .values = &residuals };
-        Eq.emitFor(Q, &toQ(3, fixed[row]), &toQ(53, main[row]), &toQ(53, main[prior]), &toQ(40, inter[row]), &toQ(40, inter[prior]), inputs(), claim, ch, &sink);
+        Eq.emitFor(Q, &toQ(3, fixed[row]), &toQ(X.layout.main.COUNT, main[row]), &toQ(X.layout.main.COUNT, main[prior]), &toQ(40, inter[row]), &toQ(40, inter[prior]), inputs(), claim, ch, &sink);
         for (residuals) |value| try std.testing.expect(value.isZero());
     }
-    var ghost = toQ(53, main[1]);
+    var ghost = toQ(X.layout.main.COUNT, main[1]);
     ghost[L.main.function] = Q.one();
     var residuals: [55]Q = undefined;
     var sink = E.Sink{ .values = &residuals };
-    Eq.emitFor(Q, &toQ(3, fixed[1]), &ghost, &toQ(53, main[0]), &toQ(40, inter[1]), &toQ(40, inter[0]), inputs(), claim, ch, &sink);
+    Eq.emitFor(Q, &toQ(3, fixed[1]), &ghost, &toQ(X.layout.main.COUNT, main[0]), &toQ(40, inter[1]), &toQ(40, inter[0]), inputs(), claim, ch, &sink);
     try std.testing.expect(!residuals[43].isZero());
     var pole = ch;
     pole.function.offset = Q.zero();
     pole.function.coefficients = @splat(Q.zero());
     sink = .{ .values = &residuals };
-    Eq.emitFor(Q, &toQ(3, fixed[1]), &toQ(53, main[1]), &toQ(53, main[0]), &toQ(40, inter[1]), &toQ(40, inter[0]), inputs(), claim, pole, &sink);
+    Eq.emitFor(Q, &toQ(3, fixed[1]), &toQ(X.layout.main.COUNT, main[1]), &toQ(X.layout.main.COUNT, main[0]), &toQ(40, inter[1]), &toQ(40, inter[0]), inputs(), claim, pole, &sink);
     try std.testing.expect(residuals[47].eql(Q.one().neg()));
     var bad = inputs();
     bad.epoch = 0;
@@ -136,4 +136,23 @@ test "full CPU native witness satisfies all55 equations and rejects ghosts wrapp
     bad = inputs();
     bad.initial_pc[0] = 65536;
     try std.testing.expectError(error.InvalidExecutionInputs, X.types.validateInputs(bad, 5));
+}
+
+test "affine zero encoding rejects every enabled padding slot without an extra Boolean witness" {
+    var channel = core.channel.blake2s.Blake2sChannel{};
+    const ch = challenges(&channel);
+    for (0..3) |slot| {
+        for ([_]Q{ Q.one(), E.q(2), E.q(2147483646) }) |bad| {
+            var row = toQ(L.main.COUNT, try X.row.padding(1, 0x1004));
+            row[L.main.enabled + slot] = bad;
+            const fixed = [_]Q{ E.q(1), Q.zero(), Q.zero() };
+            const previous = toQ(L.main.COUNT, try X.row.padding(0, 0x1004));
+            const interaction: [L.inter.COUNT]Q = @splat(Q.zero());
+            var residuals: [55]Q = undefined;
+            var sink = E.Sink{ .values = &residuals };
+            Eq.emitFor(Q, &fixed, &row, &previous, &interaction, &interaction, inputs(), Q.zero(), ch, &sink);
+            // Five prefix, sixteen PC, then seven equations per register slot.
+            try std.testing.expect(residuals[21 + 7 * slot].eql(bad));
+        }
+    }
 }
