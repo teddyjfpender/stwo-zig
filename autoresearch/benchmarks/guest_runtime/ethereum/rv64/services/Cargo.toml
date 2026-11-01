@@ -31,6 +31,10 @@ candidate-services = ["candidate-mem", "candidate-sha256", "candidate-arith"]
 # ECALL 0x0003_0010 on a 32-byte aligned packet. Proven by the Word16 services
 # lane's SHA-256 truth and Wire35 bridge.
 sha256-service = ["dep:sha2", "sha2/stwo-sha256-service"]
+# ADMITTED v3 service (profile ethereum_services_v3): arith256_mod via ECALL
+# 0x0003_0021 on a 32-byte aligned packet (MULMOD, ADDMOD). Proven by the Word16
+# services lane's arith256 truth and Wire35 bridge.
+arith256-service = ["dep:revm-interpreter", "revm-interpreter/stwo-arith256-service"]
 
 [dependencies]
 alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }

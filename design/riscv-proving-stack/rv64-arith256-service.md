@@ -1,10 +1,11 @@
 # RV64 admitted arith256_mod service (`ethereum_services_v3`)
 
 Status: implemented in the Word16 services lane: truth AIR, bridge kind,
-execution, tape, services lane, Ethereum driver planning and receiver policy.
-It is qualified by unit, adversarial, bridge-closure and services-fixture
-tests with a fresh receiver. Not yet run: a block-scale prefix proof with a
-guest that uses the tag (see "Remaining gaps").
+execution, tape, services lane, Ethereum driver planning and receiver policy,
+plus an admitted Rust-guest feature. It is qualified by unit, adversarial,
+bridge-closure and services-fixture tests with a fresh receiver, and the guest
+runs the 15-block basket with exact outputs on `ethereum_services_v3`. Not yet
+run: a block-scale prefix proof with that guest (see "Remaining gaps").
 
 ## ABI
 
@@ -177,6 +178,29 @@ reference at this call count.
   trips with arith records and pre-v3 rejection.
 - v2 identity: see "v2 byte-identity" below.
 
+## Guest routing and basket (admitted profile)
+
+The Rust guest feature `arith256-service` (`rv64/services/Cargo.toml` ->
+vendored `revm-interpreter` feature `stwo-arith256-service`) sends MULMOD and
+ADDMOD (`a*1 + b mod n`) to tag `0x0003_0021` with a `#[repr(align(32))]`
+packet. MUL and EXP stay in software because `arith256` is not admitted. Same
+tree, same executor, all 15 blocks, every guard passing, exact outputs
+(`autoresearch/guest_efficiency/notes/arith256-admitted-results-20261101.json`):
+
+| Set | instr/gas (v2 ref -> v3 arith) | committed bits/gas |
+|---|---|---|
+| scored | 13.1814 -> 13.0879 (-0.71%) | 151,705 -> 150,792 (-0.60%) |
+| holdout | 11.1643 -> 11.1589 (-0.05%) | 128,560 -> 128,509 (-0.04%) |
+| all | 12.7832 -> 12.7071 (-0.60%) | 147,136 -> 146,393 (-0.50%) |
+
+35,077 calls over the basket (319 on block 24,628,607), scored with
+`calibration.json` `admitted_services.arith256_mod = 4,009.3` cells/call
+(2,779 x 1/ln 2), and `targets.json` now allows `ethereum_services_v3`. The
+result is marked promotable by the harness. The holdout gain is small because
+those blocks hardly use MULMOD/ADDMOD (as in the candidate proposal); the
+evmone client's routing (`client_evmone/glue/services.hpp`) was not switched
+to the admitted alignment here.
+
 ## v2 byte-identity
 
 The v2 combined-services fixture tool (`rv64-word16-combined-services-fixture
@@ -190,9 +214,10 @@ tape-wire bytes are unchanged (the arith extension exists only on v3 tapes).
 
 ## Remaining gaps
 
-- No block-scale prefix proof with a guest that issues the admitted tag. The
-  guest routing (32-byte aligned packets under `ethereum_services_v3`) and a
-  basket run on the admitted profile are not done here.
+- No block-scale Word16 prefix proof with the arith guest (the driver plans
+  arith bridges and truth spans, but it was not run on a block here), so no
+  measured `cost.json`.
+- The evmone client still uses the candidate (8-byte aligned) packet.
 - Debug builds of the services tests overflow the 1 MiB worker stack inside
   the existing division-product evaluator (`division/word16_product`); the
   same suites pass in ReleaseSafe. This affects the combined suite too and is

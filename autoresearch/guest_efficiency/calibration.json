@@ -29,5 +29,13 @@
   "Promotion requires the exact tier (Word16 plan/prove cost.json), not this proxy."
  ],
  "candidate_services": {},
- "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them."
+ "candidate_services_note": "Estimated cells per call and per byte for execution-only candidate services. Each entry must cite its derivation (analogous AIR widths, rows per call, bridge columns). Entries are estimates until a qualified AIR exists; the exact tier replaces them.",
+ "admitted_services": {
+  "arith256_mod": {
+   "cells_per_call": 4009.3,
+   "cells_per_byte": 0.0,
+   "derivation": "Measured layouts: truth row (src/frontends/riscv/rv64/air/delegations/arith256/layout.zig) MAIN 401 + INTER 488 = 889 cells per call; Word16 bridge (secp256k1/word16_bridge/layout.zig, kind arith256_mod) 5 rows x (MAIN 134 + INTER 244) = 1,890 cells per call; total 2,779 unpadded (RAM28 transitions are inside the bridge rows). Times 1.4427 = 1/ln 2, the expected power-of-two padding for log-uniform occupancy (same convention as the other admitted v3 entries) = 4,009.3. Fixed columns (4 truth + 8 per bridge row) are key material, not counted. The ECALL and the guest packet setup are ordinary instructions already charged per instruction. design/riscv-proving-stack/rv64-arith256-service.md."
+  }
+ },
+ "admitted_services_note": "Cells per call and per byte for ADMITTED ethereum_services_v3 services, from qualified AIR layouts (not estimates). Applied to <service>_calls in the execution report."
 }

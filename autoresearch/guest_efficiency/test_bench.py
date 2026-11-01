@@ -147,7 +147,7 @@ class Guards(unittest.TestCase):
 
     def test_unknown_profile_fails(self):
         rows = good_rows()
-        rows[0]["execution_profile"] = "ethereum_services_v3"
+        rows[0]["execution_profile"] = "ethereum_services_v9"
         self.assertFalse(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
 
 
@@ -170,6 +170,25 @@ class Candidates(unittest.TestCase):
             r["execution_profile"] = "ethereum_services_v3_candidate"
         self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
         self.assertNotIn("ethereum_services_v3_candidate", POLICY["allowed_execution_profiles"])
+
+
+class Admitted(unittest.TestCase):
+    def test_admitted_arith256_mod_cost_added(self):
+        base = bench.committed_bits(CAL, 1000, 0, 0, 0)
+        more = bench.committed_bits(CAL, 1000, 0, 0, 0, None, {"arith256_mod": {"calls": 2, "bytes": 0}})
+        c = CAL["coefficients"]
+        cells = 2 * CAL["admitted_services"]["arith256_mod"]["cells_per_call"]
+        self.assertAlmostEqual(more - base, c["bits_per_cell_at_lde"] * cells * (1 + c["composition_fraction"]))
+
+    def test_unknown_admitted_rejected(self):
+        with self.assertRaises(ValueError):
+            bench.committed_bits(CAL, 1, 0, 0, 0, None, {"teleport": {"calls": 1}})
+
+    def test_v3_profile_admitted(self):
+        rows = good_rows()
+        for r in rows:
+            r["execution_profile"] = "ethereum_services_v3"
+        self.assertTrue(by_name(bench.guards(BASKET, rows, "all", POLICY))["G6_execution_profile"]["ok"])
 
 
 class Levels(unittest.TestCase):
