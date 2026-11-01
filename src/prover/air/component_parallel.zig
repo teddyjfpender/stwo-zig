@@ -124,10 +124,9 @@ pub fn computeWithRecorderDiagnosed(
 }
 
 /// Scheduler selection for the unprepared (legacy-capability) path.
-/// `auto` uses the cooperative work queue whenever at least one component
-/// declares `cooperative_domain`, and the established breadth-first
-/// scheduler otherwise. `STWO_ZIG_COMPOSITION_SCHEDULER=legacy` forces the
-/// established scheduler for A/B measurement. Both produce identical bytes.
+/// `auto` preserves the established breadth-first scheduler. The cooperative
+/// queue is experimental and requires `STWO_ZIG_COMPOSITION_SCHEDULER=queue`;
+/// `legacy` explicitly selects the control path. Both produce identical bytes.
 pub const Scheduler = enum { auto, legacy, queue };
 
 /// Options of the cooperative composition queue.
@@ -870,14 +869,25 @@ fn selectQueue(components: anytype, scheduler: Scheduler) bool {
         .auto => {},
     }
     if (std.process.hasEnvVarConstant("STWO_ZIG_COMPOSITION_SCHEDULER")) {
-        // Only the established scheduler can be forced from the environment.
         const value = std.posix.getenv("STWO_ZIG_COMPOSITION_SCHEDULER") orelse "";
         if (std.mem.eql(u8, value, "legacy")) return false;
+        if (!std.mem.eql(u8, value, "queue")) return false;
+    } else {
+        return false;
     }
     for (components) |component| {
         if (isCooperative(component)) return true;
     }
     return false;
+}
+
+test "composition queue remains opt in despite cooperative component capability" {
+    if (std.posix.getenv("STWO_ZIG_COMPOSITION_SCHEDULER") != null) return error.SkipZigTest;
+    const Component = struct { cooperative_domain: bool };
+    const components = [_]Component{.{ .cooperative_domain = true }};
+    try std.testing.expect(!selectQueue(&components, .auto));
+    try std.testing.expect(!selectQueue(&components, .legacy));
+    try std.testing.expect(selectQueue(&components, .queue));
 }
 
 /// A component joins the queue unless it needs the whole pool and cannot
@@ -1146,16 +1156,16 @@ fn computeQueued(
         const wave_capacity = @as(f64, @floatFromInt(queue_ns)) * @as(f64, @floatFromInt(threads));
         const busy_fraction = if (wave_capacity == 0) 0 else 1.0 - @as(f64, @floatFromInt(queue.idle_ns)) / wave_capacity;
         std.log.info("composition queue: components={} queued={} exclusive={} threads={} admission_bytes={} peak_active={} peak_estimated_bytes={} batches={} batch_tasks={} helped={} queue_ms={d:.1} queue_busy_threads={d:.2} exclusive_ms={d:.1} merge_ms={d:.1} finalize_ms={d:.1}", .{
-            workers.len,                                                  queued,                                                            exclusive_count,
-            threads,                                                      admission,                                                         source.peak_active,
-            source.peak_bytes,                                            queue.batches_published,                                           queue.batch_tasks_run,
-            queue.helped_tasks,                                           @as(f64, @floatFromInt(queue_ns)) / 1e6,                           busy_fraction * @as(f64, @floatFromInt(threads)),
-            @as(f64, @floatFromInt(exclusive_ns - queue_ns)) / 1e6,       @as(f64, @floatFromInt(merge_ns - exclusive_ns)) / 1e6,            @as(f64, @floatFromInt(total_ns - merge_ns)) / 1e6,
+            workers.len,                                            queued,                                                 exclusive_count,
+            threads,                                                admission,                                              source.peak_active,
+            source.peak_bytes,                                      queue.batches_published,                                queue.batch_tasks_run,
+            queue.helped_tasks,                                     @as(f64, @floatFromInt(queue_ns)) / 1e6,                busy_fraction * @as(f64, @floatFromInt(threads)),
+            @as(f64, @floatFromInt(exclusive_ns - queue_ns)) / 1e6, @as(f64, @floatFromInt(merge_ns - exclusive_ns)) / 1e6, @as(f64, @floatFromInt(total_ns - merge_ns)) / 1e6,
         });
         if (source.item_start_ns.len != 0) for (components, 0..) |component, index| {
             if (!queueEligible(component)) continue;
             std.log.info("composition queue item: index={} log={} constraints={} estimated_bytes={} peak_allocated_bytes={} start_ms={d:.1} end_ms={d:.1}", .{
-                index,                                                           component.maxConstraintLogDegreeBound(),                     component.nConstraints(), bytes[index],
+                index,                                                                component.maxConstraintLogDegreeBound(),                    component.nConstraints(),                                 bytes[index],
                 if (counters.len != 0) counters[index].peak.load(.monotonic) else -1, @as(f64, @floatFromInt(source.item_start_ns[index])) / 1e6, @as(f64, @floatFromInt(source.item_end_ns[index])) / 1e6,
             });
         };
