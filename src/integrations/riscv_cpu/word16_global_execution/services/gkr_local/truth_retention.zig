@@ -37,9 +37,13 @@ pub fn forTruth(a: std.mem.Allocator, truth: R.Truth, config: W.PcsConfig, globa
     for (roles.items) |role| {
         const n = try rows(role.log_size);
         out.global_output_bytes = try add(out.global_output_bytes, try mul(try mul(role.widths()[2], n), 4));
-        out.global_scratch_bytes = @max(out.global_scratch_bytes, try mul(try mul(@min(n, Classic.ROW_CHUNK), Local.inverseCount(role.instance())), 2 * @sizeOf(W.O) + @sizeOf(Classic.Numerator)));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, Local.inverseCount(role.instance())));
+        out.global_scratch_bytes = @max(out.global_scratch_bytes, try Classic.scratchByteUpperBound(role.log_size, @import("truth_global_witness.zig").inverseCount(role.kind)));
         for (role.widths()) |width| all_columns = try add(all_columns, width);
     }
+    // Global metadata descriptors coexist with every retained local/global
+    // output and the largest one-at-a-time generation scratch tile set.
+    if (truth == .secp) out.global_scratch_bytes = try add(out.global_scratch_bytes, try @import("truth_global_metadata.zig").secpSourceDescriptorBytes());
     if (try add(out.global_output_bytes, out.global_scratch_bytes) > global_limit) return error.WideTruthBudgetExceeded;
     switch (truth) {
         .keccak => |t| {

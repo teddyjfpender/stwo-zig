@@ -180,9 +180,10 @@ fn admit(frames: [3]Frame.Instance, budget: usize) !void {
         const rows = try frame.rows();
         const global: usize = if (i == 0) (if (frame.role == .keccak) 208 else 32) else if (i == 1 and frame.role == .linear) 32 else 0;
         output = try std.math.add(usize, output, try std.math.mul(usize, rows, 4 * (Local.columns(frame) + global)));
-        const bytes = try std.math.mul(usize, @min(rows, Classic.ROW_CHUNK) * Local.inverseCount(frame), 2 * @sizeOf(O) + @sizeOf(Classic.Numerator));
-        scratch = @max(scratch, bytes);
+        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, Local.inverseCount(frame)));
+        scratch = @max(scratch, try Classic.scratchByteUpperBound(frame.row_log, GW.inverseCount(frame.role)));
     }
+    if (frames[0].role != .keccak) scratch = try std.math.add(usize, scratch, try GM.secpSourceDescriptorBytes());
     if (try std.math.add(usize, output, scratch) > budget) return error.WideTruthBudgetExceeded;
 }
 fn take(a: std.mem.Allocator, locals: *[3]Classic.Witness, globals: []Classic.Witness) !Commit {

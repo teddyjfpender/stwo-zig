@@ -31,6 +31,9 @@ const SecpCells = struct {
         return S.interaction.Prepared.sourceValue(self.sources[index], self.active, self.id, self.bytes);
     }
 };
+pub fn secpSourceDescriptorBytes() !usize {
+    return std.math.mul(usize, try std.math.add(usize, S.layout.main(.product), S.layout.main(.linear)), @sizeOf(S.interaction.Source));
+}
 pub const Provider = struct {
     allocator: std.mem.Allocator,
     source: *const R.TruthSource,
@@ -45,7 +48,7 @@ pub const Provider = struct {
                 for (s.permutation.metadata) |row| if (row.flags > 3 or row.id >= core.fields.m31.Modulus) return error.InvalidTruthGlobalMetadata;
             },
             .secp => |s| {
-                const bytes = (S.layout.main(.product) + S.layout.main(.linear)) * @sizeOf(S.interaction.Source);
+                const bytes = try secpSourceDescriptorBytes();
                 if (bytes > budget) return error.TruthGlobalMetadataBudgetExceeded;
                 try s.batch.product.validateMetadata();
                 try s.batch.linear.validateMetadata();
