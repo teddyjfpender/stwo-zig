@@ -1,0 +1,47 @@
+{
+  "schema": "rv64-om31-proof-wire-qualification-v1",
+  "status": "qualified_field_explicit_codec_not_execution_or_security_certificate",
+  "source_base": "124038d14",
+  "compiler": "Zig 0.15.2",
+  "field": "OM31, exactly eight canonical M31 coordinates",
+  "binary_magic": "STWOPRW8",
+  "json_envelope_protocol": "stwo-om31-proof-v1",
+  "legacy_contract": {
+    "field": "QM31",
+    "binary_magic": "STWOPRW1",
+    "differential_fixture_json_bytes": 1458,
+    "differential_fixture_binary_bytes": 396,
+    "json_and_binary_identical_to_source_base": true
+  },
+  "tests": {
+    "native_target_safe": "pass: actual OM31 full STARK plus fresh JSON/binary receiver fold1/fold4, mixed heights, high-coordinate mutation, allocation failures and legacy Q tests",
+    "native_target_fast": "pass: same integrated target",
+    "codec_fast": "13 tests pass",
+    "codec_safe": "all current codec tests pass in 17-test temporary old/new differential root; old source removed after comparison",
+    "malformed": "every binary truncated prefix; trailing bytes; wrong field magic/envelope; missing envelope; all eight sampled coordinates noncanonical; typed and JSON cleanup; exhaustive codec allocation failures",
+    "owned_cleanup_fix": "current partially decoded column freed on noncanonical secure or base coordinate errors"
+  },
+  "actual_tiny_air_wire_bytes": {
+    "fold1_json": 9629,
+    "fold1_binary": 3316,
+    "fold4_json": 9348,
+    "fold4_binary": 3328
+  },
+  "commands": [
+    "zig test -O ReleaseFast --dep stwo_core -Mroot=src/interop/proof_wire/mod.zig -Mstwo_core=src/core/mod.zig",
+    "zig build test-native-cpu-om31 -Doptimize=ReleaseSafe -j2",
+    "zig build test-native-cpu-om31 -Doptimize=ReleaseFast -j2"
+  ],
+  "limits": [
+    "Tiny AIR fixtures are not Ethereum execution qualification.",
+    "Codec does not bind application statements, choose security parameters or certify 128-bit security.",
+    "Fresh receiver objects exercised here are in-process; application fresh-process service bundle qualification remains pending.",
+    "Outer application framing and byte/admission limits remain receiver responsibilities."
+  ],
+  "source_sha256": {
+    "src/interop/proof_wire/family.zig": "8a10e67a4afcd74a1b5d6eae6b58b08ef9ce7f8183e4d0c80b14032094772e34",
+    "src/interop/proof_wire/mod.zig": "f200d6fb67823ab5e354dabe5eceb8c2b44cf0c0f0ca010d80df1493b13cbc1d",
+    "src/interop/proof_wire/wide_test.zig": "5307dbc74f9a1ad0546b003b3c5038a900c118e2726ecd3474a248f68bf2d4e3",
+    "src/tests/native/prover/om31_wire_test.zig": "7b60e210ba2bb9dda5c7a11e87b86873b8bcf761e0a1ac910a1e8a96caad9cfa"
+  }
+}
