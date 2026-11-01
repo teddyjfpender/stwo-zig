@@ -25,6 +25,8 @@ test "global RAM reference accepts two epochs and simultaneous service time on d
 
 test "global RAM reference rejects double-event time alias and predecessor fork" {
     var changed = events;
+    changed[2].previous_epoch = 0;
+    changed[2].previous_tick = 0;
     changed[2].epoch = 1;
     changed[2].tick = 4;
     try std.testing.expectError(error.DuplicateMemoryTime, M.audit(&initial, &terminal, &changed, 2));
