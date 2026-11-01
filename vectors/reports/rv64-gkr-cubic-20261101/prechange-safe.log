@@ -1,0 +1,55 @@
+1/38 gkr_parallel_capture_root.test_0...OK
+2/38 gkr_parallel_capture_root.test.explicit pinned scalar Q baseline capture...GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=1 control_ns=189191041 prove_ns=24692167 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=2 control_ns=189191041 prove_ns=22404000 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=4 control_ns=189191041 prove_ns=22395750 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=8 control_ns=189191041 prove_ns=22476875 json_bytes=74818
+OK
+3/38 gkr_parallel_capture_root.test.explicit pinned scalar OM baseline capture...GKR_ROW_CAPTURE field=fields.om31.OM31 workers=1 control_ns=426661417 prove_ns=45159667 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=2 control_ns=426661417 prove_ns=38196542 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=4 control_ns=426661417 prove_ns=37112041 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=8 control_ns=426661417 prove_ns=36751541 json_bytes=151877
+OK
+4/38 lookups.gkr_interpolation_test.test.GKR corrected cubic Q matches generic Lagrange exact coefficients and poles...OK
+5/38 lookups.gkr_interpolation_test.test.GKR corrected cubic OM matches generic Lagrange exact coefficients and poles...OK
+6/38 lookups.gkr_interpolation_test.test.GKR fixed cubic allocation failure preserves ownership...OK
+7/38 lookups.gkr_interpolation_test.test.optional GKR corrected cubic numerical microbenchmark...OK
+8/38 lookups.packed_rows_test.test.packed Q GKR numerical kernels match independent scalar formulas at unaligned ranges and tails...OK
+9/38 lookups.packed_rows_test.test.packed OM GKR numerical kernels match independent scalar formulas at unaligned ranges and tails...OK
+10/38 lookups.packed_rows_test.test.optional packed GKR kernel microbenchmark...OK
+11/38 lookups.parallel_rows_test.test.Q mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=1 control_ns=23616125 prove_ns=23256042 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=2 control_ns=23616125 prove_ns=22794041 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=4 control_ns=23616125 prove_ns=22435708 json_bytes=74818
+GKR_ROW_CAPTURE field=fields.qm31.QM31 workers=8 control_ns=23616125 prove_ns=22017625 json_bytes=74818
+OK
+12/38 lookups.parallel_rows_test.test.OM mixed-gate scoped row kernels preserve complete proof transcript and fresh binding...GKR_ROW_CAPTURE field=fields.om31.OM31 workers=1 control_ns=47689875 prove_ns=50444958 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=2 control_ns=47689875 prove_ns=44641583 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=4 control_ns=47689875 prove_ns=42271083 json_bytes=151877
+GKR_ROW_CAPTURE field=fields.om31.OM31 workers=8 control_ns=47689875 prove_ns=37195667 json_bytes=151877
+OK
+13/38 lookups.parallel_rows_test.test.row kernels fall back without a nested lease and use bounded stack payload...OK
+14/38 lookups.parallel_rows_test.test.bounded callback ranges honor explicit grain and publish each ordinal once...OK
+15/38 lookups.gkr_prover.test.gkr prover: grand product prove and verify...OK
+16/38 lookups.gkr_prover.test.gkr prover: logup generic prove and verify...OK
+17/38 lookups.gkr_prover.test.gkr prover: logup singles prove and verify...OK
+18/38 lookups.gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+19/38 lookups.gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+20/38 lookups.gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+21/38 lookups.mle.test.mle: init validates power-of-two length...OK
+22/38 lookups.mle.test.mle: fix first variable preserves evaluation semantics...OK
+23/38 lookups.mle.test.mle: fix first variable lifts base-field mle...OK
+24/38 lookups.mle.test.mle: evalAtPoint validates dimensions...OK
+25/38 lookups.gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+26/38 lookups.gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+27/38 lookups.sumcheck.test.sumcheck: prove and partially verify single mle...OK
+28/38 lookups.sumcheck.test.sumcheck: invalid proof is rejected...OK
+29/38 lookups.utils.test.lookups utils: lagrange interpolation...OK
+30/38 lookups.utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+31/38 lookups.utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+32/38 lookups.utils.test.lookups utils: polynomial arithmetic and normalization...OK
+33/38 lookups.utils.test.lookups utils: horner and random linear combination...OK
+34/38 lookups.utils.test.lookups utils: eq kernel...OK
+35/38 lookups.utils.test.lookups utils: fold mle evals...OK
+36/38 lookups.utils.test.lookups utils: reciprocal arithmetic...OK
+37/38 cooperative_queue.test.cooperative queue: split runs every index once on one thread...OK
+38/38 cooperative_queue.test.cooperative queue: many threads drain nested splits from many items...OK
+All 38 tests passed.

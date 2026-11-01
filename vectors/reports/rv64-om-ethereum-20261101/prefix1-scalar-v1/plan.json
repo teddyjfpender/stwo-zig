@@ -1,0 +1,36 @@
+{
+  "profile": "experimental-om31-local-gkr-q70-p26-fold4",
+  "security_qualified": false,
+  "scope": "geometry advice only; no proof or acceptance",
+  "total_steps": 4194303,
+  "cpu": [
+    {
+      "geometry": {
+        "cpu_log": 22,
+        "alu_log": 19,
+        "alu_tail_log": 16,
+        "binary_log": 19,
+        "binary_tail_log": 18,
+        "shift_log": 19,
+        "shift_tail_log": 18,
+        "jalr_log": 14,
+        "division_log": 5,
+        "omit_empty_division": true,
+        "multiplication_log": 13,
+        "ls_log": 20,
+        "ls_tail_log": 18,
+        "boundary_log": 5,
+        "initial_log": 20,
+        "terminal_log": 20
+      },
+      "bridges": {
+        "keccak": null,
+        "add": null,
+        "double": null
+      }
+    }
+  ],
+  "truths": [],
+  "memory_words": 708957,
+  "capture_ns": 1177831000
+}

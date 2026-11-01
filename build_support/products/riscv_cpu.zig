@@ -48,6 +48,10 @@ pub fn addProduct(context: Context) void {
         .{ "word16-setup-audit", "src/integrations/riscv_cpu/rv64_word16_setup_audit_test_root.zig", 10 },
         .{ "word16-csp", "src/integrations/riscv_cpu/rv64_word16_csp_test_root.zig", 9 },
         .{ "program", "src/frontends/riscv/rv64_program_test_root.zig", 9 },
+        .{ "truth-parallel", "src/integrations/riscv_cpu/rv64_truth_parallel_test_root.zig", 8 },
+        .{ "truth-gkr", "src/integrations/riscv_cpu/rv64_truth_gkr_test_root.zig", 28 },
+        .{ "main-merkle-parking", "src/integrations/riscv_cpu/rv64_main_merkle_parking_test_root.zig", 17 },
+        .{ "wide-fixed-setup", "src/integrations/riscv_cpu/rv64_wide_fixed_setup_test_root.zig", 6 },
         .{ "simd-fields", "src/frontends/riscv/rv64_simd_fields_test_root.zig", 6 },
         .{ "parallel", "src/frontends/riscv/rv64_parallel_test_root.zig", 8 },
         .{ "coset", "src/frontends/riscv/rv64_coset_evaluation_test_root.zig", 8 },
@@ -173,6 +177,7 @@ pub fn addProduct(context: Context) void {
     }
     const tools = [_]struct { name: []const u8, source: []const u8 }{
         .{ .name = "rv64-word16-ethereum", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_main.zig" },
+        .{ .name = "rv64-word16-ethereum-gkr", .source = "src/integrations/riscv_cpu/rv64_word16_ethereum_gkr_main.zig" },
         .{ .name = "rv64-logup-gkr-prototype", .source = "src/integrations/riscv_cpu/rv64_logup_gkr_prototype_main.zig" },
         .{ .name = "rv64-word16-combined-services-fixture", .source = "src/integrations/riscv_cpu/rv64_word16_combined_services_fixture_main.zig" },
         .{ .name = "rv64-word16-sail", .source = "src/integrations/riscv_cpu/rv64_word16_sail_main.zig" },
@@ -192,6 +197,7 @@ pub fn addProduct(context: Context) void {
         .{ .name = "rv64-word16-weighted-alu", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_alu_main.zig" },
         .{ .name = "rv64-word16-weighted-binary", .source = "src/integrations/riscv_cpu/rv64_word16_weighted_binary_main.zig" },
         .{ .name = "rv64-word16-loop", .source = "src/integrations/riscv_cpu/rv64_word16_loop_main.zig" },
+        .{ .name = "rv64-om-retention-plan", .source = "src/integrations/riscv_cpu/rv64_om_retention_plan_main.zig" },
         .{ .name = "rv64-secp-fixture", .source = "src/integrations/riscv_cpu/delegations/secp256k1/fixture_main.zig" },
         .{ .name = "rv64-keccak-pair2n-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/pair2n_main.zig" },
         .{ .name = "rv64-keccak-fixture", .source = "src/integrations/riscv_cpu/delegations/keccak/fixture_main.zig" },

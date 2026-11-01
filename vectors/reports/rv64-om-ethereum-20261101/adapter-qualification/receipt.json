@@ -1,0 +1,27 @@
+{
+  "source_base": "21d1c710a plus Ethereum adapter/driver integration",
+  "ReleaseSafe": [
+    "test-riscv64-truth-gkr",
+    "test-riscv64-word16-ethereum-terminal"
+  ],
+  "ReleaseFast": [
+    "rv64-word16-ethereum-gkr",
+    "test-riscv64-truth-gkr",
+    "test-riscv64-word16-ethereum-terminal",
+    "test-riscv64-main-merkle-parking",
+    "test-riscv64-wide-fixed-setup"
+  ],
+  "result": "PASS",
+  "tests": [
+    "independently rebuilt image-based keys",
+    "honest terminal output accepted",
+    "early prefix only accepted without Ethereum output",
+    "incorrect halt, length and output rejected after physical proof verification",
+    "genesis mutation rejected",
+    "physical proof corruption rejected"
+  ],
+  "real_prefix": "../prefix1-scalar-v1/qualification.json",
+  "performance_promoted": false,
+  "security_qualified": false,
+  "full_block_gkr_qualified": false
+}

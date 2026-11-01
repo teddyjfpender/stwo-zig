@@ -1,0 +1,23 @@
+test-riscv64-main-merkle-parking
++- riscv test suite guard
+   +- run test stderr
+MAIN_PARKING_BYTES coefficients=384 nodes=8160 header=128 root=32 rounded=16384
+FULL_MAIN_PARKING shard=0 proof_claims_sha256=bdbbd96c95a15b0332d66d22765763f2a358d8b31a94a23f2c61b25ebcf4f1fa
+FULL_MAIN_PARKING shard=1 proof_claims_sha256=75fa333bfba1eddf904f8ee730c175bc4d9f72247faaed3b52d367f0142cfaaf
+test-riscv64-wide-fixed-setup
++- riscv test suite guard
+   +- run test stderr
+WIDE_FIXED_SETUP beta1=c2eb2765ea8e37e118efdc02ec69db837d938cc1c121b335186bf1f76f6b1bcd beta2=96f81de73ee85f8d04b79fbb609a43259679be9f0015d439a3813b24c3244fda
+
+Build Summary: 10/10 steps succeeded
+rv64-word16-ethereum-gkr success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 54s MaxRSS:1G
+test-riscv64-truth-gkr success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:2G
+test-riscv64-word16-ethereum-terminal success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:4G
+test-riscv64-main-merkle-parking success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 59s MaxRSS:1G
+test-riscv64-wide-fixed-setup success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 11s MaxRSS:553M
+

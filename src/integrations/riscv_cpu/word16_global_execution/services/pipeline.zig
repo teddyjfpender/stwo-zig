@@ -15,6 +15,7 @@ const Core = @import("../../word16_execution/sources.zig");
 const Memory = @import("../../word16_execution/memory/prepared.zig").Prepared;
 const Advice = @import("collector.zig").Advice;
 const Cell = A.memory.closed_ram.types.Cell;
+const T = @import("types.zig");
 const Stage1 = struct {
     allocator: std.mem.Allocator,
     setups: []const *const R.CpuSetup,
@@ -54,70 +55,7 @@ const Stage1 = struct {
         self.workers[ordinal] = worker;
     }
     fn cpuSource(self: *Stage1, cpu: W.Cpu, recorder: ?*Profile.Recorder) !R.Sources {
-        const a = self.allocator;
-        const request = cpu.request;
-        const g = cpu.setup.materials.geometry;
-        const initial = try a.dupe(Cell, request.base.memory.initial);
-        const terminal = a.dupe(Cell, request.base.memory.terminal) catch |err| {
-            a.free(initial);
-            return err;
-        };
-        const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, self.advice.events[cpu.ordinal], initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
-        if (self.options.consume_memory_events) {
-            a.free(self.advice.events[cpu.ordinal]);
-            self.advice.events[cpu.ordinal] = &.{};
-        }
-        var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &cpu.setup.materials, self.native[cpu.ordinal], memory, recorder);
-        errdefer base.deinit();
-        var k: ?A.crypto.keccak.word16_bridge.source.Source = null;
-        errdefer if (k) |*s| s.deinit();
-        var add: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
-        errdefer if (add) |*s| s.deinit();
-        var double: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
-        errdefer if (double) |*s| s.deinit();
-        var sha256: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
-        errdefer if (sha256) |*s| s.deinit();
-        if (cpu.setup.bridges.keccak) |log| k = try A.crypto.keccak.word16_bridge.source.Source.init(a, self.advice.keccak[cpu.ordinal], cpu.first_ids[0], log);
-        if (cpu.setup.bridges.add) |log| add = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .add, self.advice.secp[cpu.ordinal][0], cpu.first_ids[1], log);
-        if (cpu.setup.bridges.double) |log| double = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .double, self.advice.secp[cpu.ordinal][1], cpu.first_ids[2], log);
-        if (cpu.setup.bridges.sha256) |log| sha256 = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .sha256, self.advice.sha256[cpu.ordinal], cpu.first_ids[3], log);
-        var arith: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
-        errdefer if (arith) |*s| s.deinit();
-        if (cpu.setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, self.advice.arith256_mod[cpu.ordinal], cpu.first_ids[4], log);
-        var curves: [@import("types.zig").CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
-        errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
-        for (&curves, @import("types.zig").FIRST_CURVE..) |*out, fam| if (cpu.setup.bridges.at(@enumFromInt(fam))) |log| {
-            out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(fam)), self.advice.curves[cpu.ordinal][fam - @import("types.zig").FIRST_CURVE], cpu.first_ids[fam], log);
-        };
-        var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
-        errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
-        for (@import("types.zig").bulk_kinds, &bulk) |kind, *out| if (cpu.setup.bridges.bulk.at(kind)) |log| {
-            const shard = self.advice.bulk[cpu.ordinal];
-            out.* = try A.crypto.bulk_memory.source.Source.init(a, kind, shard.calls, shard.words, log);
-        };
-        // Keccak sponge: one shared plan (calls, words, permutation states) and
-        // the call/perm sources built from it.
-        var plan: ?*A.crypto.keccak_sponge.source.Plan = null;
-        errdefer if (plan) |p| {
-            p.deinit(a);
-            a.destroy(p);
-        };
-        var sponge: [2]?A.crypto.keccak_sponge.source.Source = @splat(null);
-        errdefer for (&sponge) |*b| if (b.*) |*s| s.deinit();
-        if (cpu.setup.bridges.sponge.any()) {
-            const shard = self.advice.sponge[cpu.ordinal];
-            const p = try a.create(A.crypto.keccak_sponge.source.Plan);
-            errdefer a.destroy(p);
-            p.* = try A.crypto.keccak_sponge.source.Plan.init(a, shard.calls, shard.words);
-            plan = p;
-            for (@import("types.zig").sponge_kinds, &sponge) |kind, *out| if (cpu.setup.bridges.sponge.at(kind)) |log| {
-                out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
-            };
-        }
-        var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
-        // Locals own all fields until this final fallible operation succeeds.
-        try source.mergeRanges();
-        return source;
+        return buildCpuSource(self.allocator, cpu.setup, cpu.request, self.native[cpu.ordinal], self.advice, cpu.ordinal, cpu.first_ids, self.options.consume_memory_events, recorder);
     }
 };
 const Stage2 = struct {
@@ -144,10 +82,7 @@ pub fn produce(a: std.mem.Allocator, setups: []const *const R.CpuSetup, truths: 
         const cpu = n.cpu orelse return error.PreparedExecutionConsumed;
         first.* = step;
         step = try std.math.add(u64, step, cpu.public.steps);
-        var calls: [@import("types.zig").FAMILIES]u32 = undefined;
-        calls[0..5].* = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) };
-        for (calls[5..], advice.curves[i]) |*c, list| c.* = @intCast(list.len);
-        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = calls, .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
+        r.* = .{ .sponge = advice.sponge[i].counts(), .bulk = advice.bulk[i].counts(), .calls = adviceCalls(advice, i), .base = .{ .cpu = cpu.public, .epoch = cpu.epoch, .division_requests = @intCast(n.division.len), .multiplication_requests = @intCast(n.multiplication.len), .memory = .{ .initial = if (i == 0) advice.initial else &.{}, .terminal = if (i + 1 == setups.len) advice.terminal else &.{}, .epoch = cpu.epoch, .ls_count = @intCast(advice.events[i].len) } } };
     }
     // Sponge permutation IDs follow every Keccak-f call of the bundle.
     var next_sponge: u64 = 1;
@@ -226,4 +161,78 @@ fn writeTrace(a: std.mem.Allocator, dir: std.fs.Dir, policy: Schedule.Policy, tr
     const bytes = try std.json.Stringify.valueAlloc(a, .{ .schema = 1, .scope = "operational lane trace only; ns are relative to each phase start; estimates are declared-geometry heuristics", .policy = policy, .stage1 = traces[0..count], .stage2 = traces[count .. 2 * count] }, .{ .whitespace = .indent_2 });
     defer a.free(bytes);
     try @import("../../rv64_ethereum_batch_receipt.zig").writeExclusive(dir, "schedule.json", bytes);
+}
+
+/// Per-family call counts of one shard's admitted advice, in Family order.
+pub fn adviceCalls(advice: *const Advice, i: usize) [T.FAMILIES]u32 {
+    var calls: [T.FAMILIES]u32 = undefined;
+    calls[0..5].* = .{ @intCast(advice.keccak[i].len), @intCast(advice.secp[i][0].len), @intCast(advice.secp[i][1].len), @intCast(advice.sha256[i].len), @intCast(advice.arith256_mod[i].len) };
+    for (calls[5..], advice.curves[i]) |*c, list| c.* = @intCast(list.len);
+    return calls;
+}
+/// Shared original source construction. Both native-Q and explicit OM routes
+/// use the same memory/bridge owner and range-merge authority.
+pub fn buildCpuSource(a: std.mem.Allocator, setup: *const R.CpuSetup, request: P.Request, native: *Native, advice: *const Advice, ordinal: usize, first_ids: [T.FAMILIES]u32, consume_events: bool, recorder: ?*Profile.Recorder) !R.Sources {
+    const g = setup.materials.geometry;
+    const initial = try a.dupe(Cell, request.base.memory.initial);
+    const terminal = a.dupe(Cell, request.base.memory.terminal) catch |err| {
+        a.free(initial);
+        return err;
+    };
+    const memory = try Memory.initOwnedForGlobalRamLadderIndependent(a, advice.events[ordinal], initial, terminal, request.base.epoch, g.ls_log, g.ls_tail_log, g.initialLog(), g.terminalLog());
+    if (consume_events) {
+        a.free(advice.events[ordinal]);
+        advice.events[ordinal] = &.{};
+    }
+    var base = try Core.Source.fromPreparedWithOwnedMemoryProfiled(a, &setup.materials, native, memory, recorder);
+    errdefer base.deinit();
+    var k: ?A.crypto.keccak.word16_bridge.source.Source = null;
+    errdefer if (k) |*s| s.deinit();
+    var add: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (add) |*s| s.deinit();
+    var double: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (double) |*s| s.deinit();
+    var sha256: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (sha256) |*s| s.deinit();
+    if (setup.bridges.keccak) |log| k = try A.crypto.keccak.word16_bridge.source.Source.init(a, advice.keccak[ordinal], first_ids[0], log);
+    if (setup.bridges.add) |log| add = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .add, advice.secp[ordinal][0], first_ids[1], log);
+    if (setup.bridges.double) |log| double = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .double, advice.secp[ordinal][1], first_ids[2], log);
+    if (setup.bridges.sha256) |log| sha256 = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .sha256, advice.sha256[ordinal], first_ids[3], log);
+    var arith: ?A.crypto.secp256k1.word16_bridge.source.Source = null;
+    errdefer if (arith) |*s| s.deinit();
+    if (setup.bridges.arith256_mod) |log| arith = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, .arith256_mod, advice.arith256_mod[ordinal], first_ids[4], log);
+    var curves: [T.CURVES]?A.crypto.secp256k1.word16_bridge.source.Source = @splat(null);
+    errdefer for (&curves) |*c| if (c.*) |*s| s.deinit();
+    for (&curves, T.FIRST_CURVE..) |*out, fam| if (setup.bridges.at(@enumFromInt(fam))) |log| {
+        out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, T.bridgeKind(@enumFromInt(fam)), advice.curves[ordinal][fam - T.FIRST_CURVE], first_ids[fam], log);
+    };
+    var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
+    errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
+    for (T.bulk_kinds, &bulk) |kind, *out| if (setup.bridges.bulk.at(kind)) |log| {
+        const shard = advice.bulk[ordinal];
+        out.* = try A.crypto.bulk_memory.source.Source.init(a, kind, shard.calls, shard.words, log);
+    };
+    // Keccak sponge: one shared plan (calls, words, permutation states) and
+    // the call/perm sources built from it.
+    var plan: ?*A.crypto.keccak_sponge.source.Plan = null;
+    errdefer if (plan) |p| {
+        p.deinit(a);
+        a.destroy(p);
+    };
+    var sponge: [2]?A.crypto.keccak_sponge.source.Source = @splat(null);
+    errdefer for (&sponge) |*b| if (b.*) |*s| s.deinit();
+    if (setup.bridges.sponge.any()) {
+        const shard = advice.sponge[ordinal];
+        const p = try a.create(A.crypto.keccak_sponge.source.Plan);
+        errdefer a.destroy(p);
+        p.* = try A.crypto.keccak_sponge.source.Plan.init(a, shard.calls, shard.words);
+        plan = p;
+        for (T.sponge_kinds, &sponge) |kind, *out| if (setup.bridges.sponge.at(kind)) |log| {
+            out.* = try A.crypto.keccak_sponge.source.Source.init(a, kind, p, request.sponge.first_id, log);
+        };
+    }
+    var source = R.Sources{ .core = base, .keccak = k, .add = add, .double = double, .sha256 = sha256, .arith256_mod = arith, .curves = curves, .bulk = bulk, .sponge_plan = plan, .sponge = sponge };
+    // Locals own all fields until this final fallible operation succeeds.
+    try source.mergeRanges();
+    return source;
 }

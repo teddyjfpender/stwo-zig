@@ -1,0 +1,52 @@
+{
+  "source_commit": "53e75e036",
+  "base_commit": "124038d14",
+  "production_selected": false,
+  "security_claim": "No whole-protocol 128-bit certificate; additive degree8 source only",
+  "tests": {
+    "focused_release_safe": {
+      "status": "PASS",
+      "tests": 15,
+      "owned_tests": 14
+    },
+    "focused_release_fast": {
+      "status": "PASS",
+      "tests": 15,
+      "owned_tests": 14
+    },
+    "direct_binary_release_fast": {
+      "status": "PASS",
+      "tests": 15
+    }
+  },
+  "evidence": [
+    "real native OM31 GKR fresh verification and terminal MLE checks for Keccak and secp",
+    "all original local queries including inactive-row and lane padding",
+    "native metadata still valid after owned MAIN release",
+    "real global OM8 KIO/Wire witnesses satisfy original residual authority",
+    "all8 inverse/prefix coordinates and 1024 logical rows across256-row chunks match scalar reference",
+    "changed Keccak state and secp bytes fail actual local aggregate closure",
+    "zero-weight poles and omitted denominator slots reject",
+    "chunk allocation-failure cleanup and failure-atomic take",
+    "budget admission beforeallocation",
+    "denseOM generic KIO/Wire challenges and denominator replay"
+  ],
+  "classic_witness": {
+    "row_chunk": 256,
+    "max_terms": 32,
+    "max_claim_groups": 4,
+    "admission_includes": [
+      "outputM31",
+      "twoOM31chunkmatrices",
+      "taggednumeratorchunk"
+    ],
+    "tuple_planes_retained": false
+  },
+  "unqualified": [
+    "complete joined truth MAIN commitment binding and accepting VM receiver",
+    "production largeKeccakGKR:log18 permutation alone plans73014444032bytes",
+    "whole protocol128 budget and outerrecursion",
+    "GPUexecution"
+  ],
+  "legacy_qm31_controls": "separate Safe/Fast service+bridge batches in progress at source commit; follow-up receipt records outcome"
+}

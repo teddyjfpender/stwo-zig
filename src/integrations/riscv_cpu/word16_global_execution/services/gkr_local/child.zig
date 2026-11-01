@@ -64,6 +64,7 @@ pub fn verifyPending(a: std.mem.Allocator, scope: Receipt.Scope, instances: []co
     const eta = ch.drawSecureFelt();
     return .{ .artifact = artifact, .challenges = challenges, .eta = eta, .digest = digest };
 }
+pub const PhaseTiming = struct { inputs_ns: u64 = 0, numerical_ns: u64 = 0, binding_ns: u64 = 0 };
 pub const Unbound = struct {
     parent_allocator: std.mem.Allocator,
     budget: Budget,
@@ -74,6 +75,9 @@ pub const Unbound = struct {
     binding: @import("witness.zig").Witness,
     binding_reserved_bytes: usize,
     pub fn prove(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype) !*Unbound {
+        return proveTimed(a, limit, scope, instances, provider, null);
+    }
+    pub fn proveTimed(a: std.mem.Allocator, limit: usize, scope: Receipt.Scope, instances: []const Frame.Instance, provider: anytype, timing: ?*PhaseTiming) !*Unbound {
         const plan = try Resource.Plan.forInstances(instances, limit);
         // Owner address remains stable for every proof/result allocation.
         const self = try a.create(Unbound);
@@ -82,19 +86,24 @@ pub const Unbound = struct {
         const bounded = self.budget.allocator();
         var ch = begin(scope, instances);
         const challenges = Challenges.draw(&ch);
+        var clock: ?std.time.Timer = if (timing != null) try std.time.Timer.start() else null;
+        if (timing) |output| output.* = .{};
         var inputs = try Inputs.init(bounded, instances, &challenges, provider);
         defer inputs.deinit();
+        if (clock) |*timer| timing.?.inputs_ns = timer.lap();
         var result = try GP.proveBatch(bounded, &ch, inputs.layers);
         errdefer result.deinit(bounded);
         try Closure.close(bounded, result.proof.output_claims_by_instance);
         self.digest = try Receipt.digest(scope, instances, &result.proof, result.artifact.claims_to_verify_by_instance);
         const eta = ch.drawSecureFelt();
+        if (clock) |*timer| timing.?.numerical_ns = timer.lap();
         const binding_bytes = try std.math.add(usize, plan.binding_bytes, try std.math.mul(usize, instances.len, @sizeOf([]@import("stwo_core").fields.m31.M31)));
         try Resource.reserveExternal(&self.budget, binding_bytes);
         errdefer Resource.releaseExternal(&self.budget, binding_bytes);
         // Parent-owned planes are explicitly charged while local, then adopted
         // by the existing worker/PCS allocator without a whole-witness copy.
         self.binding = try @import("witness.zig").Witness.init(a, instances, &inputs, &result.artifact, eta);
+        if (clock) |*timer| timing.?.binding_ns = timer.read();
         self.binding_reserved_bytes = binding_bytes;
         self.result = result;
         self.peak_gkr_owned_bytes = self.budget.peak_live_bytes;
@@ -107,6 +116,15 @@ pub const Unbound = struct {
         // Storage remains live under its receiving worker's admission after this
         // explicit transfer; releasing the local reservation is not an RSS drop.
         return commit;
+    }
+    /// Caller allocates and validates its combined INTER descriptors first.
+    /// This no-allocation transfer is the final ownership transition.
+    pub fn takeBindingBackings(self: *Unbound) [][]core.fields.m31.M31 {
+        const out = self.binding.columns;
+        self.binding.columns = &.{};
+        Resource.releaseExternal(&self.budget, self.binding_reserved_bytes);
+        self.binding_reserved_bytes = 0;
+        return out;
     }
     pub fn deinit(self: *Unbound) void {
         const a = self.parent_allocator;

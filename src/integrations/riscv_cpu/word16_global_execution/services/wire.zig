@@ -32,14 +32,14 @@ pub const CompactRequest = struct {
     bulk: T.BulkCounts = .{},
     /// Keccak-sponge rows and first IO11 ID (v3); omitted from JSON when zero.
     sponge: T.SpongeCounts = .{},
-    fn from(r: P.Request) @This() {
+    pub fn from(r: P.Request) @This() {
         return .{ .cpu = r.base.cpu, .epoch = r.base.epoch, .division_requests = r.base.division_requests, .multiplication_requests = r.base.multiplication_requests, .memory_epoch = r.base.memory.epoch, .ls_count = r.base.memory.ls_count, .calls = r.calls[0..3].*, .sha256_calls = r.calls[3], .arith256_mod_calls = r.calls[4], .curve_calls = r.calls[T.FIRST_CURVE..].*, .bulk = r.bulk, .sponge = r.sponge };
     }
     fn anyCurve(self: @This()) bool {
         for (self.curve_calls) |c| if (c != 0) return true;
         return false;
     }
-    fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
+    pub fn expand(self: @This(), initial: []const Cell, terminal: []const Cell) P.Request {
         return .{ .base = .{ .cpu = self.cpu, .epoch = self.epoch, .division_requests = self.division_requests, .multiplication_requests = self.multiplication_requests, .memory = .{ .initial = initial, .terminal = terminal, .epoch = self.memory_epoch, .ls_count = self.ls_count } }, .calls = self.all(), .bulk = self.bulk, .sponge = self.sponge };
     }
     pub fn all(self: @This()) [T.FAMILIES]u32 {
@@ -203,25 +203,55 @@ fn rowSum(g: Geo) !u64 {
 /// Native admission only, before sidecar/key allocation. Proof acceptance still
 /// invokes complete independent-material/image admission in execution.verify.
 pub fn validate(m: Metadata, limits: Limits) !void {
-    if (m.schema != 1 or m.core_schema != G.Old.SCHEMA or m.cpus.len == 0 or m.cpus.len > limits.max_cpus or m.truths.len > limits.max_truths or m.cpus.len > 65535 or m.truths.len > 65535 - m.cpus.len or m.specs.len != m.cpus.len + m.truths.len or m.roots.len != m.specs.len) return error.InvalidServicesWireRoster;
-    if (m.memory_words > limits.max_memory_words or m.memory_words > 1 << 22) return error.InvalidMemorySidecarCount;
-    var totals: [T.FAMILIES]u64 = @splat(0);
-    var sponge_perms: u64 = 0;
-    var sum_steps: u64 = 0;
-    var proof_bytes: u64 = 0;
-    var native_rows: u64 = 0;
-    var ram: u64 = 2 * @as(u64, m.memory_words);
-    for (m.cpus, 0..) |cpu, index| {
-        const g = cpu.declaration.geometry;
-        try g.validate();
-        try cpu.request.cpu.validate(g.cpu_log);
-        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or serviceCalls(cpu.request) > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
-        const calls = cpu.request.all();
+    if (m.schema != 1 or m.core_schema != G.Old.SCHEMA or m.specs.len != m.cpus.len + m.truths.len or m.roots.len != m.specs.len) return error.InvalidServicesWireRoster;
+    try validateDeclarations(m.cpus, m.truths, m.memory_words, limits);
+    for (m.cpus) |cpu| {
+        // v3 claim presence must match the declared bridges exactly.
         if ((cpu.claims.sha256 != null) != (cpu.declaration.bridges.sha256 != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.arith256_mod != null) != (cpu.declaration.bridges.arith256_mod != null)) return error.InvalidServicesWireRequest;
         if ((cpu.claims.bulk != null) != cpu.declaration.bridges.bulk.any()) return error.InvalidServicesWireRequest;
         if ((cpu.claims.sponge != null) != cpu.declaration.bridges.sponge.any()) return error.InvalidServicesWireRequest;
         for (cpu.claims.curves, T.FIRST_CURVE..) |c, k| if ((c != null) != (cpu.declaration.bridges.at(@enumFromInt(k)) != null)) return error.InvalidServicesWireRequest;
+        const claims = cpu.claims.expand();
+        try claims.canonical();
+        for (claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+        for (T.bulk_kinds, claims.bulk) |kind, c| if (cpu.declaration.bridges.bulk.at(kind) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+        for (T.sponge_kinds, claims.sponge) |kind, c| if (cpu.declaration.bridges.sponge.at(kind) == null) {
+            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
+        };
+    }
+    for (m.truths) |truth| {
+        // Single-component v3 truths (SHA-256, arith256_mod, curves) carry
+        // only the first claim; the other two must be zero.
+        const f = truth.declaration.family;
+        if ((f == .sha256 or f == .arith256_mod or T.curveOp(f) != null) and (!truth.claims[1].isZero() or !truth.claims[2].isZero())) return error.NonzeroAbsentServiceClaim;
+        for (truth.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalServicesClaim;
+    }
+}
+/// Shared declaration-only preflight for legacy and wide transports. This
+/// establishes size/geometry/count budgets (v2 and v3 families, bulk memory,
+/// Keccak sponge), never field claims or proof validity. Both shapes provide
+/// declaration/request/proof fields; no dummy Q claims or producer
+/// security/profile authority are introduced for a wide proof.
+pub fn validateDeclarations(cpus: anytype, truths: anytype, memory_words: u32, limits: Limits) !void {
+    if (cpus.len == 0 or cpus.len > limits.max_cpus or truths.len > limits.max_truths or cpus.len > 65535 or truths.len > 65535 - cpus.len) return error.InvalidServicesWireRoster;
+    if (memory_words > limits.max_memory_words or memory_words > 1 << 22) return error.InvalidMemorySidecarCount;
+    var totals: [T.FAMILIES]u64 = @splat(0);
+    var sponge_perms: u64 = 0;
+    var sum_steps: u64 = 0;
+    var proof_bytes: u64 = 0;
+    var native_rows: u64 = 0;
+    var ram: u64 = 2 * @as(u64, memory_words);
+    for (cpus, 0..) |cpu, index| {
+        const g = cpu.declaration.geometry;
+        try g.validate();
+        try cpu.request.cpu.validate(g.cpu_log);
+        if (cpu.request.epoch != index + 1 or cpu.request.memory_epoch != cpu.request.epoch or cpu.request.division_requests > cpu.request.cpu.steps or @as(u64, cpu.request.multiplication_requests) > 2 * @as(u64, cpu.request.cpu.steps) or serviceCalls(cpu.request) > cpu.request.cpu.steps) return error.InvalidServicesWireRequest;
+        const calls = cpu.request.all();
         if (cpu.request.division_requests > (@as(u32, 1) << @intCast(g.division_log)) or cpu.request.multiplication_requests > (@as(u32, 1) << @intCast(g.multiplication_log))) return error.InvalidServicesWireRequest;
         _ = try g.lsCounts(cpu.request.ls_count);
         if (g.omit_empty_division and cpu.request.division_requests != 0) return error.InvalidServicesWireRequest;
@@ -270,27 +300,16 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         ram = try std.math.add(u64, ram, 2 * @as(u64, cpu.request.ls_count));
         for (0..T.FAMILIES) |k| ram = try std.math.add(u64, ram, 2 * T.words(@enumFromInt(k)) * calls[k]);
         ram = try std.math.add(u64, ram, 6 * @as(u64, cpu.request.bulk.calls) + 4 * @as(u64, cpu.request.bulk.copy_words) + 2 * @as(u64, cpu.request.bulk.set_words));
-        const claims = cpu.claims.expand();
-        try claims.canonical();
-        for (claims.extras, 0..) |c, k| if (cpu.declaration.bridges.at(@enumFromInt(k)) == null) {
-            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
-        };
-        for (T.bulk_kinds, claims.bulk) |kind, c| if (cpu.declaration.bridges.bulk.at(kind) == null) {
-            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
-        };
-        for (T.sponge_kinds, claims.sponge) |kind, c| if (cpu.declaration.bridges.sponge.at(kind) == null) {
-            for (c.values()) |q| if (!q.isZero()) return error.NonzeroAbsentServiceClaim;
-        };
         if (cpu.proof.bytes == 0 or cpu.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;
         proof_bytes = try std.math.add(u64, proof_bytes, cpu.proof.bytes);
     }
-    if (m.memory_words >= (@as(u64, 1) << @intCast(m.cpus[0].declaration.geometry.initialLog())) or m.memory_words >= (@as(u64, 1) << @intCast(m.cpus[m.cpus.len - 1].declaration.geometry.terminalLog()))) return error.InvalidServicesWireBoundary;
+    if (memory_words >= (@as(u64, 1) << @intCast(cpus[0].declaration.geometry.initialLog())) or memory_words >= (@as(u64, 1) << @intCast(cpus[cpus.len - 1].declaration.geometry.terminalLog()))) return error.InvalidServicesWireBoundary;
     if (sum_steps > limits.max_total_steps or ram >= core.fields.m31.Modulus or 50 * totals[0] >= core.fields.m31.Modulus) return error.ServicesWireBudget;
     var next: [T.FAMILIES]u64 = @splat(1);
     var previous: u8 = 0;
     var wire: u64 = 0;
     for (1..T.FAMILIES) |k| wire = try std.math.add(u64, wire, T.bridgeWires(@enumFromInt(k)) * totals[k]);
-    for (m.truths) |truth| {
+    for (truths) |truth| {
         const t = truth.declaration;
         const k = @intFromEnum(t.family);
         if (k < previous or t.calls == 0 or t.first_id != next[k]) return error.InvalidCombinedTruthSpan;
@@ -302,20 +321,17 @@ pub fn validate(m: Metadata, limits: Limits) !void {
         } else if (t.family == .sha256) {
             if (t.logs[0] > @import("../sha256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
             try A.crypto.sha256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
-            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, 4 * @as(u64, t.calls));
         } else if (T.curveOp(t.family)) |op| {
             const Cr = @import("../curves/roster.zig");
             if (t.logs[0] > Cr.MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
             try Cr.validateGeometry(op, t.calls, t.first_id, t.logs[0]);
-            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, Cr.wireFractions(op) * @as(u64, t.calls));
         } else if (t.family == .arith256_mod) {
             if (t.logs[0] > @import("../arith256/roster.zig").MAX_LOG or t.logs[1] != 0) return error.InvalidServicesTruthGeometry;
             try A.crypto.arith256.layout.validateGeometry(t.calls, t.first_id, t.logs[0]);
-            if (!truth.claims[1].isZero() or !truth.claims[2].isZero()) return error.NonzeroAbsentServiceClaim;
             native_rows = try std.math.add(u64, native_rows, @as(u64, 1) << @intCast(t.logs[0]));
             wire = try std.math.add(u64, wire, A.crypto.arith256.layout.WIRE_FRACTIONS * @as(u64, t.calls));
         } else {
@@ -326,7 +342,6 @@ pub fn validate(m: Metadata, limits: Limits) !void {
             native_rows = try std.math.add(u64, native_rows, (@as(u64, 1) << @intCast(t.logs[0])) + (@as(u64, 1) << @intCast(t.logs[1])) + 256);
         }
         next[k] = try std.math.add(u64, next[k], t.calls);
-        for (truth.claims) |q| for (q.toM31Array()) |v| if (v.v >= core.fields.m31.Modulus) return error.NoncanonicalServicesClaim;
         if (truth.proof.bytes == 0 or truth.proof.bytes > limits.max_proof_bytes) return error.ServicesProofLimit;
         proof_bytes = try std.math.add(u64, proof_bytes, truth.proof.bytes);
     }

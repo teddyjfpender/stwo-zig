@@ -1,0 +1,87 @@
+{
+  "reviewed_source": "6091851f7",
+  "qualification_scope": "Read-only ownership/resource review and operational resource recipe. Full104M proof/fresh receiver is a separate pending root-run gate.",
+  "host_ram_bytes": 68719476736,
+  "available_disk_at_review": "417GiB via df /private/tmp; historical swap is not proof memory authority",
+  "inventory": {
+    "cpu": 25,
+    "truth": 5,
+    "steps": 104253913
+  },
+  "resource_recipe": {
+    "gkr_bytes": 34359738368,
+    "global_bytes": 8589934592,
+    "retained_frontend_bytes": 21474836480,
+    "disk_bytes": 137438953472,
+    "schedule": {
+      "lanes": 1,
+      "workers_per_lane": 16,
+      "memory_cap_bytes": 51539607552
+    },
+    "park_main": true
+  },
+  "source_shape_bounds": {
+    "binding_bytes": 13085771776,
+    "global_metadata_bytes": 3691241040,
+    "max_gkr_peak_bytes": 26084264448,
+    "max_global_output_bytes": 5595791360,
+    "max_stage1_task_bytes": 28959344664,
+    "max_stage2_task_bytes": 7825897176,
+    "fully_parked_disk_upper_bytes": 54462529536,
+    "host_streaming_disk_bytes": 41879617536,
+    "host_streaming_node_bytes": 956824640
+  },
+  "fully_parked_frontend_total_bytes": 17053813640,
+  "model_authority": "Existing full25-shape-plan.json; retention_plan/truth_retention/resource wrappers unchanged from its qualified revision, no source geometry/transcript change in recent CPU performance slices. Runtime current-roster admission remains authoritative. ROMlog20 bound explicitly conservative.",
+  "ownership_review": [
+    {
+      "path": "cpu_worker.zig:seal",
+      "finding": "MAIN columns+backings transferred once into owned streaming PCS; local child result/binding remains stable across stage-one barrier."
+    },
+    {
+      "path": "cpu_worker.zig:retireLocalMetadata",
+      "finding": "CPU/local-family tables freed idempotently after sealing; RAM/bridge records retained for globally derived challenges."
+    },
+    {
+      "path": "coordinator.zig:stageOne/stageTwo",
+      "finding": "Explicit full-node Store parks after sealing; restores before complete. Ordered manifest is derived once after every stage-one root exists. No-store stays max8 and retained admission."
+    },
+    {
+      "path": "cpu_worker.zig:complete",
+      "finding": "All validation/header allocations precede no-allocation binding transfer; scheme ownership moves to prover, which tears down on both success/error. Child result remains until coordinator end to preserve borrowed stage-one proof references."
+    },
+    {
+      "path": "truth_worker.zig:complete",
+      "finding": "Separate local/global claims and original MAIN arithmetic remain; source freed after successful physical encoding, scheme ownership flag handles consumed-prover failure."
+    },
+    {
+      "path": "coordinator.zig:produce",
+      "finding": "Deferred worker/result/request cleanup retains abort ownership; successful encoded results move to Bundle exactly once."
+    },
+    {
+      "path": "services/pipeline.zig:buildCpuSource and memory/prepared.zig",
+      "finding": "Owned boundary arrays are consumed on both success/error; fromPrepared memory remains under pending owner until transfer."
+    }
+  ],
+  "admission_caveats": [
+    "Retained frontend total (~15.883GiB) and task estimates are separately enforced, not summed into a whole-process cap. Raising retained limit16to20GiB only adds admission headroom, not allocation.",
+    "Schedule48GiB caps one concurrent task estimate; largest represented stage-one estimate~26.970GiB. One lane prevents two worst GKR scopes from overlapping.",
+    "CLI recycler retains up to4GiB freed blocks independently of live owners and modeled frontend payload.",
+    "Immutable setup, original captured CPU metadata/groupedfacts/service advice, source construction and PCS temporary buffers are outside partial counters; total64GiB feasibility must be monitored and measured, not certified from caps.",
+    "Initial CPU metadata56B per retirement alone is approximately5.44GiB, consumed/released as source workers seal; original tape memory is not retained (capture releases capture records).",
+    "Perworker proofs, global advice and descriptor owners remain live until ordered coordinator cleanup. Full-node parking removes mapped payload residency but root descriptors remain.",
+    "Disk model unpruned upper50.72GiB exceeds actual host-streaming model39.00GiB; runtime Store parkingPlan counts retained/pruned layers.",
+    "No new ownership/resource defect was found in this scoped review; no speculative lifecycle rewrite performed during fullblock qualification."
+  ],
+  "recent_optimization_review": {
+    "input_and_binding": "Existing typed fraction authority, same N/D and16-plane binding representation; independent all8-coordinate serial parity and1/2/4-worker negative-target tests passed; actual prefix artifacts exact.",
+    "backend_math": "Pooled packed arithmetic and sampled/quotient kernels change execution scheduling/representation, not protocol or layout; parent maintained physical proof byte parity on real prefix.",
+    "recycler": "Cap-only change1to4GiB; matched real prefix four artifact SHA exact and fresh receiver accepted; higherRSS explicit.",
+    "security": "Security profile remains explicitly unqualified; these performance/resource changes do not certify whole128bits."
+  },
+  "pending": [
+    "Root fullblock physical proof completion",
+    "Fresh complete-block receiver checks expected terminal/output and every local/global claim",
+    "Fullblock peak RSS/faults/swap+elapsed measurements with source/config/hash receipts"
+  ]
+}

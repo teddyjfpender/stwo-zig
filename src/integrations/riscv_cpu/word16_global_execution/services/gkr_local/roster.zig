@@ -24,6 +24,7 @@ pub fn terms(role: Geometry.Role) u32 {
     };
 }
 pub fn fromSetup(a: std.mem.Allocator, setup: *const R.CpuSetup) ![]Instance {
+    try @import("v2_scope.zig").setup(setup);
     var out = std.ArrayList(Instance).empty;
     errdefer out.deinit(a);
     for (setup.materials.shapes()) |shape| {

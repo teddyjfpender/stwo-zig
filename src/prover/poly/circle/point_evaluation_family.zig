@@ -21,7 +21,14 @@ pub fn ForField(comptime Secure: type) type {
                 var value = QM31.fromBase(coeff);
                 var level: usize = @as(usize, @intCast(@ctz(~coeff_idx)));
                 if (level > @as(usize, @intCast(log_size))) level = @as(usize, @intCast(log_size));
+                // The first odd coefficient is still base-field data. Scaling
+                // the secure factor avoids a full extension product with zero
+                // high coordinates; later carry merges remain secure products.
                 var merge_level: usize = 0;
+                if (level != 0) {
+                    value = pending[0].add(factors[0].mulM31(coeff));
+                    merge_level = 1;
+                }
                 while (merge_level < level) : (merge_level += 1) {
                     value = pending[merge_level].add(value.mul(factors[merge_level]));
                 }

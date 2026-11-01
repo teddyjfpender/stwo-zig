@@ -125,8 +125,10 @@ test "bounded local child fresh verifies with terminal obligation still explicit
         .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
     };
     const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
-    const child = try Child.Unbound.prove(a, 1 << 20, scope, &instances, BalancedMetadata{});
+    const admitted = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
+    const child = try Child.Unbound.prove(a, admitted.peak_bytes, scope, &instances, BalancedMetadata{});
     defer child.deinit();
+    try std.testing.expect(child.peak_gkr_owned_bytes <= child.plan.peak_bytes);
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
     try std.testing.expect(child.peak_gkr_owned_bytes <= 1 << 20);
@@ -152,8 +154,10 @@ fn lifecycleAllocationCase(a: std.mem.Allocator) !void {
     };
     const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
     const Child = @import("child.zig");
-    const child = try Child.Unbound.prove(a, 1 << 20, scope, &instances, BalancedMetadata{});
+    const admitted = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
+    const child = try Child.Unbound.prove(a, admitted.peak_bytes, scope, &instances, BalancedMetadata{});
     defer child.deinit();
+    try std.testing.expect(child.peak_gkr_owned_bytes <= child.plan.peak_bytes);
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
     const owned = try child.takeBindingCommit(&instances);
@@ -177,8 +181,10 @@ test "Eq recurrence and cyclic prefix bind each terminal pair without cancellati
     };
     const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
     const a = std.testing.allocator;
-    const child = try Child.Unbound.prove(a, 1 << 20, scope, &instances, BalancedMetadata{});
+    const admitted = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
+    const child = try Child.Unbound.prove(a, admitted.peak_bytes, scope, &instances, BalancedMetadata{});
     defer child.deinit();
+    try std.testing.expect(child.peak_gkr_owned_bytes <= child.plan.peak_bytes);
     var pending = try Child.verifyPending(a, scope, &instances, &child.result.proof, child.digest);
     defer pending.deinit(a);
     for (instances, child.binding.columns, pending.artifact.claims_to_verify_by_instance, 0..) |instance, data, claims, index| {
@@ -267,7 +273,8 @@ test "local OM child wire preserves canonical transcript rejects aliases and rel
         .{ .origin = .{ .core = .range16 }, .row_log = 5, .terms = 1, .fixed_offset = 2, .main_offset = 47 },
     };
     const scope = @import("receipt.zig").Scope{ .statement = @splat(1), .fixed = @splat(2), .main = @splat(3), .ordinal = 0 };
-    const child = try Child.Unbound.prove(a, 1 << 20, scope, &instances, BalancedMetadata{});
+    const admitted = try Resource.Plan.forInstances(&instances, std.math.maxInt(usize));
+    const child = try Child.Unbound.prove(a, admitted.peak_bytes, scope, &instances, BalancedMetadata{});
     defer child.deinit();
     const bytes = try W.encode(a, &instances, &child.result.proof);
     defer a.free(bytes);
@@ -325,4 +332,20 @@ test "binding owned commit transfer is failure atomic and retains its parent all
 }
 test {
     _ = @import("global_cpu_test.zig");
+}
+test {
+    _ = @import("cpu_worker_test.zig");
+}
+test {
+    _ = @import("domain_pool_test.zig");
+}
+
+test {
+    _ = @import("prepared_projection_test.zig");
+}
+
+// Keep binding-kernel tests explicitly reachable under focused test filters.
+test {
+    _ = @import("witness.zig");
+    _ = @import("worker_protocol_test.zig");
 }

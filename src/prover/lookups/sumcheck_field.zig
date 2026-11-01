@@ -64,9 +64,13 @@ pub fn ForField(comptime Secure: type) type {
             const sum_ret = @typeInfo(@typeInfo(@TypeOf(O.sumAsPolyInFirstVariable)).@"fn".return_type.?);
             const fix_ret = @typeInfo(@typeInfo(@TypeOf(O.fixFirstVariable)).@"fn".return_type.?);
 
+            const inplace_errors = if (@hasDecl(O, "fixFirstVariableInPlace"))
+                @typeInfo(@typeInfo(@TypeOf(O.fixFirstVariableInPlace)).@"fn".return_type.?).error_union.error_set
+            else
+                error{};
             return clone_ret.error_union.error_set ||
                 sum_ret.error_union.error_set ||
-                fix_ret.error_union.error_set;
+                fix_ret.error_union.error_set || inplace_errors;
         }
 
         /// Performs batched sum-check on a random linear combination of oracle polynomials.
@@ -76,6 +80,9 @@ pub fn ForField(comptime Secure: type) type {
         /// - `cloneOwned(self: O, allocator) !O`
         /// - `sumAsPolyInFirstVariable(self: O, allocator, claim: Secure) !UnivariatePoly(Secure)`
         /// - `fixFirstVariable(self: O, allocator, challenge: Secure) !O`
+        /// Optional `fixFirstVariableInPlace(*O, allocator, challenge) !void`
+        /// consumes exclusive internal state; on error it remains deinitializable.
+        /// Original caller-owned oracles are cloned before this interface runs.
         pub fn proveBatch(
             comptime O: type,
             allocator: std.mem.Allocator,
@@ -84,6 +91,38 @@ pub fn ForField(comptime Secure: type) type {
             lambda: Secure,
             channel: anytype,
         ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
+            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, false);
+        }
+
+        /// Consumes the oracle array and its elements on success and every
+        /// error, including malformed claims. Any borrowed oracle context must
+        /// remain live through the returned constant-polynomial result.
+        pub fn proveBatchOwned(
+            comptime O: type,
+            allocator: std.mem.Allocator,
+            claims_in: []const Secure,
+            multivariate_polys_in: []O,
+            lambda: Secure,
+            channel: anytype,
+        ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
+            return proveBatchImpl(O, allocator, claims_in, multivariate_polys_in, lambda, channel, true);
+        }
+
+        fn proveBatchImpl(
+            comptime O: type,
+            allocator: std.mem.Allocator,
+            claims_in: []const Secure,
+            multivariate_polys_in: []const O,
+            lambda: Secure,
+            channel: anytype,
+            comptime take_owned: bool,
+        ) (std.mem.Allocator.Error || SumcheckError || OracleErrorSet(O))!ProveBatchResult(O) {
+            var multivariate_polys: []O = if (take_owned) @constCast(multivariate_polys_in) else &.{};
+            var initialized_polys: usize = if (take_owned) multivariate_polys.len else 0;
+            errdefer {
+                for (multivariate_polys[0..initialized_polys]) |*poly| poly.deinit(allocator);
+                allocator.free(multivariate_polys);
+            }
             if (claims_in.len == 0) return SumcheckError.EmptyBatch;
             if (claims_in.len != multivariate_polys_in.len) return SumcheckError.ShapeMismatch;
 
@@ -95,16 +134,12 @@ pub fn ForField(comptime Secure: type) type {
             const claims = try allocator.dupe(Secure, claims_in);
             errdefer allocator.free(claims);
 
-            const multivariate_polys = try allocator.alloc(O, multivariate_polys_in.len);
-            var initialized_polys: usize = 0;
-            errdefer {
-                for (multivariate_polys[0..initialized_polys]) |*poly| poly.deinit(allocator);
-                allocator.free(multivariate_polys);
-            }
-
-            for (multivariate_polys_in, 0..) |poly, i| {
-                multivariate_polys[i] = try poly.cloneOwned(allocator);
-                initialized_polys += 1;
+            if (!take_owned) {
+                multivariate_polys = try allocator.alloc(O, multivariate_polys_in.len);
+                for (multivariate_polys_in, 0..) |poly, i| {
+                    multivariate_polys[i] = try poly.cloneOwned(allocator);
+                    initialized_polys += 1;
+                }
             }
 
             for (multivariate_polys, 0..) |poly, i| {
@@ -170,9 +205,13 @@ pub fn ForField(comptime Secure: type) type {
 
                 for (multivariate_polys) |*poly| {
                     if (n_remaining_rounds != poly.nVariables()) continue;
-                    const fixed = try poly.fixFirstVariable(allocator, challenge);
-                    poly.deinit(allocator);
-                    poly.* = fixed;
+                    if (comptime @hasDecl(O, "fixFirstVariableInPlace")) {
+                        try poly.fixFirstVariableInPlace(allocator, challenge);
+                    } else {
+                        const fixed = try poly.fixFirstVariable(allocator, challenge);
+                        poly.deinit(allocator);
+                        poly.* = fixed;
+                    }
                 }
 
                 try round_polys_builder.append(allocator, round_poly);

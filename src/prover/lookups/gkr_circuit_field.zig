@@ -7,6 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const gkr_verifier_module = @import("gkr_verifier.zig");
 const mle_mod = @import("mle.zig");
 const utils = @import("utils.zig");
+const rows = @import("row_work.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -30,14 +31,16 @@ pub const GkrProverError = error{
 pub fn ForField(comptime Secure: type) type {
     return struct {
         const gkr_verifier_field = gkr_verifier_module.ForField(Secure);
+        const Packed = @import("packed_rows.zig").ForField(Secure);
         const MleBase = mle_mod.MleFor(Secure, M31);
         const MleSecure = mle_mod.MleFor(Secure, Secure);
         pub const EqEvals = struct {
             y: []Secure,
+            owns_y: bool = true,
             evals: MleSecure,
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
-                allocator.free(self.y);
+                if (self.owns_y) allocator.free(self.y);
                 self.evals.deinit(allocator);
                 self.* = undefined;
             }
@@ -46,6 +49,16 @@ pub fn ForField(comptime Secure: type) type {
                 const y = try allocator.dupe(Secure, self.y);
                 errdefer allocator.free(y);
                 return .{ .y = y, .evals = try self.evals.cloneOwned(allocator) };
+            }
+
+            /// Borrows one immutable table for the current GKR layer scope.
+            pub fn borrowed(self: @This()) EqEvals {
+                return .{ .y = self.y, .owns_y = false, .evals = self.evals.borrowed() };
+            }
+
+            fn forNextRound(self: @This(), allocator: std.mem.Allocator) !EqEvals {
+                if (!self.owns_y and !self.evals.owns_evals) return self;
+                return self.cloneOwned(allocator);
             }
 
             pub fn ySlice(self: @This()) []const Secure {
@@ -108,6 +121,15 @@ pub fn ForField(comptime Secure: type) type {
                     .LogUpSingles => |*inner| inner.denominators.deinit(allocator),
                 }
                 self.* = undefined;
+            }
+
+            pub fn borrowed(self: Layer) Layer {
+                return switch (self) {
+                    .GrandProduct => |v| .{ .GrandProduct = v.borrowed() },
+                    .LogUpGeneric => |v| .{ .LogUpGeneric = .{ .numerators = v.numerators.borrowed(), .denominators = v.denominators.borrowed() } },
+                    .LogUpMultiplicities => |v| .{ .LogUpMultiplicities = .{ .numerators = v.numerators.borrowed(), .denominators = v.denominators.borrowed() } },
+                    .LogUpSingles => |v| .{ .LogUpSingles = .{ .denominators = v.denominators.borrowed() } },
+                };
             }
 
             pub fn cloneOwned(self: Layer, allocator: std.mem.Allocator) !Layer {
@@ -218,6 +240,33 @@ pub fn ForField(comptime Secure: type) type {
                         .denominators = try inner.denominators.fixFirstVariable(allocator, x0),
                     } },
                 };
+            }
+
+            /// Internal exclusive-owner path. Every failed partial fold still
+            /// owns valid buffers for deinit; the caller aborts the proof.
+            pub fn fixFirstVariableInPlace(self: *Layer, allocator: std.mem.Allocator, x0: Secure) !void {
+                if (self.nVariables() == 0) return;
+                switch (self.*) {
+                    .GrandProduct => |*mle| try mle.foldOwnedSecure(allocator, x0),
+                    .LogUpGeneric => |*inner| {
+                        try inner.numerators.foldOwnedSecure(allocator, x0);
+                        try inner.denominators.foldOwnedSecure(allocator, x0);
+                    },
+                    .LogUpSingles => |*inner| try inner.denominators.foldOwnedSecure(allocator, x0),
+                    .LogUpMultiplicities => {
+                        // The first base-to-secure lift keeps its existing
+                        // failure-atomic allocation path and immutable input.
+                        const next = try self.fixFirstVariable(allocator, x0);
+                        self.deinit(allocator);
+                        self.* = next;
+                    },
+                }
+            }
+
+            /// Moves this internal layer; the immutable Eq owner must outlive
+            /// the oracle and all sumcheck rounds. No input/table copy occurs.
+            pub fn intoMultivariatePolyOwned(self: Layer, lambda: Secure, eq_evals: *const EqEvals) GkrMultivariatePolyOracle {
+                return .{ .eq_evals = eq_evals.borrowed(), .input_layer = self, .eq_fixed_var_correction = Secure.one(), .lambda = lambda };
             }
 
             pub fn intoMultivariatePoly(
@@ -342,7 +391,7 @@ pub fn ForField(comptime Secure: type) type {
                     &[_]Secure{z0},
                 ) catch return GkrProverError.ShapeMismatch;
 
-                var eq_owned = try self.eq_evals.cloneOwned(allocator);
+                var eq_owned = try self.eq_evals.forNextRound(allocator);
                 errdefer eq_owned.deinit(allocator);
                 return .{
                     .eq_evals = eq_owned,
@@ -350,6 +399,18 @@ pub fn ForField(comptime Secure: type) type {
                     .input_layer = try self.input_layer.fixFirstVariable(allocator, challenge),
                     .lambda = self.lambda,
                 };
+            }
+
+            /// Optional sumcheck owner interface: keep immutable Eq custody,
+            /// consume only exclusive layer buffers, and preserve borrowed
+            /// caller matrices. Failure permits deinit only, not oracle reuse.
+            pub fn fixFirstVariableInPlace(self: *GkrMultivariatePolyOracle, allocator: std.mem.Allocator, challenge: Secure) !void {
+                if (self.isConstant()) return;
+                const n_variables = self.nVariables();
+                const z0 = self.eq_evals.ySlice()[self.eq_evals.ySlice().len - n_variables];
+                const eq_term = utils.eq(Secure, &.{challenge}, &.{z0}) catch return GkrProverError.ShapeMismatch;
+                try self.input_layer.fixFirstVariableInPlace(allocator, challenge);
+                self.eq_fixed_var_correction = self.eq_fixed_var_correction.mul(eq_term);
             }
 
             pub fn tryIntoMask(
@@ -432,24 +493,47 @@ pub fn ForField(comptime Secure: type) type {
             const r_at_0 = f_at_0.mul(eq_at_0).mul(a_const);
             const r_at_1 = claim.sub(r_at_0);
             const r_at_2 = f_at_2.mul(eq_at_2).mul(a_const);
-            const r_at_b = Secure.zero();
-
-            const xs = [_]Secure{ Secure.zero(), Secure.one(), x_two, b_const };
-            const ys = [_]Secure{ r_at_0, r_at_1, r_at_2, r_at_b };
-            return utils.UnivariatePoly(Secure).interpolateLagrange(allocator, xs[0..], ys[0..]) catch |err| switch (err) {
-                utils.LookupUtilsError.ShapeMismatch => GkrProverError.ShapeMismatch,
-                utils.LookupUtilsError.DivisionByZero => GkrProverError.DivisionByZero,
-                else => err,
-            };
+            return interpolate012WithRoot(allocator, .{ r_at_0, r_at_1, r_at_2 }, b_const);
         }
+        /// The GKR cubic has the known fourth value r(b)=0. Newton's basis
+        /// avoids generic Lagrange factors and needs one secure inverse here.
+        /// b=0,1,2 remains a pole: zero numerators never mask that failure.
+        pub fn interpolate012WithRoot(allocator: std.mem.Allocator, values: [3]Secure, b: Secure) (std.mem.Allocator.Error || GkrProverError)!utils.UnivariatePoly(Secure) {
+            const one = Secure.one();
+            const two = one.add(one);
+            const bm1 = b.sub(one);
+            const bm2 = b.sub(two);
+            const denominator = b.mul(bm1).mul(bm2);
+            const delta = values[1].sub(values[0]);
+            const quadratic = values[2].sub(values[1].add(values[1])).add(values[0]).mulM31(M31.fromCanonical(1073741824));
+            const at_b = values[0].add(delta.mul(b)).add(quadratic.mul(b).mul(bm1));
+            const cubic = at_b.neg().div(denominator) catch return GkrProverError.DivisionByZero;
+            const coeffs = try allocator.alloc(Secure, 4);
+            coeffs[0] = values[0];
+            coeffs[1] = delta.sub(quadratic).add(cubic.add(cubic));
+            coeffs[2] = quadratic.sub(cubic.add(cubic).add(cubic));
+            coeffs[3] = cubic;
+            return utils.UnivariatePoly(Secure).initOwned(coeffs);
+        }
+
         pub fn buildLayers(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
+            return buildLayersImpl(allocator, input_layer, true);
+        }
+
+        /// The caller retains the original matrix until all returned layers
+        /// are deinitialized. Upper layers have their ordinary independent owners.
+        pub fn buildLayersBorrowedInput(allocator: std.mem.Allocator, input_layer: Layer) ![]Layer {
+            return buildLayersImpl(allocator, input_layer, false);
+        }
+
+        fn buildLayersImpl(allocator: std.mem.Allocator, input_layer: Layer, comptime clone_input: bool) ![]Layer {
             var out = std.ArrayList(Layer).empty;
             errdefer {
                 for (out.items) |*layer| layer.deinit(allocator);
                 out.deinit(allocator);
             }
 
-            var current = try input_layer.cloneOwned(allocator);
+            var current = if (clone_input) try input_layer.cloneOwned(allocator) else input_layer.borrowed();
             out.append(allocator, current) catch |err| {
                 current.deinit(allocator);
                 return err;
@@ -469,9 +553,15 @@ pub fn ForField(comptime Secure: type) type {
         fn nextGrandProductLayer(allocator: std.mem.Allocator, layer: MleSecure) !Layer {
             const values = layer.evalsSlice();
             const out = try allocator.alloc(Secure, values.len / 2);
-            for (out, 0..) |*dst, i| {
-                dst.* = values[2 * i].mul(values[2 * i + 1]);
-            }
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const tail = Packed.nextProduct(ctx.input, ctx.output, first, end);
+                    for (tail..end) |i| ctx.output[i] = ctx.input[2 * i].mul(ctx.input[2 * i + 1]);
+                }
+            };
+            rows.fill(out.len, Context{ .input = values, .output = out });
             return .{ .GrandProduct = try MleSecure.initOwned(out) };
         }
 
@@ -502,19 +592,25 @@ pub fn ForField(comptime Secure: type) type {
             const next_denominators = try allocator.alloc(Secure, half_n);
             errdefer allocator.free(next_denominators);
 
-            for (0..half_n) |i| {
-                const a = fraction.Fraction(Secure, Secure).new(
-                    numerators.at(2 * i),
-                    den_values[2 * i],
-                );
-                const b = fraction.Fraction(Secure, Secure).new(
-                    numerators.at(2 * i + 1),
-                    den_values[2 * i + 1],
-                );
-                const res = a.add(b);
-                next_numerators[i] = res.numerator;
-                next_denominators[i] = res.denominator;
-            }
+            const Context = struct {
+                nums: MleExpr,
+                dens: []const Secure,
+                out_n: []Secure,
+                out_d: []Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const tail = switch (ctx.nums) {
+                        .MleBase => |n| Packed.nextLogup(M31, n.evalsSlice(), ctx.dens, ctx.out_n, ctx.out_d, first, end),
+                        .MleSecure => |n| Packed.nextLogup(Secure, n.evalsSlice(), ctx.dens, ctx.out_n, ctx.out_d, first, end),
+                        .Constant => |v| if (v.eql(Secure.one())) Packed.nextLogup(void, &.{}, ctx.dens, ctx.out_n, ctx.out_d, first, end) else first,
+                    };
+                    for (tail..end) |i| {
+                        const value = if (ctx.nums == .MleBase) baseFraction(ctx.nums.MleBase.evalsSlice()[2 * i], ctx.dens[2 * i]).add(baseFraction(ctx.nums.MleBase.evalsSlice()[2 * i + 1], ctx.dens[2 * i + 1])) else fraction.Fraction(Secure, Secure).new(ctx.nums.at(2 * i), ctx.dens[2 * i]).add(fraction.Fraction(Secure, Secure).new(ctx.nums.at(2 * i + 1), ctx.dens[2 * i + 1]));
+                        ctx.out_n[i] = value.numerator;
+                        ctx.out_d[i] = value.denominator;
+                    }
+                }
+            };
+            rows.fill(half_n, Context{ .nums = numerators, .dens = den_values, .out_n = next_numerators, .out_d = next_denominators });
 
             return .{ .LogUpGeneric = .{
                 .numerators = try MleSecure.initOwned(next_numerators),
@@ -527,11 +623,30 @@ pub fn ForField(comptime Secure: type) type {
             input_layer: *const MleSecure,
             n_terms: usize,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const Context = struct {
+                eq: *const EqEvals,
+                input: *const MleSecure,
+                terms: usize,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalGrandProductSumRange(self.eq, self.input, self.terms, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .input = input_layer, .terms = n_terms });
+        }
+
+        fn evalGrandProductSumRange(
+            eq_evals: *const EqEvals,
+            input_layer: *const MleSecure,
+            n_terms: usize,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
+            const batch = Packed.sumProduct(eq_evals.evals.evalsSlice(), input_layer.evalsSlice(), n_terms, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const input = input_layer.evalsSlice();
-            for (0..n_terms) |i| {
+            for (batch.end..end) |i| {
                 const inp_at_r0i0 = input[i * 2];
                 const inp_at_r0i1 = input[i * 2 + 1];
                 const inp_at_r1i0 = input[(n_terms + i) * 2];
@@ -559,13 +674,37 @@ pub fn ForField(comptime Secure: type) type {
             n_terms: usize,
             lambda: Secure,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const Context = struct {
+                eq: *const EqEvals,
+                num: *const mle_mod.MleFor(Secure, F),
+                den: *const MleSecure,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalLogupSumRange(F, self.eq, self.num, self.den, self.terms, self.lambda, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .num = input_numerators, .den = input_denominators, .terms = n_terms, .lambda = lambda });
+        }
+
+        fn evalLogupSumRange(
+            comptime F: type,
+            eq_evals: *const EqEvals,
+            input_numerators: *const mle_mod.MleFor(Secure, F),
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
+            const batch = Packed.sumLogup(F, eq_evals.evals.evalsSlice(), input_numerators.evalsSlice(), input_denominators.evalsSlice(), n_terms, lambda, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const numerators = input_numerators.evalsSlice();
             const denominators = input_denominators.evalsSlice();
 
-            for (0..n_terms) |i| {
+            for (batch.end..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -632,13 +771,34 @@ pub fn ForField(comptime Secure: type) type {
             n_terms: usize,
             lambda: Secure,
         ) [2]Secure {
-            var eval_at_0 = Secure.zero();
-            var eval_at_2 = Secure.zero();
+            const Context = struct {
+                eq: *const EqEvals,
+                den: *const MleSecure,
+                terms: usize,
+                lambda: Secure,
+                pub fn sumRange(self: @This(), first: usize, end: usize) [2]Secure {
+                    return evalLogupSinglesSumRange(self.eq, self.den, self.terms, self.lambda, first, end);
+                }
+            };
+            return rows.reduce(Secure, n_terms, Context{ .eq = eq_evals, .den = input_denominators, .terms = n_terms, .lambda = lambda });
+        }
+
+        fn evalLogupSinglesSumRange(
+            eq_evals: *const EqEvals,
+            input_denominators: *const MleSecure,
+            n_terms: usize,
+            lambda: Secure,
+            first: usize,
+            end: usize,
+        ) [2]Secure {
+            const batch = Packed.sumLogup(void, eq_evals.evals.evalsSlice(), &.{}, input_denominators.evalsSlice(), n_terms, lambda, first, end);
+            var eval_at_0 = batch.values[0];
+            var eval_at_2 = batch.values[1];
 
             const denominators = input_denominators.evalsSlice();
             const R = utils.Reciprocal(Secure);
 
-            for (0..n_terms) |i| {
+            for (batch.end..end) |i| {
                 const den_r0i0 = denominators[i * 2];
                 const den_r0i1 = denominators[i * 2 + 1];
                 const den_r1i0 = denominators[(n_terms + i) * 2];
@@ -685,10 +845,29 @@ pub fn ForField(comptime Secure: type) type {
 
             const eq0 = Secure.one().sub(y[0]);
             const eq1 = y[0];
-            for (tail_values, 0..) |v, i| {
-                out[i] = v.mul(eq0);
-                out[i + tail_values.len] = v.mul(eq1);
-            }
+            const Context = struct {
+                input: []const Secure,
+                output: []Secure,
+                zero: Secure,
+                one: Secure,
+                pub fn fillRange(ctx: @This(), first: usize, end: usize) void {
+                    const p0 = Packed.splat(ctx.zero);
+                    const p1 = Packed.splat(ctx.one);
+                    var at = first;
+                    while (at + @import("packed_rows.zig").WIDTH <= end) : (at += @import("packed_rows.zig").WIDTH) {
+                        const v = Packed.load(ctx.input, at, 1);
+                        Packed.store(ctx.output, at, v.mul(p0));
+                        Packed.store(ctx.output, at + ctx.input.len, v.mul(p1));
+                    }
+                    for (at..end) |i| {
+                        ctx.output[i] = ctx.input[i].mul(ctx.zero);
+                        ctx.output[i + ctx.input.len] = ctx.input[i].mul(ctx.one);
+                    }
+                }
+            };
+            // The current input level stays immutable until every disjoint
+            // output-half range joins; recursive tail release happens later.
+            rows.fill(tail_values.len, Context{ .input = tail_values, .output = out, .zero = eq0, .one = eq1 });
 
             return try MleSecure.initOwned(out);
         }
@@ -702,9 +881,15 @@ pub fn ForField(comptime Secure: type) type {
             return out;
         }
 
-        fn baseFraction(n: M31, d: Secure) (if (Secure == QM31) fraction.Fraction(M31, Secure) else fraction.Fraction(Secure, Secure)) {
-            if (Secure == QM31) return .{ .numerator = n, .denominator = d };
-            return .{ .numerator = Secure.fromBase(n), .denominator = d };
+        const BaseFraction = struct {
+            numerator: M31,
+            denominator: Secure,
+            fn add(self: @This(), rhs: @This()) fraction.Fraction(Secure, Secure) {
+                return .{ .numerator = rhs.denominator.mulM31(self.numerator).add(self.denominator.mulM31(rhs.numerator)), .denominator = self.denominator.mul(rhs.denominator) };
+            }
+        };
+        fn baseFraction(n: M31, d: Secure) BaseFraction {
+            return .{ .numerator = n, .denominator = d };
         }
     };
 }

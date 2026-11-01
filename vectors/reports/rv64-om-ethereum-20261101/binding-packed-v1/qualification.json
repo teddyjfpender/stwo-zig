@@ -1,0 +1,22 @@
+{
+  "scope": "Packed lane dot for authenticated N+eta D binding projection; no protocol/schema or layout change",
+  "reference": "Independent scalar lane accumulation with dense8coordinate values; 1,2,3,4,5,8,13,32,128,129 lanes; pooled full Eq/projection/prefix at1,2,4workers",
+  "memory": "No new planes, cache, ownership transition or allocation",
+  "checks": [
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Driscv-test-filter='binding projection' -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Driscv-test-filter='bounded Eq projection' -Doptimize=ReleaseSafe -j2 --summary all",
+      "result": "PASS after8lane reference update"
+    },
+    {
+      "command": "zig build test-riscv64-services-gkr-local -Doptimize=ReleaseFast -j2 --summary all",
+      "result": "PASS47s including physical worker/receiver fixtures"
+    }
+  ],
+  "review": "Independent source review accepted exact field regrouping, scalar tail, row bounds and unchanged ownership",
+  "reachability_correction": "Initial focused selection failed the existing empty-selection guard. witness.zig tests were not explicitly aggregated. Added explicit import; named packed and dense Eq/prefix tests now execute. Earlier real-prefix artifact parity/fresh acceptance remains separate valid evidence; previous unfiltered suite passes alone did not demonstrate these internal named tests ran.",
+  "performance": "Not measured yet; fullblock baseline uses frozen6091851f7 and excludes this change. No claimed speedup."
+}

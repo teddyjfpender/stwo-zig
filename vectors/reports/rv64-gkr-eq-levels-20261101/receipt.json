@@ -1,0 +1,31 @@
+{
+  "schema": "rv64-gkr-eq-levels-v1",
+  "base": "73553f751",
+  "scope": "pool only the previously serial per-level Eq scaling; nextLayer already pooled by3798dac7d",
+  "ownership": "each existing inputlevel immutable; tasks write distinct positions in both existing outputhalves; join before recursive taildeinit; no new buffers/cache/pool",
+  "qualification": {
+    "Safe": "test-native-cpu-gkr-rows PASS inclcompleteownership/allOOM",
+    "Fast": "test-native-cpu-gkr-rows PASS inclcompleteownership/allOOM",
+    "explicitoldsource": "41/41PASS against171de6ab8; fullQ/OM4gate/mixedheight proofbytes,nextdraw,freshterminalbinding exact at1/2/4/8workers",
+    "newtensororacle": "Q/OM directtensorbasis ordering at0/1/5/17variables,4worker1MiBpool"
+  },
+  "sharedhost_micro": {
+    "variables": 20,
+    "rounds": 3,
+    "Q": {
+      "serial_ns": 10486958,
+      "pool4_ns": 5033208,
+      "ratio": 2.084
+    },
+    "OM": {
+      "serial_ns": 35911375,
+      "pool4_ns": 12896500,
+      "ratio": 2.785
+    }
+  },
+  "limits": [
+    "Eqmicro only; noGKR/blockprojection",
+    "Poolfallback/grain inheritedrow_work; no new arithmetic or transcript",
+    "Existingrecursive table allocations and resourceplan unchanged"
+  ]
+}

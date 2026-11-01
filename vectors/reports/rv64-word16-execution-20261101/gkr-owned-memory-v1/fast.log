@@ -1,0 +1,31 @@
+1/30 owner_memory_test.test.owned GKR work preserves caller-owned matrices through success and every allocation failure...OK
+2/30 owner_memory_test.test.GKR fixed-variable transitions share a scoped immutable Eq owner...OK
+3/30 owner_memory_test.test.owned sumcheck consumes every owner on malformed early return...OK
+4/30 owner_memory_test.test.owned sumcheck valid proof releases every allocation failure...OK
+5/30 owner_memory_test.test_0...OK
+6/30 gkr_prover.test.gkr prover: grand product prove and verify...OK
+7/30 gkr_prover.test.gkr prover: logup generic prove and verify...OK
+8/30 gkr_prover.test.gkr prover: logup singles prove and verify...OK
+9/30 gkr_prover.test.gkr prover: logup multiplicities prove and verify...OK
+10/30 gkr_circuit.test.gkr circuit: eq evals generation matches direct eq...OK
+11/30 gkr_circuit.test.gkr circuit: corrected sum polynomial interpolation...OK
+12/30 mle.test.mle: init validates power-of-two length...OK
+13/30 mle.test.mle: fix first variable preserves evaluation semantics...OK
+14/30 mle.test.mle: fix first variable lifts base-field mle...OK
+15/30 mle.test.mle: evalAtPoint validates dimensions...OK
+16/30 gkr_verifier.test.gkr verifier: mask reduce and gate eval...OK
+17/30 gkr_verifier.test.gkr verifier: one-layer grand-product partial verification...OK
+18/30 sumcheck.test.sumcheck: prove and partially verify single mle...OK
+19/30 sumcheck.test.sumcheck: invalid proof is rejected...OK
+20/30 utils.test.lookups utils: lagrange interpolation...OK
+21/30 utils.test.lookups utils: lagrange interpolation rejects mismatched sizes...OK
+22/30 utils.test.lookups utils: lagrange interpolation rejects duplicate xs...OK
+23/30 utils.test.lookups utils: polynomial arithmetic and normalization...OK
+24/30 utils.test.lookups utils: horner and random linear combination...OK
+25/30 utils.test.lookups utils: eq kernel...OK
+26/30 utils.test.lookups utils: fold mle evals...OK
+27/30 utils.test.lookups utils: reciprocal arithmetic...OK
+28/30 om31_test.test.OM31 actual mixed-height GKR accepts and binds all terminal MLE inputs...OK
+29/30 om31_test.test.OM31 actual prover and verifier allocation failures release every owned layer...OK
+30/30 om31_test.test.OM31 actual GKR rejects sumcheck mask output and terminal mutations...OK
+All 30 tests passed.

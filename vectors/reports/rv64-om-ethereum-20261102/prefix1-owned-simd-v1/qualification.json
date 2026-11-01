@@ -1,0 +1,72 @@
+{
+  "scope": "Samefirst4,194,303stepEthereumshard; one16workerlane,4GiBrecycler,residentMAIN,OM31q70/P26/fold4",
+  "changes": [
+    "OwnedsecureMLEprefixfold",
+    "Packedbindinglanedot",
+    "PackedwideDEEProwfinalizer",
+    "Parkingv3presentbutinactiveinresidentprobe"
+  ],
+  "baseline": {
+    "prove_s": 11.309650541,
+    "process_wall_s": 14.89,
+    "max_rss_bytes": 18738000000,
+    "worker": {
+      "source_ns": 336047250,
+      "seal_native_and_gkr_ns": 4197156833,
+      "main_commit_ns": 962619042,
+      "gkr_ns": 3170284750,
+      "inputs_ns": 193203417,
+      "numerical_ns": 2504246500,
+      "binding_ns": 450918750,
+      "metadata_retire_ns": 2768917,
+      "spill_ns": 83,
+      "restore_ns": 83,
+      "native_complete_ns": 6690013000,
+      "stage1_ns": 4535973125,
+      "stage2_ns": 6690013125,
+      "actual_main_merkle_bytes": 33554400,
+      "stage1_completed": true,
+      "stage2_completed": true
+    }
+  },
+  "new": {
+    "prove_s": 10.863592708,
+    "process_wall_s": 12.83,
+    "user_s": 81.2,
+    "system_s": 7.19,
+    "minor_faults": 2059036,
+    "max_rss_bytes": 18607030272,
+    "worker": {
+      "source_ns": 338576292,
+      "seal_native_and_gkr_ns": 3783080791,
+      "main_commit_ns": 981588042,
+      "gkr_ns": 2736925166,
+      "inputs_ns": 192467334,
+      "numerical_ns": 2204716583,
+      "binding_ns": 313655000,
+      "metadata_retire_ns": 3562792,
+      "spill_ns": 42,
+      "restore_ns": 0,
+      "native_complete_ns": 6653559625,
+      "stage1_ns": 4125219917,
+      "stage2_ns": 6653559667,
+      "actual_main_merkle_bytes": 33554400,
+      "stage1_completed": true,
+      "stage2_completed": true
+    }
+  },
+  "artifact_sha256": {
+    "cpu-0.bin": "27105fb7d09689c620c9a2faa055c2b0b4c70c24546214aeb4f0503b32e774a0",
+    "stage-one.bin": "0215017a41aa44bba4135bcdd096a87048537ac98345e8b8f1c821d7e65b6514",
+    "bundle.json": "7dc1c9f366760ba842ad99ad10e0b3986de1649f10ab60fc0573e5635284da7a",
+    "cells.bin": "54b0d949998f170ee86b1c30ff02bea6fe0752e76204e7766c4f1ace43a54f30"
+  },
+  "fresh_process_accepted": true,
+  "qualification": [
+    "IndependentscalarDEEPauthorityfor0\u201365batches/tails,denseOMcoordinates,edgeY,invalidshapes",
+    "test-stwo-prover-coefficient-storage SafePASS44s/FastPASS28s",
+    "test-riscv64-services-gkr-local FastPASS42s;explicitbindingSafeprojection/prefixpassed",
+    "CLI FastPASS30s"
+  ],
+  "interpretation": "Single sharedhostcombinedprobe:about4%provingreduction; noisolatedcausalattributionorRSSreductionclaim. Nativecompletionroughlyflat; quotientstagefallswhilecompositionvaries. Still~2.07xslowerthan16workerQMclassic5.25s (differentfield). Nofull128,recursiveorGPUqualification."
+}

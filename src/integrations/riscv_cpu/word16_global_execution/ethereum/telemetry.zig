@@ -53,7 +53,10 @@ pub fn write(a: std.mem.Allocator, dir: std.fs.Dir, keys: *const Keys, captured:
     const roles = try a.alloc([Roles.COUNT]Roles.Row, keys.cpus.len);
     defer a.free(roles);
     for (keys.cpus, captured.native.items, roles, 0..) |setup, native, *out, i| {
-        out.* = try Roles.build(setup, native, @intCast(captured.advice.events[i].len), if (i == 0) captured.advice.initial.len else 0, if (i + 1 == keys.cpus.len) captured.advice.terminal.len else 0, .{ captured.advice.keccak[i].len, captured.advice.secp[i][0].len, captured.advice.secp[i][1].len, captured.advice.sha256[i].len, captured.advice.arith256_mod[i].len }, captured.advice.bulk[i].counts());
+        // Every family's call count (curves included), in Family order.
+        var calls: [@import("../services/types.zig").FAMILIES]usize = undefined;
+        for (&calls, @import("../services/pipeline.zig").adviceCalls(&captured.advice, i)) |*c, n| c.* = n;
+        out.* = try Roles.build(setup, native, @intCast(captured.advice.events[i].len), if (i == 0) captured.advice.initial.len else 0, if (i + 1 == keys.cpus.len) captured.advice.terminal.len else 0, calls, captured.advice.bulk[i].counts());
         for (0..3) |tree| {
             var cells: u64 = 0;
             for (out.*) |role| cells = try std.math.add(u64, cells, role.native_cells[tree]);

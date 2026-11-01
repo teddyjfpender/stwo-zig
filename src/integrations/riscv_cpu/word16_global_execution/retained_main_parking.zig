@@ -5,6 +5,8 @@ const engine = @import("stwo_prover_engine");
 const Store = @import("retained_main_store.zig").Store;
 const Tree = @import("protocol.zig").T.Scheme.CommittedTree;
 const M = @import("stwo_core").fields.m31.M31;
+const Integrity = @import("retained_main_integrity.zig");
+const Merkle = @import("retained_main_merkle.zig");
 const Reserved = engine.file_backed_allocator.ReservedFile;
 const Budget = engine.host_budget_allocator.SharedHostBudget;
 pub const Registry = struct { mutex: std.Thread.Mutex = .{}, head: ?*Owner = null };
@@ -18,7 +20,12 @@ const Owner = struct {
     coefficient_descriptors: usize,
     column_descriptors: usize,
     root: [32]u8,
+    merkle: ?Merkle.Capture = null,
+    header: [Merkle.HEADER_BYTES]u8 = @splat(0),
+    payload_bytes: usize = 0,
+    payload_digest: [32]u8 = @splat(0),
     mapping: ?[]align(std.heap.page_size_min) u8 = null,
+    mapping_reservation: Budget.ExternalReservation = .empty(),
     next: ?*Owner = null,
     previous: ?*Owner = null,
     fn release(context: ?*anyopaque, bytes: u64) void {
@@ -26,6 +33,7 @@ const Owner = struct {
         const store = self.store;
         const a = self.allocator;
         const budget = self.budget;
+        var mapping_reservation = self.mapping_reservation.take();
         std.debug.assert(bytes == self.file.size);
         store.parking.mutex.lock();
         if (self.previous) |previous| previous.next = self.next else store.parking.head = self.next;
@@ -40,14 +48,23 @@ const Owner = struct {
         self.file.deinit();
         const before = store.reserved.fetchSub(@intCast(bytes), .acq_rel);
         std.debug.assert(before >= bytes);
+        if (self.merkle) |*capture| {
+            const prior = store.parked_merkle_bytes.fetchSub(capture.bytes, .acq_rel);
+            std.debug.assert(prior >= capture.bytes);
+            capture.deinit(a);
+        }
         a.free(self.columns);
         a.destroy(self);
+        mapping_reservation.deinit();
         if (budget) |owner| owner.destroy();
     }
 };
 /// Shape and all disk/metadata allocation are validated before any descriptor or
 /// original owner changes. Failure leaves the old resident tree retryable.
-pub fn spill(store: *Store, a: std.mem.Allocator, tree: *Tree, words: usize, rounded: usize) !usize {
+pub fn spill(store: *Store, a: std.mem.Allocator, tree: *Tree, words: usize, coefficient_rounded: usize) !usize {
+    const coefficient_bytes = try std.math.mul(usize, words, @sizeOf(M));
+    const plan = try store.parkingPlan(tree);
+    const rounded = if (store.park_merkle) plan.rounded_total_bytes else coefficient_rounded;
     try store.reserve(rounded);
     errdefer _ = store.reserved.fetchSub(rounded, .acq_rel);
     const owner = try a.create(Owner);
@@ -55,20 +72,47 @@ pub fn spill(store: *Store, a: std.mem.Allocator, tree: *Tree, words: usize, rou
     const coefficients = tree.coefficients.?;
     const columns = try a.alloc(Column, coefficients.len);
     errdefer a.free(columns);
-    var file = try Reserved.init(store.backing.dir, try std.math.mul(usize, words, @sizeOf(M)));
+    const prefix_bytes: usize = if (store.park_merkle) Merkle.HEADER_BYTES else 0;
+    const coefficient_offset = prefix_bytes;
+    const node_offset = try std.math.add(usize, coefficient_offset, coefficient_bytes);
+    var capture: ?Merkle.Capture = if (store.park_merkle) try Merkle.Capture.init(a, tree, node_offset) else null;
+    errdefer if (capture) |*c| c.deinit(a);
+    const payload_bytes = try std.math.add(usize, node_offset, if (capture) |c| c.bytes else 0);
+    var file = try Reserved.init(store.backing.dir, payload_bytes);
     errdefer file.deinit();
     std.debug.assert(file.size == rounded);
-    var offset: usize = 0;
-    for (coefficients, tree.columns, columns) |coefficient, column, *description| {
+    const header = if (capture) |*c| Merkle.header(tree, words, c) else [_]u8{0} ** Merkle.HEADER_BYTES;
+    const segment_count = if (capture) |c| try std.math.add(usize, try std.math.add(usize, 1, coefficients.len), c.lengths.len) else 0;
+    if (capture != null) _ = try Integrity.scratchBytes(payload_bytes, segment_count);
+    const segments = try a.alloc(Integrity.Segment, segment_count);
+    defer a.free(segments);
+    if (capture != null) segments[0] = .{ .offset = 0, .bytes = &header };
+    var offset: usize = coefficient_offset / @sizeOf(M);
+    for (coefficients, tree.columns, columns, 0..) |coefficient, column, *description, index| {
         const values = coefficient.coefficients();
         description.* = .{ .offset = offset, .count = values.len, .native_log = coefficient.log_size, .column_log = column.log_size };
         // No second wide allocation or initial mmap: stream the existing owner.
-        try file.file.writeAll(std.mem.sliceAsBytes(values));
+        const bytes = std.mem.sliceAsBytes(values);
+        if (capture != null) {
+            segments[1 + index] = .{ .offset = offset * @sizeOf(M), .bytes = bytes };
+        } else try file.file.writeAll(bytes);
         offset += values.len;
     }
-    std.debug.assert(offset == words);
+    std.debug.assert(offset == words + coefficient_offset / @sizeOf(M));
+    var payload_digest: [32]u8 = @splat(0);
+    if (capture != null) {
+        var node_at = node_offset;
+        for (tree.commitment.layers, 0..) |layer, i| {
+            const bytes = std.mem.sliceAsBytes(layer);
+            segments[1 + coefficients.len + i] = .{ .offset = node_at, .bytes = bytes };
+            node_at = try std.math.add(usize, node_at, bytes.len);
+        }
+        if (node_at != payload_bytes) return error.RetainedMainIntegrityShape;
+        payload_digest = try Integrity.digest(a, file.file, segments, payload_bytes);
+    }
     try file.file.sync();
-    owner.* = .{ .allocator = a, .budget = if (Budget.fromAllocator(a)) |budget| budget.retain() else null, .store = store, .file = file, .columns = columns, .coefficient_descriptors = @intFromPtr(coefficients.ptr), .column_descriptors = @intFromPtr(tree.columns.ptr), .root = tree.root() };
+    owner.* = .{ .allocator = a, .budget = if (Budget.fromAllocator(a)) |budget| budget.retain() else null, .store = store, .file = file, .columns = columns, .coefficient_descriptors = @intFromPtr(coefficients.ptr), .column_descriptors = @intFromPtr(tree.columns.ptr), .root = tree.root(), .merkle = capture, .header = header, .payload_bytes = payload_bytes, .payload_digest = payload_digest };
+    if (owner.merkle) |*c| c.park(tree);
     // Infallible publication under exclusive tree access. No unmapped pointer is
     // left anywhere in the compact polynomial/column descriptors.
     for (coefficients, tree.columns) |*coefficient, *column| {
@@ -89,6 +133,7 @@ pub fn spill(store: *Store, a: std.mem.Allocator, tree: *Tree, words: usize, rou
     store.parking.mutex.unlock();
     tree.backing_teardown = engine.pcs.BackingTeardownToken.init(owner, rounded, Owner.release);
     _ = store.total.fetchAdd(rounded, .acq_rel);
+    if (owner.merkle) |c| _ = store.parked_merkle_bytes.fetchAdd(c.bytes, .acq_rel);
     return rounded;
 }
 pub fn hasParkedOwner(tree: *const Tree) bool {
@@ -114,8 +159,11 @@ pub fn restore(store: *Store, tree: *Tree) !usize {
     defer store.parking.mutex.unlock();
     const owner = try findOwner(store, tree);
     const coefficients = tree.coefficients orelse return error.RetainedMainShapeMismatch;
-    if (!tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or tree.columns.len != owner.columns.len or coefficients.len != owner.columns.len or @intFromPtr(coefficients.ptr) != owner.coefficient_descriptors or @intFromPtr(tree.columns.ptr) != owner.column_descriptors or !std.mem.eql(u8, &tree.root(), &owner.root)) return error.RetainedMainShapeMismatch;
-    var offset: usize = 0;
+    if (!tree.compact_polynomials or tree.shared_owner != null or tree.coefficient_backing_buffers != null or tree.columns.len != owner.columns.len or coefficients.len != owner.columns.len or @intFromPtr(coefficients.ptr) != owner.coefficient_descriptors or @intFromPtr(tree.columns.ptr) != owner.column_descriptors) return error.RetainedMainShapeMismatch;
+    if (owner.merkle) |*capture_owner| try capture_owner.validate(tree, owner.mapping);
+    if (!std.mem.eql(u8, &tree.root(), &owner.root)) return error.RetainedMainShapeMismatch;
+    const prefix_bytes: usize = if (owner.merkle != null) Merkle.HEADER_BYTES else 0;
+    var offset: usize = prefix_bytes / @sizeOf(M);
     for (coefficients, tree.columns, owner.columns) |coefficient, column, description| {
         if (description.offset != offset or description.native_log >= @bitSizeOf(usize) or description.count != @as(usize, 1) << @intCast(description.native_log) or coefficient.log_size != description.native_log or column.log_size != description.column_log or column.values.len != 0 or coefficient.owns_coeffs) return error.RetainedMainShapeMismatch;
         const retained = column.coefficient_values orelse return error.RetainedMainShapeMismatch;
@@ -125,18 +173,36 @@ pub fn restore(store: *Store, tree: *Tree) !usize {
         } else if (coefficient.coeffs.len != 0 or retained.len != 0) return error.RetainedMainShapeMismatch;
         offset = try std.math.add(usize, offset, description.count);
     }
-    if (try Reserved.roundedLength(try std.math.mul(usize, offset, @sizeOf(M))) != owner.file.size) return error.RetainedMainShapeMismatch;
+    const coefficients_end = try std.math.mul(usize, offset, @sizeOf(M));
+    if (owner.merkle) |capture_owner| {
+        if (capture_owner.offset != coefficients_end or try std.math.add(usize, coefficients_end, capture_owner.bytes) != owner.payload_bytes) return error.RetainedMainShapeMismatch;
+    } else if (coefficients_end != owner.payload_bytes) return error.RetainedMainShapeMismatch;
+    if (try Reserved.roundedLength(owner.payload_bytes) != owner.file.size) return error.RetainedMainShapeMismatch;
     if (owner.mapping != null) return 0;
     // Read-only mapping. Validation and mmap precede a single infallible publish;
     // mmap/length failure leaves all safe-invalid parked descriptors untouched.
+    if (owner.merkle != null and try owner.file.file.getEndPos() != owner.file.size) return error.RetainedMainFileIntegrityMismatch;
+    var mapping_reservation: Budget.ExternalReservation = if (owner.merkle != null) blk: {
+        if (owner.budget) |budget| break :blk try budget.reserveExternal(owner.file.size);
+        break :blk .empty();
+    } else .empty();
+    errdefer mapping_reservation.deinit();
     const memory = try owner.file.map(true);
+    errdefer std.posix.munmap(memory);
+    if (owner.merkle != null) {
+        if (owner.payload_bytes > memory.len or !std.mem.eql(u8, memory[0..Merkle.HEADER_BYTES], &owner.header)) return error.RetainedMainFileIntegrityMismatch;
+        const actual = try Integrity.digest(owner.allocator, null, &.{.{ .offset = 0, .bytes = memory[0..owner.payload_bytes] }}, owner.payload_bytes);
+        if (!std.mem.eql(u8, &actual, &owner.payload_digest)) return error.RetainedMainFileIntegrityMismatch;
+    }
     const values = std.mem.bytesAsSlice(M, memory);
     for (coefficients, tree.columns, owner.columns) |*coefficient, *column, description| {
         const slice = values[description.offset..][0..description.count];
         coefficient.coeffs = slice;
         column.coefficient_values = slice;
     }
+    if (owner.merkle) |*c| c.publish(tree, memory);
     owner.mapping = memory;
+    owner.mapping_reservation = mapping_reservation.take();
     store.addMapped(memory.len);
     return memory.len;
 }

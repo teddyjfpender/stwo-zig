@@ -9,6 +9,7 @@ const GP = engine.lookups.gkr_prover.ForField(O);
 const Mle = engine.lookups.mle.MleFor;
 const Fractions = @import("fractions.zig");
 const Frame = @import("frame.zig");
+const Work = engine.lookups.row_work;
 const Challenges = @import("challenges.zig").For(O);
 pub const RowSink = struct {
     challenges: *const Challenges,
@@ -35,15 +36,21 @@ pub const RowSink = struct {
             };
             out.* = c[0];
         }
-        self.numerator[self.count] = coordinates[0];
-        self.denominator[self.count] = self.challenges.denominatorBase(relation, base);
-        self.count += 1;
+        self.emitBase(relation, base, coordinates[0]);
     }
     pub fn emitBase(self: *RowSink, relation: Fractions.Relation, tuple: anytype, weight: M) void {
         if (self.count >= self.numerator.len) {
             self.invalid = true;
             return;
         }
+        if (weight.v >= core.fields.m31.Modulus) {
+            self.invalid = true;
+            return;
+        }
+        for (tuple) |value| if (value.v >= core.fields.m31.Modulus) {
+            self.invalid = true;
+            return;
+        };
         self.numerator[self.count] = weight;
         self.denominator[self.count] = self.challenges.denominatorBase(relation, tuple);
         self.count += 1;
@@ -53,6 +60,9 @@ pub const Inputs = struct {
     allocator: std.mem.Allocator,
     layers: []GP.Layer,
     pub fn init(a: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const Challenges, provider: anytype) !Inputs {
+        return initWithOptions(a, instances, challenges, provider, .{});
+    }
+    pub fn initWithOptions(a: std.mem.Allocator, instances: []const Frame.Instance, challenges: *const Challenges, provider: anytype, options: Work.RangeOptions) !Inputs {
         const layers = try a.alloc(GP.Layer, instances.len);
         var done: usize = 0;
         errdefer {
@@ -65,16 +75,38 @@ pub const Inputs = struct {
             errdefer a.free(n);
             const d = try a.alloc(O, facts);
             errdefer a.free(d);
-            @memset(n, M.zero());
-            @memset(d, O.one());
             const lane_count: usize = @as(usize, 1) << @intCast(try instance.laneLog());
-            for (0..try instance.rows()) |physical| {
-                const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, instance.row_log), instance.row_log);
-                const at = physical * lane_count;
-                var sink = RowSink{ .challenges = challenges, .numerator = n[at..][0..instance.terms], .denominator = d[at..][0..instance.terms] };
-                try provider.emit(instance, logical, &sink);
-                if (sink.invalid or sink.count != instance.terms) return error.LocalGkrMetadataShape;
-            }
+            const Context = struct {
+                instance: Frame.Instance,
+                challenges: *const Challenges,
+                provider: @TypeOf(provider),
+                n: []M,
+                d: []O,
+                lanes: usize,
+                errors: [Work.MAX_SHARDS]?anyerror = @splat(null),
+                pub fn runRange(self: *@This(), ordinal: usize, start: usize, end: usize) void {
+                    for (start..end) |physical| {
+                        const at = physical * self.lanes;
+                        // Initialize padding with the row that first touches its
+                        // pages. No serial whole-vector pass before projection.
+                        @memset(self.n[at..][0..self.lanes], M.zero());
+                        @memset(self.d[at..][0..self.lanes], O.one());
+                        const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(physical, self.instance.row_log), self.instance.row_log);
+                        var sink = RowSink{ .challenges = self.challenges, .numerator = self.n[at..][0..self.instance.terms], .denominator = self.d[at..][0..self.instance.terms] };
+                        self.provider.emit(self.instance, logical, &sink) catch |err| {
+                            self.errors[ordinal] = err;
+                            return;
+                        };
+                        if (sink.invalid or sink.count != self.instance.terms) {
+                            self.errors[ordinal] = error.LocalGkrMetadataShape;
+                            return;
+                        }
+                    }
+                }
+            };
+            var context = Context{ .instance = instance, .challenges = challenges, .provider = provider, .n = n, .d = d, .lanes = lane_count };
+            const shards = Work.forEachRange(try instance.rows(), &context, options);
+            for (context.errors[0..shards]) |err| if (err) |failure| return failure;
             layer.* = .{ .LogUpMultiplicities = .{ .numerators = try Mle(O, M).initOwned(n), .denominators = try Mle(O, O).initOwned(d) } };
             done += 1;
         }
