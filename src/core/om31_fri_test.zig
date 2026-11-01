@@ -83,3 +83,22 @@ test "wide FRI: proof carrier, captures and verifier instantiate with eight coor
     const expected = coefficients[0].add(coefficients[1].mul(core.circle.CirclePoint(O).doubleX(point))).add(coefficients[2].mul(point)).add(coefficients[3].mul(point).mul(core.circle.CirclePoint(O).doubleX(point)));
     try std.testing.expect((try poly.evalAtPoint(a, point)).eql(expected));
 }
+
+test "wide FRI: failed final resize preserves original owner after all prefix folds" {
+    const domain = try core.poly.line.LineDomain.init(core.circle.Coset.halfOdds(6));
+    const input = try a.alloc(O, 64);
+    defer a.free(input); // original pointer and original length remain valid on OOM
+    for (input, 0..) |*v, i| v.* = value(i);
+    const alpha = value(71);
+    var reference_workspace = try Wide.FoldLineWorkspace.init(a, 32);
+    defer reference_workspace.deinit(a);
+    const expected = try Wide.foldLineNWithWorkspace(a, input, domain, alpha, &reference_workspace, 3);
+    defer a.free(expected.values);
+    var workspace = try Wide.FoldLineWorkspace.init(a, 32);
+    defer workspace.deinit(a);
+    var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = 0, .resize_fail_index = 0 });
+    try std.testing.expectError(error.OutOfMemory, Wide.foldLineInPlaceNWithWorkspace(failing.allocator(), input, domain, alpha, &workspace, 3));
+    try std.testing.expect(failing.has_induced_failure);
+    try std.testing.expectEqual(@as(usize, 0), failing.resize_index);
+    for (input[0..expected.values.len], expected.values) |got, wanted| try std.testing.expect(got.eql(wanted));
+}
