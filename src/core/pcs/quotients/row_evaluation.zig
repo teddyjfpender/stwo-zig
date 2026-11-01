@@ -126,15 +126,8 @@ fn denominatorInversesInto(
     if (denominators.len != sample_points.len) return error.ShapeMismatch;
     if (denominator_inverses.len != sample_points.len) return error.ShapeMismatch;
 
-    const domain_x = CM31.fromBase(domain_point.x);
-    const domain_y = CM31.fromBase(domain_point.y);
-
     for (sample_points, 0..) |sample_point, i| {
-        const prx = sample_point.x.c0;
-        const pry = sample_point.y.c0;
-        const pix = sample_point.x.c1;
-        const piy = sample_point.y.c1;
-        denominators[i] = prx.sub(domain_x).mul(piy).sub(pry.sub(domain_y).mul(pix));
+        denominators[i] = constraints.quadraticLineDenominator(QM31, sample_point, domain_point);
     }
 
     try batchInverseIntoCM31(denominators, denominator_inverses);
