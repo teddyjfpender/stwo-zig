@@ -13,3 +13,9 @@ Interning itself performs all allocations and collision/capacity decisions befor
 Tests cover two distinct whole-key layouts sharing one exact plane while keeping a changed plane, root and ordered identity distinct; source authority checks; candidate/source pointer separation; all allocation failures; source/cache/key release before appended OM trees; rejection when another tree lease exists; rejection of double interning; exact collision handling; and unchanged pinned beta1/beta2 roots. Canonical bulk identity hashing is a separate qualified optimization. Its actual 29-key A/B showed only a ~2.1% setup difference within variance, so it is not presented as a substantial speedup.
 
 Before considering prepared fixed-provider LDE reuse, profile actual 29-key setup to distinguish extension FFT, leaf hashing, source identity and original key preparation. Any further cache must remain immutable-provider-only, explicitly bounded, independently validated and separately measured. This document makes no whole128 or GPU throughput claim.
+
+## Actual complete inventory observation
+
+The fresh receiver for all existing25CPU/5truth candidate proofs accepted under source452b02956. Interning reduced7.386GB fixed-cache live storage to2.001GB, and9.372GB peak to4.240GB, using the same12GiB outer cap. Only316 native groups(279.7MB) remained from3,732 plane owners;3,416 hits released5.385GB of duplicate payload. Roughly1.72GB of whole-key Merkle/descriptor data remains separate.
+
+Fresh receiver requested peak fell11.673→6.542GB and RSS12.816→7.366GB. This is a measured receiver/setup memory improvement, not an extrapolated full-prover multiplier. Setup was30.018s versus the earlier bulk run28.803s, so no speedup is claimed. The independently supplied existing proofs remain accepted, and all security qualifications stay false. Receipts are in `vectors/reports/rv64-fixed-coefficient-intern-20261102/`.
