@@ -6,3 +6,9 @@ test {
     _ = @import("om31_wire_test.zig");
     _ = @import("om31_compact_test.zig");
 }
+test {
+    _ = @import("om31_quotient_batch_test.zig");
+}
+test {
+    _ = @import("om31_quotient_chunk_test.zig");
+}

@@ -17,12 +17,33 @@ pub fn ForField(comptime S: type) type {
         pub const ColumnEvaluation = geometry.ColumnEvaluation;
         pub const QuotientOpsError = geometry.QuotientOpsError;
         pub const LAZY_QUOTIENT_CHUNK_SIZE = 1024;
+        const Inner = S.InnerField;
+        pub const ChunkScratchPlan = struct {
+            rows: usize,
+            batches: usize,
+            cells: usize,
+            point_bytes: usize,
+            denominator_bytes: usize,
+            inverse_bytes: usize,
+            total_bytes: usize,
+            pub fn init(domain_size: usize, batches: usize) !@This() {
+                const rows: usize = if (batches == 0) 0 else @min(LAZY_QUOTIENT_CHUNK_SIZE, domain_size);
+                const cells = try std.math.mul(usize, rows, batches);
+                const points = try std.math.mul(usize, rows, @sizeOf(core.circle.CirclePointM31));
+                const half_field = try std.math.mul(usize, cells, @sizeOf(Inner));
+                return .{ .rows = rows, .batches = batches, .cells = cells, .point_bytes = points, .denominator_bytes = half_field, .inverse_bytes = half_field, .total_bytes = try std.math.add(usize, points, try std.math.mul(usize, half_field, 2)) };
+            }
+        };
         pub const InputMode = enum { bounded_cpu, combined_compatibility, raw_backend };
         pub const LazyQuotientProvider = struct {
             groups: Groups.Plan,
             batches: []Q.ColumnSampleBatch,
             constants: Q.QuotientConstants,
             workspace: Q.RowQuotientWorkspace,
+            scratch_plan: ChunkScratchPlan,
+            scratch_points: []core.circle.CirclePointM31,
+            scratch_denominators: []Inner,
+            scratch_inverses: []Inner,
             domain: core.poly.circle.domain.CircleDomain,
             domain_size: usize,
             lifting_log_size: u32,
@@ -60,8 +81,21 @@ pub fn ForField(comptime S: type) type {
                 errdefer constants.deinit(a);
                 var workspace = try Q.RowQuotientWorkspace.init(a, batches);
                 errdefer workspace.deinit(a);
-                const groups = try Groups.Plan.init(a, flat, batches, &constants, log, byte_limit);
-                return .{ .groups = groups, .batches = batches, .constants = constants, .workspace = workspace, .domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain(), .domain_size = size, .lifting_log_size = log };
+                const scratch = try ChunkScratchPlan.init(size, batches.len);
+                const group_limit: ?usize = if (byte_limit) |limit| blk: {
+                    if (scratch.total_bytes > limit) return error.QuotientScratchBudgetExceeded;
+                    break :blk limit - scratch.total_bytes;
+                } else null;
+                var groups = try Groups.Plan.init(a, flat, batches, &constants, log, group_limit);
+                errdefer groups.deinit(a);
+                groups.resources.inverse_chunk_scratch_bytes = scratch.total_bytes;
+                const scratch_points = try a.alloc(core.circle.CirclePointM31, scratch.rows);
+                errdefer a.free(scratch_points);
+                const scratch_denominators = try a.alloc(Inner, scratch.cells);
+                errdefer a.free(scratch_denominators);
+                const scratch_inverses = try a.alloc(Inner, scratch.cells);
+                errdefer a.free(scratch_inverses);
+                return .{ .groups = groups, .batches = batches, .constants = constants, .workspace = workspace, .scratch_plan = scratch, .scratch_points = scratch_points, .scratch_denominators = scratch_denominators, .scratch_inverses = scratch_inverses, .domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain(), .domain_size = size, .lifting_log_size = log };
             }
             pub fn resourcePlan(self: *const @This()) ResourcePlan {
                 return self.groups.resources;
@@ -70,6 +104,9 @@ pub fn ForField(comptime S: type) type {
                 self.backend_residency_handles = handles;
             }
             pub fn deinit(self: *@This(), a: std.mem.Allocator) void {
+                a.free(self.scratch_points);
+                a.free(self.scratch_denominators);
+                a.free(self.scratch_inverses);
                 self.groups.deinit(a);
                 self.workspace.deinit(a);
                 self.constants.deinit(a);
@@ -80,14 +117,29 @@ pub fn ForField(comptime S: type) type {
                 const end = std.math.add(usize, start, len) catch return error.ShapeMismatch;
                 if (end > self.domain_size) return error.ShapeMismatch;
                 for (coordinates) |c| if (c.len < len) return error.ShapeMismatch;
-                for (start..end) |position| {
-                    const point = self.domain.at(core.utils.bitReverseIndex(position, self.lifting_log_size));
-                    try self.workspace.beginRow(point);
-                    for (self.groups.groups) |group| {
-                        self.workspace.batch_numerators[group.batch_index] = self.workspace.batch_numerators[group.batch_index].add(group.at(position));
+                if (self.batches.len == 0) {
+                    for (coordinates) |c| @memset(c[0..len], M.zero());
+                    return;
+                }
+                var offset: usize = 0;
+                while (offset < len) {
+                    const count: usize = @min(self.scratch_plan.rows, len - offset);
+                    const cells = count * self.batches.len; // checked capacity at init
+                    for (self.scratch_points[0..count], 0..) |*point, r| point.* = self.domain.at(core.utils.bitReverseIndex(start + offset + r, self.lifting_log_size));
+                    // The original core quadratic denominator law, with ONE
+                    // bounded cross-row batch inverse. Zero-weight poles are
+                    // never omitted and no challenge is redrawn on failure.
+                    try self.workspace.prepareDenominatorInversesForRowsBatchMajor(self.scratch_points[0..count], self.scratch_denominators[0..cells], self.scratch_inverses[0..cells]);
+                    for (0..count) |r| {
+                        const position = start + offset + r;
+                        const point = self.scratch_points[r];
+                        self.workspace.resetNumerators();
+                        for (self.workspace.denominator_inverses, 0..) |*inverse, batch| inverse.* = self.scratch_inverses[batch * count + r];
+                        for (self.groups.groups) |group| self.workspace.batch_numerators[group.batch_index] = self.workspace.batch_numerators[group.batch_index].add(group.at(position));
+                        const value = try Q.finalizeRowQuotients(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses);
+                        for (value.toM31Array(), 0..) |v, i| coordinates[i][offset + r] = v;
                     }
-                    const value = try Q.finalizeRowQuotients(&self.constants, point.y, self.workspace.batch_numerators, self.workspace.denominator_inverses);
-                    for (value.toM31Array(), 0..) |v, i| coordinates[i][position - start] = v;
+                    offset += count;
                 }
             }
             pub fn computeAll(self: *@This(), a: std.mem.Allocator, out: *Column) !void {

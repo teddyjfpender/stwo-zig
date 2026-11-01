@@ -32,8 +32,9 @@ pub fn ForField(comptime S: type) type {
             aggregate_evaluation_bytes: usize = 0,
             twiddle_upper_bound_bytes: usize = 0,
             source_lde_reconstruction_bytes: usize = 0,
+            inverse_chunk_scratch_bytes: usize = 0,
             pub fn largeBufferUpperBound(self: @This()) !usize {
-                return std.math.add(usize, self.aggregate_evaluation_bytes, self.twiddle_upper_bound_bytes);
+                return std.math.add(usize, try std.math.add(usize, self.aggregate_evaluation_bytes, self.twiddle_upper_bound_bytes), self.inverse_chunk_scratch_bytes);
             }
         };
         pub const Plan = struct {
