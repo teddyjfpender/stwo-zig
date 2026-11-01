@@ -65,7 +65,8 @@
  "editable_despite_lock": {
   "E_candidate_executor": [
    "src/frontends/riscv/rv64/ethereum_services/candidate*.zig",
-   "src/frontends/riscv/rv64/ethereum_execution.zig"
+   "src/frontends/riscv/rv64/ethereum_execution.zig",
+   "src/frontends/riscv/rv64/candidate_isa*.zig"
   ]
  }
 }

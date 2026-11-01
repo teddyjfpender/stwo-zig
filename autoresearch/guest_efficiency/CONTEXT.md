@@ -87,3 +87,15 @@ differential runs against the reth guest.
 - Our guest today: 13.46 instructions/gas. Buckets on block 24,628,607: EVM 34.8%,
   memory and allocation 20.5%, MPT/RLP 17.3%, SSZ SHA-256 10.8%, secp glue
   10.8%, Keccak glue 3.4% (`notes/baseline-attribution-24628607.json`).
+
+## Candidate instructions (instruction-set extension)
+
+Profile `ethereum_services_v3_candidate_isa` (execution-only) adds a Zbb/Zba
+subset on top of the candidate services: `andn orn xnor clz clzw ctz ctzw cpop
+cpopw max maxu min minu sext.b sext.h zext.h rol rolw ror rori roriw rorw orc.b
+rev8` and `sh1add sh2add sh3add add.uw sh1add.uw sh2add.uw sh3add.uw slli.uw`,
+with standard RISC-V encodings and semantics. Each retires as one instruction.
+The admitted decoder and prover are unchanged; implementations live in
+`src/frontends/riscv/rv64/candidate_isa*.zig`. Each candidate instruction needs
+an estimated CPU-AIR cost (cells per row) recorded with its derivation before
+committed bits per gas can be scored. See PATH-TO-BIG-JUMP.md "The Zbb gap".
