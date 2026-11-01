@@ -56,7 +56,7 @@ fn checkRows(s: *const K.source.Source, count: u32, ch: K.types.Challenges, clai
         }
         var residual: [K.layout.CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &residual };
-        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, count, s.first_id, claims, ch, &sink);
+        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, .{ .calls = count, .first_id = s.first_id }, claims, ch, &sink);
         try std.testing.expectEqual(K.layout.CONSTRAINTS, sink.count);
         for (residual, 0..) |v, index| if (!v.isZero()) {
             std.debug.print("secp bridge row{d} residual{d}\n", .{ row, index });
@@ -127,14 +127,14 @@ test "Secp coordinate bridge authority preserves every packed native residual an
     const is = ps + K.layout.INTERACTION;
     var packed_residuals: [K.layout.CONSTRAINTS]E.PackedSecure = undefined;
     var sink = E.PackedSink{ .values = &packed_residuals };
-    K.equations.emitFor(E.PackedBase, .add, base[0..fs], base[fs..ms], base[ms..ps], base[ps..is], base[is..], 2, 3, K.types.Claims.zero(), ch, &sink);
+    K.equations.emitFor(E.PackedBase, .add, base[0..fs], base[fs..ms], base[ms..ps], base[ps..is], base[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &sink);
     try std.testing.expectEqual(K.layout.CONSTRAINTS, sink.count);
     for (0..16) |lane| {
         var q: [total]Q = undefined;
         for (base, &q) |v, *x| x.* = Q.fromBase(v.lane(lane));
         var residual: [K.layout.CONSTRAINTS]Q = undefined;
         var out = E.Sink{ .values = &residual };
-        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], 2, 3, K.types.Claims.zero(), ch, &out);
+        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &out);
         for (residual, packed_residuals) |x, y| try std.testing.expect(x.eql(y.lane(lane)));
     }
     var rows: [5][K.layout.CONSTRAINTS]Q = undefined;
@@ -146,7 +146,7 @@ test "Secp coordinate bridge authority preserves every packed native residual an
             x.* = intercept.add(slope.mulM31(M.fromCanonical(@intCast(step))));
         }
         var out = E.Sink{ .values = residual };
-        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], 2, 3, K.types.Claims.zero(), ch, &out);
+        K.equations.emitFor(Q, .add, q[0..fs], q[fs..ms], q[ms..ps], q[ps..is], q[is..], .{ .calls = 2, .first_id = 3 }, K.types.Claims.zero(), ch, &out);
         try std.testing.expectEqual(K.layout.CONSTRAINTS, out.count);
     }
     var cubic = false;

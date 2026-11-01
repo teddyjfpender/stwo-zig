@@ -380,7 +380,7 @@ test "v3 truth leaves adversarial: tampered OODS values, wrong shape, wrong publ
             for (sampled, values.sampled_values) |*t, src| t.* = try arena.dupe([]const Q, src);
             const at: ?[3]usize = switch (mutation) {
                 .oods_main => .{ 1, 40, 0 },
-                .oods_interaction => .{ 2, 6, 1 },
+                .oods_interaction => .{ 2, 6, 0 },
                 .oods_composition => .{ 3, 2, 0 },
                 .oods_fixed => .{ 0, 1, 0 },
                 else => null,

@@ -128,7 +128,7 @@ fn checkBridgeRows(s: *const K.source.Source, count: u32, ch: K.types.Challenges
         }
         var residual: [K.layout.CONSTRAINTS]Q = undefined;
         var sink = E.Sink{ .values = &residual };
-        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, count, s.first_id, claims, ch, &sink);
+        K.equations.emitFor(Q, s.kind, &f, &m, &pm, &inter, &pi, .{ .calls = count, .first_id = s.first_id }, claims, ch, &sink);
         for (residual, 0..) |v, index| if (!v.isZero()) {
             std.debug.print("arith256 bridge row{d} residual{d}\n", .{ row, index });
             return error.InvalidArith256BridgeResidual;
