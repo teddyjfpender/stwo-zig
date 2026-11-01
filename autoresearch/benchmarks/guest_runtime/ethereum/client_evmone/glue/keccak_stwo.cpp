@@ -7,6 +7,7 @@
 // the final partial word is one masked word instead of a byte loop.
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 #include <evmone_precompiles/keccak.h>
@@ -52,6 +53,17 @@ inline uint64_t tail_word(const uint8_t* p, size_t n) {
     if (off + n > 8) w |= ldw(a + 8) << (64 - off * 8);
     return w & ((uint64_t(1) << (8 * n)) - 1);
 }
+// Memo of single-block inputs of at most 64 bytes (log topics and
+// addresses, mapping keys, trie keys repeat across a block): the key is the
+// padded block's first 9 lanes, which determine the input and its length.
+// A hit skips the Keccak-f service call, the prover's most expensive item per
+// call; the digest is recomputed exactly on a miss.
+constexpr size_t kMemoSlots = 4096;
+struct MemoEntry {
+    uint64_t key[9];
+    uint64_t out[4];
+};
+MemoEntry* g_memo = nullptr;
 }  // namespace
 
 extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t size) noexcept {
@@ -78,6 +90,24 @@ extern "C" union ethash_hash256 ethash_keccak256(const uint8_t* data, size_t siz
         absorb_words<true>(st, data, words);
         st[words] = last;
         for (size_t i = words + 1; i < 25; ++i) st[i] = 0;
+        if (size <= 64) {
+            if (!g_memo) g_memo = static_cast<MemoEntry*>(std::calloc(kMemoSlots, sizeof(MemoEntry)));
+            uint64_t h = 0;
+            for (int i = 0; i < 9; ++i) h = (h ^ st[i]) * 0x9E3779B97F4A7C15ull;
+            MemoEntry& m = g_memo[(h >> 52) & (kMemoSlots - 1)];
+            uint64_t diff = 0;
+            for (int i = 0; i < 9; ++i) diff |= m.key[i] ^ st[i];
+            union ethash_hash256 out;
+            if (diff == 0 && (m.key[0] | m.key[1] | m.key[8] | m.out[0])) {
+                for (int i = 0; i < 4; ++i) out.word64s[i] = m.out[i];
+                return out;
+            }
+            for (int i = 0; i < 9; ++i) m.key[i] = st[i];
+            st[kRateWords - 1] ^= uint64_t(0x80) << 56;
+            stwo::keccak_f(st);
+            for (int i = 0; i < 4; ++i) out.word64s[i] = m.out[i] = st[i];
+            return out;
+        }
     } else {
         absorb_words<false>(st, data, words);
         st[words] ^= last;
