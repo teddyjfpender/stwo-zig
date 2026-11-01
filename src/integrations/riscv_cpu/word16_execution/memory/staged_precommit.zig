@@ -53,7 +53,6 @@ pub const Plan = struct {
     context: G.Context,
     specs: []G.Spec,
     receipts: []Receipt,
-    stage1_checked: []bool,
     digest: Digest,
 
     pub fn init(a: std.mem.Allocator, expected: Expected, anchors: Anchors, receipts: []const Receipt) !Plan {
@@ -81,10 +80,7 @@ pub const Plan = struct {
             n += 1;
         }
         const rr = try a.dupe(Receipt, receipts);
-        errdefer a.free(rr);
-        const checks = try a.alloc(bool, receipts.len);
-        @memset(checks, false);
-        return .{ .allocator = a, .anchors = anchors, .context = expected.context, .specs = ss, .receipts = rr, .stage1_checked = checks, .digest = seal(expected, anchors, receipts) };
+        return .{ .allocator = a, .anchors = anchors, .context = expected.context, .specs = ss, .receipts = rr, .digest = seal(expected, anchors, receipts) };
     }
     pub fn deinit(self: *Plan) void {
         for (self.specs) |spec| {
@@ -93,13 +89,12 @@ pub const Plan = struct {
         }
         self.allocator.free(self.specs);
         self.allocator.free(self.receipts);
-        self.allocator.free(self.stage1_checked);
         self.* = undefined;
     }
     pub fn check(self: *const Plan) !void {
         const e = Expected{ .context = self.context, .specs = self.specs };
         try G.validateStagedExecutionPlan(e, self.anchors);
-        if (self.specs.len != self.receipts.len or self.stage1_checked.len != self.specs.len) return error.IncompleteStagedGlobalPrecommit;
+        if (self.specs.len != self.receipts.len) return error.IncompleteStagedGlobalPrecommit;
         for (self.specs, self.receipts) |spec, receipt| try validateReceipt(spec, receipt);
         if (!std.mem.eql(u8, &self.digest, &seal(e, self.anchors, self.receipts)))
             return error.StagedGlobalPrecommitChanged;
@@ -107,20 +102,23 @@ pub const Plan = struct {
     /// Physical stage-one custody check. This checks the PCS-generated fixed
     /// and MAIN roots and geometry, but it is *not* verification of a proof's
     /// execution constraints. Full receiver promotion is a different gate.
-    pub fn verifyStage1(self: *Plan, a: std.mem.Allocator, ordinal: usize, scheme: *G.Scheme) !void {
+    pub fn verifyStage1(self: *const Plan, a: std.mem.Allocator, ordinal: usize, scheme: *G.Scheme) !void {
         try self.check();
         if (ordinal >= self.specs.len) return error.InvalidStagedGlobalOrdinal;
         const actual = try G.fromCommitted(a, scheme, self.specs[ordinal]);
         if (!std.meta.eql(actual, self.receipts[ordinal])) return error.StagedGlobalStage1RootMismatch;
-        self.stage1_checked[ordinal] = true;
     }
     /// This is deliberately named "diagnostic": the returned challenges are
     /// not admitted by any production prover or native verifier. Unlike a
-    /// self-sealed host manifest, challenge publication additionally requires
-    /// a successful current PCS root check for EVERY recorded participant.
-    pub fn diagnosticChallenges(self: *const Plan) !G.Shared {
+    /// self-sealed host manifest, challenge publication rechecks the ACTUAL
+    /// fixed/main PCS roots of EVERY participant at the point of use. A host-
+    /// mutable `verified[]` flag cannot stand in for these physical roots.
+    /// The retained schemes are a bounded-fixture requirement, not a general
+    /// memory-safe large-block lifecycle or an independent STARK proof.
+    pub fn diagnosticChallenges(self: *const Plan, a: std.mem.Allocator, owners: []const *G.Scheme) !G.Shared {
         try self.check();
-        for (self.stage1_checked) |checked| if (!checked) return error.IncompleteStagedPhysicalPrecommit;
+        if (owners.len != self.receipts.len) return error.IncompleteStagedPhysicalPrecommit;
+        for (owners, 0..) |scheme, i| try self.verifyStage1(a, i, scheme);
         var ch = G.P.Channel{};
         ch.mixU32s(&.{ 0x52564741, 1 }); // RVGA
         G.mixDigest(&ch, self.digest);
