@@ -249,14 +249,7 @@ pub const GkrConsumer = struct {
         return a.alloc(usize, 0);
     }
     pub fn rowConstraints(self: *const @This(), m: [LANES]QM31, c: QM31, c_next2: QM31, s: QM31, s_prev: QM31, q: QM31, first: QM31, second: QM31) ![N_CONSTRAINTS]QM31 {
-        var e = self.k_const;
-        for (m, self.u) |v, w| e = e.sub(w.mul(v));
-        const shift = try self.delta.divM31(rowsM31(self.log_size));
-        return .{
-            c.sub(self.point.eq0).mul(first).add(c.sub(self.point.eq1).mul(second)),
-            c.sub(c_next2.mul(q)),
-            s.sub(s_prev).sub(c.mul(e)).add(shift),
-        };
+        return gkrConsumerResidualsFor(QM31, self, self.log_size, m, c, c_next2, s, s_prev, q, first, second);
     }
     pub fn evaluateConstraintQuotientsAtPoint(self: *const @This(), point: CirclePointQM31, mask: *const core_air_components.MaskValues, acc: *core_air_accumulation.PointEvaluationAccumulator, max_log: u32) !void {
         if (mask.items.len < 3) return error.InvalidProofShape;
@@ -543,3 +536,16 @@ const DomainContext = struct {
         target.accumulate(row, combined.mulM31(self.denom_inv[row >> @intCast(self.log_size)]));
     }
 };
+
+/// Shared numerical weighted-prefix/eq binding constraints. The point and
+/// masks must come from the caller's admitted PCS sample authority.
+pub fn gkrConsumerResidualsFor(comptime F: type, binding: anytype, log: u32, m: [LANES]F, c: F, c_next2: F, s: F, s_prev: F, q: F, first: F, second: F) ![3]F {
+    var e = binding.k_const;
+    for (m, binding.u) |value, weight| e = e.sub(weight.mul(value));
+    const shift = if (F == QM31) try binding.delta.divM31(rowsM31(log)) else binding.delta.mul(F.fromBase(try rowsM31(log).inv()));
+    return .{
+        c.sub(binding.point.eq0).mul(first).add(c.sub(binding.point.eq1).mul(second)),
+        c.sub(c_next2.mul(q)),
+        s.sub(s_prev).sub(c.mul(e)).add(shift),
+    };
+}

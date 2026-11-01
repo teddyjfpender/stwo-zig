@@ -1,5 +1,4 @@
 const std = @import("std");
-const fraction = @import("stwo_core").fraction;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const sumcheck = @import("sumcheck.zig");
@@ -8,29 +7,11 @@ const utils = @import("utils.zig");
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 
-pub const GkrError = error{
-    MalformedProof,
-    InvalidMask,
-    NumInstancesMismatch,
-    InvalidSumcheck,
-    CircuitCheckFailure,
-    ShapeMismatch,
-};
+const kernel = @import("verifier_kernel.zig");
+pub const GkrError = kernel.GkrError;
 
 /// Values obtained from partial GKR verification.
-pub const GkrArtifact = struct {
-    ood_point: []QM31,
-    claims_to_verify_by_instance: [][]QM31,
-    n_variables_by_instance: []usize,
-
-    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
-        allocator.free(self.ood_point);
-        for (self.claims_to_verify_by_instance) |claims| allocator.free(claims);
-        allocator.free(self.claims_to_verify_by_instance);
-        allocator.free(self.n_variables_by_instance);
-        self.* = undefined;
-    }
-};
+pub const GkrArtifact = kernel.Artifact(QM31);
 
 /// Stores two evaluations of each column in a GKR layer.
 pub const GkrMask = struct {
@@ -109,224 +90,21 @@ pub const Gate = enum {
         allocator: std.mem.Allocator,
         mask: *const GkrMask,
     ) GkrError![]QM31 {
-        return switch (self) {
-            .LogUp => blk: {
-                if (mask.columns.len != 2) return GkrError.InvalidMask;
-
-                const numerator = mask.columns[0];
-                const denominator = mask.columns[1];
-
-                const a = fraction.Fraction(QM31, QM31).new(numerator[0], denominator[0]);
-                const b = fraction.Fraction(QM31, QM31).new(numerator[1], denominator[1]);
-                const res = a.add(b);
-
-                const out = allocator.alloc(QM31, 2) catch return GkrError.ShapeMismatch;
-                out[0] = res.numerator;
-                out[1] = res.denominator;
-                break :blk out;
-            },
-            .GrandProduct => blk: {
-                if (mask.columns.len != 1) return GkrError.InvalidMask;
-                const out = allocator.alloc(QM31, 1) catch return GkrError.ShapeMismatch;
-                out[0] = mask.columns[0][0].mul(mask.columns[0][1]);
-                break :blk out;
-            },
-        };
+        return kernel.evalGate(QM31, allocator, self, mask.columns);
     }
 };
 
 /// Partially verifies a batch GKR proof.
-pub fn partiallyVerifyBatch(
-    allocator: std.mem.Allocator,
-    gate_by_instance: []const Gate,
-    proof: *const GkrBatchProof,
-    channel: anytype,
-) (std.mem.Allocator.Error || GkrError)!GkrArtifact {
-    if (proof.layer_masks_by_instance.len != proof.output_claims_by_instance.len) {
-        return GkrError.MalformedProof;
-    }
-
-    const n_instances = proof.layer_masks_by_instance.len;
-    var n_layers: usize = 0;
-    for (proof.layer_masks_by_instance) |masks| {
-        n_layers = @max(n_layers, masks.len);
-    }
-
-    if (n_layers != proof.sumcheck_proofs.len) return GkrError.MalformedProof;
-    if (gate_by_instance.len != n_instances) return GkrError.NumInstancesMismatch;
-
-    var ood_point = try allocator.alloc(QM31, 0);
-    errdefer allocator.free(ood_point);
-
-    var claims_to_verify_by_instance = try allocator.alloc(?[]QM31, n_instances);
-    errdefer {
-        for (claims_to_verify_by_instance) |maybe_claims| {
-            if (maybe_claims) |claims| allocator.free(claims);
-        }
-        allocator.free(claims_to_verify_by_instance);
-    }
-    @memset(claims_to_verify_by_instance, null);
-
-    for (proof.sumcheck_proofs, 0..) |*sumcheck_proof, layer| {
-        const n_remaining_layers = n_layers - layer;
-
-        for (0..n_instances) |instance| {
-            if (proof.layer_masks_by_instance[instance].len == n_remaining_layers) {
-                const fresh_claims = try allocator.dupe(
-                    QM31,
-                    proof.output_claims_by_instance[instance],
-                );
-                try replaceClaim(
-                    allocator,
-                    &claims_to_verify_by_instance[instance],
-                    fresh_claims,
-                );
-            }
-        }
-
-        for (claims_to_verify_by_instance) |maybe_claims| {
-            if (maybe_claims) |claims| channel.mixFelts(claims);
-        }
-
-        const sumcheck_alpha = channel.drawSecureFelt();
-        const instance_lambda = channel.drawSecureFelt();
-
-        var sumcheck_claims = std.ArrayList(QM31).empty;
-        defer sumcheck_claims.deinit(allocator);
-
-        var sumcheck_instances = std.ArrayList(usize).empty;
-        defer sumcheck_instances.deinit(allocator);
-
-        for (claims_to_verify_by_instance, 0..) |maybe_claims, instance| {
-            if (maybe_claims) |claims| {
-                const n_unused_variables = n_layers - proof.layer_masks_by_instance[instance].len;
-                const claim = utils.randomLinearCombination(claims, instance_lambda)
-                    .mulM31(pow2Base(n_unused_variables));
-                try sumcheck_claims.append(allocator, claim);
-                try sumcheck_instances.append(allocator, instance);
-            }
-        }
-
-        const sumcheck_claim = utils.randomLinearCombination(sumcheck_claims.items, sumcheck_alpha);
-
-        var sumcheck_artifact = sumcheck.partiallyVerify(
-            allocator,
-            sumcheck_claim,
-            sumcheck_proof,
-            channel,
-        ) catch |err| switch (err) {
-            std.mem.Allocator.Error.OutOfMemory => return error.OutOfMemory,
-            else => return GkrError.InvalidSumcheck,
+pub const NativeChecks = struct {
+    pub fn requireEq(_: NativeChecks, lhs: QM31, rhs: QM31, check: kernel.Check) GkrError!void {
+        if (!lhs.eql(rhs)) return switch (check) {
+            .sum => error.InvalidSumcheck,
+            .gate, .terminal => error.CircuitCheckFailure,
         };
-        defer sumcheck_artifact.deinit(allocator);
-
-        var layer_evals = std.ArrayList(QM31).empty;
-        defer layer_evals.deinit(allocator);
-
-        for (sumcheck_instances.items) |instance| {
-            const n_unused = n_layers - proof.layer_masks_by_instance[instance].len;
-            if (layer < n_unused) return GkrError.MalformedProof;
-            const instance_layer = layer - n_unused;
-            if (instance_layer >= proof.layer_masks_by_instance[instance].len) {
-                return GkrError.MalformedProof;
-            }
-
-            const mask = &proof.layer_masks_by_instance[instance][instance_layer];
-            const gate_output = gate_by_instance[instance].eval(allocator, mask) catch |err| switch (err) {
-                GkrError.InvalidMask => return GkrError.InvalidMask,
-                else => return err,
-            };
-            defer allocator.free(gate_output);
-
-            const eq_eval = utils.eq(
-                QM31,
-                ood_point[n_unused..],
-                sumcheck_artifact.assignment[n_unused..],
-            ) catch return GkrError.ShapeMismatch;
-
-            try layer_evals.append(
-                allocator,
-                eq_eval.mul(utils.randomLinearCombination(gate_output, instance_lambda)),
-            );
-        }
-
-        const layer_eval = utils.randomLinearCombination(layer_evals.items, sumcheck_alpha);
-        if (!sumcheck_artifact.claimed_eval.eql(layer_eval)) {
-            return GkrError.CircuitCheckFailure;
-        }
-
-        for (sumcheck_instances.items) |instance| {
-            const n_unused = n_layers - proof.layer_masks_by_instance[instance].len;
-            const instance_layer = layer - n_unused;
-            const mask = &proof.layer_masks_by_instance[instance][instance_layer];
-            const flattened = try flattenMaskColumns(allocator, mask);
-            defer allocator.free(flattened);
-            channel.mixFelts(flattened);
-        }
-
-        const challenge = channel.drawSecureFelt();
-        const next_ood = try allocator.alloc(QM31, sumcheck_artifact.assignment.len + 1);
-        @memcpy(next_ood[0..sumcheck_artifact.assignment.len], sumcheck_artifact.assignment);
-        next_ood[sumcheck_artifact.assignment.len] = challenge;
-        allocator.free(ood_point);
-        ood_point = next_ood;
-
-        for (sumcheck_instances.items) |instance| {
-            const n_unused = n_layers - proof.layer_masks_by_instance[instance].len;
-            const instance_layer = layer - n_unused;
-            const mask = &proof.layer_masks_by_instance[instance][instance_layer];
-            const reduced = try mask.reduceAtPoint(allocator, challenge);
-            try replaceClaim(allocator, &claims_to_verify_by_instance[instance], reduced);
-        }
     }
-
-    const finalized_claims = try allocator.alloc([]QM31, n_instances);
-    errdefer allocator.free(finalized_claims);
-
-    for (claims_to_verify_by_instance, 0..) |maybe_claims, i| {
-        const claims = maybe_claims orelse return GkrError.MalformedProof;
-        finalized_claims[i] = claims;
-        claims_to_verify_by_instance[i] = null;
-    }
-
-    const n_variables_by_instance = try allocator.alloc(usize, n_instances);
-    for (proof.layer_masks_by_instance, 0..) |masks, i| {
-        n_variables_by_instance[i] = masks.len;
-    }
-
-    allocator.free(claims_to_verify_by_instance);
-    return .{
-        .ood_point = ood_point,
-        .claims_to_verify_by_instance = finalized_claims,
-        .n_variables_by_instance = n_variables_by_instance,
-    };
-}
-
-fn replaceClaim(
-    allocator: std.mem.Allocator,
-    slot: *?[]QM31,
-    next: []QM31,
-) !void {
-    if (slot.*) |old| allocator.free(old);
-    slot.* = next;
-}
-
-fn flattenMaskColumns(allocator: std.mem.Allocator, mask: *const GkrMask) ![]QM31 {
-    const out = try allocator.alloc(QM31, mask.columns.len * 2);
-    for (mask.columns, 0..) |column, i| {
-        out[2 * i] = column[0];
-        out[2 * i + 1] = column[1];
-    }
-    return out;
-}
-
-fn pow2Base(n: usize) M31 {
-    var out = M31.one();
-    var i: usize = 0;
-    while (i < n) : (i += 1) {
-        out = out.add(out);
-    }
-    return out;
+};
+pub fn partiallyVerifyBatch(a: std.mem.Allocator, gates: []const Gate, proof: *const GkrBatchProof, channel: anytype) (std.mem.Allocator.Error || GkrError)!GkrArtifact {
+    return kernel.partiallyVerifyBatch(QM31, a, gates, proof, channel, NativeChecks{});
 }
 
 test "gkr verifier: mask reduce and gate eval" {

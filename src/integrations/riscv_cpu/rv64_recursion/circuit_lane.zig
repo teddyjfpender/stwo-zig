@@ -92,7 +92,20 @@ pub const Lane = struct {
     }
     /// The guessed inverse, constrained to `self * inv = 1` (so `self != 0`).
     pub fn inv(self: Lane) Lane {
-        return .{ .v = latch(ctx().inv(self.v)) };
+        // Invalid witness denominators must emit an unsatisfied constraint,
+        // not panic in the builder's value-mode division. Witness selection
+        // changes only the guessed value, never topology or gate order.
+        const inverse_value = ctx().get(self.v).inv() catch Q.zero();
+        ctx().stats.inv += 1;
+        const inverse = latch(ctx().guess(inverse_value));
+        const product = latch(ctx().mul(self.v, inverse));
+        ctx().eq(product, one().v) catch |err| {
+            if (failure == null) failure = err;
+        };
+        return .{ .v = inverse };
+    }
+    pub fn div(self: Lane, other: Lane) Lane {
+        return self.mul(other.inv());
     }
     /// The value of the wire in value mode (for parity checks).
     pub fn value(self: Lane) Q {

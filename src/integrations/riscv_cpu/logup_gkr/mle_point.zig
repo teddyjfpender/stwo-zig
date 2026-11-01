@@ -30,67 +30,75 @@ pub const Error = error{
 };
 
 /// Lagrange kernel over the boolean hypercube.
-pub fn eq(x: []const QM31, y: []const QM31) QM31 {
+pub fn eqFor(comptime F: type, x: []const F, y: []const F) F {
     std.debug.assert(x.len == y.len);
-    var out = QM31.one();
+    var out = F.one();
     for (x, y) |a, b| {
-        out = out.mul(a.mul(b).add(QM31.one().sub(a).mul(QM31.one().sub(b))));
+        out = out.mul(a.mul(b).add(F.one().sub(a).mul(F.one().sub(b))));
     }
     return out;
 }
 
+pub fn eq(x: []const QM31, y: []const QM31) QM31 {
+    return eqFor(QM31, x, y);
+}
+
 /// Verifier-side succinct data of an MLE evaluation point.
-pub const MleEvalPoint = struct {
-    n: usize,
-    p: [MAX_VARIABLES]QM31,
-    /// eq(0^n, p)
-    eq0: QM31,
-    /// eq(1^n, p)
-    eq1: QM31,
-    /// Half-coset-0 carry quotients; index n-1 includes the wrap factor.
-    hc0: [MAX_VARIABLES]QM31,
-    /// Inverses of `hc0`.
-    hc1: [MAX_VARIABLES]QM31,
+pub const MleEvalPoint = MleEvalPointFor(QM31);
 
-    pub fn init(point: []const QM31) Error!MleEvalPoint {
-        if (point.len == 0) return error.EmptyEvalPoint;
-        if (point.len > MAX_VARIABLES) return error.TooManyVariables;
-        var out: MleEvalPoint = undefined;
-        out.n = point.len;
-        @memset(&out.p, QM31.zero());
-        @memcpy(out.p[0..point.len], point);
-        for (point) |v| {
-            if (v.isZero() or v.eql(QM31.one())) return error.DegenerateEvalPoint;
-        }
-        out.eq0 = QM31.one();
-        out.eq1 = QM31.one();
-        for (point) |v| {
-            out.eq0 = out.eq0.mul(QM31.one().sub(v));
-            out.eq1 = out.eq1.mul(v);
-        }
-        // eq((1^i, 0), p[0..i+1]) / eq((0^i, 1), p[0..i+1])
-        var prefix_ones = QM31.one();
-        var prefix_zeros = QM31.one();
-        for (point, 0..) |v, i| {
-            const num = prefix_ones.mul(QM31.one().sub(v));
-            const den = prefix_zeros.mul(v);
-            out.hc0[i] = num.div(den) catch return error.DivisionByZero;
-            prefix_ones = prefix_ones.mul(v);
-            prefix_zeros = prefix_zeros.mul(QM31.one().sub(v));
-        }
-        const last = point[point.len - 1];
-        const wrap = last.div(QM31.one().sub(last)) catch return error.DivisionByZero;
-        out.hc0[point.len - 1] = out.hc0[point.len - 1].mul(wrap);
-        for (0..point.len) |i| {
-            out.hc1[i] = out.hc0[i].inv() catch return error.DivisionByZero;
-        }
-        return out;
-    }
+pub fn MleEvalPointFor(comptime F: type) type {
+    return struct {
+        n: usize,
+        p: [MAX_VARIABLES]F,
+        /// eq(0^n, p)
+        eq0: F,
+        /// eq(1^n, p)
+        eq1: F,
+        /// Half-coset-0 carry quotients; index n-1 includes the wrap factor.
+        hc0: [MAX_VARIABLES]F,
+        /// Inverses of `hc0`.
+        hc1: [MAX_VARIABLES]F,
 
-    pub fn slice(self: *const MleEvalPoint) []const QM31 {
-        return self.p[0..self.n];
-    }
-};
+        pub fn init(point: []const F) Error!@This() {
+            if (point.len == 0) return error.EmptyEvalPoint;
+            if (point.len > MAX_VARIABLES) return error.TooManyVariables;
+            var out: @This() = undefined;
+            out.n = point.len;
+            @memset(&out.p, F.zero());
+            @memcpy(out.p[0..point.len], point);
+            if (F == QM31) for (point) |v| {
+                if (v.isZero() or v.eql(F.one())) return error.DegenerateEvalPoint;
+            };
+            out.eq0 = F.one();
+            out.eq1 = F.one();
+            for (point) |v| {
+                out.eq0 = out.eq0.mul(F.one().sub(v));
+                out.eq1 = out.eq1.mul(v);
+            }
+            // eq((1^i, 0), p[0..i+1]) / eq((0^i, 1), p[0..i+1])
+            var prefix_ones = F.one();
+            var prefix_zeros = F.one();
+            for (point, 0..) |v, i| {
+                const num = prefix_ones.mul(F.one().sub(v));
+                const den = prefix_zeros.mul(v);
+                out.hc0[i] = try divideFor(F, num, den);
+                prefix_ones = prefix_ones.mul(v);
+                prefix_zeros = prefix_zeros.mul(F.one().sub(v));
+            }
+            const last = point[point.len - 1];
+            const wrap = try divideFor(F, last, F.one().sub(last));
+            out.hc0[point.len - 1] = out.hc0[point.len - 1].mul(wrap);
+            for (0..point.len) |i| {
+                out.hc1[i] = try inverseFor(F, out.hc0[i]);
+            }
+            return out;
+        }
+
+        pub fn slice(self: *const @This()) []const F {
+            return self.p[0..self.n];
+        }
+    };
+}
 
 /// Storage index (bit-reversed circle-domain order) of coset index `k`.
 pub fn storageIndex(coset_index: usize, log_size: u32) usize {
@@ -130,74 +138,96 @@ pub fn genCarryQuotientCol(allocator: std.mem.Allocator, point: *const MleEvalPo
     return out;
 }
 
-fn ef(p: CirclePointM31) CirclePointQM31 {
-    return .{ .x = QM31.fromBase(p.x), .y = QM31.fromBase(p.y) };
+fn efFor(comptime F: type, p: CirclePointM31) circle.CirclePoint(F) {
+    return .{ .x = F.fromBase(p.x), .y = F.fromBase(p.y) };
 }
 
 /// Lagrange selector of the first coset point, at an arbitrary point.
-pub fn evalIsFirst(coset: Coset, p: CirclePointQM31) Error!QM31 {
-    const num = constraints.cosetVanishing(QM31, coset, p);
-    const pv = constraints.pointVanishing(QM31, ef(coset.initial), p) catch return error.DivisionByZero;
+pub fn evalIsFirstFor(comptime F: type, coset: Coset, p: circle.CirclePoint(F)) Error!F {
+    const num = constraints.cosetVanishing(F, coset, p);
+    const pv = constraints.pointVanishing(F, efFor(F, coset.initial), p) catch return error.DivisionByZero;
     const size = M31.fromU64(@as(u64, 1) << @intCast(coset.log_size));
-    return num.div(pv.mulM31(size)) catch return error.DivisionByZero;
+    return divideFor(F, num, pv.mul(F.fromBase(size)));
 }
 
 /// Polynomial that is 1 every `2^log_step` coset points and 0 elsewhere on the coset.
-fn evalStepSelector(coset: Coset, log_step: u32, p_in: CirclePointQM31) Error!QM31 {
-    if (log_step == 0) return QM31.one();
+fn evalStepSelectorFor(comptime F: type, coset: Coset, log_step: u32, p_in: circle.CirclePoint(F)) Error!F {
+    if (log_step == 0) return F.one();
     std.debug.assert(log_step >= 2 and log_step <= coset.log_size);
-    var p = p_in.sub(ef(coset.initial));
-    var ys: [MAX_VARIABLES + 1]QM31 = undefined;
+    var p = p_in.sub(efFor(F, coset.initial));
+    var ys: [MAX_VARIABLES + 1]F = undefined;
     for (0..coset.log_size) |i| {
         ys[i] = p.y;
         p = p.double();
     }
     // Reverse and truncate to `log_step` values.
-    var v: [MAX_VARIABLES + 1]QM31 = undefined;
+    var v: [MAX_VARIABLES + 1]F = undefined;
     for (0..log_step) |i| v[i] = ys[coset.log_size - 1 - i];
-    var inv: [MAX_VARIABLES + 1]QM31 = undefined;
-    for (0..log_step) |i| inv[i] = v[i].inv() catch return error.DivisionByZero;
+    var inv: [MAX_VARIABLES + 1]F = undefined;
+    for (0..log_step) |i| inv[i] = try inverseFor(F, v[i]);
     const dbl = v[0].mul(inv[1]).square();
-    var sum = QM31.zero();
+    var sum = F.zero();
     for (1..log_step) |i| sum = sum.add(inv[i]);
     const numer = dbl.add(v[0].mul(sum.add(sum)));
     const scale = M31.fromU64(@as(u64, 1) << @intCast(log_step + 1));
-    return numer.divM31(scale) catch return error.DivisionByZero;
+    return divideBaseFor(F, numer, scale);
 }
 
-fn evalStepSelectorWithOffset(coset: Coset, offset: usize, log_step: u32, p: CirclePointQM31) Error!QM31 {
+fn evalStepSelectorWithOffsetFor(comptime F: type, coset: Coset, offset: usize, log_step: u32, p: circle.CirclePoint(F)) Error!F {
     const shift = coset.step.mul(offset);
-    return evalStepSelector(coset, log_step, p.sub(ef(shift)));
+    return evalStepSelectorFor(F, coset, log_step, p.sub(efFor(F, shift)));
 }
 
 /// Succinct evaluation of the carry quotient column's interpolant at `p`
 /// (a point already folded to the trace coset of size `2^n`).
-pub fn evalCarryQuotient(point: *const MleEvalPoint, p: CirclePointQM31) Error!QM31 {
+pub fn evalCarryQuotientFor(comptime F: type, point: *const MleEvalPointFor(F), p: circle.CirclePoint(F)) Error!F {
     const log_size: u32 = @intCast(point.n);
     const coset = canonic.CanonicCoset.new(log_size).coset();
-    var acc = QM31.zero();
+    var acc = F.zero();
     if (point.n >= 2) {
         for (0..point.n - 1) |variable_i| {
             const log_step: u32 = @intCast(variable_i + 2);
             const offset = (@as(usize, 1) << @intCast(log_step - 1)) - 2;
-            const s0 = try evalStepSelectorWithOffset(coset, offset, log_step, p);
-            const s1 = try evalStepSelectorWithOffset(coset, offset + 1, log_step, p);
+            const s0 = try evalStepSelectorWithOffsetFor(F, coset, offset, log_step, p);
+            const s1 = try evalStepSelectorWithOffsetFor(F, coset, offset + 1, log_step, p);
             acc = acc.add(s0.mul(point.hc0[variable_i])).add(s1.mul(point.hc1[variable_i]));
         }
     }
-    const last0 = try evalIsFirst(coset, p.add(ef(coset.step.double())));
-    const first1 = try evalIsFirst(coset, p.add(ef(coset.step)));
+    const last0 = try evalIsFirstFor(F, coset, p.add(efFor(F, coset.step.double())));
+    const first1 = try evalIsFirstFor(F, coset, p.add(efFor(F, coset.step)));
     acc = acc.add(point.hc0[point.n - 1].mul(last0)).add(point.hc1[point.n - 1].mul(first1));
     return acc;
 }
 
 /// `is_first` and `is_second` (`is_first` shifted by one coset step) at `p`.
-pub fn evalAnchors(log_size: u32, p: CirclePointQM31) Error![2]QM31 {
+pub fn evalAnchorsFor(comptime F: type, log_size: u32, p: circle.CirclePoint(F)) Error![2]F {
     const coset = canonic.CanonicCoset.new(log_size).coset();
     return .{
-        try evalIsFirst(coset, p),
-        try evalIsFirst(coset, p.sub(ef(coset.step))),
+        try evalIsFirstFor(F, coset, p),
+        try evalIsFirstFor(F, coset, p.sub(efFor(F, coset.step))),
     };
+}
+
+pub fn evalIsFirst(coset: Coset, p: CirclePointQM31) Error!QM31 {
+    return evalIsFirstFor(QM31, coset, p);
+}
+pub fn evalCarryQuotient(point: *const MleEvalPoint, p: CirclePointQM31) Error!QM31 {
+    return evalCarryQuotientFor(QM31, point, p);
+}
+pub fn evalAnchors(log: u32, p: CirclePointQM31) Error![2]QM31 {
+    return evalAnchorsFor(QM31, log, p);
+}
+fn inverseFor(comptime F: type, value: F) Error!F {
+    if (F == QM31) return value.inv() catch return error.DivisionByZero;
+    return value.inv();
+}
+fn divideFor(comptime F: type, lhs: F, rhs: F) Error!F {
+    if (F == QM31) return lhs.div(rhs) catch return error.DivisionByZero;
+    return lhs.mul(try inverseFor(F, rhs));
+}
+fn divideBaseFor(comptime F: type, value: F, base: M31) Error!F {
+    if (F == QM31) return value.divM31(base) catch return error.DivisionByZero;
+    return value.mul(F.fromBase(base.inv() catch return error.DivisionByZero));
 }
 
 /// Multilinear extension of `values` (index bits MSB-first) at `r`.

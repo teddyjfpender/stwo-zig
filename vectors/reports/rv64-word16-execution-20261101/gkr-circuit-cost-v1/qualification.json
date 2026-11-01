@@ -1,0 +1,35 @@
+{
+  "schema": "rv64-shared-gkr-circuit-authority-qualification-v1",
+  "base_commit": "fe3b29fc0",
+  "production_receiver_changed": false,
+  "whole_recursive_proof": false,
+  "whole_protocol_128_qualified": false,
+  "gpu_qualified": false,
+  "shared_numerical_authority": true,
+  "proof_values_are_guessed_wires": true,
+  "tests_passed": [
+    "test-riscv64-gkr-circuit ReleaseSafe (nine direct cases plus inherited MLE point cases)",
+    "test-riscv64-gkr-circuit ReleaseFast (nine direct cases plus inherited MLE point cases)",
+    "test-riscv64-logup-gkr-prototype ReleaseSafe",
+    "test-riscv64-logup-gkr-prototype ReleaseFast",
+    "test-riscv64-recursion-circuit ReleaseSafe",
+    "rv64-gkr-circuit-cost ReleaseFast tool build"
+  ],
+  "real_bundle": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "hi_log": 16,
+    "lo_log": 8,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "fresh_native_accepted": true,
+    "circuit_fragment_satisfied": true,
+    "capture_counts_repeated_identical": true
+  },
+  "limitations": [
+    "Full PCS/DEEP/FRI authentication remains native in the diagnostic fragment",
+    "No full recursive circuit proof created",
+    "No native speedup or circuit-proving time claim",
+    "Production shape and secure transcript changes remain unqualified",
+    "Last CLI cleanup removes a redundant native replay and unused loop index; rebuilt, final runtime repeat deferred during controlled ABBA quiet window"
+  ]
+}

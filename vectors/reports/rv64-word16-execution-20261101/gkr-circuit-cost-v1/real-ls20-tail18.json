@@ -1,0 +1,66 @@
+{
+  "schema": "rv64-gkr-actual-circuit-cost-v1",
+  "scope": "native-fresh-accepted-mini-AIR; circuit GKR+terminal-binding fragment only, PCS authentication remains native",
+  "whole_recursive_proof": false,
+  "whole_protocol_128": false,
+  "statement": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "hi_log": 16,
+    "lo_log": 8
+  },
+  "proof_sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+  "gkr_fragment_ns": 3369416,
+  "total_fragment_ns": 4838125,
+  "after_gkr": {
+    "gates": {
+      "eq": 300,
+      "qm31_ops": 25280,
+      "m31_to_u32": 5520,
+      "triple_xor": 8304,
+      "blake_g_gate": 83040
+    },
+    "operations": {
+      "equals": 300,
+      "add": 5157,
+      "sub": 1106,
+      "mul": 10713,
+      "inv": 0,
+      "div": 0,
+      "pointwise_mul": 8304,
+      "guess": 1308,
+      "blake_updates": 1038,
+      "permutation_inputs": 0,
+      "outputs": 1,
+      "triple_xor": 8304,
+      "m31_to_u32": 5520
+    },
+    "variables": 372595
+  },
+  "after_finalization": {
+    "gates": {
+      "eq": 1171,
+      "qm31_ops": 42107,
+      "m31_to_u32": 5576,
+      "triple_xor": 8344,
+      "blake_g_gate": 83440
+    },
+    "operations": {
+      "equals": 1171,
+      "add": 10918,
+      "sub": 3376,
+      "mul": 19485,
+      "inv": 855,
+      "div": 0,
+      "pointwise_mul": 8328,
+      "guess": 2241,
+      "blake_updates": 1043,
+      "permutation_inputs": 0,
+      "outputs": 1,
+      "triple_xor": 8344,
+      "m31_to_u32": 5576
+    },
+    "variables": 389787
+  },
+  "valid": true
+}

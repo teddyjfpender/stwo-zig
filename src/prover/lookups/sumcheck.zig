@@ -6,7 +6,7 @@ const lookup_utils = @import("utils.zig");
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 
-pub const MAX_DEGREE: usize = 3;
+pub const MAX_DEGREE: usize = @import("verifier_kernel.zig").MAX_DEGREE;
 
 pub const SumcheckError = error{
     EmptyBatch,
@@ -185,32 +185,14 @@ pub fn proveBatch(
 }
 
 /// Partially verifies a sum-check proof and returns `(assignment, claimed_eval)`.
-pub fn partiallyVerify(
-    allocator: std.mem.Allocator,
-    claim_in: QM31,
-    proof: *const SumcheckProof,
-    channel: anytype,
-) (std.mem.Allocator.Error || SumcheckError)!PartialVerifyResult {
-    var claim = claim_in;
-    var assignment = std.ArrayList(QM31).empty;
-    defer assignment.deinit(allocator);
-
-    for (proof.round_polys) |round_poly| {
-        if (round_poly.degree() > MAX_DEGREE) return SumcheckError.DegreeInvalid;
-
-        const sum = round_poly.evalAtPoint(QM31.zero()).add(round_poly.evalAtPoint(QM31.one()));
-        if (!claim.eql(sum)) return SumcheckError.SumInvalid;
-
-        channel.mixFelts(round_poly.coeffsSlice());
-        const challenge = channel.drawSecureFelt();
-        claim = round_poly.evalAtPoint(challenge);
-        try assignment.append(allocator, challenge);
+const NativeChecks = struct {
+    pub fn requireEq(_: NativeChecks, lhs: QM31, rhs: QM31, _: @import("verifier_kernel.zig").Check) SumcheckError!void {
+        if (!lhs.eql(rhs)) return error.SumInvalid;
     }
-
-    return .{
-        .assignment = try assignment.toOwnedSlice(allocator),
-        .claimed_eval = claim,
-    };
+};
+pub fn partiallyVerify(a: std.mem.Allocator, claim: QM31, proof: *const SumcheckProof, channel: anytype) (std.mem.Allocator.Error || SumcheckError)!PartialVerifyResult {
+    const result = try @import("verifier_kernel.zig").verifySumcheck(QM31, a, claim, proof, channel, NativeChecks{});
+    return .{ .assignment = result.assignment, .claimed_eval = result.claimed_eval };
 }
 
 fn randomLinearCombination(

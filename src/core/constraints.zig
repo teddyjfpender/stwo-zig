@@ -99,6 +99,7 @@ pub fn complexConjugateLineCoeffs(point: circle.CirclePointQM31, value: QM31, al
 fn fromBase(comptime F: type, value: M31) F {
     if (F == M31) return value;
     if (F == QM31) return QM31.fromBase(value);
+    if (@hasDecl(F, "fromBase")) return F.fromBase(value);
     @compileError("unsupported field conversion from base");
 }
 

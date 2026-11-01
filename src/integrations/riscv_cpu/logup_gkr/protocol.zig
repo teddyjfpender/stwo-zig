@@ -112,31 +112,34 @@ pub const ProvedStatement = struct {
 };
 
 /// Per-instance receiver-derivable binding data.
-pub const Binding = struct {
-    point: MP.MleEvalPoint,
-    k_const: QM31,
-    u: [W.LANES]QM31,
-    delta: QM31,
+pub const Binding = BindingFor(QM31);
+pub fn BindingFor(comptime F: type) type {
+    return struct {
+        point: MP.MleEvalPointFor(F),
+        k_const: F,
+        u: [W.LANES]F,
+        delta: F,
 
-    /// `r_inst` is the instance's GKR terminal point (length log + 4).
-    pub fn init(r_inst: []const QM31, log: u32, ch: Air.Challenges, delta: QM31) !Binding {
-        if (r_inst.len != log + W.LOG_LANES) return error.GkrShapeMismatch;
-        const r_row = r_inst[0..log];
-        const r_lane = r_inst[log..];
-        var out: Binding = undefined;
-        out.point = try MP.MleEvalPoint.init(r_row);
-        out.k_const = QM31.zero();
-        for (0..W.LANES) |j| {
-            var bits: [W.LOG_LANES]QM31 = undefined;
-            for (0..W.LOG_LANES) |b| bits[b] = if ((j >> @intCast(W.LOG_LANES - 1 - b)) & 1 == 1) QM31.one() else QM31.zero();
-            const w = MP.eq(&bits, r_lane);
-            out.k_const = out.k_const.add(w.mul(ch.offset(j)));
-            out.u[j] = w.mul(ch.coefficient(j));
+        /// `r_inst` is the instance's GKR terminal point (length log + 4).
+        pub fn init(r_inst: []const F, log: u32, ch: anytype, delta: F) !@This() {
+            if (r_inst.len != log + W.LOG_LANES) return error.GkrShapeMismatch;
+            const r_row = r_inst[0..log];
+            const r_lane = r_inst[log..];
+            var out: @This() = undefined;
+            out.point = try MP.MleEvalPointFor(F).init(r_row);
+            out.k_const = F.zero();
+            for (0..W.LANES) |j| {
+                var bits: [W.LOG_LANES]F = undefined;
+                for (0..W.LOG_LANES) |b| bits[b] = if ((j >> @intCast(W.LOG_LANES - 1 - b)) & 1 == 1) F.one() else F.zero();
+                const w = MP.eqFor(F, &bits, r_lane);
+                out.k_const = out.k_const.add(w.mul(ch.offset(j)));
+                out.u[j] = w.mul(ch.coefficient(j));
+            }
+            out.delta = delta;
+            return out;
         }
-        out.delta = delta;
-        return out;
-    }
-};
+    };
+}
 
 /// Shared prover/receiver component set. Geometry fixes every offset.
 pub const Components = struct {
