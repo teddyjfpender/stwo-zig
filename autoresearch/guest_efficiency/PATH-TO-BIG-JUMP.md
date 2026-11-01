@@ -101,6 +101,8 @@ To find out how much of the gap Zbb explains before building any AIR:
 
 ## Checklist
 
+For resumable per-track TODOs, branch heads and the next levers, see [HANDOFF.md](HANDOFF.md).
+
 Ticked items are done and evidenced; each line names its branch or commit.
 Unticked items are in progress or not started. Keep this list current: tick an
 item only with its evidence.
