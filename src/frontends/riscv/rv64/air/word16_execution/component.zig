@@ -23,6 +23,9 @@ pub fn ComponentFor(comptime C: type) type {
         public: T.InputsFor(C),
         claim: C,
         challenges: T.ChallengesFor(C),
+        /// Opt-in fused-tail interaction (36 columns, 51 residuals). Default
+        /// false keeps the historical 40-column transcript byte-identical.
+        fused: bool = false,
         const Self = @This();
         const Adapter = core.air.derive.ComponentAdapter(Self, cp.ComponentProver, cp.Trace, accumulation.DomainEvaluationAccumulator);
         pub fn asProverComponent(self: *const Self) cp.ComponentProver {
@@ -40,8 +43,8 @@ pub fn ComponentFor(comptime C: type) type {
         pub fn asVerifierComponent(self: *const Self) core.air.components.Component {
             return Adapter.asVerifierComponent(self);
         }
-        pub fn nConstraints(_: *const Self) usize {
-            return Eq.CONSTRAINTS;
+        pub fn nConstraints(self: *const Self) usize {
+            return Eq.constraintCount(self.fused);
         }
         pub fn maxConstraintLogDegreeBound(self: *const Self) u32 {
             return self.log_size + 1;
@@ -49,15 +52,15 @@ pub fn ComponentFor(comptime C: type) type {
         pub fn compositionLogSplit(_: *const Self) u32 {
             return 1;
         }
-        pub fn constraintDegreeBound(_: *const Self, index: usize) !u8 {
-            if (index >= Eq.CONSTRAINTS) return error.InvalidConstraintIndex;
+        pub fn constraintDegreeBound(self: *const Self, index: usize) !u8 {
+            if (index >= self.nConstraints()) return error.InvalidConstraintIndex;
             return 3;
         }
-        pub fn widths(_: *const Self) [3]usize {
-            return .{ 3, L.main.COUNT, L.inter.COUNT };
+        pub fn widths(self: *const Self) [3]usize {
+            return .{ 3, L.main.COUNT, L.interCount(self.fused) };
         }
-        pub fn needsPrevious(_: *const Self, tree: usize, column: usize) bool {
-            return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInter(column);
+        pub fn needsPrevious(self: *const Self, tree: usize, column: usize) bool {
+            return if (tree == 1) L.previousMain(column) else tree == 2 and L.previousInterFor(self.fused, column);
         }
         pub fn traceLogDegreeBounds(self: *const Self, a: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
             if (self.log_size < L.MIN_LOG or self.log_size > L.MAX_LOG) return error.InvalidExecutionGeometry;
@@ -93,7 +96,9 @@ pub fn ComponentFor(comptime C: type) type {
             return core.air.components.MaskPoints.initOwned(try a.dupe([][]core.circle.CirclePointQM31, &masks));
         }
         pub fn emitFor(self: *const Self, comptime F: type, f: []const F, m: []const F, pm: []const F, i: []const F, pi: []const F, sink: *E.SinkFor(F)) void {
-            Eq.emitFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
+            if (self.fused) {
+                Eq.emitFusedFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
+            } else Eq.emitFor(F, f, m, pm, i, pi, self.public, self.claim, self.challenges, sink);
         }
         pub fn evaluateConstraintQuotientsAtPoint(self: *const Self, point: core.circle.CirclePointQM31, mask: *const core.air.components.MaskValues, acc: *core.air.accumulation.PointEvaluationAccumulator, global_log: u32) !void {
             var sink = E.Sink{ .values = null, .accumulator = acc };
@@ -113,13 +118,14 @@ pub fn ComponentFor(comptime C: type) type {
                 v.* = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 0, if (prior) 2 else 1);
                 if (prior) pm[c] = try E.lane.sample(F, masks, 1, self.offsets[1] + c, 1, 2);
             }
-            for (&inter, 0..) |*v, c| {
-                const prior = L.previousInter(c);
+            const inter_count = L.interCount(self.fused);
+            for (inter[0..inter_count], 0..) |*v, c| {
+                const prior = L.previousInterFor(self.fused, c);
                 v.* = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 0, if (prior) 2 else 1);
                 if (prior) pi[c] = try E.lane.sample(F, masks, 2, self.offsets[2] + c, 1, 2);
             }
             sink.scale = try geometry.denominatorInverseFor(F, point, global_log, self.log_size);
-            self.emitFor(F, &fixed, &main, &pm, &inter, &pi, sink);
+            self.emitFor(F, &fixed, &main, &pm, inter[0..inter_count], pi[0..inter_count], sink);
         }
         pub fn evaluateConstraintQuotientsOnDomain(self: *const Self, trace: *const cp.Trace, acc: *accumulation.DomainEvaluationAccumulator) !void {
             return self.evaluateDomain(trace, acc, null);
@@ -139,8 +145,9 @@ pub fn ComponentFor(comptime C: type) type {
             const log = self.log_size + 1;
             const domain = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
             const n = domain.size();
+            const total = at;
             var count: usize = 0;
-            for (polys) |poly| count += @intFromBool(try support.sourceNeedsExtension(poly, self.log_size, log));
+            for (polys[0..total]) |poly| count += @intFromBool(try support.sourceNeedsExtension(poly, self.log_size, log));
             const owned = try a.alloc([]M, count);
             var initialized: usize = 0;
             defer {
@@ -148,7 +155,7 @@ pub fn ComponentFor(comptime C: type) type {
                 a.free(owned);
             }
             var evals: [COLUMNS][]const M = undefined;
-            for (polys, &evals) |poly, *data| data.* = try support.evaluationValues(a, poly, log, n, owned, &initialized);
+            for (polys[0..total], evals[0..total]) |poly, *data| data.* = try support.evaluationValues(a, poly, log, n, owned, &initialized);
             if (count != 0) {
                 var tw = try engine.poly.twiddles.precomputeM31(a, domain.half_coset);
                 defer engine.poly.twiddles.deinitM31(a, &tw);
@@ -156,10 +163,10 @@ pub fn ComponentFor(comptime C: type) type {
             }
             const inverses = try geometry.denominatorInverses(a, self.log_size, log);
             defer a.free(inverses);
-            const columns = try acc.columns(a, &.{.{ .log_size = log, .n_cols = Eq.CONSTRAINTS }});
+            const columns = try acc.columns(a, &.{.{ .log_size = log, .n_cols = self.nConstraints() }});
             defer a.free(columns);
             var output = columns[0];
-            const rows = Rows{ .component = self, .columns = &evals, .inverses = inverses };
+            const rows = Rows{ .component = self, .columns = evals[0..total], .inverses = inverses };
             try @import("../providers/parallel_rows.zig").evaluate(.{ .context = &rows, .run = Rows.run }, n, &output, pool);
         }
     };

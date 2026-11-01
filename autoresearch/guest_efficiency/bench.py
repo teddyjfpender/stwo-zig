@@ -391,7 +391,7 @@ def cmd_build_exec(a):
 
 def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cache: Path, out: Path,
                   basket: dict, keep_profile: bool, repeat: int, profile: str | None = None,
-                  adapter: list[str] | None = None) -> dict:
+                  adapter: list[str] | None = None, ls_histogram: bool = False) -> dict:
     blk = cache / "blocks" / str(b["block"])
     inp = blk / "canonical-input.ssz"
     expected = (blk / "expected-output.bin").read_bytes()
@@ -412,6 +412,9 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
            "expected_output": expected.hex(), "symbols": abi, **basket["execution"]}
     if profile:
         cfg["execution_profile"] = profile
+    if ls_histogram:
+        # Diagnostic: the executor observes retired rows only; counts are unchanged.
+        cfg["ls_histogram"] = True
     d = out / "blocks" / str(b["block"])
     d.mkdir(parents=True, exist_ok=True)
     (d / "config.json").write_text(json.dumps(cfg, indent=1))
@@ -443,6 +446,9 @@ def execute_block(b: dict, elf: Path, raw: bytes, abi: dict, executor: Path, cac
                 "keccak_sponge_calls", "keccak_sponge_bytes", "keccak_sponge_permutations", "verified_output")
         row["determinism_ok"] = all(all(x.get(k) == e.get(k) for k in keys) for x in reports[1:])
     row["instructions_per_gas"] = row["instructions"] / b["gas_used"] if row["instructions"] else None
+    if ls_histogram:
+        row["opcode_counts"] = {n: c for n, c in zip(e["opcode_names"], e["opcode_counts"]) if c}
+        row["ls_histogram"] = e.get("ls_histogram")
     return row
 
 
@@ -461,7 +467,7 @@ def cmd_run(a):
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
         futs = [pool.submit(execute_block, b, elf, raw, abi, Path(a.executor).resolve(), cache, out, basket,
                             a.keep_profiles, 2 if b["block"] in det else 1, a.profile,
-                            a.input_adapter.split() if a.input_adapter else None) for b in blocks]
+                            a.input_adapter.split() if a.input_adapter else None, a.ls_histogram) for b in blocks]
         rows = [f.result() for f in futs]
     rows.sort(key=lambda r: r["block"])
     ok_rows = [r for r in rows if r.get("instructions")]
@@ -576,6 +582,8 @@ def main(argv=None):
     s.add_argument("--input-adapter", default=None,
                    help="command run as `CMD canonical-input.ssz OUT` to produce a client-specific private input; "
                         "the output is still checked against the host-validated expected output")
+    s.add_argument("--ls-histogram", action="store_true",
+                   help="record per-block opcode counts and the executor's load/store offset histogram (diagnostic)")
     s.set_defaults(fn=cmd_run)
 
     s = sub.add_parser("compare")

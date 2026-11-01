@@ -116,6 +116,10 @@ pub fn mixMaterials(channel: *T.P.Channel, materials: *const @import("setup.zig"
     materials.suite.config().mixInto(channel);
     channel.mixU32s(&.{ 0x52563634, 0x57463137, SCHEMA, X.layout.main.COUNT, X.layout.inter.COUNT, X.layout.rom.COUNT, 19, CLAIM_COUNT, 1, 1, A.arithmetic.multiplication.degree3_layout.INTERACTION, A.arithmetic.division.word16_product.layout.MAIN, A.arithmetic.division.word16_product.layout.INTERACTION });
     digest(channel, X.features.identity());
+    if (materials.geometry.cpu_fused_tail) {
+        channel.mixU32s(&.{ 0x46555345, X.layout.fused.COUNT, X.equations.FUSED_CONSTRAINTS });
+        digest(channel, X.features.fusedTailIdentity());
+    }
     B.binary_lookup.encoding.mix(channel);
     B.alu_experiment.equations.encoding.mix(channel);
     B.shift_word_packed_experiment.lookup.encoding.mix(channel);
