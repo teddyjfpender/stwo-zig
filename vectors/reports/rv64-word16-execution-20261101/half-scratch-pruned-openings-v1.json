@@ -446,5 +446,9 @@
       "src/prover/poly/circle/transforms.zig": "31213f071c8436278f768cb1176dca2b72c7a64fd0824355c243540f1247fad3"
     }
   },
-  "security": "Roots, claims and proof bytes are identical under the unchanged q70/P26 parameters. No new soundness assumption or stronger whole-protocol security claim is introduced."
+  "security": "Roots, claims and proof bytes are identical under the unchanged q70/P26 parameters. No new soundness assumption or stronger whole-protocol security claim is introduced.",
+  "publication": {
+    "pre_push": "Focused pre-push could not complete because cairo_metal requires an explicit authenticated STWO_METAL_CORE_AOT_BUNDLE that is not configured locally.",
+    "exception": "Parent explicitly authorized one-command inherited-hook bypass for the qualified slice; no persistent repository configuration change."
+  }
 }

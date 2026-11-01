@@ -7,6 +7,8 @@ pub const Options = struct {
     batch_set: bool = false,
     keep_capture_cache: bool = false,
     keep_fixed_witness: bool = false,
+    fixed_native_cache_bytes: usize = 256 << 20,
+    native_cache_set: bool = false,
     pub fn parse(args: []const [:0]u8) !Options {
         var out = Options{ .count = args.len };
         while (out.count > 1) {
@@ -20,6 +22,12 @@ pub const Options = struct {
                 out.batch_set = true;
                 out.batch = try std.fmt.parseUnsigned(u32, arg[23..], 10);
                 if (out.batch == 0) return error.InvalidStreamingBatchSize;
+            } else if (std.mem.startsWith(u8, arg, "--fixed-native-cache-bytes=")) {
+                if (out.native_cache_set) return error.DuplicateOperationalOption;
+                out.native_cache_set = true;
+                const prefix = "--fixed-native-cache-bytes=";
+                out.fixed_native_cache_bytes = try std.fmt.parseUnsigned(usize, arg[prefix.len..], 10);
+                if (out.fixed_native_cache_bytes > 1 << 30 or (out.fixed_native_cache_bytes != 0 and out.fixed_native_cache_bytes < 4096)) return error.InvalidFixedNativeCacheBudget;
             } else if (std.mem.eql(u8, arg, "--keep-capture-cache")) {
                 if (out.keep_capture_cache) return error.DuplicateOperationalOption;
                 out.keep_capture_cache = true;
@@ -50,4 +58,22 @@ test "operational jobs and batch parsing cannot silently broaden the worker budg
     try std.testing.expectEqual(@as(u32, 8), options.batch);
     try std.testing.expectError(error.InvalidWorkerBudget, options.schedule(1));
     try std.testing.expectEqual(@as(u8, 8), (try options.schedule(16)).workers_per_lane);
+}
+
+test "fixed native cache is a bounded receiver operational budget with an explicit disabled control" {
+    var defaults = [_][:0]u8{ @constCast("tool"), @constCast("verify"), @constCast("config"), @constCast("proof") };
+    try std.testing.expectEqual(@as(usize, 256 << 20), (try Options.parse(&defaults)).fixed_native_cache_bytes);
+    var disabled = [_][:0]u8{ @constCast("tool"), @constCast("verify"), @constCast("config"), @constCast("proof"), @constCast("--fixed-native-cache-bytes=0") };
+    const options = try Options.parse(&disabled);
+    try std.testing.expectEqual(@as(usize, 4), options.count);
+    try std.testing.expectEqual(@as(usize, 0), options.fixed_native_cache_bytes);
+    try std.testing.expect(!options.producerOnly());
+}
+test "fixed native cache refuses duplicate undersized and excessive budgets before loading input" {
+    var args = [_][:0]u8{ @constCast("tool"), @constCast("--fixed-native-cache-bytes=0"), @constCast("--fixed-native-cache-bytes=4096") };
+    try std.testing.expectError(error.DuplicateOperationalOption, Options.parse(&args));
+    for ([_][:0]const u8{ "--fixed-native-cache-bytes=1", "--fixed-native-cache-bytes=1073741825" }) |bad| {
+        var one = [_][:0]u8{ @constCast("tool"), @constCast(bad) };
+        try std.testing.expectError(error.InvalidFixedNativeCacheBudget, Options.parse(&one));
+    }
 }
