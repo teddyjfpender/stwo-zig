@@ -16,7 +16,7 @@ const Point = core.circle.CirclePointQM31;
 const air = core.air.components;
 const cp = engine.air.component_prover;
 const accumulation = engine.air.accumulation;
-pub const Kind = enum { binary, expected, and_table, expected_main };
+pub const Kind = enum { binary, expected, and_table, expected_main, binary_zbb };
 pub const ExpectedRoster = Expected.Roster;
 pub const expectedRosterDigest = Expected.digest;
 pub const expectedMainFixed = Expected.fixed;
@@ -41,6 +41,7 @@ pub const Component = struct {
             .expected => .{ 16, 0, 8 },
             .and_table => .{ 5, 1, 8 },
             .expected_main => .{ Expected.FIXED, Expected.WIDTH, 8 },
+            .binary_zbb => .{ 2, P.zbb.MAIN, P.zbb.INTERACTION },
         };
     }
     pub fn nConstraints(self: *const Component) usize {
@@ -49,6 +50,7 @@ pub const Component = struct {
             .expected => 3,
             .and_table => Tables.N_CONSTRAINTS,
             .expected_main => 18,
+            .binary_zbb => P.zbb.CONSTRAINTS,
         };
     }
     pub fn maxConstraintLogDegreeBound(self: *const Component) u32 {
@@ -80,7 +82,7 @@ pub const Component = struct {
         return indices;
     }
     pub fn needsPrevious(self: *const Component, column: usize) bool {
-        return if (self.kind == .binary) column >= 20 else column >= 4;
+        return if (self.kind == .binary or self.kind == .binary_zbb) column >= 20 else column >= 4;
     }
     pub fn maskPoints(self: *const Component, a: std.mem.Allocator, point: Point, global_log: u32) !air.MaskPoints {
         try self.validateContext();
@@ -103,6 +105,7 @@ pub const Component = struct {
     pub fn emitFor(self: *const Component, comptime F: type, fixed: []const F, main: []const F, inter: []const F, previous: []const F, sink: *E.SinkFor(F)) void {
         switch (self.kind) {
             .binary => P.emitFor(F, main, inter, previous, fixed[0], fixed[1], self.claims, self.challenges, sink),
+            .binary_zbb => P.emitOf(P.zbb.Chip, F, main, inter, previous, fixed[0], fixed[1], self.claims, self.challenges, sink),
             .expected => {
                 var tuple: [13]F = undefined;
                 @memcpy(&tuple, fixed[0..13]);
