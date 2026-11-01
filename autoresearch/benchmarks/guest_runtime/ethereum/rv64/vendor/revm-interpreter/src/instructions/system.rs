@@ -111,6 +111,7 @@ pub fn codecopy<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Implements the CALLDATALOAD instruction.
 ///
 /// Loads 32 bytes of input data from the specified offset.
+#[inline(always)]
 pub fn calldataload<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([], offset_ptr, context.interpreter);
     let offset = as_usize_saturated!(*offset_ptr);

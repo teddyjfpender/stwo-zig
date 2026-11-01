@@ -58,6 +58,13 @@ impl<W: InterpreterTypes, H: Host + ?Sized> Instruction<W, H> {
     pub fn execute(self, ctx: InstructionContext<'_, H, W>) -> InstructionExecResult {
         (self.fn_)(ctx)
     }
+
+    /// stwo: whether this entry is exactly `f` (used to check that a table is
+    /// the mainnet one before dispatching its hot opcodes inline).
+    #[inline(always)]
+    pub(crate) fn is(&self, f: fn(InstructionContext<'_, H, W>) -> InstructionExecResult) -> bool {
+        self.fn_ as usize == f as usize
+    }
 }
 
 impl<W: InterpreterTypes, H: Host + ?Sized> Copy for Instruction<W, H> {}

@@ -25,6 +25,7 @@ pub fn push0<IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Implements the PUSH1-PUSH32 instructions.
 ///
 /// Pushes N bytes from bytecode onto the stack as a 32-byte value.
+#[inline(always)]
 pub fn push<const N: usize, IT: ITy, H: ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     // stwo: the N immediate bytes convert straight to limbs (see be_word).
     let slice = context.interpreter.bytecode.read_slice(N);

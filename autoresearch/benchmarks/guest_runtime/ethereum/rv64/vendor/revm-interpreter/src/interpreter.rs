@@ -328,10 +328,14 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
         gas_table: &GasTable,
         host: &mut H,
     ) -> InterpreterAction {
-        let e = loop {
-            if let Err(e) = self.step(instruction_table, gas_table, host) {
-                cold_path();
-                break e;
+        let e = if hot_ops_are_mainnet(instruction_table) {
+            self.run_hot_inline(instruction_table, gas_table, host)
+        } else {
+            loop {
+                if let Err(e) = self.step(instruction_table, gas_table, host) {
+                    cold_path();
+                    break e;
+                }
             }
         };
         if self.bytecode.action().is_none() {
@@ -339,6 +343,104 @@ impl<IW: InterpreterTypes> Interpreter<IW> {
         }
         debug_assert!(self.bytecode.is_end());
         self.take_next_action()
+    }
+}
+
+/// stwo: the opcodes dispatched inline by [`Interpreter::run_hot_inline`],
+/// with the function the mainnet instruction table holds for each. They are
+/// the bulk of executed EVM operations; dispatching them through a `match`
+/// lets each body inline into the loop instead of an indirect call per op.
+macro_rules! hot_ops {
+    ($m:ident) => {
+        $m! {
+            STOP => control::stop::<IW, H>,
+            PUSH1 => stack::push::<1, IW, H>,
+            PUSH2 => stack::push::<2, IW, H>,
+            PUSH4 => stack::push::<4, IW, H>,
+            PUSH20 => stack::push::<20, IW, H>,
+            PUSH32 => stack::push::<32, IW, H>,
+            PUSH0 => stack::push0::<IW, H>,
+            JUMPDEST => control::jumpdest::<IW, H>,
+            JUMPI => control::jumpi::<IW, H>,
+            JUMP => control::jump::<IW, H>,
+            POP => stack::pop::<IW, H>,
+            SWAP1 => stack::swap::<1, IW, H>,
+            SWAP2 => stack::swap::<2, IW, H>,
+            SWAP3 => stack::swap::<3, IW, H>,
+            SWAP4 => stack::swap::<4, IW, H>,
+            SWAP5 => stack::swap::<5, IW, H>,
+            DUP1 => stack::dup::<1, IW, H>,
+            DUP2 => stack::dup::<2, IW, H>,
+            DUP3 => stack::dup::<3, IW, H>,
+            DUP4 => stack::dup::<4, IW, H>,
+            DUP5 => stack::dup::<5, IW, H>,
+            DUP6 => stack::dup::<6, IW, H>,
+            DUP7 => stack::dup::<7, IW, H>,
+            ADD => arithmetic::add::<IW, H>,
+            SUB => arithmetic::sub::<IW, H>,
+            AND => bitwise::bitand::<IW, H>,
+            OR => bitwise::bitor::<IW, H>,
+            NOT => bitwise::not::<IW, H>,
+            ISZERO => bitwise::iszero::<IW, H>,
+            EQ => bitwise::eq::<IW, H>,
+            LT => bitwise::lt::<IW, H>,
+            GT => bitwise::gt::<IW, H>,
+            SHL => bitwise::shl::<IW, H>,
+            SHR => bitwise::shr::<IW, H>,
+            MLOAD => memory::mload::<IW, H>,
+            MSTORE => memory::mstore::<IW, H>,
+            CALLDATALOAD => system::calldataload::<IW, H>,
+            SELFDESTRUCT => host::selfdestruct::<IW, H>,
+        }
+    };
+}
+
+#[inline]
+fn hot_ops_are_mainnet<IW: InterpreterTypes, H: Host + ?Sized>(table: &InstructionTable<IW, H>) -> bool {
+    use crate::instructions::{arithmetic, bitwise, control, host, memory, stack, system};
+    use bytecode::opcode::*;
+    macro_rules! check {
+        ($($op:ident => $f:expr,)*) => { true $(&& table[$op as usize].is($f))* };
+    }
+    hot_ops!(check)
+}
+
+impl<IW: InterpreterTypes> Interpreter<IW> {
+    /// stwo: [`Interpreter::run_plain`]'s loop with the hot opcodes dispatched
+    /// through a `match` to the same functions the (mainnet) table holds, so
+    /// their bodies inline; the rest go through the table. Static gas is
+    /// charged exactly as in [`Interpreter::step`].
+    #[inline(never)]
+    fn run_hot_inline<H: Host + ?Sized>(
+        &mut self,
+        instruction_table: &InstructionTable<IW, H>,
+        gas_table: &GasTable,
+        host: &mut H,
+    ) -> InstructionResult {
+        use crate::instructions::{arithmetic, bitwise, control, host, memory, stack, system};
+        use bytecode::opcode::*;
+        loop {
+            let opcode = self.bytecode.opcode();
+            self.bytecode.relative_jump(1);
+            let static_gas = unsafe { *gas_table.get_unchecked(opcode as usize) };
+            if self.gas.record_cost_unsafe(static_gas as u64) {
+                cold_path();
+                return InstructionResult::OutOfGas;
+            }
+            let ctx = InstructionContext { interpreter: &mut *self, host: &mut *host };
+            macro_rules! dispatch {
+                ($($op:ident => $f:expr,)*) => {
+                    match opcode {
+                        $($op => ($f)(ctx),)*
+                        _ => instruction_table[opcode as usize].execute(ctx),
+                    }
+                };
+            }
+            if let Err(e) = hot_ops!(dispatch) {
+                cold_path();
+                return e;
+            }
+        }
     }
 }
 

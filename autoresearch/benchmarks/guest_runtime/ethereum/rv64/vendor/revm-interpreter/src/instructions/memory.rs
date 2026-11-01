@@ -8,6 +8,7 @@ use primitives::U256;
 /// Implements the MLOAD instruction.
 ///
 /// Loads a 32-byte word from memory.
+#[inline(always)]
 pub fn mload<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn_top!([], top, context.interpreter);
     let offset = as_usize_or_fail!(context.interpreter, top);
@@ -26,6 +27,7 @@ pub fn mload<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
 /// Implements the MSTORE instruction.
 ///
 /// Stores a 32-byte word to memory.
+#[inline(always)]
 pub fn mstore<IT: ITy, H: Host + ?Sized>(context: Ictx<'_, H, IT>) -> Result {
     popn!([offset, value], context.interpreter);
     let offset = as_usize_or_fail!(context.interpreter, offset);
