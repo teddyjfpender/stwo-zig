@@ -4,3 +4,5 @@ pub const blake2s = @import("blake2s.zig");
 pub const lookup_transcript = @import("lookup_transcript.zig");
 
 pub const transcript_receipt = @import("transcript_receipt.zig");
+
+pub const raw_mod_m31 = @import("raw_mod_m31.zig");
