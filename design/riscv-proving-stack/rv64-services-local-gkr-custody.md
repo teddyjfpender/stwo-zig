@@ -50,10 +50,13 @@ nonzero even for a zero numerator; no proof-dependent redraw is permitted.
 5. Eta is drawn after the terminal marginals. Each instance has its own Eq and
    prefix witness binding N+eta*D to that instance's MAIN masks. No cross-instance
    marginal cancellation stands in for per-instance authentication.
-6. The future stage-one manifest entry must bind the child receipt and marginals
-   beside its roots. Only the ordered COMPLETE entries may derive global
-   RAM/KIO/Wire randomness. Fresh acceptance must verify the child and every
-   physical binding, all global claims, coverage, endpoints and public boundaries.
+6. `manifest.verifyAndSeal` now verifies each actual local child and binds its
+   receipt and reconstructed marginals beside every worker's roots. The complete
+   ordered roster includes explicit classic-local OM31 truth slots. Only then
+   does it draw separate OM31 RAM14/KIO11/Wire35 challenges. This returns a
+   **pending** manifest, never execution acceptance. The accepting assembly must
+   still verify every physical proof/binding, all global claims, coverage,
+   endpoints and public boundaries.
 
 `receipt.emitCanonical` is the common native/circuit framing visitor. A circuit
 writer must constrain field-coordinate canonical encodings. `closure.closeFor`
@@ -118,3 +121,41 @@ Instances with different lane counts generally have different row-point
 suffixes. No Eq column is shared solely because roles or row logs agree.
 Affine-fraction pairing and better lane-height partitioning are future measured
 resource optimizations; neither is applied implicitly in this version.
+
+## Shared table bindings and manifest (integration slice)
+
+`role_domain.zig`, `role_oods.zig` and `role_geometry.zig` now share the packed
+composition, OODS and mask authority across the core and table roles. Statically
+selected emitters provide original arithmetic and raw query projections; trusted
+per-component capacity constants bound scratch. There is one original MAIN
+span and one bounded expansion. The table wrapper covers ROM, public REG,
+U16/U8, AND, SHIFT and selection. ROM retains its invalid-row multiplicity guard.
+Fixed values remain authenticated immutable setup polynomials; no redundant
+in-chip table-value constraints are introduced.
+
+Public REG takes validated native statement words and uses the existing shared
+literal/tuple arithmetic at both packed domain rows and OODS. It does not treat
+an arbitrary OM31 public word as a packed M31 value. Real ROM, U8 and public-REG
+fragments prove and freshly verify; stale U8 multiplicity and changed register
+endpoints reject. All seven table query emitters compare native OM31 against
+sixteen distinct packed M31 rows, including all eight secure coordinates. These
+fragment tests do not claim whole-local closure or full-height physical proofs
+for each remaining table.
+
+The manifest's expected worker list, statement identities, FIXED roots and
+relation-presence masks must be reconstructed by the receiver from admitted
+setup and execution, never copied from producer declarations. MAIN roots are
+stage-one commitments and must match the later freshly verified PCS roots.
+CPU-local GKR is mandatory in this initial profile; truth locals explicitly use
+OM31 classic arguments. A truth-GKR selection requires a separately admitted
+profile. Missing/reordered children, changed scopes/rosters/receipts and invented
+truth children reject before global randomness is used.
+
+Each global relation closes separately. Nonzero claims in absent worker
+relations reject even when another worker cancels them. The assembly must also
+validate presence and transcript binding for **each physical role** before
+aggregating worker claims; this helper cannot authenticate producer host sums.
+The manifest digest commits reconstructed terminal marginals as well as the
+canonical child proof receipt. Its algebra and framing are implemented, but
+complete bundle-wire, physical-role assembly and accepting execution-receiver
+integration remain pending. This is not a whole-protocol 128-bit certificate.

@@ -288,3 +288,8 @@ test "local OM child wire preserves canonical transcript rejects aliases and rel
     try std.testing.expectError(error.TrailingLocalGkrBytes, W.decode(a, &instances, trailing));
     try std.testing.checkAllAllocationFailures(a, wireAllocationCase, .{ &instances, &child.result.proof });
 }
+
+test {
+    _ = @import("manifest_test.zig");
+    _ = @import("table_role_test.zig");
+}
