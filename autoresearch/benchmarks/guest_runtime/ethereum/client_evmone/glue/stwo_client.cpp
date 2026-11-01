@@ -454,6 +454,27 @@ bool stwo_lazy_load_storage(Storages& storages, const evmc::address& addr,
     return true;
 }
 
+// Initial row capacity of the account (or storage) table. Only a pre-size:
+// rows beyond it still append (the row vectors grow, the hash indexes rehash),
+// and nothing holds a reference into the growing vectors across a load (rows
+// are addressed by index; records live in their own allocations).
+//
+// Every row is an account or slot the block touches, and a cold touch costs at
+// least `per_row_gas` (2400 per access-list address, 1900 per access-list key;
+// cold account/SLOAD access 2600/2100). Gas used before refunds is at most 5/4
+// of the header's gas_used, so that bounds a block's rows up to the fixed
+// system-call and withdrawal rows (the +1024). The estimate is capped at the
+// rows of a 60M-gas block (mainnet's limit) so a claimed gas_used cannot make
+// the reserve exhaust the heap: past the cap the tables grow on demand.
+// Never size from the gas *limit*: EEST blocks set it up to 2^63-1 (the old
+// gas_limit/2400 reserve threw bad_alloc on the host and exhausted the guest
+// heap already at a 500M limit).
+static uint64_t row_reserve(uint64_t gas_used, uint64_t per_row_gas) {
+    constexpr uint64_t kCapGas = 60'000'000;
+    const uint64_t gas = gas_used > kCapGas ? kCapGas : gas_used;
+    return gas / 4 * 5 / per_row_gas + 1024;
+}
+
 void stwo_state_begin(Accounts& accounts, Storages& storages, const ConsensusInfo& consensus,
                       const PreviousBlocks& previous_blocks) {
     g.accounts = &accounts;
@@ -461,9 +482,9 @@ void stwo_state_begin(Accounts& accounts, Storages& storages, const ConsensusInf
     // The parent header is authenticated by the payload's parent_hash (checked
     // on the computed block hash); its state root anchors every lookup.
     std::memcpy(g.parent_state_root.b, previous_blocks.at(0).state_root().bytes, 32);
-    // Row capacities only pre-size the vectors; rows beyond them still append.
-    const uint64_t cap_a = consensus.gas_limit() / 2400 + 1024;
-    const uint64_t cap_s = consensus.gas_limit() / 1900 + 1024;
+    (void)consensus;
+    const uint64_t cap_a = row_reserve(pl_gas_used(*g.in), 2400);
+    const uint64_t cap_s = row_reserve(pl_gas_used(*g.in), 1900);
     accounts.reserve(cap_a);
     storages.reserve(cap_s);
     g.acct_key.reserve(cap_a);
