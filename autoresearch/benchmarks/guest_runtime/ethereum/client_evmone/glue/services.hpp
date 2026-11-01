@@ -64,6 +64,19 @@ inline constexpr uint64_t kV3Arith256Mod = 0x00030021;
 #endif
 #endif
 
+// JUMPDEST analysis service 0x0003_0040 (packet code, len, bitmap; code 64-aligned, bitmap
+// 8-aligned, len a nonzero multiple of 8 up to 1 MiB, code words, bitmap words and packet
+// disjoint): writes ceil(len/64) words, bit i set iff code[i] is a JUMPDEST outside PUSH data. CANDIDATE_JUMPDEST = execution-only
+// candidate (profile ethereum_services_v3_candidate, build.py --candidate-jumpdest);
+// ADMITTED_JUMPDEST = admitted v3 (--v3-set ...,jumpdest).
+inline constexpr uint64_t kJumpdestBitmap = 0x00030040;
+#if defined(CANDIDATE_JUMPDEST) || defined(ADMITTED_JUMPDEST)
+inline void jumpdest_bitmap(uint64_t* bitmap, const uint8_t* code, size_t n) noexcept {
+    alignas(8) uint64_t p[3] = {reinterpret_cast<uint64_t>(code), n, reinterpret_cast<uint64_t>(bitmap)};
+    ecall(kJumpdestBitmap, p);
+}
+#endif
+
 #if defined(CANDIDATE_SERVICES)
 // Execution-only candidate services (profile ethereum_services_v3_candidate).
 inline void cand_memcpy(void* d, const void* src, size_t n) noexcept {
