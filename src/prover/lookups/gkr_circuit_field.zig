@@ -257,6 +257,10 @@ pub fn ForField(comptime Secure: type) type {
             /// Internal exclusive-owner path. Every failed partial fold still
             /// owns valid buffers for deinit; the caller aborts the proof.
             pub fn fixFirstVariableInPlace(self: *Layer, allocator: std.mem.Allocator, x0: Secure) !void {
+                switch (self.*) {
+                    .LogUpMultiplicities => |inner| try validateMultiplicityFold(inner),
+                    else => {},
+                }
                 if (self.nVariables() == 0) return;
                 switch (self.*) {
                     .GrandProduct => |*mle| try mle.foldOwnedSecure(allocator, x0),
@@ -264,13 +268,39 @@ pub fn ForField(comptime Secure: type) type {
                         try inner.numerators.foldOwnedSecurePair(&inner.denominators, allocator, x0);
                     },
                     .LogUpSingles => |*inner| try inner.denominators.foldOwnedSecure(allocator, x0),
-                    .LogUpMultiplicities => {
-                        // The first base-to-secure lift keeps its existing
-                        // failure-atomic allocation path and immutable input.
-                        const next = try self.fixFirstVariable(allocator, x0);
-                        self.deinit(allocator);
-                        self.* = next;
+                    .LogUpMultiplicities => |*inner| {
+                        if (inner.denominators.owns_evals) {
+                            // Lift the base numerator without mutating it. Until
+                            // the denominator fold succeeds, both original
+                            // owners remain in the old union for abort cleanup.
+                            var numerator = try inner.numerators.fixFirstVariable(allocator, x0);
+                            errdefer numerator.deinit(allocator);
+                            try inner.denominators.foldOwnedSecure(allocator, x0);
+                            const denominator = inner.denominators;
+                            inner.numerators.deinit(allocator);
+                            self.* = .{ .LogUpGeneric = .{ .numerators = numerator, .denominators = denominator } };
+                        } else {
+                            // Borrowed denominator stays immutable; allocation
+                            // failure leaves the entire old layer unchanged.
+                            const next = try self.fixFirstVariable(allocator, x0);
+                            self.deinit(allocator);
+                            self.* = next;
+                        }
                     },
+                }
+            }
+
+            fn validateMultiplicityFold(inner: anytype) !void {
+                const n = inner.numerators.evals.len;
+                if (n == 0 or n != inner.denominators.evals.len or !std.math.isPowerOfTwo(n)) return error.PairShapeMismatch;
+                if (inner.numerators.owns_evals or inner.denominators.owns_evals) {
+                    const nbytes = std.math.mul(usize, n, @sizeOf(M31)) catch return error.InvalidOwnerRange;
+                    const dbytes = std.math.mul(usize, n, @sizeOf(Secure)) catch return error.InvalidOwnerRange;
+                    const na = @intFromPtr(inner.numerators.evals.ptr);
+                    const da = @intFromPtr(inner.denominators.evals.ptr);
+                    const ne = std.math.add(usize, na, nbytes) catch return error.InvalidOwnerRange;
+                    const de = std.math.add(usize, da, dbytes) catch return error.InvalidOwnerRange;
+                    if (na < de and da < ne) return error.AliasedMleOwners;
                 }
             }
 
