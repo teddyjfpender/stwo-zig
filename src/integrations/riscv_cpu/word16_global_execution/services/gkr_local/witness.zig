@@ -60,7 +60,7 @@ fn projectLanes(weights: []const O, numerators: []const M, denominators: []const
     while (i + engine.lookups.packed_rows.WIDTH <= weights.len) : (i += engine.lookups.packed_rows.WIDTH) {
         const w = Packed.load(weights, i, 1);
         pn = pn.add(w.mulBase(Packed.base(numerators, i, 1)));
-        pd = pd.add(w.mul(Packed.load(denominators, i, 1)));
+        pd = pd.add(Packed.mul(w, Packed.load(denominators, i, 1)));
     }
     var n = Packed.sum(pn);
     var d = Packed.sum(pd);
