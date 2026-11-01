@@ -88,7 +88,7 @@ lists about 135.6 s prove median and 20.336 G cells. Default driver options, not
 baseline's 2x8 schedule; both runs shared the machine with other sessions
 (load average about 15; the first also with this branch's test suites), so
 the times are indicative, not a benchmark. Both runs produced identical
-, and both bundles verify with a fresh .
+`cost.json`, and both bundles verify with a fresh `verify`.
 
 Measured per-call costs (MAIN + INTERACTION, padded, from this proof; now in
 `calibration.json`):
