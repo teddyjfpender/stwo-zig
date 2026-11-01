@@ -35,7 +35,18 @@ pub const CpuSetup = struct {
         errdefer m.deinit();
         return seal(a, m, bridges);
     }
+    pub fn initWithAuthorityAndNativeCache(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, cache: *const Mat.NativeCache.Cache) !CpuSetup {
+        return initWithAuthorityAndSuiteAndNativeCache(a, authority, g, bridges, Mat.Suite.production(), cache);
+    }
+    pub fn initWithAuthorityAndSuiteAndNativeCache(a: std.mem.Allocator, authority: *const @import("../../rv64_full.zig").ProgramAuthority, g: Mat.Geometry, bridges: T.Logs, suite: Mat.Suite, cache: *const Mat.NativeCache.Cache) !CpuSetup {
+        var m = try Mat.Materials.initWithAuthorityAndSuite(a, authority, g, suite);
+        errdefer m.deinit();
+        return sealWithCache(a, m, bridges, cache);
+    }
     fn seal(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs) !CpuSetup {
+        return sealWithCache(a, m, bridges, null);
+    }
+    fn sealWithCache(a: std.mem.Allocator, m: Mat.Materials, bridges: T.Logs, cache: ?*const Mat.NativeCache.Cache) !CpuSetup {
         var self = CpuSetup{ .materials = m, .bridges = bridges, .fixed = @splat(&.{}), .key = undefined };
         var done: usize = 0;
         errdefer for (self.fixed[0..done]) |f| a.free(f);
@@ -46,7 +57,7 @@ pub const CpuSetup = struct {
         }
         const columns = try self.fixedColumns(a);
         defer a.free(columns);
-        self.key = try Key.sealWithSuite(a, columns, m.suite);
+        self.key = try Key.sealWithSuiteAndCache(a, columns, m.suite, cache);
         return self;
     }
     /// The complete sealed key retains independent coefficient/tree ownership.

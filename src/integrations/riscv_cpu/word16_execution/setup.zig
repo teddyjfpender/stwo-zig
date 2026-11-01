@@ -15,6 +15,7 @@ pub const Shape = G.Shape;
 const M = core.fields.m31.M31;
 const Column = engine.pcs.ColumnEvaluation;
 pub const Suite = @import("pcs_suite.zig").Suite;
+pub const NativeCache = @import("fixed_native_cache.zig");
 pub const Materials = struct {
     suite: Suite = Suite.production(),
     allocator: std.mem.Allocator,
@@ -240,7 +241,26 @@ pub const Setup = struct {
         errdefer materials.deinit();
         return seal(a, materials);
     }
+    pub fn initWithAuthorityAndNativeCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, cache: *const NativeCache.Cache) !Setup {
+        return initWithAuthorityAndSuiteAndNativeCache(a, authority, geometry, Suite.production(), cache);
+    }
+    pub fn initWithAuthorityAndSuiteAndNativeCache(a: std.mem.Allocator, authority: *const Full.ProgramAuthority, geometry: Geometry, suite: Suite, cache: *const NativeCache.Cache) !Setup {
+        var materials = try Materials.initWithAuthorityAndSuite(a, authority, geometry, suite);
+        errdefer materials.deinit();
+        return sealWithCache(a, materials, cache);
+    }
+    pub fn initWithNativeCache(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, cache: *const NativeCache.Cache) !Setup {
+        return initWithSuiteAndNativeCache(a, program, geometry, Suite.production(), cache);
+    }
+    pub fn initWithSuiteAndNativeCache(a: std.mem.Allocator, program: air.program.setup.Program, geometry: Geometry, suite: Suite, cache: *const NativeCache.Cache) !Setup {
+        var materials = try Materials.initWithSuite(a, program, geometry, suite);
+        errdefer materials.deinit();
+        return sealWithCache(a, materials, cache);
+    }
     fn seal(a: std.mem.Allocator, materials: Materials) !Setup {
+        return sealWithCache(a, materials, null);
+    }
+    fn sealWithCache(a: std.mem.Allocator, materials: Materials, cache: ?*const NativeCache.Cache) !Setup {
         const columns = try materials.fixedColumns(a);
         defer a.free(columns);
         var scheme = try T.Scheme.init(a, materials.suite.config());
@@ -250,6 +270,7 @@ pub const Setup = struct {
         try scheme.commitBorrowedStreaming(a, columns, 8, &channel);
         var roots = try scheme.roots(a);
         defer roots.deinit(a);
+        if (cache) |owner| _ = try owner.internTree(a, &scheme.trees.items[0]);
         try scheme.trees.items[0].share(a);
         return .{ .materials = materials, .fixed_root = .{ .value = roots.items[0] }, .fixed_tree = scheme.trees.pop().? };
     }

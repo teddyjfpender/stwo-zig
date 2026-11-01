@@ -41,7 +41,11 @@ pub const Accountant = struct {
     pub fn add(self: *@This(), record: *Record, comptime name: []const u8, values: anytype) !void {
         if (values.len == 0) return;
         const bytes = try std.math.mul(usize, values.len, @sizeOf(@TypeOf(values[0])));
-        const start = @intFromPtr(values.ptr);
+        return self.addAddress(record, name, @intFromPtr(values.ptr), bytes);
+    }
+    /// Numeric allocation snapshots avoid dereferencing shared cache state.
+    pub fn addAddress(self: *@This(), record: *Record, comptime name: []const u8, start: usize, bytes: usize) !void {
+        if (bytes == 0) return;
         const end = try std.math.add(usize, start, bytes);
         for (self.ranges.items) |prior| {
             if (start == prior.start and end == prior.end) return;
