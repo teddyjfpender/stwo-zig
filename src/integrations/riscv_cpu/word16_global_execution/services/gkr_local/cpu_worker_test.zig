@@ -6,8 +6,9 @@ const R = @import("../roster.zig");
 const P = @import("../protocol.zig");
 const Worker = @import("cpu_worker.zig");
 const Manifest = @import("manifest.zig");
-const Mode = enum { normal, unretired, early_seal, parked_abort, later_worker_oom };
-fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
+pub const Mode = enum { normal, unretired, early_seal, parked_abort, later_worker_oom };
+pub const Storage = enum { resident, coefficients, fully_parked };
+pub fn exercise(comptime shard: usize, comptime mode: Mode, comptime storage: Storage) ![32]u8 {
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
     const a = failing.allocator();
     var captured = try F.Captured.init(a);
@@ -36,7 +37,8 @@ fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
     defer tmp.cleanup();
     const spill_path = try tmp.dir.realpathAlloc(a, ".");
     defer a.free(spill_path);
-    var store = try @import("../../retained_main_store.zig").Store.initParked(spill_path, 128 << 20);
+    const Store = @import("../../retained_main_store.zig").Store;
+    var store = if (storage == .fully_parked) try Store.initFullyParked(spill_path, 128 << 20) else try Store.initParked(spill_path, 128 << 20);
     defer store.deinit();
     const retention = try @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1 << 26);
     try std.testing.expectError(error.ClassicWitnessBudgetExceeded, @import("retention_plan.zig").forCpu(a, &setup, request, config, 2 << 30, 1));
@@ -79,8 +81,10 @@ fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
     try std.testing.expectEqual(retention.binding_bytes, binding_bytes);
     try std.testing.expectEqual(retention.resident_retained_bytes, retention.parked_retained_bytes + retention.coefficient_bytes);
 
-    try std.testing.expect(try worker.spillMain(&store) > 0);
-    try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+    if (storage != .resident) {
+        try std.testing.expect(try worker.spillMain(&store) > 0);
+        try std.testing.expectEqual(@as(usize, 0), store.stats().live_mapped_bytes);
+    }
     if (mode == .parked_abort or mode == .later_worker_oom) {
         if (mode == .later_worker_oom) {
             const next = &captured.native[1];
@@ -110,7 +114,7 @@ fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
         try std.testing.expect(store.parking.head == null and store.owners == null);
         return @splat(0);
     }
-    try std.testing.expect(try worker.restoreMain(&store) > 0);
+    if (storage != .resident) try std.testing.expect(try worker.restoreMain(&store) > 0);
     try std.testing.expectEqualSlices(u8, &stage.main, &worker.scheme.trees.items[1].root());
     var pending = try Manifest.verifyAndSeal(a, @splat(0x91), &.{expected}, &.{stage});
     defer pending.deinit(a);
@@ -161,23 +165,23 @@ fn exercise(comptime shard: usize, comptime mode: Mode) ![32]u8 {
 }
 
 test "actual CPU Keccak services shard local GKR and physical OM proof fresh verify" {
-    const retired = try exercise(0, .normal);
-    const control = try exercise(0, .unretired);
+    const retired = try exercise(0, .normal, .coefficients);
+    const control = try exercise(0, .unretired, .coefficients);
     try std.testing.expectEqualSlices(u8, &control, &retired);
 }
 test "actual CPU ADD DOUBLE shard local GKR and physical OM proof fresh verify" {
-    const retired = try exercise(1, .normal);
-    const control = try exercise(1, .unretired);
+    const retired = try exercise(1, .normal, .coefficients);
+    const control = try exercise(1, .unretired, .coefficients);
     try std.testing.expectEqualSlices(u8, &control, &retired);
 }
 
 test "CPU worker stage-one early OOM destroys its retained owners once" {
-    _ = try exercise(0, .early_seal);
+    _ = try exercise(0, .early_seal, .coefficients);
 }
 
 test "CPU parked worker abort tears down FD registry and store without restore" {
-    _ = try exercise(0, .parked_abort);
+    _ = try exercise(0, .parked_abort, .coefficients);
 }
 test "later CPU stage-one OOM unwinds prior parked worker without stale owners" {
-    _ = try exercise(0, .later_worker_oom);
+    _ = try exercise(0, .later_worker_oom, .coefficients);
 }
