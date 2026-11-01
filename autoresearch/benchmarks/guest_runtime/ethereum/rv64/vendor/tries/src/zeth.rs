@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use alloc::vec::Vec;
-use core::{cell::RefCell, marker::PhantomData};
+use core::{cell::RefCell, marker::PhantomData, mem::ManuallyDrop};
 
 use crate::{StatelessTrie, StatelessTrieError, WitnessDbError};
 use alloy_primitives::{
@@ -63,14 +63,18 @@ impl<T: alloy_rlp::Decodable + alloy_rlp::Encodable> RlpTrie<T> {
 /// Represents a sparse version of the Ethereum world state.
 /// This is significantly more performant than the Reth default.
 #[derive(Debug, Clone)]
+///
+/// stwo: the guest validates one block and halts, so the tries and the
+/// witness table are never freed (`ManuallyDrop`): walking and freeing tens
+/// of thousands of boxed nodes cost 1.3M instructions per block for nothing.
 pub struct SparseState {
     /// state MPT containing all used accounts
-    state: RlpTrie<TrieAccount>,
+    state: ManuallyDrop<RlpTrie<TrieAccount>>,
     /// storage MPTs sorted by the hashed address of their account
-    storages: RefCell<B256IndexMap<RlpTrie<U256>>>,
+    storages: ManuallyDrop<RefCell<B256IndexMap<RlpTrie<U256>>>>,
 
     /// all relevant MPT nodes by their Keccak hash
-    rlp_by_digest: PrehashedNodes,
+    rlp_by_digest: ManuallyDrop<PrehashedNodes>,
 }
 
 impl SparseState {
@@ -131,7 +135,11 @@ impl StatelessTrie for SparseState {
         let bytecode = witness.codes.into_iter().map(|code| (keccak256(&code), code)).collect();
 
         Ok((
-            Self { state, storages: RefCell::new(B256IndexMap::default()), rlp_by_digest },
+            Self {
+                state: ManuallyDrop::new(state),
+                storages: ManuallyDrop::new(RefCell::new(B256IndexMap::default())),
+                rlp_by_digest: ManuallyDrop::new(rlp_by_digest),
+            },
             bytecode,
         ))
     }
