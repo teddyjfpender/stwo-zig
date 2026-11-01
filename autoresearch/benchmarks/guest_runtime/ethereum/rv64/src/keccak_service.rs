@@ -71,11 +71,28 @@ fn funnel_words(offset: usize, remaining: usize) -> usize {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn native_keccak256(input: *const u8, length: usize, output: *mut u8) {
     assert!(!output.is_null() && (length == 0 || !input.is_null()));
-    let mut state = [0u64; 25];
-    let state_ptr = state.as_mut_ptr();
+    // stwo: the state is initialized by the first absorb instead of a
+    // 200-byte memset: a full first block is assigned (no load/XOR) and the
+    // capacity lanes zeroed; a short message starts from explicit zero lanes.
+    let mut state = core::mem::MaybeUninit::<[u64; 25]>::uninit();
+    let state_ptr = state.as_mut_ptr().cast::<u64>();
     let bytes = state_ptr.cast::<u8>();
     let offset = (input as usize) & 7;
     let mut consumed = 0;
+    if length >= RATE && funnel_words(offset, length).min(RATE / 8) == RATE / 8 {
+        unsafe {
+            assign_block(state_ptr, input, offset);
+            for i in RATE / 8..25 {
+                ptr::write(state_ptr.add(i), 0);
+            }
+            permute(state_ptr);
+        }
+        consumed = RATE;
+    } else {
+        for i in 0..25 {
+            unsafe { ptr::write(state_ptr.add(i), 0) };
+        }
+    }
     while length - consumed >= RATE {
         unsafe {
             let block = input.add(consumed);
@@ -130,6 +147,31 @@ unsafe fn absorb_block(state: *mut u64, input: *const u8, offset: usize) {
                 $( unsafe {
                     let next = u64::from_le(ptr::read(base.add($i + 1)));
                     ptr::write(state.add($i), ptr::read(state.add($i)) ^ ((current >> shift) | (next << back)));
+                    current = next;
+                } )*
+            }
+        }};
+    }
+    lanes!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+}
+
+/// One full rate block assigned (not XOR-ed) into the first 17 lanes.
+#[inline(always)]
+unsafe fn assign_block(state: *mut u64, input: *const u8, offset: usize) {
+    macro_rules! lanes {
+        ($($i:literal),*) => {{
+            if offset == 0 {
+                $( unsafe {
+                    ptr::write(state.add($i), u64::from_le(ptr::read(input.add($i * 8).cast::<u64>())));
+                } )*
+            } else {
+                let shift = (offset * 8) as u32;
+                let back = 64 - shift;
+                let base = unsafe { input.sub(offset) }.cast::<u64>();
+                let mut current = u64::from_le(unsafe { ptr::read(base) });
+                $( unsafe {
+                    let next = u64::from_le(ptr::read(base.add($i + 1)));
+                    ptr::write(state.add($i), (current >> shift) | (next << back));
                     current = next;
                 } )*
             }
