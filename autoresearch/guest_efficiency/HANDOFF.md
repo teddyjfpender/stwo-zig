@@ -202,6 +202,10 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
     distinct: sponge 0x30130, curves 0x30100..0x30121.
     `bench.py build-exec` OK; `zig build test` in src/frontends/riscv/rv64:
     100/100 pass.
-- TODO (in progress on this branch): rebuild the evmone `admitted` and `v3`
-  clients, re-run the 15-block basket, and the Word16 services suites. The last
+  - Gate 2 (evmone client): restored the EEST track's blst portable-C vs
+    assembly host check in `client_evmone/build.py --tests` (dropped by the
+    EEST merge; host-test only, not on the guest build path). `build.py` builds
+    default/admitted (`client-evmone-admitted.elf` sha256 a83dea52...bc59),
+    `--host` (0b609c82...d874) and `--profile v3` (909477e5...82f4).
+- TODO (in progress on this branch): re-run the 15-block basket, and the Word16 services suites. The last
   verified head of this branch before the unverified merges is `1c821fc9d`.

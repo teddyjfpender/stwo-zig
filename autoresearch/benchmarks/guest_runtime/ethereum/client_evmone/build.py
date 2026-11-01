@@ -223,7 +223,8 @@ def compile_one(job):
 
 def run_tests(src: Path, out: Path, work: Path, a) -> None:
     """Host tests: memory-function fuzz, secp256k1 differential vs evmone, witness trie
-    differential vs a reference MPT encoder, ziskethone word paths (hash, compare, copy)."""
+    differential vs a reference MPT encoder, ziskethone word paths (hash, compare, copy),
+    blst portable C (the guest's configuration) vs blst assembly."""
     tdir = work / "obj-tests"
     tdir.mkdir(parents=True, exist_ok=True)
     glue = HERE / "glue"
@@ -272,6 +273,17 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "zeg_words_test.cpp", "-o", wobj])
     run(["zig", "c++", a.opt, wobj, "-o", tdir / "zeg_words_test"])
     run([tdir / "zeg_words_test"])
+    # blst: the guest's portable-C configuration (patch 0002 path) vs assembly.
+    blst = src / "blst"
+    outs = {}
+    for name, extra in (("asm", [blst / "build" / "assembly.S"]), ("portable", ["-D__BLST_NO_ASM__"])):
+        exe = tdir / f"blst_{name}"
+        run(["zig", "cc", a.opt, f"-I{blst / 'bindings'}", blst / "src" / "server.c", *extra,
+             HERE / "tests" / "blst_portable.c", "-o", exe])
+        outs[name] = subprocess.run([str(exe)], capture_output=True, text=True, check=True).stdout
+    if outs["asm"] != outs["portable"] or outs["asm"].count("\n") < 100:
+        raise SystemExit("blst portable-C build disagrees with the assembly build")
+    print(f"blst portable == assembly ({outs['asm'].count(chr(10))} results)")
     # Translated-segment dispatch (patch 0023) vs the fused cgoto and the plain switch
     # dispatch, linked against the host build's evmone objects.
     hobj = work / "obj-host"
