@@ -27,3 +27,20 @@ pub const Plan = struct {
         return p;
     }
 };
+
+/// External backing reservation under the SAME cap, owned by the parent worker
+/// allocator so existing owned PCS commits can adopt it without an allocator
+/// mismatch. This owner is single-threaded; no concurrent budget mutations.
+pub fn reserveExternal(budget: *@import("stwo_prover_engine").host_budget_allocator.HostBudgetAllocator, bytes: usize) !void {
+    if (budget.live_bytes > budget.limit or budget.external_live_bytes > budget.limit - budget.live_bytes or bytes > budget.limit - budget.live_bytes - budget.external_live_bytes) {
+        budget.budget_exceeded = true;
+        return error.OutOfMemory;
+    }
+    budget.external_live_bytes += bytes;
+    budget.peak_external_bytes = @max(budget.peak_external_bytes, budget.external_live_bytes);
+    budget.peak_live_bytes = @max(budget.peak_live_bytes, budget.live_bytes + budget.external_live_bytes);
+}
+pub fn releaseExternal(budget: *@import("stwo_prover_engine").host_budget_allocator.HostBudgetAllocator, bytes: usize) void {
+    std.debug.assert(bytes <= budget.external_live_bytes);
+    budget.external_live_bytes -= bytes;
+}
