@@ -1,0 +1,18 @@
+1/11 om31_stark_test_root.test_0...OK
+2/11 om31_stark_test.test.OM31 STARK actual boolean AIR full prover and fresh receiver...OK
+3/11 om31_stark_test.test.OM31 STARK allocation failures release all pipeline owners...OK
+4/11 om31_stark_test.test.OM31 STARK rejects altered samples openings root and terminal...OM31_STARK_REJECT main_sample OodsNotMatching
+OM31_STARK_REJECT composition_sample OodsNotMatching
+OM31_STARK_REJECT opening RootMismatch
+OM31_STARK_REJECT root OodsNotMatching
+OM31_STARK_REJECT terminal InvalidQueryShape
+OM31_STARK_REJECT shape InvalidStructure
+OK
+5/11 om31_stark_test.test.OM31 STARK rejects an invalid boolean trace before returning a proof...OK
+6/11 om31_stark_test.test.OM31 STARK complete fold4 profile verifies through wide lazy PCS...OK
+7/11 prove_test.test.prover prove: early component and sampled-point errors consume schemes...OK
+8/11 prove_test.test.prover prove: prove_ex components slice verifies with core verifier...OK
+9/11 prove_test.test.prover prove: prepared proof verifies with core verifier...OK
+10/11 prove_test.test.prover prove: prove_ex computes sampled values and verifies...OK
+11/11 prove_test.test.prover prove: prove_ex supports non-zero blowup...OK
+All 11 tests passed.

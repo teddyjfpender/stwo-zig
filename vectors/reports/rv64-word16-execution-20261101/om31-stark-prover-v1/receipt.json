@@ -1,0 +1,86 @@
+{
+  "schema": "rv64-om31-stark-prover-qualification-v1",
+  "engine_source_commit": "5074bc821",
+  "resource_error_followup": "ea0da984a",
+  "test_followup": "complete fold4 profile and wide coordinate assertions are included in this receipt commit",
+  "core_dependencies": [
+    "9ce4daf24",
+    "03392a413",
+    "035c3bb1c",
+    "a57f7f2cd"
+  ],
+  "fri_dependencies": [
+    "fec40a847",
+    "66039e6d4",
+    "8d1c10a9e"
+  ],
+  "status": "actual additive native wide STARK acceptance; default QM31 production path unchanged",
+  "tests": {
+    "combined_release_safe": 11,
+    "combined_release_fast": 11,
+    "actual_om31_cases_in_each": 5,
+    "legacy_qm31_full_prover_cases_in_each": 5,
+    "discovery_root_in_each": 1,
+    "qm31_ls_prototype_release_fast": 22,
+    "qm31_actual_wire_gkr_circuit_release_fast": 9,
+    "exact_error_gkr_lifecycle_safe": 25,
+    "exact_error_gkr_lifecycle_fast": 25
+  },
+  "actual_statement": {
+    "trace_rows": 16,
+    "main_columns": 1,
+    "constraint_count": 2,
+    "air": "nonconstant M31 Boolean trace, f*(f-1)/trace_zerofier enforced at domain and OODS",
+    "composition_coordinates": 8,
+    "composition_split": 1,
+    "sampled_composition_columns": 16,
+    "main_oods_upper_half_nonzero_asserted": true,
+    "fold_step_profiles": [
+      1,
+      4
+    ],
+    "pow_bits": 0
+  },
+  "flow": [
+    "ordinary shared M31 CPU commitment/FFT/tree storage",
+    "typed OM31 AIR vtable and domain accumulation",
+    "eight-coordinate composition interpolation, split and commitment",
+    "OM31 OODS and sampled values",
+    "bounded lazy DEEP quotient using core field-selected row authority",
+    "eight-coordinate FRI commitment/openings",
+    "fresh independent core OM31 full-STARK receiver"
+  ],
+  "adversarial_errors": {
+    "main_oods_high_coordinate": "OodsNotMatching",
+    "composition_oods_high_coordinate": "OodsNotMatching",
+    "main_opening": "RootMismatch",
+    "main_root": "OodsNotMatching",
+    "terminal_high_coordinate": "InvalidQueryShape",
+    "composition_sample_shape": "InvalidStructure"
+  },
+  "failure_gates": [
+    "exhaustive allocation-failure sweep through actual tiny full prover and fresh receiver",
+    "invalid Boolean trace refused before a proof is returned",
+    "GKR producer and verifier preserve exact OutOfMemory, separate from invalid-proof errors"
+  ],
+  "legacy_real_proof": {
+    "ls_log": 20,
+    "tail_log": 18,
+    "proof_bytes": 381800,
+    "sha256": "d6a9de7f3f31f115f72746ba9e1690a4cdada0993fd6147f192b03981b442255",
+    "byte_identical": true,
+    "fresh_receiver_accepted": true,
+    "reference": "vectors/reports/rv64-word16-execution-20261101/gkr-circuit-cost-v1/real-ls20-tail18.proof.bin"
+  },
+  "limits": [
+    "Not a whole-protocol 128-bit certificate or production field-profile switch",
+    "No Ethereum retained-block qualification on OM31 in this slice",
+    "Native typed proof objects verified; no new OM31 durable wire codec qualification",
+    "Wide compact coefficient-backed quotient inputs explicitly unsupported pending expansion lease",
+    "Wide Q-specific device/capability/work-capture optimizations not reinterpreted; explicit unsupported requests fail",
+    "Wide scalar secure sampling/quotient fallbacks qualify correctness, not production-scale throughput",
+    "No GPU or outer recursive proof security qualification in this slice"
+  ],
+  "performance_claim": null,
+  "host": "shared host; no controlled performance comparison"
+}
