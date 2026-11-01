@@ -12,9 +12,11 @@ pub const CpuClaims = struct {
     base: G.Old.Claims,
     /// Families in T.Family order; an absent bridge's claims are zero.
     extras: [T.FAMILIES]T.ExtraClaims,
-    /// Bulk-memory claims (desc, copy, set): RAM14, OWNER19, U16. Zero and
-    /// omitted from the transcript (and wire, see WireClaims) when the CPU setup has no bulk component.
-    bulk: [3]T.BulkClaims = @splat(T.BulkClaims.zero()),
+    /// Bulk-memory claims in T.bulk_kinds order (desc, copy, set, then the
+    /// extension ucopy, cdesc, cmp): RAM14, OWNER19, U16. Zero and omitted from
+    /// the transcript (and wire, see WireClaims) when the CPU setup has no
+    /// bulk component (resp. no extension component).
+    bulk: [T.bulk_kinds.len]T.BulkClaims = @splat(T.BulkClaims.zero()),
     /// Keccak-sponge claims (call, perm): RAM14, OWNER19, IO11, AND, U16, U8.
     /// Zero and omitted from transcript and wire when the setup has no sponge.
     sponge: [2]T.SpongeClaims = @splat(T.SpongeClaims.zero()),
@@ -23,8 +25,8 @@ pub const CpuClaims = struct {
         for (self.sponge, 0..) |c, k| out[6 * k ..][0..6].* = c.values();
         return out;
     }
-    pub fn bulkValues(self: @This()) [9]Q {
-        var out: [9]Q = undefined;
+    pub fn bulkValues(self: @This()) [3 * T.bulk_kinds.len]Q {
+        var out: [3 * T.bulk_kinds.len]Q = undefined;
         for (self.bulk, 0..) |c, k| out[3 * k ..][0..3].* = c.values();
         return out;
     }
@@ -59,7 +61,10 @@ pub const CpuClaims = struct {
         channel.mixFelts(buffer[0..n]);
         // Bulk block last and only when present: v2, SHA-only and
         // arith-only transcripts are unchanged.
-        if (setup.bridges.bulk.any()) channel.mixFelts(&self.bulkValues());
+        const bulk = self.bulkValues();
+        if (setup.bridges.bulk.any()) channel.mixFelts(bulk[0 .. 3 * T.BULK_BASE]);
+        // Bulk extension (unaligned memcpy, memcmp) after it, only when present.
+        if (setup.bridges.bulk.anyExtension()) channel.mixFelts(bulk[3 * T.BULK_BASE ..]);
         // Sponge block after bulk, only when present.
         if (setup.bridges.sponge.any()) channel.mixFelts(&self.spongeValues());
     }

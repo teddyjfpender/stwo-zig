@@ -89,7 +89,7 @@ const Stage1 = struct {
         for (&curves, @import("types.zig").FIRST_CURVE..) |*out, fam| if (cpu.setup.bridges.at(@enumFromInt(fam))) |log| {
             out.* = try A.crypto.secp256k1.word16_bridge.source.Source.init(a, @import("types.zig").bridgeKind(@enumFromInt(fam)), self.advice.curves[cpu.ordinal][fam - @import("types.zig").FIRST_CURVE], cpu.first_ids[fam], log);
         };
-        var bulk: [3]?A.crypto.bulk_memory.source.Source = @splat(null);
+        var bulk: [@import("types.zig").bulk_kinds.len]?A.crypto.bulk_memory.source.Source = @splat(null);
         errdefer for (&bulk) |*b| if (b.*) |*s| s.deinit();
         for (@import("types.zig").bulk_kinds, &bulk) |kind, *out| if (cpu.setup.bridges.bulk.at(kind)) |log| {
             const shard = self.advice.bulk[cpu.ordinal];

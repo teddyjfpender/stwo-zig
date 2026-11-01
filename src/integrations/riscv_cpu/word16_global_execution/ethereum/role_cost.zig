@@ -6,8 +6,8 @@ const G = @import("../../word16_execution/geometry.zig");
 const Prepared = @import("../../word16_execution/prepared.zig").Prepared;
 const R = @import("../services/roster.zig");
 const T = @import("../services/types.zig");
-/// Core roles, one row per service family bridge, then the three v3
-/// bulk-memory components (desc, copy, set).
+/// Core roles, one row per service family bridge, then the six v3
+/// bulk-memory components (desc, copy, set, ucopy, cdesc, cmp).
 pub const COUNT = G.ROLE_COUNT + T.FAMILIES + T.bulk_kinds.len;
 pub const Row = struct {
     role: []const u8,
@@ -82,6 +82,9 @@ pub fn build(setup: *const R.CpuSetup, prepared: *const Prepared, ram_events: u3
             .desc => "bulk_desc",
             .copy => "bulk_copy",
             .set => "bulk_set",
+            .ucopy => "bulk_ucopy",
+            .cdesc => "bulk_cdesc",
+            .cmp => "bulk_cmp",
         }, log orelse 5, if (log != null) T.bulkWidths(kind) else .{ 0, 0, 0 }, bulk.rows(kind));
     }
     for (0..3) |tree| {

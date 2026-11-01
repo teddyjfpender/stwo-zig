@@ -60,6 +60,10 @@ pub fn cpus(a: std.mem.Allocator, captured: *const Capture) ![]W.CpuDeclaration 
         if (bulk.calls != 0) d.bridges.bulk.desc = try Coverage.minimalPrefixLog(bulk.calls);
         if (bulk.copy_words != 0) d.bridges.bulk.copy = try Coverage.minimalPrefixLog(bulk.copy_words);
         if (bulk.set_words != 0) d.bridges.bulk.set = try Coverage.minimalPrefixLog(bulk.set_words);
+        // Extension: unaligned copy rows, memcmp descriptors and compared words.
+        if (bulk.ucopy_rows != 0) d.bridges.bulk.ucopy = try Coverage.minimalPrefixLog(bulk.ucopy_rows);
+        if (bulk.cmp_calls != 0) d.bridges.bulk.cdesc = try Coverage.minimalPrefixLog(bulk.cmp_calls);
+        if (bulk.cmp_words != 0) d.bridges.bulk.cmp = try Coverage.minimalPrefixLog(bulk.cmp_words);
         // v3 Keccak sponge: one call row per ECALL, one row per permutation.
         const sponge = captured.advice.sponge[i].counts();
         if (sponge.calls != 0) d.bridges.sponge.call = @max(5, try Coverage.minimalPrefixLog(sponge.calls));
