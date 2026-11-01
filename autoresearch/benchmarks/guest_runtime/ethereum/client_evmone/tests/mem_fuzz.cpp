@@ -13,11 +13,34 @@ int main() {
     alignas(16) static uint8_t a[1024], b[1024], ref[1024];
     std::mt19937_64 rng(7);
     long checks = 0;
-    for (int it = 0; it < 400000; ++it) {
+    for (int it = 0; it < 600000; ++it) {
         for (auto& x : a) x = uint8_t(rng());
         for (int i = 0; i < 1024; ++i) b[i] = ref[i] = uint8_t(rng());
         const size_t so = rng() % 64, dof = rng() % 64, n = rng() % 300;
-        switch (it % 4) {
+        switch (it % 6) {
+            case 4: {  // service copy split (runtime.cpp v3_copy_run), n >= 15
+                const size_t m = 15 + n;
+                for (size_t i = 0; i < m; ++i) ref[256 + dof + i] = a[so + i];
+                bool bad = false;
+                split_copy(b + 256 + dof, a + so, m, [&](uint8_t* d, const uint8_t* s, size_t len) {
+                    bad |= (reinterpret_cast<uintptr_t>(d) & 7) != 0 || len == 0 || (len & 7) != 0;
+                    for (size_t i = 0; i < len; ++i) d[i] = s[i];
+                });
+                if (bad) { std::printf("split_copy body contract FAIL\n"); return 1; }
+                break;
+            }
+            case 5: {  // service fill split (runtime.cpp v3_set_run), n >= 15
+                const size_t m = 15 + n;
+                const int c = int(rng() & 0x1ff);
+                for (size_t i = 0; i < m; ++i) ref[256 + dof + i] = uint8_t(c);
+                bool bad = false;
+                split_fill(b + 256 + dof, c, m, [&](uint8_t* d, uint8_t byte, size_t len) {
+                    bad |= (reinterpret_cast<uintptr_t>(d) & 7) != 0 || len == 0 || (len & 7) != 0;
+                    for (size_t i = 0; i < len; ++i) d[i] = byte;
+                });
+                if (bad) { std::printf("split_fill body contract FAIL\n"); return 1; }
+                break;
+            }
             case 0: {  // memcpy
                 for (size_t i = 0; i < n; ++i) ref[256 + dof + i] = a[so + i];
                 stwo_memcpy(b + 256 + dof, a + so, n);
@@ -55,7 +78,7 @@ int main() {
             }
         }
         if (std::memcmp(b, ref, sizeof b) != 0) {  // whole buffer: no stray writes
-            std::printf("FAIL op=%d so=%zu do=%zu n=%zu\n", it % 4, so, dof, n);
+            std::printf("FAIL op=%d so=%zu do=%zu n=%zu\n", it % 6, so, dof, n);
             return 1;
         }
         ++checks;

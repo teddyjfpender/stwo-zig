@@ -285,8 +285,8 @@ def run_tests(src: Path, out: Path, work: Path, a) -> None:
     if outs["asm"] != outs["portable"] or outs["asm"].count("\n") < 100:
         raise SystemExit("blst portable-C build disagrees with the assembly build")
     print(f"blst portable == assembly ({outs['asm'].count(chr(10))} results)")
-    # Translated-segment dispatch (patch 0023) vs the fused cgoto and the plain switch
-    # dispatch, linked against the host build's evmone objects.
+    # Fused cgoto dispatch vs the plain switch dispatch (plus the xlat dispatch when the
+    # parked translated-segment patch wip/0024 is applied), linked against the host build.
     hobj = work / "obj-host"
     fobj = tdir / "xlat_difffuzz.o"
     run(["zig", "c++", *flags, "-c", HERE / "tests" / "xlat_difffuzz.cpp", "-o", fobj])
