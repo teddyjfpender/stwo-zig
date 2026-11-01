@@ -42,6 +42,16 @@ pub fn ForField(comptime Secure: type) type {
             channel: anytype,
             input_layer_by_instance: []const Layer,
         ) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            return proveBatchImpl(false, allocator, channel, input_layer_by_instance);
+        }
+
+        /// Operational stride-two tree storage. Identical transcript and proof;
+        /// missing levels are regenerated once from the retained lower level.
+        /// Caller inputs remain immutable, with the original borrowed lifetime.
+        pub fn proveBatchCheckpointed(allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
+            return proveBatchImpl(true, allocator, channel, input_layer_by_instance);
+        }
+        fn proveBatchImpl(comptime checkpointed: bool, allocator: std.mem.Allocator, channel: anytype, input_layer_by_instance: []const Layer) (std.mem.Allocator.Error || GkrProverError)!ProveBatchResult {
             if (input_layer_by_instance.len == 0) return GkrProverError.EmptyBatch;
 
             const n_instances = input_layer_by_instance.len;
@@ -59,18 +69,30 @@ pub fn ForField(comptime Secure: type) type {
             defer allocator.free(next_layer_idx);
             @memset(next_layer_idx, 0);
             const layers_by_instance = try allocator.alloc([]Layer, n_instances);
+            const present_by_instance = if (checkpointed) allocator.alloc([]bool, n_instances) catch |err| {
+                allocator.free(layers_by_instance);
+                return err;
+            } else &.{};
+            defer if (checkpointed) allocator.free(present_by_instance);
             var layers_initialized: usize = 0;
             defer {
                 var i: usize = 0;
                 while (i < layers_initialized) : (i += 1) {
-                    for (layers_by_instance[i][0..next_layer_idx[i]]) |*layer| layer.deinit(allocator);
+                    for (layers_by_instance[i][0..next_layer_idx[i]], 0..) |*layer, j| {
+                        if (!checkpointed or present_by_instance[i][j]) layer.deinit(allocator);
+                    }
+                    if (checkpointed) allocator.free(present_by_instance[i]);
                     allocator.free(layers_by_instance[i]);
                 }
                 allocator.free(layers_by_instance);
             }
 
             for (input_layer_by_instance, 0..) |input_layer, i| {
-                layers_by_instance[i] = try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
+                if (checkpointed) {
+                    const stored = try buildCheckpointed(allocator, input_layer);
+                    layers_by_instance[i] = stored.layers;
+                    present_by_instance[i] = stored.present;
+                } else layers_by_instance[i] = try gkr_circuit_field.buildLayersBorrowedInput(allocator, input_layer);
                 next_layer_idx[i] = layers_by_instance[i].len;
                 layers_initialized += 1;
             }
@@ -119,7 +141,10 @@ pub fn ForField(comptime Secure: type) type {
                 var instance: usize = 0;
                 while (instance < n_instances) : (instance += 1) {
                     if (n_layers_by_instance[instance] == n_remaining_layers) {
-                        var output_layer = try popNextLayer(
+                        var output_layer = try popStoredLayer(
+                            checkpointed,
+                            allocator,
+                            if (checkpointed) present_by_instance[instance] else &.{},
                             layers_by_instance[instance],
                             &next_layer_idx[instance],
                         );
@@ -164,7 +189,10 @@ pub fn ForField(comptime Secure: type) type {
                 instance = 0;
                 while (instance < n_instances) : (instance += 1) {
                     if (claims_to_verify_by_instance[instance]) |claims| {
-                        const layer = try popNextLayer(
+                        const layer = try popStoredLayer(
+                            checkpointed,
+                            allocator,
+                            if (checkpointed) present_by_instance[instance] else &.{},
                             layers_by_instance[instance],
                             &next_layer_idx[instance],
                         );
@@ -297,6 +325,43 @@ pub fn ForField(comptime Secure: type) type {
 
             ood_point = &[_]Secure{};
             return .{ .proof = proof, .artifact = artifact };
+        }
+
+        fn buildCheckpointed(a: std.mem.Allocator, input: Layer) !struct { layers: []Layer, present: []bool } {
+            const count = input.nVariables() + 1;
+            const layers = try a.alloc(Layer, count);
+            errdefer a.free(layers);
+            const present = try a.alloc(bool, count);
+            errdefer a.free(present);
+            @memset(present, false);
+            errdefer for (layers, present) |*layer, owns| {
+                if (owns) layer.deinit(a);
+            };
+            layers[0] = input.borrowed();
+            present[0] = true;
+            var current = layers[0];
+            var transient: ?Layer = null;
+            defer if (transient) |*layer| layer.deinit(a);
+            for (1..count) |height| {
+                const next = (try current.nextLayer(a)) orelse return error.InvalidLayerStructure;
+                if (transient) |*layer| layer.deinit(a);
+                transient = null;
+                if (height % 2 == 0 or height + 1 == count) {
+                    layers[height] = next;
+                    present[height] = true;
+                } else transient = next;
+                current = next;
+            }
+            return .{ .layers = layers, .present = present };
+        }
+        fn popStoredLayer(comptime checkpointed: bool, a: std.mem.Allocator, present: []const bool, layers: []Layer, next: *usize) !Layer {
+            if (!checkpointed) return popNextLayer(layers, next);
+            if (next.* == 0) return error.InvalidLayerStructure;
+            next.* -= 1;
+            const height = next.*;
+            if (present[height]) return layers[height];
+            if (height == 0 or !present[height - 1]) return error.InvalidLayerStructure;
+            return (try layers[height - 1].nextLayer(a)) orelse error.InvalidLayerStructure;
         }
 
         fn popNextLayer(layers: []const Layer, next_idx: *usize) GkrProverError!Layer {
