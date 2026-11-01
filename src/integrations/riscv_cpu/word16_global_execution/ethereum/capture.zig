@@ -82,6 +82,14 @@ pub const Owner = struct {
         if (options.max_inflight_packets == 1) return init(a, image, program, config, jobs, prefix_packets);
         return @import("capture_prefetch.zig").run(a, image, program, config, jobs, prefix_packets, options);
     }
+    /// Quiescent measurement only: do not race source handoff or stage jobs.
+    /// Counts owned requested payload, not allocator cache or immutable setup.
+    pub fn ownership(self: *const Owner) struct { native_payload: usize, native_headers: usize, advice: @import("capture_ownership.zig").AdvicePayload } {
+        const Owned = @import("capture_ownership.zig");
+        var total: usize = 0;
+        for (self.native.items) |value| total += Owned.native(value).total();
+        return .{ .native_payload = total, .native_headers = self.native.items.len * @sizeOf(Native) + self.native.capacity * @sizeOf(*Native), .advice = Owned.advice(&self.advice) };
+    }
     pub fn deinit(self: *Owner) void {
         for (self.native.items) |n| {
             n.deinit();

@@ -36,11 +36,18 @@ pub const WorkerTiming = struct {
     stage1_ns: u64 = 0,
     stage2_ns: u64 = 0,
     actual_main_merkle_bytes: usize = 0,
+    retired_memory_event_bytes: usize = 0,
+    memory_event_retire_ns: u64 = 0,
     stage1_completed: bool = false,
     stage2_completed: bool = false,
 };
 pub const Options = struct {
     max_workers: usize = 8,
+    /// Destructive opt-in for an exclusively owned Advice inventory. Successful
+    /// CPU stage one has joined MAIN/local proofs and copied global LS caches;
+    /// its original ordinary-memory events can then be retired. A later error
+    /// leaves those slots empty. Failed/unstarted ordinals remain caller-owned.
+    consume_memory_events: bool = false,
     /// Frontend MAIN/backing+binding admission, excluding independently owned setup
     /// and proof-engine scratch. This is not a total-RSS or device-memory claim.
     max_retained_frontend_bytes: usize = 512 << 20,
@@ -206,10 +213,13 @@ const Run = struct {
             }
             if (self.options.retained_store) |store| _ = try self.workers[index].?.truth.spillMain(store);
         }
-        if (timer) |*clock| {
-            timing.?.spill_ns = clock.lap();
-            timing.?.stage1_completed = true;
+        if (timer) |*clock| timing.?.spill_ns = clock.lap();
+        if (index < self.setups.len and self.options.consume_memory_events) {
+            const retired = try self.advice.retireEvents(index);
+            if (timing) |value| value.retired_memory_event_bytes = retired;
+            if (timer) |*clock| timing.?.memory_event_retire_ns = clock.lap();
         }
+        if (timing) |value| value.stage1_completed = true;
     }
     fn stageTwo(self: *Run, index: usize) !void {
         const timing = if (self.options.worker_timings) |values| &values[index] else null;

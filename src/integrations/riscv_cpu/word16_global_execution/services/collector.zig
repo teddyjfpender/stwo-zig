@@ -16,6 +16,17 @@ pub const Advice = struct {
     secp: [][2][]S.types.Call,
     initial: []Cell,
     terminal: []Cell,
+    /// Explicit destructive owner seam. No source may borrow this ordinal's
+    /// events when called; service calls and public cell owners are untouched.
+    /// Emptying the slot before freeing makes later owner cleanup idempotent.
+    pub fn retireEvents(self: *const Advice, ordinal: usize) !usize {
+        if (ordinal >= self.events.len) return error.InvalidCombinedOrdinal;
+        const events = self.events[ordinal];
+        const bytes = std.mem.sliceAsBytes(events).len;
+        self.events[ordinal] = &.{};
+        self.allocator.free(events);
+        return bytes;
+    }
     pub fn deinit(self: *Advice) void {
         const a = self.allocator;
         for (self.events) |e| a.free(e);
