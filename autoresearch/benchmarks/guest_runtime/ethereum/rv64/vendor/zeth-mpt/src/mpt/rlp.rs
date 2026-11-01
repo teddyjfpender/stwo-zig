@@ -491,9 +491,53 @@ fn encode_list_header(payload_length: usize) -> Vec<u8> {
 fn boxed_digest<M: Memoization>(digest: &[u8]) -> alloc::boxed::Box<Node<M>> {
     let mut node = alloc::boxed::Box::<Node<M>>::new_uninit();
     // SAFETY: the allocation is exactly one Node and is fully initialized here.
-    unsafe {
-        node.as_mut_ptr().write(Node::Digest(B256::from_slice(digest)));
+    let mut node = unsafe {
+        node.as_mut_ptr().write(Node::Digest(B256::ZERO));
         node.assume_init()
+    };
+    if let Node::Digest(d) = &mut *node {
+        copy_digest(&mut d.0, digest);
+    }
+    node
+}
+
+/// stwo: copies a 32-byte digest from an RLP buffer at any alignment.
+///
+/// `B256::from_slice` from an unaligned source called `memmove` (~77
+/// instructions on RV64IM, which traps on misaligned access). With an
+/// 8-aligned destination this reads the five aligned words that overlap the
+/// source bytes (never a word without a source byte, so never another page)
+/// and funnel-shifts them: about 25 instructions.
+#[inline(always)]
+fn copy_digest(dst: &mut [u8; 32], src: &[u8]) {
+    let src = &src[..32];
+    let d = dst.as_mut_ptr();
+    let s = src.as_ptr();
+    if cfg!(target_arch = "riscv64") && (d as usize) & 7 == 0 {
+        let off = (s as usize) & 7;
+        // SAFETY: every word read contains at least one byte of `src`; volatile
+        // keeps the compiler from reasoning about the bytes outside it.
+        unsafe {
+            let d = d.cast::<u64>();
+            if off == 0 {
+                let w = s.cast::<u64>();
+                for i in 0..4 {
+                    d.add(i).write(core::ptr::read_volatile(w.add(i)));
+                }
+            } else {
+                let w = s.sub(off).cast::<u64>();
+                let sh = (off * 8) as u32;
+                let back = 64 - sh;
+                let mut cur = core::ptr::read_volatile(w);
+                for i in 0..4 {
+                    let next = core::ptr::read_volatile(w.add(i + 1));
+                    d.add(i).write((cur >> sh) | (next << back));
+                    cur = next;
+                }
+            }
+        }
+    } else {
+        dst.copy_from_slice(src);
     }
 }
 
