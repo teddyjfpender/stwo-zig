@@ -17,9 +17,13 @@ scores down. All branches are pushed to `origin`. Read with
 | evmone client + all candidate services | 3.394 | 55,556 | execution-only |
 | Targets: L3 ziskethone parity / L4 | 2.02 / 1.50 | ~23,000 / ~17,000 | |
 
-PR #308 branch `codex/rv64-guest-efficiency` holds only verified, promotable
-work. In-flight tracks live on their own branches (below) and are merged only
-after they report verified results.
+PR #308 branch `codex/rv64-guest-efficiency` now ALSO contains the six
+in-flight tracks below, merged as **UNVERIFIED** checkpoints at the user's
+request (merge commits titled "Merge UNVERIFIED checkpoint: ..."). Conflicting
+hunks were resolved in favour of the verified side. The interpreter pass 2
+patch is parked in `client_evmone/patches/wip/` (not applied). The verified
+numbers in the table were measured before those merges; the post-merge
+re-check is recorded below under "Post-merge status".
 
 ## How to resume any track
 
@@ -94,7 +98,7 @@ Branch `codex/rv64-guest-client-interpreter2` (head `9fb12eca4`). Has a large
 new patch `0023-evmone-rv64-translated-segments.patch` (pre-translated
 segments / threaded dispatch). Interpreter is 1.66 instr/gas after pass 1;
 each opcode pays ~10 fixed instructions, dispatch 1.12/gas.
-- [ ] TODO renumber the patch: `0023` is already taken by the v3 modexp patch on the PR branch; re-merge `origin/codex/rv64-guest-efficiency` first (this branch predates the v3 merge).
+- [ ] TODO renumber the patch: `0023` is already taken by the v3 modexp patch; on the PR branch it is parked unapplied at `client_evmone/patches/wip/0023-evmone-rv64-translated-segments.patch`. Re-merge `origin/codex/rv64-guest-efficiency` first (this branch predates the v3 merge).
 - [ ] TODO finish and measure threaded dispatch; per-basic-block gas and stack checks cached per JUMPDEST; top-of-stack in registers in fused jumps.
 - [ ] TODO extend the fused-dispatch differential fuzzer to every gas/stack accounting change; EEST re-run on the affected groups.
 - [ ] TODO harness on admitted, v3 and candidate profiles; target interpreter ~1.0 instr/gas.
@@ -157,10 +161,15 @@ Ordered by expected effect per unit of work. Numbers are estimates unless noted.
 | `codex/rv64-guest-client-{evmone,trie-state,interpreter}` | client port and passes | verified, merged |
 | `codex/rv64-guest-candidate-{services,curves,isa}` | execution-only candidates | verified, merged |
 | `codex/rv64-guest-rust-lean` | Rust guest lean track (9.93) | verified, not merged (overlaps track C) |
-| `codex/rv64-guest-prover-keccak-sponge` | sponge service | WIP |
-| `codex/rv64-guest-prover-curves` | BN254/BLS12-381 services | WIP |
-| `codex/rv64-guest-prover-bulk-unaligned` | unaligned memcpy, memcmp | WIP |
-| `codex/rv64-guest-prover-recursion-v3` | recursion for v3 services | WIP |
-| `codex/rv64-guest-client-interpreter2` | interpreter pass 2 | WIP |
-| `codex/rv64-guest-client-eest-fixes` | EEST liveness bugs | WIP |
+| `codex/rv64-guest-prover-keccak-sponge` | sponge service | WIP, merged UNVERIFIED |
+| `codex/rv64-guest-prover-curves` | BN254/BLS12-381 services | WIP, merged UNVERIFIED |
+| `codex/rv64-guest-prover-bulk-unaligned` | unaligned memcpy, memcmp | WIP, merged UNVERIFIED |
+| `codex/rv64-guest-prover-recursion-v3` | recursion for v3 services | WIP, merged UNVERIFIED |
+| `codex/rv64-guest-client-interpreter2` | interpreter pass 2 | WIP, merged UNVERIFIED (patch parked in wip/) |
+| `codex/rv64-guest-client-eest-fixes` | EEST liveness bugs | WIP, merged UNVERIFIED |
 | `codex/rv64-keccak-memory-cost` | Keccak/memory cost design | verified doc |
+
+## Post-merge status
+
+- Harness unit tests (`test_bench.py`): pass after the unverified merges.
+- Re-check of the evmone client on all 15 blocks after the merges: pending (next commit).
