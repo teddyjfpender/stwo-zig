@@ -16,8 +16,8 @@ const M = core.fields.m31.M31;
 const Q = E.Q;
 const CHUNK: usize = 4096;
 const LOG_CHUNK: u32 = 12;
-const BLOCK: usize = CHUNK / 16;
-const LOG_BLOCK: u32 = LOG_CHUNK - 4;
+const BLOCK: usize = CHUNK / Prefix.GROUP_ROWS;
+const LOG_BLOCK: u32 = LOG_CHUNK - Prefix.GROUP_LOG_ROWS;
 comptime {
     std.debug.assert(CHUNK == @as(usize, 1) << LOG_CHUNK);
 }
@@ -100,12 +100,12 @@ const Job = struct {
         var chunk = self.start;
         while (chunk < self.end) : (chunk += self.stride) self.summaries[chunk] = .{try self.fill(chunk * CHUNK)};
     }
-    /// Line-complete order (see prefix_waves.lineGroupSegments). Padding rows
+    /// Relative-block-owned groups (see prefix_waves.lineGroupSegments). Padding rows
     /// take a unit placeholder denominator whose inverse is never read.
     fn fillGroup(self: *Job, group: usize) !void {
         const segments = Prefix.lineGroupSegments(self.log, self.segment_log, group);
         const size = @as(usize, 1) << @intCast(self.segment_log);
-        var sums: [16]Q = @splat(Q.zero());
+        var sums: [Prefix.GROUP_ROWS]Q = @splat(Q.zero());
         const denominators = self.scratch[0..CHUNK];
         const inverses = self.scratch[CHUNK..][0..CHUNK];
         var r0: usize = 0;
